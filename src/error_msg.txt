@@ -1353,6 +1353,7 @@ ec_operation_may_not_fit_in_fixed_point_result;;"operation may cause fixed-point
 ec_expr_not_integral_or_enum_or_fixed_point;;"expression must have integral, enum, or fixed-point type"
 ec_expr_not_integral_or_fixed_point;;"expression must have integral or fixed-point type"
 ec_noreturn_function_does_return;;"function declared with \"noreturn\" does return"
+ec_asm_name_conflict;;"asm name ignored because it conflicts with a previous declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -4169,6 +4169,53 @@ may have to be freed on exit from the statement expression.
   }  /* if */
 }  /* check_for_vla_inside_statement_expression */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void record_asm_name_for_variable(a_variable_ptr         variable,
+                                         char                   *asm_name,
+                                         a_boolean              is_register,
+                                         a_source_position_ptr  diag_pos)
+/*
+Record the given asm name in the given variable entry.  is_register indicates
+that the asm name should be treated as a register name.  If a problem is
+detected, issue a diagnostic at the give position.
+*/
+{
+  if (is_register) {
+    /* If the variable has been declared with the register keyword, then
+       the assembly name indicates a particular register. */
+    a_named_register  anr = name_to_register(asm_name, diag_pos);
+    if (anr != (a_named_register)anr_invalid) {
+      if (variable->asm_name_is_valid &&
+          variable->asm_name_or_reg.name == NULL) {
+        /* This is the first "asm name" construct for this entity. */
+        variable->asm_name_or_reg.reg = anr;
+        variable->asm_name_is_valid = FALSE;
+      } else if (variable->asm_name_is_valid ||
+                 variable->asm_name_or_reg.reg != anr) {
+        /* Ignore this construct with a warning since it conflicts with a
+           previous declaration. */
+        pos_warning(ec_asm_name_conflict, diag_pos);
+      }  /* if */
+    } else {
+      /* Unknown register name: An error will has been issued already. */
+    }  /* if */
+  } else {
+    /* Otherwise, the assembly name is just a name.  */
+    if (variable->asm_name_or_reg.name == NULL) {
+      /* This is the first declaration of this variable with an "asm name"
+         construct. */
+      variable->asm_name_or_reg.name = asm_name;
+    } else if (strcmp(variable->asm_name_or_reg.name, asm_name) != 0) {
+      /* The current declaration has an "asm name" that is different from
+         one specified on a previous declaration.  Issue a warning and
+         ignore the specification on the current declaration. */
+      pos_warning(ec_asm_name_conflict, diag_pos);
+    }  /* if */
+  }  /* if */
+}  /* record_asm_name_for_variable */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED
 /* ARGSUSED */ /* decl_modifiers, attributes, and/or asm_name are not 
@@ -4612,18 +4659,8 @@ declaration.
     }  /* if */
     /* Record the assembly name. */
     if (asm_name != NULL) {
-      if (is_register) {
-        /* If the variable has been declared with the register keyword, then
-           the assembly name indicates a particular register. */
-        a_named_register anr = name_to_register(asm_name, asm_name_pos);
-        if (anr != (a_named_register)anr_invalid) {
-          variable_ptr->asm_name_or_reg.reg = anr;
-          variable_ptr->asm_name_is_valid = FALSE;
-        }  /* if */
-      } else {
-        /* Otherwise, the assembly name is just a name.  */
-        variable_ptr->asm_name_or_reg.name = asm_name;
-      }  /* if */
+      record_asm_name_for_variable(variable_ptr, asm_name, is_register,
+                                   asm_name_pos);
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -4965,6 +5002,31 @@ of the given routine.
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 }  /* record_active_pragmas */
+
+#if GNU_EXTENSIONS_ALLOWED
+
+static void record_asm_name_for_routine(a_routine_ptr          routine,
+                                        char                   *asm_name,
+                                        a_source_position_ptr  diag_pos)
+/*
+Record the given asm name in the given routine entry.  If a conflict is
+detected, issue a diagnostic at the given position.
+*/
+{
+  check_assertion(asm_name != NULL);
+  if (routine->asm_name == NULL) {
+    /* This is the first declaration of this routine with an "asm name"
+       construct. */
+    routine->asm_name = asm_name;
+  } else if (strcmp(routine->asm_name, asm_name) != 0) {
+    /* The current declaration has an "asm name" that is different from
+       one specified on a previous declaration.  Issue a warning and
+       ignore the specification on the current declaration. */
+    pos_warning(ec_asm_name_conflict, diag_pos);
+  }  /* if */
+}  /* record_asm_name_for_routine */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED
 /* ARGSUSED */ /* decl_modifiers and/or attributes are not used in
@@ -6222,7 +6284,8 @@ skip_overloading:;
     }  /* if */
     /* Record the assembly name. */
     if (asm_name != NULL) {
-      routine_ptr->asm_name = asm_name;
+      record_asm_name_for_routine(routine_ptr, asm_name,
+                                  &locator->source_position);
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

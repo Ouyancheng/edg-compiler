@@ -1,5 +1,15 @@
 Version 3.4
 
+2/23/04  GNU mode: Diagnose asm name conflicts
+
+The front end now issues a warning on asm name constructs that specify
+conflicting names for the same entity (the earlier name is kept).
+For example:
+
+  int x __asm__("x_1");
+  int x __asm__("x_2");  // A warning is issued and "x_1" remains the
+                         // asm name.
+
 2/23/04  Abort or internal error during partial ordering processing
 
 If a nontype template parameter has a type that depends on another
