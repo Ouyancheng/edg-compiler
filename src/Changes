@@ -1,5 +1,13 @@
 Version 2.42
 
+6/29/99  Template classes given external linkage in -tlocal mode
+
+Formerly, in -tlocal mode, template classes were given internal linkage.
+This would cause a given template class to have a distinct type_info
+object in each translation unit in which it was used.  Template classes
+are now given external linkage to prevent this from occurring.  The
+members of the classes are still given internal linkage.
+
 6/28/99  __MSDOS__ and __WIN32__ macros no longer defined
 
 Formerly, the front end always defined __MSDOS__ and __WIN32__ to indicate

@@ -8306,10 +8306,11 @@ instantiation.
     tssp->variant.class_template.type_kind = type_kind;
     /* Set the name-linkage for this template -- it will be propagated
        into the instances. */
-    if (ssep->within_unnamed_namespace ||
-        instantiation_mode == tim_local) {
+    if (ssep->within_unnamed_namespace) {
       /* Templates declared inside an unnamed namespace have internal
-         linkage -- as do all templates in "local instantiation mode". */
+         linkage.  Note that classes in tim_local instantiation mode
+         are still external even though their members have internal
+         linkage. */
       tssp->variant.class_template.name_linkage =
                                        (a_name_linkage_kind)nlk_internal;
     } else {
