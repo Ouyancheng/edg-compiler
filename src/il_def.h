@@ -667,6 +667,11 @@ typedef struct a_source_correspondence {
 			/* TRUE if the name of the entity has been changed
 			   to the "mangled" form of the name (C++). */
 #endif /* DO_IL_LOWERING */
+#if BACK_END_IS_CP_GEN_BE
+  unsigned int	global_qualification_needed:1;
+			/* A leading "::" is needed when referring to this
+			   entity.  Used within the C++-generating back end. */
+#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* ifdef CIL */
 #if RECORD_SCOPE_DEPTH_IN_IL
   a_scope_depth	scope_depth;
@@ -2354,9 +2359,13 @@ typedef struct a_type {
 			/* Used in some cases to indicate the definition of
 			   a type is required and should be put out at the
 			   first opportunity. */
+  unsigned int	elaborated_type_specifier_needed:1;
+			/* An elaborated type specifier (e.g., "class X")
+			   is needed when referring to this type.  Used within
+			   the C++-generating back end. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-   unsigned int	autonomous_primary_tag_decl:1;
+  unsigned int	autonomous_primary_tag_decl:1;
 			/* TRUE if this type entry represents a class, struct,
 			   union, or enum and its the primary source sequence
 			   entry refers to a declaration (usually the
@@ -2369,7 +2378,6 @@ typedef struct a_type {
 			   declaration of variable b.  Also TRUE for
 			   anonymous unions. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  bitfield_to_avoid_codecenter_warnings();
 #if DO_IL_LOWERING
   a_variable_ptr
 		typeinfo_var;

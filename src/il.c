@@ -3887,13 +3887,11 @@ variant fields to default values.
 #if BACK_END_IS_CP_GEN_BE
   pte->definition_put_out = FALSE;
   pte->definition_delayed = FALSE;
+  pte->elaborated_type_specifier_needed = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   pte->autonomous_primary_tag_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if CHECKING
-  pte->avoid_codecenter_warnings = 0;
-#endif /* CHECKING */
 #if DO_IL_LOWERING
   pte->typeinfo_var = NULL;
 #endif /* DO_IL_LOWERING */
@@ -8365,6 +8363,9 @@ of the front end.
 #if DO_IL_LOWERING
   def_source_corresp.name_has_been_mangled = FALSE;
 #endif /* DO_IL_LOWERING */
+#if BACK_END_IS_CP_GEN_BE
+  def_source_corresp.global_qualification_needed = FALSE;
+#endif /* BACK_END_IS_CP_GEN_BE */
 #if RECORD_SCOPE_DEPTH_IN_IL
   def_source_corresp.scope_depth = NO_SCOPE_DEPTH;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
