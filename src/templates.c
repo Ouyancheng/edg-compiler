@@ -7384,7 +7384,7 @@ information.
   decl_start_pos = pos_curr_token;
   (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type,
                         &qualifiers, (an_attribute_ptr *)NULL, decl_modifiers,
-                        decl_pos_block, /*upc_block_size=*/NULL);
+                        decl_pos_block, (a_upc_block_size *)NULL);
   if (is_error_type(*type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(*locator);
@@ -11302,7 +11302,7 @@ depends on a template parameter type, return TRUE in *template_dependent
                          DSI_IS_TEMPLATE_PARAMETER),
                         &dso_flags, &param_storage_class, param_type_ptr,
                         &qualifiers, (an_attribute_ptr *)NULL, &decl_modifiers,
-                        &decl_pos_block, /*upc_block_size=*/NULL);
+                        &decl_pos_block, (a_upc_block_size *)NULL);
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     pos_error(ec_type_definition_not_allowed, &param_pos);
     *param_type_ptr = error_type();
@@ -14494,7 +14494,7 @@ that follows.
                                   : DSI_NO_INPUT_FLAGS)),
                         &dso_flags, &storage_class, &type, &qualifiers,
                         (an_attribute_ptr *)NULL, &decl_modifiers,
-                        &decl_pos_block, /*upc_block_size=*/NULL);
+                        &decl_pos_block, (a_upc_block_size *)NULL);
   /* A storage class is not permitted on an explicit specialization. */
   check_assertion(storage_class == (a_storage_class)sc_unspecified);
   if (is_error_type(type) && !is_declarator_start()) {
@@ -19094,7 +19094,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
                          DSI_IS_EXPLICIT_INSTANTIATION),
                         &dso_flags, &storage_class, &type, &qualifiers,
                         (an_attribute_ptr *)NULL, &decl_modifiers,
-                        &decl_pos_block, /*upc_block_size=*/NULL);
+                        &decl_pos_block, (a_upc_block_size *)NULL);
   if (is_error_type(type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(locator);

@@ -1333,7 +1333,7 @@ declaration.
                               &param_type_ptr, &qualifiers, 
                               &attributes, &decl_modifiers,
                               &local_decl_pos_block,
-                              /*upc_block_size=*/NULL);
+                              (a_upc_block_size *)NULL);
 #if GNU_EXTENSIONS_ALLOWED
         /* Find the end of the current attribute list. */
         while (*last_attribute != NULL) {
@@ -1945,7 +1945,7 @@ declaration.
 
       copy_source_position(pos_curr_token, qualifier_pos);
       qualifiers = collect_type_qualifiers(decl_pos_block,
-                                           /*upc_block_size=*/NULL);
+                                           (a_upc_block_size *)NULL);
       /* When a member function is declared with the restrict qualifier, the
          qualifier attaches to the this pointer, not to *this (as with const
          and volatile). */
@@ -2110,7 +2110,7 @@ declaration.
 
     qualifier_pos = pos_curr_token;
     qualifiers = collect_type_qualifiers(decl_pos_block,
-                                         /*upc_block_size=*/NULL);
+                                         (a_upc_block_size *)NULL);
     if (top_level_param_decl) {
       /* This is a top-level declaration of a function parameter type. */
       /* Only C99 mode allows cv-qualifiers.  restrict is allowed in
@@ -2593,7 +2593,7 @@ scanned and thrown away with a warning.
          near. */
       *qual_pos = pos_curr_token;
       new_qualifiers = collect_type_qualifiers(decl_pos_block,
-                                               /*upc_block_size=*/NULL);
+                                               (a_upc_block_size *)NULL);
       duplicates = (new_qualifiers & *qualifiers);
 #if NEAR_AND_FAR_ALLOWED
       if (near_and_far_enabled()) {

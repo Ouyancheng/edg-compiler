@@ -2361,7 +2361,7 @@ memory for IL memory blocks.
                            CREATE_ALWAYS,
                            FILE_ATTRIBUTE_TEMPORARY |
                                                   FILE_FLAG_DELETE_ON_CLOSE,
-                           NULL);
+                           (HANDLE)NULL);
   if (f_mmap_file == INVALID_HANDLE_VALUE) {
     str_catastrophe(ec_cannot_open_temp_file, temp_file_name);
   }  /* if */
@@ -2378,8 +2378,9 @@ fopen, so this open must be done in shared mode.
 */
 {
   f_mapped_input = CreateFile(file_name, GENERIC_READ,
-                              FILE_SHARE_READ, /*lpsa=*/NULL,
-                              OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, NULL);
+                              FILE_SHARE_READ, (LPSECURITY_ATTRIBUTES)NULL,
+                              OPEN_EXISTING, FILE_ATTRIBUTE_READONLY,
+                              (HANDLE)NULL);
   check_assertion_str(f_mapped_input != INVALID_HANDLE_VALUE,
                       "CreateFile of mapped input file failed");
   if (f_mapped_input == INVALID_HANDLE_VALUE) {

@@ -1967,8 +1967,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       }  /* if */
       if (used_qualified_name || curr_name_context->field_selection_context) {
         if (class_type->variant.class_struct_union.is_nonreal_class &&
-            (template_arguments_for_name(scp, entry_kind,
-                                         /*insert_space=*/NULL) != NULL ||
+            (template_arguments_for_name(
+                  scp, entry_kind, /*insert_space=*/(a_boolean *)NULL) != NULL ||
              (options & GN_TEMPLATE))) {
           /* Issue the "template" keyword in a "X<T>::template Y<int>" name
              or in a "X<T>::template Y" default template argument for a
@@ -7520,7 +7520,8 @@ recorded with this particular header.
       if (param->variant.templ.default_arg_template != NULL) {
         write_tok_str(" = ");
         gen_name(&param->variant.templ.default_arg_template->source_corresp,
-                 iek_template, GN_TEMPLATE, /*need_closing_paren=*/NULL);
+                 iek_template, GN_TEMPLATE,
+                 /*need_closing_paren=*/(a_boolean *)NULL);
       }  /* if */  
     }  /* if */
     if (param->next != NULL) write_tok_str(", ");

@@ -1002,7 +1002,7 @@ this will cause the source correspondence of the a_type or a_constant entry
 for the template parameter to be used.
 */
 {
-  remap_template_param(coord, /*scp=*/NULL);
+  remap_template_param(coord, (a_source_correspondence_ptr)NULL);
 }  /* unmap_template_param */
 
 #endif /* BACK_END_IS_CP_GEN_BE */
