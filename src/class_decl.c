@@ -3502,31 +3502,6 @@ of the function, and again overloading is a possibility.
 }  /* decl_friend_function */
 
 
-static a_boolean is_operator_delete_symbol(a_symbol_ptr  sym)
-/*
-Return TRUE is sym is a symbol for an operator delete() function.
-*/
-{
-  a_routine_ptr  rp;
-  a_boolean      is_operator_delete;
-
-  if (sym->kind == (a_symbol_kind)sk_overloaded_function ||
-      sym->kind == (a_symbol_kind)sk_projection) {
-    is_operator_delete = FALSE;
-  } else {
-    if (sym->kind == (a_symbol_kind)sk_function_template) {
-      rp = sym->variant.template_info->variant.function.routine;
-    } else {
-      rp = sym->variant.routine.ptr;
-    }  /* if */
-    is_operator_delete = (rp->special_kind ==
-                                   (a_special_function_kind)sfk_operator &&
-                          is_delete_operator(rp->opname_kind));
-  }  /* if */
-  return is_operator_delete;
-}  /* is_operator_delete_symbol */
-
-
 static a_symbol_ptr symbol_for_member_function(a_symbol_locator  *locator,
                                                a_type_ptr        type,
                                                a_symbol_ptr      *overload_sym)
