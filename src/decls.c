@@ -4316,11 +4316,15 @@ that the asm name should be treated as a register name.  If a problem is
 detected, issue a diagnostic at the given position.
 */
 {
+  a_named_register  anr = name_to_register(asm_name);
+
   if (is_register) {
     /* If the variable has been declared with the register keyword, then
        the assembly name indicates a particular register. */
-    a_named_register  anr = name_to_register(asm_name, diag_pos);
-    if (anr != (a_named_register)anr_invalid) {
+    if (anr == (a_named_register)anr_invalid) {
+      /* Unknown register name: Issue an error. */
+      pos_st_error(ec_bad_reg_name, diag_pos, asm_name);
+    } else {
       if (variable->asm_name_is_valid &&
           variable->asm_name_or_reg.name == NULL) {
         /* This is the first "asm name" construct for this entity. */
@@ -4332,12 +4336,12 @@ detected, issue a diagnostic at the given position.
            previous declaration. */
         pos_warning(ec_asm_name_conflict, diag_pos);
       }  /* if */
-    } else {
-      /* Unknown register name: An error will have been issued already. */
     }  /* if */
   } else {
     /* Otherwise, the assembly name is just a name. */
-    if (variable->asm_name_or_reg.name == NULL) {
+    if (gnu_version >= 30000 && anr != (a_named_register)anr_invalid) {
+      pos_error(ec_register_name_on_nonregister, diag_pos);
+    } else if (variable->asm_name_or_reg.name == NULL) {
       /* This is the first declaration of this variable with an "asm name"
          construct. */
       variable->asm_name_or_reg.name = asm_name;

@@ -1,5 +1,17 @@
 Version 3.5
 
+10/8/04  GNU compatibility: Register asm names for nonregister variables
+
+In configurations with ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS set to FALSE,
+the front end now issues an error if a nonregister variable is annotated
+with an asm name that refers to a register.  For example:
+
+  int x asm("al");  // Error when GNU_X86_ASM_EXTENSIONS_ALLOWED is TRUE
+                    // since "al" is a register name in such configurations.
+
+(Note that the error is not issued if gnu_version < 30000 because early
+versions of the GNU compilers did not diagnose such situations.)
+
 10/8/04  Enumerator constants incorrectly marked as being "a simple zero"
 
 The IL entry type a_constant has a field "is_simple_zero" that indicates the

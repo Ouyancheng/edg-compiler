@@ -110,8 +110,7 @@ static struct name_to_reg *regmap;
 static size_t regmap_size;
 
 
-a_named_register name_to_register(char			*name,
-				  a_source_position_ptr	name_pos)
+a_named_register name_to_register(char  *name)
 /*
 Given the user-specified name of a register as a string, return
 its code number, or anr_invalid if there is no such register.
@@ -147,9 +146,6 @@ In the latter case, issues an error.
     result = (a_named_register)anr_unrecognized;
   }  /* if */
 #endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
-  if (result == (a_named_register)anr_invalid) {
-    pos_st_error(ec_bad_reg_name, name_pos, name);
-  }  /* if */
   return result;
 }  /* name_to_register */
 
@@ -684,11 +680,13 @@ The syntax is
         reg = (a_named_register)anr_memory;
       } else if (strcmp(name, "cc") == 0) {
         warning(ec_cc_clobber_ignored);
-        reg = (a_named_register)anr_invalid;
+        goto skip_item;
       } else {
-        reg = name_to_register(name, &pos_curr_token);
+        reg = name_to_register(name);
       }  /* if */
-      if (reg != (a_named_register)anr_invalid) {
+      if (reg == (a_named_register)anr_invalid) {
+        pos_st_error(ec_bad_reg_name, &pos_curr_token, name);
+      } else {
         /* Add this register to our list. */
         if (first_reg == NULL) {
           first_reg = last_reg = alloc_named_register_list();
@@ -698,6 +696,7 @@ The syntax is
         }  /* if */
         last_reg->reg = reg;
       }  /* if */
+skip_item:
       /* Advance past the string literal. */
       (void)get_token();
       /* The next token must be a comma or a right parenthesis. */
