@@ -15,6 +15,16 @@ template-dependent.
     }
   };
 
+[6/15/01:] On a similar front, the keyword "template" following
+such a field selection is now put out when required.
+
+  template <class T> struct A {
+    T *p;
+    void f() {
+      p->template f<int>(1);  // "template" preserved in output
+    }
+  };
+
 6/13/01  Combining Microsoft mode and C99 mode
 
 Microsoft mode and C99 mode may now be used together.  Previously, the
