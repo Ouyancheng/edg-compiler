@@ -1437,7 +1437,8 @@ is not needed.
 */
 {
   check_assertion(local_static_lifetime == curr_object_lifetime);
-  if (err || local_static_var_init == NULL) {
+  if (err || local_static_var_init == NULL ||
+      local_static_var_init->init_kind != (an_init_kind)initk_dynamic) {
     mark_object_lifetime_as_useless(local_static_lifetime);
   } else {
     bind_object_lifetime(local_static_lifetime,
