@@ -946,7 +946,14 @@ type is legal.
         if (is_qualified_type(new_type_ptr) &&
             !is_reference_type(new_type_ptr)) {
           /* Type qualifiers on a function return type are meaningless. */
-          warning(ec_useless_type_qualifiers);
+          /* Issue just a remark for "volatile void" -- gcc uses that to
+             indicate a function (like exit()) that does not return. */
+          if (is_void_type(skip_typerefs(new_type_ptr)) &&
+              is_volatile_qualified_type(new_type_ptr)) {
+            remark(ec_useless_type_qualifiers);
+          } else {
+            warning(ec_useless_type_qualifiers);
+          }  /* if */
         }  /* if */
         if (err) new_type_ptr = error_type();
         (*bottom_derived_type)->variant.routine.return_type = new_type_ptr;
