@@ -1235,8 +1235,12 @@ do_set_proper_definition_needed_flag:
 #endif /* NEEDED_FLAG_WALK */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         { a_variable_ptr parameter = ptr->parameter;
-          if (parameter != NULL && is_ptr_or_ref_type(parameter->type)) {
-            definition_needed_if_class(type_pointed_to(parameter->type));
+          if (parameter != NULL) {
+            a_type_ptr param_type = parameter->type;
+            if (is_ptr_or_ref_type(param_type)) {
+              param_type = type_pointed_to(param_type);
+              definition_needed_if_class(param_type);
+            }  /* if */
           }  /* if */
         }
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
