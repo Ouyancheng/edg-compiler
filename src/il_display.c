@@ -3435,6 +3435,9 @@ Display the indicated expression node.
         disp_boolean("keep_cast_for_cp_gen_be", TRUE);
       }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
+      if (ptr->variant.operation.call_uses_operator_syntax) {
+        disp_boolean("call_uses_operator_syntax", TRUE);
+      }  /* if */
       disp_ptr("operands", (char *)ptr->variant.operation.operands,
                iek_expr_node);
       break;

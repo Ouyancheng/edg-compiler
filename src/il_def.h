@@ -8598,6 +8598,16 @@ typedef struct an_expr_node {
 			   compiler-generated.  Not all such casts are
 			   so labeled; this is used for some special cases. */
 #endif /* BACK_END_IS_CP_GEN_BE */
+      a_bit_field
+                call_uses_operator_syntax:1;
+                        /* TRUE for a call expression that results from
+                           operator syntax rather than function-call syntax
+                           (e.g., "a+b" as opposed to "operator+(a,b)").  The
+                           C++-generating back end must maintain this form when
+                           the operator is found via argument-dependent lookup
+                           and the call occurs in a context in which a
+                           member operator might be found by ordinary
+                           lookup of the name and thus suppress ADL. */
       bitfield_to_avoid_codecenter_warnings()
       an_expr_node_ptr  
                 operands;

@@ -2370,6 +2370,7 @@ fields to default values.
       node->variant.operation.only_found_through_arg_dependent_lookup = FALSE;
       node->variant.operation.keep_cast_for_cp_gen_be = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
+      node->variant.operation.call_uses_operator_syntax = FALSE;
 #if CENTERLINE_CHECKING
       node->variant.operation.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

@@ -7698,6 +7698,7 @@ static an_expr_node_ptr func_call_expr(
                                    a_boolean         is_conversion,
                                    a_boolean         arg_dep_lookup_suppressed,
                                    a_boolean         found_through_adl,
+                                   a_boolean         uses_operator_syntax,
                                    a_source_position *err_pos)
 /*
 Make an expression for a call of the function indicated by function_node,
@@ -7718,7 +7719,9 @@ an explicit or implicit conversion (e.g., a conversion function call).
 arg_dep_lookup_suppressed is TRUE if argument-dependent lookup
 was suppressed on the call.  found_through_adl is TRUE if the call
 was resolved only through argument-dependent lookup (i.e., ordinary
-lookup did not yield the called function).
+lookup did not yield the called function).  uses_operator_syntax is TRUE when
+a call to an overloaded operator is the result of operator notation ("a+b")
+rather than an explicit function call.
 */
 {
   an_expr_operator_kind         op;
@@ -7781,6 +7784,8 @@ lookup did not yield the called function).
   call_node->variant.operation.only_found_through_arg_dependent_lookup =
                                                         found_through_adl;
 #endif /* BACK_END_IS_CP_GEN_BE */
+  call_node->variant.operation.call_uses_operator_syntax =
+                                                          uses_operator_syntax;
   rtsp = function_type->variant.routine.extra_info;
   if (rtsp->value_returned_by_cctor) {
     /* An error was already issued for a function returning an abstract
@@ -7809,6 +7814,7 @@ void make_function_call(an_expr_node_ptr  function_node,
                         a_boolean         is_conversion,
                         a_boolean         arg_dep_lookup_suppressed,
                         a_boolean         found_through_adl,
+                        a_boolean         uses_operator_syntax,
                         a_source_position *call_pos,
                         an_operand        *result)
 /*
@@ -7824,7 +7830,9 @@ or implicit conversion (e.g., a conversion function call).
 arg_dep_lookup_suppressed is TRUE if argument-dependent lookup was
 suppressed on the call.  found_through_adl is TRUE if the call was
 resolved only through argument-dependent lookup (i.e., ordinary lookup did not
-yield the called function).  *call_pos gives the source position of the call.
+yield the called function).  uses_operator_syntax is TRUE when a call to an
+overloaded operator is the result of operator notation ("a+b") rather than an
+explicit function call.  *call_pos gives the source position of the call.
 */
 {
   an_expr_node_ptr call_node;
@@ -7835,7 +7843,8 @@ yield the called function).  *call_pos gives the source position of the call.
   call_node = func_call_expr(function_node, function_type, is_virtual,
                              virtual_suppressed, compiler_generated,
                              is_conversion, arg_dep_lookup_suppressed,
-                             found_through_adl, call_pos);
+                             found_through_adl, uses_operator_syntax,
+                             call_pos);
   /* Make an operand for the overall call (etc.). */
   make_expression_operand(call_node, call_node->type, result);
   result->position = *call_pos;
@@ -7863,6 +7872,7 @@ void assemble_function_call(an_operand        *function_operand,
                             a_boolean         is_conversion,
                             a_boolean         arg_dep_lookup_suppressed,
                             a_boolean         found_through_adl,
+                            a_boolean         uses_operator_syntax,
                             a_source_position *call_position,
                             an_operand        *result)
 /*
@@ -7876,6 +7886,8 @@ or implicit conversion (e.g., a conversion function call).
 arg_dep_lookup_suppressed is TRUE if argument-dependent lookup was suppressed
 on the call.  found_through_adl is TRUE if the function to be called was
 only found through argument-dependent lookup (not through ordinary lookup).
+uses_operator_syntax is TRUE when a call to an overloaded operator is the
+result of operator notation ("a+b") rather than an explicit function call.
 call_position gives the source position of the call.  An operand for the
 overall call is constructed in *result.
 */
@@ -7945,7 +7957,7 @@ overall call is constructed in *result.
                        (a_boolean)function_operand->is_qualified_name,
                        compiler_generated, is_conversion,
                        arg_dep_lookup_suppressed, found_through_adl,
-                       call_position, result);
+                       uses_operator_syntax, call_position, result);
   }  /* if */
   result->position = *call_position;
 }  /* assemble_function_call */
@@ -8004,6 +8016,7 @@ intended to be called from outside of the expression routines.
                         /*is_conversion=*/FALSE,
                         /*arg_dep_lookup_suppressed=*/FALSE,
                         /*found_through_adl=*/FALSE,
+                        /*uses_operator_syntax=*/FALSE,
                         err_pos);
   node = wrap_up_full_expression(node);
   /* Allocate the statement. */
@@ -9849,6 +9862,7 @@ is a "get" if put_operand is NULL.
                                  /*is_conversion=*/FALSE,
                                  /*arg_dep_lookup_suppressed=*/FALSE,
                                  /*found_through_adl=*/FALSE,
+                                 /*uses_operator_syntax=*/FALSE,
                                  &operand_position, operand);
         }  /* if */
       }  /* if */

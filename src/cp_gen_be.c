@@ -5148,6 +5148,11 @@ this selection.
     if (field_expr->variant.field->source_corresp.qualification_needed) {
       write_tok_str("::");
     }  /* if */
+  } else if (is_operation_node(object_expr) &&
+             object_expr->variant.operation.call_uses_operator_syntax) {
+    /* This expression implicitly invokes an operator->() function; generate
+       it in the original "x->y" form. */
+    gen_expression(object_expr);
   } else {
     /* Normal "." case. */
     gen_lvalue(object_expr);
@@ -6427,6 +6432,139 @@ call in the normal way.
 }  /* handle_conversion_function_call */
 
 
+static a_boolean handle_operator_call(an_expr_node_ptr expr)
+/*
+expr is a call expression.  If it is the result of operator syntax ("a+b")
+in the source, as opposed to an explicit function call ("operator+(a,b)"),
+recreate the original operator notation in the generated code and return
+TRUE.  (This is important for cases in which the operator function is
+found by argument-dependent lookup in contexts in which a call to a named
+function -- e.g., using a qualified name, or inside a member of a class with
+an operator member function of the same name -- would not use ADL.)  Otherwise,
+return FALSE and let the caller generate the code normally.
+*/
+{
+  a_boolean        handled = FALSE;
+
+  if (expr->variant.operation.call_uses_operator_syntax) {
+    an_expr_node_ptr              func_expr = expr->variant.operation.operands;
+    a_routine_ptr                 rp = func_expr->variant.routine;
+    a_type_ptr                    rout_type = skip_typerefs(rp->type);
+    a_routine_type_supplement_ptr rtsp = rout_type->variant.routine.extra_info;
+    a_param_type_ptr              param = rtsp->param_type_list;
+    an_expr_node_ptr              arg = func_expr->next;
+    an_opname_kind                op = rp->variant.opname_kind;
+    a_boolean                     parens_needed;
+    char                          *op_name;
+    char                          *right_half;
+
+    check_assertion_str(rp->special_kind == sfk_operator,
+          "handle_operator_call: non-operator function using operator syntax");
+
+    /* For postfix operators, there's no need to enclose the generated
+       expression in parentheses because the precedence is already higher
+       than all the other operators.. */
+    parens_needed = !(op == (an_opname_kind)onk_function_call ||
+                      op == (an_opname_kind)onk_subscript ||
+                      op == (an_opname_kind)onk_arrow ||
+                      ((op == (an_opname_kind)onk_plus_plus ||
+                        op == (an_opname_kind)onk_minus_minus) &&
+                       arg->next != NULL));
+
+    /* For most operators we can use the opname_names table to get the
+       operator representation.  Function call and subscript operators,
+       however, come in two parts, one before the second operand and one
+       after. */
+    if (op == (an_opname_kind)onk_function_call) {
+      op_name = "(";
+      right_half = ")";
+    } else if (op == (an_opname_kind)onk_subscript) {
+      op_name = "[";
+      right_half = "]";
+    } else {
+      op_name = opname_names[op];
+      right_half = NULL;
+    }  /* if */
+
+    if (parens_needed) {
+      /* Parenthesize to make sure we don't have precedence problems. */
+      write_tok_ch('(');
+    }  /* if */
+
+    if (arg->next == NULL &&
+        op != (an_opname_kind)onk_function_call &&
+        op != (an_opname_kind)onk_arrow) {
+      /* This is a prefix operator, so put the operator name first. */
+      write_tok_str(op_name);
+    }  /* if */
+
+    if (routine_type_is_nonstatic_member_function(rp->type)) {
+      /* The first operand is the member function's "this" pointer:
+         generate it as an lvalue. */
+      gen_lvalue(arg);
+      arg = arg->next;
+    } else {
+      /* For non-member functions, there's a parameter declaration to
+         guide the generation of the first operand. */
+      gen_argument(arg, param);
+      arg = arg->next;
+      param = param->next;
+    }  /* if */
+
+    if (arg != NULL ||
+        op == (an_opname_kind)onk_function_call ||
+        op == (an_opname_kind)onk_arrow) {
+      /* Either there's a second argument or this is a function call or "->"
+         operator, so the operator follows the first operand. */
+      a_boolean spaces_needed = (op != (an_opname_kind)onk_function_call &&
+                                 op != (an_opname_kind)onk_subscript &&
+                                 op != (an_opname_kind)onk_arrow &&
+                                 op != (an_opname_kind)onk_plus_plus &&
+                                 op != (an_opname_kind)onk_minus_minus &&
+                                 op != (an_opname_kind)onk_arrow_star);
+      if (spaces_needed && op != (an_opname_kind)onk_comma) {
+        write_space();
+      }  /* if */
+      write_tok_str(op_name);
+      if (spaces_needed) {
+        write_space();
+      }  /* if */
+
+      if (op != (an_opname_kind)onk_plus_plus &&
+          op != (an_opname_kind)onk_minus_minus) {
+        /* Postfix "++" and "--" have a second argument in the function call
+           form, but it doesn't appear in the operator syntax. */
+        while (arg != NULL) {
+          /* A function call has an arbitrary number of arguments, some of
+             which may not have corresponding parameter declarations (in case
+             of ellipsis).  The remaining cases will have a single right
+             operand.  This loop handles all these cases. */
+          gen_argument(arg, param);
+          arg = arg->next;
+          if (arg != NULL) {
+            write_tok_str(", ");
+          }  /* if */
+          if (param != NULL) {
+            param = param->next;
+          }  /* if */
+        }  /* while */
+
+        if (right_half != NULL) {
+          write_tok_str(right_half);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+
+    if (parens_needed) {
+      write_tok_ch(')');
+    }  /* if */
+    handled = TRUE;
+  }  /* if */
+
+  return handled;
+}  /* handle_operator_call */
+
+
 static void gen_call(an_expr_node_ptr expr)
 /*
 Generate code for the indicated expression, which is a non-virtual call.
@@ -6438,6 +6576,10 @@ Generate code for the indicated expression, which is a non-virtual call.
 
   if (handle_conversion_function_call(expr)) {
     /* Conversion function call.  Code was generated by the subroutine. */
+  } else if (handle_operator_call(expr)) {
+    /* Operator function call that was given in operator syntax ("a+b") in
+       the source, as opposed to an explicit function call ("operator+(a,b)").
+       Code was generated by the subroutine. */
   } else {
     a_boolean need_close_paren = FALSE;
     a_boolean need_arg_dep_close_paren = FALSE;
@@ -6681,7 +6823,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_pm_derived_class_cast:
           /* Special casts. */
           if (expr->variant.operation.compiler_generated) {
-            /* For an implicit cast, just put put the underlying operand. */
+            /* For an implicit cast, just put the underlying operand. */
             gen_expression(operand_1);
           } else {
             /* Incorporate any cast steps that were implicit in an explicit

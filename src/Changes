@@ -212,7 +212,24 @@ For example:
     f(s);  // Previously rendered as "N::f(s)" which is not valid in standard
   }        // C++.
 
-This is now fixed.
+This is now fixed.  In a related change [8/30/04], when an overloaded
+operator is invoked in the source using operator syntax (e.g., "a+b" as
+opposed to "operator+(a,b)"), the C++-generating back end will now also use
+operator syntax in the generated code.  This change avoids generating
+incorrect code like the following example:
+
+  namespace N {
+    struct S { };
+    int operator+(const S&, const S&);
+  }
+
+  struct T {
+    int operator+(int);
+    void f() {
+      N::S s1, s2;
+      operator+(s1, s2);  // T::operator+ prevents ADL, should be "s1 + s2"
+    }
+  };
 
 8/12/04  Dollar signs in text skipped by the preprocessor
 

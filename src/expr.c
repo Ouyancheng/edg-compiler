@@ -1227,6 +1227,7 @@ Syntax:
   a_boolean         do_arg_dep_lookup = FALSE;
   a_boolean         arg_dep_lookup_suppressed = FALSE;
   a_boolean         found_through_adl = FALSE;
+  a_boolean         uses_overloaded_call_operator = FALSE;
 
   db_enter(4, "scan_function_call");
 
@@ -1326,6 +1327,7 @@ Syntax:
         /* There is an operator() function.  The operand has become
            the selector object, and the function call operator routine
            becomes the operand. */
+        uses_overloaded_call_operator = TRUE;
         /* We can use an indefinite function operand whether the operator()
            function is overloaded or not. */
         make_indefinite_function_operand(member_function_symbol,
@@ -1699,7 +1701,7 @@ Syntax:
                            /*compiler_generated=*/FALSE,
                            /*is_conversion=*/FALSE,
                            arg_dep_lookup_suppressed,
-                           found_through_adl,
+                           found_through_adl, uses_overloaded_call_operator,
                            &call_position, result);
 #if GNU_EXTENSIONS_ALLOWED
     if (call_may_be_folded) {

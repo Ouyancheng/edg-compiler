@@ -9845,6 +9845,7 @@ select_best_function:
                                      /*is_conversion=*/FALSE,
                                      /*arg_dep_lookup_suppressed=*/FALSE,
                                      found_through_adl,
+                                     /*uses_operator_syntax=*/TRUE,
                                      operator_position, result);
             }  /* if */
           }  /* if */
@@ -11090,6 +11091,7 @@ in that case.
                        /*is_conversion=*/TRUE,
                        /*arg_dep_lookup_suppressed=*/FALSE,
                        /*found_through_adl=*/FALSE,
+                       /*uses_operator_syntax=*/FALSE,
                        &orig_operand.position, operand);
     if (dest_type == NULL) {
       /* No specified destination type.  The result type of the conversion
