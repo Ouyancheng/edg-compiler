@@ -2057,6 +2057,15 @@ and create a function instantiation entry to bind the two symbols together.
   a_scope_number                    corresp_prototype_decl_scope;
 
   db_enter(3, "find_member_function_template");
+  /* In certain error cases, two declarations that are distinct in the
+     class template may end up referring to the same function in a
+     given instantiation.  For example, the functions
+       f(T);
+       f(int);
+     will result in a duplicate declaration of f(int) when T is int.  An
+     error will be diagnosed when this is encountered in the class body.
+     If the instance pointer already exists, simply skip this processing. */
+  if (rout_sym->variant.routine.instance_ptr != NULL) goto error_exit;
   /* Find a function symbol on the inactive list that is in the scope of the
      prototype instantiation.  It should either be a function template or
      overloaded function symbol. */
@@ -2122,10 +2131,8 @@ and create a function instantiation entry to bind the two symbols together.
       }  /* if */
     }  /* for */
   }  /* if */
-#if CHECKING
-  if (sym == NULL || sym->kind != (a_symbol_kind)sk_member_function ||
-      sym->decl_position.seq != rout_sym->decl_position.seq ||
-      sym->decl_position.column != rout_sym->decl_position.column) {
+#if CHECKING && 0
+  if (sym == NULL || sym->kind != (a_symbol_kind)sk_member_function) {
     internal_error("find_member_function_template: no corresponding template");
   }  /* if */
 #endif /* CHECKING */
@@ -2158,7 +2165,7 @@ and create a function instantiation entry to bind the two symbols together.
   if (sym->variant.routine.ptr->is_inline) {
     rout_sym->variant.routine.ptr->is_inline = TRUE;
   }  /* if */
-
+error_exit:
   db_exit();
 }  /* find_member_function_template */
 
