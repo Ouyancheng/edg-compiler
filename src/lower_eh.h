@@ -130,7 +130,9 @@ typedef struct an_eh_lowering_context {
 		region_table_aggr_con;
   a_cleanup_region_number
 		next_avail_region_number;
+#ifndef AT_LEAST_ONE_FIELD_IN_AN_EH_LOWERING_CONTEXT
 #define AT_LEAST_ONE_FIELD_IN_AN_EH_LOWERING_CONTEXT 1
+#endif /* ifndef AT_LEAST_ONE_FIELD_IN_AN_EH_LOWERING_CONTEXT */
 #endif /* GENERATE_EH_TABLES */
 #ifndef AT_LEAST_ONE_FIELD_IN_AN_EH_LOWERING_CONTEXT
   char		dummy;	/* Dummy field if structure would otherwise be

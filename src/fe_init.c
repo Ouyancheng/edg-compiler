@@ -26,8 +26,10 @@ fe_init.c -- Initialization for the front end.
 Force definition in this compilation of external variables declared
 in .h files.
 */
+/*lint -save -e767*/
 #define EXTERN /*empty*/
 #define VAR_INITIALIZERS 1
+/*lint -restore*/
 
 #include "fe_common.h"
 #if __BSD__
