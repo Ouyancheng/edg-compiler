@@ -1111,6 +1111,9 @@ typedef struct a_lookup_state {
   a_boolean	is_linkage_lookup;
 			/* TRUE if the IDL_LINKAGE_LOOKUP option
 			   was specified for this lookup. */
+  a_boolean	is_friend_lookup;
+			/* TRUE if the IDL_FRIEND_LOOKUP option
+			   was specified for this lookup. */
   a_boolean	terminate_lookup;
 			/* TRUE if a condition occurred that should cause
 			   the lookup to terminate even is a symbol was
@@ -1189,6 +1192,7 @@ value.
   cleared_lookup_state.must_be_class                 = FALSE;
   cleared_lookup_state.tentative_type_lookup         = FALSE;
   cleared_lookup_state.is_linkage_lookup             = FALSE;
+  cleared_lookup_state.is_friend_lookup              = FALSE;
   cleared_lookup_state.terminate_lookup              = FALSE;
   cleared_lookup_state.skip_curr_function_scope      = FALSE;
   cleared_lookup_state.skip_class_scopes             = FALSE;
@@ -1799,6 +1803,16 @@ that do normal id lookup processing.
          namespace scope. */
       if (kind == (a_scope_kind)sck_namespace ||
           kind == (a_scope_kind)sck_namespace_extension) break;
+    } else if (lookup_state->is_friend_lookup) {
+      /* When doing a friend lookup, stop when we encounter the first
+         namespace scope or (except in cfront mode) the first function/block
+         scope. */
+      if (kind == (a_scope_kind)sck_namespace ||
+          kind == (a_scope_kind)sck_namespace_extension ||
+          (!any_cfront_mode() && (kind == (a_scope_kind)sck_function ||
+                                  kind == (a_scope_kind)sck_block))) {
+        break;
+      }
     }  /* if */
     if (cfront_2_1_mode && kind == (a_scope_kind)sck_function) {
       /* In cfront compatibility mode friend functions defined within
@@ -2042,6 +2056,7 @@ C and C++.
     lookup_state.tentative_type_lookup =
                                     (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0;
     lookup_state.is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP) != 0;
+    lookup_state.is_friend_lookup = (options & IDL_FRIEND_LOOKUP) != 0;
     lookup_state.skip_curr_function_scope =
                                  (options & IDL_SKIP_CURR_FUNCTION_SCOPE) != 0;
     lookup_state.skip_class_scopes = (options & IDL_SKIP_CLASS_SCOPES) != 0;
@@ -2086,7 +2101,8 @@ C and C++.
 #endif /* CHECKING */
     force_slow_lookup = lookup_state.skip_curr_function_scope ||
                         lookup_state.skip_class_scopes ||
-                        lookup_state.is_linkage_lookup;
+                        lookup_state.is_linkage_lookup ||
+                        lookup_state.is_friend_lookup;
     if (C_dialect != C_dialect_cplusplus ||
         (((inactive_symbol_list == NULL && !locator->is_conversion_name) ||
           !ssep->inactive_symbols_may_be_visible) &&
@@ -2234,17 +2250,21 @@ C and C++.
 #undef is_acceptable_symbol
 
 a_symbol_ptr curr_tag_symbol(a_symbol_locator  *locator,
-                             a_symbol_kind     tag_kind)
+                             a_symbol_kind     tag_kind,
+                             a_boolean         is_friend_decl)
 /*
 The current token is an identifier.  If it is a tag of the indicated kind
 do ambiguity and access control checking and return a pointer to the tag
-symbol.  Otherwise, return NULL.
+symbol.  Otherwise, return NULL.  is_friend_decl is TRUE when the tag appears
+in a friend declaration.
 */
 {
-  a_symbol_ptr assoc_symbol;
+  a_symbol_ptr              assoc_symbol;
+  an_id_lookup_options_set  options = IDL_MUST_BE_TAG;
 
-  /* Look up the current token.  Note that a qualified name is not allowed. */ 
-  assoc_symbol = normal_id_lookup(locator, IDL_MUST_BE_TAG);
+  /* Look up the current token.  Note that a qualified name is not allowed. */
+  if (is_friend_decl) options |= IDL_FRIEND_LOOKUP;
+  assoc_symbol = normal_id_lookup(locator, options);
   if (assoc_symbol != NULL &&
       assoc_symbol->kind == (a_symbol_kind)sk_class_template &&
       depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
@@ -2767,7 +2787,8 @@ namespace_qualified_id_lookup.
                                  = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
   a_boolean    	must_be_tag = (options & IDL_MUST_BE_TAG);
   a_boolean    	must_be_class = (options & IDL_MUST_BE_CLASS);
-  a_boolean	is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP);
+  a_boolean	is_linkage_or_friend_lookup =
+                         (options & (IDL_LINKAGE_LOOKUP | IDL_FRIEND_LOOKUP));
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
@@ -2819,11 +2840,11 @@ namespace_qualified_id_lookup.
     }  /* if */
   }  /* for */
 end_lookup:
-  if (sym == NULL && !is_linkage_lookup) {
+  if (sym == NULL && !is_linkage_or_friend_lookup) {
      /* If the symbol was not found in this namespace, look in namespaces
         visible because of using directives.  Skip this process for a
-        linkage lookup.  A linkage lookup should only find names that
-        are actually defined in a scope. */
+        linkage lookup.  A linkage or friend lookup should only find names
+        that are actually defined in a scope. */
     sym = qualified_using_directive_lookup(locator, ns_ptr, options,
                                            orig_ns_ptr, synth_sym, any_errors);
   }  /* if */
@@ -2899,7 +2920,8 @@ file scope.
   a_boolean     must_be_class = (options & IDL_MUST_BE_CLASS);
   a_symbol_ptr	synth_sym = NULL;
   a_boolean	any_errors = FALSE;
-  a_boolean	is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP);
+  a_boolean	is_linkage_or_friend_lookup =
+                         (options & (IDL_LINKAGE_LOOKUP | IDL_FRIEND_LOOKUP));
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 /* symbol_may_precede_qualifier checks for a symbol that is a class,
@@ -2926,11 +2948,11 @@ file scope.
       a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
       if (is_acceptable_symbol(sym, fund_sym)) break;
     }  /* for */
-    if (sym == NULL && !is_linkage_lookup) {
+    if (sym == NULL && !is_linkage_or_friend_lookup) {
        /* If the symbol was not found in this namespace, look in namespaces
           visible because of using directives.  Skip this process for a
-          linkage lookup.  A linkage lookup should only find names that
-          are actually defined in a scope. */
+          linkage lookup.  A linkage or friend lookup should only find names
+          that are actually defined in a scope. */
       sym = qualified_using_directive_lookup(locator, (a_namespace_ptr)NULL,
                                              options, (a_namespace_ptr)NULL,
                                              &synth_sym, &any_errors);

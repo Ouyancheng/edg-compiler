@@ -1453,7 +1453,8 @@ by id_linkage.
       /* This is either a block-extern declaration of a function or variable
          or (what amounts to the same thing) a friend declaration within a
          local class.  Find the visible declaration of the same name. */
-      (void)normal_id_lookup(locator, IDL_LINKAGE_LOOKUP);
+      (void)normal_id_lookup(locator, is_friend_decl ? IDL_FRIEND_LOOKUP :
+                                                       IDL_LINKAGE_LOOKUP);
       other_decl = locator->specific_symbol;
     } else {
       /* Not a context in which lookup in enclosing scopes is meaningful.

@@ -103,6 +103,15 @@ represented as a bit set:
 				   should be a template, and that the
 				   template argument list that follows
 				   the identifier should be coalesced. */
+#define IDL_FRIEND_LOOKUP 0x8000
+				/* For lookup of an unqualified name in a
+				   friend declaration, indicates (1) that the
+				   lookup does not go beyond the innermost
+				   enclosing namespace scope (or, for a local
+				   class friend declaration, the innermost
+				   enclosing function or block scope), and
+				   (2) that using-directives are ignored. May
+				   be combined with IDL_MUST_BE_TAG. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*
@@ -134,7 +143,8 @@ extern a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                                      an_id_lookup_options_set options);
 
 extern a_symbol_ptr curr_tag_symbol(a_symbol_locator  *locator,
-                                    a_symbol_kind     tag_kind);
+                                    a_symbol_kind     tag_kind,
+                                    a_boolean         is_friend_decl);
 
 extern a_symbol_ptr class_qualified_id_lookup(
                                          a_symbol_locator         *locator,
