@@ -3823,10 +3823,6 @@ wide string constant so that its address can be used.
   } else if (is_addr_of_wide_string_constant(constant)) {
     con = constant->variant.address.variant.constant;
     dump_var_for_wide_string_constant(con);
-  } else if (is_wide_string_constant(constant)) {
-    /* This case comes up when wide constants are used in a dynamic
-       initialization of an array. */
-    dump_var_for_wide_string_constant(constant);
   }  /* if */
 }  /* prescan_for_addrs_of_wide_string_constants */
 
@@ -4681,11 +4677,20 @@ Dump declarations for any temporaries required for the dynamic initializer
 expression and its subtree.
 */
 {
+  a_constant_ptr con;
+
   switch (dip->kind) {
     case dik_constant:
-      /* Do special processing for constants that are addresses of
-         wide string constants. */
-      prescan_for_addrs_of_wide_string_constants(dip->variant.constant);
+      con = dip->variant.constant;
+      if (is_wide_string_constant(con)) {
+        /* When the initial value is a wide string literal, replace it by
+           a variable. */
+        dump_var_for_wide_string_constant(con);
+      } else {
+        /* Do special processing for constants that are addresses of
+           wide string constants. */
+        prescan_for_addrs_of_wide_string_constants(con);
+      }  /* if */
       break;
     case dik_expression:
       dump_expr_prescan_temps(dip->variant.expression);
