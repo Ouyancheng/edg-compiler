@@ -9783,6 +9783,46 @@ the new declaration.
 }  /* create_member_using_declaration */
 
 
+static void check_member_using_visibility(a_type_ptr    class_type,
+                                          a_symbol_ptr  fund_sym,
+                                          a_boolean     *err)
+/*
+Members designated by a member using-declaration must be visible in a
+direct base class of the class in which the using-declaration appears.
+*/
+{
+  a_base_class_ptr  direct_bcp = base_classes_of(class_type);
+  a_symbol_locator  locator;
+
+  for (; direct_bcp != NULL; direct_bcp = direct_bcp->next) {
+    if (direct_bcp->direct) {
+      a_symbol_ptr  visible_sym;
+      a_boolean     is_list;
+      clear_locator(&locator, &locator_for_curr_id.source_position);
+      locator.symbol_header = locator_for_curr_id.symbol_header;
+      visible_sym = class_qualified_id_lookup(&locator, direct_bcp->type,
+                                              IDL_NO_OPTIONS);
+      is_list = (visible_sym->kind == (a_symbol_kind)sk_overloaded_function);
+      visible_sym = is_list ? visible_sym->variant.overloaded_function.symbols
+                            : visible_sym;
+      while (visible_sym != NULL) {
+        if (fundamental_symbol_of(visible_sym) == fund_sym) {
+          goto search_done;
+        }
+        visible_sym = is_list ? visible_sym->next : NULL;
+      }  /* while */
+    }  /* if */
+  }  /* for */
+search_done:
+  if (direct_bcp == NULL) {
+    error(ec_member_using_must_be_visible_in_direct_base);
+    *err = TRUE;
+  } else {
+    *err = FALSE;
+  }  /* if */
+}  /* check_member_using_visibility */
+
+
 static void member_using_declaration(a_type_ptr           class_type,
                                      an_access_specifier  access)
 /*
@@ -9939,21 +9979,7 @@ or implicit) controlling the declaration.
       } else if (!(bcp->direct || any_cfront_mode())) {
         /* Base class members designated in a using-declaration must be
            visible in the scope of at least one direct base class. */
-        a_base_class_ptr  direct_bcp = base_classes_of(class_type);
-        for (; direct_bcp != NULL; direct_bcp = direct_bcp->next) {
-          if (direct_bcp->direct) {
-            a_symbol_ptr  visible_sym;
-            clear_locator(&locator, &decl_pos);
-            locator.symbol_header = locator_for_curr_id.symbol_header;
-            visible_sym = class_qualified_id_lookup(&locator, direct_bcp->type,
-                                                    IDL_NO_OPTIONS);
-            if (visible_sym == fund_sym) { break; }
-          }  /* if */
-        }  /* for */
-        if (direct_bcp == NULL) {
-          error(ec_member_using_must_be_visible_in_direct_base);
-          err = TRUE;
-        }  /* if */
+        check_member_using_visibility(class_type, fund_sym, &err);
       }  /* if */
     }  /* if */
     if (!err) {
