@@ -153,30 +153,77 @@ it needs to be executed after all templates have been instantiated.
        types in secondary translation units are removed. */
     do_based_type_fixup();
   }  /* if */
+}  /* file_scope_il_wrapup_part_1 */
+
+
+static void file_scope_il_wrapup_needed_flag_processing(a_scope_ptr scope)
+/*
+Do needed-flag processing as part of file-scope IL wrapup processing.
+The current translation unit is swept to mark external entities and
+the things they reference as "needed".  scope is the file scope for
+the translation unit.
+*/
+{
+#if MAINTAIN_NEEDED_FLAGS
+  /* Set the "needed" flag in defined variables with external linkage --
+     both in the file scope and in each of the namespace scopes. */
+  set_needed_flags_at_end_of_file_scope(scope);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+#if DO_IL_LOWERING
+  /* Any statics referenced from instantiation slices in
+     one-instantiation-per-object mode must be made external so that
+     they can be referenced from the instantiation object files.
+     Likewise for statics referenced from exported templates. */
+#if MAINTAIN_NEEDED_FLAGS
+  end_of_file_scope_needed_flags_phase = TRUE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
+  make_statics_referenced_from_instantiations_external();
+#if MAINTAIN_NEEDED_FLAGS
+  end_of_file_scope_needed_flags_phase = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* DO_IL_LOWERING */
+}  /* file_scope_il_wrapup_needed_flag_processing */
+
+
+static void file_scope_il_wrapup_part_2(void)
+/*
+Do more wrapup processing on a translation unit.  This is called both
+for secondary translation units (is_primary_translation_unit is FALSE)
+and for primary translation units (is_primary_translation_unit
+is TRUE).  "Part 2" does needed flag processing for secondary
+translation units (all such translation units must be swept before
+code is removed from any of them, because there can be cross-translation-
+unit references).
+*/
+{
+  a_scope_ptr il_scope = curr_translation_unit->primary_scope;
 
   if (is_primary_translation_unit) {
     /* Sweep the primary translation unit IL tree and look for any
        pointers to entities in secondary translation units that it uses,
        and mark those entities as needed. */
     mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed();
+  } else {
+    /* Sweep a secondary translation unit IL tree and mark things as
+       needed. */
+    file_scope_il_wrapup_needed_flag_processing(il_scope);
   }  /* if */
-}  /* file_scope_il_wrapup_part_1 */
+}  /* file_scope_il_wrapup_part_2 */
 
 
-static void file_scope_il_wrapup_part_2(void)
+static void file_scope_il_wrapup_part_3(void)
 /*
 Do the final wrapup processing on a translation unit.  This is
 called both for secondary translation units (is_primary_translation_unit
 is FALSE) and for primary translation units (is_primary_translation_unit
-is TRUE).  "Part 2" does IL lowering, needed flag processing, and
-copying of IL from secondary translation units into the primary IL.
-When the primary translation unit is processed here, code from any
-secondary translation units will have already been copied over.
+is TRUE).  "Part 3" does IL lowering and needed flag processing for
+the primary translation unit, and copying of IL from secondary translation
+units into the primary IL.  When the primary translation unit is
+processed here, code from any secondary translation units will have
+already been copied over.
 */
 {
-  a_scope_ptr	il_scope;
-
-  il_scope = curr_translation_unit->primary_scope;
+  a_scope_ptr il_scope = curr_translation_unit->primary_scope;
 
   if (is_primary_translation_unit) {
     /* Sweep the primary translation unit IL tree and look for any
@@ -209,25 +256,14 @@ secondary translation units will have already been copied over.
   }  /* if */
   /* Pop the file scope. */
   pop_scope();
+  if (is_primary_translation_unit) {
+    /* Do needed-flag processing for the primary translation unit.
+       The needed-flag processing for secondary translation units
+       was done in part 2. */
+    file_scope_il_wrapup_needed_flag_processing(il_scope);
+  }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
-  /* Set the "needed" flag in defined variables with external linkage --
-     both in the file scope and in each of the namespace scopes. */
-  set_needed_flags_at_end_of_file_scope(il_scope);
-#endif /* MAINTAIN_NEEDED_FLAGS */
-#if DO_IL_LOWERING
-  /* Any statics referenced from instantiation slices in
-     one-instantiation-per-object mode must be made external so that
-     they can be referenced from the instantiation object files.
-     Likewise for statics referenced from exported templates. */
-#if MAINTAIN_NEEDED_FLAGS
-  end_of_file_scope_needed_flags_phase = TRUE;
-#endif /* MAINTAIN_NEEDED_FLAGS */
-  make_statics_referenced_from_instantiations_external();
-#if MAINTAIN_NEEDED_FLAGS
-  end_of_file_scope_needed_flags_phase = FALSE;
-#endif /* MAINTAIN_NEEDED_FLAGS */
-#endif /* DO_IL_LOWERING */
-#if MAINTAIN_NEEDED_FLAGS
+  /* Remove unneeded IL entries if appropriate. */
   /* Don't bother pruning the IL of unneeded entries if errors were seen. */
   if (total_errors != 0) okay_to_eliminate_unneeded_il_entries = FALSE;
   if (okay_to_eliminate_unneeded_il_entries) {
@@ -291,7 +327,7 @@ secondary translation units will have already been copied over.
     }  /* if */
   }  /* if */
   check_for_done_with_memory_region(file_scope_region_number);
-}  /* file_scope_il_wrapup_part_2 */
+}  /* file_scope_il_wrapup_part_3 */
 
 
 static void wrap_up_file_scopes(void)
@@ -314,7 +350,7 @@ Complete the file scope of each of the translation units.
   switch_translation_unit(translation_units);
   /* Process the primary translation unit. */
   file_scope_il_wrapup_part_1();
-  /* Do the final wrapup processing for each of the secondary and primary
+  /* Do more wrapup processing for each of the secondary and primary
      translation units. */
   tup = translation_units->next;
   for (; tup != NULL; tup = tup->next) {
@@ -325,6 +361,17 @@ Complete the file scope of each of the translation units.
   switch_translation_unit(translation_units);
   /* Process the primary translation unit. */
   file_scope_il_wrapup_part_2();
+  /* Do the final wrapup processing for each of the secondary and primary
+     translation units. */
+  tup = translation_units->next;
+  for (; tup != NULL; tup = tup->next) {
+    switch_translation_unit(tup);
+    file_scope_il_wrapup_part_3();
+  }  /* for */
+  /* Switch back to the primary translation unit. */
+  switch_translation_unit(translation_units);
+  /* Process the primary translation unit. */
+  file_scope_il_wrapup_part_3();
 }  /* wrap_up_file_scopes */
 
 
