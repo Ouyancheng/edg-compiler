@@ -1,5 +1,18 @@
 Version 2.39
 
+7/24/98   IL lowering: one instantiation per object mode, new not done in
+          constructor: internal error in add_dynamic_init_cleanup
+
+A bug has been fixed in the processing in IL lowering for one instantiation
+per object mode.  Compiling the following example with --cfront_3.0,
+--exceptions, and --one_instantiation_per_object on a version configured
+with NEW_CAN_BE_FOLDED_INTO_CTOR FALSE produced an abort, now fixed.
+
+  struct X {
+    X();
+  };
+  X* x = new X;
+
 7/21/98   Spurious ambiguity error
 
 A spurious ambiguity error sometimes occurred because the final overrider

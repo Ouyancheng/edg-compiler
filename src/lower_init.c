@@ -7244,6 +7244,8 @@ the given expression.
       case enk_new_delete:
         mark_expr_list_slice_dyn_inits(expr->variant.new_delete->arg);
         mark_slice_dyn_inits(expr->variant.new_delete->dynamic_init);
+        mark_slice_dyn_inits(expr->variant.new_delete->
+                                              freeing_of_storage_on_exception);
         break;
       case enk_throw:
         mark_slice_dyn_inits(expr->variant.throw_info->dynamic_init);
