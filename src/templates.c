@@ -2563,7 +2563,7 @@ included in the search.
        template. */
     sym = tssp->variant.class_template.instantiations;
     prev_sym = NULL;
-    for (; sym != NULL; prev_sym = sym, sym = sym->next) {
+    for (; sym != NULL; prev_sym = sym, sym = next_instance_sym(sym)) {
       /* Prototype instantiations should not be checked.  If
          prototype_allowed is TRUE then we would have already checked them
          in the test above. */
@@ -2577,7 +2577,7 @@ included in the search.
            position in the instantiation list and add it to the front. */
         if (prev_sym != NULL) {
           prev_sym->next = sym->next;
-          sym->next = tssp->variant.class_template.instantiations;
+          next_instance_sym(sym) = tssp->variant.class_template.instantiations;
           tssp->variant.class_template.instantiations = sym;
         }  /* if */
 #if DEBUG
@@ -2600,7 +2600,8 @@ included in the search.
        not the list of a partial specialization). */
     primary_template_sym = primary_template_of(class_template_sym);
     primary_tssp = primary_template_sym->variant.template_info;
-    sym->next = primary_tssp->variant.class_template.instantiations;
+    next_instance_sym(sym) =
+                           primary_tssp->variant.class_template.instantiations;
     primary_tssp->variant.class_template.instantiations = sym;
     /* Now create a new type entry. */
     class_type = alloc_type(tssp->variant.class_template.type_kind);
@@ -5486,7 +5487,7 @@ been instantiated, update the befriending information for the instances.
   tssp->befriending_classes = clep;
   /* Update any instances that have already been created. */
   for (instance_sym = tssp->variant.class_template.instantiations;
-       instance_sym != NULL; instance_sym = instance_sym->next) {
+       instance_sym != NULL; instance_sym = next_instance_sym(instance_sym)) {
     a_type_ptr  tp = instance_sym->variant.class_struct_union.type;
     if (is_real_class_symbol(instance_sym)) {
       /* Don't do this for the nonreal class types. */
@@ -5590,7 +5591,7 @@ any classes that declared the nested class as a template friend.
         cssp = sym->variant.class_struct_union.extra_info;
         check_assertion(sym->next == NULL);
         tssp = template_supplement_for_symbol(ct_symbol);
-        sym->next = tssp->variant.class_template.instantiations;
+        next_instance_sym(sym) = tssp->variant.class_template.instantiations;
         tssp->variant.class_template.instantiations = sym;
         cssp->corresp_prototype_sym = ct_symbol;
         class_type = sym->variant.class_struct_union.type;
@@ -5641,7 +5642,7 @@ generated.
          specializations were associated with the prototype template. */
       tssp->variant.class_template.partial_specializations = NULL;
       for (sym = tssp->variant.class_template.instantiations; sym != NULL;
-           sym = sym->next) {
+           sym = next_instance_sym(sym)) {
         /* It is only an error if the class type is complete and is not a
            itself a specialization. */
         if (!is_nonreal_instance_class_symbol(sym) &&
@@ -5983,7 +5984,7 @@ subordinate templates.
   }  /* if */
   primary_tssp = primary_sym->variant.template_info;
   for (sym = primary_tssp->variant.class_template.instantiations;
-       sym != NULL; sym = sym->next) {
+       sym != NULL; sym = next_instance_sym(sym)) {
     a_class_symbol_supplement_ptr	cssp;
     a_type_ptr				instance_type;
     a_template_arg_ptr			templ_arg_list;
@@ -7464,7 +7465,7 @@ the size of arr can be computed.
   tssp = template_supplement_for_symbol(sym);
   for (instance_sym = tssp->variant.class_template.instantiations;
        instance_sym != NULL;
-       instance_sym = instance_sym->next) {
+       instance_sym = next_instance_sym(instance_sym)) {
     if (instance_sym == tssp->variant.class_template.prototype_instantiation) {
       /* Ignore the prototype instantiation. */
     } else {

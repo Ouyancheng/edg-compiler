@@ -210,7 +210,7 @@ this case and add it to the list for the current scope.
       for (sym = hidden_sym->variant.template_info->
                                 variant.class_template.instantiations;
            sym != NULL;
-           sym = sym->next) {
+           sym = next_instance_sym(sym)) {
         if (!sym->variant.class_struct_union.extra_info->is_nonreal_class) {
           record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
                                         global_hidden_by_nonglobal, sp);

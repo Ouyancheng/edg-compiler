@@ -828,7 +828,7 @@ do_variable:
             fprintf(f_debug, "%*sinstantiation:\n", indentation, "");
             fprintf(f_debug, "%*s", indentation + 2, "");
             db_symbol(inst_sym, "", indentation + 4);
-            inst_sym = inst_sym->next;
+            inst_sym = next_instance_sym(inst_sym);
           }  /* while */
         } else if (sym->kind == (a_symbol_kind)sk_function_template) {
           a_routine_ptr            routine = tssp->variant.function.routine;
@@ -1733,6 +1733,7 @@ state.
         cssp->routine_fixup_list = NULL;
         cssp->class_template = NULL;
         cssp->template_info = NULL;
+        cssp->next_in_instantiations_list = NULL;
         cssp->member_decl_scope = NO_SCOPE_NUMBER;
         cssp->template_param_for_proxy_class = NULL;
         cssp->corresp_prototype_sym = NULL;

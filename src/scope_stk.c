@@ -2728,7 +2728,7 @@ NULL.
       tssp = sym->variant.template_info;
       template_class_sym = tssp->variant.class_template.instantiations;
       for (; template_class_sym != NULL;
-             template_class_sym = template_class_sym->next) {
+             template_class_sym = next_instance_sym(template_class_sym)) {
 
         if (template_class_sym->
                     variant.class_struct_union.extra_info->is_nonreal_class) {
