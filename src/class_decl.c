@@ -2584,10 +2584,11 @@ or struct definition.  The syntax is
         error(ec_bad_base_class);
         goto skip_base_class;
       }  /* if */
-      /* Issue a warning if an explicit access specifier was not provided
+      /* Issue a diagnostic if an explicit access specifier was not provided
          (as per the recommendation on p. 243 of the ARM). */
       if (!access_already_specified) {
-        str_warning(ec_missing_access_specifier, default_access_str);
+        pos_st_remark(ec_missing_access_specifier, &error_position,
+                      default_access_str);
       }  /* if */
       check_assertion(ctsp != NULL);
       /* Before creating the base class entry and adding it to the list of
