@@ -4670,7 +4670,7 @@ modifier _Sat was specified.
 #if FIXED_POINT_EXTENSIONS_ALLOWED
     case bt_fract:
     case bt_accum:
-      {
+      { /* Create a fixed-point type according to specification. */
         a_fixed_point_precision  precision;
         switch (size) {
           case size_none:
@@ -4758,6 +4758,7 @@ modifier _Sat was specified.
   }  /* switch */
 #if FIXED_POINT_EXTENSIONS_ALLOWED
   if (saturating_fp && (basic_type != bt_fract && basic_type != bt_accum)) {
+    /* "_Sat" is only allowed on fixed-point types ("_Fract" and "_Accum"). */
     bad_combination = TRUE;
   }  /* if */
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
@@ -6382,7 +6383,7 @@ Returns TRUE if there is an error in the specifiers.
         break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if FIXED_POINT_EXTENSIONS_ALLOWED
-      case tok_saturating:
+      case tok_sat:
         /* The _Sat specifier for fixed-point types. */
         if (saturating_fixed_point) {
           error(ec_dupl_decl_specifier);

@@ -477,15 +477,15 @@ This function is modeled after conv_float_literal (see below).
   check_assertion(*actual_end == 'r' || *actual_end == 'R' ||
                   *actual_end == 'k' || *actual_end == 'K');
   if (*actual_end == 'r' || *actual_end == 'R') {
-    /* "R" suffix, indicates fixed-point type. */
+    /* "R" suffix, indicates "_Fract" fixed-point type. */
     fxp_descr.is_fract_type = TRUE;
   } else {
+    /* "K" suffix, indicates "_Accum" fixed-point type. */
     fxp_descr.is_fract_type = FALSE;
   }  /* if */
   --actual_end;
   fxp_descr.precision = (a_fixed_point_precision)fpp_default;
   fxp_descr.is_unsigned = FALSE;
-  /* FIXME: Affected by pragma state? */
   fxp_descr.saturating = FALSE;
   for (;;) {
     if (*actual_end == 'u' || *actual_end == 'U') {
@@ -500,31 +500,10 @@ This function is modeled after conv_float_literal (see below).
     }  /* if */
     --actual_end;
   }  /* for */
-  if (microsoft_bugs &&
-      start_of_curr_token[0] == '.' &&
-      isdigit((unsigned char)start_of_curr_token[1]) &&
-      start_of_curr_token[2] == '.') {
-    /* Microsoft accepts constants like .1.234, and ignores the second
-       decimal point and everything after it. */
-    actual_end = start_of_curr_token+1;
-  }  /* if */
   /* Place a null after the number to guarantee stopping at the right
-     point.  If the number has a missing exponent, place a zero exponent
-     at the end (this is for the pcc case).  There's always room for at
-     least two characters after the floating number, because the number 
-     is always followed by at least a newline and null. */
+     point.  */
   old_next_char = *(actual_end+1);
-  old_next2_char = *(actual_end+2);
-  if (*actual_end == 'E' || *actual_end == 'e' ||
-      ((*actual_end == '+' || *actual_end == '-') &&
-       actual_end != start_of_curr_token &&
-       (*(actual_end-1) == 'E' || *(actual_end-1) == 'e'))) {
-    /* Missing exponent digits (pcc case); add 0 exponent. */
-    *(actual_end+1) = '0';
-    *(actual_end+2) = '\0';
-  } else {
-    *(actual_end+1) = '\0';
-  }  /* if */
+  *(actual_end+1) = '\0';
   /* Do the conversion. */
   if (is_hexadecimal) {
     fxp_hex_string_to_fixed_point(&fxp_descr, start_of_curr_token, &value,
@@ -532,8 +511,8 @@ This function is modeled after conv_float_literal (see below).
   } else {
     fxp_string_to_fixed_point(&fxp_descr, start_of_curr_token, &value, &err);
   }  /* if */
+  /* Restore the character that was replaced by a null. */
   *(actual_end+1) = old_next_char;
-  *(actual_end+2) = old_next2_char;
   if (err) {
     *err_code = ec_bad_fixed_point_value;
     *err_pos = start_of_curr_token;

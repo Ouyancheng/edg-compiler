@@ -1023,6 +1023,9 @@ to implement the GNU function __builtin_classify_type.)
         tck = (a_type_class_kind)tck_array;
       }  /* if */
       break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case tk_fixed_point:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case tk_error:
       tck = (a_type_class_kind)tck_none;
       break;
@@ -1102,6 +1105,12 @@ given operand by a constant operand if appropriate.
           if (args != NULL && args->next == NULL &&
               is_integral_type(result_type)) {
             a_type_class_kind  tck = gnu_type_class_for_type(args->type);
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+            if (fixed_point_allowed && is_fixed_point_type(args->type)) {
+              pos_error(ec_no_classification_for_fixed_point_type,
+                        &op->position);
+            }  /* if */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
             clear_constant(&result, (a_constant_repr_kind)ck_integer);
             result.type = call->type;
             set_integer_constant(&result, (a_host_large_integer)tck,
@@ -3092,6 +3101,7 @@ function.  The result is placed in *result.
   a_constant             one_constant;
   a_type_ptr             result_type;
   an_expr_operator_kind  op;
+
   /* Make a constant "1" of the right type. */
   set_integer_constant(&one_constant, (a_host_large_integer)1L,
                        (an_integer_kind)ik_int);
@@ -3304,6 +3314,8 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
               op = (an_expr_operator_kind)eok_fxpost_incr;
               if (skip_typerefs(result_type)
                                         ->variant.fixed_point.is_fract_type) {
+                /* _Fract types can only represent values between -1 and 1:
+                   incrementing by one is rarely intentional in that domain. */
                 pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
                             &operator_position);
               }  /* if */
@@ -3330,6 +3342,8 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
               op = (an_expr_operator_kind)eok_fxpost_decr;
               if (skip_typerefs(result_type)
                                         ->variant.fixed_point.is_fract_type) {
+                /* _Fract types can only represent values between -1 and 1:
+                   decrementing by one is rarely intentional in that domain. */
                 pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
                             &operator_position);
               }  /* if */
@@ -3554,6 +3568,8 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
               op = (an_expr_operator_kind)eok_fxpre_incr;
               if (skip_typerefs(result_type)
                                         ->variant.fixed_point.is_fract_type) {
+                /* _Fract types can only represent values between -1 and 1:
+                   incrementing by one is rarely intentional in that domain. */
                 pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
                             &start_position);
               }  /* if */
@@ -3580,6 +3596,8 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
               op = (an_expr_operator_kind)eok_fxpre_decr;
               if (skip_typerefs(result_type)
                                         ->variant.fixed_point.is_fract_type) {
+                /* _Fract types can only represent values between -1 and 1:
+                   decrementing by one is rarely intentional in that domain. */
                 pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
                             &start_position);
               }  /* if */
@@ -14605,7 +14623,6 @@ see expr.h).
          that __I__*__I__ == -1. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tok_fixed_point_constant:
-      /* FIXME */
     case tok_float_constant:
       { a_boolean float_con_allowed = TRUE;
         if (curr_expr_kind_is(ek_pp)) {

@@ -619,6 +619,26 @@ extern a_type_ptr make_field_selection_type(a_field_ptr           field,
 extern void skip_common_type_qualifiers(a_type_ptr  *type1,
                                         a_type_ptr  *type2);
 
+/*
+Helper macro for is_simple_scalar_assignment below.
+*/
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+#define or_is_simple_fixed_point_assignment(op)                             \
+  || (op) == (an_expr_operator_kind)eok_fxassign
+#else /* !FIXED_POINT_EXTENSIONS_ALLOWED */
+#define or_is_simple_fixed_point_assignment(op) /* Nothing */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+
+/*
+Macro that is TRUE if the given operator kind is a simple (i.e., not
+compound) scalar assignment.
+*/
+#define is_simple_scalar_assignment(op)                                     \
+  ((op) == (an_expr_operator_kind)eok_iassign ||                            \
+   (op) == (an_expr_operator_kind)eok_fassign ||                            \
+   (op) == (an_expr_operator_kind)eok_passign                               \
+   or_is_simple_fixed_point_assignment((op)))
+
 extern a_boolean dynamic_init_has_side_effects(
                                         a_dynamic_init_ptr dip,
                                         a_boolean          *suppress_warning);

@@ -36,6 +36,21 @@ Initialize the given fixed-point value to a safe representation.
 }  /* fxp_init_value */
 
 
+a_boolean fxp_value_is_zero(a_fixed_point_value  *value)
+/*
+Return TRUE if and only if the given fixed-point value is zero.
+*/
+{
+  an_integer_value  zero;
+
+  set_integer_value(&zero, (a_host_large_integer)0);
+  /* Use the integer comparison routine.  Note that signedness doesn't
+     matter for the zero case. */
+  return (cmp_integer_values(value, /*op_1_signed=*/FALSE,
+                             &zero, /*op_2_signed=*/FALSE) == 0);
+}  /* fxp_value_is_zero */
+
+
 static void conv_integer_value_to_long_double_value(
                                                an_integer_value         *ival,
                                                an_internal_float_value  *fval,

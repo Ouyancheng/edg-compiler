@@ -316,7 +316,7 @@ Install the keywords in the symbol table.
   if (fixed_point_allowed) {
     enter_keyword((a_token_kind)tok_fract, "_Fract");
     enter_keyword((a_token_kind)tok_accum, "_Accum");
-    enter_keyword((a_token_kind)tok_saturating, "_Sat");
+    enter_keyword((a_token_kind)tok_sat, "_Sat");
   }  /* if */
   /* __ALIGNOF__(type) returns the alignment requirement for a type (the
      lower case spelling __alignof__ is also accepted).

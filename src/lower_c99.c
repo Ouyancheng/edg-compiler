@@ -1063,6 +1063,12 @@ Otherwise, do nothing.
     case eok_and_assign:
     case eok_or_assign:
     case eok_xor_assign:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxadd_assign:
+    case eok_fxsubtract_assign:
+    case eok_fxmultiply_assign:
+    case eok_fxdivide_assign:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_fadd_assign:
     case eok_fsubtract_assign:
     case eok_fmultiply_assign:
@@ -1182,6 +1188,9 @@ replace them by a representation compatible with C89.
       break;
     case ck_error:
     case ck_integer:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case ck_fixed_point:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case ck_float:
     case ck_string:
       /* Nothing to be done. */

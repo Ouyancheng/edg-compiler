@@ -1242,6 +1242,7 @@ is set to point to the first created type.
                                     [type->variant.fixed_point.is_fract_type]
                                     [type->variant.fixed_point.saturating],
         type);
+      break;
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case tk_float:
       set_builtin_type_corresp(

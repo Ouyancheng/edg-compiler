@@ -883,6 +883,12 @@ display_constant_value:
       summarize_constant(ptr);
       (void)printf("\n");
       break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case ck_fixed_point:
+      (void)printf("ck_fixed_point\n");
+      disp_name("fixed_point_value");
+      goto display_constant_value;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case ck_string:
       (void)printf("ck_string\n");
       disp_host_large_unsigned(
@@ -1446,15 +1452,12 @@ Display the indicated type entry.
                (prec == (a_fixed_point_precision)fpp_default) ? "default" :
                (prec == (a_fixed_point_precision)fpp_long)    ? "long" :
                                                                 "*ERROR*");
-        if (ptr->variant.fixed_point.is_unsigned) {
-          disp_boolean("is_unsigned", TRUE);
-        }  /* if */
-        if (ptr->variant.fixed_point.is_fract_type) {
-          disp_boolean("is_fract_type", TRUE);
-        }  /* if */
-        if (ptr->variant.fixed_point.saturating) {
-          disp_boolean("saturating", TRUE);
-        }  /* if */
+        disp_boolean("is_unsigned",
+                     (a_boolean)ptr->variant.fixed_point.is_unsigned);
+        disp_boolean("is_fract_type",
+                     (a_boolean)ptr->variant.fixed_point.is_fract_type);
+        disp_boolean("saturating",
+                     (a_boolean)ptr->variant.fixed_point.saturating);
       }
       break;
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */

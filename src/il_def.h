@@ -2556,7 +2556,7 @@ EXTERN an_integer_kind
   111		/* ik_last ("111" is just an unusual value used to check the
 		   correctness of the initialization order) */
 }
-#endif /* VAR_INITIALIZERS*/
+#endif /* VAR_INITIALIZERS */
 ;
 
 #if FIXED_POINT_EXTENSIONS_ALLOWED
@@ -3178,7 +3178,9 @@ enum a_stdc_pragma_value_tag {
   stdc_pv_off,
   stdc_pv_on,
 #if FIXED_POINT_EXTENSIONS_ALLOWED
-  stdc_pv_sat,
+  stdc_pv_sat,		/* Represents the "SAT" option for the "Embedded C"
+			   FX_FRACT_OVERFLOW and FX_ACCUM_OVERFLOW variants
+			   of "#pragma STDC ...". */
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   stdc_pv_default
 };
@@ -3237,7 +3239,9 @@ enum a_pragma_kind_tag {
 			   definition of the type_info type returned
 			   by typeid. */
   pk_stdc,		/* Used for the C99 predefined pragmas (i.e.,
-			   FP_CONTRACT, FENV_ACCESS, and CX_LIMITED_RANGE). */
+			   FP_CONTRACT, FENV_ACCESS, and CX_LIMITED_RANGE).
+			   Also used for the "Embedded C" (TR 18037) fixed-
+			   point pragmas. */
 #if UPC_EXTENSIONS_ALLOWED
   pk_upc,               /* UPC-specific pragma, controlling the default
                            access method for shared data. */
@@ -7749,6 +7753,9 @@ enum an_expr_operator_kind_tag {
   eok_ignu_max,         /* Integer maximum operator (a GNU C++ extension). */
   eok_iassign,          /* Integer assignment. */
 #if FIXED_POINT_EXTENSIONS_ALLOWED
+  /* The following binary fixed-point operations may have one operand
+     of integral type.  (No "promotion" to a fixed-point or other type
+     is done for mixed-type arithmetic.) */
   eok_fxadd,             /* Fixed-point addition. */
   eok_fxsubtract,        /* Fixed-point subtraction. */
   eok_fxmultiply,        /* Fixed-point multiplication. */
@@ -7863,6 +7870,9 @@ enum an_expr_operator_kind_tag {
   eok_idivide_assign,   /* Integer divide assign operator. */
   eok_remainder_assign, /* Remainder assign operator. */
 #if FIXED_POINT_EXTENSIONS_ALLOWED
+  /* The following compound assignment operations may have one operand
+     of integral type.  (No "promotion" to a fixed-point or other type
+     is done for mixed-type arithmetic.) */
   eok_fxadd_assign,     /* Fixed-point add assign operator. */
   eok_fxsubtract_assign,/* Fixed-point subtract assign operator. */
   eok_fxmultiply_assign,/* Fixed-point multiply assign operator. */
@@ -7874,6 +7884,10 @@ enum an_expr_operator_kind_tag {
   eok_fdivide_assign,   /* Floating divide assign operator. */
   eok_padd_assign,      /* Pointer add assign operator. */
   eok_psubtract_assign, /* Pointer subtract assign operator. */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  /* The left operand of a shift expression may have an integral or fixed-point
+     type. */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   eok_shiftl_assign,    /* Left shift assign operator. */
   eok_shiftr_assign,    /* Right shift assign operator. */
   eok_and_assign,       /* Bitwise and assign operator. */
@@ -7935,6 +7949,10 @@ enum an_expr_operator_kind_tag {
 			   member, whose value is passed through; it is an
 			   lvalue if returns_lvalue_instead_of_usual_rvalue is
 			   TRUE.  C++ only, and eliminated by IL lowering. */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  /* The left operand of a shift expression may have an integral or fixed-point
+     type. */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   eok_shiftl,           /* Left shift ("<<" operator). */
   eok_shiftr,           /* Right shift (">>" operator). */
   eok_and,              /* Bitwise and ("&" operator). */

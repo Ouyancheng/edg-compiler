@@ -2630,9 +2630,7 @@ FALSE.
   *temp_var = NULL;
   if (is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
-    if (op == (an_expr_operator_kind)eok_iassign ||
-        op == (an_expr_operator_kind)eok_fassign ||
-        op == (an_expr_operator_kind)eok_passign ||
+    if (is_simple_scalar_assignment(op) ||
         op == (an_expr_operator_kind)eok_sassign) {
       /* The expression is an assignment */
       an_expr_node_ptr operand1 = expr->variant.operation.operands;
@@ -3532,6 +3530,9 @@ or contain a pointer to data member, which must be initialized to -1.
     type = skip_typerefs(type);
     switch (type->kind) {
       case tk_integer:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      case tk_fixed_point:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
       case tk_float:
 #if C99_IL_EXTENSIONS_SUPPORTED
       case tk_imaginary:
@@ -3848,6 +3849,11 @@ Do IL lowering of the indicated constant and everything under it.
       case ck_stack_offset:
         /* Shouldn't come up here. */
 #endif /* GENERATE_EH_TABLES && ... */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      case ck_fixed_point:
+        /* Shouldn't come up here: Fixed-point types are not currently
+           allowed in C++ modes. */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
       case ck_dynamic_init:
         /* Shouldn't come up here.  See
            lower_dynamic_init_aggregate_constant. */
@@ -7327,10 +7333,6 @@ Do IL lowering of the indicated type and everything under it.
     switch (type->kind) {
       case tk_void:
       case tk_float:
-#if FIXED_POINT_EXTENSIONS_ALLOWED
-      case tk_fixed_point:
-        /* FIXME: May need some work. */
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         /* No processing required. */
         break;
       case tk_integer:
@@ -7340,6 +7342,11 @@ Do IL lowering of the indicated type and everything under it.
           lower_type(type->variant.integer.enum_info.affiliated_type);
         }  /* if */
         break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      case tk_fixed_point:
+        unexpected_condition();
+        break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
       case tk_pointer:
         /* Note that references aren't turned into pointers, because back ends
            shouldn't care.  lower_dynamic_cast counts on this; it tests for
@@ -9343,6 +9350,20 @@ assignment.  expr is being used as an lvalue if is_lvalue is TRUE.
     case eok_xor_assign:
       op = (an_expr_operator_kind)eok_xor;
       break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxadd_assign:
+      op = (an_expr_operator_kind)eok_fxadd;
+      break;
+    case eok_fxsubtract_assign:
+      op = (an_expr_operator_kind)eok_fxsubtract;
+      break;
+    case eok_fxmultiply_assign:
+      op = (an_expr_operator_kind)eok_fxmultiply;
+      break;
+    case eok_fxdivide_assign:
+      op = (an_expr_operator_kind)eok_fxdivide;
+      break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_fadd_assign:
       op = (an_expr_operator_kind)eok_fadd;
       break;
@@ -11236,6 +11257,12 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           case eok_and_assign:
           case eok_or_assign:
           case eok_xor_assign:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+          case eok_fxadd_assign:
+          case eok_fxsubtract_assign:
+          case eok_fxmultiply_assign:
+          case eok_fxdivide_assign:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
           case eok_fadd_assign:
           case eok_fsubtract_assign:
           case eok_fmultiply_assign:

@@ -5001,7 +5001,7 @@ of the given routine.
     routine_ptr->upc_access_method = curr_upc_access_method;
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-}  /* record_active_pragmas */
+}  /* record_pragma_state_in_routine */
 
 #if GNU_EXTENSIONS_ALLOWED
 

@@ -3587,6 +3587,18 @@ precedence confusion.  Do the output in the way described by octl.
                               need_parens, octl);
       }  /* if */
       break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case ck_fixed_point:
+      /* Fixed-point constant. */
+      /* Put parentheses around the constant in case it's negative. */
+      check_assertion(is_fixed_point_type(constant->type));
+      octl->output_str("(");
+      form_fixed_point_constant(&constant->variant.fixed_point_value,
+                                &con_type->variant.fixed_point,
+                                octl);
+      octl->output_str(")");
+      break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case ck_string:
       /* String constant. */
       { a_targ_size_t a;
@@ -3669,17 +3681,6 @@ precedence confusion.  Do the output in the way described by octl.
         }  /* if */
       }
       break;
-#if FIXED_POINT_EXTENSIONS_ALLOWED
-    case ck_fixed_point:
-      /* Fixed-point constant. */
-      /* Put parentheses around the constant in case it's negative. */
-      octl->output_str("(");
-      form_fixed_point_constant(&constant->variant.fixed_point_value,
-                                &con_type->variant.fixed_point,
-                                octl);
-      octl->output_str(")");
-      break;
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case ck_float:
 #if C99_IL_EXTENSIONS_SUPPORTED
     case ck_imaginary:

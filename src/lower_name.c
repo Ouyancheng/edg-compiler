@@ -2376,6 +2376,11 @@ do_unknown_function:
       }  /* switch */
       break;
 #if CHECKING
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case ck_fixed_point:
+      /* C++ modes do not currently allowed fixed-point types, and therefore
+         no mangling should be needed for them. */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case ck_string:
       /* Strings should be converted to addresses. */
     default:
@@ -4017,6 +4022,11 @@ Add to the mangled name the encoding for the type "type".
           }  /* switch */
         }  /* if */
         break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      case tk_fixed_point:
+        unexpected_condition_str("mangling of fixed-point types unsupported");
+        break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
       case tk_float:
         switch (type->variant.float_kind) {
           case fk_float:          
@@ -4409,6 +4419,9 @@ expressions on nontype template parameters in function signatures.
 
   switch (op) {
     case eok_inegate:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxnegate:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_fnegate:
     case eok_negate:
       opkind = (an_opname_kind)onk_minus;
@@ -4441,51 +4454,81 @@ expressions on nontype template parameters in function signatures.
       num_operands = 1;
       break;
     case eok_iadd:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxadd:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_fadd:
     case eok_add:
       opkind = (an_opname_kind)onk_plus;
       break;
     case eok_isubtract:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxsubtract:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_fsubtract:
     case eok_subtract:
       opkind = (an_opname_kind)onk_minus;
       break;
     case eok_imultiply:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxmultiply:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_fmultiply:
     case eok_multiply:
       opkind = (an_opname_kind)onk_star;
       break;
     case eok_idivide:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxdivide:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_fdivide:
     case eok_divide:
       opkind = (an_opname_kind)onk_divide;
       break;
     case eok_ieq:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxeq:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_feq:
     case eok_eq:
       opkind = (an_opname_kind)onk_eq;
       break;
     case eok_ine:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxne:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_fne:
     case eok_ne:
       opkind = (an_opname_kind)onk_ne;
       break;
     case eok_igt:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxgt:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_fgt:
     case eok_gt:
       opkind = (an_opname_kind)onk_gt;
       break;
     case eok_ilt:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxlt:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_flt:
     case eok_lt:
       opkind = (an_opname_kind)onk_lt;
       break;
     case eok_ige:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxge:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_fge:
     case eok_ge:
       opkind = (an_opname_kind)onk_ge;
       break;
     case eok_ile:
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case eok_fxle:
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_fle:
     case eok_le:
       opkind = (an_opname_kind)onk_le;

@@ -162,7 +162,7 @@ typedef enum /*a_token_kind*/ {
   /* Tokens for fixed-point type support ("_Fract", "_Accum", and "_Sat"). */
   tok_fract,
   tok_accum,
-  tok_saturating,
+  tok_sat,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_cdecl,
   tok_declspec,
@@ -651,7 +651,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_infinity */
    (an_opname_kind)onk_none,          /* tok_fract */
    (an_opname_kind)onk_none,          /* tok_accum */
-   (an_opname_kind)onk_none,          /* tok_saturating */
+   (an_opname_kind)onk_none,          /* tok_sat */
 #if MICROSOFT_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_cdecl */
    (an_opname_kind)onk_none,          /* tok_declspec */

@@ -173,6 +173,21 @@ predicates.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+
+/* Macro that is TRUE if the given fixed-point types are identical. */
+#define same_fixed_point_type(tp1, tp2)                                      \
+  ((tp1)->variant.fixed_point.precision ==                                   \
+                                    (tp2)->variant.fixed_point.precision &&  \
+   (tp1)->variant.fixed_point.is_unsigned ==                                 \
+                                  (tp2)->variant.fixed_point.is_unsigned &&  \
+   (tp1)->variant.fixed_point.is_fract_type ==                               \
+                                (tp2)->variant.fixed_point.is_fract_type &&  \
+   (tp1)->variant.fixed_point.saturating ==                                  \
+                                     (tp2)->variant.fixed_point.saturating)
+
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+
 a_type_ptr f_skip_typerefs(a_type_ptr type_ptr)
 /*
 Strip any typeref entries off the given type to get to the real type, and
@@ -2082,11 +2097,11 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_fixed_point:
         size =
           targ_sizeof_fixed_point[type_ptr->variant.fixed_point.is_unsigned]
-                                 [(int)type_ptr->variant.fixed_point.precision]
+                                 [type_ptr->variant.fixed_point.precision]
                                  [type_ptr->variant.fixed_point.is_fract_type];
         alignment =
          targ_alignof_fixed_point[type_ptr->variant.fixed_point.is_unsigned]
-                                 [(int)type_ptr->variant.fixed_point.precision]
+                                 [type_ptr->variant.fixed_point.precision]
                                  [type_ptr->variant.fixed_point.is_fract_type];
         break;
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
@@ -2953,14 +2968,7 @@ for more information.
           break;
 #if FIXED_POINT_EXTENSIONS_ALLOWED
         case tk_fixed_point:
-          if (type_1->variant.fixed_point.precision ==
-                                       type_2->variant.fixed_point.precision &&
-              type_1->variant.fixed_point.is_unsigned ==
-                                     type_2->variant.fixed_point.is_unsigned &&
-              type_1->variant.fixed_point.is_fract_type ==
-                                   type_2->variant.fixed_point.is_fract_type &&
-              type_1->variant.fixed_point.saturating ==
-                                      type_2->variant.fixed_point.saturating) {
+          if (same_fixed_point_type(type_1, type_2)) {
             identical = TRUE;
           }  /* if */
           break;
@@ -3453,15 +3461,7 @@ for exact pointer equality.
           break;
 #if FIXED_POINT_EXTENSIONS_ALLOWED
         case tk_fixed_point:
-          if (type_1->variant.fixed_point.precision ==
-                                       type_2->variant.fixed_point.precision &&
-              type_1->variant.fixed_point.is_unsigned ==
-                                     type_2->variant.fixed_point.is_unsigned &&
-              type_1->variant.fixed_point.is_fract_type ==
-                                   type_2->variant.fixed_point.is_fract_type &&
-              type_1->variant.fixed_point.saturating ==
-                                      type_2->variant.fixed_point.saturating) {
-            /* FIXME: Check if there is more to it. */
+          if (same_fixed_point_type(type_1, type_2)) {
             compat = TRUE;
           }  /* if */
           break;

@@ -584,6 +584,10 @@ targ_alignof_fixed_point, and targ_fractional_bits_for_fixed_point arrays.
  #error TARG_ALIGNOF_UNSIGNED_LONG_FRACT must be set
 #endif /* ifndef TARG_ALIGNOF_UNSIGNED_LONG_FRACT */
 
+#ifndef TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_FRACT
+ #error TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_FRACT must be set
+#endif /* ifndef TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_FRACT */
+
 /*
 Determine the largest fixed-point size (if not already provided).
 We assume it is one of the "long" precision variants.
@@ -837,10 +841,10 @@ integer values.
 #ifndef TYPE_FOR_A_FIXED_POINT_VALUE
 #ifdef TYPE_FOR_AN_INTEGER_VALUE
 #define TYPE_FOR_A_FIXED_POINT_VALUE TYPE_FOR_AN_INTEGER_VALUE
-#else /* ifndef TYPE_FOR_A_FIXED_POINT_VALUE */
+#else /* !defined(TYPE_FOR_AN_INTEGER_VALUE) */
 #define TYPE_FOR_A_FIXED_POINT_VALUE an_integer_value
-#endif /* ifdef TYPE_FOR_A_FIXED_POINT_VALUE */
-#endif /* ifndef TYPE_FOR_AN_INTEGER_VALUE */
+#endif /* ifdef TYPE_FOR_AN_INTEGER_VALUE */
+#endif /* ifndef TYPE_FOR_A_FIXED_POINT_VALUE */
 typedef TYPE_FOR_A_FIXED_POINT_VALUE a_fixed_point_value;
 
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
@@ -3019,15 +3023,6 @@ The C-generating and C++-generating back ends can handle compound literals
 #endif /* !COMPOUND_LITERAL_ENABLING_POSSIBLE && ... */
 
 /*
-Flag that is TRUE if fixed-point extensions (e.g., support for _Fract and
-_Accum types) should be enabled by default.  It is the initial value of the
-global variable fixed_point_allowed.
-*/
-#ifndef DEFAULT_FIXED_POINT_ALLOWED
-#define DEFAULT_FIXED_POINT_ALLOWED FALSE
-#endif /* DEFAULT_FIXED_POINT_ALLOWED */
-
-/*
 This switch controls whether support for fixed-point extensions can be
 enabled.  Having this TRUE means the back end is prepared to accept
 fixed-point IL entities.  The C-generating and C++-generating back ends
@@ -3042,6 +3037,15 @@ facilities defined by the C standardization committee's ISO/IEC TR 18037
 #if !FIXED_POINT_EXTENSIONS_ALLOWED && DEFAULT_FIXED_POINT_ALLOWED
  #error -- fixed-point enabling not allowed
 #endif /* !FIXED_POINT_EXTENSIONS_ALLOWED && ... */
+
+/*
+Flag that is TRUE if fixed-point extensions (e.g., support for _Fract and
+_Accum types) should be enabled by default.  It is the initial value of the
+global variable fixed_point_allowed.
+*/
+#ifndef DEFAULT_FIXED_POINT_ALLOWED
+#define DEFAULT_FIXED_POINT_ALLOWED FALSE
+#endif /* DEFAULT_FIXED_POINT_ALLOWED */
 
 /*
 This switch controls whether a post-pass is done after IL lowering

@@ -3326,6 +3326,8 @@ type (i.e., a non-floating-point arithmetic type).
       result = tp1->variant.fixed_point.is_fract_type ? tp2 : tp1;
     } else if (tp1->variant.fixed_point.precision >
                                          tp2->variant.fixed_point.precision) {
+      /* If the fixed-point type kinds (_Fract vs. _Accum) are equal, the
+         precisions determines the relative rank. */
       result = tp1;
     } else {
       result = tp2;
@@ -3342,7 +3344,6 @@ type (i.e., a non-floating-point arithmetic type).
 }  /* fixed_point_result_type */
 
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
-
 
 static a_type_ptr determine_arithmetic_conversions_full(
                                                  an_operand *operand_1,
@@ -3414,11 +3415,11 @@ routine is called and returns TRUE, this routine should not be called.
       /* At least one of the operands has a fixed-point type, and the other
          does not have a floating-point type.  The result will have a fixed-
          point type, but no conversion is to be applied to the operands,
-         except perhaps to turn an unsigned operand into a signed operand. */
+         except to turn an unsigned operand into a signed operand. */
       result_type = fixed_point_result_type(type_1, type_2);
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     } else {
-      /* Neither operand had a floating-point or fixed-point type; do the
+      /* Neither operand has a floating-point or fixed-point type; do the
          integral promotions on both operands and try to get the result
          type from that. */
       if (operand_1 != NULL) {
@@ -4246,8 +4247,8 @@ static void adjust_fixed_point_binary_operands(
                                             an_operand             *operand_2,
                                             an_expr_operator_kind  op)
 /*
-A binary operation is to be applied to the two given operands, at least one
-of which has a fixed-point type.  Apply any required conversions to the
+A binary operation (op) is to be applied to the two given operands, at least
+one of which has a fixed-point type.  Apply any required conversions to the
 operands.  The only conversion this can be is from an unsigned fixed-point
 type to the corresponding signed fixed-point type (when operating on two
 fixed-point operands of differing signedness).  Issue a warning if the
@@ -4273,31 +4274,52 @@ adding an integer to fixed-point type.)
         type = tp2;
       }  /* if */
       type = fixed_point_type(type->variant.fixed_point.precision,
-                              /*is_unsigned= */FALSE,
+                              /*is_unsigned=*/FALSE,
                               type->variant.fixed_point.is_fract_type,
                               type->variant.fixed_point.saturating);
-      cast_operand(type, operand_to_adjust, /*check_cast_access=*/TRUE,
+      cast_operand(type, operand_to_adjust, /*check_cast_access=*/FALSE,
                    /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
                    /*reinterpret_semantics=*/FALSE);
     }  /* if */
-  } else {
+  } else if (!is_error_type(tp1) && !is_error_type(tp2)) {
+    /* A mixed fixed-point/integral operation. */
     check_assertion(tp1->kind == (a_type_kind)tk_fixed_point ||
                     tp2->kind == (a_type_kind)tk_fixed_point);
     if (op == (an_expr_operator_kind)eok_fxadd ||
         op == (an_expr_operator_kind)eok_fxsubtract) {
       an_operand  *integral_operand;
+      a_boolean   fract_type_involved;
       if (tp1->kind != (a_type_kind)tk_fixed_point) {
         integral_operand = operand_1;
+        fract_type_involved = tp2->variant.fixed_point.is_fract_type;
       } else {
         integral_operand = operand_2;
+        fract_type_involved = tp1->variant.fixed_point.is_fract_type;
       }  /* if */
-      /* FIXME: Should exclude "zero" and in some case other small integers
-         (depending of range of _Accum). */
-      pos_warning(ec_integer_may_not_fit_in_fixed_point_result,
-                  &integral_operand->position);
+      if (fract_type_involved && !(op_is_zero_constant(operand_1) ||
+                                   op_is_zero_constant(operand_2))) {
+        /* Addition and subtraction involving _Fract types and integer types
+           can easily lead to overflow because _Fract types can only hold
+           (at most) values between -1 and +1. */
+        pos_warning(ec_integer_may_not_fit_in_fixed_point_result,
+                    &integral_operand->position);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* adjust_fixed_point_binary_operands */
+
+
+/*
+Macro to issue a warning for usual arithmetic conversions that end up
+converting a fixed-point value to a floating-point type.  (Such a warning
+is suggested by TR 18037.)
+*/
+#define warn_on_fixed_point_to_floating_point_conversion(operand, type)      \
+  if (fixed_point_allowed && is_fixed_point_type((operand)->type) &&         \
+      is_floating_type((type))) {                                            \
+    pos_warning(ec_implicit_fixed_point_to_floating_point_conversion,        \
+                &(operand)->position);                                       \
+  }  /* if */
 
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 
@@ -4333,12 +4355,18 @@ to a fixed-point operand).
     if (!is_error_type(type)) {
       if (operand_1 != NULL && !same_entities(operand_1->type, type)) {
         /* Cast operand 1 to match the desired type. */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        warn_on_fixed_point_to_floating_point_conversion(operand_1, type);
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         cast_operand(type, operand_1, /*check_cast_access=*/TRUE,
                      /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
                      /*reinterpret_semantics=*/FALSE);
       }  /* if */
       if (operand_2 != NULL && !same_entities(operand_2->type, type)) {
         /* Cast operand 2 to match the desired type. */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        warn_on_fixed_point_to_floating_point_conversion(operand_2, type);
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
         cast_operand(type, operand_2, /*check_cast_access=*/TRUE,
                      /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
                      /*reinterpret_semantics=*/FALSE);
@@ -4631,7 +4659,7 @@ to an error operand.
   }  /* if */
 
   return okay;
-}  /* check_integral_or_enum_operand */
+}  /* check_integral_or_enum_or_fixed_point_operand */
 
 
 a_boolean check_arithmetic_or_enum_operand(an_operand *operand)
@@ -5648,6 +5676,11 @@ operand.
     case eok_fxpre_decr:
     case eok_fxpost_incr:
     case eok_fxpre_incr:
+    case eok_fxassign:
+    case eok_fxadd_assign:
+    case eok_fxsubtract_assign:
+    case eok_fxmultiply_assign:
+    case eok_fxdivide_assign:
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_va_start:
     case eok_va_arg:
@@ -9647,9 +9680,7 @@ If validate_only is TRUE, no conversions or normalizations are performed.
     if (is_operation_node(expr)) {
       op = expr->variant.operation.kind;
       operand1 = expr->variant.operation.operands;
-      if (op == (an_expr_operator_kind)eok_iassign ||
-          op == (an_expr_operator_kind)eok_fassign ||
-          op == (an_expr_operator_kind)eok_passign) {
+      if (is_simple_scalar_assignment(op)) {
         /* An assignment operator at the top level.  Check for
            "x = constant", which was probably intended to be
            "x == constant". */

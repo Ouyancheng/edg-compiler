@@ -380,9 +380,7 @@ body has any side effects that can affect the values of argument expressions.
            of argument expressions. */
         if (is_operation_node(expr)) {
           an_expr_operator_kind op = expr->variant.operation.kind;
-          if (op == (an_expr_operator_kind)eok_iassign ||
-              op == (an_expr_operator_kind)eok_passign ||
-              op == (an_expr_operator_kind)eok_fassign) {
+          if (is_simple_scalar_assignment(op)) {
             an_expr_node_ptr op1 = expr->variant.operation.operands;
             if (!node_has_side_effects(op1, (a_boolean *)NULL)) {
               expr = op1->next;

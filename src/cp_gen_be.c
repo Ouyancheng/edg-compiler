@@ -7745,11 +7745,11 @@ Generate one of the predefined C99 pragmas.
     default: unexpected_condition_str("gen_stdc_pragma: bad kind"); break;
   }  /* switch */
   switch (pp->variant.stdc.value) {
+    case stdc_pv_off: write_str("OFF"); break;
     case stdc_pv_on: write_str("ON"); break;
 #if FIXED_POINT_EXTENSIONS_ALLOWED
     case stdc_pv_sat: write_str("SAT"); break;
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
-    case stdc_pv_off: write_str("OFF"); break;
     case stdc_pv_default: write_str("DEFAULT"); break;
     default: unexpected_condition_str("gen_stdc_pragma: bad value"); break;
   }  /* switch */

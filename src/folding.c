@@ -1430,16 +1430,13 @@ constant.
 */
 {
   a_boolean  conversion_done = FALSE;
+
   if (is_integral_type(src->type) && is_fixed_point_type(dst->type)) {
-    an_integer_value  zero;
-    set_integer_value(&zero, (a_host_large_integer)0);
     check_assertion(src->kind == (a_constant_repr_kind)ck_integer);
-    if (cmp_integer_values(&src->variant.integer_value,
-                           int_constant_is_signed(src),
-                           &zero, /*op_2_signed=*/FALSE) == 0) {
+    if (is_zero_constant(src)) {
       /* The source is zero.  It is the only special case we convert. */
       dst->kind = (a_constant_repr_kind)ck_fixed_point;
-      fxp_init_value(&src->variant.fixed_point_value);
+      fxp_init_value(&dst->variant.fixed_point_value);
       conversion_done = TRUE;
     }  /* if */
   }  /* if */
@@ -1561,8 +1558,6 @@ to the constant is maintained, by adding a cast if necessary.
 #if FIXED_POINT_EXTENSIONS_ALLOWED
   if (fixed_point_allowed && (is_fixed_point_type(constant_type) ||
                               is_fixed_point_type(new_type))) {
-    /* For now we do not fold fixed-point type operations.  However, we
-       probably do want to do so at some point. */
     convert_to_or_from_fixed_point_constant(constant, &new_constant,
                                             did_not_fold);
     goto exit;
@@ -1816,7 +1811,7 @@ exit:
 
 a_boolean is_zero_constant(a_constant *constant)
 /*
-Return TRUE if the constant is an integer or floating zero.
+Return TRUE if the constant is an integer, fixed-point, or floating zero.
 */
 {
   a_boolean is_zero = FALSE;
@@ -1826,6 +1821,10 @@ Return TRUE if the constant is an integer or floating zero.
       !constant->implicit_cast) {
     is_zero = (cmplit_integer_constant(constant,
                                        (a_host_large_integer)0) == 0);
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  } else if (constant->kind == (a_constant_repr_kind)ck_fixed_point) {
+    is_zero = fxp_value_is_zero(&constant->variant.fixed_point_value);
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   } else if (constant->kind == (a_constant_repr_kind)ck_float
 #if C99_IL_EXTENSIONS_SUPPORTED
              || constant->kind == (a_constant_repr_kind)ck_imaginary
@@ -1865,7 +1864,7 @@ operators.  Can also be used to test for a NULL pointer or pointer to member.
   /* ck_address constants that aren't link-time constants are assumed to
      be non-NULL.  For example, the address of an auto variable. */
   if (is_zero_constant(constant)) {
-    /* Zero integral or floating constant. */
+    /* Zero integral, fixed-point, or floating constant. */
     is_false = TRUE;
   } else if (constant->kind == (a_constant_repr_kind)ck_integer &&
              constant->implicit_cast) {

@@ -112,7 +112,7 @@ extensions.
 */
 #if FIXED_POINT_EXTENSIONS_ALLOWED
 #define or_is_fixed_point_type_keyword(tok)                               \
-  || ((tok) == tok_accum || (tok) == tok_fract || (tok) == tok_saturating)
+  || ((tok) == tok_accum || (tok) == tok_fract || (tok) == tok_sat)
 #else /* !FIXED_POINT_EXTENSIONS_ALLOWED */
 #define or_is_fixed_point_type_keyword(tok)  /* Nothing */
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */

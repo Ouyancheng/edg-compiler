@@ -4361,6 +4361,15 @@ to refine the hash value developed in hash_constant.
     case tk_integer:
       hash_value = type->variant.integer.int_kind + 53;
       break;
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+    case tk_fixed_point:
+      hash_value = type->variant.fixed_point.saturating +
+                   type->variant.fixed_point.is_fract_type*2 +
+                   type->variant.fixed_point.is_unsigned*4 +
+                   type->variant.fixed_point.precision*8 +
+                   131;
+      break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tk_imaginary:
     case tk_complex:
@@ -4412,7 +4421,6 @@ to refine the hash value developed in hash_constant.
       hash_value = hash_type(type->variant.typeref.type) + 17;
       break;
     default:
-      /* FIXME: Special treatment needed for fixed-point? */
       hash_value = (a_constant_hash_value)type->kind;
   }  /* switch */
   return hash_value;
@@ -9620,6 +9628,31 @@ to TRUE.  *source_pos gives the source position for errors.
         assignment_case = TRUE;
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+      /* These are currently used only in C modes. */
+      case eok_fxnegate:
+      case eok_fxpost_incr:
+      case eok_fxpost_decr:
+      case eok_fxpre_incr:
+      case eok_fxpre_decr:
+      case eok_fxadd:
+      case eok_fxsubtract:
+      case eok_fxmultiply:
+      case eok_fxdivide:
+      case eok_fxeq:
+      case eok_fxne:
+      case eok_fxgt:
+      case eok_fxlt:
+      case eok_fxge:
+      case eok_fxle:
+      case eok_fxassign:
+      case eok_fxadd_assign:
+      case eok_fxsubtract_assign:
+      case eok_fxmultiply_assign:
+      case eok_fxdivide_assign:
+        unexpected_condition_str("fixed-point operators not implemented");
+        break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
       /* These are used only in C mode.  If they are added for GNU C++
          mode, bear in mind that determine_arithmetic_conversions does
@@ -9638,6 +9671,7 @@ to TRUE.  *source_pos gives the source position for errors.
       case eok_xmultiply_assign:
       case eok_xdivide_assign:
         unexpected_condition_str("complex operators not implemented");
+        break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       default:
         break;
@@ -11822,6 +11856,11 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
     case eok_fxpost_decr:
     case eok_fxpre_incr:
     case eok_fxpre_decr:
+    case eok_fxassign:
+    case eok_fxadd_assign:
+    case eok_fxsubtract_assign:
+    case eok_fxmultiply_assign:
+    case eok_fxdivide_assign:
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
     case eok_iassign:
     case eok_fassign:
