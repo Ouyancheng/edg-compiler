@@ -1838,8 +1838,13 @@ Add the type qualifiers specified
              f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE)) != 0) {
           /* Duplication of type qualifier (probably because of a typedef
              that is already qualified). */
-          error(ec_dupl_type_qualifier);
-          err = TRUE;
+          an_error_severity es = es_error;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          /* In Microsoft mode, duplicate qualifiers result in a warning. */
+          if (microsoft_mode) es = es_warning;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          diagnostic(es, ec_dupl_type_qualifier);
+          if (es == es_error) err = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -2186,6 +2191,10 @@ Returns TRUE if there is an error in the specifiers.
           es = (C_dialect == C_dialect_cplusplus) ?
                  (strict_ansi_mode ? strict_ansi_error_severity : es_warning) :
                  es_error;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          /* In Microsoft mode, duplicate qualifiers result in a warning. */
+          if (microsoft_mode) es = es_warning;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
@@ -2200,6 +2209,10 @@ Returns TRUE if there is an error in the specifiers.
           es = (C_dialect == C_dialect_cplusplus) ?
                  (strict_ansi_mode ? strict_ansi_error_severity : es_warning) :
                  es_error;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          /* In Microsoft mode, duplicate qualifiers result in a warning. */
+          if (microsoft_mode) es = es_warning;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
@@ -2213,6 +2226,10 @@ Returns TRUE if there is an error in the specifiers.
         if (*qualifiers & TQ_RESTRICT) {
           /* Issue a diagnostic if restrict appears more than once. */
           es = (C_dialect == C_dialect_cplusplus) ? es_warning : es_error;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          /* In Microsoft mode, duplicate qualifiers result in a warning. */
+          if (microsoft_mode) es = es_warning;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
