@@ -1,5 +1,26 @@
 Version 2.33
 
+7/16/96 Failure to instantiate template for parameter type early enough
+
+The front end failed to instantiate a parameter of template type
+early enough when calling a function that was declared but not defined
+previously.  As a consequence, in this example a class was passed in
+the call, instead of a pointer to the class.
+
+  class B {};
+  template <class T> struct A {
+    A(T*);
+    virtual ~A();   
+  };
+  void f(A<B>);
+  void g() {
+    B* b = new B;
+    f(b);  // Problem here
+  }
+  void f(A<B>) {}
+  template <class T> A<T>::A(T*) {}
+  template <class T> A<T>::~A() {}
+
 7/16/96 const qualifier on "this" parameter type, with IL lowering
 
 When IL lowering generates a_param_type entry for the "this" parameter,

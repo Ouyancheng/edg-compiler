@@ -8232,6 +8232,9 @@ to be acceptable, and *conversion describes it.
 {
   a_type_ptr param_type = formal_param->type;
 
+  /* If the parameter is a template class, make sure it is instantiated so
+     we know if a copy constructor should be used. */
+  complete_type_is_needed(param_type);
   if (formal_param->passed_via_copy_constructor) {
     /* Argument is initialized by a copy constructor. */
     prep_arg_passed_via_copy_constructor(source_operand, param_type,
