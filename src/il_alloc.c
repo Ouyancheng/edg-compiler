@@ -2931,6 +2931,7 @@ in il_init.)
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
       pch_saved_var_array_elem(num_comments_allocated),
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+      pch_saved_var_array_elem(num_instantiation_directives_allocated),
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ORPHAN_PROCESSING_NEEDED
       pch_saved_var_array_elem(num_fs_orphan_pointers_allocated),
@@ -3041,6 +3042,7 @@ of the front end.
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
   num_comments_allocated                 = 0;
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+  num_instantiation_directives_allocated = 0;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ORPHAN_PROCESSING_NEEDED
   num_fs_orphan_pointers_allocated       = 0;
