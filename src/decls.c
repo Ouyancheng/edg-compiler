@@ -3192,9 +3192,13 @@ otherwise, set *ext_sym to NULL.
            order that their bodies appear. */
         remove_from_routines_list(routine_ptr);
         add_to_routines_list(routine_ptr, /*at_file_scope=*/TRUE);
-        /* Put in the storage class for the definition (static or 
-           unspecified; it's been standardized by function_definition). */
-        routine_ptr->storage_class = storage_class;
+        if (routine_ptr->is_inline) {
+          /* Leave the storage class static. */
+        } else {
+          /* Put in the storage class for the definition (static or 
+             unspecified). */
+          routine_ptr->storage_class = storage_class;
+        }  /* if */
         /* If the IL entry was previously referenced, the symbol should
            be considered to have been referenced as well. */
         saved_referenced_flag = routine_ptr->source_corresp.referenced;
