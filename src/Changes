@@ -1,5 +1,10 @@
 Version 2.38
 
+12/8/97   Unrecognized __declspec attribute in Microsoft mode
+
+In Microsoft-compatibility mode a warning is now issued (instead of an
+error) when an unrecognized __declspec attribute is encountered.
+
 12/4/97   Comments in Microsoft asm statements
 
 Comments in Microsoft asm statements are now discarded.  Previously,
