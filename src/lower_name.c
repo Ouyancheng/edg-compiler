@@ -223,8 +223,8 @@ used to encode constants as part of the mangled names of template classes.
         a_type_ptr           class_type;
         a_routine_ptr        routine;
         an_address_base_kind abkind;
-        a_targ_ptrdiff_t     offset;
 
+        check_assertion(con->variant.address.offset == 0);
         abkind = con->variant.address.kind;
 #if CHECKING
         if (abkind == (an_address_base_kind)abk_constant) {
@@ -287,26 +287,6 @@ used to encode constants as part of the mangled names of template classes.
                                         store_at);
           }  /* if */
           store_at += str_length;
-        }  /* if */
-        /* If the offset is non-zero, add it at the end, in a form similar
-           to the integer constant form, except using "O", e.g., O3n12
-           for -12.  This convention is not used by cfront; we invented it. */
-        offset = con->variant.address.offset;
-        if (offset != 0) {
-          (void)sprintf(buffer, "%ld", (long)offset);
-          str = buffer;
-          str_length = strlen(str);  /* Includes "-" sign if any. */
-          digits = digits_to_represent((unsigned long)str_length);
-          literal_length += 1 + digits + str_length;
-          if (store_at != NULL) {
-            *store_at++ = 'O';
-            (void)sprintf(store_at, "%lu", (unsigned long)str_length);
-            store_at += digits;
-            (void)memcpy(store_at, str, size_t_arg(str_length));
-            /* Use "n" to represent a minus sign. */
-            if (*store_at == '-') *store_at = 'n';
-            store_at += str_length;
-          }  /* if */
         }  /* if */
       }
       break;
