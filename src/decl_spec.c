@@ -2161,6 +2161,7 @@ new expression and should therefore not be treated as a declaration.
     if (tag_id_present) {
       tag_sym = enter_local_symbol(tag_kind, &locator, effective_decl_level,
                                    /*suppress_redecl_error=*/FALSE);
+      tag_sym->variant.class_struct_union.type = class_type;
       set_source_corresp(&(class_type->source_corresp), tag_sym);
       if (is_friend_decl) {
         if (!friend_injection_enabled) {
@@ -2182,13 +2183,13 @@ new expression and should therefore not be treated as a declaration.
          around some information about classes that is of interest to the
          front end only. */
       tag_sym = make_unnamed_tag_symbol(tag_kind, &pos_curr_token);
+      tag_sym->variant.class_struct_union.type = class_type;
       /* Although the symbol header has a name of sorts, it should not appear
          in the type, so NULL it out after the call to set_source_corresp. */
       set_source_corresp(&(class_type->source_corresp), tag_sym);
       class_type->source_corresp.name = NULL;
       class_type->variant.class_struct_union.originally_unnamed = TRUE;
     }  /* if */
-    tag_sym->variant.class_struct_union.type = class_type;
     if (C_dialect == C_dialect_cplusplus) {
       if (is_class_definition && is_friend_decl) {
         /* Issuing the diagnostic was deferred till now. */

@@ -2207,7 +2207,10 @@ empty statement block.
     trans_unit_pushed = push_translation_unit_if_needed(rout_sym);
     /* Push a class symbol reactivation scope, to make class member names
        visible for processing the function definition. */
-    push_class_reactivation_scope(class_type, /*extend_namespace=*/TRUE);
+    push_class_and_template_reactivation_scope(
+                                           class_type,
+                                           /*reactivate_template_params=*/TRUE,
+                                           /*extend_namespace=*/TRUE);
     /* Push the scope for the new function itself. */
     scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
                        (a_type_ptr)NULL, rout_ptr);

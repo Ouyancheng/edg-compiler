@@ -430,6 +430,10 @@ is in within a function body.
       *is_local_to_function = TRUE;
     }  /* if */
     scope_depth = decl_scope_level;
+  } else if (is_template_instance_class_symbol(sym)) {
+    /* Template classes can be created at arbitrary times and so the
+       scope stack cannot be used to determine the scope depth. */
+    scope_depth = NO_SCOPE_DEPTH;
   } else {
     /* In certain unusual cases (e.g., when an entity is first seen in a
        friend declaration) it is necessary to compute the scope depth by
@@ -1470,26 +1474,13 @@ the scope being pushed.
         kind == (a_scope_kind)sck_class_reactivation) {
       /* Keep track of the number of classes and class reactivations. */
       num_classes_on_scope_stack++;
-      if (kind == (a_scope_kind)sck_class_reactivation) {
-        /* When a class is reactivated, ignore any enclosing functions
-           scopes. */
-        depth_innermost_function_scope =
-              ssep->depth_innermost_function_scope = NO_SCOPE_DEPTH;
-        innermost_function_scope = NULL;
-        /* If the class being reactivated is a local class, set the
-           inside_local_class flag. */
-        inside_local_class = ssep->inside_local_class =
-                               assoc_type->source_corresp.is_local_to_function;
-      } else {
-        /* A class scope. */
-        /* If we're entering a class and we're already inside a function,
-           the class is a local class. */
-        /* Note that this is done before depth_innermost_function_scope is
-           cleared below. */
-        if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-          inside_local_class = ssep->inside_local_class = TRUE;
-        }  /* if */
-      }  /*  if */
+      /* If we're entering a class and we're already inside a function,
+         the class is a local class. */
+      /* Note that this is done before depth_innermost_function_scope is
+         cleared below. */
+      if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+        inside_local_class = ssep->inside_local_class = TRUE;
+      }  /* if */
     }  /* if */
     if (kind == (a_scope_kind)sck_template_instantiation) {
       /* Save the depth of the innermost instantiation scope. */
