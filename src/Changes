@@ -1,5 +1,22 @@
 Version 2.45
 
+8/22/00  Pcc mode: local typedef applied to extern variable
+
+In Pcc mode, the type declared on a block extern declaration is remembered
+after processing of the block scope in which that declaration appears.  When
+the block extern type is a local typedef, this results in a file scope IL
+entity acquiring a local type.  The following example illustrates this:
+
+  int *ep;
+  void f() {
+    typedef int *IP;
+    extern IP ep;
+  }
+  /* In Pcc mode, ep was recorded to have type IP even outside f(). */
+
+To reduce the likelihood of such situations occurring, the file-scope type
+is now restored if it is equivalent to the locally declared type.
+
 8/22/00  Incorrect position range information
 
 The front end used to record incorrect position information for an add
