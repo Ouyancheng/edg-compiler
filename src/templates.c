@@ -16707,12 +16707,16 @@ be processed.
               (int)mip->instance_required_count);
     }  /* if */
 #endif /* DEBUG */
-    if (instantiation_flags_needed()) {
+    if (instantiation_flags_needed() &&
+        (instance_required || can_be_instantiated || do_not_instantiate)) {
       /* For automatic instantiation, generate the instantiation flags
          used by the prelinker.  These flags are placed in either the
          template information file or in the IL as variables.  If the
          flags are placed in the IL, this is only done if IL lowering is
-         being done. */
+         being done.  This processing is only done if one of the flags is
+         actually set.  This is important because there can be master
+         instance entries for things that have actually been removed from
+         the IL. */
       if (instantiation_flags_in_template_info_file &&
           generate_template_files()) {
         /* The flags are to be placed in the template information file. */
@@ -16740,7 +16744,8 @@ be processed.
        for this entity was generated in a separate file.  This is determined
        by checking whether an instantiation needed bit number was assigned
        to the entity.  If a file was generated, write the name of the
-       generated file to the template information file. */
+       generated file to the template information file (and for which we
+       should not attempt to generate a mangled name). */
     if (one_instantiation_per_object && generate_template_files()) {
       a_boolean		instantiation_file_generated;
       instantiation_file_generated = is_static_data_member
