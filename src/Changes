@@ -9,7 +9,7 @@ accessed.  An error message is now issued instead.
 3/24/95  Template instantiations using typedefs from prototype instantiations
 
 A bug has been fixed that could cause either an abort or the generation
-of invalid IL if a the initial reference to a class template instance
+of invalid IL if the initial reference to a class template instance
 included a template argument that was a typedef defined in a prototype
 instantiation.
 
