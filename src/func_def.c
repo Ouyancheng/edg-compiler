@@ -41,7 +41,7 @@ static void define_special_member_function(a_routine_ptr rout_ptr);
 
 #if ASM_FUNCTION_ALLOWED
 
-char *scan_asm_function(void)
+static char *scan_asm_function(void)
 /*
 Scan the text between the opening and closing brace of an asm
 function.  Proceed token by token until the matching right brace is
