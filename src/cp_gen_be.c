@@ -3507,6 +3507,7 @@ precedence confusion.
          operand expression is put out as an rvalue, and the underlying
          C compiler will presumably do the right thing. */
       gen_expr_with_parens(operand_1);
+      processed = TRUE;
     } else if (op == (an_expr_operator_kind)eok_lvalue_cast) {
       /* Lvalue cast. */
       gen_cast(type_pointed_to(node->type));
