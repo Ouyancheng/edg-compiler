@@ -1,5 +1,15 @@
 Version 2.19
 
+6/28/93  Redundant type qualifiers
+
+Restrictions on redundant type qualifiers in C++ mode have been relaxed.
+For instance:
+
+  typedef const int CI;
+  const CI x = 0;          // Error in C mode, no diagnostic in C++ mode
+  const const int y = 0;   // Error in C mode, warning in C++ mode (or
+                           //   an error in -A strict ansi mode)
+
 6/27/93  Command line option to disable support for exception handling
 
 A command line option ("-x") has been added to control whether support for
