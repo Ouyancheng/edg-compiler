@@ -511,7 +511,12 @@ only the entries marked as "needed" are marked to keep in the IL.
   if (entry_kind == iek_scope) {
     a_scope_ptr scope = (a_scope_ptr)entry_ptr;
     if (scope->kind == (a_scope_kind)sck_file) {
+      a_scope_orphaned_list_header_ptr *ptr_ptr;
       /* The file scope is being walked. */
+#if RECORD_MACROS_IN_IL
+      /* Mark all macros to be kept. */
+      walk_list(il_header.macros, a_macro_ptr, iek_macro);
+#endif /* RECORD_MACROS_IN_IL */
       /* Walk the orphaned list for scopes, marking only those entries that
          correspond to needed routines.  The process that eliminates unneeded
          IL entries looks at the lists for unneeded routines later, and
@@ -521,8 +526,7 @@ only the entries marked as "needed" are marked to keep in the IL.
          not cause the setting of keep_in_il on the routine entry itself.
          So we don't do that here, leaving it to be done later if
          appropriate. */
-      a_scope_orphaned_list_header_ptr *ptr_ptr =
-                                        &il_header.scope_orphaned_list_headers;
+      ptr_ptr = &il_header.scope_orphaned_list_headers;
       check_assertion(end_of_file_scope_needed_flags_phase);
       for (; *ptr_ptr != NULL; ptr_ptr = &(*ptr_ptr)->next) {
         if ((*ptr_ptr)->assoc_routine->source_corresp.needed) {
@@ -532,6 +536,10 @@ only the entries marked as "needed" are marked to keep in the IL.
       }  /* for */
       /* Visit the orphan lists. */
       walk_orphaned_entries_set_keep_in_il();
+      /* Set keep_in_il on source correspondence entries to match the
+         IL entries pointed to.  This must be done late so that all the
+         keep_in_il flags have been set. */
+      set_keep_in_il_on_source_sequence_entries(scope);
     } /* if */
   }  /* if */
 

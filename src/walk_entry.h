@@ -1348,8 +1348,13 @@ handle_non_autonomous_tag:
         /* When setting the keep_in_il flag, source sequence entries are
            kept if and only if the associated IL entry is kept.  (In
            function scopes, all entries are kept.)  Note that this is
-           done last so all the keep_in_il flags are set already. */
-        set_keep_in_il_on_source_sequence_entries(ptr);
+           done last so all the keep_in_il flags are set already.
+           The file scope is not processed here, but rather in
+           mark_to_keep_in_il, because it must be done after orphan
+           processing. */
+        if (kind == (a_scope_kind)sck_function) {
+          set_keep_in_il_on_source_sequence_entries(ptr);
+        }  /* if */
 #else /* !KEEP_IN_IL_WALK */
         walk_list_not_needed(ptr->source_sequence_list,
                              a_source_sequence_entry_ptr,
