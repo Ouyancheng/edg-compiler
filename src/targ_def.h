@@ -709,7 +709,7 @@ names.  The front end doesn't add the underscore.
 Flag that is TRUE if class and struct fields are allocated in the same order
 as they are declared, regardless of access specification.  When it is FALSE,
 fields are grouped by access (private first, followed by protected and then
-private) and offsets are assigned within each group in declaration order.
+public) and offsets are assigned within each group in declaration order.
 (Constraints on allocation are discussed in ARM 9.2 and 11.1.  In particular,
 both approaches described in the embedded annotation in section 11.1 are
 supported.)
