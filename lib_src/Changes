@@ -1,4 +1,4 @@
-Version 3.2
+Version 3.2, May 12, 2003
 
 4/15/03  IA-64: __cxa_finalize problem if non-null DSO handle is used
 
