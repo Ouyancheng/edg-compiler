@@ -5634,7 +5634,7 @@ declared member functions.
           /* For the default arg fixup later on, reset the pointer to the
              declared type that needs to be updated.  (Note that it will be
              associated with the source-sequence secondary decl entry, not
-             the routine type.) */
+             the routine.) */
           func_info->declared_type = tp;
         } else {
           /* No need to create a new type entry. */
