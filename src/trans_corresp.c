@@ -4106,7 +4106,10 @@ for those.
     instantiations_to_process = NULL;
     for (entry = entries; entry != NULL; entry = entry->next) {
       a_symbol_ptr  inst = entry->symbol;
-      if (is_class_struct_union_symbol(inst)) {
+      if (inst == NULL) {
+        /* Processed earlier (presumably by a call to
+           process_instantiation_if_pending). */
+      } else if (is_class_struct_union_symbol(inst)) {
         record_class_template_instantiation(inst);
       } else if (is_function_symbol(inst)) {
         record_function_template_instantiation(inst);
@@ -4115,6 +4118,29 @@ for those.
     free_list_of_symbol_list_entries(entries);
   }  /* while */
 }  /* process_pending_instantiations */
+
+
+static void process_instantiation_if_pending(a_symbol_ptr  inst)
+/*
+If the given instantiation is on the list of instantiations whose
+correspondence must be found, process it now.
+*/
+{
+  a_symbol_list_entry_ptr  entry = instantiations_to_process;
+
+  for (; entry != NULL; entry = entry->next) {
+    if (inst == entry->symbol) {
+      if (is_class_struct_union_symbol(inst)) {
+        record_class_template_instantiation(inst);
+      } else if (is_function_symbol(inst)) {
+        record_function_template_instantiation(inst);
+      }  /* if */
+      /* Clear this instantiation so it doesn't get re-processed by
+         process_pending instantiations. */
+      entry->symbol = NULL;
+    }  /* if */
+  }  /* if */
+}  /* process_instantiation_if_pending */
 
 
 static void establish_instantiation_correspondences(
@@ -4734,13 +4760,12 @@ way, determine to which other IL entry this might correspond.
                 type->variant.class_struct_union.is_template_class &&
                 type->variant.class_struct_union.extra_info
                                                 ->template_arg_list != NULL) {
+              a_symbol_ptr  inst = (a_symbol_ptr)scp->assoc_info;
               /* Flush the pending instantiations list, in case the type we're
                  interested in is on that list. */
-              process_pending_instantiations();
+              process_instantiation_if_pending(inst);
               if (trans_unit_corresp_of(type) == NULL) {
-              
-                record_class_template_instantiation(
-                              (a_symbol_ptr)type->source_corresp.assoc_info);
+                record_class_template_instantiation(inst);
               }  /* if */
             } else {
               find_type_correspondence(type, (a_boolean)scp->is_class_member);
@@ -4793,9 +4818,10 @@ way, determine to which other IL entry this might correspond.
         }  /* if */
       }  /* if */
     }
-    if (trans_unit_corresp_of_unknown_entry(scp) == NULL) {
+    if (trans_unit_corresp_of_unknown_entry(scp) == NULL &&
+        scp->assoc_info != NULL) {
       /* The entity might be an instantiation waiting to be processed. */
-      process_pending_instantiations();
+      process_instantiation_if_pending((a_symbol_ptr)scp->assoc_info);
     }  /* if */
     if (trans_unit_corresp_of_unknown_entry(scp) == NULL) {
       /* A failure to find a correspondence error at an outer level prevents
