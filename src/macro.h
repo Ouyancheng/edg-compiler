@@ -4,7 +4,7 @@
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -85,6 +85,8 @@ extern unsigned long show_macro_space_used(void);
 
 extern void macro_one_time_init(void);
 
+extern void macro_trans_unit_init(void);
+
 extern void macro_init(void);
 
 /* When variadic macros are enabled, the identifier __VA_ARGS__ can only
@@ -105,6 +107,6 @@ extern void macro_init(void);
 * Edison Design Group C Front End                            - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

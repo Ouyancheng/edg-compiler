@@ -1026,6 +1026,7 @@ calls symbol_tbl_trans_unit_init.
   statements_trans_unit_init();
   class_decl_trans_unit_init();
   layout_trans_unit_init();
+  macro_trans_unit_init();
 #if DO_IL_LOWERING
   il_lower_trans_unit_init();
 #if DO_C99_IL_LOWERING

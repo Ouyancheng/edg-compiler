@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -47,7 +47,7 @@ static char	*macro_buffer;
 			   macro_buffer.  The initial allocation should be
 			   such that almost all cases can be accepted (so that
 			   the realloc is hardly ever needed). */
-static char	*after_end_of_macro_buffer /* = NULL */;
+static char	*after_end_of_macro_buffer;
 			/* The address just past the last element of
 			   macro_buffer. */
 static char	*next_avail_in_macro_buffer;
@@ -67,12 +67,12 @@ static char	*aux_buffer_for_pcc_macros;
 			   should be such that almost all cases can be
 			   accepted (so that the realloc is hardly ever
 			   needed). */
-static char	*after_end_of_aux_buffer_for_pcc_macros /* = NULL */;
+static char	*after_end_of_aux_buffer_for_pcc_macros;
 			/* Pointer to just after the end of
 			   aux_buffer_for_pcc_macros. */
 
 static a_symbol_ptr
-		_Pragma_macro_symbol;
+		Pragma_macro_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "_Pragma", which is used in C99 mode. */
 
@@ -161,9 +161,9 @@ typedef struct a_macro_arg {
 } a_macro_arg;
 
 static a_macro_arg_ptr
-		avail_macro_args = NULL;
+		avail_macro_args;
 			/* List of freed macro arguments available for
-			   reuse.  Not per-file. */
+			   reuse. */
 static a_macro_arg_ptr
 		macro_arg_list,
 		end_of_macro_arg_list;
@@ -173,8 +173,8 @@ static a_macro_arg_ptr
 static unsigned long
 		num_macro_params_allocated,
 		num_macro_defs_allocated,
-		num_macro_args_allocated = 0,  /* Not per-file. */
-		macro_arg_raw_text_space = 0,  /* Not per-file. */
+		num_macro_args_allocated,
+		macro_arg_raw_text_space,
 		param_name_string_space,
 		macro_definition_space;
 			/* Used to track space use. */
@@ -800,7 +800,7 @@ so that "defined" will not be found as a defined macro.
      an operator in #if statements), or "_Pragma" (which is used for the
      C99 _Pragma operator) pretend it was not found. */
   if (assoc_symbol == defined_macro_symbol ||
-      assoc_symbol == _Pragma_macro_symbol) {
+      assoc_symbol == Pragma_macro_symbol) {
     assoc_symbol = NULL;
   }  /* if */
   return (assoc_symbol);
@@ -2083,7 +2083,7 @@ end_scan_for_macro_modifs:;
         (void)strcpy(repl_text,
                      str_for_integer_constant(&const_for_curr_token));
         (void)strcat(repl_text, "L");
-      } else if (macro_symbol == _Pragma_macro_symbol) {
+      } else if (macro_symbol == Pragma_macro_symbol) {
         /* The C99 _Pragma operator.  This is invoked as
                _Pragma("pragma-name pragma-operands(opt)")
            Call a routine to translate the string into a pending pragma
@@ -4685,7 +4685,7 @@ command line -D options.
   if (c99_mode) {
     /* Like the special macros defined above, _Pragma is entered as a
        predefined macro but is handled specially during replacement. */
-    _Pragma_macro_symbol = enter_predef_macro((char *)NULL, "_Pragma",
+    Pragma_macro_symbol = enter_predef_macro((char *)NULL, "_Pragma",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
@@ -4768,8 +4768,6 @@ Display and return the amount of space used for various macro tables.
 void macro_one_time_init(void)
 /*
 Do one-time initialization of variables related to macro processing.
-(Variables that need to be reinitialized with each new translation unit
-are handled in macro_init.)
 */
 {
   /* Do the initial allocation for macro_buffer.  (Since the space is
@@ -4793,15 +4791,23 @@ are handled in macro_init.)
                  (sizeof_t)(AUX_BUFFER_FOR_PCC_MACROS_INITIAL_ALLOCATION+1));
     after_end_of_aux_buffer_for_pcc_macros = aux_buffer_for_pcc_macros +
                                 AUX_BUFFER_FOR_PCC_MACROS_INITIAL_ALLOCATION;
+  } else {
+    /* Auxiliary buffer will not be used. */
+    aux_buffer_for_pcc_macros = NULL;
+    after_end_of_aux_buffer_for_pcc_macros = NULL;
   }  /* if */
+  avail_macro_args = NULL;
+  num_macro_args_allocated = 0;
+  macro_arg_raw_text_space = 0;
+  registered_pointers = NULL;
   /* Save variables from macro.h and macro.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
-      pch_saved_var_array_elem(defined_macro_symbol),
-      pch_saved_var_array_elem(_Pragma_macro_symbol),
       pch_saved_var_array_elem(line_macro_symbol),
       pch_saved_var_array_elem(file_macro_symbol),
+      pch_saved_var_array_elem(defined_macro_symbol),
+      pch_saved_var_array_elem(Pragma_macro_symbol),
       pch_saved_var_array_elem(date_macro_symbol),
       pch_saved_var_array_elem(time_macro_symbol),
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
@@ -4817,36 +4823,62 @@ are handled in macro_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  /* Register variables that must be saved and restored when switching
+     between translation units. */
+  register_trans_unit_variable(line_macro_symbol);
+  register_trans_unit_variable(file_macro_symbol);
+  register_trans_unit_variable(defined_macro_symbol);
+  register_trans_unit_variable(Pragma_macro_symbol);
+  register_trans_unit_variable(date_macro_symbol);
+  register_trans_unit_variable(time_macro_symbol);
+#if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
+  register_trans_unit_variable(assert_predicates);
+#endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 }  /* macro_one_time_init */
+
+
+void macro_trans_unit_init(void)
+/*
+Initialize static variables related to macro processing that must be
+initialized for each translation unit.  Note that init_predefined_macros
+does additional per-translation-unit initialization, and must be called
+after this function.
+*/
+{
+  macro_depth = 0;
+  line_macro_symbol = NULL;
+  file_macro_symbol = NULL;
+  defined_macro_symbol = NULL;
+  Pragma_macro_symbol = NULL;
+  date_macro_symbol = NULL;
+  time_macro_symbol = NULL;
+  macro_arg_list = NULL;
+  end_of_macro_arg_list = NULL;
+#if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
+  assert_predicates = NULL;
+#endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
+  end_of_cpp_string = NULL;
+}  /* macro_trans_unit_init */
 
 
 void macro_init(void)
 /*
-Initialize static variables related to macro processing.  This is done
-as a subroutine (rather than relying on static initialization) so that it
-can be redone to compile more than one source file in a single invocation
-of the front end.
+Initialize static variables related to macro processing that must be
+initialized for each compilation.
 */
 {
-  /* Variables in macro.h: */
-  macro_depth = 0;
-  /* Static variables in macro.c: */
-  /* avail_macro_args is not per-file and should not be cleared. */
-  macro_arg_list = NULL;
-  end_of_macro_arg_list = NULL;
-  registered_pointers = NULL;
-#if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
-  assert_predicates = NULL;
-#endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
+  /* avail_macro_args is not per-compilation and should not be cleared. */
 #if DEBUG
   num_macro_params_allocated    = 0;
   num_macro_defs_allocated      = 0;
-  /* num_macro_args_allocated is not per-file and should not be cleared. */
-  /* macro_arg_raw_text_space is not per-file and should not be cleared. */
+  /* num_macro_args_allocated is not per-compilation and should not be
+     cleared. */
+  /* macro_arg_raw_text_space is not per-compilation and should not be
+     cleared. */
   param_name_string_space       = 0;
   macro_definition_space        = 0;
 #endif /* DEBUG */
-  end_of_cpp_string = NULL;
+  macro_trans_unit_init();
 }  /* macro_init */
 
 
@@ -4856,6 +4888,6 @@ of the front end.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
