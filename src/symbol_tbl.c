@@ -5045,7 +5045,7 @@ Don't put its symbol into the symbol table yet.
      underlying namespace, not the alias. */
   make_symbol_for_predeclared_namespace("__cxxabiv1", 
                                         &symbol_for_namespace_abi);
-}  /* make_symbol_for_namespace_std */
+}  /* make_symbol_for_namespace_abi */
 
 #endif /* IA64_ABI */
 
