@@ -18,6 +18,10 @@ target.h -- Definition of target machine characteristics.
 #ifndef TARGET_H
 #define TARGET_H 1
 
+#ifndef LANG_FEAT_H
+#include "lang_feat.h"
+#endif /* ifndef LANG_FEAT_H */
+
 /*
 Flag that is TRUE if object code compatibility with AT&T's cfront is
 required.  The main issue is class layout and specifically how the data
@@ -35,12 +39,12 @@ be used.
 #define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY TRUE
 #define CFRONT_3_0_OBJECT_CODE_COMPATIBILITY FALSE
 #define CFRONT_OBJECT_CODE_COMPATIBILITY \
-                           CFRONT_2_1_OBJECT_CODE_COMPATIBILITY ||        \
-                           CFRONT_3_0_OBJECT_CODE_COMPATIBILITY
+                           (CFRONT_2_1_OBJECT_CODE_COMPATIBILITY ||   \
+                            CFRONT_3_0_OBJECT_CODE_COMPATIBILITY)
 
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY && \
     CFRONT_3_0_OBJECT_CODE_COMPATIBILITY
-error -- must select either 2.1 compatibility or 3.0 compatibility
+??=error -- must select either 2.1 compatibility or 3.0 compatibility
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY ... */
 
 
