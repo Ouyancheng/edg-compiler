@@ -164,7 +164,7 @@ static void initialize_init_context(
                              an_aggregate_init_context_ptr  prev_init_context,
                              a_type_ptr                     type)
 /*
-Initialize an entry of type an_aggregreate_init_context.
+Initialize an entry of type an_aggregrate_init_context.
 */
 {
   init_context->prev_context = prev_init_context;
@@ -176,7 +176,7 @@ Initialize an entry of type an_aggregreate_init_context.
   init_context->pending_init_con = NULL;
   init_context->repeat = NULL;
   init_context->pending_init_levels = 0;
-  if (prev_init_context != NULL) {
+  if (prev_init_context != NULL && !is_error_type(type)) {
     a_constant_ptr  init_con = prev_init_context->pending_init_con;
     unsigned long   levels_down = prev_init_context->pending_init_levels;
 
