@@ -1,5 +1,10 @@
 Version 2.42
 
+3/30/99  Abort with type_info declared in unnamed namespace
+
+An abort would occur if a class named "type_info" were declared in an
+unnamed namespace.  Now fixed.
+
 3/26/99  Microsoft compatibility: bit-field allocation
 
 With TARG_MICROSOFT_BIT_FIELD_ALLOCATION configured to TRUE and

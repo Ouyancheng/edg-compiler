@@ -933,51 +933,59 @@ caution when modifying this routine.
         tag_kind != (a_symbol_kind)sk_enum_tag) {
       /* See if this is an explicit declaration of class type_info, which was
          already "predeclared".  If it is, reuse the original symbol. */
-      a_type_ptr    predeclared_type = NULL;
-      a_symbol_ptr  type_info_sym;
+      a_type_ptr       predeclared_type = NULL;
+      a_symbol_ptr     type_info_sym;
+
       check_assertion(type_of_type_info != NULL);
       type_info_sym = (a_symbol_ptr)type_of_type_info->
                                            source_corresp.assoc_info;
       /* Note that we need a match not only on the name but also on the
          namespace.  This depends on whether the implicitly declared type_info
          is expected to be in namespace "std" or in the global namespace. */
-      if (locator_for_curr_id.symbol_header == type_info_sym->header &&
-          (type_info_in_namespace_std ?
-            (decl_scope_level == (DEPTH_OF_FILE_SCOPE + 1) &&
-             strcmp(scope_stack[decl_scope_level].il_scope->variant.
-                   assoc_namespace->source_corresp.name, "std") == 0) :
-            (decl_scope_level == DEPTH_OF_FILE_SCOPE))) {
-        /* The identifier is indeed "type_info".  Check for the pragma that
-           specifically identifies it as the type_info that is returned by
-           typeid (typically, the type_info defined in typeinfo.h). */
+      if (locator_for_curr_id.symbol_header == type_info_sym->header) {
+        a_namespace_ptr       nsp = NULL;
         a_pending_pragma_ptr  ppp;
-        ppp = extract_specific_pragmas((a_pragma_kind)pk_define_type_info,
-                                       type_info_sym, (a_statement_ptr)NULL,
-                                       /*curr_scope_only=*/TRUE);
-        if (ppp != NULL) {
-          /* This is the one. */
-          tag_sym = type_info_sym;
-          /* RTTI is outside the "Embedded C++" subset. */
-          feature_is_not_part_of_embedded_cplusplus_subset(
+
+        if (decl_scope_level == (DEPTH_OF_FILE_SCOPE + 1)) {
+          nsp = scope_stack[decl_scope_level].il_scope->
+                                                  variant.assoc_namespace;
+        }  /* if */
+        if (type_info_in_namespace_std ?
+            (nsp != NULL &&
+             nsp->source_corresp.assoc_info ==
+                                      (char *)symbol_for_namespace_std) :
+            (decl_scope_level == DEPTH_OF_FILE_SCOPE)) {
+          /* The identifier is indeed "type_info".  Check for the pragma that
+             specifically identifies it as the type_info that is returned by
+             typeid (typically, the type_info defined in typeinfo.h). */
+          ppp = extract_specific_pragmas((a_pragma_kind)pk_define_type_info,
+                                         type_info_sym, (a_statement_ptr)NULL,
+                                         /*curr_scope_only=*/TRUE);
+          if (ppp != NULL) {
+            /* This is the one. */
+            tag_sym = type_info_sym;
+            /* RTTI is outside the "Embedded C++" subset. */
+            feature_is_not_part_of_embedded_cplusplus_subset(
                                                 &pos_curr_token,
                                                 ec_rtti_in_embedded_cplusplus);
-          free_pending_pragma_list(ppp);
-        } else {
+            free_pending_pragma_list(ppp);
+          } else {
 #if !PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED
-          /* The pragma is not required (e.g., when the C++ generating back
-             end is in use). */
-          tag_sym = type_info_sym;
+            /* The pragma is not required (e.g., when the C++ generating back
+               end is in use). */
+            tag_sym = type_info_sym;
 #else /* PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED */
 #if ABI_CHANGES_FOR_RTTI
-          /* Run-time support for RTTI declares type_info, so consider the
-             name to be reserved. */
-          pos_st_error(ec_conflicts_with_predeclared_type_info,
-                       &locator_for_curr_id.source_position,
-                       type_info_in_namespace_std ? "std::type_info" :
-                                                    "type_info");
-          tag_sym = type_info_sym;
+            /* Run-time support for RTTI declares type_info, so consider the
+               name to be reserved. */
+            pos_st_error(ec_conflicts_with_predeclared_type_info,
+                         &locator_for_curr_id.source_position,
+                         type_info_in_namespace_std ? "std::type_info" :
+                                                      "type_info");
+            tag_sym = type_info_sym;
 #endif /* ABI_CHANGES_FOR_RTTI */
 #endif /* !PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED */
+          }  /* if */
         }  /* if */
         if (tag_sym == type_info_sym &&
             tag_sym->decl_scope == NO_SCOPE_NUMBER) {
