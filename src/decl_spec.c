@@ -1620,13 +1620,14 @@ The given symbol was created for a friend class declaration during a
 prototype instantiation.  It is therefore associated with a template
 instantiation scope.  Duplicate this symbol in the surrounding namespace
 scope, but keep it hidden in that scope until a visible declaration of
-the class is made.  Update *sym to the duplicated symbol value and
-*scope_depth to the namespace scope in which it was added.
+the class is made (unless we are doing friend injection).  Update *sym to
+the duplicated symbol value and *scope_depth to the namespace scope in
+which it was added.
 */
 {
   *scope_depth = depth_innermost_namespace_scope;
   *sym = enter_copy_of_symbol(*sym, *scope_depth, /*suppress_error=*/FALSE);
-  (*sym)->is_invisible = TRUE;
+  if (!friend_injection_enabled) (*sym)->is_invisible = TRUE;
 }  /* duplicate_friend_sym_in_namespace */
 
 
