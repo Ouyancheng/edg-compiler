@@ -37,13 +37,15 @@ into an error.  Even more surprising, the error would go away if the
 remarks that occur while processing command-line macro definitions are
 now suppressed.
 
-1/20/04  Space use improvement with CHECKING code with Microsoft compilers
+1/20/04  Space use improvement with CHECKING code
 
-When using checking code, bit fields in data structures are generally
+When using checking code, bit fields in data structures have generally
 terminated with a "bitfield_to_avoid_codecenter_warnings" entry.  This
-entry had the type "unsigned int:2" but should have been "a_bit_field:2".
-This resulted in wasted space when compiling the front end with Microsoft
-compilers.  Now fixed.
+entry is now included only if the CENTERLINE_CHECKING macro is also set.
+In addition, this entry had the type "unsigned int:2" but should have been
+"a_bit_field:2".  This resulted in wasted space when compiling the front
+end with Microsoft compilers.  The type of the entry has now been changed
+to "a_bit_field:2".
 
 1/20/04  Template argument deduction with arrays with added qualifiers
 

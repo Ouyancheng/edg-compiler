@@ -482,6 +482,13 @@ extern void debug_exit(void);
 #define EXPENSIVE_CHECKING 0
 #endif /* ifndef EXPENSIVE_CHECKING */
 
+#ifndef CENTERLINE_CHECKING
+/* Include checking code that is specific to versions that use Codecenter.
+   In particular, this enables the declaration and initialization of the
+   "avoid_codecenter_warnings" bit fields. */
+#define CENTERLINE_CHECKING 0
+#endif /* ifndef CENTERLINE_CHECKING */
+
 /*
 Macro used to add a 2-bit bit field after any sequence of bit fields.
 By clearing this bit field to zero we can avoid warnings about
@@ -491,12 +498,12 @@ This expands to an empty string when checking code is not being used.
 Note that the semicolon that terminates the declaration is provided by
 the macro, so one should not follow a reference to the macro.
 */
-#if CHECKING
+#if CENTERLINE_CHECKING
 #define bitfield_to_avoid_codecenter_warnings() \
   a_bit_field	avoid_codecenter_warnings:2;
-#else /* !CHECKING */
+#else /* !CENTERLINE_CHECKING */
 #define bitfield_to_avoid_codecenter_warnings()  /* nothing */
-#endif /* CHECKING */
+#endif /* CENTERLINE_CHECKING */
 
 /*
 Indication that a function does not return.  Used as the return type

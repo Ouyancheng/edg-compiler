@@ -1458,9 +1458,9 @@ Initialize the fields in a scope-pointers-block substructure.
   spbp->last_template                = NULL;
   spbp->unnamed_namespace_sym        = NULL;
   spbp->add_symbols_to_inactive_list = FALSE;
-#if CHECKING 
+#if CENTERLINE_CHECKING 
   spbp->avoid_codecenter_warnings    = FALSE;
-#endif /* CHECKING */
+#endif /* CENTERLINE_CHECKING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   spbp->last_source_sequence_entry   = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -1729,9 +1729,9 @@ the scope being pushed.
   ssep->string_literal_table = NULL;
   ssep->string_literal_sequence_number = 0;
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
-#if CHECKING 
+#if CENTERLINE_CHECKING 
   ssep->avoid_codecenter_warnings    = FALSE;
-#endif /* CHECKING */
+#endif /* CENTERLINE_CHECKING */
   ssep->il_scope                 = sp;
   ssep->assoc_type               = assoc_type;
   ssep->assoc_routine            = assoc_routine;

@@ -122,6 +122,9 @@ Flags to be set when using the KAI inliner.
    double). */
 #define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
 #define TARG_SIZEOF_LONG_DOUBLE 8
+#if defined(sparc) || defined(__sparc)
+#define CENTERLINE_CHECKING 1
+#endif /* defined(sparc) || defined(__sparc) */
 #endif /* SUN_TEST_VERSION */
 
 #include "defines_solaris.h"

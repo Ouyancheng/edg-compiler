@@ -2478,9 +2478,9 @@ and return a pointer to it.
   tssp->is_specific_definition = FALSE;
   tssp->is_nonreal_member = FALSE;
   tssp->is_error = FALSE;
-#if CHECKING 
+#if CENTERLINE_CHECKING 
   tssp->avoid_codecenter_warnings = FALSE;
-#endif /* CHECKING */
+#endif /* CENTERLINE_CHECKING */
   switch (kind) {
     case sk_class_template:
     case sk_class_or_struct_tag:
@@ -2502,9 +2502,9 @@ and return a pointer to it.
       tssp->variant.class_template.any_full_instantiations = FALSE;
       tssp->variant.class_template.argument_template = NULL;
       tssp->variant.class_template.substituted_param_template = NULL;
-#if CHECKING 
+#if CENTERLINE_CHECKING 
       tssp->variant.class_template.avoid_codecenter_warnings = FALSE;
-#endif /* CHECKING */
+#endif /* CENTERLINE_CHECKING */
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       tssp->variant.class_template.source_sequence_list = NULL;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -2522,9 +2522,9 @@ and return a pointer to it.
       tssp->variant.function.pending_partial_instantiations = 0;
       tssp->variant.function.prototype_friend_symbol = NULL;
       tssp->variant.function.template_param_not_in_function_type = FALSE;
-#if CHECKING 
+#if CENTERLINE_CHECKING 
       tssp->variant.function.avoid_codecenter_warnings = FALSE;
-#endif /* CHECKING */
+#endif /* CENTERLINE_CHECKING */
       break;
     case sk_static_data_member:
       tssp->variant.static_data_member.definitions = NULL;
@@ -2658,9 +2658,9 @@ state.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         cssp->definition_is_first_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if CHECKING
+#if CENTERLINE_CHECKING
         cssp->avoid_codecenter_warnings = FALSE;
-#endif /* CHECKING */
+#endif /* CENTERLINE_CHECKING */
       }
       break;
     case sk_variable:
@@ -10671,17 +10671,17 @@ and return a pointer to it.
   clear_template_cache(&ptr->cache, /*reusable=*/TRUE);
   ptr->has_default_arg = FALSE;
   ptr->def_arg_involves_template_param = FALSE;
-#if CHECKING
+#if CENTERLINE_CHECKING
   ptr->avoid_codecenter_warnings = 0;
-#endif /* CHECKING */
+#endif /* CENTERLINE_CHECKING */
   if (sym->kind == (a_symbol_kind)sk_type) {
     ptr->variant.type     = sym->variant.type.ptr;
   } else if (sym->kind == (a_symbol_kind)sk_constant) {
     ptr->variant.constant.ptr = sym->variant.constant;
     ptr->variant.constant.type_involves_template_param = FALSE;
-#if CHECKING
+#if CENTERLINE_CHECKING
     ptr->variant.constant.avoid_codecenter_warnings = 0;
-#endif /* CHECKING */
+#endif /* CENTERLINE_CHECKING */
   } else {
     /* A template template parameter. */
     check_assertion(sym->kind == (a_symbol_kind)sk_class_template);
@@ -11115,11 +11115,11 @@ are handled in symbol_tbl_init.)
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cleared_symbol.is_super_reference                = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if CHECKING
+#if CENTERLINE_CHECKING
   /* Not needed right now -- at byte boundary.
   cleared_symbol.avoid_codecenter_warnings         = FALSE;
   */
-#endif /* CHECKING */
+#endif /* CENTERLINE_CHECKING */
   size_of_trans_unit_for_scope = 0;
   trans_unit_for_scope = NULL;
   /* Save variables from symbol_tbl.h and symbol_tbl.c that are needed for

@@ -3784,9 +3784,9 @@ used to find this file.
   curr_ise->is_preinclude = is_preinclude;
   curr_ise->do_not_advance_past_end_of_file = preinclude_macros;
   any_tokens_fetched_from_curr_input_file = FALSE;
-#if CHECKING
+#if CENTERLINE_CHECKING
   curr_ise->avoid_codecenter_warnings = 0;
-#endif /* CHECKING */
+#endif /* CENTERLINE_CHECKING */
   /* Create an intermediate file record describing this file.  It is
      useful later in converting sequence numbers into file name/line
      information. */
