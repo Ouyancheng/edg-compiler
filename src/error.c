@@ -1801,6 +1801,12 @@ error code.
     case ec_base_class_with_no_default_ctor:
       m = "base class %t has no default constructor";
       break;
+    case ec_destructor_name_mismatch:
+      m = "destructor name does not match name of class %t";
+      break;
+    case ec_destructor_type_mismatch:
+      m = "type used as destructor name does not match type %t";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -518,7 +518,9 @@ typedef enum /*an_error_code*/ {
   ec_initializer_list_for_empty_class_object,
   ec_nonexternal_entity_in_template_arg,
   ec_id_must_be_class_or_type_name,
-  ec_base_class_with_no_default_ctor
+  ec_base_class_with_no_default_ctor,
+  ec_destructor_name_mismatch,
+  ec_destructor_type_mismatch
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
