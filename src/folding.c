@@ -1864,7 +1864,7 @@ static void do_fnegate(a_constant        *constant,
 		       an_error_code     *err_code,
 		       an_error_severity *err_severity)
 /*
-Do the negate operation on types of floats.
+Do the negate operation on all types of floats.
 */
 {
   a_type_ptr   constant_type = skip_typerefs(constant->type);
@@ -1888,13 +1888,51 @@ Do the negate operation on types of floats.
 #endif /* DEBUG */
 }  /* do_fnegate */
 
+#if C99_IL_EXTENSIONS_SUPPORTED
+
+static void do_xnegate(a_constant        *constant,
+                       a_constant        *result,
+                       an_error_code     *err_code,
+                       an_error_severity *err_severity)
+/*
+Do the negate operation on all types of complex.
+*/
+{
+  a_boolean    err, accum_err = FALSE;
+  a_type_ptr   constant_type = skip_typerefs(constant->type);
+  a_float_kind float_kind = constant_type->variant.float_kind;
+
+  *err_code = ec_no_error;
+  *err_severity = es_warning;
+
+  set_constant_kind(result, (a_constant_repr_kind)ck_complex);
+  fp_negate(float_kind,
+            &constant->variant.complex_value->real,
+            &result->variant.complex_value->real,
+            &err);
+  accum_err |= err;
+  fp_negate(float_kind,
+            &constant->variant.complex_value->imag,
+            &result->variant.complex_value->imag,
+            &err);
+  accum_err |= err;
+  if (accum_err) {
+    *err_code = ec_bad_float_operation_result;
+    *err_severity = es_error;
+  }  /* if */
+#if DEBUG
+  db_unary_operation("x-", constant, result, *err_code);
+#endif /* DEBUG */
+}  /* do_xnegate */
+
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 static void do_complement(a_constant        *constant,
 		          a_constant        *result,
 			  an_error_code     *err_code,
 			  an_error_severity *err_severity)
 /*
-Do the complement operation on all type of integers.
+Do the complement operation on all types of integers.
 */
 {
   an_integer_value result_value;
@@ -2012,6 +2050,11 @@ the reason is that the constant is a template parameter constant).
         case eok_inegate:
           do_inegate(constant, result, &err_code, &err_severity);
           break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xnegate:
+          do_xnegate(constant, result, &err_code, &err_severity);
+          break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_unary_plus:
           copy_constant(constant, result);
           break;
