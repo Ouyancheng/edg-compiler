@@ -1858,7 +1858,7 @@ Reserve space at the end of the class object for virtual base classes.
       }  /* if */
       lob->bit_offset = 0;
     } else if (lob->byte_offset == 0) {
-      /* An empty class must occupy at lease one byte of memory. */
+      /* An empty class must occupy at least one byte of memory. */
       lob->byte_offset = 1;
     }  /* if */
     ctsp->size_without_virtual_base_classes = lob->byte_offset;
