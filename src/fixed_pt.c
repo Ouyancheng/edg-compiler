@@ -526,7 +526,7 @@ the value is already known to be too large.  Set *err on overflow.  Set
     mantissa_bits = number_of_bits_in_mantissa(mp);
     sign_bits = fxp_descr->is_unsigned ? 0 : 1;
     if (shift_count > 0) shift_right_mantissa(mp, shift_count);
-    /* See if the result value has more bits of precision than fit int
+    /* See if the result value has more bits of precision than fit into
        the destination type. */
     if (mantissa_bits > value_bits) *inexact = TRUE;
     /* Round the value to the nearest representable value. */
