@@ -271,13 +271,10 @@ await actual processing at a later point.
 {
   a_def_arg_expr_fixup_ptr  new_daefp, daefp;
   a_stop_token_array        save_stop_token_array;
+  a_token_cache             token_cache;
 
   db_enter(3, "prescan_default_arg_expr");
-  /* Allocate a default arg expr fixup entry.  The subroutine performs a clear
-     cache operation on the token_cache field, so there's no need to do it
-     again. */
-  new_daefp = alloc_def_arg_expr_fixup();
-  new_daefp->param_type = ptp;
+  clear_token_cache(&token_cache);
   /* Save the current stop token state, and reinitialize it. */
   copy_stop_tokens(stop_token_array, save_stop_token_array);
   clear_stop_tokens();
@@ -289,22 +286,34 @@ await actual processing at a later point.
   add_stop_token(tok_semicolon);
   add_stop_token(tok_lbrace);
   add_stop_token(tok_rbrace);
-  cache_token_stream(&new_daefp->token_cache);
+  cache_token_stream(&token_cache);
   /* Note that the terminating token (comma, rparen, etc.) is not added to
      the cache. */
   /* Add an end-of-source token to the end of the token cache.  This assures
      that we won't scan past the end of the cache in the actual scan. */
-  terminate_token_cache(&new_daefp->token_cache);
+  terminate_token_cache(&token_cache);
   /* Restore the original stop token state. */
   copy_stop_tokens(save_stop_token_array, stop_token_array);
-  /* Add the entry to the end of the list of default arg expr fixup entries
-     for the current routine fixup. */
-  if (curr_routine_fixup->def_arg_expr_fixup_list == NULL) {
-    curr_routine_fixup->def_arg_expr_fixup_list = new_daefp;
+  if (curr_routine_fixup == NULL) {
+    /* We must be within a prototype instantiation for a class template.  Just
+       throw away the cached tokens.  (We do not scan the default argument
+       expression when it appears in a prototype instantiation; it is only
+       scanned during real instantiations.) */
+    discard_token_cache(&token_cache);
   } else {
-    daefp = curr_routine_fixup->def_arg_expr_fixup_list;
-    while (daefp->next != NULL) daefp = daefp->next;
-    daefp->next = new_daefp;
+    /* Allocate a default arg expr fixup entry. */
+    new_daefp = alloc_def_arg_expr_fixup();
+    new_daefp->param_type = ptp;
+    new_daefp->token_cache = token_cache;
+    /* Add the entry to the end of the list of default arg expr fixup entries
+       for the current routine fixup. */
+    if (curr_routine_fixup->def_arg_expr_fixup_list == NULL) {
+      curr_routine_fixup->def_arg_expr_fixup_list = new_daefp;
+    } else {
+      daefp = curr_routine_fixup->def_arg_expr_fixup_list;
+      while (daefp->next != NULL) daefp = daefp->next;
+      daefp->next = new_daefp;
+    }  /* if */
   }  /* if */
 
   db_exit();
@@ -5585,6 +5594,9 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
             a_type_ptr         bottom_derived_type;
             an_expr_node_ptr   dim_expr_ptr;
 
+            if (C_dialect == C_dialect_cplusplus && !is_unreal_instantiation) {
+              curr_routine_fixup = alloc_routine_fixup();
+            }  /* if */
             /* Set the various flags for declarator processing. */
             declarator_input_flags = DI_REAL_DECLARATOR_ALLOWED;
             if (dso_flags & DSO_DESTRUCTOR) {
@@ -5718,11 +5730,12 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                                      /*compiler_generated=*/FALSE, spec_kind,
                                      is_func_template);
               }  /* if */
-              if (function_def_present) {
-                /* Next token indicates start of a function definition. */
-                curr_routine_fixup = alloc_routine_fixup();
+              if (curr_routine_fixup != NULL) {
                 curr_routine_fixup->routine = rout_sym->variant.routine.ptr;
                 curr_routine_fixup->func_info = func_info;
+              }  /* if */
+              if (function_def_present) {
+                /* Next token indicates start of a function definition. */
                 if (local_type == member_type) {
                   /* When scanning the declarator does not change the type,
                      we know this member is a function based on the
@@ -5747,8 +5760,10 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                                &locator.source_position, rout_sym);
                   /* A routine that's already defined may have been defined
                      inline.  Clear the token cache. */
-                  clear_token_cache(&curr_routine_fixup->
+                  if (curr_routine_fixup != NULL) {
+                    clear_token_cache(&curr_routine_fixup->
                                                 function_body_token_cache);
+                  }  /* if */
                 }  /* if */
                 rout_sym->defined = TRUE;
                 if (!friend_specified) {
