@@ -93,7 +93,8 @@ This has been changed to consistently record the first declaration.
 
 The front end used to abort when processing a class that imports a set of
 overloaded delete operators from a base class with a using-declaration or
-an access declaration.
+an access declaration.  The abort occurred only with exception handling
+enabled.
 
   struct B {
     void operator delete(void* p);
