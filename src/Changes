@@ -1,5 +1,10 @@
 Version 2.46
 
+1/16/01  Default configuration of VLA_DEALLOC_STATEMENTS_IN_IL
+
+VLA_DEALLOC_STATEMENTS_IN_IL is now TRUE by default (it used to be FALSE)
+when VLA_ALLOWED is TRUE.  (See Changes entry of 9/8/00.)
+
 1/16/01  Declared parameter types recorded in IL
 
 A declared_type field was added to a_param_type entries (which describe

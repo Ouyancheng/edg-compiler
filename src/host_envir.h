@@ -674,7 +674,7 @@ length arrays go out of scope and may be deallocated.  It is used to set
 global variable vla_dealloc_statements_in_il.
 */
 #ifndef VLA_DEALLOC_STATEMENTS_IN_IL
-#define VLA_DEALLOC_STATEMENTS_IN_IL FALSE
+#define VLA_DEALLOC_STATEMENTS_IN_IL VLA_ALLOWED
 #endif /* ifndef VLA_DEALLOC_STATEMENTS_IN_IL */
 #if VLA_DEALLOC_STATEMENTS_IN_IL && !VLA_ALLOWED
   #error -- VLA_DEALLOC_STATEMENTS_IN_IL cannot be true unless \
