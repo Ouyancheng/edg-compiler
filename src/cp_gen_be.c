@@ -4036,6 +4036,14 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   a_boolean        need_reference_close_paren = FALSE;
 
   check_assertion_str(expr != NULL, "gen_expr: NULL expression");
+  if (expr->void_expression_lvalue) {
+    /* The void_expression_lvalue flag indicates that the expression
+       should be treated as an lvalue. */
+    expr->void_expression_lvalue = FALSE;
+    gen_lvalue(expr);
+    expr->void_expression_lvalue = TRUE;
+    goto done_with_expr;
+  }  /* if */
   if (expr->implicit_reference_indirection) {
     /* This node is or contains an extra indirection generated because
        of a C++ reference type.  The indirection has to be removed in the
@@ -4537,6 +4545,7 @@ done_with_operation:
   /* If an extra set of parentheses was added because of the reference
      indirection trick above. close the set now. */
   if (need_reference_close_paren) write_tok_ch(')');
+done_with_expr:;
 }  /* gen_expr */
 
 
@@ -4682,8 +4691,7 @@ Generate the case label(s) or default label for the indicated switch clause.
 The current function source sequence entry is for that switch clause.
 */
 {
-  a_constant_ptr  con;
-  a_statement_ptr clause_stmt;
+  a_constant_ptr con;
 
   /* Check for the presence of the source sequence entry for the switch
      clause. */
