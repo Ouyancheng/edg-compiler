@@ -622,10 +622,17 @@ position following what was demangled.
     bad_mangled_name(dctl);
   } else {
     p += op_length;
-    /* Get the count of operands. */
-    p = get_number(p, &num_operands, dctl);
     /* Put parentheses around the operation. */
     write_id_ch('(', dctl);
+    /* For a cast, get the type. */
+    if (strcmp(operator_str, "cast") == 0) {
+      write_id_ch('(', dctl);
+      p = demangle_type(p, dctl);
+      write_id_ch(')', dctl);
+      operator_str = "";
+    }  /* if */
+    /* Get the count of operands. */
+    p = get_number(p, &num_operands, dctl);
     if (num_operands == 1) {
       /* Unary operator -- operator comes first. */
       write_id_str(operator_str, dctl);
@@ -874,6 +881,8 @@ return NULL.
     s = "()";
   } else if (start_of_id_is("vc", ptr)) {
     s = "[]";
+  } else if (start_of_id_is("cs", ptr)) {
+    s = "cast";
   } else {
     s = NULL;
   }  /* if */
