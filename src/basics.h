@@ -90,13 +90,6 @@ Determine if this is a WIN32 (e.g., Windows NT or Windows 95) system.
 #endif /* ifndef EDG_WIN32 */
 
 /*
-__ANSIC__ should be set for all WIN32 systems.
-*/
-#if EDG_WIN32
-#define __ANSIC__ 1
-#endif /* EDG_WIN32 */
-
-/*
 Determine if this is MS-DOS and if this is Turbo-C or Microsoft C.  No
 other MS-DOS compilers are considered at this time.  If this is MS-DOS
 (or, more likely, Windows) set EDG_MSDOS.  if this is Windows, EDG_WIN32

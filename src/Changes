@@ -1,5 +1,10 @@
 Version 2.43
 
+10/8/99  __ANSIC__ set twice when EDG_WIN32 is TRUE
+
+The basics.h header set __ANSIC__ twice (to the same value) when EDG_WIN32
+is TRUE.  This could result in a warning from some compilers.  Now fixed.
+
 10/7/99  Source position on bound function converted to pointer to member
 
 In some modes (e.g., Microsoft), a bound function can be converted to
