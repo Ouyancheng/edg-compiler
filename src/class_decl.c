@@ -5144,15 +5144,18 @@ class/struct/union is actually defined.
         if (is_incomplete_type(tag_sym->variant.class_struct_union.type)) {
           /* Resolution of a previous incomplete declaration. */
           tag_resolution = TRUE;
-          /* If the tag was declared in a prototype scope and is now being
-             resolved within the function, as in
-               int f(struct f p) {struct f{int a;};  ... }
-             we must switch into the file scope for the duration of the
-             definition. */
-          if (scope_stack[decl_scope_level].kind ==
+          if (C_dialect != C_dialect_cplusplus) {
+            /* If the tag was declared in a prototype scope and is now being
+               resolved within the function, as in
+                 int f(struct f p) {struct f{int a;};  ... }
+               we must switch into the file scope for the duration of the
+               definition.  (In C++ a tag declarated in a prototype scope
+               refers to a file scope type, so this check is not relevant.) */
+            if (scope_stack[decl_scope_level].kind ==
                                              (a_scope_kind)sck_function &&
-              in_file_scope(tag_sym->variant.class_struct_union.type)) {
-            prototype_tag_resolution = TRUE;
+                in_file_scope(tag_sym->variant.class_struct_union.type)) {
+              prototype_tag_resolution = TRUE;
+            }  /* if */
           }  /* if */
         } else {
           /* Redeclaration of a tag that has already been defined.  Set
