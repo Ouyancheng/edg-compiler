@@ -8104,7 +8104,7 @@ symbol "used" or "set", if appropriate.
   if (f_xref_info != NULL) {
     a_symbol_ptr             sym_for_xref = sym_ptr;
     a_symbol_reference_kind  kind_for_xref = kind;
-    a_type_ptr               tp = sym_ptr->variant.type;
+    a_type_ptr               tp;
 
     if (sym_kind == (a_symbol_kind)sk_type) {
       if (sym_ptr->is_template_param) {
