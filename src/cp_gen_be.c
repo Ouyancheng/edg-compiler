@@ -1562,7 +1562,7 @@ static void gen_type_first_part(a_type_ptr type,
 				a_boolean  need_trailing_space)
 /*
 For the indicated type, output the specifiers and the part of the declarator
-that precedes the name.  If need_param is TRUE, put a left parenthesis at
+that precedes the name.  If need_paren is TRUE, put a left parenthesis at
 the end of the first half of the declarator.  If need_trailing_space is TRUE,
 put a space at the end of the specifiers part (needed if the declarator part
 is not empty, because it contains a name or a derived type).
