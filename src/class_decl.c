@@ -4035,28 +4035,75 @@ from the same class as the one with which vbcp is associated.
 }  /* virtual_base_class_is_indirect */
 
 
-static void check_access_on_assignment_operator(void)
+#if 0
+static void check_access_on_assignment_operator(a_type_ptr  class_type,
+                                                a_boolean   const_required)
 /*
 Issue an error if we have no access to the assignment operator for the
 class.
 */
 {
-#if 0
-  /* NOT YET IMPLEMENTED */
-#endif /* if */
+  a_symbol_ptr  sym, opass_sym = NULL;
+  a_boolean     is_overloaded_function;
+  a_type_ptr    tp;
+
+  db_enter(4, "check_access_on_assignment_operator");
+  sym = symbol_supplement_for_class(class_type)->assignment_operator;
+  /* If sym is an overloaded function symbol we need to go through the whole
+     list. */
+  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    is_overloaded_function = TRUE;
+    sym = sym->variant.overloaded_function.symbols;
+  } else {
+    is_overloaded_function = FALSE;
+  }  /* if */
+  /* Find an assignment operator. */
+  for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
+    tp = sym->variant.routine->type->variant.routine.extra_info->
+                                                      param_type_list->type;
+    if (is_reference_type(tp)) tp = type_pointed_to(tp);
+    if (skip_typerefs(tp) != class_type) {
+      /* Not an assignment operator that can be used for copying.  Keep
+         looking. */
+    } else {
+      /* We have a match. */
+      opass_sym = sym;
+      if (is_const_qualified_type(tp) == const_required) {
+        /* We have an exact match. */
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+#if CHECKING
+  if (opass_sym == NULL) {
+    internal_error("check_access_on_assignment_operator: not found");
+  }  /* if */
+#endif /* CHECKING */
+  if (!have_access_to_symbol(opass_sym)) {
+    str_error(ec_inaccessible_assignment_operator, name_of_symbol(opass_sym));
+  }  /* if */
+  db_exit();
 }  /* check_access_on_assignment_operator */
+#endif /* if 0 */
 
 
-static a_routine_ptr select_assignment_operator(a_type_ptr  class_type,
-                                                a_boolean   *pass_by_value)
+static a_routine_ptr select_assignment_operator(
+                                    a_type_ptr        class_type,
+                                    a_boolean         const_object_required,
+                                    a_boolean         volatile_object_required,
+                                    a_source_position *err_pos,
+                                    a_boolean         *pass_by_value)
 /*
 Return a pointer to the routine entry for the current class's default
 assignment operator.
 */
 {
-  a_symbol_ptr         sym;
-  a_boolean            is_overloaded_function;
-  a_type_ptr           arg_type;
+  a_symbol_ptr    sym, opass_sym = NULL;
+  a_boolean       is_overloaded_function;
+  a_type_ptr      arg_type, tp;
+  a_boolean       const_object_okay, volatile_object_okay, ambiguous = FALSE;
+  a_boolean       sym_matches_exactly, opass_sym_matches_exactly = FALSE;
+  a_routine_ptr   opass_routine;
 
   db_enter(4, "select_assignment_operator");
   sym = symbol_supplement_for_class(class_type)->assignment_operator;
@@ -4068,38 +4115,62 @@ assignment operator.
   } else {
     is_overloaded_function = FALSE;
   }  /* if */
-  /* Find an assignment operator whose argument is ref-class or
-     ref-const-class. */
-#if 0
-  /* The discrimination based on "const" is not yet implemented.  The logic in
-     select_copy_constructor should be adapted for assignment operators. */
-#endif /* if 0 */
+  /* Find an assignment operator whose argument is ref-class (pass by
+     reference) or class (pass_by_value). */
   for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-    arg_type = skip_typerefs(sym->variant.routine->type->variant.routine.
-                                        extra_info->param_type_list->type);
-    if (arg_type == class_type) {
-      /* Found it -- value parameter. */
-      *pass_by_value = TRUE;
-      break;
-    } else if (is_reference_type(arg_type) &&
-               skip_typerefs(type_pointed_to(arg_type)) == class_type) {
-      /* Found it -- reference parameter. */
-      *pass_by_value = FALSE;
-      break;
+    arg_type = sym->variant.routine->type->variant.routine.extra_info->
+                                                      param_type_list->type;
+    tp = arg_type;
+    if (is_reference_type(tp)) tp = type_pointed_to(tp);
+    if (skip_typerefs(tp) != class_type) {
+      /* No match -- keep looking. */
+    } else {
+      const_object_okay = is_const_qualified_type(tp);
+      volatile_object_okay = is_volatile_qualified_type(tp);
+      if ((const_object_required && !const_object_okay) ||
+          (volatile_object_required && !volatile_object_okay)) {
+        /* No match -- keep looking. */
+      } else {
+        sym_matches_exactly =
+                           (const_object_okay == const_object_required &&
+                            volatile_object_okay == volatile_object_required);
+        if (!sym_matches_exactly && opass_sym != NULL) {
+          /* A suitable default assignment operator had already been found,
+             but we'll use the one that provides the exact match. */
+          if (!opass_sym_matches_exactly) ambiguous = TRUE;
+        } else {
+          opass_sym = sym;
+          opass_sym_matches_exactly = sym_matches_exactly;
+          ambiguous = FALSE;
+          *pass_by_value = (tp == arg_type);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* for */
-#if CHECKING
-  if (sym == NULL) {
-    internal_error("select_assignment_operator: none with class arg");
+  opass_routine = NULL;
+  if (opass_sym == NULL) {
+    /* No applicable copy constructor. */
+    if (const_object_required && !volatile_object_required) {
+      /* The common case:  missing const copy constructor. */
+      pos_st_error(ec_missing_const_assignment_operator, err_pos,
+                   class_type->source_corresp.name);
+    } else {
+      /* Unusual case: volatile or const-volatile expected. */
+      pos_st_error(ec_no_suitable_assignment_operator, err_pos,
+                   class_type->source_corresp.name);
+    }  /* if */
+  } else if (ambiguous) {
+    /* More than one applicable copy constructor. */
+    pos_st_error(ec_ambiguous_assignment_operator, err_pos,
+                 class_type->source_corresp.name);
+  } else {
+    /* Exactly one copy constructor is best. */
+    /* Check that the constructor is accessible and mark it referenced. */
+    reference_to_implicitly_invoked_function(opass_sym);
+    opass_routine = opass_sym->variant.routine;
   }  /* if */
-#endif /* CHECKING */
-  /* Check the routine's accessibility, mark it referenced, and (for a
-     compiler-generated routine that hasn't been defined yet) create the
-     routine body. */
-  reference_to_implicitly_invoked_function(sym);
-
   db_exit();
-  return sym->variant.routine;
+  return opass_routine;
 }  /* select_assignment_operator */
 
 
@@ -4121,7 +4192,7 @@ operator routine or do bitwise assignment.
   a_field_ptr                    fp;
   a_routine_ptr                  rp;
   a_symbol_ptr                   sym;
-  a_boolean                      pass_by_value;
+  a_boolean                      pass_by_value, const_source_var;
 
   db_enter(4, "make_default_assignment_body");
   /* The source variable of the copy is the first parameter on the parameters
@@ -4154,6 +4225,7 @@ operator routine or do bitwise assignment.
        operation on each direct base class (direct assignment or calling
        the base class's assignment function), and then do the appropriate
        copy of each member. */
+    const_source_var = is_const_qualified_type(source_var->type);
     bcp = class_type->variant.class_struct_union.extra_info->base_classes;
     for (; bcp != NULL; bcp = bcp->next) {
       if (bcp->direct) {
@@ -4172,9 +4244,12 @@ operator routine or do bitwise assignment.
                                                 bcp);
         if (symbol_supplement_for_class(bcp->type)->
                          assignment_by_bitwise_copy_allowed) {
-          /* A bitwise copy may be performed.   Even though the assignment
-             operator is not actually invoked, it must be accessible. */
-          check_access_on_assignment_operator();
+          /* A bitwise copy may be performed. */
+#if 0
+          /* Even though the assignment operator is not actually invoked,
+             it must be accessible. */
+          check_access_on_assignment_operator(bcp->type, const_source_var);
+#endif /* if 0 */
           /* Dereference the pointer-to-base-class. */
           source_expr = add_indirection_to_node(source_expr);
           /* Create the assignment statement.  The appropriate operator
@@ -4183,7 +4258,9 @@ operator routine or do bitwise assignment.
         } else {
           /* A bitwise copy may not be done.  Find the default assignment
              operator and put out a call to it. */
-          rp = select_assignment_operator(bcp->type, &pass_by_value);
+          rp = select_assignment_operator(bcp->type, const_source_var,
+                                          /*volatile_object_required=*/FALSE,
+                                          &error_position, &pass_by_value);
           if (pass_by_value) {
             source_expr = add_indirection_to_node(source_expr);
           }  /* if */
@@ -4218,6 +4295,7 @@ operator routine or do bitwise assignment.
           array_type = tp;
           tp = underlying_array_element_type(tp);
         }  /* if */
+        tp = skip_typerefs(tp);
         /* The destination is the appropriate field (lvalue) of the "this"
            parameter. */
         dest_expr = field_lvalue_selection_expr(this_param_value_expr(), fp);
@@ -4229,9 +4307,12 @@ operator routine or do bitwise assignment.
              function. */
           if (symbol_supplement_for_class(tp)->
                            assignment_by_bitwise_copy_allowed) {
-            /* A bitwise copy may be performed.   Even though the assignment
-               operator is not actually invoked, it must be accessible. */
-            check_access_on_assignment_operator();
+            /* A bitwise copy may be performed. */
+#if 0
+            /* Even though the assignment operator is not actually invoked,
+               it must be accessible. */
+            check_access_on_assignment_operator(bcp->type, const_source_var);
+#endif /* if 0 */
             /* Source is an rvalue field reference. */
             source_expr = field_rvalue_selection_expr(source_expr, fp);
             /* Create the assignment. */
@@ -4239,7 +4320,9 @@ operator routine or do bitwise assignment.
           } else if (array_type == NULL) {
             /* A bitwise copy may not be done.  Find the default assignment
                operator and put out a call to it. */
-            rp = select_assignment_operator(skip_typerefs(tp), &pass_by_value);
+            rp = select_assignment_operator(tp, const_source_var,
+                                            /*volatile_object_required=*/FALSE,
+                                            &error_position, &pass_by_value);
             source_expr = field_lvalue_selection_expr(source_expr, fp);
             if (pass_by_value) {
               source_expr = add_indirection_to_node(source_expr);
