@@ -4926,7 +4926,11 @@ and truncated names.
                        "final_type_name_mangling:", 
                        "mangled_name_cannot_be_included_in_other_name is set");
   if (has_name(type)) {
-    if (type_needs_parent_qualifier(type)) {
+    if (type_needs_parent_qualifier(type)
+#if IA64_ABI
+        || is_in_namespace_std(type)
+#endif /* IA64_ABI */
+                                         ) {
       /* Nested type names must be mangled (because they exist in a scope
          that does not exist in the generated C code).  The mangled form
          is something like
