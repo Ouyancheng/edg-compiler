@@ -236,27 +236,117 @@ function-definitions, since they can start with the declarator.
 }  /* is_decl_start */
 
 
-#if 0
-a_boolean f_is_decl_start_not_expression(void)
+a_boolean is_declaration_not_expression(void)
 /*
-This routine is called in C++ only by statement processing routines in
-situations where a declaration must be distinguished from a statement
-expression.  The need for disambiguation arises from the use of
-function-style type casts in statements.  For instance, "int(a)++;"
-means to cast "a" to integer and increment, but "int(a);" is equivalent
-to "int a;".  In order to distinguish them we must look scan past the
-parentheses and examine what follows.  The technique is discussed in ARM
-6.8.
+This routine is called by statement processing routines to distinguish
+statements from declarations.  In C this is straightforward.  In C++
+the use of a function-style type cast may be indistinguishable from a
+declaration without scanning ahead.  For instance, "int(a)++;" means to
+cast "a" to integer and increment, but "int(a);" is equivalent to "int
+a;": to distinguish them we must look scan past the parentheses and
+examine what follows.  The technique is discussed in ARM 6.8.
 */
 {
-  is_decl_start();
-}  /* f_is_decl_start_not_expression */
+  a_token_cache         token_cache;
+  a_stop_token_array    save_stop_token_array;
+  a_boolean             is_decl;
 
-
-#define is_decl_start_not_expression                                  \
-  ((C_dialect == C_dialect_cplusplus) ?                               \
-      is_decl_start() : f_is_decl_start_not_expression)
-#endif /* if 0 */
+  is_decl = is_decl_start();
+  if (is_decl && C_dialect == C_dialect_cplusplus &&
+      next_token() == tok_lparen) {
+#if CHECKING
+    /* If this is the start of a declaration and the next token is a
+       left paren, the current token must already have been determined
+       to be a type specifier or a type name.  Confirm this. */
+    if (curr_token == tok_identifier && curr_id_is_type_name()) {
+      /* Okay. */
+    } else if (curr_token == tok_void || curr_token == tok_char ||
+               curr_token == tok_short || curr_token == tok_int ||
+               curr_token == tok_long || curr_token == tok_float ||
+               curr_token == tok_double || curr_token == tok_signed ||
+               curr_token == tok_unsigned) {
+      /* Okay. */
+    } else {
+      internal_error("is_declaration_not_expression: unexpected token");
+    }  /* if */
+#endif /* CHECKING */
+    /* Disambiguation is required. */
+    /* Save the current stop token state, and reinitialize it. */
+    copy_stop_tokens(stop_token_array, save_stop_token_array);
+    clear_stop_tokens();
+    add_stop_token(tok_rparen);
+    /* Cache the type name identifier. */
+    clear_token_cache(&token_cache);
+    cache_curr_token(&token_cache);
+    /* Advance to the left paren and cache it, too. */
+    (void)get_token();
+    cache_curr_token(&token_cache);
+    /* Cache all tokens up to the corresponding right paren.  (Note that
+       tok_rparen is the only thing in the stop token array.) */
+    (void)get_token();
+    cache_token_stream(&token_cache);
+    if (curr_token == tok_rparen) {
+      cache_curr_token(&token_cache);
+      (void)get_token();
+      switch (curr_token) {
+        case tok_assign:
+        case tok_lparen:
+        case tok_const:
+        case tok_volatile:
+        case tok_lbracket:
+        case tok_comma:
+        case tok_semicolon:
+          /* It's a declaration. */
+          break;
+        case tok_period:
+        case tok_arrow:
+        case tok_plus_plus:
+        case tok_minus_minus:
+        case tok_ampersand:
+        case tok_star:
+        case tok_plus:
+        case tok_minus:
+        case tok_divide:
+        case tok_remainder:
+        case tok_shift_left:
+        case tok_shift_right:
+        case tok_lt:
+        case tok_gt:
+        case tok_le:
+        case tok_ge:
+        case tok_eq:
+        case tok_ne:
+        case tok_excl_or:
+        case tok_or:
+        case tok_and_and:
+        case tok_or_or:
+        case tok_quest_mark:
+        case tok_times_assign:
+        case tok_divide_assign:
+        case tok_remainder_assign:
+        case tok_plus_assign:
+        case tok_minus_assign:
+        case tok_shift_left_assign:
+        case tok_shift_right_assign:
+        case tok_and_assign:
+        case tok_excl_or_assign:
+        case tok_or_assign:
+        case tok_period_star:
+        case tok_arrow_star:
+          /* It's an expression. */
+          is_decl = FALSE;
+          break;
+        default:;
+          /* What's not obviously a declaration or an expression is
+             probably a syntax error.  Let the error be reported in
+             declaration processing. */
+      }  /* switch */
+    }  /* if */
+    rescan_cached_tokens(&token_cache);
+    copy_stop_tokens(save_stop_token_array, stop_token_array);
+  }  /* if */
+  return is_decl;
+}  /* is_declaration_not_expression */
 
 
 /*

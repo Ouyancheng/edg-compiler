@@ -1002,7 +1002,7 @@ Scan the initializing expression or, in C++, declaration of a for statement.
   an_expr_node_ptr init_expr;
   a_seq_number     temp_seq_number;
 
-  if (C_dialect == C_dialect_cplusplus && is_decl_start()) {
+  if (C_dialect == C_dialect_cplusplus && is_declaration_not_expression()) {
     /* Scan a declaration (C++ only). */
     local_declaration();
   } else {
@@ -1914,7 +1914,7 @@ come out on the closing "}".
   }  /* if */
 
   while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
-    if (is_decl_start()) {
+    if (is_declaration_not_expression()) {
       /* Scan any declarations.  In C, these must all be at the beginning
          of the block.  In C++, they may appear anywhere in the block. */
       if (C_dialect != C_dialect_cplusplus && any_statements) {
