@@ -1168,12 +1168,10 @@ restore the memory regions.
   }  /* if */
   if (!successful) {
     mismatch_reason = ec_memory_mismatch;
-#if DEBUG
-    if (automatic_pch_processing) {
+    if (automatic_pch_processing && verbose_pch_messages) {
       pos_st_warning(mismatch_reason, &null_source_position,
                      pch_input_file_name);
     }  /* if */
-#endif /* DEBUG */
   }  /* if */
   db_exit();
   return successful;

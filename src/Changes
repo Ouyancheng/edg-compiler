@@ -1,5 +1,12 @@
 Version 3.1
 
+10/10/02 Missing precompiled header memory mismatch message
+
+When using --pch_verbose mode, messages for memory mismatches were not
+displayed.  In addition, the memory mismatch message was not displayed
+when using an explicitly specified PCH file if the DEBUG configuration
+flag was FALSE.  These problems have been fixed.
+
 10/10/02 Default maximum pack alignment increased in some configurations
 
 For configurations where GNU_EXTENSIONS_ALLOWED is TRUE, the default value
