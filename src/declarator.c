@@ -1184,7 +1184,7 @@ issue an error if a default argument expression is encountered.
                                   (a_scope_kind)sck_class_reactivation &&
                        scope_stack[depth_scope_stack-2].kind ==
                                    (a_scope_kind)sck_template_declaration) {
-              /* An member function declaration of a template class
+              /* A member function declaration of a template class
                  outside of the class declaration.  This is not supported. */
               pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
               default_arg_expr_allowed = FALSE;
