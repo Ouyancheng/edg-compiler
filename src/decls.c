@@ -4167,7 +4167,7 @@ a named address space.
   a_boolean  result = FALSE;
 
   check_assertion(curr_token == tok_identifier);
-  if (named_address_spaces_allowed) {
+  if (named_address_spaces_enabled) {
     a_symbol_ptr  sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
     if (sym != NULL && sym->kind == (a_symbol_kind)sk_named_address_space) {
       result = TRUE;
@@ -4188,7 +4188,7 @@ static storage duration.  If an error occurs, the given locator is changed
 to an error locator.
 */
 {
-  if (named_address_spaces_allowed) {
+  if (named_address_spaces_enabled) {
     if (!has_static_storage_duration(storage_class) &&
         named_address_space_from_qualifier_set(
                               get_top_level_type_qualifiers(type_ptr)) != 0) {

@@ -1496,7 +1496,7 @@ Flag that is TRUE if the IL and the front end code supporting Embedded C
 /*
 Flag that is true if Embedded C (TR 18037) named address space specifiers
 should be recognized by default.  This is the default initial value of
-named_address_spaces_allowed.
+named_address_spaces_enabled.
 */
 #ifndef DEFAULT_NAMED_ADDRESS_SPACES_ALLOWED
 #define DEFAULT_NAMED_ADDRESS_SPACES_ALLOWED FALSE

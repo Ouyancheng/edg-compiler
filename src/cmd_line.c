@@ -1997,7 +1997,7 @@ setting is used, and to set various unmentioned settings as needed.
   if (option_kind_used[(int)optk_named_address_spaces]) {
     command_line_error(ec_cl_named_address_spaces_option_only_in_C);
   }  /* if */
-  named_address_spaces_allowed = FALSE;
+  named_address_spaces_enabled = FALSE;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
   /* "//" is allowed as a comment delimiter. */
   end_of_line_comments_allowed = TRUE;
@@ -3736,7 +3736,7 @@ enable_microsoft_mode:
 #if NAMED_ADDRESS_SPACES_ALLOWED
       case optk_named_address_spaces:
         /* Enable (or disable) support for named address spaces. */
-        named_address_spaces_allowed = opt_value;
+        named_address_spaces_enabled = opt_value;
         break;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
       default:

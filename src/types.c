@@ -4650,7 +4650,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
     }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if NAMED_ADDRESS_SPACES_ALLOWED
-    if (named_address_spaces_allowed && okay && !qualifiers_checked) {
+    if (named_address_spaces_enabled && okay && !qualifiers_checked) {
       /* Check that any named address space qualifiers are compatible.  Note
          that this is done even when allow_qualifier_or_eh_mismatch is TRUE. */
       a_type_qualifier_set dest_type_qualifiers =

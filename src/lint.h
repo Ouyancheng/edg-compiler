@@ -377,8 +377,8 @@ extern int fileno(FILE *);
 /*lint -esym(765,conv_mantissa_to_floating_point)*/
 #endif /* !FIXED_POINT_ALLOWED */
 #if !NAMED_ADDRESS_SPACES_ALLOWED
-/*lint -esym(759,named_address_spaces_allowed)*/
-/*lint -esym(765,named_address_spaces_allowed)*/
+/*lint -esym(759,named_address_spaces_enabled)*/
+/*lint -esym(765,named_address_spaces_enabled)*/
 /*lint -esym(769,ec_cl_named_address_spaces_option_only_in_C)*/
 /*lint -esym(769,ec_multiple_named_address_spaces)*/
 /*lint -esym(769,ec_bad_storage_class_for_named_address_space_variable)*/

@@ -1312,7 +1312,7 @@ Enter predeclared symbols as required by the implementation.
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if NAMED_ADDRESS_SPACES_ALLOWED
-  if (named_address_spaces_allowed) {
+  if (named_address_spaces_enabled) {
     enter_predefined_named_address_spaces();
   }  /* if */
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */

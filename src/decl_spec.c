@@ -4829,7 +4829,7 @@ from decl_specifiers only.
     }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if NAMED_ADDRESS_SPACES_ALLOWED
-    if (named_address_spaces_allowed && *qualifiers != TQ_NONE &&
+    if (named_address_spaces_enabled && *qualifiers != TQ_NONE &&
         named_address_space_from_qualifier_set(*qualifiers) != 0 &&
         is_function_type(*type_ptr)) {
       /* Function types cannot be qualified with named address spaces. */
@@ -5498,7 +5498,7 @@ Unusual syntax errors (e.g., "::" followed by something unexpected) cause
   }  /* if */
 #if NAMED_ADDRESS_SPACES_ALLOWED
   *named_address_space = 0;
-  if (!result && named_address_spaces_allowed) {
+  if (!result && named_address_spaces_enabled) {
     /* Check if the identifier corresponds to a named address space
        qualifier. */
     a_symbol_ptr  sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);

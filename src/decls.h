@@ -163,7 +163,7 @@ specifier (except for the typedef and friend cases).  (3.5.2)
 #if NAMED_ADDRESS_SPACES_ALLOWED
 extern a_boolean curr_id_is_named_address_space(void);
 #define or_is_named_address_space_qualifier()                                \
-  || (named_address_spaces_allowed && curr_token == tok_identifier &&        \
+  || (named_address_spaces_enabled && curr_token == tok_identifier &&        \
       curr_id_is_named_address_space())
 #else /* !NAMED_ADDRESS_SPACES_ALLOWED */
 #define or_is_named_address_space_qualifier()  /* Nothing */
