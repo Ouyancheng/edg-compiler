@@ -205,7 +205,7 @@ Output the indicated template argument in the way described by octl.
           /* The template argument is given by an expression operand (front
              end only). */
           check_assertion(!octl->gen_compilable_code);
-          octl->output_str(" <expr> ");
+          octl->output_str("<expression>");
         } else {
           check_assertion(con != NULL);
           if (is_reference_type(con->type)) {
