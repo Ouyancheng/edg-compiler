@@ -1968,6 +1968,7 @@ bound with the function in *bound_function_selector.
   a_boolean             err = FALSE, processed = FALSE, found_id = FALSE;
   a_boolean             operand_1_is_complete_class = FALSE;
   a_boolean             need_operand_1_type_check = FALSE;
+  a_boolean             need_member_sym_check;
   an_xref_entry_ptr     xep;
   a_routine_ptr         routine_ptr;
   a_boolean             is_qualified_name;
@@ -2110,6 +2111,7 @@ bound with the function in *bound_function_selector.
       }  /* if */
     } else {
       /* Not a vacuous destructor case, i.e., normal case. */
+      need_member_sym_check = TRUE;
       /* Further checking beyond the fact that this is an identifier is not
          possible if there was an error in the first operand. */
       if (operand_1_is_complete_class) {
@@ -2135,6 +2137,7 @@ bound with the function in *bound_function_selector.
               err = TRUE;
             }  /* if */
           }  /* if */
+          need_member_sym_check = FALSE;
         } else {
           /* Normal case: not qualified member name. */
           /* Look up this identifier in the scope of the class, struct, or
@@ -2155,6 +2158,7 @@ bound with the function in *bound_function_selector.
               locator_for_curr_id.is_vacuous_destructor_reference = TRUE;
               dtor_type = class_struct_union_type;
               locator_for_curr_id.qualifier_class_type = dtor_type;
+              need_member_sym_check = FALSE;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -2194,7 +2198,7 @@ bound with the function in *bound_function_selector.
           orig_class_struct_union_type->source_corresp.referenced = TRUE;
         }  /* if */
       }  /* if */
-      if (member_sym == NULL && !err && !is_vacuous_destructor_reference) {
+      if (member_sym == NULL && need_member_sym_check) {
         /* The identifier is not a member of the operand_1 class, struct,
            or union. */
         if (!operand_1_is_complete_class) {
