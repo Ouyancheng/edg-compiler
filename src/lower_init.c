@@ -2885,8 +2885,8 @@ destructors in the IA-64 ABI.
   /* Define the routine if appropriate. */
   if (routine->storage_class != (a_storage_class)sc_extern && 
       define_now) {
-      define_default_version_of_routine(routine, new_routine, 
-                                        (an_expr_node_ptr)NULL);
+    define_default_version_of_routine(routine, new_routine, 
+                                      (an_expr_node_ptr)NULL);
   }  /* if */
   return new_routine;
 }  /* alternate_entry_point */
