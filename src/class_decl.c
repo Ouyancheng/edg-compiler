@@ -12720,7 +12720,8 @@ passed via template_decl.
     /* Loop for additional declarators. */
   } while (loop_token(tok_comma));
 next_declaration:;
-  if ((dso_flags & DSO_EXPLICIT) && !decl_info.is_constructor &&
+  if ((dso_flags & DSO_EXPLICIT) && 
+       (!decl_info.is_constructor || (decl_info.dso_flags & DSO_FRIEND)) &&
       !(microsoft_mode && missing_declarator)) {
     /* The keyword "explicit" is allowed only on a constructor declaration,
        and in Microsoft mode on free standing class/enum declarations.  Note
