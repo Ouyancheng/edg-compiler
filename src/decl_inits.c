@@ -272,6 +272,47 @@ that routine.  This routine ignores a closing brace if that is appropriate.
 }  /* check_for_matching_closing_brace */
 
 
+static void copy_ctor_default_args_to_dynamic_init(a_dynamic_init_ptr  dip)
+/*
+dip points to a dik_constructor dynamic init entry.  Make a copy of the
+default arguments from the routine type of the constructor, updating
+the dynamic init entry.
+*/
+{
+  a_routine_ptr           rp;
+  a_param_type_ptr        ptp;
+  an_object_lifetime_ptr  expr_temp_lifetime;
+
+  rp = dip->variant.constructor.ptr;
+  ptp = skip_typerefs(rp->type)->variant.routine.extra_info->param_type_list;
+  if (dip->variant.constructor.is_copy_constructor_with_implied_source) {
+    check_assertion(ptp != NULL);
+    ptp = ptp->next;
+  }  /* if */
+  if (ptp != NULL) {
+    if (!long_lifetime_temps) {
+      /* Push an object lifetime, in case the expression requires
+         generating a temporary. */
+      push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
+                           (an_object_lifetime_kind)olk_expr_temporary);
+      expr_temp_lifetime = curr_object_lifetime;
+    }  /* if */
+    /* Copy the default-arg list. */
+    dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
+    if (!long_lifetime_temps) {
+      /* Pop the object lifetime for the temp, binding the lifetime and
+         dynamic init entry if appropriate. */
+      if (!is_useless_object_lifetime(expr_temp_lifetime)) {
+        bind_object_lifetime(expr_temp_lifetime,
+                             (an_il_entry_kind)iek_dynamic_init,
+                             (char *)dip);
+      }  /* if */
+      (void)pop_object_lifetime();
+    }  /* if */
+  }  /* if */
+}  /* copy_ctor_default_args_to_dynamic_init */
+
+
 static void add_dtor_for_partially_constructed_aggregate(
                                                  a_routine_ptr       dtor_rp,
                                                  a_dynamic_init_ptr  dip)
@@ -418,7 +459,6 @@ routine is called in C++ mode only.
   a_constant_ptr                 cp, repeat_con;
   a_routine_ptr                  ctor_rp;
   a_class_symbol_supplement_ptr  cssp;
-  a_param_type_ptr               ptp;
   a_dynamic_init_ptr             dip;
   a_boolean                      init_done = FALSE;
 
@@ -475,9 +515,7 @@ routine is called in C++ mode only.
           dip->variant.constructor.ptr = ctor_rp;
           /* A user defined default constructor may have default args that
              should be incorporated into the constructor call. */
-          ptp = (skip_typerefs(ctor_rp->type))->
-                                   variant.routine.extra_info->param_type_list;
-          dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
+          copy_ctor_default_args_to_dynamic_init(dip);
         }  /* if */
       }  /* if */
       if (cssp != NULL) {
@@ -540,7 +578,6 @@ routine is called in C++ mode only.
   a_constant_ptr                 cp, repeat_con;
   a_dynamic_init_ptr             dip;
   a_class_symbol_supplement_ptr  cssp;
-  a_param_type_ptr               ptp;
   a_routine_ptr                  ctor_rp;
   a_boolean                      init_done = FALSE;
   a_boolean                      found_constructible_field = FALSE;
@@ -587,9 +624,7 @@ routine is called in C++ mode only.
           dip->variant.constructor.ptr = ctor_rp;
           /* A user defined default constructor may have default args that
              should be incorporated into the constructor call. */
-          ptp = (skip_typerefs(ctor_rp->type))->
-                                   variant.routine.extra_info->param_type_list;
-          dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
+          copy_ctor_default_args_to_dynamic_init(dip);
         }  /* if */
       }  /* if */
       if (cssp != NULL) {
@@ -2085,8 +2120,6 @@ the default constructor (if one exists) is called.
   a_boolean                         static_lifetime;
   an_object_lifetime_ptr            local_static_lifetime = NULL;
   a_local_static_variable_init_ptr  local_static_var_init = NULL;
-  a_param_type_ptr                  ptp;
-  an_object_lifetime_ptr            expr_temp_lifetime;
 
   db_enter(3, "def_initializer");
   /* Default initialization is done only in C++ and only for variables and
@@ -2144,35 +2177,11 @@ the default constructor (if one exists) is called.
       } else {
         if (ctor != NULL) {
           /* Normal case -- there's a constructor to do the initialization. */
-          ptp = (skip_typerefs(ctor->type))->
-                                   variant.routine.extra_info->param_type_list;
-
           init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
           init_dip->variant.constructor.ptr = ctor;
           /* A user defined default constructor may have default args that
              should be incorporated into the constructor call. */
-          if (ptp != NULL) {
-            if (!long_lifetime_temps) {
-              /* Push an object lifetime, in case the expression requires
-                 generating a temporary. */
-              push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
-                                  (an_object_lifetime_kind)olk_expr_temporary);
-              expr_temp_lifetime = curr_object_lifetime;
-            }  /* if */
-            /* Copy the default-arg list. */
-            init_dip->variant.constructor.args =
-                                          copy_default_arg_expr_list(ptp);
-            if (!long_lifetime_temps) {
-              /* Pop the object lifetime for the temp, binding the lifetime
-                 and dynamic init entry if appropriate. */
-              if (!is_useless_object_lifetime(expr_temp_lifetime)) {
-                bind_object_lifetime(expr_temp_lifetime,
-                                     (an_il_entry_kind)iek_dynamic_init,
-                                     (char *)init_dip);
-              }  /* if */
-              (void)pop_object_lifetime();
-            }  /* if */
-          }  /* if */
+          copy_ctor_default_args_to_dynamic_init(init_dip);
           if (var_type != tp) {
             /* The object has an array type.  We need to build an aggregate
                initialization on top of the other dynamic init entry. */
@@ -3017,8 +3026,6 @@ scan_paren:
         } else {
           /* A valid copy constructor does exist.  Generate the dynamic init
              entry. */
-          a_param_type_ptr  ptp = (skip_typerefs(rp->type))->
-                                   variant.routine.extra_info->param_type_list;
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
           dip->variant.constructor.ptr = rp;
           /* No expression node is created to represent the subobject.  The
@@ -3026,14 +3033,13 @@ scan_paren:
              base class or field just as it will compute the address of the
              implicit "this" parameter, which is the address of the subobject
              to be initialized by the copy. */
+          dip->variant.constructor.
+                            is_copy_constructor_with_implied_source = TRUE;
           /* We need to copy the default arg expressions of the second and
              subsequent parameters (if any) of the copy constructor.  The
              first param is ignored even if it is declared to have a default
              arg. */
-          ptp = ptp->next;
-          dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
-          dip->variant.constructor.
-                            is_copy_constructor_with_implied_source = TRUE;
+          copy_ctor_default_args_to_dynamic_init(dip);
         }  /* if */
       } else {
         /* No copy constructor is required.  If any constructor exists, the
@@ -3098,13 +3104,11 @@ scan_paren:
         } else {
           /* A default constructor does exist.  Generate the dynamic init
              entry. */
-          a_param_type_ptr  ptp = (skip_typerefs(rp->type))->
-                                   variant.routine.extra_info->param_type_list;
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
           dip->variant.constructor.ptr = rp;
           /* A user defined default constructor may have default args that
              should be incorporated into the constructor call. */
-          dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
+          copy_ctor_default_args_to_dynamic_init(dip);
         }  /* if */
       }  /* if */
       if (exceptions_enabled && cssp != NULL) {
