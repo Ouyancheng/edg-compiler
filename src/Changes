@@ -1,5 +1,16 @@
 Version 2.37
 
+6/24/97   Saving of IL header information when using precompiled headers
+
+Some of the IL header fields were not being correctly reset after
+reading a precompiled header file.  This could cause problems if the
+memory allocated when a precompiled header file did not exactly match
+the memory allocated when the precompiled header file was created.
+These problems haven't been observed in our default configuration, but
+could occur if memory was allocated as part of the processing of command
+line options that do not affect the selection of a precompiled header file.
+This is now fixed.
+
 6/24/97   lower_il.c doesn't compile with CHECKING off
 
 A fragment of code in lower_il.c wasn't standard C when CHECKING is
