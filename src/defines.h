@@ -20,9 +20,6 @@ the release should contain no defines.
 */
 
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
-#define ASM_FUNCTION_ALLOWED 1
-#define INCLUDE_COMMENTS_IN_ASM_FUNC_BODY 1
-#define C_GEN_BE_GENERATES_ANSI_C 1
 
 #ifdef CP_GEN_BE_VERSION
 /*
