@@ -364,16 +364,11 @@ Write any common code needed in all C output files.
     startline((a_seq_number)0);
     fputs("#endif", f_C_output);
 #if sun && sparc
-    /* Define __ellipsis__, which is used for "..." in argument lists. */
+    /* For variable argument lists under gcc, include <stdarg.h>. */
     startline((a_seq_number)0);
     fputs("#ifdef __GNUC__", f_C_output);
     startline((a_seq_number)0);
-    fputs("#define __ellipsis__ ...", f_C_output);
-    startline((a_seq_number)0);
-    fputs("#else", f_C_output);
-    startline((a_seq_number)0);
-    /* __builtin_va_alist is recognized by the Sun cc. */
-    fputs("#define __ellipsis__ __builtin_va_alist", f_C_output);
+    fputs("#include <stdarg.h>", f_C_output);
     startline((a_seq_number)0);
     fputs("#endif", f_C_output);
 #endif /* sun && sparc */
@@ -1618,10 +1613,12 @@ is TRUE, this is for the heading of a function being declared with a body.
     dump_param_list(routine, scope, /*names_only=*/TRUE);
 #if sun && sparc
     if (extra_info->has_ellipsis) {
-      /* Put out an ellipsis as "__ellipsis__", which is defined as a macro. */
+      /* Put out an ellipsis as "__builtin_va_alist", which is recognized by
+         the Sun cc compiler, or seen as just the name of the parameter
+         by gcc. */
       /* Suppress the comma if the ellipsis is the only argument. */
       if (extra_info->param_type_list != NULL) fputs(", ", f_C_output);
-      fputs("__ellipsis__", f_C_output);
+      fputs("__builtin_va_alist", f_C_output);
     }  /* if */
 #endif /* sun && sparc */
   } else {
@@ -3972,6 +3969,28 @@ char_compare:
 #endif /* ifdef FFE */
     case eok_call:
       /* N operand operator. */
+#ifdef CFE
+#if sun && sparc
+      /* Recognize a special call that should be turned into a use of
+         va_arg for gcc variable argument lists. */
+      if (operand_1->kind == (an_expr_node_kind)enk_routine_address) {
+        a_routine_ptr called_rout = operand_1->variant.routine;
+        char          *name = called_rout->source_corresp.name;
+        if (name != NULL && name[0] == '_' &&
+            strncmp(name, "__va_arg_func__", 15) == 0) {
+          /* Yes, this is the special call.  Put out
+               va_arg(first-arg, type-returned)
+          */
+          (void)fprintf(f_C_output, "va_arg(");
+          dump_expression(operand_2, /*need_parens=*/TRUE);
+          (void)fprintf(f_C_output, ", ");
+          simple_type_reference("", expr->type);
+          (void)fprintf(f_C_output, ")");
+          break;
+        }  /* if */
+      }  /* if */
+#endif /* sun && sparc */
+#endif /* ifdef CFE */
 #ifdef FFE
       if (operand_1->kind == (an_expr_node_kind)enk_routine_address) {
         called_rout = operand_1->variant.routine;
