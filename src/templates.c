@@ -13220,6 +13220,8 @@ any non-empty template parameter lists that were scanned.
   a_template_symbol_supplement_ptr  tssp = NULL;
   a_boolean                         tag_resolution = FALSE;
   a_token_cache                     *p_template_body_cache = NULL;
+                                    /* Only used in certain configurations. */
+                                    /*lint -esym(550,p_template_body_cache)*/
   a_template_cache_segment_ptr	    class_templ_cache_segments = NULL;
   a_template_cache_segment_ptr	    function_templ_cache_segments = NULL;
   a_boolean			    prototype_okay = FALSE;
