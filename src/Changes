@@ -1,5 +1,10 @@
 Version 2.36
 
+5/2/97    Microsoft compatibility: new __declspec attributes
+
+Support for __declspec(selectany) and __declspec(nothrow) has been added.
+The latter is recognized only in C++ mode.
+
 5/2/97    ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C
 
 The C-generating back end has always included code to rewrite void
