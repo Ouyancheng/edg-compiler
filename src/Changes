@@ -98,7 +98,7 @@ int and long and 64-bit long long):
 #define MAX_UNSIGNED_INTEGER_VALUE 18446744073709551615ULL
 #define HOST_ALIGNMENT_REQUIRED 8
 
-Priot to this latest change, something like the following was also
+Prior to this latest change, something like the following was also
 required:
 
 #define TARG_SIZE_T_MAX ((unsigned int)0xffffffff)
