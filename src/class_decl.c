@@ -6843,7 +6843,7 @@ completed (C++ only).
                      instantiation -- it's meaningless until a real
                      instantiation is done. */
                 } else {
-                  (void)decl_friend_class(class_type, member_type);
+                  decl_friend_class(class_type, member_type);
                 }  /* if */
               } else if (!is_error_type(member_type)) {
                 /* Invalid friend declaration. */
