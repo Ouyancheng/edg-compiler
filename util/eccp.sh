@@ -413,6 +413,10 @@ compile_int_c()
     echo $driver_name: $EDG_C_TO_OBJ_COMPILER compilation of $int_c_diag_name returned an exit status of $status
   fi
   rm -f $cc_tmp_file
+  if [ $status -ne 0 ] ; then
+    # Report underlying C compiler errors with an abort error status.
+    status=129
+  fi
   if [ $status -ne 0 ]
   then
     if [ $status -gt $max_status ]

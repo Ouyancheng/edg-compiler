@@ -1,5 +1,11 @@
 Version 2.46
 
+8/9/01   eccp: exit status for generated C compilation errors
+
+If the underlying C compiler exits with a non-zero status, eccp now
+returns an abort status to distinguish this case from a case where
+the front end reports errors.
+
 8/2/01   Prelinker: removal of one-instantiation-per-object files
 
 The prelinker removes object files created in one-instantiation-per-object
