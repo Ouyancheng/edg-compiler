@@ -3256,7 +3256,7 @@ and doing any required expansions, the diagnostic is written.
       msg_template = error_text(error_code);
     } else {
       msg_template = "";
-    };
+    }  /* if */
     construct_message_segments(msg_template);
 
     /* Walk through the message segments and complete any required 
