@@ -6451,6 +6451,15 @@ block.
       /* Scan the namespace body. */
       add_stop_token(tok_rbrace);
       while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        /* For each declaration at namespace scope, reset the
+           source-sequence insert point for instantiations to NULL -- it
+           will be set to point to the first source sequence entry that
+           add_to_source_sequence_list sees, which should be the first
+           entry associated with the current declaration. */
+        scope_stack[DEPTH_OF_FILE_SCOPE].
+                       ss_list_instantiation_insert_point = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         declaration(/*function_definition_allowed=*/TRUE, extern_implied,
                     /*is_old_style_param_decl=*/FALSE,
                     /*is_top_level_declaration=*/FALSE, (a_param_id_ptr)NULL);
@@ -7193,7 +7202,8 @@ continue_with_declaration:
       }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (!first_declarator && depth_scope_stack == DEPTH_OF_FILE_SCOPE) {
+      if (!first_declarator &&
+          depth_scope_stack == depth_innermost_namespace_scope) {
         /* This is a declaration at file scope, and not the first declarator
            in the declarator list.  As for the start of the declaration,
            set the source-sequence insert point for instantiations to NULL. */

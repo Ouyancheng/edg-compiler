@@ -8820,7 +8820,7 @@ memory region in which it was allocated).
     is_on_sublist = FALSE;
     avail_list_ptr = &scope_stack_ptr->source_sequence_avail_list;
     if (scope_stack_ptr->ss_list_instantiation_insert_point == ssep) {
-      check_assertion(depth_scope_stack == DEPTH_OF_FILE_SCOPE);
+      check_assertion(depth_scope_stack == depth_innermost_namespace_scope);
       /* We are removing the source sequence entry that was marked as the
          insert point for instantiations.  Update the insert pointer
          appropriately. */
