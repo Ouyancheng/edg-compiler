@@ -202,7 +202,7 @@ typedef struct a_symbol_locator {
 			   If is_vacuous_destructor is TRUE this points
 			   to the type of the qualifier, which may not
 			   actually be a class type (e.g., for int::~int
-			   this will point to the type "int". */
+			   this will point to the type "int"). */
   an_access_error_descr_ptr
 		access_errors;
 			/* If is_qualified_name is TRUE, this points to a
@@ -286,8 +286,8 @@ Clear a symbol locator.
 
 /*
 Kinds of symbols in the symbol table.
-If this is changed, the definitions for name_space_for_symbol_kind (in
-fe_init.c), and symbol_kind_names (below) should also be changed.
+If this is changed, the definitions for name_space_for_symbol_kind
+and symbol_kind_names should also be changed.
 */
 enum a_symbol_kind_tag {
   sk_keyword,    	/* Language keyword. */

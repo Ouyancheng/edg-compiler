@@ -33,7 +33,8 @@ typedef struct a_source_line_modif *a_source_line_modif_ptr;
 
 /*
 Token kinds.  See 3.1, 3.1.1, 3.1.5, 3.1.6 in standard.
-If this enumeration is changed, be sure to change token_names below.
+If this enumeration is changed, be sure to change token_names and
+opname_kind_for_token below.
 */
 typedef enum /*a_token_kind*/ {
   /* Complex tokens: */
