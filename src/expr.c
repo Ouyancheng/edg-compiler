@@ -8745,16 +8745,21 @@ Return an operand for the expression in *result.
   if (err) {
     make_error_operand(result);
   } else {
-    a_statement_ptr  last_stmt;
+    a_statement_ptr  stmt, last_stmt;
     a_type_ptr       expr_type;
     an_expr_node_ptr expr;
     check_assertion(sp->kind == (a_statement_kind)stmk_block);
     /* The value of the expression is the value of the last statement
        in the block if it's an expression statement.  Otherwise, the
        expression is a void expression. */
-    for (last_stmt = sp->variant.block.statements;
-         last_stmt != NULL && last_stmt->next != NULL;
-         last_stmt = last_stmt->next) {}
+    last_stmt = NULL;
+    for (stmt = sp->variant.block.statements;
+         stmt != NULL;
+         stmt = stmt->next) {
+      /* Remember the last statement, but don't count vla-dealloc
+         statements. */
+      if (stmt->kind != (a_statement_kind)stmk_vla_dealloc) last_stmt = stmt;
+    }  /* for */
     if (last_stmt != NULL &&
         last_stmt->kind == (a_statement_kind)stmk_expr &&
         /* Watch out for a final empty statement when

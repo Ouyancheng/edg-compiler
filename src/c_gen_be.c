@@ -379,10 +379,15 @@ static void dump_enum_definition(a_type_ptr type,
                                  a_boolean  output_final_semi);
 static void dump_struct_union_definition(a_type_ptr type,
                                          a_boolean  output_final_semi);
-static void dump_statement_list(a_statement_ptr statement);
+static void dump_statement_list(a_statement_ptr statement,
+                                a_boolean       is_statement_expr);
 static void dump_prescan_temps(a_statement_ptr statement);
-static void dump_statement(a_statement_ptr statement);
-static void dump_block(a_statement_ptr statement);
+static void dump_statement_full(a_statement_ptr statement,
+                                a_boolean       last_in_statement_expr);
+#define dump_statement(stmt) \
+  dump_statement_full((stmt), /*last_in_statement_expr=*/FALSE)
+static void dump_block(a_statement_ptr statement,
+                       a_boolean       is_statement_expr);
 
 
 static void dump_expr(an_expr_node_ptr expr,
@@ -4151,7 +4156,8 @@ done_with_operation:
     case enk_statement:
       /* GNU C statement expression, ({...}). */
       write_tok_str("({");
-      dump_block(expr->variant.statement);
+      dump_block(expr->variant.statement,
+                 /*is_statement_expr=*/TRUE);
       write_tok_str("})");
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -5984,9 +5990,12 @@ Dump out the declarations (if any) for a block.
 }  /* dump_block_declarations */
 
 
-static void dump_block(a_statement_ptr statement)
+static void dump_block(a_statement_ptr statement,
+                       a_boolean       is_statement_expr)
 /*
 Dump out the contents of a block (but not the surrounding { and }).
+The block is the one in a GNU C statement expression if is_statement_expr
+is TRUE.
 */
 {
   /* curr_scope is saved and restored by this routine.  It is set to the
@@ -5997,7 +6006,7 @@ Dump out the contents of a block (but not the surrounding { and }).
 
   wide_string_constants_to_unbind_at_end_of_scope = NULL;
   dump_block_declarations(statement);
-  dump_statement_list(statement->variant.block.statements);
+  dump_statement_list(statement->variant.block.statements, is_statement_expr);
   curr_scope = saved_curr_scope;
   unbind_wide_string_constants(
                         saved_wide_string_constants_to_unbind_at_end_of_scope);
@@ -6116,7 +6125,7 @@ Generate the code for a switch statement.
     statement_list = body_statement->variant.block.statements;
     advance_past_neutral_statements(statement_list);
     if (statement_list != NULL) {
-      dump_statement_list(statement_list);
+      dump_statement_list(statement_list, /*is_statement_expr=*/FALSE);
       write_tok_str("break;");
     }  /* if */
     indent -= 4;
@@ -6141,7 +6150,8 @@ Generate the code for a switch statement.
     }  /* if */
     /* Indent for the dependent statements. */
     indent += 2;
-    dump_statement_list(switch_clause->statements);
+    dump_statement_list(switch_clause->statements,
+                        /*is_statement_expr=*/FALSE);
     if (switch_clause->implied_break_at_end) {
       set_output_position_for_stmt(&switch_clause->break_position);
       write_tok_str("break;");
@@ -6247,9 +6257,15 @@ This is used for stmk_init statements.
 }  /* dump_whole_variable_dynamic_init */
 
 
-static void dump_statement(a_statement_ptr statement)
+#if !CHECKING
+/*ARGSUSED*/  /* <-- last_in_statement_expr is not used in that case. */
+#endif /* !CHECKING */
+static void dump_statement_full(a_statement_ptr statement,
+                                a_boolean       last_in_statement_expr)
 /*
-Generate C for a statement.
+Generate C for a statement.  If last_in_statement_expr is TRUE, the
+statement is the last in the top-level statement list in a GNU C
+statement expression, i.e., ({...}).
 */
 {
   a_statement_ptr  init_stmt, else_stmt;
@@ -6292,12 +6308,7 @@ Generate C for a statement.
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
     case stmk_expr:
 #if CHECKING
-#if GNU_EXTENSIONS_ALLOWED
-      /* An expression statement that is the last in a GNU C statement
-         expression does have its value used. */
-      if (statement->next != NULL)
-#endif /* GNU_EXTENSIONS_ALLOWED */
-      {
+      if (!last_in_statement_expr) {
         check_result_not_used_flag(statement->expr);
       }  /* if */
 #endif /* CHECKING */
@@ -6370,7 +6381,7 @@ Generate C for a statement.
                configured in and stmk_decl statements are added, and
                also when stmk_vla_decl statements are added.  Note
                that dump_block does not put out the surrounding braces. */
-            dump_block(init_stmt);
+            dump_block(init_stmt, /*is_statement_expr=*/FALSE);
           } else {
             dump_statement(init_stmt);
           }  /* if */
@@ -6429,7 +6440,7 @@ Generate C for a statement.
       break;
     case stmk_return:
       check_assertion_str(statement->variant.return_dynamic_init == NULL,
-                          "dump_statement: return with dyn init");
+                          "dump_statement_full: return with dyn init");
       if (covariant_return_expr != NULL &&
           /* Avoid problems if function was supposed to return a value
              but doesn't. */
@@ -6457,7 +6468,7 @@ Generate C for a statement.
     case stmk_block:
       write_tok_ch('{');
       indent += 2;
-      dump_block(statement);
+      dump_block(statement, /*is_statement_expr=*/FALSE);
       indent -= 2;
       set_output_position_for_stmt(
                          &statement->variant.block.extra_info->final_position);
@@ -6571,21 +6582,24 @@ Generate C for a statement.
       /* No output. */
       break;
     default:
-      unexpected_condition_str("dump_statement: bad statement kind");
+      unexpected_condition_str("dump_statement_full: bad statement kind");
   }  /* switch */
 #if !REPRESENT_EMPTY_STATEMENTS_IN_IL
 routine_end:;
 #endif /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
-}  /* dump_statement */
+}  /* dump_statement_full */
 
 
-static void dump_statement_list(a_statement_ptr statement)
+static void dump_statement_list(a_statement_ptr statement,
+                                a_boolean       is_statement_expr)
 /*
-Generate code for the indicated list of statements.
+Generate code for the indicated list of statements.  The list is the
+top-level list in a GNU C statement expression if is_statement_expr is TRUE.
 */
 {
   a_boolean     exec_stmt_put_out = FALSE;
   unsigned long num_closing_braces_needed = 0;
+  a_boolean     last_in_statement_expr = FALSE;
 
   for (; statement != NULL; statement = statement->next) {
     /* Put out extra braces before declarative statements that would
@@ -6603,7 +6617,18 @@ Generate code for the indicated list of statements.
       num_closing_braces_needed++;
       exec_stmt_put_out = FALSE;
     }  /* if */
-    dump_statement(statement);
+    if (is_statement_expr) {
+      /* See whether this statement is the last in a statement expression.
+         Ignore vla-dealloc statements in that determination. */
+      a_statement_ptr next_stmt = statement->next;
+      while (next_stmt != NULL &&
+             next_stmt->kind == (a_statement_kind)stmk_vla_dealloc) {
+        /* Ignore vla-dealloc statements. */
+        next_stmt = next_stmt->next;
+      }  /* while */
+      if (next_stmt == NULL) last_in_statement_expr = TRUE;
+    }  /* if */
+    dump_statement_full(statement, last_in_statement_expr);
     if (is_exec_stmt) exec_stmt_put_out = TRUE;
   }  /* for */
   while (num_closing_braces_needed-- > 0) write_tok_ch('}');
