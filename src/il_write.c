@@ -46,12 +46,10 @@ static an_il_entry_number
 			   of that kind.  Used to track the number of entries
 			   and also to assign entry numbers.  Each table
 			   type has entry numbers starting from 1. */
-#if CHECKING
 static an_il_entry_number
 		max_entry_number;
 			/* Maximum allowed entry number, used for overflow
 			   checking. */
-#endif /* CHECKING */
 #if CHECKING && DEBUG
 #if __CENTERLINE__
 /* CenterLine debugging variables used to locate a missing (unwritten) IL entry
@@ -401,11 +399,14 @@ Write the initial information to the IL file, if there is one.
       }  /* if */
     }  /* if */
   }
+#endif /* CHECKING */
   /* Verify that BITS_IN_ENTRY_NUMBER is set correctly. */
   { int num_bits = BITS_IN_ENTRY_NUMBER;
+#if CHECKING
     if (num_bits > sizeof(an_il_entry_number)*CHAR_BIT || num_bits <= 0) {
       internal_error("start_il_file: BITS_IN_ENTRY_NUMBER is set wrong");
     }  /* if */
+#endif /* CHECKING */
     /* Compute the maximum valid entry number. */
     if (num_bits == sizeof(an_il_entry_number)*CHAR_BIT) {
       /* The entry number field is the same size as an_il_entry_number. */
@@ -416,6 +417,7 @@ Write the initial information to the IL file, if there is one.
       max_entry_number = ((an_il_entry_number)1 << BITS_IN_ENTRY_NUMBER) - 1;
     }  /* if */
   }
+#if CHECKING
   /* Make sure the entry_number field in the prefix can contain the maximum
      value computed. */
   { an_il_entry_prefix dummy_prefix;
