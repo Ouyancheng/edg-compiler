@@ -6805,7 +6805,14 @@ by recursive calls.
   a_type_ptr                   tp;
   a_param_type_ptr             ptp;
   a_symbol_ptr                 sym;
+  a_template_arg_ptr           tap;
 
+  db_enter(4, "make_class_externally_linked");
+#if CHECKING
+  if (type->source_corresp.is_local_to_function) {
+    internal_error("make_class_externally_linked: local type");
+  }  /* if */
+#endif /* CHECKING */
   type = skip_typerefs(type);
   switch (type->kind) {
     case tk_class:
@@ -6900,6 +6907,18 @@ by recursive calls.
           for (; tp != NULL; tp = tp->next) {
             make_class_externally_linked(tp, count);
           }  /* if */
+          /* Any class used directly or indirectly in specifying a template
+             class should be externally linked.  This is not explicitly
+             specified by the ARM, but must be inferred. */
+          tap = ctsp->template_arg_list;
+          for (; tap != NULL; tap = tap->next) {
+            if (tap->is_type) {
+              tp = tap->variant.type;
+            } else {
+              tp = tap->variant.constant->type;
+            }  /* if */
+            make_class_externally_linked(tp, count);
+          }  /* for */
         }  /* if */
       }  /* if */
       break;
@@ -6933,6 +6952,7 @@ by recursive calls.
       /* Cannot have a class subtype. */
       break;
   }  /* switch */
+  db_exit();
 }  /* make_class_externally_linked */
 
 
@@ -6977,8 +6997,7 @@ because they were used in declaring an external function or variable.
      the file scope. */
   scope = il_header.primary_scope;
   for (tp = scope->types; tp != NULL; tp = tp->next) {
-    if (tp->kind != (a_type_kind)tk_typeref &&
-        is_class_struct_union_type(tp)) {
+    if (is_immediate_class_type(tp)) {
       /* Found a class. */
       ctsp = tp->variant.class_struct_union.extra_info;
       class_scope = ctsp->assoc_scope;
@@ -7031,8 +7050,7 @@ because they were used in declaring an external function or variable.
        of internally linked classes that remain so that we can stop looking
        at routines and variables as soon as possible. */
     for (tp = scope->types; tp != NULL; tp = tp->next) {
-      if (tp->kind != (a_type_kind)tk_typeref &&
-          is_class_struct_union_type(tp) &&
+      if (is_immediate_class_type(tp) &&
           tp->source_corresp.name_linkage ==
                              (a_name_linkage_kind)nlk_internal) {
         num_internally_linked_classes++;
