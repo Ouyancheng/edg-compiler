@@ -6549,15 +6549,15 @@ types that have no destructors.  This is used to handle
 constructs such as "p->int::~int".  Note that the parent.class_type field
 in the locator normally contains the type of the qualifier portion of
 a qualified name.  For nonclass vacuous destructors, however, it contains the
-type of the thing after the "::~".  This is necessary because vacuous
+type of the thing after the "::~".  This is necessary because some vacuous
 destructors may not have a qualifier and the type information is still
-needed by the caller in this case.  So class_type starts out with the
+needed by the caller in this case.  So qualifier_type starts out with the
 qualifier type and is updated by the vacuous destructor code to contain
 the type of the destructor name following the "::~".  This really only
 matters for error handling because in nonerror cases the two types
 will be the same.
 
-If the token following a class qualifier is not part of a valid identifier
+If the token following a qualifier is not part of a valid identifier
 we still return TRUE so that an appropriate diagnostic can be generated when
 an attempt is made to use the thing after the qualifier.
 
@@ -6565,13 +6565,13 @@ This routine performs ambiguity and access checking on the components of the
 qualified name.
 */
 {
-  a_type_ptr			class_type = NULL;
+  a_type_ptr			qualifier_type = NULL;
   a_boolean     		is_file_scope_qualified_name = FALSE;
   a_boolean			is_global_qualified_name = FALSE;
   a_boolean     		is_qualified_name = FALSE;
   a_boolean             	is_ptr_to_member = FALSE;
   a_boolean			is_identifier = FALSE;
-  a_symbol_ptr			class_symbol = NULL;
+  a_symbol_ptr			qualifier_sym = NULL;
   a_source_position		start_position;
   a_source_position		orig_error_position;
   a_token_kind			next_tok;
@@ -6589,7 +6589,9 @@ qualified name.
   a_source_position		tilde_position;
   a_boolean            		might_be_qualifier;
   a_token_kind         		qualifier_separator = tok_colon_colon;
-  a_boolean			class_type_is_really_a_class;
+  a_boolean                     qualifier_is_type = TRUE;
+  a_boolean			qualifier_type_is_class;
+  a_namespace_ptr		qualifier_namespace;
   a_token_sequence_number	start_seq_number;
 
   db_enter(4, "f_is_generalized_identifier_start");
@@ -6671,8 +6673,8 @@ qualified name.
   }  /* if */
   if (might_be_qualifier) {
     /* Look up the identifier to see if it could be a class name.  Note that
-       we don't consider the normal eclipsing rules.  A class can be found
-       even when hidden by something else:
+       we don't consider the normal eclipsing rules.  A class or namespace
+       can be found even when hidden by something else:
          class A {int i;};
          int f() {
            int A;
@@ -6681,13 +6683,14 @@ qualified name.
        
        If the name is not found, and vacuous destructor references are
        recognized, and the token following the "::" is a tilde, we repeat
-       the lookup without the restriction that the name must be a class name.
+       the lookup without the restriction that the name must be a class
+       or namespace name.
     */
     if (dtor_class_type != NULL) {
       /* This looks like a vacuous destructor reference.  We may change
          this later if we don't find the right name following the "::". */
       is_vacuous_dtor = TRUE;
-      class_symbol = NULL;
+      qualifier_sym = NULL;
     } else {
       an_id_lookup_options_set	lookup_kind;
       a_boolean			might_be_vacuous_dtor;
@@ -6718,20 +6721,20 @@ qualified name.
       if (is_global_qualified_name) {
         /* There was a leading unary "::", so look up the name in the file
            scope. */
-        class_symbol = file_scope_id_lookup(&locator_for_curr_id,
-                                            lookup_kind);
-        if (class_symbol == NULL && might_be_vacuous_dtor) {
-          class_symbol = file_scope_id_lookup(&locator_for_curr_id,
-                                              IDL_NO_OPTIONS);
+        qualifier_sym = file_scope_id_lookup(&locator_for_curr_id,
+                                             lookup_kind);
+        if (qualifier_sym == NULL && might_be_vacuous_dtor) {
+          qualifier_sym = file_scope_id_lookup(&locator_for_curr_id,
+                                               IDL_NO_OPTIONS);
           is_vacuous_dtor = TRUE;
         }  /* if */
       } else {
         /* Usual case (no leading "::"). */
-        class_symbol = normal_id_lookup(&locator_for_curr_id,
-                                        lookup_kind);
-        if (class_symbol == NULL && might_be_vacuous_dtor) {
-          class_symbol = normal_id_lookup(&locator_for_curr_id,
-                                          IDL_NO_OPTIONS);
+        qualifier_sym = normal_id_lookup(&locator_for_curr_id,
+                                         lookup_kind);
+        if (qualifier_sym == NULL && might_be_vacuous_dtor) {
+          qualifier_sym = normal_id_lookup(&locator_for_curr_id,
+                                           IDL_NO_OPTIONS);
           is_vacuous_dtor = TRUE;
         }  /* if */
         if (locator_for_curr_id.is_semivisible_nested_type) {
@@ -6758,13 +6761,13 @@ qualified name.
 			 &locator_for_curr_id.source_position,
 			 specific_sym);
 	    make_specific_symbol_error_locator(&locator_for_curr_id);
-            class_symbol = locator_for_curr_id.specific_symbol;
+            qualifier_sym = locator_for_curr_id.specific_symbol;
 	    err = TRUE;
 	  }  /* if */
 	}
       }  /* if */
       if (qualifier_separator == tok_period) {
-        if (class_symbol != NULL && is_class_symbol(class_symbol)) {
+        if (qualifier_sym != NULL && is_class_symbol(qualifier_sym)) {
           /* In cfront mode we have a construct like "A." where A is a
              class name.  This is a use of a cfront anachronism where "."
              is used in a qualified name where "::" should be used.
@@ -6780,9 +6783,9 @@ qualified name.
       }  /* if */
       /* If we think we have a vacuous destructor reference, make sure the
          symbol found is a type.  An error will be issued below. */
-      if (is_vacuous_dtor && class_symbol != NULL &&
-          !is_type_symbol(class_symbol)) {
-        class_symbol = NULL;
+      if (is_vacuous_dtor && qualifier_sym != NULL &&
+          !is_type_symbol(qualifier_sym)) {
+        qualifier_sym = NULL;
       }  /* if */
     }  /* if */
     /* Clear the specific symbol field which may have been set by the lookups
@@ -6792,15 +6795,15 @@ qualified name.
     clear_specific_symbol(locator_for_curr_id);
     /* If the class symbol is for a class template, process the argument
        list. */
-    if (class_symbol != NULL &&
-        (class_symbol->kind == (a_symbol_kind)sk_class_template ||
+    if (qualifier_sym != NULL &&
+        (qualifier_sym->kind == (a_symbol_kind)sk_class_template ||
          next_tok == tok_lt)) {
       /* Process a template reference.  This is considered a potential
          template reference if the symbol points to a class template
          or if the next token is a "<" (the latter case is handled here
          for error recovery purposes). */
-      class_symbol = coalesce_template_class_reference(class_symbol,
-                                                       options, &err);
+      qualifier_sym = coalesce_template_class_reference(qualifier_sym,
+                                                        options, &err);
     }  /* if */
     /* See if the identifier is followed by "::".  Note that nex_tok is not
        used because the next token may have changed while scanning a
@@ -6809,42 +6812,42 @@ qualified name.
       /* We have a vacuous destructor reference of the form "int::~...".
          Skip of the code in the "else" clause that processing the
          rest of the class qualifier. */
-      class_type = dtor_class_type;
-      class_type_is_really_a_class = FALSE;
+      qualifier_type = dtor_class_type;
+      qualifier_is_type = TRUE;
+      qualifier_type_is_class = FALSE;
       (void)get_token();  /* Gets the type name. */
       (void)get_token();  /* The "::" that follows the type name. */
       is_qualified_name = TRUE;
-      is_file_scope_qualified_name = FALSE;
     } else if (next_token() == qualifier_separator) {
-      a_boolean         first_class = TRUE;
       a_source_position type_position;
       type_position = start_position;
       /* This is a qualifier. */
       is_qualified_name = TRUE;
-      is_file_scope_qualified_name = FALSE;
+      if (!is_vacuous_dtor) is_file_scope_qualified_name = FALSE;
       /* Restore the specific_symbol with the class symbol determined earlier.
          This needs to be restored so that access and ambiguity checking can
 	 be done. */
-      locator_for_curr_id.specific_symbol = class_symbol;
+      locator_for_curr_id.specific_symbol = qualifier_sym;
       for (;;) {
         /* Keep looping while there are more levels of class qualification.
            Exit from loop is in the middle. */
-        if (class_symbol == NULL || err ||
-            class_symbol->kind == (a_symbol_kind)sk_class_template) {
+        if (qualifier_sym == NULL || err ||
+            qualifier_sym->kind == (a_symbol_kind)sk_class_template) {
           /* The identifier is followed by a "::" but is not a class symbol. */
           if (!err) {
             if (is_vacuous_dtor) {
               error(ec_id_must_be_class_or_type_name);
             } else {
-              error(ec_id_must_be_class_name);
+              error(ec_id_must_be_class_or_namespace_name);
             }  /* if */
             err = TRUE;
           }  /* if */
-          class_type = NULL;
+          qualifier_is_type = TRUE;
+          qualifier_type = NULL;
         } else {
           /* Record the reference on the symbol. */
-          mark_referenced(class_symbol, &pos_curr_token);
-          if (class_symbol->is_class_member) {
+          mark_referenced(qualifier_sym, &pos_curr_token);
+          if (qualifier_sym->is_class_member) {
             /* Do ambiguity and access control checking on the class symbol.
                Only do the check if the symbol points to a class member.
                The requirement that the class symbol be a member also ensures
@@ -6854,22 +6857,28 @@ qualified name.
                template argument. */
             member_check_ambiguity_and_verify_access(&locator_for_curr_id);
           }  /* if */
-          if (is_class_symbol(class_symbol)) {
+          if (is_class_symbol(qualifier_sym)) {
             /* Get the type associated with the class symbol. */
-            class_type = skip_typerefs(class_symbol->
-                                          variant.class_struct_union.type);
-            class_type_is_really_a_class = TRUE;
+            qualifier_type = skip_typerefs(qualifier_sym->
+                                            variant.class_struct_union.type);
+            qualifier_is_type = TRUE;
+            qualifier_type_is_class = TRUE;
+          } else if (is_namespace_symbol(qualifier_sym)) {
+            /* Get the namespace from the symbol entry. */
+            qualifier_namespace = namespace_symbol_namespace(qualifier_sym);
+            qualifier_is_type = FALSE;
           } else {
             /* The class symbol points to a type.  This is the case when
                a class qualifier contains template parameter types or for
                the last qualifier of a vacuous destructor.  Set
                class type to the type pointed to. */
-            check_assertion(class_symbol->kind == (a_symbol_kind)sk_type ||
-                            class_symbol->kind == (a_symbol_kind)sk_enum_tag);
-            class_type = class_symbol->variant.type;
-            check_assertion(is_template_param_type(class_type) ||
+            check_assertion(qualifier_sym->kind == (a_symbol_kind)sk_type ||
+                            qualifier_sym->kind == (a_symbol_kind)sk_enum_tag);
+            qualifier_type = qualifier_sym->variant.type;
+            qualifier_is_type = TRUE;
+            qualifier_type_is_class = FALSE;
+            check_assertion(is_template_param_type(qualifier_type) ||
                             is_vacuous_dtor);
-            class_type_is_really_a_class = FALSE;
           }  /* if */
         }  /* if */
         /* Skip over the class-name, and the "::". */
@@ -6888,15 +6897,14 @@ qualified name.
         if (!err) {
 
           a_boolean	might_be_vacuous_dtor = next_tok_2 == tok_compl;
-          if (first_class && class_type_is_really_a_class) {
-            /* Make sure that this class has been instantiated.  This is
-               only needed for the first class name because template classes
-               must be at file scope. */
-            complete_class_type_is_needed(class_type);
+          if (qualifier_is_type && qualifier_type_is_class) {
+            /* Make sure that this class has been instantiated. */
+            complete_class_type_is_needed(qualifier_type);
           }  /* if */
           /* Make sure that the class type is a complete type. */
-          if (class_type_is_really_a_class && is_incomplete_type(class_type) &&
-              class_type->variant.class_struct_union.
+          if (qualifier_is_type && qualifier_type_is_class &&
+              is_incomplete_type(qualifier_type) &&
+              qualifier_type->variant.class_struct_union.
                                          extra_info->assoc_scope == NULL) {
             /* If the type is incomplete we also check whether the type is
 	       currently being defined -- it is considered complete if it
@@ -6904,33 +6912,60 @@ qualified name.
 	       assoc_scope field of the class type supplement. */
             pos_error(ec_incomplete_type_not_allowed, &type_position);
 	    err = TRUE;
-	    class_symbol = NULL;
+	    qualifier_sym = NULL;
           } else {
-            class_symbol = class_qualified_id_lookup
-                                           (&locator_for_curr_id, class_type,
-                                            IDL_MUST_BE_CLASS_OR_NAMESPACE);
-            /* If the class lookup fails, and a vacuous destructor is
-	       allowed, do another lookup without the requirement that
-               a class be found. */
-            if (class_symbol == NULL && might_be_vacuous_dtor) {
-              class_symbol = class_qualified_id_lookup(&locator_for_curr_id,
-                                                       class_type,
-                                                       IDL_NO_OPTIONS);
-              is_vacuous_dtor = TRUE;
-              if (class_symbol != NULL && !is_type_symbol(class_symbol)) {
-                class_symbol = NULL;
+            if (qualifier_is_type) {
+              /* Look up the name in the class specified by the qualifier
+                 that has been scanned so far. */
+              qualifier_sym = class_qualified_id_lookup
+                                         (&locator_for_curr_id, qualifier_type,
+                                          IDL_MUST_BE_CLASS_OR_NAMESPACE);
+              /* If the class lookup fails, and a vacuous destructor is
+                 allowed, do another lookup without the requirement that
+                 a class be found. */
+              if (qualifier_sym == NULL && might_be_vacuous_dtor) {
+                qualifier_sym = class_qualified_id_lookup(&locator_for_curr_id,
+                                                          qualifier_type,
+                                                          IDL_NO_OPTIONS);
+                is_vacuous_dtor = TRUE;
+                if (qualifier_sym != NULL && !is_type_symbol(qualifier_sym)) {
+                  qualifier_sym = NULL;
+                }  /* if */
+              }  /* if */
+            } else {
+              /* Look up the name in the namespace that has been scanned so
+                 far. */
+              check_assertion(qualifier_namespace != NULL);
+              qualifier_sym = namespace_qualified_id_lookup
+                                         (&locator_for_curr_id,
+                                          qualifier_namespace,
+                                          IDL_MUST_BE_CLASS_OR_NAMESPACE);
+              /* If the namespace lookup fails, and a vacuous destructor is
+                 allowed, do another lookup without the requirement that
+                 a class be found.  This could occur for a vacuous
+                 destructor reference of the form i->N::T::~T, where N
+                 is a namespace, and T is a typedef in that namespace. */
+              if (qualifier_sym == NULL && might_be_vacuous_dtor) {
+                qualifier_sym = namespace_qualified_id_lookup
+                                                       (&locator_for_curr_id,
+                                                        qualifier_namespace,
+                                                        IDL_NO_OPTIONS);
+                is_vacuous_dtor = TRUE;
+                if (qualifier_sym != NULL && !is_type_symbol(qualifier_sym)) {
+                  qualifier_sym = NULL;
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
-        first_class = FALSE;
         type_position = pos_curr_token;
       }  /* for */
     }  /* if */
   }  /* if */
   /* Assume we have found an identifier until we discover otherwise. */
   is_identifier = TRUE;
-  if (is_qualified_name && !is_file_scope_qualified_name) {
+  if (is_qualified_name && qualifier_is_type &&
+      !is_file_scope_qualified_name) {
     /* This is a qualifier (but not a file scope qualified name such as
        ::x) -- see if it is a pointer to member. */
     if (curr_token == tok_star) {
@@ -6959,7 +6994,8 @@ qualified name.
          operator names even if they are disallowed by the "options" flags.
          An error will be issued later if needed. */
     } else if (curr_token == tok_compl &&
-               ((options & GID_DTOR_RECOGNIZED) || is_qualified_name)) {
+               ((options & GID_DTOR_RECOGNIZED) ||
+               (is_qualified_name && qualifier_is_type))) {
       /* A destructor name (e.g., ~A or A::~A).  Destructor names are
          always recognized after qualifiers.  If not preceded by a qualifier,
          then they are only recognized when GID_DTOR_RECOGNIZED is TRUE. */
@@ -6967,13 +7003,15 @@ qualified name.
         reference, then it must be a non-class destructor reference
 	(e.g., int::~int). */
      is_nonclass_dtor = is_vacuous_dtor;
-     if (!is_vacuous_dtor && can_be_vacuous_dtor && is_qualified_name) {
+     if (!is_vacuous_dtor && can_be_vacuous_dtor &&
+         (is_qualified_name && qualifier_is_type)) {
        /* So far this looks like a normal destructor reference (i.e.,
           the qualified name represents a class, not some other type).
           See if the class has a destructor.  If it does not, this is a
           vacuous reference. */
-       check_assertion_str(class_type != NULL, "figis: class_type == NULL");
-       if (symbol_supplement_for_class(class_type)->destructor == NULL) {
+       check_assertion_str(qualifier_type != NULL,
+                           "figis: qualifier_type == NULL");
+       if (symbol_supplement_for_class(qualifier_type)->destructor == NULL) {
          is_vacuous_dtor = TRUE;
        }  /* if */
      } else if (dtor_must_be_nonclass && !is_qualified_name) {
@@ -6984,7 +7022,7 @@ qualified name.
      }  /* if */
      tilde_position = pos_curr_token;
     } else if (is_qualified_name) {
-      /* A class qualifier followed by something invalid.  Proceed as if
+      /* A qualifier followed by something invalid.  Proceed as if
          it is an identifier and let an error be diagnosed later when we
          have more information about what is being processed. */
     } else {
@@ -7002,7 +7040,7 @@ qualified name.
     curr_token = tok_ptr_to_member;
     /* parent.class_type and is_class_member are the only fields of the
        locator that are valid when curr_token is tok_ptr_to_member. */
-    locator_for_curr_id.parent.class_type = class_type;
+    locator_for_curr_id.parent.class_type = qualifier_type;
     locator_for_curr_id.is_class_member = TRUE;
     /* Clear the is_template_id flag in the locator in case it was set before
        this was recognized to be ptr-to-member. */
@@ -7017,8 +7055,9 @@ qualified name.
     result = TRUE;
     if (is_qualified_name) {
       /* Make sure that the class has been instantiated. */
-      if (!err && class_type != NULL && class_type_is_really_a_class) {
-        complete_class_type_is_needed(class_type);
+      if (!err && qualifier_is_type &&
+          qualifier_type != NULL && qualifier_type_is_class) {
+        complete_class_type_is_needed(qualifier_type);
       }  /* if */
     }  /* if */
     set_err_pos_to_curr_token();
@@ -7040,25 +7079,32 @@ qualified name.
 	/* A typedef name -- lookup the symbol and find the type pointed to.
            This will be something like "i::~i" or "A::i::~i".  If "i"
            is a member of a class then we need to do the lookup in the class
-           of which "i" is a member.  If "i" is not a member, then just
-           a normal lookup.  Global qualifiers are not allowed in field
-	   selection operators (which is the only place where vacuous
-	   destructor references are allowed).  If a global qualifier is
-	   present, skip the lookup and set class_type to NULL so that the
-	   only error to be issued will be "global qualifier not allowed"
-	   error issued by the coalesce routine. */
+           of which "i" is a member.  Likewise, if "i" is a member of a
+           namespace then we need to do the lookup in the namespace of which
+           "i" is a member.  If "i" is not a member, then do either a
+           normal or file-scope lookup depending on whether "i" had used
+           a global scope qualifier. */
         a_symbol_ptr	type_sym = NULL;
 
         /* Set dtor_class_type to class_type.  This is only needed when
 	   we have a typedef name.  For a type name like "int" it will
 	   already have been set. */
-        dtor_class_type = class_type;
-        if (is_global_qualified_name) {
-	  class_type = NULL;
-	} else if (class_symbol != NULL && class_symbol->is_class_member) {
-          type_sym = class_qualified_id_lookup(&locator_for_curr_id,
-                                               class_symbol->parent.class_type,
-                                               IDL_NO_OPTIONS);
+        dtor_class_type = qualifier_type;
+        if (is_file_scope_qualified_name) {
+          type_sym = file_scope_id_lookup(&locator_for_curr_id,
+                                          IDL_NO_OPTIONS);
+	} else if (qualifier_sym != NULL) {
+          if (qualifier_sym->is_class_member) {
+            type_sym = class_qualified_id_lookup
+                                             (&locator_for_curr_id,
+                                              qualifier_sym->parent.class_type,
+                                              IDL_NO_OPTIONS);
+          } else {
+            type_sym = namespace_qualified_id_lookup
+                                          (&locator_for_curr_id,
+                                           qualifier_sym->parent.namespace_ptr,
+                                           IDL_NO_OPTIONS);
+          }  /* if */
 	} else {
 	  type_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
         }  /* if */
@@ -7070,7 +7116,8 @@ qualified name.
           dtor_type = skip_typerefs(dtor_type);
           /* This will eventually result in the locator qualifier class type
 	     being set to the type of the vacuous destructor. */
-          class_type = dtor_type;
+          qualifier_type = dtor_type;
+          qualifier_is_type = TRUE;
         } else {
           pos_st_error(ec_not_a_type_name, &tilde_position,
                        locator_for_curr_id.symbol_header->identifier);
@@ -7083,16 +7130,18 @@ qualified name.
         /* If the thing being scanned looks like "T::~int", where T is a
 	   typedef, save the type pointed to as dtor_class_type.  This
 	   will be used later for error checking. */
-        if (dtor_class_type == NULL) dtor_class_type = class_type;
+        check_assertion(qualifier_is_type == TRUE);
+        if (dtor_class_type == NULL) dtor_class_type = qualifier_type;
         /* This will eventually result in the locator qualifier class type
 	   being set to the type of the vacuous destructor. */
-        class_type = dtor_type;
+        qualifier_type = dtor_type;
         /* Make the current token a tok_identifier. */
         curr_token = tok_identifier;
       }  /* if */
       locator_for_curr_id.is_destructor_name = TRUE;
-    } else if (((options & GID_DTOR_RECOGNIZED) || (is_qualified_name)) &&
-        !is_file_scope_qualified_name) {
+    } else if (((options & GID_DTOR_RECOGNIZED) ||
+                (is_qualified_name && qualifier_is_type)) &&
+               !is_file_scope_qualified_name) {
       /* The name can be a destructor name like "~A". */
       if (curr_token == tok_compl) get_destructor_name();
     }  /* if */
@@ -7105,20 +7154,21 @@ qualified name.
       /* Make sure a vacuous destructor reference is correctly formed. 
          These tests only apply if the vacuous destructor is part of
          a qualified name. */
+      check_assertion(qualifier_is_type == TRUE);
       if (!is_nonclass_dtor) {
-	/* If class_type is NULL an error must have already occurred. */
-        if (class_type != NULL) {
+	/* If qualifier_type is NULL an error must have already occurred. */
+        if (qualifier_type != NULL) {
           /* If this is a vacuous destructor reference, just make sure
              the name of the destructor matches the name of the class. */
           a_symbol_ptr	class_sym;
-          class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+          class_sym = (a_symbol_ptr)qualifier_type->source_corresp.assoc_info;
           if (!destructor_name_matches_class_name(class_sym)) {
             pos_ty_error(ec_destructor_name_mismatch, &tilde_position,
-			 class_type);
+			 qualifier_type);
   	    err = TRUE;
             /* Set the class type to NULL as an indicator to the
 	       coalesce routine that an error has occurred. */
-	    class_type = NULL;
+	    qualifier_type = NULL;
           }  /* if */
         }  /* if */
       } else {
@@ -7130,7 +7180,7 @@ qualified name.
            error here.  If the type of the thing after the "::~" is NULL,
            or doesn't match dtor_class_type, issue an error. */
         if (dtor_class_type == NULL) {
-	  class_type = NULL;
+	  qualifier_type = NULL;
         } else if (dtor_type == NULL ||
 			(skip_typerefs(dtor_class_type) != dtor_type)) {
           pos_ty_error(ec_destructor_type_mismatch, &tilde_position,
@@ -7138,12 +7188,15 @@ qualified name.
           err = TRUE;
           /* Set the class type to NULL as an indicator to the
 	     coalesce routine that an error has occurred. */
-	  class_type = NULL;
+	  qualifier_type = NULL;
         }  /* if */
       }  /* if*/
     }  /* if */
     /* The name can be an operator name like "operator+". */
-    if (curr_token == tok_operator) get_opname(class_type);
+    if (curr_token == tok_operator) {
+      check_assertion(qualifier_is_type == TRUE);
+      get_opname(qualifier_type);
+    }  /* if */
 wrapup:
     /* The current token must now be the final identifier of the
        qualified name, e.g., "x" in "A::B::x".  In the destructor and
@@ -7167,9 +7220,13 @@ wrapup:
     locator_for_curr_id.is_global_qualified_name = is_global_qualified_name;
     locator_for_curr_id.is_file_scope_qualified_name =
 						is_file_scope_qualified_name;
-    locator_for_curr_id.parent.class_type = class_type;
-    locator_for_curr_id.is_class_member = class_type != NULL;
-		    locator_for_curr_id.has_been_coalesced = TRUE;
+    if (qualifier_is_type) {
+      locator_for_curr_id.parent.class_type = qualifier_type;
+      locator_for_curr_id.is_class_member = qualifier_type != NULL;
+    } else {
+      locator_for_curr_id.parent.namespace_ptr = qualifier_namespace;
+    }  /* if */
+    locator_for_curr_id.has_been_coalesced = TRUE;
     locator_for_curr_id.is_vacuous_destructor_reference = is_vacuous_dtor;
     locator_for_curr_id.is_nonclass_destructor = is_nonclass_dtor;
 
@@ -7202,7 +7259,9 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
 {
   a_boolean             return_value = FALSE;
   a_boolean		okay = TRUE;
-  a_type_ptr		class_type = NULL;
+  a_type_ptr		qualifier_type = NULL;
+  a_namespace_ptr	qualifier_namespace = NULL;
+  a_boolean		qualifier_is_type = TRUE;
   a_boolean		is_vacuous_dtor = FALSE;
   db_enter(4, "coalesce_and_lookup_qualified_name");
 
@@ -7235,7 +7294,13 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
       an_error_code	error_code;
       a_source_position	identifier_pos;
       identifier_pos = locator_for_curr_id.source_position;
-      class_type = qualifier_class_type(locator_for_curr_id);
+      /* If the qualifier is a type, qualifier_type will point to the
+         type and qualifier_namespace will be NULL.  If the the qualifier
+         is a namespace, qualifier_type will be NULL and qualifier_namespace
+         will point to the namespace. */
+      qualifier_is_type = locator_for_curr_id.is_class_member;
+      qualifier_type = qualifier_class_type(locator_for_curr_id);
+      qualifier_namespace = qualifier_namespace(locator_for_curr_id);
       is_vacuous_dtor = locator_for_curr_id.is_vacuous_destructor_reference;
       return_value = TRUE;
       /* Perform error checks as specified in "options". */
@@ -7247,14 +7312,23 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
         /* Don't try to lookup the identifier if an error occurred earlier. */
         okay = FALSE;
       } else {
+        a_boolean			is_vacuous_dtor =
+			 locator_for_curr_id.is_vacuous_destructor_reference;
+	a_boolean			is_nonclass_dtor =
+			 locator_for_curr_id.is_nonclass_destructor;
         an_id_lookup_options_set	idl_options;
         /* Translate the general identifier options into ID lookup options. */
 	idl_options = idl_options_for_lookup_mode[(int)ilm];
         /* No errors were diagnosed. */
         if (locator_for_curr_id.is_file_scope_qualified_name) {
           /* Look up the id in the file scope. */
-          if (file_scope_id_lookup(&locator_for_curr_id,
-                                   idl_options) != NULL) {
+          if (is_vacuous_dtor) {
+            /* If qualifier_type is NULL an error occurred while processing
+               the vacuous destructor.  Treat this the same way we would
+	       a failed lookup. */
+	    okay = qualifier_type != NULL;
+          } else if (file_scope_id_lookup(&locator_for_curr_id,
+                                          idl_options) != NULL) {
           } else {
             /* The identifier could not be found in the file scope. */
 	    if (ilm == ilm_tentative_type) {
@@ -7271,16 +7345,12 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
             }  /* if */
           }  /* if */
         } else {
-	  a_boolean	is_vacuous_dtor =
-			 locator_for_curr_id.is_vacuous_destructor_reference;
-	  a_boolean	is_nonclass_dtor =
-			 locator_for_curr_id.is_nonclass_destructor;
-          if (class_type == NULL) {
+          if (qualifier_is_type && qualifier_type == NULL) {
 	    okay = FALSE;
-          } else if (!is_nonclass_dtor && 
-                     is_incomplete_type(class_type) &&
-                     is_class_struct_union_type(class_type) &&
-                     class_type->variant.class_struct_union.
+          } else if (qualifier_is_type && !is_nonclass_dtor && 
+                     is_incomplete_type(qualifier_type) &&
+                     is_class_struct_union_type(qualifier_type) &&
+                     qualifier_type->variant.class_struct_union.
                                          extra_info->assoc_scope == NULL) {
             /* An error must have occurred while scanning the class
                qualifier.  Don't try to do the lookup of the identifier
@@ -7297,31 +7367,47 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
           } else {
             /* Don't try to look up a vacuous destructor name. */
             if (is_vacuous_dtor) {
-              /* If class_type is NULL an error occurred while processing
+              /* If qualifier_type is NULL an error occurred while processing
 		 the vacuous destructor.  Treat this the same way we would
 		 a failed lookup. */
-	      okay = class_type != NULL;
+	      okay = qualifier_type != NULL;
             } else {
               /* Look up the id in the class scope. */
-              if (class_qualified_id_lookup(&locator_for_curr_id,  class_type,
+              if (qualifier_is_type &&
+                  class_qualified_id_lookup(&locator_for_curr_id,
+                                            qualifier_type,
 					    idl_options) != NULL) {
                 /* Ambiguity and access control checking is not done because
                    we don't know yet what kind of reference this is. */
+              } else if (!qualifier_is_type &&
+                         namespace_qualified_id_lookup
+                                 (&locator_for_curr_id,
+                                  skip_namespace_aliases(qualifier_namespace),
+                                  idl_options) != NULL) {
+                /* The identifier was found in the namespace. */
 	      } else {
-                /* The identifier could not be found in the class scope. */
+                /* The identifier could not be found in the class or namespace
+                   scope. */
 	        if (ilm == ilm_tentative_type) {
 		  /* It is OK for a tentative type lookup to fail. */
 		  okay = TRUE;
 		} else {
                   /* Issue an alternate version of the error if we are looking
 		     for a tag symbol. */
+                  a_symbol_ptr  err_sym;
 	          error_code = ilm == ilm_tag ?
                                ec_not_a_tag_member :
                                (C_mode() ? ec_not_a_field : ec_not_a_member);
+                  if (qualifier_is_type) {
+                    err_sym = (a_symbol_ptr)qualifier_type->
+                                                    source_corresp.assoc_info;
+                  } else {
+                    err_sym = (a_symbol_ptr)qualifier_namespace->
+                                                    source_corresp.assoc_info;
+                  }  /* if */
                   pos_stsy_error(error_code, &identifier_pos,
                                  locator_for_curr_id.symbol_header->identifier,
-                                 (a_symbol_ptr)class_type->
-                                                    source_corresp.assoc_info);
+                                 err_sym);
                   okay = FALSE;
                 }  /* if */
               }  /* if */
@@ -7347,8 +7433,13 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
        Also restore the vacuous destructor flag to assist in error
        diagnosis by the caller.  */
     make_specific_symbol_error_locator(&locator_for_curr_id);
-    locator_for_curr_id.parent.class_type = class_type;
-    locator_for_curr_id.is_class_member = class_type != NULL;
+    if (qualifier_is_type) {
+      locator_for_curr_id.parent.class_type = qualifier_type;
+      locator_for_curr_id.is_class_member = qualifier_type != NULL;
+    } else {
+      locator_for_curr_id.parent.namespace_ptr = qualifier_namespace;
+      locator_for_curr_id.is_class_member = FALSE;
+    }  /* if */
     locator_for_curr_id.is_vacuous_destructor_reference = is_vacuous_dtor;
     *err = TRUE;
   }  /* if */

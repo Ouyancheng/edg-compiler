@@ -323,7 +323,7 @@ ec_increasing_access_not_allowed;;"increasing an inherited member's access is no
 ec_restricting_access_not_allowed;;"restricting an inherited member's access is not allowed"
 ec_improperly_terminated_macro_call;;"improperly terminated macro invocation"
 ec_bad_access_decl_name_is_hidden;;"invalid access declaration -- %no1 is hidden by %no2"
-ec_id_must_be_class_name;;"name followed by \"::\" must be a class name"
+ec_id_must_be_class_or_namespace_name;;"name followed by \"::\" must be a class or namespace name"
 ec_bad_friend_decl;;"invalid friend declaration"
 ec_value_returned_in_constructor;;"a constructor or destructor may not return a value"
 ec_bad_destructor_decl;;"invalid destructor declaration"
