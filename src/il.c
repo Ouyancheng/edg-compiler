@@ -3062,6 +3062,14 @@ value.  Several fields are cleared or adjusted.
      constant isn't the one directly associated with the source entity,
      if any. */
   break_source_corresp(&ucp->source_corresp);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  if (ucp->expr != NULL) {
+    /* If a constant in the file scope memory region has an attached
+       expression in a function scope memory region, break the link to
+       the expression. */
+    if (in_file_scope(ucp) && !in_file_scope(ucp->expr)) ucp->expr = NULL;
+  }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   return ucp;
 }  /* alloc_unshared_constant */
 
