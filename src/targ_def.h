@@ -1171,19 +1171,18 @@ base classes at the same offset as other subobjects.
 #ifndef TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT
 /* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
    but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
-#if TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT <= 242 || \
-    CFRONT_OBJECT_CODE_COMPATIBILITY
+#if ABI_COMPATIBILITY_VERSION <= 241 || CFRONT_OBJECT_CODE_COMPATIBILITY
 #define TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT FALSE
-                                                    /* Versions up to 2.42. */
-#else /* ABI_COMPATIBILITY_VERSION > 242 && !CFRONT_... */
+                                                    /* Versions up to 2.41. */
+#else /* ABI_COMPATIBILITY_VERSION > 241 && !CFRONT_... */
 #define TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT TRUE
-                                                    /* Versions after 2.42. */
-#endif /* ABI_COMPATIBILITY_VERSION <= 242 || CFRONT_... */
+                                                    /* Versions after 2.41. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 241 || CFRONT_... */
 #endif /* ifndef TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT */
 #if TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT
-#if ABI_COMPATIBILITY_VERSION <= 242
+#if ABI_COMPATIBILITY_VERSION <= 241
  #error -- TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT TRUE is incompatible \
-           with ABI_COMPATIBILITY_VERSION <= 242
+           with ABI_COMPATIBILITY_VERSION <= 241
 #endif /* ABI_COMPATIBILITY_VERSION <= 242 */
 #endif /* TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT */
 
