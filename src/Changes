@@ -1,5 +1,11 @@
 Version 2.20
 
+11/01/93 Error handling in vec_new
+
+If vec_new is unable to obtain memory for either the requested storage
+or for its own book keeping purposes it will now return NULL.  Previously
+the return value was unpredictable.
+
 10/29/93 Destruction of expression temporaries after simple switch
 
 A bug in IL lowering has been fixed.  The bug involved missing
