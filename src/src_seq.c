@@ -543,6 +543,7 @@ separate sublists.
           break;
         }  /* if */
       }  /* for */
+      if (ssep == NULL) break;
     }  /* if */
   }  /* for */
 #if DEBUG
@@ -1184,6 +1185,7 @@ innermost such class.
   a_source_correspondence       *scp;
   a_template_arg_ptr            template_arg_list;
   a_boolean                     members_only;
+  a_namespace_ptr               parent_namespace;
 
   db_enter(4, "find_instantiation_insert_point");
   *insert_sse_ptr = NULL;
@@ -1210,22 +1212,56 @@ innermost such class.
      special handling -- see (1) above. */
   scp = source_corresp_for_il_entry(entity_ptr, entity_kind);
   check_assertion(scp != NULL);
-  parent_class = scp->is_class_member ? scp->parent.class_type : NULL;
-  /* Find the innermost uncompleted parent class. */
-  if (parent_class == NULL) {
-    parent_scope_depth = NO_SCOPE_DEPTH;
-  } else {
+  parent_scope_depth = NO_SCOPE_DEPTH;
+  if (scp->is_class_member) {
+    parent_class = scp->parent.class_type;
+    parent_namespace = NULL;
+    /* Find the innermost uncompleted parent class. */
     for (;;) {
       parent_scope_depth = parent_class->variant.class_struct_union.
                                extra_info->assoc_scope->depth_in_scope_stack;
-      if (parent_scope_depth != NO_SCOPE_DEPTH) break;
-      if (!parent_class->source_corresp.is_class_member) {
+      if (parent_scope_depth != NO_SCOPE_DEPTH) {
+        /* This is the innermost active class on the scope stack (active in
+           the sense of still being defined). */
+        break;
+      } else if (!parent_class->source_corresp.is_class_member) {
+        /* parent_class is not nested in another class -- remember the
+           namespace it's a member of, if any. */
+        parent_namespace = parent_class->source_corresp.parent.namespace_ptr;
         parent_class = NULL;
         break;
       }  /* if */
+      /* A nested class -- keep looping. */
       parent_class = parent_class->source_corresp.parent.class_type;
     }  /* for */
-  }  /* for */
+  } else {
+    /* The entity is not a class member.  It may be a namespace member. */
+    parent_class = NULL;
+    parent_namespace = scp->parent.namespace_ptr;
+  }  /* if */
+  if (parent_namespace != NULL) {
+    /* There's no active class parent on the scope stack.  Look for an
+       active namespace parent. */
+    parent_namespace = skip_namespace_aliases(parent_namespace);
+    do {
+      parent_scope_depth =
+                parent_namespace->variant.assoc_scope->depth_in_scope_stack;
+      /* The namespace is on the scope stack as the result of an explicit
+         source construct (not a reactivation), use that depth associated
+         with that scope stack entry.  Otherwise, keep looking. */
+      if (parent_scope_depth != NO_SCOPE_DEPTH) {
+        if (scope_stack[parent_scope_depth].kind ==
+                                 (a_scope_kind)sck_namespace_extension &&
+            !scope_stack[parent_scope_depth].
+                                 explicitly_declared_namespace_extension) {
+          parent_scope_depth = NO_SCOPE_DEPTH;
+        } else {
+          break;
+        }  /* if */
+      }  /* if */
+      parent_namespace = parent_namespace->source_corresp.parent.namespace_ptr;
+    } while (parent_namespace != NULL);
+  }  /* if */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
     fputs("  entity: ", f_debug);
@@ -1236,6 +1272,11 @@ innermost such class.
     }  /* if */
     if (parent_class == NULL) {
       fputs(", no uncompleted parent class\n", f_debug);
+      if (parent_namespace != NULL) {
+        fputs("  scope of innermost active parent namespace: ", f_debug);
+        db_scope_stack_entry_at_depth(parent_scope_depth);
+        fputs("\n", f_debug);
+      }  /* if */
     } else {
       fputs("\n  scope of innermost uncompleted parent class: ", f_debug);
       db_scope_stack_entry_at_depth(parent_scope_depth);
