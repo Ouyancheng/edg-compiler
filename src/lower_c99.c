@@ -263,6 +263,7 @@ variables also make indexing into the VLA arrays more efficient.
     dim_var = vla_dimension_variable(tp, &inits, &dim_var_created);
     tp = skip_typerefs(tp->variant.array.element_type);
     do {
+      a_targ_size_t  constant_factor;
       if (!dim_var_created) {
         /* We ran into a VLA type that already has an updated variable.
            (Presumably as part of a typedef.) No more components need
@@ -271,7 +272,7 @@ variables also make indexing into the VLA arrays more efficient.
       }  /* if */
       /* Look for additional dimension and create/update dimension variables
          accordingly. */
-      a_targ_size_t  constant_factor = 1;
+      constant_factor = 1;
       while (tp->kind == (a_type_kind)tk_array && !tp->variant.array.is_vla) {
         constant_factor *= tp->variant.array.variant.number_of_elements;
         tp = skip_typerefs(tp->variant.array.element_type);
@@ -1967,7 +1968,10 @@ second parameter.
       if (expr->variant.variable->is_vla) {
         /* VLAs are lowered to pointers (to automatically managed storage).
            The pointer value should be used; not its address. */
-        add_indirection_to_node(expr);
+        an_expr_node_ptr  new_expr = add_indirection_to_node(expr);
+        /* For the enk_variable_address case, add_indirection_to_node should
+           not create a wholly new entry. */
+        check_assertion(expr == new_expr);
       }  /* if */
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
       break;
