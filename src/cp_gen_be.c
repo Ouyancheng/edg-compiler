@@ -1420,7 +1420,7 @@ constants, which must have the form of a qualified name).
          the qualifier is not necessary. */
       if (curr_name_context_is_class(class_type) &&
           /* Use a qualified name in some cases to avoid a cfront bug.  See
-             dump_initializer. */
+             gen_initializer. */
           !curr_name_context->invisible_to_cfront &&
           !force_qualified_name) {
         /* Qualifier not needed. */
@@ -6109,6 +6109,10 @@ TRUE if the declaration following this one is such a continuation.
         /* A member function definition.  Use no storage class. */
         storage_class = (a_storage_class)sc_unspecified;
       }  /* if */
+    } else if (is_specialization) {
+      /* A specialization of a function is not allowed to indicate a storage
+         class. */
+      storage_class = (a_storage_class)sc_unspecified;
     } else {
       /* A declaration of a function. */
       /* The function is not defined (here), so use "extern" instead of
