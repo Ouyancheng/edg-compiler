@@ -1309,7 +1309,7 @@ pragma argument as if it were a debug option specified on the command-line.
       /* Make a copy of the argument. */
       arg_copy = alloc_general((sizeof_t)(strlen(debug_arg) + 1));
       (void)strcpy(arg_copy, debug_arg);
-      proc_debug_option(arg_copy);
+      (void)proc_debug_option(arg_copy);
     }  /* if */
   }  /* if */
 }  /* db_opt_pragma */
