@@ -4529,6 +4529,17 @@ skip_overloading:;
      entry. */
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             declarator_ssep);
+  if (is_function_def) {
+    /* If a lint-style "argsused" or "varargs" comment appeared, record that in
+       the function type.  That will suppress any warnings about unused
+       parameters or variable arguments.  Note that this is done before calling
+       process_curr_construct_pragmas; otherwise the pragmas we're interested
+       in would have been disposed of. */
+    record_lint_argsused_and_varargs_state(sym);
+  }  /* if */
+  /* Do processing required for the rest of the pragmas, if any, that are
+     bound to the current declaration. */
+  process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   if (!is_function && is_volatile_qualified_type(type_ptr)) {
     /* A variable with a volatile type is considered to be used and modified
        from "elsewhere".  Note that this must be done after set_source_corresp
@@ -4892,6 +4903,9 @@ the symbol and its linkage (which is always "none").
        it is expected on sk_static_data_member fields downstream. */
     sym->class_of_which_a_member = tp;
   }  /* if */
+  /* Do processing required for any pragmas that are bound to the current
+     declaration. */
+  process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   *linkage_ptr = idl_none;
   *symbol_ptr = sym;
 #if DEBUG
@@ -5071,6 +5085,15 @@ on a prior declaration.
     }  /* if */
     sym->variant.routine.ptr->is_inline = TRUE;
   }  /* if */
+  /* If a lint-style "argsused" or "varargs" comment appeared, record that in
+     the function type.  That will suppress any warnings about unused
+     parameters or variable arguments.  Note that this is done before calling
+     process_curr_construct_pragmas; otherwise the pragmas we're interested
+     in would have been disposed of. */
+  record_lint_argsused_and_varargs_state(sym);
+  /* Do processing required for the rest of the pragmas, if any, that are
+     bound to the current declaration. */
+  process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   *symbol_ptr = sym;
   *ext_sym = NULL;
   *linkage_ptr = idl_external;
@@ -5190,6 +5213,9 @@ a pointer to it in *symbol_ptr.
   add_to_types_list(tp, decl_scope_level);
 
 return_point:
+  /* Do processing required for any pragmas that are bound to the current
+     declaration. */
+  process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   /* Return the type name symbol to the caller. */
   *symbol_ptr = sym;
 #if DEBUG
@@ -6861,6 +6887,11 @@ to indicate whether an enumeration is actually defined.
       mark_referenced(tag_sym, &locator.source_position);
       *declares_something = FALSE;
     }  /* if */
+  }  /* if */
+  if (tag_sym != NULL) {
+    /* Do processing required for any pragmas that are bound to the current
+       declaration. */
+    process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
   }  /* if */
   if (curr_token == tok_lbrace) {
     /* Scan the enumeration itself.  Since the enumeration type entry is
@@ -9336,15 +9367,6 @@ specified (rather than defaulted to "int").
                         &symbol_ptr, &linkage,
                         &old_type, &ext_sym);
   }  /* if */
-  /* If a lint-style "argsused" or "varargs" comment appeared, record that in
-     the function type.  That will suppress any warnings about unused
-     parameters or variable arguments.  Note that this is done before calling
-     process_curr_construct_pragmas; otherwise the pragmas we're interested
-     in would have been disposed of. */
-  record_lint_argsused_and_varargs_state(symbol_ptr);
-  /* Now do the rest of the pragmas -- i.e., the ones that don't need
-     special processing. */
-  process_curr_construct_pragmas(symbol_ptr, (a_statement_ptr)NULL);
   routine_ptr = symbol_ptr->variant.routine.ptr;
   check_assertion(make_unqualified_type(routine_ptr->type) ==
                                                       unqualified_rout_type);
@@ -9939,9 +9961,15 @@ of local variables (and types, etc.) of functions and in blocks.
 
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, decl_start_pos);
-  /* Move cached #pragma declarations (if any) to the current scope stack
-     entry so they can be examined and acted upon in subsequent processing. */
-  (void)select_curr_construct_pragmas(/*is_decl=*/TRUE, /*add_to_list=*/FALSE);
+  if (extern_implied) {
+    /* Called in the midst of an ``extern "C"'' declaration. */
+  } else {
+    /* Move cached #pragma declarations (if any) to the current scope stack
+       entry so they can be examined and acted upon in subsequent
+       processing. */
+    (void)select_curr_construct_pragmas(/*is_decl=*/TRUE,
+                                        /*add_to_list=*/FALSE);
+  }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     if (curr_token == tok_extern && next_token() == tok_string_literal) {
       /* This looks like a C++ linkage specification, which is "extern"
@@ -10811,7 +10839,6 @@ continue_with_declaration:
           var_ptr->type = error_type();
         }  /* if */
       }  /* if */
-      process_curr_construct_pragmas(symbol_ptr, (a_statement_ptr)NULL);
       remove_stop_token(tok_comma);
       need_comma_remove_stop_token = FALSE;
       /* Keep scanning the list of declarators. */

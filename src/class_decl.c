@@ -2964,6 +2964,15 @@ of the function, and again overloading is a possibility.
       ctsp->friend_routines = rlep;
     }  /* if */
   }  /* if */
+  if (func_info->is_definition) {
+    /* Since this is a definition, record the current lint argsused and
+       varargs-count state in the routine type. That will suppress any
+       warnings about unused parameters or variable arguments. */
+    record_lint_argsused_and_varargs_state(sym);
+  }  /* if */
+  /* Do processing required for any pragmas that are bound to the current
+     declaration. */
+  process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   db_exit();
   return sym;
 }  /* decl_friend_function */
@@ -3329,6 +3338,15 @@ special function kind (e.g., constructor, destructor), if any.
       if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
       record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                 declarator_ssep);
+      if (func_info->is_definition) {
+        /* Since this is a definition, record the current lint argsused and
+           varargs-count state in the routine type. That will suppress any
+           warnings about unused parameters or variable arguments. */
+        record_lint_argsused_and_varargs_state(sym);
+      }  /* if */
+      /* Do processing required for any pragmas that are bound to the current
+         declaration. */
+      process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
     }  /* if */
     add_throw_specification(func_info, rtn);
     if (cssp->is_nonreal_class) {
@@ -3594,6 +3612,9 @@ source-sequence entry for the declarator; otherwise it is NULL.
                           sym->class_of_which_a_member = class_type;
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &locator->source_position, ssep);
+  /* Do processing required for any pragmas that are bound to the current
+     declaration. */
+  process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   add_to_constants_list(cp, /*at_file_scope=*/FALSE);
   db_exit();
 }  /* decl_member_constant */
@@ -3643,6 +3664,9 @@ table.
      definition must appear outside the class definition. */
   record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
                             ssep);
+  /* Do processing required for any pragmas that are bound to the current
+     declaration. */
+  process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   if (is_anonymous_union) {
     /* A static data members is not allowed to be an anonymous union.  An error
        will have been issued already, but promote the fields anyway. */
@@ -4034,6 +4058,9 @@ class, struct, or union.
   if (member_sym != NULL) {
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
                               &locator->source_position, ssep);
+    /* Do processing required for any pragmas that are bound to the current
+       declaration. */
+    process_curr_construct_pragmas(member_sym, (a_statement_ptr)NULL);
   }  /* if */
   /* Add the field to the temporary list for this class/struct/union. */
   if (*end_of_list == NULL) {
@@ -5727,11 +5754,6 @@ Scan the body of a class definition, including the base classes list.
   is_template_instantiation = (scope_stack[depth_scope_stack].kind ==
                                      (a_scope_kind)sck_template_instantiation);
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
-#if 0
-/* Is this the right place to call it? */
-#else /* if !0 */
-  process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
-#endif /* if 0 */
   cssp = tag_sym->variant.class_struct_union.extra_info;
   if (cssp->is_prototype_instantiation) {
     /* This is a prototype instantiation, so the resulting class is "nonreal"
@@ -6483,17 +6505,6 @@ Scan the body of a class definition, including the base classes list.
                      function body. */
                   check_assertion(rout_sym->variant.routine.ptr->is_inline);
                 }  /* if */
-                /* Since this is a definition, record the current lint
-                   argsused and varargs-count state in the routine type.
-                   That will suppress any warnings about unused parameters
-                   or variable arguments. */
-                record_lint_argsused_and_varargs_state(rout_sym);
-#if 0
-/* Is this the right place to call it? */
-#else /* if !0 */
-                process_curr_construct_pragmas(rout_sym,
-                                               (a_statement_ptr)NULL);
-#endif /* if 0 */
                 remove_stop_token(tok_comma);
                 /* Cache the tokens comprising the function definition
                    so that they can be rescanned once the entire class
@@ -7347,6 +7358,9 @@ skip_tag_scan:
       *declares_something = FALSE;
     }  /* if */
   }  /* if */
+  /* Do processing required for any pragmas that are bound to the current
+     declaration. */
+  process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
   if (is_class_definition) {
     if (scan_class_definition(class_type, effective_decl_level,
                               is_local_class)) {
