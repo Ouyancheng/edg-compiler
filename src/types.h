@@ -60,6 +60,7 @@ extern a_boolean is_aggregate_or_union_type(a_type_ptr tp);
 extern a_boolean is_illegal_abstract_class_type(a_type_ptr tp);
 
 extern a_type_ptr array_element_type(a_type_ptr array_type);
+extern a_type_ptr underlying_array_element_type(a_type_ptr array_type);
 extern a_type_ptr type_pointed_to(a_type_ptr pointer_type);
 
 /*
@@ -77,6 +78,10 @@ top of a class type).
   ((tp)->kind == (a_type_kind)tk_typeref && f_is_volatile_qualified_type(tp))
 #define is_qualified_type(tp)                                         \
   ((tp)->kind == (a_type_kind)tk_typeref && f_is_qualified_type(tp))
+#define type_or_underlying_array_element_type_is_const_qualified(tp)  \
+  (is_const_qualified_type(tp) ||                                     \
+   (is_array_type(tp) &&                                              \
+    is_const_qualified_type(underlying_array_element_type(tp))))
 
 extern a_boolean f_is_const_qualified_type(a_type_ptr tp);
 extern a_boolean f_is_volatile_qualified_type(a_type_ptr tp);
