@@ -913,10 +913,12 @@ to be folded into the constructor or destructor if possible.
 #endif /* !defined(DELETE_CAN_BE_FOLDED_INTO_DTOR) */
 /* If assignment to "this" is allowed, the folding must be done. */
 #if ASSIGNMENT_TO_THIS_ALLOWED && !NEW_CAN_BE_FOLDED_INTO_CTOR
- #error -- NEW_CAN_BE_FOLDED_INTO_CTOR set wrong.
+ #error -- NEW_CAN_BE_FOLDED_INTO_CTOR may not be FALSE if \
+           ASSIGNMENT_TO_THIS_ALLOWED is TRUE
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED ... */
 #if ASSIGNMENT_TO_THIS_ALLOWED && !DELETE_CAN_BE_FOLDED_INTO_DTOR
- #error -- DELETE_CAN_BE_FOLDED_INTO_DTOR set wrong.
+ #error -- DELETE_CAN_BE_FOLDED_INTO_DTOR may not be FALSE if \
+           ASSIGNMENT_TO_THIS_ALLOWED is TRUE
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED ... */
 
 /*
