@@ -486,6 +486,25 @@ Save an end-of-source token on the end of the list of tokens saved in *cache.
 }  /* terminate_token_cache */
 
 
+void remove_cache_terminator(a_token_cache *cache)
+/*
+Remove the terminator token from the token cache so that additional
+tokens may be added to it.
+*/
+{ 
+  a_cached_token_ptr	ctp = cache->first_token;
+  a_cached_token_ptr	prev_ctp = NULL;
+
+  for (; ctp->next != NULL; ctp = ctp->next) {
+    prev_ctp = ctp;
+  }  /* for */
+  cache->last_token = prev_ctp;
+  prev_ctp->next = NULL;
+  /* Free the terminator token. */
+  free_cached_token_from_reusable_cache(cache, ctp);
+}  /* remove_cache_terminator */
+
+
 a_cached_token_ptr build_cached_token(a_token_kind	      kind,
                                       a_token_sequence_number sequence_number,
                                       a_source_position	      *position)
@@ -950,7 +969,7 @@ cache2 will contain all the tokens that follow.
   /* Break the links in cache1. */
   cache1->last_token = before_first_ctp_to_move;
   cache1->last_token->next = NULL;
-  /* Add a new terminator to the end of the cache. */
+  /* Add a new terminator to the end of the original. */
   terminate_token_cache(cache1);
 }  /* split_token_cache */
 
@@ -5727,17 +5746,17 @@ an opening parenthesis).  Flush to the corresponding closing token.
 }  /* flush_until_matching_token */
 
 
-void flush_tokens(void)
+void flush_tokens_with_stop_tokens(a_token_set_array	stop_tokens)
 /*
 Get and throw away tokens until a token is read that is in the set
-of stop tokens.  This routine is called to recover from syntax
-errors.
+of stop tokens specified by stop_tokens.  This routine is called to
+recover from syntax errors.
 */
 {
   a_source_position start_pos;
   a_token_kind      prev_token = tok_error;
 
-  db_enter(3, "flush_tokens");
+  db_enter(3, "flush_tokens_with_stop_tokens");
   /* Save the current position, to see later how much we have flushed. */
   copy_source_position(pos_curr_token, start_pos);
 
@@ -5745,7 +5764,7 @@ errors.
      Stop flushing if the end of file is reached.
      While flushing, note parentheses, etc., and flush to matching tokens. */
   /* Stop the flush on finding a token in the stop token set. */
-  while (stop_token_array[(int)curr_token] == 0) {
+  while (stop_tokens[(int)curr_token] == 0) {
     /* On paired tokens, skip to the corresponding closing token. */
     if (curr_token == tok_lparen || curr_token == tok_lbracket ||
         curr_token == tok_lbrace ||
@@ -5770,6 +5789,18 @@ errors.
     warning(ec_end_of_flush);
   }  /* if */
   db_exit();
+}  /* flush_tokens_with_stop_tokens */
+
+
+void flush_tokens(void)
+/*
+Get and throw away tokens until a token is read that is in the set
+of stop tokens.  This routine is called to recover from syntax errors.
+This routine calls flush_tokens_with_stop_tokens, passing in the global
+stop_token_array.
+*/
+{
+  flush_tokens_with_stop_tokens(stop_token_array);
 }  /* flush_tokens */
 
 

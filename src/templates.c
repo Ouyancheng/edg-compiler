@@ -6128,6 +6128,7 @@ returned to the caller.
      on this declaration. */
   if (curr_token == tok_assign || has_parenthesized_initializer) {
     a_token_sequence_number	split_location;
+    a_token_set_array		stop_tokens;
     p_token_cache = &local_token_cache;
     clear_token_cache(p_token_cache, /*reusable=*/TRUE);
     /* Then declaration token cache contains the declaration and the
@@ -6140,14 +6141,27 @@ returned to the caller.
     if (has_parenthesized_initializer) split_location--;
     split_token_cache(&decl_state->decl_token_cache,
                       p_token_cache, split_location);
+    /* Skip over the tokens that are already part of the token cache. */
+    clear_token_set_array(stop_tokens);
+    incr_token_set_array_element(stop_tokens, tok_lbrace);
+    incr_token_set_array_element(stop_tokens, tok_colon);
+    incr_token_set_array_element(stop_tokens, tok_semicolon);
+    flush_tokens_with_stop_tokens(stop_tokens);
+    if (curr_token != tok_semicolon) {
+      /* The initializer was not fully cached when the template declaration
+         was scanned.  This is usually because of a brace enclosed
+         initializer.  Cache the rest of the initializer now. */
+      decr_token_set_array_element(stop_tokens, tok_lbrace);
+      decr_token_set_array_element(stop_tokens, tok_colon);
+      remove_cache_terminator(p_token_cache);
+      /* Only semicolon should be left on the list. */
+      cache_token_stream(p_token_cache, stop_tokens);
+      terminate_token_cache(p_token_cache);
+    }  /* if */
     if (err) {
       discard_token_cache(p_token_cache);
       p_token_cache = NULL;
     } /* if */
-    /* Skip to the end of the declaration. */
-    add_stop_token(tok_semicolon);
-    flush_tokens();
-    remove_stop_token(tok_semicolon);
   } /* if */
   if (tssp != NULL) {
     /* Save the information needed to create an instantiation based

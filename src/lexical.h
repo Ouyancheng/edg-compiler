@@ -1245,6 +1245,7 @@ extern void clear_token_cache(a_token_cache *cache,
 extern void discard_token_cache(a_token_cache *cache);
 /* Save an end-of-source token in the token cache. */
 extern void terminate_token_cache(a_token_cache *cache);
+extern void remove_cache_terminator(a_token_cache *cache);
 /* Create a token cache entry for a given token kind. */
 extern
 a_cached_token_ptr build_cached_token(a_token_kind	      kind,
@@ -1497,6 +1498,7 @@ extern void pop_input_stack(void);
 /* Flush to the token that matches an opening token (e.g., parenthesis). */
 extern void flush_until_matching_token(void);
 /* Flush tokens on error, to a token in the stop token set. */
+extern void flush_tokens_with_stop_tokens(a_token_set_array	stop_tokens);
 extern void flush_tokens(void);
 extern void flush_to_end_of_arg_list(void);
 /* Initialize the lexical routines. */
