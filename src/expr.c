@@ -3572,6 +3572,7 @@ operation is a pointer-to-member (see ARM 5.3).
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean         err = FALSE, processed = FALSE;
+  an_expr_node_ptr  expr;
 
   db_enter(4, "scan_ampersand_operator");
 
@@ -3691,6 +3692,18 @@ operation is a pointer-to-member (see ARM 5.3).
           operand.position = start_position;
           conv_sym_for_member_operand_to_ptr_to_member(&operand);
           copy_operand(&operand, result);
+        } else if (c99_mode &&
+                   is_an_rvalue(&operand) &&
+                   is_expression_operand(&operand) &&
+                   (expr = operand.variant.expression,
+                    is_operation_node(expr)) &&
+                   expr->variant.operation.kind ==
+                                         (an_expr_operator_kind)eok_indirect) {
+          /* In C99 (see C99 standard section 6.5.3.2), a "&" and 
+             a "*" operator cancel out, e.g., "&*x" is just "x".  This
+             is significant when x is a pointer to void. */
+          expr = expr->variant.operation.operands;
+          make_expression_operand(expr, expr->type, result);
         } else {
           /* "&" applied to something that is not an lvalue or a function
              designator or another permitted case. */
@@ -3938,9 +3951,12 @@ See section 3.3.3.2 of the standard.
                lvalue). */
             if (!is_qualified_type(operand.type) && !gnu_mode) {
               an_expr_node_ptr node = make_node_from_operand(&operand);
+              an_operand       orig_operand;
+              orig_operand = operand;
               node = make_operator_node((an_expr_operator_kind)eok_indirect,
                                         operand.type, node);
               make_expression_operand(node, node->type, &operand);
+              restore_operand_details(&operand, &orig_operand);
             } else {
               /* Indirection through, e.g., const void * -- just convert to
                  an lvalue. */
