@@ -4735,7 +4735,8 @@ on for use in generating cross-reference output describing this declaration.
         if (is_function_symbol(prior_decl)) {
           a_type_ptr  prior_type = routine_symbol_type(prior_decl);
           if (routine_types_are_compatible(prior_type, type_ptr,
-                                           TCF_NO_FLAGS)) {
+                                           TCF_NO_FLAGS) &&
+              type_ptr->kind != (a_type_kind)tk_typeref) {
             type_ptr->variant.routine.extra_info->routine_name_linkage =
                  prior_type->variant.routine.extra_info->routine_name_linkage;
           }  /* if */
