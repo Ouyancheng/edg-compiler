@@ -1154,6 +1154,7 @@ initialized.  These are addressed in the course of the processing.
   a_class_symbol_supplement_ptr cssp;
   a_routine_ptr                 conversion_routine, rp;
   a_dynamic_init_ptr            dip, ctor_dip;
+  int                           direct_base_class_count = 0;
 
   db_enter(3, "ctor_initializer");
   class_type = ((a_symbol_ptr)ctor_rout->source_corresp.assoc_info)->
@@ -1181,6 +1182,7 @@ initialized.  These are addressed in the course of the processing.
   for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
        bcp != NULL;
        bcp = bcp->next) {
+    if (bcp->direct) ++direct_base_class_count;
     if (bcp->is_virtual || bcp->direct) {
       cssp = symbol_supplement_for_class(bcp->type);
       /* If the virtual base class or direct base class has a constructor, a
@@ -1265,13 +1267,46 @@ initialized.  These are addressed in the course of the processing.
     do {
       err = FALSE;
       add_stop_token(tok_comma);
-      /* A base class name or a member name is expected. */
-      if (!is_qualified_name_start()) {
+      /* Unless this is an old style base class initializer, a base class
+         name or a member name is expected. */
+      if (curr_token != tok_lparen && !is_qualified_name_start()) {
         /* Either an identifier or "::" is expected here. */
         syntax_error(ec_exp_identifier);
       } else {
         bcp = NULL;
         dip = NULL;
+        if (curr_token == tok_lparen) {
+          /* Old-style base class initializer.  It is assumed to apply the
+             the direct base class (further assuming that there is exactly
+             one direct base class). */
+          if (direct_base_class_count != 1) {
+            /* Either no base classes or more than one. */
+            error(ec_missing_base_class_or_member_name);
+            init_type = error_type();
+          } else {
+            /* The base class is probably on the direct_list, but if it was
+               declared virtual it is on the virtual list. */
+            new_cip = (direct_list != NULL) ? direct_list : virtual_list;
+            bcp = new_cip->variant.base_class;
+#if CHECKING
+            if (!bcp->direct) {
+              internal_error("ctor_initializer: not a direct base class");
+            }  /* if */
+#endif /* CHECKING */
+            init_type = bcp->type;
+            if (new_cip->initializer != NULL) {
+              str_error(ec_base_class_already_initialized,
+                        init_type->source_corresp.name);
+              err = TRUE;
+            } else {
+              str_warning(ec_base_class_init_anachronism,
+                          init_type->source_corresp.name);
+            }  /* if */
+          }  /* if */
+          /* Back up so that the left paren will be rescanned. */
+          unget_token();
+          goto scan_paren;
+        }  /* if */
         /* Scan the base class name or member name. */
         member_or_base_sym = get_normal_id_or_qualified_name(IDL_NO_OPTIONS);
         if (member_or_base_sym == NULL) {
@@ -1301,7 +1336,7 @@ initialized.  These are addressed in the course of the processing.
           for (new_cip = cip_list; new_cip != NULL; new_cip = new_cip->next) {
             if (new_cip->variant.field == member_or_base_sym->variant.field) {
               if (new_cip->initializer != NULL) {
-                error(ec_already_initialized);
+                error(ec_member_already_initialized);
                 err = TRUE;
                 goto scan_paren;
               }  /* if */
@@ -1408,7 +1443,8 @@ initialized.  These are addressed in the course of the processing.
               if (new_cip->variant.base_class == bcp) break;
             }  /* for */
             if (new_cip->initializer != NULL) {
-              error(ec_already_initialized);
+              str_error(ec_base_class_already_initialized,
+                        bcp->type->source_corresp.name);
               err = TRUE;
             }  /* if */
           }  /* if */
@@ -1465,7 +1501,7 @@ scan_arg_for_scan_initialization:
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
             scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
                                               init_type, dip);
-            new_cip->initializer = dip;
+            if (new_cip != NULL) new_cip->initializer = dip;
             remove_stop_token(tok_rparen);
             (void)required_token(tok_rparen, ec_exp_rparen);
           }  /* if */
