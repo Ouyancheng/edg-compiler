@@ -7117,7 +7117,8 @@ that follows.
         /* Do fixup on the source sequence entry that was just created to
            represent the current declaration. */
         if (!is_definition) {
-          (void)set_src_seq_secondary_decl_type((char *)vp, type);
+          (void)set_src_seq_secondary_decl_type((char *)vp, type,
+                                                /*is_specialization=*/TRUE);
         } else {
           /* The defining declaration of the variable.  Record the type.  */
           if (vp->declared_type == NULL) vp->declared_type = type;
@@ -7126,9 +7127,7 @@ that follows.
         if (is_definition) vp->suppress_instantiation = TRUE;
         if (is_definition) tip->specific_def = TRUE;
         tip->specific_decl = TRUE;
-#if 0
-        vp->is_specialization = TRUE;
-#endif /* 0 */
+        vp->is_explicit_specialization = TRUE;
         /* Deal with initializer. */
         if (is_definition) {
           a_boolean  incomplete_type_error_reported = FALSE;
@@ -7151,7 +7150,8 @@ that follows.
         /* Do fixup on the source sequence entry that was just created to
            represent the current declaration. */
         if (!is_definition) {
-          (void)set_src_seq_secondary_decl_type((char *)rp, type);
+          (void)set_src_seq_secondary_decl_type((char *)rp, type,
+                                                /*is_specialization=*/TRUE);
         } else {
           /* The defining declaration of the routine.  Record the type.  */
           if (rp->declared_type == NULL) rp->declared_type = type;
@@ -7160,9 +7160,7 @@ that follows.
         if (is_definition) rp->suppress_instantiation = TRUE;
         if (is_definition) tip->specific_def = TRUE;
         tip->specific_decl = TRUE;
-#if 0
-        rp->is_specialization = TRUE;
-#endif /* 0 */
+        rp->is_explicit_specialization = TRUE;
         if (is_definition) {
           /* This is a defining declaration of the function template. */
           func_info.is_definition = TRUE;

@@ -2751,11 +2751,14 @@ not be TRUE.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_type(
-                                                    char        *il_entry_ptr,
-                                                    a_type_ptr  type)
+                                               char        *il_entry_ptr,
+                                               a_type_ptr  type,
+                                               a_boolean   is_specialization)
 /*
 Set the declared_type field to "type" in the recently created secondary
 source sequence entry created for the IL entry pointed to by il_entry_ptr.
+Also, set the explicit_template_specialization flag to the value indicated
+by is_specialization.
 */
 {
   a_source_sequence_entry_ptr   ssep;
@@ -2770,6 +2773,7 @@ source sequence entry created for the IL entry pointed to by il_entry_ptr.
       check_assertion(ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
       sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
       sssdp->declared_type = type;
+      sssdp->explicit_template_specialization = is_specialization;
     }  /* if */
   }  /* if */
   return sssdp;
@@ -3423,8 +3427,8 @@ cross-reference output describing this declaration.
      is declared in a local scope and a sublist is generated). */
   if (!is_variable_def || (srk_flags & SRK_TENTATIVE_DEF)) {
     /* A function declaration but not a definition. */
-    (void)set_src_seq_secondary_decl_type((char *)variable_ptr,
-                                          declared_type);
+    (void)set_src_seq_secondary_decl_type((char *)variable_ptr, declared_type,
+                                          /*is_specialization=*/FALSE);
   } else {
     /* The defining declaration of the variable.  Record the type.  */
     if (variable_ptr->declared_type == NULL) {
@@ -4148,8 +4152,8 @@ skip_overloading:;
     /* A function declaration but not a definition.  Set the type in the
        secondary declaration entry. */
     a_src_seq_secondary_decl_ptr  sssdp;
-    sssdp = set_src_seq_secondary_decl_type((char *)routine_ptr,
-                                            declared_type);
+    sssdp = set_src_seq_secondary_decl_type((char *)routine_ptr, declared_type,
+                                            /*is_specialization=*/FALSE);
     if (sssdp != NULL) {
       if (is_friend_decl) sssdp->friend_decl = TRUE;
       if (func_info->is_implicit_declaration) sssdp->implicit_decl = TRUE;
@@ -4795,7 +4799,8 @@ return a pointer to it in *symbol_ptr.
                                     declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           (void)set_src_seq_secondary_decl_type((char *)sym->variant.type,
-                                                type_ptr);
+                                                type_ptr,
+                                                /*is_specialization=*/FALSE);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           goto return_point;
         } else {

@@ -3989,7 +3989,8 @@ of the function, and again overloading is a possibility.
                secondary-decl entry in the source sequence list.  Enter the
                current function type. */
             a_src_seq_secondary_decl_ptr  sssdp;
-            sssdp = set_src_seq_secondary_decl_type((char *)rp, function_type);
+            sssdp = set_src_seq_secondary_decl_type((char *)rp, function_type,
+                                                  /*is_specialization=*/FALSE);
             if (sssdp != NULL) sssdp->friend_decl = TRUE;
           }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -4822,7 +4823,8 @@ declared member functions.
                               declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (!func_info->is_definition) {
-      (void)set_src_seq_secondary_decl_type((char *)rtn, member_type);
+      (void)set_src_seq_secondary_decl_type((char *)rtn, member_type,
+                                            /*is_specialization=*/FALSE);
     } else {
       rtn->declared_type = member_type;
     }  /* if */
@@ -5438,7 +5440,8 @@ member declaration, respectively.
   record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
                             decl_info->declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  (void)set_src_seq_secondary_decl_type((char *)var, member_type);
+  (void)set_src_seq_secondary_decl_type((char *)var, member_type,
+                                        /*is_specialization=*/FALSE);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
