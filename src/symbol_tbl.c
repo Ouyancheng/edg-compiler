@@ -843,6 +843,7 @@ Put out a scope kind name (for debugging).
     case sck_template_declaration:   s = "template declaration";     break;
     case sck_template_instantiation: s = "template instantiation";   break;
     case sck_pragma:		     s = "pragma";		     break;
+    case sck_function_access:	     s = "function access";	     break;
     default:                         s = "***UNKNOWN SCOPE KIND***"; break;
   }  /* switch */
   fputs(s, f_debug);

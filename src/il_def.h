@@ -4945,7 +4945,10 @@ enum a_scope_kind_tag {
   sck_pragma,
 			/* Used while processing certain #pragma directives
 			   to affect the visibility of other scopes.  Used
-			   in only in the front end. */
+			   only in the front end. */
+  sck_function_access,
+			/* Used to perform access checking on function
+			   declarations.  Used only in the front end. */
 #endif /* ifdef CIL */
 #ifdef FIL
   sck_stmt_function,	/* Statement function scope. */
