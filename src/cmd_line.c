@@ -182,7 +182,7 @@ Add an entry to the linked list of option descriptions.
 }  /* add_option_description */
 
 
-void initialize_option_descriptions(void)
+static void initialize_option_descriptions(void)
 /*
 Initialize the option information table.
 */
@@ -356,8 +356,8 @@ Issue a invalid command line argument diagnostic.
 }  /* invalid_argument_error */
 
 
-an_option_description_ptr get_option(int     argc,
-                                     char    **argv)
+static an_option_description_ptr get_option(int     argc,
+                                            char    **argv)
 /*
 Fetch a command-line option.  argc and argv are the count of
 command-line arguments and the array containing the command-line
