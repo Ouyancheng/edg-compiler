@@ -151,7 +151,7 @@ refer to the same IL entity.  If the pointers differ, check the
 translation unit correspondence pointers.  Unlike the "corresponding_*"
 macros above, same_entities assumes that any correspondences between
 the objects pointed to by ptr1 and ptr2 have already been set (if in
-doubt whether that assumption is valid, it is always same to use one
+doubt whether that assumption is valid, it is always safe to use one
 of the "corresponding_*" macros).
 */
 #define same_entities(ptr1, ptr2)					\
