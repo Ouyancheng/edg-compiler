@@ -1585,8 +1585,7 @@ subaggregate. The function returns a pointer to IL a_constant entity.
       constant = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       constant->variant.dynamic_init = dip;
       constant->type = context->type;
-    }  /* if */
-    if (context->type != required_type) {
+    } else if (context->type != required_type) {
       /* The initialization of an enum bit field in Microsoft mode.  We
          scanned as if an integer bit field was being initialized, but the
          destination type is an enumeration. */
