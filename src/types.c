@@ -5802,6 +5802,11 @@ array bound appears directly (rather than hidden under a typedef).
   a_type_tree_traversal_flag_set  tt_flags = (TTT_RETURN_TYPE |
                                               TTT_STOP_AT_TYPEDEFS);
   a_boolean                       result = FALSE;
+#if STANDALONE_UTILITY_PROGRAM
+  /* The global variable "vla_enabled" doesn't exist in standalone
+     programs. */
+  a_boolean                       vla_enabled = VLA_ALLOWED;
+#endif /* STANDALONE_UTILITY_PROGRAM */
 
   if (vla_enabled) {
     result = traverse_type_tree(tp, ttt_is_variably_modified_type, tt_flags);
