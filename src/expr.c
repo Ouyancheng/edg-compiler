@@ -6340,10 +6340,7 @@ this routine is called.
   a_boolean  err = FALSE;
   a_type_ptr source_type = operand->type;
 
-  if (is_template_param_type(dest_type) ||
-      is_template_param_type(source_type)) {
-    /* Casting to or from a template parameter (unknown) type.  Assume okay. */
-  } else if (curr_expr_kind_is(ek_integral_constant)) {
+  if (curr_expr_kind_is(ek_integral_constant)) {
     /* Only casts from arithmetic to integral or enum types are permitted in
        integral constant expressions. */
     if (is_integral_or_enum_type(dest_type)) {
@@ -6366,6 +6363,8 @@ this routine is called.
                          &operand->position);
           err = (strict_ansi_error_severity == es_error);
         }  /* if */
+      } else if (is_template_param_type(source_type)) {
+        /* Casting from an unknown template parameter type is okay. */
       } else {
         /* The destination type is integral, but the source type is not
            arithmetic. */
@@ -6377,8 +6376,9 @@ this routine is called.
         err = TRUE;
       }  /* if */
     } else if ((local_options & EOPT_OPERAND_OF_CAST) &&
-               is_integral_or_enum_type(source_type) &&
-               is_pointer_type(dest_type)) {
+               is_pointer_type(dest_type) &&
+               (is_integral_or_enum_type(source_type) ||
+                is_template_param_type(source_type))) {
       /* When the cast is the immediate operand of another cast, allow
          integer --> pointer as an extension. */
       if (strict_ansi_mode) {
@@ -6389,6 +6389,8 @@ this routine is called.
                        type_position);
         err = (strict_ansi_error_severity == es_error);
       }  /* if */
+    } else if (is_template_param_type(dest_type)) {
+      /* Casting to an unknown template parameter type is okay. */
     } else {
       /* Casting to a non-integral type in an integral constant expression. */
       if (!is_error_type(dest_type)) {
@@ -6419,6 +6421,8 @@ this routine is called.
                          &operand->position);
           err = (strict_ansi_error_severity == es_error);
         }  /* if */
+      } else if (is_arithmetic_or_enum_type(source_type)) {
+        /* Casting from an unknown template parameter type is okay. */
       } else {
         /* Non-arithmetic --> arithmetic or enum. */
         if (!is_error_type(source_type)) {
@@ -6430,13 +6434,18 @@ this routine is called.
       }  /* if */
     } else if (is_pointer_type(dest_type)) {
       /* Casting to pointer; source must be scalar. */
-      if (!is_scalar_type(source_type)) {
+      if (is_scalar_type(source_type) ||
+          is_template_param_type(source_type)) {
+        /* Okay. */
+      } else {
         pos_error(enum_type_is_integral ?
                     ec_expr_not_scalar :
                     ec_expr_not_arithmetic_or_enum_or_pointer,
                   &operand->position);
         err = TRUE;
       }  /* if */
+    } else if (is_template_param_type(dest_type)) {
+      /* Casting to an unknown template parameter type is okay. */
     } else {
       /* Casting to a non-scalar type in an initializer expression. */
       if (!is_error_type(dest_type)) {
@@ -6470,6 +6479,8 @@ this routine is called.
                          &operand->position);
           err = (strict_ansi_error_severity == es_error);
         }  /* if */
+      } else if (is_template_param_type(source_type)) {
+        /* Casting from an unknown template parameter type is okay. */
       } else {
         /* Cast from non-arithmetic to integral in a nontype template
            argument. */
@@ -6482,7 +6493,8 @@ this routine is called.
                !strict_ansi_mode && is_floating_type(dest_type)) {
       /* Destination is floating.  Source should be arithmetic or enum.
          Allowed as an extension. */
-      if (is_arithmetic_or_enum_type(source_type)) {
+      if (is_arithmetic_or_enum_type(source_type) ||
+          is_template_param_type(source_type)) {
         /* Okay. */
       } else {
         /* Cast from non-arithmetic to floating in a nontype template
@@ -6505,6 +6517,8 @@ this routine is called.
                              f_skip_typerefs(type_pointed_to(operand->type))) {
       /* A cast that strips qualifiers from a pointer type.  Allow as an
          extension in Microsoft mode. */
+    } else if (is_template_param_type(dest_type)) {
+      /* Casting to an unknown template parameter type is okay. */
     } else {
       /* Cast to a non-integral type in a nontype template argument. */
       if (!is_error_type(dest_type)) {
