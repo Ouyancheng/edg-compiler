@@ -140,11 +140,11 @@ error -- TARG_MAX_BIT_FIELD_SIZE is too big.
    Note that 1-bit fields are made unsigned regardless of this switch. */
 #define TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED (!DEFAULT_TARG_HAS_SIGNED_CHARS)
 
-/* Alignment adjustment to be made when an zero-width (unnamed) bit field
-   is declared.  If > 0, indicates the predetermined alignment (typically,
-   the alignment of one of the integral types).  0 means "use minimal
-   alignment".  < 0 means "use the alignment of the base type given in the
-   declaration". */
+/* Alignment adjustment to be made when a zero-width (unnamed) bit field is
+   declared.  If > 0 it is the alignment to be used (typically the alignment
+   of one of the integral types).  A value of zero means "use the minimal
+   alignment", which is single-byte alignment.  Any value less than zero
+   means "use the alignment of the base type given in the declaration". */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT TARG_ALIGNOF_INT
 #else
