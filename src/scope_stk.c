@@ -4360,7 +4360,7 @@ thrown away by the caller.
     if (!will_discard_function_body &&
         !scope_stack[depth_scope_stack].in_prototype_instantiation) {
       /* Do IL lowering (change the C++ IL into C IL). */
-    lower_il_memory_region(routine->assoc_scope);
+      lower_il_memory_region(routine->assoc_scope);
     }  /* if */
     if (il_lowering_needed()) {
       /* If we're not supposed to pass object lifetime information to the
