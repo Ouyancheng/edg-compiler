@@ -983,6 +983,30 @@ parameter type ends up in the mangled name of the function.
 #endif /* ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_... */
 #endif /* ifndef REMOVE_QUALIFIERS_FROM_PARAM_TYPES */
 
+/*
+Flag that is TRUE if the runtime library uses namespaces.  This
+causes the runtime library to define the library classes (e.g., type_info)
+in the "std" namespace.  It is also used by the standard header files
+for the same purpose.
+*/
+#ifndef RUNTIME_USES_NAMESPACES
+#if ABI_COMPATIBILITY_VERSION <= 230 || CFRONT_OBJECT_CODE_COMPATIBILITY
+#define RUNTIME_USES_NAMESPACES FALSE
+#else /* !(ABI_COMPATIBILITY_VERSION <= 230 || CFRONT_...) */
+#define RUNTIME_USES_NAMESPACES TRUE
+#endif /* ABI_COMPATIBILITY_VERSION <= 230 || CFRONT_... */
+#endif /* ifndef RUNTIME_USES_NAMESPACES */
+
+/*
+The name of the macro to be defined when the runtime uses namespaces.
+This is only used when RUNTIME_USES_NAMESPACES is TRUE.
+*/
+#if RUNTIME_USES_NAMESPACES
+#ifndef MACRO_DEFINED_WHEN_RUNTIME_USES_NAMESPACES
+#define MACRO_DEFINED_WHEN_RUNTIME_USES_NAMESPACES "__EDG_RUNTIME_USES_NAMESPACES"
+#endif /* ifndef MACRO_DEFINED_WHEN_RUNTIME_USES_NAMESPACES */
+#endif /* RUNTIME_USES_NAMESPACES */
+
 #if BACK_END_IS_C_GEN_BE
 /*
 Switch that is TRUE if the C-generating back end should generate code for

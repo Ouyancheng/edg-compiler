@@ -471,27 +471,6 @@ only used when DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD is TRUE.
 #endif /* ifndef MACRO_DEFINED_WHEN_BOOL_IS_KEYWORD */
 #endif /* DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD */
 
-
-/*
-Flag that is TRUE if the runtime library uses namespaces.  This
-causes the runtime library to define the library classes (e.g., type_info)
-in the "std" namespace.  It is also used by the standard header files
-for the same purpose.
-*/
-#ifndef RUNTIME_USES_NAMESPACES
-#define RUNTIME_USES_NAMESPACES TRUE
-#endif /* ifndef RUNTIME_USES_NAMESPACES */
-
-/*
-The name of the macro to be defined when the runtime uses namespaces.
-This is only used when RUNTIME_USES_NAMESPACES is TRUE.
-*/
-#if RUNTIME_USES_NAMESPACES
-#ifndef MACRO_DEFINED_WHEN_RUNTIME_USES_NAMESPACES
-#define MACRO_DEFINED_WHEN_RUNTIME_USES_NAMESPACES "__EDG_RUNTIME_USES_NAMESPACES"
-#endif /* ifndef MACRO_DEFINED_WHEN_RUNTIME_USES_NAMESPACES */
-#endif /* RUNTIME_USES_NAMESPACES */
-
 /*
 Flag that is TRUE if, in C++ mode, operator keywords (e.g., bitand, compl)
 and digraphs are recognized.  This is the default value for the global
