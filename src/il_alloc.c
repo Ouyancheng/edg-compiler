@@ -837,10 +837,12 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->uuid_string                       = NULL;
   ctsp->decl_modifiers                    = DM_NONE;
   ctsp->orig_type_kind                    = (a_type_kind)tk_error;
-  ctsp->qualifiers                        = TQ_NONE;
   ctsp->inheritance_kind                  = (an_inheritance_kind)ihk_none;
   ctsp->inheritance_kind_is_explicit      = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+  ctsp->qualifiers                        = TQ_NONE;
+#endif /* NEAR_AND_FAR_ALLOWED */
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
   ctsp->befriending_classes               = NULL;
