@@ -6944,7 +6944,11 @@ of the front end.
   curr_deferred_access_scope = NO_SCOPE_DEPTH;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   depth_innermost_ss_list_scope = NO_SCOPE_DEPTH;
+#if DO_IL_LOWERING
+  source_sequence_entries_disallowed = il_lowering_needed();
+#else /* !DO_IL_LOWERING */
   source_sequence_entries_disallowed = FALSE;
+#endif /* DO_IL_LOWERING */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   inside_local_class = FALSE;
   next_scope_number = FILE_SCOPE_NUMBER;
