@@ -567,9 +567,6 @@ the file scope, do not process it (but record an orphan in the latter case).
             if (ptr->variant.integer.enum_type) {
               walk_list(ptr->variant.integer.enum_info.constant_list,
                         a_constant_ptr, iek_constant);
-#if GENERATE_SOURCE_SEQUENCE_LISTS && KEEP_IN_IL_WALK
-              goto handle_non_autonomous_tag;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && KEEP_IN_IL_WALK */
             } else {
               walk_ptr(ptr->variant.integer.enum_info.affiliated_type,
                        a_type_ptr, iek_type);
@@ -600,26 +597,6 @@ the file scope, do not process it (but record an orphan in the latter case).
                       a_field_ptr, iek_field);
             walk_ptr(ptr->variant.class_struct_union.extra_info,
                      a_class_type_supplement_ptr, iek_class_type_supplement);
-#if GENERATE_SOURCE_SEQUENCE_LISTS && KEEP_IN_IL_WALK
-handle_non_autonomous_tag:
-            /* In C++, a non-autonomous tag can't easily be separated from the
-               context within which it is defined, so when a non-autonomous
-               tag is marked to be kept, also mark the containing
-               declaration, whose source sequence entry is next on the list.
-               If the tag is not complete yet, the autonomous flag is not
-               checked. */
-            if (ptr->size != 0 && !ptr->autonomous_primary_tag_decl &&
-                il_header.source_language == sl_Cplusplus) {
-              a_source_sequence_entry_ptr ssep =
-                                     ptr->source_corresp.source_sequence_entry;
-              if (ssep != NULL) {
-                a_source_sequence_entry_ptr ssep_next =
-                                         find_end_of_tag_construct(ssep)->next;
-                walk_ptr(ssep_next, a_source_sequence_entry_ptr,
-                         iek_source_sequence_entry);
-              }  /* if */
-            }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && KEEP_IN_IL_WALK */
             break;
           case tk_typeref:
             walk_ptr(ptr->variant.typeref.type, a_type_ptr, iek_type);
