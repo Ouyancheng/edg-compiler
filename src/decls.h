@@ -302,6 +302,10 @@ typedef int a_decl_flag_set;
 			/* If this bit is set a literal string may follow the
 			   "extern" keyword to specify the form of external
 			   linkage required. */
+#define DSI_IS_NEW_TYPE_NAME 0x100
+			/* If this bit is set the declaration specifiers are
+			   part of the type declaration associated with a
+			   "new" operator. */
 /* Constants defining bits in the output bit vector returned from
    decl_specifiers. */
 #define DSO_NO_OUTPUT_FLAGS 0x0
