@@ -185,71 +185,6 @@ Return TRUE if sym1 and sym2 point to the same IL entries.
 }  /* symbols_are_equivalent */
 
 
-static a_scope_ptr hidden_name_scope(void)
-/*
-Return the IL scope with which a hidden-name table entry should be associated.
-*/
-{
-  a_scope_stack_entry_ptr  ssep;
-  a_scope_ptr              sp;
-
-  /* Get pointer to current scope entry. */
-  ssep = &scope_stack[decl_scope_level];
-  if (ssep->kind == (a_scope_kind)sck_pragma) --ssep;
-  while (ssep->kind == (a_scope_kind)sck_template_declaration) {
-    --ssep;
-  }  /* while */
-  /* Create the IL scope if necessary (for block scopes). */
-  sp = ensure_il_scope_exists(ssep);
-  check_assertion_str(sp != NULL, "hidden_name_scope: NULL IL scope");
-  return sp;
-}  /* hidden_name_scope */
-
-
-static void record_hidden_template(
-                              a_symbol_ptr  hidden_sym,
-                              a_boolean     tag_hidden_by_nontag,
-                              a_boolean     hidden_class_or_namespace_member,
-                              a_scope_ptr   sp)
-/*
-A template name (indicated by hidden_sym) is hidden in the specified scope
-by another declaration.  Record the fact in a fixup list that can be
-checked later whenever a new instance of the template is generated.
-*/
-{
-  a_template_symbol_supplement_ptr  tssp;
-  a_hidden_template_name_fixup_ptr  htnfp;
-  a_symbol_list_entry_ptr           slep;
-  a_scope_stack_entry_ptr           ssep;
-
-  check_assertion(is_template_symbol(hidden_sym));
-  /* Add a fixup entry to a list in the template symbol supplement. */
-  tssp = hidden_sym->variant.template_info;
-  htnfp = alloc_hidden_template_name_fixup();
-  htnfp->scope = sp;
-  htnfp->tag_hidden_by_nontag = tag_hidden_by_nontag;
-  htnfp->hidden_class_or_namespace_member = hidden_class_or_namespace_member;
-  htnfp->next = tssp->hidden_name_fixup_list;
-  tssp->hidden_name_fixup_list = htnfp;
-  /* If this hiding occurs within the context of function definition, record
-     the template in a list in the scope stack entry for the function.  Then
-     when the function scope is popped, fixup entries associated with the
-     function scope can be removed.  (This is required because the memory
-     region to which the current IL scope entry points may no longer be
-     valid once the function scope is popped.) */
-  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-    slep = alloc_symbol_list_entry();
-    slep->symbol = hidden_sym;
-    ssep = &scope_stack[depth_innermost_function_scope];
-    /* Record the function scope in the fixup entry. */
-    htnfp->assoc_function_scope = ssep->il_scope;
-    /* Add the list entry to the front of the list. */
-    slep->next = ssep->hidden_template_name_symbols;
-    ssep->hidden_template_name_symbols = slep;
-  }  /* if */
-}  /* record_hidden_template */
-
-
 static void record_defeatable_name_hiding(
                               a_symbol_ptr  hidden_sym,
                               a_boolean     tag_hidden_by_nontag,
@@ -272,6 +207,7 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
   a_symbol_ptr             sym;
   a_template_instance_ptr  tip;
 
+  check_assertion(sp != NULL);
   if (hidden_by != NULL && symbols_are_equivalent(hidden_sym, hidden_by)) {
     /* A symbol does not hide itself. */
   } else {
@@ -286,7 +222,6 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
         break;
       case sk_overloaded_function:
         /* Enter members of an overload set separately. */
-        if (sp == NULL) sp = hidden_name_scope();
         for (sym = hidden_sym->variant.overloaded_function.symbols;
              sym != NULL;
              sym = sym->next) {
@@ -324,7 +259,6 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
         break;
       case sk_class_template:
         /* Enter each instance of a class template. */
-        if (sp == NULL) sp = hidden_name_scope();
         for (sym = hidden_sym->variant.template_info->
                                   variant.class_template.instantiations;
              sym != NULL;
@@ -335,14 +269,9 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
                                           hidden_by);
           }  /* if */
         }  /* for */
-        /* Add a fixup entry for the template, so that hidden name table
-           entries can be added for instances that are created later. */
-        record_hidden_template(hidden_sym, tag_hidden_by_nontag,
-                               hidden_class_or_namespace_member, sp);
         break;
       case sk_function_template:
         /* Enter each instance of a function template. */
-        if (sp == NULL) sp = hidden_name_scope();
         for (tip = hidden_sym->variant.template_info->
                                   variant.function.instantiations;
              tip != NULL;
@@ -362,7 +291,6 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
         /* The normal case.  First find the entity associated with the
            symbol. */
         entity = il_entry_for_symbol(hidden_sym, &kind);
-        if (sp == NULL) sp = hidden_name_scope();
         /* If there is already a hidden name entry for this entity in this
            scope, reuse it. */
         for (hnp = sp->hidden_names; hnp != NULL; hnp = hnp->next) {
@@ -385,7 +313,9 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
               if (tag_hidden_by_nontag) fputs(" and", f_debug);
             }  /* if */
             if (tag_hidden_by_nontag) fputs(" class-key", f_debug);
-            fputs(" for \"", f_debug);
+            fprintf(f_debug, " for %s\"",
+                    hidden_sym->decl_scope == FILE_SCOPE_NUMBER ?
+                                                     "global " : "");
             if (kind == (an_il_entry_kind)iek_type) {
               db_abbreviated_type((a_type_ptr)entity);
             } else {
@@ -440,719 +370,9 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
 }  /* record_defeatable_name_hiding */
 
 
-void record_name_hiding_for_template_instance(
-                                    a_symbol_ptr                      sym_ptr,
-                                    a_template_symbol_supplement_ptr  tssp)
-/*
-An instance of a template has been generated.  Hidden name table entries
-may be required for it in scopes where the template name is hidden by
-another declaration.  The instance is indicated by sym_ptr; the template
-of which it is an instance is represented by the specified template symbol
-supplement.  Check the fixup list associated with the template and update
-the hidden name table for each entry on the list.
-*/
-{
-  a_hidden_template_name_fixup_ptr  htnfp;
-
-  if (tssp != NULL) {
-    htnfp = tssp->hidden_name_fixup_list;
-#if DEBUG
-    if (htnfp != NULL) {
-      if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
-        fputs("Deferred hidden name record: ", f_debug);
-        db_symbol_name(sym_ptr);
-        fputc('\n', f_debug);
-      }  /* if */
-    }  /* if */
-#endif /* DEBUG */
-    for (; htnfp != NULL; htnfp = htnfp->next) {
-      if (htnfp->scope->kind == (a_scope_kind)sck_block &&
-          htnfp->scope->depth_in_scope_stack == NO_SCOPE_DEPTH) {
-        continue;
-      }  /* if */
-      record_defeatable_name_hiding(sym_ptr, htnfp->tag_hidden_by_nontag,
-                                    htnfp->hidden_class_or_namespace_member,
-                                    htnfp->scope, (a_symbol_ptr)NULL);
-    }  /* for */
-  }  /* if */
-}  /* record_name_hiding_for_template_instance */
-
-
-static void add_to_hidden_name_fixup_list(a_symbol_ptr  sym_ptr)
-/*
-Create a symbol-list entry for sym_ptr and add it to the hidden-name fixup
-list for the scope to which sym_ptr belongs.
-*/
-{
-  a_scope_depth               depth;
-  a_boolean                   is_local_to_function;
-  a_namespace_ptr             nsp;
-  a_symbol_list_entry_ptr     slep;
-  a_scope_pointers_block_ptr  pointers_block;
-
-  check_assertion(!sym_ptr->is_class_member);
-  nsp = sym_ptr->parent.namespace_ptr;
-  if (nsp != NULL) {
-    pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
-  } else {
-    depth = scope_depth_of_symbol(sym_ptr, &is_local_to_function);
-    if (depth == NO_SCOPE_DEPTH) {
-      pointers_block = NULL;
-    } else {
-      pointers_block = assoc_pointers_block_of(&scope_stack[depth]);
-    }  /* if */
-  }  /* if */
-  if (pointers_block != NULL) {
-#if DEBUG
-    if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
-      fputs("Deferring hidden name check: ", f_debug);
-      db_symbol_name(sym_ptr);
-      fputc('\n', f_debug);
-    }  /* if */
-#endif /* DEBUG */
-    slep = alloc_symbol_list_entry();
-    slep->symbol = sym_ptr;
-    slep->next = pointers_block->hidden_name_fixup_list;
-    pointers_block->hidden_name_fixup_list = slep;
-  }  /* if */
-}  /* add_to_hidden_name_fixup_list */
-
-
-void check_hidden_name_fixup_list(a_symbol_list_entry_ptr  *list)
-/*
-Do the defeatable-name-hiding check for each symbol on the symbol-list and
-then free the list.
-*/
-{
-  a_symbol_list_entry_ptr  slep;
-
-  if (*list != NULL) {
-    for (slep = *list; slep != NULL; slep = slep->next) {
-      check_for_defeatable_name_hiding(slep->symbol);
-    }  /* for */
-    free_list_of_symbol_list_entries(*list);
-    *list = NULL;
-  }  /* if */
-}  /* check_hidden_name_fixup_list */
-
-
-static a_boolean matches_member_of_overload_set(a_symbol_ptr  sym_ptr,
-                                                a_symbol_ptr  overload_sym)
-/*
-Return TRUE if sym_ptr refers to the same routine as overload_sym or
-refers to the same entity as a member of the overload set headed by
-overload_sym.  Also, return TRUE if sym_ptr is an instance of a template
-pointed to by overload_sym or a template that is a member of the overload
-set pointed to by overload_sym.
-*/
-{
-  a_boolean     found = FALSE;
-  a_boolean	is_list;
-  a_symbol_ptr  other_sym;
-
-  if (overload_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    is_list = TRUE;
-    other_sym = overload_sym->variant.overloaded_function.symbols;
-  } else {
-    is_list = FALSE;
-    other_sym = overload_sym;
-  }  /* if */
-  for (; other_sym != NULL; other_sym = is_list ? other_sym->next : NULL) {
-    if (symbols_are_equivalent(sym_ptr, other_sym)) {
-      found = TRUE;
-      break;
-    }  /* if */
-    if (other_sym->kind == (a_symbol_kind)sk_function_template &&
-        (sym_ptr->kind == (a_symbol_kind)sk_routine ||
-         sym_ptr->kind == (a_symbol_kind)sk_member_function) &&
-        sym_ptr->variant.routine.instance_ptr != NULL &&
-        sym_ptr->variant.routine.instance_ptr->template_sym == other_sym) {
-      /* The function is an instance of the template specified by other_sym. */
-      found = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  return found;
-}  /* matches_member_of_overload_set */
-
-
-static a_boolean is_member_of_inactive_local_class(a_symbol_ptr  member_sym)
-/*
-Return TRUE if the symbol passed in is a member of a class local to a
-function that is no longer active.  (This is necessary because the member
-symbol remains on the inactive list even after its class disappears from
-the symbol table.)
-*/
-{
-  a_boolean     match = FALSE;
-  a_type_ptr    tp;
-  a_symbol_ptr  class_sym, sym;
-
-  if (member_sym->is_class_member) {
-    tp = member_sym->parent.class_type;
-    if (tp->source_corresp.is_local_to_function) {
-      /* It's a member of an local class.  Find the outer-most class in case
-         the member belongs to a nested class. */
-      while (tp->source_corresp.is_class_member) {
-        tp = tp->source_corresp.parent.class_type;
-      }  /* while */
-      /* See if the class is still in scope. */
-      class_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
-      for (sym = class_sym->header->symbol; sym != NULL; sym = sym->next) {
-        if (sym == class_sym) break;
-      }  /* for */
-      /* No symbol for the class was found on the active list, so the scope
-         in which the class was declared is no longer active. */
-      if (sym == NULL) match = TRUE;
-    }  /* if */
-  }  /* if */
-  return match;
-}  /* is_member_of_inactive_local_class */
-
-
-static a_boolean is_potentially_hidden_by(a_symbol_ptr  sym1,
-                                          a_symbol_ptr  sym2)
-/*
-Return TRUE if the declaration of sym1 is potentially hidden by the
-declaration of sym2 -- that is, if a lookup of sym1 from a scope
-to which sym2 belongs (or a scope nested therein) will fail to find
-sym1 because it is hidden by sym2.
-*/
-{
-  a_boolean        is_potentially_hidden = FALSE;
-  a_type_ptr       curr_parent_class, tp;
-  a_namespace_ptr  curr_namespace, nsp;
-
-  if (is_member_of_inactive_local_class(sym2)) {
-    /* is_potentially_hidden = FALSE; */
-  } else if (sym1->decl_scope == FILE_SCOPE_NUMBER) {
-    if (sym2->decl_scope != FILE_SCOPE_NUMBER) {
-      /* sym2 belongs to a scope that is enclosed within the file scope
-         (the scope to which sym1 belongs) -- so sym1 is potentially hidden
-         by sym2. */
-      is_potentially_hidden = TRUE;
-    }  /* if */
-  } else if (sym1->is_class_member) {
-    if (!sym2->is_class_member) {
-#if 0
-/* What if sym2 is inside a member function body? */
-#endif /* if */
-      /* is_potentially_hidden = FALSE; */
-    } else {
-      tp = sym2->parent.class_type;
-      curr_parent_class = sym1->parent.class_type;
-      if (tp == curr_parent_class) {
-        /* sym1 and sym2 are members of the same class. */
-      } else {
-        do {
-          if (find_base_class_of(tp, curr_parent_class) != NULL) {
-            /* The class to which sym2 belongs is (or is nested within a
-               class that is) derived from the class to which sym1 belongs --
-               so sym1 is potentially hidden by sym2. */
-            is_potentially_hidden = TRUE;
-          } else if (!tp->source_corresp.is_class_member) {
-            break;
-          } else {
-            tp = tp->source_corresp.parent.class_type;
-            if (tp == curr_parent_class) {
-              /* The class to which sym2 belongs is nested within that of
-                 sym1 -- so sym1 is potentially hidden by sym2. */
-              is_potentially_hidden = TRUE;
-            }  /* if */
-          }  /* if */
-        } while (!is_potentially_hidden);
-      }  /* if */
-    }  /* if */
-  } else {
-    /* sym1 is not a class member.  It may be a namespace member. */
-    curr_namespace = sym1->parent.namespace_ptr;
-    if (curr_namespace != NULL) {
-      /* See if the namespace to which sym2 belongs (if any) is nested
-         within that of sym1. */
-      nsp = parent_namespace_for_symbol(sym2);
-      if (nsp == curr_namespace) {
-        /* They belong to the same namespace. */
-        if (sym2->is_class_member) {
-          /* sym2 is in a class that is nested within the namespace to which
-             sym1 belongs -- so sym1 is potentially hidden by sym2. */
-          is_potentially_hidden = TRUE;
-        }  /* if */
-      } else {
-        while (nsp != NULL) {
-          nsp = skip_namespace_aliases(nsp);
-          if (nsp == curr_namespace) {
-            /* sym2 is in a namespace that is nested within the namespace to
-               which sym1 belongs -- so sym1 is potentially hidden by sym2. */
-            is_potentially_hidden = TRUE;
-            break;
-          }  /* if */
-          nsp = nsp->source_corresp.parent.namespace_ptr;
-        }  /* while */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return is_potentially_hidden;
-}  /* is_potentially_hidden_by */
-
-
-void check_for_defeatable_name_hiding(a_symbol_ptr  sym_ptr)
-/*
-Determine whether "defeatable hidden-name information" should be put out for
-sym_ptr and/or other entities of the same name.  The generation of such
-information is primarily for the C++ generating back end, so that it will
-know to use elaborated type specifiers and/or :: qualification to defeat name
-hiding.
-*/
-{
-  a_symbol_locator         locator;
-  a_symbol_ptr             old_sym_ptr;
-  a_scope_ptr              sp;
-  a_namespace_ptr          nsp;
-  a_boolean                tag_hidden_by_nontag;
-  a_boolean                hidden_class_or_namespace_member;
-  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
-
-  if (sym_ptr->is_error || total_errors > 0) {
-    /* Ignore error symbols.  And if there is an error, don't bother with
-       this processing, which can be costly. */
-  } else if (decl_scope_level == depth_innermost_namespace_scope &&
-             sym_ptr->is_class_member) {
-    /* Ignore member definitions outside the class definition. */
-  } else if (sym_ptr->kind == (a_symbol_kind)sk_parameter) {
-    /* Ignore parameter symbols.  The only parameters that are interesting
-       are the ones that have been turned into variables. */
-  } else if (is_unnamed_tag_symbol(sym_ptr)) {
-    /* No name hiding for unnamed entities. */
-  } else if (sym_ptr->is_invisible) {
-    /* Ignore invisible names. */
-  } else if ((depth_template_declaration_scope != NO_SCOPE_DEPTH ||
-              ssep->in_prototype_instantiation) &&
-             sym_ptr->kind == (a_symbol_kind)sk_class_template) {
-    /* We don't deal with class template definitions. */
-  } else if (sym_ptr->is_class_member &&
-             symbol_supplement_for_class(sym_ptr->parent.class_type)->
-                                                          is_nonreal_class) {
-    /* Ignore members of prototype instantiations. */
-  } else if (sym_ptr->is_template_param) {
-    /* Ignore template parameters. */
-  } else if (sym_ptr->kind == (a_symbol_kind)sk_macro) {
-    /* Ignore macros. */
-  } else if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
-    /* Ignore template instantiation scopes. */
-  } else if (is_template_class_symbol(sym_ptr)) {
-    /* Ignore template class specializations. */
-  } else if (!sym_ptr->is_class_member &&
-             ssep->kind == (a_scope_kind)sck_class_struct_union &&
-             sym_ptr->decl_scope != FILE_SCOPE_NUMBER &&
-             (ssep->il_scope->
-                   variant.assoc_type->source_corresp.is_local_to_function ||
-              depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE)) {
-    /* We are inside a local class or namespace member class and a name is
-       introduced (e.g., by a friend declaration) and injected into an
-       enclosing scope.  Put the symbol on a fixup list and process it once
-       we pop out to that scope. */
-    add_to_hidden_name_fixup_list(sym_ptr);
-  } else {
-#if DEBUG
-    if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
-      if (sym_ptr->decl_position.seq) {
-        fputs("Hidden name check: ", f_debug);
-        fprintf(f_debug, "<%s> ", symbol_kind_names[(int)sym_ptr->kind]);
-        db_symbol_name(sym_ptr);
-        fputc('\n', f_debug);
-      }  /* if */
-    }  /* if */
-#endif /* DEBUG */
-    clear_locator(&locator, &sym_ptr->decl_position);
-    locator.symbol_header = sym_ptr->header;
-    /* Determine what declarations are hidden by the current declaration. */
-    /* First check for hiding that can be resolved with an elaborated type
-       specifier -- e.g., when the current declaration is a non-tag name that
-       hides a tag name in the same or an enclosing scope and when the current
-       declaration is a tag name that is hidden by a non-tag name in the
-       current scope. */
-    if (is_injected_class_symbol(sym_ptr)) {
-      /* Ignore it. */
-    } else if (!is_tag_symbol(sym_ptr)) {
-      /* The current declaration is of something other than a tag name.
-         If it hides a tag in the same scope or an enclosing scope, an
-         elaborated type specifier can render the tag visible.  For example:
-           class x;
-           int x = 1;                   // class x is hidden at file scope
-           class y;
-           void f() {
-             int y = 1;                 // class y is hidden in function f
-           }
-         An elaborated type specifier can be used to "defeat" the hiding. */
-      /* Find the innermost tag declaration with the same name. */
-      old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
-                                               IDL_MUST_BE_TAG);
-      if (old_sym_ptr != NULL) {
-        /* old_sym_ptr is a tag with the same name as sym_ptr and in the
-           same or a containing scope. */
-        if (sym_ptr->kind == (a_symbol_kind)sk_type &&
-            typeref_is_typedef(sym_ptr->variant.type.ptr) &&
-            skip_typerefs(sym_ptr->variant.type.ptr) ==
-                            old_sym_ptr->variant.class_struct_union.type) {
-          /* sym_ptr is a typedef that refers the type represented by
-             old_sym_ptr -- something like "typedef struct S { ... } S;"
-             There's no need to generate hidden-name info for this common
-             construct. */
-        } else if (old_sym_ptr->decl_scope != sym_ptr->decl_scope &&
-                   (old_sym_ptr->is_class_member ||
-                    old_sym_ptr->parent.namespace_ptr != NULL ||
-                    old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER)) {
-          /* No need to defeat the name hiding with an elaborated type
-             specifier -- the tag name will be qualified, either by its
-             parent class or namespace or by a leading "::".  That's
-             handled later. */
-        } else {
-          /* Either the two declarations are in the same scope or else
-             old_sym_ptr cannot be qualified -- e.g., its containing scope is
-             local to a function:
-               void f() {
-                 struct S { ... };
-                 { int S; ... }     // S is hidden in the block scope
-               }
-          */
-          tag_hidden_by_nontag = TRUE;
-          hidden_class_or_namespace_member = FALSE;
-          record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
-                                        hidden_class_or_namespace_member,
-                                        (a_scope_ptr)NULL, sym_ptr);
-        }  /* if */
-      }  /* if */
-    } else {
-      /* This is a tag declaration, which would be hidden by any non-tag
-         already declared within the current scope.  For instance:
-           x = 1;
-           class x;                 // class x is hidden at file scope
-         Again, hiding can be defeated by using "class x" instead of "x". */
-      old_sym_ptr = curr_scope_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
-      if (old_sym_ptr == NULL) {
-        /* Nothing to do. */
-      } else if (is_class_template_symbol(old_sym_ptr) &&
-                 is_template_class_symbol(sym_ptr) &&
-                 sym_ptr->decl_scope == old_sym_ptr->decl_scope) {
-        /* The other symbol is a class template symbol and sym_ptr is a
-           template instance. */
-      } else if (old_sym_ptr != sym_ptr) {
-        tag_hidden_by_nontag = TRUE;
-        hidden_class_or_namespace_member = FALSE;
-        record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
-                                      hidden_class_or_namespace_member,
-                                      (a_scope_ptr)NULL, old_sym_ptr);
-      }  /* if */
-    }  /* if */
-    /* Now check for hiding that can be resolved by using a qualified name. */
-    if (scope_stack[depth_scope_stack].kind ==
-                            (a_scope_kind)sck_class_struct_union &&
-        sym_ptr->decl_scope != scope_stack[depth_scope_stack].number) {
-      /* A friend declaration.  Determine whether a qualifier is needed.
-         It is needed if there is an intervening declaration (say, in an
-         enclosing block scope) that hides the declaration. */
-      check_assertion(!sym_ptr->is_class_member ||
-                      sym_ptr->parent.class_type !=
-                         scope_stack[depth_scope_stack].assoc_type);
-      clear_specific_symbol(locator);
-      old_sym_ptr = curr_scope_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
-      if (old_sym_ptr != NULL) {
-        /* Hidden by another declaration in the current scope. */
-        hidden_class_or_namespace_member = TRUE;
-      } else {
-        hidden_class_or_namespace_member = FALSE;
-        old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
-        if (old_sym_ptr != NULL) {
-          if (old_sym_ptr == sym_ptr ||
-              matches_member_of_overload_set(sym_ptr, old_sym_ptr)) {
-            /* There is no intervening declaration of this name, or if there
-               is it is a block-extern declaration that refers to the same
-               entity. */
-          } else if (is_class_struct_union_symbol(sym_ptr) &&
-                     is_class_template_symbol(old_sym_ptr) &&
-                     sym_ptr->variant.class_struct_union.
-                                 extra_info->class_template == old_sym_ptr) {
-            /* *sym_ptr is an instance of the class template that *old_sym_ptr
-               represents. */
-          } else {
-            hidden_class_or_namespace_member = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      if (hidden_class_or_namespace_member) {
-        tag_hidden_by_nontag = FALSE;
-        record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
-                                      hidden_class_or_namespace_member,
-                                      (a_scope_ptr)NULL, old_sym_ptr);
-      }  /* if */
-    } else {
-      /* Not a friend declaration.  Unless it is a declaration at file scope,
-         look for a declaration in an enclosing scope that is hidden by this
-         declaration -- if there is one, see if the hidden reference can be
-         resolved by using a name qualifier. */
-      if ((sym_ptr->kind == (a_symbol_kind)sk_routine ||
-           sym_ptr->kind == (a_symbol_kind)sk_member_function) &&
-           sym_ptr->variant.routine.instance_ptr != NULL &&
-           !sym_ptr->variant.routine.instance_ptr->is_guiding_decl &&
-           sym_ptr == (a_symbol_ptr)sym_ptr->
-                         variant.routine.ptr->source_corresp.assoc_info) {
-        /* Ignore function template instances; the references that trigger
-           their creation are not declarations that can hide other
-           declarations. */
-        if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-            sym_ptr->kind == (a_symbol_kind)sk_routine) {
-          old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
-          if (old_sym_ptr != NULL) {
-            if (old_sym_ptr == sym_ptr ||
-                matches_member_of_overload_set(sym_ptr, old_sym_ptr)) {
-            } else {
-              tag_hidden_by_nontag = FALSE;
-              hidden_class_or_namespace_member = TRUE;
-              record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
-                                            hidden_class_or_namespace_member,
-                                            (a_scope_ptr)NULL, old_sym_ptr);
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      } else if (sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
-                 (!sym_ptr->is_class_member &&
-                  (nsp = sym_ptr->parent.namespace_ptr) != NULL &&
-                  nsp->source_corresp.name == NULL &&
-                  nsp->source_corresp.parent.namespace_ptr == NULL)) {
-        /* Ignore names that belong to the file scope or to an unnamed
-           namespace scope immediately within the file scope. */
-      } else {
-        an_id_lookup_options_set	options;
-        clear_specific_symbol(locator);
-        options = IDL_HIDDEN_NAME_LOOKUP | IDL_SKIP_CURR_SCOPE |
-                  IDL_SKIP_TEMPLATE_DECL_SCOPES;
-        old_sym_ptr = normal_id_lookup(&locator, options);
-        if (old_sym_ptr != NULL) {
-          a_symbol_ptr  tag_sym = NULL;
-          if (is_injected_class_symbol(sym_ptr) &&
-              (is_tag_symbol(old_sym_ptr) ||
-               is_class_template_symbol(old_sym_ptr))) {
-            tag_sym =
-               (a_symbol_ptr)(skip_typerefs(type_symbol_type(sym_ptr))->
-                                                  source_corresp.assoc_info);
-          }  /* if */
-          if (tag_sym != NULL &&
-              (symbols_are_equivalent(old_sym_ptr, tag_sym) ||
-               (is_class_template_symbol(old_sym_ptr) &&
-                is_template_class_symbol(tag_sym)))) {
-            /* sym_ptr does not hide old_sym_ptr -- they represent the same
-               declaration. */
-          } else if (old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
-                     old_sym_ptr->is_class_member ||
-                     old_sym_ptr->parent.namespace_ptr != NULL ||
-                     old_sym_ptr->synthesized_namespace_projection) {
-            /* A qualifiable name. */
-            tag_hidden_by_nontag = FALSE;
-            hidden_class_or_namespace_member = TRUE;
-            record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
-                                          hidden_class_or_namespace_member,
-                                          (a_scope_ptr)NULL, sym_ptr);
-          }  /* if */
-          /* Do a similar check for tag names in containing scopes. */
-          if (!is_tag_symbol(old_sym_ptr) &&
-              !is_class_template_symbol(old_sym_ptr)) {
-            clear_specific_symbol(locator);
-            old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
-                                                     IDL_MUST_BE_TAG |
-                                                     IDL_SKIP_CURR_SCOPE);
-            if (old_sym_ptr != NULL) {
-              if ((old_sym_ptr == sym_ptr) ||
-                  (old_sym_ptr->decl_scope == sym_ptr->decl_scope)) {
-                /* This can happen when the scope to which sym_ptr belongs is
-                   an unnamed namespace. */
-              } else {
-                tag_hidden_by_nontag = TRUE;
-                if (old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
-                    old_sym_ptr->is_class_member ||
-                    old_sym_ptr->parent.namespace_ptr != NULL) {
-                  hidden_class_or_namespace_member = TRUE;
-                  record_defeatable_name_hiding(
-                                              old_sym_ptr,
-                                              tag_hidden_by_nontag,
-                                              hidden_class_or_namespace_member,
-                                              (a_scope_ptr)NULL, sym_ptr);
-                }  /* if */
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      if (sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
-          sym_ptr->is_class_member ||
-          sym_ptr->parent.namespace_ptr != NULL) {
-        /* This is a declaration at namespace or class scope.  Examine every
-           declaration of this name that has already appeared in a namespace
-           or nonlocal class scope that is nested within the current scope
-           -- the current declaration will be hidden in such a scope, but
-           the hiding can be defeated (in a reactivation of that scope) by
-           applying a qualifier (class-name:: or namespace-name:: or ::). */
-        hidden_class_or_namespace_member = FALSE;
-        tag_hidden_by_nontag = FALSE;
-        if (!is_injected_class_symbol(sym_ptr) && is_tag_symbol(sym_ptr)) {
-          clear_specific_symbol(locator);
-          if (sym_ptr->is_class_member) {
-            (void)class_qualified_id_lookup(&locator,
-                                            sym_ptr->parent.class_type,
-                                            IDL_HIDDEN_NAME_LOOKUP);
-          } else if (sym_ptr->parent.namespace_ptr != NULL) {
-            (void)namespace_qualified_id_lookup(&locator,
-                                                sym_ptr->parent.namespace_ptr,
-                                                IDL_HIDDEN_NAME_LOOKUP);
-          } else {
-            (void)file_scope_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
-          }  /* if */
-          check_assertion(locator.specific_symbol != NULL);
-          tag_hidden_by_nontag = locator.specific_symbol != sym_ptr;
-        }  /* if */
-        for (old_sym_ptr = sym_ptr->header->inactive_symbols;
-             old_sym_ptr != NULL;
-             old_sym_ptr = old_sym_ptr->next) {
-          /* See if *sym_ptr is potentially hidden by *old_sym_ptr. */
-          if (is_potentially_hidden_by(sym_ptr, old_sym_ptr)) {
-            /* The scope to which *old_sym_ptr belongs is nested within the
-               scope to which *sym_ptr belongs.  That means sym_ptr would be
-               hidden by old_sym_ptr unless it's hidden by some intervening
-               declaration. */
-            nsp = NULL;
-            if (old_sym_ptr->is_class_member) {
-              a_type_ptr  tp = old_sym_ptr->parent.class_type;
-              if (symbol_supplement_for_class(tp)->is_nonreal_class) {
-                /* Ignore nonreal classes. */
-                continue;
-              }  /* if */
-              sp = tp->variant.class_struct_union.extra_info->assoc_scope;
-              if (sp == NULL) {
-                /* This can happen if a name is a member of class that is
-                   a template parameter -- e.g.,
-                     template <class T> void f(T t, T::S s) { ... }
-                   In such a case, a class type for T is created to serve as
-                   the parent for S but it is undefined.  A similar case
-                   occurs with friend declarations within a class template:
-                     template <class T> class A {
-                       friend void T::f();
-                     };
-                */
-                continue;
-              }  /* if */
-              /* Look for an intervening declaration that would make it
-                 unnecessary to record sym_ptr in the hidden name table for
-                 the scope to which old_sym_ptr belongs. */
-              while (tp->source_corresp.is_class_member) {
-                a_symbol_ptr  sym;
-                tp = tp->source_corresp.parent.class_type;
-                clear_specific_symbol(locator);
-                sym = class_qualified_id_lookup(&locator, tp,
-                                                IDL_HIDDEN_NAME_LOOKUP);
-                if (sym != NULL) {
-                  if (sym == sym_ptr ||
-                      matches_member_of_overload_set(sym_ptr, sym)) {
-                    /* The lookup found sym_ptr, which means there is no
-                       intervening declaration. */
-                    hidden_class_or_namespace_member = TRUE;
-                  }  /* if */
-                  break;
-                }  /* if */
-              }  /* while */
-              if (!hidden_class_or_namespace_member) {
-                if (tp->source_corresp.is_class_member) {
-                  /* We must have found an intervening declaration. */
-                  continue;
-                } else {
-                  /* No intervening declaration -- set up for checking
-                     enclosing namespaces, if any. */
-                  nsp = parent_namespace_for_symbol(old_sym_ptr);
-                  check_assertion(nsp ==
-                                    tp->source_corresp.parent.namespace_ptr);
-                }  /* if */
-              }  /* if */
-            } else if ((nsp = old_sym_ptr->parent.namespace_ptr) != NULL) {
-              /* old_sym_ptr is a namespace member. */
-              check_assertion(!nsp->is_namespace_alias &&
-                              nsp->variant.assoc_scope != NULL);
-              if (sym_ptr->decl_scope != FILE_SCOPE_NUMBER &&
-                  !sym_ptr->is_class_member &&
-                  sym_ptr->parent.namespace_ptr == nsp) {
-                continue;
-              }  /* if */
-              /* Record the scope to which old_sym_ptr belongs. */
-              sp = nsp->variant.assoc_scope;
-              /* Set up for checking enclosing namespaces, if any. */
-              nsp = nsp->source_corresp.parent.namespace_ptr;
-            } else {
-              /* old_sym_ptr is not a class or namespace member.  Skip past
-                 it. */
-              continue;
-            }  /* if */
-            if (!hidden_class_or_namespace_member) {
-              for (;;) {
-                if (nsp == NULL) {
-                  hidden_class_or_namespace_member = TRUE;
-                  break;
-                } else {
-                  a_symbol_ptr  sym;
-                  clear_specific_symbol(locator);
-                  sym = namespace_qualified_id_lookup(&locator, nsp,
-                                                      IDL_HIDDEN_NAME_LOOKUP);
-                  if (sym != NULL) {
-                    if (sym == sym_ptr ||
-                        matches_member_of_overload_set(sym_ptr, sym)) {
-                      /* The lookup found sym_ptr, which means there is no
-                         intervening declaration. */
-                      hidden_class_or_namespace_member = TRUE;
-                    }  /* if */
-                    break;
-                  }  /* if */
-                }  /* if */
-                nsp = nsp->source_corresp.parent.namespace_ptr;
-              }  /* for */
-            }  /* if */
-            if (hidden_class_or_namespace_member) {
-              record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
-                                            hidden_class_or_namespace_member,
-                                            sp, (a_symbol_ptr)NULL);
-            }  /* if */
-          }  /* if */
-        }  /* for */
-      }  /* if */
-      /* Special handling for an ambiguity resulting from a using-directive.
-           namespace N { void f(); }
-           using namespace N;
-           void f();
-           void g() { ::f(); }    // ambiguity resolved by qualifier
-      */
-      if (sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
-          (!sym_ptr->is_class_member &&
-           sym_ptr->parent.namespace_ptr != NULL)) {
-        /* Do a lookup and see if a synthesized namespace projection is
-           found.  If it is, we can assume that sym_ptr is part of the mix
-           (though it may not actually be returned unless a function overload
-           set is produced), and if so qualifying sym_ptr will disambiguate
-           the reference. */
-        clear_specific_symbol(locator);
-        (void)normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
-        old_sym_ptr = locator.specific_symbol;
-        if (old_sym_ptr != NULL &&
-            old_sym_ptr->synthesized_namespace_projection) {
-          hidden_class_or_namespace_member = TRUE;
-          tag_hidden_by_nontag = FALSE;
-          record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
-                                        hidden_class_or_namespace_member,
-                                        (a_scope_ptr)NULL,
-                                        (a_symbol_ptr)NULL);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* check_for_defeatable_name_hiding */
-
-
 void check_hiding_by_inherited_names(a_type_ptr  class_type,
-                                     a_scope_ptr sp)
+                                     a_scope_ptr sp,
+                                     a_boolean   top_level)
 /*
 Perform hidden name checking on the members of each of the base classes of
 class_type.  If class_type is not the most derived type (i.e., if its
@@ -1163,10 +383,7 @@ its own members, too.  This routine is called recursively.
   a_base_class_ptr  bcp = base_classes_of(class_type);
   a_symbol_ptr      sym_ptr, old_sym_ptr;
   a_symbol_locator  locator;
-  a_boolean         top_level;
 
-  top_level = (sp == class_type->variant.class_struct_union.
-                                                   extra_info->assoc_scope);
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
     /* If this is the top-level call, identify class_type. */
@@ -1182,10 +399,10 @@ its own members, too.  This routine is called recursively.
      virtual) base classes. */
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct || (top_level && bcp->is_virtual)) {
-      check_hiding_by_inherited_names(bcp->type, sp);
+      check_hiding_by_inherited_names(bcp->type, sp, /*top_level=*/FALSE);
     }  /* if */
   }  /* for */
-  if (sp != class_type->variant.class_struct_union.extra_info->assoc_scope) {
+  if (!top_level) {
     sym_ptr = symbol_supplement_for_class(class_type)->symbols;
     for (; sym_ptr != NULL; sym_ptr = sym_ptr->next_in_scope) {
       /* Skip constructors. */
@@ -1203,6 +420,11 @@ its own members, too.  This routine is called recursively.
       /* Perform a lookup. */
       clear_locator(&locator, &sym_ptr->decl_position);
       locator.symbol_header = sym_ptr->header;
+#if DEBUG
+      if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+        fputs("    ...doing lookup (inherited names)\n", f_debug);
+      }  /* if */
+#endif /* DEBUG */
       (void)normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
       old_sym_ptr = locator.specific_symbol;
       /* If something was found, see if it is hidden by sym_ptr. */
@@ -1236,6 +458,372 @@ its own members, too.  This routine is called recursively.
   }  /* if */
 }  /* check_hiding_by_inherited_names */
 
+
+static void check_name_hiding_of_tag_by_nontag(a_symbol_ptr  sym_ptr,
+                                               a_scope_ptr   sp)
+/*
+sym_ptr is a non-tag name declared in scope sp.  Determine whether there
+are any tag declarations in an enclosing scope that are hidden by sym_ptr
+and that can be rendered unhidden by being referred to with an elaborated
+type specifier when put out by the C++-generating back end.
+*/
+{
+  a_symbol_locator         locator;
+  a_symbol_ptr             old_sym_ptr;
+  a_boolean                tag_hidden_by_nontag;
+  a_boolean                hidden_class_or_namespace_member;
+
+  clear_locator(&locator, &sym_ptr->decl_position);
+  locator.symbol_header = sym_ptr->header;
+  /* Determine what declarations are hidden by the current declaration. */
+
+  /* First check for hiding that can be resolved with an elaborated type
+     specifier -- e.g., when the current declaration is a non-tag name that
+     hides a tag name in the same or an enclosing scope and when the current
+     declaration is a tag name that is hidden by a non-tag name in the
+     current scope. */
+
+  /* The current declaration is of something other than a tag name.
+     If it hides a tag in the same scope or an enclosing scope, an
+     elaborated type specifier can render the tag visible.  For example:
+       class x;
+       int x = 1;                   // class x is hidden at file scope
+       class y;
+       void f() {
+         int y = 1;                 // class y is hidden in function f
+       }
+     An elaborated type specifier can be used to "defeat" the hiding. */
+  /* Find the innermost tag declaration with the same name. */
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+    fputs("    ...doing tag lookup (tag-nontag)\n", f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
+                                           IDL_MUST_BE_TAG);
+  if (old_sym_ptr != NULL) {
+    /* old_sym_ptr is a tag with the same name as sym_ptr and in the
+       same or a containing scope. */
+    if (sym_ptr->kind == (a_symbol_kind)sk_type &&
+        typeref_is_typedef(sym_ptr->variant.type.ptr) &&
+        skip_typerefs(sym_ptr->variant.type.ptr) ==
+                        old_sym_ptr->variant.class_struct_union.type) {
+      /* sym_ptr is a typedef that refers the type represented by
+         old_sym_ptr -- something like "typedef struct S { ... } S;"
+         There's no need to generate hidden-name info for this common
+         construct. */
+    } else if (old_sym_ptr->decl_scope != sym_ptr->decl_scope &&
+               (old_sym_ptr->is_class_member ||
+                old_sym_ptr->parent.namespace_ptr != NULL ||
+                old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER)) {
+      /* No need to defeat the name hiding with an elaborated type
+         specifier -- the tag name will be qualified, either by its
+         parent class or namespace or by a leading "::".  That's
+         handled later. */
+    } else {
+      /* Either the two declarations are in the same scope or else
+         old_sym_ptr cannot be qualified -- e.g., its containing scope is
+         local to a function:
+           void f() {
+             struct S { ... };
+             { int S; ... }     // S is hidden in the block scope
+           }
+      */
+      tag_hidden_by_nontag = TRUE;
+      hidden_class_or_namespace_member = FALSE;
+      record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
+                                    hidden_class_or_namespace_member,
+                                    sp, sym_ptr);
+    }  /* if */
+  }  /* if */
+}  /* check_name_hiding_of_tag_by_nontag */
+
+
+static void check_name_hiding_of_qualifiable_name(a_symbol_ptr  sym_ptr,
+                                                  a_scope_ptr   sp)
+/*
+sym_ptr is a name declared in scope sp.  Determine whether there are any
+declarations in an enclosing scope that are hidden by sym_ptr and that
+can be rendered unhidden by being qualified when put out by the
+C++-generating back end.
+*/
+{
+  a_symbol_locator         locator;
+  a_symbol_ptr             old_sym_ptr, tag_sym;
+  a_boolean                tag_hidden_by_nontag;
+  a_boolean                hidden_class_or_namespace_member;
+
+  clear_locator(&locator, &sym_ptr->decl_position);
+  locator.symbol_header = sym_ptr->header;
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+    fputs("    ...doing skip-curr-scope lookup (qualifiable)\n", f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
+                                           IDL_SKIP_CURR_SCOPE);
+  if (old_sym_ptr != NULL) {
+    tag_sym = NULL;
+    if (is_injected_class_symbol(sym_ptr) &&
+        (is_tag_symbol(old_sym_ptr) ||
+         is_class_template_symbol(old_sym_ptr))) {
+      tag_sym =
+         (a_symbol_ptr)(skip_typerefs(type_symbol_type(sym_ptr))->
+                                            source_corresp.assoc_info);
+    }  /* if */
+    if (tag_sym != NULL &&
+        (symbols_are_equivalent(old_sym_ptr, tag_sym) ||
+         (is_class_template_symbol(old_sym_ptr) &&
+          is_template_class_symbol(tag_sym)))) {
+      /* sym_ptr does not hide old_sym_ptr -- they represent the same
+         declaration. */
+    } else if (old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
+               old_sym_ptr->is_class_member ||
+               old_sym_ptr->parent.namespace_ptr != NULL ||
+               old_sym_ptr->synthesized_namespace_projection) {
+      /* A qualifiable name. */
+      tag_hidden_by_nontag = FALSE;
+      hidden_class_or_namespace_member = TRUE;
+      record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
+                                    hidden_class_or_namespace_member,
+                                    sp, sym_ptr);
+    }  /* if */
+    /* Do a similar check for tag names in containing scopes. */
+    if (!is_tag_symbol(old_sym_ptr) &&
+        !is_class_template_symbol(old_sym_ptr)) {
+      clear_specific_symbol(locator);
+#if DEBUG
+      if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+        fputs("    ...doing skip-curr-scope tag lookup (qualifiable)\n",
+              f_debug);
+      }  /* if */
+#endif /* DEBUG */
+      old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
+                                               IDL_MUST_BE_TAG |
+                                               IDL_SKIP_CURR_SCOPE);
+      if (old_sym_ptr != NULL) {
+        if ((old_sym_ptr == sym_ptr) ||
+            (old_sym_ptr->decl_scope == sym_ptr->decl_scope)) {
+          /* This can happen when the scope to which sym_ptr belongs is
+             an unnamed namespace. */
+        } else {
+          tag_hidden_by_nontag = TRUE;
+          if (old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
+              old_sym_ptr->is_class_member ||
+              old_sym_ptr->parent.namespace_ptr != NULL) {
+            hidden_class_or_namespace_member = TRUE;
+            record_defeatable_name_hiding(
+                                        old_sym_ptr,
+                                        tag_hidden_by_nontag,
+                                        hidden_class_or_namespace_member,
+                                        sp, sym_ptr);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_name_hiding_of_qualifiable_name */
+
+
+static void resolve_using_directive_ambiguity(a_symbol_ptr  sym_ptr,
+                                              a_scope_ptr   sp)
+/*
+Determine whether references to the declaration indicated by sym_ptr should
+be displayed by the C++-generating back end with a qualifier in order to
+resolve ambiguities caused by a using-directive.  For example:
+  namespace N { void f(); }
+  using namespace N;
+  void f();
+  void g() { ::f(); }    // don't put out unqualified "f" -- qualifier is
+                         // needed to resolve the ambiguity.
+*/
+{
+  a_symbol_locator         locator;
+  a_symbol_ptr             old_sym_ptr;
+  a_boolean                tag_hidden_by_nontag;
+  a_boolean                hidden_class_or_namespace_member;
+                                              
+  /* Do a lookup and see if a synthesized namespace projection is
+     found.  If it is, we can assume that sym_ptr is part of the mix
+     (though it may not actually be returned unless a function overload
+     set is produced), and if so qualifying sym_ptr will disambiguate
+     the reference. */
+  clear_locator(&locator, &sym_ptr->decl_position);
+  locator.symbol_header = sym_ptr->header;
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+    fputs("    ...doing lookup (using-directive)\n", f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  (void)normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
+  old_sym_ptr = locator.specific_symbol;
+  if (old_sym_ptr != NULL &&
+      old_sym_ptr->synthesized_namespace_projection) {
+    hidden_class_or_namespace_member = TRUE;
+    tag_hidden_by_nontag = FALSE;
+    record_defeatable_name_hiding(sym_ptr, tag_hidden_by_nontag,
+                                  hidden_class_or_namespace_member,
+                                  sp, (a_symbol_ptr)NULL);
+  }  /* if */
+}  /* resolve_using_directive_ambiguity */
+
+
+static void check_for_defeatable_name_hiding(a_symbol_ptr  sym_ptr,
+                                        a_scope_ptr   sp)
+/*
+Check whether any declarations are hidden by the declaration associated
+with sym_ptr, and if appropriate enter hidden_name_table entries in the
+indicated scope.
+*/
+{
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+    if (sym_ptr->decl_position.seq) {
+      fputs("Hidden name check: ", f_debug);
+      fprintf(f_debug, "<%s> ", symbol_kind_names[(int)sym_ptr->kind]);
+      db_symbol_name(sym_ptr);
+      fputc('\n', f_debug);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+  if (!is_tag_symbol(sym_ptr) && !is_injected_class_symbol(sym_ptr)) {
+    /* See if the current symbol hides a tag symbol. */
+    check_name_hiding_of_tag_by_nontag(sym_ptr, sp);
+  }  /* if */
+  if (sp->kind != (a_scope_kind)sck_file &&
+      (sp->kind != (a_scope_kind)sck_namespace ||
+       sp->variant.assoc_namespace->source_corresp.name != NULL ||
+       sp->variant.assoc_namespace->
+                             source_corresp.parent.namespace_ptr != NULL)) {
+    /* A declaration in the current scope may hide a declaration from the
+       file scope or a namespace scope.  If so, the hidden name may be
+       rendered visible by qualification. */
+    check_name_hiding_of_qualifiable_name(sym_ptr, sp);
+  }  /* if */
+  if (sp->kind == (a_scope_kind)sck_file ||
+      sp->kind == (a_scope_kind)sck_namespace) {
+    /* If a using-directive appeared in the current scope, it may rendered
+       sym_ptr ambiguous unless sym_ptr is displayed with with a qualifier. */
+    resolve_using_directive_ambiguity(sym_ptr, sp);
+  }  /* if */
+}  /* check_for_defeatable_name_hiding */
+
+                       
+void check_name_hiding_for_scope(a_scope_ptr  sp)
+/*
+Check for symbols declared in the specified scope that hide names declared
+in the same scope or an enclosing scope and, when appropriate, create hidden
+name table entries to describe the hiding when it can be defeated in the
+C++-generating back end by using a qualifier or elaborated type specifier.
+In C++ mode this routine is called recursively for namespace scopes and
+class scopes.  It is called directly from pop_scope for function and block
+scopes and for the file scope.
+*/
+{
+  a_scope_stack_entry_ptr     ssep;
+  a_namespace_ptr             nsp;
+  a_type_ptr                  tp;
+  a_symbol_ptr                sym, sym_list;
+
+  db_enter(3, "check_name_hiding_for_curr_scope_declarations");
+  ssep = &scope_stack[depth_scope_stack];
+  if (sp != NULL) {
+    /* Check certain nested scopes first. */
+    if (!C_mode()) {
+      /* If this is the file scope or a namespace scope, there may be nested
+         namespaces.  Do checking for the nested scope before proceeding to
+         the symbols that were declared in the current scope. */
+      for (nsp = sp->namespaces; nsp != NULL; nsp = nsp->next) {
+        if (!nsp->is_namespace_alias) {
+          push_namespace_reactivation_scope(nsp);
+          check_name_hiding_for_scope(nsp->variant.assoc_scope);
+          pop_namespace_reactivation_scope();
+        }  /* if */
+      }  /* for */
+      /* Similarly, do checking for class scopes defined within the current
+         scope before proceeding to the symbols that were declared in the
+         current scope. */
+      for (tp = sp->types; tp != NULL; tp = tp->next) {
+        if (is_immediate_class_type(tp)) {
+          a_scope_ptr  scope_ptr = tp->variant.class_struct_union.
+                                                extra_info->assoc_scope;
+          if (scope_ptr != NULL) {
+            push_class_reactivation_scope(tp, /*extend_namespace=*/FALSE);
+            check_name_hiding_for_scope(scope_ptr);
+            pop_class_reactivation_scope();
+            check_hiding_by_inherited_names(tp, scope_ptr,
+                                            /*top_level=*/TRUE);
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    /* Find the list of symbols declared in the current scope. */
+    switch (ssep->kind) {
+      case sck_file:
+      case sck_function:
+      case sck_block:
+        sym_list = assoc_pointers_block_of(ssep)->symbols;
+        break;
+      case sck_namespace_reactivation:
+        nsp = sp->variant.assoc_namespace;
+        sym_list = symbol_supplement_for_namespace(nsp)->
+                                             pointers_block.symbols;
+        break;
+      case sck_class_reactivation:
+        tp = sp->variant.assoc_type;
+        sym_list = symbol_supplement_for_class(tp)->symbols;
+        break;
+      default:
+        unexpected_condition();
+        sym_list = NULL;
+    }  /* if */
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+      if (sym_list != NULL) {
+        fputs("Checking hidden names declared in ", f_debug);
+        db_scope(sp);
+        fputs("\n", f_debug);
+      }  /* if */
+    }  /* if */
+#endif /* DEBUG */
+    /* Traverse the symbols declared in the current scope. */
+    for (sym = sym_list; sym != NULL; sym = sym->next_in_scope) {
+      /* Ignore extern symbols. */
+      if (sym->kind == (a_symbol_kind)sk_extern_routine ||
+          sym->kind == (a_symbol_kind)sk_extern_variable) {
+        continue;
+      }  /* if */
+      /* Ignore error symbols. */
+      if (sym->is_error) continue;
+      /* Ignore macros. */
+      if (sym->kind == (a_symbol_kind)sk_macro) continue;
+      /* Ignore compiler-generated symbols for predeclared entities. */
+      if (!sym->decl_position.seq) continue;
+      if (!C_mode()) {
+        /* No name hiding by unnamed symbols. */
+        if (is_unnamed_tag_symbol(sym)) continue;
+        /* A friend declaration doesn't affect lookup until it's actually
+           declared in the scope to which it belongs -- so if it's invisible,
+           it can't hide other declarations. */
+        if (sym->is_invisible) continue;
+        /* The template itself belongs to the same scope -- one check for a
+           given name is sufficient. */
+        if (is_template_class_symbol(sym)) continue;
+        /* Ignore symbols representing injected class names. */
+        if (is_injected_class_symbol(sym)) continue;
+        /* Ignore inherited names -- they are handled separately. */
+        if (sym->kind == (a_symbol_kind)sk_projection) continue;
+        /* Only the overload symbol should be on the scope list. */
+        check_assertion(!sym->overload_set_member);
+      }  /* if */
+      /* Falling through to here means the symbol should be checked to see
+         if this declaration hides another declaration. */
+      check_for_defeatable_name_hiding(sym, sp);
+    }  /* for */
+  }  /* if */
+  db_exit();
+}  /* check_name_hiding_for_scope */
+  
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
@@ -1529,9 +1117,6 @@ created for this entity; otherwise, it is NULL.
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if RECORD_HIDDEN_NAMES_IN_IL
-  if (!C_mode()) check_for_defeatable_name_hiding(sym_ptr);
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 }  /* record_symbol_declaration */
 
 

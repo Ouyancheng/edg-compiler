@@ -170,16 +170,7 @@ extern a_boolean reference_to_trivial_default_constructor(
 
 #if RECORD_HIDDEN_NAMES_IN_IL
 
-extern void check_for_defeatable_name_hiding(a_symbol_ptr  sym_ptr);
-
-extern void check_hiding_by_inherited_names(a_type_ptr  class_type,
-                                            a_scope_ptr sp);
-
-extern void record_name_hiding_for_template_instance(
-                                    a_symbol_ptr                      sym_ptr,
-                                    a_template_symbol_supplement_ptr  tssp);
-
-extern void check_hidden_name_fixup_list(a_symbol_list_entry_ptr  *list);
+extern void check_name_hiding_for_scope(a_scope_ptr  sp);
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
