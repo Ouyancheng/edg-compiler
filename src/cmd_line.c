@@ -696,8 +696,8 @@ Initialize the option information table.
                          "one_instantiation_per_object",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_instantiation_gen_c_dir,
-                         "instantiation_gen_c_dir",
+  add_option_description(optk_instantiation_dir,
+                         "instantiation_dir",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
   add_option_description(optk_instantiation_file_list,
@@ -1795,11 +1795,11 @@ enable_microsoft_mode:
         /* Enable one instantiation per object file mode. */
         one_instantiation_per_object = opt_value;
         break;
-      case optk_instantiation_gen_c_dir:
-        instantiation_gen_c_dir_name = opt_arg;
-        if (!is_directory(instantiation_gen_c_dir_name)) {
-          str_command_line_error(ec_cl_invalid_instantiation_gen_c_directory,
-                                 instantiation_gen_c_dir_name);
+      case optk_instantiation_dir:
+        instantiation_dir_name = opt_arg;
+        if (!is_directory(instantiation_dir_name)) {
+          str_command_line_error(ec_cl_invalid_instantiation_directory,
+                                 instantiation_dir_name);
         }  /* if */
         break;
       case optk_instantiation_file_list:

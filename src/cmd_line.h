@@ -159,7 +159,7 @@ typedef enum /*an_option_kind*/ {
   optk_nonstandard_qualifier_deduction,
 #if ONE_INSTANTIATION_PER_OBJECT
   optk_one_instantiation_per_object,
-  optk_instantiation_gen_c_dir,
+  optk_instantiation_dir,
   optk_instantiation_file_list,
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   optk_last		/* Must be last. */
@@ -954,7 +954,7 @@ EXTERN char	*instantiation_file_list_name /* = NULL*/;
 			   write a list of files that were created that contain
 			   instantiations. */
 
-EXTERN char	*instantiation_gen_c_dir_name /* = NULL*/;
+EXTERN char	*instantiation_dir_name /* = NULL*/;
 			/* The name of the directory in which the instantiation
 			   files should be created when one instantiation is
 			   being put into each file. */

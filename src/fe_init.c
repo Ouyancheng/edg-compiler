@@ -602,9 +602,6 @@ line processing is done.
   il_header.far_data_pointers = DEFAULT_FAR_DATA_POINTERS;
   il_header.far_code_pointers = DEFAULT_FAR_CODE_POINTERS;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-  il_header.per_instantiation_needed_flags_vector_byte_length = 0;
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 }  /* fe_early_init */
 
 
@@ -805,6 +802,16 @@ source file's compilation.
   /* microsoft_16_mode, far_data_pointers, and far_code_pointers are
      initialized in fe_early_init and changed if necessary in cmd_line.c. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  il_header.per_instantiation_needed_flags_vector_byte_length = 0;
+  il_header.instantiation_file_list_name =
+                                 instantiation_file_list_name == NULL ? NULL :
+          strcpy(alloc_il((sizeof_t)(strlen(instantiation_file_list_name)+1)),
+                 instantiation_file_list_name);
+  il_header.instantiation_dir_name = instantiation_dir_name == NULL ? NULL :
+          strcpy(alloc_il((sizeof_t)(strlen(instantiation_dir_name)+1)),
+                 instantiation_dir_name);
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
   if (pp_output_file_needed) {
     /* Open the preprocessing output file. */
     open_pp_output_file();

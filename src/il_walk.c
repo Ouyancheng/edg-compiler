@@ -236,6 +236,10 @@ That is what the remap function does.
   /* Walk the list of entries representing macros. */
   walk_list(il_header.macros, a_macro_ptr, iek_macro);
 #endif /* RECORD_MACROS_IN_IL */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  walk_string_ptr(il_header.instantiation_file_list_name, iek_other_text, 0);
+  walk_string_ptr(il_header.instantiation_dir_name, iek_other_text, 0);
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
   /* Restore the state of global variables. */
   restore_il_walk_state(saved_state);
   db_exit();

@@ -3964,6 +3964,18 @@ Display the IL for the file scope in human-readable form.
 #if RECORD_MACROS_IN_IL
   disp_ptr("macros", (char *)il_header.macros, iek_macro);
 #endif /* RECORD_MACROS_IN_IL */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  if (il_header.instantiation_file_list_name != NULL) {
+    disp_string_ptr("instantiation file list",
+                    il_header.instantiation_file_list_name,
+                    iek_other_text, (sizeof_t)0);
+  }  /* if */
+  if (il_header.instantiation_dir_name != NULL) {
+    disp_string_ptr("instantiation directory",
+                    il_header.instantiation_dir_name,
+                    iek_other_text, (sizeof_t)0);
+  }  /* if */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   disp_boolean("microsoft_mode",
                (a_boolean)il_header.microsoft_mode);
