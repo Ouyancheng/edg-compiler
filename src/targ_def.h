@@ -208,13 +208,24 @@ this macro is checked when the front end is executed.
 /*
 The alignment required for the an_il_entry_prefix structure defined in
 mem_tables.h.  This is used to determine the size of the prefix allocated
-as part of each IL entry.  For byte alignment is correct for most systems.
+as part of each IL entry.  Four-byte alignment is correct for most systems.
 When checking code is enabled, the value of this macro is checked when the
 front end is executed.
 */
 #ifndef HOST_IL_ENTRY_PREFIX_ALIGNMENT
 #define HOST_IL_ENTRY_PREFIX_ALIGNMENT 4
 #endif /* ifndef HOST_IL_ENTRY_PREFIX_ALIGNMENT */
+
+/*
+The value of HOST_IL_ENTRY_PREFIX_ALIGNMENT must be a multiple of the value
+of HOST_POINTER_ALIGNMENT to ensure that the correct alignment of addresses
+computed to access pointers preceding an IL prefix (file-scope orphan pointers
+and/or translation unit copy addresses).
+*/
+#if (HOST_IL_ENTRY_PREFIX_ALIGNMENT % HOST_POINTER_ALIGNMENT) != 0
+ #error -- HOST_IL_ENTRY_PREFIX_ALIGNMENT must be multiple of \
+           HOST_POINTER_ALIGNMENT
+#endif /* (HOST_IL_ENTRY_PREFIX_ALIGNMENT % HOST_POINTER_ALIGNMENT) != 0 */
 
 /*
 Target byte order.  Little-endian means the least-significant part of a
