@@ -11136,7 +11136,7 @@ being constructed that represents the tokens in the cache.
     a_token_extra_info_kind	teik_kind;
     /* Stop when we run out of tokens or hit an end-of-source token. */
     if ((a_token_kind)ctp->token == tok_end_of_source) break;
-    if (ctp->token == tok_removed_default_arg) {
+    if (ctp->token == (a_byte_token_kind)tok_removed_default_arg) {
       /* A special token that indicates the location of a removed
          default argument.  The actual default argument tokens should
          still be used for purposes of generating the template string. */
