@@ -5660,19 +5660,9 @@ class/struct/union is actually defined.
                                                 virtual_specified,
                                                 spec_kind);
               }  /* if */
-              if (curr_token == tok_assign) {
-                /* Look for a pure specifier ("= 0"), which may appear on
-                   virtual functions. */
-                scan_pure_specifier(rout_sym, class_type,
-                                    suppress_pure_specifier_error);
-                /* A comma-list of function definitions is not allowed. */
-                remove_stop_token(tok_comma);
-                /* Break out of the declarator loop. */
-                break;
-              } else if (curr_token == tok_lbrace ||
-                         (spec_kind ==
-                                 (a_special_function_kind)sfk_constructor &&
-                          curr_token == tok_colon)) {
+              if (curr_token == tok_lbrace ||
+                  (spec_kind == (a_special_function_kind)sfk_constructor &&
+                   curr_token == tok_colon)) {
                 /* Next token indications start of a function definition. */
 #if CHECKING
                 if (rout_sym->defined) {
@@ -5696,13 +5686,24 @@ class/struct/union is actually defined.
                 }  /* if */
                 /* A comma-list of function definitions is not allowed. */
                 goto next_declaration;
-              } else if (!friend_specified) {
-                /* No function definition. */
-                if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+              } else {
+                /* Not a function definition. */
+                if (!friend_specified &&
+                    depth_innermost_function_scope != NO_SCOPE_DEPTH) {
                   /* A member function declared in a local class definition
                      (which is the current case) must be defined within the
                      class definition (ARM 9.8). */
                   error(ec_local_class_function_def_missing);
+                }  /* if */
+                if (curr_token == tok_assign) {
+                  /* Look for a pure specifier ("= 0"), which may appear on
+                     virtual functions. */
+                  scan_pure_specifier(rout_sym, class_type,
+                                      suppress_pure_specifier_error);
+                  /* A comma-list of function definitions is not allowed. */
+                  remove_stop_token(tok_comma);
+                  /* Break out of the declarator loop. */
+                  break;
                 }  /* if */
                 if (curr_token == tok_comma &&
                          (is_destructor || is_constructor)) {
