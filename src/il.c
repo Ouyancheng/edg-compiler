@@ -7352,23 +7352,29 @@ If var_scope is NULL, use the current scope in the scope stack.
 static a_scope_ptr find_scope_of_variable(a_variable_ptr variable,
                                           a_scope_ptr    scope)
 /*
-If the indicated variable is declared in the indicated scope or one of
-its sub-scopes, return the appropriate scope.  Otherwise, return NULL.
+If the indicated variable is declared in the indicated scope (a function,
+block, or local class scope) or one of its sub-scopes, return the appropriate
+scope.  Otherwise, return NULL.
 */
 {
   a_scope_ptr    result_scope = NULL, subscope;
   a_variable_ptr test_var;
+  a_type_ptr     test_type;
 
   if (has_static_storage_duration(variable->storage_class)) {
-    /* Check static variables. */
-    for (test_var = scope->variables;
-         test_var != NULL;
-         test_var = test_var->next) {
-      if (test_var == variable) {
-        result_scope = scope;
-        goto end_of_routine;
-      }  /* if */
-    }  /* for */
+    /* Check for static data members only in class scopes. */
+    if ((scope->kind == (a_scope_kind)sck_class_struct_union) ==
+                                    variable->source_corresp.is_class_member) {
+      /* Check static variables. */
+      for (test_var = scope->variables;
+           test_var != NULL;
+           test_var = test_var->next) {
+        if (test_var == variable) {
+          result_scope = scope;
+          goto end_of_routine;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   } else {
     /* Check auto variables. */
     for (test_var = scope->nonstatic_variables;
@@ -7377,6 +7383,20 @@ its sub-scopes, return the appropriate scope.  Otherwise, return NULL.
       if (test_var == variable) {
         result_scope = scope;
         goto end_of_routine;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (variable->source_corresp.is_class_member) {
+    /* Look for static data members. */
+    for (test_type = scope->types;
+         test_type != NULL;
+         test_type = test_type->next) {
+      if (is_immediate_class_type(test_type)) {
+        subscope=test_type->variant.class_struct_union.extra_info->assoc_scope;
+        if (subscope != NULL) {
+          result_scope = find_scope_of_variable(variable, subscope);
+          if (result_scope != NULL) goto end_of_routine;
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
@@ -7390,6 +7410,44 @@ its sub-scopes, return the appropriate scope.  Otherwise, return NULL.
 end_of_routine:
   return result_scope;
 }  /* find_scope_of_variable */
+
+
+static a_scope_ptr find_scope_of_type(a_type_ptr  type,
+                                      a_scope_ptr scope)
+/*
+If the indicated type is declared in the indicated scope (a function,
+block, or local class scope) or one of its sub-scopes, return the
+appropriate scope.  Otherwise, return NULL.
+*/
+{
+  a_scope_ptr result_scope = NULL, subscope;
+  a_type_ptr  test_type;
+
+  for (test_type = scope->types;
+       test_type != NULL;
+       test_type = test_type->next) {
+    if (test_type == type) {
+      result_scope = scope;
+      goto end_of_routine;
+    }  /* if */
+    if (!C_mode() && is_immediate_class_type(test_type)) {
+      subscope = test_type->variant.class_struct_union.extra_info->assoc_scope;
+      if (subscope != NULL) {
+        result_scope = find_scope_of_type(type, subscope);
+        if (result_scope != NULL) goto end_of_routine;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Check sub-scopes. */
+  for (subscope = scope->scopes;
+       subscope != NULL;
+       subscope = subscope->next) {
+    result_scope = find_scope_of_type(type, subscope);
+    if (result_scope != NULL) goto end_of_routine;
+  }  /* for */
+end_of_routine:
+  return result_scope;
+}  /* find_scope_of_type */
       
 
 static a_scope_ptr scope_of_local_variable(a_variable_ptr variable)
@@ -11619,14 +11677,17 @@ Add the IL macro entry pointed to by mp to the list for the file scope.
 
 #endif /* RECORD_MACROS_IN_IL */
 
-static unsigned long num_local_statics_with_assoc_pragmas(a_scope_ptr scope)
+static unsigned long num_file_scope_entities_with_assoc_pragmas(
+                                                             a_scope_ptr scope)
 /*
-Return the number of local static variables with associated pragmas in
-the indicated scope (a function or block scope) and its subscopes.
+Return the number of local static variables and local types with associated
+pragmas in the indicated scope (a function, block, or local class scope) and
+its subscopes.
 */
 {
   unsigned long  count = 0;
   a_variable_ptr variable;
+  a_type_ptr     type;
   a_scope_ptr    sub_scope;
 
   for (variable = scope->variables;
@@ -11636,22 +11697,36 @@ the indicated scope (a function or block scope) and its subscopes.
       count++;
     }  /* if */
   }  /* for */
+  for (type = scope->types;
+       type != NULL;
+       type = type->next) {
+    if (type->source_corresp.has_associated_pragma) {
+      count++;
+    }  /* if */
+    if (!C_mode() && is_immediate_class_type(type)) {
+      sub_scope = type->variant.class_struct_union.extra_info->assoc_scope;
+      if (sub_scope != NULL) {
+        count += num_file_scope_entities_with_assoc_pragmas(sub_scope);
+      }  /* if */
+    }  /* if */
+  }  /* if */
   for (sub_scope = scope->scopes;
        sub_scope != NULL;
        sub_scope = sub_scope->next) {
-    count += num_local_statics_with_assoc_pragmas(sub_scope);
+    count += num_file_scope_entities_with_assoc_pragmas(sub_scope);
   }  /* for */
   return count;
-}  /* num_local_statics_with_assoc_pragmas */
+}  /* num_file_scope_entities_with_assoc_pragmas */
 
 
-void eliminate_pragmas_for_local_statics(a_scope_ptr scope)
+void eliminate_pragmas_for_file_scope_entities(a_scope_ptr scope)
 /*
 The indicated scope is the function scope of a function that is being
-eliminated.  Eliminate any pragmas that reference its local static variables.
+eliminated.  Eliminate any pragmas that reference its local static variables
+or local classes.
 */
 {
-  unsigned long count = num_local_statics_with_assoc_pragmas(scope);
+  unsigned long count = num_file_scope_entities_with_assoc_pragmas(scope);
   if (count > 0) {
     a_translation_unit_ptr tup = trans_unit_for_scope[scope->number];
     a_scope_ptr            primary_scope = tup->primary_scope;
@@ -11669,6 +11744,16 @@ eliminated.  Eliminate any pragmas that reference its local static variables.
                whether the variable is in the given function. */
             find_scope_of_variable(variable, scope) != NULL) {
           /* This pragma applies to a local static of the function. */
+          remove_entry = TRUE;
+        }  /* if */
+      } else if ((an_il_entry_kind)pp->entity.kind == iek_type) {
+        a_type_ptr type = (a_type_ptr)pp->entity.ptr;
+        if (type->source_corresp.is_local_to_function &&
+            /* find_scope_of_type finds the type only if it
+               is in the hierarchy of scopes, so it can be used to test
+               whether the type is in the given function. */
+            find_scope_of_type(type, scope) != NULL) {
+          /* This pragma applies to a local type of the function. */
           remove_entry = TRUE;
         }  /* if */
       }  /* if */
@@ -11689,7 +11774,7 @@ eliminated.  Eliminate any pragmas that reference its local static variables.
       }  /* if */
     }  /* for */
   }  /* if */
-}  /* eliminate_pragmas_for_local_statics */
+}  /* eliminate_pragmas_for_file_scope_entities */
 
  
 void clear_function_body(a_scope_ptr sp)
@@ -11730,9 +11815,9 @@ eliminate_unneeded_scope_orphaned_list_entries).
     }  /* for */
   }  /* if */
 #if !SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  /* If scope orphaned lists are maintained, the local statics can stay
-     around even if the function is eliminated. */
-  eliminate_pragmas_for_local_statics(sp);
+  /* If scope orphaned lists are maintained, the local statics and local
+     classes can stay around even if the function is eliminated. */
+  eliminate_pragmas_for_file_scope_entities(sp);
 #endif /* !SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   rp->defined = FALSE;
   rp->defined_in_friend_decl = FALSE;

@@ -4640,7 +4640,7 @@ thrown away by the caller.
        and) moved over, rather than copying the lists. */
     add_scope_orphaned_il_lists(scope);
   } else {
-    eliminate_pragmas_for_local_statics(scope);
+    eliminate_pragmas_for_file_scope_entities(scope);
   }  /* if */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
