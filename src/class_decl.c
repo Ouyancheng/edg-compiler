@@ -4377,22 +4377,56 @@ void decl_member_function_template(a_symbol_locator     *locator,
                                    a_scope_depth        effective_decl_level,
                                    an_access_specifier  access,
                                    a_decl_flag_set      dso_flags,
-                                   a_symbol_ptr         *symbol_ptr,
                                    a_decl_modifier      decl_modifiers,
-                                   a_template_param_ptr templ_param_list)
+                                   a_symbol_ptr         *symbol_ptr)
 /*
+Process the declaration of a member function template and return in
+*symbol_ptr the symbol created to represent it.  *locator is the symbol
+locator of the template.  class_type identifies the class in which it was
+declared, and member_type is its function type.  *func_info contains
+information gathered in processing the declarator; effective_decl_level is
+the depth of the class scope; access is the current access specifier in the
+class; and dso_flags and decl_modifiers relay information returned from
+processing the decl-specifiers.  (This function is similar to
+decl_function_template, which handles non-member function templates and
+out-of-class template declarations of functions that are members of
+template classes, and to decl_member_function, which handles in-class member
+function declarations.)
 */
 {
   a_template_symbol_supplement_ptr   tssp;
   a_routine_ptr                      rtn;
-  a_symbol_ptr                       sym, overload_sym = NULL;
+  a_symbol_ptr                       sym, other_sym, overload_sym = NULL;
   a_class_symbol_supplement_ptr      cssp;
 
   db_enter(3, "decl_member_function_template");
   check_operator_function_params(member_type, class_type, locator);
+  clear_specific_symbol(*locator);
   (void)class_qualified_id_lookup(locator, class_type,
                                   IDL_MEMBER_FUNCTION_LOOKUP);
   sym = locator->specific_symbol;
+  if (sym != NULL) {
+    /* Be sure the declaration does not conflict with a previous member
+       function template declaration in the current class. */
+    a_boolean  is_list = (sym->kind == (a_symbol_kind)sk_overloaded_function);
+    other_sym = is_list ? sym->variant.overloaded_function.symbols : sym;
+    for (; other_sym != NULL; other_sym = is_list ? other_sym->next : NULL) {
+      if (other_sym->kind == (a_symbol_kind)sk_function_template) {
+        /* Issue an error if the other member function template declaration
+           has a type compatible with this one -- compare the routine types. */
+        a_type_ptr  tp = other_sym->variant.template_info->
+                                         variant.function.routine->type;
+        if (routine_types_are_compatible(tp, member_type, TCF_NO_FLAGS)) {
+          pos_sy_error(ec_member_function_redeclaration,
+                       &locator->source_position, other_sym);
+          set_to_named_error_locator(*locator);
+          sym = NULL;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  /* Create the new symbol and enter it into the symbol table. */
   if (sym == NULL) {
     sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
                              effective_decl_level,
