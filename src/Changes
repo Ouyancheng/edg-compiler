@@ -770,8 +770,8 @@ parameter whose type refers to a typedef, as in the following example:
 
 It is now possible to set processing_C_code_in_pragma to TRUE
 while expand_macros is set to FALSE.  Formerly, this was not possible
-because identifiers were only looked up when macros were not being
-expanded.
+because identifiers were only looked up (in preprocessing directives)
+when macros were being expanded.
 
 9/8/94   A() when A is a class without a constructor
 
