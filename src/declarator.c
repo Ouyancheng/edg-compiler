@@ -1335,6 +1335,15 @@ issue an error if a default argument expression is encountered.
              some other reason.  Still, if this turns out to be a function
              definition, it will be needed (in C++ unnamed parameters are
              allowed). */
+#if DEBUG
+          if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+            if (!is_error_locator(param_locator)) {
+              fprintf(f_debug,
+                     "function_declarator: empty ss entry for param \"%s\":\n",
+                      param_locator.symbol_header->identifier);
+            }  /* if */
+          }  /* if */
+#endif /* DEBUG */
           param_ssep = add_empty_source_sequence_entry();
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -3466,9 +3475,11 @@ The syntax is:
       declarator_pos = pos_curr_token;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
-      if (debug_level >= 4) {
-        fprintf(f_debug, "adding empty ss entry for declarator \"%s\":\n",
-                locator_for_curr_id.symbol_header->identifier);
+      if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+        fprintf(f_debug, "declarator: empty ss entry for \"%s\":\n",
+                curr_token == tok_identifier ?
+                  locator_for_curr_id.symbol_header->identifier :
+                  token_names[(int)curr_token]);
       }  /* if */
 #endif /* DEBUG */
       *declarator_ssep = add_empty_source_sequence_entry();
