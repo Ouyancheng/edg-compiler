@@ -824,13 +824,13 @@ entry is returned in etsp_found.
     } else if (etsp->type_info->unique_id != NULL &&
                etsp->type_info->unique_id ==
                                          &MANGLED_NAME_OF_UNIQUE_ID_OF_VOID &&
-               (ets_is_ptr == is_ptr)) {
+               (ets_is_ptr == is_ptr) && ets_is_single_ptr) {
       /* The exception type specification is a void * and the object
          being thrown is some kind of pointer.  This is a match. */
       match = TRUE;
 #else /* !ABI_CHANGES_FOR_RTTI */
     } else if (etsp->type_info == &MANGLED_NAME_OF_VOID &&
-               (ets_is_ptr == is_ptr)) {
+               (ets_is_ptr == is_ptr) && ets_is_single_ptr) {
       /* The exception type specification is a void * and the object
          being thrown is some kind of pointer.  This is a match. */
       match = TRUE;

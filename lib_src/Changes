@@ -1,5 +1,23 @@
 Version 2.46
 
+10/16/01 Throw of pointer type incorrectly caught by void**
+
+A throw of any pointer type can be caught by a void*.  The runtime was
+incorrectly allowing a catch of void** to also catch any pointer type.
+This has been fixed.
+
+  #include <stdio.h>
+  int main() {
+    int *i=0;
+    try {
+      throw i;
+    } catch (void **) {
+      printf("Caught void **\n");
+    } catch (int *) {
+      printf("Caught int *\n");
+    }
+  }
+
 7/24/01  Array new operations with value initialization
 
 A forthcoming technical corrigendum (TC1) of the C++ standard introduces the
