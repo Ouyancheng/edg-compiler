@@ -3074,6 +3074,25 @@ See section 3.3.3.2 of the standard.
 }  /* scan_indirection_operator */
 
 
+static a_boolean is_nonarithmetic_type(a_type_ptr type)
+/*
+Return TRUE if type is a nonarithmetic type.  This differs from
+!is_arithmetic_type(type) in that it returns FALSE for an error type.
+*/
+{
+  a_boolean is_nonarith;
+
+  if (is_arithmetic_type(type)) {
+    is_nonarith = FALSE;
+  } else if (is_error_type(type)) {
+    is_nonarith = FALSE;
+  } else {
+    is_nonarith = TRUE;
+  }  /* if */
+  return is_nonarith;
+}  /* is_nonarithmetic_type */
+
+
 static void scan_arith_prefix_operator(an_operand *result)
 /*
 Scan the "+", "-", "~", and "!" prefix operators.  The operand of the "!"
@@ -3088,7 +3107,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
   a_source_position     start_position;
   a_type_ptr            result_type;
   a_boolean             did_not_fold, template_constant;
-  a_boolean             do_promotion, err = FALSE, processed = FALSE;
+  a_boolean             do_promotion, processed = FALSE;
   a_constant            result_constant;
 
   db_enter(4, "scan_arith_prefix_operator");
@@ -3097,18 +3116,14 @@ arithmetic type.  The operand of "~" must have integral type.  See section
   /* Save the current source position. */
   copy_source_position(pos_curr_token, start_position);
 
-  if (curr_expr_kind_is(ek_template_arg)) {
-    /* These operators not allowed in a template argument expression. */
-    pos_error(ec_bad_templ_arg_expr_operator, &start_position);
-    err = TRUE;
-  }  /* if */
-
   /* Scan the operand. */
   (void)get_token();
   scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
 
-  if (err) {
-    /* Operator not allowed in this kind of expression. */
+  if (curr_expr_kind_is(ek_template_arg) &&
+      is_nonarithmetic_type(operand.type)) {
+    /* Non-arithmetic operations are not allowed in a template argument. */
+    pos_error(ec_non_arith_operation_in_templ_arg, &start_position);
     make_error_operand(result);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
@@ -4224,11 +4239,7 @@ functional-notation type conversions.
   /* Instantiate the type if it is a template class. */
   check_for_uninstantiated_template_class(type_cast_to);
   /* Check the type to see if it's permissible. */
-  if (curr_expr_kind_is(ek_template_arg)) {
-    /* Casts not allowed in a template argument expression, period. */
-    error(ec_bad_templ_arg_expr_operator);
-    err = TRUE;
-  } else if (is_error_type(type_cast_to)) {
+  if (is_error_type(type_cast_to)) {
     err = TRUE;
   } else if (is_template_param_type(type_cast_to)) {
     /* We are in a prototype instantiation of a template.  The type is
@@ -4260,6 +4271,13 @@ functional-notation type conversions.
        constants. */
     if (!is_scalar_type(type_cast_to)) {
       error(ec_cast_not_scalar);
+      err = TRUE;
+    }  /* if */
+  } else if (curr_expr_kind_is(ek_template_arg)) {
+    /* Only casts to arithmetic types are allowed in nontype template
+       arguments. */
+    if (!is_arithmetic_type(type_cast_to)) {
+      error(ec_non_arith_operation_in_templ_arg);
       err = TRUE;
     }  /* if */
   } else {
@@ -4406,7 +4424,7 @@ type conversions.
       /* cast_type_pre_check has already verified that the destination type
          is legal in broad terms.  Check for casts that are allowed in
          general but disallowed in specific modes. */
-      if (is_error_operand(operand)) {
+      if (is_error_type(source_type)) {
         /* There was a previous error.  Do no further checking. */
         err = TRUE;
       } else if (is_template_param_type(type_cast_to)) {
@@ -4466,6 +4484,13 @@ type conversions.
               err = TRUE;
             }  /* if */
           }  /* if */
+        }  /* if */
+      } else if (curr_expr_kind_is(ek_template_arg)) {
+        /* Only casts between arithmetic types are allowed in nontype template
+           arguments. */
+        if (!is_arithmetic_type(source_type)) {
+          error(ec_non_arith_operation_in_templ_arg);
+          err = TRUE;
         }  /* if */
       }  /* if */
       /* Check that the combination of the source and target types is
@@ -4875,7 +4900,7 @@ be of integral type.  See section 3.3.5 of the standard.
   a_source_position     operator_position;
   an_expr_operator_kind op;
   a_type_ptr            result_type;
-  a_boolean             err = FALSE, processed = FALSE;
+  a_boolean             processed = FALSE;
 
   db_enter(4, "scan_mult_operator");
 
@@ -4884,18 +4909,15 @@ be of integral type.  See section 3.3.5 of the standard.
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
-  if (curr_expr_kind_is(ek_template_arg)) {
-    /* These operators not allowed in a template argument expression. */
-    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
-    err = TRUE;
-  }  /* if */
-
   /* Scan the second operand. */
   (void)get_token();
   scan_expr(&operand_2, PREC_MULT_DIV, EOPT_NO_OPTIONS);
 
-  if (err) {
-    /* Operator not allowed in this kind of expression. */
+  if (curr_expr_kind_is(ek_template_arg) &&
+      (is_nonarithmetic_type(operand_1->type) ||
+       is_nonarithmetic_type(operand_2.type))) {
+    /* Non-arithmetic operations are not allowed in a template argument. */
+    pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
@@ -4980,18 +5002,15 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
-  if (curr_expr_kind_is(ek_template_arg)) {
-    /* These operators not allowed in a template argument expression. */
-    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
-    err = TRUE;
-  }  /* if */
-
   /* Scan the second operand. */
   (void)get_token();
   scan_expr(&operand_2, PREC_PLUS_MINUS, EOPT_NO_OPTIONS);
 
-  if (err) {
-    /* Operator not allowed in this kind of expression. */
+  if (curr_expr_kind_is(ek_template_arg) &&
+      (is_nonarithmetic_type(operand_1->type) ||
+       is_nonarithmetic_type(operand_2.type))) {
+    /* Non-arithmetic operations are not allowed in a template argument. */
+    pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
@@ -5153,7 +5172,7 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
   a_source_position     operator_position;
   a_type_ptr            result_type;
   an_error_code         err_code;
-  a_boolean             err = FALSE, processed = FALSE;
+  a_boolean             processed = FALSE;
 
   db_enter(4, "scan_shift_operator");
 
@@ -5161,18 +5180,15 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
-  if (curr_expr_kind_is(ek_template_arg)) {
-    /* These operators not allowed in a template argument expression. */
-    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
-    err = TRUE;
-  }  /* if */
-
   /* Scan the second operand. */
   (void)get_token();
   scan_expr(&operand_2, PREC_SHIFT, EOPT_NO_OPTIONS);
 
-  if (err) {
-    /* Operator not allowed in this kind of expression. */
+  if (curr_expr_kind_is(ek_template_arg) &&
+      (is_nonarithmetic_type(operand_1->type) ||
+       is_nonarithmetic_type(operand_2.type))) {
+    /* Non-arithmetic operations are not allowed in a template argument. */
+    pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
@@ -5324,7 +5340,7 @@ standard.
   a_type_ptr            result_type;
   an_expr_operator_kind op;
   a_boolean             operand_1_is_pointer;
-  a_boolean             err = FALSE, processed = FALSE;
+  a_boolean             processed = FALSE;
   a_boolean             funny_unsigned_comparison = FALSE, second_is_constant;
 
   db_enter(4, "scan_rel_operator");
@@ -5333,18 +5349,15 @@ standard.
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
-  if (curr_expr_kind_is(ek_template_arg)) {
-    /* Operator not allowed in a template argument expression. */
-    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
-    err = TRUE;
-  }  /* if */
-
   /* Scan the second operand. */
   (void)get_token();
   scan_expr(&operand_2, PREC_RELATIONAL, EOPT_NO_OPTIONS);
 
-  if (err) {
-    /* Operator not allowed in this kind of expression. */
+  if (curr_expr_kind_is(ek_template_arg) &&
+      (is_nonarithmetic_type(operand_1->type) ||
+       is_nonarithmetic_type(operand_2.type))) {
+    /* Non-arithmetic operations are not allowed in a template argument. */
+    pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
@@ -5468,7 +5481,7 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   a_type_ptr            result_type;
   an_expr_operator_kind op;
   a_boolean             operand_1_is_pointer, operand_1_is_ptr_to_member;
-  a_boolean             err = FALSE, processed = FALSE;
+  a_boolean             processed = FALSE;
   a_boolean             funny_unsigned_comparison = FALSE, second_is_constant;
 
   db_enter(4, "scan_eq_operator");
@@ -5477,18 +5490,15 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
-  if (curr_expr_kind_is(ek_template_arg)) {
-    /* Operator not allowed in a template argument expression. */
-    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
-    err = TRUE;
-  }  /* if */
-
   /* Scan the second operand. */
   (void)get_token();
   scan_expr(&operand_2, PREC_EQ_NE, EOPT_NO_OPTIONS);
 
-  if (err) {
-    /* Operator not allowed in this kind of expression. */
+  if (curr_expr_kind_is(ek_template_arg) &&
+      (is_nonarithmetic_type(operand_1->type) ||
+       is_nonarithmetic_type(operand_2.type))) {
+    /* Non-arithmetic operations are not allowed in a template argument. */
+    pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
@@ -5603,7 +5613,7 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
   a_source_position     operator_position;
   a_type_ptr            result_type;
   an_expr_operator_kind op;
-  a_boolean             err = FALSE, processed = FALSE;
+  a_boolean             processed = FALSE;
   int                   prec_level;
 
   db_enter(4, "scan_bit_operator");
@@ -5620,18 +5630,15 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
 
-  if (curr_expr_kind_is(ek_template_arg)) {
-    /* Operator not allowed in a template argument expression. */
-    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
-    err = TRUE;
-  }  /* if */
-
   /* Scan the second operand. */
   (void)get_token();
   scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
 
-  if (err) {
-    /* Operator not allowed in this kind of expression. */
+  if (curr_expr_kind_is(ek_template_arg) &&
+      (is_nonarithmetic_type(operand_1->type) ||
+       is_nonarithmetic_type(operand_2.type))) {
+    /* Non-arithmetic operations are not allowed in a template argument. */
+    pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
@@ -5684,7 +5691,7 @@ standard.
   a_boolean             known_result       = FALSE;
   a_token_kind          save_token;
   a_type_ptr            result_type;
-  a_boolean             err = FALSE, processed = FALSE;
+  a_boolean             processed = FALSE;
   a_boolean             might_be_overloaded = FALSE;
   int                   prec_level;
   a_boolean             operand_1_transformations_done = FALSE;
@@ -5706,12 +5713,6 @@ standard.
   }  /* if */
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
-
-  if (curr_expr_kind_is(ek_template_arg)) {
-    /* Operator not allowed in a template argument expression. */
-    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
-    err = TRUE;
-  }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
       opname_symbol_table[opname_kind_for_token[(int)save_token]] != NULL) {
@@ -5763,8 +5764,11 @@ standard.
   /* Restore the evaluated flag as it was on entry. */
   expr_stack->evaluated = saved_evaluated;
 
-  if (err) {
-    /* Operator not allowed in this kind of expression. */
+  if (curr_expr_kind_is(ek_template_arg) &&
+      (is_nonarithmetic_type(operand_1->type) ||
+       is_nonarithmetic_type(operand_2.type))) {
+    /* Non-arithmetic operations are not allowed in a template argument. */
+    pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus &&
@@ -5995,12 +5999,6 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 
   db_enter(4, "scan_conditional_operator");
 
-  if (curr_expr_kind_is(ek_template_arg)) {
-    /* Operator not allowed in a template argument expression. */
-    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
-    err = TRUE;
-  }  /* if */
-
   /* Check the first operand's type. */
   process_boolean_controlling_expression(operand_1);
 
@@ -6061,8 +6059,12 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 
   /* Check the operands for compatibility.  Both must be arithmetic,
      both compatible struct/union types, both void, or both pointers. */
-  if (err) {
-    /* Operator not allowed in this kind of expression. */
+  if (curr_expr_kind_is(ek_template_arg) &&
+      (is_nonarithmetic_type(operand_1->type) ||
+       is_nonarithmetic_type(operand_2.type) ||
+       is_nonarithmetic_type(operand_3.type))) {
+    /* Non-arithmetic operations are not allowed in a template argument. */
+    pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
     processed = TRUE;
   } else if (C_dialect == C_dialect_cplusplus) {
@@ -8075,9 +8077,6 @@ C++ mode.
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
   /* Check that expression is integral. */
-#if 0
-  /* Should conversions be allowed here? */
-#endif  /* 0 */
   (void)check_integral_operand(&result);
   /* Return a constant or expression depending on what was scanned. */
   *is_constant = TRUE;
@@ -8169,11 +8168,12 @@ e.g., a local variable.
          the entity is non-external.  Otherwise, the class will be forced
          to be external by this reference. */
       a_type_ptr class_type = scp->class_of_which_a_member;
-#if 0
-      /* Set flag to force the class to be external, when the flag gets
-         added. */
-#endif /* 0 */
-      if (class_type->source_corresp.is_local_to_function) refs_non_ext = TRUE;
+      if (class_type->source_corresp.is_local_to_function) {
+        refs_non_ext = TRUE;
+      } else {
+        /* Force the class to be external. */
+        symbol_supplement_for_class(class_type)->force_external_linkage = TRUE;
+      }  /* if */
     } else {
       /* Not a class member. */
       refs_non_ext = (scp->name_linkage != (a_name_linkage_kind)nlk_external &&
@@ -8197,19 +8197,10 @@ Return the constant in *constant.
   an_expr_stack_entry  expr_stack_entry;
   an_arg_match_summary arg_summary;
   a_boolean            okay;
-  an_expression_kind   expr_kind;
 
   db_enter(3, "scan_template_argument_constant_expression");
 
-  /* If the parameter is integral, scan the expression as an integral
-     constant expression.  Otherwise, scan it as an ek_template_arg
-     expression. */
-  if (is_integral_type(param_type)) {
-    expr_kind = (an_expression_kind)ek_integral_constant;
-  } else {
-    expr_kind = (an_expression_kind)ek_template_arg;
-  }  /* if */
-  push_expr_stack(expr_kind, &expr_stack_entry);
+  push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry);
   expr_stack_entry.is_template_arg_expression = TRUE;
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
