@@ -2729,7 +2729,7 @@ or struct definition.  The syntax is
       base_class_type = type_symbol_type(sym);
       base_class_type->source_corresp.referenced = TRUE;
       /* If it is a const or volatile qualified type name (where in the ARM is
-         this required???) or if it is the class now being defined or if
+         this required?) or if it is the class now being defined or if
          it is a union or if it has been declared but not yet defined (ARM
          10, p. 196), issue an error and skip over this class: it is not a
          valid base class name. */
