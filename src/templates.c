@@ -9320,7 +9320,7 @@ any non-empty template parameter lists that were scanned.
       }  /* if */
     }  /* if */
 #endif /* RECORD_TEMPLATES_IN_IL */
-    /* When member function bodies are not extract above, they are done now
+    /* When member function bodies are not extracted above, they are done now
        that the template string for the class has been created.  Nested class
        bodies are always extracted at this point. */
     if (member_bodies_need_extraction) {
