@@ -691,6 +691,20 @@ pointer.
 }  /* primary_template_of */
 
 
+static a_symbol_ptr template_for_instance(a_symbol_ptr sym)
+/*
+sym is a pointer to an instance of a template.  Return a pointer to the
+template symbol from which the instance was generated.
+*/
+{
+  a_symbol_ptr	template_sym;
+  template_sym = sym->variant.class_struct_union.extra_info->class_template;
+  check_assertion(template_sym != NULL &&
+                  template_sym->kind == (a_symbol_kind)sk_class_template);
+  return template_sym;
+}  /* template_for_instance */
+
+
 static
 void find_class_template_member(a_symbol_ptr  ct_symbol,
                                 a_type_ptr    parent_class)
@@ -5061,11 +5075,15 @@ generated.
     } else {
      a_symbol_ptr	sym;
       check_assertion(template_sym->kind == (a_symbol_kind)sk_class_template);
+      /* When a member class template is specialized, the list of partial
+         specializations should be cleared because those partial
+         specialiations were associated with the prototype template. */
+      tssp->variant.class_template.partial_specializations = NULL;
       for (sym = tssp->variant.class_template.instantiations; sym != NULL;
            sym = sym->next) {
         /* It is only an error if the class type is complete and is not a
            itself a specialization. */
-        if (!is_prototype_instantiation_symbol(sym) &&
+        if (!is_nonreal_instance_class_symbol(sym) &&
             !is_incomplete_type(type_symbol_type(sym)) &&
             !is_template_instance_specific_def_symbol(sym)) {
           pos_sy2_error(ec_specialization_of_referenced_template,
@@ -5195,7 +5213,6 @@ initially used when processing the declaration of a partial specialization.
 {
   a_symbol_ptr	prototype_sym;
   a_type_ptr	prototype_type;
-  a_symbol_ptr	primary_sym;
 
  if (sym->kind == (a_symbol_kind)sk_class_template) {
     a_template_param_ptr	templ_param_list;
@@ -5239,38 +5256,23 @@ initially used when processing the declaration of a partial specialization.
          primary template while the partial_spec_template_arg_list is with
          respect to the partial specialization. */
       prototype_ctsp->partial_spec_template_arg_list = templ_arg_list;
-      /* Get a pointer to the primary template for this partial
-         specialization. */
-      primary_sym = primary_template_of(sym);
     } else {
       /* A normal prototype (not a partial specialization). */
       prototype_ctsp->template_arg_list = templ_arg_list;
-      primary_sym = sym;
     }  /* if */
   } else {
     /* For a class nested within a class template, the member class
        symbol of the prototype instantiation is used. */
     prototype_sym = sym;
     prototype_type = sym->variant.class_struct_union.type;
-    primary_sym = sym;
   }  /* if */
-  {
-    /* Add the new symbol to the head of the instantiation list.  The
-       instantiations always go on the list associated with the primary
-       template. */
-    a_template_symbol_supplement_ptr	primary_tssp;
-
-    primary_tssp = template_supplement_for_symbol(primary_sym);
-    prototype_sym->next = primary_tssp->variant.class_template.instantiations;
-    primary_tssp->variant.class_template.instantiations = prototype_sym;
-    /* The prototype_instantiation field is set in the template supplement
-       of what may be a partial specialization, not in the primary template. */
-    tssp->variant.class_template.prototype_instantiation = prototype_sym;
-    prototype_sym->variant.class_struct_union.extra_info->
-                                          is_prototype_instantiation = TRUE;
-    prototype_sym->variant.class_struct_union.extra_info->
-                                          is_nonreal_class = TRUE;
-  }
+  /* The prototype_instantiation field is set in the template supplement
+     of what may be a partial specialization, not in the primary template. */
+  tssp->variant.class_template.prototype_instantiation = prototype_sym;
+  prototype_sym->variant.class_struct_union.extra_info->
+                                             is_prototype_instantiation = TRUE;
+  prototype_sym->variant.class_struct_union.extra_info->
+                                                       is_nonreal_class = TRUE;
 }  /* create_prototype_type */
 
 
@@ -5723,7 +5725,13 @@ instantiation.
     } else if (is_nonreal_instance_class_symbol(sym)) {
       a_scope_stack_entry_ptr	ssep =
                                 &scope_stack[decl_state->effective_decl_level];
-      if (sym->is_class_member && decl_state->class_declared_in == NULL) {
+      if (sym->is_class_member && decl_state->class_declared_in == NULL &&
+          !template_for_instance(sym)->
+                               variant.template_info->is_specific_definition) {
+        /* A partial specialization must be declared in the class of which it
+           is a member.  An exception is made for partial specializations
+           of a template that is itself a specialization of a member class
+           template. */
         pos_error(ec_member_partial_spec_not_in_class,
                   &locator.source_position);
         err = TRUE;

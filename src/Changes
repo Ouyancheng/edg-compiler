@@ -1,5 +1,28 @@
 Version 2.35
 
+1/29/97 Specializing a partial specialization of a member template
+
+Formerly, it was not possible to provide a partial specialization of
+a member class template that was specialized.  It was also not possible
+to specialize a partial specialization of member class template.  These
+problems have been fixed.
+
+Partial specialization of specialization of member class template:
+
+  template <class T> struct A {
+    template <class T2> struct B {};
+  };
+  template <> template <class T2> class A<short>::B {};
+  template <> template <class T2> class A<short>::B<T2*> {};
+
+Specialization of a partial specialization of a member class template:
+
+  template <class T> struct A {
+    template <class T2> struct B {};
+    template <class T2> struct B<T2*> {};
+  };
+  template <> template <class T2> class A<short>::B<T2*> {};
+
 1/27/97 C-generating back end: base types of bit fields in generated code
 
 When ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C is TRUE (which it

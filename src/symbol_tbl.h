@@ -1260,7 +1260,9 @@ typedef struct a_template_symbol_supplement {
                 instantiations;
                         /* Pointer to a list of symbols describing template
                            classes that have been instantiated from this
-                           class template. */
+                           class template.  Nonreal classes are included
+			   in this list, but prototype instantiations are
+			   not. */
       a_type_kind
 		type_kind;
 			/* The kind (tk_class, tk_struct, or tk_union) which

@@ -802,6 +802,13 @@ do_variable:
           col = 0;
         }  /* for */
         if (sym->kind == (a_symbol_kind)sk_class_template) {
+          /* Display the prototype instantiation. */
+          inst_sym = tssp->variant.class_template.prototype_instantiation;
+          if (inst_sym != NULL) {
+            fprintf(f_debug, "%*sprototype instantiation:\n", indentation, "");
+            fprintf(f_debug, "%*s", indentation + 2, "");
+            db_symbol(inst_sym, "", indentation + 4);
+          }  /* if */
           /* Display any partial specializations. */
           inst_sym = tssp->variant.class_template.partial_specializations;
           while (inst_sym != NULL) {
