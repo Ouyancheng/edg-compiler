@@ -1369,34 +1369,41 @@ called by id_linkage.
   a_symbol_ptr  linked_symbol = NULL;
   a_boolean     function_template_seen = FALSE;
   a_boolean     is_function = is_function_type(type);
+  a_boolean     is_namespace_member_def = FALSE;
 
   db_enter(4, "find_linked_symbol");
-  if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
-      (is_friend_decl &&
-       effective_decl_level != depth_innermost_namespace_scope)) {
-    /* This is either a block-extern declaration of a function or variable or
-       (what amounts to the same thing) a friend declaration within a local
-       class.  Find the visible declaration of the same name. */
-    other_decl = normal_id_lookup(locator, IDL_LINKAGE_LOOKUP);
+  if (qualifier_namespace_ptr(*locator) != NULL &&
+      locator->specific_symbol != NULL) {
+    other_decl = locator->specific_symbol;
+    is_namespace_member_def = TRUE;
   } else {
-    /* Not a context in which lookup in enclosing scopes is meaningful.
-       Just check for a prior declaration in the current scope. */
-    check_assertion(effective_decl_level == depth_innermost_namespace_scope);
-    if (depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
-      /* Do the lookup in the file scope. */
-      other_decl = file_scope_id_lookup(locator, IDL_NO_OPTIONS);
+    if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
+        (is_friend_decl &&
+         effective_decl_level != depth_innermost_namespace_scope)) {
+      /* This is either a block-extern declaration of a function or variable
+         or (what amounts to the same thing) a friend declaration within a
+         local class.  Find the visible declaration of the same name. */
+      other_decl = normal_id_lookup(locator, IDL_LINKAGE_LOOKUP);
     } else {
-      /* Do the lookup in the innermost namespace scope. */
-      a_namespace_ptr  nsp;
-      nsp = scope_stack[depth_innermost_namespace_scope].il_scope->
-                                                     variant.assoc_namespace;
-      other_decl = namespace_qualified_id_lookup(locator, nsp,
-                                                 IDL_NO_OPTIONS);
-    }  /* if */      
+      /* Not a context in which lookup in enclosing scopes is meaningful.
+         Just check for a prior declaration in the current scope. */
+      check_assertion(effective_decl_level == depth_innermost_namespace_scope);
+      if (depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
+        /* Do the lookup in the file scope. */
+        other_decl = file_scope_id_lookup(locator, IDL_NO_OPTIONS);
+      } else {
+        /* Do the lookup in the innermost namespace scope. */
+        a_namespace_ptr  nsp;
+        nsp = scope_stack[depth_innermost_namespace_scope].il_scope->
+                                                       variant.assoc_namespace;
+        other_decl = namespace_qualified_id_lookup(locator, nsp,
+                                                   IDL_NO_OPTIONS);
+      }  /* if */      
+    }  /* if */
+    /* Clear out the specific symbol pointer of the locator.  It was set by
+       the lookup routine, but it may not be valid. */
+    clear_specific_symbol(*locator);
   }  /* if */
-  /* Clear out the specific symbol pointer of the locator.  It was set by the
-     lookup routine, but it may not be valid. */
-  clear_specific_symbol(*locator);
   /* We are only interested in variable and function declarations.  If
      something else was found, we're not interested. */
   if (other_decl != NULL) {
@@ -1519,6 +1526,8 @@ called by id_linkage.
           linked_symbol = other_decl;
         }  /* if */
       }  /* if */
+    } else if (is_namespace_member_def) {
+      linked_symbol = other_decl;
     }  /* if */
   }  /* if */
 done:
@@ -2766,6 +2775,85 @@ position of the identifier.
 }  /* set_name_linkage */
 
 
+static a_symbol_ptr namespace_member_redecl_sym(
+                                       a_symbol_locator   *locator,
+                                       a_type_ptr         type_ptr,
+                                       a_scope_depth      effective_decl_level,
+                                       a_boolean          is_definition,
+                                       a_boolean          is_friend_decl,
+                                       an_id_linkage_kind *linkage,
+                                       a_symbol_ptr       *overload_symbol)
+/*
+This routine is called from decl_variable and decl_routine for cases in which
+a namespace-qualified identifier is being defined -- *locator should point to
+a specific symbol as well as to a namespace parent.  effective_decl_level
+will have computed by the caller.  type_ptr is the declared type, used for
+looking up symbols in an overload set.  os_definition is usually TRUE; it may
+be FALSE when is_friend_decl is TRUE, the latter being set if this
+declaration appears as a friend function declaration.  When the symbol is a
+member of an overloaded function set, *overload_symbol is returned with a
+pointer to the sk_overloaded_function symbol.  *linkage is returned with a
+value reflecting the linkage of the original symbol.
+*/
+{
+  a_symbol_ptr     linked_symbol, prior_decl;
+  a_boolean        err = FALSE;
+  a_storage_class  storage_class;
+
+  if (!is_definition && !is_friend_decl) {
+    /* Improper use of a qualified name in a declarator (WP 8.3). */
+    error(ec_qualified_name_not_allowed);
+    err = TRUE;
+  } else if (is_definition &&
+             !namespace_is_enclosed_by_scope(locator->specific_symbol,
+                                        &scope_stack[effective_decl_level])) {
+    /* This declaration appears within a namespace scope in which the name
+       cannot be defined -- it is a member (directly or indirectly) of a
+       namespace that is not enclosed by the current namespace scope
+       (see WP 7.3.1.4). */
+    sym_error(ec_bad_scope_for_definition, locator->specific_symbol);
+    err = TRUE;
+  } else {
+    /* This is a valid location for such a declaration. */
+    linked_symbol = find_linked_symbol(locator, effective_decl_level,
+                                       type_ptr, /*is_main=*/FALSE,
+                                       is_friend_decl,
+                                       /*is_function_template=*/FALSE,
+                                       &prior_decl, overload_symbol);
+    if (linked_symbol != NULL) {
+      if (linked_symbol->kind == (a_symbol_kind)sk_routine) {
+        storage_class = linked_symbol->variant.routine.ptr->storage_class;
+      } else {
+        storage_class = linked_symbol->variant.variable.ptr->storage_class;
+      }  /* if */
+      if (storage_class == (a_storage_class)sc_static) {
+        *linkage = idl_internal;
+      } else {
+        *linkage = idl_external;
+      }  /* if */
+    } else {
+      /* The lookup failed.  This can only be because an appropriate instance
+         of an overload set could not be found. */
+      check_assertion(is_function_symbol(locator->specific_symbol));
+      pos_sy_error(locator->specific_symbol->kind ==
+                                   (a_symbol_kind)sk_overloaded_function ?
+                      ec_overloaded_function_incompatible_type :
+                      ec_not_compatible_with_previous_decl,
+                   &locator->source_position, locator->specific_symbol);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (err) {
+    /* Set safe values when an error has been reported. */
+    set_to_named_error_locator(*locator);
+    linked_symbol = NULL;
+    *linkage = idl_none;
+    *overload_symbol = NULL;
+  }  /* if */
+  return linked_symbol;
+}  /* namespace_member_redecl_sym */
+
+
 #if !DECL_MODIFIERS_IN_USE
 /* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE */
@@ -2812,6 +2900,7 @@ cross-reference output describing this declaration.
   a_scope_depth            effective_decl_level;
   a_boolean                suppress_ext_sym_lookup = FALSE;
   a_boolean                is_variable_def = FALSE;
+  a_symbol_ptr             homonym_symbol;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr               declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2837,29 +2926,18 @@ cross-reference output describing this declaration.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (locator->is_qualified_name && locator->specific_symbol != NULL) {
-    if (is_variable_def &&
-        !namespace_is_enclosed_by_curr_scope(locator->specific_symbol)) {
-      /* This declaration appears within a namespace scope in which the name
-         cannot be defined -- it is a member (directly or indirectly) of a
-         namespace that is not enclosed by the current namespace scope
-         (see WP 7.3.1.4). */
-      sym_error(ec_bad_scope_for_definition, locator->specific_symbol);
-      set_to_named_error_locator(*locator);
-      linked_redecl_error = TRUE;
-      linkage = idl_none;
-      linked_symbol = NULL;
-    } else {
-#if 0
-      /* This is temporary. */
-#endif /* if 0 */
-      linkage = idl_external;
-      linked_symbol = locator->specific_symbol;
-    }  /* if */
+  if (!C_mode() && qualifier_namespace_ptr(*locator) != NULL &&
+      locator->specific_symbol != NULL) {
+    /* This identifier is a namespace-qualified name that was previously
+       declared.  Be sure this is a valid scope in which to define it
+       (7.3.1.4). */
+    linked_symbol = namespace_member_redecl_sym(locator, type_ptr,
+                                                effective_decl_level,
+                                                is_variable_def,
+                                                /*is_friend_decl=*/FALSE,
+                                                &linkage, &homonym_symbol);
   } else {
     /* Determine the linkage of this symbol. */
-    a_symbol_ptr  homonym_symbol;
-
     linkage = id_linkage(locator, &storage_class, effective_decl_level,
                          type_ptr, (a_func_info_block_ptr)NULL, &linked_symbol,
                          &homonym_symbol);
@@ -3213,6 +3291,7 @@ on for use in generating cross-reference output describing this declaration.
   a_boolean                suppress_ext_sym_lookup = FALSE;
   a_boolean                is_function_def = FALSE;
   a_boolean                changed_to_inline = FALSE;
+  a_boolean                is_friend_decl = (srk_flags & SRK_FRIEND) != 0;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr               declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -3228,7 +3307,7 @@ on for use in generating cross-reference output describing this declaration.
   }  /* if */
   effective_decl_level = compute_effective_decl_level(/*is_function=*/TRUE,
                                                       storage_class,
-                                                      srk_flags & SRK_FRIEND);
+                                                      is_friend_decl);
   if (C_dialect == C_dialect_cplusplus) {
     if (func_info->is_inline) {
       check_assertion(storage_class == (a_storage_class)sc_unspecified ||
@@ -3265,28 +3344,16 @@ on for use in generating cross-reference output describing this declaration.
     linked_symbol = NULL;
     homonym_symbol = NULL;
     sym = *symbol_ptr;
-  } else if (locator->is_qualified_name && locator->specific_symbol != NULL) {
-    if (is_function_def &&
-        !namespace_is_enclosed_by_scope(locator->specific_symbol,
-                                        &scope_stack[effective_decl_level])) {
-      /* This declaration appears within a namespace scope in which the name
-         cannot be defined -- it is a member (directly or indirectly) of a
-         namespace that is not enclosed by the current namespace scope
-         (see WP 7.3.1.4). */
-      sym_error(ec_bad_scope_for_definition, locator->specific_symbol);
-      set_to_named_error_locator(*locator);
-      linked_redecl_error = TRUE;
-      linkage = idl_none;
-      linked_symbol = NULL;
-      homonym_symbol = NULL;
-    } else {
-#if 0
-      /* This is temporary. */
-#endif /* if 0 */
-      linkage = idl_external;
-      linked_symbol = locator->specific_symbol;
-      homonym_symbol = NULL;
-    }  /* if */
+  } else if (!C_mode() && qualifier_namespace_ptr(*locator) != NULL &&
+             locator->specific_symbol != NULL) {
+    /* This identifier is a namespace-qualified name that was previously
+       declared.  Be sure this is a valid scope in which to define it
+       (7.3.1.4). */
+    linked_symbol = namespace_member_redecl_sym(locator, type_ptr,
+                                                effective_decl_level,
+                                                is_function_def,
+                                                is_friend_decl, &linkage,
+                                                &homonym_symbol);
   } else {
     /* Determine the linkage of this symbol. */
     linkage = id_linkage(locator, &storage_class, effective_decl_level,
@@ -3775,14 +3842,14 @@ skip_overloading:;
       check_assertion(type_ptr == declared_type);
       routine_ptr->declared_type = type_ptr;
     }  /* if */
-    if (srk_flags & SRK_FRIEND) routine_ptr->defined_in_friend_decl = TRUE;
+    if (is_friend_decl) routine_ptr->defined_in_friend_decl = TRUE;
   } else {
     /* A function declaration but not a definition.  Set the type in the
        secondary declaration entry. */
     a_src_seq_secondary_decl_ptr  sssdp;
     sssdp = set_src_seq_secondary_decl_type((char *)routine_ptr,
                                             declared_type);
-    if (sssdp != NULL && (srk_flags & SRK_FRIEND)) sssdp->friend_decl = TRUE;
+    if (sssdp != NULL && is_friend_decl) sssdp->friend_decl = TRUE;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (is_function_def) {
