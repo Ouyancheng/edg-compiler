@@ -34,6 +34,8 @@ expr.c -- Expression scanning routines.
 #include "lang_feat.h"
 #include "templates.h"
 #include "pragma.h"
+#include "disambig.h"
+
 
 /*
 The operators and their precedences are:
