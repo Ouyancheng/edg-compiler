@@ -2819,6 +2819,7 @@ lvalue.  If there is an error, change the operand to an error operand.
      modifiable lvalue.
   */
   type = operand->type;
+  complete_type_is_needed(type);
   if (is_an_lvalue(operand) &&
       !is_const_qualified_type(type) &&
       !is_incomplete_type(type)) {
@@ -3570,8 +3571,6 @@ void add_reference_indirection(an_operand *result)
   }  /* if */
   make_expression_operand(node, result_type, result);
   result->state = result_state;
-  /* Instantiate the underlying type if it is a template class. */
-  complete_type_is_needed(result_type);
   /* Restore the original source position, etc.  Note that the reference
      entries are NOT restored, on purpose. */
   restore_operand_details(result, &orig_result);
@@ -3624,8 +3623,6 @@ reference entry, or is NULL if none is needed.
     }  /* if */
     result->state = (an_operand_state)os_lvalue;
     copy_source_position(pos_curr_token, result->position);
-    /* Instantiate the underlying type if it is a template class. */
-    complete_type_is_needed(variable_type);
     /* Start a list of reference entries related to the operand. */
     result->ref_entries_list = rep;
     /* If the variable has a reference type, add an implicit indirection. */
@@ -4854,16 +4851,17 @@ not an lvalue, it is left alone.
   an_expr_node_ptr node;
   an_operand       orig_operand;
   an_expr_node_ptr operand_node, cast_node;
-  a_type_ptr       cast_orig_type;
+  a_type_ptr       operand_type, cast_orig_type;
   a_boolean        constant_case = FALSE, qualifiers_dropped = FALSE;
   a_constant_ptr   con_value;
 
   /* Ignore non-lvalues. */
   if (is_an_lvalue(operand)) {
     /* An lvalue becomes an rvalue. */
+    operand_type = operand->type;
 #if CHECKING
     /* Array rvalues are not allowed. */
-    if (is_array_type(operand->type)) {
+    if (is_array_type(operand_type)) {
       internal_error("conv_lvalue_to_rvalue: array lvalue");
     }  /* if */
 #endif /* CHECKING */
@@ -4878,11 +4876,13 @@ not an lvalue, it is left alone.
        address-taken entry to a simple "use" reference. */
     change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
                           SRK_USE);
+    /* Instantiate the type if it is a template. */
+    complete_type_is_needed(operand_type);
     if (is_error_operand(operand)) {
       /* Error operand -- leave it alone (but make sure it's not an lvalue
          anymore). */
       conv_to_error_operand(operand);
-    } else if (is_incomplete_type(operand->type)) {
+    } else if (is_incomplete_type(operand_type)) {
       /* Converting an lvalue with incomplete type to an rvalue is undefined
          behavior (standard, 3.2.2.1); we treat it as an error. */
       error_in_operand(ec_incomplete_type_not_allowed, operand);

@@ -2139,6 +2139,7 @@ evaluated (but not checked to see if the match is good enough).
            template<class T> void f(T);
            void m() { f(*p); }
       */
+      complete_type_is_needed(arg_type);
       if (is_incomplete_type(arg_type)) goto done;
       /* See if any implicit transformations (e.g., array --> pointer) should
          be done. */
@@ -5468,6 +5469,8 @@ because of an error.  This routine is only used in C++ mode.
            type is a base class, but the source class is still
            incomplete, and one can't make an rvalue of an
            incomplete type. */
+        /* complete_class_type_is_needed need not be called here, because
+           find_base_class_of has that effect. */
         !is_incomplete_type(source_type)) {
       /* Yes, this is a bitwise copy from a derived class to a base class. */
       conversion->class_identity_or_bitwise_copy = TRUE;

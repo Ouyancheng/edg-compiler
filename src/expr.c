@@ -3302,8 +3302,6 @@ See section 3.3.3.2 of the standard.
       do_operand_transformations(&operand, TOPT_NO_OPTIONS);
       if (check_pointer_operand(&operand, ec_bad_indirection_operand)) {
         operand.type = type_pointed_to(operand.type);
-        /* Instantiate the underlying type if it is a template class. */
-        complete_type_is_needed(operand.type);
         if (is_function_type(operand.type)) {
           /* This will become a function designator. */
           operand.state = (an_operand_state)os_function_designator;
