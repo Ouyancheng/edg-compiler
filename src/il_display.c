@@ -1114,7 +1114,7 @@ Display a_param_type entry.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->ms_attributes != NULL) {
-    disp_ptr("ms-attributes", (char *)ptr->ms_attributes, iek_ms_attribute);
+    disp_ptr("ms_attributes", (char *)ptr->ms_attributes, iek_ms_attribute);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
@@ -4350,6 +4350,9 @@ do_assoc_type:
 #if RECORD_TEMPLATE_STRINGS
   disp_ptr("templates", (char *)ptr->templates, iek_template);
 #endif /* RECORD_TEMPLATE_STRINGS */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  disp_ptr("ms_attributes", (char *)ptr->ms_attributes, iek_ms_attribute);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef FFE
   disp_ptr("entries", (char *)ptr->entries, iek_entry_description);
   disp_ptr("namelist_groups", (char *)ptr->namelist_groups,
