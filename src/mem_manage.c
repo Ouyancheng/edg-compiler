@@ -150,7 +150,6 @@ allocation and generates a catastrophic error.
 {
   char *ptr;
 
-  db_enter(5, "malloc_with_check");
   if ((ptr = (char *)malloc((true_size_t)size_t_arg(size))) == NULL) {
     catastrophe(ec_out_of_memory);
   } /* if */
@@ -165,7 +164,6 @@ allocation and generates a catastrophic error.
                      (unsigned long)total_mem_allocated);
   }  /* if */
 #endif /* DEBUG */
-  db_exit();
   return (ptr);
 }  /* malloc_with_check */
 

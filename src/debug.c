@@ -84,6 +84,7 @@ static a_debug_request_ptr
 Stack of function calls.  Each time db_enter is invoked, another entry is
 added to the stack; db_exit removes it.
 */
+typedef struct a_debug_stack_entry *a_debug_stack_entry_ptr;
 typedef struct a_debug_stack_entry {
   char		*name;
 	        	/* The name of the function. */
@@ -100,10 +101,18 @@ typedef struct a_debug_stack_entry {
 #endif /* STOP_TOKEN_CHECKSUM_TEST_NEEDED */
 } a_debug_stack_entry;
 
-#define DEBUG_STACK_SIZE 600
-static a_debug_stack_entry 
-		debug_stack[DEBUG_STACK_SIZE];
-static int	depth_debug_stack = 0;
+#define DEBUG_STACK_INITIAL_ALLOCATION 128
+			/* The initial allocated size of the debug stack. */
+
+static a_debug_stack_entry_ptr
+		debug_stack;
+			/* Pointer to the dynamically allocated debug stack. */
+
+static int	depth_debug_stack = -1;
+			/* The current depth of the debug stack. */
+
+static int	debug_stack_size = 0;
+			/* The allocated size of the debug stack. */
 
 
 static a_debug_request_ptr alloc_debug_request(void)
@@ -586,15 +595,24 @@ what was done in the stack entry.
   register a_debug_request_ptr request_ptr;
   register a_debug_stack_entry *stack_ptr;
 
-#if CHECKING
-  if (depth_debug_stack >= DEBUG_STACK_SIZE - 1) {
-    /* We have run out of stack space, abort. */
-    internal_error("debug_enter: stack overflow");
+  if (depth_debug_stack >= debug_stack_size - 1) {
+    sizeof_t	new_size;
+    sizeof_t	old_size;
+    if (debug_stack_size == 0) {
+      new_size = DEBUG_STACK_INITIAL_ALLOCATION;
+    } else {
+      /* Double the size of the stack. */
+      new_size = debug_stack_size * 2;
+    }  /* if */
+    debug_stack = (a_debug_stack_entry_ptr)realloc_general(
+                      (char *)debug_stack,
+                      (sizeof_t)(debug_stack_size*sizeof(a_debug_stack_entry)),
+                      (sizeof_t)(new_size*sizeof(a_debug_stack_entry)));
+    debug_stack_size = new_size;
   }  /* if */
-#endif /* CHECKING */
 
   /* Get a new stack entry and increment the stack level. */
-  stack_ptr = &debug_stack[depth_debug_stack++];
+  stack_ptr = &debug_stack[++depth_debug_stack];
   stack_ptr->name = function_name;
   /* Remember the current debug level in case it changes. */
   stack_ptr->old_debug_level = debug_level;
@@ -665,13 +683,13 @@ was printed on entry.  Remove the entry from the stack.
   a_debug_stack_entry *stack_ptr;
 
 #if CHECKING
-  if (depth_debug_stack <= 0) {
+  if (depth_debug_stack < 0) {
     /* We have run off the beginning of the stack; abort. */
     internal_error("debug_exit: stack underflow");
   }  /* if */
 #endif /* CHECKING */
 
-  stack_ptr = &debug_stack[--depth_debug_stack];
+  stack_ptr = &debug_stack[depth_debug_stack--];
 
   /* Check if a message was printed on entry to this function. */
   if (stack_ptr->msg_was_printed) {
