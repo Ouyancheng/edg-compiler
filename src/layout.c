@@ -3282,7 +3282,7 @@ of nonzero size (such classes actually have size zero).
   }  /* if */
   type->variant.class_struct_union.is_empty_class = result;
 #if IA64_ABI
-  if (type->source_corresp.assoc_info != NULL) {
+  if (type->source_corresp.assoc_info == NULL) {
     /* Lowering creates class types without associated symbol, but they
        should not have an empty subobject. */
     check_assertion(type->variant.class_struct_union.field_list != NULL);
