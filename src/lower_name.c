@@ -989,15 +989,8 @@ template arguments, and as dimensions of arrays in template signatures.
       break;
     case enk_operation:
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (expr->variant.operation.kind == (an_expr_operator_kind)eok_assume) {
-        /* Mangle a Microsoft __assume() as a constant zero. */
-        a_constant con;
-        make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), &con);
-        mangled_expr_length = mangled_encoding_for_constant(&con,
-                                                            /*old_form=*/FALSE,
-                                                            store_at);
-        break;
-      }  /* if */
+      check_assertion(expr->variant.operation.kind !=
+                                             (an_expr_operator_kind)eok_assume);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Operation.  Output has the form
            Opl2Z1ZZ2ZO <-- "Z1 + Z2", Z1/Z2 indicating nontype template
