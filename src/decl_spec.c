@@ -3788,7 +3788,6 @@ describes Microsoft attributes preceding the enum specifier (if any).
         enum_type->variant.integer.int_kind = largest_enum_int_kind;
       }  /* if */
     }  /* if */
-    enum_type->incomplete = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
     if (gcc_mode) {
       an_integer_kind  int_kind = enum_type->variant.integer.int_kind;
@@ -3816,6 +3815,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Set the type size (based on the integral type it is mapped onto). */
     set_type_size(enum_type);
+    enum_type->incomplete = FALSE;
     if (!C_mode()) {
       /* In C++ now that we know the type of the enumeration, we can update
          each constant to share the same type. */
