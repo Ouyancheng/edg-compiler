@@ -5294,7 +5294,7 @@ for it if it has a name.  class_type is a pointer to the tk_class,
 tk_struct, or tk_union type entry for the entity of which the member is a
 member.  *locator and *member_type describe what is so far known about the
 member, and access specifies whether it is a public, protected, or private
-member.  It it is unnamed, unnamed_field will be TRUE.  The field entry
+member.  If it is unnamed, unnamed_field will be TRUE.  The field entry
 that is created is added to the end of a list in a structure pointed to by
 field_list; this list will be transferred to the list on the class_type
 later.  If the field is too large to fit in the struct and *any_overflow
