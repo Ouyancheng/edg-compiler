@@ -286,7 +286,6 @@ static void mangled_function_base_name(
 static void mangled_function_name(
                               a_routine_ptr            routine,
                               a_boolean                suppress_param_encoding,
-                              a_boolean                suppress_prefix,
                               sizeof_t                 *base_name_offset,
                               a_mangling_control_block *mctl);
 static void mangled_function_name_externalized_if_necessary(
@@ -433,6 +432,20 @@ Add the indicated null-terminated string to the mangled name.
   check_assertion(mctl->length + mctl->num_leftover_spaces ==
                                                    mangling_text_buffer->size);
 }  /* add_str_to_mangled_name */
+
+
+#if !IA64_ABI
+/*ARGSUSED*/ /* <-- mctl is not used in that case. */
+#endif /* !IA64_ABI */
+static void add_mangled_name_prefix(a_mangling_control_block_ptr mctl)
+/*
+Add any prefix required at the beginning of a mangled name.
+*/
+{
+#if IA64_ABI
+  add_str_to_mangled_name("_Z", mctl);
+#endif /* IA64_ABI */
+}  /* add_mangled_name_prefix */
 
 
 static char *end_mangling(a_source_correspondence      *scp,
@@ -924,7 +937,6 @@ for the IA-64 ABI.
   add_to_mangled_name('Z', mctl);
   mangled_function_name(ssp->enclosing_routine,
                         /*suppress_param_encoding=*/FALSE,
-                        /*suppress_prefix=*/TRUE,
                         /*base_name_offset=*/(sizeof_t *)NULL,
                         mctl);
   add_to_mangled_name('E', mctl);
@@ -1606,13 +1618,13 @@ template classes.
     a_boolean     suppress_param_encoding = TRUE;
     a_routine_ptr routine = con->variant.address.variant.routine;
 #if IA64_ABI
+    add_str_to_mangled_name("_Z", mctl);
     if (is_name_linkage_kind_subject_to_name_mangling(
                                       routine->source_corresp.name_linkage)) {
       suppress_param_encoding = FALSE;
     }  /* if */
 #endif /* IA64_ABI */
     mangled_function_name(routine, suppress_param_encoding,
-                          /*suppress_prefix=*/FALSE,
                           /*base_name_offset=*/(sizeof_t *)NULL,
                           mctl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -1751,7 +1763,6 @@ specification in the mangling for lengths of literals.
       if (include_parent_info) {
         /* Include class and namespace information in the name. */
         mangled_function_name(func, /*suppress_param_encoding=*/TRUE, 
-                              /*suppress_prefix=*/FALSE,
                               /*base_name_offset=*/(sizeof_t *)NULL,
                               mctl);
       } else {
@@ -3898,18 +3909,12 @@ constructors and conversion functions.
 }  /* mangled_function_base_name */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- suppress_prefix and base_name_offset are not used in 
-                    that case. */
-#else /* IA64_ABI */
-#if !DO_IL_LOWERING
+#if !IA64_ABI || !DO_IL_LOWERING
 /*ARGSUSED*/ /* <-- base_name_offset is not used in that case. */
-#endif /* !DO_IL_LOWERING */
-#endif /* IA64_ABI */
+#endif /* !IA64_ABI || !DO_IL_LOWERING */
 static void mangled_function_name(
                               a_routine_ptr            routine,
                               a_boolean                suppress_param_encoding,
-                              a_boolean                suppress_prefix,
                               sizeof_t                 *base_name_offset,
                               a_mangling_control_block *mctl)
 /*
@@ -3919,12 +3924,6 @@ types; just put out the base encoded name.  If base_name_offset is not NULL,
 *base_name_offset is set to the offset from the start of the mangling to
 the point where the base name appears.
 */
-#if IA64_ABI
-/* 
-If suppress_prefix is TRUE, omit the _Z prefix at the start of the mangled
-name. 
-*/
-#endif /* IA64_ABI */
 {
   a_type_ptr       conversion_type, routine_type;
   a_boolean        is_member, mangle_as_template;
@@ -3955,7 +3954,6 @@ name.
   is_member = (routine->source_corresp.is_class_member ||
                routine->source_corresp.parent.namespace_ptr != NULL);
 #if IA64_ABI
-  if (!suppress_prefix) add_str_to_mangled_name("_Z", mctl);
   if (is_in_namespace_std(routine)) {
     is_member = FALSE;
     add_str_to_mangled_name("St", mctl);
@@ -4340,7 +4338,7 @@ externalized, use the encoding for the externalized form.
   }  /* if */
 #endif /* DO_IL_LOWERING */
   mangled_function_name(routine, suppress_param_encoding,
-                        /*suppress_prefix=*/FALSE, base_name_offset, mctl);
+                        base_name_offset, mctl);
 #if DO_IL_LOWERING
   if (needs_to_be_externalized) {
     end_externalized_name(&routine->source_corresp, mctl);
@@ -4384,6 +4382,7 @@ name in the routine entry.
   } else {
     /* Generate the mangled name in a buffer. */
     start_mangling(&mctl);
+    add_mangled_name_prefix(&mctl);
     /* Create the name. */
 #if IA64_ABI
     /* It's OK to set the base_name_offset here; it will be set to the same
@@ -4552,9 +4551,7 @@ or a static data member (e.g., not a file scope variable).
   } else {
     /* Generate the mangled name in a buffer. */
     start_mangling(&mctl);
-#if IA64_ABI
-    add_str_to_mangled_name("_Z", &mctl);
-#endif /* IA64_ABI */
+    add_mangled_name_prefix(&mctl);
 #if DO_IL_LOWERING
     if (needs_to_be_externalized) {
       start_externalized_name(/*is_variable=*/TRUE, &mctl);
@@ -4692,6 +4689,12 @@ extension) a declared class member constant.
   error_position = con->source_corresp.decl_position;
   if (!con->source_corresp.name_has_been_mangled) {
     start_mangling(&mctl);
+#if IA64_ABI
+    /* Add a prefix to avoid name conflicts.  Don't use "_Z" because it's
+       sort of reserved for external names.  The mangling here is mostly
+       to avoid conflicts in generated C code.*/
+    add_str_to_mangled_name("__", &mctl);
+#endif /* !IA64_ABI */
     mangled_member_name(&con->source_corresp,
                         /*is_specialization=*/FALSE, &mctl);
     (void)end_mangling(&con->source_corresp, /*final=*/TRUE, &mctl);
@@ -4755,6 +4758,7 @@ Mangle the name of the indicated function, if necessary.
       function_name_mangling_needed(routine, &suppress_param_encoding)) {
     /* Mangle the function name. */
     start_mangling(&mctl);
+    add_mangled_name_prefix(&mctl);
 #if IA64_ABI && DO_IL_LOWERING
     if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
         routine->special_kind == (a_special_function_kind)sfk_destructor) {
@@ -4762,7 +4766,6 @@ Mangle the name of the indicated function, if necessary.
     }  /* if */
 #endif /* IA64_ABI && DO_IL_LOWERING */
     mangled_function_name(routine, suppress_param_encoding, 
-                          /*suppress_prefix=*/FALSE,
                           base_name_offset,
                           &mctl);
 #if !IA64_ABI
@@ -4815,9 +4818,7 @@ variable.
   if (!variable->source_corresp.name_has_been_mangled &&
       variable_name_mangling_needed(variable)) {
     start_mangling(&mctl);
-#if IA64_ABI
-    add_str_to_mangled_name("_Z", &mctl);
-#endif /* IA64_ABI */
+    add_mangled_name_prefix(&mctl);
     mangled_member_variable_name(variable, &mctl);
     /* Note final=FALSE to prevent compression and truncation at this
        time, in case the name is externalized later.  do_final_name_mangling
@@ -5339,7 +5340,8 @@ be copied elsewhere.
 #if !IA64_ABI
   add_str_to_mangled_name("__vtbl__", &mctl);
 #else /* IA64_ABI */
-  add_str_to_mangled_name("_ZTV", &mctl);
+  add_mangled_name_prefix(&mctl);
+  add_str_to_mangled_name("TV", &mctl);
 #endif /* IA64_ABI */
   if (bcp != NULL) {
     /* Add the base class name. */
@@ -5425,10 +5427,7 @@ be copied elsewhere.
   char                     *buffer;
 
   start_mangling(&mctl);
-#if IA64_ABI
-  /* Add the pre-prefix; all mangled names begin with "_Z". */
-  add_str_to_mangled_name("_Z", &mctl);
-#endif /* IA64_ABI */
+  add_mangled_name_prefix(&mctl);
   /* Start with the prefix. */
   add_str_to_mangled_name(prefix, &mctl);
   /* Add the mangled name of the type. */
@@ -5599,9 +5598,9 @@ other mangled names.
       add_local_name_suffix(scope_number, routine, &mctl);
     }
 #else /* IA64_ABI */
-    add_str_to_mangled_name("_ZZ", &mctl);
+    add_mangled_name_prefix(&mctl);
+    add_str_to_mangled_name("Z", &mctl);
     mangled_function_name(routine, /*suppress_param_encoding=*/FALSE,
-                          /*suppress_prefix=*/TRUE,
                           /*base_name_offset=*/(sizeof_t *)NULL,
                           &mctl);
     add_to_mangled_name('E', &mctl);
@@ -5646,7 +5645,7 @@ pointer, or performs the "this" adjustments.
   /* Add two underscores after the class name. */
   add_str_to_mangled_name("__", &mctl);
 #else /* IA64_ABI */
-  add_str_to_mangled_name("_Z", &mctl);
+  add_mangled_name_prefix(&mctl);
   /* Distinguish between covariant returns and ordinary thunks. */
   if (entry_routine->return_delta != 0 ||
       entry_routine->vbase_index != 0) {
@@ -5699,7 +5698,6 @@ pointer, or performs the "this" adjustments.
     /* Add the routine name. */
     mangled_function_name(prim_routine,
                           /*suppress_param_encoding=*/FALSE,
-                          /*suppress_prefix=*/TRUE,
                           /*base_name_offset=*/(sizeof_t *)NULL,
                           &mctl);
   }  /* if */
