@@ -463,7 +463,7 @@ and indentation is the indentation desired.
         inst_sym = tssp->variant.class.instantiations;
         inst_count = 0;
         while (inst_sym != NULL) {
-          fprintf(f_debug, "%*s Instantiation #%0d:\n", indentation,
+          fprintf(f_debug, "%*s Instantiation #%0d:\n", indentation, "",
                   inst_count++);
           db_symbol(inst_sym, "", indentation + 2);
           inst_sym = inst_sym->next;
