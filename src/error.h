@@ -241,6 +241,14 @@ extern a_line_number update_file_index(struct a_source_file *src_file,
                                        long                 file_pos);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+extern void record_prototype_diagnostic(an_error_code      error_code,
+                                        an_error_severity  severity,
+                                        a_source_position  *error_pos);
+
+extern a_boolean find_prototype_diagnostic(an_error_code      error_code,
+                                           an_error_severity  severity,
+                                           a_source_position  *error_pos);
+
 extern a_boolean set_severity_for_error_tag(char		*tag,
 				            an_error_severity	severity);
 extern a_boolean set_severity_for_error_number(int		  error_number,

@@ -275,14 +275,30 @@ corresponding entity is pos2.
       strcmp(src_file1->full_name, src_file2->full_name) == 0) {
     /* The entities correspond to the same source construct, but resulted in
        incompatible IL (perhaps due to preprocessor effects). */
-    a_source_file_ptr  primary_file2 = primary_source_file_for_seq(pos2->seq);
-    pos_stsy_error(same_src_error, &sym->decl_position,
-                   primary_file2->name_as_written, sym);
+    if (find_prototype_diagnostic(same_src_error, es_error,
+                                  &sym->decl_position)) {
+      /* This diagnostic was produced already (presumably for a prototype
+         instantiation, while this is a real instantiation). */
+    } else {
+      a_source_file_ptr  prim_file2 = primary_source_file_for_seq(pos2->seq);
+      pos_stsy_error(same_src_error, &sym->decl_position,
+                     prim_file2->name_as_written, sym);
+      record_prototype_diagnostic(same_src_error, es_error,
+                                  &sym->decl_position);
+    }  /* if */
   } else {
     /* The corresponding entities result from distinct source constructs. */
-    pos_sy_start_error(distinct_src_error, &sym->decl_position, sym);
-    add_diag_info_with_pos_insert(ec_corresp_decl_at, pos2);
-    end_error();
+    if (find_prototype_diagnostic(distinct_src_error, es_error,
+                                  &sym->decl_position)) {
+      /* This diagnostic was produced already (presumably for a prototype
+         instantiation, while this is a real instantiation). */
+    } else {
+      pos_sy_start_error(distinct_src_error, &sym->decl_position, sym);
+      add_diag_info_with_pos_insert(ec_corresp_decl_at, pos2);
+      end_error();
+      record_prototype_diagnostic(distinct_src_error, es_error,
+                                  &sym->decl_position);
+    }  /* if */
   }  /* if */
 }  /* report_corresp_error */
 
@@ -2279,6 +2295,7 @@ type.
            for. */
       } else if ((a_type_ptr)trans_unit_corresp_pointer_of(sec) == type) {
         establish_trans_unit_correspondences_for_class(sec);
+        verify_class_type_correspondence(sec);
         /* The master instance is found using the canonical entry.  We are
            creating a new canonical entry, so we must make sure its master
            instance pointer is set for the class members. */

@@ -2962,12 +2962,12 @@ Compute the hash table bucket to be used for this diagnostic.
 }  /* bucket_for_diag */
 
 
-static void record_prototype_diagnostic(
+void record_prototype_diagnostic(
 				an_error_code		error_code,
 				an_error_severity	severity,
 				a_source_position	*error_pos)
 /*
-This diagnostic is being issued during a prototype instantiation.
+This diagnostic is being issued for a prototype instantiation.
 Make a record of the diagnostic so that we can find it later to
 suppress duplicate diagnostics.
 */
@@ -2985,12 +2985,12 @@ suppress duplicate diagnostics.
 }  /* record_prototype_diagnostic */
 
 
-static a_boolean find_prototype_diagnostic(
+a_boolean find_prototype_diagnostic(
 				an_error_code		error_code,
 				an_error_severity	severity,
 				a_source_position	*error_pos)
 /*
-This diagnostic is being issued during a real instantiation.  Check
+This diagnostic is being issued for a real instantiation.  Check
 whether a matching diagnostic was issued during a prototype instantiation.
 Return TRUE if one is found.
 */
