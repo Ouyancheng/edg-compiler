@@ -1,6 +1,24 @@
 Version 2.43
 
-9/8/99   Assertion failure after ill-formed default template argument
+9/8/99   Cv-qualifiers on function typedefs
+
+The front end now accepts cv-qualifiers on typedef declarations that introduce
+synonyms for function types.  The resulting typedef names can be used only to
+declare class members, pointer-to-member types and equivalent typedefs.
+For example:
+
+  typedef void MF() const; // OK now. (Used to be an error.)
+  struct S { MF f; };      // OK: member S::f is a const member function.
+  typedef MF S::*PSMF;     // OK, declaration of pointer-to-member-function.
+  typedef MF MF2;          // OK: MF2 is equivalent to MF.
+  typedef MF *PMF;         // Error: PMF is not equivalent to MF.
+
+IL CHANGE: The field implicit_this_param_type in a_routine_type_supplement has
+been replaced by two new fields: (a) class_type points to an unqualified
+representation of a member function's parent type (if any), and (b) qualifiers
+describes the qualification of the function type.
+
+8/99   Assertion failure after ill-formed default template argument
 
 In certain unusual circumstances, a template parameter with an ill-formed
 default argument would cause an assertion failure when that parameter later
