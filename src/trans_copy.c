@@ -69,38 +69,32 @@ in the primary IL.
   (il_entry_prefix_of(ptr).il_lowering_flag)
 
 
-/*
-Provide access to the flag of an entry that indicates that
-the entry's correspondence pointer has been set to point to space into
-which the entry will be or has been copied.  This macro can be used to
-fetch or set the flag.  The entry_written flag can be reused for
-this purpose because secondary translation units are never written
-to an IL file.
-*/
-#define entry_copy_address_assigned(ptr) \
-  (il_entry_prefix_of(ptr).entry_written)
-
-
 static a_boolean f_has_corresp(char *ptr)
 /*
-Return TRUE if the indicated entry has a correspondence in the primary
-file IL.  That means one assigned by the trans_corresp.c code, not
-simply a copy address assigned to the entry.
+Return TRUE if the indicated entry has a corresponding address assigned
+in the primary IL, either by trans_corresp.c or because of an assigned
+copy address.
 */
 {
   a_boolean has_corr;
+  char      *new_ptr;
 
-  /* If the correspondence pointer points to a copy address, then
-     the entry doesn't have a correspondence. */
-  if (entry_copy_address_assigned(ptr)) {
-    /* If the entry is marked to be merged, however, the copy address is
-       the address of the intermediate copy, and there really is a
-       pre-assigned correspondence. */
-    has_corr = entry_to_be_merged(ptr);
-  } else {
-    char *corresp = canonical_il_entry_of(ptr);
-    has_corr = !in_secondary_trans_unit(corresp);
-  }  /* if */
+  for (;;) {
+    new_ptr = checked_trans_unit_corresp_pointer_of(ptr);
+    if (new_ptr == NULL || new_ptr == ptr) {
+      /* A NULL pointer, or an entry pointing to itself, is the end of
+         list, with no correspondence. */
+      has_corr = FALSE;
+      break;
+    }  /* if */
+    ptr = new_ptr;
+    if (!in_secondary_trans_unit(ptr)) {
+      /* We made it to the primary IL, so this pointer does have a
+         corresponding primary IL address. */
+      has_corr = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
   return has_corr;
 }  /* f_has_corresp */
 
@@ -109,6 +103,13 @@ Macro interface to f_has_corresp, which allows it to be called for
 entries of various kinds.
 */
 #define has_corresp(entry) f_has_corresp((char *)(entry))
+
+/*
+Return TRUE if an entry has a correspondence in the primary IL
+with which the entry may have to be merged.
+*/
+#define has_corresp_that_may_require_merge(ptr) \
+  (has_corresp(ptr) && !entry_needs_copy_flag_is_set(ptr))
 
 
 /*
@@ -204,30 +205,34 @@ pointer of the entry pointed to by ptr, of kind "kind".
   } else if (entry_needs_copy_flag_is_set(ptr)) {
     /* This entry has already been encountered and the correspondence
        pointer has been set, and we're awaiting copying. */
-  } else if (entry_copy_address_assigned(ptr)) {
-    /* A copy address has already been assigned to this entry. */
   } else if (has_corresp(ptr)) {
-    /* This entry has a correspondence in the primary IL. */
+    /* This entry has a correspondence in the primary IL, either because
+       one was assigned by trans_corresp or because a copy address
+       was assigned to some corresponding entry.  Either way, the entry
+       already has a mapping in the primary IL. */
     if (entry_to_be_merged(ptr)) {
       /* This is an entry that gets merged into its corresponding entry. */
       char *corresp = checked_trans_unit_corresp_pointer_of(ptr);
-      /* Make a copy, so we will have a version with all the pointers
-         remapped appropriately.  The original entry points to the
-         copy, which points to the canonical entry.  This allows us to get
-         to the copy via trans_unit_corresp_pointer_of, while ensuring
-         that references to the original entry are remapped to the
-         canonical entry (because canonical_il_entry_of loops through to
-         the end of the list).  Note that the copy is in the
-         secondary translation unit file scope memory region. */
-      char *copy = alloc_il(sizeof_il_entry[(int)kind]);
-      check_assertion(!is_string_entry_kind(kind));
-      checked_trans_unit_corresp_pointer_of(ptr) = copy;
-      checked_trans_unit_corresp_pointer_of(copy) = corresp;
-      /* Set the flag to indicate that a copy address has been assigned.
-         Note that that prevents us from getting to the code here again. */
-      entry_copy_address_assigned(ptr) = TRUE;
-      /* Set the flag to request copying. */
-      set_entry_needs_copy_flag(ptr);
+      /* The first time through, a copy is made, the subtree is walked,
+         and a two-step correspondence-pointer chain is set up.  If the
+         chain is already present, this is not the first time through,
+         so do nothing. */
+      if (!in_secondary_trans_unit(corresp)) {
+        /* Make a copy, so we will have a version with all the pointers
+           remapped appropriately.  The original entry points to the
+           copy, which points to the canonical entry.  This allows us to get
+           to the copy via trans_unit_corresp_pointer_of, while ensuring
+           that references to the original entry are remapped to the
+           canonical entry (because canonical_il_entry_of loops through to
+           the end of the list).  Note that the copy is in the
+           secondary translation unit file scope memory region. */
+        char *copy = alloc_il(sizeof_il_entry[(int)kind]);
+        check_assertion(!is_string_entry_kind(kind));
+        checked_trans_unit_corresp_pointer_of(ptr) = copy;
+        checked_trans_unit_corresp_pointer_of(copy) = corresp;
+        /* Set the flag to request copying. */
+        set_entry_needs_copy_flag(ptr);
+      }  /* if */
     }  /* if */
   } else {
     /* The entry has no correspondence.  Allocate space for it in the primary
@@ -255,8 +260,6 @@ pointer of the entry pointed to by ptr, of kind "kind".
           ptr = canonical;
         }  /* if */
       }  /* if */
-      /* Set the flag to indicate that a copy address has been assigned. */
-      entry_copy_address_assigned(ptr) = TRUE;
       /* Set the flag to request copying. */
       set_entry_needs_copy_flag(ptr);
       if (!walking_file_scope) {
@@ -365,8 +368,6 @@ correspondence pointer to point to the copy.
 
     check_assertion(in_file_scope(ptr));
     checked_trans_unit_corresp_pointer_of(ptr) = copy;
-    /* Set the flag to indicate that a copy address has been assigned. */
-    entry_copy_address_assigned(ptr) = TRUE;
     (void)memcpy(copy, ptr, size_t_arg(length));
   }  /* if */
 }  /* copy_string_entry */
@@ -473,8 +474,11 @@ Move the body of the indicated routine to the primary IL by walking
 it and remapping pointers.
 */
 {
-  a_scope_ptr scope = il_header.region_scope_entry[routine->assoc_scope];
+  a_scope_ptr scope;
 
+  check_assertion(in_secondary_trans_unit(routine) &&
+                  routine->assoc_scope != NULL_region_number);
+  scope = il_header.region_scope_entry[routine->assoc_scope];
   check_assertion(scope != NULL);
   walk_routine_scope_il(routine->assoc_scope,
                         copy_entry,
@@ -997,6 +1001,10 @@ the lists.
        into it. */
     a_scope_ptr corresp_scope = translation_units->primary_scope;
     checked_trans_unit_corresp_pointer_of(scope) = (char *)corresp_scope;
+    /* Ensure that flag_value_meaning_visited is set, to allow use
+       of entry_needs_copy_flag_is_set and
+       has_corresp_that_may_require_merge. */
+    flag_value_meaning_visited = !il_entry_prefix_of(scope).il_walk_flag;
     mark_to_merge(scope);
     if (scope->lifetime != NULL && corresp_scope->lifetime != NULL) {
       /* The object lifetime of the file scope corresponds with the
@@ -1014,7 +1022,7 @@ the lists.
     /* For a namespace scope, go to the a_namespace entry to find out what
        correspondence there is, if any. */
     nsp = scope->variant.assoc_namespace;
-    if (!has_corresp(nsp)) {
+    if (!has_corresp_that_may_require_merge(nsp)) {
       /* The namespace doesn't exist in the primary IL, and just gets
          copied over.  We don't need to check its members. */
       keep_on_parent_list = TRUE;
@@ -1036,7 +1044,7 @@ the lists.
     /* A class scope. */
     check_assertion(scope->kind == (a_scope_kind)sck_class_struct_union);
     class_type = scope->variant.assoc_type;
-    if (!has_corresp(class_type)) {
+    if (!has_corresp_that_may_require_merge(class_type)) {
       /* The class doesn't exist in the primary IL, and just gets copied
          over.  We don't need to check its members. */
       keep_on_parent_list = TRUE;
@@ -1099,7 +1107,7 @@ the lists.
                       type->variant.class_struct_union.extra_info->assoc_scope;
       keep_on_list = prepare_for_trans_unit_copy(class_scope,
                                                  any_removed_function_bodies);
-    } else if (has_corresp(type)) {
+    } else if (has_corresp_that_may_require_merge(type)) {
       /* This entry corresponds to something in the primary IL. */
       keep_on_list = FALSE;
       if (check_member_merges &&
@@ -1146,7 +1154,7 @@ the lists.
        dropped (the definition will be put out when the file
        is compiled as a primary file). */
     process_variable_if_unneeded_template(variable);
-    if (has_corresp(variable)) {
+    if (has_corresp_that_may_require_merge(variable)) {
       /* This entry corresponds to something in the primary IL. */
       keep_on_list = FALSE;
       if (check_member_merges && variable_should_be_merged(variable)) {
@@ -1201,7 +1209,7 @@ the lists.
        are made external (if necessary) and their definitions are
        dropped. */
     process_routine_if_unneeded_non_template(routine);
-    if (has_corresp(routine)) {
+    if (has_corresp_that_may_require_merge(routine)) {
       a_routine_ptr corresp_routine =
                                  (a_routine_ptr)canonical_il_entry_of(routine);
       /* This entry corresponds to something in the primary IL. */
@@ -1259,7 +1267,7 @@ the lists.
        templ != NULL;
        templ = templ->next) {
     keep_on_list = TRUE;
-    if (has_corresp(templ)) {
+    if (has_corresp_that_may_require_merge(templ)) {
       /* This entry corresponds to something in the primary IL, so remove
          it from the list. */
       keep_on_list = FALSE;
@@ -1295,7 +1303,7 @@ the lists.
     } else {
       /* A namespace alias.  Keep it only if there's not already a copy in
          the primary IL. */
-      keep_on_list = !has_corresp(nsp);
+      keep_on_list = !has_corresp_that_may_require_merge(nsp);
     }  /* if */
     if (keep_on_list) {
       prev_nsp = nsp;
@@ -2288,7 +2296,9 @@ two-pass sweep.
                             il_header.region_scope_entry[routine->assoc_scope];
       check_assertion_str(rout_scope != NULL,
                           "finish_moved_function_processing: body missing");
-      /* Handle local classes (and their member functions). */
+      /* Handle local classes (and their member functions).  Note that,
+         because the routine scope has already been moved, the types
+         list here is in the primary IL. */
       finish_type_list_moved_function_processing(rout_scope->types,
                                                  do_inlines);
     }  /* if */
@@ -2511,8 +2521,6 @@ with linkage.
       /* Make a copy of the entry in the primary IL. */
       new_ptr = alloc_il(sizeof_il_entry[(int)kind]);
       trans_unit_corresp_pointer_of(old_ptr) = new_ptr;
-      /* Set the flag to indicate that a copy address has been assigned. */
-      entry_copy_address_assigned(old_ptr) = TRUE;
       copy_entry_basic(old_ptr, kind, remap_secondary_pointer);
       /* Make sure the copy is processed. */
       il_entry_prefix_of(new_ptr).il_walk_flag = !flag_value_meaning_visited;
