@@ -822,7 +822,7 @@ state.
         cssp->has_copy_constructor = FALSE;
         cssp->has_copy_constructor_for_const_object = FALSE;
         cssp->assignment_by_bitwise_copy_allowed = FALSE;
-        cssp->target_of_user_defined_conversion = FALSE;
+        cssp->target_of_conversion_function = FALSE;
         cssp->any_ref_member = FALSE;
         cssp->any_nested_classes = FALSE;
         cssp->is_class_aggregate = (C_dialect != C_dialect_cplusplus);

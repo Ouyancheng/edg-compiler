@@ -2666,7 +2666,7 @@ special function kind (e.g., constructor, destructor), if any.
       tp = rtn->type->variant.routine.return_type;
       if (!is_qualified_type(tp) && is_class_struct_union_type(tp) ) {
         (symbol_supplement_for_class(skip_typerefs(tp)))->
-                  target_of_user_defined_conversion = TRUE;
+                  target_of_conversion_function = TRUE;
       }  /* if */
     } else {
       rtn->special_kind = spec_kind;
