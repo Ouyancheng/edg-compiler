@@ -1871,6 +1871,9 @@ error code.
     case ec_bad_extra_arg_for_postfix_operator:
       m = "extra argument of postfix \"operator%s\" must be of type \"int\"";
       break;
+    case ec_function_type_required:
+      m = "function type is required";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
