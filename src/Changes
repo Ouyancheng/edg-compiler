@@ -6,10 +6,10 @@ A sequencing problem in IL lowering related to lowering of pointer to
 member types has been corrected.  The bug caused an internal error
 from pm_class_type.
 
-1/7/93 Tag mismatch when using template class in elaborated type specifier
+1/7/93 Union/nonunion mismatch in refering to template class
 
-We now issue an error for cases like this, where union and nonunion tags
-are mixed:
+We now issue an error for cases like this, where "union" is mixed with
+"struct" or "class":
 
   template <class T> union U { /* ... */ };
   class U<int> { /* ... */ };
