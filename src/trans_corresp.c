@@ -4274,25 +4274,26 @@ translation unit).
       entries = entries->next;
       switch (entry->kind) {
         case iek_constant:
-          verify_constant_correspondence((a_constant_ptr)entry->il_entry);
+          (void)verify_constant_correspondence((a_constant_ptr)entry->il_entry);
           break;
         case iek_field:
-          verify_field_correspondence((a_field_ptr)entry->il_entry);
+          (void)verify_field_correspondence((a_field_ptr)entry->il_entry);
           break;
         case iek_namespace:
-          verify_namespace_correspondence((a_namespace_ptr)entry->il_entry);
+          (void)verify_namespace_correspondence(
+                                             (a_namespace_ptr)entry->il_entry);
           break;
         case iek_routine:
-          verify_routine_correspondence((a_routine_ptr)entry->il_entry);
+          (void)verify_routine_correspondence((a_routine_ptr)entry->il_entry);
           break;
         case iek_template:
-          verify_template_correspondence((a_template_ptr)entry->il_entry);
+          (void)verify_template_correspondence((a_template_ptr)entry->il_entry);
           break;
         case iek_type:
-          verify_type_correspondence((a_type_ptr)entry->il_entry);
+          (void)verify_type_correspondence((a_type_ptr)entry->il_entry);
           break;
         case iek_variable:
-          verify_variable_correspondence((a_variable_ptr)entry->il_entry);
+          (void)verify_variable_correspondence((a_variable_ptr)entry->il_entry);
           break;
         default:
           unexpected_condition();
