@@ -898,6 +898,25 @@ primary file IL.
 }  /* move_to_end_of_primary_file_types_list */
 
 
+/*
+primary_entry points to an IL entry in the primary translation unit IL,
+which has no definition.  corresp_entry points to an IL entry in a secondary
+translation unit, which corresponds to primary_entry, does have a definition,
+and should overwrite primary_entry.  Do the overwriting.  The "next"
+pointer is not adjusted; the caller must do that if necessary.
+*/
+#if MAINTAIN_NEEDED_FLAGS
+#define overwrite_primary_entry(primary_entry, corresp_entry) \
+{ a_boolean saved_needed = (primary_entry)->source_corresp.needed; \
+  *(primary_entry) = *(corresp_entry); \
+  (primary_entry)->source_corresp.needed = saved_needed; \
+}
+#else /* !MAINTAIN_NEEDED_FLAGS */
+#define overwrite_primary_entry(primary_entry, corresp_entry) \
+{ *(primary_entry) = *(corresp_entry); }
+#endif /* MAINTAIN_NEEDED_FLAGS */
+
+
 static void finish_trans_unit_copy(a_scope_ptr scope)
 /*
 scope is a file or namespace scope from the secondary file IL.  Do
@@ -930,8 +949,6 @@ secondary scope to the primary file IL.
           } else {
             last_type->next = corresp_type;
           }  /* if */
-          corresp_type->next = NULL;
-          last_type = corresp_type;
         } else {
           /* Merge the information from this type into the primary IL type
              (the secondary translation unit instance has a definition and
@@ -941,18 +958,11 @@ secondary scope to the primary file IL.
           a_type_ptr primary_type =
                (a_type_ptr)checked_trans_unit_corresp_pointer_of(corresp_type);
           move_to_end_of_primary_file_types_list(primary_type);
-          {
-#if MAINTAIN_NEEDED_FLAGS
-            a_boolean saved_needed = primary_type->source_corresp.needed;
-#endif /* MAINTAIN_NEEDED_FLAGS */
-            corresp_type->next = NULL;
-            *primary_type = *corresp_type;
-#if MAINTAIN_NEEDED_FLAGS
-            primary_type->source_corresp.needed = saved_needed;
-#endif /* MAINTAIN_NEEDED_FLAGS */
-          }
-          last_type = primary_type;
+          overwrite_primary_entry(primary_type, corresp_type);
+          corresp_type = primary_type;
         }  /* if */
+        corresp_type->next = NULL;
+        last_type = corresp_type;
         pointers_block->last_type = last_type;
       }  /* for */
     }  /* if */
@@ -976,7 +986,7 @@ secondary scope to the primary file IL.
                    (a_variable_ptr)checked_trans_unit_corresp_pointer_of(
                                                              corresp_variable);
           remove_from_primary_file_variables_list(primary_variable);
-          *primary_variable = *corresp_variable;
+          overwrite_primary_entry(primary_variable, corresp_variable);
           corresp_variable = primary_variable;
         }  /* if */
         /* Add the copied variable to the end of the list. */
@@ -1038,7 +1048,7 @@ secondary scope to the primary file IL.
                    (a_routine_ptr)checked_trans_unit_corresp_pointer_of(
                                                               corresp_routine);
           remove_from_primary_file_routines_list(primary_routine);
-          *primary_routine = *corresp_routine;
+          overwrite_primary_entry(primary_routine, corresp_routine);
           corresp_routine = primary_routine;
         }  /* if */
         /* Add the copied routine to the end of the list. */
