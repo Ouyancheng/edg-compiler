@@ -9476,11 +9476,12 @@ is being created.
     a_template_symbol_supplement_ptr	proto_tssp = NULL;
     a_template_symbol_supplement_ptr	tssp;
     tssp = template_supplement_for_symbol(sym);
-    if (tssp->prototype_template != NULL) {
+    if (tssp->prototype_template != NULL && !tssp->is_specific_definition) {
       /* A member template of a class template.  Get the template supplement
          for the prototype template. */
       proto_tssp = template_supplement_for_symbol(tssp->prototype_template);
-    } else if (tssp->variant.function.prototype_friend_symbol != NULL) {
+    } else if (decl_state->class_declared_in != NULL &&
+               tssp->variant.function.prototype_friend_symbol != NULL) {
       /* A friend of a class template.  Get the template supplement for the
          friend of the prototype instantiation. */
       a_symbol_ptr	friend_sym;
