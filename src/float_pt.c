@@ -1610,7 +1610,8 @@ to TRUE.  If the result depends on the floating-point mode,
     tempr = temp1 / temp2;
     store_host_fp_value(tempr, kind, result, err);
 #if TARG_HAS_IEEE_FLOATING_POINT
-    if (!is_finite(temp1) || !is_finite(temp2)) *depends_on_fp_mode = TRUE;
+    if (!is_finite(temp1) || !is_finite(temp2) ||
+        temp2 == 0.0) *depends_on_fp_mode = TRUE;
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
   }  /* if */
 }  /* fp_divide */
