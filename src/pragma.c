@@ -364,6 +364,11 @@ possible.
     case pk_instantiate:
     case pk_do_not_instantiate:
     case pk_can_instantiate:
+    case pk_diag_suppress:
+    case pk_diag_remark:
+    case pk_diag_warning:
+    case pk_diag_error:
+    case pk_diag_default:
 #if USER_CONTROL_OF_STRUCT_PACKING
     case pk_pack:
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -1639,6 +1644,66 @@ Initialize the pragma description table.
                                          /*il_info_is_complete=*/TRUE,
                                          es_error);
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+  (void)add_immediate_pragma_kind_description
+		((a_pragma_kind)pk_diag_suppress,
+                 (an_immediate_pragma_function_ptr)diag_pragma,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
+		 /*il_info_is_complete=*/FALSE,
+                 es_error);
+  (void)add_immediate_pragma_kind_description
+		((a_pragma_kind)pk_diag_remark,
+                 (an_immediate_pragma_function_ptr)diag_pragma,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
+		 /*il_info_is_complete=*/FALSE,
+                 es_error);
+  (void)add_immediate_pragma_kind_description
+		((a_pragma_kind)pk_diag_warning,
+                 (an_immediate_pragma_function_ptr)diag_pragma,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
+		 /*il_info_is_complete=*/FALSE,
+                 es_error);
+  (void)add_immediate_pragma_kind_description
+		((a_pragma_kind)pk_diag_error,
+                 (an_immediate_pragma_function_ptr)diag_pragma,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
+		 /*il_info_is_complete=*/FALSE,
+                 es_error);
+  (void)add_immediate_pragma_kind_description
+		((a_pragma_kind)pk_diag_default,
+                 (an_immediate_pragma_function_ptr)diag_pragma,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
+		 /*il_info_is_complete=*/FALSE,
+                 es_error);
 #if INCLUDE_EDG_TEST_PRAGMAS
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_test_next_decl,

@@ -1,5 +1,28 @@
 Version 3.2
 
+3/12/03  Diagnostic control pragmas
+
+Pragmas have been provided that can be used to override the severity of
+certain diagnostics (similar to the --diag_xxx command-line options).
+The pragmas are diag_suppress, diag_remark, diag_warning, diag_error,
+and diag_default.  The syntax is:
+
+  #pragma diag_xxx [=] err_code, err_code, err_code, ...
+
+The "=" is optional.  The pragma specifies one or more error codes.  As
+with the command-line options, each error code can be an error number or
+an error tag.  The diag_default pragma returns the severity associated
+with a given message to the value used before any pragmas were specified
+(i.e., either the normal value of the value specified by a command-line
+option).  As with the command-line versions, only messages with a
+severity of "discretionary error" or below may have their severity
+overridden.
+
+  #pragma diag_suppress 522
+  class A { friend class A; };  // pointless friend warning suppressed here
+  #pragma diag_default 522
+  class B { friend class B; };  // but not here
+
 3/11/03  Folding "new" into constructor or runtime routine, with unusual
          delete
 

@@ -2866,6 +2866,11 @@ in the current IL memory region.
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
     case pk_redefine_extname:
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+    case pk_diag_suppress:
+    case pk_diag_remark:
+    case pk_diag_warning:
+    case pk_diag_error:
+    case pk_diag_default:
 #if INCLUDE_EDG_TEST_PRAGMAS
     case pk_test_next_statement:
     case pk_test_next_decl:

@@ -260,9 +260,19 @@ static a_msg_segment_ptr
 				   error message being formatted. */
 
 static an_error_severity
-		severity_for_error_code[(int)ec_last + 1];
+		default_severity_for_error_code[(int)ec_last + 1];
 				/* Array of error severities associated
-				   with error codes.  Static initialization
+				   with error codes.  The default table
+				   contains values set from the command-line.
+				   Static initialization results in the
+				   array being set to es_default. */
+
+static an_error_severity
+		current_severity_for_error_code[(int)ec_last + 1];
+				/* Array of error severities associated
+				   with error codes.  The current table
+				   contains values set from the command-line
+				   or by pragmas.  Static initialization
 				   results in the array being set to
 				   es_default. */
 
@@ -2848,7 +2858,7 @@ may not have their severity altered.
 {
   if ((int)*severity <= (int)es_discretionary_error) {
     an_error_severity	new_severity;
-    new_severity = severity_for_error_code[(int)error_code];
+    new_severity = current_severity_for_error_code[(int)error_code];
     if (new_severity != es_default) *severity = new_severity;
   }  /* if */
 }  /* check_for_overridden_severity */
@@ -3481,11 +3491,17 @@ END_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 a_boolean set_severity_for_error_tag(char		*tag,
-				     an_error_severity	severity)
+				     an_error_severity	severity,
+				     a_boolean		from_cmd_line)
 /*
-Given an error tag string, this routine looks up the error tag and updates
-the table used to override the error severity of diagnostic messages.
-If the tag cannot be found return TRUE, otherwise return FALSE.
+Given an error tag string, this routine looks up the error tag and
+updates the table used to override the error severity of diagnostic
+messages.  If the tag cannot be found return TRUE, otherwise return
+FALSE. from_cmd_line is TRUE when this is called for a value set on
+the command line.  This causes both the current and default tables to
+be updated.  For other calls, only the current table is updated.  If
+the severity is "es_default" the severity from the default table is
+used to reset the value in the current table.
 */
 {
   an_error_tag_entry	        ete_to_find;
@@ -3502,7 +3518,7 @@ If the tag cannot be found return TRUE, otherwise return FALSE.
                             compare_tag_info);
   if (etep_found != NULL) {
     error_code = etep_found->code;
-    severity_for_error_code[(int)error_code] = severity;
+    set_severity_for_error_number((int)error_code, severity, from_cmd_line);
   }  /* if */
   /* Return TRUE if the tag could not be found. */
   return etep_found == NULL;
@@ -3510,21 +3526,34 @@ If the tag cannot be found return TRUE, otherwise return FALSE.
 
 
 a_boolean set_severity_for_error_number(int		   error_number,
-				        an_error_severity  severity)
+				        an_error_severity  severity,
+				        a_boolean	   from_cmd_line)
 /*
-Given an error number, this routine updates the table used to override the
-error severity of diagnostic messages. If the error number is out of range
-return TRUE, otherwise return FALSE.
+Given an error number, this routine updates the table used to override
+the error severity of diagnostic messages. If the error number is out
+of range return TRUE, otherwise return FALSE.  from_cmd_line is TRUE
+when this is called for a value set on the command line.  This causes
+both the current and default tables to be updated.  For other calls,
+only the current table is updated.  If the severity is "es_default"
+the severity from the default table is used to reset the value in the
+current table.
 */
 {
-  an_error_code			error_code;
   a_boolean			err;
 
 
   err = (error_number <= (int)ec_no_error || error_number >= (int)ec_last);
   if (!err) {
-    error_code = (an_error_code)error_number;
-    severity_for_error_code[(int)error_code] = severity;
+    if (severity == es_default) {
+      /* Restore the severity from the default table. */
+      current_severity_for_error_code[error_number] =
+                                 default_severity_for_error_code[error_number];
+    } else {
+      current_severity_for_error_code[error_number] = severity;
+      if (from_cmd_line) {
+        default_severity_for_error_code[error_number] = severity;
+      }  /* if */
+    }  /* if */
   }  /* if */
   return err;
 }  /* set_severity_for_error_number */
@@ -4522,6 +4551,76 @@ diagnostic is associated; error_code indicates the message to be issued.
   severity = es_discretionary_error;
   pos_diagnostic(severity, error_code, error_pos);
 }  /* embedded_cplusplus_noncompliance_diagnostic */
+
+
+void diag_pragma(a_pending_pragma_ptr	ppp)
+/*
+The routine called when a "diag_xxx" pragma is encountered.  The form of
+the pragma is
+
+	#pragma diag_xxx [=] arg, arg, arg
+
+where "arg" is either an error number or an error tag.
+*/
+{
+  a_pragma_kind_description_ptr	pkdp = ppp->descr_ptr;
+  a_pragma_kind			kind = pkdp->kind;
+  an_error_severity		severity;
+  a_boolean			error_in_pragma = FALSE;
+
+  /* Convert the pragma kind into an error severity. */
+  switch (kind) {
+    case pk_diag_suppress: severity = es_none;                break;
+    case pk_diag_remark:   severity = es_remark;              break;
+    case pk_diag_warning:  severity = es_warning;             break;
+    case pk_diag_error:    severity = es_discretionary_error; break;
+    case pk_diag_default:  severity = es_default;             break;
+    default: unexpected_condition();
+  }  /* switch */
+  begin_rescan_of_pragma_tokens(ppp);
+  /* Bypass the optional "=". */
+  if (curr_token == tok_assign) (void)get_token();
+  do {
+    a_boolean			err = FALSE;
+    if (curr_token == tok_int_constant) {
+      /* The argument is an integer, which is expected to be an error
+         number. */
+      a_host_large_integer	error_number;
+      error_number = value_of_integer_constant(&const_for_curr_token, &err);
+      if (!err) {
+        /* The routine will return TRUE if the number is invalid. */
+        err = set_severity_for_error_number(error_number, severity,
+                                            /*from_cmd_line=*/FALSE);
+      }  /* if */
+      if (err) {
+        pos_warning(ec_invalid_error_number, &pos_curr_token);
+      }  /* if */
+    } else if (curr_token == tok_identifier) {
+      /* The argument is an identifier, which is expected to name an error
+         tag. */
+      char	*error_tag;
+      error_tag = locator_for_curr_id.symbol_header->identifier;
+      /* The routine will return TRUE if the tag is invalid. */
+      err = set_severity_for_error_tag(error_tag, severity,
+                                       /*from_cmd_line=*/FALSE);
+      if (err) {
+        pos_warning(ec_invalid_error_tag, &pos_curr_token);
+      }  /* if */
+    } else {
+      /* Not an error number or an error tag. */
+      pos_warning(ec_exp_error_argument, &pos_curr_token);
+    }  /* if */
+    /* Bypass the token just processed. */
+    get_token();
+    if (curr_token != tok_comma && curr_token != tok_end_of_source) {
+      pos_warning(ec_exp_comma, &pos_curr_token);
+      error_in_pragma = TRUE;
+    }  /* if */
+  } while (loop_token(tok_comma));
+  /* Stop rescanning tokens from the pragma token cache. */
+  wrapup_rescan_of_pragma_tokens(error_in_pragma);
+}  /* diag_pragma */
+
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 

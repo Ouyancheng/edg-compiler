@@ -236,13 +236,14 @@ extern void check_expected_errors(void);
 #define unexpected_condition_str(string)    /* Nothing */
 #define unexpected_condition_str2(string1, string2)    /* Nothing */
 #endif /* CHECKING */
-/* Make sure "a_symbol", "a_type" and "a_source_file" are known as struct
-   tags before their uses below.  Otherwise, the declarations would be in
-   the prototype scopes.  The "struct" form is used instead of the typedef
-   name to avoid having to include symbol_tbl.h and il_def.h in this file. */
+/* Make sure that struct tags are referenced before their uses below.
+   Otherwise, the declarations would be in the prototype scopes.  The
+   "struct" form is used instead of the typedef name to avoid having to
+   include symbol_tbl.h and il_def.h in this file. */
 typedef struct a_symbol a_symbol_dummy_typedef;
 typedef struct a_type a_type_dummy_typedef;
 typedef struct a_source_file a_source_file_dummy_typedef;
+typedef struct a_pending_pragma a_pending_pragma_dummy_typdef;
 
 
 extern char *format_type_string(struct a_type *type,
@@ -267,9 +268,12 @@ extern a_boolean find_prototype_diagnostic(an_error_code      error_code,
                                            a_source_position  *error_pos);
 
 extern a_boolean set_severity_for_error_tag(char		*tag,
-				            an_error_severity	severity);
-extern a_boolean set_severity_for_error_number(int		  error_number,
-				               an_error_severity  severity);
+				            an_error_severity	severity,
+					    a_boolean		from_cmd_line);
+extern
+a_boolean set_severity_for_error_number(int		  error_number,
+			                an_error_severity severity,
+				        a_boolean	  from_cmd_line);
 /*lint -sem(command_line_error, r_no)*/
 extern DOES_NOT_RETURN command_line_error(an_error_code error_code);
 /*lint -sem(str_command_line_error, r_no)*/
@@ -500,6 +504,8 @@ extern void sym_add_diag_info(an_error_code   error_code,
 
 extern void pch_message(an_error_code error_code,
    		        char	      *fill_in_str);
+
+extern void diag_pragma(struct a_pending_pragma *ppp);
 
 extern void embedded_cplusplus_noncompliance_diagnostic(
                                               a_source_position  *error_pos,

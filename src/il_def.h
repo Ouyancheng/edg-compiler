@@ -3067,6 +3067,11 @@ enum a_pragma_kind_tag {
   pk_redefine_extname,	/* Solaris-specific pragma that allows external
 			   (mangled) names to be remapped. */
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+  pk_diag_suppress,
+  pk_diag_remark,
+  pk_diag_warning,
+  pk_diag_error,
+  pk_diag_default,	/* Pragmas to control the issuing of diagnostics. */
 #if INCLUDE_EDG_TEST_PRAGMAS
   /* For testing purposes. */
   pk_test_next_statement,
@@ -3141,6 +3146,11 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
 /* pk_redefine_extname */       "redefine_extname",
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
+/* pk_diag_suppress */		"diag_suppress",
+/* pk_diag_remark */		"diag_remark",
+/* pk_diag_warning */		"diag_warning",
+/* pk_diag_error */		"diag_error",
+/* pk_diag_default */		"diag_default",
 #if INCLUDE_EDG_TEST_PRAGMAS
 /* For testing purposes. */
 /* pk_test_next_statement */	"test_next_statement",

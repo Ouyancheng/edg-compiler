@@ -1327,12 +1327,14 @@ processing routine to update the severity.
 #endif /* DEBUG */
     if (isdigit((unsigned char)*opt_start)) {
       int error_number = (int)scan_opt_arg_number(opt_start);
-      err = set_severity_for_error_number(error_number, severity);
+      err = set_severity_for_error_number(error_number, severity,
+                                          /*from_cmd_line=*/TRUE);
       if (err) {
         str_command_line_error(ec_cl_invalid_error_number, opt_start);
       }  /* if */
     } else {
-      err = set_severity_for_error_tag(opt_start, severity);
+      err = set_severity_for_error_tag(opt_start, severity,
+                                       /*from_cmd_line=*/TRUE);
       if (err) {
         str_command_line_error(ec_cl_invalid_error_tag, opt_start);
       }  /* if */
@@ -3729,7 +3731,8 @@ enable_microsoft_mode:
     /* Exported templates cannot be used in trans_unit_test mode.  Turn
        off the feature but reduce the diagnostic to a warning. */
     export_template_allowed = FALSE;
-    (void)set_severity_for_error_number((int)ec_no_export_support, es_warning);
+    (void)set_severity_for_error_number((int)ec_no_export_support, es_warning,
+                                        /*from_cmd_line=*/TRUE);
   }  /* if */
   if (!nonclass_prototype_instantiations && do_dependent_name_processing) {
     /* We're not doing nonclass prototype instantiations, but dependent
