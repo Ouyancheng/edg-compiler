@@ -1,5 +1,13 @@
 Version 2.13
 
+12/17/92 Default signedness of enum bit fields
+
+The configuration flag TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED has been
+added to target.h.  When it is FALSE, enum signedness is determined
+as it has been heretofore; when it is TRUE (the new default setting),
+all enum bit fields are made unsigned (even if the enum contains negative
+values).  This behavior is required by several ABI standards.
+
 12/16/92 Testing pointers to members in "if" statements etc.
 
 Pointers to members can now be used as boolean controlling expressions

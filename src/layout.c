@@ -158,27 +158,24 @@ fit in a bit field of size bit_field_size.  If not, give a warning.  Return
 must be unsigned.
 */
 {
+  a_boolean      use_signed = FALSE, smallest_is_negative;
   a_constant     smallest, largest;
-  int            bits_needed, bits_needed_smallest, bits_needed_largest;
+  int            bits_needed, bits_needed_largest;
   a_constant_ptr enum_con;
-  a_boolean      smallest_is_negative, largest_is_nonnegative, use_signed;
 
-  /* Check the constants on the list.  Start by finding the largest and
-     smallest constants.  We are assuming most enum type lists
-     won't be too long, and there won't be too many bit fields with enum
-     type, so a linear search should be acceptable.  Furthermore,
-     the usual case is that the bit field is big enough, so we're probably
-     going to scan the whole constant list; therefore it's okay to always
-     scan the whole list even though some errors could be detected during
-     the scan. */
   enum_con = bit_field_type->variant.integer.enum_constant_list;
   if (enum_con == NULL) {
     /* There are no enumeration constants, so no bits are needed to
-       represent all of them. */
-    bits_needed_smallest = bits_needed_largest = 0;
-    smallest_is_negative = FALSE;
-    largest_is_nonnegative = TRUE;
+       represent all of them; by definition, they fit in the bit field. */
   } else {
+    /* Check the constants on the list.  Start by finding the largest and
+       smallest constants.  We are assuming most enum type lists
+       won't be too long, and there won't be too many bit fields with enum
+       type, so a linear search should be acceptable.  Furthermore,
+       the usual case is that the bit field is big enough, so we're probably
+       going to scan the whole constant list; therefore it's okay to always
+       scan the whole list even though some errors could be detected during
+       the scan. */
     smallest = *enum_con;
     largest = *enum_con;
     for (;;) {
@@ -187,52 +184,62 @@ must be unsigned.
       if (cmp_integer_constants(enum_con, &smallest) < 0) smallest = *enum_con;
       if (cmp_integer_constants(enum_con, &largest)  > 0) largest  = *enum_con;
     }  /* for */
-    /* Determine the number of bits needed to represent the smallest and
-       largest values. */
-    bits_needed_smallest =
-                        bits_required_to_represent_integer_constant(&smallest);
+    /* Determine the number of bits needed to represent largest value. */
     bits_needed_largest =
                         bits_required_to_represent_integer_constant(&largest);
+    /* See if the smallest value is negative. */
     smallest_is_negative = (sign_of_integer_constant(&smallest) < 0);
-    largest_is_nonnegative = (sign_of_integer_constant(&largest) >= 0);
-  }  /* if */
-  /* Determine the proper signedness for the bit field.  One can't
-     simply use the signedness of the enum type, since that was chosen
-     for efficiency reasons: if the enum values just fit in the bit
-     field size, an unsigned field might be necessary even though a 
-     signed type was a good choice for the enum type. */
-  if (smallest_is_negative) {
-    /* Some enum values are negative, so a signed type is required.
-       The enum type must already be signed. */
-    use_signed = TRUE;
-  } else if (bits_needed_largest >= bit_field_size) {
-    /* The largest value is nonnegative (because the smallest is nonnegative),
-       and it's big enough that it wouldn't fit in a signed field.
-       Therefore, an unsigned type is required. */
+#if TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
+    /* Enum bit fields are always unsigned (many ABIs require this). */
     use_signed = FALSE;
-  } else {
-    /* The signedness is not forced by the enum values, so use the 
-       target preference.  Make a one-bit field always unsigned. */
-    if (bit_field_size == 1) {
+    bits_needed = bits_needed_largest;
+#else /* !TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED */
+    /* Determine the proper signedness for the bit field.  One can't
+       simply use the signedness of the enum type, since that was chosen
+       for efficiency reasons: if the enum values just fit in the bit
+       field size, an unsigned field might be necessary even though a 
+       signed type was a good choice for the enum type. */
+    if (smallest_is_negative) {
+      /* Some enum values are negative, so a signed type is required.
+         The enum type must already be signed. */
+      use_signed = TRUE;
+    } else if (bits_needed_largest >= bit_field_size) {
+      /* The largest value is nonnegative (because the smallest is
+         nonnegative), and it's big enough that it wouldn't fit in a
+         signed field.  Therefore, an unsigned type is required. */
       use_signed = FALSE;
     } else {
-      use_signed = !TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED;
+      /* The signedness is not forced by the enum values, so use the 
+         target preference.  Make a one-bit field always unsigned. */
+      if (bit_field_size == 1) {
+        use_signed = FALSE;
+      } else {
+        use_signed = !(TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED);
+      }  /* if */
     }  /* if */
-  }  /* if */
-  /* Determine the number of bits needed. */
-  if (use_signed && largest_is_nonnegative) {
-    /* Using a signed bit field and the largest is nonnegative, so the largest
-       really requires one more bit for a zero sign. */
-    bits_needed_largest++;
-  }  /* if */
-  if (bits_needed_largest > bits_needed_smallest) {
-    bits_needed = bits_needed_largest;
-  } else {
-    bits_needed = bits_needed_smallest;
-  }  /* if */
-  /* Check that the enum values will fit in the bit field. */
-  if (bits_needed > bit_field_size) {
-    warning(ec_enum_bit_field_too_small);
+    if (use_signed && sign_of_integer_constant(&largest) >= 0) {
+      /* Using a signed bit field and the largest is nonnegative, so the
+         largest really requires one more bit for a zero sign. */
+      bits_needed_largest++;
+    }  /* if */
+    /* Determine the number of bits needed. */
+    { a_boolean bits_needed_smallest =
+                        bits_required_to_represent_integer_constant(&smallest);
+      if (bits_needed_largest > bits_needed_smallest) {
+        bits_needed = bits_needed_largest;
+      } else {
+        bits_needed = bits_needed_smallest;
+      }  /* if */
+    }
+#endif /* TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED */
+    /* Check that the enum values will fit in the bit field. */
+    if (bits_needed > bit_field_size
+#if TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
+        || smallest_is_negative
+#endif /* TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED */
+                                    ) {
+      warning(ec_enum_bit_field_too_small);
+    }  /* if */
   }  /* if */
   *need_signed_type = use_signed;
 }  /* check_enum_type_for_bit_field */

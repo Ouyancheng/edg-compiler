@@ -263,7 +263,13 @@ errors are still generated for type mismatches.
 /* How plain "int" bit fields are to be treated (signed or unsigned).
    Note that 1-bit fields are made unsigned regardless of this switch. */
 #define TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED (!DEFAULT_TARG_HAS_SIGNED_CHARS)
-
+/* Signedness for enum bit fields (an extension): if TRUE, enum bit fields
+   are always unsigned.  If FALSE, the rules are: (a) if the enum contains
+   any negative values, the field is signed; (b) if the enum contains
+   values large enough that they won't fit if one bit is allocated for a
+   sign, the field is unsigned; otherwise (c) the signedness is as
+   indicated by TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED. */
+#define TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED TRUE
 /* Alignment adjustment to be made when a zero-width (unnamed) bit field is
    declared.  If > 0 it is the alignment to be used (typically the alignment
    of one of the integral types).  A value of zero means "use the minimal
