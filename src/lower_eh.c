@@ -1615,11 +1615,16 @@ typeinfo variable in a COMDAT group.
           } else {
             pointed_to_type = pm_member_type(type);
           }  /* if */
-          if (is_const_qualified_type(pointed_to_type)) {
-            flags_value |= PFS_CONST;
-          }  /* if */
-          if (is_volatile_qualified_type(pointed_to_type)) {
-            flags_value |= PFS_VOLATILE;
+          if (emulate_gnu_abi_bugs &&
+              pointed_to_type->kind == (a_type_kind)tk_array) {
+            /* g++ 3.2 fails to put the cv-qualifier bits on an array type. */
+          } else {
+            if (is_const_qualified_type(pointed_to_type)) {
+              flags_value |= PFS_CONST;
+            }  /* if */
+            if (is_volatile_qualified_type(pointed_to_type)) {
+              flags_value |= PFS_VOLATILE;
+            }  /* if */
           }  /* if */
           if ((get_type_qualifiers(pointed_to_type) & TQ_RESTRICT) != 0) {
             flags_value |= PFS_RESTRICT;

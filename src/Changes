@@ -1,5 +1,11 @@
 Version 3.2
 
+4/15/03  IA-64 ABI RTTI information for pointer to array: g++ bug emulation
+
+An additional case has been added to the emulation of g++ 3.2 IA-64 ABI
+bugs: on a pointer to array, const and volatile qualifiers on the
+array element type are not put out in the RTTI information.
+
 4/15/03  Internal error on multi-translation unit case with unprototyped
          functions in C mode
 
