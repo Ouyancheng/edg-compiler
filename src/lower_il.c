@@ -7209,7 +7209,15 @@ local-variable-static-init entry.
            simply be zeroed, because NULL for a pointer to data member is
            represented as -1.  The initialization must be expanded to
            a constant. */
-        a_constant_ptr cp = lower_zero_initialization(variable->type);
+        a_constant_ptr         cp;
+        a_memory_region_number region_to_switch_back_to = NULL_region_number;
+        if (in_file_scope(variable)) {
+          /* Make sure any constant allocated is in the same region as
+             the variable. */
+          switch_to_file_scope_region(&region_to_switch_back_to);
+        }  /* if */
+        cp = lower_zero_initialization(variable->type);
+        switch_back_to_original_region(region_to_switch_back_to);
         if (has_static_storage_duration(variable->storage_class)) {
           *init_kind = (an_init_kind)initk_static;
           initializer->constant = cp;
