@@ -1,5 +1,21 @@
 Version 2.44
 
+4/4/00   Aborts when casting address constant expressions to integral types
+
+The front end used to sometimes abort processing when encountering address
+constant expressions that are cast to an integral type.  This was the case
+in particular when the address constant was used as the size of an array
+allocated with a new-expression, or when the address constant was assigned to
+a const integral variable that was itself used in a context that requires an
+integral constant expression.  For example:
+
+  int y;
+  int const i = (int)&y;
+  double z[i];  // Used to abort
+  double *p = new double[(int)&y];  // Used to also abort
+
+This is now fixed.
+
 3/31/00  Microsoft compatibility: two sets of template parameter names
          are visible in the definition of a member of class template
 
