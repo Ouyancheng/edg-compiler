@@ -52,7 +52,7 @@ Flags to be set when using the KAI inliner.
 #endif /* ifdef INLINER_VERSION */
 
 #ifdef sun
-/* Options Common to Sun hosted versions. */
+/* Options common to Sun-hosted versions. */
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
 #define USING_QUANTIFY 1
 #ifndef __ANSIC__
@@ -64,6 +64,9 @@ Flags to be set when using the KAI inliner.
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
 #define TARG_WCHAR_T_INT_KIND ik_unsigned_long 
 #define USE_INIT_SECTION_IN_GENERATED_C 1
+#else /* !defined(SOLARIS) */
+/* SunOS version. */
+#define C_GEN_BE_GENERATES_ANSI_C 0
 #endif /* ifdef SOLARIS */
 
 #ifdef OPTIMIZED_VERSION
@@ -104,7 +107,6 @@ Flags to be set when using the KAI inliner.
 #endif
 #define DEFAULT_SVR4_C_MODE 0
 #define PRAGMA_WEAK_ALLOWED 1
-#define USER_CONTROL_OF_STRUCT_PACKING 1
 #ifndef MAINTAIN_NEEDED_FLAGS
 #define MAINTAIN_NEEDED_FLAGS 1
 #endif /* ifndef MAINTAIN_NEEDED_FLAGS */

@@ -1154,11 +1154,11 @@ Switch that is TRUE if the C-generating back end should generate ANSI C
 instead of K&R C.
 */
 #ifndef C_GEN_BE_GENERATES_ANSI_C
-#if GCC_IS_C_GEN_BE_TARGET
+#if GCC_IS_C_GEN_BE_TARGET || USING_ISO_C
 #define C_GEN_BE_GENERATES_ANSI_C TRUE
-#else /* !GCC_IS_C_GEN_BE_TARGET */
+#else /* !(GCC_IS_C_GEN_BE_TARGET || USING_ISO_C) */
 #define C_GEN_BE_GENERATES_ANSI_C FALSE
-#endif /* GCC_IS_C_GEN_BE_TARGET */
+#endif /* GCC_IS_C_GEN_BE_TARGET || USING_ISO_C */
 #endif /* !defined(C_GEN_BE_GENERATES_ANSI_C) */
 #endif /* BACK_END_IS_C_GEN_BE */
 
