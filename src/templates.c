@@ -10741,6 +10741,13 @@ that follows.
                            storage_class = (a_storage_class)sc_unspecified;
           /* Advance past "=". */
           if (curr_token == tok_assign) (void)get_token();
+          /* Make sure that the type of the static data member is complete.
+             If the type cannot be completed, an error will be issued by
+             initializer.  Note that a static data member specialization
+             that is a definition always has an initializer (such a
+             declaration without an initializer is just a declaration, not
+             a definition). */
+          complete_class_type_is_needed(vp->type);
           initializer(sym, &locator.source_position,
                       (an_id_linkage_kind)idl_external,
                       has_parenthesized_initializer,

@@ -1,5 +1,20 @@
 Version 2.39
 
+2/23/98   Spurious error on specialization of static data member
+
+A spurious "incomplete type not allowed" error would occur if a static
+data member was defined in an explicit specialization declaration with a
+type that is a template class that has not yet been instantiated.  This
+has been fixed.
+
+  template<class T> struct A {
+    A(int i);
+  };
+  template<class T> struct B {
+    static A<T> x;
+  };
+  template<> A<int> B<int>::x(1);
+
 2/20/98   Compilation problem in lower_il.c with BACK_END_IS_C_GEN_BE set to 0
 
 When BACK_END_IS_C_GEN_BE is set to 0, lower_il.c did not compile correctly
