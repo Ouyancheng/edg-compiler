@@ -1,5 +1,11 @@
 Version 2.11
 
+9/26/92  Composite type of int f(int) and int f(const int) again
+
+Interpretation #13 from X3J11 indicates that the composite should
+drop the type qualifiers.  The change of 7/24/92 used the union
+of the type qualifiers.
+
 -------------------------------------------------------------------------------
 Version 2.10, September 22, 1992
 

@@ -2626,26 +2626,24 @@ is allocated, it is allocated in the file scope.
                 internal_error("composite_type: unequal length param lists");
               }  /* if */
 #endif /* CHECKING */
-              /* Form the composite of the two types.  If they have type
-                 qualifiers, make a type with the union of the qualifiers.
-                 That's a hole in the ANSI C standard (it makes parameters
-                 with differently-qualified types compatible, but does
-                 not define how to form the composite in that case). */
+              /* Form the composite of the two types.  One difficult case
+                 that comes up is
+                   int f(int);
+                   int f(const int);
+                 X3J11 has said that the composite of those parameter types
+                 is the composite of the unqualified types (interpretation
+                 13).  We use that rule only when the qualifiers are
+                 different, so that the composite of
+                   int f(const int, int);
+                   int f(const int, const int);
+                 still has "const int" in the first parameter. */
               param_1_type = param1->type;
               param_2_type = param2->type;
-              comp_param_type = composite_type(
-                                          make_unqualified_type(param_1_type),
-                                          make_unqualified_type(param_2_type));
-              if (is_qualified_type(param_1_type)) {
-                comp_param_type = type_plus_qualifiers_from_second_type(
-                                                               comp_param_type,
-                                                               param_1_type);
+              if (!type_qualifiers_match(param_1_type, param_2_type)) {
+                param_1_type = make_unqualified_type(param_1_type);
+                param_2_type = make_unqualified_type(param_2_type);
               }  /* if */
-              if (is_qualified_type(param_2_type)) {
-                comp_param_type = type_plus_qualifiers_from_second_type(
-                                                               comp_param_type,
-                                                               param_2_type);
-              }  /* if */
+              comp_param_type = composite_type(param_1_type, param_2_type);
               /* Form the composite of the C++ default argument expressions;
                  it's guaranteed that at most one of the parameter lists
                  has a default argument expression. */
