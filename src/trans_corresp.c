@@ -4802,13 +4802,14 @@ way, determine to which other IL entry this might correspond.
       process_pending_instantiations();
     }  /* if */
     if (trans_unit_corresp_of_unknown_entry(scp) == NULL) {
-      /* A correspondence error at an outer level prevent this entry from
-         having a correspondence.  Mark it and its unvisited ancestors as
-         having no correspondence. */
+      /* A failure to find a correspondence error at an outer level prevents
+         this entry from having a correspondence also.  Mark it and its
+         unvisited ancestors as having no correspondence. */
       set_no_trans_unit_corresp(kind, scp);
       if (scp->is_class_member) {
         a_type_ptr  parent = scp->parent.class_type;
-        while (parent != root) {
+        while (parent != root &&
+               trans_unit_corresp_of_unknown_entry(parent) == NULL) {
           set_no_trans_unit_corresp(iek_type, parent);
           parent = parent->source_corresp.parent.class_type;
         }  /* while */
