@@ -319,7 +319,7 @@ array-to-pointer decay).
                 a_type_ptr new_type = alloc_type((a_type_kind)tk_array);
                 new_type->variant.array.element_type =
                                              type_pointed_to(ptp->type);
-                new_type->is_incomplete = TRUE;
+                new_type->incomplete = TRUE;
                 ptp->type = new_type;
               } else if (is_qualified_type(tp)) {
                 ptp->type = make_identically_qualified_type(ptp->type, tp);
@@ -2365,7 +2365,7 @@ expression can be a multiple of the special UPC THREADS constant.
     *new_type_ptr = error_type();
   } else {
     *new_type_ptr = alloc_type((a_type_kind)tk_array);
-    (*new_type_ptr)->is_incomplete = TRUE;
+    (*new_type_ptr)->incomplete = TRUE;
     (*new_type_ptr)->variant.array.is_static = static_seen;
     (*new_type_ptr)->variant.array.qualifiers = qualifiers;
     /* Store the array size. */

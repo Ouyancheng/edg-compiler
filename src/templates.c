@@ -4723,7 +4723,7 @@ prototype instantiation is considered as a potential match.
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
-    class_type->is_incomplete =
+    class_type->incomplete =
                      !class_type->variant.class_struct_union.is_nonreal_class;
     if (class_type->variant.class_struct_union.is_nonreal_class) {
       a_class_symbol_supplement_ptr	cssp;
@@ -10221,7 +10221,7 @@ initially used when processing the declaration of a partial specialization.
     prototype_sym = make_template_class_symbol(sym);
     /* Now create a new type entry. */
     prototype_type = alloc_type(tssp->variant.class_template.type_kind);
-    prototype_type->is_incomplete = TRUE;
+    prototype_type->incomplete = TRUE;
     prototype_type->source_corresp.access = access_for_symbol(sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     prototype_type->autonomous_primary_tag_decl = TRUE;

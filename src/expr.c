@@ -6782,7 +6782,7 @@ specification allow a variable-sized array as the top type.
       unqual_new_type->variant.array.variant.number_of_elements = 0;
       unqual_new_type->size = 0;
       set_type_size(unqual_new_type);
-      unqual_new_type->is_incomplete = TRUE;
+      unqual_new_type->incomplete = TRUE;
     } else if (is_incomplete_type(new_type)) {
       /* A case like "new int[]" -- an incomplete array type. */
       pos_error(ec_incomplete_type_not_allowed, &type_position);
@@ -7597,7 +7597,7 @@ As an anachronism, allow an expression inside the [ ].
           /* For a delete of an array of classes, generate a dynamic init
              that replicates the destructor call for the whole array. */
           a_type_ptr array_type = alloc_type((a_type_kind)tk_array);
-          array_type->is_incomplete = TRUE;
+          array_type->incomplete = TRUE;
           array_type->variant.array.element_type = base_delete_type;
           /* Array size is left as zero; size need not be set. */
           /* The destruction, if any, is indicated both at the array level

@@ -150,7 +150,7 @@ predicates.
 
 /* Incomplete types are types that have been declared but have not yet been
    (completely) defined.  (void types are also considered "incomplete".) */
-#define is_incomplete(tp) ((tp)->is_incomplete)
+#define is_incomplete(tp) ((tp)->incomplete)
 
 /* Macro that is TRUE if two type kinds are the same, or are the same except
    that one is tk_class and the other is tk_struct. */
@@ -1982,9 +1982,9 @@ and a diagnostic is issued (unless suppress_error is TRUE).
       report_abstract_class_error(ec_array_of_abstract_class, elem_type,
                                   &error_position);
     }  /* if */
-    if (!elem_type->is_incomplete &&
+    if (!is_incomplete(elem_type) &&
         (temp != 0 || array_type->variant.array.bound_is_zero)) {
-      array_type->is_incomplete = FALSE;
+      array_type->incomplete = FALSE;
     }  /* if */
     temp2 = elem_type->size;
     /* Normally, element types cannot have size zero.  In GNU modes, however,

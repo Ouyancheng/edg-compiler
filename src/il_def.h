@@ -4919,12 +4919,12 @@ typedef struct a_type {
                            divisible.  1 if not applicable. */
   a_type_kind   kind;
                         /* The kind of type. */
-  a_bit_field	is_incomplete:1;
+  a_bit_field	incomplete:1;
 			/* TRUE if the given type has been declared without
 			   having been defined or if the type is void.
-                           (Can only be TRUE for class types, enum types,
-                           array types, and void).  For typerefs, the flag
-                           should be checked in the underlying type entry.) */
+			   (Can only be TRUE for class types, enum types,
+			   array types, and void).  For typerefs, the flag
+			   should be checked in the underlying type entry.) */
   a_bit_field	used_in_exception_or_rtti:1;
 			/* TRUE if this type appeared as (1) the type of an
 			   exception-declaration of a handler, (2) the type

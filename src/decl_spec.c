@@ -2506,7 +2506,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
        allocated in the file scope memory region, though local types will be
        added to the function scope's types list. */
     class_type = alloc_type(type_kind);
-    class_type->is_incomplete = TRUE;
+    class_type->incomplete = TRUE;
     if (scope_stack[effective_decl_level].kind ==
                                            (a_scope_kind)sck_func_prototype) {
       /* A type is actually declared in a function prototype scope only in
@@ -3217,7 +3217,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
     /* Create a new enumerated type.  All enumeration type entries are
        allocated in the file scope memory region. */
     enum_type = alloc_type((a_type_kind)tk_integer);
-    enum_type->is_incomplete = TRUE;
+    enum_type->incomplete = TRUE;
     is_redeclaration = FALSE;
     /* set_type_size is called later, once the final type is known. */
     /* Set a default representation of "int", which may be adjusted later. */
@@ -3330,7 +3330,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
          be set. */
       check_assertion(!enum_types_can_be_smaller_than_int);
       set_type_size(enum_type);
-      enum_type->is_incomplete = FALSE;
+      enum_type->incomplete = FALSE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Wait to add the type to the types list; it should not be added
@@ -3681,7 +3681,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Check for and pass over the closing "}". */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
-    enum_type->is_incomplete = FALSE;
+    enum_type->incomplete = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode) {
       /* Look for any attributes that apply to this type. */
