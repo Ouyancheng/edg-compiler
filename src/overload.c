@@ -3639,9 +3639,9 @@ Return TRUE if the candidate functions cfp1 and cfp2 are the same function.
       same = TRUE;
     } else if (sym1->kind == (a_symbol_kind)sk_projection &&
                sym2->kind == (a_symbol_kind)sk_projection &&
-               canonical_il_entry_of(sym1->variant.projection.extra_info->
-                                                     fundamental_base_class) !=
-               canonical_il_entry_of(sym2->variant.projection.extra_info->
+               !same_base_classes(sym1->variant.projection.extra_info->
+                                                     fundamental_base_class,
+                                  sym2->variant.projection.extra_info->
                                                      fundamental_base_class)) {
       /* When dealing with class member projections, if the subobjects
          involved are different (e.g., because of an ambiguous base class)
@@ -3668,8 +3668,7 @@ Return TRUE if the candidate functions cfp1 and cfp2 are the same function.
                                                             canonical_template;
           temp2 = sym2->variant.template_info->il_template_entry->
                                                             canonical_template;
-          same = (canonical_il_entry_of(temp1) ==
-                  canonical_il_entry_of(temp2));
+          same = same_entities(temp1, temp2);
         }  /* if */
       }  /* if */
     }  /* if */
