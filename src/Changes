@@ -1,5 +1,16 @@
 Version 2.21
 
+12/16/93  __vec_new_eh called even with exceptions disabled
+
+A bug caused the runtime routine __vec_new_eh to be caled in some
+cases even when exceptions are disabled.  For example:
+
+  struct A {
+    A();
+    ~A();
+  } a[100];
+
+
 12/16/93  Check for double --> float conversion overflow
 
 The check in float_pt.c for overflow or underflow on conversion of

@@ -1258,10 +1258,10 @@ allocated).  num_elem_node gives (as an expression) the number of
 elements in the array.  ctor_routine is the constructor routine to be
 called, or NULL if no constructor is to be called.  dtor_routine
 is the destructor routine to be called -- this is non-NULL only if
-there is a destructor and if exceptions are enabled (in that case,
-it may be necessary to destroy array elements that were created if
-a throw occurs halfway through the initialization of the array);
-the runtime routine __vec_new_eh is called in that case.
+there is a destructor and is used only if exceptions are enabled
+(in that case, it may be necessary to destroy array elements that
+were created if a throw occurs halfway through the initialization of
+the array); the runtime routine __vec_new_eh is called in that case.
 A pointer to the expression created is returned.
 */
 {
@@ -1288,7 +1288,7 @@ A pointer to the expression created is returned.
   entity_node->next = num_elem_node;
   num_elem_node->next = size_elem_node;
   size_elem_node->next = func_addr_node;
-  if (dtor_routine != NULL) {
+  if (exceptions_enabled && dtor_routine != NULL) {
     /* __vec_new_eh call, with destructor. */
     func_addr_node->next = function_addr_expr(dtor_routine);
     call_node = make_runtime_rout_call("__vec_new_eh", &vec_new_eh_routine,
