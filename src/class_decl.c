@@ -3038,14 +3038,7 @@ without it.
         new_rts->implicit_this_param_type = NULL;
         orig_rts->implicit_this_param_type = NULL;
       }  /* if */
-      /* Note that error types are not considered equal here. */
-      match = f_types_are_compatible(orig_type, new_type,
-#if MICROSOFT_KEYWORDS_ALLOWED
-                                     TCF_IGNORE_CALLING_CONVENTIONS
-#else /* !MICROSOFT_KEYWORDS_ALLOWED */
-                                     TCF_NO_FLAGS
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
-                                     );
+      match = routine_types_are_compatible(orig_type, new_type, TCF_NO_FLAGS);
       if (!new_function_is_qualified) {
         /* Restore the implicit "this" parameter types in orig_type and
            new_type. */
