@@ -1,5 +1,19 @@
 Version 2.44
 
+3/7/00   Microsoft 7.0 compatibility: array new and non-array operator new
+
+In MSVC++ 7.0, the processing for array new operators is slightly
+changed, and this is now emulated in Microsoft mode with
+--microsoft_version=1300.  If no operator new[] matches, the
+overload resolution is done again with the non-array operator new
+functions, to attempt to find a non-array new that can be used.
+
+  void * operator new[](size_t);
+  void * operator new(size_t, char const *, int);
+  char *f() {
+    return new(__FILE__, __LINE__) char[4]; // OK, --microsoft_version=1300
+  }
+
 3/7/00   Abort on pointer-to-member constant cast in initializer
 
 In some rare situations involving the casting of a pointer-to-member function
