@@ -4724,7 +4724,7 @@ the expression.
         /* Both branches can be rewritten, so rewrite the whole expression. */
         possible = TRUE;
         if (!see_if_possible) {
-          node->returns_lvalue_instead_of_usual_rvalue = TRUE;
+          node->variant.operation.returns_lvalue_instead_of_usual_rvalue= TRUE;
           conv_class_rvalue_expr_to_object_pointer(&op2, &op2_possible,
                                                    /*see_if_possible=*/FALSE);
           conv_class_rvalue_expr_to_object_pointer(&op3, &op3_possible,
@@ -4742,7 +4742,7 @@ the expression.
       if (op2_possible) {
         possible = TRUE;
         if (!see_if_possible) {
-          node->returns_lvalue_instead_of_usual_rvalue = TRUE;
+          node->variant.operation.returns_lvalue_instead_of_usual_rvalue= TRUE;
           conv_class_rvalue_expr_to_object_pointer(&op2, &op2_possible,
                                                    /*see_if_possible=*/FALSE);
           op1->next = op2;
@@ -4765,14 +4765,14 @@ the expression.
         }  /* if */
       }  /* if */
     } else if (op == (an_expr_operator_kind)eok_sassign &&
-               !node->returns_lvalue_instead_of_usual_rvalue) {
+             !node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
       /* An assignment operation that returns an rvalue.  It can be optimized
          by changing it to the lvalue case. */
       /* This case is here for the sake of completeness.  It's probably not
          needed. */
       possible = TRUE;
       if (!see_if_possible) {
-        node->returns_lvalue_instead_of_usual_rvalue = TRUE;
+        node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
       }  /* if */
     }  /* if */
   } else if (is_error_node(node)) {
@@ -4917,7 +4917,7 @@ non-NULL return *con_value == NULL.
   if (con_expr_value == NULL) {
     /* Do the transformation on the expression node. */
     if (is_operation_node(node)) {
-      if (node->returns_lvalue_instead_of_usual_rvalue) {
+      if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
         /* Operation that returns an lvalue where the C case would return
            an rvalue. */
         an_expr_operator_kind op = node->variant.operation.kind;
@@ -4961,7 +4961,7 @@ non-NULL return *con_value == NULL.
              lvalue.  Change it to one that returns an rvalue. */
         }  /* if */
         optimized_case = TRUE;
-        node->returns_lvalue_instead_of_usual_rvalue = FALSE;
+        node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */

@@ -3558,7 +3558,7 @@ precedence confusion.
           }  /* if */
         }  /* if */
       }  /* if */
-    } else if (node->returns_lvalue_instead_of_usual_rvalue) {
+    } else if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue){
       /* An operation that returns an lvalue, e.g., an lvalue-returning
          assignment. */
       if (op == (an_expr_operator_kind)eok_question) {
@@ -3583,9 +3583,9 @@ precedence confusion.
       } else {
         /* Other case (e.g., lvalue-returning assignment).  Just put the
            expression out. */
-        node->returns_lvalue_instead_of_usual_rvalue = FALSE;
+        node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
         gen_expr_with_parens(node);
-        node->returns_lvalue_instead_of_usual_rvalue = TRUE;
+        node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
         processed = TRUE;
       }  /* if */
     }  /* if */
@@ -4059,7 +4059,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
     case enk_operation:
       /* Expression operation. */
       if (need_parens) m_write_tok_ch('(');
-      if (expr->returns_lvalue_instead_of_usual_rvalue) {
+      if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
         /* Lvalue-returning version, used as an rvalue.  Need "&" in front. */
         gen_ampersand(type_pointed_to(expr->type));
         gen_lvalue(expr);

@@ -2914,7 +2914,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       /* Lvalue cases should have been rewritten by IL lowering.  Some "?"
          and "," cases may remain, where the semantics are the same as in
          C. */
-      check_assertion_str(!expr->returns_lvalue_instead_of_usual_rvalue ||
+      check_assertion_str(!expr->variant.operation.
+                                      returns_lvalue_instead_of_usual_rvalue ||
                           op == (an_expr_operator_kind)eok_question ||
                           op == (an_expr_operator_kind)eok_comma,
                           "dump_expr: lvalue-returning operation");
