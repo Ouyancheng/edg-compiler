@@ -516,8 +516,11 @@ ambiguous.  For example:
   struct X: D1, D2 {};  // Normally an error, but not in Microsoft bugs mode,
                         // Sun mode, or Cfront mode.
 
-In such cases, the overrider selected by the front end is the one from
-the unambiguous base class.
+In such cases, the overrider selected by the front end is the one from the
+unambiguous base class.  This error check was added in version 3.1 in
+accordance with the standard (and g++), but in these other modes it was
+effectively a regression because those other compilers do not diagnose the
+ambiguity in cases such as this.
 
 2/10/03  Unspecified array size computed from extended designator
 
