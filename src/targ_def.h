@@ -1507,7 +1507,9 @@ typedef unsigned short a_virtual_function_number;
 #endif /* ifndef MAX_VIRTUAL_FUNCTIONS_PER_CLASS */
 
 /* The type of an index into the virtual table. */
-#if IA64_ABI
+#if !IA64_ABI
+typedef a_virtual_function_number a_virtual_table_index;
+#else /* IA64_ABI */
 /* In the IA64 ABI, there are entries at negative vtable indices, so this type
    must be signed. */
 typedef a_targ_ptrdiff_t a_virtual_table_index;
