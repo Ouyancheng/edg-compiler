@@ -1734,7 +1734,7 @@ their operands.
      by the destination node; no copy is needed. */
   *node = *source_node;
   node->next = node_next;
-  node->result_is_not_used = result_is_not_used;
+  if (result_is_not_used) set_expr_result_not_used(node);
 }  /* overwrite_node */
 
 
@@ -1755,6 +1755,8 @@ list as given by operand.
   node_result_is_not_used = node->result_is_not_used;
   clear_expr_node(node, (an_expr_node_kind)enk_operation);
   node->next = node_next;
+  /* Don't need to call set_expr_result_not_used here; set_node_operator
+     calls it. */
   node->result_is_not_used = node_result_is_not_used;
   set_node_operator(node, op, type, operand);
 }  /* change_node_to_operation */
