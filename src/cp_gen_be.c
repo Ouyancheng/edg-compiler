@@ -1866,8 +1866,8 @@ secondary declaration.
 {
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
-                       /*need_trailing_space=*/(scp != NULL),
-                       /*add_const=*/FALSE, /*suppress_const=*/FALSE, &octl);
+                       /*need_trailing_space=*/(scp != NULL), FTFP_NO_OPTIONS,
+                       &octl);
   /* Write the name if there is one. */
   if (scp != NULL) {
     /* Set the source position for the name. */
@@ -2032,7 +2032,7 @@ source sequence entry is the one associated with the constant.
   form_type_first_part(constant->type,
                        /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/TRUE,
-                       /*add_const=*/TRUE, /*suppress_const=*/FALSE,
+                       FTFP_ADD_CONST,
                        &octl);
   /* Set the source position for the name. */
   set_output_position(&constant->source_corresp.decl_position);
@@ -2318,8 +2318,7 @@ is non-NULL and points to the secondary declaration entry.
        Put out with a qualified name. */
     a_type_ptr class_type = f_skip_typerefs(type_pointed_to(this_param_type));
     form_type_first_part(under_type, /*under_lhs_declarator=*/FALSE,
-                         /*need_trailing_space=*/TRUE,
-                         /*add_const=*/FALSE, /*suppress_const=*/FALSE,
+                         /*need_trailing_space=*/TRUE, FTFP_NO_OPTIONS,
                          &octl);
     /* Write the (qualified) name. */
     gen_class_qualifier(class_type);
@@ -2477,8 +2476,7 @@ the ampersand since C will assume one.
     write_tok_ch('(');
     /* Write the specifiers and the first part of the declarator. */
     form_type_first_part(type, /*under_lhs_declarator=*/TRUE,
-                         /*need_trailing_space=*/FALSE,
-                         /*add_const=*/FALSE, /*suppress_const=*/FALSE,
+                         /*need_trailing_space=*/FALSE, FTFP_NO_OPTIONS,
                          &octl);
     /* Add an extra "pointer-to". */
     write_tok_ch('*');
@@ -2967,7 +2965,7 @@ Generate code for a new or delete operation.
       form_type_first_part(elem_type,
                            /*under_lhs_declarator=*/FALSE,
                            /*need_trailing_space=*/TRUE,
-                           /*add_const=*/FALSE, /*suppress_const=*/FALSE,
+                           FTFP_NO_OPTIONS,
                            &octl);
       write_tok_ch('[');
       if (num_elems_can_be_found_in_size_expr(arg, elem_size,
@@ -5034,7 +5032,7 @@ declaration or definition.
       form_type_first_part(rout_type,
                            /*under_lhs_declarator=*/FALSE,
                            /*need_trailing_space=*/TRUE,
-                           /*add_const=*/FALSE, /*suppress_const=*/FALSE,
+                           FTFP_NO_OPTIONS,
                            &octl);
     }  /* if */
     /* Position the output file to the declaration position (again). */

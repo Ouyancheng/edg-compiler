@@ -792,8 +792,7 @@ symbol_name:
         form_type_first_part(type,
                              /*under_lhs_declarator=*/FALSE,
                              /*need_trailing_space=*/TRUE,
-                             /*add_const=*/FALSE,
-                             /*suppress_const=*/FALSE,
+                             FTFP_NO_OPTIONS,
                              &octl);
       }  /* if */
       /* Put out the name, including the class qualifier if any. */

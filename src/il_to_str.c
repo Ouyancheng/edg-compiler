@@ -712,8 +712,7 @@ void form_type_first_part(
                     a_type_ptr                            type,
                     a_boolean                             under_lhs_declarator,
                     a_boolean                             need_trailing_space,
-                    a_boolean                             add_const,
-                    a_boolean                             suppress_const,
+                    a_form_type_first_part_options_set    options,
                     an_il_to_str_output_control_block_ptr octl)
 /*
 For the indicated type, output the specifiers and the part of the declarator
@@ -722,13 +721,16 @@ directly under a type that uses a left-side declarator, e.g., a pointer type.
 (That's used to control use of parentheses around parts of the declarator.)
 If need_trailing_space is TRUE, put a space at the end of the specifiers
 part (needed if the declarator part is not empty, because it contains a
-name or a derived type).  If add_const is TRUE, add an extra "const" on
-top of the type.  If suppress_const is TRUE, suppress generation of
-top-level "const".  Do the output in the way described by octl.
+name or a derived type).  options contains options as bits in a set:
+If FTFP_ADD_CONST is TRUE, add an extra "const" on top of the type.
+If FTFP_SUPPRESS_CONST is TRUE, suppress generation of top-level "const".
+Do the output in the way described by octl.
 */
 {
   a_type_kind kind;
   a_type_ptr  qual_type;
+  a_boolean   add_const      = (options & FTFP_ADD_CONST) != 0;
+  a_boolean   suppress_const = (options & FTFP_SUPPRESS_CONST) != 0;
 
   qual_type = type;
 #ifdef CFE
@@ -746,8 +748,7 @@ top-level "const".  Do the output in the way described by octl.
     form_type_first_part(type->variant.pointer.type,
                          /*under_lhs_declarator=*/TRUE,
                          /*need_trailing_space=*/TRUE,
-                         /*add_const=*/FALSE,
-                         /*suppress_const=*/FALSE,
+                         FTFP_NO_OPTIONS,
                          octl);
     /* Output "*" or "&" for pointer or reference. */
 #ifdef CFE
@@ -768,8 +769,7 @@ top-level "const".  Do the output in the way described by octl.
     form_type_first_part(type->variant.ptr_to_member.type,
                          /*under_lhs_declarator=*/TRUE,
                          /*need_trailing_space=*/TRUE,
-                         /*add_const=*/FALSE,
-                         /*suppress_const=*/FALSE,
+                         FTFP_NO_OPTIONS,
                          octl);
     /* Output Classname::*. */
     form_name(&type->variant.ptr_to_member.
@@ -791,8 +791,7 @@ top-level "const".  Do the output in the way described by octl.
     form_type_first_part(type->variant.routine.return_type,
                          /*under_lhs_declarator=*/FALSE,
                          /*need_trailing_space=*/TRUE,
-                         /*add_const=*/FALSE,
-                         /*suppress_const=*/FALSE,
+                         FTFP_NO_OPTIONS,
                          octl);
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
@@ -809,8 +808,7 @@ top-level "const".  Do the output in the way described by octl.
     form_type_first_part(type->variant.array.element_type,
                          /*under_lhs_declarator=*/FALSE,
                          /*need_trailing_space=*/TRUE,
-                         /*add_const=*/FALSE,
-                         suppress_const,
+                         options & FTFP_SUPPRESS_CONST,
                          octl);
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
@@ -995,7 +993,7 @@ Output a string for a type.  Do the output in the way described by octl.
     /* Write the specifiers and the first part of the declarator. */
     form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                          /*need_trailing_space=*/FALSE,
-                         /*add_const=*/FALSE, /*suppress_const=*/FALSE, octl);
+                         FTFP_NO_OPTIONS, octl);
     /* Write the second part of the declarator. */
     form_type_second_part(type, /*under_lhs_declarator=*/FALSE,
                           /*suppress_const=*/FALSE, octl);
