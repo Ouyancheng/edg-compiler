@@ -4873,7 +4873,7 @@ The parentheses are required, unlike for sizeof.
   /* Prepare for the possibility of having to scan an expression. */
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
+                  /*suppress_object_lifetime=*/(curr_object_lifetime != NULL));
   expr_stack_entry.evaluated = FALSE;
   expr_stack_entry.potentially_evaluated = FALSE;
   /* Check for and pass over the left parenthesis. */
@@ -16212,7 +16212,8 @@ create a dynamic initialization entry and return a pointer to it in
 value (along with *is_constant TRUE).  This routine exists to deal
 with initialization of aggregate class types, but it can be called for
 non-aggregate class types as well.  It also handles certain array
-initialization cases.
+initialization cases, and compound literals (suppress_object_lifetime
+is TRUE in that case to suppress the pushing of a new object lifetime).
 
 The initializer for an aggregate can initialize either the whole
 aggregate or the first member of the aggregate (or its first member, etc.).

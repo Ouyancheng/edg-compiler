@@ -1,5 +1,23 @@
 Version 3.3
 
+6/18/03  Abort in push_object_lifetime on g++ typeof
+
+An abort in push_object_lifetime has been eliminated.  It came
+up in g++ mode on a use of typeof within a template argument
+list used within a function body.
+
+  template <class T>
+  struct A {
+    void g(T* t) {
+      A<typeof(t)> a;
+    }
+  };
+  int main() {
+    A<int> a;
+    int b;
+    a.g(&b);
+  }
+
 6/17/03  Abort on lowering of GNU [a...b] designated initializer
 
 IL lowering aborted in lower_init.c (lower_aggregate_designated_initializers)
