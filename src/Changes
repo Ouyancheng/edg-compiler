@@ -1,5 +1,15 @@
 Version 2.30
 
+10/2/95  pragma binding with elaborated type specifiers
+
+A bug has been fixed in how a "next-construct" pragma binds when an
+elaborated type specifier appears in the declaration of another entity.
+This has an impact on this sort of case, for example:
+
+  /*ARGSUSED*/
+  struct S *f(int i) { return 0; }    // Diagnostic on unused parameter
+                                      //   "i" is no longer issued.
+
 9/27/95  Template instantiation based on unnamed tag
 
 A spurious error (introduced by a change in version 2.28) has been
@@ -99,6 +109,21 @@ produced an internal error prior to 2.29) is now handled properly:
 A new flag, implicit_decl, has been added to a_src_seq_secondary_decl,
 indicating that the entry represents implicit declaration of an extern
 function (C-mode).
+
+9/12/95  Global qualifier on friend declaration (extension)
+
+Except in strict ANSI mode we now accept a qualifier on a friend
+declaration to designate a file-scope name.  This is to be consistent
+with allowing namespace-qualified names in friend declarations:
+
+  void f();
+  namespace N { void g(); }
+  namespace M {
+    class A {
+      friend N::g();           // Allowed
+      friend ::f();            // Allowed as an extension
+    };
+  }
 
 9/11/95  C++-generating back end: C mode definition of struct in cast
 
