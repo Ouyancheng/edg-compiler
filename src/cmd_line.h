@@ -702,20 +702,17 @@ EXTERN a_boolean
 			/* TRUE if the fixed-point extensions of ISO TR 18037
 			   (aka. "Embedded C") should be accepted. */
 
+#if NAMED_ADDRESS_SPACES_ALLOWED
 EXTERN a_boolean
 		named_address_spaces_allowed
 #if VAR_INITIALIZERS
-		                    =
-#if NAMED_ADDRESS_SPACES_ALLOWED
-		                      DEFAULT_NAMED_ADDRESS_SPACES_ALLOWED
-#else /* !NAMED_ADDRESS_SPACES_ALLOWED */
-		                      FALSE
-#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+		                             = DEFAULT_NAMED_ADDRESS_SPACES_ALLOWED
 #endif /* VAR_INITIALIZERS */
-                                                                          ;
+                                                                         ;
 			/* TRUE if the extension of ISO TR 18037 (aka.
 			   "Embedded C") for named address spaces should be
 			    accepted. */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
 EXTERN a_boolean
 		pointer_to_member_call_optimization_allowed

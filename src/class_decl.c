@@ -2487,8 +2487,9 @@ entry for the class associated with the overridden function.
       tp2 = type_pointed_to(tp2);
       if (is_class_struct_union_type(tp1) && is_class_struct_union_type(tp2)) {
         /* The types referenced/pointed to are both classes. */
-        if (!any_qualifier_in_set_missing(get_type_qualifiers(tp2),
-                                          get_type_qualifiers(tp1))) {
+        a_type_qualifier_set  tp1_quals = get_type_qualifiers(tp1);
+        a_type_qualifier_set  tp2_quals = get_type_qualifiers(tp2);
+        if (!any_qualifier_in_set_missing(tp2_quals, tp1_quals)) {
           /* The cv-qualification on the class of the overriding function's
              return type (tp1) is equal to or less than the cv-qualification
              on the class of the overridden function's return type (tp2). */
