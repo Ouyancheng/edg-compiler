@@ -6552,6 +6552,7 @@ C++ mode.
   /* Don't check for user-defined conversions in constant expressions. */
   if (!curr_expr_kind_is_const()) {
     if (cast_to_reference) {
+      a_type_ptr eff_type_cast_to = type_pointed_to(type_cast_to);
       /* A cast from a class to a reference type can be handled by a
          conversion function that returns a reference.  Look for such
          a function, but if one is not found, go on to the general case
@@ -6561,7 +6562,6 @@ C++ mode.
          we know we have an error.  That's the reason that
          user_defined_conversion_possible is not called. */
       if (is_class_struct_union_type(operand->type)) {
-        a_type_ptr   eff_type_cast_to = type_pointed_to(type_cast_to);
         a_boolean    ambiguous;
         a_boolean    ref_to_const, ref_to_const_volatile;
         a_boolean    binding_to_rvalue_allowed, dropping_qualifiers;
@@ -6604,6 +6604,13 @@ C++ mode.
                                             (a_conv_descr *)NULL,
                                             &failed);
         }  /* if */
+      } else if (is_template_param_type(operand->type)) {
+        /* A template parameter type could be a class type, so assume that
+           a conversion is possible. */
+        *processed = TRUE;
+        generic_cast_operand(operand, eff_type_cast_to,
+                             (an_expr_operator_kind)eok_cast,
+                             /*is_implicit_cast=*/TRUE);
       }  /* if */
     } else {
       /* Normal case (not a cast to a reference type). */
