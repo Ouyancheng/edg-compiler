@@ -2894,10 +2894,20 @@ Pop function corresponding to push_generated_routine_context.
 {
   a_routine_ptr rout = scope->variant.routine.ptr;
 
-  /* If there is reason to promote the local types and static variables
-     to the file scope, do that now and clear the lists.  That makes the
-     promoted entities part of the file scope and no longer orphans. */
-  promote_local_entities_to_file_scope(scope);
+  /* promote_local_entities_to_file_scope is not called here.  A generated
+     routine shouldn't have the kinds of entities that need to be
+     promoted, and calling it here would promote variables generated
+     for exception handling (which doesn't happen for not-generated
+     routines, because the promotion for them is done at the beginning
+     of lowering, before those variables are generated).  In particular,
+     if promote_local_entities_to_file_scope is changed always to return
+     TRUE, the promotion here fouls up the calls of finish_array_var
+     that record a type in aggregate initializers (triggered by
+     the call of add_eh_function_prologue below): the promotion copies
+     the constant to the file scope in its incomplete state, and
+     the original instance is finished later, because the EH lowering
+     has a pointer to the original instance and is unaware that it has
+     been moved. */
   (void)pop_object_lifetime();
   clean_up_all_object_lifetimes(scope);
   if (exceptions_enabled
