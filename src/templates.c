@@ -7739,6 +7739,10 @@ structure.
           pos_error(ec_unnamed_type_in_template_arg, source_pos);
         }  /* if */
       }  /* if */
+      /* Local typedef names (legal if they refer to nonlocal types) should
+         not be part of the type signature of the template itself,
+         which is nonlocal.  Strip them off, if there are any. */
+      tap->variant.type = strip_local_and_nonreal_typedefs(tap->variant.type);
     } else if (is_nontype_templ_arg(tap)) {
       if (constant_references_non_external_entity(tap->variant.constant)) {
         pos_error(ec_nonexternal_entity_in_template_arg, source_pos);
