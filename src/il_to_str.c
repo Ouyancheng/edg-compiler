@@ -500,6 +500,11 @@ C++-generating back end.
 {
   char *p;
 
+#if !STANDALONE_UTILITY_PROGRAM
+  /* In some modes, plain char is equivalent to signed char.  In such
+     modes, output just "char" for the equivalent type. */
+  if (kind == plain_char_int_kind) kind = (an_integer_kind)ik_char;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
   switch (kind) {
     case ik_char:               p = "char";               break;
     case ik_signed_char:        p = "signed char";        break;
