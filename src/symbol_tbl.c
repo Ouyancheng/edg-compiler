@@ -389,9 +389,6 @@ and indentation is the indentation desired.
       if (sym->variant.overloaded_function.mixed_static_nonstatic) {
         put_string ("mixed static/nonstatic");
       }  /* if */
-      if (sym->variant.overloaded_function.any_virtual_functions) {
-        put_string ("virtuals");
-      }  /* if */
       if (sym->variant.overloaded_function.symbols == NULL) {
         put_string("func symbols = <null>");
       } else {
@@ -882,7 +879,6 @@ state.
     case sk_overloaded_function:
       sym_ptr->variant.overloaded_function.symbols = NULL;
       sym_ptr->variant.overloaded_function.mixed_static_nonstatic = FALSE;
-      sym_ptr->variant.overloaded_function.any_virtual_functions = FALSE;
       break;
 #if CHECKING
     default:
@@ -1423,12 +1419,6 @@ a locator for the new symbol.  Return a pointer to the new symbol.
     overload_symbol->decl_scope = other_sym->decl_scope;
     overload_symbol->class_of_which_a_member =
                                        other_sym->class_of_which_a_member;
-    /* Mark the overloaded function symbol appropriately if other_sym
-       represents a virtual function. */
-    if (other_sym->variant.routine->is_virtual) {
-      overload_symbol->
-                 variant.overloaded_function.any_virtual_functions = TRUE;
-    }  /* if */
     /* Put overload_symbol into the primary list in place of other_sym. */
     /* Find the symbol preceding other_sym on its list. */
     prev_sym_ptr = hdr_ptr->symbol;

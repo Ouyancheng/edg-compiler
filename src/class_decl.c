@@ -2810,10 +2810,6 @@ special function kind (e.g., constructor, destructor), if any.
                    variant.overloaded_function.mixed_static_nonstatic = TRUE;
         }  /* if */
       }  /* if */
-      /* Mark the overload symbol if the new symbol is a virtual function. */
-      if (rtn->is_virtual) {
-        overload_sym->variant.overloaded_function.any_virtual_functions = TRUE;
-      }  /* if */
     }  /* if */
   }  /* if */
 #if DEBUG
