@@ -749,7 +749,8 @@ typedef struct a_class_type_supplement {
 			   members of the class.  "types" gives a linked list
 			   of type entries representing local types defined
 			   within the scope of the class, including nested
-			   classes. */
+			   classes.  This pointer is NULL when the class
+			   has been declared but not defined. */
 } a_class_type_supplement;
 
 #endif /* ifdef CIL */
@@ -915,11 +916,7 @@ typedef struct a_type {
                 extra_info;
                         /* Supplementary information, in a separate block
                            to keep down the size of a_type.  This pointer
-                           will be NULL for tk_struct and tk_union types
-                           that represent C-style structs and unions (i.e.,
-			   no static data members, no member functions, no
-			   base classes, etc.); it will also be NULL for a
-			   tk_class type that maps to a C-style struct. */
+                           is only used in C++, and will be NULL in C. */
       a_byte_boolean
                 any_const_member;
                         /* TRUE if any member of the class, struct, or union
