@@ -171,6 +171,7 @@ static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr dip);
 static an_expr_node_ptr internal_copy_expr_tree(an_expr_node_ptr expr);
 static an_expr_node_ptr internal_copy_list_of_expr_trees(
                                                    an_expr_node_ptr expr_list);
+static a_constant_hash_value hash_constant(a_constant *cp);
 
 #if DEBUG
 /* Forward declaration needed because of mutual recursion. */
@@ -2159,6 +2160,7 @@ to refine the hash value developed in hash_constant.
 {
   a_constant_hash_value       hash_value;
   a_class_type_supplement_ptr ctsp;
+  a_template_arg_ptr          tap;
 
   /* Only pointers to class types are particularly important here. */
   /* Note that the address of the type or its subtypes should not be
@@ -2186,7 +2188,15 @@ to refine the hash value developed in hash_constant.
         hash_value = ctsp->assoc_scope->number;
       } else {
         /* No supplement (C mode) or no definition. */
-        hash_value = (a_constant_hash_value)type->kind;
+        hash_value = 217;
+        /* Work in the template arguments if there are any. */
+        for (tap = ctsp->template_arg_list; tap != NULL; tap = tap->next) {
+          if (tap->is_type) {
+            hash_value += hash_type(tap->variant.type) + 37;
+          } else {
+            hash_value += hash_constant(tap->variant.constant) + 43;
+          }  /* if */
+        }  /* if */
       }  /* if */
       break;
     case tk_typeref:
