@@ -1,5 +1,12 @@
 Version 2.24
 
+6/20/94 C/C++-generating back end output of small integer constants
+
+The C/C++-generating back ends now output integer constants with types
+shorter than int (e.g., short) with a leading cast to get the right
+type.  This solves an overloading problem with the output of the
+C++-generating back end.
+
 6/20/94 Concatenation of adjacent string literals
 
 The lexical concatenation of adjacent string literals in get_token
