@@ -3165,7 +3165,7 @@ to indicate whether an enumeration is actually defined.
         enum_sym->variant.constant = enum_con;
         if (gcc_mode) {
           /* In GNU C mode, the type of the constants is determined after
-             all the constant have been seen. */
+             all the constants have been seen. */
         } else if (C_mode()) {
           enum_con->type = enum_con_type;
         } else {
