@@ -1,5 +1,26 @@
 Version 2.26
 
+10/2/94  C-generating back end: code ordering problem with local types
+         inside member functions of local classes
+
+An ordering problem in the generated C code for the following has been
+fixed:
+
+  void f() {
+    struct A {
+      void g() { 
+        struct B {
+          T x;
+          B() {}
+        };
+      };
+      typedef int T;
+    };
+  }
+
+The fix was actually made in IL lowering and involves the new field
+promoted_local_types in a_class_type_supplement.
+
 10/1/94  -I- command-line option
 
 The "-I-" command-line option is now supported.  It indicates the point
