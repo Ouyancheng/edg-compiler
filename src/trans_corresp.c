@@ -877,18 +877,22 @@ diagnostic.
 
 
 static void f_process_bad_trans_unit_corresp(an_il_entry_kind  kind,
-                                             char              *entity)
+                                             char              *entity1,
+                                             char              *entity2)
 /*
-Same as report_bad_trans_unit_corresp but also clear the correspondence
-pointer.
+Similar to report_bad_trans_unit_corresp but use the position of entity2
+and clear the correspondence of entity1.
 */
 {
-  report_bad_trans_unit_corresp(entity);
-  set_no_trans_unit_corresp(kind, entity);
+  f_report_bad_trans_unit_corresp(entity1,
+                                  &((a_source_correspondence_ptr)entity2)
+                                                              ->decl_position);
+  set_no_trans_unit_corresp(kind, entity1);
 }  /* f_process_bad_trans_unit_corresp */
 
-#define process_bad_trans_unit_corresp(kind, entity)                        \
-  f_process_bad_trans_unit_corresp((an_il_entry_kind)kind, (char*)(entity))
+#define process_bad_trans_unit_corresp(kind, entity1, entity2)               \
+  f_process_bad_trans_unit_corresp((an_il_entry_kind)kind,                   \
+                                   (char*)(entity1), (char*)(entity2))
 
 
 static void f_report_multiple_definitions(char                   *entity1,
@@ -1909,7 +1913,7 @@ is in fact valid.
         if (scp->assoc_info != NULL &&
             scp->assoc_info != (char*)unnamed_field_symbol()) {
           /* A named field: */
-          process_bad_trans_unit_corresp(iek_field, field);
+          process_bad_trans_unit_corresp(iek_field, field, corresp_field);
         } else {
           /* An unnamed field has a meaningless associated symbol.  Report
              the error on the associated class instead. */
@@ -2023,7 +2027,7 @@ is in fact valid.
          typedefs were used to identify them (and that's OK). */
       if (routine->special_kind != corresp_routine->special_kind) {
         match = FALSE;
-        process_bad_trans_unit_corresp(iek_routine, routine);
+        process_bad_trans_unit_corresp(iek_routine, routine, corresp_routine);
       }  /* if */
     } else {
       match = verify_name_correspondence(routine);
@@ -2064,7 +2068,7 @@ is in fact valid.
          scp->access != corresp_scp->access ||
          scp->name_linkage != corresp_scp->name_linkage)) {
       match = FALSE;
-      process_bad_trans_unit_corresp(iek_routine, routine);
+      process_bad_trans_unit_corresp(iek_routine, routine, corresp_routine);
     }  /* if */
     /* If this is an inline function based on a template, compare the
        template checksums. */
@@ -2080,7 +2084,8 @@ is in fact valid.
         if (templ->cache_checksum != corresp_templ->cache_checksum &&
             !suppress_inline_corresp_check) {
           match = FALSE;
-          process_bad_trans_unit_corresp(iek_routine, routine);
+          process_bad_trans_unit_corresp(iek_routine,
+                                         routine, corresp_routine);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -2143,7 +2148,7 @@ is in fact valid.
          scp->access != corresp_scp->access ||
          scp->name_linkage != corresp_scp->name_linkage)) {
       match = FALSE;
-      process_bad_trans_unit_corresp(iek_variable, var);
+      process_bad_trans_unit_corresp(iek_variable, var, corresp_var);
     }  /* if */
     if (match && !trans_unit_test_mode &&
         var->storage_class == (a_storage_class)sc_unspecified &&
@@ -2199,7 +2204,8 @@ is in fact valid.
       match = FALSE;
       if (!C_mode()) {
         /* In C mode, constants have no linkage. */
-        process_bad_trans_unit_corresp(iek_constant, constant);
+        process_bad_trans_unit_corresp(iek_constant,
+                                       constant, corresp_constant);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2740,7 +2746,7 @@ is in fact valid.
       match = identical_types(type, corresp_type) &&
               same_exception_spec(type, corresp_type);
       if (!match) {
-        process_bad_trans_unit_corresp(iek_type, type);
+        process_bad_trans_unit_corresp(iek_type, type, corresp_type);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2863,7 +2869,7 @@ is in fact valid.
             specialized_vs_generic_class_template_conflict(tssp,
                                                            corresp_tssp)))))) {
       match = FALSE;
-      process_bad_trans_unit_corresp(iek_template, templ);
+      process_bad_trans_unit_corresp(iek_template, templ, corresp_templ);
     }  /* if */
     if (!match) {
       /* The templates don't seem to match, so don't try to verify the
@@ -2886,7 +2892,7 @@ is in fact valid.
                     variant.class_struct_union.extra_info->template_arg_list,
              ETA_NO_OPTIONS)) {
         match = FALSE;
-        process_bad_trans_unit_corresp(iek_template, templ);
+        process_bad_trans_unit_corresp(iek_template, templ, corresp_templ);
       } else {
         a_symbol_ptr  inst = tssp->variant.class_template.instantiations;
         /* First process the prototype instantiation. */
