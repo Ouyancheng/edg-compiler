@@ -6039,27 +6039,28 @@ the "=" semantics.
 }  /* prep_elision_initializer_operand */
 
 
-void temp_init_from_operand(an_operand *operand)
+void temp_init_from_operand(a_type_ptr temp_type,
+                            an_operand *operand)
 /*
-Create an enk_temp_init node that initializes a temporary to a copy of the
-indicated operand.  The source operand can be an rvalue or an lvalue.
-On return, *operand will have been changed to an rvalue for the address
-of the temporary.  Only used in C++ mode.
+Create an enk_temp_init node that initializes a temporary of type temp_type
+to a copy of the indicated operand.  The source operand can be an rvalue or
+an lvalue.  temp_type and the type of *operand can differ at most in
+top-level type qualifiers.  On return, *operand will have been changed
+to an rvalue for the address of the temporary.  Only used in C++ mode.
 */
 {
   a_dynamic_init_ptr dip;
   an_expr_node_ptr   temp_init_node;
   a_boolean          cctor_case, class_bitwise_copy;
-  a_type_ptr         temp_type;
+  a_type_ptr         unqual_temp_type;
   a_routine_ptr      cctor_routine;
   an_expr_node_ptr   cctor_arg;
   an_operand         orig_operand;
 
   orig_operand = *operand;
-  /* The temporary has the type of the operand minus type qualifiers. */
-  temp_type = skip_typerefs(operand->type);
+  unqual_temp_type = skip_typerefs(temp_type);
   cctor_case = FALSE;
-  if (is_class_struct_union_type(temp_type)) {
+  if (is_class_struct_union_type(unqual_temp_type)) {
     /* The operand and temporary have a class type.  If it's a C-style
        struct, a direct copy can be done.  Otherwise, look for a copy
        constructor to use. */
@@ -6070,8 +6071,9 @@ of the temporary.  Only used in C++ mode.
       /* A copy constructor must be used.  An error is issued if an appropriate
          one does not exist or is inaccessible. */
       cctor_routine = select_copy_constructor(
-                                temp_type, get_type_qualifiers(temp_type),
-                                &operand->position, temp_type,
+                                unqual_temp_type,
+                                get_type_qualifiers(operand->type),
+                                &operand->position, unqual_temp_type,
                                 &class_bitwise_copy,
                                 curr_expr_is_potentially_evaluated(),
                                 /*suppress_access_check=*/FALSE);
@@ -6208,7 +6210,7 @@ Only used in C++.
       take_address_of_lvalue(source_operand);
     } else {
       /* Initialize a temporary with the converted value. */
-      temp_init_from_operand(source_operand);
+      temp_init_from_operand(dest_type, source_operand);
       *temporary_used = TRUE;
     }  /* if */
   } else {
@@ -6490,7 +6492,7 @@ initializer has previously been found to be acceptable, and
            temporary. */
         /* The temp has the same type as the operand, but without
            type qualifiers. */
-        convert_operand_into_temp(source_operand, unqual_dest_type, dest_type,
+        convert_operand_into_temp(source_operand, base_dest_type, dest_type,
                                   try_user_conversions,
                                   conversion, incompatible_err, &err,
                                   &temporary_used);

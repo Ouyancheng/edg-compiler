@@ -4587,7 +4587,7 @@ address of the temporary is returned.  This routine is only used in C++ mode.
     if (!optimized_case) {
       /* Create a temporary, copy the rvalue into the temporary, and return
          the address of the temporary. */
-      temp_init_from_operand(operand);
+      temp_init_from_operand(operand->type, operand);
     }  /* if */
 #if CHECKING
   } else {

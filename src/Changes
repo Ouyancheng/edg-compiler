@@ -1,5 +1,19 @@
 Version 2.28
 
+2/11/95  Type qualifiers on types of temporaries allocated for reference
+         binding in IL lowering
+
+The temporaries allocated by IL lowering when binding references now have
+the type qualifiers of the underlying type of the reference.  For example,
+in
+
+  const int &r = 2;
+
+the temporary allocated now has type "const int" instead of "int".
+This is of very little practical significance, but does avoid a case
+in the IL where type qualifiers seemed to be added without an explicit
+cast, and it matches the current WP wording more closely.
+
 2/9/95   Generalized support of "asm functions"
 
 When ASM_FUNCTION_ALLOWED is TRUE, asm functions are recognized and passed
