@@ -426,6 +426,27 @@ semantics equivalent to char, as long as there are 8 bits in a char; and
 __int16 is also recognized as long as there is a 16-bit integer to which
 it can be mapped.
 
+9/11/96 Internal error in get_pointer_offset eliminated
+
+An internal error on the following was eliminated.  The problem involved
+selecting a field from a nonreal class in a template instantiation.
+There is still a remaining problem, which causes an undeserved error,
+but the internal error is gone.
+
+  template <class Key> struct node {
+    Key key;
+  };
+  template <class Key> class set {
+  public:
+    struct dummy {
+      struct node<Key> field;
+    };
+    static const int i2 = ((int)__INTADDR__(&(((dummy*)0)->field.key)));
+  };
+  main( int argc, char * argv[] ) {
+    set<int> s;
+  }
+
 9/11/96 IL CHANGE for Microsoft object-code compatibility
 
 When MICROSOFT_EXTENSIONS_ALLOWED is TRUE, new field orig_type_kind is
