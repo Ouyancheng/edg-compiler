@@ -28,6 +28,97 @@ decl_spec.c -- Scanning of declaration specifiers.
 #include "folding.h"
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static a_decl_modifier scan_microsoft_extended_decl_modifiers(
+                                                     a_boolean  is_class_decl,
+                                                     a_boolean  *err)
+/*
+Scan the Microsoft __declspec specifier, which has the form
+
+	__declspec ( extended-decl-modifier-seq)
+
+	extended-decl-modifier-seq:
+		extended-decl_modifier
+		                      opt
+		extended-decl-modifier-seq extended-decl-modifier
+
+	extended-decl_modifier:
+		thread
+		naked
+		dllimport
+		dllexport
+
+is_class_decl is TRUE when the modifiers apply to a class declaration
+(e.g., "class __declspec(dllexport) A ...") rather than to a declarator.
+Return the modifiers that were found. If an error occurs (e.g., an invalid
+modifier), set err to TRUE.  err is unchanged if there are no errors.
+
+When this routine is called, the current token must be the __declspec
+keyword.
+*/
+{
+  a_decl_modifier	modifiers = DM_NONE;
+  check_assertion_str2(curr_token == tok_declspec,
+                       "scan_microsoft_extended_decl_modifiers:",
+                       "curr_token not tok_declspec");
+  /* Bypass the __declspec token. */
+  (void)get_token();
+  if (required_token(tok_lparen, ec_exp_lparen)) {
+    add_stop_token(tok_rparen);
+    if (curr_token != tok_identifier) {
+      syntax_error(ec_exp_identifier);
+    } else {
+      while (curr_token == tok_identifier) {
+        char	*modifier;
+        modifier = locator_for_curr_id.symbol_header->identifier;
+        if (strcmp(modifier, "dllexport") == 0) {
+          if (modifiers & DM_DLLIMPORT) {
+            /* The dllimport and dllexport attributes are mutually
+               exclusive. */
+            warning(ec_bad_combination_of_dll_attributes);
+          } else {
+            modifiers |= DM_DLLEXPORT;
+          }  /* if */
+        } else if (strcmp(modifier, "dllimport") == 0) {
+          if (modifiers & DM_DLLEXPORT) {
+            /* The dllimport and dllexport attributes are mutually
+               exclusive. */
+            warning(ec_bad_combination_of_dll_attributes);
+          } else {
+            modifiers |= DM_DLLIMPORT;
+          }  /* if */
+        } else if (strcmp(modifier, "thread") == 0) {
+          if (is_class_decl) {
+            /* "thread" is not allowed on a class declaration. */
+            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                           &pos_curr_token, modifier);
+          } else {
+            modifiers |= DM_THREAD;
+          }  /* if */
+        } else if (strcmp(modifier, "naked") == 0) {
+          /* "naked" is not allowed on a class declaration. */
+          if (is_class_decl) {
+            pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                           &pos_curr_token, modifier);
+          } else {
+            modifiers |= DM_NAKED;
+          }  /* if */
+        } else {
+          str_error(ec_bad_declspec_modifier, modifier);
+          *err = TRUE;
+        }  /* if */
+        (void)get_token();
+      }  /* while */
+      /* Check for the closing right paren. */
+      if (curr_token != tok_rparen) error(ec_exp_rparen);
+    }  /* if */
+    remove_stop_token(tok_rparen);
+  }  /* if */
+  return modifiers;
+}  /* scan_microsoft_extended_decl_modifiers */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 static a_boolean tag_currently_being_defined(a_type_ptr tag_type)
 /*
 Returns TRUE if the type pointed to by tag_type is in the process
@@ -503,6 +594,7 @@ to indicate whether the class/struct/union is actually defined.
   a_symbol_reference_kind srk_flags;
   a_boolean               delayed_nested_class_def = FALSE;
   a_boolean               namespace_deactivation_required = FALSE;
+  a_decl_modifier         decl_modifiers = DM_NONE;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -541,10 +633,24 @@ to indicate whether the class/struct/union is actually defined.
       type_kind = (a_type_kind)(curr_token == tok_struct ?
                                                     tk_struct : tk_class);
     }  /* if */
+    (void)get_token();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (curr_token == tok_declspec && !C_mode()) {
+      /* Scan the decl-modifiers that apply to an entire class.  They will be
+         passed on to scan_function_definition and applied to each member
+         declaration, where appropriate. */
+      a_boolean  local_err;
+      decl_modifiers =
+             scan_microsoft_extended_decl_modifiers(/*is_class_decl=*/TRUE,
+                                                    &local_err);
+      /* Bypass the closing paren -- if it's missing a diagnostic will already
+         have been issued. */
+      if (curr_token == tok_rparen) (void)get_token();
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* If there is an identifier next, it is a tag.  It can be the declaration
        of a new tag or a reference to an existing tag.  Although it is an
        error, also be on the lookout for a qualified name. */
-    (void)get_token();
     tag_id_present = is_qualified_name_start();
   } else {
     /* class_specifier is called with is_friend_decl TRUE only when the name
@@ -905,7 +1011,8 @@ skip_tag_scan:
   }  /* if */
   if (is_class_definition) {
     if (scan_class_definition(class_type, effective_decl_level,
-                              is_local_class, delayed_nested_class_def)) {
+                              is_local_class, delayed_nested_class_def,
+                              decl_modifiers)) {
       *defines_something = TRUE;
     } else {
       err = TRUE;
@@ -1513,70 +1620,6 @@ is a that of a constructor.
   }  /* if */
   return is_constructor;
 }  /* is_constructor_decl */
-
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
-static
-a_decl_modifier scan_microsoft_extended_decl_modifiers(a_boolean *err)
-/*
-Scan the Microsoft __declspec specifier, which has the form
-
-	__declspec ( extended-decl-modifier-seq)
-
-	extended-decl-modifier-seq:
-		extended-decl_modifier
-		                      opt
-		extended-decl-modifier-seq extended-decl-modifier
-
-	extended-decl_modifier:
-		thread
-		naked
-		dllimport
-		dllexport
-
-Return the modifiers that were found. If an error occurs (e.g., an invalid
-modifier), set err to TRUE.  err is unchanged if there are no errors.
-
-When this routine is called, the current token must be the __declspec
-keyword.
-*/
-{
-  a_decl_modifier	modifiers = DM_NONE;
-  check_assertion_str2(curr_token == tok_declspec,
-                       "scan_microsoft_extended_decl_modifiers:",
-                       "curr_token not tok_declspec");
-  /* Bypass the __declspec token. */
-  (void)get_token();
-  if (required_token(tok_lparen, ec_exp_lparen)) {
-    add_stop_token(tok_rparen);
-    if (curr_token != tok_identifier) {
-      syntax_error(ec_exp_identifier);
-    } else {
-      while (curr_token == tok_identifier) {
-        char	*modifier;
-        modifier = locator_for_curr_id.symbol_header->identifier;
-        if (strcmp(modifier, "dllexport") == 0) {
-          modifiers |= DM_DLLEXPORT;
-        } else if (strcmp(modifier, "dllimport") == 0) {
-          modifiers |= DM_DLLIMPORT;
-        } else if (strcmp(modifier, "thread") == 0) {
-          modifiers |= DM_THREAD;
-        } else if (strcmp(modifier, "naked") == 0) {
-          modifiers |= DM_NAKED;
-        } else {
-          str_error(ec_bad_declspec_modifier, modifier);
-          *err = TRUE;
-        }  /* if */
-        (void)get_token();
-      }  /* while */
-      /* Check for the closing right paren. */
-      if (curr_token != tok_rparen) error(ec_exp_rparen);
-    }  /* if */
-    remove_stop_token(tok_rparen);
-  }  /* if */
-  return modifiers;
-}  /* scan_microsoft_extended_decl_modifiers */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 /* Enumerations used by decl_specifiers for its internal processing and
@@ -2304,7 +2347,8 @@ Returns TRUE if there is an error in the specifiers.
              scan the list of declaration modifiers. */
           switch (curr_token) {
             case tok_declspec:
-              new_modifiers = scan_microsoft_extended_decl_modifiers(&err);
+              new_modifiers = scan_microsoft_extended_decl_modifiers(
+                                               /*is_class_decl=*/FALSE, &err);
               break;
             case tok_microsoft_inline:
 	      new_modifiers = DM_MICROSOFT_INLINE;
