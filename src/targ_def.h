@@ -2291,21 +2291,21 @@ provided.  This macro is the default value of the global variable
 gnu_target_version_number.
 */
 #ifndef GNU_TARGET_VERSION_NUMBER
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+#if GCC_IS_GENERATED_CODE_TARGET || \
+    (BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
 #if defined(__GNUC__) && defined(__GNUC_MINOR__) && \
     defined(__GNUC_PATCHLEVEL__)
 #define GNU_TARGET_VERSION_NUMBER  ((__GNUC__)*10000 +                    \
                                     (__GNUC_MINOR__)*100 +                \
                                     (__GNUC_PATCHLEVEL__))
 #else /* !(defined(__GNUC__) && defined(__GNUC_MINOR__) && ...) */
-#if GCC_IS_GENERATED_CODE_TARGET
 /* A target version number is needed, but none could be determined from the
    host compiler: Force a preprocessing error. */
- #error -- GCC_IS_GENERATED_CODE_TARGET requires GNU_TARGET_VERSION_NUMBER \
-           to be defined
-#endif /* GCC_IS_GENERATED_CODE_TARGET */
+ #error -- GCC_IS_GENERATED_CODE_TARGET and \
+           CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT require \
+           GNU_TARGET_VERSION_NUMBER to be defined
 #endif /* defined(__GNUC__) && defined(__GNUC_MINOR__) && ... */
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
 #endif /* GNU_TARGET_VERSION_NUMBER */
 
 /*
