@@ -5348,6 +5348,8 @@ by entity_node, with size given by entity_size_node.  Insert the code at
 {
   an_expr_node_ptr memzero_call;
 
+  entity_size_node = add_cast_if_necessary(entity_size_node,
+                                           integer_type(targ_size_t_int_kind));
 #if IA64_ABI
   /* We cannot rely on "__memzero"; the ABI does not provide this routine in
      the runtime library. */
@@ -6918,7 +6920,6 @@ The subtree of the node has not yet been lowered.
   an_expr_node_ptr            init_node, call_node, null_node, delete_args;
   a_constant                  null_constant;
   an_insert_location          insert_location;
-  an_init_pos_descr           ipd;
 
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
   if (!ndsp->placement_new && ndsp->routine != NULL) {
@@ -7020,26 +7021,40 @@ The subtree of the node has not yet been lowered.
       compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
                                         integer_type((an_integer_kind)ik_int),
                                         assign_node);
-      /* Build a description of the entity to be initialized.  Adjust the
-         type so that it is an array if necessary. */
-      set_var_indirect_init_pos_descr(temp_var, &ipd);
-      ipd.base_type = ndsp->type;
       set_expr_creation_insert_location(&insert_location);
-      /* If exceptions are enabled, and if necessary, set up to free the
-         storage allocated if an exception is thrown before the storage
-         is initialized. */
-      set_up_freeing_of_storage_on_exception(ndsp, &ipd, &insert_location);
-      /* Generate code for the initialization. */
-      lower_dynamic_init(dip, &ipd,
-                         (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                         (a_constructor_init_ptr)NULL, LDIO_NONE,
-                         /*others_follow_in_aggr=*/FALSE,
-                         &insert_location, (a_boolean *)NULL,
-                         (a_constant **)NULL);
-      /* Now that the entity is initialized, turn off the freeing on
-         exception. */
-      turn_off_freeing_of_storage_on_exception(ndsp, &ipd, delete_args,
-                                               &insert_location);
+      if (is_array_type(ndsp->type) &&
+          dip->kind == (a_dynamic_init_kind)dik_zero &&
+          skip_typerefs(ndsp->type)->size == 0) {
+        /* lower_dynamic_init can't handle a variable-length array, so
+           do that specially. */
+        an_expr_node_ptr entity_size_node =
+                                  make_reusable_copy(ndsp->arg,
+                                                     /*vars_can_change=*/TRUE);
+        insert_runtime_zeroing_call(var_rvalue_expr(temp_var),
+                                    entity_size_node,
+                                    &insert_location);
+      } else {
+        /* Build a description of the entity to be initialized.  Adjust the
+           type so that it is an array if necessary. */
+        an_init_pos_descr ipd;
+        set_var_indirect_init_pos_descr(temp_var, &ipd);
+        ipd.base_type = ndsp->type;
+        /* If exceptions are enabled, and if necessary, set up to free the
+           storage allocated if an exception is thrown before the storage
+           is initialized. */
+        set_up_freeing_of_storage_on_exception(ndsp, &ipd, &insert_location);
+        /* Generate code for the initialization. */
+        lower_dynamic_init(dip, &ipd,
+                           (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
+                           (a_constructor_init_ptr)NULL, LDIO_NONE,
+                           /*others_follow_in_aggr=*/FALSE,
+                           &insert_location, (a_boolean *)NULL,
+                           (a_constant **)NULL);
+        /* Now that the entity is initialized, turn off the freeing on
+           exception. */
+        turn_off_freeing_of_storage_on_exception(ndsp, &ipd, delete_args,
+                                                 &insert_location);
+      }  /* if */
       /* End the initialization code with an expression that gets the
          value of the temporary. */
       init_node = var_rvalue_expr(temp_var);
