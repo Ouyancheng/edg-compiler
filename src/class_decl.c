@@ -3908,7 +3908,12 @@ of assoc_field_object and assoc_var_object is defined.
       /* Unlink the symbol from the inactive list and link it back into the
          symbol table in the current scope. */
       sym->class_of_which_a_member = class_type;
+      /* The fields of an anonmyous union within a class take on the access
+         specifier of the anonymous union itself; the fields of a variable
+         anonymous union should be (i.e., should remain) public. */
       sym->variant.field.ptr->source_corresp.access =
+                                (assoc_field_object == NULL) ?
+                                   (an_access_specifier)as_public :
                                    assoc_field_object->source_corresp.access;
       remove_from_inactive_symbols_list(sym);
       reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
