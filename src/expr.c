@@ -344,6 +344,7 @@ be issued.
       /* If this cast is at the top (not under a comma expression), remove
          it. */
       if (!any_commas) node = check_node;
+      break;
     } else if (is_operation_node(check_node) &&
                check_node->variant.operation.kind ==
                                             (an_expr_operator_kind)eok_comma) {
