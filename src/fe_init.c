@@ -271,7 +271,7 @@ Install the keywords in the symbol table.
     if (allow_anachronisms) {
       enter_keyword((a_token_kind)tok_overload, "overload");
     }  /* if */
-    if (!C_mode() && wchar_t_is_keyword) {
+    if (wchar_t_is_keyword) {
       enter_keyword((a_token_kind)tok_wchar_t, "wchar_t");
     }  /* if */
     /* Enter C++ keywords used as synonyms for operators. */
