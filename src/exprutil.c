@@ -4377,7 +4377,7 @@ the member.
 }  /* change_nonreal_member_constant_operand_to_lvalue */
 
 
-void revert_class_rvalue_to_lvalue_if_possible(an_operand *operand)
+static void revert_class_rvalue_to_lvalue_if_possible(an_operand *operand)
 /*
 If the given operand is a class rvalue, try to change it back to
 an lvalue.  This is used in GNU and Microsoft modes, which believe
