@@ -2495,9 +2495,6 @@ Display the indicated routine.
     disp_boolean("contains_statement_expression", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (ptr->consider_to_be_extern_inline) {
-    disp_boolean("consider_to_be_extern_inline", TRUE);
-  }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);
   /* Note: the keep_definition_in_il flag is not displayed, since it is

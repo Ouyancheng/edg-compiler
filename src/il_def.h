@@ -6277,11 +6277,6 @@ typedef struct a_routine {
 			   statement expressions, i.e., ({...}), a GNU C
 			   extension. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  a_bit_field	consider_to_be_extern_inline:1;
-			/* If TRUE, treat this function as if it were extern
-			   inline.  This is used for routines externalized
-			   because they are potentially referenced from
-			   exported templates. */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
