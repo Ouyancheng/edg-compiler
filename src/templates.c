@@ -877,7 +877,7 @@ If it involves no template-parameter type, simply return "type".
            that underlies the typeref. */
         tp = copy_type_with_substitution(skip_typerefs(type), templ_arg_list,
                                          source_pos);
-        new_type = make_identically_qualified_type(tp, type);
+        new_type = type_plus_qualifiers_from_second_type(tp, type);
         break;
       case tk_ptr_to_member:
         /* Make a pointer to member type.  The current pointer to member type
@@ -1100,56 +1100,68 @@ yet been created, extend the template argument list to include n entries.
   a_class_symbol_supplement_ptr  templ_cssp;
 
   db_enter(5, "matches_template_type");
-  if (templ_type->kind == (a_type_kind)tk_template_param) {
-    /* A real type "matches" a template parameter type if it is identical to
-       the real type, if any, that was previously associated with that
-       template type. */
-    /* For the nth template parameter find the nth template argument.  If
-       the nth template argument hasn't been created yet, create it along
-       with all missing template args that should precede it in the linked
-       list. */
-    prev_tap = NULL;
-    for (i = templ_type->variant.list_position; i > 0; --i) {
-      if (prev_tap == NULL) {
-        /* This must be the first time through the loop. */
-        tap = *templ_arg_list;
-      } else {
-        /* Not the first iteration. */
-        tap = prev_tap->next;
-      }  /* if */
-      /* If the template arg doesn't exist yet, create it and add it to the
-         list.  Note that some of the template args on the list will have
-         NULL type pointers. */
-      if (tap == NULL) {
-        tap = alloc_template_arg(/*is_arg_type=*/TRUE);
-        if (prev_tap == NULL) {
-          /* First iteration -- the start the list. */
-          *templ_arg_list = tap;
-        } else {
-          /* Add to the end of the list. */
-          prev_tap->next = tap;
-        }  /* if */
-      }  /* if */
-      /* Remember the current entry so that next time though (if there is a
-         next time) we can find its successor or, if necessary, append a
-         new entry to it. */
-      prev_tap = tap;
-    }  /* for */
-    /* Now we have the nth template argument, which should correspond to
-       the nth template parameter, whose type is templ_type. */
-    if (tap->variant.type == NULL) {
-      /* No type has been bound to this template argument yet, so just use
-         "type".  This counts as a match. */
-      tap->variant.type = type;
-      match = TRUE;
+  if (is_template_param_type(templ_type)) {
+    if (is_qualified_type(templ_type)) {
+      /* If the template parameter has any type qualifiers, the argument type
+         will have to have a set of type qualifiers that includes any on the
+         template parameter.  Remove any that are shared in common and then
+         do a check. */
+      skip_common_type_qualifiers(&type, &templ_type);
+    }  /* if */
+    if (is_qualified_type(templ_type)) {
+      /* The qualifier on templ_type did not also appear on type, so there is
+         no match. */
     } else {
-      /* A type was already bound to this template argument.  We have a match
-         if and only if the new type is the same as the one already there. */
-      if (identical_types(type, tap->variant.type)) {
-        /* Okay. */
+      /* A real type "matches" a template parameter type if it is identical to
+         the real type, if any, that was previously associated with that
+         template type. */
+      /* For the nth template parameter find the nth template argument.  If
+         the nth template argument hasn't been created yet, create it along
+         with all missing template args that should precede it in the linked
+         list. */
+      prev_tap = NULL;
+      for (i = templ_type->variant.list_position; i > 0; --i) {
+        if (prev_tap == NULL) {
+          /* This must be the first time through the loop. */
+          tap = *templ_arg_list;
+        } else {
+          /* Not the first iteration. */
+          tap = prev_tap->next;
+        }  /* if */
+        /* If the template arg doesn't exist yet, create it and add it to the
+           list.  Note that some of the template args on the list will have
+           NULL type pointers. */
+        if (tap == NULL) {
+          tap = alloc_template_arg(/*is_arg_type=*/TRUE);
+          if (prev_tap == NULL) {
+            /* First iteration -- the start of the list. */
+            *templ_arg_list = tap;
+          } else {
+            /* Add to the end of the list. */
+            prev_tap->next = tap;
+          }  /* if */
+        }  /* if */
+        /* Remember the current entry so that next time though (if there is a
+           next time) we can find its successor or, if necessary, append a
+           new entry to it. */
+        prev_tap = tap;
+      }  /* for */
+      /* Now we have the nth template argument, which should correspond to
+         the nth template parameter, whose type is templ_type. */
+      if (tap->variant.type == NULL) {
+        /* No type has been bound to this template argument yet, so just use
+           "type".  This counts as a match. */
+        tap->variant.type = type;
         match = TRUE;
       } else {
-        /* Not a match.  Return FALSE. */
+        /* A type was already bound to this template argument.  We have a match
+           if and only if the new type is the same as the one already there. */
+        if (identical_types(type, tap->variant.type)) {
+          /* Okay. */
+          match = TRUE;
+        } else {
+          /* Not a match.  Return FALSE. */
+        }  /* if */
       }  /* if */
     }  /* if */
   } else {
@@ -1158,7 +1170,10 @@ yet been created, extend the template argument list to include n entries.
        in place. */
     type = skip_typedefs(type);
     templ_type = skip_typedefs(templ_type);
-    if (templ_type->kind != type->kind) {
+    if (templ_type == type) {
+      /* Identical type entries, so it's a match. */
+      match = TRUE;
+    } else if (templ_type->kind != type->kind) {
       /* No match. */
     } else if (type->source_corresp.class_of_which_a_member != NULL) {
       /* The argument type is a class member -- a nested class or enum.  Be
