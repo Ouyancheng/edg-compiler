@@ -2898,9 +2898,12 @@ do_assignment:;
          definitions.  That is important when the initialization is in a
          library; the linker has to see it as a definition in order for it
          to bring in the variable (and hence the initialization code) from
-         a library.  So we change the initialization to static initialization
-         to zero. */
-      if (has_static_storage_duration(variable->storage_class)) {
+         a library.  There is also an issue with automatic variables that
+         are aggregates: if the initialization was partial, we have to be
+         sure the rest of the aggregate is initialized to zero.
+         So we change the initialization kind to initialization to zero. */
+      if (has_static_storage_duration(variable->storage_class) ||
+          is_aggregate_or_union_type(variable->type)) {
         variable->init_kind = (an_init_kind)initk_zero;
       } else {
         variable->init_kind = (an_init_kind)initk_none;
