@@ -3114,7 +3114,7 @@ lists match.  If it is FALSE the prototype instantiation will not be
 included in the search.
 */
 {
-  a_symbol_ptr                      sym, prev_sym;
+  a_symbol_ptr                      sym;
   a_symbol_ptr 			    prototype_sym;
   a_template_arg_ptr                old_list;
   a_type_ptr                        class_type;
@@ -3171,8 +3171,7 @@ included in the search.
     /* Make a pass over the symbols representing instantiations of the class
        template. */
     sym = tssp->variant.class_template.instantiations;
-    prev_sym = NULL;
-    for (; sym != NULL; prev_sym = sym, sym = next_instance_sym(sym)) {
+    for (; sym != NULL; sym = next_instance_sym(sym)) {
       /* Prototype instantiations should not be checked.  If
          prototype_allowed is TRUE then we would have already checked them
          in the test above. */
@@ -3182,13 +3181,7 @@ included in the search.
       old_list = sym->variant.type->
                      variant.class_struct_union.extra_info->template_arg_list;
       if (equiv_template_arg_lists(old_list, *new_list, eta_options)) {
-        /* We've found a match.  Remove the found symbol from its current
-           position in the instantiation list and add it to the front. */
-        if (prev_sym != NULL) {
-          next_instance_sym(prev_sym) = next_instance_sym(sym);
-          next_instance_sym(sym) = tssp->variant.class_template.instantiations;
-          tssp->variant.class_template.instantiations = sym;
-        }  /* if */
+        /* We've found a match. */
 #if DEBUG
         if (debug_level >= 3) db_symbol(sym, "found: ", 2);
 #endif /* DEBUG */
