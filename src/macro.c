@@ -4988,16 +4988,17 @@ to the version of the GNU compiler being emulated.  The caller is responsible
 to deallocate the buffer using free_general.
 */
 {
-  unsigned long  major = (unsigned long)(gnu_version/10000);
-  unsigned long  minor = (unsigned long)((gnu_version%10000)/100);
-  unsigned long  patch = (unsigned long)(gnu_version%100);
+  unsigned long  major_num = (unsigned long)(gnu_version/10000);
+  unsigned long  minor_num = (unsigned long)((gnu_version%10000)/100);
+  unsigned long  patch_num = (unsigned long)(gnu_version%100);
   char           *version_string_pattern = GCC_VERSION_STRING,
                  *version_string, *src, *dst;
   a_boolean      percent_m_seen = FALSE, percent_v_seen = FALSE;
 
-  check_assertion(gnu_mode && major < 100 && minor < 100 && patch < 100);
+  check_assertion(gnu_mode &&
+                  major_num < 100 && minor_num < 100 && patch_num < 100);
   version_string = (char*)alloc_general(
-                                 (size_t)strlen(version_string_pattern) + 50);
+                             (sizeof_t)(strlen(version_string_pattern) + 50));
   src = version_string_pattern;
   dst = version_string;
   for (; *src != '\0'; ++src, ++dst) {
@@ -5018,10 +5019,10 @@ to deallocate the buffer using free_general.
           percent_v_seen = TRUE;
         }  /* if */
         ++src;
-        (void)sprintf(dst, "%ld.%ld", major, minor);
+        (void)sprintf(dst, "%ld.%ld", major_num, minor_num);
         while (*dst != '\0') ++dst;
-        if (patch != 0) {
-          (void)sprintf(dst, ".%ld", patch);
+        if (patch_num != 0) {
+          (void)sprintf(dst, ".%ld", patch_num);
           while (*dst != '\0') ++dst;
         }  /* if */
         --dst;
@@ -5044,28 +5045,28 @@ static void init_gnu_predefined_macros(void)
 Enter symbols for the predefined macros of GNU C and C++.
 */
 {
-  unsigned long  major = (unsigned long)(gnu_version/10000),
-                 minor = (unsigned long)((gnu_version%10000)/100),
-                 patch = (unsigned long)(gnu_version%100);
+  unsigned long  major_num = (unsigned long)(gnu_version/10000),
+                 minor_num = (unsigned long)((gnu_version%10000)/100),
+                 patch_num = (unsigned long)(gnu_version%100);
 
   /* Note that GNU C/C++ permits these macros to be redefined, so we do too. */
-  (void)enter_predef_macro(conv_unsigned_long_to_str(major),
+  (void)enter_predef_macro(conv_unsigned_long_to_str(major_num),
                            "__GNUC__",
                            /*cannot_be_redefined=*/FALSE,
                            /*ref_suppresses_pch_file=*/FALSE);
   if (gpp_mode) {
     /* In GNU C++ mode (but not in GNU C mode), __GNUG__ is identical to
        __GNUC__. */
-    (void)enter_predef_macro(conv_unsigned_long_to_str(major),
+    (void)enter_predef_macro(conv_unsigned_long_to_str(major_num),
                              "__GNUG__",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
-  (void)enter_predef_macro(conv_unsigned_long_to_str(minor),
+  (void)enter_predef_macro(conv_unsigned_long_to_str(minor_num),
                            "__GNUC_MINOR__",
                            /*cannot_be_redefined=*/FALSE,
                            /*ref_suppresses_pch_file=*/FALSE);
-  (void)enter_predef_macro(conv_unsigned_long_to_str(patch),
+  (void)enter_predef_macro(conv_unsigned_long_to_str(patch_num),
                            "__GNUC_PATCHLEVEL__",
                            /*cannot_be_redefined=*/FALSE,
                            /*ref_suppresses_pch_file=*/FALSE);
