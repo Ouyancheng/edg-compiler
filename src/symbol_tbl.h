@@ -2609,6 +2609,9 @@ extern void set_source_corresp(a_source_correspondence *sc,
 extern void set_class_membership(a_symbol_ptr             sym,
                                  a_source_correspondence  *scp,
                                  a_type_ptr               class_type);
+extern void set_namespace_membership(a_symbol_ptr             sym,
+                                     a_source_correspondence  *scp,
+                                     a_namespace_ptr          nsp);
 extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
 
 /* Allocation */
