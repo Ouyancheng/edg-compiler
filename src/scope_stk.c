@@ -2556,7 +2556,6 @@ push_template_instantiation_scope.
 {
   a_scope_depth			orig_depth;
   a_scope_depth			saved_innermost_scope_that_affects_access;
-  a_decl_sequence_number	effective_decl_seq;
 
   orig_depth = scope_stack[depth_scope_stack].orig_depth;
   saved_innermost_scope_that_affects_access =
@@ -2582,16 +2581,9 @@ push_template_instantiation_scope.
                                     saved_innermost_scope_that_affects_access;
   /* Reset the active using list flags to the values specified by
      the previous scope stack entries. */
-  effective_decl_seq = NO_DECL_SEQUENCE_NUMBER;
-  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
-    /* Get the effective declaration sequence number of the template
-       instantiation scope that will become the active one. */
-    effective_decl_seq = scope_stack[depth_innermost_instantiation_scope].
-                                                  template_decl_info->decl_seq;
-  }  /* if */
   set_active_using_list_scope_depths(depth_scope_stack,
-                                     /*set_value=*/TRUE, effective_decl_seq);
-
+                                     /*set_value=*/TRUE,
+                                     get_effective_decl_seq());
 }  /* pop_template_instantiation_scope */
 
 
@@ -5219,7 +5211,16 @@ is called only in C++.
   check_assertion_str2(orig_depth != NO_SCOPE_DEPTH,
                        "pop_class_reactivation_scope:",
                        "invalid orig_depth");
+  /* Clear the information about any using-directives currently in effect. */
+  set_active_using_list_scope_depths(depth_scope_stack,
+                                     /*set_value=*/FALSE,
+                                     NO_DECL_SEQUENCE_NUMBER);
+  /* Do the actual popping of the scopes. */
   while (orig_depth < depth_scope_stack) pop_scope();
+  /* Restore the using-directive information to the appropriate state. */
+  set_active_using_list_scope_depths(depth_scope_stack,
+                                     /*set_value=*/TRUE,
+                                     get_effective_decl_seq());
   if (instantiation_scope_pushed) {
     if (microsoft_specialization_scope_pushed &&
         scope_stack[depth_scope_stack].kind ==
