@@ -12484,8 +12484,15 @@ passed via template_decl.
           rout_sym->variant.routine.ptr->is_explicit_constructor = TRUE;
         }  /* if */
       }  /* if */
-      if (!function_def_present) {
-        /* Update xref info on param ids. */
+      if (!function_def_present ||
+          (prototype_instantiations_in_il &&
+           !nonclass_prototype_instantiations &&
+           class_type
+                   ->variant.class_struct_union.is_prototype_instantiation)) {
+        /* Update xref info on param ids.  Note that if we are in a prototype
+           instantiation and nonclass templates are not parsed in their generic
+           form, the function should be considered undefined (since it won't
+           be parsed until the parameters are substituted). */
         record_param_id_list_declarations(&func_info);
       }  /* if */
       if (curr_routine_fixup != NULL) {

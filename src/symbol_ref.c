@@ -1890,10 +1890,10 @@ information on the reference, if required.
 
 void record_param_id_list_declarations(a_func_info_block_ptr func_info)
 /*
-The function with which the param-id list headed by pid is associated has
-been declared but not defined.  The symbols associated with the parameter
-declarations should be recorded for cross referencing and any associated
-source-sequence entries should be removed from the list.
+The function associated with func_info has been declared but not defined.
+The symbols associated with the parameter declarations should be recorded for
+cross referencing and any associated source-sequence entries should be removed
+from the list.
 */
 {
   a_param_id_ptr  pid = func_info->param_id_list;

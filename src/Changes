@@ -1,5 +1,20 @@
 Version 3.5
 
+9/30/04  Internal error on type declared in parameter of class template member
+
+Under some circumstances, an IL write-read error was triggered when a class
+was only declared in a parameter declaration of a member function of a class
+template.  For example:
+
+  template<typename T> struct S {
+    void f(class C*) {}  // Only declaration of C could trigger an internal
+  };                     // IL write-read error.
+
+Slightly inconsistent IL was generated when GENERATE_SOURCE_SEQUENCE_LISTS and
+PROTOTYPE_INSTANTIATIONS_IN_IL were set to TRUE, but the internal error only
+manifested itself when IL_SHOULD_BE_WRITTEN_TO_FILE was also TRUE.  This is
+now fixed.
+
 9/30/04  Embedded C: fixed-point rounding change
 
 If a fixed-point value falls half way between the two closest representable
