@@ -5967,7 +5967,6 @@ Scan the body of a class definition, including the base classes list.
             /* Named member -- we need to call declarator. */
             a_decl_flag_set    declarator_input_flags, declarator_output_flags;
             a_type_ptr         bottom_derived_type;
-            an_expr_node_ptr   dim_expr_ptr;
 
             if (C_dialect == C_dialect_cplusplus) {
               if (curr_routine_fixup != NULL) {
@@ -6026,7 +6025,7 @@ Scan the body of a class definition, including the base classes list.
                        member_type,
                        friend_specified ? (a_type_ptr)NULL : class_type,
                        &locator, &local_type, &bottom_derived_type,
-                       &func_info, &dim_expr_ptr);
+                       &func_info);
             if (C_dialect == C_dialect_cplusplus) {
               /* Abstract class objects are prohibited (ARM 10.3). */
               if (member_storage_class != (a_storage_class)sc_typedef &&

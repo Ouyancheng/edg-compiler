@@ -102,8 +102,7 @@ Macro that is TRUE if the current token is the start of a declarator
 extern void type_name(a_type_ptr *type_ptr);
 
 extern void new_type_name(a_boolean         is_parenthesized,
-                          a_type_ptr        *type_ptr,
-                          an_expr_node_ptr  *dimension_expr);
+                          a_type_ptr        *type_ptr);
 
 extern a_boolean scan_conversion_operator(a_source_position  *pos);
 
@@ -370,8 +369,7 @@ extern void declarator(a_decl_flag_set   input_flags,
                        a_symbol_locator  *locator,
                        a_type_ptr        *p_complete_type,
                        a_type_ptr        *p_bottom_derived_type,
-                       a_func_info_block *func_info,
-                       an_expr_node_ptr  *dim_expr_ptr);
+                       a_func_info_block *func_info);
 
 extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 				 a_decl_flag_set      *output_flags,
