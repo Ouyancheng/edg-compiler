@@ -6428,9 +6428,10 @@ class_type if any are needed.
   if (ctsp != NULL) {
     if (ctsp->virtual_function_table_var != NULL &&
         /* Do not define virtual function tables more than once (comes up
-           with promoted local classes). */
-        ctsp->virtual_function_table_var->type->
-                               variant.array.variant.number_of_elements == 0) {
+           with promoted local classes and with the generated type_info
+           vtable). */
+        ctsp->virtual_function_table_var->init_kind ==
+                                                    (an_init_kind)initk_none) {
       /* The class has a virtual function table.  Generate the definition
          if it is supposed to be generated in the present compilation. */
       definition_needed = 

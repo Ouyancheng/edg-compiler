@@ -1,5 +1,15 @@
 Version 3.4
 
+1/16/04  Missing type_info virtual function table with multiple translation
+         units
+
+In some very obscure test cases where the runtime library file
+that defines the type_info class member functions is compiled
+as a secondary translation unit with a primary translation unit
+that that uses the class, the virtual function table definition
+for type_info was not put out even though the decider function
+definition is present.  Now fixed.
+
 1/16/04  GNU mode: Explicitly specified alignment lost
 
 In GNU C and C++ mode, an alignment specified with the GNU attribute "aligned"
