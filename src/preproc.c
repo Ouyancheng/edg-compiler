@@ -1046,6 +1046,11 @@ assumed if the return type is omitted.
   processing_C_code_in_pragma = TRUE;
   /* Skip past the pragma name. */
   (void)get_token();
+  /* Push a pragma scope.  This makes certain other scopes (e.g.,
+     template declaration) invisible for name lookup purposes. */
+  push_scope(sck_pragma, NO_SCOPE_NUMBER, (a_type_ptr)NULL,
+	     (a_routine_ptr)NULL, (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+	     (a_template_arg_ptr)NULL);
   start_pos = pos_curr_token;
   if (is_generalized_identifier_start(GID_NO_OPTIONS) &&
       next_token() == tok_newline) {
@@ -1195,7 +1200,8 @@ assumed if the return type is omitted.
     error(ec_invalid_instantiation_pragma_argument);
     err = TRUE;
   }  /* if */
-
+  /* Pop the pragma scope. */
+  pop_scope();
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;
   processing_C_code_in_pragma = save_processing_C_code_in_pragma;

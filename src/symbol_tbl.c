@@ -801,6 +801,7 @@ Put out a scope kind name (for debugging).
     case sck_function:               s = "function";                 break;
     case sck_template_declaration:   s = "template declaration";     break;
     case sck_template_instantiation: s = "template instantiation";   break;
+    case sck_pragma:		     s = "pragma";		     break;
     default:                         s = "***UNKNOWN SCOPE KIND***"; break;
   }  /* switch */
   fputs(s, f_debug);
@@ -4469,6 +4470,7 @@ C and C++.
   a_name_space_kind       required_name_space_kind =
                             (C_dialect != C_dialect_cplusplus && must_be_tag) ?
                                                            nsk_tag : nsk_other;
+  a_boolean		  in_pragma_scope = FALSE;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 /* is_class_or_class_proxy_symbol checks for a symbol that is a class,
@@ -4604,6 +4606,17 @@ C and C++.
             /* Not a class scope, so do not look for projected symbol. */
             look_for_projected_symbol = FALSE;
           }  /* if */
+	} else if (ssep->kind == (a_scope_kind)sck_pragma) {
+	  /* We have found a pragma scope.  This will cause us to
+	     ignore template declaration scope found lower in the scope
+	     stack. */
+	  in_pragma_scope = TRUE;
+	  goto next_scope;
+        } else if (in_pragma_scope &&
+		   ssep->kind == (a_scope_kind)sck_template_declaration) {
+	  /* Ignore symbols from the template declaration scope if we are
+	     inside a pragma scope. */
+	  goto next_scope;
         } else {
           /* Not a class reactivation or a template instantiation,
              i.e., normal scope.  Search through any symbols on the front
@@ -4656,6 +4669,7 @@ C and C++.
             }  /* if */
           }  /* if */
         }  /* if */
+next_scope:
         /* End the loop when we reach the bottom of the scope stack. */
         if (ssep == &scope_stack[DEPTH_OF_FILE_SCOPE]) break;
         /* If this scope is for a template instantiation, skip directly
@@ -5282,6 +5296,7 @@ of the template.
        from the previous scope. */
     if (kind == (a_scope_kind)sck_class_reactivation ||
         kind == (a_scope_kind)sck_template_instantiation ||
+        kind == (a_scope_kind)sck_pragma ||
         (kind == (a_scope_kind)sck_class_struct_union &&
          base_classes_of(assoc_type) != NULL)) {
       ssep->inactive_symbols_may_be_visible = TRUE;
