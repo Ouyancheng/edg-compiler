@@ -1020,6 +1020,7 @@ ec_VA_ARGS_not_allowed;;"the identifier __VA_ARGS__ can only appear in the repla
 ec_friend_qualification_ignored;;"the qualifier on this friend declaration is ignored"
 ec_no_range_designator_with_dynamic_init;;"array range designators cannot be applied to dynamic initializers"
 ec_property_name_not_allowed;;"property name cannot appear here"
+ec_inline_qualifier_ignored;;"the keyword inline used as a function qualifier is ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -106,7 +106,7 @@ present (i.e., the caller must have already checked that the current
 token is a qualifier).
 */
 {
-  a_decl_flag_set         dso_flags;
+  a_decl_flag_set         dsi_flags, dso_flags;
   a_storage_class         dummy_storage_class;
   a_type_ptr              dummy_type_ptr;
   a_decl_modifiers_block  dummy_decl_modifiers;
@@ -114,11 +114,16 @@ token is a qualifier).
   a_decl_pos_block        local_decl_pos_block;
 
   clear_decl_pos_block(&local_decl_pos_block);
-  (void)decl_specifiers(DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS, &dso_flags,
+  dsi_flags = DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS;
+  if (microsoft_mode) { dsi_flags |= DSI_INLINE_ALLOWED; }
+  (void)decl_specifiers(dsi_flags, &dso_flags,
                         &dummy_storage_class, &dummy_type_ptr,
                         &qualifiers, &dummy_decl_modifiers,
                         &local_decl_pos_block);
   check_assertion(qualifiers != TQ_NONE);
+  if (qualifiers & TQ_INLINE) {
+    warning(ec_inline_qualifier_ignored);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     check_assertion(local_decl_pos_block.specifiers_range.end.seq != 0);
@@ -1080,6 +1085,7 @@ issue an error if a default argument expression is encountered.
   a_type_ptr              param_type_ptr, declared_type, tp;
   a_decl_flag_set         dso_flags;
   a_type_qualifier_set    qualifiers;
+  a_boolean               qualifier_err = FALSE;
   a_decl_modifiers_block  decl_modifiers;
   a_param_type_ptr        last_param_type;
   a_param_id_ptr          last_param_id;
@@ -1785,11 +1791,12 @@ issue an error if a default argument expression is encountered.
        for member function declarations outside a class definition when
        a function qualifier is present.  If there is a function qualifier,
        it is applied to the type pointed to by the this param type. */
-    if ((is_type_qualifier() or_is_near_or_far()) && extra_info->prototyped) {
+    if ((is_type_qualifier() or_is_near_or_far() ||
+         (microsoft_mode && curr_token == tok_inline)) &&
+        extra_info->prototyped) {
       /* In C++ the type of certain member functions may be qualified.  Scan
          for a const or volatile qualifier. */
       a_source_position  qualifier_pos;
-      a_boolean          qualifier_err = FALSE;
 
       copy_source_position(pos_curr_token, qualifier_pos);
       qualifiers = collect_type_qualifiers(decl_pos_block);
@@ -1802,9 +1809,14 @@ issue an error if a default argument expression is encountered.
 #endif /* RESTRICT_ALLOWED */
       /* If this is not a member function or it is but it is a static member
          function declared within a class definition, a qualifier on the
-         function is illegal (ARM 8.2.5)..  However, qualifiers on a pointer
-         to member function are permitted. */
-      if (locator != NULL && locator->is_operator_name &&
+         function is illegal (ARM 8.2.5).  However, qualifiers on a pointer
+         to member function are permitted.  Also, in microsoft mode the
+         keyword "inline" is always accepted as a qualifier (a warning that
+         it is ignored will have been issued earlier). */
+      if (microsoft_mode && qualifiers == TQ_INLINE && !restrict_qualified) {
+        /* No diagnostic and no need to adjust the type of this or *this. */
+        qualifiers = qualifiers & ~TQ_INLINE;
+      } else if (locator != NULL && locator->is_operator_name &&
           (is_new_operator(locator->variant.opname) ||
            is_delete_operator(locator->variant.opname))) {
         /* Operator new and delete can never be qualified. */
@@ -1840,12 +1852,14 @@ issue an error if a default argument expression is encountered.
         this_param_type = member_function_parent_type;
       } else {
         this_param_type = make_qualified_type(member_function_parent_type,
-                                              qualifiers);
+                                              qualifiers & ~TQ_INLINE);
       }  /* if */
       if (qualifier_err) {
         pos_error(ec_function_qualifier_not_allowed, &qualifier_pos);
       }  /* if */
-    } else if (is_nonstatic_member_function) {
+    }  /* if */
+    if (is_nonstatic_member_function &&
+        qualifiers == TQ_NONE && !qualifier_err) {
       /* This is a nonstatic member function declared within the definition
          of the class indicated. */
       this_param_type = member_function_parent_type;

@@ -5286,9 +5286,12 @@ no_get_token:
     if (input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) {
       /* We are only interested in scanning type qualifiers in a
          pointer declarator. */
-      if (is_type_qualifier() or_is_near_or_far()) {
+      if (is_type_qualifier() or_is_near_or_far() ||
+          (microsoft_mode && curr_token == tok_inline)) {
         /* Keep looping. */
       } else {
+        /* Did we see tok_inline used as a qualifier? */
+        if (decl_specifiers_seen & DS_INLINE) { *qualifiers |= TQ_INLINE; }
         goto exit_loop;
       }  /* if */
     } else if (defines_something &&

@@ -1,5 +1,12 @@
 Version 2.42
 
+7/14/99  Microsoft compatibility: ignore inline function qualifier
+
+In Microsoft mode, using the keyword "inline" as a function qualifier only
+yields a warning (instead of an error).  The qualifier is ignored.
+
+  void f() inline; // Warning: inline function qualifier ignored
+
 7/13/99  Extra position information on throw specifications
 
 When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the front end will now record the
