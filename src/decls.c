@@ -4956,7 +4956,7 @@ symbol has already been entered as an undefined symbol.
   switch_to_file_scope_region(&region_to_switch_back_to);
   /* Generate the function type.  In C mode indicate it has an old-style
      no-information parameter list and a return type of "int".  See 3.3.2.2,
-     semantics. In C++ this must be an error, so give it a return type of
+     semantics.  In C++ this must be an error, so give it a return type of
      tk_error and call it prototyped. */
   rout_type = alloc_type((a_type_kind)tk_routine);
   rout_type->variant.routine.extra_info->param_type_list = NULL;
