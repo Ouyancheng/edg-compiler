@@ -1903,6 +1903,38 @@ done:
 }  /* verify_field_correspondence */
 
 
+static a_boolean inline_flag_can_differ(a_routine_ptr  rp1,
+                                        a_routine_ptr  rp2)
+/*
+Determine whether two C++ routines can validly have different values for their
+is_inline flag.
+*/
+{
+  a_boolean  result = FALSE;
+
+  check_assertion(!C_mode() && rp1->is_inline != rp2->is_inline);
+  if (rp1->is_inline) {
+    a_routine_ptr  tmp = rp1;
+    rp1 = rp2;
+    rp2 = tmp;
+  }  /* if */
+  /* rp1 is not inline whereas rp2 is. */
+  if (rp1->is_template_function && !rp1->is_specialized &&
+      rp1->assoc_scope == NULL_region_number) {
+    /* An uninstantiated template function may not have had its is_inline
+       flag set yet. */
+    result = TRUE;
+  } else if (!routine_defined(rp1) && !rp1->called && !rp1->address_taken &&
+             !rp1->is_virtual) {
+    /* If a routine is undefined and unused, it is OK for it not to have
+       been declared inline when other declarations of that routine are
+       inline. */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* inline_flag_can_differ */
+
+
 static a_boolean is_generated_new_or_delete_operator(a_routine_ptr  routine)
 /*
 Return TRUE if the given routine is a new or delete operator (including
@@ -1982,10 +2014,7 @@ is in fact valid.
             (instantiations don't have their inline flag set until they
              are instantiated). */
          (!C_mode() && routine->is_inline != corresp_routine->is_inline &&
-          ((routine->assoc_scope != NULL_region_number) ==
-                      (corresp_routine->assoc_scope != NULL_region_number)) &&
-          (routine->assoc_scope != NULL_region_number ||
-           !routine->is_template_function || routine->is_specialized)) ||
+          !inline_flag_can_differ(routine, corresp_routine)) ||
          /* If both routines are template specialization, the explicit
             template specialization bit should be the same. */
          (routine->template_arg_list != NULL && 
