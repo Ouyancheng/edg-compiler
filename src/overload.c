@@ -10726,6 +10726,8 @@ found to be acceptable, and *conversion describes it.
                                     err_code, &source_operand->position,
                                     &conversion,
                                     &local_conversion)) {
+    an_operand orig_operand;
+    orig_operand = *source_operand;
     /* Yes.  Build an enk_temp_init node and a dynamic init entry that
        will initialize the temporary.  The temporary's address is passed
        to the called routine. */
@@ -10735,6 +10737,7 @@ found to be acceptable, and *conversion describes it.
                                           &dip, &temp_init_node);
     make_expression_operand(temp_init_node, temp_init_node->type,
                             source_operand);
+    restore_operand_details(source_operand, &orig_operand);
   }  /* if */
 }  /* prep_arg_passed_via_copy_constructor */
 

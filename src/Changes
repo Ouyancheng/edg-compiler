@@ -1,5 +1,12 @@
 Version 2.44
 
+5/23/00  Source position on expression for argument passed via elided
+         copy constructor
+
+The source position in the expression node for an argument passed via
+an elided copy constructor (provided when EXTRA_SOURCE_POSITIONS_IN_IL
+is set to TRUE) was incorrect.  Now fixed.
+
 5/18/00  Microsoft compatibility: incompatible template parameter accepted
          in the definition of a member of a class template
 
