@@ -1,5 +1,17 @@
 Version 3.2
 
+4/25/03  Emulation of GNU layout of overlong bit fields in unions
+
+When DEFAULT_EMULATE_GNU_ABI_BUGS is TRUE, our implementation of the IA-64
+ABI now emulates a GNU C++ 3.2 layout bug when computing the size of a
+overlong bit field in a union.  Specifically, the bit size (but not the
+alignment) is decreased by the length of the container type selected for
+the overlong bit field.  For example:
+
+  union U {
+    char c: 15;  // Should take up two bytes, but reduced by 8 bits
+  };             // so that sizeof(U) == 1.
+
 4/23/03  Spurious correspondence errors on inline functions
 
 When support for "extern inline" functions was disabled (e.g., in Sun mode),

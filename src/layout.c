@@ -877,6 +877,35 @@ offset values as though the extra bits actually were being used.
   lob->curr_container_avail_bits = 0;
 }  /* pad_ms_bit_field_container */
 
+#if IA64_ABI
+
+static a_type_ptr longest_integer_type_fitting_in_bits(unsigned long  bit_size)
+/*
+Return the longest signed integer type that is not longer than the bit field.
+*/
+{
+  an_integer_kind  int_kind = (an_integer_kind)ik_none;
+
+  check_assertion(targ_char_bit <= bit_size);
+  int_kind = (an_integer_kind)ik_char;
+  if (targ_char_bit * targ_sizeof_short <= bit_size) {
+    int_kind = (an_integer_kind)ik_short;
+  }  /* if */
+  if (targ_char_bit * targ_sizeof_int <= bit_size) {
+    int_kind = (an_integer_kind)ik_int;
+  }  /* if */
+  if (targ_char_bit * targ_sizeof_long <= bit_size) {
+    int_kind = (an_integer_kind)ik_long;
+  }  /* if */
+#if LONG_LONG_ALLOWED
+  if (targ_char_bit * targ_sizeof_long_long <= bit_size) {
+    int_kind = (an_integer_kind)ik_long_long;
+  }  /* if */
+#endif /* LONG_LONG_ALLOWED */
+  return integer_type(int_kind);
+}  /* longest_integer_type_fitting_in_bits */
+
+#endif /* IA64_ABI */
 
 static a_boolean align_offsets_for_bit_field(a_field_ptr         field,
                                              a_layout_block_ptr  lob)
@@ -972,32 +1001,14 @@ targ_microsoft_bit_field_allocation is FALSE.)
        /* In some (error) cases, named zero length big fields are given
           a bit size of one (error recovery). */
        field->declared_bit_size != 0) {
-      unsigned long   declared_bit_size = field->declared_bit_size;
-      an_integer_kind int_kind = (an_integer_kind)ik_none;
-      a_type_ptr      int_type;
       /* Handle alignment for bit fields that are too long for their
          underlying types, for the IA-64 ABI.  Find the longest integral
          type that is not longer than the bit field.  The bit field is
          aligned the same as this integral type.  The signedness of the
          integral type doesn't matter, because it's used for its alignment
          only; the bit field does not get that type. */
-      check_assertion(targ_char_bit <= declared_bit_size);
-      int_kind = (an_integer_kind)ik_char;
-      if (targ_char_bit * targ_sizeof_short <= declared_bit_size) {
-        int_kind = (an_integer_kind)ik_short;
-      }  /* if */
-      if (targ_char_bit * targ_sizeof_int <= declared_bit_size) {
-        int_kind = (an_integer_kind)ik_int;
-      }  /* if */
-      if (targ_char_bit * targ_sizeof_long <= declared_bit_size) {
-        int_kind = (an_integer_kind)ik_long;
-      }  /* if */
-#if LONG_LONG_ALLOWED
-      if (targ_char_bit * targ_sizeof_long_long <= declared_bit_size) {
-        int_kind = (an_integer_kind)ik_long_long;
-      }  /* if */
-#endif /* LONG_LONG_ALLOWED */
-      int_type = integer_type(int_kind);
+      a_type_ptr  int_type = longest_integer_type_fitting_in_bits(
+                                                     field->declared_bit_size);
       container_size = int_type->size;
       container_alignment = field_alignment_for(int_type);
 #if BACK_END_IS_C_GEN_BE
@@ -2107,6 +2118,17 @@ there's no overflow TRUE is returned.
                                    (an_unnormalized_bit_offset)field->bit_size;
         if (targ_pad_bit_fields_larger_than_base_type) {
           bit_size = field->declared_bit_size;
+#if IA64_ABI
+          if (emulate_gnu_abi_bugs && bit_size > field->bit_size &&
+              class_type->kind == (a_type_kind)tk_union) {
+            /* Overlong bit fields in unions are handled strangely in early
+               GNU implementations of the IA-64 ABI: Their effective length is
+               decreased by the number of bits in the underlying type selected
+               for layout purposes. */
+            bit_size -= targ_char_bit*
+                          longest_integer_type_fitting_in_bits(bit_size)->size;
+          }  /* if */
+#endif /* IA64_ABI */
         }  /* if */
         overflow = !increment_field_offsets(
                         &lob->byte_offset, &lob->bit_offset,
