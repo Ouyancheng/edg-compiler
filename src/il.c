@@ -8338,7 +8338,7 @@ Transform an eok_bool_cast operation into a comparison with zero.
   a_constant            zero_constant;
   an_expr_operator_kind op;
 
-  /* A cast to bool in C++ is rewritten as a "!= 0" test in C. */
+  /* A cast to bool in C++ or C99 is rewritten as a "!= 0" test in C99. */
   operand = integral_promote_node(operand);
   make_zero_of_proper_type(operand->type, &zero_constant);
   zero_node = alloc_node_for_constant(&zero_constant);
