@@ -2941,11 +2941,14 @@ names.
 
 
 static sizeof_t mangled_function_name(a_routine_ptr routine,
+                                      a_boolean     suppress_param_encoding,
                                       char          *store_at)
 /*
 Determine the mangled form of the name of the function "routine".  Place the
 mangled name at *store_at if store_at != NULL, and (always) return the
 length of the name.  See ARM 7.2.1c for name encoding.
+If suppress_param_encoding is TRUE, suppress the information on parameter
+types; just put out the base encoded name.
 */
 {
   sizeof_t     mangled_name_length, section_length;
@@ -3008,27 +3011,29 @@ length of the name.  See ARM 7.2.1c for name encoding.
     mangled_name_length += section_length;
     if (store_at != NULL) store_at += section_length;
   }  /* if */
-  /* Add two underscores after the name. */
-  mangled_name_length += 2;
-  if (store_at != NULL) {
-    *store_at++ = '_';
-    *store_at++ = '_';
-  }  /* if */
-  /* See if the function is a static member function. */
-  class_type = routine->source_corresp.class_of_which_a_member;
-  if (class_type != NULL &&
-      !routine_type_is_nonstatic_member_function(routine_type)) {
-    /* Output the mangled class name followed by "S". */
-    section_length = mangled_type_name(class_type, store_at);
-    mangled_name_length += section_length + 1;
+  if (!suppress_param_encoding) {
+    /* Add two underscores after the name. */
+    mangled_name_length += 2;
     if (store_at != NULL) {
-      store_at += section_length;
-      *store_at++ = 'S';
+      *store_at++ = '_';
+      *store_at++ = '_';
     }  /* if */
+    /* See if the function is a static member function. */
+    class_type = routine->source_corresp.class_of_which_a_member;
+    if (class_type != NULL &&
+        !routine_type_is_nonstatic_member_function(routine_type)) {
+      /* Output the mangled class name followed by "S". */
+      section_length = mangled_type_name(class_type, store_at);
+      mangled_name_length += section_length + 1;
+      if (store_at != NULL) {
+        store_at += section_length;
+        *store_at++ = 'S';
+      }  /* if */
+    }  /* if */
+    /* Now output the function type. */
+    section_length = mangled_function_type_name(routine_type, store_at);
+    mangled_name_length += section_length;
   }  /* if */
-  /* Now output the function type. */
-  section_length = mangled_function_type_name(routine_type, store_at);
-  mangled_name_length += section_length;
   return mangled_name_length;
 }  /* mangled_function_name */
 
@@ -3038,29 +3043,45 @@ static void mangle_function_name(a_routine_ptr routine)
 Mangle the name of the indicated function, if necessary.
 */
 {
-  sizeof_t mangled_name_length;
-  char     *mangled_name;
+  a_boolean mangling_needed, suppress_param_encoding;
+  sizeof_t  mangled_name_length;
+  char      *mangled_name;
 
   error_position = routine->source_corresp.decl_position;
-  /* All names except C external names must be mangled, because they might
-     be overloaded.  All member function names must be mangled because
-     they exist in a scope that does not exist in the C version of the
-     program (of course, none of them have C external linkage, so no
-     separate test is needed).  Compiler-generated routines have no name,
-     and they are left alone. */
-  if (routine->source_corresp.name_linkage !=
-                                           (a_name_linkage_kind)nlk_external &&
-      routine->source_corresp.name != NULL) {
-    /* Mangle the function name. */
-    /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_function_name(routine, (char *)NULL);
-    /* Allocate space for the mangled name and build it.  The old name is
-       just thrown away. */
-    mangled_name = alloc_il(mangled_name_length + 1);
-    (void)mangled_function_name(routine, mangled_name);
-    /* Store the final null. */
-    mangled_name[mangled_name_length] = '\0';
-    routine->source_corresp.name = mangled_name;
+  /* Compiler-generated routines have no name, and they are left alone. */
+  if (routine->source_corresp.name != NULL) {
+    mangling_needed = FALSE;
+    /* All names except C external names must be mangled, because they might
+       be overloaded.  All member function names must be mangled because
+       they exist in a scope that does not exist in the C version of the
+       program (of course, none of them have C external linkage, so no
+       separate test is needed). */
+    if (routine->source_corresp.name_linkage !=
+                                           (a_name_linkage_kind)nlk_external) {
+      mangling_needed = TRUE;
+      suppress_param_encoding = FALSE;
+    } else if (routine->special_kind != (a_special_function_kind)sfk_none) {
+      /* Operator function names must be somewhat mangled even if they are
+         not C++ external, because their names are not normal C names --
+         they contain special characters, etc. */
+      mangling_needed = TRUE;
+      suppress_param_encoding = TRUE;
+    }  /* if */
+    if (mangling_needed) {
+      /* Mangle the function name. */
+      /* Determine how long the mangled name is. */
+      mangled_name_length = mangled_function_name(routine,
+                                                  suppress_param_encoding,
+                                                  (char *)NULL);
+      /* Allocate space for the mangled name and build it.  The old name is
+         just thrown away. */
+      mangled_name = alloc_il(mangled_name_length + 1);
+      (void)mangled_function_name(routine, suppress_param_encoding,
+                                  mangled_name);
+      /* Store the final null. */
+      mangled_name[mangled_name_length] = '\0';
+      routine->source_corresp.name = mangled_name;
+    }  /* if */
   }  /* if */
 }  /* mangle_function_name */
 
