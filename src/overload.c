@@ -10778,7 +10778,7 @@ happen only in C++ mode.
         } else {
           /* See if an appropriate copy constructor exists. */
           conversion_routine = select_copy_constructor(
-                                skip_typerefs(source_operand->type),
+                                class_type,
                                 get_type_qualifiers(source_operand->type),
                                 &source_operand->position, class_type,
                                 &class_bitwise_copy,

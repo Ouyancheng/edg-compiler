@@ -1,5 +1,39 @@
 Version 3.1
 
+9/23/02  Overload resolution, conversion function returning reference
+         to derived class
+
+When overload resolution resolves a copy-initialization by choosing
+a conversion function returning a reference to a derived class of the
+type of the entity being initialized, the search for a copy constructor
+looked for a copy constructor of the derived class instead of one
+for the base class.  As a consequence, there could be a spurious
+error (copy constructor not found), or the derived constructor
+could be called to copy into a base object, which could overwrite
+surrounding storage at runtime.  Now fixed.
+
+  class V {
+  public:
+        int i;
+        V() : i(1) { }
+        V(volatile V& v) { i = v.i; }
+  };
+  class Vd : public V {
+  public:
+        Vd() : V() { }
+//      Vd(volatile Vd& vd) : V(vd) { }
+  } t;
+  class C {
+  public:
+        operator volatile Vd& () { return t; }
+  } c;
+  int test(void)
+  {
+        V v = c;  // Got spurious error
+        return v.i == 1;
+  }
+
+
 9/23/02  Predefined macros recorded in IL
 
 When RECORD_MACROS_IN_IL is TRUE, the front end now also records predefined
