@@ -1049,7 +1049,8 @@ since such casts on pointer-to-member types are not "constant operations".
     fold_pm_derived_class_cast(old_constant, bcp, new_constant,
                                is_implicit_cast, err_pos);
   } else {
-    internal_error("conv_ptr_to_member_to_ptr_to_member: unrelated classes");
+    unexpected_condition_str(
+                    "conv_ptr_to_member_to_ptr_to_member: unrelated classes");
   }  /* if */
 }  /* conv_ptr_to_member_to_ptr_to_member */
 
