@@ -51,7 +51,7 @@ the release should contain no defines.
 #endif /* ifndef BACK_END_IS_CP_GEN_BE */
 #define ALLOW_NONSTANDARD_ANONYMOUS_UNIONS 1
 /* Use 1 for mmap PCH, 0 for non-mmap PCH. */
-#if 0
+#if 1
 #define USE_FIXED_ADDRESS_FOR_MMAP 1
 #define FIXED_ADDRESS_FOR_MMAP (0xa0000000)
 #else
