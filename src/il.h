@@ -34,6 +34,10 @@ typedef int	a_scope_depth;
    front end tables. */
 #include "il_def.h"
 
+#ifndef LEXICAL_H
+#include "lexical.h"
+#endif /* ifndef LEXICAL_H */
+
 #define NO_SCOPE_DEPTH (-1)
 #define DEPTH_OF_FILE_SCOPE 0
 
@@ -421,10 +425,10 @@ extern a_statement_ptr alloc_statement(a_statement_kind stmt_kind);
 
 extern a_constructor_init_ptr alloc_ctor_init(a_constructor_init_kind  kind);
 
-extern a_pragma_ptr alloc_pragma(a_pragma_kind  kind);
-
-extern void add_to_pragma_list(a_pragma_ptr   pragma,
-                               a_scope_depth  scope_depth);
+extern a_pragma_ptr add_pragma_to_il(a_pending_pragma_ptr  ppp,
+                                     an_il_entry_kind      kind,
+                                     char                  *entity,
+                                     a_boolean             at_file_scope);
 
 extern a_scope_ptr alloc_scope(a_scope_kind   kind,
                                a_scope_number number,
