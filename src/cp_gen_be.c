@@ -296,6 +296,7 @@ static void gen_constant(a_constant_ptr constant,
 static void gen_type(a_type_ptr type);
 static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type);
+static a_boolean process_preprocessing_directives(void);
 static void gen_pragma(void);
 #if RECORD_MACROS_IN_IL
 static void gen_macro(void);
@@ -905,6 +906,7 @@ expression, e.g.,
   p = (struct A *)0;
   i = f();
 
+Also skip macros and other preprocessing directives.
 */
 {
   a_type_ptr                   type;
@@ -913,6 +915,8 @@ expression, e.g.,
   a_routine_ptr                rout;
 
   for (; curr_source_sequence_entry != NULL;) {
+    /* Process macros, etc. */
+    (void)process_preprocessing_directives();
     if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
       if (is_autonomous_decl(type, sec_decl)) break;
       /* A non-autonomous type declaration (e.g., a type declared in
@@ -2195,9 +2199,9 @@ is the one associated with the definition of the enum.
     /* Start with an expected value of 0 next. */
     next_enum_value = *enum_con;
     set_integer_value(&next_enum_value.variant.integer_value, 0L);
+    /* Process macros, etc. */
+    (void)process_preprocessing_directives();
     for (;;) {
-      /* Process macros, etc. */
-      (void)process_preprocessing_directives();
       /* The source sequence entry for the enum constant should be next. */
       check_for_and_take_source_seq_entry(
                                enum_con->source_corresp.source_sequence_entry);
@@ -2214,17 +2218,18 @@ is the one associated with the definition of the enum.
                               /*need_parens=*/TRUE, &octl);
         next_enum_value = *enum_con;
       }  /* if */
+      /* Skip any type declarations in the expression following an
+         enumerator, as in
+           enum E { e1, e2 = sizeof(struct A *) };
+         This also skips macros, etc.
+      */
+      skip_embedded_declarations();
       enum_con = enum_con->next;
       /* Stop if at the end of the list of constants. */
       if (enum_con == NULL) break;
       /* Not the end of the list, so output a separator and keep looping. */
       write_tok_str(", ");
       incr_integer_value(&next_enum_value.variant.integer_value);
-      /* Skip any type declarations in the expression following an
-         enumerator, as in
-           enum E { e1, e2 = sizeof(struct A *) };
-      */
-      skip_embedded_declarations();
     }  /* for */
   }  /* if */
   /* The current source sequence entry should now be the end-of-construct
@@ -2254,11 +2259,16 @@ is next.  If so, this routine returns TRUE, indicating that the following
 declaration can be put out in a comma list.  For speed reasons, the
 check is done only if the underlying type of "type" is an unnamed tag,
 since the unnamed tag cases are the only ones that must be put out
-as comma lists.  However, if for_init is TRUE, indicating this declaration
-is the for-init in a "for" statement, all possible comma lists are
-considered.  If typedef_only is TRUE, the current declaration is
-a typedef, so a following declaration can be part of the current comma list
-only if it is a typedef.
+as comma lists.  (Also, avoiding named tags does away with the problems of
+cases like
+  struct A { int i; } v;
+  static A w;
+where the storage class difference would have to be considered.)
+However, if for_init is TRUE, indicating this declaration is the for-init
+in a "for" statement, all possible comma lists are considered.
+If typedef_only is TRUE, the current declaration is a typedef, so a
+following declaration can be part of the current comma list only if
+it is a typedef.
 */
 {
   a_boolean   another_decl_follows = FALSE;
@@ -6086,6 +6096,8 @@ that case) and old-style parameter declarations.
     /* Loop to do another declaration as part of a comma list. */
     suppress_specifiers = TRUE;
   }  /* for */
+  /* Process macros, pragmas. */
+  (void)process_preprocessing_directives();
 }  /* gen_declaration */
 
 
@@ -6099,10 +6111,14 @@ Process all the file scope entities, and everything under those.
      right order. */
   curr_source_sequence_entry = il_header.primary_scope->source_sequence_list;
   adv_to_signif_source_sequence_entry();
-  while (curr_source_sequence_entry != NULL) {
+  for (;;) {
+    /* Process macros, pragmas, etc. */
+    (void)process_preprocessing_directives();
+    /* Stop at the end of the list. */
+    if (curr_source_sequence_entry == NULL) break;
     /* Generate the declaration of a file-scope entity. */
     gen_declaration(/*for_init=*/FALSE);
-  }  /* while */
+  }  /* for */
   pop_name_context();
 }  /* process_file_scope_entities */
 
