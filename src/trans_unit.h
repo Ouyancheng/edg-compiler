@@ -115,6 +115,10 @@ typedef struct a_translation_unit {
 			/* Pointer to the module-id value for this translation
 			   unit. */
 #endif /* MODULE_ID_NEEDED */
+  a_memory_region_number
+		file_scope_region_number;
+			/* The memory region number for the file scope of
+			   this translation unit. */
 } a_translation_unit;
 
 

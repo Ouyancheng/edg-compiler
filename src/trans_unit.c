@@ -558,6 +558,7 @@ a pointer to the entry created.
   tup->exported_template_file = NULL;
   tup->specified_on_command_line = FALSE;
   tup->additional_instantiation_wrapup_required = TRUE;
+  tup->file_scope_region_number = NULL_region_number;
   /* Translation unit fields that are maintained by the mechanism that
      saves and restores translation unit variables.  They point to whichever
      copy of the information is currently active (either the global variable
@@ -667,6 +668,7 @@ treated as separate translation units of a single compilation.
     exported_file->translation_unit = trans_unit;
   }  /* if */
   fe_translation_unit_init();
+  trans_unit->file_scope_region_number = file_scope_region_number;
 #if MODULE_ID_NEEDED
   if (exported_file != NULL) {
     /* When loading a file for the purpose of defining exported templates,
