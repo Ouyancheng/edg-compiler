@@ -3416,10 +3416,6 @@ NULL if none is found.
   /* When searching for a routine symbol, we may have to inspect overload
      sets. */
   is_routine = is_function_or_template_symbol(sym_to_find);
-  /* Get the canonical IL entry associated with sym_to_find. */
-  canonical_entry = il_entry_for_symbol(sym_to_find, &il_kind);
-  canonical_entry = canonical_il_entry_of(canonical_entry);
-  check_assertion(canonical_entry != NULL);
   /* If this is a class or namespace member, get the corresponding parent. */
   if (sym_to_find->is_class_member) {
     /* Find the corresponding parent class. */
@@ -3465,6 +3461,10 @@ NULL if none is found.
       parent_namespace = parent_sym->variant.namespace_info.ptr;
     }  /* if */
   }  /* if */
+  /* Get the canonical IL entry associated with sym_to_find. */
+  canonical_entry = il_entry_for_symbol(sym_to_find, &il_kind);
+  canonical_entry = canonical_il_entry_of(canonical_entry);
+  check_assertion(canonical_entry != NULL);
   if (symbol_list != NULL) {
     /* Find the symbol on a list of symbol list entries. */
     a_symbol_list_entry_ptr	slep;
@@ -3483,6 +3483,12 @@ NULL if none is found.
                       sym_to_find, symbols, is_routine, parent_class,
                       parent_namespace, canonical_entry, tup);
   }  /* if */
+  /* Make sure the canonical entry didn't change during this processing.
+     The canonical entry can change if a entity that originally did not
+     exist in the primary translation unit is later added.  This routine
+     is structured such that the canonical entry pointer is fetched at a
+     point after the point at which new entities may have been added. */
+  check_assertion(canonical_entry == canonical_il_entry_of(canonical_entry));
   return result_sym;
 }  /* find_corresponding_symbol */
 
