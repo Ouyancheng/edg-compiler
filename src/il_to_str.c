@@ -2517,13 +2517,13 @@ match other types in the IL.
 */
 {
   a_type_ptr    type;
-  static a_type unknown_type;
+  static a_type unkn_type;
 
-  type = &unknown_type;
+  type = &unkn_type;
   /* Can't use clear_type here either.  This is unfortunate, but all we
      need is a type that won't match other types. */
-  memzero((char *)&unknown_type, sizeof(unknown_type));
-  unknown_type.kind = (a_type_kind)tk_unknown;
+  memzero((char *)&unkn_type, sizeof(unkn_type));
+  unkn_type.kind = (a_type_kind)tk_unknown;
   return type;
 }  /* static_unknown_type */
 
