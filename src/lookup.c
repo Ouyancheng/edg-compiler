@@ -703,8 +703,8 @@ should be used to satisfy the lookup.
   var_type = extern_sym->variant.extern_symbol_descr->type;
   decl_variable(locator, (a_storage_class)sc_extern, var_type,
                 (a_source_sequence_entry_ptr)NULL,
-                (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers,
-                &sym, &linkage, &old_type, &ext_sym);
+                (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers, &sym,
+                &linkage, &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL);
   /* Set the referenced flag on the variable entry.  The implicit declaration
      is also an immediate reference. */
   sym->variant.variable.ptr->source_corresp.referenced = TRUE;

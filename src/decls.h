@@ -320,7 +320,8 @@ void decl_variable(a_symbol_locator             *locator,
                    a_symbol_ptr                 *symbol_ptr,
                    an_id_linkage_kind           *linkage_ptr,
                    a_type_ptr                   *old_type,
-                   a_symbol_ptr                 *ext_sym);
+                   a_symbol_ptr                 *ext_sym,
+                   a_decl_pos_block_ptr         decl_pos_block);
 
 extern
 void decl_function_template(a_symbol_locator            *locator,

@@ -3314,7 +3314,8 @@ void decl_variable(a_symbol_locator             *locator,
                    a_symbol_ptr                 *symbol_ptr,
                    an_id_linkage_kind           *linkage_ptr,
                    a_type_ptr                   *old_type,
-                   a_symbol_ptr                 *ext_sym)
+                   a_symbol_ptr                 *ext_sym,
+                   a_decl_pos_block_ptr         decl_pos_block)
 /*
 Enter the declaration of an identifier for a variable.  *locator gives the
 symbol locator (and thus its name and its declaration position).  type_ptr,
@@ -3637,6 +3638,17 @@ cross-reference output describing this declaration.
      entry. */
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             declarator_ssep);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block != NULL && (is_variable_def || !redeclaration)) {
+    a_decl_position_supplement_ptr  dpsp;
+    dpsp = variable_ptr->source_corresp.decl_pos_info;
+    if (dpsp != NULL) {
+      dpsp->identifier_range = decl_pos_block->identifier_range;
+      dpsp->specifiers_range = decl_pos_block->specifiers_range;
+      dpsp->declarator_range = decl_pos_block->declarator_range;
+    }  /* if */
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Do fixup on the source sequence entry that was just created to
      represent the current declaration.  Note that declaration_ssep is not
@@ -5035,7 +5047,8 @@ static void define_static_data_member(a_symbol_locator   *locator,
                                       a_boolean          has_initializer,
                                       a_source_sequence_entry_ptr  ssep,
                                       a_symbol_ptr       *symbol_ptr,
-                                      an_id_linkage_kind *linkage_ptr)
+                                      an_id_linkage_kind *linkage_ptr,
+                                      a_decl_pos_block   *decl_pos_block)
 /*
 Enter the definition of a static data member.  *locator gives the symbol
 locator (and thus its name and its declaration position).  storage_class and
@@ -5120,6 +5133,16 @@ the symbol and its linkage (which is always "none").
       }  /* if */
       record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                 ssep);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      {
+      a_decl_position_supplement_ptr  dpsp = var->source_corresp.decl_pos_info;
+      if (dpsp != NULL) {
+        dpsp->identifier_range = decl_pos_block->identifier_range;
+        dpsp->specifiers_range = decl_pos_block->specifiers_range;
+        dpsp->declarator_range = decl_pos_block->declarator_range;
+      }  /* if */
+      }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
   } else {
     /* Not a static data member (but a member of some sort, since it is a
@@ -8671,7 +8694,8 @@ continue_with_declaration:
         /* A static data member definition. */
         define_static_data_member(&locator, local_storage_class,
                                   local_type_ptr, has_initializer,
-                                  declarator_ssep, &symbol_ptr, &linkage);
+                                  declarator_ssep, &symbol_ptr, &linkage,
+                                  &decl_pos_block);
         var_ptr = symbol_ptr->variant.static_data_member.variable;
         /* Fetch the type of the symbol again, since it might have been
            changed when reconciled with the original declaration. */
@@ -8803,7 +8827,8 @@ continue_with_declaration:
 #endif /* DECL_MODIFIERS_IN_USE */
         decl_variable(&locator, local_storage_class, local_type_ptr,
                       declarator_ssep, srk_flags, &local_decl_modifiers,
-                      &symbol_ptr, &linkage, &old_type, &ext_sym);
+                      &symbol_ptr, &linkage, &old_type, &ext_sym,
+                      &decl_pos_block);
         var_ptr = symbol_ptr->variant.variable.ptr;
         /* Fetch the type of the symbol again, since it might have been
            changed when reconciled with the original declaration. */
@@ -8826,17 +8851,6 @@ continue_with_declaration:
            required in this context (both C and C++). */
         complete_type_is_needed(local_type_ptr);
       }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (is_variable_def) {
-        a_decl_position_supplement_ptr  dpsp = var_ptr->
-                                               source_corresp.decl_pos_info;
-        if (dpsp != NULL) {
-          dpsp->identifier_range = decl_pos_block.identifier_range;
-          dpsp->specifiers_range = decl_pos_block.specifiers_range;
-          dpsp->declarator_range = decl_pos_block.declarator_range;
-        }  /* if */
-      }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       incomplete_type_error_reported = FALSE;
       if (!C_mode() && var_ptr != NULL) {
         if (is_abstract_class_type(local_type_ptr)) {
