@@ -54,6 +54,10 @@ Here are cases in which the entries are created:
     int A;               // file scope variable A is hidden but can be
   }                      //   unhidden if a leading "::" is used.
 
+This data structure is used by the C++-generating back end to avoid
+leading "::" qualifiers and elaborated types specifiers when they are not
+needed.
+
 6/11/94 Change in STAT_FIRST_PARAM_IS_CONST and GETOPT_PARAMS_ARE_NOT_CONST
 
 Formerly these flags were tested using #ifdef tests, so the value to
