@@ -6524,7 +6524,7 @@ a pointer over a reference type or creating an array of references.
                                            options, copy_error);
           if (tp != ptp->type) {
             /* A substitution was made, so a new routine type will be required.
-               Remember tp so we can avoid calling copy_type_with_substituion
+               Remember tp so we can avoid calling copy_type_with_substitution
                again for this param type entry. */
             first_new_type_for_param_types_list = tp;
             goto make_new_type;
