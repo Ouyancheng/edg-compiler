@@ -3893,6 +3893,11 @@ used to find this file.
   } else {
     parent_file = input_stack[depth_input_stack-1].assoc_il_file;
   }  /* if */
+  if (is_implicit_include) {
+    /* Decrement the sequence number when starting an implicitly included
+       file so that we reuse the old end-of-source position. */
+    seq_number_last_read--;
+  }  /* if */
   record_start_of_source_file(parent_file,
                               (a_seq_number)seq_number_last_read+1,
                               (a_line_number)1, display_name,

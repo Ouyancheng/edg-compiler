@@ -1,5 +1,14 @@
 Version 3.5
 
+7/1/04   Source file data structure problem with implicit inclusion
+
+Version 3.4 included an optimization of the translation of a sequence
+number into a source file and line number.  This optimization uncovered
+an existing problem that resulted in gaps in the sequence numbers
+when using implicit inclusion.  These gaps could result in an internal error
+on an attempt to get the source file and line number for a sequence number
+that from one of the gaps.  This has been fixed.
+
 7/1/04   Multiple-translation unit problem with two-argument operator delete
 
 When a two-argument class-specific operator delete[] was used in
