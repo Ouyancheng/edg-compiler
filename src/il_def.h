@@ -2977,6 +2977,12 @@ typedef struct a_based_type_list_member {
   a_based_type_kind
 		kind;	/* The relationship between the based type and the
 			   base type. */
+  a_byte_boolean
+		front_end_only;
+			/* TRUE if the current entry and the associated based
+			   type are used by the front end only; when this flag
+			   is set, the entry is removed from the based-type
+			   list after front-end processing is completed. */
 } a_based_type_list_member;
 
 

@@ -760,6 +760,7 @@ return a pointer to it.
   btlmp->next = NULL;
   btlmp->based_type = NULL;
   btlmp->kind = kind;
+  btlmp->front_end_only = FALSE;
 
   return btlmp;
 }  /* alloc_based_type_list_member */
