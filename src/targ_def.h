@@ -3593,7 +3593,7 @@ used to construct the array named_address_spaces (see below).
 typedef struct a_named_address_space_descr {
   char  *name;
 		/* Pointer to null-terminated name.  TR 18037 ("Embedded C")
-		   requires that such memory regions have names in the
+		   requires that such address spaces have names in the
 		   implementation namespace. */
   a_named_address_space_id
 	parent_id;
@@ -3622,6 +3622,62 @@ EXTERN a_named_address_space_descr
 #endif /* VAR_INITIALIZERS */
 ;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+
+/*
+Named-register storage classes are identified using small integers of the
+following signed type.  Defined unconditionally because it is used in some
+function signatures.
+*/
+typedef int a_named_register_id;
+
+#if NAMED_REGISTERS_ALLOWED
+/*
+A structure describing a named-register storage class.  The structure is
+primarily used to construct the array named_register_storage_classes (see
+below).
+*/
+typedef struct a_named_register_storage_class_descr {
+  char  *name;
+		/* Pointer to null-terminated name.  TR 18037 ("Embedded C")
+		   requires that such storage classes have names in the
+		   implementation namespace. */
+  a_targ_size_t
+	size;
+		/* Size of the corresponding register: This is an upper
+		   bound for the size of a variable with this storage
+		   class. */
+} a_named_register_storage_class_descr;
+
+/*
+A macro representing the number of actual named registers available for
+named-register storage classes.
+*/
+#if INCLUDE_EDG_TEST_NAMED_REGISTERS
+#define NUM_NAMED_REGISTERS 3
+#else /* !INCLUDE_EDG_TEST_NAMED_REGISTERS */
+#define NUM_NAMED_REGISTERS 0
+#endif /* INCLUDE_EDG_TEST_NAMED_REGISTERS */
+
+/*
+A table describing the known named-register storage classes.  It can be
+indexed using a named register id.  The first and last entries do not
+correspond to actual registers.
+*/
+EXTERN a_named_register_storage_class_descr
+	named_register_storage_classes[NUM_NAMED_REGISTERS+2]
+#if VAR_INITIALIZERS
+= {
+/*  0: */ { "", 0 },	/* Placeholder for "no register." */
+#if INCLUDE_EDG_TEST_NAMED_REGISTERS
+/*  1: */ { "_EDG_REG_1", 1 }, 
+/*  2: */ { "_EDG_REG_2", TARG_SIZEOF_LONG }, 
+/*  3: */ { "_EDG_REG_3", TARG_SIZEOF_LONG }, 
+#endif /* INCLUDE_EDG_TEST_NAMED_REGISTERS */
+/*  4: */ { NULL, 0 }	/* End-of-array marker. */
+}
+#endif /* VAR_INITIALIZERS */
+;
+#endif /* NAMED_REGISTERS_ALLOWED */
 
 #endif /* !defined(TARG_DEF_H) */
 

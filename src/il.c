@@ -6246,6 +6246,48 @@ instantiations) below that on the scope stack.
   db_exit();
 }  /* add_placeholder_for_class_instantiation */
 
+#if NAMED_REGISTERS_ALLOWED
+
+static a_variable_ptr
+	named_register_variables[NUM_NAMED_REGISTERS+1];
+
+void record_named_register_storage_class(a_variable_ptr       var,
+                                         a_named_register_id  register_id,
+                                         a_source_position    *pos)
+/*
+Record the given named-register storage class id in the given variable.  If it
+conflicts with a different construct or a previous declaration, issue an error
+at the given position.
+*/
+{
+  if (var->named_register_storage_class) {
+    /* This must be a redeclaration.  The new id must be equal the one
+       previous recorded. */
+    if (register_id != var->asm_name_or_reg.id) {
+      pos_error(ec_register_storage_class_conflict, pos);
+    }  /* if */
+  } else
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+  if (!var->asm_name_is_valid || var->asm_name_or_reg.name != NULL) {
+    /* The variable was already mapped using a GNU construct or a Sun
+       pragma. */
+    pos_error(ec_aliased_variable_cannot_have_register_storage_class, pos);
+  } else
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+  /* Do not insert code here. */
+  if (register_id != 0) {
+    if (named_register_variables[register_id] != NULL) {
+      pos_error(ec_register_in_use, pos);
+    } else {
+      var->asm_name_is_valid = FALSE;
+      var->named_register_storage_class = TRUE;
+      var->asm_name_or_reg.id = register_id;
+      named_register_variables[register_id] = var;
+    }  /* if */
+  }  /* if */
+}  /* record_named_register_storage_class */
+
+#endif /* NAMED_REGISTERS_ALLOWED */
 
 void add_to_types_list_full(a_type_ptr     type_ptr,
                             a_scope_depth  scope_level,
@@ -15970,6 +16012,9 @@ in il_init.)
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       pch_array_saved_var_array_elem(string_types),
       pch_array_saved_var_array_elem(wide_string_types),
+#if NAMED_REGISTERS_ALLOWED
+      pch_array_saved_var_array_elem(named_register_variables),
+#endif /* NAMED_REGISTERS_ALLOWED */
       pch_saved_var_array_elem(shareable_constants_table),
       pch_saved_var_array_elem(curr_object_lifetime),
 #if ORPHAN_PROCESSING_NEEDED
@@ -16022,6 +16067,9 @@ in il_init.)
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   register_trans_unit_array(string_types);
   register_trans_unit_array(wide_string_types);
+#if NAMED_REGISTERS_ALLOWED
+  register_trans_unit_array(named_register_variables);
+#endif /* NAMED_REGISTERS_ALLOWED */
   register_trans_unit_variable(il_error_type);
   register_trans_unit_variable(il_unknown_type);
   register_trans_unit_variable(il_void_type);
@@ -16116,6 +16164,9 @@ need initialization for every (primary and secondary) translation unit.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   memzero((char *)string_types, sizeof(string_types));
   memzero((char *)wide_string_types, sizeof(wide_string_types));
+#if NAMED_REGISTERS_ALLOWED
+  memzero((char *)named_register_variables, sizeof(named_register_variables));
+#endif /* NAMED_REGISTERS_ALLOWED */
   il_wchar_t_type = NULL;
   il_bool_type = NULL;
   il_error_type = il_unknown_type = il_void_type = NULL;

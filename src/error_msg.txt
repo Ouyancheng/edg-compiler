@@ -1375,6 +1375,11 @@ ec_field_type_cannot_be_qualified_with_named_address_space;;"field type cannot b
 ec_fixed_to_float_conversion;;"fixed-point value does not fit in required floating-point type"
 ec_fixed_to_integer_conversion;;"fixed-point value does not fit in required integer type"
 ec_fixed_to_fixed_conversion;;"value does not fit in required fixed-point type"
+ec_cl_named_registers_option_only_in_C;;"option \"named_registers\" can be used only when compiling C"
+ec_named_register_not_allowed;;"a named-register storage class is not allowed here"
+ec_register_storage_class_conflict;;"named-register storage class conflicts with previous declaration"
+ec_aliased_variable_cannot_have_register_storage_class;;"named-register storage class cannot be specified for aliased variable"
+ec_register_in_use;;"named-register storage specifier is already in use"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

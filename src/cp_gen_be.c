@@ -9628,6 +9628,11 @@ declaration following this one is such a continuation.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (!suppress_specifiers) {
+#if NAMED_REGISTERS_ALLOWED
+    if (var->named_register_storage_class) {
+      storage_class = (a_storage_class)sc_register;
+    }  /* if */
+#endif /* NAMED_REGISTERS_ALLOWED */
     /* Check for `extern "C"'.  This applies even on a definition. */
     if (il_header.source_language == sl_Cplusplus &&
         var->source_corresp.name_linkage ==(a_name_linkage_kind)nlk_external &&
@@ -9661,6 +9666,13 @@ declaration following this one is such a continuation.
       /* Put out the storage class determined above. */
       gen_storage_class(storage_class);
     }  /* if */
+#if NAMED_REGISTERS_ALLOWED
+    if (var->named_register_storage_class) {
+      write_tok_str(
+                named_register_storage_classes[var->asm_name_or_reg.id].name);
+      write_space();
+    }  /* if */
+#endif /* NAMED_REGISTERS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
     { a_decl_modifier decl_modifiers = var->decl_modifiers;
@@ -9704,6 +9716,11 @@ declaration following this one is such a continuation.
   /* Emit any user-specified assembly symbol for this variable. */
   if (var->asm_name_is_valid) {
     form_asm_name(var->asm_name_or_reg.name, &octl);
+#if NAMED_REGISTERS_ALLOWED
+  } else if (var->named_register_storage_class) {
+    /* This variable was defined with an Embedded C named-register storage
+       class.  The storage class was already emitted elsewhere. */
+#endif /* NAMED_REGISTERS_ALLOWED */
   } else {
     form_var_reg_name(var->asm_name_or_reg.reg, &octl);
   }  /* if */

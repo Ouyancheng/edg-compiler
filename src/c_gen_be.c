@@ -1448,6 +1448,13 @@ Print the storage class of the indicated variable followed by a space.
       end_comment();
       write_space();
     }  /* if */
+#if NAMED_REGISTERS_ALLOWED
+  } else if (variable->named_register_storage_class) {
+    write_tok_str("register ");
+    write_tok_str(
+           named_register_storage_classes[variable->asm_name_or_reg.id].name);
+    write_space();
+#endif /* NAMED_REGISTERS_ALLOWED */
   } else {
     /* Normal case. */
     dump_storage_class(variable->storage_class);
@@ -6158,11 +6165,17 @@ parameters.
         storage_class = (a_storage_class)sc_register;
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-      if (storage_class != variable->storage_class) {
-        /* The storage class to be put out is not the one in the variable. */
-        dump_storage_class(storage_class);
-      } else {
+      if (storage_class == variable->storage_class
+#if NAMED_REGISTERS_ALLOWED
+          || variable->named_register_storage_class
+#endif /* NAMED_REGISTERS_ALLOWED */
+                                                   ) {
+        /* Issue the storage class as recorded in the variable. */
         dump_variable_storage_class(variable);
+      } else {
+        /* The storage class to be put out is not the one in the variable
+           (and it's not a named register storage class). */
+        dump_storage_class(storage_class);
       }  /* if */
 #if IA64_ABI
       if (variable->comdat_group != NULL
@@ -6257,6 +6270,11 @@ parameters.
       /* Emit any user-specified assembly symbol for this variable. */
       if (variable->asm_name_is_valid) {
         form_asm_name(variable->asm_name_or_reg.name, &octl);
+#if NAMED_REGISTERS_ALLOWED
+      } else if (variable->named_register_storage_class) {
+        /* This variable was defined with an Embedded C named-register
+           storage class.  The storage class was already emitted elsewhere. */
+#endif /* NAMED_REGISTERS_ALLOWED */
       } else {
         form_var_reg_name(variable->asm_name_or_reg.reg, &octl);
       }  /* if */

@@ -225,6 +225,9 @@ typedef enum /*an_option_kind*/ {
 #if NAMED_ADDRESS_SPACES_ALLOWED
   optk_named_address_spaces,
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+  optk_named_registers,
+#endif /* NAMED_REGISTERS_ALLOWED */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -713,6 +716,21 @@ EXTERN a_boolean
 			   "Embedded C") for named address spaces should be
 			    accepted. */
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+
+EXTERN a_boolean
+		named_registers_enabled
+#if VAR_INITIALIZERS
+		                        =
+#if NAMED_REGISTERS_ALLOWED
+		                          DEFAULT_NAMED_REGISTERS_ENABLED
+#else /* !NAMED_REGISTERS_ALLOWED */
+		                          FALSE
+#endif /* NAMED_REGISTERS_ALLOWED */
+#endif /* VAR_INITIALIZERS */
+                                                                         ;
+			/* TRUE if the extension of ISO TR 18037 (aka.
+			   "Embedded C") for named-register storage classes
+			    should be accepted. */
 
 EXTERN a_boolean
 		pointer_to_member_call_optimization_allowed

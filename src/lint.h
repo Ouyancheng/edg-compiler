@@ -395,7 +395,13 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_named_address_space_on_function_type)*/
 /*lint -esym(769,ec_field_type_cannot_be_qualified_with_named_address_space)*/
 #endif /* !NAMED_ADDRESS_SPACES_ALLOWED */
-
+#if !NAMED_REGISTERS_ALLOWED
+/*lint -esym(769,ec_cl_named_registers_option_only_in_C)*/
+/*lint -esym(769,ec_named_register_not_allowed)*/
+/*lint -esym(769,ec_register_storage_class_conflict)*/
+/*lint -esym(769,ec_aliased_variable_cannot_have_register_storage_class)*/
+/*lint -esym(769,ec_register_in_use)*/
+#endif /* !NAMED_REGISTERS_ALLOWED */
 
 /******************************************************************************
 *                                                             \  ___  /       *

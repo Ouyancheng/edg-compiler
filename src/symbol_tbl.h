@@ -374,6 +374,11 @@ enum a_symbol_kind_tag {
   sk_named_address_space,
                         /* Embedded C (TR 18037) named address space. */
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+  sk_named_register,
+			/* Embedded C (TR 18037) named-register storage
+			   class. */
+#endif /* NAMED_REGISTERS_ALLOWED */
   sk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -394,6 +399,9 @@ EXTERN char	*symbol_kind_names[(int)sk_last + 1]
 #if NAMED_ADDRESS_SPACES_ALLOWED
    "named address space",
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+   "named register",
+#endif /* NAMED_REGISTERS_ALLOWED */
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -2737,6 +2745,15 @@ typedef struct a_symbol {
 			   space. */
     } named_address_space;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+    /* When kind == sk_named_register: */
+    struct {
+      a_named_register_id
+		id;
+			/* A small integer identifying the named-register
+			   storage class. */
+    } named_register;
+#endif /* NAMED_REGISTERS_ALLOWED */
   } variant;
 } a_symbol;
 
@@ -3183,6 +3200,10 @@ extern void enter_keyword(a_token_kind token,
 #if NAMED_ADDRESS_SPACES_ALLOWED
 extern a_symbol_ptr enter_named_address_space(char  *name);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+
+#if NAMED_REGISTERS_ALLOWED
+extern a_symbol_ptr enter_named_register(char  *name);
+#endif /* NAMED_REGISTERS_ALLOWED */
 
 extern void make_symbol_for_predeclared_type(a_type_ptr  predeclared_type,
                                              char        *name);

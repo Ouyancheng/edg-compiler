@@ -64,9 +64,16 @@ static a_boolean
 #if NAMED_ADDRESS_SPACES_ALLOWED
 static a_named_address_space_id
 		next_named_address_space_id;
-			/* The next unused id for named address space.  The
+			/* The next unused id for named address spaces.  The
 			   first id is one. */
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+
+#if NAMED_REGISTERS_ALLOWED
+static a_named_register_id
+		next_named_register_id;
+			/* The next unused id for named registers.  The
+			   first id is one. */
+#endif /* NAMED_REGISTERS_ALLOWED */
 
 /*
 An empty symbol used to initialize newly allocated symbols.
@@ -1139,6 +1146,11 @@ do_variable:
       fprintf(f_debug, " (id = %d)", sym->variant.named_address_space.id);
       break;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+    case sk_named_register:
+      fprintf(f_debug, " (id = %d)", sym->variant.named_register.id);
+      break;
+#endif /* NAMED_REGISTERS_ALLOWED */
 #if CHECKING
     default:
       put_string("UNEXPECTED SYMBOL KIND");
@@ -2745,6 +2757,11 @@ state.
       sym_ptr->variant.named_address_space.id = 0;
       break;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+    case sk_named_register:
+      sym_ptr->variant.named_register.id = 0;
+      break;
+#endif /* NAMED_REGISTERS_ALLOWED */
 #if CHECKING
     default:
       internal_error("set_symbol_kind: bad symbol kind");
@@ -5170,6 +5187,24 @@ Enter a new symbol for a memory region with the given name.
 }  /* enter_named_address_space */
 
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+
+a_symbol_ptr enter_named_register(char  *name)
+/*
+Enter a new symbol for an Embedded C (TR 18037) named register with the given
+name.
+*/
+{
+  a_symbol_ptr  sym;
+
+  sym = full_enter_symbol(name, (sizeof_t)(strlen(name)),
+                          (a_symbol_kind)sk_named_register,
+                          DEPTH_OF_FILE_SCOPE);
+  sym->variant.named_register.id = next_named_register_id++;
+  return sym;
+}  /* enter_named_register */
+
+#endif /* NAMED_REGISTERS_ALLOWED */
 
 void enter_injected_class_name_symbol(a_symbol_ptr  tag_sym)
 /*
@@ -11057,6 +11092,9 @@ are handled in symbol_tbl_init.)
 #if NAMED_ADDRESS_SPACES_ALLOWED
   name_space_for_symbol_kind[(int)sk_named_address_space] = nsk_other;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+  name_space_for_symbol_kind[(int)sk_named_register] = nsk_other;
+#endif /* NAMED_REGISTERS_ALLOWED */
 #if CHECKING
   /* "undefined" and "routine" must be in the same name space.  See
       decl_default_function. */
@@ -11196,6 +11234,9 @@ are handled in symbol_tbl_init.)
 #if NAMED_ADDRESS_SPACES_ALLOWED
       pch_saved_var_array_elem(next_named_address_space_id),
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+      pch_saved_var_array_elem(next_named_register_id),
+#endif /* NAMED_REGISTERS_ALLOWED */
 #if DEBUG
       pch_saved_var_array_elem(db_symbol_buffer_pointer),
       pch_saved_var_array_elem(num_access_error_descrs_allocated),
@@ -11260,6 +11301,9 @@ are handled in symbol_tbl_init.)
 #if NAMED_ADDRESS_SPACES_ALLOWED
   register_trans_unit_variable(next_named_address_space_id);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+  register_trans_unit_variable(next_named_register_id);
+#endif /* NAMED_REGISTERS_ALLOWED */
 }  /* symbol_tbl_one_time_init */
 
 
@@ -11312,6 +11356,9 @@ given translation unit.
 #if NAMED_ADDRESS_SPACES_ALLOWED
   next_named_address_space_id = 1;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+  next_named_register_id = 1;
+#endif /* NAMED_REGISTERS_ALLOWED */
 }  /* symbol_tbl_trans_unit_init */
 
 

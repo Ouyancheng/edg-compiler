@@ -117,6 +117,7 @@ block size is returned through upc_block_size (when non-NULL).
   a_decl_modifiers_block  dummy_decl_modifiers;
   a_type_qualifier_set    qualifiers;
   a_decl_pos_block        local_decl_pos_block;
+  a_named_register_id     register_id;
 
   clear_decl_pos_block(&local_decl_pos_block);
   dsi_flags = DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS;
@@ -125,7 +126,7 @@ block size is returned through upc_block_size (when non-NULL).
                         &dummy_storage_class, &dummy_type_ptr,
                         &qualifiers, (an_attribute_ptr*)NULL,
                         (an_ms_attribute_ptr*)NULL, &dummy_decl_modifiers,
-                        &local_decl_pos_block, upc_block_size);
+                        &register_id, &local_decl_pos_block, upc_block_size);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     check_assertion(local_decl_pos_block.specifiers_range.end.seq != 0);
@@ -1509,6 +1510,7 @@ if this is the function declarator in a friend function declaration.
 #if GNU_EXTENSIONS_ALLOWED
         an_attribute_ptr     ap;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+        a_named_register_id  register_id;
         a_decl_flag_set      dsi_flags = DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
                                          DSI_TYPE_SPECIFIER_ALLOWED |
                                          DSI_IS_PARAMETER |
@@ -1526,7 +1528,7 @@ if this is the function declarator in a friend function declaration.
         /* Scan a parameter-declaration. */
         (void)decl_specifiers(dsi_flags, &dso_flags, &param_storage_class,
                               &param_type_ptr, &qualifiers, &attributes,
-                              &ms_attributes, &decl_modifiers,
+                              &ms_attributes, &decl_modifiers, &register_id,
                               &local_decl_pos_block, (a_upc_block_size *)NULL);
 #if GNU_EXTENSIONS_ALLOWED
         /* Find the end of the current attribute list. */

@@ -11876,6 +11876,7 @@ passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean            any_decl_other_than_nonstatic_data_member = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_named_register_id  register_id = 0;
   char                 *asm_name = NULL;
   an_attribute_ptr     specifier_attributes = NULL;
 #if GNU_EXTENSIONS_ALLOWED
@@ -11921,7 +11922,8 @@ passed via template_decl.
   (void)decl_specifiers(dsi_flags, &dso_flags, &decl_info.storage_class,
                         &member_type, &qualifiers, &specifier_attributes,
                         &ms_attributes, &decl_info.decl_modifiers,
-                        &decl_info.decl_pos_block, (a_upc_block_size *)NULL);
+                        &register_id, &decl_info.decl_pos_block,
+                        (a_upc_block_size *)NULL);
   no_decl_specifiers = (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0;
   type_explicitly_specified =
                            (dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0;

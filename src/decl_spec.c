@@ -5522,6 +5522,246 @@ Unusual syntax errors (e.g., "::" followed by something unexpected) cause
 }  /* process_nontype_identifier */
 
 
+#if !NAMED_REGISTERS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* p_ms_attributes and register_id are not used in all
+                 configurations. */
+#endif /* !NAMED_REGISTERS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED */
+static void process_storage_class_specifier(
+                                  a_decl_flag_set        input_flags,
+                                  a_decl_flag_set        *output_flags,
+                                  a_storage_class        *storage_class,
+                                  an_ms_attribute_ptr    *p_ms_attributes,
+                                  a_decl_pos_block_ptr   decl_pos_block,
+				  a_source_position      *storage_class_pos,
+                                  a_decl_specifiers_set  *decl_specifiers_seen,
+                                  a_named_register_id    *register_id,
+                                  a_boolean              *err)
+/*
+This is a helper function for decl_specifiers(...) called when the current
+token is a storage class specifier (or "mutable", which is syntactically
+similar). input_flags, output_flags, storage_class, p_ms_attributes, and
+decl_pos_block are parameters forwarded from decl_specifiers.
+*storage_class_pos is set to the position of the specifier (except for error
+cases).  *decl_specifiers_seen is updated with an indication of the specifiers
+that were consumed.  *err is set to TRUE if an error is issued.  All the
+storage class specifier tokens are consumed by this routine.
+*/
+{
+  a_boolean          is_parameter = (input_flags & DSI_IS_PARAMETER);
+  a_boolean          is_member_decl =
+                                    (input_flags & DSI_IS_MEMBER_DECLARATION);
+  a_boolean          is_named_register = FALSE;
+  a_token_kind       first_token = curr_token;
+  a_source_position  pos_first_token;
+
+  pos_first_token = pos_curr_token;
+  (void)get_token();
+#if NAMED_REGISTERS_ALLOWED
+  if (named_registers_enabled && first_token == tok_register &&
+      curr_token == tok_identifier) {
+    a_symbol_ptr  sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+    if (sym != NULL && sym->kind == (a_symbol_kind)sk_named_register) {
+      is_named_register = TRUE;
+      if (input_flags & (DSI_IS_MEMBER_DECLARATION |
+                         DSI_IS_PARAMETER |
+                         DSI_IS_CONDITION_DECL)) {
+        pos_error(ec_named_register_not_allowed, &pos_curr_token);
+      } else {
+        *register_id = sym->variant.named_register.id;
+      }  /* if */
+      (void)get_token();
+    }  /* if */
+  }  /* if */
+#endif /* NAMED_REGISTERS_ALLOWED */
+
+  if (!(input_flags & DSI_STORAGE_CLASS_SPECIFIER_ALLOWED)) {
+    error((!C_mode() && first_token == tok_typedef) ?
+                       ec_typedef_not_allowed : ec_storage_class_not_allowed);
+    *err = TRUE;
+#if ASM_FUNCTION_ALLOWED
+  } else if (*storage_class == (a_storage_class)sc_asm) {
+    error(ec_storage_class_not_allowed);
+    *err = TRUE;
+#endif /* ASM_FUNCTION_ALLOWED */
+  } else if (*decl_specifiers_seen & (DS_MUTABLE | DS_STORAGE_CLASS)) {
+    /* More than  one storage class may not be specified. */
+    error(ec_mult_storage_classes);
+    *err = TRUE;
+  } else if (is_parameter && first_token != tok_register &&
+             (C_dialect != C_dialect_cplusplus ||
+              first_token != tok_auto)) {
+    /* For parameters, the only allowed storage class specifiers are
+       "register" and (in C++ only) "auto". */
+    if (first_token == tok_typedef) {
+      if (input_flags & DSI_IS_OLD_STYLE_PARAM_DECL) {
+        /* Error will be handled by caller. */
+        *storage_class = (a_storage_class)sc_typedef;
+        *decl_specifiers_seen |= DS_STORAGE_CLASS;
+      } else {
+        error(ec_typedef_not_allowed);
+        *err = TRUE;
+      }  /* if */
+    } else {
+      /* "static" and "extern" aren't allowed on parameter declarations,
+         but Microsoft compilers ignore them with a warning. */
+      diagnostic(microsoft_mode ? es_warning : es_error,
+                 ec_bad_param_storage_class);
+      *err = !microsoft_mode;
+    }  /* if */
+  } else if (!C_mode() && (*decl_specifiers_seen & DS_INLINE) &&
+             first_token != tok_static &&
+             (!extern_inline_allowed || first_token != tok_extern)) {
+    /* In C++, "inline static" is allowed; if extern_inline_allowed
+       is TRUE, so is "inline extern"; otherwise, we issue an error.
+       (In C99 mode "inline" can appear with both "static" and
+       "extern".) */
+    error(ec_bad_storage_class_with_inline);
+    *err = TRUE;
+  } else if (first_token == tok_mutable) {
+    if (!is_member_decl || (*decl_specifiers_seen & DS_FRIEND)) {
+      error(ec_mutable_not_allowed);
+      *err = TRUE;
+    } else {
+      /* "mutable" is outside the "Embedded C++" subset. */
+      feature_is_not_part_of_embedded_cplusplus_subset(
+                                       &pos_first_token,
+                                       ec_mutable_in_embedded_cplusplus);
+      /* Aside from interactions with storage classes, errors cannot
+         be issued on mutable until the declarator has been scanned.
+         Just return a flag to the caller. */
+      *decl_specifiers_seen |= DS_MUTABLE;
+      *output_flags |= DSO_MUTABLE;
+      *storage_class_pos = pos_first_token;
+    }  /* if */
+  } else if ((*decl_specifiers_seen & DS_FRIEND) &&
+             !microsoft_mode && !sun_mode) {
+    /* Note: in Microsoft and Sun modes a friend function can
+       be declared "static" or "extern".  The check is done later. */
+    error(ec_storage_class_in_friend_decl);
+    *err = TRUE;
+  } else if ((input_flags & DSI_IS_SPECIALIZATION) &&
+             first_token != tok_static) {
+    error(first_token == tok_typedef ?
+              ec_typedef_not_allowed : ec_storage_class_not_allowed);
+    *err = TRUE;
+  } else if (is_member_decl && !microsoft_mode &&
+             !(*decl_specifiers_seen & DS_FRIEND) &&
+             first_token != tok_static && first_token != tok_typedef) {
+    error(ec_bad_member_storage_class);
+    *err = TRUE;
+  } else if (input_flags & DSI_IS_LINKAGE_SPEC_DECL &&
+             (first_token != tok_typedef && !microsoft_mode)) {
+    /* Except in Microsoft mode, we disallow
+         extern "C" static void f();
+       but in order to support association between a name linkage and a
+       function type we do allow
+         extern "C" typedef void FT();
+    */
+    error(ec_storage_class_not_allowed);
+    *err = TRUE;
+  } else if (input_flags & DSI_IS_TEMPLATE_DECLARATION &&
+             first_token != tok_extern && first_token != tok_static) {
+    error(first_token == tok_typedef ?
+             ec_typedef_not_allowed :
+             ec_bad_storage_class_on_template_decl);
+    *err = TRUE;
+  } else if (C_mode() && depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+             (first_token == tok_auto ||
+              (first_token == tok_register &&
+#if GNU_EXTENSIONS_ALLOWED
+               /* In GNU C mode, "register" can appear at file
+                  scope, as long as an explicit register name is
+                  provided. (Not in GNU C++ mode, however.) */
+               !gcc_mode &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
+               !is_named_register))) {
+    if (gcc_mode) {
+      warning(ec_auto_ignored);
+    } else {
+      error(ec_bad_file_scope_storage_class);
+      *err = TRUE;
+    }  /* if */
+  } else if (input_flags & DSI_IS_CONDITION_DECL) {
+    /* Issue a diagnostic for the specification of a storage class on
+       a condition declaration.  Ignore auto and register except in
+       strict mode.  Only set *err if an error is issued.  Do not
+       set *storage_class. */
+    an_error_severity  es;
+    if (first_token == tok_auto || first_token == tok_register) {
+      es = strict_ansi_mode ? strict_ansi_error_severity : es_none;
+    } else {
+      es = es_error;
+    }  /* if */
+    /* Put out the diagnostic. */
+    if ((int)es != (int)es_none) {
+      diagnostic(es, first_token == tok_typedef ? ec_typedef_not_allowed :
+                                           ec_storage_class_not_allowed);
+    }  /* if */
+    /* If an error was issued, set the flag; otherwise, set the bit in
+       *decl_specifiers_seen, so that the multiple-storage-class
+       diagnostic will be put out if another storage class is
+       specified. */
+    if ((int)es > (int)es_warning) {
+      *err = TRUE;
+    } else {
+      *decl_specifiers_seen |= DS_STORAGE_CLASS;
+    }  /* if */
+  } else if (c99_mode &&
+             !(first_token == tok_auto || first_token == tok_register) &&
+             depth_stmt_stack > 0 &&
+             struct_stmt_stack[depth_stmt_stack].for_init) {
+    /* A for-init declaration in C99 can only have storage class
+       auto or register. */
+    error(ec_invalid_storage_class_in_for_init);
+    *err = TRUE;
+  } else {
+    if (C_dialect != C_dialect_pcc && !*err) {
+      if (*decl_specifiers_seen & ~(DS_INLINE | DS_FRIEND)) {
+        /* Issue a diagnostic if the storage class is not the first
+           specifier (except for "inline" or "friend"). */
+        diagnostic(strict_ansi_mode ? es_warning : es_remark,
+                   ec_storage_class_not_first);
+      }  /* if */
+    }  /* if */
+    *decl_specifiers_seen |= DS_STORAGE_CLASS;
+    *storage_class_pos = pos_first_token;
+    if (decl_pos_block != NULL) {
+      /* Set the source position of the storage class for use by the
+         caller in issuing diagnostics. */
+      decl_pos_block->storage_class_pos = pos_first_token;
+    }  /* if */
+    switch (first_token) {
+      case tok_typedef:
+        *storage_class = (a_storage_class)sc_typedef;  break;
+      case tok_extern:
+        *storage_class = (a_storage_class)sc_extern;   break;
+      case tok_static:
+        *storage_class = (a_storage_class)sc_static;   break;
+      case tok_auto:
+        *storage_class = (a_storage_class)sc_auto;     break;
+      case tok_register:
+        /* We need to examine the next token to see if it is an identifier
+           denoting a named register. */
+        *storage_class = is_named_register ? (a_storage_class)sc_extern
+                                           : (a_storage_class)sc_register;
+        break;
+#if CHECKING
+      default:
+        internal_error("decl_specifiers: bad storage class");
+#endif /* CHECKING */
+    }  /* switch */
+  }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && first_token == tok_typedef &&
+      curr_token == tok_lbracket) {
+    /* Microsoft attributes can follow the typedef keyword. */
+    scan_and_append_microsoft_attributes(p_ms_attributes,
+                                         /*is_parameter=*/FALSE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* process_storage_class_specifier */
+
+
 #if !GNU_EXTENSIONS_ALLOWED || !UPC_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- attributes is only used when GNU extension are allowed.
                     upc_block_size is only used when UPC extensions are
@@ -5535,6 +5775,7 @@ a_boolean decl_specifiers(a_decl_flag_set            input_flags,
                           an_attribute_ptr           *attributes,
                           an_ms_attribute_ptr        *p_ms_attributes,
                           a_decl_modifiers_block_ptr decl_modifiers,
+                          a_named_register_id        *register_id,
                           a_decl_pos_block_ptr       decl_pos_block,
                           a_upc_block_size           *upc_block_size)
 /*
@@ -5764,188 +6005,11 @@ Returns TRUE if there is an error in the specifiers.
       case tok_register:
       case tok_mutable:
         /* A storage class specifier (3.5.1). */
-        if (!(input_flags & DSI_STORAGE_CLASS_SPECIFIER_ALLOWED)) {
-          error((!C_mode() && curr_token == tok_typedef) ?
-                    ec_typedef_not_allowed : ec_storage_class_not_allowed);
-          err = TRUE;
-#if ASM_FUNCTION_ALLOWED
-        } else if (*storage_class == (a_storage_class)sc_asm) {
-          error(ec_storage_class_not_allowed);
-          err = TRUE;
-#endif /* ASM_FUNCTION_ALLOWED */
-        } else if (decl_specifiers_seen & (DS_MUTABLE | DS_STORAGE_CLASS)) {
-          /* More than  one storage class may not be specified. */
-          error(ec_mult_storage_classes);
-          err = TRUE;
-        } else if (is_parameter && curr_token != tok_register &&
-                   (C_dialect != C_dialect_cplusplus ||
-                    curr_token != tok_auto)) {
-          /* For parameters, the only allowed storage class specifiers are
-             "register" and (in C++ only) "auto". */
-          if (curr_token == tok_typedef) {
-            if (input_flags & DSI_IS_OLD_STYLE_PARAM_DECL) {
-              /* Error will be handled by caller. */
-              *storage_class = (a_storage_class)sc_typedef;
-              decl_specifiers_seen |= DS_STORAGE_CLASS;
-            } else {
-              error(ec_typedef_not_allowed);
-              err = TRUE;
-            }  /* if */
-          } else {
-            /* "static" and "extern" aren't allowed on parameter declarations,
-               but Microsoft compilers ignore them with a warning. */
-            diagnostic(microsoft_mode ? es_warning : es_error,
-                       ec_bad_param_storage_class);
-            err = !microsoft_mode;
-          }  /* if */
-        } else if (!C_mode() && (decl_specifiers_seen & DS_INLINE) &&
-                   curr_token != tok_static &&
-                   (!extern_inline_allowed || curr_token != tok_extern)) {
-          /* In C++, "inline static" is allowed; if extern_inline_allowed
-             is TRUE, so is "inline extern"; otherwise, we issue an error.
-             (In C99 mode "inline" can appear with both "static" and
-             "extern".) */
-          error(ec_bad_storage_class_with_inline);
-          err = TRUE;
-        } else if (curr_token == tok_mutable) {
-          if (!is_member_decl || (decl_specifiers_seen & DS_FRIEND)) {
-            error(ec_mutable_not_allowed);
-            err = TRUE;
-          } else {
-            /* "mutable" is outside the "Embedded C++" subset. */
-            feature_is_not_part_of_embedded_cplusplus_subset(
-                                             &pos_curr_token,
-                                             ec_mutable_in_embedded_cplusplus);
-            /* Aside from interactions with storage classes, errors cannot
-               be issued on mutable until the declarator has been scanned.
-               Just return a flag to the caller. */
-            decl_specifiers_seen |= DS_MUTABLE;
-            *output_flags |= DSO_MUTABLE;
-            storage_class_pos = pos_curr_token;
-          }  /* if */
-        } else if ((decl_specifiers_seen & DS_FRIEND) &&
-                   !microsoft_mode && !sun_mode) {
-          /* Note: in Microsoft and Sun modes a friend function can
-             be declared "static" or "extern".  The check is done later. */
-          error(ec_storage_class_in_friend_decl);
-          err = TRUE;
-        } else if ((input_flags & DSI_IS_SPECIALIZATION) &&
-                   curr_token != tok_static) {
-          error(curr_token == tok_typedef ?
-                    ec_typedef_not_allowed : ec_storage_class_not_allowed);
-          err = TRUE;
-        } else if (is_member_decl && !microsoft_mode &&
-                   !(decl_specifiers_seen & DS_FRIEND) &&
-                   curr_token != tok_static && curr_token != tok_typedef) {
-          error(ec_bad_member_storage_class);
-          err = TRUE;
-        } else if (input_flags & DSI_IS_LINKAGE_SPEC_DECL &&
-                   (curr_token != tok_typedef && !microsoft_mode)) {
-          /* Except in Microsoft mode, we disallow
-               extern "C" static void f();
-             but in order to support association between a name linkage and a
-             function type we do allow
-               extern "C" typedef void FT();
-          */
-          error(ec_storage_class_not_allowed);
-          err = TRUE;
-        } else if (input_flags & DSI_IS_TEMPLATE_DECLARATION &&
-                   curr_token != tok_extern && curr_token != tok_static) {
-          error(curr_token == tok_typedef ?
-                   ec_typedef_not_allowed :
-                   ec_bad_storage_class_on_template_decl);
-          err = TRUE;
-        } else if (C_mode() && depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
-                   (curr_token == tok_auto ||
-                    (
-#if GNU_EXTENSIONS_ALLOWED
-                     /* In GNU C mode, "register" can appear at file
-                        scope, as long as an explicit register name is
-                        provided. (Not in GNU C++ mode, however.) */
-                     !gcc_mode &&
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                     curr_token == tok_register))) {
-          if (gcc_mode) {
-            warning(ec_auto_ignored);
-          } else {
-            error(ec_bad_file_scope_storage_class);
-            err = TRUE;
-          }  /* if */
-        } else if (input_flags & DSI_IS_CONDITION_DECL) {
-          /* Issue a diagnostic for the specification of a storage class on
-             a condition declaration.  Ignore auto and register except in
-             strict mode.  Only set err if an error is issued.  Do not
-             set *storage_class. */
-          if (curr_token == tok_auto || curr_token == tok_register) {
-            es = strict_ansi_mode ? strict_ansi_error_severity : es_none;
-          } else {
-            es = es_error;
-          }  /* if */
-          /* Put out the diagnostic. */
-          if ((int)es != (int)es_none) {
-            diagnostic(es, curr_token == tok_typedef ? ec_typedef_not_allowed :
-                                                 ec_storage_class_not_allowed);
-          }  /* if */
-          /* If an error was issued, set the flag; otherwise, set the bit in
-             decl_specifiers_seen, so that the multiple-storage-class
-             diagnostic will be put out if another storage class is
-             specified. */
-          if ((int)es > (int)es_warning) {
-            err = TRUE;
-          } else {
-            decl_specifiers_seen |= DS_STORAGE_CLASS;
-          }  /* if */
-        } else if (c99_mode &&
-                   !(curr_token == tok_auto || curr_token == tok_register) &&
-                   depth_stmt_stack > 0 &&
-                   struct_stmt_stack[depth_stmt_stack].for_init) {
-          /* A for-init declaration in C99 can only have storage class
-             auto or register. */
-          error(ec_invalid_storage_class_in_for_init);
-          err = TRUE;
-        } else {
-          if (C_dialect != C_dialect_pcc && !err) {
-            if (decl_specifiers_seen & ~(DS_INLINE | DS_FRIEND)) {
-              /* Issue a diagnostic if the storage class is not the first
-                 specifier (except for "inline" or "friend"). */
-              diagnostic(strict_ansi_mode ? es_warning : es_remark,
-                         ec_storage_class_not_first);
-            }  /* if */
-          }  /* if */
-          switch (curr_token) {
-            case tok_typedef:
-              *storage_class = (a_storage_class)sc_typedef;  break;
-            case tok_extern:
-              *storage_class = (a_storage_class)sc_extern;   break;
-            case tok_static:
-              *storage_class = (a_storage_class)sc_static;   break;
-            case tok_auto:
-              *storage_class = (a_storage_class)sc_auto;     break;
-            case tok_register:
-              *storage_class = (a_storage_class)sc_register; break;
-#if CHECKING
-            default:
-              internal_error("decl_specifiers: bad storage class");
-#endif /* CHECKING */
-          }  /* switch */
-          decl_specifiers_seen |= DS_STORAGE_CLASS;
-          storage_class_pos = pos_curr_token;
-          if (decl_pos_block != NULL) {
-            /* Set the source position of the storage class for use by the
-               caller in issuing diagnostics. */
-            decl_pos_block->storage_class_pos = pos_curr_token;
-          }  /* if */
-        }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode && curr_token == tok_typedef &&
-            next_token() == tok_lbracket) {
-          /* Microsoft attributes can follow the typedef keyword. */
-          (void)get_token();
-          scan_and_append_microsoft_attributes(p_ms_attributes,
-                                               /*is_parameter=*/FALSE);
-          goto no_get_token;
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        process_storage_class_specifier(
+                          input_flags, output_flags, storage_class,
+                          p_ms_attributes, decl_pos_block, &storage_class_pos,
+                          &decl_specifiers_seen, register_id, &err);
+        goto no_get_token;
         break;
 #if ASM_FUNCTION_ALLOWED
       case tok_asm:

@@ -484,6 +484,13 @@ extern a_param_type_ptr make_param_type(a_type_ptr         tp,
 
 extern void add_placeholder_for_class_instantiation(a_type_ptr  type_ptr);
 
+#if NAMED_REGISTERS_ALLOWED
+extern void record_named_register_storage_class(
+                                             a_variable_ptr       var,
+                                             a_named_register_id  register_id,
+                                             a_source_position    *pos);
+#endif /* NAMED_REGISTERS_ALLOWED */
+
 extern a_boolean may_be_added_to_types_list(a_type_ptr     type_ptr,
                                             a_scope_depth  decl_level);
 

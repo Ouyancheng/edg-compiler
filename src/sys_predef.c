@@ -1219,6 +1219,25 @@ that such memory regions have names in the implementation namespace.
 }  /* enter_predefined_named_address_spaces */
 
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+
+static void enter_predefined_named_registers(void)
+/*
+Enter any predefined named address spaces.  TR 18037 ("Embedded C") requires
+that such memory regions have names in the implementation namespace.
+*/
+{
+  a_named_register_storage_class_descr  *nr =
+                                          &named_register_storage_classes[1];
+
+  for (;nr->name != NULL; ++nr) {
+    a_symbol_ptr  sym = enter_named_register(nr->name);
+    check_assertion(sym->variant.named_register.id ==
+                                       (nr - named_register_storage_classes));
+  }  /* while */
+}  /* enter_predefined_named_registers */
+
+#endif /* NAMED_REGISTERS_ALLOWED */
 
 void enter_system_specific_predeclared_symbols(void)
 /*
@@ -1316,6 +1335,11 @@ Enter predeclared symbols as required by the implementation.
     enter_predefined_named_address_spaces();
   }  /* if */
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+  if (named_registers_enabled) {
+    enter_predefined_named_registers();
+  }  /* if */
+#endif /* NAMED_REGISTERS_ALLOWED */
 }  /* enter_system_specific_predeclared_symbols */
 
 

@@ -425,6 +425,7 @@ extern void decl_routine(a_symbol_locator             *locator,
 
 void decl_variable(a_symbol_locator             *locator,
                    a_storage_class              storage_class,
+                   a_named_register_id          register_id,
                    a_type_ptr                   type_ptr,
                    a_source_sequence_entry_ptr  declarator_ssep,
                    a_symbol_reference_kind      srk_flags,

@@ -1012,6 +1012,16 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+  add_option_description(optk_named_registers,
+                         "named_registers",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_named_registers,
+                         "no_named_registers",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* NAMED_REGISTERS_ALLOWED */
 }  /* initialize_option_descriptions */
 
 
@@ -1999,6 +2009,13 @@ setting is used, and to set various unmentioned settings as needed.
   }  /* if */
   named_address_spaces_enabled = FALSE;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+  /* Named registers are not currently supported in C++ modes. */
+  if (option_kind_used[(int)optk_named_registers]) {
+    command_line_error(ec_cl_named_registers_option_only_in_C);
+  }  /* if */
+  named_registers_enabled = FALSE;
+#endif /* NAMED_REGISTERS_ALLOWED */
   /* "//" is allowed as a comment delimiter. */
   end_of_line_comments_allowed = TRUE;
   /* Universal character names are allowed. */
@@ -3739,6 +3756,12 @@ enable_microsoft_mode:
         named_address_spaces_enabled = opt_value;
         break;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+      case optk_named_registers:
+        /* Enable (or disable) support for named-register storage classes. */
+        named_registers_enabled = opt_value;
+        break;
+#endif /* NAMED_REGISTERS_ALLOWED */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

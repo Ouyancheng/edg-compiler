@@ -91,6 +91,7 @@ extern a_boolean decl_specifiers(a_decl_flag_set             input_flags,
                                  an_attribute_ptr            *attributes,
                                  an_ms_attribute_ptr         *p_ms_attributes,
                                  a_decl_modifiers_block_ptr  decl_modifiers,
+                                 a_named_register_id         *register_id,
                                  a_decl_pos_block_ptr        decl_pos_block,
                                  a_upc_block_size            *upc_block_size);
 

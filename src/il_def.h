@@ -5943,7 +5943,8 @@ typedef struct a_variable {
 			   Microsoft storage-class-like __declspec
 			   modifiers. */
 #endif /* DECL_MODIFIERS_IN_USE */
-#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED ||          \
+    NAMED_REGISTERS_ALLOWED
   union {
     char	*name;
 			/* If non-NULL, and asm_name_is_valid is TRUE
@@ -5952,11 +5953,19 @@ typedef struct a_variable {
 #if GNU_EXTENSIONS_ALLOWED
     a_named_register
 		reg;
-			/* If asm_name_is_valid is FALSE, the register
+			/* If both named_register_storage_class and
+                           asm_name_is_valid are FALSE, the register
 			   to which this variable should be assigned. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+    a_named_register_id
+		id;
+			/* If named_register_storage_class is TRUE, the
+			   id of the register in which this variable is
+			   stored. */
+#endif /* NAMED_REGISTERS_ALLOWED */
   } asm_name_or_reg;
-#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED || ... */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   a_targ_alignment
   		alignment;
@@ -5997,6 +6006,13 @@ typedef struct a_variable {
 			/* TRUE if the name field of asm_name_or_reg
 			   is valid; FALSE if the reg field is valid. */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if NAMED_REGISTERS_ALLOWED
+  a_bit_field   named_register_storage_class:1;
+			/* TRUE if the id field of asm_name_or_reg is
+			   valid, which indicates that the variable was
+			   declared with an Embedded C (TR 18037) named
+			   register storage class. */
+#endif /* NAMED_REGISTERS_ALLOWED */
   a_bit_field	address_taken:1;
                         /* TRUE if the address of this variable has been
                            taken somewhere. */

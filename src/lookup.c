@@ -997,8 +997,8 @@ should be used to satisfy the lookup.
   /* Create a local declaration of the external variable.  Use the type
      from the sk_extern_variable symbol. */
   var_type = extern_sym->variant.extern_symbol_descr->type;
-  decl_variable(locator, (a_storage_class)sc_extern, var_type,
-                (a_source_sequence_entry_ptr)NULL,
+  decl_variable(locator, (a_storage_class)sc_extern, /*register_id=*/0,
+                var_type, (a_source_sequence_entry_ptr)NULL,
                 (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers, 
                 (an_ms_attribute_ptr*)NULL, (an_attribute_ptr)NULL,
                 (char *)NULL, (a_source_position_ptr)NULL, &sym, &linkage,

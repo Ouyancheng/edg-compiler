@@ -1503,6 +1503,23 @@ named_address_spaces_enabled.
 #endif /* DEFAULT_NAMED_ADDRESS_SPACES_ENABLED */
 
 /*
+Flag that is TRUE if the IL and the front end code supporting Embedded C
+(TR 18037) named-register storage classes should be enabled.
+*/
+#ifndef NAMED_REGISTERS_ALLOWED
+#define NAMED_REGISTERS_ALLOWED FALSE
+#endif /* NAMED_REGISTERS_ALLOWED */
+
+/*
+Flag that is true if Embedded C (TR 18037) named-register storage classes
+should be recognized by default.  This is the default initial value of
+named_registers_enabled.
+*/
+#ifndef DEFAULT_NAMED_REGISTERS_ENABLED
+#define DEFAULT_NAMED_REGISTERS_ENABLED FALSE
+#endif /* DEFAULT_NAMED_REGISTERS_ENABLED */
+
+/*
 Check that no mutually exclusive dialect emulations are simultaneously
 enabled.
 */
