@@ -3066,6 +3066,9 @@ expression, then the "right" side with the operator in between.
 #ifdef CFE
   a_field_ptr                    field;
   a_boolean                      is_signed;
+#if CHECKING
+  a_param_type_ptr               param;
+#endif /* CHECKING */
 #endif /* ifdef CFE */
 #ifdef FFE
   a_type_ptr                     return_type;
@@ -3772,6 +3775,19 @@ char_compare:
           }  /* if */
         }  /* if */
 #endif /* ifdef FFE */
+#if CHECKING
+#ifdef CFE
+        /* Keep track of parameter types to check for arguments to old-style
+           functions that aren't widened. */
+        { a_type_ptr routine_type = type_pointed_to(operand_1->type);
+          routine_type = skip_typerefs(routine_type);
+          param = NULL;
+          if (routine_type->variant.routine.extra_info->prototyped) {
+            param = routine_type->variant.routine.extra_info->param_type_list;
+          }  /* if */
+        }
+#endif /* ifdef CFE */
+#endif /* CHECKING */
         /* Put out the arguments. */
         for (call_argument = operand_2; call_argument != NULL;) {
 #ifdef FFE
@@ -3792,6 +3808,27 @@ char_compare:
           }  /* if */
 #else /* !defined(FFE) */
           dump_expression(call_argument, /*need_parens=*/TRUE);
+#if CHECKING
+          /* Check for unwidened arguments to old-style functions. */
+          if (param != NULL) {
+            /* This argument is prototyped, so do not check it. */
+            param = param->next;
+          } else {
+            /* Unprototyped or ellipsis argument. */
+            a_type_ptr arg_type = skip_typerefs(call_argument->type);
+            if (is_integer_type(arg_type)) {
+              an_integer_kind ikind = arg_type->variant.integer.int_kind;
+              if ((int)ikind < ik_int) {
+                internal_error("dump_operation: unwidened integer argument");
+              }  /* if */
+            } else if (is_floating_type(arg_type)) {
+              a_float_kind fkind = arg_type->variant.float_kind;
+              if (fkind == (a_float_kind)fk_float) {
+                internal_error("dump_operation: unwidened float argument");
+              }  /* if */
+            }  /* if */
+          }  /* if */
+#endif /* CHECKING */
 #endif /* ifdef FFE */
           call_argument = call_argument->next;
           if (call_argument != NULL) {
