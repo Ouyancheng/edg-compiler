@@ -4534,15 +4534,13 @@ typedef struct a_routine {
 			   is needed, e.g., because its address was taken. */
 #endif /* MINIMAL_INLINING */
 #if MAINTAIN_NEEDED_FLAGS
-      a_bit_field
-		definition_needed:1;
+  a_bit_field	definition_needed:1;
 			/* TRUE if this routine is "needed" (see the flag by
 			   that name in the source_corresp field), but not
 			   merely as a declaration -- a definition of the
 			   routine is needed in the current translation
 			   unit. */
-      a_bit_field
-		keep_definition_in_il:1;
+  a_bit_field	keep_definition_in_il:1;
 			/* TRUE if this routine's definition should be kept in
 			   the IL tree (i.e., should not be discarded before
 			   the IL is passed to the back end).  It is for
