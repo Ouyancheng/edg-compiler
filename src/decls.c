@@ -1576,20 +1576,18 @@ called by id_linkage.
       }  /* for */
       if (other_decl == NULL && function_template_seen &&
           (guiding_decls_allowed ||
-           (microsoft_mode && is_friend_decl) ||
            locator->is_template_id ||
            locator->is_qualified_name)) {
-        a_partial_order_candidate_ptr	candidates_list = NULL;
         /* We didn't find a match, but there was at least one function
-           template.  See if it either provides a match with an
-           existing instance of the template or if a new instance can
-           be created based on the current type.  This is done if
-           guiding declarations are recognized, in Microsoft mode for
-           friend declarations, or if the declaration is known to
-           refer to a previously declared template.  The latter is the
-           case when the name was specified as a qualified name or
-           includes an explicit template argument list. */
-        a_symbol_ptr sym, match = NULL;
+           template.  See if it either provides a match with an existing
+           instance of the template or if a new instance can be created
+           based on the current type.  This is done if guiding declarations
+           are recognized or if the declaration is known to refer to a
+           previously declared template.  The latter is the case when the
+           name was specified as a qualified name or includes an explicit
+           template argument list. */
+        a_symbol_ptr                   sym, match = NULL;
+        a_partial_order_candidate_ptr  candidates_list = NULL;
 
         for (other_decl = other_decl_saved;
              other_decl != NULL;
@@ -1775,10 +1773,11 @@ determine_linkage:
            disregarded. */
         pos_sy_warning(ec_incompatible_inline_specifier_on_specific_decl,
                        &locator->source_position, other_decl);
-        func_info->is_inline = FALSE;
       }  /* if */
-      func_info->is_inline = templ_is_inline;
-      local_storage_class = templ_storage_class;
+      if (!microsoft_mode) {
+        func_info->is_inline = templ_is_inline;
+        local_storage_class = templ_storage_class;
+      }  /* if */
     }  /* if */
     if (!at_file_or_namespace_scope && !is_template_instance &&
         local_storage_class != (a_storage_class)sc_extern) {
@@ -4130,8 +4129,17 @@ on for use in generating cross-reference output describing this declaration.
                             "decl_routine: defined flag is set wrong");
         old_decl_has_body = TRUE;
       }  /* if */
-      if (is_function_def) {
-        /* The current declaration is a definition. */
+      if (is_function_def || microsoft_mode) {
+        /* This is normally a definition (an old-style specialization). */
+        /* In Microsoft mode it need not be a definition.  Consider:
+             template <class T> void f(T t) { ... }
+             void f(int);
+           Function f(int) is marked as a specialization, and it is expected
+           that the definition will be provided elsewhere (rather than
+           generated from the template) -- i.e., the second line appears to
+           have the same meaning as if it were written:
+             template<> void f(int);
+        */
         check_old_specialization_allowed(sym, &locator->source_position);
         if (!old_decl_has_body) {
           /* Okay. */
@@ -4149,7 +4157,7 @@ on for use in generating cross-reference output describing this declaration.
                                 (a_name_linkage_kind)nlk_cplusplus_external;
           routine_ptr->is_specialized = TRUE;
           routine_ptr->specialized_with_old_syntax = TRUE;
-        } else {
+        } else if (is_function_def) {
           /* There is already a definition.  This is some sort of error. */
           if (!sym->variant.routine.ptr->is_specialized &&
               routine_ptr->is_inline && routine_ptr->called) {
