@@ -10344,6 +10344,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.is_invisible                      = FALSE;
   cleared_symbol.is_unknown_function               = FALSE;
   cleared_symbol.is_nonreal_member                 = FALSE;
+  cleared_symbol.is_preprocessing_op_or_punc       = FALSE;
 #if CHECKING
   /* Not needed right now -- at byte boundary.
   cleared_symbol.avoid_codecenter_warnings         = FALSE;
