@@ -4930,6 +4930,33 @@ is already an entry of the indicated kind on the list.
 }  /* add_based_type_list_member */
 
 
+a_type_ptr check_ptr_to_member_function_type(a_type_ptr  member_type,
+                                             a_type_ptr  class_type)
+/*
+This routine is called when forming a pointer-to-member type.  If
+member_type is a function type, be sure it is represented as a nonstatic
+member function of class_type -- that is, set the implicit-this parameter
+type if necessary.
+*/
+{
+  a_routine_type_supplement_ptr  rtsp;
+  a_type_ptr                     tp = skip_typerefs(member_type);
+
+  check_assertion(class_type != NULL && member_type != NULL);
+  if (is_function_type(tp)) {
+    rtsp = tp->variant.routine.extra_info;
+    if (rtsp->implicit_this_param_type == NULL) {
+      /* Before updating the implicit param type pointer, copy the routine
+         type, since it might be shared. */
+      member_type = copy_routine_type_with_param_types(tp);
+      rtsp = member_type->variant.routine.extra_info;
+      rtsp->implicit_this_param_type = make_pointer_type(class_type);
+    }  /* if */
+  }  /* if */
+  return member_type;
+}  /* check_ptr_to_member_function_type */
+
+
 a_type_ptr ptr_to_member_type(a_type_ptr  member_type,
                               a_type_ptr  class_type)
 /*
@@ -4939,21 +4966,12 @@ existing type entry.
 */
 {
   a_type_ptr                     tp;
-  a_routine_type_supplement_ptr  rtsp;
 
   class_type = skip_typerefs(class_type);
   if (member_type != NULL && is_function_type(member_type)) {
     /* This is a pointer-to-member-function type.  Be sure the implicit this
        parameter is set.  If not, create it based on class_type. */
-    rtsp = skip_typerefs(member_type)->variant.routine.extra_info;
-    if (rtsp->implicit_this_param_type == NULL) {
-      /* Before updating the implicit param type pointer, copy the routine
-         type, since it might be shared. */
-      member_type =
-              copy_routine_type_with_param_types(skip_typerefs(member_type));
-      rtsp = member_type->variant.routine.extra_info;
-      rtsp->implicit_this_param_type = make_pointer_type(class_type);
-    }  /* if */
+    member_type = check_ptr_to_member_function_type(member_type, class_type);
   }  /* if */
   /* Check if this is an incomplete type being formed. */
   if (member_type != NULL) {
