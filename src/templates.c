@@ -16478,7 +16478,7 @@ file we simply return.
            included. */
         if (compare_file_names(full_file_name, sfp->full_name) != 0 &&
             compare_file_names(full_file_name,
-                                primary_source_file_name) != 0 &&
+                               primary_source_file_name) != 0 &&
             !find_include_history(full_file_name, &ifhp, /*create=*/FALSE)) {
 #if DEBUG
           if (print_debug_info || db_flag_is_set("show_implicit_include")) {
