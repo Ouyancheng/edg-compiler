@@ -9524,8 +9524,10 @@ options is a set of name lookup options.
 {
   an_expr_node_ptr      expr_copy = NULL;
   an_expr_operator_kind op;
+#if CHECKING
   a_boolean             non_constant_expr =
                                        (options & CTWS_NON_CONSTANT_EXPR) != 0;
+#endif /* CHECKING */
 
   *alloc_con = NULL;
   switch (expr->kind) {
