@@ -7126,8 +7126,10 @@ specific version of the template.
          become invisible. */
       ssep->depth_template_declaration_scope =
         depth_template_declaration_scope = NO_SCOPE_DEPTH;
-      /* Keep the expression stack for the instantiation separate from
-         the stack at this point (we may be inside an expression). */
+    }  /* if */
+    if (kind == (a_scope_kind)sck_template_instantiation ||
+        kind == (a_scope_kind)sck_pragma) {
+      /* When beginning a nested context, clear the expression stack. */
       expr_stack = NULL;
     }  /* if */
   }  /* if */
