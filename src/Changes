@@ -1,12 +1,22 @@
 Version 2.24
 
+6/9/94  Fixed internal error relating to use of pbk_other pragmas
+
+An internal error has been fixed that could come up when a pbk_other
+pragma appeared immediately before a declaration in a local scope -- e.g.,
+
+  void f() {
+  #pragma xxx                 // "xxx" has a binding kind of pbk_other
+    int i;
+  }
+
 6/8/94  Error on member function definition in a comma-list
 
 An error is now issued if a function definition appears in a comma-list
-within a class definition -- e.g.:
+within a class definition -- e.g.,
 
   class A {
-    void f(), f(int) { }                // Error on second declaration
+    void f(), f(int) { }      // Error on second declaration
   };
 
 6/8/94  Support for comma-list of constructors
@@ -15,7 +25,7 @@ An error is no longer issued when a comma-list of constructor declarations
 appears in a class definition -- e.g.,
 
   class A {
-    A(), A(int);                        // Now allowed
+    A(), A(int);              // Now allowed
   };
 
 6/7/94  Matching of template member declarations with prototype instantiation
@@ -33,7 +43,6 @@ macro.  This has been corrected.
   A<char> ac;
 
   THE_PROGRAM
-
 
 6/6/94  Warning on partial or failed virtual function overriding
 
@@ -83,7 +92,6 @@ could cause a false ambiguity:
         printf( "FAIL.\n" );
      }
   }
-
 
 6/2/94  Cfront compatibility disambiguation regression
 
