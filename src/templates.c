@@ -16630,18 +16630,26 @@ the file should be placed.
   char				*line;
   int				line_number = 0;
   a_directory_name_entry_ptr	search_path = NULL;
+  a_directory_name_entry_ptr	sys_search_path = NULL;
   a_directory_name_entry_ptr	end_search_path = NULL;
   a_directory_name_entry_ptr	sys_include_boundary = NULL;
 
-  if (put_dir_of_each_opened_source_file_on_incl_search_path) {
-    /* Put the current directory on the search path. */
-    add_to_specified_include_search_path(".", /*is_system_include=*/FALSE,
-                                         &search_path, &end_search_path);
-  }  /* if */
   /* Attempt to open the export information file in the specified directory. */
   f_file = open_export_info_file(eifp);
-  if (f_file != NULL) {
-    /* The file exists -- read its contents. */
+  if (f_file == NULL) {
+    /* There is no export information file.  Use the search path for
+       the primary file. */
+    search_path = incl_search_path;
+    end_search_path = end_incl_search_path;
+    sys_search_path = sys_incl_search_path;
+  } else {
+    /* There is a file. */
+    if (put_dir_of_each_opened_source_file_on_incl_search_path) {
+      /* Put the current directory on the search path. */
+     add_to_specified_include_search_path(".", /*is_system_include=*/FALSE,
+                                           &search_path, &end_search_path);
+    }  /* if */
+    /* Read the file contents. */
     while ((line = read_line_from_file(f_file)) != NULL) {
       char	*param_name;
       char	*value;
@@ -16656,8 +16664,8 @@ the file should be placed.
       if (strcmp(param_name, "include") == 0 ||
           strcmp(param_name, "sys_include") == 0) {
         if (strcmp(value, "-") == 0) {
-          /* Record the boundary between the normal search path and the system
-             include search path. */
+          /* Record the boundary between the normal search path and the
+             system include search path. */
           sys_include_boundary = search_path;
         } else {
           char	*dir_name;
@@ -16665,24 +16673,28 @@ the file should be placed.
           dir_name = copy_string_to_region(FRONT_END_REGION_NUMBER, value);
           add_to_specified_include_search_path(dir_name,
                                                param_name[0] == 's',
-                                               &search_path, &end_search_path);
+                                               &search_path,
+                                               &end_search_path);
         }  /* if */
       } else {
         bad_export_info_file(eifp, line_number);
       }  /* if */
     }  /* while */
+    /* Close the export information file. */
+    (void)fclose(f_file);
+    /* Add the default include directory to the end of the list. */
+    add_default_include_search_path(&search_path, &end_search_path);
+    if (sys_include_boundary != NULL) {
+      sys_search_path = sys_include_boundary->next;
+    } else {
+      sys_search_path = search_path;
+    }  /* if */
   }  /* if */
-  /* Add the default include directory to the end of the list. */
-  add_default_include_search_path(&search_path, &end_search_path);
   /* Set the include search path information based on the information from
      the file (or the default values if there was no file). */
   eifp->incl_search_path = search_path;
   eifp->end_incl_search_path = end_search_path;
-  if (sys_include_boundary != NULL) {
-    eifp->sys_incl_search_path = sys_include_boundary->next;
-  } else {
-    eifp->sys_incl_search_path = search_path;
-  }  /* if */
+  eifp->sys_incl_search_path = sys_search_path;
 }  /* read_export_info_file */
 
 
