@@ -5604,6 +5604,7 @@ be used (e.g., eok_add, not eok_iadd).
 */
 {
   a_type_ptr result_type = type_of_unknown_templ_param_nontype;
+  a_boolean  known_not_overloaded = FALSE;
 
   if (curr_expr_kind_is_const()) {
     do_generic_operand_transformations(operand_1);
@@ -5651,17 +5652,23 @@ be used (e.g., eok_add, not eok_iadd).
       default:;
         /* Other operators are unchanged. */
     }  /* switch */
-    /* For operators like ==, we know the result type even if we do not
-       know the operand types.  (But we only know this if we are in a
-       constant expression, because otherwise the operator might be
-       overloaded.) */
-    if (is_operator_returning_bool(op)) {
-      result_type = boolean_result_type();
-    }  /* if */
+    known_not_overloaded = TRUE;
   } else {
     /* The current expression is not a constant expression. */
     prep_generic_operand(operand_1, operator_takes_lvalue_operand(op));
     prep_generic_operand(operand_2, /*lvalue_expected=*/FALSE);
+    if (!is_overloadable_type(operand_1->type) &&
+        !is_overloadable_type(operand_2->type)) {
+      known_not_overloaded = TRUE;
+    }  /* if */
+  }  /* if */
+  if (known_not_overloaded) {
+    /* In some cases, we know the result type even if we do not know
+       the operand types, but only if we know that the operator cannot
+       be overloaded. */
+    if (is_operator_returning_bool(op)) {
+      result_type = boolean_result_type();
+    }  /* if */
   }  /* if */
   do_binary_operation(op, operand_1, operand_2, result_type,
                       result, operator_position);
@@ -5761,6 +5768,7 @@ be used (e.g., eok_negate, not eok_inegate).
 */
 {
   a_type_ptr result_type = type_of_unknown_templ_param_nontype;
+  a_boolean  known_not_overloaded = FALSE;
 
   if (curr_expr_kind_is_const()) {
     do_generic_operand_transformations(operand);
@@ -5774,16 +5782,25 @@ be used (e.g., eok_negate, not eok_inegate).
     if (op == (an_expr_operator_kind)eok_negate) {
       op = (an_expr_operator_kind)eok_inegate;
     }  /* if */
-    /* For operators like "!", we know the result type even if we do not
-       know the operand types.  (But we only know this if we are in a
-       constant expression, because otherwise the operator might be
-       overloaded.) */
-    if (is_operator_returning_bool(op)) {
-      result_type = boolean_result_type();
-    }  /* if */
+    known_not_overloaded = TRUE;
   } else {
     /* The current expression is not a constant expression. */
     prep_generic_operand(operand, operator_takes_lvalue_operand(op));
+    if (!is_overloadable_type(operand->type)) {
+      known_not_overloaded = TRUE;
+    }  /* if */
+  }  /* if */
+  if (known_not_overloaded) {
+    /* In some cases, we know the result type even if we do not know
+       the operand type, but only if we know that the operator cannot
+       be overloaded. */
+    if (is_operator_returning_bool(op)) {
+      result_type = boolean_result_type();
+    } else if (op == (an_expr_operator_kind)eok_indirect) {
+      if (!is_template_param_or_nonreal_class_type(operand->type)) {
+        result_type = type_pointed_to(operand->type);
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (op == (an_expr_operator_kind)eok_address &&
       curr_expr_kind_is_const()) {

@@ -663,6 +663,10 @@ same test: template parameter type or nonreal class type.
 #define is_template_param_or_nonreal_class_type(tp) \
   could_be_dependent_class_type(tp)
 
+#if !STANDALONE_UTILITY_PROGRAM
+a_boolean is_overloadable_type(a_type_ptr type);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 extern a_boolean is_or_contains_member_of_uncompleted_class(a_type_ptr  tp);

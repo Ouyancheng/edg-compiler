@@ -7309,6 +7309,27 @@ instantiated (for a template parameter "T", this includes types such as "T",
           tp->variant.class_struct_union.is_nonreal_class);
 }  /* could_be_dependent_class_type */
 
+#if !STANDALONE_UTILITY_PROGRAM
+
+a_boolean is_overloadable_type(a_type_ptr type)
+/*
+Return TRUE if the given type is one for which operator overloading
+should be considered, i.e., a class or enum type or something that
+could be such a type (an error type or a template parameter type).
+*/
+{
+  a_boolean is_overloadable;
+
+  type = skip_typerefs(type);
+  is_overloadable = (is_error(type) ||
+                     is_class_struct_union(type) ||
+                     (operator_overloading_on_enums_enabled &&
+                      is_enum(type)) ||
+                     is_template_param(type));
+  return is_overloadable;
+}  /* is_overloadable_type */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_directly_variably_modified_type(a_type_ptr  tp)
 /*
