@@ -2342,7 +2342,7 @@ supplement for an instantiation that matches inst.
                     ->variant.class_struct_union.is_prototype_instantiation &&
         equiv_template_arg_lists(ctsp->template_arg_list,
                                  corresp_ctsp->template_arg_list,
-                                 ETA_NO_OPTIONS) &&
+                                 ETA_IS_NONREAL_MEMBER) &&
         ((ctsp->partial_spec_template_arg_list == NULL &&
           corresp_ctsp->partial_spec_template_arg_list == NULL) ||
          equiv_template_arg_lists(
