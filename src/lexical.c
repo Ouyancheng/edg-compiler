@@ -9455,10 +9455,15 @@ was declared by a template declaration scope currently on the scope stack.
       /* We also return TRUE for template template parameters of prototype
          instantiations. */
       result = TRUE;
+    } else if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
+               ssep->in_prototype_instantiation) {
+      /* We also return TRUE for class templates declared in prototype
+         instantiations. */
+      result = TRUE;
     }  /* if */
   }  /* if */
   return result;
-}  /* is_template_template_peram_of_current_decl */
+}  /* is_template_template_param_of_current_decl */
 
 
 static
@@ -9494,14 +9499,14 @@ this routine.  Its value is unchanged if no errors are detected.
   /* Indicate that this is an error case if the template has any empty
      parameter list. */
   if (param_ptr == NULL) *any_errors = TRUE;
+  /* Determine whether the declaration for the template is still on the scope
+     stack as either a template declaration or prototype instantiation.
+     Such cases must be handled specially for rescanning purposes. */
+  templ_templ_param_of_curr_decl =
+                     is_template_template_param_of_current_decl(template_sym);
   if (tssp->variant.class_template.template_template_param) {
-    /* The template whose argument list is being scanned is a template
-       template argument.  Determine whether the template declaration
-       scope for that argument is still one the scope stack. */
     a_template_ptr			subst_param_templ;
     a_template_symbol_supplement_ptr	subst_param_tssp;
-    templ_templ_param_of_curr_decl =
-                     is_template_template_param_of_current_decl(template_sym);
     /* If this is a template template parameter, see if there is a substituted
        version of the parameter templates.  This comes up in cases where the
        template template parameter has template parameters that depends on
@@ -9630,11 +9635,15 @@ this routine.  Its value is unchanged if no errors are detected.
         } else if (is_template_templ_arg(arg_ptr)) {
           /* A template template argument. */
           if (param_ptr->has_default_arg) {
-            /* A type parameter with a default value.  The default can be
-	       either a type or a token cache that needs to be scanned. */
-            arg_ptr->variant.templ.ptr =
+            if (!templ_templ_param_of_curr_decl) {
+              /* A type parameter with a default value.  The default can be
+                 either a type or a token cache that needs to be scanned. */
+              arg_ptr->variant.templ.ptr =
                      rescan_template_template_default_arg(template_sym,
                                                           param_ptr, arg_list);
+            } else {
+              arg_ptr->variant.templ.ptr = param_ptr->default_arg.templ;
+            }  /* if */
           } else {
             /* A template template parameter with no default argument.
                This occurs only in error cases.  Use an error template. */
