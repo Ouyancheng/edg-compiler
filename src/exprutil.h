@@ -315,19 +315,27 @@ extern void selector_match_with_this_param(
 
 extern a_symbol_ptr select_overloaded_function(
                             a_symbol_ptr            overloaded_function_symbol,
-                            a_symbol_ptr            alt_function_symbol,
                             a_boolean               have_selector,
                             an_operand              *bound_function_selector,
                             a_boolean               virtual_allowed,
                             an_argument_summary_ptr arg_list,
-                            a_boolean               operator_case,
                             an_expression_kind      expression_kind,
                             an_error_code           err_none_applies,
                             an_error_code           err_ambiguous,
-                            a_boolean               *no_match,
                             a_source_position       *call_position,
                             an_operand              *function_operand,
                             an_expr_node_ptr        *arg_expr_list);
+
+extern void check_for_operator_overloading(
+                                    an_opname_kind     kind,
+                                    a_boolean          unary_operator,
+                                    a_boolean          must_be_member_function,
+                                    an_operand         *operand_1,
+                                    an_operand         *operand_2,
+                                    an_expression_kind expression_kind,
+                                    a_source_position  *operator_position,
+                                    an_operand         *result,
+                                    a_boolean          *processed);
 
 extern void check_return_type(an_operand *operand,
                               a_type_ptr routine_type);
@@ -430,6 +438,11 @@ extern void make_function_call(an_expr_node_ptr function_node,
                                a_type_ptr       function_type,
                                a_boolean        is_virtual,
                                an_operand       *result);
+
+extern void assemble_function_call(an_operand       *function_operand,
+                                   an_operand       *bound_function_selector,
+                                   an_expr_node_ptr argument_list,
+                                   an_operand       *result);
 
 extern a_boolean check_pointer_operand(an_operand    *operand,
 				       an_error_code err_code);
