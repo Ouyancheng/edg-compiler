@@ -314,7 +314,7 @@ typedef enum /*an_error_code*/ {
   ec_increasing_access_not_allowed,
   ec_restricting_access_not_allowed,
   ec_improperly_terminated_macro_call,
-  ec_not_equivalent_to_inherited_member,
+  ec_bad_access_decl_name_is_hidden,
   ec_id_must_be_class_name,
   ec_bad_friend_decl,
   ec_value_returned_in_constructor,
@@ -597,7 +597,8 @@ typedef enum /*an_error_code*/ {
   ec_template_and_instance_linkage_conflict,
   ec_conversion_function_not_usable,
   ec_tag_kind_incompatible_with_template_parameter,
-  ec_template_operator_new
+  ec_template_operator_new,
+  ec_bad_access_decl_ambiguous_name
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

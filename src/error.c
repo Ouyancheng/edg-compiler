@@ -1187,8 +1187,8 @@ error code.
     case ec_improperly_terminated_macro_call:
       m = "improperly terminated macro invocation";
       break;
-    case ec_not_equivalent_to_inherited_member:
-      m = "qualified name not equivalent to inherited member %sq";
+    case ec_bad_access_decl_name_is_hidden:
+      m = "invalid access declaration -- %no1 is hidden by %no2";
       break;
     case ec_id_must_be_class_name:
       m = "name followed by \"::\" must be a class name";
@@ -2048,6 +2048,9 @@ error code.
       break;
     case ec_template_operator_new:
       m = "function template for operator new(size_t) is not allowed";
+      break;
+    case ec_bad_access_decl_ambiguous_name:
+      m = "invalid access declaration -- inherited name %sq is ambiguous";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
