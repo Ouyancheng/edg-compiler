@@ -15027,7 +15027,7 @@ a_boolean routine_might_exist_in_multiple_copies(a_routine_ptr rout)
 Return TRUE if the indicated routine might exist in multiple copies at
 link time or run time.  For example, it might be an extern inline routine
 that is expanded in more than one translation unit, or a template that
-is instantiated in every translation unit that uses it.
+is instantiated in more than one translation unit.
 */
 {
   a_boolean multiple_copies = FALSE;
@@ -15045,12 +15045,18 @@ is instantiated in every translation unit that uses it.
        translation unit.  This might be true even if extern inline
        routines are instantiated. */
     multiple_copies = TRUE;
-#if INSTANTIATE_TEMPLATES_EVERYWHERE_USED
+#if LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS
   } else if (rout->is_template_function && !rout->is_specialized) {
-    /* A template instance, in a mode where we instantiate templates
-       wherever they are used. */
+    /* A template instance, in a mode where the linker can merge
+       multiple definitions (in other words, where we have COMDATs).
+       This handling is required for the strict IA-64 ABI, but it's
+       probably also a good idea in any environment where COMDATs are
+       used, because we assume that where users *can* generate
+       multiple instances and get no linker error, they *will*
+       generate such instances, and the merging had better work
+       right. */
     multiple_copies = TRUE;
-#endif /* INSTANTIATE_TEMPLATES_EVERYWHERE_USED */
+#endif /* LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
   } else if (rout->covariant_return_virtual_override ||
              rout->overriding_function_for_covariant_return_type != NULL) {
