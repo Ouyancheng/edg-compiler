@@ -5534,7 +5534,7 @@ points to the template parameter list.
                 /* If we have already found one match, a second match should
                    cause deduction to fail. */
                 if (base_match) {
-                  match = FALSE;
+                  base_match = FALSE;
                   break;
                 }  /* if */
                 /* This is the first match.  Keep searching in case the
