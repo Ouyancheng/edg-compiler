@@ -250,6 +250,7 @@ static a_boolean check_for_troublesome_ptr_to_member_constant(
 static void promote_class_members(a_type_ptr  class_type,
                                   a_scope_ptr promotion_scope,
                                   a_type_ptr  *insert_pointer);
+static void eliminate_object_lifetime_tree(an_object_lifetime_ptr olp);
 
 
 static void clear_insert_location(an_insert_location      *insert_location,
@@ -3986,6 +3987,18 @@ Do IL lowering of the indicated type and everything under it.
               } /* if */
               /* Clear the default_arg_expr field to make the IL more
                  like C IL.  Note this throws away the expression. */
+              if (keep_object_lifetime_info_in_lowered_il) {
+                an_expr_node_ptr expr = ptp->default_arg_expr;
+                if (expr != NULL &&
+                    expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+                  /* This expression has an object lifetime, and we'll be
+                     keeping information on object lifetimes.  This part of
+                     it, however, we throw away, because the expression
+                     isn't part of the IL tree any more. */
+                  eliminate_object_lifetime_tree(
+                                            expr->variant.object_lifetime.ptr);
+                }  /* if */
+              }  /* if */
               ptp->default_arg_expr = NULL;
             }  /* if */
           }  /* for */
@@ -7738,8 +7751,14 @@ scope) along with the class members.
             { a_memory_region_number region_to_switch_back_to =
                                                             NULL_region_number;
               switch_to_file_scope_region(&region_to_switch_back_to);
+              /* Make sure the copy is created with flags indicating it
+                 has not been lowered yet. */
+              initial_value_for_il_lowering_flag =
+                                           !initial_value_for_il_lowering_flag;
               variable->initializer.constant =
                            copy_unshared_constant(lsvip->initializer.constant);
+              initial_value_for_il_lowering_flag =
+                                           !initial_value_for_il_lowering_flag;
               switch_back_to_original_region(region_to_switch_back_to);
             }
             break;
@@ -8227,34 +8246,37 @@ if olp is NULL.
 
 void eliminate_all_object_lifetimes(a_scope_ptr scope)
 /*
-Eliminate all object lifetime entries attached to the indicated scope and
-its subtree, because they're not supposed to be passed on to the back end.
-This is done late so that the object lifetimes are available during the
-entire lowering process.  The scope is the top scope in a memory region.
+If we're not supposed to pass object lifetime information to the back end,
+eliminate all object lifetime entries attached to the indicated scope and
+its subtree.  This is done late so that the object lifetimes are available
+during the entire lowering process.  The scope is the top scope in a memory
+region.
 */
 {
-  eliminate_object_lifetime_tree(scope->lifetime);
-  if (scope->kind == (a_scope_kind)sck_function) {
-    eliminate_object_lifetime_tree(
+  if (!keep_object_lifetime_info_in_lowered_il) {
+    eliminate_object_lifetime_tree(scope->lifetime);
+    if (scope->kind == (a_scope_kind)sck_function) {
+      eliminate_object_lifetime_tree(
                          scope->variant.routine.lifetime_of_constructor_inits);
-    eliminate_object_lifetime_tree(
+      eliminate_object_lifetime_tree(
                          scope->variant.routine.lifetime_of_local_static_vars);
-  } else {
-    /* File scope. */
+    } else {
+      /* File scope. */
 #if ORPHAN_PROCESSING_NEEDED
-    /* Clear the orphan list for object lifetimes. */
-    char                      *entry_ptr, *next_entry_ptr;
-    an_orphaned_il_entry_list *orphan_header =
+      /* Clear the orphan list for object lifetimes. */
+      char                      *entry_ptr, *next_entry_ptr;
+      an_orphaned_il_entry_list *orphan_header =
                      &orphaned_file_scope_il_entries[(int)iek_object_lifetime];
-    for (entry_ptr = orphan_header->first_entry;
-         entry_ptr != NULL; 
-         entry_ptr = next_entry_ptr) {
-      next_entry_ptr = fs_orphan_pointer_of(entry_ptr);
-      fs_orphan_pointer_of(entry_ptr) = NULL;
-    }  /* for */
-    orphan_header->first_entry = NULL;
-    orphan_header->last_entry = NULL;
+      for (entry_ptr = orphan_header->first_entry;
+           entry_ptr != NULL; 
+           entry_ptr = next_entry_ptr) {
+        next_entry_ptr = fs_orphan_pointer_of(entry_ptr);
+        fs_orphan_pointer_of(entry_ptr) = NULL;
+      }  /* for */
+      orphan_header->first_entry = NULL;
+      orphan_header->last_entry = NULL;
 #endif /* ORPHAN_PROCESSING_NEEDED */
+    }  /* if */
   }  /* if */
 }  /* eliminate_all_object_lifetimes */
 
