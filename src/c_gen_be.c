@@ -5865,6 +5865,13 @@ block with state information for the processing.
         }  /* if */
         /* Stop if we entered the loop with elem_con == NULL. */
         if (elem_con == NULL) break;
+#if CHECKING
+        if (elem_con->next == NULL && constant != NULL) {
+          check_assertion_str(elem_con ==
+                                     constant->variant.aggregate.last_constant,
+                         "dump_initializer_part: bad aggregate last_constant");
+        }  /* if */
+#endif /* CHECKING */
         /* Advance to the next constant, and stop after the last constant. */
         elem_con = elem_con->next;
         if (elem_con == NULL) break;

@@ -2718,6 +2718,13 @@ constant is an aggregate the braces around it are suppressed.
           field = next_initializable_field(field->next);
         }  /* if */
         gen_initializer_constant(eff_sub_con, sub_type, local_suppress_braces);
+#if CHECKING
+        if (sub_con->next == NULL) {
+          check_assertion_str(sub_con ==
+                                     constant->variant.aggregate.last_constant,
+                      "gen_initializer_constant: bad aggregate last_constant");
+        }  /* if */
+#endif /* CHECKING */
         sub_con = sub_con->next;
         /* Stop after the last constant. */
         if (sub_con == NULL) break;
