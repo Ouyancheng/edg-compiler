@@ -88,7 +88,7 @@ static a_line_number
 		curr_output_line;
 static a_seq_number
 		curr_output_seq_number;
-static a_column_number
+static unsigned long
 		curr_output_column;
 			/* The number of characters written to the current
 			   line of output.  Zero means nothing has been
@@ -736,7 +736,7 @@ Write the indicated string to the output file.  It's a complete token (or
 several), which means a long line could be broken before or after it.
 */
 {
-  register sizeof_t len = strlen(str);
+  register sizeof_t len = (sizeof_t)strlen(str);
   register char     *p;
   register char     ch;
 
