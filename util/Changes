@@ -1,3 +1,10 @@
+Version 3.2
+
+2/19/03  Demangling of virtual function table names, Cfront-like ABI
+
+Certain mangled names of virtual function tables in the Cfront-like
+ABI did not demangle correctly.  Now fixed.
+
 Version 3.1, January 26, 2003
 
 1/2/03   Prelinker: diagnose attempt to build without automatic instantiation

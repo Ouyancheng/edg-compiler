@@ -1573,6 +1573,13 @@ a few special quirks.
   if (!nested_name_case) p = ptr;
   /* Now use the normal routine to demangle the class name. */
   p = demangle_type_name(p, dctl);
+  if (start_of_id_is("__A", p)) {
+    /* "__A" indicates an ambiguous base class. */
+    write_id_str(" (ambiguous)", dctl);
+    p += 3;
+    /* Ignore the number following __A, if any. */
+    while (isdigit((unsigned char)*p)) p++;
+  }  /* if */
   return p;
 }  /* demangle_vtbl_class_name */
 
@@ -2395,25 +2402,12 @@ length returned the second time will be correct).
        this will produce output containing partially-mangled information.
        It's hard to do better given the cfront encoding form. */
     end_ptr = demangle_vtbl_class_name(id+8, dctl);
-    if (start_of_id_is("__A", end_ptr)) {
-      /* "__A" indicates an ambiguous base class. */
-      write_id_str(" (ambiguous)", dctl);
-      end_ptr += 3;
-      /* Ignore the number following __A, if any. */
-      while (isdigit((unsigned char)*end_ptr)) end_ptr++;
-    }  /* if */
-    if (start_of_id_is("__", end_ptr)) {
-      /* Virtual function table for base class in derived class. */
-      end_ptr += 2;
-      write_id_str(" in ", dctl);
-      end_ptr = demangle_vtbl_class_name(end_ptr, dctl);
-    }  /* if */
-    if (start_of_id_is("__", end_ptr)) {
+    while (start_of_id_is("__", end_ptr)) {
       /* Further derived class. */
       end_ptr += 2;
       write_id_str(" in ", dctl);
       end_ptr = demangle_vtbl_class_name(end_ptr, dctl);
-    }  /* if */
+    }  /* while */
   } else if (start_of_id_is("__CBI__", id)) {
     write_id_str("can-be-instantiated flag for ", dctl);
     end_ptr = demangle_identifier(id+7, dctl);
