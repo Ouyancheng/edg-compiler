@@ -1,10 +1,22 @@
 Version 2.22
 
+1/24/94  IL change -- local type declared in function prototype
+
+A new flag, declared_in_function_prototype, is set in a type entry when it
+represents a local type declared or defined in a function prototype; this
+applies in C mode only, since in C++ a type declared in a function
+prototype is not a local type but belongs to the file scope.
+
+1/24/94  IL change -- variable for implicit "this" parameter
+
+A new flag, implicit_this_param, is set in a variable entry when it
+represents an implicit "this" parameter.
+
 1/22/94  Implicit return value from main()
 
-In C++, if control reaches the end of the main() routine, and main() has an
-integral return type, it is treated as if a "return 0;" statement
-were executed.  This was approved by X3J16/WG21 at the 11/93 meeting.
+In C++, if control reaches the end of the main() routine, and main() has
+an integral return type, it is treated as if a "return 0;" statement were
+executed.  This was approved by X3J16/WG21 at the 11/93 meeting.
 
 1/20/94  Default file suffixes under MS-DOS
 
