@@ -1556,12 +1556,18 @@ scope is that of a class definition.
   a_boolean               may_be_copy_constructor = FALSE;
   a_boolean               bad_first_param_for_copy_constructor = FALSE;
   a_source_position       pos_of_first_param_type;
+  a_func_info_block       local_func_info_block;
 
   db_enter(3, "function_declarator");
   copy_source_position(pos_curr_token, start_pos);
   set_err_pos_to_curr_token();
   add_stop_token(tok_rparen);
-  if (func_info != NULL) clear_func_info(func_info);
+  /* If the caller passed in a func_info pointer, this is the declarator of
+     a "top-level" function declaration.  Use the storage passed in by the
+     caller.  But if func_info is NULL, use a local func info block.  This
+     is mainly useful for managing param_id entries properly. */
+  if (func_info == NULL) func_info = &local_func_info_block;
+  clear_func_info(func_info);
   last_param_id = NULL;
   *new_type_ptr = alloc_type((a_type_kind)tk_routine);
   extra_info = (*new_type_ptr)->variant.routine.extra_info;
@@ -1633,9 +1639,7 @@ scope is that of a class definition.
                        *new_type_ptr, (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
                        (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
       /* Remember the scope number for later use if and when a body appears. */
-      if (func_info != NULL) {
-        func_info->scope_number = scope_stack[depth_scope_stack].number;
-      }  /* if */
+      func_info->scope_number = scope_stack[depth_scope_stack].number;
       last_param_type = NULL;
       do {
         add_stop_token(tok_comma);
@@ -1740,7 +1744,7 @@ scope is that of a class definition.
         }  /* if */
         last_param_type = ptp;
         /* A parameter name is present. */
-        if (func_info != NULL && is_error_locator(param_locator)) {
+        if (is_error_locator(param_locator)) {
           func_info->any_prototype_names_omitted = TRUE;
         }  /* if */
         add_to_param_id_list(&param_locator, param_type_ptr,
@@ -1948,7 +1952,7 @@ scope is that of a class definition.
       } while (!done);
       /* Save the list of symbols for the prototype scope (usually NULL, but
          can have symbols for named types declared within the prototype). */
-      if (func_info != NULL) {
+      if (func_info != &local_func_info_block) {
         /* Note that a pointer to the current entry of scope_stack is not saved
            from earlier in this routine because scope_stack might have been
            reallocated in the interim. */
@@ -1959,7 +1963,7 @@ scope is that of a class definition.
       pop_scope();
     } else {
       /* Old-style list of identifiers. */
-      if (func_info == NULL) {
+      if (func_info == &local_func_info_block) {
         /* This type of parameter list is not valid in abstract declarators
            and non-top-level function declarators. */
         error(ec_param_id_list_needs_function_def);
@@ -1992,6 +1996,13 @@ scope is that of a class definition.
         remove_stop_token(tok_comma);
         /* Keep looping on a comma, stop otherwise. */
       } while (loop_token(tok_comma));
+    }  /* if */
+  }  /* if */
+  if (func_info == &local_func_info_block) {
+    if (local_func_info_block.param_id_list != NULL) {
+      /* Free the list of parameter identifiers -- they're not needed
+         if there's no definition. */
+      free_param_id_list(&(local_func_info_block.param_id_list));
     }  /* if */
   }  /* if */
   /* Check for closing right parenthesis.  We temporarily clear the stop
@@ -8919,12 +8930,14 @@ continue_with_declaration:
         }  /* if */
       }  /* if */
       if (top_declarator_type_is_function) {
-        /* If the function has a non-empty old-style identifier list of
-           parameters, a body should have been present. */
-        if (!local_type_ptr->variant.routine.extra_info->prototyped &&
-            func_info.param_id_list != NULL) {
-          error(ec_param_id_list_needs_function_def);
-          /* Free the list of parameter identifiers. */
+        if (func_info.param_id_list != NULL) {
+          /* If the function has a non-empty old-style identifier list of
+             parameters, a body should have been present. */
+          if (!local_type_ptr->variant.routine.extra_info->prototyped) {
+            error(ec_param_id_list_needs_function_def);
+          }  /* if */
+          /* Free the list of parameter identifiers -- they're not needed
+             if there's no definition. */
           free_param_id_list(&(func_info.param_id_list));
         }  /* if */
       }  /* if */

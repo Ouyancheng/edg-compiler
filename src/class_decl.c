@@ -6241,6 +6241,13 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                   }  /* if */
                 }  /* if */
               }  /* if */
+              if (!function_def_present) {
+                if (func_info.param_id_list != NULL) {
+                  /* Free the list of parameter identifiers -- they're not
+                     needed if there's no definition. */
+                  free_param_id_list(&(func_info.param_id_list));
+                }  /* if */
+              }  /* if */
               if (curr_routine_fixup != NULL) {
                 curr_routine_fixup->routine = rout_sym->variant.routine.ptr;
                 curr_routine_fixup->func_info = func_info;
