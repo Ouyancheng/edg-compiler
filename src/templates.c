@@ -171,10 +171,10 @@ typedef struct a_decl_state {
   a_boolean	is_full_specialization;
 			/* TRUE if the declaration is a full specialization
 			   of a template entity.  A full specialization
-			   is a real function or class (i.e., not a template).
-			   A full specialization is one in which all of
-			   the template parameter clauses contain empty
-			   parameter lists (i.e., "template <>"). */
+			   declares a real function or class (i.e., not a
+			   template).  In a full specialization all the
+			   template parameter clauses contain empty parameter
+			   lists (i.e., "template <>"). */
   a_boolean	defines_something;
 			/* TRUE if the declaration is a definition. */
   a_boolean	in_prototype_instantiation;
@@ -3105,8 +3105,8 @@ of a function template.
              DI_OPERATOR_NAME_ALLOWED;
   if (is_initial_decl) {
     dsi_flags |= DSI_IS_TEMPLATE_DECLARATION;
-    if (is_specialization) di_flags |= DI_IS_TEMPLATE_SPECIALIZATION;
     di_flags |= DI_IS_TEMPLATE_DECLARATION;
+    if (is_specialization) di_flags |= DI_IS_SPECIALIZATION;
     /* An end-of-source marker is not present when the initial declaration
        is scanned. */
     add_stop_token(tok_lbrace);
@@ -6974,7 +6974,7 @@ is the position to be used if a diagnostic is issued.
 }  /* check_for_decl_spec_errors */
 
 
-static void full_template_specialization(void)
+static void full_specialization(void)
 /*
 One or more empty template parameter clauses ("template <>") have been
 scanned, and this routine handles the specialization of the template instance
@@ -6994,7 +6994,7 @@ that follows.
   a_boolean                     is_definition;
   a_source_position             decl_start_pos;
 
-  db_enter(3, "full_template_instantiation");
+  db_enter(3, "full_instantiation");
   decl_start_pos = pos_curr_token;
   /* First scan the decl-specifiers. */
   (void)decl_specifiers((DSI_IS_TEMPLATE_SPECIALIZATION |
@@ -7026,9 +7026,8 @@ that follows.
        should follow. */
     add_stop_token(tok_semicolon);
     clear_func_info(&func_info);
-    declarator((DI_REAL_DECLARATOR_ALLOWED |
-                DI_QUALIFIED_NAME_ALLOWED |
-                DI_OPERATOR_NAME_ALLOWED),
+    declarator((DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED |
+                DI_OPERATOR_NAME_ALLOWED | DI_IS_SPECIALIZATION),
                &do_flags, type, (a_type_ptr)NULL, &locator, &type,
                &declarator_ssep, &func_info);
     sym = NULL; 
@@ -7188,7 +7187,7 @@ that follows.
     remove_stop_token(tok_semicolon);
   }  /* if */
   db_exit();
-}  /* full_template_specialization */
+}  /* full_specialization */
 
 
 static void decl_level_of_template(a_decl_state_ptr decl_state)
@@ -7325,7 +7324,7 @@ are either the specialization of a template or a template declaration.
      param-lists must be present). */
   scan_template_param_clauses(&decl_state);
   if (decl_state.is_full_specialization) {
-    full_template_specialization();
+    full_specialization();
     /* Advance past the semicolon or closing rbrace if required. */
     if (!no_advance_past_final_token && (curr_token == tok_semicolon ||
                                          curr_token == tok_rbrace)) {

@@ -820,7 +820,8 @@ static void function_declarator(a_type_ptr        *new_type_ptr,
                                 a_type_ptr        member_function_parent_type,
                                 a_boolean         is_nonstatic_member_function,
                                 a_boolean         is_constructor,
-                                a_boolean         is_destructor)
+                                a_boolean         is_destructor,
+                                a_boolean         is_specialization)
 /*
 Scan a function declarator (3.5.4.3), or an array declarator in an
 abstract declarator (3.5.5).  Allocate and return in *new_type_ptr an
@@ -834,7 +835,10 @@ in *func_info.  For member functions, member_function_parent_type is a
 pointer to the class (or struct or union) type of which it is a member;
 otherwise it is NULL.  When it is non-NULL, is_nonstatic_member_function
 will distinguish static from nonstatic member functions when the current
-scope is that of a class definition.
+scope is that of a class definition.  is_constructor or is_destructor is
+TRUE if previous processing had determined that this is a constructor or
+destructor declaration, respectively.  is_specialization is TRUE if this
+declaration is a template specialization.
 */
 {
   a_param_type_ptr        ptp;
@@ -860,6 +864,7 @@ scope is that of a class definition.
   a_boolean               dangling_type_specifier = FALSE;
   a_boolean               defines_something;
   a_boolean               default_arg_expr_allowed = FALSE;
+  a_boolean               is_pragma_scope = FALSE;
   a_boolean               may_be_copy_constructor = FALSE;
   a_boolean               bad_first_param_for_copy_constructor = FALSE;
   a_source_position       pos_of_first_param_type;
@@ -959,6 +964,10 @@ scope is that of a class definition.
       if (ssep->kind == (a_scope_kind)sck_pragma) {
         /* Disallow default arguments in function declarations within a
            pragma. */
+        is_pragma_scope = TRUE;
+      } else if (is_specialization) {
+        /* Disallow default arguments on specializations of template
+           functions. */
       } else {
         /* In C++ mode a default argument may be declared with the parameter
            unless the function is a user-defined overloaded operator (except
@@ -1224,7 +1233,8 @@ scope is that of a class definition.
             func_info->any_default_args = TRUE;
           }  /* if */
         }  /* if */
-        if (C_dialect == C_dialect_cplusplus && !default_arg_expr_allowed) {
+        if (C_dialect == C_dialect_cplusplus && !default_arg_expr_allowed &&
+            !is_pragma_scope && !is_specialization) {
           if (last_param_type == extra_info->param_type_list) {
             /* The first parameter on the list has just been processed. */
             if (locator != NULL && locator->is_operator_name &&
@@ -2432,9 +2442,9 @@ to FALSE if the entity being declared is not initializable.
   }  /* if */
   if (input_flags & DI_IS_TEMPLATE_DECLARATION) {
     options |= GID_IS_TEMPLATE_DECLARATION;
-  }  /* if */
-  if (input_flags & DI_IS_TEMPLATE_SPECIALIZATION) {
-    options |= GID_IS_TEMPLATE_SPECIALIZATION;
+    if (input_flags & DI_IS_SPECIALIZATION) {
+      options |= GID_IS_TEMPLATE_SPECIALIZATION;
+    }  /* if */
   }  /* if */
   if (is_generalized_identifier_start(GID_DTOR_RECOGNIZED) &&
       (!locator_for_curr_id.is_destructor_name ||
@@ -3142,7 +3152,8 @@ function_lparen:
       }  /* if */
       function_declarator(&new_type_ptr, func_info, locator,
                           member_parent_type, is_nonstatic_member_function,
-                          is_constructor, is_destructor);
+                          is_constructor, is_destructor,
+                          (input_flags & DI_IS_SPECIALIZATION) != 0);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (func_info != NULL) {
         /* Record the source sequence entry in func_info even if there was
