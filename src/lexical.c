@@ -3836,8 +3836,7 @@ qualifier.  This routine should only be called in C++ mode.
            A::i = 1;   // The class A is found.
          }
     */
-    class_symbol = normal_id_lookup(&locator_for_curr_id,
-                                    /*must_be_class=*/TRUE);
+    class_symbol = normal_id_lookup(&locator_for_curr_id, IDL_MUST_BE_CLASS);
     if (class_symbol != NULL && next_token() == tok_colon_colon) {
       /* This is a qualified name. */
       /* Keep looping while there are more levels of class qualification.
