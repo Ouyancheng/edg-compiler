@@ -22,6 +22,20 @@ the release should contain no defines.
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
 #ifndef ABI_COMPATIBILITY_VERSION
 #define ABI_COMPATIBILITY_VERSION 99999 /* Use latest version. */
+/* We want enough cfront compatibility to be able to use I/O streams compiled
+   by cfront, but we also want the latest features. */
+#ifndef CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+#define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY 1
+#endif /* ifndef CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+#ifndef ABI_CHANGES_FOR_RTTI
+#define ABI_CHANGES_FOR_RTTI 1
+#endif /* ifndef ABI_CHANGES_FOR_RTTI */
+#ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
+#define ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE 1
+#endif /* ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
+#ifndef REMOVE_QUALIFIERS_FROM_PARAM_TYPES
+#define REMOVE_QUALIFIERS_FROM_PARAM_TYPES 1
+#endif /* ifndef REMOVE_QUALIFIERS_FROM_PARAM_TYPES */
 #endif /* ifndef ABI_COMPATIBILITY_VERSION */
 
 #ifdef CP_GEN_BE_VERSION

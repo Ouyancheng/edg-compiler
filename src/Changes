@@ -1,5 +1,34 @@
 Version 2.30
 
+8/17/95  Removing type qualifiers from parameter types, again
+
+The changes to remove or preserve qualifiers on parameter types have been
+put under control of the configuration option
+REMOVE_QUALIFIERS_FROM_PARAM_TYPES.  It is enabled by default if
+ABI_COMPATIBILITY_VERSION is greater than 228 and
+CFRONT_OBJECT_CODE_COMPATIBILITY is FALSE.  This differs from the
+behavior in the 2.29 release in that qualifiers are not dropped in
+2.30 if CFRONT_OBJECT_CODE_COMPATIBILITY is chosen.
+
+8/17/95  CFRONT_OBJECT_CODE_COMPATIBILITY
+
+Starting with release 2.30, CFRONT_OBJECT_CODE_COMPATIBILITY (set
+as the "or" of CFRONT_2_1_OBJECT_CODE_COMPATIBILITY and
+CFRONT_3_0_OBJECT_CODE_COMPATIBILITY) means, by default, "give me
+complete ABI compatibility with cfront."  Language features that
+are incompatible with cfront's ABI (e.g., RTTI) are disabled by
+default.  They can be enabled explicitly (e.g., by setting
+ABI_CHANGES_FOR_RTTI), and the front end will work with such 
+a setting, but the ABI in such a version is only cfront-like,
+not cfront-compatible.  This new interpretation allows us to make
+corrections in cases where we weren't completely compatible with
+cfront.  Customers who set ABI_COMPATIBILITY_VERSION >= 230 and who
+have CFRONT_OBJECT_CODE_COMPATIBILITY TRUE will get a version that
+includes corrections and is therefore more compatible with cfront.
+Customers who hold ABI_COMPATIBILITY_VERSION at some older version
+number will retain compatibility with our older versions (and
+therefore slight mismatches with cfront).
+
 8/14/95  Overflow checking on conversion of floating constants
 
 store_double in float_pt.c has been modified so that it does a more

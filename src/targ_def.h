@@ -37,11 +37,14 @@ version number of the EDG C++ front end, e.g., 227 for version 2.27, for
 which compatibility should be maintained.  ABI changes made after that
 version will be suppressed.  Of course, that may suppress certain language
 features that cannot be implemented without the corresponding ABI changes.
-The default is 228, which results in the ABI being compatible with earlier
-versions of the front end.
+Note that even if the ABI version is set to newer version numbers,
+if CFRONT_OBJECT_CODE_COMPATIBILITY is TRUE certain language features
+will be turned off.  Those features (e.g., RTTI) can be turned on
+explicitly, and the front end will work, but you will have a version
+with an ABI that is only cfront-like, not cfront-compatible.
 */
 #ifndef ABI_COMPATIBILITY_VERSION
-#define ABI_COMPATIBILITY_VERSION 228
+#define ABI_COMPATIBILITY_VERSION 99999 /* Latest version */
 #endif /* ifndef ABI_COMPATIBILITY_VERSION */
 
 /*
@@ -966,6 +969,20 @@ and "?" are eliminated.  For example, "1 ? i : j" becomes simply "i".
 #define ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS FALSE
 #endif /* ifndef ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
 
+/*
+This switch controls whether or not type qualifiers are removed from
+parameter types (e.g., a "const int" parameter is seen simply as "int").
+This may seem like a language feature, but it's an ABI issue, because the
+parameter type ends up in the mangled name of the function.
+*/
+#ifndef REMOVE_QUALIFIERS_FROM_PARAM_TYPES
+#if ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_OBJECT_CODE_COMPATIBILITY
+#define REMOVE_QUALIFIERS_FROM_PARAM_TYPES FALSE
+#else /* ABI_COMPATIBILITY_VERSION > 228 && !CFRONT_... */
+#define REMOVE_QUALIFIERS_FROM_PARAM_TYPES TRUE
+#endif /* ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_... */
+#endif /* ifndef REMOVE_QUALIFIERS_FROM_PARAM_TYPES */
+
 #if BACK_END_IS_C_GEN_BE
 /*
 Switch that is TRUE if the C-generating back end should generate code for
@@ -1226,11 +1243,11 @@ The typeinfo generated in that case is adequate for exception
 handling but not for RTTI.
 */
 #ifndef ABI_CHANGES_FOR_RTTI
-#if ABI_COMPATIBILITY_VERSION <= 228
+#if ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_OBJECT_CODE_COMPATIBILITY
 #define ABI_CHANGES_FOR_RTTI FALSE /* Versions up to 2.28. */
-#else /* ABI_COMPATIBILITY_VERSION > 228 */
+#else /* ABI_COMPATIBILITY_VERSION > 228  && !CFRONT_... */
 #define ABI_CHANGES_FOR_RTTI TRUE  /* Versions after 2.28. */
-#endif /* ABI_COMPATIBILITY_VERSION <= 228 */
+#endif /* ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_... */
 #endif /* ifndef ABI_CHANGES_FOR_RTTI */
 #if ABI_CHANGES_FOR_RTTI && (ABI_COMPATIBILITY_VERSION <= 228)
  #error -- ABI_CHANGES_FOR_RTTI TRUE is incompatible with \
@@ -1247,11 +1264,11 @@ compatibility with versions up to 2.28 is preserved, but the
 array new and delete language features are turned off.
 */
 #ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
-#if ABI_COMPATIBILITY_VERSION <= 228
+#if ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_OBJECT_CODE_COMPATIBILITY
 #define ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE FALSE /* Versions up to 2.28. */
-#else /* ABI_COMPATIBILITY_VERSION > 228 */
+#else /* ABI_COMPATIBILITY_VERSION > 228 && !CFRONT_... */
 #define ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE TRUE  /* Versions after 2.28. */
-#endif /* ABI_COMPATIBILITY_VERSION <= 228 */
+#endif /* ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_... */
 #endif /* ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 #if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE && (ABI_COMPATIBILITY_VERSION <= 228)
  #error -- ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE TRUE is incompatible with \
