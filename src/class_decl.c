@@ -6971,7 +6971,7 @@ member declaration, respectively.
   var = make_variable(member_type, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
   /* If this is a member template declaration, don't add it to the variables
      list (in part to avoid problems caused by an invalid scope). */
-  if (!decl_info->is_member_template) {
+  if (!decl_info->is_member_template || prototype_instantiations_in_il) {
     add_to_variables_list(var, decl_scope_level);
   }  /* if */
   sym = enter_local_symbol((a_symbol_kind)sk_static_data_member, locator,
