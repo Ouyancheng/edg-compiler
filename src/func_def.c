@@ -1023,7 +1023,7 @@ on a prior declaration.
         }  /* if */
       }  /* if */
     }  /* if */
-    /* If this is an member function of an instantiation of a class
+    /* If this is a member function of an instantiation of a class
        template, mark this as a specialization.  However, since the newer
        template<> syntax was not used, mark it as using the old syntax. */
     if (sym->variant.routine.instance_ptr != NULL) {
