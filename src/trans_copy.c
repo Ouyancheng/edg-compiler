@@ -751,7 +751,7 @@ classes need to be merged.
 }  /* class_befriending_lists_need_to_be_merged */
 
 
-static void process_variable_if_unneeded_template(a_variable_ptr variable)
+static void process_variable_if_unneeded_non_template(a_variable_ptr variable)
 /*
 If we're processing the current secondary translation unit only to
 get exported templates, and the given variable is not a generated template,
@@ -775,7 +775,7 @@ do any necessary processing, e.g., externalizing it if it is static.
 #endif /* DO_IL_LOWERING */
     }  /* if */
   }  /* if */
-}  /* process_variable_if_unneeded_template */
+}  /* process_variable_if_unneeded_non_template */
 
 
 static void process_routine_if_unneeded_non_template(a_routine_ptr routine)
@@ -785,31 +785,33 @@ get exported templates, and the given routine is not a generated template,
 do any necessary processing, e.g., externalizing it if it is static.
 */
 {
-  /* The definition should have been eliminated at pop_scope
-     time (the definition will be put out when the file is compiled
-     as a primary file) unless the routine is inline. */
-  check_assertion(routine->assoc_scope == NULL_region_number ||
-                  routine->is_inline);
+  if (is_nontemplate_routine_from_exported_trans_unit(routine)) {
+    /* The definition should have been eliminated at pop_scope
+       time (the definition will be put out when the file is compiled
+       as a primary file) unless the routine is inline. */
+    check_assertion(routine->assoc_scope == NULL_region_number ||
+                    routine->is_inline);
 #if DO_IL_LOWERING
-  if (il_lowering_needed() &&
-      routine->storage_class == (a_storage_class)sc_static) {
-    /* A static function referenced from a template is changed to an
-       external declaration and copied over. */
-    externalize_source_correspondence(&routine->source_corresp,
-                                      /*is_variable=*/FALSE);
-    if (routine->assoc_scope == NULL_region_number) {
-      routine->storage_class = (a_storage_class)sc_extern;
-    } else {
-      /* A static inline function becomes external, but not exactly
-         extern inline (it isn't instantiated). */
-      check_assertion(routine->is_inline);
-      routine->storage_class = (a_storage_class)sc_unspecified;
+    if (il_lowering_needed() &&
+        routine->storage_class == (a_storage_class)sc_static) {
+      /* A static function referenced from a template is changed to an
+         external declaration and copied over. */
+      externalize_source_correspondence(&routine->source_corresp,
+                                        /*is_variable=*/FALSE);
+      if (routine->assoc_scope == NULL_region_number) {
+        routine->storage_class = (a_storage_class)sc_extern;
+      } else {
+        /* A static inline function becomes external, but not exactly
+           extern inline (it isn't instantiated). */
+        check_assertion(routine->is_inline);
+        routine->storage_class = (a_storage_class)sc_unspecified;
 #if INSTANTIATE_EXTERN_INLINE
-      routine->suppress_inline_body = TRUE;
+        routine->suppress_inline_body = TRUE;
 #endif /* INSTANTIATE_EXTERN_INLINE */
+      }  /* if */
     }  /* if */
-  }  /* if */
 #endif /* DO_IL_LOWERING */
+  }  /* if */
 }  /* process_routine_if_unneeded_non_template */
 
 #if CHECKING
@@ -1170,7 +1172,7 @@ to the secondary translation unit.
        are made external (if necessary) and their definitions are
        dropped (the definition will be put out when the file
        is compiled as a primary file). */
-    process_variable_if_unneeded_template(variable);
+    process_variable_if_unneeded_non_template(variable);
     if (entry_should_be_copied(variable)) {
       /* The variable doesn't exist in the primary IL, and just gets copied
          over. */
@@ -1256,9 +1258,7 @@ to the secondary translation unit.
     /* If we're supposed to copy only generated templates, other routines
        are made external (if necessary) and their definitions are
        dropped. */
-    if (is_nontemplate_routine_from_exported_trans_unit(routine)) {
-      process_routine_if_unneeded_non_template(routine);
-    }  /* if */
+    process_routine_if_unneeded_non_template(routine);
     if (entry_should_be_copied(routine)) {
       /* The routine doesn't exist in the primary IL, and just gets copied
          over. */
