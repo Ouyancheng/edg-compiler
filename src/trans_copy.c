@@ -543,7 +543,7 @@ entity associated with the scope should be kept on the caller's list
 {
   a_boolean          keep_on_parent_list = FALSE;
   a_boolean          check_member_merges = FALSE;
-  a_boolean          any_member_merges = FALSE;
+  a_boolean          any_members_to_process = FALSE;
   a_type_ptr         type, prev_type;
   a_variable_ptr     variable, prev_variable;
   a_dynamic_init_ptr dyn_init, prev_dyn_init;
@@ -660,7 +660,6 @@ entity associated with the scope should be kept on the caller's list
                       type->variant.class_struct_union.extra_info->assoc_scope;
       keep_on_list = prepare_for_trans_unit_copy(class_scope,
                                                  any_removed_function_bodies);
-      if (check_member_merges && keep_on_list) any_member_merges = TRUE;
     } else if (has_corresp(type)) {
       /* This entry corresponds to something in the primary IL. */
       keep_on_list = FALSE;
@@ -668,7 +667,6 @@ entity associated with the scope should be kept on the caller's list
           type_should_be_merged(type)) {
         /* This type should be merged into the corresponding type. */
         mark_to_merge(type);
-        any_member_merges = TRUE;
         keep_on_list = TRUE;
       }  /* if */
     } else if (type->kind == (a_type_kind)tk_typeref &&
@@ -681,6 +679,7 @@ entity associated with the scope should be kept on the caller's list
     }  /* if */
     if (keep_on_list) {
       prev_type = type;
+      any_members_to_process = TRUE;
     } else {
       /* Remove this entry from the list. */
       if (prev_type == NULL) {
@@ -705,7 +704,6 @@ entity associated with the scope should be kept on the caller's list
         /* This variable has an initializer, which must be merged into the
            corresponding variable. */
         mark_to_merge(variable);
-        any_member_merges = TRUE;
         keep_on_list = TRUE;
       }  /* if */
     } else {
@@ -738,6 +736,7 @@ entity associated with the scope should be kept on the caller's list
     }  /* if */
     if (keep_on_list) {
       prev_variable = variable;
+      any_members_to_process = TRUE;
     } else {
       /* Remove this entry from the list. */
       if (prev_variable == NULL) {
@@ -783,7 +782,6 @@ entity associated with the scope should be kept on the caller's list
           routine_should_be_merged(routine, any_removed_function_bodies)) {
         /* Merge the definition here into the corresponding routine. */
         mark_to_merge(routine);
-        any_member_merges = TRUE;
         keep_on_list = TRUE;
       }  /* if */
     } else {
@@ -816,6 +814,7 @@ entity associated with the scope should be kept on the caller's list
     }  /* if */
     if (keep_on_list) {
       prev_routine = routine;
+      any_members_to_process = TRUE;
     } else {
       /* Remove this entry from the list. */
       if (prev_routine == NULL) {
@@ -839,6 +838,7 @@ entity associated with the scope should be kept on the caller's list
     }  /* if */
     if (keep_on_list) {
       prev_templ = templ;
+      any_members_to_process = TRUE;
     } else {
       /* Remove this entry from the list. */
       if (prev_templ == NULL) {
@@ -866,6 +866,7 @@ entity associated with the scope should be kept on the caller's list
     }  /* if */
     if (keep_on_list) {
       prev_nsp = nsp;
+      any_members_to_process = TRUE;
     } else {
       /* Remove this entry from the list. */
       if (prev_nsp == NULL) {
@@ -890,6 +891,7 @@ entity associated with the scope should be kept on the caller's list
     }  /* if */
     if (keep_on_list) {
       prev_pragma = pragma;
+      any_members_to_process = TRUE;
     } else {
       /* Remove this entry from the list. */
       if (prev_pragma == NULL) {
@@ -911,8 +913,8 @@ entity associated with the scope should be kept on the caller's list
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-  if (any_member_merges) {
-    /* There are some members of this scope that need merging, so we have
+  if (check_member_merges && any_members_to_process) {
+    /* There are some members of this scope that need processing, so we have
        to keep the scope's associated entity on the list to be able to
        perform the merges. */
     keep_on_parent_list = TRUE;
@@ -1138,7 +1140,8 @@ secondary scope to the primary file IL.
           /* If both copies have a definition, leave the primary definition
              alone.  The class was presumably marked to be merged because
              some of its member definitions needed to be merged. */
-          if (class_type_has_body(primary_type)) goto end_of_type_list_add;
+          if (is_immediate_class_type(primary_type) &&
+              class_type_has_body(primary_type)) goto end_of_type_list_add;
           /* Merge the information from this type into the primary IL type
              (the secondary translation unit instance has a definition and
              the primary translation unit instance does not).  Move the
