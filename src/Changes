@@ -1,5 +1,13 @@
 Version 2.34
 
+10/30/96 Freeing memory for generated trivial default constructors
+
+The definition of a trivial default constructor is sometimes generated
+even though it is not added to the IL (see entry for 8/7/96).  However,
+when MAINTAIN_NEEDED_FLAGS and MINIMAL_INLINING were both configured to be
+FALSE, an internal error could result, due to a failure to free the
+associated memory region properly.  This has been fixed.
+
 10/30/96 Incomplete type in exception specification
 
 An error is now issued if an exception specification type is an incomplete

@@ -1069,50 +1069,56 @@ memory or with an IL file.
        unused portion of the memory block at this time, though. */
     keep_memory = TRUE;
   } else {
-#if MAINTAIN_NEEDED_FLAGS || MINIMAL_INLINING
-    a_scope_ptr scope = il_header.region_scope_entry[region_number];
-    a_boolean   write_region = TRUE;
+    a_scope_ptr    scope = il_header.region_scope_entry[region_number];
+    a_boolean      write_region = TRUE;
 
     check_assertion(scope != NULL);
     if (scope->kind == (a_scope_kind)sck_function) {
-      a_routine_ptr rout = scope->variant.routine.ptr;
-#if MAINTAIN_NEEDED_FLAGS
-      if (!rout->keep_definition_in_il || !rout->definition_needed) {
-        /* This memory region so far looks as if it's unneeded.  Hold on
-           to it for now.  If we make it to the end of the compilation with
-           the memory region still unneeded, we will have the option of
-           just freeing it at that point. */
+      a_routine_ptr  rout = scope->variant.routine.ptr;
+      if (rout->is_trivial_default_constructor) {
+        /* Definitions of trivial default constructors should never be
+           written out -- they are really for front-end use only. */
         write_region = FALSE;
-        keep_memory = TRUE;
-      }  /* if */
+        /* keep_memory = FALSE; */
+#if MAINTAIN_NEEDED_FLAGS || MINIMAL_INLINING
+      } else {
+#if MAINTAIN_NEEDED_FLAGS
+        if (!rout->keep_definition_in_il || !rout->definition_needed) {
+          /* This memory region so far looks as if it's unneeded.  Hold on
+             to it for now.  If we make it to the end of the compilation with
+             the memory region still unneeded, we will have the option of
+             just freeing it at that point. */
+          write_region = FALSE;
+          keep_memory = TRUE;
+        }  /* if */
 #if DEBUG
-      if (db_flag_is_set("needed_flags")) {
-        fprintf(f_debug, "check_for_done_with_memory_region: ");
-        fprintf(f_debug, "%s writing memory region for ",
-                write_region ? "" : "not");
-        db_name(&rout->source_corresp);
-        fprintf(f_debug, "\n");
-      }  /* if */
+        if (db_flag_is_set("needed_flags")) {
+          fprintf(f_debug, "check_for_done_with_memory_region: ");
+          fprintf(f_debug, "%s writing memory region for ",
+                  write_region ? "" : "not");
+          db_name(&rout->source_corresp);
+          fprintf(f_debug, "\n");
+        }  /* if */
 #endif /* DEBUG */
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if MINIMAL_INLINING
-      if (inlining_enabled && rout->is_inline) {
-        /* Keep the region for an inline function so it can be used to
-           do inlining. */
-        keep_memory = TRUE;
-      }  /* if */
+        if (inlining_enabled && rout->is_inline) {
+          /* Keep the region for an inline function so it can be used to
+             do inlining. */
+          keep_memory = TRUE;
+        }  /* if */
 #endif /* MINIMAL_INLINING */
-    }  /* if */
-    /* Don't write the memory region again if it has already been written.
-       This can happen for cases like inline functions where the function is
-       written out but kept in memory. */
-    if (index_for_il_file[region_number] != 0) {
-      write_region = FALSE;
-    }  /* if */
-    if (write_region)
+        /* Don't write the memory region again if it has already been written.
+           This can happen for cases like inline functions where the function
+           is written out but kept in memory. */
+        if (index_for_il_file[region_number] != 0) {
+          write_region = FALSE;
+        }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS || MINIMAL_INLINING */
-                     /* Write the region to the file. */
-                     write_memory_region(region_number);
+      }  /* if */
+    }  /* if */
+    /* Write the region to the file. */
+    if (write_region) write_memory_region(region_number);
   }  /* if */
 #endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
