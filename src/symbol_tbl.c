@@ -5128,6 +5128,16 @@ C and C++.
   (name_space_for_symbol_kind[(int)sym->kind] == required_name_space_kind && \
    is_acceptable_symbol(sym))
 
+/* Local macro that skips over any symbols on the active list that are
+   associated with the current scope. */
+#define skip_symbols_from_this_scope()					\
+  {									\
+    while (active_sym != NULL &&					\
+           active_sym->decl_scope == ssep->number) {			\
+      active_sym = active_sym->next;					\
+    }  /* while */							\
+  }
+
   db_enter(4, "normal_id_lookup");
 
   sym = locator->specific_symbol;
@@ -5176,7 +5186,7 @@ C and C++.
       }  /* if */
     }  /* if */
 #endif /* CHECKING */
-    if ((inactive_symbol_list == NULL ||
+    if ((inactive_symbol_list == NULL &&
          !ssep->inactive_symbols_may_be_visible) &&
         depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
       /* Fast algorithm: just search the active symbol list. */
@@ -5274,11 +5284,13 @@ C and C++.
 	     ignore template declaration scope found lower in the scope
 	     stack. */
 	  in_pragma_scope = TRUE;
+          skip_symbols_from_this_scope();
 	  goto next_scope;
         } else if (in_pragma_scope &&
 		   ssep->kind == (a_scope_kind)sck_template_declaration) {
 	  /* Ignore symbols from the template declaration scope if we are
 	     inside a pragma scope. */
+          skip_symbols_from_this_scope();
 	  goto next_scope;
         } else {
           /* Not a class reactivation or a template instantiation,
