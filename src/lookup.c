@@ -3402,6 +3402,8 @@ associated namespaces and classes to "namespace_list" and "class_list".
          implementation treats unions and classes equivalently. */
       /* Add the class itself to the lookup list. */
       add_class_to_lookup_lists(type, namespace_list, class_list);
+      /* If this is a template, make sure it is instantiated. */
+      complete_class_type_is_needed(type);
       /* Add its base classes. */
       ctsp = type->variant.class_struct_union.extra_info;
       for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
