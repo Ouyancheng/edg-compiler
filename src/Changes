@@ -1,3 +1,18 @@
+1/5/93 Uninitialized const and ref members of class object
+
+We now do a better job of detecting cases where an aggregate class
+object, initialized by a brace-enclosed list of initializers that
+runs out before the final member is seen, is left with uninitialized
+const-qualified or reference members.  For instance:
+
+  struct A { int i; int j; const int k; };
+  A a = { 0, 0 };            // k is not initialized
+
+A warning is now issued on the declaration of "a" -- this was missed
+before.  Note that warnings but no errors are issued for this example;
+we believe this program is valid based on what is explicitly specified
+in the ARM.
+
 1/4/93 Elaborated type specifier involving template parameter name
 
 An elaborated type specifier involving a template parameter name is
