@@ -5654,10 +5654,120 @@ constant con indicate the same aggregate member.
         ((con)->variant.designator.field == (aggr_pos)->curr_field))
 
 
-static void find_designator_insert_point(a_constant_ptr desig_con,
-                                         a_constant_ptr aggr_con,
-                                         a_constant_ptr *previous_con,
-                                         a_constant_ptr *earlier_con)
+/*
+Structure used to describe a position in an initializer constant list.
+In particular, it deals with positions within repeated constants.
+*/
+typedef struct an_init_con_pos {
+  a_constant_ptr
+		ptr;
+			/* The constant. */
+  a_targ_size_t	repeat_count;
+			/* If the constant is a repeated constant, the
+			   number of repetitions yet to be processed.
+			   Zero otherwise. */
+} an_init_con_pos;
+
+
+static void set_init_con_pos(a_constant_ptr  con,
+                             an_init_con_pos *init_con_pos)
+/*
+Set an init constant position for the indicated constant.  It's okay for
+con to be NULL, to set a null position.
+*/
+{
+  init_con_pos->ptr = con;
+  init_con_pos->repeat_count = 0;
+  if (con != NULL && con->kind == (a_constant_repr_kind)ck_init_repeat) {
+    /* For a repeated constant, indicate the number of repetitions yet to
+       be handled (all of them). */
+    init_con_pos->repeat_count = con->variant.init_repeat.count;
+  }  /* if */
+}  /* set_init_con_pos */
+
+
+static void advance_init_con_pos(an_init_con_pos *init_con_pos)
+/*
+Advance the initializer constant position given to the next constant in
+the list, or the next iteration of a repeated constant.
+*/
+{
+  if (init_con_pos->repeat_count > 0) {
+    init_con_pos->repeat_count--;
+  } else if (init_con_pos->ptr == NULL) {
+    /* Do not advance at end of list. */
+  } else {
+    set_init_con_pos(init_con_pos->ptr->next, init_con_pos);
+  }  /* if */
+}  /* advance_init_con_pos */
+  
+
+static void split_constant_if_repeated(an_init_con_pos *con_pos)
+/*
+If the indicated initializer constant position is in a repeated constant,
+split the constant to produce a simple constant that can be handled
+directly.  *con_pos will be set to indicate the simple constant.
+*/
+{
+  a_constant_ptr con = con_pos->ptr;
+
+  if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
+    a_targ_size_t  count = con->variant.init_repeat.count;
+    a_constant_ptr rep_con = con->variant.init_repeat.constant;
+    a_constant_ptr simple_con, next_con;
+    a_targ_size_t  first_count = (count - con_pos->repeat_count);
+    a_targ_size_t  second_count = con_pos->repeat_count - 1;
+
+    next_con = con->next;
+    if (first_count != 0) {
+      a_constant_ptr first_repeat_con;
+      /* We need a constant before the simple constant at the current
+         position.  The simple constant is a new allocation. */
+      first_repeat_con = con;
+      first_repeat_con->variant.init_repeat.count = first_count;
+      /* If the repeat count is one, skip the ck_init_repeat. */
+      if (first_count == 1) copy_constant(rep_con, first_repeat_con);
+      simple_con = copy_unshared_constant(rep_con);
+      first_repeat_con->next = simple_con;
+    } else {
+      /* The position is at the beginning of the repeat, so there is no
+         repeated constant preceding the simple constant.  Overwrite the
+         original ck_init_repeat constant with the value of the underlying
+         constant (thus making the first repetition). */
+      simple_con = con;
+      copy_constant(rep_con, con);
+    }  /* if */
+    if (second_count != 0) {
+      a_constant_ptr second_repeat_con, rep_con_copy;
+      /* We need a constant following the simple constant at the current
+         position. */
+      rep_con_copy = copy_unshared_constant(rep_con);
+      /* If the repeat count is one, skip the ck_init_repeat. */
+      if (second_count == 1) {
+        second_repeat_con = rep_con_copy;
+      } else {
+        second_repeat_con =
+                          alloc_constant((a_constant_repr_kind)ck_init_repeat);
+        second_repeat_con->variant.init_repeat.count = second_count;
+        second_repeat_con->variant.init_repeat.constant = rep_con_copy;
+      }  /* if */
+      simple_con->next = second_repeat_con;
+      second_repeat_con->next = next_con;
+    } else {
+      /* The position is at the end of the repeat, so there is no repeated
+         constant following the simple constant. */
+      simple_con->next = next_con;
+    }  /* if */
+    /* The new current position is on the non-repeated actual constant. */
+    set_init_con_pos(simple_con, con_pos);
+  }  /* if */
+}  /* split_constant_if_repeated */
+
+
+static void find_designator_insert_point(a_constant_ptr  desig_con,
+                                         a_constant_ptr  aggr_con,
+                                         a_constant_ptr  *previous_con,
+                                         an_init_con_pos *earlier_con)
 /*
 The ck_designator constant desig_con appeared at the top level of the
 aggregate constant aggr_con.  It and the constants following it have been
@@ -5665,22 +5775,24 @@ removed from the aggregate.  Determine the right insert point to re-insert
 the constants following, and set *previous_con to the constant after which
 to insert (or NULL for insertion at the beginning of the aggregate).
 If the new constants will overwrite earlier initialization constants,
-set *earlier_con to point to the first of the constants being
-overwritten; otherwise, set it to NULL.  This routine is not called
-for union initializations.
+set *earlier_con to indicate the first of the constants being
+overwritten; otherwise, set it indicate no constant.  This routine
+is not called for union initializations.
 */
 {
   an_aggregate_position aggr_pos;
-  a_constant_ptr        prev_con, con;
+  an_init_con_pos       con;
+  a_constant_ptr        prev_con;
+  a_targ_size_t         count;
 
   check_assertion(desig_con != NULL &&
                   desig_con->kind == (a_constant_repr_kind)ck_designator);
   init_aggregate_position(aggr_con, &aggr_pos);
-  con = aggr_con->variant.aggregate.first_constant;
+  set_init_con_pos(aggr_con->variant.aggregate.first_constant, &con);
   prev_con = NULL;
   /* Find the right insert point. */
   while (!same_aggregate_member(&aggr_pos, desig_con)) {
-    if (con == NULL) {
+    if (con.ptr == NULL) {
       /* Inserting after the end of the aggregate constant list.
          Add a zero constant for a skipped member. */
       a_constant_ptr zero_con = make_init_zero_constant(aggr_pos.member_type);
@@ -5689,12 +5801,58 @@ for union initializations.
       } else {
         prev_con->next = zero_con;
       }  /* if */
-      con = zero_con;
+      set_init_con_pos(zero_con, &con);
+      if (aggr_pos.array_init) {
+        /* For an array, we can add a repeat count to initialize multiple
+           elements. */
+        count = (desig_con->variant.designator.array_element -
+                 aggr_pos.curr_elem);
+        if (count > 1) {
+          a_constant_ptr repeat_con =
+                          alloc_constant((a_constant_repr_kind)ck_init_repeat);
+          repeat_con->variant.init_repeat.count = count;
+          repeat_con->variant.init_repeat.constant = zero_con;
+          set_init_con_pos(repeat_con, &con);
+          if (prev_con == NULL) {
+            aggr_con->variant.aggregate.first_constant = repeat_con;
+          } else {
+            prev_con->next = repeat_con;
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
-    prev_con = con;
-    advance_aggregate_position_to_next_member(&aggr_pos);
-    con = con->next;
+    /* Advance to the next member. */
+    if (con.repeat_count > 0) {
+      /* When dealing with a repeated constant, we can skip directly over
+         all the corresponding elements. */
+      count = (desig_con->variant.designator.array_element -
+               aggr_pos.curr_elem);
+      if (count > con.repeat_count) count = con.repeat_count;
+      check_assertion(count > 0 );
+      aggr_pos.curr_elem += count;
+      con.repeat_count -= count;
+      if (con.repeat_count == 0) {
+        prev_con = con.ptr;
+        advance_init_con_pos(&con);
+      }  /* if */
+    } else {
+      /* Normal single-member advance. */
+      advance_aggregate_position_to_next_member(&aggr_pos);
+      prev_con = con.ptr;
+      advance_init_con_pos(&con);
+    }  /* if */
   }  /* while */
+  if (con.ptr != NULL) {
+    /* If the position found is in a repeated constant, split the constant
+       so we can give the caller a simple constant. */
+    a_constant_ptr temp_con = con.ptr;
+    split_constant_if_repeated(&con);
+    /* Reset the previous constant pointer. */
+    if (temp_con != con.ptr) {
+      prev_con = temp_con;
+      check_assertion(prev_con->next == con.ptr);
+    }  /* if */
+  }  /* if */
   *previous_con = prev_con;
   *earlier_con = con;
 }  /* find_designator_insert_point */           
@@ -5711,54 +5869,61 @@ the earlier initialization).  The constants under earlier_aggr_con
 have already had their designated initializers lowered.
 */
 {
-  a_constant_ptr con = aggr_con->variant.aggregate.first_constant;
-  a_constant_ptr prev_con, earlier_con, union_designator = NULL;
-  a_type_ptr     aggr_type = skip_typerefs(aggr_con->type);
-  a_boolean      union_init = is_union_type(aggr_type);
+  a_constant_ptr  temp_con;
+  a_constant_ptr  prev_con, union_designator = NULL;
+  a_type_ptr      aggr_type = skip_typerefs(aggr_con->type);
+  a_boolean       union_init = is_union_type(aggr_type);
+  an_init_con_pos con, earlier_con;
 
   if (earlier_aggr_con != NULL) {
     /* There is an earlier list of constants, being overwritten. */
-    earlier_con = earlier_aggr_con->variant.aggregate.first_constant;
+    temp_con = earlier_aggr_con->variant.aggregate.first_constant;
     if (union_init) {
       /* For a union, previous processing may have left a ck_designator.
          Put it off to the side. */
-      if (earlier_con != NULL &&
-          earlier_con->kind == (a_constant_repr_kind)ck_designator) {
-        union_designator = earlier_con;
-        earlier_con = earlier_con->next;
+      if (temp_con != NULL &&
+          temp_con->kind == (a_constant_repr_kind)ck_designator) {
+        union_designator = temp_con;
+        temp_con = temp_con->next;
       }  /* if */
     }  /* if */
   } else {
-    earlier_con = NULL;
+    temp_con = NULL;
   }  /* if */
+  set_init_con_pos(temp_con, &earlier_con);
+  set_init_con_pos(aggr_con->variant.aggregate.first_constant, &con);
   prev_con = NULL;
   /* The outer loop is repeated for each ck_designator list found. */
   for (;;) {
     /* Go through the list of constants pointed to by con, looking for
        a ck_designator entry that must be rewritten.  If there is a
        list of previous initialization constants being overwritten
-       (earlier_con != NULL), preserve any part of the old initialization
+       (earlier_con.ptr != NULL), preserve any part of the old initialization
        that is needed. */
-    for (;
-         con != NULL && con->kind != (a_constant_repr_kind)ck_designator;
-         prev_con = con, con = con->next) {
-      if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+    while (con.ptr != NULL &&
+           con.ptr->kind != (a_constant_repr_kind)ck_designator) {
+      if (con.ptr->kind == (a_constant_repr_kind)ck_aggregate) {
         /* Process a sub-aggregate. */
-        lower_aggregate_designated_initializers(con, earlier_con);
+        lower_aggregate_designated_initializers(con.ptr, earlier_con.ptr);
       } else {
         /* Non-aggregate constant. */
-        if (earlier_con != NULL) {
+        if (earlier_con.ptr != NULL) {
           /* con overwrites an earlier initialization at the same location,
-             given by earlier_con.  Combine the two initializers into *con. */
-          combine_initializer_constants(earlier_con, con);
+             given by earlier_con. */
+          split_constant_if_repeated(&earlier_con);
+          split_constant_if_repeated(&con);
+          /* Combine the two initializers into *actual_con. */
+          combine_initializer_constants(earlier_con.ptr, con.ptr);
         }  /* if */
       }  /* if */
-      if (earlier_con != NULL) earlier_con = earlier_con->next;
-    }  /* for */
+      advance_init_con_pos(&earlier_con);
+      prev_con = con.ptr;
+      advance_init_con_pos(&con);
+    }  /* while */
     /* End of list found, either the real end of list or a ck_designator
-       which ends this part of the list. */
-    if (con != NULL) {
-      check_assertion(con->kind == (a_constant_repr_kind)ck_designator);
+       that ends this part of the list. */
+    if (con.ptr != NULL) {
+      check_assertion(con.ptr->kind == (a_constant_repr_kind)ck_designator);
       /* Disconnect the ck_designator and the list that follows it from
          the aggregate. */
       if (prev_con == NULL) {
@@ -5769,22 +5934,24 @@ have already had their designated initializers lowered.
     }  /* if */
     /* Keep the end of list pointer up to date. */
     aggr_con->variant.aggregate.last_constant = prev_con;
-    if (earlier_con != NULL) {
+    if (earlier_con.ptr != NULL) {
       /* There are entries on the earlier constants list that initialize
          members beyond the end of the new list.  Move those initializations
          to the new list. */
       if (prev_con == NULL) {
-        aggr_con->variant.aggregate.first_constant = earlier_con;
+        aggr_con->variant.aggregate.first_constant = earlier_con.ptr;
       } else {
-        prev_con->next = earlier_con;
+        prev_con->next = earlier_con.ptr;
       }  /* if */
       /* Find the end of the list. */
-      while (earlier_con->next != NULL) earlier_con = earlier_con->next;
-      aggr_con->variant.aggregate.last_constant = earlier_con;
+      while (earlier_con.ptr->next != NULL) {
+        earlier_con.ptr = earlier_con.ptr->next;
+      }  /* while */
+      aggr_con->variant.aggregate.last_constant = earlier_con.ptr;
     }  /* if */
     /* Exit the outer loop unless we've run into a ck_designator. */
-    if (con == NULL) break;
-    check_assertion(con->kind == (a_constant_repr_kind)ck_designator);
+    if (con.ptr == NULL) break;
+    check_assertion(con.ptr->kind == (a_constant_repr_kind)ck_designator);
     /* A ck_designator constant indicates a skip to a new initialization
        position within the aggregate. */
     if (union_init) {
@@ -5792,31 +5959,32 @@ have already had their designated initializers lowered.
          keep the ck_designator for later re-insertion if it requests
          initialization of a member other than the first. */
       prev_con = NULL;
-      earlier_con = aggr_con->variant.aggregate.first_constant;
-      if (con->variant.designator.field ==
+      set_init_con_pos(aggr_con->variant.aggregate.first_constant,
+                       &earlier_con);
+      if (con.ptr->variant.designator.field ==
                   next_initializable_field(
                            aggr_type->variant.class_struct_union.field_list)) {
         /* The ck_designator is not needed when initializing the first
            field. */
         union_designator = NULL;
       } else {
-        union_designator = con;
+        union_designator = con.ptr;
       }  /* if */
     } else {
       /* Array or struct initialization. */
       /* Find the right point to insert the constants after the designator. */
-      find_designator_insert_point(con, aggr_con, &prev_con, &earlier_con);
+      find_designator_insert_point(con.ptr, aggr_con, &prev_con, &earlier_con);
     }  /* if */
     /* Advance to the constant following the ck_designator. */
-    con = con->next;
-    check_assertion(con != NULL &&
-                    con->kind != (a_constant_repr_kind)ck_designator);
+    advance_init_con_pos(&con);
+    check_assertion(con.ptr != NULL &&
+                    con.ptr->kind != (a_constant_repr_kind)ck_designator);
     /* Relink the previous constant (at the insert point) to the first
        constant following the ck_designator. */
     if (prev_con == NULL) {
-      aggr_con->variant.aggregate.first_constant = con;
+      aggr_con->variant.aggregate.first_constant = con.ptr;
     } else {
-      prev_con->next = con;
+      prev_con->next = con.ptr;
     }  /* if */
   }  /* for */
   /* For a union initialization, re-insert a ck_designator if the field
@@ -5827,10 +5995,10 @@ have already had their designated initializers lowered.
     check_assertion(union_designator->next != NULL);
   }  /* if */
 #if EXPENSIVE_CHECKING
-  for (con = aggr_con->variant.aggregate.first_constant;
-       con != NULL && con->next != NULL;
-       con = con->next) {}
-  check_assertion(aggr_con->variant.aggregate.last_constant == con);
+  for (temp_con = aggr_con->variant.aggregate.first_constant;
+       temp_con != NULL && temp_con->next != NULL;
+       temp_con = temp_con->next) {}
+  check_assertion(aggr_con->variant.aggregate.last_constant == temp_con);
 #endif /* EXPENSIVE_CHECKING */
 }  /* lower_aggregate_designated_initializers */
 
@@ -5845,7 +6013,8 @@ called in C mode.
   check_assertion(C_mode());
   if (!suppress_il_lowering && total_errors == 0) {
     if (init_con->kind == (a_constant_repr_kind)ck_aggregate) {
-      lower_aggregate_designated_initializers(init_con, (a_constant *)NULL);
+      lower_aggregate_designated_initializers(init_con,
+                                              (a_constant_ptr)NULL);
     }  /* if */
   }  /* if */
 }  /* lower_designated_initializers */
