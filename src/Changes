@@ -1,5 +1,13 @@
 Version 2.23
 
+4/11/94  Name mangling for type "long long"
+
+Type "long long" has to date been mangled as "ll".  Unfortunately, this
+does not work well in parameter lists, e.g., "f__Fll" could indicate one
+"long long" parameter or two "long" parameters.  Therefore, we have
+changed the encoding for "long long" to "L", which is apparently used
+for that purpose in some enhanced versions of cfront.
+
 4/11/94  Name mangling for local class names
 
 Names of local classes, formerly mangled by preceding the encoding
