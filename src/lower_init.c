@@ -2407,11 +2407,13 @@ do_assignment:;
      Note that the list gets built in the right order (i.e., the reverse of
      construction order) because each entry is added to the front of the
      list. */
+  /* Note that when we are processing the file-scope initialization routine
+     the cleanup actions get built and then generated in the file-scope
+     termination routine. */
   if (dip->destructor != NULL) {
     a_cleanup_action_ptr cap;
     cap = alloc_cleanup_action(cak_destruction,
-                               /*applies_on_block_exit=*/
-                                           !processing_file_scope_init_routine,
+                               /*applies_on_block_exit=*/TRUE,
                                /*applies_on_exception_cleanup=*/TRUE);
     /* Copy the entire dynamic init entry because it may be modified below
        to make it a valid C dynamic initialization. */
