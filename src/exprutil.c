@@ -4357,6 +4357,7 @@ routine is intended to be called from outside of the expression routines.
                         (a_boolean)rout->is_virtual,
                         /*virtual_suppressed=*/FALSE,
                         err_pos);
+  node = wrap_up_full_expression(node);
   /* Allocate the statement. */
   stmt = alloc_expr_statement(node);
   pop_expr_stack();
