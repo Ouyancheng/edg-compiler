@@ -1578,7 +1578,7 @@ the initial test for exact pointer equality.
           internal_error("f_types_are_compatible: bad type");
 #endif /* CHECKING */
       }  /* switch */
-    } else if (allow_error_type && is_error(type_1) && is_error(type_2)) {
+    } else if (allow_error_type && (is_error(type_1) || is_error(type_2))) {
       /* An error type is compatible with any other type unless
          allow_error_type is FALSE. */
       compat = TRUE;
