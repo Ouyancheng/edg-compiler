@@ -594,8 +594,8 @@ the base if necessary.
 {
   char drive[__MAXDRIVE__];
   char dir[__MAXDIR__];
-  char file[128];
-  char ext[128];
+  char file[__MAXFILE__];
+  char ext[__MAXEXT__];
 
   /* Split the name into its parts. */
   split_path(filename, drive, dir, file, ext);
