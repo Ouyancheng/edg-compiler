@@ -2347,6 +2347,16 @@ not be TRUE.
       if (preserve_rout_type) {
         /* rout_type must be preserved. */
         comp_type = composite_type(rout_type, type_ptr);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        if (comp_type != rout_type &&
+            routine_ptr->declared_type == rout_type) {
+          /* The declared type, which was saved when the routine was defined,
+             points to a type entry that is going to be modified, so change
+             it to point to a copy. */
+          routine_ptr->declared_type =
+                               copy_routine_type_with_param_types(rout_type);
+        }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       } else {
         /* type_ptr must be preserved. */
         comp_type = composite_type(type_ptr, rout_type);
