@@ -1091,6 +1091,9 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if GNU_EXTENSIONS_ALLOWED
         walk_string_ptr(ptr->section, iek_other_text, 0);
         walk_ptr(ptr->aliased_routine, a_routine_ptr, iek_routine);
+        if (ptr->aliased_routine != NULL) {
+          set_proper_routine_definition_needed_flag(ptr->aliased_routine);
+        }  /* if */
         walk_string_ptr(ptr->asm_name, iek_other_text, 0);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #ifdef FFE
