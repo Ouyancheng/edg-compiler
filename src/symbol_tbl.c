@@ -2282,6 +2282,10 @@ this is not allowed, an error will be issued by the caller.
        was referenced.  A new symbol can always coexist with
        an undefined one. */
     err = FALSE;
+  } else if (is_injected_class_symbol(old_sym)) {
+    /* The old symbol is an injected class-name.  It is hidden by the current
+       declaration. */
+    err = FALSE;
   } else if (scope_stack[scope_depth].in_prototype_instantiation &&
              scope_stack[scope_depth].kind ==
                                  (a_scope_kind)sck_template_instantiation) {
@@ -2780,23 +2784,32 @@ the symbol table, this routine is not called for them.
     /* If no constructor already exists we permit a field with the same
        name its class, as long as it's not an anonymous union field being
        promoted to a containing class with the same name. */
-    if (!class_name_injection_enabled &&
+    if (!strict_ansi_mode &&
         member_sym->kind == (a_symbol_kind)sk_field &&
         class_sym->variant.
                     class_struct_union.extra_info->constructor == NULL &&
         ((fp = member_sym->variant.field.ptr) == NULL ||
          member_sym->parent.class_type ==
                                    fp->source_corresp.parent.class_type)) {
-      /* No error.  Either the field has not yet been bound to the symbol
-         (never true for anonymous union symbol promotions) or the parent
-         classes correspond (also untrue for anonymous union promotions). */
+        /* Note: the last checks serve to exclude anonymous union promotions.
+           It is never the case that the field is not yet bound to the symbol
+           when an anonymous union member is being promoted, nor will the
+           the parent classes correspond. */
+      if (class_name_injection_enabled) {
+        /* This C-compatibility feature from the ARM is incompatible with
+           class-name injection, which is part of the current standard, but
+           since this is not strict mode, just issue a warning. */
+        pos_warning(ec_class_and_member_name_conflict,
+                    &member_sym->decl_position);
+      }  /* if */
     } else if (class_sym->header == unnamed_tag_symbol_header) {
       /* This must be a constructor for an unnamed class. */
     } else if (member_sym->kind == (a_symbol_kind)sk_type &&
                member_sym->variant.type.is_injected_class_name) {
+      /* Okay. */
     } else {
       /* Error: an identifier that is not a constructor and that has the
-         same name as a class is being defined within the class. */
+         same name as a class is being declared within the class. */
       pos_error(is_function_symbol(member_sym) ?
                      ec_class_and_member_function_name_conflict :
                      ec_class_and_member_name_conflict,
