@@ -5995,14 +5995,14 @@ or implicit) controlling the declaration.
         }  /* if */
         /* Create an access-adjustment entry to represent this declaration in
            the IL. */
-        aap = new_access_adjustment(sym, access);
+        aap = new_access_adjustment(fundamental_symbol_of(sym), access);
         /* Attach it the class type entry. */
         aap->next = class_type->variant.class_struct_union.
                                            extra_info->access_adjustments;
         class_type->variant.class_struct_union.extra_info->
                                                  access_adjustments = aap;
         /* Update cross-reference and source sequence info, if required. */
-        record_access_adjustment(aap, sym,
+        record_access_adjustment(aap, fundamental_symbol_of(sym),
                                  &locator_for_curr_id.source_position);
       }  /* if */
       if (!is_overloaded) break;
