@@ -39,12 +39,12 @@ way in which that routine is used, but could occur in a modified front
 end that does additional calls to conv_seq_to_physical_file_and_line.
 This has been fixed.
 
-2/19/01  Command-line option to enable/disable special <stdarg.h> processing
+2/19/01  Command-line option to disable special <stdarg.h> processing
 
 The front end can be configured to pass references to the macros defined
 in stdarg.h to the output instead of expanding the macros as would usually
-be done.  The --[no_]stdarg_builtin options have been added to permit the
-default behavior to be overridden.
+be done.  The --no_stdarg_builtin option has been added to permit the
+special handling of <stdarg.h> to be disabled if it is enabled by default.
 
 2/15/01  Deduction fails with dependent pointer to member and explicit
          template arguments

@@ -895,14 +895,15 @@ Initialize the option information table.
                          "no_export_template",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_stdarg_builtin,
-                         "stdarg_builtin",
-                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
+#if DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE
+  /* When passing stdarg references to the back end by default, give the
+     ability to turn off this feature.  When not passing such references,
+     we do not give the ability to turn the feature on. */
   add_option_description(optk_stdarg_builtin,
                          "no_stdarg_builtin",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#endif DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE
 }  /* initialize_option_descriptions */
 
 
