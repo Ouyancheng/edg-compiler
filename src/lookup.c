@@ -1345,7 +1345,7 @@ static a_symbol_ptr do_using_directive_lookup
                                a_symbol_locator		*locator,
                                a_lookup_state_ptr	lookup_state)
 /*
-Look for a symbol, as.extra_infoibed by locator, that is in a namespace whose
+Look for a symbol, as described by locator, that is in a namespace whose
 scope_depth_at_which_using_directive_applies matches the scope depth of ssep.
 
 sym_from_scope points to a symbol found in ssep by the normal_id_lookup,
