@@ -1282,6 +1282,7 @@ ec_destr_in_statement_expr;;"destructible entities are not allowed inside of a s
 ec_dyn_local_static_in_statement_expr;;"a dynamically-initialized local static variable is not allowed inside of a statement expression"
 ec_vla_in_statement_expr;;"a variable-length array is not allowed inside of a statement expression"
 ec_statement_expr_in_default_arg;;"a statement expression is not allowed inside of a default argument"
+ec_ptr_func_ptr_data_conv;;"nonstandard conversion between pointer to function and pointer to data"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

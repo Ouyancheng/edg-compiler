@@ -1,5 +1,11 @@
 Version 3.3
 
+5/24/03  Warning for nonstandard conversion between pointer to function
+         and pointer to data
+
+In strict warnings mode, a warning is now issued for a nonstandard
+conversion between pointer to function and pointer to data.
+
 5/22/03  Compilation error in cmd_line.c with NEAR_AND_FAR_ALLOWED FALSE
 
 cmd_line.c did not compile correctly in a configuration with

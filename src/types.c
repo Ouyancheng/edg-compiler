@@ -5409,6 +5409,7 @@ well as C++ mode.
       if (!suppress_extensions &&
           dest_of_ptr_cast_big_enough(source_type, dest_type)) {
         okay = TRUE;
+        if (strict_ansi_mode) *warning_suggested = ec_ptr_func_ptr_data_conv;
       }  /* if */
     }  /* if */
   } else if (is_ptr_to_member(source_type) &&
