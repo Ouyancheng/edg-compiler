@@ -180,6 +180,8 @@ extern a_type_ptr signed_integer_type(an_integer_kind kind);
 
 extern a_type_ptr wchar_t_type(void);
 
+extern a_type_ptr bool_type(void);
+
 extern a_type_ptr float_type(a_float_kind kind);
 
 extern a_type_ptr string_type(a_targ_size_t num_chars);

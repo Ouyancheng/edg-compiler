@@ -55,6 +55,7 @@ static a_type_ptr il_error_type;
 static a_type_ptr il_unknown_type;
 static a_type_ptr il_void_type;
 static a_type_ptr il_wchar_t_type;
+static a_type_ptr il_bool_type;
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if DEBUG
@@ -4520,6 +4521,32 @@ This is only used when wchar_t is a distinct type.
   }  /* if */
   return pit;
 }  /* wchar_t_type */
+
+
+a_type_ptr bool_type(void)
+/*
+Make or find a type entry for a bool type and return a pointer to it.
+*/
+{
+  a_type_ptr pit;
+
+  if (il_bool_type != NULL) {
+    /* The type has previously been created, and can be reused. */
+    pit = il_bool_type;
+  } else {
+    /* The type must be created. */
+    il_bool_type = pit = alloc_type((a_type_kind)tk_integer);
+    pit->variant.integer.int_kind = targ_bool_int_kind;
+    pit->variant.integer.bool_type = TRUE;
+    set_type_size(pit);
+#if ORPHAN_PROCESSING_NEEDED
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)pit, (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
+  }  /* if */
+  return pit;
+}  /* bool_type */
 
 
 a_type_ptr float_type(a_float_kind kind)
@@ -10500,6 +10527,8 @@ in il_init.)
       pch_saved_var_array_elem(il_error_type),
       pch_saved_var_array_elem(il_unknown_type),
       pch_saved_var_array_elem(il_void_type),
+      pch_saved_var_array_elem(il_wchar_t_type),
+      pch_saved_var_array_elem(il_bool_type),
       pch_array_saved_var_array_elem(int_types),
       pch_array_saved_var_array_elem(signed_int_types),
       pch_array_saved_var_array_elem(string_types),
@@ -10630,6 +10659,7 @@ of the front end.
   memzero((char *)string_types, sizeof(string_types));
   memzero((char *)wide_string_types, sizeof(wide_string_types));
   il_wchar_t_type = NULL;
+  il_bool_type = NULL;
   il_error_type = il_unknown_type = il_void_type = NULL;
   memzero((char *)shareable_constants_table,
           sizeof(shareable_constants_table));
