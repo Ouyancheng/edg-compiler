@@ -245,9 +245,12 @@ Return TRUE if the expression node has side effects.
                       is_volatile_qualified_type(node->variant.variable->type);
       break;
     case enk_temp_init:
-    case enk_new_init:
-      /* At the very least, these have the side effect of initializing
+      /* At the very least, this has the side effect of initializing
          something.  They might also call a constructor, etc. */
+      has_side_effects = TRUE;
+      break;
+    case enk_new_delete:
+      /* A new or delete always has a side effect. */
       has_side_effects = TRUE;
       break;
 #if CHECKING
@@ -3443,30 +3446,30 @@ Syntax:
 		                  opt
 
 new-type-name and the "( type-name )" case are handled by the routine
-new-type-name called from this routine.  Note that both forms of type
+new_type_name called from this routine.  Note that both forms of type
 specification allow a variable-sized array as the top type.
 */
 {
+  a_boolean         err = FALSE;
   a_source_position start_position, new_position, type_position;
   a_source_position placement_position;
-  a_type_ptr        new_type, base_new_type, element_type, ptr_new_type;
+  a_type_ptr        new_type, base_new_type;
   a_type_ptr        unqual_new_type;
-  an_expr_node_ptr  new_array_dimension, sizeof_node, function_node;
-  an_operand        sizeof_operand, function_operand;
+  an_expr_node_ptr  new_array_dimension, sizeof_node;
+  an_operand        sizeof_operand;
   a_boolean         use_global_new = FALSE;
-  a_symbol_ptr      operator_new_symbol, ctor_sym;
-  a_routine_ptr     new_routine, ctor_routine;
+  a_symbol_ptr      operator_new_symbol, function_symbol, ctor_sym;
+  a_routine_ptr     ctor_routine;
   a_boolean         needs_initialization, trapped_left_paren;
-  a_dynamic_init_ptr
-                    dip;
-  an_expr_node_ptr  arg_expr_list;
-  an_expr_node_ptr  init_node, init_val_node;
+  an_expr_node_ptr  arg_expr_list, init_val_node;
   a_constant        sizeof_constant;
   an_arg_operand_ptr
                     arg_operand_list, sizeof_arg_operand;
   an_expr_node_ptr  dummy;
   a_boolean         array_new = FALSE;
   a_targ_size_t     effective_num_of_elements;
+  an_arg_match_summary_ptr
+                    arg_match_list = NULL;
 
   db_enter(4, "scan_new_operator");
 
@@ -3528,6 +3531,7 @@ specification allow a variable-sized array as the top type.
   copy_source_position(pos_curr_token, type_position);
   /* Scan the new-type-name or ( type-name ). */
   new_type_name(trapped_left_paren, &new_type, &new_array_dimension);
+  base_new_type = new_type;
   unqual_new_type = skip_typerefs(new_type);
   /* Instantiate the type if it is a template class. */
   check_for_uninstantiated_template_class(new_type);
@@ -3542,28 +3546,25 @@ specification allow a variable-sized array as the top type.
     } else {
       pos_error(ec_type_must_be_object_type, &type_position);
     }  /* if */
-    make_error_operand(result);
-    base_new_type = ptr_new_type = new_type = unqual_new_type = error_type();
+    err = TRUE;
   } else if (is_illegal_abstract_class_type(new_type)) {
     /* The type is an abstract class type or a type that contains one,
        so an object of the type cannot be allocated. */
     pos_error(ec_abstract_class_object_not_allowed, &type_position);
-    make_error_operand(result);
-    base_new_type = ptr_new_type = new_type = unqual_new_type = error_type();
+    err = TRUE;
   } else {
     /* Valid type. */
     /* Determine the type of pointer returned from "new". */
-    base_new_type = new_type;
-    if (is_array_type(base_new_type)) {
+    if (is_array_type(new_type)) {
       /* A "new" of an array returns a pointer to the initial element.
         Note that this is only done for one level, e.g., new int [i][10]
         returns int (*)[10] not int * (ARM 5.3.3). */
-      base_new_type = array_element_type(base_new_type);
+      base_new_type = array_element_type(new_type);
       array_new = TRUE;
     }  /* if */
-    ptr_new_type = make_pointer_type(base_new_type);
     /* Compute the allocation size in bytes. */
     if (new_array_dimension != NULL) {
+      a_type_ptr element_type = skip_typerefs(base_new_type);
       /* The type is a variable-dimension array, as in
            new char[i+1]
          The amount to allocate is the size of the array element times
@@ -3573,7 +3574,6 @@ specification allow a variable-sized array as the top type.
       cast_node(&new_array_dimension,
                 integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND),
                 /*is_implicit_cast=*/TRUE, &error_position);
-      element_type = skip_typerefs(base_new_type);
       if (element_type->size == 1) {
         /* If the element size is 1, skip the multiplication. */
         sizeof_node = new_array_dimension;
@@ -3619,48 +3619,26 @@ specification allow a variable-sized array as the top type.
       /* Use the global operator "new". */
       operator_new_symbol = opname_function_symbol((an_opname_kind)onk_new);
     }  /* if */
-    /* Select the proper "new" function if there are several; even if there
-       is only one, check the argument types. */
-    operator_new_symbol = select_and_prepare_to_call_overloaded_function(
+    /* Select the proper "new" function if there are several.  Note that
+       this call does not adjust the argument types or build the function
+       call, since we may yet fold the call into a constructor call. */
+    function_symbol = select_overloaded_function(
                                               operator_new_symbol,
                                               /*have_selector=*/FALSE,
                                               (an_operand *)NULL,
                                               arg_operand_list,
-                                              /*is_qualified_name=*/FALSE,
-                                              expression_kind,
                                               ec_no_matching_new_function,
                                               ec_ambiguous_overloaded_function,
                                               &placement_position,
-                                              &function_operand,
-                                              &arg_expr_list);
-    if (operator_new_symbol == NULL) {
-      /* No "new" function matches, or several do. */
-      make_error_operand(result);
-    } else {
-      /* Make an expression for the address of the function. */
-      new_routine = operator_new_symbol->variant.routine.ptr;
-      function_node = make_node_from_operand(&function_operand);
-      /* Make a call of the new routine with the size argument. */
-      function_node->next = arg_expr_list;
-      make_function_call(function_node, new_routine->type,
-                         (a_boolean)new_routine->is_virtual,
-                         /*new_or_delete_call_for_array=*/array_new,
-                         &new_position, result);
-      /* Cast the pointer returned by "new" to the right type. */
-      cast_operand(ptr_new_type, result, expression_kind,
-                   /*is_implicit_cast=*/TRUE);
-#if ASSIGNMENT_TO_THIS_ALLOWED
-      if (is_class_struct_union_type(unqual_new_type)) {
-        /* Determine and remember the default operator new() routine for
-           the class. */
-        set_class_assoc_operator_new_routine(unqual_new_type);
-      }  /* if */
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-    }  /* if */
+                                              &arg_match_list);
+    /* We check later for function_symbol != NULL.  We don't set err
+       here for that case because it shouldn't affect the scanning of
+       the initial value. */
   }  /* if */
-  /* See if the object has or needs initialization. */
+  /* See if the object has or needs initialization.  Note that we need to
+     scan the initializer (if there is one) even if an error was detected
+     above. */
   needs_initialization = FALSE;
-  ctor_routine = NULL;
   if (array_new) {
     /* Array new.  Determine the effective number of elements. */
     if (new_array_dimension != NULL) {
@@ -3686,6 +3664,7 @@ specification allow a variable-sized array as the top type.
   /* Set ctor_sym non-NULL if the type is a class that has a constructor
      or an array with elements of such a class. */
   ctor_sym = NULL;
+  ctor_routine = NULL;
   if (is_class_struct_union_type(base_new_type)) {
     ctor_sym = symbol_supplement_for_class(base_new_type)->constructor;
   }  /* if */
@@ -3699,15 +3678,17 @@ specification allow a variable-sized array as the top type.
       if (array_new) {
         /* No initializer may be specified for an array type. */
         pos_error(ec_initializer_not_allowed_on_array_new, &lparen_pos);
+        err = TRUE;
       }  /* if */
       /* No need to add tok_rparen to the stop tokens set: it's done by
          scan_ctor_arguments. */
       /* Scan the constructor arguments. */
       scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine,
                           &lparen_pos);
+      /* In the array case (an error), throw away the argument list. */
       if (array_new) arg_expr_list = NULL;
     } else {
-      /* There is no new-initializer, so a default constructor must exist. */
+      /* There is no new-initializer, so a default constructor should exist. */
       ctor_routine = select_default_constructor(base_new_type, &type_position);
       arg_expr_list = NULL;
       if (ctor_routine != NULL) {
@@ -3720,20 +3701,19 @@ specification allow a variable-sized array as the top type.
     needs_initialization = (ctor_routine != NULL);
   } else {
     /* Not a class with a constructor.  The new-initializer is optional. */
-    /* Note that error cases come here too. */
     if (curr_token == tok_lparen) {
       /* The new-initializer is present. */
       (void)get_token();
       if (array_new) {
         /* No initializer may be specified for an array type. */
         error(ec_initializer_not_allowed_on_array_new);
-        base_new_type = ptr_new_type = new_type = unqual_new_type =
-                                                                  error_type();
+        err = TRUE;
       }  /* if */
       if (curr_token != tok_rparen) {
         /* The new-initializer is not empty.  Scan it. */
         init_val_node = scan_parenthesized_initializer_expression(
-                                                       new_type,
+                                                       err ? error_type() :
+                                                             new_type,
                                                        ec_bad_initializer_type,
                                                        expression_kind);
         needs_initialization = TRUE;
@@ -3743,38 +3723,96 @@ specification allow a variable-sized array as the top type.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (needs_initialization && !is_error_type(new_type)) {
-    /* The allocated space must be initialized.  An enk_new_init is used.
-       It only does the initialization if the address returned from the
-       new routine is non-NULL. */
-    init_node = alloc_expr_node((an_expr_node_kind)enk_new_init);
-    /* The expression for the enk_new_init is the function call to the
-       "new" routine. */
-    init_node->variant.init.expr = make_node_from_operand(result);
-    init_node->type = result->type;
-    /* Make the dynamic init entry for the initialization. */
-    if (ctor_routine != NULL) {
-      /* Constructor call. */
-      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-      dip->variant.constructor.routine = ctor_routine;
-      dip->variant.constructor.args = arg_expr_list;
-      if (array_new) {
-        /* The entity is an array whose elements have a class type that
-           has a default constructor.  Use a dik_nonconstant_aggregate
-           initialization. */
-        dip = add_array_nonconstant_aggregate_init(dip, base_new_type,
-                                                   effective_num_of_elements);
-      }  /* if */
-    } else {
-      /* Expression as initial value. */
-      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
-      dip->variant.expression = init_val_node;
-    }  /* if */
-    init_node->variant.init.dynamic_init = dip;
-    /* Make an operand for the final result. */
-    make_expression_operand(init_node, ptr_new_type, result);
-  }  /* if */
+  /* Now build the IL for the operation. */
+  if (err || function_symbol == NULL) {
+    /* Some error. */
+    make_error_operand(result);
+  } else {
+    an_expr_node_ptr            new_node;
+    a_new_delete_supplement_ptr ndsp;
+    a_dynamic_init_ptr          dip;
+    a_routine_ptr               new_routine;
+    a_boolean                   access_error_reported;
+    a_type_ptr                  ptr_new_type;
 
+    /* Use an enk_new_delete node to represent the "new". */
+    new_node = alloc_expr_node((an_expr_node_kind)enk_new_delete);
+    ptr_new_type = make_pointer_type(base_new_type);
+    new_node->type = ptr_new_type;
+    ndsp = new_node->variant.new_delete;
+    ndsp->is_new = TRUE;
+    ndsp->type = new_type;
+    if (needs_initialization) {
+      /* The allocated space must be initialized.  A dynamic init entry is
+         used. */
+      if (ctor_routine != NULL) {
+        /* Constructor call. */
+        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+        dip->variant.constructor.routine = ctor_routine;
+        dip->variant.constructor.args = arg_expr_list;
+        if (array_new) {
+          /* The entity is an array whose elements have a class type that
+             has a default constructor.  Use a dik_nonconstant_aggregate
+             initialization. */
+          dip = add_array_nonconstant_aggregate_init(dip, base_new_type,
+                                                    effective_num_of_elements);
+        }  /* if */
+      } else {
+        /* Expression as initial value. */
+        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+        dip->variant.expression = init_val_node;
+      }  /* if */
+      ndsp->dynamic_init = dip;
+    }  /* if */
+    /* Work out the "new" routine and its arguments. */
+    new_routine = function_symbol->variant.routine.ptr;
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+    /* If allocating a class with a constructor, determine the default
+       "new" routine for the class and see whether it is the one that
+       was selected.  If so, the "new" call can be folded into the
+       constructor call. */
+    if (ctor_routine != NULL) {
+      a_type_ptr unqual_base_new_type = skip_typerefs(base_new_type);
+      set_class_assoc_operator_new_routine(unqual_base_new_type);
+      if (unqual_base_new_type->variant.class_struct_union.extra_info->
+                                   assoc_operator_new_routine == new_routine) {
+        new_routine = NULL;
+      }  /* if */
+    }  /* if */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+    /* Mark the "new" routine as referenced, check access to it. */
+    overloaded_function_catch_up(function_symbol,
+                                 operator_new_symbol,
+                                 /*is_qualified_name=*/FALSE,
+                                 &placement_position,
+                                 /*elided_reference=*/(new_routine==NULL),
+                                 (an_operand *)NULL,
+                                 &access_error_reported,
+                                 expression_kind);
+    /* Adjust the argument types, issue any warnings, and free
+       arg_operand_list and arg_match_list. */
+    adjust_overloaded_function_call_arguments(function_symbol,
+                                              /*have_selector=*/FALSE,
+                                              (an_operand *)NULL,
+                                              arg_operand_list,
+                                              arg_match_list,
+                                              expression_kind,
+                                              &arg_expr_list);
+    /* Avoid freeing the lists twice. */
+    arg_operand_list = NULL;
+    arg_match_list = NULL;
+    /* Put the routine and argument list into the supplement.  Note that
+       the argument list is present even when the routine is NULL -- that's
+       necessary so that the array size is available when the number of
+       elements is nonconstant. */
+    ndsp->routine = new_routine;
+    ndsp->arg = arg_expr_list;
+    /* Make an operand for the result. */
+    make_expression_operand(new_node, ptr_new_type, result);
+  }  /* if */
+  /* Free the lists if they have not been freed already. */
+  free_arg_operand_list(arg_operand_list);
+  free_arg_match_summary_list(arg_match_list);
   /* Set the error position to the starting position. */
   copy_source_position(start_position, error_position);
   copy_source_position(start_position, result->position);
@@ -3800,19 +3838,20 @@ As an anachronism, allow an expression inside the [ ].
 {
   a_source_position  start_position, delete_position;
   a_type_ptr         delete_type, ptr_delete_type, base_delete_type;
-  an_expr_node_ptr   function_node;
+  an_expr_node_ptr   ptr_node, delete_node;
   a_boolean          use_global_delete = FALSE, is_constant, array_delete;
   a_symbol_ptr       operator_delete_symbol;
   a_routine_ptr      delete_routine, dtor_routine;
-  an_expr_node_ptr   ptr_node;
   an_operand         operand;
   a_constant         constant;
-  an_expr_node_ptr   expr, init_node;
+  an_expr_node_ptr   expr;
   a_symbol_locator   locator_for_delete;
   a_dynamic_init_ptr dip;
   a_routine_type_supplement_ptr
                      delete_routine_rtsp;
   a_param_type_ptr   param1;
+  a_new_delete_supplement_ptr
+                     ndsp;
 
   db_enter(4, "scan_delete_operator");
 
@@ -3874,8 +3913,26 @@ As an anachronism, allow an expression inside the [ ].
       make_error_operand(result);
     } else {
       /* Valid type. */
-      delete_type = skip_typerefs(delete_type);
       ptr_node = make_node_from_operand(&operand);
+      /* Use an enk_new_delete node to represent the delete. */
+      delete_node = alloc_expr_node((an_expr_node_kind)enk_new_delete);
+      delete_node->type = void_type();
+      ndsp = delete_node->variant.new_delete;
+      ndsp->is_new = FALSE;
+      if (array_delete) {
+        /* For the array delete case, the type of the object being deleted
+           is an array of the type pointed to by the pointer. */
+        a_type_ptr array_type = alloc_type((a_type_kind)tk_array);
+        array_type->variant.array.number_of_elements = 0; /* [] */
+        array_type->variant.array.element_type = delete_type;
+        set_type_size(array_type);  /* Probably does nothing. */
+        ndsp->type = array_type;
+      } else {
+        /* Nonarray case. */
+        ndsp->type = delete_type;
+      }  /* if */
+      ndsp->arg = ptr_node;
+      delete_type = skip_typerefs(delete_type);
       base_delete_type = delete_type;
       /* Get the underlying type for any array type. */
       while (is_array_type(base_delete_type)) {
@@ -3894,11 +3951,7 @@ As an anachronism, allow an expression inside the [ ].
         }  /* if */
         dtor_routine = select_destructor(base_delete_type);
         if (dtor_routine != NULL) {
-          /* Class with destructor.  Destruction is required.  Use an
-             enk_new_init node to do the destruction. */
-          init_node = alloc_expr_node((an_expr_node_kind)enk_new_init);
-          init_node->variant.init.expr = ptr_node;
-          init_node->type = ptr_node->type;
+          /* Class with destructor.  Destruction is required. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
           dip->destructor = dtor_routine;
           if (array_delete) {
@@ -3907,18 +3960,9 @@ As an anachronism, allow an expression inside the [ ].
             dip = add_array_nonconstant_aggregate_init(dip, base_delete_type,
                                                        (a_targ_size_t)0);
           }  /* if */
-          init_node->variant.init.dynamic_init = dip;
-          ptr_node = init_node;
+          ndsp->dynamic_init = dip;
         }  /* if */
       }  /* if */
-      /* Put together the call of the delete routine. */
-      /* Cast the pointer to "void *".  Force generation of a cast even
-         if the node already has type "void *" so that IL lowering (and
-         back ends) can tell the real type of the pointer by uniformly
-         removing a single cast. */
-      ptr_node = make_operator_node((an_expr_operator_kind)eok_cast,
-                                    make_pointer_type(void_type()),
-                                    ptr_node);
       /* Select the proper "delete" routine.  If the type is a class type and
          the class has a "delete" operator, use it.  However, if "::" preceded
          the keyword "delete", always use the global ::delete.  Also use the
@@ -3942,39 +3986,48 @@ As an anachronism, allow an expression inside the [ ].
         operator_delete_symbol =
                             opname_function_symbol((an_opname_kind)onk_delete);
       }  /* if */
-      /* Make an expression for the address of the function. */
+      /* Mark the routine symbol referenced, but not the IL entry (yet). */
+      mark_symbol_referenced(srk_reference, operator_delete_symbol,
+                             &delete_position);
       delete_routine = operator_delete_symbol->variant.routine.ptr;
-      /* Mark the routine referenced. */
-      mark_referenced(operator_delete_symbol, &delete_position);
-      function_node = function_addr_expr(delete_routine);
-      /* Make a call of the delete routine with the pointer argument. */
-      function_node->next = ptr_node;
-      /* If the delete routine is one with two arguments, pass the size
-         of the entity as the second argument. */
-      delete_routine_rtsp = f_skip_typerefs(delete_routine->type)->
-                                                    variant.routine.extra_info;
-      param1 = delete_routine_rtsp->param_type_list;
-#if CHECKING
-      if (param1 == NULL) {
-        internal_error("scan_delete_operator: bad delete rout 1st param");
-      }  /* if */
-#endif /* CHECKING */
-      if (param1->next != NULL) {
-        /* Two-argument form.  Add a second argument of type size_t that
-           indicates the (static) size of the object. */
-        function_node->next->next =
-              node_for_integer_constant((long)(delete_type->size),
-                                        (an_integer_kind)TARG_SIZE_T_INT_KIND);
-      }  /* if */
-      make_function_call(function_node, delete_routine->type,
-                         (a_boolean)delete_routine->is_virtual,
-                         /*new_or_delete_call_for_array=*/array_delete,
-                         &delete_position, result);
-      if (is_class_struct_union_type(delete_type)) {
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
+      if (dtor_routine != NULL) {
+        a_type_ptr unqual_base_delete_type = skip_typerefs(base_delete_type);
         /* Determine and remember the default operator delete() routine for
            the class. */
-        set_class_assoc_operator_delete_routine(delete_type);
+        set_class_assoc_operator_delete_routine(unqual_base_delete_type);
+        /* If the delete routine we are using is the default for the class,
+           and the class has a destructor, we can fold the delete into the
+           destructor call. */
+        if (unqual_base_delete_type->variant.class_struct_union.extra_info->
+                             assoc_operator_delete_routine == delete_routine) {
+          delete_routine = NULL;
+        }  /* if */
       }  /* if */
+      if (delete_routine != NULL) {
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
+        /* The delete routine is actually being called. */
+        /* Mark the routine referenced. */
+        mark_routine_referenced(delete_routine, &delete_position);
+        /* If the delete routine is one with two arguments, pass the size
+           of the entity as the second argument. */
+        delete_routine_rtsp = f_skip_typerefs(delete_routine->type)->
+                                                    variant.routine.extra_info;
+        param1 = delete_routine_rtsp->param_type_list;
+        check_assertion(param1 != NULL);
+        if (param1->next != NULL) {
+          /* Two-argument form.  Add a second argument of type size_t that
+             indicates the (static) size of the object. */
+          ptr_node->next =
+              node_for_integer_constant((long)(delete_type->size),
+                                        (an_integer_kind)TARG_SIZE_T_INT_KIND);
+        }  /* if */
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
+      }  /* if */
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
+      ndsp->routine = delete_routine;
+      /* Make an operand for the result. */
+      make_expression_operand(delete_node, void_type(), result);
     }  /* if */
   }  /* if */
 
@@ -7267,11 +7320,6 @@ a prior error) just do the scan.
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
             EOPT_NO_OPTIONS | EOPT_DISALLOW_COMMA_OPERATOR);
   if (ptp != NULL) {
-#if CHECKING
-    if (ptp->type_involves_template_param) {
-      internal_error("scan_default_arg_expr: param type with template param");
-    }  /* if */
-#endif /* CHECKING */
     /* Convert to the required type. */
     prep_argument_operand(&result, ptp, ec_bad_default_arg_type,
                           (an_expression_kind)ek_normal);
@@ -7280,9 +7328,7 @@ a prior error) just do the scan.
                                (an_expression_kind)ek_normal);
   }  /* if */
   node = make_node_from_operand(&result);
-  if (ptp != NULL) {
-    ptp->default_arg_expr = node;
-  }  /* if */
+  if (ptp != NULL) ptp->default_arg_expr = node;
   pop_expr_stack();
 #if DEBUG
   if (debug_level >= 3) {
