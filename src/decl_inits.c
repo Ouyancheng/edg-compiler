@@ -2034,7 +2034,9 @@ this function points to a tree that includes a dynamic-init entry.
                 error(ec_cannot_initialize_flexible_array_member);
               }  /* if */
             } else {
-              unexpected_condition_str(
+              /* The only other zero-sized type that should be allowed here
+                 is a (complete) zero-sized GNU C class. */
+              check_assertion_str(gcc_mode && !is_incomplete_type(member_type),
                                   "get_initializer: can't init 0-size member");
             }  /* if */
           }  /* if */
