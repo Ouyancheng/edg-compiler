@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1999 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -45,16 +45,16 @@ only a subset, the C and F suffixes identify the subset being used.
 #ifdef CIL
 #ifdef FIL
 /* This version of the IL includes all features. */
-#define IL_VERSION_NUMBER "2.32CF"
+#define IL_VERSION_NUMBER "2.33CF"
 #else /* !defined(FIL) */
 /* This version of the IL includes only those features required for
    C and C++. */
-#define IL_VERSION_NUMBER "2.32C"
+#define IL_VERSION_NUMBER "2.33C"
 #endif /* ifdef FIL */
 #else /* !defined(CIL) */
 #ifdef FIL
 /* This version of the IL includes only those features required for Fortran. */
-#define IL_VERSION_NUMBER "2.32F"
+#define IL_VERSION_NUMBER "2.33F"
 #else /* !defined(FIL) */
  #error -- at least one of "CIL" and "FIL" must be defined.
 #endif /* ifdef FIL */
@@ -7813,6 +7813,6 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1999 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
