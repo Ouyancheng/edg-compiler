@@ -910,6 +910,7 @@ ec_no_overrider_for_pure_virtual_function;;"pure virtual %n has no overrider"
 ec_decl_modifiers_ignored;;"__declspec attributes ignored"
 ec_invalid_char;;"invalid character in input line"
 ec_incomplete_return_type;;"function returns incomplete type %t"
+ec_local_pragma_pack;;"effect of this \"#pragma pack\" directive is local to %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
