@@ -1,3 +1,22 @@
+Version 2.34
+
+10/8/96 IL lowering: small improvement in code on return statement
+
+The code for a return in a function with destructible objects, where
+the return expression is constant but not something as simple as a
+literal constant, is now improved (it doesn't use a temporary).
+
+  typedef void (*PF)();
+  void g();
+  struct A {
+    ~A();
+  };
+  PF f() {
+    A a;
+    return g;  // Doesn't use temporary
+  }
+
+-------------------------------------------------------------------------------
 Version 2.33, October 2, 1996
 
 10/1/96 IL version number changed to 2.25

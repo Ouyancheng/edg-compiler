@@ -8242,7 +8242,8 @@ Lower an stmk_return statement.
        Don't rewrite constant expressions or the return expression
        in a constructor (it's "return this;").
     */
-    if (return_expr != NULL && !is_constant_node(return_expr) &&
+    if (return_expr != NULL &&
+        !is_invariant_expr(return_expr, /*vars_can_change=*/TRUE) &&
         innermost_function_scope->variant.routine.ptr->special_kind !=
                                     (a_special_function_kind)sfk_constructor) {
       /* There is a nonconstant return expression, so use a temporary.
