@@ -2905,7 +2905,6 @@ destructors in the IA-64 ABI.
   }  /* if */
   /* Define the routine if appropriate. */
   if (routine->assoc_scope != NULL_region_number &&
-      !routine->suppress_inline_body &&
       define_now) {
     if (new_routine->storage_class == (a_storage_class)sc_extern) {
       new_routine->storage_class = routine->storage_class;
@@ -2913,6 +2912,7 @@ destructors in the IA-64 ABI.
     /* Set is_inline again because templates don't have a reliable value
        before they are defined. */
     new_routine->is_inline = routine->is_inline;
+    new_routine->suppress_inline_body = routine->suppress_inline_body;
     define_default_version_of_routine(routine, new_routine, 
                                       (an_expr_node_ptr)NULL);
 #if LOWER_EXTERN_INLINE
