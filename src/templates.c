@@ -18449,9 +18449,7 @@ the body should be emitted by the back end.
 
   check_assertion(!C_mode());
   emit_function = inline_function_should_be_emitted(rout_ptr);
-  if (emit_function) {
-    rout_ptr->suppress_inline_body = FALSE;
-  }  /* if */
+  rout_ptr->suppress_inline_body = !emit_function;
   if (emit_function) {
     rout_ptr->source_corresp.referenced = TRUE;
 #if MAINTAIN_NEEDED_FLAGS

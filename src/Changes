@@ -16,7 +16,8 @@ declaration, Microsoft compilers will always generate code for the function
 the front end now forces the "suppress_inline_body" flag in the routine entry
 to be FALSE for inline functions declared with the extern keyword and the
 C++-generating back end avoids emitting the extern specifier unless the flag
-is FALSE (when generating code for Microsoft compilers).
+is FALSE (when generating code for Microsoft compilers).  This behavior is
+suppressed when INSTANTIATE_EXTERN_INLINE is TRUE.
 
   inline void f() {}         // Not emitted by Microsoft compilers unless
                              // really needed.

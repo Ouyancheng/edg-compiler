@@ -2323,6 +2323,11 @@ multiple copies of the variables are *not* generated.
 #define INSTANTIATE_EXTERN_INLINE FALSE
 #endif /* ifndef INSTANTIATE_EXTERN_INLINE */
 
+#if INSTANTIATE_EXTERN_INLINE && BACK_END_IS_CP_GEN_BE
+ #error -- INSTANTIATE_EXTERN_INLINE and BACK_END_IS_CP_GEN_BE cannot both \
+           be true
+#endif /* INSTANTIATE_EXTERN_INLINE && BACK_END_IS_CP_GEN_BE */
+
 /*
 This switch controls whether "extern inline" functions are rewritten as
 normal inline functions.  The transformation involves promoting local static

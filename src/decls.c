@@ -4827,6 +4827,7 @@ declaration.
                                    locator);
     report_bad_new_or_delete(locator, storage_class,
                              &invalid_scope_for_new_or_delete);
+#if !INSTANTIATE_EXTERN_INLINE
     if (microsoft_mode && func_info->is_inline) {
       /* In Microsoft mode "extern inline" is a request for the inline
          function body to be spilled.  Without "extern", it is still a
@@ -4835,6 +4836,7 @@ declaration.
       suppress_inline_body =
                        (declared_storage_class != (a_storage_class)sc_extern);
     }  /* if */
+#endif /* !INSTANTIATE_EXTERN_INLINE */
   } else {
     /* C mode. */
     if (strict_ansi_mode) {
@@ -5717,7 +5719,10 @@ skip_overloading:;
   if (func_info->is_inline) routine_ptr->is_inline = TRUE;
   if ((c99_mode && !gcc_mode) || microsoft_mode) {
     /* In C99 mode the suppress_inline_body flag is set only if that is
-       justified by every declaration of a given inline function. */
+       justified by every declaration of a given inline function.
+       In Microsoft mode (for configurations where INSTANTIATE_EXTERN_INLINE
+       is FALSE), suppress_inline_body is cleared if the function was
+       declared (or defined) with the extern keyword. */
     if (redeclaration) {
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
       if ((!suppress_inline_body || !routine_ptr->suppress_inline_body) &&
