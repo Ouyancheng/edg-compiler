@@ -639,8 +639,10 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_name_reference */		"name-reference",
 /* iek_name_qualifier */		"name-qualifier",
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
 /* iek_ms_attribute */			"ms-attribute",
 /* iek_ms_attribute_arg */		"ms-attribute-arg",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
