@@ -1703,9 +1703,13 @@ decl_specifiers.
 }  /* combine_type_specifiers */
 
 
+#if !RESTRICT_ALLOWED
+/*ARGSUSED*/ /* restrict_pos is not used unless "restrict" is allowed. */
+#endif /* !RESTRICT_ALLOWED */
 static a_boolean add_type_qualifiers(a_type_ptr            *type_ptr,
                                      a_type_qualifier_set  *qualifiers,
-                                     a_source_position     *qualifier_pos)
+                                     a_source_position     *qualifier_pos,
+                                     a_source_position     *restrict_pos)
 /*
 Add the type qualifiers specified
 */
@@ -1761,7 +1765,7 @@ Add the type qualifiers specified
        types (but not pointer-to-function-type), pointer-to-member types,
        and (in parameter declarations only) array types. */
     if ((*qualifiers & TQ_RESTRICT) &&
-        !restrict_qualifier_is_allowed(*type_ptr, &error_position)) {
+        !restrict_qualifier_is_allowed(*type_ptr, restrict_pos)) {
       /* Diagnostic has already been issued.  Just remove TQ_RESTRICT
          from the qualifier set. */
       *qualifiers &= ~TQ_RESTRICT;
@@ -1915,6 +1919,7 @@ Returns TRUE if there is an error in the specifiers.
   a_basic_type               basic_type = bt_none;
   a_type_sign                sign = sign_none;
   a_type_size                size = size_none;
+  a_source_position          restrict_pos;
 
   db_enter(3, "decl_specifiers");
   *output_flags = DSO_NO_OUTPUT_FLAGS;
@@ -2115,6 +2120,7 @@ Returns TRUE if there is an error in the specifiers.
           if (es == es_error) err = TRUE;
         } else {
           *qualifiers |= TQ_RESTRICT;
+          restrict_pos = pos_curr_token;
         }  /* if */
         break;
 #endif /* RESTRICT_ALLOWED */
@@ -2938,7 +2944,8 @@ exit_loop:
       } else {
         /* Add any type qualifiers (const or volatile) to the type. */
         if (!add_type_qualifiers(type_ptr, qualifiers,
-                                 &non_restrict_qualifier_pos)) {
+                                 &non_restrict_qualifier_pos,
+                                 &restrict_pos)) {
           err = TRUE;
         }  /* if */
       }  /* if */
