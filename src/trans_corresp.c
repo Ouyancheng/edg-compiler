@@ -123,7 +123,8 @@ entity1 point to the IL node pointed to by entity2.
   f_record_trans_unit_corresp((char*)entity1, (char*)entity2)
 
 
-static void f_report_bad_trans_unit_corresp(char *entity1)
+static void f_report_bad_trans_unit_corresp(char                   *entity1,
+                                            a_source_position_ptr  pos2)
 /*
 The given IL node has a source correspondence and an associated symbol.  It
 also has a non-NULL translation unit correspondence, but it points to a node
@@ -131,14 +132,10 @@ that does not actually correspond to the given entity.  Therefore, issue a
 diagnostic.
 */
 {
-  a_symbol_ptr   sym = (a_symbol_ptr)((a_source_correspondence_ptr)entity1)->
-                                                                    assoc_info;
-  char           *entity2 = trans_unit_corresp_pointer_of(entity1);
-  a_source_correspondence_ptr
-                 scp2 = (a_source_correspondence_ptr)entity2;
+  a_symbol_ptr   sym = (a_symbol_ptr)((a_source_correspondence_ptr)entity1)
+                                                                  ->assoc_info;
   a_source_position_ptr
-                 pos1 = &sym->decl_position,
-                 pos2 = &scp2->decl_position;
+                 pos1 = &sym->decl_position;
   a_line_number  line1, line2;
   unsigned long  nesting_depth;
   a_boolean      at_end_of_source;
@@ -161,22 +158,25 @@ diagnostic.
   } else {
 
     pos_sy_start_error(ec_corresp_decl_incompatible, &sym->decl_position, sym);
-    add_diag_info_with_pos_insert(ec_corresp_decl_at, &scp2->decl_position);
+    add_diag_info_with_pos_insert(ec_corresp_decl_at, pos2);
     end_error();
   }  /* if */
 }  /* f_report_bad_trans_unit_corresp */
 
-#define report_bad_trans_unit_corresp(entity)                        \
-  f_report_bad_trans_unit_corresp((char*)entity)
+#define report_bad_trans_unit_corresp(entity)                               \
+  f_report_bad_trans_unit_corresp(                                          \
+    (char*)entity,                                                          \
+    &((a_source_correspondence_ptr)trans_unit_corresp_pointer_of(entity))   \
+      ->decl_position)
 
 
 static void f_process_bad_trans_unit_corresp(char  *entity)
 /*
-Same as f_report_bad_trans_unit_corresp but also clear the correspondence
+Same as report_bad_trans_unit_corresp but also clear the correspondence
 pointer.
 */
 {
-  f_report_bad_trans_unit_corresp(entity);
+  report_bad_trans_unit_corresp(entity);
   clear_trans_unit_corresp(entity);
 }  /* process_bad_trans_unit_corresp */
 
@@ -505,7 +505,8 @@ is in fact valid.
   a_routine_ptr  corresp_routine =
                                 (a_routine_ptr)canonical_il_entry_of(routine);
 
-  if (!match || !identical_types(routine->type, corresp_routine->type)) {
+  if (!match ||
+      !types_are_redecl_compatible(routine->type, corresp_routine->type)) {
     match = FALSE;
     process_bad_trans_unit_corresp(routine);
   }  /* if */
@@ -522,7 +523,8 @@ is in fact valid.
   a_boolean       match = verify_name_correspondence(var);
   a_variable_ptr  corresp_var = (a_variable_ptr)canonical_il_entry_of(var);
 
-  if (!match || !identical_types(var->type, corresp_var->type)) {
+  if (!match ||
+      !types_are_redecl_compatible(var->type, corresp_var->type)) {
     match = FALSE;
     process_bad_trans_unit_corresp(var);
   }  /* if */
@@ -568,12 +570,11 @@ type is in fact valid.
          enumerator = enumerator->next,
                                 corresp_enumerator = corresp_enumerator->next) {
       if (!verify_constant_correspondence(enumerator)) {
-        process_bad_trans_unit_corresp(enumerator);
         match = FALSE;
         break;
       }  /* if */
     }  /* for */
-    if (enumerator != NULL || corresp_enumerator != NULL) {
+    if (match && (enumerator != NULL || corresp_enumerator != NULL)) {
       report_bad_trans_unit_corresp(type);
       match = FALSE;
     }  /* if */
@@ -679,7 +680,7 @@ type is in fact valid.
         }  /* for */
         if ((routine != NULL && corresp_routine == NULL) ||
             (corresp_routine != NULL && routine == NULL)) {
-          report_error = TRUE;;
+          report_error = TRUE;
           match = FALSE;
         }  /* if */
       }
@@ -697,7 +698,7 @@ type is in fact valid.
         }  /* for */
         if ((variable != NULL && corresp_variable == NULL) ||
             (corresp_variable != NULL && variable == NULL)) {
-          report_error = TRUE;;
+          report_error = TRUE;
           match = FALSE;
         }  /* if */
       }
@@ -715,7 +716,7 @@ type is in fact valid.
         }  /* for */
         if ((constant != NULL && corresp_constant == NULL) ||
             (corresp_constant != NULL && constant == NULL)) {
-          report_error = TRUE;;
+          report_error = TRUE;
           match = FALSE;
         }  /* if */
       }
@@ -785,11 +786,7 @@ have such an attribute: the aliased namespace.
     a_namespace_ptr  other_nsp = (a_namespace_ptr)canonical_il_entry_of(nsp);
     if (canonical_il_entry_of(skip_namespace_aliases(nsp)) !=
                    canonical_il_entry_of(skip_namespace_aliases(other_nsp))) {
-      a_symbol_ptr  nsp_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
-      a_symbol_ptr  sym = (a_symbol_ptr)other_nsp->source_corresp.assoc_info;
-
-      pos_sy_error(ec_not_compatible_with_previous_decl,
-                   &nsp_sym->decl_position, sym);
+      report_bad_trans_unit_corresp(nsp);
       result = FALSE;
     }  /* if */
   }  /* if */
@@ -1079,8 +1076,7 @@ translation unit correspondence pointer if one is found.
         break;
       } else {
         /* An error since the conflicting entity has external linkage. */
-        pos_sy_error(ec_not_compatible_with_previous_decl,
-                     &nsp_sym->decl_position, sym);
+        f_report_bad_trans_unit_corresp((char*)nsp, &sym->decl_position);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -1096,7 +1092,8 @@ unit correspondence pointer if one is found.
   a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
   a_symbol_ptr  sym;
 
-  if (has_name(type) && may_have_correspondence(type_sym)) {
+  if (has_name(type) &&
+      type_sym != NULL && may_have_correspondence(type_sym)) {
     sym = type_sym->header->inactive_symbols;
     for (; sym != NULL; sym = sym->next) {
       if (sym->decl_scope != type_sym->decl_scope &&
@@ -1148,21 +1145,6 @@ symbol supplement.
   a_template_arg_ptr
                   templ_args = class_type
                     ->variant.class_struct_union.extra_info->template_arg_list;
-#if 0
-  if (sym_entry == NULL &&
-      corresp_tssp->variant.class_template.instantiations != NULL) {
-    /* FIXME This should only happen when the corresponding template is in
-       the primary translation unit.  Probably a pass should be made to
-       copy the instantiations list if necessary. */
-    a_symbol_ptr  sym = corresp_tssp->variant.class_template.instantiations;
-    for (; sym != NULL; sym = next_instance_sym(sym)) {
-      sym_entry = alloc_symbol_list_entry();
-      sym_entry->next = corresp_tssp->all_instantiations;
-      corresp_tssp->all_instantiations = sym_entry;
-      sym_entry->symbol = sym;
-    }  /* for */
-  }  /* if */
-#endif /* FIXME */
   for (; sym_entry != NULL; sym_entry = sym_entry->next) {
     a_type_ptr  corresp_type = type_symbol_type(sym_entry->symbol);
     if (equiv_template_arg_lists(corresp_type
@@ -1208,22 +1190,6 @@ symbol supplement.
   a_template_arg_ptr
                   templ_args = routine->template_arg_list;
 
-#if 0
-  if (sym_entry == NULL &&
-      corresp_tssp->variant.function.instantiations != NULL) {
-    /* FIXME This should only happen when the corresponding template is in
-       the primary translation unit.  Probably a pass should be made to
-       copy the instantiations list if necessary. */
-    a_template_instance_ptr  ip = corresp_tssp
-                                            ->variant.function.instantiations;
-    for (; ip != NULL; ip = ip->next) {
-      sym_entry = alloc_symbol_list_entry();
-      sym_entry->next = corresp_tssp->all_instantiations;
-      corresp_tssp->all_instantiations = sym_entry;
-      sym_entry->symbol = ip->instance_sym;
-    }  /* for */
-  }  /* if */
-#endif /* FIXME */
   for (; sym_entry != NULL; sym_entry = sym_entry->next) {
     a_routine_ptr  corresp_routine = sym_entry->symbol->variant.routine.ptr;
     if (identical_types(routine->type, corresp_routine->type) &&
@@ -1470,8 +1436,7 @@ unit correspondence pointer if one is found.
     }  /* if */
   }  /* for */
   if (conflict) {
-    pos_sy_error(ec_not_compatible_with_previous_decl,
-                 &templ_sym->decl_position, sym);
+    f_report_bad_trans_unit_corresp((char*)templ, &sym->decl_position);
   }  /* if */
 }  /* find_template_correspondence */
 
@@ -1487,48 +1452,50 @@ translation unit correspondence pointer if one is found.
 
   check_assertion(routine_sym != NULL);
   sym = routine_sym->header->inactive_symbols;
-  for (; sym != NULL; sym = sym->next) {
-    /* Don't consider symbols in the same file. */
-    if (sym->decl_scope != routine_sym->decl_scope) {
-      a_boolean  is_list = (sym->kind ==
-                                       (a_symbol_kind)sk_overloaded_function);
-      a_symbol_ptr  sub_sym = is_list ?
-                               sym->variant.overloaded_function.symbols : sym;
-      for (; sub_sym != NULL; sub_sym = is_list ? sub_sym->next : NULL) {
-        if (may_have_correspondence(sub_sym) &&
-            same_parents(sub_sym, routine_sym)) {
-          /* Two different declarations in the same namespace or class, and
-             with the same name: they should probably match up. */
-          switch (sub_sym->kind) {
-            case sk_routine:
-            case sk_member_function:
-              {
-                a_type_ptr  sym_type = routine_symbol_type(sub_sym);
-                if (param_types_are_compatible(sym_type, routine->type,
-                                               TCF_REDECLARATION)) {
-                  /* Record the correspondence. */
-                  record_trans_unit_corresp(routine,
-                                            sub_sym->variant.routine.ptr);
-                }  /* if */
-              }
-              break;
-            case sk_function_template:
-            case sk_class_or_struct_tag:
-            case sk_union_tag:
-            case sk_enum_tag:
-              /* No conflict. */
-              break;
-            case sk_type:
-              if (sym->variant.type.is_injected_class_name) break;
-              /* FALLTHROUGH */
-            default:
-              pos_sy_error(ec_not_compatible_with_previous_decl,
-                           &routine_sym->decl_position, sub_sym);
-          }  /* switch */
-        }  /* if */
-      }  /* for */
-    }  /* if */
-  }  /* for */
+  if (may_have_correspondence(routine_sym)) {
+    for (; sym != NULL; sym = sym->next) {
+      /* Don't consider symbols in the same file. */
+      if (sym->decl_scope != routine_sym->decl_scope) {
+        a_boolean  is_list = (sym->kind ==
+                                        (a_symbol_kind)sk_overloaded_function);
+        a_symbol_ptr  sub_sym = is_list ?
+                                sym->variant.overloaded_function.symbols : sym;
+        for (; sub_sym != NULL; sub_sym = is_list ? sub_sym->next : NULL) {
+          if (may_have_correspondence(sub_sym) &&
+              same_parents(sub_sym, routine_sym)) {
+            /* Two different declarations in the same namespace or class, and
+               with the same name: they should probably match up. */
+            switch (sub_sym->kind) {
+              case sk_routine:
+              case sk_member_function:
+                {
+                  a_type_ptr  sym_type = routine_symbol_type(sub_sym);
+                  if (param_types_are_compatible(sym_type, routine->type,
+                                                 TCF_REDECLARATION)) {
+                    /* Record the correspondence. */
+                    record_trans_unit_corresp(routine,
+                                              sub_sym->variant.routine.ptr);
+                  }  /* if */
+                }
+                break;
+              case sk_function_template:
+              case sk_class_or_struct_tag:
+              case sk_union_tag:
+              case sk_enum_tag:
+                /* No conflict. */
+                break;
+              case sk_type:
+                if (sym->variant.type.is_injected_class_name) break;
+                /* FALLTHROUGH */
+              default:
+                f_report_bad_trans_unit_corresp((char*)routine,
+                                                &sub_sym->decl_position);
+            }  /* switch */
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* for */
+  }  /* if */
 }  /* find_routine_correspondence */
 
 
@@ -1541,35 +1508,206 @@ translation unit correspondence pointer if one is found.
   a_symbol_ptr  var_sym = (a_symbol_ptr)var->source_corresp.assoc_info;
   a_symbol_ptr  sym;
 
-  check_assertion(var_sym != NULL);
-  sym = var_sym->header->inactive_symbols;
-  for (; sym != NULL; sym = sym->next) {
-    /* Don't consider symbols in the same file. */
-    if (sym->decl_scope != var_sym->decl_scope &&
-        may_have_correspondence(sym) &&
-        same_parents(sym, var_sym)) {
-      /* Two different declarations in the same namespace or class, and
-         with the same name: they should probably match up. */
-      switch (sym->kind) {
-        case sk_variable:
-          /* Record the correspondence. */
-          record_trans_unit_corresp(var, sym->variant.variable.ptr);
-          break;
-        case sk_class_or_struct_tag:
-        case sk_union_tag:
-        case sk_enum_tag:
-          break;
-        case sk_type:
-          if (sym->variant.type.is_injected_class_name ||
-              is_template_param_type_symbol(sym)) break;
-          /* FALLTHROUGH */
-        default:
-          pos_sy_error(ec_not_compatible_with_previous_decl,
-                       &var_sym->decl_position, sym);
-      }  /* switch */
-    }  /* if */
-  }  /* for */
+  if (has_name(var) && may_have_correspondence(var_sym)) {
+    sym = var_sym->header->inactive_symbols;
+    for (; sym != NULL; sym = sym->next) {
+      /* Don't consider symbols in the same file. */
+      if (sym->decl_scope != var_sym->decl_scope &&
+          may_have_correspondence(sym) &&
+          same_parents(sym, var_sym)) {
+        /* Two different declarations in the same namespace or class, and
+           with the same name: they should probably match up. */
+        switch (sym->kind) {
+          case sk_variable:
+            /* Record the correspondence. */
+            record_trans_unit_corresp(var, sym->variant.variable.ptr);
+            break;
+          case sk_class_or_struct_tag:
+          case sk_union_tag:
+          case sk_enum_tag:
+            break;
+          case sk_type:
+            if (sym->variant.type.is_injected_class_name ||
+                is_template_param_type_symbol(sym)) break;
+            /* FALLTHROUGH */
+          default:
+            f_report_bad_trans_unit_corresp((char*)var, &sym->decl_position);
+        }  /* switch */
+      }  /* if */
+    }  /* for */
+  }  /* if */
 }  /* find_variable_correspondence */
+
+
+a_namespace_ptr canonical_namespace_entry_of(a_namespace_ptr nsp)
+/*
+Then return the established canonical entry.  (Should not be called until the
+namespaces have already been visited for correspondences with other
+translation units.)
+*/
+{
+  check_assertion(trans_unit_corresp_pointer_of(nsp) != NULL);
+  return (a_namespace_ptr)canonical_il_entry_of(nsp);
+}  /* canonical_namespace_entry_of */
+
+
+a_field_ptr canonical_field_entry_of(a_field_ptr field)
+/*
+If the given field entry has not yet been examined for a corresponding entry
+in another translation unit, do so now.  Then return the established canonical
+entry.
+*/
+{
+  a_field_ptr              result = field;
+
+  if (il_entry_prefix_of(field).secondary_trans_unit) {
+    /* If we're in the process of establishing correspondences, this particular
+       entry may need to be processed now.  Otherwise, it should already have
+       been done or no correspondence can be expected. */
+    if (correspondence_checking_underway &&
+        trans_unit_corresp_pointer_of(field) == NULL) {
+      /* Fields have their correspondence set when their parent type is
+         processed.  Hence we look for the outermost parent type. */
+      a_type_ptr  root = field->source_corresp.parent.class_type;
+      while (root->source_corresp.is_class_member &&
+             trans_unit_corresp_pointer_of(root) == NULL) {
+        root = root->source_corresp.parent.class_type;
+      }  /* while */
+      if (trans_unit_corresp_pointer_of(root) == NULL) {
+        /* A member function of a class that was not yet visited. */
+        find_type_correspondence(root);
+      }  /* if */
+      if (trans_unit_corresp_pointer_of(field) == NULL) {
+        /* A correspondence error at an outer level prevents this entry from
+           having a correspondence.  Mark it and its unvisited ancestors as
+           having no correspondence. */
+        a_type_ptr  parent = field->source_corresp.parent.class_type;
+        clear_trans_unit_corresp(field);
+        while (parent != root) {
+          clear_trans_unit_corresp(parent);
+          parent = parent->source_corresp.parent.class_type;
+        }  /* while */
+      }  /* if */
+    }  /* if */
+    result = (a_field_ptr)canonical_il_entry_of(field);
+  }  /* if */
+  return result;
+}  /* canonical_field_entry_of */
+
+
+a_routine_ptr canonical_routine_entry_of(a_routine_ptr routine)
+/*
+If the given routine entry has not yet been examined for a corresponding entry
+in another translation unit, do so now.  Then return the established canonical
+entry.
+*/
+{
+  a_routine_ptr              result = routine;
+
+  if (il_entry_prefix_of(routine).secondary_trans_unit) {
+    /* If we're in the process of establishing correspondences, this particular
+       entry may need to be processed now.  Otherwise, it should already have
+       been done or no correspondence can be expected. */
+    if (correspondence_checking_underway &&
+        trans_unit_corresp_pointer_of(routine) == NULL) {
+      a_type_ptr  root = NULL;
+      /* Member functions have their correspondence set when their parent type
+         is processed.  Hence we look for the outermost parent type. */
+      if (routine->source_corresp.is_class_member) {
+        root = routine->source_corresp.parent.class_type;
+        while (root->source_corresp.is_class_member &&
+               trans_unit_corresp_pointer_of(root) == NULL) {
+          root = root->source_corresp.parent.class_type;
+        }  /* while */
+      }  /* if */
+      if (root == NULL) {
+        /* Not a member function. */
+        if (routine->is_template_function) {
+          a_symbol_ptr  sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
+          record_function_template_instantiation(
+                                            sym->variant.routine.instance_ptr);
+        } else {
+          find_routine_correspondence(routine);
+        }  /* if */
+      } else if (trans_unit_corresp_pointer_of(root) == NULL) {
+        /* A member function of a class that was not yet visited. */
+        if (root->variant.class_struct_union.is_template_class) {
+          record_class_template_instantiation(
+                                (a_symbol_ptr)root->source_corresp.assoc_info);
+        } else {
+          find_type_correspondence(root);
+        }  /* if */
+      }  /* if */
+      if (trans_unit_corresp_pointer_of(routine) == NULL) {
+        /* A correspondence error at an outer level prevents this entry from
+           having a correspondence.  Mark it and its unvisited ancestors as
+           having no correspondence. */
+        clear_trans_unit_corresp(routine);
+        if (routine->source_corresp.is_class_member) {
+          a_type_ptr  parent = routine->source_corresp.parent.class_type;
+          while (parent != root) {
+            clear_trans_unit_corresp(parent);
+            parent = parent->source_corresp.parent.class_type;
+          }  /* while */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    result = (a_routine_ptr)canonical_il_entry_of(routine);
+  }  /* if */
+  return result;
+}  /* canonical_routine_entry_of */
+
+
+a_variable_ptr canonical_variable_entry_of(a_variable_ptr var)
+/*
+If the given variable entry has not yet been examined for a corresponding entry
+in another translation unit, do so now.  Then return the established canonical
+entry.
+*/
+{
+  a_variable_ptr              result = var;
+
+  if (il_entry_prefix_of(var).secondary_trans_unit) {
+    /* If we're in the process of establishing correspondences, this particular
+       entry may need to be processed now.  Otherwise, it should already have
+       been done or no correspondence can be expected. */
+    if (correspondence_checking_underway &&
+        trans_unit_corresp_pointer_of(var) == NULL) {
+      a_type_ptr  root = NULL;
+      /* Member functions have their correspondence set when their parent type
+         is processed.  Hence we look for the outermost parent type. */
+      if (var->source_corresp.is_class_member) {
+        root = var->source_corresp.parent.class_type;
+        while (root->source_corresp.is_class_member &&
+               trans_unit_corresp_pointer_of(root) == NULL) {
+          root = root->source_corresp.parent.class_type;
+        }  /* while */
+      }  /* if */
+      if (root == NULL) {
+        /* Not a member function. */
+        find_variable_correspondence(var);
+      } else if (trans_unit_corresp_pointer_of(root) == NULL) {
+        /* A member function of a class that was not yet visited. */
+        find_type_correspondence(root);
+      }  /* if */
+      if (trans_unit_corresp_pointer_of(var) == NULL) {
+        /* A correspondence error at an outer level prevents this entry from
+           having a correspondence.  Mark it and its unvisited ancestors as
+           having no correspondence. */
+        clear_trans_unit_corresp(var);
+        if (var->source_corresp.is_class_member) {
+          a_type_ptr  parent = var->source_corresp.parent.class_type;
+          while (parent != root) {
+            clear_trans_unit_corresp(parent);
+            parent = parent->source_corresp.parent.class_type;
+          }  /* while */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    result = (a_variable_ptr)canonical_il_entry_of(var);
+  }  /* if */
+  return result;
+}  /* canonical_variable_entry_of */
 
 
 a_type_ptr canonical_type_entry_of(a_type_ptr type)
@@ -1582,31 +1720,36 @@ canonical entry.
   a_type_ptr              result = type;
 
   if (il_entry_prefix_of(type).secondary_trans_unit) {
-    a_type_ptr  root = type;
-    /* Member types have their correspondence set when their parent type is
-       processed.  Hence we look for the outermost parent type. */
-    while (root->source_corresp.is_class_member &&
-           trans_unit_corresp_pointer_of(root) == NULL) {
-      root = root->source_corresp.parent.class_type;
-    }  /* while */
-    if (trans_unit_corresp_pointer_of(root) == NULL) {
-      /* This type was not examined yet. */
-      if (is_immediate_class_type(root) &&
-          root->variant.class_struct_union.is_template_class) {
-        record_class_template_instantiation(
-                                (a_symbol_ptr)root->source_corresp.assoc_info);
-      } else {
-        find_type_correspondence(root);
-      }  /* if */
-    }  /* if */
-    if (trans_unit_corresp_pointer_of(type) == NULL) {
-      /* A correspondence error at an outer level prevent this entry from
-         having a correspondence.  Mark it and its unvisited ancestors as
-         having no correspondence. */
-      while (type != root) {
-        clear_trans_unit_corresp(type);
-        type = type->source_corresp.parent.class_type;
+    /* If we're in the process of establishing correspondences, this particular
+       entry may need to be processed now.  Otherwise, it should already have
+       been done or no correspondence can be expected. */
+    if (correspondence_checking_underway) {
+      a_type_ptr  root = type;
+      /* Member types have their correspondence set when their parent type is
+         processed.  Hence we look for the outermost parent type. */
+      while (root->source_corresp.is_class_member &&
+             trans_unit_corresp_pointer_of(root) == NULL) {
+        root = root->source_corresp.parent.class_type;
       }  /* while */
+      if (trans_unit_corresp_pointer_of(root) == NULL) {
+        /* This type was not examined yet. */
+        if (is_immediate_class_type(root) &&
+            root->variant.class_struct_union.is_template_class) {
+          record_class_template_instantiation(
+                                (a_symbol_ptr)root->source_corresp.assoc_info);
+        } else {
+          find_type_correspondence(root);
+        }  /* if */
+      }  /* if */
+      if (trans_unit_corresp_pointer_of(type) == NULL) {
+        /* A correspondence error at an outer level prevent this entry from
+           having a correspondence.  Mark it and its unvisited ancestors as
+           having no correspondence. */
+        while (type != root) {
+          clear_trans_unit_corresp(type);
+          type = type->source_corresp.parent.class_type;
+        }  /* while */
+      }  /* if */
     }  /* if */
     result = (a_type_ptr)canonical_il_entry_of(type);
   }  /* if */
@@ -1624,7 +1767,11 @@ canonical entry.
   a_template_ptr              result = templ;
 
   if (il_entry_prefix_of(templ).secondary_trans_unit) {
-    if (trans_unit_corresp_pointer_of(templ) == NULL) {
+    /* If we're in the process of establishing correspondences, this particular
+       entry may need to be processed now.  Otherwise, it should already have
+       been done or no correspondence can be expected. */
+    if (correspondence_checking_underway &&
+        trans_unit_corresp_pointer_of(templ) == NULL) {
       a_type_ptr  root = NULL;
       /* Member templates have their correspondence set when their parent type
          is processed.  Hence we look for the outermost parent type. */
@@ -1696,12 +1843,7 @@ scope.  The process is repeated in nested class and namespace scopes.
     for (type = skip_template_types(scope->types);
          type != NULL;
          type = skip_template_types(type->next)) {
-      a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-
-      /* Note that placeholder types do not have an associated symbol. */
-      if (type_sym != NULL && may_have_correspondence(type_sym)) {
-        find_type_correspondence(type);
-      }  /* if */
+      find_type_correspondence(type);
     }  /* for */
   }
 
@@ -1719,9 +1861,7 @@ scope.  The process is repeated in nested class and namespace scopes.
   {
     a_variable_ptr  var;
     for (var = scope->variables; var != NULL; var = var->next) {
-      if (has_name(var)) {
-        find_variable_correspondence(var);
-      }  /* if */
+      find_variable_correspondence(var);
     }  /* for */
   }
 

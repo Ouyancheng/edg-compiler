@@ -42,6 +42,7 @@ il.c -- Construction of intermediate language trees.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "decl_spec.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#include "trans_corresp.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #if MINIMAL_INLINING
@@ -3733,12 +3734,13 @@ nonidentical.
             cp1->variant.address.offset == cp2->variant.address.offset) {
           switch (cp1->variant.address.kind) {
             case abk_routine:
-              eq = (cp1->variant.address.variant.routine ==
-                    cp2->variant.address.variant.routine);
+              eq = same_routine_entities(cp1->variant.address.variant.routine,
+                                         cp2->variant.address.variant.routine);
               break;
             case abk_variable:
-              eq = (cp1->variant.address.variant.variable ==
-                    cp2->variant.address.variant.variable);
+              eq = same_variable_entities(
+                                       cp1->variant.address.variant.variable,
+                                       cp2->variant.address.variant.variable);
               break;
             case abk_constant:
               eq = (cp1->variant.address.variant.constant ==
@@ -3773,8 +3775,9 @@ nonidentical.
         if (cp1->variant.ptr_to_member.is_function_ptr ==
                                   cp2->variant.ptr_to_member.is_function_ptr) {
           if (cp1->variant.ptr_to_member.is_function_ptr) {
-            eq = (cp1->variant.ptr_to_member.variant.routine ==
-                  cp2->variant.ptr_to_member.variant.routine);
+            eq = same_routine_entities(
+                                  cp1->variant.ptr_to_member.variant.routine,
+                                  cp2->variant.ptr_to_member.variant.routine);
           } else {
             eq = (cp1->variant.ptr_to_member.variant.field ==
                   cp2->variant.ptr_to_member.variant.field);
@@ -3812,10 +3815,12 @@ nonidentical.
                     cp1->source_corresp.is_class_member ==
                     cp2->source_corresp.is_class_member &&
                     (cp1->source_corresp.is_class_member ?
-                      (cp1->source_corresp.parent.class_type ==
-                       cp2->source_corresp.parent.class_type) :
-                      (cp1->source_corresp.parent.namespace_ptr ==
-                       cp2->source_corresp.parent.namespace_ptr)));
+                      same_type_entities(
+                                      cp1->source_corresp.parent.class_type,
+                                      cp2->source_corresp.parent.class_type) :
+                      same_namespace_entities(
+                                   cp1->source_corresp.parent.namespace_ptr,
+                                   cp2->source_corresp.parent.namespace_ptr)));
               break;
             case tpck_unknown_function:
               check_assertion(cp1->source_corresp.assoc_info != NULL);
