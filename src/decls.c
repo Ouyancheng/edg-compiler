@@ -3063,8 +3063,18 @@ declaration).
   check_assertion(ns_ptr != NULL);
   if (scope_stack[depth_scope_stack].default_name_linkage ==
                                         (a_name_linkage_kind)nlk_external) {
-    /* This is an extern "C" context, so the IL entry is not set. */
-    scp = NULL;
+    /* This is an extern "C" context. */
+    if (scp->assoc_info != (char *)sym) {
+      /* This entity was originally declared in another scope and then
+         redeclared in the current namespace -- e.g.,
+           extern "C" void f();
+           namespace N {
+             extern "C" void f();    // same entity
+           }
+         Don't reset the namespace parent pointer (which may or may not be
+         non-NULL). */
+      scp = NULL;
+    }  /* if */
   }  /* if */
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
     /* This is a block-extern declaration, so the symbol is not set. */
@@ -4351,14 +4361,46 @@ skip_overloading:;
     /* There is no symbol pointed to from the routine, so update it with the
        current symbol. */
     set_source_corresp(source_corresp_ptr, sym);
-  } else if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
-             (!redeclaration && !template_function_specific_decl)) {
-    /* Record a reference to the outer-scope symbol of the same name,
-       but do not set the IL entity referenced flag. */
-    record_symbol_reference(SRK_REFERENCE,
-                            (a_symbol_ptr)source_corresp_ptr->assoc_info,
-                            &locator->source_position,
-                            /*update_il_entry=*/FALSE);
+  } else {
+    if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
+        (!redeclaration && !template_function_specific_decl)) {
+      /* Record a reference to the outer-scope symbol of the same name,
+         but do not set the IL entity referenced flag. */
+      record_symbol_reference(SRK_REFERENCE,
+                              (a_symbol_ptr)source_corresp_ptr->assoc_info,
+                              &locator->source_position,
+                              /*update_il_entry=*/FALSE);
+    }  /* if */
+    if (!C_mode() &&
+        source_corresp_ptr->name_linkage ==
+                              (a_name_linkage_kind)nlk_external) {
+      /* An extern "C" declaration. */
+      a_symbol_ptr  other_sym = (a_symbol_ptr)(source_corresp_ptr->assoc_info);
+
+      if (depth_innermost_function_scope == NO_SCOPE_DEPTH &&
+          !is_function_def && !redeclaration &&
+          !template_function_specific_decl) {
+        /* If the original declaration was a block extern declaration, reset
+           the assoc_info pointer to refer to the current declaration -- which
+           should be the first non-block-extern declaration of the entity. */
+        if (other_sym->parent.namespace_ptr != NULL ||
+            other_sym->decl_scope == scope_stack[DEPTH_OF_FILE_SCOPE].number) {
+          /* The symbol specified by the assoc_info pointer does not belong
+             to a function scope. */
+        } else {
+          a_boolean  saved_referenced_flag = source_corresp_ptr->referenced;
+
+          set_source_corresp(source_corresp_ptr, sym);
+          source_corresp_ptr->referenced = saved_referenced_flag;
+          source_corresp_ptr->parent.namespace_ptr = NULL;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
+      !redeclaration && !template_function_specific_decl) {
+    /* Set the namespace parent in the symbol and IL entry. */
+    add_namespace_parent_pointer(sym, source_corresp_ptr);
   }  /* if */
   if (changed_to_inline) {
     if (routine_ptr->called) {
@@ -4371,11 +4413,6 @@ skip_overloading:;
        is_local_to_function flag -- it will have been set based on scope
        alone in set_source_corresp. */
     source_corresp_ptr->is_local_to_function = FALSE;
-  }  /* if */
-  if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
-      !redeclaration && !template_function_specific_decl) {
-    /* Set the namespace parent in the symbol and IL entry. */
-    add_namespace_parent_pointer(sym, source_corresp_ptr);
   }  /* if */
   if (func_info->is_main_function) {
     /* This is "main", so remember the location of its routine entry. */
