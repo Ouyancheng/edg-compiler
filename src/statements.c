@@ -1280,6 +1280,7 @@ Put out the definition for the indicated label.  If label == NULL, do nothing.
 
   db_enter(4, "define_label");
   if (label != NULL) {
+    label->reachable_by_fall_through = curr_reachability.reachable;
     sp = add_statement((a_statement_kind)stmk_label);
     label->variant.exec_stmt = sp;
     sp->variant.label = label;

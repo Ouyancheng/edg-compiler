@@ -5465,7 +5465,9 @@ to it.
   num_labels_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(lp->source_corresp);
+  lp->source_corresp.is_local_to_function = TRUE;
   lp->next = NULL;
+  lp->reachable_by_fall_through = TRUE;
   lp->variant.exec_stmt = NULL;
   lp->parent_block = NULL;
 #ifdef FIL

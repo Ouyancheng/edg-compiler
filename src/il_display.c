@@ -1936,6 +1936,10 @@ Display the indicated label.
 {
   disp_source_corresp(&ptr->source_corresp);
   disp_ptr("next", (char *)ptr->next, iek_label);
+  if (ptr->reachable_by_fall_through) {
+    disp_boolean("reachable_by_fall_through",
+                 (a_boolean)ptr->reachable_by_fall_through);
+  }  /* if */
 #ifdef FFE
   disp_boolean("used_in_assign", (a_boolean)ptr->used_in_assign);
   disp_name("kind");

@@ -3294,6 +3294,11 @@ typedef struct a_label {
                         /* Pointer to the next label declared in the same
                            scope, NULL if this label is the last in the
                            scope. */
+  a_byte_boolean
+		reachable_by_fall_through;
+			/* TRUE if this label can be reached by falling
+			   through to it from the code immediately
+			   preceding. */
 #ifdef FIL
   a_byte_boolean
                 used_in_assign;
