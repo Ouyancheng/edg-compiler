@@ -780,6 +780,7 @@ Initialize everything that has to do with the front end.
   templates_init();
   expr_init();
   macro_proc_init();
+  statements_init();
   /* preproc_init must be called after keyword initialization so that
      macros have priority over keywords.  It also must be called after
      lexical_init so that is_id_char is set.  And, it must be called after
