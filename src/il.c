@@ -304,12 +304,12 @@ Dump a field entry, for debug purposes.
 }  /* db_field */
 
 
-void db_static_data_member(a_variable_ptr vp)
+static void db_static_data_member(a_variable_ptr vp)
 /*
 Dump a static data member (a variable entry), for debug purposes.
 */
 {
-  fputs("  ", f_debug);
+  fputs("\n  ", f_debug);
   db_access_control(vp->source_corresp.access);
   fputs(" static data member \"", f_debug);
   db_name(&vp->source_corresp);
@@ -318,16 +318,15 @@ Dump a static data member (a variable entry), for debug purposes.
   fprintf(f_debug, "), sc_%s, type = ",
                    db_storage_class_names[(int)vp->storage_class]);
   db_abbreviated_type(vp->type);
-  (void)fputc('\n', f_debug);
 }  /* db_static_data_member */
 
 
-void db_member_function(a_routine_ptr rp)
+static void db_member_function(a_routine_ptr rp)
 /*
 Dump a member function (a routine entry), for debug purposes.
 */
 {
-  fputs("  ", f_debug);
+  fputs("\n  ", f_debug);
   db_access_control(rp->source_corresp.access);
   if (!routine_type_is_nonstatic_member_function(rp->type)) {
     fputs(" static", f_debug);
@@ -344,7 +343,6 @@ Dump a member function (a routine entry), for debug purposes.
                    (rp->is_inline) ? ", inline" : "",
                    db_storage_class_names[(int)rp->storage_class]);
   db_abbreviated_type(rp->type);
-  (void)fputc('\n', f_debug);
 }  /* db_member_function */
 
 
@@ -393,6 +391,9 @@ debug purposes.
 }  /* db_virtual_function_info */
 
 
+static void db_virtual_base_class(a_base_class *bcp,
+                                  int          depth);
+
 static void db_direct_base_class(a_base_class *bcp,
                                  int          depth)
 /*
@@ -402,6 +403,9 @@ Dump a direct base class entry, for debug purposes.
   a_type     *tp = bcp->type;
   a_field    *fp;
   int        i;
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+  a_boolean  complete_subobject = bcp->complete_subobject;
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
 
   fputs("\n  ", f_debug);
   for (i = depth; i > 0; --i) fputs("  ", f_debug);
@@ -432,6 +436,7 @@ Dump a direct base class entry, for debug purposes.
       db_base_class_field(fp, depth);
       fp = fp->next;
     }  /* while */
+    /* Put out the virtual base class pointers. */
     for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
          bcp != NULL;
          bcp = bcp->next) {
@@ -440,6 +445,19 @@ Dump a direct base class entry, for debug purposes.
       }  /* if */
     }  /* for */
     db_virtual_function_info(tp->variant.class_struct_union.extra_info, depth);
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+    if (complete_subobject) {
+      /* Put out the virtual base class data sections. */
+      for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
+           bcp != NULL;
+           bcp = bcp->next) {
+        if (bcp->direct && bcp->is_virtual &&
+            bcp->data_section_base_class == NULL) {
+          db_virtual_base_class(bcp, depth+1);
+        }  /* if */
+      }  /* for */
+    }  /* if */
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
   }  /* if */
   fputs(" ]]", f_debug);
 }  /* db_direct_base_class */
@@ -452,7 +470,7 @@ Dump an indirect base class entry, for debug purposes.
 {
   a_derivation_step_ptr  dsp;
 
-  fprintf(f_debug, "    %s", bcp->type->source_corresp.name);
+  fprintf(f_debug, "\n    %s", bcp->type->source_corresp.name);
   if (bcp->is_virtual) fputs(", is_virtual", f_debug);
   if (bcp->ambiguous) fputs(", ambiguous", f_debug);
   if (bcp->any_virtual_steps_in_derivation) fputs (", virtual steps", f_debug);
@@ -467,42 +485,51 @@ Dump an indirect base class entry, for debug purposes.
                   "<???>" : dsp->base_class->type->source_corresp.name);
     }  /* for */
   }  /* if */
-  (void)fputc('\n', f_debug);
 }  /* db_indirect_base_class */
 
 
-static void db_virtual_base_class(a_base_class *bcp)
+static void db_virtual_base_class(a_base_class *bcp,
+                                  int          depth)
 /*
 Dump a virtual base class entry, for debug purposes.
 */
 {
   a_type       *tp = bcp->type;
   a_field      *fp;
+  int          i;
   
-  fprintf(f_debug, "  [( virtual base class %s (offset = %lu)",
+  fputs("\n  ", f_debug);
+  for (i = depth; i > 0; --i) fputs("  ", f_debug);
+  fprintf(f_debug, "[( virtual base class %s (offset = %lu",
 		   tp->source_corresp.name, bcp->offset);
-  for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
-       bcp != NULL;
-       bcp = bcp->next) {
-    if (bcp->direct && !bcp->is_virtual) {
-      db_direct_base_class(bcp, /*nesting_depth=*/1);
-    }  /* if */
-  }  /* for */
-  fp = tp->variant.class_struct_union.field_list;
-  while (fp != NULL) {
-    db_base_class_field(fp, /*nesting_depth=*/0);
-    fp = fp->next;
-  }  /* while */
-  for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
-       bcp != NULL;
-       bcp = bcp->next) {
-    if (bcp->direct && bcp->is_virtual) {
-      db_direct_base_class(bcp, /*nesting_depth=*/1);
-    }  /* if */
-  }  /* for */
-  db_virtual_function_info(tp->variant.class_struct_union.extra_info,
-                           /*nesting_depth=*/0);
-  fputs(" )]\n", f_debug);
+  if (bcp->data_section_base_class != NULL) {
+    fprintf(f_debug, ", in %s",
+            bcp->data_section_base_class->type->source_corresp.name);
+  }  /* if */
+  fputc(')', f_debug);
+  if (bcp->data_section_base_class == NULL) {
+    for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
+         bcp != NULL;
+         bcp = bcp->next) {
+      if (bcp->direct && !bcp->is_virtual) {
+        db_direct_base_class(bcp, depth+1);
+      }  /* if */
+    }  /* for */
+    fp = tp->variant.class_struct_union.field_list;
+    while (fp != NULL) {
+      db_base_class_field(fp, depth);
+      fp = fp->next;
+    }  /* while */
+    for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
+         bcp != NULL;
+         bcp = bcp->next) {
+      if (bcp->direct && bcp->is_virtual) {
+        db_direct_base_class(bcp, depth+1);
+      }  /* if */
+    }  /* for */
+    db_virtual_function_info(tp->variant.class_struct_union.extra_info, depth);
+  }  /* if */
+  fputs(" )]", f_debug);
 }  /* db_virtual_base_class */
 
 
@@ -535,15 +562,16 @@ static void db_access_adjustment(an_access_adjustment_ptr aap)
       str = "member constant";
       break;
     default:
-      fputs("<bad access adjustment kind>", f_debug);
-      goto end_of_routine;
+      sc = NULL;
   }  /* switch */
-  fputs("    ", f_debug);
-  db_access_control(aap->access);
-  fprintf(f_debug, " \"%s\" = %s ", sc->name, str);
-  db_name(sc);
-end_of_routine:
-  (void)fputc('\n', f_debug);
+  fputs("\n    ", f_debug);
+  if (sc == NULL) {
+    fputs("<bad access adjustment kind>", f_debug);
+  } else {
+    db_access_control(aap->access);
+    fprintf(f_debug, " \"%s\" = %s ", sc->name, str);
+    db_name(sc);
+  }  /* if */
 }  /* db_access_adjustment */
 
 
@@ -630,7 +658,6 @@ class_struct_union:
             }  /* if */
           } /* for */
         }  /* if */
-        (void)fputc('\n', f_debug);
         if (ctsp != NULL && ctsp->assoc_scope != NULL) {
           a_variable_ptr           vp = ctsp->assoc_scope->variables;
           a_routine_ptr            rp = ctsp->assoc_scope->routines;
@@ -638,31 +665,32 @@ class_struct_union:
 
           db_virtual_function_info(ctsp, /*nesting_depth=*/-1);
           if (any_virtual_base_classes) {
-            fputs("  collected virtual base classes:\n", f_debug);
+            fputs("\n  collected virtual base classes:", f_debug);
             for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-              if (bcp->is_virtual) db_virtual_base_class(bcp);
+              if (bcp->is_virtual) db_virtual_base_class(bcp, 0);
             }  /* for */
           }  /* if */
           if (any_indirect_base_classes) {
-            fputs("  indirect base classes:\n", f_debug);
+            fputs("\n  indirect base classes:", f_debug);
             for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
               if (!bcp->direct) db_indirect_base_class(bcp);
             }  /* for */
           }  /* if */
           if (vp != NULL) {
-            fputs("  static data members:\n", f_debug);
+            fputs("\n  static data members:", f_debug);
             for (; vp != NULL; vp = vp->next) db_static_data_member(vp);
           }  /* if */
           if (rp != NULL) {
-            fprintf(f_debug, "  member functions (%d virtual):\n",
+            fprintf(f_debug, "\n  member functions (%d virtual):",
                              ctsp->virtual_function_count);
             for (; rp != NULL; rp = rp->next) db_member_function(rp);
           }  /* if */
           if (aap != NULL) {
-            fputs("  access adjustments:\n", f_debug);
+            fputs("\n  access adjustments:", f_debug);
             for (; aap != NULL; aap = aap->next) db_access_adjustment(aap);
           }  /* if */
         }  /* if */
+        fputc('\n', f_debug);
         if (ctsp != NULL) {
           db_all_virtual_function_override_lists(tp);
         }  /* if */
