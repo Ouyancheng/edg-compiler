@@ -659,11 +659,18 @@ typedef struct a_func_info_block {
 			/* The scope number used for the function prototype
 			   scope for the parameters, to be reused for the
 			   function scope if a body is found. */
-  a_byte_boolean
-		any_prototype_names_omitted;
+  unsigned int  any_prototype_names_omitted:1;
 			/* TRUE if the parameter list is a prototype list,
 			   and it includes at least one parameter with
 			   just a type and no name. */
+  unsigned int  is_inline:1;
+			/* TRUE if inline was specified (C++ only). */
+  unsigned int  is_definition:1;
+			/* TRUE if the current declaration is a definition. */
+  unsigned int  is_main_function:1;
+			/* TRUE if the function "main". */
+  unsigned int  is_implicit_declaration:1;
+			/* TRUE if this is an implicit declaration. */
 } a_func_info_block;
 
 

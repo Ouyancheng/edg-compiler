@@ -3027,10 +3027,7 @@ the compiler-generated flag should be cleared.
      is given a storage class of sc_extern since there is no definition
      in the current translation unit. */
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
-                      &func_info, /*is_implicit_function=*/FALSE,
-                      /*if_function_def_with_body=*/FALSE,
-                      /*is_inline=*/FALSE, /*is_main_function=*/FALSE, &sym,
-                      &linkage, &old_type, &ext_sym);
+                      &func_info, &sym, &linkage, &old_type, &ext_sym);
   sym->variant.routine.ptr->compiler_generated = TRUE;
   db_exit();
 }  /* make_global_operator_new_or_delete_symbol */
@@ -7304,6 +7301,10 @@ Clear the fields of a function information block to default values.
   func_info->throw_position.column       = SP_COL_UNKNOWN;
   func_info->scope_number                = NO_SCOPE_NUMBER;
   func_info->any_prototype_names_omitted = FALSE;
+  func_info->is_inline                   = FALSE;
+  func_info->is_definition               = FALSE;
+  func_info->is_main_function            = FALSE;
+  func_info->is_implicit_declaration     = FALSE;
 }  /* clear_func_info */
 
 
