@@ -1,5 +1,16 @@
 Version 3.3
 
+7/30/03  Abort in do_all_namespace_member_promotion, multiple translation
+         units
+
+An abort in do_all_namespace_member_promotion ("namespace type not found")
+occurred in multiple-translation-unit mode (e.g., with exported
+templates) in some rare cases involving instantiations of class
+templates inside otherwise unused class types.  One indication that
+you have this specific problem is that the source file compiles okay
+as a primary translation unit, and also compiles okay as a secondary
+translation unit when --no_remove is specified.  Now fixed.
+
 7/29/03  Microsoft compatibility: guiding declarations no longer accepted
 
 Version 7.1 of the Microsoft compiler no longer accepts guiding declarations,

@@ -13986,6 +13986,37 @@ necessary processing on those members to clear instantiation information.
 }  /* clear_instantiation_information_for_eliminated_members */
 
 
+static void clear_placeholder_flags_for_eliminated_members(
+                                                         a_type_ptr class_type)
+/*
+The indicated class type or its definition is being eliminated from the
+IL, which means the class members are also being eliminated.  If any
+member types are placeholders for class instantiations, clear the flag in
+the class instantiations because the placeholders will be removed.
+*/
+{
+  a_class_type_supplement_ptr ctsp =
+                             class_type->variant.class_struct_union.extra_info;
+  a_scope_ptr                 scope;
+
+  check_assertion(!C_mode() && ctsp != NULL);
+  scope = ctsp->assoc_scope;
+  if (scope != NULL) {
+    a_type_ptr type;
+    for (type = scope->types; type != NULL; type = type->next) {
+      if (type->kind == (a_type_kind)tk_typeref &&
+          type->variant.typeref.is_placeholder_for_class_instantiation) {
+        a_type_ptr inst_type = type->variant.typeref.type;
+        check_assertion(inst_type->variant.class_struct_union.
+                        referenced_by_class_instantiation_placeholder_typeref);
+        inst_type->variant.class_struct_union.
+                 referenced_by_class_instantiation_placeholder_typeref = FALSE;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* clear_placeholder_flags_for_eliminated_members */
+
+
 static void process_members_of_eliminated_class_definition(
                                                          a_type_ptr class_type)
 /*
@@ -14007,6 +14038,8 @@ necessary processing on those members.
   eliminate_member_function_default_arg_object_lifetimes(class_type);
   /* Clear instantiation information for any template members. */
   clear_instantiation_information_for_eliminated_members(class_type);
+  /* Clear flags for placeholder typerefs eliminated. */
+  clear_placeholder_flags_for_eliminated_members(class_type);
   /* Do the same processing for nested classes. */
   if (ctsp->assoc_scope != NULL) {
     a_type_ptr  tp = ctsp->assoc_scope->types;
