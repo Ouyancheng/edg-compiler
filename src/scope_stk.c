@@ -4336,7 +4336,8 @@ e.g., because it's externally defined.
       tip = rout_sym->variant.routine.instance_ptr;
       check_assertion(tip != NULL);
       if (tip->explicit_instantiation ||
-          master_instance_of(tip)->automatically_instantiated) {
+          (tip->master_instance != NULL &&
+           master_instance_of(tip)->automatically_instantiated)) {
         /* The instance exists as a result of an explicit instantiation
            directive, or as a result of being assigned to this file by
            the automatic instantiation mechanism. */
