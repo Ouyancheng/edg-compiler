@@ -4972,7 +4972,9 @@ skip_overloading:;
     }  /* if */
   }  /* if */
   *ext_sym = NULL;
-  if (linkage != idl_none && !redeclaration) {
+  if (linkage != idl_none && !redeclaration &&
+      (!scope_stack[depth_scope_stack].in_prototype_instantiation ||
+       prototype_instantiations_in_il)) {
     /* Create an external symbol for the present linkable declaration.
        Ordinarily, this may involve some lookup to find a declaration in a
        previous scope to which the present one is linked.  However, in
