@@ -5943,7 +5943,7 @@ constructor, but may instead be after an assignment to "this".
   an_insert_location     insert_location2, else_insert_location;
   an_expr_node_ptr       null_constant_node, vbase_param_node, compare_node;
   an_expr_node_ptr       vaddr_node, vbptr_node, vtbl_addr_node, vptr_node;
-  an_expr_node_ptr       assign_node;
+  an_expr_node_ptr       assign_node, complete_var_node;
   a_variable_ptr         primary_vtbl_var, vtbl_var;
   a_source_position      saved_error_position, saved_code_pos;
   a_variable_ptr         construction_vtbls_var = NULL;
@@ -6095,10 +6095,16 @@ constructor, but may instead be after an assignment to "this".
     }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
     /* Make an "if" statement with a block statement under it:
-         if (complete) {}
-                        ^--- additional statements will be inserted.
+         if (complete != 0) {}
+                             ^--- additional statements will be inserted.
     */
-    insert_if_statement(var_rvalue_expr(complete_var),
+    complete_var_node = var_rvalue_expr(complete_var);
+    complete_var_node->next = 
+                        node_for_integer_constant(0L, (an_integer_kind)ik_int);
+    compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
+                                      integer_type((an_integer_kind)ik_int),
+                                      complete_var_node);
+    insert_if_statement(compare_node,
                         /*is_initialization_guard=*/FALSE,
                         insert_location, (a_statement_ptr *)NULL,
                         &insert_location2, &else_insert_location);
