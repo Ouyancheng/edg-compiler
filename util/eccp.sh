@@ -695,6 +695,7 @@ check_abbreviation()
 --typename
 --undefine_macro
 --unsigned_chars
+--upc
 --use_pch
 --using_std
 --variadic_macros
@@ -1155,6 +1156,7 @@ process_option()
          --no_stdarg_builtin | \
          --ignore_std | \
 	 --long_long | \
+	 --upc | \
 	 --short_enums | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
