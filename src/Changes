@@ -1,5 +1,21 @@
 Version 2.34
 
+11/4/96  Support for covariant return type on overriding virtual function
+
+When ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN (in host_envir.h) is
+configured to TRUE, support is now provided for "covariant" return types
+on overriding virtual functions.  That is, the return types of an
+overriding and an overridden virtual function are permitted to differ as
+long as they are pointer (or reference) to D and B, respectively, where
+class D is derived from class B.
+
+An ABI change is involved because an adjustment must sometimes be made
+dynamically to how the address of the object is returned.
+
+IL CHANGE -- two now fields: return_adjustment_base_class has been added
+to an_overriding_virtual_function, and covariant_return_virtual_override
+has been added to a_routine.
+
 10/31/96 IL CHANGE: name field added to a_param_type
 
 When RECORD_NAME_IN_PARAM_TYPE_ENTRY (see host_envir.h) is configured to
