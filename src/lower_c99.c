@@ -1377,118 +1377,121 @@ static void lower_c99_statement(a_statement_ptr statement)
 Do C99 lowering on the indicated statement.
 */
 {
-  a_source_position saved_error_position;
+  if (statement != NULL) {
+    a_source_position saved_error_position;
 
-  /* Set the error position to the statement position, in case there is
-     an error in lowering. */
-  saved_error_position = error_position;
-  set_position_from_stmt_source_position(error_position, statement->position);
-  if (statement->expr != NULL) {
-    /* Lower the expression.  For an expression statement, pass the
-       statement pointer to allow better inlining. */
-    lower_c99_expr_full(statement->expr,
-                        (statement->kind == (a_statement_kind)stmk_expr) ?
+    /* Set the error position to the statement position, in case there is
+       an error in lowering. */
+    saved_error_position = error_position;
+    set_position_from_stmt_source_position(error_position,
+                                           statement->position);
+    if (statement->expr != NULL) {
+      /* Lower the expression.  For an expression statement, pass the
+         statement pointer to allow better inlining. */
+      lower_c99_expr_full(statement->expr,
+                          (statement->kind == (a_statement_kind)stmk_expr) ?
                                             statement : (a_statement_ptr)NULL);
-    end_of_c99_full_expr();
-  }  /* if */
-  switch (statement->kind) {
-    case stmk_expr:
-    case stmk_goto:
-    case stmk_label:
+      end_of_c99_full_expr();
+    }  /* if */
+    switch (statement->kind) {
+      case stmk_expr:
+      case stmk_goto:
+      case stmk_label:
 #if GNU_EXTENSIONS_ALLOWED
-    case stmk_assigned_goto:
+      case stmk_assigned_goto:
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    case stmk_return:
-    case stmk_asm:
+      case stmk_return:
+      case stmk_asm:
 #if ASM_FUNCTION_ALLOWED
-    case stmk_asm_func_body:
+      case stmk_asm_func_body:
 #endif /* ASM_FUNCTION_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    case stmk_decl:
+      case stmk_decl:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    case stmk_set_vla_size:
-    case stmk_vla_decl:
-    case stmk_vla_dealloc:
+      case stmk_set_vla_size:
+      case stmk_vla_decl:
+      case stmk_vla_dealloc:
 #if REPRESENT_EMPTY_STATEMENTS_IN_IL
-    case stmk_empty:
+      case stmk_empty:
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
-      /* Nothing to lower. */
-      break; 
-    case stmk_if:
-      lower_c99_statement(statement->variant.if_stmt.then_statement);
-      if (statement->variant.if_stmt.else_statement != NULL) {
-        lower_c99_statement(statement->variant.if_stmt.else_statement);
-      }  /* if */
-      break;
-    case stmk_while:
-    case stmk_end_test_while:
-      lower_c99_statement(statement->variant.loop_statement);
-      break;
-    case stmk_for:
-      { a_for_loop_ptr flp = statement->variant.for_loop.extra_info;
-        if (flp->initialization != NULL) {
-          a_statement_ptr init_stmt = flp->initialization, init_stmt_next;
-          lower_c99_statement(init_stmt);
-          /* If the initialization was rewritten as a sequence of statements,
-             make it into a block, because the stmk_for can only point at a
-             single statement. */
-          init_stmt_next = init_stmt->next;
-          if (init_stmt_next != NULL) {
-            init_stmt->next = NULL;
-            change_statement_into_block(init_stmt, &init_stmt);
-            init_stmt->next = init_stmt_next;
+        /* Nothing to lower. */
+        break; 
+      case stmk_if:
+        lower_c99_statement(statement->variant.if_stmt.then_statement);
+        if (statement->variant.if_stmt.else_statement != NULL) {
+          lower_c99_statement(statement->variant.if_stmt.else_statement);
+        }  /* if */
+        break;
+      case stmk_while:
+      case stmk_end_test_while:
+        lower_c99_statement(statement->variant.loop_statement);
+        break;
+      case stmk_for:
+        { a_for_loop_ptr flp = statement->variant.for_loop.extra_info;
+          if (flp->initialization != NULL) {
+            a_statement_ptr init_stmt = flp->initialization, init_stmt_next;
+            lower_c99_statement(init_stmt);
+            /* If the initialization was rewritten as a sequence of statements,
+               make it into a block, because the stmk_for can only point at a
+               single statement. */
+            init_stmt_next = init_stmt->next;
+            if (init_stmt_next != NULL) {
+              init_stmt->next = NULL;
+              change_statement_into_block(init_stmt, &init_stmt);
+              init_stmt->next = init_stmt_next;
+            }  /* if */
           }  /* if */
-        }  /* if */
-        if (flp->increment != NULL) {
-          lower_c99_full_expr(flp->increment);
-        }  /* if */
-      }
-      lower_c99_statement(statement->variant.for_loop.statement);
-      break;
-    case stmk_block:
-      { a_context context;
-        a_scope_ptr scope = statement->variant.block.extra_info->assoc_scope;
-        if (scope != NULL) {
-          /* The block has an associated scope.  Push it. */
-          push_context(&context, scope, (an_object_lifetime_ptr)NULL);
-        }  /* if */
-        lower_c99_statement_list(statement->variant.block.statements);
-        if (scope != NULL) pop_context();
-      }
-      break;
-    case stmk_switch:
-      { a_switch_clause_ptr scp;
-        /* Walk the switch clause list. */
-        for (scp = statement->variant.switch_stmt.clause_list;
-             scp != NULL;
-             scp = scp->next) {
-          lower_c99_constant_list(scp->constant_list);
-          lower_c99_statement_list(scp->statements);
-        }  /* for */
-      }
-      lower_c99_statement(statement->variant.switch_stmt.body_statement);
-      break;
-    case stmk_init:
-      lower_c99_stmk_init(statement);
-      break;
-    default:
-      unexpected_condition_str("lower_c99_statement: bad statement kind");
-  }  /* switch */
-  if (temp_init_statements != NULL) {
-    /* Insert statements generated for lowering of compound literals.
-       They are inserted preceding the current statement. */
-    an_insert_location insert_location;
-    a_statement_ptr    orig_stmt;
-    change_statement_into_block(statement, &orig_stmt);
-    set_block_start_insert_location(statement, &insert_location);
-    while (temp_init_statements != NULL) {
-      a_statement_ptr stmt = temp_init_statements;
-      temp_init_statements = stmt->next;
-      stmt->next = NULL;
-      insert_statement(stmt, &insert_location);
-    }  /* while */
+          if (flp->increment != NULL) {
+            lower_c99_full_expr(flp->increment);
+          }  /* if */
+        }
+        lower_c99_statement(statement->variant.for_loop.statement);
+        break;
+      case stmk_block:
+        { a_context context;
+          a_scope_ptr scope = statement->variant.block.extra_info->assoc_scope;
+          if (scope != NULL) {
+            /* The block has an associated scope.  Push it. */
+            push_context(&context, scope, (an_object_lifetime_ptr)NULL);
+          }  /* if */
+          lower_c99_statement_list(statement->variant.block.statements);
+          if (scope != NULL) pop_context();
+        }
+        break;
+      case stmk_switch:
+        { a_switch_clause_ptr scp;
+          /* Walk the switch clause list. */
+          for (scp = statement->variant.switch_stmt.clause_list;
+               scp != NULL;
+               scp = scp->next) {
+            lower_c99_constant_list(scp->constant_list);
+            lower_c99_statement_list(scp->statements);
+          }  /* for */
+        }
+        lower_c99_statement(statement->variant.switch_stmt.body_statement);
+        break;
+      case stmk_init:
+        lower_c99_stmk_init(statement);
+        break;
+      default:
+        unexpected_condition_str("lower_c99_statement: bad statement kind");
+    }  /* switch */
+    if (temp_init_statements != NULL) {
+      /* Insert statements generated for lowering of compound literals.
+         They are inserted preceding the current statement. */
+      an_insert_location insert_location;
+      a_statement_ptr    orig_stmt;
+      change_statement_into_block(statement, &orig_stmt);
+      set_block_start_insert_location(statement, &insert_location);
+      while (temp_init_statements != NULL) {
+        a_statement_ptr stmt = temp_init_statements;
+        temp_init_statements = stmt->next;
+        stmt->next = NULL;
+        insert_statement(stmt, &insert_location);
+      }  /* while */
+    }  /* if */
+    error_position = saved_error_position;
   }  /* if */
-  error_position = saved_error_position;
 }  /* lower_c99_statement */
 
 
