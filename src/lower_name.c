@@ -598,8 +598,8 @@ original form used an expression, which expr points to.
        ^----------- "O" for operation.
      mangled_encoding_for_expression generates a compatible structure, so
      if you change this be sure to change that as well.
-     For an expression case, the type is omitted, the operand count is 1,
-     and the expression follows that.
+     For an expression case, the type is omitted, the operation code is
+     followed by "e", the operand count is 1, and the expression follows that.
   */
   /* Put out the initial "O". */
   add_to_mangled_name('O', mctl);
@@ -621,6 +621,7 @@ original form used an expression, which expr points to.
      expression. */
   if (expr != NULL) {
     /* The expression form. */
+    add_to_mangled_name('e', mctl);
     /* Put out the count of operands (1) and the expression. */
     add_to_mangled_name('1', mctl);
     mangled_encoding_for_expression(expr, mctl);
