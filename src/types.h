@@ -348,8 +348,7 @@ extern a_boolean same_type_with_added_qualifiers
 
 extern
 a_boolean cast_removes_qualifiers(a_type_ptr	source_type,
-				  a_type_ptr	dest_type,
-				  a_boolean	is_const_cast);
+				  a_type_ptr	dest_type);
 
 /*
 Description of a standard conversion (implicit or explicit), or at least

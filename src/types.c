@@ -2670,13 +2670,10 @@ can be NULL if the caller does not need this flag returned.
 
 
 a_boolean cast_removes_qualifiers(a_type_ptr	source_type,
-				  a_type_ptr	dest_type,
-				  a_boolean	is_const_cast)
+				  a_type_ptr	dest_type)
 /*
 Return TRUE if a cast from source_type to dest_type is a cast to
-the same type but with fewer qualifiers.  When is_const_cast is
-TRUE, return TRUE also if source_type and dest_type refer to the same
-type (i.e., no conversion is necessary).  source_type and dest_type
+the same type but with fewer qualifiers.  source_type and dest_type
 are expected to both be pointers, both be references, or both be
 pointers-to-member, otherwise we return FALSE.
 */
@@ -2709,10 +2706,8 @@ pointers-to-member, otherwise we return FALSE.
         &qualifiers_added)) {
       /* When qualification_conversion_possible returns TRUE, qualifiers may
          have been added, or the two types could have been the same.
-         If the types are the same, qualifiers_added will be FALSE.  This
-         case should only cause result to be TRUE when is_const_cast is
-         TRUE." */
-      result = qualifiers_added || is_const_cast;
+         If the types are the same, qualifiers_added will be FALSE. */
+      result = qualifiers_added;
    }  /* if */
   }  /* if */
   return result;
