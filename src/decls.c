@@ -38,6 +38,7 @@ decls.c -- Scanning of declarations.
 
 /* Declarations required because of mutual recursion. */
 static void declaration(a_boolean      function_definition_allowed,
+                        a_boolean      extern_implied,
                         a_param_id_ptr param_id_list);
 
 
@@ -1244,8 +1245,6 @@ scope is that of a class definition.
         }  /* if */
       }  /* if */
       do {
-        an_extern_linkage  dummy_linkage;
-
         add_stop_token(tok_comma);
         copy_source_position(pos_curr_token, param_type_pos);
         /* Scan a parameter-declaration. */
@@ -1253,7 +1252,7 @@ scope is that of a class definition.
                                DSI_TYPE_SPECIFIER_ALLOWED |
                                DSI_IS_PARAMETER),
 			      &dso_flags, &param_storage_class,
-                              &param_type_ptr, &dummy_linkage);
+                              &param_type_ptr);
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
         defines_something = dso_flags & DSO_DEFINES_SOMETHING;
         if ((dso_flags & DSO_JUST_VOID) &&
@@ -1481,13 +1480,11 @@ scope is that of a class definition.
          for a const or volatile qualifier. */
       a_storage_class    dummy_storage_class;
       a_type_ptr         dummy_type_ptr;
-      an_extern_linkage  dummy_linkage;
       a_source_position  qualifier_pos;
 
       copy_source_position(pos_curr_token, qualifier_pos);
       (void)decl_specifiers(DSI_NO_INPUT_FLAGS, &dso_flags,
-                            &dummy_storage_class, &dummy_type_ptr,
-                            &dummy_linkage);
+                            &dummy_storage_class, &dummy_type_ptr);
       /* If this is not a member function or it is but it is a static member
          function declared within a class definition, a qualifier on the
          function is illegal (ARM 8.2.5).  Further, a const or volatile
@@ -2513,7 +2510,6 @@ void decl_var_or_routine(a_symbol_locator      *locator,
                          a_boolean             is_implicit_function,
                          a_boolean             is_function_def_with_body,
                          a_boolean             inline_specified,
-                         an_extern_linkage     external_linkage,
                          a_symbol_ptr          *symbol_ptr,
                          an_id_linkage_kind    *linkage_ptr,
                          a_type_ptr            *old_type,
@@ -2903,12 +2899,19 @@ otherwise, set *ext_sym to NULL.
     /* Indicate in the IL entry that the name is externally visible by
        assigning the external linkage kind that is the default for the current
        context. */
-    if (source_corresp_ptr->name_linkage == (a_name_linkage_kind)nlk_none) {
+    if (is_function && storage_class == (a_storage_class)sc_unspecified &&
+        routine_ptr->source_corresp.name != NULL &&
+        strcmp(routine_ptr->source_corresp.name, "main") == 0) {
+      /* This is "main", which is always given "C" linkage. */
+      source_corresp_ptr->name_linkage = (a_name_linkage_kind)nlk_external;
+      sym->explicit_linkage_specifier = FALSE;
+    } else if (source_corresp_ptr->name_linkage ==
+                                         (a_name_linkage_kind)nlk_none) {
       /* No prior declaration, so there's no conflict. */
-      source_corresp_ptr->name_linkage = external_linkage.kind;
-      sym->explicit_linkage_specifier = external_linkage.is_explicit;
+      source_corresp_ptr->name_linkage = def_external_linkage.kind;
+      sym->explicit_linkage_specifier = def_external_linkage.is_explicit;
       if (overload_symbol != NULL &&
-          external_linkage.kind == (a_name_linkage_kind)nlk_external) {
+          def_external_linkage.kind == (a_name_linkage_kind)nlk_external) {
         /* "At most one of a set of overloaded functions . . . can have
            C linkage" (ARM 7.4).  Search for conflicts. */
         a_symbol_ptr  sp;
@@ -2930,16 +2933,16 @@ otherwise, set *ext_sym to NULL.
          override the previous specification, but we need to be sure the
          current one is consistent with it. */
       a_boolean  err = FALSE;
-      if (source_corresp_ptr->name_linkage == external_linkage.kind) {
+      if (source_corresp_ptr->name_linkage == def_external_linkage.kind) {
         /* The linkage kinds (C or C++) are the same; however, the ARM states,
            "A function declaration without a linkage specification may not
            precede the first linkage specification for that function." */
         err = (!sym->explicit_linkage_specifier &&
-               external_linkage.is_explicit);
+               def_external_linkage.is_explicit);
       } else {
         /* Linkage is not the same, but it's no error as long as the current
            specification is implicit. */
-        err = external_linkage.is_explicit;
+        err = def_external_linkage.is_explicit;
       }  /* if */
       if (err) {
         /* The ARM specifies that inconsistencies are errors for functions but
@@ -3389,7 +3392,7 @@ symbol has already been entered as an undefined symbol.
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
                       /*is_implicit_function=*/TRUE,
                       /*is_function_def_with_body=*/FALSE,
-                      /*inline_specified=*/FALSE, def_external_linkage,
+                      /*inline_specified=*/FALSE,
                       &symbol_ptr, &linkage, &old_type, &ext_sym);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
@@ -3586,11 +3589,9 @@ Only the first form is accepted in C.
       a_decl_flag_set    dso_flags;
       a_storage_class    dummy_storage_class;
       a_type_ptr         dummy_type_ptr;
-      an_extern_linkage  dummy_linkage;
 
       (void)decl_specifiers(DSI_NO_INPUT_FLAGS, &dso_flags,
-                            &dummy_storage_class, &dummy_type_ptr,
-                            &dummy_linkage);
+                            &dummy_storage_class, &dummy_type_ptr);
       /* Note -- the check for dangling_type_specifier is not relevant here. */
       complete_type = make_qualified_type(complete_type,
 				          dso_flags & DSO_CONST_QUALIFIED,
@@ -4548,8 +4549,7 @@ been determined, determine it now.
 a_boolean decl_specifiers(a_decl_flag_set       input_flags,
                           a_decl_flag_set       *output_flags,
                           a_storage_class       *storage_class,
-                          a_type_ptr            *type_ptr,
-                          an_extern_linkage     *linkage_specifier)
+                          a_type_ptr            *type_ptr)
 /*
 Scan a list of declaration specifiers.  Specifically, scan a
 declaration-specifiers (3.5), a specifier_qualifier_list (3.5.2.1), or
@@ -4662,7 +4662,6 @@ Returns TRUE if there is an error in the specifiers.
   *output_flags = DSO_NO_OUTPUT_FLAGS;
   *storage_class = (a_storage_class)sc_unspecified;
   *type_ptr = NULL;
-  *linkage_specifier = def_external_linkage;
   void_first_specifier = (curr_token == tok_void);
   type_specifier_allowed = (input_flags & DSI_TYPE_SPECIFIER_ALLOWED);
   set_err_pos_to_curr_token();
@@ -4672,8 +4671,20 @@ Returns TRUE if there is an error in the specifiers.
   /* Loop for each declaration specifier. */
   for (;;) {
     switch (curr_token) {
-      case tok_typedef:
       case tok_extern:
+        if (C_dialect == C_dialect_cplusplus &&
+            next_token() == tok_string_literal) {
+          /* This is a C++ linkage specification, which is recognized and
+             ignored in this context -- except for the error that's put out. */
+          error(ec_linkage_specifier_not_allowed);
+	  err = TRUE;
+          /* Consume the string literal.  We don't bother validating it since
+             an error has already been issued. */
+          (void)get_token();
+          break;
+        }  /* if */
+        /* Otherwise drop through for normal storage class processing. */
+      case tok_typedef:
       case tok_static:
       case tok_auto:
       case tok_register:
@@ -4723,47 +4734,6 @@ Returns TRUE if there is an error in the specifiers.
               case tok_register:
                 *storage_class = (a_storage_class)sc_register; break;
             }  /* switch */
-          }  /* if */
-        }  /* if */
-        if (C_dialect == C_dialect_cplusplus && curr_token == tok_extern) {
-          /* Look for the C++ linkage specification, in which "extern" is
-             followed by string literal. */
-          if (next_token() == tok_string_literal) {
-	    /* Advance to the string literal. */
-	    (void)get_token();
-	    if (!(input_flags & DSI_LINKAGE_SPECIFIER_ALLOWED) ||
-		num_specifiers != 0) {
-	      /* Note that when a linkage specifier string appears "extern"
-                 must be the first specifier. */
-	      error(ec_linkage_specifier_not_allowed);
-	      err = TRUE;
-	    } else {
-	      /* A linkage specifier is permitted.  ARM 7.4 specifies that
-                 the strings "C" and "C++" must be supported, but that
-                 implementations are permitted to add others, such as "Ada" or
-                 "FORTRAN".  If changes are made here to support other strings,
-                 be sure to update the name linkage kind enumeration. */
-	      char *str = const_for_curr_token.variant.string.value;
-	      if (strcmp(str, "C") == 0) {
-		linkage_specifier->kind = (a_name_linkage_kind)nlk_external;
-                linkage_specifier->is_explicit = TRUE;
-	      } else if (strcmp(str, "C++") == 0) {
-		linkage_specifier->kind =
-                                (a_name_linkage_kind)nlk_cplusplus_external;
-                linkage_specifier->is_explicit = TRUE;
-	      } else {
-		error(ec_bad_linkage_specifier);
-		err = TRUE;
-	      }  /* if */
-	      /* When the linkage specifier is followed by a left brace, the
-		 linkage is applied to all the declarations encountered up to
-		 the closing brace.  Let the caller know (to distinguish a
-		 legal construct from, e.g., ``extern "C" int {'', which is a
-                 syntax error). */
-	      if (next_token() == tok_lbrace) {
-		*output_flags |= DSO_LINKAGE_SPECIFIER_BLOCK;
-	      }  /* if */
-	    }  /* if */
           }  /* if */
         }  /* if */
         break;
@@ -4954,12 +4924,6 @@ process_class_specifier:
           error(ec_type_specifier_not_allowed);
           err = TRUE;
         } else {
-          /* If this class was declared with a particular external linkage,
-             update the global state to reflect that to allow that linkage
-             specifier to propagate during class definition processing. */
-          an_extern_linkage  saved_linkage;
-          saved_linkage = def_external_linkage;
-          def_external_linkage = *linkage_specifier;
           if (basic_type == bt_none) {
             if (!class_specifier(/*first_specifier=*/(num_specifiers == 0),
                                  is_friend_decl, type_ptr,
@@ -4979,7 +4943,6 @@ process_class_specifier:
                                   /*is_friend_decl=*/FALSE, &dummy_type,
                                   &dummy_flag, &dummy_flag);
           }  /* if */
-          def_external_linkage = saved_linkage;
           goto no_get_token;
         }  /* if */
         break;
@@ -5630,13 +5593,12 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
   a_decl_flag_set           dso_flags, do_flags;
   a_type_ptr                bottom_derived_type;
   a_source_position         start_pos;
-  an_extern_linkage         dummy_linkage;
 
   db_enter(3, "type_name");
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
-			&storage_class, type_ptr, &dummy_linkage);
+			&storage_class, type_ptr);
   if (C_dialect == C_dialect_cplusplus && dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
@@ -5678,15 +5640,13 @@ syntax is:
   a_decl_flag_set       dso_flags;
   a_source_position     start_pos;
   a_storage_class       storage_class;
-  an_extern_linkage     dummy_linkage;
 
   db_enter(3, "new_type_name");
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
   *dimension_expr = NULL;
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME,
-                        &dso_flags, &storage_class, &specifiers_type,
-                        &dummy_linkage);
+                        &dso_flags, &storage_class, &specifiers_type);
   if (C_dialect == C_dialect_cplusplus && dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
@@ -5740,7 +5700,6 @@ locator, and return TRUE.  If it doesn't, return FALSE.
   a_decl_flag_set           dso_flags;
   a_type_ptr                specifiers_type, complete_type;
   a_type_ptr                bottom_derived_type = NULL;
-  an_extern_linkage         dummy_linkage;
   a_source_position         type_pos;
   a_boolean                 is_conversion_operator;
 
@@ -5751,7 +5710,7 @@ locator, and return TRUE.  If it doesn't, return FALSE.
     set_err_pos_to_curr_token();
     copy_source_position(pos_curr_token, type_pos);
     (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
-                          &storage_class, &specifiers_type, &dummy_linkage);
+                          &storage_class, &specifiers_type);
     if (C_dialect == C_dialect_cplusplus &&
         (dso_flags & DSO_DEFINES_SOMETHING)) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
@@ -5899,8 +5858,7 @@ static void function_definition(
                           a_func_info_block  *func_info,
                           a_storage_class    storage_class,
                           a_boolean          inline_specified,
-                          a_boolean          has_explicit_type_specifier,
-                          an_extern_linkage  external_linkage)
+                          a_boolean          has_explicit_type_specifier)
 /*
 Scan a function definition.  The declarator has already been scanned; the
 old-style parameter declarations and the compound statement for the body
@@ -5998,8 +5956,7 @@ explicitly specified (rather than defaulted to "int").
   } else {
     decl_var_or_routine(locator, storage_class, rout_type,
                         /*is_implicit_function=*/FALSE,
-                        /*is_function_def_with_body=*/TRUE,
-                        inline_specified, external_linkage,
+                        /*is_function_def_with_body=*/TRUE, inline_specified,
                         &symbol_ptr, &linkage, &old_type, &ext_sym);
   }  /* if */
   symbol_ptr->defined = TRUE;
@@ -6073,7 +6030,8 @@ explicitly specified (rather than defaulted to "int").
       while (is_decl_start() || curr_token == tok_identifier) {
         /* This declaration is checked to make sure the identifier is on the
            param_id_list. */
-        declaration(/*function_definition_allowed=*/FALSE, param_id);
+        declaration(/*function_definition_allowed=*/FALSE, 
+                    /*extern_implied=*/FALSE, param_id);
       }  /* while */
       /* Switch back to the memory region for the current routine body. */
       switch_il_region(function_memory_region);
@@ -6409,6 +6367,90 @@ is present when a "=" is not there.
 }  /* is_initializer_start */
 
 
+static a_boolean linkage_specification(a_boolean  function_definition_allowed,
+                                       a_param_id_ptr  param_id_list)
+/*
+The caller has determined that we are at the start of a C++ linkage
+specification -- that is, the current token is "extern" and it is followed
+by a string literal.  The syntax (from ARM 7.4) is:
+
+  linkage-specification:
+      extern string-literal { declaration-list    }
+                                              opt
+      extern string-literal declaration
+
+Since linkage specifications nest, the current linkage specifier is saved
+in in a local variable, the new one is established by updating a global
+variable, the declaration(s) are processed, and then the original linkage
+specifier is restored.
+*/
+{
+  an_extern_linkage  saved_linkage;
+  char               *str;
+  a_boolean          err = FALSE;
+
+  db_enter(3, "linkage_specification");
+  if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
+    error(ec_linkage_specifier_not_allowed);
+    err = TRUE;
+  }  /* if */
+  /* Advance to the string literal. */
+  (void)get_token();
+  str = const_for_curr_token.variant.string.value;
+  /* ARM 7.4 specifies that the strings "C" and "C++" must be supported,
+     but that implementations are permitted to add others, such as "Ada"
+     or "FORTRAN".  If changes are made here to support other strings, be
+     sure to update the name linkage kind enumeration. */
+  /* Save the current default linkage. */
+  saved_linkage = def_external_linkage;
+  if (strcmp(str, "C") == 0) {
+    if (!err) {
+      def_external_linkage.kind = (a_name_linkage_kind)nlk_external;
+      def_external_linkage.is_explicit = TRUE;
+    }  /* if */
+  } else if (strcmp(str, "C++") == 0) {
+    if (!err) {
+      def_external_linkage.kind =
+			     (a_name_linkage_kind)nlk_cplusplus_external;
+      def_external_linkage.is_explicit = TRUE;
+    }  /* if */
+  } else {
+    /* Leave def_external_linkage unmodified. */
+    error(ec_bad_linkage_specifier);
+  }  /* if */
+  (void)get_token();
+  /* If a brace enclosed declaration list follows, call declaration
+     repeatedly.  If no brace follows, call declaration just once to pick
+     up the rest of the current declaration. */
+  if (curr_token == tok_lbrace) {
+    /* Advance past the left brace. */
+    (void)get_token();
+    add_stop_token(tok_rbrace);
+    /* Go through the declarations. */
+    while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
+      declaration(function_definition_allowed, /*extern_implied=*/FALSE,
+                  param_id_list);
+    }  /* while */
+    remove_stop_token(tok_rbrace);
+    (void)required_token(tok_rbrace, ec_exp_rbrace);
+  } else {
+    /* Just one declaration is governed by this linkage specifier.  If no
+       storage class is specified it is as though "extern" were specified --
+       this is an interpretation of the sentence in ARM 7.4 asserting, "An
+       object defined withing an `extern "C" {...}' construct is still defined
+       and not just declared," and of the example following it, where without
+       the braces the variable is not defined. */
+    declaration(function_definition_allowed, /*extern_implied=*/TRUE,
+                param_id_list);
+  }  /* if */
+  /* Restore the default linkage to the value it had before the declaration
+     (or declaration list) was processed. */
+  def_external_linkage = saved_linkage;
+
+  db_exit();
+}  /* linkage_specification */
+
+
 /*
 Local macro for the routine "declaration".  Does any remove_stop_token
 calls that have not yet been done.  Useful in ensuring that all the stop
@@ -6436,6 +6478,7 @@ error cases.
 
 
 static void declaration(a_boolean      function_definition_allowed,
+                        a_boolean      extern_implied,
                         a_param_id_ptr param_id_list)
 /*
 Scan a declaration (standard, 3.5).  If function_definition_allowed is TRUE,
@@ -6501,19 +6544,24 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean         need_comma_remove_stop_token     = FALSE;
   a_boolean         need_assign_remove_stop_token    = FALSE;
   a_boolean         need_lbrace_remove_stop_token    = FALSE;
-  an_extern_linkage external_linkage, local_external_linkage;
 #if ASM_FUNCTION_ALLOWED
   a_boolean         is_asm_function = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
 
   db_enter(3, "declaration");
 
+  set_err_pos_to_curr_token();
+  copy_source_position(pos_curr_token, decl_start_pos);
+  if (C_dialect == C_dialect_cplusplus &&
+      curr_token == tok_extern && next_token() == tok_string_literal) {
+    /* This looks like a C++ linkage specification, which is "extern"
+       followed by a string literal (e.g., "C++" or "C"). */
+    linkage_specification(function_definition_allowed, param_id_list);
+    goto return_point;
+  }  /* if */
   add_stop_token(tok_semicolon);
   need_semicolon_remove_stop_token = TRUE;
   is_parameter = (param_id_list != NULL);
-
-  set_err_pos_to_curr_token();
-  copy_source_position(pos_curr_token, decl_start_pos);
 #if ASM_FUNCTION_ALLOWED
   /* Check for "asm", which indicates the start of an asm function.
      "asm" is not a keyword.  It's recognized here as an identifier
@@ -6538,9 +6586,6 @@ of local variables (and types, etc.) of functions and in blocks.
     dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
     /* "inline" is allowed only on function declarations at file scope. */
     dsi_flags |= DSI_INLINE_ALLOWED;
-    /* A linkage specification, such as ``extern "C"'', is allowed only at
-       file scope. */
-    dsi_flags |= DSI_LINKAGE_SPECIFIER_ALLOWED;
   }  /* if */
   /* Scan the initial declaration specifiers (including storage class,
      type specifiers, and type qualifiers).  For a function definition,
@@ -6573,8 +6618,7 @@ of local variables (and types, etc.) of functions and in blocks.
   }  /* if */
 continue_with_declaration:
   /* Scan the specifiers. */
-  err = decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr,
-                        &external_linkage);
+  err = decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr);
   has_explicit_type_specifier = dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
   declares_something = dso_flags & DSO_DECLARES_SOMETHING;
   defines_something = dso_flags & DSO_DEFINES_SOMETHING;
@@ -6688,28 +6732,6 @@ continue_with_declaration:
     set_err_pos_to_curr_token();
     error(ec_exp_semicolon);
     goto return_point;
-  } else if (curr_token == tok_lbrace &&
-             (dso_flags & DSO_LINKAGE_SPECIFIER_BLOCK)) {
-    /* We have just scanned a linkage specifier that was followed by a left
-       brace.  The linkage specified becomes the default external linkage
-       for all the declarations enclosed within the braces. */
-    /* Save the current default linkage. */
-    an_extern_linkage  saved_linkage;
-    saved_linkage = def_external_linkage;
-    def_external_linkage = external_linkage;
-    /* Advance past the left brace. */
-    (void)get_token();
-    add_stop_token(tok_rbrace);
-    /* Go through the declarations. */
-    while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
-      declaration(function_definition_allowed, param_id_list);
-    }  /* while */
-    remove_stop_token(tok_rbrace);
-    (void)required_token(tok_rbrace, ec_exp_rbrace);
-    /* Restore default linkage to the value it had before the declaration
-       list was processed. */
-    def_external_linkage = saved_linkage;
-    goto return_point;
   } else if (curr_token == tok_void && C_dialect == C_dialect_pcc && 
              storage_class == (a_storage_class)sc_typedef &&
              next_token() == tok_semicolon) {
@@ -6753,14 +6775,8 @@ continue_with_declaration:
                     storage_class == (a_storage_class)sc_extern) &&
                  (locator.specific_symbol == NULL ||
                     locator.specific_symbol->class_of_which_a_member == NULL));
-      if (is_main_function) {
-        if (external_linkage.is_explicit) {
-          pos_warning(ec_linkage_specifier_not_allowed, &declarator_pos);
-        }  /* if */
-        local_external_linkage.kind = (a_name_linkage_kind)nlk_external;
-        local_external_linkage.is_explicit = FALSE;
-      } else {
-        local_external_linkage = external_linkage;
+      if (is_main_function && def_external_linkage.is_explicit) {
+        pos_warning(ec_linkage_specifier_not_allowed, &declarator_pos);
       }  /* if */
       has_parenthesized_initializer = do_flags & DO_PARENTHESIZED_INITIALIZER;
       /* top_declarator_type_is_function is TRUE if the fact that this is a
@@ -6870,8 +6886,7 @@ continue_with_declaration:
         function_definition(&locator, local_type_ptr, 
                             top_declarator_type_is_function, &func_info,
                             local_storage_class, inline_specified,
-                            has_explicit_type_specifier,
-                            local_external_linkage);
+                            has_explicit_type_specifier);
         goto return_point;
       }  /* if */
       /* Not a function definition, must be a declaration. */
@@ -6980,6 +6995,11 @@ continue_with_declaration:
               /* We are not at file scope, so an unspecified storage class
                  means auto. */
               local_storage_class = (a_storage_class)sc_auto;
+            } else if (extern_implied) {
+              /* This must be part of an linkage specification declaration.
+                 An "extern" storage class is implied (ARM 7.4, comment on
+                 p. 118). */
+              local_storage_class = (a_storage_class)sc_extern;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -7009,8 +7029,8 @@ continue_with_declaration:
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
                             /*is_implicit_function=*/FALSE,
                             /*is_function_def_with_body=*/FALSE,
-                            inline_specified, local_external_linkage,
-                            &symbol_ptr, &linkage, &old_type, &ext_sym);
+                            inline_specified, &symbol_ptr, &linkage,
+                            &old_type, &ext_sym);
         /* Fetch the storage class again, which might have been changed if
            this is a file scope redeclaration of an extern const variable. */
         if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
@@ -7163,7 +7183,8 @@ void local_declaration(void)
 Scan a block-level declaration.
 */
 {
-  declaration(/*function_definition_allowed=*/FALSE, (a_param_id_ptr)NULL);
+  declaration(/*function_definition_allowed=*/FALSE,
+              /*extern_implied=*/FALSE, (a_param_id_ptr)NULL);
 }  /* local_declaration */
 
 
@@ -7187,7 +7208,7 @@ a compilation.  The syntax is
   } else {
     do {
       declaration(/*function_definition_allowed=*/TRUE,
-                  (a_param_id_ptr)NULL);
+                  /*extern_implied=*/FALSE, (a_param_id_ptr)NULL);
     } while (curr_token != tok_end_of_source);
   }  /* if */
 }  /* translation_unit */
