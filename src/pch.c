@@ -335,6 +335,7 @@ Initialize variables used by the precompiled header routines.
   pch_event_list_head = NULL;
   pch_event_list_tail = NULL;
   building_pch_prefix = FALSE;
+  header_stop_source_position = null_source_position;
 #if DEBUG
   num_pch_events_allocated = 0;
 #endif /* DEBUG */
