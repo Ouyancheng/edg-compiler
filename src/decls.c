@@ -3755,7 +3755,7 @@ to NULL.
            second test for compatibility after old-style parameter
            declarations are scanned, if this declaration has a body (see
            function_definition). */
-        if (C_dialect != C_dialect_cplusplus &&
+        if ((C_dialect != C_dialect_cplusplus || is_main_function) &&
             !types_are_compatible(routine_ptr->type, type_ptr)) {
           pos_sy_error(ec_not_compatible_with_previous_decl,
                        &locator->source_position, linked_symbol);
