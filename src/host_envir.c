@@ -96,10 +96,10 @@ typedef int a_signal_handler_return_value;
 #endif /* defined(SIGNAL_HANDLER_RETURNS_VOID) */
 
 #include <errno.h>
-#if __ANSIC__
+#if __ANSIC__ || defined(__cplusplus)
 /* Files that are included for functions that conform to ANSI C libraries. */
 #include <stdlib.h>
-#else /* __ANSIC__ */
+#else /* !(__ANSIC__ || defined(__cplusplus) */
 EXTERN_C char *getenv(char *name);
 EXTERN_C int abort(void);
 EXTERN_C void exit(int status);
@@ -107,7 +107,7 @@ EXTERN_C void exit(int status);
 /* BSD errno.h doesn't define "errno". */
 EXTERN_C int errno;
 #endif /* __BSD__ */
-#endif /* __ANSIC__ */
+#endif /* __ANSIC__ || defined(__cplusplus) */
 
 /*
 Header files needed to use the system routines to get the elapsed clock
@@ -151,7 +151,9 @@ directory.  getwd is used on BSD, getcwd on other systems.
 #else /* !__MSDOS___ */
 #if __BSD__
 #include <sys/param.h>
-extern char* getwd(char *pathname);
+#if !defined(__cplusplus)
+EXTERN_C char* getwd(char *pathname);
+#endif /* !defined(__cplusplus) */
 #define USE_GETCWD 0
 #else /* !__BSD__ */
 #include <unistd.h>
@@ -1468,7 +1470,7 @@ not return.
 
 
 /*ARGSUSED*/ /* <-- Because "sig" is not used. */
-static a_signal_handler_return_value term_on_signal(int sig)
+static a_signal_handler_return_value term_on_signal(int sig, ...)
 /*
 Routine set up as a signal handler, called to terminate compilation on
 receipt of a signal.
@@ -2264,7 +2266,7 @@ incremental_size must be a multiple of the page size.
 #include <sys/mman.h>
 
 #if __BSD__
-extern int getpagesize(void);
+EXTERN_C int getpagesize(void);
 #endif /* __BSD__ */
 
 #if defined(__hpux) || defined(__AIX__)
@@ -2334,14 +2336,14 @@ page size.
       /* Suppress the CodeCenter warning that an invalid pointer is being
          passed. */
       /*SUPPRESS 71 */
-      addr = (a_void_ptr)mmap(map_address,
-                              incremental_size,
-                              PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_FIXED,
-                              mmap_file_number, (off_t)file_offset);
+      addr = (caddr_t)mmap((caddr_t)map_address,
+                           incremental_size,
+                           PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_FIXED,
+                           mmap_file_number, (off_t)file_offset);
 #else /* !USE_FIXED_ADDRESS_FOR_MMAP */
-      addr = (a_void_ptr)mmap((char*)0, incremental_size + 1,
-                              PROT_WRITE | PROT_READ, MAP_PRIVATE,
-                              mmap_file_number, (off_t)file_offset);
+      addr = (caddr_t)mmap((char*)0, incremental_size + 1,
+                           PROT_WRITE | PROT_READ, MAP_PRIVATE,
+                           mmap_file_number, (off_t)file_offset);
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 #if DEBUG
       if (debug_level >= 4) {
@@ -2373,7 +2375,7 @@ file to a memory region.
   int		fd = fileno(file);
   a_void_ptr	result_addr;
 
-  result_addr = (a_void_ptr)mmap(address, size,
+  result_addr = (a_void_ptr)mmap((caddr_t)address, size,
                             PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_FIXED,
                             fd, (off_t)offset);
   /* mmap returns (cresult_addr_t)-1 if the operation fails. */
@@ -2393,8 +2395,10 @@ file to a memory region.
 
 
 #if __BSD__
+#if !defined(__cplusplus)
 /* Some BSD systems (e.g., SunOS 4.1.3) don't declare munmap. */
-extern int munmap(caddr_t addr, sizeof_t size);
+EXTERN_C int munmap(caddr_t addr, sizeof_t size);
+#endif /* !defined(__cplusplus) */
 #endif /* __BSD__ */
 
 
@@ -2404,7 +2408,7 @@ void unmap_memory(a_void_ptr	addr,
 Unmap a block of previously mapped memory.
 */
 {
-  if (munmap(addr, size) != 0) {
+  if (munmap((caddr_t)addr, size) != 0) {
     unexpected_condition_str("unmap_memory: munmap failed\n");
   }  /* if */
 }  /* unmap_memory */
