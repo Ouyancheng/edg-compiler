@@ -1736,6 +1736,19 @@ translation unit.  Do merging of minor information.
                            primary_type->variant.class_struct_union.extra_info;
 
   check_assertion(ctsp != NULL && primary_ctsp != NULL);
+#if DEBUG
+  if (db_trace("friendship", type, iek_type)) {
+    fprintf(f_debug, "Merging befriending lists:\n");
+    db_entity_info((char *)type, iek_type);
+    fprintf(f_debug, "befriending_classes list:\n");
+    db_class_list(type->variant.class_struct_union.
+                                              extra_info->befriending_classes);
+    db_entity_info((char *)primary_type, iek_type);
+    fprintf(f_debug, "befriending_classes list:\n");
+    db_class_list(primary_type->variant.class_struct_union.
+                                              extra_info->befriending_classes);
+  }  /* if */
+#endif /* DEBUG */
   merge_befriending_classes_lists(&primary_ctsp->befriending_classes,
                                   ctsp->befriending_classes);
 }  /* merge_class_details */
@@ -1749,6 +1762,17 @@ or is otherwise being merged with, the routine rout from a secondary
 translation unit.  Do merging of minor information.
 */
 {
+#if DEBUG
+  if (db_trace("friendship", rout, iek_routine)) {
+    fprintf(f_debug, "Merging befriending lists:\n");
+    db_entity_info((char *)rout, iek_routine);
+    fprintf(f_debug, "befriending_classes list:\n");
+    db_class_list(rout->befriending_classes);
+    db_entity_info((char *)primary_rout, iek_routine);
+    fprintf(f_debug, "befriending_classes list:\n");
+    db_class_list(primary_rout->befriending_classes);
+  }  /* if */
+#endif /* DEBUG */
   merge_befriending_classes_lists(&primary_rout->befriending_classes,
                                   rout->befriending_classes);
 }  /* merge_routine_details */

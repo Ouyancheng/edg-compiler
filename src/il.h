@@ -1078,6 +1078,8 @@ extern void db_entity_info(char             *entry,
 
 extern void db_access_control(an_access_specifier as);
 
+extern void db_class_list(a_class_list_entry_ptr list);
+
 extern void db_constant(a_constant *cp);
 
 extern void db_type(a_type *tp);

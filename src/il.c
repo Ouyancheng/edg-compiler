@@ -11872,6 +11872,31 @@ list of its parent.  If olp is NULL, do nothing.
   }  /* if */
 }  /* detach_from_object_lifetime_tree */
 
+#if DEBUG
+
+void db_class_list(a_class_list_entry_ptr list)
+/*
+Display a class list for debugging purposes.
+*/
+{
+  if (list == NULL) {
+    fprintf(f_debug, "<empty class list>");
+  } else {
+    a_boolean              secondary = in_secondary_trans_unit(list);
+    a_class_list_entry_ptr entry;
+    for (entry = list; entry != NULL; entry = entry->next) {
+      if (secondary != in_secondary_trans_unit(entry)) {
+        (void)fprintf(f_debug, "***switch between translation units***\n");
+        secondary = !secondary;
+      }  /* if */
+      db_abbreviated_type(entry->class_type);
+      fprintf(f_debug, "\n");
+    }  /* for */
+  }  /* if */
+}  /* db_class_list */
+
+#endif /* DEBUG */
+
 #if MAINTAIN_NEEDED_FLAGS
 
 static void eliminate_references_from_befriended_entities(
@@ -11919,11 +11944,14 @@ cleared.
         if (clep->class_type == class_type) {
 #if DEBUG
           if (debug_level >= 4 ||
-              db_trace("dump_elim", friend_class, iek_type)) {
+              db_trace("dump_elim", friend_class, iek_type) ||
+              db_trace("friendship", friend_class, iek_type)) {
             db_type_name(friend_class);
             fputs(" no longer befriended by ", f_debug);
             db_type_name(class_type);
             fputc('\n', f_debug);
+            fprintf(f_debug, "befriending_classes of friend class:\n");
+            db_class_list(friend_ctsp->befriending_classes);
           }  /* if */
 #endif /* DEBUG */
           /* A match -- link around it. */
@@ -11947,6 +11975,8 @@ cleared.
         fprintf(f_debug, "\nfriend class: ");
         db_abbreviated_type(friend_class);
         fprintf(f_debug, "\n");
+        fprintf(f_debug, "befriending_classes of friend class:\n");
+        db_class_list(friend_ctsp->befriending_classes);
 #endif /* DEBUG */
         unexpected_condition_str2(
                "eliminate_references_from_befriended_entities",
@@ -11970,12 +12000,15 @@ cleared.
         /* A match -- link around it. */
 #if DEBUG
           if (debug_level >= 4 ||
-              db_trace("dump_elim", friend_rout, iek_routine)) {
+              db_trace("dump_elim", friend_rout, iek_routine) ||
+              db_trace("friendship", friend_rout, iek_routine)) {
             fputs("Routine ", f_debug);
             db_name_full(&friend_rout->source_corresp, iek_routine);
             fputs(" no longer befriended by ", f_debug);
             db_type_name(class_type);
             fputc('\n', f_debug);
+            fprintf(f_debug, "befriending_classes of friend routine:\n");
+            db_class_list(friend_rout->befriending_classes);
           }  /* if */
 #endif /* DEBUG */
         if (prev_clep == NULL) {
@@ -11998,6 +12031,8 @@ cleared.
       fprintf(f_debug, "\nfriend rout: ");
       db_name_full(&friend_rout->source_corresp, iek_routine);
       fprintf(f_debug, "\n");
+      fprintf(f_debug, "befriending_classes of friend rout:\n");
+      db_class_list(friend_rout->befriending_classes);
 #endif /* DEBUG */
         unexpected_condition_str2(
                "eliminate_references_from_befriended_entities",

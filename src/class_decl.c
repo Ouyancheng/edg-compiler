@@ -4850,6 +4850,24 @@ the current class (class_type).
       clep->class_type = friend_class_type;
       clep->next = ctsp->friend_classes;
       ctsp->friend_classes = clep;
+#if DEBUG
+      if (db_trace("friendship", class_type, iek_type) ||
+          db_trace("friendship", friend_class_type, iek_type)) {
+        db_abbreviated_type(friend_class_type);
+        fprintf(f_debug, " designated a friend of ");
+        db_abbreviated_type(class_type);
+        fprintf(f_debug, "\n");
+        fprintf(f_debug, "befriending_classes list of ");
+        db_abbreviated_type(friend_class_type);
+        fprintf(f_debug, "\n");
+        db_class_list(friend_class_type->variant.class_struct_union.
+                                              extra_info->befriending_classes);
+        fprintf(f_debug, "friend_classes list of ");
+        db_abbreviated_type(class_type);
+        db_class_list(class_type->variant.class_struct_union.
+                                                   extra_info->friend_classes);
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     {
@@ -5087,6 +5105,19 @@ a friend declaration.  This is used for template instantiations.
     rlep->routine = rout_ptr;
     rlep->next = ctsp->friend_routines;
     ctsp->friend_routines = rlep;
+#if DEBUG
+    if (db_trace("friendship", rout_ptr, iek_routine) ||
+        db_trace("friendship", class_type, iek_type)) {
+      db_name_full(&rout_ptr->source_corresp, iek_routine);
+      fprintf(f_debug, " designated a friend of ");
+      db_abbreviated_type(class_type);
+      fprintf(f_debug, "\n");
+      fprintf(f_debug, "befriending_classes list of ");
+      db_name_full(&rout_ptr->source_corresp, iek_routine);
+      fprintf(f_debug, "\n");
+      db_class_list(rout_ptr->befriending_classes);
+    }  /* if */
+#endif /* DEBUG */
   } else if (move_to_front) {
     if (prev_clep == NULL) {
       /* The entry is already on the front of the list. */
