@@ -1693,7 +1693,7 @@ template classes.
 #if IA64_ABI
 
 /*
-Information about a routine needed to call mangled_member_reference.
+Information about a routine needed to call mangled_entity_reference.
 This describes everything beyond the name field itself needed to
 name a routine, e.g., for conversion or operation functions.
 */
@@ -1708,21 +1708,22 @@ typedef struct a_routine_info_block {
 } a_routine_info_block;
 
 
-static void mangled_member_reference(
-                                    a_source_correspondence  *scp,
-                                    a_boolean                is_routine,
-                                    a_routine_info_block     *rinfo,
-                                    a_mangling_control_block *mctl)
+static void mangled_entity_reference(a_source_correspondence  *scp,
+                                     a_boolean                is_routine,
+                                     a_routine_info_block     *rinfo,
+                                     a_mangling_control_block *mctl)
 /*
-Add the encoding for a reference to a member in an expression, for
-the IA-64 ABI.  scp is the source correspondence of the member, which
+Add the encoding for a reference to an entity in an expression, for
+the IA-64 ABI.  scp is the source correspondence of the entity, which
 is a routine if is_routine is TRUE.  If rinfo != NULL, the entity
 is not a routine entry but it represents a routine, and rinfo points
 to the information describing it.
 */
 {
-  a_type_ptr parent_class = scp->parent.class_type;
-  a_boolean  use_sr = (rinfo != NULL || emulate_gnu_abi_bugs ||
+  a_type_ptr parent_class = (scp->is_class_member ? scp->parent.class_type :
+                                                    NULL);
+  a_boolean  use_sr = parent_class != NULL &&
+                      (emulate_gnu_abi_bugs ||
                        is_template_dependent_type(parent_class));
 
   if (use_sr) {
@@ -1769,7 +1770,7 @@ to the information describing it.
     }  /* if */
   } else {
     /* Use a name as a literal instead of "sr", because the parent class
-       is not dependent. */
+       is not dependent or the entity is not a class member. */
     add_str_to_mangled_name("L_Z", mctl);
     if (is_routine) {
       a_routine_ptr rout = (a_routine_ptr)scp;
@@ -1783,21 +1784,41 @@ to the information describing it.
       a_boolean need_nested_name_close = FALSE;
       mangled_ia64_parent_qualifier(scp, iek_none,
                                     &need_nested_name_close, mctl);
-      mangled_name_with_length(scp->name, mctl);
+      if (rinfo != NULL) {
+        /* Not a routine entry, but it represents a routine (this might be
+           the address of an overloaded function, and we can't tell which
+           specific function is to be used). */
+        mangled_function_base_name(scp,
+                                   rinfo->special_kind,
+                                   rinfo->opname_kind,
+                                   /*num_operands=*/0,
+                                   rinfo->conversion_type,
+                                   mctl);
+        if (rinfo->template_arg_list != NULL) {
+          /* Put out the template argument list. */
+          mangled_template_arguments(rinfo->template_arg_list,
+                                     /*partial_spec=*/FALSE,
+                                     /*old_form=*/FALSE,
+                                     mctl);
+        }  /* if */
+      } else {
+        /* Not a routine of any kind. */
+        mangled_name_with_length(scp->name, mctl);
+      }  /* if */
       close_ia64_nested_name(need_nested_name_close, mctl);
     }  /* if */
     add_to_mangled_name('E', mctl);
   }  /* if */
-}  /* mangled_member_reference */
+}  /* mangled_entity_reference */
 
 
-static void mangled_address_of_member(a_source_correspondence  *scp,
+static void mangled_address_of_entity(a_source_correspondence  *scp,
                                       a_boolean                is_routine,
                                       a_routine_info_block     *rinfo,
                                       a_mangling_control_block *mctl)
 /*
-Add to the mangled name the encoding for the address of a member, for
-the IA-64 ABI.  scp is the source correspondence of the member, which
+Add to the mangled name the encoding for the address of an entity, for
+the IA-64 ABI.  scp is the source correspondence of the entity, which
 is a routine if is_routine is TRUE.  If rinfo != NULL, the entity
 is not a routine entry but it represents one, and rinfo points to the
 information describing the routine.
@@ -1805,8 +1826,8 @@ information describing the routine.
 {
   /* Unary "&" encoding "ad". */
   add_str_to_mangled_name("ad", mctl);
-  mangled_member_reference(scp, is_routine, rinfo, mctl);
-}  /* mangled_address_of_member */
+  mangled_entity_reference(scp, is_routine, rinfo, mctl);
+}  /* mangled_address_of_entity */
 
 #endif /* IA64_ABI */
 
@@ -1942,7 +1963,7 @@ specification in the mangling for lengths of literals.
     }  /* if */
   }  /* if */
   if (scp != NULL) {
-    mangled_address_of_member(scp, /*is_routine=*/(rout != NULL),
+    mangled_address_of_entity(scp, /*is_routine=*/(rout != NULL),
                               (a_routine_info_block *)NULL, mctl);
   } else {
     /* We have a NULL pointer-to-member constant.  Although not allowed by the
@@ -2015,7 +2036,7 @@ has an explicit template argument list, given by template_arg_list.
     if (has_template_args) {
       rinfo.template_arg_list = template_arg_list;
     }  /* if */
-    mangled_address_of_member(&con->source_corresp, /*is_routine=*/FALSE,
+    mangled_address_of_entity(&con->source_corresp, /*is_routine=*/FALSE,
                               &rinfo, mctl);
   }
 #endif /* !IA64_ABI */
@@ -2147,7 +2168,7 @@ do_unknown_function:
             fill_in_length(&length_reservation, mctl);
           }
 #else /* IA64_ABI */
-          mangled_member_reference(&con->source_corresp,
+          mangled_entity_reference(&con->source_corresp,
                                    /*is_routine=*/FALSE,
                                    (a_routine_info_block *)NULL,
                                    mctl);
@@ -2172,7 +2193,7 @@ do_unknown_function:
                             con->variant.template_param.kind ==
                                   (a_template_param_constant_kind)tpck_member);
             scp = &con->source_corresp;
-            mangled_address_of_member(scp, /*is_routine=*/FALSE,
+            mangled_address_of_entity(scp, /*is_routine=*/FALSE,
                                       (a_routine_info_block *)NULL, mctl);
           }
 #endif /* IA64_ABI */
