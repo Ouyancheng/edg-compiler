@@ -62,11 +62,74 @@ static FILE	*f_pch_output;
 			/* File to which the precompiled header information
 			   is being written. */
 
+
+#define MAX_NUMBER_OF_SAVED_VARIABLE_LISTS 64
+			/* The number of saved variable lists that can be
+			   used.  One saved variable list entry will be used
+			   for each compiled source file containing variables
+			   to be saved. */
+
+static a_pch_saved_variable_ptr
+		saved_variable_array_list[MAX_NUMBER_OF_SAVED_VARIABLE_LISTS];
+			/* Array of pointers to arrays of saved variable
+			   lists.  Each element points to an array of
+			   saved variable entries. */
+
+static int	num_of_saved_variable_lists;
+			/* Number of entries in the saved variable array list
+			   that have been used. */
+
 #if DEBUG
 static long	num_pch_events_allocated;
 #endif /* DEBUG */
 
 			
+#define PCH_BUFFER_INITIAL_ALLOCATION 2048
+#define PCH_BUFFER_INCREMENTAL_ALLOCATION 1024
+			/* Initial and incremental allocation sizes for
+			   pch_buffer.  The initial allocation
+			   should be such that almost all cases can be
+			   accepted (so that the realloc is hardly ever
+			   needed). */
+
+/*
+Dynamically allocated buffer used to contain string that are used
+during precompiled header prefix comparisions.
+*/
+static char	*pch_buffer = NULL;
+			/* Not allocated on a per-file basis. */
+
+static sizeof_t	size_pch_buffer;
+			/* Current size of pch_buffer. */
+
+
+static void expand_pch_buffer(sizeof_t size_needed)
+/*
+Expand the pch_buffer by reallocating it, so that its total
+size is at least size_needed.  Called by ensure_pch_buffer_space.
+*/
+{
+  sizeof_t new_size;
+
+  new_size = size_pch_buffer +
+             PCH_BUFFER_INCREMENTAL_ALLOCATION;
+  if (new_size < size_needed) new_size  = size_needed;
+  pch_buffer = realloc_general(pch_buffer, size_pch_buffer, new_size);
+  size_pch_buffer = new_size;
+}  /* expand_pch_buffer */
+
+
+/*
+Ensure that pch_buffer has at least size_needed bytes in it.
+If not, expand pch_buffer by reallocating it.
+*/
+#define ensure_pch_buffer_space(size_needed)                 \
+{ if (size_pch_buffer < size_needed) {                       \
+    expand_pch_buffer((sizeof_t)(size_needed));              \
+  }  /* if */                                                          \
+}  /* ensure_pch_buffer_space */
+
+
 static void initialize_pch_id_string(void)
 /*
 Create the string that is used to identify a flag as a precompiled header
@@ -200,7 +263,7 @@ file.
   pch_event_list_tail = pep;
 #if DEBUG
   if (debug_level >= 4) {
-    fprintf(f_debug, "Added PCH event: %s, value=%s, line %0d, col %0d\n",
+    fprintf(f_debug, "Added PCH event: %s, value=%s, line %0ld, col %0d\n",
             pch_event_kind_names[(int)pep->kind],
             pep->value == NULL ? "(NULL)" : pep->value,
             pep->position.seq, pep->position.column);
@@ -284,6 +347,31 @@ information.
 }  /* build_prefix_information */
 
 
+#if 0
+static void compare_prefix_with_existing_headers(void)
+/*
+Compare the prefix information for this file with the prefix
+information for the other precompiled headers in the current
+directory.
+*/
+{
+  a_boolean	first;
+  char		*file_name;
+
+  db_enter(3, "compare_prefix_with_existing_headers");
+  for (first = TRUE;
+       (file_name = get_file_name_from_curr_dir(first)) == NULL;
+       first = FALSE) {
+#if 0
+    /* Make sure this is a regular file with a PCH suffix. */
+#endif /* 0 */
+    pch_input_file = fopen(file_name, "rb");
+  }  /* for */
+  db_exit();
+}  /* compare_prefix_with_existing_headers */
+#endif
+
+
 void precompiled_header_processing(void)
 /*
 This is the main routine responsible for precompiled header processing.
@@ -300,12 +388,15 @@ be used as part of the applicability check in subsequent compilations.
 {
   build_prefix_information();
 #if 0
+  compare_prefix_with_existing_headers();
+#endif
+#if 0
   write_precompiled_header_file();
 #endif
 }  /* precompiled_header_processing */
 
 
-static void open_pch_file(void)
+static void open_pch_output_file(void)
 /*
 Create or truncate the precompiled header file.
 */
@@ -323,7 +414,7 @@ Create or truncate the precompiled header file.
     str_command_line_error(ec_cl_cannot_open_pch_output_file,
                            pch_file_name);
   }  /* if */
-}  /* open_pch_file */
+}  /* open_pch_output_file */
 
 
 /*
@@ -393,7 +484,7 @@ Create a precompiled header file for the compilation up to the
 current point.
 */
 {
-  open_pch_file();
+  open_pch_output_file();
   /* Write the string that identifies this file as a precompiled header
      file. */
   (void)fputs(pch_id_string, f_pch_output);
@@ -401,6 +492,18 @@ current point.
   write_pch_events(pch_event_list_head);
   (void)fclose(f_pch_output);
 }  /* write_precompiled_header_file */
+
+
+void register_pch_saved_variables(a_pch_saved_variable array[])
+/*
+*/
+{
+  check_assertion_str2
+            (num_of_saved_variable_lists < MAX_NUMBER_OF_SAVED_VARIABLE_LISTS,
+             "register_pch_saved_variables:",
+             "too many saved variable lists");
+  saved_variable_array_list[num_of_saved_variable_lists++] = array;
+}  /* register_pch_saved_variables */
 
 
 void pch_init(void)
@@ -412,6 +515,10 @@ Initialize variables used by the precompiled header routines.
 #if DEBUG
   check_assertion(strcmp(pch_event_kind_names[(int)pchek_last], "last") == 0);
 #endif /* DEBUG */
+  if (pch_buffer == NULL) {
+    pch_buffer = (char *)alloc_general(PCH_BUFFER_INITIAL_ALLOCATION);
+    size_pch_buffer = PCH_BUFFER_INITIAL_ALLOCATION;
+  }  /* if */
   alloc_pch_memory_block();
   initialize_pch_id_string();
   cannot_do_pch_processing = FALSE;

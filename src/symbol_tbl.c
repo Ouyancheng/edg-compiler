@@ -8544,12 +8544,6 @@ for space tracking purposes.
 }  /* show_symbol_space_used */
 #endif /* DEBUG */
 
-#if 0
-#else
-/* This is a temporary stub. */
-/*ARGSUSED*/
-void register_pch_saved_variables(a_pch_saved_variable array[]) { }
-#endif /* if 0 */
 
 void symbol_tbl_one_time_init(void)
 /*
