@@ -400,6 +400,7 @@ Instantiate the body of the template function associated with tip.
     sym_error(ec_runaway_recursive_instantiation, rout_sym);
     goto done;
   }  /* if */
+  rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
   /* Set the linkage and storage class. */
   if (rout_sym->class_of_which_a_member != NULL) {
     /* Member functions are handled in check_class_linkage. */
@@ -409,13 +410,13 @@ Instantiate the body of the template function associated with tip.
       rout_ptr->storage_class = (a_storage_class)sc_static;
       rout_ptr->source_corresp.name_linkage =
                                   (a_name_linkage_kind)nlk_internal;
-    } else {
+    } else if (!rout_ptr->is_inline) {
+      /* Set the linkage for the definition of an externally linked routine. */
       rout_ptr->storage_class = (a_storage_class)sc_unspecified;
       rout_ptr->source_corresp.name_linkage =
                                   (a_name_linkage_kind)nlk_cplusplus_external;
     }  /* if */
   }  /* if */
-  rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
   ++(tssp->pending_instantiations);
   /* Push the template instantiation scope. */
   (void)push_scope((a_scope_kind)sck_template_instantiation,

@@ -1,5 +1,10 @@
 Version 2.16
 
+4/2/93  Linkage of inline template functions
+
+The storage class and linkage of inline nonmember template functions was
+not set correctly.  This has been fixed.
+
 3/31/93 Error positions on bit-field diagnostics
 
 The diagnostics issued for bit-field declarations now have more accurate
