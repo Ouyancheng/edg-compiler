@@ -532,7 +532,7 @@ static void me_create_doc_fillin(char	**ptr_to_ptr)
   /* Always copy the first character, then any alphanumeric characters that
      follow. */
   *fis_ptr++ = *ptr++;
-  while (isalnum(*ptr)) *fis_ptr++ = *ptr++;
+  while (isalnum((unsigned char)*ptr)) *fis_ptr++ = *ptr++;
   *fis_ptr = '\0';
   /* Check for a fill-in override.  This is specified in the source
      using notation like
@@ -580,7 +580,7 @@ static void me_create_doc_fillin(char	**ptr_to_ptr)
           a_boolean	name_only = FALSE;
           a_boolean	template_args = FALSE;
           a_boolean	decl_pos = FALSE;
-          while (isalnum(*fis_ptr)) {
+          while (isalnum((unsigned char)*fis_ptr)) {
             ch = *fis_ptr++;
             switch (ch) {
               case 'f': break;
