@@ -7676,12 +7676,6 @@ secondary status.
         ssep = scp->source_sequence_entry;
         if (ssep != NULL) {
           /* A source sequence entry has been located. */
-#if 0
-          if (ssep->entity.kind ==
-                           (a_byte_il_entry_kind)iek_source_sequence_entry) {
-            ssep = (a_source_sequence_entry_ptr)ssep->entity.ptr;
-          }  /* if */
-#endif /* if 0 */
           /* An IL entry's source-sequence pointer should never point to
              a secondary declaration entry or to an entry that in turn points
              to another source sequence entry. */
