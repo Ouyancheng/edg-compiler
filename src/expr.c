@@ -7436,15 +7436,14 @@ Return TRUE if the reference is invalid because either
 
 The symbol may be a top-level anonymous union (references to field symbols
 within that anonymous union result in the present routine being called
-with the sk_variable symbol for the union).
+with the sk_variable symbol for the union).  The symbol may be
+an sk_static_data_member symbol.
 */
 {
   a_boolean      bad_ref = FALSE;
   a_scope_depth  sd;
   a_variable_ptr var;
 
-  check_assertion_str(sym_ptr->kind == (a_symbol_kind)sk_variable,
-                      "bad_nested_function_variable_ref: bad sym kind");
   /* This sort of bad reference is only possible when we are inside a local
      class (the class itself or one of its member functions) or a
      default argument expression. */
@@ -7455,6 +7454,8 @@ with the sk_variable symbol for the union).
       /* A reference to a class member is okay. */
     } else {
       /* Get the variable for the symbol. */
+      check_assertion_str(sym_ptr->kind == (a_symbol_kind)sk_variable,
+                          "bad_nested_function_variable_ref: bad sym kind");
       var = sym_ptr->variant.variable.ptr;
       /* Find the scope of the variable in the scope stack. */
       for (sd = depth_scope_stack; ; sd--) {
