@@ -561,6 +561,28 @@ For a nested class/namespace, also pop the containing classes/namespaces.
 }  /* pop_name_context_if_member */
 
 
+static a_boolean innermost_nonclass_name_context_is_file_scope(void)
+/*
+Return TRUE if the current innermost nonclass name context is the file scope.
+*/
+{
+  a_boolean          innermost_nonclass_is_file_scope = FALSE;
+  a_name_context_ptr ncp;
+
+  for (ncp = curr_name_context; ; ncp = ncp->next) {
+    a_scope_ptr scope = ncp->assoc_scope;
+    if (scope != NULL &&
+        scope->kind != (a_scope_kind)sck_class_struct_union) {
+      if (scope->kind == (a_scope_kind)sck_file) {
+        innermost_nonclass_is_file_scope = TRUE;
+      }  /* if */
+      break;
+    }  /* if */
+  }  /* for */
+  return innermost_nonclass_is_file_scope;
+}  /* innermost_nonclass_name_context_is_file_scope */
+
+
 static void adv_to_signif_source_sequence_entry(void)
 /*
 If the current entry on the source sequence list is not "significant",
@@ -2724,13 +2746,34 @@ a member type, nonmember type, or friend.
       /* A typedef definition. */
       gen_typedef_definition(type, sec_decl);
     } else if (!is_definition) {
+      a_boolean restore_global_qualification_needed = FALSE;
       /* For a secondary declaration, or a primary declaration of a type
          that is never defined, generate a reference to the type instead
          of a definition. */
       adv_curr_source_sequence_entry();
       /* For a friend, put out the "friend" prefix. */
-      if (friend_decl) write_tok_str("friend ");
+      if (friend_decl) {
+        write_tok_str("friend ");
+        if (type->source_corresp.global_qualification_needed) {
+          /* This is a friend declaration that looks like it might need a
+             leading "::", but be sure to use that only in the rare cases where
+             it's needed (they involve namespaces), because older compilers
+             don't accept it, and even in newer compilers it's only allowed
+             when referring to a previously-declared class.  See what the
+             innermost nonclass name context is.  If it's not the file scope,
+             the leading "::" really is needed. */
+          if (innermost_nonclass_name_context_is_file_scope()) {
+            /* Suppress the leading "::". */
+            type->source_corresp.global_qualification_needed = FALSE;
+            restore_global_qualification_needed = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
       gen_tag_reference(type);
+      if (restore_global_qualification_needed) {
+        /* Restore the previous setting of global_qualification_needed. */
+        type->source_corresp.global_qualification_needed = TRUE;
+      }  /* if */
     } else if (kind == (a_type_kind)tk_enum) {
       /* An enum type definition. */
       gen_enum_definition(type);
@@ -5762,19 +5805,11 @@ declaration or definition.
          referring to a previously-declared function.  See what the
          innermost nonclass name context is.  If it's not the file scope,
          the leading "::" really is needed. */
-      a_name_context_ptr ncp;
-      for (ncp = curr_name_context; ; ncp = ncp->next) {
-        a_scope_ptr scope = ncp->assoc_scope;
-        if (scope != NULL &&
-            scope->kind != (a_scope_kind)sck_class_struct_union) {
-          if (scope->kind == (a_scope_kind)sck_file) {
-            /* Suppress the leading "::". */
-            rout->source_corresp.global_qualification_needed = FALSE;
-            restore_global_qualification_needed = TRUE;
-          }  /* if */
-          break;
-        }  /* if */
-      }  /* for */
+      if (innermost_nonclass_name_context_is_file_scope()) {
+        /* Suppress the leading "::". */
+        rout->source_corresp.global_qualification_needed = FALSE;
+        restore_global_qualification_needed = TRUE;
+      }  /* if */
     }  /* if */
     /* Write the routine name. */
     gen_decl_name(&rout->source_corresp, iek_routine);
