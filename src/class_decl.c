@@ -2766,9 +2766,6 @@ is omitted, it defaults to "int".
   a_constant_ptr   cp;
 
   db_enter(3, "decl_member_constant");
-  /* Enter the constant name in the symbol table. */
-  sym = enter_local_symbol((a_symbol_kind)sk_constant, locator,
-                           decl_scope_level, /*suppress_redecl_error=*/FALSE);
   /* The current token is the "=".  Pointing to it issue a warning that is
      is a nonstandard construct. */
   warning(ec_nonstd_const_member);
@@ -2777,6 +2774,11 @@ is omitted, it defaults to "int".
   /* Scan the constant expression. */
   cp = alloc_constant((a_constant_repr_kind)ck_error);
   scan_constant_initializer_expression(member_type, cp);
+  /* Enter the constant name in the symbol table.  Do this after scanning
+     the expression to avoid problems with a recursive reference, though
+     it may mean the order in which errors are issued is a little strange. */
+  sym = enter_local_symbol((a_symbol_kind)sk_constant, locator,
+                           decl_scope_level, /*suppress_redecl_error=*/FALSE);
   /* Update the symbol and the constant entry. */
   sym->variant.constant = cp;
   set_source_corresp(&(cp->source_corresp), sym);
