@@ -6211,14 +6211,13 @@ any upper case characters in the UCN are converted to lower case.
 "length" is updated to the actual length of the new identifier.
 */
 {
-  char	*src = identifier;
+  char	*src;
   char	*end_pos = identifier + *length - 1;
 
   /* Allocate a text buffer to be used for the copy if one has not
      yet been created. */
   if (ucn_buffer == NULL) ucn_buffer = alloc_text_buffer(128);
   reset_text_buffer(ucn_buffer);
-  /* Make sure the text buffer has sufficient size for the identifier. */
   for (src = identifier; src <= end_pos;) {
     int			ucn_chars;
     unsigned long	ucn_value;
