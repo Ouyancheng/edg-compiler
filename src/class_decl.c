@@ -3331,8 +3331,12 @@ function, return TRUE if at least one of the functions qualifies.  Set
   a_boolean    found_assignment_operator_for_copy = FALSE;
 
   db_enter(4, "assignment_operator_for_copy_exists");
-  *const_okay = FALSE;
-  if (sym != NULL) {
+  if (sym == NULL) {
+#if CHECKING
+#endif /* CHECKING */
+    *const_okay = TRUE;
+  } else {
+    *const_okay = FALSE;
     class_type = sym->class_of_which_a_member;
     sym_is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
     if (sym_is_overloaded) sym = sym->variant.overloaded_function.symbols;
