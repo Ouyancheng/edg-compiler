@@ -2810,7 +2810,12 @@ translation unit correspondence pointer if one is found.
                               ->source_corresp.parent.namespace_ptr == NULL &&
                     strncmp(primary_std_namespace->source_corresp.name,
                             "std", 3) == 0);
-    set_trans_unit_corresp(iek_namespace, nsp, primary_std_namespace);
+    if (nsp == primary_std_namespace) {
+      /* A namespace in the primary translation unit is always canonical. */
+      set_no_trans_unit_corresp(iek_namespace, primary_std_namespace);
+    } else {
+      set_trans_unit_corresp(iek_namespace, nsp, primary_std_namespace);
+    }  /* if */
   } else {
     a_symbol_ptr            sym = corresp_symbol_list(nsp_sym);
     a_translation_unit_ptr  trans_unit = trans_unit_for_symbol(nsp_sym);
@@ -3219,7 +3224,7 @@ template.
           a_type_ptr  sec = type_symbol_type(slep->symbol);
           check_assertion(in_secondary_trans_unit(sec) &&
                           !has_correspondence(sec));
-          (void)seek_type_corresp(sec, prim);
+          set_type_corresp(prim, sec);
           /* It is tempting to set slep->symbol = inst at this point, but we
              may need to have a record of sec to set correspondences for its
              members when establish_class_instantiation_corresp is called. */
