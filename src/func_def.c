@@ -465,6 +465,9 @@ param type entry.
       /* Be sure there are not too few param type entries. */
       check_assertion(ptp != NULL);
       vp->assoc_param_type = ptp;
+#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
+      ptp->name = vp->source_corresp.name;
+#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
     }  /* for */
     /* Be sure there are not too many param type entries. */
     check_assertion(ptp == NULL);

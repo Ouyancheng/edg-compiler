@@ -4285,6 +4285,17 @@ preference is given to the first.
           if (!return_type2_as_comp_type) goto make_new_comp_type;
         }  /* if */
       }  /* if */
+#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
+      /* Preserve the name that is associated with one or the other of the
+         parameters. */
+      if (ptp1->name != NULL) {
+        return_type2_as_comp_type = FALSE;
+        if (!return_type1_as_comp_type) goto make_new_comp_type;
+      } else if (ptp2->name != NULL) {
+        return_type1_as_comp_type = FALSE;
+        if (!return_type2_as_comp_type) goto make_new_comp_type;
+      }  /* if */
+#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
       /* Form the composite of the two types. */
       tp = composite_parameter_type(ptp1->type, ptp2->type);
       /* Compare the two parameter types against their composite type.  Stop
@@ -4379,6 +4390,15 @@ make_new_comp_type:
           }  /* if */
         }  /* if */
       }  /* if */
+#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
+      /* Preserve the name that is associated with one or the other of the
+         parameters, using that of ptp1 when both have names. */
+      if (ptp1->name != NULL) {
+        new_ptp->name = ptp1->name;
+      } else if (ptp2 != NULL) {
+        new_ptp->name = ptp2->name;
+      }  /* if */
+#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
       /* Add the parameter type entry to the end of the list. */
       if (rtsp->param_type_list == NULL) {
         rtsp->param_type_list = new_ptp;

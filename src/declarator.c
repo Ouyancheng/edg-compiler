@@ -1163,6 +1163,11 @@ issue an error if a default argument expression is encountered.
         /* Create a param-type entry and add it to the list of param-types
            associated with the routine type. */
         ptp = make_param_type(param_type_ptr, &param_type_pos);
+#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
+        if (!is_error_locator(param_locator)) {
+          ptp->name = param_locator.symbol_header->identifier;
+        }  /* if */
+#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
         if (last_param_type == NULL) {
           extra_info->param_type_list = ptp;
         } else {

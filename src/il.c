@@ -5335,6 +5335,10 @@ type in a function definition is based on a typedef).
       new_ptp->default_arg_expr =
                          duplicate_default_arg_expr(old_ptp->default_arg_expr);
     }  /* if */
+#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
+    /* Note: the name associated with the original param type entry is
+       preserved in the copy. */
+#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
     if (prev_new_ptp == NULL) {
       to_type->variant.routine.extra_info->param_type_list = new_ptp;
     } else {
