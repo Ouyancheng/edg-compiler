@@ -82,7 +82,7 @@ extern void clone_region_table_entry_list(a_dynamic_init_ptr dip,
 
 extern void add_eh_function_prologue(a_scope_ptr scope);
 
-extern an_expr_node_ptr make_caught_object_address_node(a_type_ptr param_type);
+extern an_expr_node_ptr make_caught_object_address_node(void);
 
 extern void begin_catch_clause(a_handler_ptr handler);
 

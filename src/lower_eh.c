@@ -4504,11 +4504,10 @@ Find and return the address of the handler for the current catch clause.
 #if !DO_FULL_PORTABLE_EH_LOWERING
 /*ARGSUSED*/ /* <-- param_type is not used. */
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
-an_expr_node_ptr make_caught_object_address_node(a_type_ptr param_type)
+an_expr_node_ptr make_caught_object_address_node(void)
 /*
 Make an expression node for the address of the object caught at the
 currently active catch clause, and return a pointer to the node.
-param_type is the type of the catch parameter.
 */
 {
   an_expr_node_ptr source_node;
@@ -4517,14 +4516,7 @@ param_type is the type of the catch parameter.
      __caught_object_address. */
   a_variable_ptr   caught_object_addr = make_caught_object_address_var();
 
-  if (is_reference_type(param_type)) {
-    /* Initializing a reference parameter, so copy the pointer into
-       the parameter, instead of copying the object pointed to. */
-    source_node = var_lvalue_expr(caught_object_addr);
-  } else {
-    /* Normal case (not a reference). */
-    source_node = var_rvalue_expr(caught_object_addr);
-  }  /* if */
+  source_node = var_rvalue_expr(caught_object_addr);
 #else /* DO_FULL_PORTABLE_EH_LOWERING */
   /* In other schemes, use an enk_lowered_eh_construct/
      leck_caught_object_address expression node. */

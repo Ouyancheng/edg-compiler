@@ -1323,7 +1323,8 @@ for the source parameter of the copy constructor.
 static an_expr_node_ptr implied_source_of_copy(
                                        a_constructor_init_ptr ctor_init,
                                        an_init_pos_descr_ptr  dest,
-                                       a_boolean              using_as_address)
+                                       a_boolean              using_as_address,
+                                       a_boolean              *ref_catch_case)
 /*
 We're processing a dynamic initialization entry that represents a copy of
 something from an implied source location to the thing being initialized.
@@ -1335,12 +1336,17 @@ describe the address of the implied source and return a pointer to it.
 dest describes the entity being initialized.  If using_as_address is TRUE,
 the expression will be used as an address (and that means really as an
 address that escapes, not simply as an address because it's an lvalue).
+*ref_catch_case is returned TRUE if the destination is a catch parameter
+of reference type.  In that case, the expression returned gives the
+address of the thrown object, not of a reference or pointer to be
+copied.
 */
 {
   an_expr_node_ptr     source_node;
   an_init_pos_descr    cctor_source_ipd;
   an_init_pos_modifier cctor_source_ipm;
 
+  *ref_catch_case = FALSE;
   if (ctor_init != NULL) {
     /* The implied source is the member being copied by the
        ctor-initializer. */
@@ -1351,8 +1357,9 @@ address that escapes, not simply as an address because it's an lvalue).
     source_node = make_init_entity_node(&cctor_source_ipd, using_as_address,
                                         /*using_as_dest=*/FALSE);
   } else {
+    /* The implied source is a thrown object. */
     a_variable_ptr catch_parameter;
-    a_type_ptr     param_type;
+    a_type_ptr     param_type, object_type;
 
     /* We expect a simple catch parameter as the destination. */
     check_assertion(dest->modifiers == NULL &&
@@ -1360,10 +1367,18 @@ address that escapes, not simply as an address because it's an lvalue).
     catch_parameter = dest->variable;
     param_type = catch_parameter->type;
     /* Make the address of the caught object. */
-    source_node = make_caught_object_address_node(param_type);
-    /* Cast the source node a pointer to the type of thing to be copied. */
+    source_node = make_caught_object_address_node();
+    object_type = param_type;
+    if (is_reference_type(param_type)) {
+      /* When the catch parameter has reference type, the caught object
+         has the underlying type, not the reference type.  (When you catch
+         a reference-to-A, the thrown object has type A.) */
+      *ref_catch_case = TRUE;
+      object_type = type_pointed_to(param_type);
+    }  /* if */
+    /* Cast the source node to a pointer to the type of thing to be copied. */
     source_node = add_cast_if_necessary(source_node,
-                                        make_pointer_type(param_type));
+                                        make_pointer_type(object_type));
   }  /* if */
   return source_node;
 }  /* implied_source_of_copy */
@@ -1386,6 +1401,7 @@ subobject.  Insert the statement at *insert_location and update
   an_expr_node_ptr      source_node, dest_node, assign_node;
   a_type_ptr            type;
   an_expr_operator_kind op;
+  a_boolean             ref_catch_case;
 
   /* Make an expression for the address of the destination entity. */
   /* Note that using_as_address is FALSE even for the block copy case,
@@ -1394,8 +1410,8 @@ subobject.  Insert the statement at *insert_location and update
                                     /*using_as_dest=*/TRUE);
   /* Make an expression for the address of the source entity. */
   source_node = implied_source_of_copy(ctor_init, dest,
-                                       /*using_as_address=*/FALSE);
-  /* Make an assignment statement. */
+                                       /*using_as_address=*/FALSE,
+                                       &ref_catch_case);
   type = type_pointed_to(source_node->type);
   if (!have_complete_object &&
       is_class_struct_union_type(type) &&
@@ -1406,6 +1422,7 @@ subobject.  Insert the statement at *insert_location and update
       /* Replace a reference type by a pointer type. */
       type = make_pointer_type(type_pointed_to(type));
     }  /* if */
+    /* Make an assignment statement. */
     /* Choose the operation.  For simple types use the built-in operator.
        For other types use a block copy. */
     if (is_arithmetic_or_enum_type(type) ||
@@ -1414,8 +1431,10 @@ subobject.  Insert the statement at *insert_location and update
         is_ptr_to_member_type(type)) {
       op = lowered_assignment_operator(type);
       /* The normal assignment operators take an rvalue as the source, so
-         change the node to an rvalue. */
-      source_node = add_indirection_to_node(source_node);
+         change the node to an rvalue.  For the reference-catch case, we
+         copy the address into the reference, so no extra indirection is
+         wanted. */
+      if (!ref_catch_case) source_node = add_indirection_to_node(source_node);
     } else {
       /* For other kinds, use a block move. */
       op = (an_expr_operator_kind)eok_bassign;
@@ -6047,8 +6066,11 @@ do_assignment:;
       if (dip->variant.constructor.is_copy_constructor_with_implied_source) {
         /* The constructor is a copy constructor, and the source of the
            copy is implied.  Determine the source location. */
+        a_boolean ref_catch_case;
         source_node = implied_source_of_copy(ctor_init, ipdp,
-                                             /*using_as_address=*/TRUE);
+                                             /*using_as_address=*/TRUE,
+                                             &ref_catch_case);
+        check_assertion(!ref_catch_case);
         /* Cast the expression to the right type to eliminate qualifier and
            type-as-subobject differences.  Use the pointer version of
            the parameter reference type. */
