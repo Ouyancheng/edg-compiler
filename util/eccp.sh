@@ -441,6 +441,7 @@ check_abbreviation()
 --c++
 --cfront_2.1
 --cfront_3.0
+--class_name_injection
 --command
 --comments
 --compile
@@ -503,6 +504,7 @@ check_abbreviation()
 --no_auto_instantiation
 --no_bool
 --no_brief_diagnostics
+--no_class_name_injection
 --no_code_gen
 --no_const_string_literals
 --no_definition_list_file
@@ -969,6 +971,8 @@ process_option()
          --late_tiebreaker | \
          --const_string_literals | \
          --no_const_string_literals | \
+         --class_name_injection | \
+         --no_class_name_injection | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
