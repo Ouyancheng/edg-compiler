@@ -3381,12 +3381,13 @@ Add to the mangled name the encoding for the type "type".
   /* Put out type qualifiers, if any. */
   if (qualifiers != 0) {
     mangled_encoding_for_type_qualifiers(qualifiers, mctl);
-  }  /* if */
 #if IA64_ABI
-  if (add_substitution_if_available((char *)type, iek_type, mctl)) {
-    goto add_substitution_for_qualified_type;
-  }  /* if */
+    /* Check for another substitution for the unqualified type. */
+    if (add_substitution_if_available((char *)type, iek_type, mctl)) {
+      goto add_substitution_for_qualified_type;
+    }  /* if */
 #endif /* IA64_ABI */
+  }  /* if */
   /* See if the type is a named class or enum. */
   named_type = NULL;
   if (has_name(type) &&
