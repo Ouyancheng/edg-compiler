@@ -4468,10 +4468,10 @@ detected, issue a diagnostic at the given position.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED || \
+#if !MICROSOFT_EXTENSIONS_ALLOWED || !GNU_EXTENSIONS_ALLOWED || \
     !NAMED_REGISTERS_ALLOWED
-/* ARGSUSED */ /* decl_modifiers, attributes, and/or asm_name are not 
-                  used in some configurations. */
+/* ARGSUSED */ /* decl_modifiers, p_ms_attributes, attributes, and/or asm_name
+                  are not used in some configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED || !NAMED_REG... */
 void decl_variable(a_symbol_locator             *locator,
                    a_storage_class              storage_class,
@@ -5451,10 +5451,11 @@ to point to a routine entry attached to an existing compatible external symbol
 }  /* create_external_symbol_for_routine */
 
 
-#if !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED
-/* ARGSUSED */ /* decl_modifiers and/or attributes are not used in
-                  some configurations. */
-#endif /* !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED */
+#if !MICROSOFT_EXTENSIONS_ALOWED || !GNU_EXTENSIONS_ALLOWED || \
+    !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS)
+/* ARGSUSED */ /* decl_modifiers, attributes, and/or decl_pos_block are not
+                  used in some configurations. */
+#endif /* !GNU_EXTENSIONS_ALLOWED || !MICROSOFT_EXTENSIONS_ALOWED || ... */
 void decl_routine(a_symbol_locator             *locator,
                   a_storage_class              storage_class,
                   a_type_ptr                   type_ptr,
