@@ -1562,7 +1562,8 @@ orig_line_modif_list modifications apply to the indicated text.
       }  /* if */
     } else {
       /* Write a piece of the line. */
-      fprintf(f_raw_listing, "%.*s", local_stop_loc-loc_in_line, loc_in_line);
+      fprintf(f_raw_listing, "%.*s", (int)(local_stop_loc-loc_in_line),
+              loc_in_line);
     }  /* if */
     loc_in_line = local_stop_loc;
     /* If the whole requested piece has now been written out, exit the loop. */
@@ -2584,7 +2585,8 @@ simple_return:
            of the trigraphs and line splices. */
         for (olmp = orig_line_modif_list; olmp != NULL; olmp = olmp->next) {
           /* Put a caret under the proper character of the source line. */
-          fprintf(f_debug, "%*c ", olmp->line_loc-curr_source_line+1, '^');
+          fprintf(f_debug, "%*c ",
+                  (int)(olmp->line_loc-curr_source_line+1), '^');
           switch (olmp->kind) {
             case olm_trigraph:
               fprintf(f_debug, "trigraph: ??%c\n",
@@ -3376,7 +3378,7 @@ constant_accumulated:
 #endif /* CHECKING */
     }  /* switch */
     fprintf(f_debug, "Numeric token = \"%.*s\", kind = %s\n",
-                     (end_of_curr_token - start_of_curr_token + 1),
+                     (int)(end_of_curr_token - start_of_curr_token + 1),
                      start_of_curr_token, ks);
   }  /* if */
 #endif /* DEBUG */
@@ -3410,7 +3412,7 @@ constant_accumulated:
     if (debug_level >= 4) {
       if (curr_char_loc != (end_of_curr_token + 1)) {
         fprintf(f_debug, "Extra pp-number text: \"%.*s\"\n",
-                         (curr_char_loc - end_of_curr_token - 1),
+                         (int)(curr_char_loc - end_of_curr_token - 1),
                          end_of_curr_token+1);
       }  /* if */
     }  /* if */

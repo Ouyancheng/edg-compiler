@@ -27,7 +27,7 @@ in .h files.
 #include <time.h>
 #endif  /* __BSD__ */
 #if __SYSV__ || __BSD__
-extern long time(long *timer);
+extern time_t time(time_t *timer);
 #endif /* __SYSV__ || __BSD__ */
 
 /*
@@ -327,7 +327,7 @@ static void preproc_init(void)
 Initialize things related to preprocessing.
 */
 {
-  long             timer;
+  time_t           timer;
   char             date_of_translation[14];
   char             time_of_translation[11];
   a_def_undef_string_ptr

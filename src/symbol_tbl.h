@@ -420,8 +420,8 @@ past the number on return.
 #define get_macro_repl_text_number(num, rtp)                          \
 { unsigned long temp = 0;                                             \
   temp  = *(a_byte *)rtp++;                                           \
-  temp |= *(a_byte *)rtp++ << CHAR_BIT;                               \
-  temp |= *(a_byte *)rtp++ << CHAR_BIT*2;                             \
+  temp |= (unsigned long)(*(a_byte *)rtp++) << CHAR_BIT;              \
+  temp |= (unsigned long)(*(a_byte *)rtp++) << CHAR_BIT*2;            \
   num = temp;                                                         \
 }  /* get_macro_repl_text_number */
 

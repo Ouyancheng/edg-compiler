@@ -1542,7 +1542,7 @@ the length of the name.
   mangled_name_length = digits + name_length;
   if (store_at != NULL) {
     /* Put out the name length and the name. */
-    (void)sprintf(store_at, "%lu", name_length);
+    (void)sprintf(store_at, "%lu", (unsigned long)name_length);
     store_at += digits;
     (void)mangled_derivation_name(dsp, store_at);
     store_at += name_length;

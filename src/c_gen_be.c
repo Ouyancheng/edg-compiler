@@ -1624,7 +1624,7 @@ is TRUE, this is for the heading of a function being declared with a body.
         char          arg_name[50];
         start_comment();
         for (arg_ctr = 1;; arg_ctr++) {
-          (void)sprintf(arg_name, "p%d", arg_ctr);
+          (void)sprintf(arg_name, "p%ul", arg_ctr);
           simple_type_reference(arg_name, param_type->type);
           param_type = param_type->next;
           if (param_type == NULL) break;
@@ -4709,7 +4709,7 @@ the "routine" is a block.
            hurt to call the initialization routine twice. */
         startline((a_seq_number)0);
         (void)fprintf(f_C_output, "__cgi__%.*s();",
-                             (end_pos - pos_in_module_list),
+                             (int)(end_pos - pos_in_module_list),
                              pos_in_module_list);
         if (*end_pos == '\0') break;
         pos_in_module_list = end_pos + 1;
