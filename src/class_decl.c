@@ -6897,7 +6897,6 @@ specific information about the member declaration, respectively.
   }  /* if */
   /* Create the field entry. */
   field = alloc_field();
-  field->type = member_type;
   /* A colon next indicates a bit-field. */
   if (curr_token == tok_colon) {
     /* Scan the bit-field size and determine the bit-field type. */
@@ -6907,6 +6906,9 @@ specific information about the member declaration, respectively.
     field->bit_size = (a_byte)bit_field_size;
     field->bit_field_is_signed = bit_field_is_signed;
   }  /* if */
+  /* Copy the type (which may have been changed by scan_bit_field_size) into
+     the field entry. */
+  field->type = member_type;
   /* For an unnamed field, do not create the field symbol. */
   if (unnamed_field) {
     /* All field entries for an unnamed fields share the same symbol.  It is
