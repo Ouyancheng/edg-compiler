@@ -4657,10 +4657,11 @@ the current class (class_type).
 }  /* decl_friend_class */
 
 
-a_symbol_ptr member_function_redecl_sym(
+static a_symbol_ptr member_function_redecl_sym_with_template_flag(
 				a_symbol_ptr		sym,
 				a_type_ptr		new_type,
-				a_template_param_ptr	templ_param_list)
+				a_template_param_ptr	templ_param_list,
+				a_boolean		templates_only)
 /*
 sym is a member function symbol or overloaded function symbol from a
 previous declaration.  new_type is the type from the current
@@ -4689,6 +4690,8 @@ in the class definition, there is no way for the user to specify whether
 it is a static or nonstatic member function; that can be determined only
 by looking back at the original declaration.  So, new_type cannot yet
 have a non-NULL this_class and the type match must be done without it.
+
+When templates_only is TRUE, only function templates members are considered.
 */
 {
   a_boolean			 is_overloaded_function, match;
@@ -4717,6 +4720,13 @@ have a non-NULL this_class and the type match must be done without it.
     a_template_symbol_supplement_ptr	tssp;
     /* Ignore projection symbols. */
     if (sym->kind == (a_symbol_kind)sk_projection) continue;
+    check_assertion(sym->kind == (a_symbol_kind)sk_function_template ||
+                    sym->kind == (a_symbol_kind)sk_member_function);
+    /* If looking only for templates, ignore nontemplates.  When looking
+       for nontemplates, ignore templates. */
+    if (sym->kind == (a_symbol_kind)sk_function_template != templates_only) {
+      continue;
+    }  /* if */
     /* Get the routine pointer associated with either the routine symbol
        or the function template symbol. */
     if (sym->kind == (a_symbol_kind)sk_function_template) {
@@ -4776,6 +4786,46 @@ have a non-NULL this_class and the type match must be done without it.
     if (match) break;
   }  /* for */
   return sym;
+}  /* member_function_redecl_sym_with_template_flag */
+
+
+a_symbol_ptr member_function_redecl_sym(
+				a_symbol_ptr		sym,
+				a_type_ptr		new_type,
+				a_template_param_ptr	templ_param_list)
+/*
+member_function_redecl_sym_with_template_flag does real processing for
+this routine.  See the header comment there.
+
+When looking for a matching declaration the nesting depths are not considered.
+This allows us to produce the more helpful "nesting depths do not match"
+error instead of just a "no matching declaration" error.  It does mean,
+however, for the example below that a template declaration could match a
+nontemplate member of a template class.
+
+  template<int N> struct A {
+    template <int M> int f();
+    int f();
+  };
+  
+  template<int N> template<int M> int A<N>::f(){ return M; }
+  template<int N> int A<N>::f(){ return 1; }
+
+To prevent this, member_function_redecl_sym_with_template_flag is called
+twice; once to search for templates and again to search for nontemplates.
+*/
+{
+  a_symbol_ptr	result;
+
+  /* First look for a matching template. */
+  result = member_function_redecl_sym_with_template_flag(
+                     sym, new_type, templ_param_list, /*templates_only=*/TRUE);
+  if (result == NULL) {
+    /* No template was found, look for a normal member function. */
+    result = member_function_redecl_sym_with_template_flag(
+                    sym, new_type, templ_param_list, /*templates_only=*/FALSE);
+  }  /* if */
+  return result;
 }  /* member_function_redecl_sym */
 
 

@@ -1,5 +1,20 @@
 Version 2.43
 
+12/6/99  Declaration matching problem with member template and member function
+         with the same signature
+
+A bug in the process that matches a template declaration with a previous
+declaration resulted in spurious errors in cases where a member function
+template and a nontemplate member function have the same signature.
+This has been fixed.
+
+  template<int N> struct A {
+    template <int M> int f();
+    int f();
+  };
+  template<int N> template<int M> int A<N>::f() { return 2; }
+  template<int N> int A<N>::f(){ return 1; }
+
 12/3/99  Nondeduced array bound expressions not handled properly
 
 Array bound expressions involving template parameters were not treated
