@@ -1003,6 +1003,26 @@ a NULL pointer is returned.
   (char*)(trans_unit_corresp_of(ptr) != NULL ? trans_unit_corresp_of(ptr) \
                                              : NULL)
 
+/*
+Return TRUE if two IL entries (that have source correspondence entries)
+refer to the same IL entity.  If the pointers differ, check the
+translation unit correspondence pointers.
+*/
+#define same_entities(ptr1, ptr2)					\
+  ((ptr1) == (ptr2) ||							\
+   (trans_unit_corresp_of(ptr1) == trans_unit_corresp_of(ptr2) &&	\
+    trans_unit_corresp_of(ptr1) != NULL))
+
+
+/*
+Return TRUE if two base classes refer to the same IL entry.  If the
+pointers differ, check the translation unit correspondence pointers.
+*/
+#define same_base_classes(ptr1, ptr2)					\
+  ((ptr1) == (ptr2) ||							\
+   ((ptr1)->trans_unit_corresp == (ptr2)->trans_unit_corresp &&		\
+    (ptr1)->trans_unit_corresp != NULL))
+
 
 typedef struct a_source_correspondence *a_source_correspondence_ptr;
 typedef struct a_source_correspondence {
