@@ -84,6 +84,10 @@ cmode=0
 #
 std_incl=1
 #
+# Flag indicated that a instantiation mode was specified
+#
+instantiation_mode_specified=0
+#
 # Go through every argument, identify it, and add it a list if appropriate.
 #
 while [ -n "$1" ]
@@ -327,11 +331,13 @@ do
 #     Template instantiation mode
       shift;
       fe_options=$feoptions" "$1;
+      instantiation_mode_specified=1
       shift;
       ;;
     -t*)
 #     Template instantiation mode
       feoptions=$feoptions" "$1;
+      instantiation_mode_specified=1
       shift;
       ;;
     -sun*)
@@ -391,6 +397,16 @@ then
     feoptions=$feoptions" -I"$INCLDIR;
   fi
 fi
+#
+# If only one source file was specified, and we are compiling and
+# linking (i.e., we know everything for this compilation is in a single
+# file) then use the "instantiate used" option.
+#
+if [ $cmode -eq 0 -a $more_than_one_c_file -eq 0 -a $cc_only -eq 0 -a	\
+     $fe_only -eq 0 -a $instantiation_mode_specified -eq 0 ] ; then
+  feoptions=$feoptions" -tused"
+fi
+set -x
 #
 # Run through the list of .c files and compile.
 #
