@@ -36,7 +36,7 @@ static void set_no_scope_correspondence(a_scope_ptr  scope);
 static a_boolean verify_type_correspondence(a_type_ptr  type);
 static a_boolean verify_template_correspondence(a_template_ptr  templ);
 static void verify_trans_unit_correspondences_for_scope(a_scope_ptr  scope);
-
+static void establish_instantiation_correspondences(a_template_ptr  templ);
 
 #define has_correspondence(ptr)                                        \
   (trans_unit_corresp_pointer_of(ptr) != NULL &&                       \
@@ -1619,6 +1619,7 @@ are not checked.
         for (; templ != NULL && corresp_templ != NULL;
              templ = templ->next, corresp_templ = corresp_templ->next) {
           record_trans_unit_corresp(templ, corresp_templ);
+          establish_instantiation_correspondences(templ);
         }  /* for */
       }
       /* Traverse member types: */
