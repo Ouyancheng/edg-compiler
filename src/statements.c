@@ -3203,7 +3203,10 @@ at_function_level is TRUE if this compound-statement is the body of a
 function (rather than an enclosed block).  In that case, the closing "}"
 is not swallowed by this routine.  This is unusual, but desirable in
 that it gets any error messages (like those for unresolved labels) to 
-come out on the closing "}".
+come out on the closing "}".  If is_catch_clause is TRUE this being called
+to scan the body of an exception handler.  The scope stack has already been
+pushed, but otherwise this is handled like an ordingary block (except that
+branching into it is disallowed).
 */
 {
   a_statement_ptr block;
@@ -3319,14 +3322,14 @@ come out on the closing "}".
     depth_stmt_stack = -1;
     remove_list_of_flow_control_descrs(control_flow_descr_list,
                                        end_of_control_flow_descr_list);
-  } else if (is_catch_clause) {
-    pop_stmt_stack();
   } else {
     /* Block/compound statement rather than function. */
     finish_block_statement(block);
-    /* Restore the entry for "else" in the stop tokens set (see comment
-       above). */
-    stop_token_array[(int)tok_else] = old_else_stop_token_value;
+    if (!is_catch_clause) {
+      /* Restore the entry for "else" in the stop tokens set (see comment
+         above). */
+      stop_token_array[(int)tok_else] = old_else_stop_token_value;
+    }  /* if */
   }  /* if */
 
   /* Remember the sequence number of the current token, which is expected
