@@ -3702,6 +3702,7 @@ the expression.
     possible = TRUE;
     if (!see_if_possible) {
       node->kind = (an_expr_node_kind)enk_variable_address;
+      node->variant.variable->address_taken = TRUE;
     }  /* if */
   } else if (node->kind == (an_expr_node_kind)enk_temp_init &&
              !node->variant.init.result_is_addr) {
