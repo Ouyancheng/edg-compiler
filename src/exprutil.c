@@ -5808,7 +5808,7 @@ template has the right number of parameters.
   a_routine_type_supplement_ptr
                      rtsp;
   a_type_ptr         param_type, arg_type;
-  a_boolean          ref_type_qualifiers_dropped;
+  a_boolean          template_param;
 
   db_enter(4, "function_template_matches_operand_list");
 #if CHECKING
@@ -5831,7 +5831,7 @@ template has the right number of parameters.
     /* The code here must match determine_arg_match_level. */
     param_type = ptp->type;
     arg_type = arg_operand->operand.type;
-    ref_type_qualifiers_dropped = FALSE;
+    template_param = ptp->type_involves_template_param;
     if (is_reference_type(param_type)) {
       /* For a reference type, the argument must be an lvalue or a function
          designator. */
@@ -5840,16 +5840,15 @@ template has the right number of parameters.
       /* Drop the reference type. */
       param_type = type_pointed_to(param_type);
       /* Check the top-level type qualifiers. */
-      if (type_qualifiers_match(param_type, arg_type)) {
-        /* The qualifiers are the same: okay. */
-      } else if (any_qualifier_missing(param_type, arg_type)) {
+      if (any_qualifier_missing(param_type, arg_type)) {
         /* There are some type qualifiers on the argument type that do not
            appear on the parameter type, so some type qualifiers are being
-           dropped.  That will be dealt with (successfully or not) below. */
-        ref_type_qualifiers_dropped = TRUE;
+           dropped.  That might still be okay for a parameter containing
+           a template type. */
+        if (!template_param) goto done;
       } else {
-        /* Some type qualifiers are being added.  That's okay.
-           This is a case like
+        /* The type qualifiers are the same, or some type qualifiers are
+           being added.  That's okay.  Type qualifiers are added in a case like
              template <class T> void f(const T &p) {}
              void m() {int i; f(i);}
            Drop the extra qualifiers from the parameter type to allow
@@ -5878,26 +5877,43 @@ template has the right number of parameters.
         arg_type = make_pointer_type(arg_type);
       }  /* if */
     }  /* if */
-    if (!ptp->type_involves_template_param) {
+    if (is_pointer_type(arg_type) && is_pointer_type(param_type)) {
+      /* Check for cases where type qualifiers are being added down one
+         level in a pointer case, e.g., int * --> const int *.
+         This is another non-ARM trivial conversion.
+         In general, remove one level of matching pointer types. */
+      a_type_ptr arg_type_pointed_to = type_pointed_to(arg_type);
+      a_type_ptr param_type_pointed_to = type_pointed_to(param_type);
+      if (any_qualifier_missing(param_type_pointed_to,
+                                arg_type_pointed_to)) {
+        /* There are some qualifiers being dropped.  That might still
+           be okay for a parameter that contains a template type. */
+        if (!template_param) goto done;
+      } else {
+        /* The qualifiers are the same, or some qualifiers are being added.
+           Drop all the qualifiers and keep going with the types pointed
+           to. */
+        arg_type = skip_typerefs(arg_type_pointed_to);
+        param_type = skip_typerefs(param_type_pointed_to);
+      }  /* if */
+      /* Note that we haven't checked that the underlying types are compatible.
+         That happens later. */
+    }  /* if */
+    if (!template_param) {
       /* This parameter does not involve a template parameter, so its
          type should match without special handling.  The ARM requires
          an exact type match.  However, we follow cfront in allowing
          some trivial conversions (above) and a cast to a base class
          (handled here, as an extension). */
-      if (ref_type_qualifiers_dropped) goto done;
       if (!identical_types(arg_type, param_type)) {
-        a_boolean        downward_cast;
-        a_base_class_ptr bcp;
-
-        /* Note that the base class trick applies both to pointers and
-           to objects of the related classes. */
+        /* Note that the base class trick tests objects of related classes
+           instead of pointers because the pointer level of appropriate
+           pointers would have been stripped off above. */
         if (!strict_ansi_mode &&
-            ((related_class_pointers(arg_type, param_type, &downward_cast,
-                                     &bcp) && downward_cast) ||
-             (is_class_struct_union_type(arg_type) &&
-              is_class_struct_union_type(param_type) &&
-              find_base_class_of(arg_type, param_type) != NULL))) {
-            /* Okay. */
+            is_class_struct_union_type(arg_type) &&
+            is_class_struct_union_type(param_type) &&
+            find_base_class_of(arg_type, param_type) != NULL) {
+            /* Cast to base class; okay. */
         } else {
           goto done;
         }  /* if */
