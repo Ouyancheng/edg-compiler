@@ -2908,9 +2908,12 @@ destructors in the IA-64 ABI.
   if (routine->assoc_scope != NULL_region_number &&
       !routine->suppress_inline_body &&
       define_now) {
-    if (routine->storage_class == (a_storage_class)sc_extern) {
-      routine->storage_class = (a_storage_class)sc_unspecified;
+    if (new_routine->storage_class == (a_storage_class)sc_extern) {
+      new_routine->storage_class = routine->storage_class;
     }  /* if */
+    /* Set is_inline again because templates don't have a reliable value
+       before they are defined. */
+    new_routine->is_inline = routine->is_inline;
     define_default_version_of_routine(routine, new_routine, 
                                       (an_expr_node_ptr)NULL);
 #if LOWER_EXTERN_INLINE

@@ -3692,9 +3692,6 @@ Instantiate the body of the template function associated with tip.
     rout_ptr->storage_class = (a_storage_class)sc_unspecified;
     rout_ptr->source_corresp.name_linkage =
                                 (a_name_linkage_kind)nlk_cplusplus_external;
-#if IA64_ABI && DO_IL_LOWERING
-    put_routine_into_comdat_group(rout_ptr);
-#endif /* IA64_ABI && DO_IL_LOWERING */
   }  /* if */
   ++(tssp->pending_instantiations);
   /* Push the template instantiation scope. */

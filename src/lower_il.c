@@ -7526,6 +7526,12 @@ not include the function scope memory region, if any.
       /* Place the routine in a COMDAT group so that the linker will eliminate
          duplicate copies. */
       put_routine_into_comdat_group(routine);
+#if INSTANTIATE_TEMPLATES_EVERYWHERE_USED
+    } else if (routine->is_template_function &&
+               !routine->is_specialized) {
+      /* A non-inline template goes into a COMDAT group also. */
+      put_routine_into_comdat_group(routine);
+#endif /* INSTANTIATE_TEMPLATES_EVERYWHERE_USED */
 #endif /* IA64_ABI */
     } /* if */
 #endif /* LOWER_EXTERN_INLINE */

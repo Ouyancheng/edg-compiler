@@ -13207,6 +13207,15 @@ have been processed.
       make_routine_externally_linked(rlep->routine, count);
     }  /* for */
   }  /* if */
+  /* Likewise for any thunks for the routine. */
+  { a_routine_ptr rout;
+    for (rout = rp->next;
+         rout != NULL &&
+           rout->overriding_function_for_covariant_return_type == rp;
+         rout = rout->next) {
+      make_routine_externally_linked(rout, count);
+    }  /* for */
+  }
 #endif /* IA64_ABI */
 }  /* make_routine_externally_linked */
 
