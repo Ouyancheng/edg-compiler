@@ -1686,7 +1686,7 @@ bound with the function in *bound_function_selector.
         /* For the Microsoft case that allows p->k in a constant expression,
            treat the "p" momentarily as part of a non-constant expression
            to get no error on the lvalue-to-rvalue conversion. */
-        expr_stack->expression_kind = ek_normal;
+        expr_stack->expression_kind = (an_expression_kind)ek_normal;
       }  /* if */
       /* Do implicit operand transformations.  In the "." case, keep an lvalue
          if we have one. */
