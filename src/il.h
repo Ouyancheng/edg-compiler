@@ -31,6 +31,10 @@ il.h -- Declarations related to the intermediate language.
 EXTERN a_memory_region_number
 		curr_il_region_number;
 
+EXTERN a_boolean
+		curr_initial_il_walk_flag_setting;
+			/* Value currently to be used as the initial value for
+			   il_walk_flag when entries are created. */
 
 /*
 Macro that generates a unique unsigned long identifier from an IL pointer.

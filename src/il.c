@@ -80,9 +80,6 @@ static unsigned long
 		num_get_based_type_calls;
 #endif /* DEBUG */
 
-/* Initial setting for il_walk_flag.  Can be (arbitrarily) either 0 or 1. */
-#define INITIAL_IL_WALK_FLAG_SETTING 0
-
 /*
 Hash table containing shareable constants (i.e., constants that can be
 reused when necessary, representing simple literal constants, so that
@@ -1460,7 +1457,7 @@ Set the given source correspondence struct to default values.
      the flag to FALSE for associated entities, for which the flag is then
      set to TRUE (for an actual reference) by mark_referenced. */
   sc->referenced           = TRUE;
-  sc->il_walk_flag         = INITIAL_IL_WALK_FLAG_SETTING;
+  sc->il_walk_flag         = curr_initial_il_walk_flag_setting;
   sc->name_linkage         = (a_name_linkage_kind)nlk_none;
 }  /* set_default_source_corresp */
 
@@ -2065,7 +2062,7 @@ at_file_scope == TRUE.
   ptp->next = NULL;
   ptp->type = NULL;
   ptp->default_arg_expr = NULL;
-  ptp->il_walk_flag = INITIAL_IL_WALK_FLAG_SETTING;
+  ptp->il_walk_flag = curr_initial_il_walk_flag_setting;
   ptp->has_default_arg = FALSE;
 
   db_exit();
@@ -3711,8 +3708,9 @@ can be redone to compile more than one source file in a single invocation
 of the front end.
 */
 {
-  /* Variable in il.h: */
+  /* Variables in il.h: */
   curr_il_region_number = NULL_region_number;
+  curr_initial_il_walk_flag_setting = 0;  /* Arbitrary: 0 or 1. */
   /* Variable in il_def.h: */
 #if CHECKING && DEBUG
   /* Check that the table of storage class names is correctly initialized.
