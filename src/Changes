@@ -1,5 +1,27 @@
 Version 3.4
 
+10/16/03 GNU IA-64 ABI: Spurious padding after base with bit field
+
+GNU C++ 3.3.x has a bug that causes it to sometimes insert extra padding
+after a base class subobject whose last field is a bit field.  This bug
+is now emulated when the front end is configured to emulate ABI bugs of
+GNU C++ 3.3.  For example:
+
+  struct B {
+    B() {}
+    int f: 30;
+  };
+  struct D: B {};  // GNU C++ 3.3 (but not 3.2) inserts spurious padding
+                   // after base B.
+
+10/16/03 GNU IA-64 ABI bugs: Version-specific bug emulation
+
+A new global variable gnu_abi_bugs_version now controls the GNU C++ compiler
+version whose IA-64 ABI bugs should be emulated.  Currently, only versions
+3.2 and 3.3 of the GNU C++ compiler are emulated.  The value of the new
+global variable can be set through the new configuration macro
+DEFAULT_GNU_ABI_BUGS_VERSION.
+
 10/16/03 Internal error with PROTOTYPE_INSTANTIATIONS_IN_IL
 
 An internal error could occur when PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE

@@ -127,14 +127,24 @@ This is needed, for example, for the ARM architecture.
 #endif /* ifndef IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
 
 /*
-The original GNU implementation of the IA-64 ABI (specifically, version 3.2)
-has several bugs.  Set the following FLAG to TRUE if those bugs should be
+The early GNU implementations of the IA-64 ABI (e.g., versions 3.2 and 3.3)
+had several bugs.  Set the following FLAG to TRUE if those bugs should be
 emulated by this implementation.  This is the initial value of the global
 variable emulate_gnu_abi_bugs.
 */
 #ifndef DEFAULT_EMULATE_GNU_ABI_BUGS
 #define DEFAULT_EMULATE_GNU_ABI_BUGS FALSE
 #endif /* ifndef DEFAULT_EMULATE_GNU_ABI_BUGS */
+
+/*
+The GNU C++ version whose IA-64 ABI bugs should be emulated.  This is the
+initial value of the global variable gnu_abi_bugs_version.  The number is
+of the form MMmmss which corresponds to GNU C++ version MM.mm.ss. For example,
+GNU C++ version 3.3 is 30300 and version 3.2.2 is 30202.
+*/
+#ifndef DEFAULT_GNU_ABI_BUGS_VERSION
+#define DEFAULT_GNU_ABI_BUGS_VERSION 30200
+#endif /* ifndef DEFAULT_GNU_ABI_BUGS_VERSION */
 
 /*
 Certain C99 features require IL constructs not otherwise present.

@@ -1481,6 +1481,16 @@ EXTERN a_boolean
 			   bugs.  If TRUE, emulate_gnu_abi_bugs must also be
 			   TRUE. */
 
+EXTERN unsigned long
+		gnu_abi_bugs_version
+#if VAR_INITIALIZERS
+			= DEFAULT_GNU_ABI_BUGS_VERSION
+#endif /* VAR_INITIALIZERS */
+			                              ;
+			/* The version of GNU C++ whose ABI bugs are to be
+			   emulated.  This value must be at least 30200
+			   (i.e., g++ version 3.2). */
+
 EXTERN a_boolean
 		warn_about_tail_padding_use;
 			/* TRUE if a warning should be emitted when a field

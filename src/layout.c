@@ -2191,6 +2191,76 @@ of a base class.  Either field or base (but not both) must be NULL.
   }  /* if */
 }  /* warn_if_offset_in_tail_padding */
 
+
+static a_field_ptr last_user_field_of(a_type_ptr  type)
+/*
+Return the last field declared by the user in the given class type.
+*/
+{
+  a_field_ptr  result = NULL, fp;
+
+  check_assertion(is_immediate_class_type(type));
+  fp = type->variant.class_struct_union.field_list;
+  for (; fp != NULL; fp = fp->next) {
+    if (!fp->compiler_generated) {
+      result = fp;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* last_user_field_of */
+
+
+static void emulate_gnu_bit_field_overpadding(a_layout_block_ptr  lob,
+                                              a_boolean           virtual_base)
+/*
+GNU C++ 3.3.x has a bug that causes it to insert extra padding ("overpadding")
+after the last nonvirtual base and/or the last virtual base if that base has
+a non-POD type and its last direct field is a bit field whose last bit is
+located in the last byte (after alignment and excluding virtual bases) of the
+base type.  The current layout state is described by lob (and may be modified
+by this routine to account for the overpadding).  The flag virtual_base is set
+when this routine is to calculate the overpadding for the last virtual base;
+otherwise, the last nonvirtual base should be considered.
+*/
+{
+  a_base_class_ptr  bcp = base_classes_of(lob->class_type);
+
+  if (!virtual_base &&
+      lob->class_type->variant.class_struct_union.field_list != NULL) {
+    /* Nonvirtual bases are never overpadded if a field is to follow (even
+       if that field is a zero-length bit field). */
+    goto done;
+  }  /* if */
+  for (; bcp != NULL; bcp = bcp->next) {
+    a_type_ptr  btp = bcp->type;
+    if (bcp->direct && bcp->is_virtual == virtual_base &&
+        bcp->offset_is_set &&
+        !(btp->source_corresp.assoc_info != NULL &&
+          symbol_supplement_for_class(btp)->is_POD)) {
+      /* This is the right kind of base.  Check if it is a base that covers
+         the last byte allocated so far (assuming alignment). */
+      an_unnormalized_bit_offset
+                      dummy = 0;
+      a_targ_size_t  bsize = btp->variant.class_struct_union.extra_info
+                                ->size_without_virtual_base_classes;
+      a_targ_size_t  next_byte = lob->byte_offset;
+      (void)do_alignment(&next_byte, &dummy, lob->alignment);
+      if (bcp->offset + bsize == next_byte) {
+        a_field_ptr  fp = last_user_field_of(btp);
+        if (fp != NULL && fp->is_bit_field &&
+            (bsize - fp->offset)*targ_char_bit
+                   - fp->offset_bit_remainder - fp->bit_size < targ_char_bit) {
+          /* The last base is a bit field, and the last bit of that field is
+             in the last byte of the base (excluding virtual bases). */
+          lob->byte_offset += lob->alignment;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+done:;
+}  /* emulate_gnu_bit_field_overpadding */
+
 #endif /* IA64_ABI */
 
 static a_boolean set_field_size_and_offset(a_field_ptr         field,
@@ -2793,6 +2863,15 @@ layout block used to track the layout of the current class.
 #endif /* IA64_ABI */
     }  /* if */
   }  /* for */
+#if IA64_ABI
+  if (emulate_gnu_abi_bugs) {
+    if (gnu_abi_bugs_version >= 30300 && gnu_abi_bugs_version < 30400) {
+      /* GNU C++ version 3.3 sometimes "overpads" a class whose last base
+         ends with a bit field. */
+      emulate_gnu_bit_field_overpadding(lob, /*virtual_base=*/FALSE);
+    }  /* if */
+  }  /* if */
+#endif /* IA64_ABI */
   db_exit();
 }  /* set_offsets_for_nonvirtual_base_classes */
 
@@ -4055,6 +4134,15 @@ Reserve space at the end of the class object for virtual base classes.
       }  /* for */
     }  /* if */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+#if IA64_ABI
+    if (emulate_gnu_abi_bugs) {
+      if (gnu_abi_bugs_version >= 30300 && gnu_abi_bugs_version < 30400) {
+        /* GNU C++ version 3.3 sometimes "overpads" a class whose last base
+           ends with a bit field. */
+        emulate_gnu_bit_field_overpadding(lob, /*virtual_base=*/TRUE);
+      }  /* if */
+    }  /* if */
+#endif /* IA64_ABI */
   }  /* if */
   db_exit();
 }  /* set_virtual_base_class_offsets */
