@@ -7833,28 +7833,6 @@ symbol, and view_sym is either the same as symbol or a projection thereof.
     view_sym = symbol;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (view_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    /* Find the symbol in the overload set that corresponds to symbol,
-       because if it is a projection symbol it is relevant in
-       computing the access. */
-    a_symbol_ptr sym, fund_sym;
-    fund_sym = fundamental_symbol_of(symbol);
-    check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function);
-    /* Go from an instance of a template back to the template symbol. */
-    if (fund_sym->variant.routine.ptr->template_arg_list != NULL) {
-      fund_sym = fund_sym->variant.routine.instance_ptr->template_sym;
-    }  /* if */
-    for (sym = view_sym->variant.overloaded_function.symbols;
-         ;
-         sym = sym->next) {
-      check_assertion_str(sym != NULL,
-              "have_access_across_derivations: sym not found in overload set");
-      if (fundamental_symbol_of(sym) == fund_sym) {
-        view_sym = sym;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
   if (view_sym->kind == (a_symbol_kind)sk_projection) {
     /* The view symbol is a projection symbol. */
     bcp = view_sym->variant.projection.extra_info->fundamental_base_class;
@@ -8292,14 +8270,40 @@ kinds of symbols.
   } else if (!overloaded_symbol->is_class_member) {
     /* Non-class-members are always accessible. */
   } else {
+    a_symbol_ptr symbol = locator->specific_symbol;
+    if (overloaded_symbol->kind == (a_symbol_kind)sk_overloaded_function &&
+        symbol->kind == (a_symbol_kind)sk_member_function &&
+        symbol->variant.routine.ptr->template_arg_list != NULL &&
+        symbol->parent.class_type != overloaded_symbol->parent.class_type) {
+      a_symbol_ptr sym;
+      /* When symbol is an instance of a member function template, and
+         the overload set is in a different class (i.e., it comes from a
+         using-declaration), find the symbol in the overload set that
+         corresponds to symbol, because we need a projection symbol to
+         compute the access.  Template cases are special because the
+         instance symbol is generated rather than looked up (the template
+         was looked up, not the instance). */
+      /* Go back to the template symbol. */
+      a_symbol_ptr templ_sym =
+                            symbol->variant.routine.instance_ptr->template_sym;
+      for (sym = overloaded_symbol->variant.overloaded_function.symbols;
+           ;
+           sym = sym->next) {
+        check_assertion_str2(sym != NULL,
+                             "overload_check_ambiguity_and_verify_access:",
+                             "sym not found in overload set");
+        if (fundamental_symbol_of(sym) == templ_sym) {
+          overloaded_symbol = sym;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
     /* See if we have access to the symbol.  Note that we do not strip
        projection symbols from the specific symbol. */
-    if (!have_access_across_derivations(locator->specific_symbol,
-                                        overloaded_symbol)) {
+    if (!have_access_across_derivations(symbol, overloaded_symbol)) {
       /* The symbol is not accessible.  Issue the error or record it
          for later checking if access checking is deferred. */
-      record_access_error(locator->specific_symbol, overloaded_symbol,
-                          locator);
+      record_access_error(symbol, overloaded_symbol, locator);
     }  /* if */
   }  /* if */
 }  /* overload_check_ambiguity_and_verify_access */
