@@ -5760,8 +5760,9 @@ Scan the body of a class definition, including the base classes list.
             /* Issue diagnostics on pragmas that are trying to bind to an
                overload declaration. */
             cannot_bind_to_curr_construct();
-            goto next_declaration;
+            break;
           }  /* if */
+          /* Check for access adjustment declaration. */
           if (is_qualified_name_start() &&
               locator_for_curr_id.qualifier_class_type != class_type &&
               !locator_for_curr_id.is_global_qualified_name &&
@@ -5784,6 +5785,15 @@ Scan the body of a class definition, including the base classes list.
             /* Advance to the semicolon and past it. */
             (void)get_token();
             (void)get_token();
+            goto next_declaration;
+          }  /* if */
+          /* Check for template declaration. */
+          if (curr_token == tok_template) {
+            /* It is currently treated as an error to declare a template
+               that is a member of a class. */
+            local_defines_something = FALSE;
+            (void)template_declaration(&local_defines_something,
+                                       /*no_advance_past_final_token=*/FALSE);
             goto next_declaration;
           }  /* if */
         }  /* if */
