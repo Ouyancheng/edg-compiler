@@ -92,11 +92,9 @@ extern void init_conditional_flag_var(
                              a_destructible_entity_descr_ptr dedp,
                              an_insert_location              *insert_location);
 
-#if LOWER_EXTERN_INLINE
 extern void lower_constant_init_of_static_in_extern_inline(
                                                     a_variable_ptr variable,
                                                     a_scope_ptr    scope);
-#endif /* LOWER_EXTERN_INLINE */
 
 /*
 Options for calls of lower_dynamic_init:

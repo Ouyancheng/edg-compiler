@@ -2402,7 +2402,7 @@ template.
 #if NEED_NAME_MANGLING && !IA64_ABI
 /*
 Default value for compress_mangled_names, which controls whether compression
-is done on mangled names.
+is done on mangled names.  The IA-64 ABI doesn't use compression.
 */
 #ifndef DEFAULT_COMPRESS_MANGLED_NAMES
 /* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
@@ -2639,10 +2639,6 @@ a code generator.
 #define UNARY_PLUS_IN_IL FALSE
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* ifndef UNARY_PLUS_IN_IL */
-
-#if IA64_ABI && UNARY_PLUS_IN_IL
- #error -- UNARY_PLUS_IN_IL is incompatible with IA64_ABI
-#endif /* IA64_ABI && UNARY_PLUS_IN_IL */
 
 /*
 Flag that is TRUE if variable length arrays (VLAs) are allowed.  A VLA is
@@ -3044,11 +3040,11 @@ has already been done.  After any one instance of the code does
 initialization, all other instances will do nothing.
 */
 #ifndef TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
-#if IA64_ABI
+#if INSTANTIATE_TEMPLATES_EVERYWHERE_USED
 #define TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE TRUE
-#else /* !IA64_ABI */
+#else /* !INSTANTIATE_TEMPLATES_EVERYWHERE_USED */
 #define TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE FALSE
-#endif /* IA64_ABI */
+#endif /* INSTANTIATE_TEMPLATES_EVERYWHERE_USED */
 #endif /* !defined(TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE) */
 
 #if DO_FULL_PORTABLE_EH_LOWERING

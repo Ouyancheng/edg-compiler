@@ -422,9 +422,61 @@ be generated when doing IL lowering.
 #endif /* ifndef PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 /*
+Flag that is TRUE if the environment (in particular, the linker) is
+capable of discarding extra copies of definitions, e.g., of functions.
+In such an environment, one can use an instantiation mechanism that
+instantiates templates wherever they are used, and counts on the
+linker to discard the extra copies.  The fact that one can do so
+does not mean one wants to -- see INSTANTIATE_TEMPLATES_EVERYWHERE_USED.
+*/
+#ifndef LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS
+#if IA64_ABI
+#define LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS TRUE
+#else /* !IA64_ABI */
+#define LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS FALSE
+#endif /* IA64_ABI */
+#endif /* ifndef LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS */
+
+/*
+Flag that is TRUE if templates should be instantiated everywhere they
+are used, with duplicates discarded by the linker.  This approach
+does not require a prelinker, and setting this mode disables the
+prelinker by default.
+*/
+#ifndef INSTANTIATE_TEMPLATES_EVERYWHERE_USED
+#if IA64_ABI
+#define INSTANTIATE_TEMPLATES_EVERYWHERE_USED TRUE
+#else /* !IA64_ABI */
+#define INSTANTIATE_TEMPLATES_EVERYWHERE_USED FALSE
+#endif /* IA64_ABI */
+#endif /* ifndef INSTANTIATE_TEMPLATES_EVERYWHERE_USED */
+
+#if INSTANTIATE_TEMPLATES_EVERYWHERE_USED && \
+    !LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS
+ #error -- Cannot instantiate templates where used without linker support
+#endif /* INSTANTIATE_TEMPLATES_EVERYWHERE_USED && ... */
+
+/*
+The default template instantiation mode, which controls which templates
+should be instantiated without a specific request from the prelinker
+or an explicit instantiation directive (none of them, those that are used,
+all of them, ...).  This is the default value of the global variable
+instantiation_mode, which can be changed by a command-line option.
+*/
+#ifndef DEFAULT_INSTANTIATION_MODE
+#if INSTANTIATE_TEMPLATES_EVERYWHERE_USED
+#define DEFAULT_INSTANTIATION_MODE tim_used
+#else /* !INSTANTIATE_TEMPLATES_EVERYWHERE_USED */
+#define DEFAULT_INSTANTIATION_MODE tim_none
+#endif /* INSTANTIATE_TEMPLATES_EVERYWHERE_USED */
+#endif /* ifndef DEFAULT_INSTANTIATION_MODE */
+
+/*
 Flag that is TRUE to enable automatic instantiation support for templates.
 This flag determines whether the code for automatic instantiation is
-to be compiled.
+to be compiled.  When automatic instantiation is on, the front end
+generates information for a prelinker, and the prelinker controls the
+instantiation process at link time.
 */
 #ifndef AUTOMATIC_TEMPLATE_INSTANTIATION
 #if BACK_END_IS_CP_GEN_BE
@@ -432,7 +484,11 @@ to be compiled.
    source-to-source translation. */
 #define AUTOMATIC_TEMPLATE_INSTANTIATION FALSE
 #else /* !BACK_END_IS_CP_GEN_BE */
+#if INSTANTIATE_TEMPLATES_EVERYWHERE_USED
+#define AUTOMATIC_TEMPLATE_INSTANTIATION FALSE
+#else /* !INSTANTIATE_TEMPLATES_EVERYWHERE_USED */
 #define AUTOMATIC_TEMPLATE_INSTANTIATION TRUE
+#endif /* INSTANTIATE_TEMPLATES_EVERYWHERE_USED */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* ifndef AUTOMATIC_TEMPLATE_INSTANTIATION */
 
@@ -453,12 +509,13 @@ the value of which may be modified using command line options.
 /*
 There are two conventions used for template instantiation.  One mode
 requires that the bodies for noninline template functions and static
-data members to be explicitly included by the user.  The other
-causes a source file (e.g., a .c file ) to be implicitly included
+data members be explicitly included by the user.  The other
+causes a source file (e.g., a .c file) to be implicitly included
 to provide the definitions of the noninline template functions and
 static data members.  If INSTANTIATION_BY_IMPLICIT_INCLUSION is TRUE
 the implicit inclusion is performed.  If it is FALSE implicit
-inclusion is not performed. 
+inclusion is not performed.  This feature emulates the template
+instantiation source model required by Cfront.
 */
 #ifndef INSTANTIATION_BY_IMPLICIT_INCLUSION
 #define INSTANTIATION_BY_IMPLICIT_INCLUSION TRUE

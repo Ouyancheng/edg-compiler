@@ -4406,9 +4406,6 @@ code for the dynamic initialization.
 }  /* push_init_expr_lifetime */
 
 
-#if !LOWER_EXTERN_INLINE
-/*ARGSUSED*/  /* <-- guarded_var is unused if LOWER_EXTERN_INLINE is FALSE. */
-#endif /* !LOWER_EXTERN_INLINE */
 static void add_first_time_test(a_variable_ptr         guarded_var,
                                 an_insert_location_ptr insert_location,
                                 an_insert_location_ptr insert_location2,
@@ -4456,15 +4453,15 @@ location is the insert_location2 value (after the assignment statement).
   }  /* if */
 #endif /* IA64_ABI */
   int_type = integer_type(int_kind);
-#if LOWER_EXTERN_INLINE
-  if (treat_as_extern_inline(innermost_function_scope->variant.routine.ptr)
-#if IA64_ABI
+  if (routine_might_exist_in_multiple_copies(
+                                 innermost_function_scope->variant.routine.ptr)
+#if IA64_ABI && TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
       /* In the IA64 ABI this routine is used for static data members of
          template classes, too.  This routine is only called if the static
          data member has external linkage, in which case the guard variable
          must have external linkage too. */
       || guarded_var->is_template_static_data_member
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
                                                                          ) {
     /* The current routine is extern inline, so the guard variable has to
        be external (because the local static variable itself will be
@@ -4482,9 +4479,9 @@ location is the insert_location2 value (after the assignment statement).
       (*test_var)->comdat_group = guarded_var->comdat_group;
     }  /* if */
 #endif /* IA64_ABI */
-  } else
-#endif /* LOWER_EXTERN_INLINE */
-  {
+  } else {
+    /* The guard variable need not be visible outside of the function,
+       so an unnamed variable is fine. */
     *test_var = make_unnamed_local_static_variable(int_type,
                                                   /*in_function_scope=*/FALSE);
   }  /* if */
@@ -4871,9 +4868,7 @@ C99 mode for the same reason.
   a_boolean          constructor_array_init = FALSE;
   a_variable_ptr     local_static_guard_var;
   a_boolean          do_simple_constant_init_opt = FALSE;
-#if LOWER_EXTERN_INLINE
   a_boolean          local_static_promoted_out_of_extern_inline = FALSE;
-#endif /* LOWER_EXTERN_INLINE */
   a_dynamic_init_ptr latest_initialization_on_entry;
 
   saved_code_pos = code_pos_for_lowering;
@@ -4909,9 +4904,8 @@ C99 mode for the same reason.
         (static_var_init || keep_dynamic_init != NULL)) {
       do_simple_constant_init_opt = TRUE;
     }  /* if */
-#if LOWER_EXTERN_INLINE
     /* See if this is a local static variable promoted out of an extern inline
-       function. */
+       function (or template instantiated wherever used). */
     if (variable->promoted_local_static &&
         variable->storage_class == (a_storage_class)sc_unspecified) {
       local_static_promoted_out_of_extern_inline = TRUE;
@@ -4920,7 +4914,6 @@ C99 mode for the same reason.
          definition (and therefore it must be uninitialized). */
       do_simple_constant_init_opt = FALSE;
     }  /* if */
-#endif /* LOWER_EXTERN_INLINE */
     /* For local static variables, find the associated local static variable
        initialization entry. */
     if (variable->init_kind == (an_init_kind)initk_function_local) {
@@ -5313,7 +5306,6 @@ do_assignment:;
              code and replaced with placeholder constants. */
           simple_constant_init = TRUE;
           simple_constant = dip->variant.constant;
-#if LOWER_EXTERN_INLINE
           if (local_static_promoted_out_of_extern_inline) {
             /* A static variable of an extern inline function initialized
                to a constant.  The constant is the constant part of the
@@ -5343,7 +5335,6 @@ do_assignment:;
             variable->initializer.constant = NULL;
             simple_constant_init = FALSE;
           }  /* if */
-#endif /* LOWER_EXTERN_INLINE */
         }  /* if */
       }  /* if */
       break;
@@ -5476,11 +5467,8 @@ do_assignment:;
          sure the rest of the aggregate is initialized to zero.
          So we change the initialization kind to initialization to zero. */
       if ((static_var_init && !variable->source_corresp.is_local_to_function &&
-           force_variable_definition_via_zeroing && !C_mode()
-#if LOWER_EXTERN_INLINE
-           && !local_static_promoted_out_of_extern_inline
-#endif /* LOWER_EXTERN_INLINE */
-                                                         ) ||
+           force_variable_definition_via_zeroing && !C_mode() &&
+           !local_static_promoted_out_of_extern_inline) ||
           variable->is_partially_initialized) {
         variable->init_kind = (an_init_kind)initk_zero;
 #if IA64_ABI
@@ -5512,16 +5500,16 @@ do_assignment:;
   }  /* if */
 }  /* lower_dynamic_init */
 
-#if LOWER_EXTERN_INLINE
 
 void lower_constant_init_of_static_in_extern_inline(a_variable_ptr variable,
                                                     a_scope_ptr    scope)
 /*
 The given variable is a local static variable of an extern inline function
-that is initialized to a constant.  Rewrite its initialization as
-executable code so that the variable (already promoted to the file scope
-and made external) can be a tentative definition (i.e., uninitialized).
-scope is the scope in which the variable's definition appears.
+(or a template instantiated wherever used) that is initialized to a constant.
+Rewrite its initialization as executable code so that the variable (already
+promoted to the file scope and made external) can be a tentative definition
+(i.e., uninitialized). scope is the scope in which the variable's definition
+appears.
 */
 {
   a_constant_ptr        constant;
@@ -5582,7 +5570,6 @@ scope is the scope in which the variable's definition appears.
   code_pos_for_lowering = saved_code_pos;
 }  /* lower_constant_init_of_static_in_extern_inline */
 
-#endif /* LOWER_EXTERN_INLINE */
 
 static void lower_destructor_dynamic_init(
                                    a_dynamic_init_ptr     dip,

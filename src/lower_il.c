@@ -1604,19 +1604,7 @@ it.  The variable has no name.
   return param_var;
 }  /* make_lowered_param_variable */
 
-/* Determine whether or not we need make_global_var_with_prefixed_name, and if
-   so, whether or not it needs to be external. */
-#if (TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE && !IA64_ABI) || \
-    LOWER_EXTERN_INLINE
-#define MAKE_GLOBAL_VAR_WITH_PREFIXED_NAME_LINKAGE /*external*/
-#else /* !(TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE ...) ... */
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-#define MAKE_GLOBAL_VAR_WITH_PREFIXED_NAME_LINKAGE static
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-#endif /* (TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE... ) ... */
-#ifdef MAKE_GLOBAL_VAR_WITH_PREFIXED_NAME_LINKAGE
 
-MAKE_GLOBAL_VAR_WITH_PREFIXED_NAME_LINKAGE
 a_variable_ptr make_global_var_with_prefixed_name(
                                       char                    *prefix,
                                       an_integer_kind         ikind,
@@ -1642,6 +1630,7 @@ about potential template instantiations.
   mangled_name = source_corresp->name;
 #if IA64_ABI
   /* Skip the '_Z' prefix. */
+  check_assertion(mangled_name[0] == '_' && mangled_name[1] == 'Z');
   mangled_name += 2;
 #endif /* IA64_ABI */
   mangled_name_length = strlen(mangled_name);
@@ -1662,7 +1651,6 @@ about potential template instantiations.
   return var;
 }  /* make_global_var_with_prefixed_name */
 
-#endif /* ifdef MAKE_GLOBAL_VAR_WITH_PREFIXED_NAME_LINKAGE */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 void make_instantiation_info_var(char                    *prefix,
@@ -13912,7 +13900,6 @@ with the outermost enclosing class, for later promotion out of the class
 }  /* promote_types_out_of_function */
 
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-#if LOWER_EXTERN_INLINE
 
 static a_boolean is_or_will_be_extern_inline(a_routine_ptr routine)
 /*
@@ -13927,11 +13914,49 @@ from an exported template.  See externalize_statics_for_exported_templates.
   return is_extern_inline;
 }  /* is_or_will_be_extern_inline */
 
-#endif /* LOWER_EXTERN_INLINE */
 
-#if !LOWER_EXTERN_INLINE
-/*ARGSUSED*/ /* <-- scope_with_block is only used with LOWER_EXTERN_INLINE. */
-#endif /* !LOWER_EXTERN_INLINE */
+a_boolean routine_might_exist_in_multiple_copies(a_routine_ptr rout)
+/*
+Return TRUE if the indicated routine might exist in multiple copies at
+link time or run time.  For example, it might be an extern inline routine
+that is expanded in more than one translation unit, or a template that
+is instantiated in every translation unit that uses it.
+*/
+{
+  a_boolean multiple_copies = FALSE;
+
+  /* For member functions of local classes, move out to the ultimate
+     enclosing function. */
+  while (rout->source_corresp.is_local_to_function) {
+    check_assertion(rout->source_corresp.is_class_member &&
+                    !rout->is_template_function);
+    rout = symbol_supplement_for_class(
+                    rout->source_corresp.parent.class_type)->enclosing_routine;
+  }  /* while */
+  if (is_or_will_be_extern_inline(rout)) {
+    /* An extern inline routine might be expanded in more than one
+       translation unit.  This might be true even if extern inline
+       routines are instantiated. */
+    multiple_copies = TRUE;
+#if INSTANTIATE_TEMPLATES_EVERYWHERE_USED
+  } else if (rout->is_template_function && !rout->is_specialized) {
+    /* A template instance, in a mode where we instantiate templates
+       wherever they are used. */
+    multiple_copies = TRUE;
+#endif /* INSTANTIATE_TEMPLATES_EVERYWHERE_USED */
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+  } else if (rout->covariant_return_virtual_override ||
+             rout->overriding_function_for_covariant_return_type != NULL) {
+    /* For a covariant overriding virtual function and its wrapper routines,
+       promote the local statics in case the implementation technique is
+       to replicate the body of the primary function. */
+    multiple_copies = TRUE;
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+  }  /* if */
+  return multiple_copies;
+}  /* routine_might_exist_in_multiple_copies */
+
+
 static void promote_static_variables_out_of_function(
                                                 a_scope_ptr   scope,
                                                 a_scope_ptr   scope_with_block,
@@ -13966,9 +13991,9 @@ block -- scopes for "for" init blocks do not have one.
       mangle_promoted_entity_name(&variable->source_corresp,
                                   /*final=*/FALSE, routine, scope);
       variable->source_corresp.is_local_to_function = FALSE;
-#if LOWER_EXTERN_INLINE
-      if (is_or_will_be_extern_inline(routine)) {
-        /* An extern inline routine.  Make the promoted variable externally
+      if (routine_might_exist_in_multiple_copies(routine)) {
+        /* A routine whose body might exist in multiple copies, such as
+           an extern inline routine.  Make the promoted variable externally
            visible.  This uses the relaxed ref/def model for externals. */
         variable->storage_class = (a_storage_class)sc_unspecified;
         variable->source_corresp.name_linkage =
@@ -13977,7 +14002,6 @@ block -- scopes for "for" init blocks do not have one.
         put_variable_into_comdat_group(variable);
 #endif /* IA64_ABI */
       }  /* if */
-#endif /* LOWER_EXTERN_INLINE */
       add_to_variables_list(variable, DEPTH_OF_FILE_SCOPE);
       variable->promoted_local_static = TRUE;
       /* If the variable has an associated local-static-variable-init
@@ -14028,7 +14052,6 @@ block -- scopes for "for" init blocks do not have one.
                                            !initial_value_for_il_lowering_flag;
               switch_back_to_original_region(region_to_switch_back_to);
             }
-#if LOWER_EXTERN_INLINE
             if (variable->storage_class == (a_storage_class)sc_unspecified) {
               /* A static variable of an extern inline function initialized
                  to a constant.  Rewrite the initialization as executable code
@@ -14037,7 +14060,6 @@ block -- scopes for "for" init blocks do not have one.
               lower_constant_init_of_static_in_extern_inline(variable,
                                                              scope_with_block);
             }  /* if */
-#endif /* LOWER_EXTERN_INLINE */
             break;
           case initk_dynamic:
             /* This dynamic initialization will be rewritten when the
@@ -14049,7 +14071,6 @@ block -- scopes for "for" init blocks do not have one.
             unexpected_condition_str(
          "promote_static_variables_out_of_function: bad static var init_kind");
         }  /* switch */
-#if LOWER_EXTERN_INLINE
       } else if (variable->init_kind == (an_init_kind)initk_static &&
                  variable->storage_class == (a_storage_class)sc_unspecified) {
         /* A static variable of an extern inline function initialized
@@ -14058,7 +14079,6 @@ block -- scopes for "for" init blocks do not have one.
            (and therefore it cannot be statically initialized). */
         lower_constant_init_of_static_in_extern_inline(variable,
                                                        scope_with_block);
-#endif /* LOWER_EXTERN_INLINE */
       }  /* if */
     }  /* while */
     /* Clear the scope stack pointer to the last static variable now that
@@ -14152,25 +14172,16 @@ part of the lowering of the file scope memory region.
     /* Local entities need to be promoted because they're potentially
        referenced from code outside the routine. */
     do_type_promotion = do_static_promotion = TRUE;
-  }  /* if */
+  } else
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-#if LOWER_EXTERN_INLINE
-  if (is_or_will_be_extern_inline(routine)) {
-    /* Promote static variables out of an extern inline routine, making
+  /* Do not insert code here. */
+  if (routine_might_exist_in_multiple_copies(routine)) {
+    /* Promote static variables out of a function that might exist in
+       multiple copies, such as an extern inline routine, making
        them external so the same ones are accessed from all copies of the
        function. */
     do_static_promotion = TRUE;
   }  /* if */
-#endif /* LOWER_EXTERN_INLINE */
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-  if (routine->covariant_return_virtual_override ||
-      routine->overriding_function_for_covariant_return_type != NULL) {
-    /* For a covariant overriding virtual function and its wrapper routines,
-       promote the local statics in case the implementation technique is
-       to replicate the body of the primary function. */
-    do_static_promotion = TRUE;
-  }  /* if */
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   if (do_type_promotion || do_static_promotion) {
     r_promote_local_entities_to_file_scope(scope, scope, routine,
                                            do_type_promotion);

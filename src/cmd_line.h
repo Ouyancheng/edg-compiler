@@ -790,9 +790,9 @@ typedef enum /*a_template_instantiation_mode*/ {
 EXTERN a_template_instantiation_mode
                 instantiation_mode
 #if VAR_INITIALIZERS
-			          = tim_none
+			           = DEFAULT_INSTANTIATION_MODE
 #endif /* VAR_INITIALIZERS */
-                                            ;
+                                                               ;
                         /* The default template instantiation mode. */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
