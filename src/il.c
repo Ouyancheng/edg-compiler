@@ -7370,16 +7370,17 @@ final object clean up).
 */
 {
   an_object_lifetime_ptr  olp;
-  a_scope_ptr             sp;
 
   db_enter(4, "record_end_of_lifetime_destruction");
   if (dip->destructor != NULL) {
     /* This is a destructible entity. */
     if (static_lifetime) {
-      if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      /* Note that we do NOT use depth_innermost_function_scope, as it would
+         not be set correctly during IL lowering. */
+      if (innermost_function_scope != NULL) {
         /* The object is a local static variable.  Use the list on the
            scope entry for the function. */
-        sp = scope_stack[depth_innermost_function_scope].il_scope;
+        a_scope_ptr sp = innermost_function_scope;
         olp = sp->variant.routine.lifetime_of_local_static_vars;
         if (olp == NULL) {
           olp = alloc_object_lifetime(
