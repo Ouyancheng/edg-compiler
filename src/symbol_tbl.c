@@ -976,7 +976,7 @@ is in within a function body.
   } else if (sym->decl_scope == scope_stack[decl_scope_level].number) {
     /* The normal case is when the current decl_scope_level corresponds to
        what's in the symbol.  Use the global variables. */
-    if (depth_innermost_function_scope != NO_SCOPE_NUMBER ||
+    if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
         inside_local_class) {
       *is_local_to_function = TRUE;
     }  /* if */
@@ -994,7 +994,7 @@ is in within a function body.
            scope number, where relevant characteristics of the scope are
            recorded. */
         if (scope_stack[scope_depth].depth_innermost_function_scope !=
-                                                           NO_SCOPE_NUMBER ||
+                                                           NO_SCOPE_DEPTH ||
             scope_stack[scope_depth].inside_local_class) {
           *is_local_to_function = TRUE;
         }  /* if */
@@ -7770,6 +7770,12 @@ specific version of the template.
     depth_innermost_function_scope =
             ssep->depth_innermost_function_scope = depth_scope_stack;
     innermost_function_scope = sp;
+  } else if (kind == (a_scope_kind)sck_file) {
+    /* Note (1) depth_innermost_namespace_scope is set to the file scope's
+       depth to give it the sense of "depth_innermost_global_scope", and (2)
+       it's intentionally set even in C mode. */
+    depth_innermost_namespace_scope =
+            ssep->depth_innermost_namespace_scope = depth_scope_stack;
   } else if (C_dialect == C_dialect_cplusplus &&
              kind == (a_scope_kind)sck_class_struct_union) {
     /* When we enter a class scope, the containing function scope (if any)
@@ -7831,7 +7837,8 @@ specific version of the template.
       ssep->assoc_pointers_block =
                      &sym->variant.namespace_info.extra_info->pointers_block;
       /* Maintain the depth of the innermost namespace scope. */
-      depth_innermost_namespace_scope = depth_scope_stack;
+      depth_innermost_namespace_scope =
+            ssep->depth_innermost_namespace_scope = depth_scope_stack;
     }  /* if */
     if (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_template_instantiation ||
@@ -9863,6 +9870,7 @@ of the front end.
   depth_scope_stack = NO_SCOPE_DEPTH;
   decl_scope_level = NO_SCOPE_DEPTH;
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
+  depth_innermost_namespace_scope = NO_SCOPE_DEPTH;
   innermost_function_scope = NULL;
   depth_innermost_instantiation_scope = NO_SCOPE_DEPTH;
   depth_template_declaration_scope = NO_SCOPE_DEPTH;
