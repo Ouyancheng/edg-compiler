@@ -1,5 +1,20 @@
 Version 3.1
 
+8/27/02  Microsoft compatibility: selectany constraints
+
+In Microsoft versions prior to 1300, variables definitions with selectany had
+to have an explicit, static initializer.  In versions 1300 and later, these
+constraint are removed.  For example:
+
+  int f();
+  struct S {
+    static int x, y;
+  };
+  __declspec(selectany) int S::x;        // OK in Microsoft mode versions 1300
+                                         // and later (error otherwise).
+  __declspec(selectany) int S::y = f();  // OK in Microsoft mode versions 1300
+                                         // and later (error otherwise).
+
 8/27/02   Microsoft compatibility: friend declaration with __declspec specifier
 
 In Microsoft mode, a friend class declaration could either omit the class 

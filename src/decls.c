@@ -11220,9 +11220,11 @@ continue_with_declaration:
 #if DECL_MODIFIERS_IN_USE
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode) {
-          /* "selectany" is allowed only on variables that have static
-              initialization and external linkage. */
-          if (has_initializer && (local_decl_modifiers.flags & DM_SELECTANY)) {
+          /* "selectany" is allowed only on variables that have external
+              linkage.  For Microsoft versions prior to 1300, static
+              initialization is also required. */
+          if ((has_initializer || microsoft_version >= 1300) &&
+              (local_decl_modifiers.flags & DM_SELECTANY)) {
             /* Postpone the checking until the initializer is scanned. */
             local_decl_modifiers.flags &= ~DM_SELECTANY;
           }  /* if */
@@ -11340,8 +11342,9 @@ continue_with_declaration:
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode) {
           /* "selectany" is allowed only on variables that have static
-              initialization and external linkage. */
-          if (has_initializer &&
+              initialization (in Microsoft versions prior to 1300) and
+              external linkage. */
+          if ((has_initializer || microsoft_version >= 1300) &&
               (local_decl_modifiers.flags & DM_SELECTANY) &&
               depth_innermost_function_scope == NO_SCOPE_DEPTH &&
               (local_storage_class == (a_storage_class)sc_unspecified ||
@@ -11465,11 +11468,15 @@ continue_with_declaration:
             var_ptr->decl_modifiers |= DM_SELECTANY;
           } else if (var_ptr->init_kind == (an_init_kind)initk_dynamic) {
             /* The "selectany" decl-modifier cannot appear with a dynamic
-               initialization. */
-            pos_st_diagnostic(es_discretionary_error,
+               initialization in Microsoft versions prior to 1300. */
+            if (microsoft_version >= 1300) {
+              var_ptr->decl_modifiers |= DM_SELECTANY;
+            } else {
+              pos_st_diagnostic(es_discretionary_error,
                               ec_decl_modifiers_invalid_for_this_decl,
                               &locator.source_position,
                               decl_modifier_names[(int)dmt_selectany]);
+            }  /* if */
           } else {
             /* Error in initializer. */
           }  /* if */        
