@@ -375,7 +375,7 @@ int main(int argc, char *argv[])
           number_of_tags);
   /* Generate the sorted list of tags and associated enumerators. */
   fprintf(data_output_file,
-          "an_error_tag_entry *error_tags[NUMBER_OF_ERROR_TAGS] = {\n");
+          "an_error_tag_entry error_tags[NUMBER_OF_ERROR_TAGS] = {\n");
   for (i = 0; i < number_of_tags; ++i) {
     /* If this is not the first time through, terminate the previous line. */
     if (i != 0) fprintf(data_output_file, ",\n");
