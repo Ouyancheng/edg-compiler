@@ -9407,10 +9407,9 @@ respectively.
                                    (a_template_param_type_kind)tptk_member);
       /* Okay. */
     } else if ((microsoft_mode || gpp_mode) &&
-               is_immediate_class_type(field_type) &&
-               field_type->variant.class_struct_union.
-                                                  is_prototype_instantiation) {
-      /* In Microsoft and g++ mode, a nested class may refer to the enclosing
+               class_state->is_nonreal_instantiation &&
+               is_class_struct_union_type(field_type)) {
+      /* In Microsoft and g++ mode, a field type can be incomplete in a
          prototype instantiation. */
     } else {
       if (!C_mode() && is_error_locator(*locator) &&

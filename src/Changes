@@ -960,18 +960,17 @@ instantiation directives.  For example:
 
 This is now fixed.
 
-1/7/04   Microsoft and GNU C++ compatibility: enclosing template class 
-         treated as complete type within nested class
+1/7/04   Microsoft and GNU C++ compatibility: incomplete types in
+         class template prototype instantiations
 	 
-In Microsoft and g++ modes, the type of an enclosing template class can be
-used as the type of a nonstatic data member within a nested class.
-	 
-  template  <class T> struct A {
-    struct B {
-      A<T> a;  // Allowed in Microsoft and g++ modes
-    };
-  };
+In Microsoft and g++ modes, a nonstatic data member can have an incomplete
+type in a class template prototype instantiation.
 
+  class B;
+  template <class T> struct A {
+    B b;  // Allowed in GNU and Microsoft modes
+  };
+	 
 1/6/04   Argument-dependent lookup was not suppressed by parentheses
 
 Argument-dependent lookup is supposed to be suppressed on a
