@@ -20,12 +20,6 @@ the release should contain no defines.
 */
 
 /*
-FIXME: Remove once VLA lowering is fixed.
-*/
-#ifndef LOWER_VARIABLE_LENGTH_ARRAYS
-#define LOWER_VARIABLE_LENGTH_ARRAYS 0
-#endif /* ifndef LOWER_VARIABLE_LENGTH_ARRAYS */
-/*
 Set the test version flags to FALSE for demo versions.
 */
 #ifdef DEMO_VERSION
