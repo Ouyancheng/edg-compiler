@@ -308,13 +308,6 @@ typedef char * a_void_ptr;
 typedef char * a_const_void_ptr;
 #endif /* __STDC__ */
 
-/* Include the header file that defines bsearch and qsort. */
-#if __ANSIC__
-#include <stdlib.h>
-#else /* !__ANSIC__ */
-#include <search.h>
-#endif /* __ANSIC__ */
-
 /*
 Definition of a generic byte.  Always "unsigned char".
 */
