@@ -831,20 +831,35 @@ specification is handled later (see check_exception_specification).
   }  /* if */
   /* Bypass "throw". */
   (void)get_token();
+  /* Start a new stop token state. */
+  push_stop_token_stack();
+  add_stop_token(tok_semicolon);
+  add_stop_token(tok_lbrace);
+  add_stop_token(tok_rparen);
   /* Next token should be a left paren. */
   if (curr_token == tok_lparen) {
     (void)get_token();
     if (curr_token == tok_rparen) {
       /* Case is "throw ()" -- which means "no exception will be thrown by
          this routine." */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (esp != NULL) {
-        esp->source_range.end = pos_curr_token;
-      }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      /* Bypass the right paren. */
+      goto finish_list;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode && curr_token == tok_ellipsis) {
+      /* Microsoft compilers treat function with "C" linkage as having an
+         implicit "throw()" specification.  For those functions with "C"
+         linkage that can throw any exception, an explicit "throw(...)" must
+         be specified. */
+      /* Bypass the ellipsis. */
       (void)get_token();
-      goto done;
+      if (esp == NULL) {
+        esp = alloc_exception_specification();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        esp->source_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      }  /* if */
+      esp->throw_any = TRUE;
+      goto finish_list;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   } else {
     /* Syntax error -- left paren is missing.  We don't actually call
@@ -852,11 +867,6 @@ specification is handled later (see check_exception_specification).
        "throw int" instead of "throw (int)" might be a common mistake. */
     error(ec_exp_lparen);
   }  /* if */
-  /* Start a new stop token state. */
-  push_stop_token_stack();
-  add_stop_token(tok_semicolon);
-  add_stop_token(tok_lbrace);
-  add_stop_token(tok_rparen);
   /* Loop through the types. */
   do {
     add_stop_token(tok_comma);
@@ -960,12 +970,13 @@ specification is handled later (see check_exception_specification).
       break;
     }  /* if */
   } while (loop_token(tok_comma));
-  /* List should be terminated by a right paren. */
+finish_list:;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (esp != NULL) {
     esp->source_range.end = pos_curr_token;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* List should be terminated by a right paren. */
   remove_stop_token(tok_rparen);
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_lbrace);

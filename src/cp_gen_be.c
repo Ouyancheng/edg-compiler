@@ -7988,6 +7988,11 @@ that a function might throw.
   an_exception_specification_type_ptr estp;
 
   write_tok_str(" throw(");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (esp->throw_any) {
+    write_tok_str("...");
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   for (estp = esp->exception_specification_type_list;
        estp != NULL;
        estp = estp->next) {

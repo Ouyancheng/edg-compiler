@@ -2554,6 +2554,13 @@ typedef struct an_exception_specification {
 			   the front end, the start and ending positions are
 			   both equal to that of the synthesized routine. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field
+		throw_any:1;
+			/* TRUE if the exception specification extension
+			   throw (...) was encountered.  It indicates that
+			   any exception may be thrown. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } an_exception_specification;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

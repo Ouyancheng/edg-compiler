@@ -2779,6 +2779,11 @@ Display the indicated exception-specification entry.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("source_range", &ptr->source_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->throw_any) {
+    disp_boolean("throw_any", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* disp_exception_specification */
 
 

@@ -3252,11 +3252,19 @@ catch a B.
                       type2->kind == (a_type_kind)tk_routine);
       esp1 = type1->variant.routine.extra_info->exception_specification;
       esp2 = type2->variant.routine.extra_info->exception_specification;
-      if (esp2 == NULL) {
+      if (esp2 == NULL
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          || esp2->throw_any
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                            ) {
         /* The function associated with type2 can throw any exception; type1
            cannot be less restrictive than that. */
         /* is_less_restrictive = FALSE; */
-      } else if (esp1 == NULL) {
+      } else if (esp1 == NULL
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                 || esp1->throw_any
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                   ) {
         /* Type1's function can can throw any exception, and type2's function
            has at least some restriction, so the former is less restrictive. */
         is_less_restrictive = TRUE;

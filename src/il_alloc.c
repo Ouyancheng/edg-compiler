@@ -1517,6 +1517,9 @@ region.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   esp->source_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  esp->throw_any = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   return esp;
 }  /* alloc_exception_specification */
