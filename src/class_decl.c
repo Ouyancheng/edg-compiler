@@ -1064,6 +1064,12 @@ typedef struct an_override_registry_entry {
 			   sk_overloaded_function symbol a base class virtual
 			   function that is a candidate to be overridden by a
 			   member function declaration in the current class. */
+  a_base_class_ptr
+                base_class;
+			/* Pointer to the base class entry in which the
+			   overridden symbol appears.  This is significant only
+			   when a base class occurs more than once in a
+			   derivation. */
   a_symbol_list_entry_ptr
 		override_failures;
 			/* A linked list of entries each of which represents
@@ -1106,6 +1112,7 @@ fields.
   /* Initialize its fields. */
   orep->next                   = NULL;
   orep->overridden_sym         = NULL;
+  orep->base_class             = NULL;
   orep->override_failures      = NULL;
   orep->virtual_function_count = 0;
   orep->override_count         = 0;
@@ -1127,7 +1134,8 @@ Place a partial-override entry on the available list, so it can be reused.
 static void update_override_registry(
                              an_override_registry_entry_ptr *registry_ptr,
                              a_symbol_ptr                   overridden_sym,
-                             a_symbol_ptr                   nonoverriding_sym)
+                             a_symbol_ptr                   nonoverriding_sym,
+                             a_base_class_ptr               bcp)
 /*
 A declaration in the current derived class has been seen, and it has the
 effect of overriding a virtual function from a base class.  But the latter is
@@ -1143,7 +1151,7 @@ corresponding entry is removed from the registry.
      is already represented on the list. */
   prev_orep = NULL;
   for (orep = *registry_ptr; orep != NULL; orep = orep->next) {
-    if (orep->overridden_sym == overridden_sym) {
+    if (orep->overridden_sym == overridden_sym && orep->base_class == bcp) {
       /* It's a match. */
       break;
     }  /* if */
@@ -1155,6 +1163,7 @@ corresponding entry is removed from the registry.
        override entry. */
     orep = alloc_override_registry_entry();
     orep->overridden_sym = overridden_sym;
+    orep->base_class = bcp;
     if (overridden_sym->kind == (a_symbol_kind)sk_overloaded_function) {
       /* Count the number of functions in the overload set that are
          virtual.  There should be at least one if this routine is being
@@ -1364,7 +1373,7 @@ routine entry and return TRUE; otherwise return FALSE.
                   if (registry_ptr != NULL) {
                     update_override_registry(registry_ptr,
                                              sym_for_override_registry,
-                                             (a_symbol_ptr)NULL);
+                                             (a_symbol_ptr)NULL, bcp);
                   }  /* if */
                 } else {
                   /* Error -- cannot differ in return type only (ARM 10.2). */
@@ -1380,7 +1389,7 @@ routine entry and return TRUE; otherwise return FALSE.
           if (any_override_candidates) {
             check_assertion(sym_for_override_registry != NULL);
             update_override_registry(registry_ptr, sym_for_override_registry,
-                                     rout_sym);
+                                     rout_sym, bcp);
           }  /* if */
           break;
         }  /* if */
