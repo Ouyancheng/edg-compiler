@@ -1,5 +1,14 @@
 Version 2.37
 
+10/15/97 Improved diagnostic when instantiation is assigned to more than
+         one .ii file
+
+If the prelinker detects that an instantiation has been assigned to
+more than one .ii file, the names of the first two files in which the
+instantiation was found are now displayed.  This situation can occur
+if an overlapping set of object files is used to link two different
+programs.
+
 10/9/97  Name demangling: __STF__ form for externalized static functions
 
 Static functions made external (for the one-instantiation-per-object-file
