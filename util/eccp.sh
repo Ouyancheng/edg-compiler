@@ -101,6 +101,15 @@ EDG_DEFAULT_LIB_PATHS=${EDG_DEFAULT_LIB_PATHS-""}
 #
 EDG_DECODE=${EDG_DECODE_PATH-$EDG_BASE/lib/edg_decode}
 #
+# A filter can be invoked to operate on the messages produced by
+# the front end.  If EDG_CPFE_OUTPUT_FILTER is non-null, it is a command
+# that is executed on the error output of the front end.
+# EDG_CPFE_OUTPUT_FILTER_OPTIONS are the command line options passed
+# to the filter.
+#
+EDG_CPFE_OUTPUT_FILTER=${EDG_CPFE_OUTPUT_FILTER-""}
+EDG_CPFE_OUTPUT_FILTER_OPTIONS=${EDG_CPFE_OUTPUT_FILTER_OPTIONS-""}
+#
 # Flags that suppresses the implicit use of -tused under certain
 # circumstances
 #
@@ -382,6 +391,10 @@ ii_file_specified=0
 #  Temporary file used by command line processing
 #
 cmd_tmp_file=$TMPDIR/cl$$
+#
+#  Temporary file used with a CPFE output filter.
+#
+output_tmp_file=$TMPDIR/of$$
 #
 # Define trap handlers
 #
@@ -1786,6 +1799,11 @@ do
     # twice on the front end invocation command.
     command=$command" "$cfile
   fi
+  # When using an output filter, direct the error output to a temporary
+  # file.
+  if [ "$EDG_CPFE_OUTPUT_FILTER" != "" ] ; then
+    command_output="  2>$output_tmp_file"
+  fi
   if [ $driver_debug -ne 0 ] ; then
     echo $command
   fi
@@ -1794,14 +1812,19 @@ do
     # The first compilation should generate a PCH file, the second should
     # use the generated file.  The output of the first compilation is
     # discarded.
-    $command >/dev/null 2>&1
-    $command
+    eval $command >/dev/null 2>&1
+    eval $command $command_output
     status=$?
     rm -f *.pch
   else
     # Normal mode, just run the front end.
-    $command
+    eval $command $command_output
     status=$?
+  fi
+  if [ "$EDG_CPFE_OUTPUT_FILTER" != "" ] ; then
+    # Run the output through the output filter.
+    $EDG_CPFE_OUTPUT_FILTER $EDG_CPFE_OUTPUT_FILTER_OPTIONS <$output_tmp_file 1>&2
+    rm -f $output_tmp_file
   fi
   #
   # If the front end aborted, report that.
