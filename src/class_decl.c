@@ -31,6 +31,7 @@ class_decl.c -- Scanning of class declarations.
 #include "mem_manage.h"
 #include "expr.h"
 #include "target.h"
+#include "templates.h"
 #include "decl_inits.h"
 #include "preproc.h"
 #if ASM_FUNCTION_ALLOWED
@@ -5196,262 +5197,43 @@ done:
 }  /* access_adjustment_decl */
 
 
-a_boolean class_specifier(a_boolean  vacuous_decl_allowed,
-                          a_boolean  is_friend_decl,
-                          a_boolean  is_ref_within_new_expr,
-                          a_type_ptr *type_ptr,
-                          a_boolean  *declares_something,
-			  a_boolean  *defines_something)
+a_boolean scan_class_definition(a_type_ptr    class_type,
+                                a_scope_depth effective_decl_level,
+                                a_boolean     is_local_class)
 /*
-Scan a class-specifier (3.5.2.1), which declares a struct or
-union type.  The syntax is
-
-9
-        class-specifier:
-                class-head { member-list    }
-                                        opt
-
-        class-head:
-                class-key identifier    base-spec
-                                    opt          opt
-                class-key class-name base-spec
-                                              opt
-
-        class-key
-                class
-                struct
-                union
-
-9.2
-        member-list
-                member-declaration member-list
-                                              opt
-                access-specifier : member-list
-
-        member-declaration:
-                decl-specifiers    member-declarator-list    ;
-                               opt                       opt
-                function-definition ;
-                                     opt
-                qualified-name ;
-
-        member-declarator-list:
-                member-declarator
-                member-declarator-list , member-declarator
-
-        member-declarator
-                declarator pure-specifier
-                                         opt
-                identifier    : constant-expression
-                          opt
-
-        pure-specifier
-                = 0
-
-The type is returned in *type_ptr. *declares_something is set to indicate
-whether or not this specifier declares something, and *declares_something
-to indicate whether the class/struct/union is actually defined.
 */
 {
-  an_access_specifier     access;
-  a_symbol_kind           tag_kind;
-  a_type_kind             type_kind;
-  a_symbol_locator        locator;
-  a_symbol_ptr            tag_sym;
-  a_boolean               tag_id_present;
-  a_type_ptr              class_type;
-  a_storage_class         member_storage_class;
-  a_type_ptr              member_type;
-  a_decl_flag_set         dso_flags;
-  a_type_ptr              local_type;
-  a_type_ptr              bottom_derived_type;
-  a_boolean               is_local_class = FALSE;
-  a_boolean               unnamed_field;
-  a_boolean               tag_resolution = FALSE;
-  a_boolean               first_declarator;
-  a_boolean               is_first_field;
-  a_func_info_block       func_info;
   a_boolean               err = FALSE;
-  a_boolean               dangling_type_specifier;
-  a_boolean               local_defines_something;
-  a_boolean               local_declares_something;
-  a_boolean               local_no_decl_specifiers;
-  a_boolean               friend_specified;
-  a_boolean               virtual_specified;
-  a_boolean               inline_specified;
-  a_boolean               type_explicitly_specified;
+  an_access_specifier     access;
+  a_symbol_ptr            tag_sym;
+  a_boolean               first_declarator;
+  a_decl_flag_set         dsi_flags;
+  a_boolean               is_first_field;
   a_source_position       decl_start_pos;
   a_scope_ptr             scope_ptr;
-  a_decl_flag_set         dsi_flags;
-  a_special_function_kind spec_kind;
-  a_boolean               is_destructor, is_constructor;
   a_field_ptr             end_of_field_list = NULL;
   a_symbol_ptr            rout_sym;
   a_memory_region_number  region_to_switch_back_to;
   a_class_symbol_supplement_ptr
                           cssp;
-  a_scope_depth           effective_decl_level = decl_scope_level;
-  a_boolean               is_anonymous_union;
-  an_expr_node_ptr        dim_expr_ptr;
   a_boolean               class_aggregate_ruled_out = FALSE;
   a_boolean               any_friend_decls = FALSE;
-  a_boolean               is_class_definition;
   a_routine_fixup_ptr     saved_routine_fixup;
   a_boolean               any_const_or_ref_fields = FALSE;
   a_layout_block          layout_block;
 
-  db_enter(3, "class_specifier");
-  *declares_something = FALSE;
-  *defines_something = FALSE;
-  /* Determine whether this is a local class (one being declared within a
-     function scope). */
-  is_local_class = (depth_of_containing_function_scope() != NO_SCOPE_DEPTH);
-  if (!is_qualified_name_start()) {
-    /* Skip over "class", "struct", or "union", remembering which appears. */
-#if CHECKING
-    if (curr_token != tok_class &&
-        curr_token != tok_struct &&
-        curr_token != tok_union) {
-      internal_error("class_specifier: expected class, struct, or union");
-    }  /* if */
-#endif /* CHECKING */
-    if (curr_token == tok_union) {
-      tag_kind = (a_symbol_kind)sk_union_tag;
-      type_kind = (a_type_kind)tk_union;
-    } else {
-      tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
-      type_kind = (a_type_kind)(curr_token == tok_struct ?
-                                                    tk_struct : tk_class);
-    }  /* if */
-    /* If there is an identifier next, it is a tag.  It can be the declaration
-       of a new tag or a reference to an existing tag.  Although it is an
-       error, also be on the lookout for a qualified name. */
-    (void)get_token();
-    tag_id_present = is_qualified_name_start();
-  } else {
-#if CHECKING
-    if (!is_friend_decl) {
-      internal_error("class_specifier: identifier but not friend decl");
-    }  /* if */
-#endif /* CHECKING */
-    tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
-    type_kind = (a_type_kind)tk_class;
-    tag_id_present = TRUE;
-  }  /* if */
-  if (tag_id_present) {
-    /* It seems that appearance of a tag name is a declaration of the
-       tag, even if it just repeats a previous name.  At least, there's
-       a Plum Hall test that implies that. */
-    *declares_something = TRUE;
-#if CHECKING
-    if (vacuous_decl_allowed && is_friend_decl) {
-      internal_error("class_specifier: vacuous decl not okay in friend decl");
-    }  /* if */
-#endif /* CHECKING */
-    tag_sym = scan_tag_name(tag_kind, &locator, vacuous_decl_allowed,
-                            is_ref_within_new_expr, &effective_decl_level,
-                            &tag_resolution);
-  } else {
-    /* No tag identifier present. */
-    tag_sym = NULL;
-    set_to_error_locator(locator);
-    if (is_ref_within_new_expr) {
-      /* We are within a new expression and no class name is given following
-         the keyword -- e.g., "class A *pa = new class;" -- report the missing
-         identifier as a syntax error. */
-      syntax_error(ec_exp_identifier);
-    } else if (curr_token == tok_lbrace ||
-               (C_dialect == C_dialect_cplusplus && curr_token == tok_colon)) {
-      /* This is a tagless class definition. */
-    } else {
-      /* Neither the tag id nor the {...} is present.  This is an error. */
-      add_stop_token(tok_lbrace);
-      if (C_dialect == C_dialect_cplusplus) add_stop_token(tok_colon);
-      syntax_error(ec_exp_definition_of_tag);
-      err = TRUE;
-      if (C_dialect == C_dialect_cplusplus) remove_stop_token(tok_colon);
-      remove_stop_token(tok_lbrace);
-    }  /* if */
-  }  /* if */
-  /* If the next token is a "{" or, in C++, a ":" (introducing a list of
-     base classes) we should expect to scan a class definition.  The exception
-     to this is when an elaborated class name (e.g., "struct S" instead of
-     simply "S") appears within the context of a new expression.  The
-     issue is the colon: since a colon could be part of the expression
-     context (e.g., "struct S *ps = flag ? new struct S : 0;") it should
-     not be interpreted as introducing a base classes list. */
-  is_class_definition = curr_token == tok_lbrace ||
-                        (C_dialect == C_dialect_cplusplus &&
-                         curr_token == tok_colon && !is_ref_within_new_expr);
-  if (tag_sym == NULL) {
-    /* Create a new class, struct, or union type.  All such types are
-       allocated in the file scope memory region, though local types will be
-       added to the function scope's types list. */
-    class_type = alloc_type(type_kind);
-    /* Wait to add the type to the types list; it should not be added
-       until the closing brace of the full definition appears, to get the
-       IL list in the right order. */
-    /* Enter a new tag symbol, if a tag id was specified (a tag is not
-       specified in something like "struct {int a; int b;}"). */
-    if (tag_id_present) {
-      tag_sym = enter_local_symbol(tag_kind, &locator, effective_decl_level,
-                                   /*suppress_redecl_error=*/FALSE);
-      set_source_corresp(&(class_type->source_corresp), tag_sym);
-    } else {
-      /* Tagless class, struct, or union.  Create a symbol to represent it;
-         though not entered in the symbol table, it is needed to carry
-         around some information about classes that is of interest to the
-         front end only. */
-      tag_sym = make_unnamed_class_symbol(tag_kind, &pos_curr_token);
-      /* Although the symbol header has a name of sorts, it should not appear
-         in the type, so NULL it out after the call to set_source_corresp. */
-      set_source_corresp(&(class_type->source_corresp), tag_sym);
-      class_type->source_corresp.name = NULL;
-    }  /* if */
-    tag_sym->variant.class_struct_union.type = class_type;
-    if (C_dialect == C_dialect_cplusplus) {
-      /* In C classes have no linkage.  In C++ most classes have either
-         internal linkage or, for classes declared at file scope and with
-         other characteristics (see ARM 3.3), C++ external linkage; local
-         classes and classes nested within local classes have no linkage.
-         For now give nonlocal classes internal linkage; it may be changed
-         later (see check_class_linkage).  Note that even nameless classes
-         may be marked as having linkage; this is useful for dealing with
-         member functions.) */
-      if (!is_local_class) {
-        /* Nonlocal class. */
-        class_type->source_corresp.name_linkage =
-                                         (a_name_linkage_kind)nlk_internal;
-      }  /* if */
-    }  /* if */
-  } else {
-    /* Using an existing type.  Fetch the type pointer from it. */
-    class_type = tag_sym->variant.class_struct_union.type;
-    /* Record cross-reference information. */
-    if (is_class_definition) {
-      mark_declared(tag_sym, &locator.source_position,
-                    /*save_as_decl_position=*/TRUE);
-      /* Allow for alternating between class and struct, but stay with the
-         one associated with the definition.  The difference only affects
-         default member access. */
-      class_type->kind = type_kind;
-    } else {
-      mark_referenced(tag_sym, &locator.source_position);
-    }  /* if */
-  }  /* if */
+  tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   cssp = tag_sym->variant.class_struct_union.extra_info;
-  if (is_class_definition) {
-    /* A copy constructor need not be generated if construction by bitwise
-       copy is equivalent.  When a class is being defined, set the flag to
-       TRUE initially, and change it if a base class or member is declared
-       that precludes construction by bitwise copy. */
-    cssp->construction_by_bitwise_copy_allowed = TRUE;
-    /* Similarly, assignment by bitwise copy is allowed unless there are
-       virtual base classes, virtual functions, or base classes or fields
-       for which bitwise copy is not allowed. */
-    cssp->assignment_by_bitwise_copy_allowed = TRUE;
-  }  /* if */
-  if (is_class_definition && curr_token == tok_colon) {
+  /* A copy constructor need not be generated if construction by bitwise
+     copy is equivalent.  When a class is being defined, set the flag to
+     TRUE initially, and change it if a base class or member is declared
+     that precludes construction by bitwise copy. */
+  cssp->construction_by_bitwise_copy_allowed = TRUE;
+  /* Similarly, assignment by bitwise copy is allowed unless there are
+     virtual base classes, virtual functions, or base classes or fields
+     for which bitwise copy is not allowed. */
+  cssp->assignment_by_bitwise_copy_allowed = TRUE;
+  if (curr_token == tok_colon && C_dialect == C_dialect_cplusplus) {
     /* Scan the list of base specifiers. */
     add_stop_token(tok_lbrace);
     scan_base_specifier_list(class_type);
@@ -5477,7 +5259,6 @@ to indicate whether the class/struct/union is actually defined.
     switch_to_file_scope_region(&region_to_switch_back_to);
     /* This is a class, struct, or union definition -- not merely a
        declaration. */
-    *defines_something = TRUE;
     tag_sym->defined = TRUE;
     /* If this is the definition of a nested class, set the parent class
        pointer in the tag symbol and set the access. */
@@ -5533,6 +5314,17 @@ to indicate whether the class/struct/union is actually defined.
       }  /* if */
       is_first_field = TRUE;
       do {
+        a_decl_flag_set   dso_flags;
+        a_storage_class   member_storage_class;
+        a_type_ptr        member_type;
+        a_boolean         dangling_type_specifier;
+        a_boolean         local_defines_something, local_declares_something;
+        a_boolean         local_no_decl_specifiers;
+        a_boolean         friend_specified, virtual_specified;
+        a_boolean         type_explicitly_specified, inline_specified;
+        a_boolean         is_destructor, is_constructor;
+        a_boolean         is_anonymous_union;
+
         if (C_dialect == C_dialect_cplusplus) {
           /* An access specification may appear anywhere amid the member
              declarations.  Check for it each time through the loop, and adjust
@@ -5692,6 +5484,11 @@ to indicate whether the class/struct/union is actually defined.
         /* A declarator list should be present.  Scan it. */
         first_declarator = TRUE;
         do {
+          a_symbol_locator   locator;
+          a_type_ptr         local_type;
+          a_boolean          unnamed_field = FALSE;
+          a_func_info_block  func_info;
+
           add_stop_token(tok_comma);
           add_stop_token(tok_colon);
           unnamed_field = FALSE;
@@ -5701,6 +5498,7 @@ to indicate whether the class/struct/union is actually defined.
             /* Unnamed bit-field. */
             unnamed_field = TRUE;
             local_type = member_type;
+            set_to_error_locator(locator);
           } else if (curr_token == tok_semicolon && first_declarator &&
                      C_dialect == C_dialect_pcc) {
             /* In pcc mode, the entire declarator list can be omitted to
@@ -5708,12 +5506,16 @@ to indicate whether the class/struct/union is actually defined.
                padding. */
             unnamed_field = TRUE;
             local_type = member_type;
+            set_to_error_locator(locator);
           } else if (is_anonymous_union) {
             /* There is no declarator. */
             local_type = member_type;
+            set_to_error_locator(locator);
           } else {
-            /* Named member. */
-            a_decl_flag_set  declarator_input_flags, declarator_output_flags;
+            /* Named member -- we need to call declarator. */
+            a_decl_flag_set    declarator_input_flags, declarator_output_flags;
+            a_type_ptr         bottom_derived_type;
+            an_expr_node_ptr   dim_expr_ptr;
 
             if (C_dialect == C_dialect_cplusplus) {
               curr_routine_fixup = alloc_routine_fixup();
@@ -5759,7 +5561,9 @@ to indicate whether the class/struct/union is actually defined.
               local_type = error_type();
             } else {
               /* Member function. */
-              a_boolean suppress_pure_specifier_error = FALSE;
+              a_boolean      suppress_pure_specifier_error = FALSE;
+              a_special_function_kind
+                             spec_kind = (a_special_function_kind)sfk_none;
 
               if (friend_specified) {
                 if (virtual_specified ||
@@ -5997,6 +5801,8 @@ to indicate whether the class/struct/union is actually defined.
                     diagnostic(strict_ansi_error_severity,
                                ec_incomplete_type_not_allowed);
                   }  /* if */
+                } else if (try_template_class_instantiation(local_type)) {
+                  /* Okay. */
                 } else {
                   error(ec_incomplete_type_not_allowed);
                   local_type = error_type();
@@ -6217,14 +6023,250 @@ next_declaration:
       }  /* if */
       curr_routine_fixup = saved_routine_fixup;
     }  /* if */
-    /* If this is the resolution of a previously incomplete tag, and there
-       is a list of array types to be resolved, look to see if any of them
-       are arrays whose element type is this struct/union type.  (This
-       handles an infrequently-used extension.) */
-    if (tag_resolution) check_fixup_list_for_array_types();
     /* Switch back from the file scope memory region to whatever region
        was current upon entry. */
     switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
+  return !err;
+}  /* scan_class_definition */
+
+
+a_boolean class_specifier(a_boolean  vacuous_decl_allowed,
+                          a_boolean  is_friend_decl,
+                          a_boolean  is_ref_within_new_expr,
+                          a_type_ptr *type_ptr,
+                          a_boolean  *declares_something,
+			  a_boolean  *defines_something)
+/*
+Scan a class-specifier (3.5.2.1), which declares a struct or
+union type.  The syntax is
+
+9
+        class-specifier:
+                class-head { member-list    }
+                                        opt
+
+        class-head:
+                class-key identifier    base-spec
+                                    opt          opt
+                class-key class-name base-spec
+                                              opt
+
+        class-key
+                class
+                struct
+                union
+
+9.2
+        member-list
+                member-declaration member-list
+                                              opt
+                access-specifier : member-list
+
+        member-declaration:
+                decl-specifiers    member-declarator-list    ;
+                               opt                       opt
+                function-definition ;
+                                     opt
+                qualified-name ;
+
+        member-declarator-list:
+                member-declarator
+                member-declarator-list , member-declarator
+
+        member-declarator
+                declarator pure-specifier
+                                         opt
+                identifier    : constant-expression
+                          opt
+
+        pure-specifier
+                = 0
+
+The type is returned in *type_ptr. *declares_something is set to indicate
+whether or not this specifier declares something, and *declares_something
+to indicate whether the class/struct/union is actually defined.
+*/
+{
+  a_symbol_kind           tag_kind;
+  a_type_kind             type_kind;
+  a_symbol_locator        locator;
+  a_symbol_ptr            tag_sym;
+  a_boolean               tag_id_present;
+  a_type_ptr              class_type;
+  a_boolean               is_local_class = FALSE;
+  a_boolean               is_template_class_instantiation = FALSE;
+  a_boolean               tag_resolution = FALSE;
+  a_boolean               err = FALSE;
+  a_scope_depth           effective_decl_level = decl_scope_level;
+  a_boolean               is_class_definition;
+
+  db_enter(3, "class_specifier");
+  *declares_something = FALSE;
+  *defines_something = FALSE;
+  /* Determine whether this is a template class instantiation or a local
+     class (one being declared within a function scope). */
+  if (scope_stack[depth_scope_stack].kind ==
+                               (a_scope_kind)sck_template_instantiation) {
+    is_template_class_instantiation = TRUE;
+    class_type = scope_stack[depth_scope_stack].assoc_type;
+    tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+    if (curr_token == tok_struct) {
+      class_type->kind = (a_type_kind)tk_struct;
+    }  /* if */
+    type_kind = class_type->kind;
+    (void)get_token();
+    (void)get_token();
+    goto skip_tag_scan;
+  } else if (depth_of_containing_function_scope() != NO_SCOPE_DEPTH) {
+    is_local_class = TRUE;
+  }  /* if */
+  if (!is_qualified_name_start()) {
+    /* Skip over "class", "struct", or "union", remembering which appears. */
+#if CHECKING
+    if (curr_token != tok_class &&
+        curr_token != tok_struct &&
+        curr_token != tok_union) {
+      internal_error("class_specifier: expected class, struct, or union");
+    }  /* if */
+#endif /* CHECKING */
+    if (curr_token == tok_union) {
+      tag_kind = (a_symbol_kind)sk_union_tag;
+      type_kind = (a_type_kind)tk_union;
+    } else {
+      tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
+      type_kind = (a_type_kind)(curr_token == tok_struct ?
+                                                    tk_struct : tk_class);
+    }  /* if */
+    /* If there is an identifier next, it is a tag.  It can be the declaration
+       of a new tag or a reference to an existing tag.  Although it is an
+       error, also be on the lookout for a qualified name. */
+    (void)get_token();
+    tag_id_present = is_qualified_name_start();
+  } else {
+#if CHECKING
+    if (!is_friend_decl) {
+      internal_error("class_specifier: identifier but not friend decl");
+    }  /* if */
+#endif /* CHECKING */
+    tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
+    type_kind = (a_type_kind)tk_class;
+    tag_id_present = TRUE;
+  }  /* if */
+  if (tag_id_present) {
+    /* It seems that appearance of a tag name is a declaration of the
+       tag, even if it just repeats a previous name.  At least, there's
+       a Plum Hall test that implies that. */
+    *declares_something = TRUE;
+#if CHECKING
+    if (vacuous_decl_allowed && is_friend_decl) {
+      internal_error("class_specifier: vacuous decl not okay in friend decl");
+    }  /* if */
+#endif /* CHECKING */
+    tag_sym = scan_tag_name(tag_kind, &locator, vacuous_decl_allowed,
+                            is_ref_within_new_expr, &effective_decl_level,
+                            &tag_resolution);
+  } else {
+    /* No tag identifier present. */
+    tag_sym = NULL;
+    set_to_error_locator(locator);
+    if (is_ref_within_new_expr) {
+      /* We are within a new expression and no class name is given following
+         the keyword -- e.g., "class A *pa = new class;" -- report the missing
+         identifier as a syntax error. */
+      syntax_error(ec_exp_identifier);
+    } else if (curr_token == tok_lbrace ||
+               (C_dialect == C_dialect_cplusplus && curr_token == tok_colon)) {
+      /* This is a tagless class definition. */
+    } else {
+      /* Neither the tag id nor the {...} is present.  This is an error. */
+      add_stop_token(tok_lbrace);
+      if (C_dialect == C_dialect_cplusplus) add_stop_token(tok_colon);
+      syntax_error(ec_exp_definition_of_tag);
+      err = TRUE;
+      if (C_dialect == C_dialect_cplusplus) remove_stop_token(tok_colon);
+      remove_stop_token(tok_lbrace);
+    }  /* if */
+  }  /* if */
+skip_tag_scan:
+  /* If the next token is a "{" or, in C++, a ":" (introducing a list of
+     base classes) we should expect to scan a class definition.  The exception
+     to this is when an elaborated class name (e.g., "struct S" instead of
+     simply "S") appears within the context of a new expression.  The
+     issue is the colon: since a colon could be part of the expression
+     context (e.g., "struct S *ps = flag ? new struct S : 0;") it should
+     not be interpreted as introducing a base classes list. */
+  is_class_definition = curr_token == tok_lbrace ||
+                        (C_dialect == C_dialect_cplusplus &&
+                         curr_token == tok_colon && !is_ref_within_new_expr);
+  if (tag_sym == NULL) {
+    /* Create a new class, struct, or union type.  All such types are
+       allocated in the file scope memory region, though local types will be
+       added to the function scope's types list. */
+    class_type = alloc_type(type_kind);
+    /* Wait to add the type to the types list; it should not be added
+       until the closing brace of the full definition appears, to get the
+       IL list in the right order. */
+    /* Enter a new tag symbol, if a tag id was specified (a tag is not
+       specified in something like "struct {int a; int b;}"). */
+    if (tag_id_present) {
+      tag_sym = enter_local_symbol(tag_kind, &locator, effective_decl_level,
+                                   /*suppress_redecl_error=*/FALSE);
+      set_source_corresp(&(class_type->source_corresp), tag_sym);
+    } else {
+      /* Tagless class, struct, or union.  Create a symbol to represent it;
+         though not entered in the symbol table, it is needed to carry
+         around some information about classes that is of interest to the
+         front end only. */
+      tag_sym = make_unnamed_class_symbol(tag_kind, &pos_curr_token);
+      /* Although the symbol header has a name of sorts, it should not appear
+         in the type, so NULL it out after the call to set_source_corresp. */
+      set_source_corresp(&(class_type->source_corresp), tag_sym);
+      class_type->source_corresp.name = NULL;
+    }  /* if */
+    tag_sym->variant.class_struct_union.type = class_type;
+    if (C_dialect == C_dialect_cplusplus) {
+      /* In C classes have no linkage.  In C++ most classes have either
+         internal linkage or, for classes declared at file scope and with
+         other characteristics (see ARM 3.3), C++ external linkage; local
+         classes and classes nested within local classes have no linkage.
+         For now give nonlocal classes internal linkage; it may be changed
+         later (see check_class_linkage).  Note that even nameless classes
+         may be marked as having linkage; this is useful for dealing with
+         member functions.) */
+      if (!is_local_class) {
+        /* Nonlocal class. */
+        class_type->source_corresp.name_linkage =
+                                         (a_name_linkage_kind)nlk_internal;
+      }  /* if */
+    }  /* if */
+  } else {
+    /* Using an existing type.  Fetch the type pointer from it. */
+    class_type = tag_sym->variant.class_struct_union.type;
+    /* Record cross-reference information. */
+    if (is_class_definition) {
+      mark_declared(tag_sym, &locator.source_position,
+                  /*save_as_decl_position=*/!is_template_class_instantiation);
+      /* Allow for alternating between class and struct, but stay with the
+         one associated with the definition.  The difference only affects
+         default member access. */
+      class_type->kind = type_kind;
+    } else {
+      mark_referenced(tag_sym, &locator.source_position);
+    }  /* if */
+  }  /* if */
+  if (is_class_definition) {
+    if (scan_class_definition(class_type, effective_decl_level,
+                              is_local_class)) {
+      *defines_something = TRUE;
+      /* If this is the resolution of a previously incomplete tag, and there
+         is a list of array types to be resolved, look to see if any of them
+         are arrays whose element type is this struct/union type.  (This
+         handles an infrequently-used extension.) */
+      if (tag_resolution) check_fixup_list_for_array_types();
+    } else {
+      err = TRUE;
+    }  /* if */
   }  /* if */
   *type_ptr = class_type;
 #if DEBUG
