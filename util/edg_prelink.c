@@ -646,7 +646,10 @@ Return a pointer to a temporary buffer containing a decoded name.
                       &error, &buffer_overflow, &required_buffer_size);
     result = decode_buffer;
     if (error) {
+      /* An error occurred during decoding of the name.  Issue a diagnostic
+         and return a pointer to the original message. */
       pl_warning(pl_ec_error_occurred_during_name_decoding, encoded_name);
+      result = encoded_name;
     }  /* if */
   }  /* if */
   return result;
