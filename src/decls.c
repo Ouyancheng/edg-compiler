@@ -2197,12 +2197,8 @@ scope is that of a class definition.
   last_param_id = NULL;
   *new_type_ptr = alloc_type((a_type_kind)tk_routine);
   extra_info = (*new_type_ptr)->variant.routine.extra_info;
-  /* If a pragma indicating special argument checking appeared (e.g.,
-     for printf args), remember that in the function type. */
-  extra_info->arg_pragma = arg_pragma;
   if (is_constructor) extra_info->assoc_routine_is_ctor = TRUE;
   if (is_destructor) extra_info->assoc_routine_is_dtor = TRUE;
-  arg_pragma = (an_arg_pragma_kind)apk_none;
   extra_info->param_type_list = NULL;
   if (curr_token == tok_rparen) {
     if (C_dialect == C_dialect_cplusplus) {
@@ -9156,6 +9152,28 @@ definition.
 #endif /* if 0 */
   }  /* if */
 }  /* record_lint_argsused_and_varargs_state */
+
+
+/* ARGSUSED */ /* sp is required for pragma processing functions of type
+                  a_next_construct_pragma_function. */
+void record_arg_pragma(a_pending_pragma_ptr  ppp,
+                       a_symbol_ptr          sym,
+                       a_statement_ptr       sp)
+/*
+A pragma indicating special argument checking (e.g., for printf args) has
+been specified immediately before the current declaration.  If the current
+declaration declares a function, remember the pragma kind in the function
+type, so that it can be referenced during argument processing.
+*/
+{
+  if (sym->kind == (a_symbol_kind)sk_routine ||
+      sym->kind == (a_symbol_kind)sk_member_function) {
+    sym->variant.routine.ptr->type->
+           variant.routine.extra_info->arg_pragma = ppp->descr_ptr->kind;
+  } else {
+    /* Diagnostic? */
+  }  /* if */
+}  /* record_arg_pragma */
 
 
 static void function_definition(a_symbol_locator   *locator,
