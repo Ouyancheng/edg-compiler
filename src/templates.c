@@ -3111,7 +3111,7 @@ It is FALSE if the instantiation scope was pushed by the caller.
         }  /* if */
       }  /* if */
     }  /* for */
-    check_assertion(daefp == NULL);
+    check_assertion(daefp == NULL || total_errors != 0);
   }  /* if */
 }  /* delayed_scan_for_function_template_default_args */
 
