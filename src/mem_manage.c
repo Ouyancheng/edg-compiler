@@ -594,7 +594,7 @@ have_hdr:
   hdr->next_avail_in_block = hdr->start_of_block;
 #ifdef USING_PURIFY
   /* When using Purify, reserve the smallest possible piece of memory
-     at the beginning of the block.  This is done to prevent an what
+     at the beginning of the block.  This is done to prevent what
      looks like an unused memory block from being created. */
   if (min_size == 0 && purify_is_active) {
     hdr->next_avail_in_block += HOST_ALIGNMENT_REQUIRED;
