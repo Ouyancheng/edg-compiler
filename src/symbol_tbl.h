@@ -2068,21 +2068,20 @@ extern a_routine_ptr select_destructor(a_type_ptr       class_type,
                                        a_boolean        evaluated,
                                        a_boolean        suppress_access_check);
 
-extern a_symbol_ptr find_copy_constructor(a_type_ptr class_type,
-                                          a_boolean  const_object_required,
-                                          a_boolean  volatile_object_required,
-                                          a_boolean  *ambiguous,
-                                          a_boolean  *class_bitwise_copy);
+extern a_symbol_ptr find_copy_constructor(
+                                   a_type_ptr            class_type,
+                                   a_type_qualifier_set  required_qualifiers,
+                                   a_boolean             *ambiguous,
+                                   a_boolean             *class_bitwise_copy);
 
 extern a_routine_ptr select_copy_constructor(
-                                    a_type_ptr        class_type,
-                                    a_boolean         const_object_required,
-                                    a_boolean         volatile_object_required,
-                                    a_source_position *err_pos,
-				    a_type_ptr	      object_class_type,
-                                    a_boolean         *class_bitwise_copy,
-                                    a_boolean         evaluated,
-                                    a_boolean         suppress_access_check);
+                                  a_type_ptr            class_type,
+                                  a_type_qualifier_set  required_qualifiers,
+                                  a_source_position     *err_pos,
+                                  a_type_ptr            object_class_type,
+                                  a_boolean             *class_bitwise_copy,
+                                  a_boolean             evaluated,
+                                  a_boolean             suppress_access_check);
 
 extern char *il_entry_for_symbol(a_symbol_ptr      sym,
                                  an_il_entry_kind  *kind);

@@ -3277,11 +3277,10 @@ suppress_access_check is TRUE, no access checking is done.
 }  /* select_destructor */
 
 
-a_symbol_ptr find_copy_constructor(a_type_ptr class_type,
-                                   a_boolean  const_object_required,
-                                   a_boolean  volatile_object_required,
-                                   a_boolean  *ambiguous,
-                                   a_boolean  *class_bitwise_copy)
+a_symbol_ptr find_copy_constructor(a_type_ptr            class_type,
+                                   a_type_qualifier_set  required_qualifiers,
+                                   a_boolean             *ambiguous,
+                                   a_boolean             *class_bitwise_copy)
 /*
 Find and return a pointer to a symbol representing a copy constructor for
 the class indicated by class_type.  If const_object_required is TRUE, return
@@ -3293,12 +3292,12 @@ and return NULL.  If a bitwise copy is allowed, return NULL and
 *class_bitwise_copy TRUE.  This routine is only used in C++ mode.
 */
 {
-  a_symbol_ptr  sym, cctor_sym = NULL;
-  a_boolean     is_overloaded_function;
-  a_boolean     const_object_okay, volatile_object_okay;
-  a_boolean     sym_matches_exactly, cctor_sym_matches_exactly = FALSE;
-  a_class_symbol_supplement_ptr
-                cssp;
+  a_symbol_ptr                   sym, cctor_sym = NULL;
+  a_boolean                      is_overloaded_function;
+  a_type_qualifier_set           qualifiers;
+  a_boolean                      sym_matches_exactly;
+  a_boolean                      cctor_sym_matches_exactly = FALSE;
+  a_class_symbol_supplement_ptr  cssp;
 
   /* This routine is similar to select_overloaded_function. */
   *ambiguous = FALSE;
@@ -3329,18 +3328,14 @@ and return NULL.  If a bitwise copy is allowed, return NULL and
        constructor that can copy a const object and another that cannot. */
     for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
       if (is_copy_constructor(sym->variant.routine.ptr,
-                              sym->class_of_which_a_member,
-                              &const_object_okay, &volatile_object_okay)) {
-        if ((const_object_required && !const_object_okay) || 
-            (volatile_object_required && !volatile_object_okay)) {
+                              sym->class_of_which_a_member, &qualifiers)) {
+        if ((required_qualifiers & qualifiers) != required_qualifiers) {
           /* A copy constructor was found that cannot copy the sort of object
              that we need to be able to copy. Keep looking for a suitable copy
              constructor. */
         } else {
           /* sym represents a suitable copy constructor. */
-          sym_matches_exactly =
-                           (const_object_okay == const_object_required &&
-                            volatile_object_okay == volatile_object_required);
+          sym_matches_exactly = (required_qualifiers == qualifiers);
           if (cctor_sym != NULL) {
             /* A suitable copy constructor had already been found, so there's
                more than one.  We may have an ambiguous reference.  We give
@@ -3379,37 +3374,33 @@ and return NULL.  If a bitwise copy is allowed, return NULL and
 
 
 a_routine_ptr select_copy_constructor(
-                                    a_type_ptr        class_type,
-                                    a_boolean         const_object_required,
-                                    a_boolean         volatile_object_required,
-                                    a_source_position *err_pos,
-				    a_type_ptr        object_class_type,
-                                    a_boolean         *class_bitwise_copy,
-                                    a_boolean         evaluated,
-                                    a_boolean         suppress_access_check)
+                                  a_type_ptr            class_type,
+                                  a_type_qualifier_set  qualifiers_required,
+                                  a_source_position     *err_pos,
+                                  a_type_ptr            object_class_type,
+                                  a_boolean             *class_bitwise_copy,
+                                  a_boolean             evaluated,
+                                  a_boolean             suppress_access_check)
 /*
 Find and return a pointer to a routine representing a copy constructor for
-the class indicated by class_type.  If const_object_required is TRUE, return
-a copy constructor that accepts a first parameter whose type is const
-qualified.  Similarly for volatile_object_required.  Otherwise, return what's
-found.  If no acceptable copy constructor is found, issue a diagnostic and
-return NULL.  If more than one acceptable copy constructor is found,
-issue a (different) diagnostic and return NULL.  object_class_type points to
-the type of the object being copied;  class_type may be a base class of
-object_class_type.  This is needed for protected member access checking.
-If a bitwise copy is allowed, return NULL and *class_bitwise_copy TRUE.
-If evaluated is FALSE, the reference is within an unevaluated expression.
-This routine is only used in C++ mode.  If suppress_access_check is TRUE,
-no access checking is done.
+the class indicated by class_type.  If qualifiers_required is non-zero,
+return a copy constructor that accepts a first parameter whose type is
+compatibly qualified.  Otherwise, return what's found.  If no acceptable
+copy constructor is found, issue a diagnostic and return NULL.  If more than
+one acceptable copy constructor is found, issue a (different) diagnostic and
+return NULL.  object_class_type points to the type of the object being
+copied; class_type may be a base class of object_class_type.  This is needed
+for protected member access checking.  If a bitwise copy is allowed, return
+NULL and *class_bitwise_copy TRUE.  If evaluated is FALSE, the reference is
+within an unevaluated expression.  This routine is only used in C++ mode.
+If suppress_access_check is TRUE, no access checking is done.
 */
 {
   a_symbol_ptr  cctor_sym;
   a_routine_ptr cctor_routine;
   a_boolean     ambiguous;
 
-  cctor_sym = find_copy_constructor(class_type,
-                                    const_object_required,
-                                    volatile_object_required,
+  cctor_sym = find_copy_constructor(class_type, qualifiers_required,
                                     &ambiguous, class_bitwise_copy);
   cctor_routine = NULL;
   if (*class_bitwise_copy) {
@@ -3417,7 +3408,7 @@ no access checking is done.
   } else if (cctor_sym == NULL) {
     if (!ambiguous) {
       /* No applicable copy constructor. */
-      if (const_object_required && !volatile_object_required) {
+      if (qualifiers_required == TQ_CONST) {
         /* The common case:  missing const copy constructor. */
         pos_ty_error(ec_missing_const_copy_constructor, err_pos, class_type);
       } else {
