@@ -5886,7 +5886,8 @@ operator_or_conversion_name:
           }  /* if */
           basic_type = bt_typedef;
           *type_ptr = locator_for_curr_id.variant.conversion_result_type;
-        } else if (locator_for_curr_id.is_operator_name && is_member_decl) {
+        } else if (locator_for_curr_id.is_operator_name &&
+                   is_member_decl && !is_friend_decl) {
           an_opname_kind  opname = locator_for_curr_id.variant.opname;
           if (opname == (an_opname_kind)onk_new ||
               opname == (an_opname_kind)onk_delete) {
