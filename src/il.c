@@ -7138,7 +7138,7 @@ placed but whose scope has since been popped from the scope stack.
   }  /* if */
 #endif /* if DEBUG */
 #endif /* if CHECKING */
-  /* Modify the precedessor on the list (or the list pointer itself) to
+  /* Modify the predecessor on the list (or the list pointer itself) to
      point to ssep's successor. */
   if (ssep->prev != NULL) {
     /* There is a previous entry on the list. */
