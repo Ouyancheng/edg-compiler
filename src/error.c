@@ -3123,7 +3123,8 @@ associated with the translation unit that it is in.
     diag_primary_source_file = primary_source_file_for_seq(pos->seq);
     /* It is a secondary translation unit if it is not the first entry
        on the list. */
-    result = diag_primary_source_file != translation_units->source_file;
+    result = diag_primary_source_file != NULL &&
+             diag_primary_source_file != translation_units->source_file;
   }  /* if */
   return result;
 }  /* in_secondary_translation_unit */
