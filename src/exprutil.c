@@ -2413,7 +2413,7 @@ an lvalue, it is converted to an rvalue before doing the promotions.
   /* Do the integral promotions part of the default argument promotions
      directly on the operand because of the special case with 
      bit-fields (which can't be handled from just the type). */
-  if (is_integral_type(arg_type)) {
+  if (is_integral_or_enum_type(arg_type)) {
     promote_operand(argument_operand);
   } else if (is_incomplete_type(arg_type)) {
     /* Catch a case like "f((void)2)" -- an argument with an incomplete
@@ -2574,10 +2574,10 @@ The operands can be lvalues or rvalues.
       type_2 = operand_type_after_integral_promotion(operand_2);
       type_2 = skip_typerefs(type_2);
 
-      ikind_1 = is_integral_type(type_1) ? type_1->variant.integer.int_kind :
-                                           (an_integer_kind)ik_last;
-      ikind_2 = is_integral_type(type_2) ? type_2->variant.integer.int_kind :
-                                           (an_integer_kind)ik_last;
+      ikind_1 = is_integral_or_enum_type(type_1) ?
+                  type_1->variant.integer.int_kind : (an_integer_kind)ik_last;
+      ikind_2 = is_integral_or_enum_type(type_2) ?
+                  type_2->variant.integer.int_kind : (an_integer_kind)ik_last;
 #if LONG_LONG_ALLOWED
       if (is_unsigned_long_long(ikind_1) || is_unsigned_long_long(ikind_2)) {
         /* If either operand has type "unsigned long long", the other operand
@@ -3000,7 +3000,7 @@ lvalue.  If there is an error, change the operand to an error operand.
 }  /* check_modifiable_lvalue_operand */
 
 
-a_boolean check_integral_operand(an_operand *operand)
+a_boolean check_integral_or_enum_operand(an_operand *operand)
 /*
 Return FALSE and issue an error message if the operand is not of integral
 type.  If there is an error change "operand" to an error operand.
@@ -3013,16 +3013,16 @@ See section 3.1.2.5 of the standard.
     /* If the operand has a type of error, an error message has already been
        issued. */
     okay = FALSE;
-  } else if (!is_integral_type(operand->type)) {
+  } else if (!is_integral_or_enum_type(operand->type)) {
     error_in_operand(ec_expr_not_integral, operand);
     okay = FALSE;
   }  /* if */
 
   return okay;
-}  /* check_integral_operand */
+}  /* check_integral_or_enum_operand */
 
 
-a_boolean check_arithmetic_operand(an_operand *operand)
+a_boolean check_arithmetic_or_enum_operand(an_operand *operand)
 /*
 Return FALSE if the operand is not of arithmetic type.  If there is an error,
 change the operand to an error operand.  See section 3.1.2.5 of the standard.
@@ -3033,13 +3033,13 @@ change the operand to an error operand.  See section 3.1.2.5 of the standard.
   if (is_error_operand(operand)) {
     /* If it is an error type, an error message has already been issued. */
     okay = FALSE;
-  } else if (!is_arithmetic_type(operand->type)) {
+  } else if (!is_arithmetic_or_enum_type(operand->type)) {
     error_in_operand(ec_expr_not_arithmetic, operand);
     okay = FALSE;
   }  /* if */
 
   return okay;
-}  /* check_arithmetic_operand */
+}  /* check_arithmetic_or_enum_operand */
 
 
 a_boolean check_pointer_operand(an_operand    *operand,
@@ -5526,8 +5526,8 @@ should leave its result still an lvalue.
     is_still_an_lvalue = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode && C_mode() &&
-             is_integral_type(type_before_cast) &&
-             is_integral_type(type_cast_to)) {
+             is_integral_or_enum_type(type_before_cast) &&
+             is_integral_or_enum_type(type_cast_to)) {
     /* In Microsoft C mode lvalue casts involving integral types of different
        sizes are allowed -- e.g.,
          long l; ++(char)l;   // affects only the low-order 8 bits

@@ -205,7 +205,7 @@ conventions of Microsoft's bit-field allocation scheme.
   check_assertion(tp1->kind != (a_type_kind)tk_typeref &&
                   tp2->kind != (a_type_kind)tk_typeref);
   /* Check that both are integral types, in case of errors. */
-  if (!is_integral_type(tp1) || !is_integral_type(tp1)) {
+  if (!is_integral_or_enum_type(tp1) || !is_integral_or_enum_type(tp2)) {
     compat = FALSE;
   } else {
     /* Whether or not the integral types are identical, container-type

@@ -696,7 +696,7 @@ new fields are set properly.
       if (!is_nonstatic_member_function) ptp = ptp->next;
       tp = skip_typerefs(ptp->type);
       if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
-        if (!is_integral_type(tp) || tp->variant.integer.enum_type ||
+        if (!is_integral_type(tp) ||
             tp->variant.integer.int_kind != (an_integer_kind)ik_int) {
           pos_st_error(ec_bad_extra_arg_for_postfix_operator,
                        &locator->source_position,
@@ -1906,7 +1906,8 @@ cases.  Return TRUE if the two types are compatible by these relaxed rules.
     tp2 = skip_typerefs(tp2);
     ret2 = tp2->variant.routine.return_type;
     if (types_are_compatible(ret1, ret2) ||
-        (is_integral_type(ret1) && interchangeable_types(ret1, ret2))) {
+        (is_integral_or_enum_type(ret1) &&
+         interchangeable_types(ret1, ret2))) {
       /* Either the return types are compatible or else they are incompatible
          but both are integral and they are interchangeable (i.e., they have
          the same size and alignment).  See whether the two routine types

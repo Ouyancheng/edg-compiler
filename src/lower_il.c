@@ -7232,7 +7232,7 @@ is_full_expr is TRUE.
     /* If an enk_object_lifetime node is (still) on top, look under that. */
     expr = expr->variant.object_lifetime.expr;
   }  /* if */
-  check_assertion(is_integral_type(expr->type));
+  check_assertion(is_integral_or_enum_type(expr->type));
   if (is_operation_node(expr) &&
       is_operator_returning_bool(expr->variant.operation.kind)) {
     /* The top of the expression is an operator that returns a boolean

@@ -2087,7 +2087,7 @@ precedence confusion.  Do the output in the way described by octl.
         a_targ_alignment alignment;
         /* This is a case where the final type is a nonpointer.  See if an
            extra cast to unsigned long is needed. */
-        if (is_integral_type(con_type) &&
+        if (is_integral_or_enum_type(con_type) &&
             con_type->size >= size_of_pointer_to(achieved_type, &alignment)) {
           /* Cast to large-enough integral type.  No extra cast needed. */
         } else {

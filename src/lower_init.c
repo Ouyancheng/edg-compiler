@@ -217,7 +217,7 @@ function).
   /* Note that we drop type qualifiers so we won't add a cast to drop
      type qualifiers. */
   arg_type = skip_typerefs(arg_type);
-  if (is_integral_type(arg_type) || is_floating_type(arg_type)) {
+  if (is_arithmetic_or_enum_type(arg_type)) {
     /* Note that no special handling is done for bit fields because they
        have already been cast to the prototyped parameter type and therefore
        have lost whatever type malleability they might have had. */
@@ -1205,8 +1205,7 @@ and update *insert_location.
     /* Replace a reference type by a pointer type. */
     type = make_pointer_type(type_pointed_to(type));
   }  /* if */
-  if (is_integral_type(type) ||
-      is_floating_type(type) ||
+  if (is_arithmetic_or_enum_type(type) ||
       is_pointer_type(type) ||
       is_class_struct_union_type(type)) {
     op = lowered_assignment_operator(type);
@@ -3966,7 +3965,7 @@ and made external) can be a tentative definition (i.e., uninitialized).
 
   check_assertion(variable->storage_class == (a_storage_class)sc_unspecified &&
                   variable->init_kind == (an_init_kind)initk_static &&
-                  is_integral_type(variable->type));
+                  is_integral_or_enum_type(variable->type));
   /* The WP [stmt.dcl] paragraph 3 says "A local object with static
      storage duration initialized with an integral constant-
      expression is initialized before its block is first entered."

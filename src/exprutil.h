@@ -522,7 +522,8 @@ identifiers too; see [class.static.data].  Those can have template parameter
 types, so use the is_member_constant flag.
 */
 #define is_const_variable(var)                                          \
-  ((is_integral_type((var)->type) && is_const_qualified_type((var)->type)) || \
+  ((is_integral_or_enum_type((var)->type) &&                            \
+    is_const_qualified_type((var)->type)) ||                            \
    (var)->is_member_constant)
 
 
@@ -650,7 +651,7 @@ extern a_boolean check_object_or_incomp_array_pointer_operand(
                                                        an_operand    *otherop);
 #endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
 
-extern a_boolean check_arithmetic_operand(an_operand *operand);
+extern a_boolean check_arithmetic_or_enum_operand(an_operand *operand);
 
 extern void make_integer_constant_operand(an_operand *operand,
 				          long       value);
@@ -803,7 +804,7 @@ extern void build_binary_result_operand(an_operand            *operand_1,
 				        a_type_ptr            type,
 	       			        an_operand            *result);
 
-extern a_boolean check_integral_operand(an_operand *operand);
+extern a_boolean check_integral_or_enum_operand(an_operand *operand);
 
 extern a_type_ptr type_after_array_to_pointer_transformation(a_type_ptr type);
 

@@ -4373,11 +4373,10 @@ This routine is only used in C++ mode.
       /* We're looking for a built-in type described in general terms. */
       /* See if this conversion function returns an acceptable built-in
          type. */
-#if 0
-      /* Different test for enum? */
-#endif /* 0 */
       if (((builtin_types_allowed & BTK_INTEGRAL) != 0 &&
                                               is_integral_type(return_type)) ||
+          ((builtin_types_allowed & BTK_ENUM) != 0 &&
+                                              is_enum_type(return_type)) ||
           ((builtin_types_allowed & BTK_BOOL) != 0 &&
                                               is_bool_type(return_type)) ||
           ((builtin_types_allowed & BTK_FLOATING) != 0 &&
@@ -4396,10 +4395,9 @@ This routine is only used in C++ mode.
         compatible = TRUE;
         /* The result does not have to be forced to an rvalue. */
       } else if (((builtin_types_allowed & BTK_BOOL) != 0 &&
-                                           (is_arithmetic_type(return_type) ||
-                                            is_enum_type(return_type) ||
-                                            is_pointer_type(return_type) ||
-                                        is_ptr_to_member_type(return_type)))) {
+                                 (is_arithmetic_or_enum_type(return_type) ||
+                                  is_pointer_type(return_type) ||
+                                  is_ptr_to_member_type(return_type)))) {
         /* The conversion function returns something that can be converted to
            the desired kind of type via a standard conversion. */
         compatible = TRUE;
@@ -4732,14 +4730,11 @@ it fits that type description or can be converted to it.
     case INTEGRAL_TYPE_CODE:
     case PROMOTED_INTEGRAL_TYPE_CODE:
     case PTRDIFF_T_TYPE_CODE:
-#if 0
-      /* Enum? */
-#endif /* 0 */
-      matches = is_integral_type(type);
+      matches = is_integral_or_enum_type(type);
       break;
     case ARITH_TYPE_CODE:
     case PROMOTED_ARITH_TYPE_CODE:
-      matches = is_arithmetic_type(type);
+      matches = is_arithmetic_or_enum_type(type);
       break;
     case POINTER_TYPE_CODE:
       matches = is_pointer_type(type);
@@ -4756,8 +4751,9 @@ it fits that type description or can be converted to it.
       matches = is_ptr_to_member_type(type);
       break;
     case BOOL_TYPE_CODE:
-      matches = is_arithmetic_type(type) || /* Arithmetic includes bool. */
-                is_enum_type(type) || is_pointer_type(type) ||
+      /* Arithmetic includes bool. */
+      matches = is_arithmetic_or_enum_type(type) ||
+                is_pointer_type(type) ||
                 is_ptr_to_member_type(type);
       break;
     case CLASS_TYPE_CODE:
@@ -4782,11 +4778,11 @@ type_code.
     case INTEGRAL_TYPE_CODE:
     case PROMOTED_INTEGRAL_TYPE_CODE:
     case PTRDIFF_T_TYPE_CODE:
-      builtin_types_allowed = BTK_INTEGRAL;
+      builtin_types_allowed = BTK_INTEGRAL | BTK_ENUM;
       break;
     case ARITH_TYPE_CODE:
     case PROMOTED_ARITH_TYPE_CODE:
-      builtin_types_allowed = BTK_INTEGRAL | BTK_FLOATING;
+      builtin_types_allowed = BTK_INTEGRAL | BTK_ENUM | BTK_FLOATING;
       break;
     case POINTER_TYPE_CODE:
       builtin_types_allowed = BTK_POINTER;

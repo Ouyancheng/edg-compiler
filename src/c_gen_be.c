@@ -2919,7 +2919,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             }  /* if */
             dump_variable_reference_node(operand_1);
           } else if (is_pointer_type(operand_1->type) &&
-                     is_integral_type(expr_type) &&
+                     is_integral_or_enum_type(expr_type) &&
                      expr_type->size < skip_typerefs(operand_1->type)->size) {
             /* Casting from a pointer type to a smaller integral type.  Go by
                way of unsigned long to avoid errors or warnings from the
@@ -3344,7 +3344,7 @@ process_assignment:
             } else {
               /* Unprototyped or ellipsis argument. */
               a_type_ptr arg_type = skip_typerefs(call_argument->type);
-              if (is_integral_type(arg_type)) {
+              if (is_integral_or_enum_type(arg_type)) {
                 an_integer_kind ikind = arg_type->variant.integer.int_kind;
                 if ((int)ikind < (int)ik_int) {
                   internal_error("dump_operation: unwidened integer argument");

@@ -494,8 +494,8 @@ Syntax:
       do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
       /* One of the operands must have type "pointer to object type" and the 
          other must be an integral expression.  See section 3.3.2.1 of the
-         standard.  If the first operand is integral, switch them. */
-      if (is_integral_type(operand_1->type)) {
+         standard.  If the first operand is integral or enum, switch them. */
+      if (is_integral_or_enum_type(operand_1->type)) {
         /* The subscript value is outside the brackets and the pointer value is
            inside the brackets.  Switch them. */
         copy_operand(operand_1, &operand_temp);
@@ -520,8 +520,8 @@ Syntax:
         result_type = error_type();
       }  /* if */
 
-      /* The subscript must be integral. */
-      (void)check_integral_operand(&operand_2);
+      /* The subscript must be integral or enum. */
+      (void)check_integral_or_enum_operand(&operand_2);
 
       /* Build the expression.  The order of the operands is pointer and
          then the subscript, regardless of the original order of the two. */
@@ -879,8 +879,8 @@ format string (they are updated on return).
       if (types_are_compatible(eff_required_type, eff_argument_type)) {
         /* The types are exactly the same. */
       } else if (weakly_typed &&
-                 is_integral_type(eff_required_type) &&
-                 is_integral_type(eff_argument_type) &&
+                 is_integral_or_enum_type(eff_required_type) &&
+                 is_integral_or_enum_type(eff_argument_type) &&
                  integral_types_the_same_except_for_signedness(
                                        eff_required_type, eff_argument_type)) {
         /* For a weakly-typed specifier like "%x", allow an integral type
@@ -890,7 +890,7 @@ format string (they are updated on return).
                  is_pointer_type(eff_argument_type)) {
         /* Allow any pointer type for %p. */
       } else if (!strict_ansi_mode &&
-                 is_integral_type(eff_required_type) &&
+                 is_integral_or_enum_type(eff_required_type) &&
                  is_pointer_type(eff_argument_type) &&
                  eff_required_type->size == eff_argument_type->size &&
                  eff_required_type->alignment == eff_argument_type->alignment){
@@ -1096,7 +1096,7 @@ build an argument operand list and return a pointer to it in
 #if TARG_NULL_IS_ALL_BITS_ZERO
                 } else if (!strict_ansi_mode &&
                            is_pointer_type(formal_type) &&
-                           is_integral_type(argument_operand.type) &&
+                           is_integral_or_enum_type(argument_operand.type) &&
                            op_is_zero_constant(&argument_operand) &&
                            skip_typerefs(formal_type)->size ==
                                   skip_typerefs(argument_operand.type)->size) {
@@ -2135,7 +2135,8 @@ bound with the function in *bound_function_selector.
     } else {
       if (is_arrow_operator) {
         /* "->" operator.  The left operand must be a pointer. */
-        if (C_dialect == C_dialect_pcc && is_integral_type(operand_1->type)) {
+        if (C_dialect == C_dialect_pcc &&
+            is_integral_or_enum_type(operand_1->type)) {
           /* In pcc mode, something like 0->x is valid. */
           pcc_mode_integral_pointer_case = TRUE;
           orig_class_struct_union_type = NULL;  /* Defensive programming. */
@@ -3390,15 +3391,15 @@ See section 3.3.3.2 of the standard.
 }  /* scan_indirection_operator */
 
 
-static a_boolean is_nonarithmetic_type(a_type_ptr type)
+static a_boolean is_nonarithmetic_and_nonenum_type(a_type_ptr type)
 /*
-Return TRUE if type is a nonarithmetic type.  This differs from
-!is_arithmetic_type(type) in that it returns FALSE for an error type.
+Return TRUE if type is not an arithmetic or enum type.  This differs from
+!is_arithmetic_or_enum_type(type) in that it returns FALSE for an error type.
 */
 {
   a_boolean is_nonarith;
 
-  if (is_arithmetic_type(type)) {
+  if (is_arithmetic_or_enum_type(type)) {
     is_nonarith = FALSE;
   } else if (is_error_type(type)) {
     is_nonarith = FALSE;
@@ -3406,7 +3407,7 @@ Return TRUE if type is a nonarithmetic type.  This differs from
     is_nonarith = TRUE;
   }  /* if */
   return is_nonarith;
-}  /* is_nonarithmetic_type */
+}  /* is_nonarithmetic_and_nonenum_type */
 
 
 static void scan_arith_prefix_operator(an_operand *result)
@@ -3437,7 +3438,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
   scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
 
   if (curr_expr_kind_is(ek_template_arg) &&
-      is_nonarithmetic_type(operand.type)) {
+      is_nonarithmetic_and_nonenum_type(operand.type)) {
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &start_position);
     make_error_operand(result);
@@ -3467,8 +3468,8 @@ arithmetic type.  The operand of "~" must have integral type.  See section
             is_pointer_type(operand.type)) {
           /* In C++, the operand may be a pointer (ARM 5.3). */
         } else {
-          /* In C++ or C, the operand may be arithmetic. */
-          (void)check_arithmetic_operand(&operand);
+          /* In C++ or C, the operand may be arithmetic or enum. */
+          (void)check_arithmetic_or_enum_operand(&operand);
         }  /* if */
         break;
       case tok_not:
@@ -3478,7 +3479,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
         result_type = boolean_result_type();
         break;
       case tok_minus:
-        (void)check_arithmetic_operand(&operand);
+        (void)check_arithmetic_or_enum_operand(&operand);
         if (is_floating_type(operand.type)) {
           op = (an_expr_operator_kind)eok_fnegate;
         } else {
@@ -3486,7 +3487,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
         }  /* if */
         break;
       case tok_compl:
-        (void)check_integral_operand(&operand);
+        (void)check_integral_or_enum_operand(&operand);
         op = (an_expr_operator_kind)eok_complement;
         break;
 #if CHECKING
@@ -5400,12 +5401,12 @@ this routine is called.
        but produce an error operand. */
     err = TRUE;
   } else if (curr_expr_kind_is(ek_integral_constant)) {
-    /* Only casts from arithmetic to integral types are permitted in
+    /* Only casts from arithmetic to integral or enum types are permitted in
        integral constant expressions. */
-    if (is_integral_type(dest_type)) {
+    if (is_integral_or_enum_type(dest_type)) {
       /* Okay, cast is to integral type. */
-      /* The cast should be from an arithmetic type. */
-      if (is_arithmetic_type(source_type)) {
+      /* The cast should be from an arithmetic or enum type. */
+      if (is_arithmetic_or_enum_type(source_type)) {
         /* Okay. */
       } else if (is_pointer_type(source_type) &&
                  is_constant_operand(operand) &&
@@ -5428,7 +5429,7 @@ this routine is called.
         err = TRUE;
       }  /* if */
     } else if ((local_options & EOPT_OPERAND_OF_CAST) &&
-               is_integral_type(source_type) &&
+               is_integral_or_enum_type(source_type) &&
                is_pointer_type(dest_type)) {
       /* When the cast is the immediate operand of another cast, allow
          integer --> pointer as an extension. */
@@ -5445,12 +5446,12 @@ this routine is called.
       err = TRUE;
     }  /* if */
   } else if (curr_expr_kind_is(ek_init_constant)) {
-    /* Initializer constant expression: arithmetic --> arithmetic
+    /* Initializer constant expression: arithmetic/enum --> arithmetic/enum
        and scalar --> pointer are allowed, pointer --> integral as
        an extension. */
-    if (is_arithmetic_type(dest_type)) {
-      /* Casting to arithmetic; source must be arithmetic. */
-      if (is_arithmetic_type(source_type)) {
+    if (is_arithmetic_or_enum_type(dest_type)) {
+      /* Casting to arithmetic or enum; source must be arithmetic or enum. */
+      if (is_arithmetic_or_enum_type(source_type)) {
         /* Okay. */
       } else if (is_pointer_type(source_type) &&
                  is_integral_type(dest_type)) {
@@ -5463,7 +5464,7 @@ this routine is called.
           err = (strict_ansi_error_severity == es_error);
         }  /* if */
       } else {
-        /* Non-arithmetic --> arithmetic. */
+        /* Non-arithmetic --> arithmetic or enum. */
         if (!is_error_type(source_type)) {
           pos_error(ec_expr_not_arithmetic, &operand->position);
         }  /* if */
@@ -5483,11 +5484,11 @@ this routine is called.
       err = TRUE;
     }  /* if */
   } else if (curr_expr_kind_is(ek_template_arg)) {
-    /* Only casts between arithmetic types are allowed in nontype template
-       arguments. */
-    if (is_arithmetic_type(dest_type)) {
-      /* Destination is arithmetic.  Source should be also. */
-      if (is_arithmetic_type(source_type)) {
+    /* Only casts between arithmetic or enum types are allowed in nontype
+       template arguments. */
+    if (is_arithmetic_or_enum_type(dest_type)) {
+      /* Destination is arithmetic or enum.  Source should be also. */
+      if (is_arithmetic_or_enum_type(source_type)) {
         /* Okay. */
       } else {
         /* Cast from non-arithmetic to arithmetic in a nontype template
@@ -6647,8 +6648,8 @@ be of integral type.  See section 3.3.5 of the standard.
   scan_expr(&operand_2, PREC_MULT_DIV, EOPT_NO_OPTIONS);
 
   if (curr_expr_kind_is(ek_template_arg) &&
-      (is_nonarithmetic_type(operand_1->type) ||
-       is_nonarithmetic_type(operand_2.type))) {
+      (is_nonarithmetic_and_nonenum_type(operand_1->type) ||
+       is_nonarithmetic_and_nonenum_type(operand_2.type))) {
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
@@ -6670,21 +6671,21 @@ be of integral type.  See section 3.3.5 of the standard.
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
-    /* The first operand must be of arithmetic type (the remainder operator
-       requires integral type). */
+    /* The first operand must be of arithmetic or enum type (the remainder
+       operator requires integral or enum type). */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     if (save_token == tok_remainder) {
-      (void)check_integral_operand(operand_1);
+      (void)check_integral_or_enum_operand(operand_1);
     } else {
-      (void)check_arithmetic_operand(operand_1);
+      (void)check_arithmetic_or_enum_operand(operand_1);
     }  /* if */
-    /* The second operand must be of arithmetic type (the remainder operator
-       requires integral type). */
+    /* The second operand must be of arithmetic or enum type (the remainder
+       operator requires integral or enum type). */
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     if (save_token == tok_remainder) {
-      (void)check_integral_operand(&operand_2);
+      (void)check_integral_or_enum_operand(&operand_2);
     } else {
-      (void)check_arithmetic_operand(&operand_2);
+      (void)check_arithmetic_or_enum_operand(&operand_2);
     }  /* if */
 
     result_type = determine_arithmetic_conversions(operand_1, &operand_2);
@@ -6742,8 +6743,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
   scan_expr(&operand_2, PREC_PLUS_MINUS, EOPT_NO_OPTIONS);
 
   if (curr_expr_kind_is(ek_template_arg) &&
-      (is_nonarithmetic_type(operand_1->type) ||
-       is_nonarithmetic_type(operand_2.type))) {
+      (is_nonarithmetic_and_nonenum_type(operand_1->type) ||
+       is_nonarithmetic_and_nonenum_type(operand_2.type))) {
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
@@ -6765,10 +6766,10 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
-    /* The first operand must be arithmetic or a pointer. */
+    /* The first operand must be an arithmetic or enum type or a pointer. */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     operand_1_is_pointer = FALSE;
-    if (is_arithmetic_type(operand_1->type)) {
+    if (is_arithmetic_or_enum_type(operand_1->type)) {
       /* Okay. */
     } else if (check_pointer_operand(operand_1, ec_expr_not_scalar)) {
       operand_1_is_pointer = TRUE;
@@ -6779,8 +6780,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
       err = TRUE;
     } else if (operand_1_is_pointer) {
       /* Operand 1 has pointer type. */
-      if (is_integral_type(operand_2.type)) {
-        /* Pointer +- integral. */
+      if (is_integral_or_enum_type(operand_2.type)) {
+        /* Pointer +- integral/enum. */
         /* The first operand must be a pointer to an object. */
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
         /* Pointer to incomplete array is also allowed. */
@@ -6826,8 +6827,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
       }  /* if */
     } else if (save_token == tok_plus &&
                is_pointer_type(operand_2.type) &&
-               is_integral_type(operand_1->type)) {
-      /* Integral + pointer. */
+               is_integral_or_enum_type(operand_1->type)) {
+      /* Integral/enum + pointer. */
       /* The second operand must be a pointer to an object. */
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
       /* Pointer to incomplete array is also allowed. */
@@ -6845,9 +6846,9 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
       copy_operand(&operand_2, operand_1);
       copy_operand(&operand_temp, &operand_2);
     } else {
-      /* Operand 1 is arithmetic. */
-      if (is_arithmetic_type(operand_2.type)) {
-        /* Arithmetic +- arithmetic. */
+      /* Operand 1 is arithmetic or enum. */
+      if (is_arithmetic_or_enum_type(operand_2.type)) {
+        /* Arithmetic/enum +- arithmetic/enum. */
         /* Determine the result type based on the 2 operands. */
         result_type = operation_type = 
                        determine_arithmetic_conversions(operand_1, &operand_2);
@@ -6922,8 +6923,8 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
   scan_expr(&operand_2, PREC_SHIFT, EOPT_NO_OPTIONS);
 
   if (curr_expr_kind_is(ek_template_arg) &&
-      (is_nonarithmetic_type(operand_1->type) ||
-       is_nonarithmetic_type(operand_2.type))) {
+      (is_nonarithmetic_and_nonenum_type(operand_1->type) ||
+       is_nonarithmetic_and_nonenum_type(operand_2.type))) {
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
@@ -6945,11 +6946,11 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
-    /* Both operands must be integral. */
+    /* Both operands must be integral or enum. */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
-    (void)check_integral_operand(operand_1);
+    (void)check_integral_or_enum_operand(operand_1);
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-    (void)check_integral_operand(&operand_2);
+    (void)check_integral_or_enum_operand(&operand_2);
 
     if (C_dialect == C_dialect_pcc) {
       /* In K&R first edition (see appendix A, section 7.5), "perform the usual
@@ -7023,9 +7024,9 @@ is the constant.
       }  /* if */
     }  /* if */
     if (operand_type != NULL) {
-      /* Check to see if the nonconstant operand has an unsigned integral
-         type. */
-      if (is_integral_type(operand_type) &&
+      /* Check to see if the nonconstant operand has an unsigned integral or
+         enum type. */
+      if (is_integral_or_enum_type(operand_type) &&
           !is_signed_integral_type(operand_type)) {
         /* Yes. */
         is_comparison = TRUE;
@@ -7058,7 +7059,7 @@ of an error), return FALSE.
   /* Make sure the operand is still a constant. */
   if (is_constant_operand(operand)) {
     constant = &operand->variant.constant;
-    if (is_integral_type(constant->type)) {
+    if (is_integral_or_enum_type(constant->type)) {
       okay = TRUE;
       *constant_sign = sign_of_integer_constant(constant);
     }  /* if */
@@ -7095,8 +7096,8 @@ standard.
   scan_expr(&operand_2, PREC_RELATIONAL, EOPT_NO_OPTIONS);
 
   if (curr_expr_kind_is(ek_template_arg) &&
-      (is_nonarithmetic_type(operand_1->type) ||
-       is_nonarithmetic_type(operand_2.type))) {
+      (is_nonarithmetic_and_nonenum_type(operand_1->type) ||
+       is_nonarithmetic_and_nonenum_type(operand_2.type))) {
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
@@ -7118,10 +7119,10 @@ standard.
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
-    /* The first operand must be arithmetic or a pointer. */
+    /* The first operand must be an arithmetic or enum type or a pointer. */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     operand_1_is_pointer = FALSE;
-    if (is_arithmetic_type(operand_1->type)) {
+    if (is_arithmetic_or_enum_type(operand_1->type)) {
       /* Okay. */
     } else if (check_pointer_operand(operand_1, ec_expr_not_scalar)) {
       operand_1_is_pointer = TRUE;
@@ -7149,10 +7150,10 @@ standard.
                            /*mixed_object_and_incomplete_standard_in_C=*/FALSE,
                            &operation_type);
       } else {
-        /* Both operands should be arithmetic (we have ruled out all the
-           pointer cases above).  We already know that operand_1 is
-           arithmetic. */
-        if (check_arithmetic_operand(&operand_2)) {
+        /* Both operands should be arithmetic or enum (we have ruled out all
+           the pointer cases above).  We already know that operand_1 is
+           arithmetic or enum. */
+        if (check_arithmetic_or_enum_operand(&operand_2)) {
           /* Check for comparisons of unsigned integers with zero or negative
              constants.  More below. */
           funny_unsigned_comparison = is_comparison_of_unsigned_with_constant(
@@ -7238,8 +7239,8 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   scan_expr(&operand_2, PREC_EQ_NE, EOPT_NO_OPTIONS);
 
   if (curr_expr_kind_is(ek_template_arg) &&
-      (is_nonarithmetic_type(operand_1->type) ||
-       is_nonarithmetic_type(operand_2.type))) {
+      (is_nonarithmetic_and_nonenum_type(operand_1->type) ||
+       is_nonarithmetic_and_nonenum_type(operand_2.type))) {
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
@@ -7261,10 +7262,10 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
-    /* The first operand must be arithmetic or a pointer. */
+    /* The first operand must be an arithmetic or enum type or a pointer. */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     operand_1_is_pointer = operand_1_is_ptr_to_member = FALSE;
-    if (is_arithmetic_type(operand_1->type)) {
+    if (is_arithmetic_or_enum_type(operand_1->type)) {
       /* Okay. */
     } else if (is_ptr_to_member_type(operand_1->type)) {
       operand_1_is_ptr_to_member = TRUE;
@@ -7299,10 +7300,10 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
                            operand_1, &operand_2, &operator_position,
                            &operation_type);
       } else {
-        /* Both operands should be arithmetic (we have ruled out all the
-           pointer cases above).  We also know already that operand_1 is
-           arithmetic. */
-        if (check_arithmetic_operand(&operand_2)) {
+        /* Both operands should be arithmetic or enum (we have ruled out all
+           the pointer cases above).  We also know already that operand_1 is
+           arithmetic or enum. */
+        if (check_arithmetic_or_enum_operand(&operand_2)) {
           /* Check for comparisons like "unsignedvar == -1", which are true
              only in surprising cases. */
           funny_unsigned_comparison = is_comparison_of_unsigned_with_constant(
@@ -7381,8 +7382,8 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
   scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
 
   if (curr_expr_kind_is(ek_template_arg) &&
-      (is_nonarithmetic_type(operand_1->type) ||
-       is_nonarithmetic_type(operand_2.type))) {
+      (is_nonarithmetic_and_nonenum_type(operand_1->type) ||
+       is_nonarithmetic_and_nonenum_type(operand_2.type))) {
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
@@ -7404,11 +7405,11 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
-    /* Both operands must be integral. */
+    /* Both operands must be integral or enum. */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
-    (void)check_integral_operand(operand_1);
+    (void)check_integral_or_enum_operand(operand_1);
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-    (void)check_integral_operand(&operand_2);
+    (void)check_integral_or_enum_operand(&operand_2);
     result_type = determine_arithmetic_conversions(operand_1, &operand_2);
     change_binary_operand_types(result_type, operand_1, &operand_2);
     op = which_binary_operator(save_token, result_type);
@@ -7545,8 +7546,8 @@ standard.
   expr_stack->evaluated = saved_evaluated;
 
   if (curr_expr_kind_is(ek_template_arg) &&
-      (is_nonarithmetic_type(operand_1->type) ||
-       is_nonarithmetic_type(operand_2.type))) {
+      (is_nonarithmetic_and_nonenum_type(operand_1->type) ||
+       is_nonarithmetic_and_nonenum_type(operand_2.type))) {
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
@@ -7632,14 +7633,15 @@ in the result type.
   if (C_dialect != C_dialect_cplusplus) {
     op1_type = skip_typerefs(op1_type);
     op2_type = skip_typerefs(op2_type);
-    if (is_integral_type(op1_type) && is_integral_type(op2_type)) {
+    if (is_integral_or_enum_type(op1_type) &&
+        is_integral_or_enum_type(op2_type)) {
       op1_enum = underlying_enum_type(op1_type);
       op2_enum = underlying_enum_type(op2_type);
       if (op1_enum != NULL && op1_enum == op2_enum) {
         /* Both types are the same enum type, so keep the enum tag in
            the result type. */
 #if CHECKING
-        if (!is_integral_type(*result_type)) {
+        if (!is_integral_or_enum_type(*result_type)) {
           internal_error(
                         "keep_enum_in_result_type: bad result type for enums");
         }  /* if */
@@ -7684,6 +7686,7 @@ class type if necessary.
       type_kind_set = BTK_BOOL;
     } else {
       type_kind_set = (a_builtin_type_kind_set)(BTK_INTEGRAL |
+                                                BTK_ENUM |
                                                 BTK_FLOATING |
                                                 BTK_POINTER |
                                                 BTK_PTR_TO_MEMBER);
@@ -7888,9 +7891,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   /* Check the operands for compatibility.  Both must be arithmetic,
      both compatible struct/union types, both void, or both pointers. */
   if (curr_expr_kind_is(ek_template_arg) &&
-      (is_nonarithmetic_type(operand_1->type) ||
-       is_nonarithmetic_type(operand_2.type) ||
-       is_nonarithmetic_type(operand_3.type))) {
+      (is_nonarithmetic_and_nonenum_type(operand_1->type) ||
+       is_nonarithmetic_and_nonenum_type(operand_2.type) ||
+       is_nonarithmetic_and_nonenum_type(operand_3.type))) {
     /* Non-arithmetic operations are not allowed in a template argument. */
     pos_error(ec_non_arith_operation_in_templ_arg, &operator_position);
     make_error_operand(result);
@@ -8116,9 +8119,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
           /* The operands are incompatible. */
           err = TRUE;
         }  /* if */
-      } else if (is_arithmetic_type(operand_2.type)) {
-        /* Both operands should be arithmetic. */
-        (void)check_arithmetic_operand(&operand_3);
+      } else if (is_arithmetic_or_enum_type(operand_2.type)) {
+        /* Both operands should be arithmetic or enum. */
+        (void)check_arithmetic_or_enum_operand(&operand_3);
         result_type = determine_arithmetic_conversions(&operand_2, &operand_3);
         /* If both operands have the same enumerated type, keep that
            information in the result.  The "?" operator is unusual in that
@@ -8451,19 +8454,20 @@ See section 3.3.16 of the standard.
       switch (save_token) {
         case tok_times_assign:
         case tok_divide_assign:
-          (void)check_arithmetic_operand(operand_1);
-          (void)check_arithmetic_operand(&operand_2);
+          (void)check_arithmetic_or_enum_operand(operand_1);
+          (void)check_arithmetic_or_enum_operand(&operand_2);
           break;
         case tok_plus_assign:
         case tok_minus_assign:
-          if (is_arithmetic_type(operand_1->type)) {
-            /* If the first operand is arithmetic, the second must be also. */
-            (void)check_arithmetic_operand(&operand_2);
+          if (is_arithmetic_or_enum_type(operand_1->type)) {
+            /* If the first operand is arithmetic or enum, the second must
+               be also. */
+            (void)check_arithmetic_or_enum_operand(&operand_2);
           } else if (check_object_pointer_operand
                                              (operand_1, ec_expr_not_scalar)) {
             /* The first operand is a pointer, so the second one must be
-               integral. */
-            if (check_integral_operand(&operand_2)) {
+               integral or enum. */
+            if (check_integral_or_enum_operand(&operand_2)) {
               pointer_add_sub = TRUE;
             }  /* if */
           }  /* if */
@@ -8474,8 +8478,8 @@ See section 3.3.16 of the standard.
         case tok_and_assign:
         case tok_excl_or_assign:
         case tok_or_assign:
-          (void)check_integral_operand(operand_1);
-          (void)check_integral_operand(&operand_2);
+          (void)check_integral_or_enum_operand(operand_1);
+          (void)check_integral_or_enum_operand(&operand_2);
           break;
 #if CHECKING
         default:
@@ -9054,11 +9058,11 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
           /* Constant (e.g., an enum constant).  Make a constant operand. */
           make_sym_constant_operand(sym_ptr, result);
           if (curr_expr_kind_is(ek_integral_constant)) {
-            /* In an integral constant expression, check that the constant is
-               integral.  This is needed for nontype template arguments.
-               It might also be needed for the extension that allows
-               definition of constants within a class if that extension
-               were to allow non-integral constants. */
+            /* In an integral constant expression, check that the constant
+               is integral or enum.  This is needed for nontype template
+               arguments. It might also be needed for the extension that
+               allows definition of constants within a class if that
+               extension were to allow non-integral constants. */
             if (is_template_param_type(result->type)) {
               /* The constant has a template parameter type, e.g.,
                    template <class T, T N> class A {
@@ -9071,7 +9075,7 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
                            /*is_implicit_cast=*/FALSE,
                            /*is_reinterpret_cast=*/FALSE);
             } else {
-              (void)check_integral_operand(result);
+              (void)check_integral_or_enum_operand(result);
             }  /* if */
           }  /* if */
           break;
@@ -9944,15 +9948,15 @@ in a switch statement if is_switch_expr is TRUE.
 
   /* Convert from a class type to an integer if necessary. */
   if (!C_mode() && is_class_struct_union_type(operand->type)) {
-    try_to_convert_class_operand_to_builtin_type(operand,
-                                                 (a_builtin_type_kind_set)
-                                                                  BTK_INTEGRAL,
+    a_builtin_type_kind_set type_kind_set = BTK_INTEGRAL;
+    if (is_switch_expr) type_kind_set |= BTK_ENUM;
+    try_to_convert_class_operand_to_builtin_type(operand, type_kind_set,
                                                  &processed);
   }  /* if */
   if (!processed) {
     /* Non-class (i.e., normal) case. */
     do_operand_transformations(operand, TOPT_NO_OPTIONS);
-    (void)check_integral_operand(operand);
+    (void)check_integral_or_enum_operand(operand);
   }  /* if */
   if (is_switch_expr) {
     /* A switch expression gets special processing. */
@@ -10384,7 +10388,7 @@ C++ mode.
       is_class_struct_union_type(result.type)) {
     try_to_convert_class_operand_to_builtin_type(&result,
                                                  (a_builtin_type_kind_set)
-                                                                  BTK_INTEGRAL,
+                                                     (BTK_INTEGRAL | BTK_ENUM),
                                                  &processed);
   }  /* if */
   if (!processed) {
@@ -10392,8 +10396,8 @@ C++ mode.
        case. */
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
   }  /* if */
-  /* Check that the expression is integral. */
-  (void)check_integral_operand(&result);
+  /* Check that the expression is integral or enum. */
+  (void)check_integral_or_enum_operand(&result);
   /* Return a constant or expression depending on what was scanned. */
   *is_constant = TRUE;
   switch (result.kind) {

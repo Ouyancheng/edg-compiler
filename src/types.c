@@ -47,16 +47,27 @@ predicates.
 /* The void type is simply the void type. */
 #define is_void(tp) ((tp)->kind == (a_type_kind)tk_void)
 
+/* tk_integer types include integral types as well as enum types in C++. */
+#define type_kind_is_integer(tp) ((tp)->kind == (a_type_kind)tk_integer)
+
 /* Integral types comprise char, the signed and unsigned integer types,
-   and enumerated types. */
-#define is_integral(tp) ((tp)->kind == (a_type_kind)tk_integer)
+   enumerated types (in C mode), and bool (in C++ mode). */
+#define is_integral(tp) \
+  (type_kind_is_integer(tp) && \
+   (C_mode() || !(tp)->variant.integer.enum_type))
 
 /* Enum types are integral types that are tagged as enums. */
-#define is_enum(tp) (is_integral(tp) && (tp)->variant.integer.enum_type)
+#define is_enum(tp) \
+  (type_kind_is_integer(tp) && (tp)->variant.integer.enum_type)
+
+/* Sometimes useful in C++ since enum types are not integral; in C_mode this
+   macro is interchangeable with is_integral (but is more efficient). */
+#define is_integral_or_enum(tp) (type_kind_is_integer(tp))
 
 /* The bool type is an integral type that is tagged as bool.  It only
    exists when bool_is_keyword is TRUE. */
-#define is_bool(tp) (is_integral(tp) && (tp)->variant.integer.bool_type)
+#define is_bool(tp) \
+  (type_kind_is_integer(tp) && (tp)->variant.integer.bool_type)
 
 /* Character types are three particular integral types. */
 #define is_character(tp) \
@@ -71,6 +82,10 @@ predicates.
 /* Arithmetic types are the integral types plus the floating types. */
 #define is_arithmetic(tp) (is_integral(tp) || is_floating(tp))
 
+/* is_arithmetic and is_arithmetic_or_enum are equivalent in C mode but
+   return different values in C++ mode if tp is an enum type. */
+#define is_arithmetic_or_enum(tp) (is_integral_or_enum(tp) || is_floating(tp))
+
 /* The pointer type is simply the pointer type. */
 #define is_pointer(tp) ((tp)->kind == (a_type_kind)tk_pointer &&      \
                         !(tp)->variant.pointer.is_reference)
@@ -82,8 +97,9 @@ predicates.
 #define is_reference_ptr(tp) ((tp)->kind == (a_type_kind)tk_pointer &&\
                               (tp)->variant.pointer.is_reference)
 
-/* Scalar types are the arithmetic types plus the pointer types. */
-#define is_scalar(tp) (is_arithmetic(tp) || is_pointer(tp))
+/* Scalar types are the arithmetic and enum types and plus the pointer
+   types. */
+#define is_scalar(tp) (is_arithmetic_or_enum(tp) || is_pointer(tp))
 
 /* Array types are simply array types. */
 #define is_array(tp) ((tp)->kind == (a_type_kind)tk_array)
@@ -239,11 +255,12 @@ Return TRUE if the given type is an integral type (3.1.2.5).
 
 a_boolean is_signed_integral_type(a_type_ptr tp)
 /*
-Return TRUE if the type is a signed integral type.
+Return TRUE if the type is a signed integral type or an enum type whose
+underlying type is a signed integral type.
 */
 {
   tp = skip_typerefs(tp);
-  return (is_integral(tp) &&
+  return (is_integral_or_enum(tp) &&
           int_kind_is_signed[(int)tp->variant.integer.int_kind]);
 }  /* is_signed_integral_type */
 
@@ -256,6 +273,17 @@ Return TRUE if the given type is an enum type.
   tp = skip_typerefs(tp);
   return(is_enum(tp));
 }  /* is_enum_type */
+
+
+a_boolean is_integral_or_enum_type(a_type_ptr tp)
+/*
+Return TRUE if the type is an integral type or an enum type.  (In C++ an
+enum type is not considered an integral type; in C it is.)
+*/
+{
+  tp = skip_typerefs(tp);
+  return(is_integral_or_enum(tp));
+}  /* is_integral_or_enum_type */
 
 
 a_boolean is_bool_type(a_type_ptr tp)
@@ -297,6 +325,17 @@ Return TRUE if the given type is an arithmetic type (3.1.2.5).
   tp = skip_typerefs(tp);
   return(is_arithmetic(tp));
 }  /* is_arithmetic_type */
+
+
+a_boolean is_arithmetic_or_enum_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an arithmetic type (3.1.2.5) or an enum
+type.  (An enum type *is* an arithmetic type in C but not in C++.)
+*/
+{
+  tp = skip_typerefs(tp);
+  return(is_arithmetic_or_enum(tp));
+}  /* is_arithmetic_or_enum_type */
 
 
 a_boolean is_pointer_type(a_type_ptr tp)
@@ -383,7 +422,7 @@ Return TRUE if the given type is an array of wchar_t.
   tp = skip_typerefs(tp);
   if (is_array(tp)) {
     elem_type = skip_typerefs(tp->variant.array.element_type);
-    if (is_integral_type(elem_type)) {
+    if (is_integral(elem_type)) {
       if (!wchar_t_is_keyword) {
         /* In C mode, or C++ mode when wchar_t is not a distinct type.
            See if the element type is the appropriate integer kind for
@@ -1546,7 +1585,7 @@ expects to receive an rvalue type.
 
   db_enter(5, "type_after_integral_promotion");
 
-  if (is_integral(unqual_type)) {
+  if (is_integral_or_enum(unqual_type)) {
     if (unqual_type->variant.integer.bool_type) {
       /* bool always promotes to int. */
       promoted_type = integer_type((an_integer_kind)(ik_int));
@@ -1645,8 +1684,8 @@ a_type_ptr default_argument_promotion(a_type_ptr old_type)
 Determine what (old style) promotion should be done to this argument's
 type.  Note that this routine does not actually change the type of the
 node; it just returns the type that the node should be.  It is up to
-the caller to do the cast.  See also scan_function_call; it depends
-on the fact that the default argument promotions on an integral type
+the caller to do the cast.  See also scan_function_call; it depends on
+the fact that the default argument promotions on an integral or enum type
 are simply the integral promotions (to handle the bit-field integral
 promotions case).  Note that this routine expects to receive an rvalue
 type.
@@ -1655,7 +1694,7 @@ type.
   a_type_ptr new_type = old_type;
   a_type_ptr unqual_type = skip_typerefs(old_type);
 
-  if (is_integral(unqual_type)) {
+  if (is_integral_or_enum(unqual_type)) {
     /* For integral types, do the integral promotions. */
     new_type = type_after_integral_promotion(old_type);
   } else if (is_floating(unqual_type)) {
@@ -2342,7 +2381,8 @@ not compared.  flags is a set of bit flags that modify the comparison.
       if (f_types_are_compatible(param_1_type, param_2_type, flags)) {
         /* The parameter types are compatible. */
 #if PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED
-      } else if (!strict_ansi_mode && is_integral_type(param_1_type) &&
+      } else if (!strict_ansi_mode &&
+                 is_integral_or_enum_type(param_1_type) &&
                  f_types_are_compatible(param_1_type, list2->type, flags)) {
         /* As an extension, allow a case like
              void f(char);
@@ -2622,13 +2662,13 @@ for exact pointer equality.
 
 static an_integer_kind canonical_integer_kind_of(a_type_ptr type)
 /*
-For the integral type given return the canonical (signedness-free)
+For the integral or enum type given return the canonical (signedness-free)
 integer kind (e.g., "unsigned int" and "int" both yield ik_int).
 */
 {
   an_integer_kind ikind;
 
-  check_assertion(is_integral(type));
+  check_assertion(is_integral_or_enum(type));
   ikind = type->variant.integer.int_kind;
   if (ikind == (an_integer_kind)ik_signed_char ||
       ikind == (an_integer_kind)ik_unsigned_char) {
@@ -3424,7 +3464,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       }  /* if */
     }  /* if */
   } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode) &&
-	     is_integral(source_type) && !suppress_extensions) {
+	     is_integral_or_enum(source_type) && !suppress_extensions) {
     /* In pcc mode and SVR4 C compatibility mode, allow integer --> pointer
        with a warning.  The null pointer constant --> pointer case has been
        handled above and does not come here. */
@@ -3715,6 +3755,50 @@ pointers to members).
 }  /* impl_ptr_to_member_conversion */
 
 
+static a_boolean impl_enum_conversion(a_type_ptr            source_type,
+                                      a_type_ptr            dest_type,
+                                      a_std_conv_descr_ptr  std_conv)
+/*
+Return TRUE if it's okay to implicitly convert something of type source_type
+(any type) to something of type dest_type (an enum type).  If the conversion
+is possible, *std_conv is filled out to describe the conversion.  In
+particular, if the conversion is suspect and should be flagged with a
+warning, the warning_suggested field is set to an appropriate error code.
+*/
+{
+  a_type_ptr source_enum_type;
+  a_boolean  okay = FALSE;
+
+   if (is_integral_or_enum(source_type) ||
+             (C_mode() && is_floating(source_type))) {
+    /* Attempting to convert from integral, enum, or floating type to enum
+       type. */
+    if (is_floating(source_type)) {
+      source_enum_type = NULL;
+    } else {
+      source_enum_type = underlying_enum_type(source_type);
+    }  /* if */
+    if (source_enum_type != NULL &&
+        identical_types(source_enum_type, dest_type)) {
+      okay = TRUE;
+    } else {
+      /* Conversion of one enum type to another, or conversion of an
+         arithmetic non-enum type to an enum. */
+      if (C_mode() || cfront_2_1_mode) {
+        /* Mixed integral/enum types allowed in C with a warning. */
+        /* Integral --> enum allowed in cfront 2.1 mode, with a
+           warning.  cfront 2.1 also allows floats to be converted to
+           enums, but it doesn't seem necessary to duplicate that
+           behavior. */
+        okay = TRUE;
+        std_conv->warning_suggested = ec_mixed_enum_type;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return okay;
+}  /* impl_enum_conversion */
+
+
 a_boolean impl_conversion_possible(a_type_ptr           source_type,
                                    a_boolean            source_is_constant,
                                    a_constant           *source_constant,
@@ -3754,8 +3838,7 @@ See conversion_possible.
 */
 {
   a_boolean  okay = FALSE;
-  a_boolean  source_is_integral;
-  a_type_ptr dest_enum_type, source_enum_type;
+  a_type_ptr dest_enum_type;
 
   db_enter(5, "impl_conversion_possible");
 #if DEBUG
@@ -3793,7 +3876,7 @@ See conversion_possible.
       /* bool --> bool is no conversion. */
       okay = TRUE;
       std_conv->nontrivial_conversion = FALSE;
-    } else if (is_arithmetic(source_type) || is_enum(source_type)) {
+    } else if (is_arithmetic_or_enum(source_type)) {
       okay = TRUE;
     } else if (is_pointer(source_type) || is_ptr_to_member(source_type)) {
       okay = TRUE;
@@ -3801,49 +3884,35 @@ See conversion_possible.
          Remember that. */
       std_conv->ptr_or_pm_to_bool = TRUE;
     }  /* if */
-  } else if (is_arithmetic(dest_type)) {
-    /* Destination type is arithmetic. */
+  } else if (is_arithmetic_or_enum(dest_type)) {
+    /* Destination type is arithmetic or enum. */
     if (identical_types(source_type, dest_type)) {
       /* No type change. */
       okay = TRUE;
       std_conv->nontrivial_conversion = FALSE;
-    } else if (is_arithmetic(source_type)) {
-      /* Arithmetic --> arithmetic.  Okay. */
+    } else if (is_enum(dest_type)) {
+      /* Conversion to an enum type. */
+      okay = impl_enum_conversion(source_type, dest_type, std_conv);
+    } else if (is_arithmetic_or_enum(source_type)) {
+      /* Arithmetic or enum --> arithmetic or enum.  Okay. */
       okay = TRUE;
-      /* Check for conversion of an arithmetic type to an enumerated type,
-         which may be invalid or call for a warning. */
-      dest_enum_type = NULL;
-      if (is_integral(dest_type)) {
+      /* Check for conversion of an arithmetic/enum type to an enumerated
+         type in C, which may be invalid or call for a warning. */
+      if (C_mode() && is_integral_or_enum(dest_type)) {
         dest_enum_type = underlying_enum_type(dest_type);
-      }  /* if */
-      if (dest_enum_type != NULL) {
-        /* Conversion is to an enum type. */
-        source_enum_type = NULL;
-        source_is_integral = is_integral(source_type);
-        if (source_is_integral) {
-          source_enum_type = underlying_enum_type(source_type);
-        }  /* if */
-        if (source_enum_type != dest_enum_type) {
-          /* Conversion of one enum type to another, or conversion of an
-             arithmetic non-enum type to an enum. */
-          if (C_dialect != C_dialect_cplusplus) {
-            /* Mixed integral/enum types allowed in C with a warning. */
-            std_conv->warning_suggested = ec_mixed_enum_type;
-          } else if (cfront_2_1_mode && source_is_integral) {
-            /* Integral --> enum allowed in cfront 2.1 mode, with a
-               warning.  cfront 2.1 also allows floats to be converted to
-               enums, but it doesn't seem necessary to duplicate that
-               behavior. */
-            std_conv->warning_suggested = ec_mixed_enum_type;
+        if (dest_enum_type != NULL) {
+          /* Conversion to an enum type. */
+          if (identical_types(source_type, dest_enum_type)) {
+            /* No type change. */
+            std_conv->nontrivial_conversion = FALSE;
           } else {
-            /* Other C++ modes: no mixing allowed. */
-            okay = FALSE;
+            okay = impl_enum_conversion(source_type, dest_enum_type, std_conv);
           }  /* if */
         }  /* if */
       }  /* if */
     } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode) &&
                is_pointer(source_type) &&
-               is_integral(dest_type)) {
+               is_integral_or_enum(dest_type)) {
       /* In pcc mode, allow pointer --> integer (even if the integer is not
          big enough).  Issue a warning. */
       okay = TRUE;
@@ -4034,7 +4103,8 @@ C++ mode.  See [expr.static.cast].
              inverse_impl_conversion_possible(source_type, dest_type)) {
     /* The inverse of any standard conversion is allowed in C++. */
     okay = TRUE;
-  } else if (C_mode() && is_integral(source_type) && is_enum(dest_type)) {
+  } else if (C_mode() &&
+             is_integral_or_enum(source_type) && is_enum(dest_type)) {
     /* In C, integral --> enum can be done as an implicit conversion
        but we check for it again here to avoid the warning. */
     okay = TRUE;
@@ -4114,8 +4184,8 @@ well as C++ mode.
          of the pointer.  Issue a warning. */
       *warning_suggested = ec_pointer_conversion_loses_bits;
     }  /* if */
-  } else if (is_integral(source_type) && is_pointer(dest_type)) {
-    /* Integral --> pointer. */
+  } else if (is_integral_or_enum(source_type) && is_pointer(dest_type)) {
+    /* Integral or enum --> pointer. */
     okay = TRUE;
   } else if (is_pointer(source_type) && is_pointer(dest_type)) {
     /* Pointer --> pointer.  Get the types pointed to. */

@@ -3525,7 +3525,7 @@ process_class_specifier:
                types, any size/sign is allowed. For floating types, only
                "long" is allowed. */
             a_type_ptr  tp = type_symbol_type(curr_token_type_symbol);
-            if (is_integral_type(tp) ||
+            if (is_integral_or_enum_type(tp) ||
                 (is_floating_type(tp) &&
                  sign == sign_none && size == size_long)) {
               /* Adjectives okay. */

@@ -5584,7 +5584,7 @@ member declaration, respectively.
   var->source_corresp.access = class_state->access;
   if (curr_token == tok_assign) {
     if ((is_const_qualified_type(member_type) &&
-         is_integral_type(member_type)) ||
+         is_integral_or_enum_type(member_type)) ||
         (class_state->is_nonreal_instantiation &&
          is_or_contains_template_param(member_type))) {
       /* A const integral or const enumeration type may be initialized inside
@@ -6480,7 +6480,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
      in the Common Extensions appendix).  pcc and C++ (ARM 9.6) allow any
      integral or enum type. */
   bit_field_type = skip_typerefs(base_type);
-  if (!is_integral_type(bit_field_type)) {
+  if (!is_integral_or_enum_type(bit_field_type)) {
     /* Diagnostic has already been issued. */
     bit_field_type = integer_type((an_integer_kind)ik_int);
   }  /* if */
@@ -6714,8 +6714,8 @@ respectively.
   if (curr_token == tok_colon) {
     /* Bit-field declaration -- be sure the type is okay. */
     a_type_ptr  unqual_type = skip_typerefs(field_type);
-    if (!is_integral_type(unqual_type)) {
-      /* Error, not an integral type. */
+    if (!is_integral_or_enum_type(unqual_type)) {
+      /* Error, not an integral or enum type. */
       if (is_error_type(unqual_type)) {
         /* An error has already been issued. */
       } else if (is_template_param_type(unqual_type)) {
@@ -6726,9 +6726,9 @@ respectively.
         field_type = error_type();
       }  /* if */
     } else {
-      /* Integral base type.  In strict ANSI C mode, give a diagnostic about
-         a nonstandard base type (anything other than int, unsigned int, and
-         signed int). */
+      /* Integral or enum base type.  In strict ANSI C mode, give a
+         diagnostic about a nonstandard base type (anything other than int,
+         unsigned int, and signed int). */
       if (C_mode() && strict_ansi_mode) {
         if (unqual_type->variant.integer.enum_type ||
             (unqual_type->variant.integer.int_kind !=

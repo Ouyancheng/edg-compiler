@@ -706,7 +706,7 @@ type.
   /* Change of pointer type for an integer cast to a pointer type. */
   /* Change of an address constant previously cast to integer to another
      type. */
-  if (is_integral_type(new_type)) {
+  if (is_integral_or_enum_type(new_type)) {
     /* Pointer value being forced into an integral type.  Make sure the
        integral type is large enough to hold a pointer. */
     if (skip_typerefs(new_type)->size < skip_typerefs(old_type)->size) {
@@ -1318,12 +1318,11 @@ exit:
      processing is more or less tracking whether a constant could
      be an integral constant expression, even when it is scanned
      in other modes. */
-  if (is_integral_type(new_type) &&
-      is_arithmetic_type(constant_type)) {
+  if (is_integral_type(new_type) && is_arithmetic_type(constant_type)) {
     /* Arithmetic --> integral.  Okay. */
   } else if (C_mode() &&
              is_void_star_type(new_type) &&
-             is_integral_type(constant_type)) {
+             is_integral_or_enum_type(constant_type)) {
     /* Integral --> void* in C mode, okay. */
   } else {
    /* Anything else: this constant cannot be part of a null pointer
@@ -1432,7 +1431,12 @@ Return TRUE if the given constant is a null pointer constant.
        in C.  Only certain kinds of casts are allowed. */
     if (!constant->null_pointer_constant_ruled_out &&
         cmplit_integer_constant(constant, 0L) == 0) {
-      is_null_pointer = TRUE;
+      if (is_enum_type(constant->type) && !C_mode() && !any_cfront_mode()) {
+        /* In C++ (except for cfront compatibility) an enumerator with value
+           zero is not a null pointer constant. */
+      } else {
+        is_null_pointer = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
 
@@ -1596,7 +1600,8 @@ compile-time constant.
 */
 #define is_addr_constant_cast_to_integral_type(constant)              \
   ((constant)->kind == (a_constant_repr_kind)ck_address &&            \
-   (constant)->implicit_cast && is_integral_type((constant)->type))
+   (constant)->implicit_cast &&                                       \
+   is_integral_or_enum_type((constant)->type))
 
 
 void unary_operation(an_expr_operator_kind op,
@@ -2810,7 +2815,7 @@ as the position for any diagnostics issued.
            op == (an_expr_operator_kind)eok_isubtract) &&
           constant_2->kind == (a_constant_repr_kind)ck_integer) {
 #if CHECKING
-        if (!is_integral_type(constant_2->type)) {
+        if (!is_integral_or_enum_type(constant_2->type)) {
           internal_error("binary_operation: address constant +- non-integer");
         }  /* if */
 #endif /* CHECKING */
@@ -2829,7 +2834,7 @@ as the position for any diagnostics issued.
       if (op == (an_expr_operator_kind)eok_iadd &&
           constant_1->kind == (a_constant_repr_kind)ck_integer) {
 #if CHECKING
-        if (!is_integral_type(constant_1->type)) {
+        if (!is_integral_or_enum_type(constant_1->type)) {
           internal_error("binary_operation: non-integer + address constant");
         }  /* if */
 #endif /* CHECKING */
