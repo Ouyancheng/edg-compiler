@@ -21,19 +21,22 @@ il_to_str.h -- Declarations related to il_to_str.c (produce an external
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */
+#ifndef SYMBOL_TBL_H
+#include "symbol_tbl.h"
+#endif /* ifndef SYMBOL_TBL_H */
 
 
 /*
 Block describing how to do output from within the il_to_str routines.
 */
-typedef void an_output_str_function(char *);
+typedef void an_output_str_function(char *str);
 typedef an_output_str_function *an_output_str_function_ptr;
-typedef void an_output_token_mode_control_function(a_boolean);
+typedef void an_output_token_mode_control_function(a_boolean full_tokens);
 typedef an_output_token_mode_control_function
                                     *an_output_token_mode_control_function_ptr;
-typedef void an_output_name_function(char *, an_il_entry_kind);
+typedef void an_output_name_function(char *entry, an_il_entry_kind kind);
 typedef an_output_name_function *an_output_name_function_ptr;
-typedef void an_output_default_arg_function(a_param_type_ptr);
+typedef void an_output_default_arg_function(a_param_type_ptr param);
 typedef an_output_default_arg_function *an_output_default_arg_function_ptr;
 typedef struct an_il_to_str_output_control_block
                                         *an_il_to_str_output_control_block_ptr;
@@ -81,13 +84,35 @@ typedef struct an_il_to_str_output_control_block {
 extern void clear_il_to_str_output_control_block(
                                    an_il_to_str_output_control_block_ptr octl);
 
+extern void form_template_args(a_template_arg_ptr                    tap,
+                               an_il_to_str_output_control_block_ptr octl);
+
+extern void form_name(char                                  *entry,
+                      an_il_entry_kind                      kind,
+                      an_il_to_str_output_control_block_ptr octl);
+
+extern void form_symbol_name(a_symbol_ptr                          sym,
+                             an_il_to_str_output_control_block_ptr octl);
+
 extern char *int_kind_name(an_integer_kind kind);
 
 extern char *float_kind_name(a_float_kind kind);
 
-extern void form_class_qualifier(
-                          a_type_ptr                            class_type,
-                          an_il_to_str_output_control_block_ptr octl);
+extern void form_type_first_part(
+                    a_type_ptr                            type,
+                    a_boolean                             under_lhs_declarator,
+                    a_boolean                             need_trailing_space,
+                    a_boolean                             add_const,
+                    an_il_to_str_output_control_block_ptr octl);
+
+extern void form_function_declarator(
+                              a_type_ptr                            type,
+                              an_il_to_str_output_control_block_ptr octl);
+
+extern void form_type_second_part(
+                    a_type_ptr                            type,
+                    a_boolean                             under_lhs_declarator,
+                    an_il_to_str_output_control_block_ptr octl);
 
 extern void form_type(a_type_ptr                            type,
                       an_il_to_str_output_control_block_ptr octl);

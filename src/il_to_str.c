@@ -24,12 +24,6 @@ il_to_str.c -- Produce an external string-form representation for various
 #include "target.h"
 
 
-/* Declarations needed because of mutual recursion: */
-static void form_name(char                                  *entry,
-                      an_il_entry_kind                      kind,
-                      an_il_to_str_output_control_block_ptr octl);
-
-
 void clear_il_to_str_output_control_block(
                                     an_il_to_str_output_control_block_ptr octl)
 /*
@@ -129,6 +123,35 @@ Output a string that describes the tag kind for the indicated type, i.e.,
 }  /* form_tag_kind */
 
 
+void form_template_args(a_template_arg_ptr                    tap,
+                        an_il_to_str_output_control_block_ptr octl)
+/*
+Output the indicated template arguments list (e.g., something like
+<int, float>) in the way described by octl.  If tap is NULL, nothing
+is put out.
+*/
+{
+  if (tap != NULL) {
+    octl->output_str("<");
+    for (;;) {
+      if (tap->is_type) {
+        /* Type argument. */
+        form_type(tap->variant.type, octl);
+      } else {
+        /* Nontype argument. */
+        form_constant(tap->variant.constant, octl);
+      }  /* if */
+      tap = tap->next;
+      /* Stop after the last argument. */
+      if (tap == NULL) break;
+      /* Put a comma between arguments. */
+      octl->output_str(", ");
+    }  /* for */
+    octl->output_str(">");
+  }  /* if */
+}  /* form_template_args */
+
+
 static void form_unqualified_name(
                               char                                  *entry,
                               an_il_entry_kind                      entry_kind,
@@ -166,30 +189,16 @@ This includes template arguments on template classes.
       if (tap != NULL) {
         /* This is a template class name.  Put out the template argument
            list, e.g., "<int, float>". */
-        octl->output_str("<");
-        for (;;) {
-          if (tap->is_type) {
-            /* Type argument. */
-            form_type(tap->variant.type, octl);
-          } else {
-            /* Nontype argument. */
-            form_constant(tap->variant.constant, octl);
-          }  /* if */
-          tap = tap->next;
-          /* Stop after the last argument. */
-          if (tap == NULL) break;
-          /* Put a comma between arguments. */
-          octl->output_str(", ");
-        }  /* for */
-        octl->output_str(">");
+        form_template_args(tap, octl);
       }  /* if */
     }  /* if */
   }  /* if */
 }  /* form_unqualified_name */
 
 
-void form_class_qualifier(a_type_ptr                            class_type,
-                          an_il_to_str_output_control_block_ptr octl)
+static void form_class_qualifier(
+                              a_type_ptr                            class_type,
+                              an_il_to_str_output_control_block_ptr octl)
 /*
 Output a class qualifier (e.g., "A::B::") that identifies the indicated
 class type.  Do the output in the way described by octl.
@@ -209,9 +218,9 @@ class type.  Do the output in the way described by octl.
 }  /* form_class_qualifier */
 
 
-static void form_name(char                                  *entry,
-                      an_il_entry_kind                      kind,
-                      an_il_to_str_output_control_block_ptr octl)
+void form_name(char                                  *entry,
+               an_il_entry_kind                      kind,
+               an_il_to_str_output_control_block_ptr octl)
 /*
 Output the name of the indicated IL entity of the indicated kind.
 If the entity is a class member, generate a qualified name.  Do the
@@ -238,6 +247,23 @@ output in the way described by octl.
     form_unqualified_name(entry, kind, octl);
   }  /* if */
 }  /* form_name */
+
+
+void form_symbol_name(a_symbol_ptr                          sym,
+                      an_il_to_str_output_control_block_ptr octl)
+/*
+Output the (possibly qualified) name of the indicated symbol.
+*/
+{
+  if (il_header.source_language == sl_Cplusplus) {
+    a_type_ptr class_type = sym->class_of_which_a_member;
+    /* Put out the class qualifier on a class member. */
+    if (class_type != NULL) {
+      form_class_qualifier(class_type, octl);
+    }  /* if */
+  }  /* if */
+  octl->output_str(sym->header->identifier);
+}  /* form_symbol_name */
 
 
 char *int_kind_name(an_integer_kind kind)
@@ -564,7 +590,7 @@ the way described by octl.
 
 #endif /* ifdef CFE */
 
-static void form_type_first_part(
+void form_type_first_part(
                     a_type_ptr                            type,
                     a_boolean                             under_lhs_declarator,
                     a_boolean                             need_trailing_space,
@@ -662,9 +688,8 @@ top of the type.  Do the output in the way described by octl.
 }  /* form_type_first_part */
 
 
-static void form_function_declarator(
-                                   a_type_ptr                            type,
-                                   an_il_to_str_output_control_block_ptr octl)
+void form_function_declarator(a_type_ptr                            type,
+                              an_il_to_str_output_control_block_ptr octl)
 /*
 Output a function declarator for the indicated routine type.  Do the output
 in the way described by octl.
@@ -674,8 +699,12 @@ in the way described by octl.
   a_param_type_ptr              param;
 
   octl->output_str("(");
-  if (!rtsp->prototyped) {
+  if ((!rtsp->prototyped || rtsp->old_style_params_scanned) &&
+      (il_header.source_language != sl_Cplusplus ||
+       octl->gen_compilable_code)) {
     /* Unprototyped function.  Put out nothing between the parentheses. */
+    /* Note that in C++ the parameter types for old-style functions are
+       listed when generating human-readable output. */
   } else {
     /* Prototyped list. */
     param = rtsp->param_type_list;
@@ -749,7 +778,7 @@ the way described by octl.
 }  /* form_array_declarator */
 
 
-static void form_type_second_part(
+void form_type_second_part(
                     a_type_ptr                            type,
                     a_boolean                             under_lhs_declarator,
                     an_il_to_str_output_control_block_ptr octl)
@@ -1489,27 +1518,17 @@ Output the indicated constant.  Do the output in the way described by octl.
 #ifdef CFE
     case ck_template_param:
       check_assertion(!octl->gen_compilable_code);
-      octl->output_str("<template-param");
       switch (constant->variant.template_param.kind) {
         case tpck_param:
-          octl->output_str("#");
-          form_unsigned_num((unsigned long)constant->variant.
-                                          template_param.variant.list_position,
-                            octl);
-          octl->output_str(" ");
+        case tpck_member:
           form_name((char *)constant, iek_constant, octl);
           break;
         case tpck_expression:
-          octl->output_str(" (expression)");
-          break;
-        case tpck_member:
-          octl->output_str(" ");
-          form_name((char *)constant, iek_constant, octl);
+          octl->output_str("<template-expr>");
           break;
         default:
           octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**");
       }  /* switch */
-      octl->output_str(">");
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
