@@ -575,6 +575,20 @@ a file-scope declaration, i.e., it has kind iek_source_sequence_entry.
 #define ss_is_proxy(ssep) (ss_entry_kind(ssep) == iek_source_sequence_entry)
 
 /*
+Return TRUE if the indicated source sequence entry points to a source sequence
+sublist header, i.e., it has kind iek_src_seq_sublist.
+*/
+#define is_sublist_parent(ssep) (ss_entry_kind(ssep) == iek_src_seq_sublist)
+
+/*
+ssep points to an iek_src_seq_sublist source sequence entry.  Such an entry
+resides on the function-scope source sequence list but points to a header
+for a sublist of file-scope source sequence entries.  Fetch and return a
+pointer to the sublist header.
+*/
+#define assoc_sublist_of(ssep) ss_entry_ptr((ssep), a_src_seq_sublist_ptr)
+
+/*
 ssep points to a function-scope source sequence entry of type
 iek_source_sequence_entry.  Such an entry is a proxy for an entry on the
 file-scope source sequence list, i.e., it indicates the point on the
@@ -601,30 +615,48 @@ extern a_src_seq_end_of_construct_ptr alloc_src_seq_end_of_construct(void);
 extern a_comment_ptr alloc_comment(void);
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 
+extern a_source_sequence_entry_ptr find_sublist_parent(
+                                               a_src_seq_sublist_ptr sublist);
+
+extern void add_to_source_sequence_list(a_source_sequence_entry  *new_ssep);
+
 extern void update_source_sequence_list(char                 *entity_ptr,
                                         an_il_entry_kind     kind,
                                         a_source_position    *pos,
                                         a_source_sequence_entry_ptr old_ssep);
 
-extern void make_proxy_ptr_source_sequence_entry(
-                                             a_source_sequence_entry_ptr ssep);
+extern a_src_seq_sublist_ptr sublist_header_of(
+                                            a_source_sequence_entry_ptr ssep);
 
-extern a_source_sequence_entry_ptr add_empty_source_sequence_entry(
-                                                   a_boolean  alloc_in_fs,
-                                                   a_boolean  proxy_allowed);
+extern a_source_sequence_entry_ptr add_empty_source_sequence_entry(void);
 
+extern void add_end_of_construct_source_sequence_entry(
+                                                char                   *ptr,
+                                                a_byte_il_entry_kind   kind);
+
+/* Add a source sequence entry to mark the end of a block.  The current
+   token should be tok_rbrace. */
+#define add_end_of_block_source_sequence_entry(block)                   \
+  add_end_of_construct_source_sequence_entry(                           \
+                        (char *)block, (a_byte_il_entry_kind)iek_block);
+/* Add a source sequence entry to mark the end of a class or enum definition
+   (at the rbrace) or the end of a function prototype (at the rparen). */
+#define add_end_of_type_source_sequence_entry(type)                     \
+  add_end_of_construct_source_sequence_entry(                           \
+                        (char *)type, (a_byte_il_entry_kind)iek_type);
+                   
 extern void remove_from_source_sequence_list(
-                                     a_source_sequence_entry_ptr  *ssep_ptr,
-                                     a_type_ptr                   class_type);
+                                      a_source_sequence_entry_ptr ssep_ptr);
+
+extern void remove_sublist_header_and_parent(
+                                      a_src_seq_sublist_ptr        sublist,
+                                      a_source_sequence_entry_ptr  parent);
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if ORPHAN_PROCESSING_NEEDED
 extern void add_orphaned_file_scope_il_entry(char             *entry_ptr,
                                              an_il_entry_kind entry_kind);
-
-extern void add_orphaned_file_scope_il_list(a_type_ptr     types,
-                                            a_variable_ptr variables);
 
 extern void add_scope_orphaned_il_lists(a_scope_ptr scope);
 #endif /* ORPHAN_PROCESSING_NEEDED */
