@@ -1,5 +1,20 @@
 Version 3.5
 
+11/02/04 Spurious error on call of base class destructor
+
+A spurious error was issued on a call of a base class destructor when
+a class has multiple base classes that are instances of the same class
+template.  Now fixed.
+
+template<int N> struct A : A<N-1> {
+  A() {
+    this->A<N-1>::~A<N-1>();
+  }
+};
+template <> struct A<0> {};
+A<2> a2;
+
+
 11/02/04 GNU C++ compatibility: friend class lookup
 
 When looking up an unqualified name in a friend class declaration, g++

@@ -9054,29 +9054,40 @@ so efficiency is not a prime concern.
 }  /* unget_token */
 
 
-static a_symbol_ptr name_matches_base_class(a_type_ptr tp)
+static a_symbol_ptr dtor_matches_base_class(a_type_ptr tp)
 /*
-Determine if the name in the locator matches the name of a base class
-of tp.  If so, return a pointer to the symbol associated with the matching
-base class.
+Determine if the name or specific symbol in the locator matches the type or
+name of a base class of tp.  If so, return a pointer to the symbol associated
+with the matching base class.
 */
 {
   a_base_class_ptr	bcp;
   a_symbol_ptr		result_sym = NULL;
+  a_symbol_ptr		sym_to_find = locator_for_curr_id.specific_symbol;
+  a_type_ptr		type_to_find = NULL;
 
+  if (sym_to_find != NULL) type_to_find = type_symbol_type(sym_to_find);
   bcp = base_classes_of(tp);
   for (; bcp != NULL; bcp = bcp->next) {
     /* Get the symbol pointer associated with the base class. */
     a_symbol_ptr	sym;
     a_type_ptr		base_type = bcp->type;
     sym = (a_symbol_ptr)base_type->source_corresp.assoc_info;
-    if (sym->header == locator_for_curr_id.symbol_header) {
+    /* If the locator contains a specific symbol, the base class type must
+       match the type specified by the symbol.  This is used when the
+       locator refers to a template-id. */
+    if (type_to_find != NULL) {
+      if (same_entities(type_to_find, bcp->type)) {
+        result_sym = sym;
+        break;
+      }  /* if */
+    } else if (sym->header == locator_for_curr_id.symbol_header) {
       result_sym = sym;
       break;
     }  /* if */
   }  /* for */
   return result_sym;
-}  /* name_matches_base_class */
+}  /* dtor_matches_base_class */
 
 
 static
@@ -9257,7 +9268,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
         qualifier_type = type_symbol_type(qualifier_sym);
         qualifier_type = skip_typerefs(qualifier_type);
         if (!acceptable_dtor_type(field_sel_type, qualifier_type) &&
-            (is_template_param_type(qualifier_type) ||
+            (!is_template_dependent_type(qualifier_type) &&
              find_base_class_of(field_sel_type, qualifier_type) == NULL)) {
           pos_ty2_error(ec_destructor_qualifier_type_mismatch,
                         &locator_for_curr_id.source_position,
@@ -9343,7 +9354,8 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
            type.  The ambiguous flag is set if two or more of the symbols found
            point to different types. */
         tp = NULL;
-        base_sym = name_matches_base_class(field_sel_type);
+        clear_specific_symbol(locator_for_curr_id);
+        base_sym = dtor_matches_base_class(field_sel_type);
         if (base_sym != NULL) tp = type_symbol_type(base_sym);
         if (base_sym != NULL) type_sym = base_sym;
         /* Use the normal symbol if the base name lookup failed. */
