@@ -1424,6 +1424,10 @@ C++/C-generating back end (cp_gen_be) is run, references to the
 original form.  This avoids problems with language extensions
 used to implement those.  This is the initial value of
 pass_stdarg_references_to_generated_code.
+
+Note that GUARD_MACRO_FOR_VA_LIST can be defined to be a quoted string
+that is the name of a macro to be defined when the built-in va_list
+is defined.  If it is not set, no macro is defined.
 */
 #ifndef DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE
 #if BACK_END_IS_C_GEN_BE
@@ -1445,6 +1449,14 @@ pass_stdarg_references_to_generated_code.
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* BACK_END_IS_C_GEN_BE */
 #endif /* ifndef DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE */
+
+/*
+Name of a global type which, if defined when <stdarg.h> is included,
+indicates the type to be used for the built-in va_list.
+*/
+#ifndef BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME
+#define BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME "__edg_va_list"
+#endif /* ifndef BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME */
 
 /*
 If this flag is TRUE, integer types with the same representation

@@ -834,9 +834,12 @@ done:;
 }  /* write_unsigned_num */
 
 
-static void write_pp_directive(char *directive)
+static void write_pp_directive(char *directive,
+                               char *more)
 /*
-Write an output line that is a preprocessing directive.
+Write an output line that is a preprocessing directive.  directive is the
+string for the directive.  If more is non-NULL, the string it points to
+is added at the end of the directive.
 */
 {
   unsigned long saved_indent = indent;
@@ -845,6 +848,7 @@ Write an output line that is a preprocessing directive.
   indent = 0;
   disable_line_wrapping();
   write_str(directive);
+  if (more != NULL) write_str(more);
   enable_line_wrapping();
   end_output_line();
   indent = saved_indent;
@@ -857,7 +861,7 @@ Write an output line that is a #if 0 directive (to comment out unreferenced
 code when doing annotations, presumably).
 */
 {
-  write_pp_directive("#if 0");
+  write_pp_directive("#if 0", (char *)NULL);
 }  /* write_if_0_directive */
 
 
@@ -867,7 +871,7 @@ Write an output line that is a #endif directive matching a #if 0 previously
 written (to comment out unreferenced code when doing annotations, presumably).
 */
 {
-  write_pp_directive("#endif");
+  write_pp_directive("#endif", (char *)NULL);
   /* Force a #line directive after the #endif, because #line directives
      inside the #if might change the position. */
   set_unknown_output_position();
@@ -1799,12 +1803,14 @@ Print a typedef declaration.
 */
 {
   if (start_unreferenced_bracket(&type->source_corresp)) {
-    if (type->source_corresp.decl_position.seq == 0 &&
-        type->source_corresp.name != NULL &&
-        strcmp(type->source_corresp.name, "va_list") == 0) {
-      /* This is the declaration of the builtin va_list, from <stdarg.h>.
-         Don't put it out -- put out an #include of the header instead. */
-      write_pp_directive("#include <stdarg.h>");
+    if (type->is_builtin_va_list &&
+        type->source_corresp.decl_position.seq == 0) {
+      /* This is the declaration of the built-in va_list, from <stdarg.h>.
+         Don't put it out -- put out an #include of the header instead.
+         The test for a sequence number of zero distinguishes this va_list
+         from one that came from other headers (e.g., <stdio.h>) but was
+         adopted as the built-in one.  See declare_builtin_va_list_type. */
+      write_pp_directive("#include <stdarg.h>", (char *)NULL);
     } else {
       /* Dump any pragmas associated with the type. */
       dump_decl_associated_pragmas(&type->source_corresp);
@@ -2154,6 +2160,17 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
     default:
       unexpected_condition_str("dump_type_decl: bad type");
   }  /* switch */
+#ifdef GUARD_MACRO_FOR_VA_LIST
+  if (type->is_builtin_va_list &&
+      type->source_corresp.decl_position.seq != 0 &&
+      pass == 2) {
+    /* This is declaration of a type named "va_list" which has been adopted
+       as the built-in va_list for <stdarg.h>.  Define the guard macro used
+       by the headers to prevent redefinition of va_list when <stdarg.h>
+       is included. */
+    write_pp_directive("#define ", GUARD_MACRO_FOR_VA_LIST);
+  }  /* if */
+#endif /* ifdef GUARD_MACRO_FOR_VA_LIST */
 }  /* dump_type_decl */
 
 

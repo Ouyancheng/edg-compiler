@@ -3925,24 +3925,81 @@ void declare_builtin_va_list_type(void)
 Declare the type va_list when <stdarg.h> is treated as a builtin.
 */
 {
-  char         *name = "va_list";
-  a_symbol_ptr sym;
+  a_symbol_ptr     sym;
+  a_type_ptr       va_list_type, va_list_typedef;
+  a_symbol_locator locator;
+  a_boolean        existing_sym = FALSE;
 
-  sym = full_enter_symbol(name, (sizeof_t)(strlen(name)),
-                          (a_symbol_kind)sk_type, DEPTH_OF_FILE_SCOPE);
-  builtin_va_list_type = alloc_type((a_type_kind)tk_typeref);
-  builtin_va_list_type->variant.typeref.type= make_pointer_type(void_type());
-  sym->variant.type = builtin_va_list_type;
-  set_source_corresp(&builtin_va_list_type->source_corresp, sym);
-  /* Note that the source position is zero, which is how we can
-     recognize this type as the builtin one. */
-  add_to_types_list(builtin_va_list_type, DEPTH_OF_FILE_SCOPE);
+  if (builtin_va_list_type == NULL) {
+    /* Look for an existing va_list symbol.  Such a symbol would exist
+       if declared in other headers, e.g., stdio.h.  That would be
+       nonstandard, but we accommodate it. */
+    clear_locator(&locator, &null_source_position);
+#define VA_LIST_NAME "va_list"
+    (void)find_symbol(VA_LIST_NAME, (sizeof_t)(sizeof(VA_LIST_NAME)-1),
+                      &locator);
+    sym = file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+    if (sym != NULL && is_type_symbol(sym)) {
+      /* Yes, there is a global type called va_list.  Use it and do not
+         declare a new symbol. */
+      existing_sym = TRUE;
+      va_list_type = type_symbol_type(sym);
+      va_list_type->is_builtin_va_list = TRUE;
+    } else {
+      /* There is no existing va_list.  Create one. */
+      /* Look for a special predefined name (e.g., __edg_va_list).  If it's
+         declared as a file-scope type, use that type as the type for the
+         built-in va_list. */
+      clear_locator(&locator, &null_source_position);
+      (void)find_symbol(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME,
+                      (sizeof_t)(sizeof(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME)-1),
+                        &locator);
+      sym = file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+      if (sym != NULL && is_type_symbol(sym)) {
+        va_list_type = type_symbol_type(sym);
+      } else {
+        /* The special symbol does not exist, so use the default "void *". */
+        va_list_type = make_pointer_type(void_type());
+      }  /* if */
+    }  /* if */
+    if (!existing_sym) {
+      /* Enter a file-scope symbol "va_list" that is a typedef to the
+         proper type. */
+      sym = full_enter_symbol(VA_LIST_NAME, (sizeof_t)(sizeof(VA_LIST_NAME)-1),
+                              (a_symbol_kind)sk_type, DEPTH_OF_FILE_SCOPE);
+#ifdef GUARD_MACRO_FOR_VA_LIST
+      /* Define a macro that tells the headers that va_list has been
+         defined. */
+      (void)enter_predef_macro("1", GUARD_MACRO_FOR_VA_LIST,
+                               /*cannot_be_redefined=*/FALSE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+#endif /* ifdef GUARD_MACRO_FOR_VA_LIST */
+    }  /* if */
+    /* Build a typedef for va_list.  This is done even when there is
+       an existing symbol, because we need a declaration at the right
+       place to tell the C- or C++-generating back end where to put the
+       include of <stdarg.h>. */
+    va_list_typedef = alloc_type((a_type_kind)tk_typeref);
+    va_list_typedef->variant.typeref.type = va_list_type;
+    va_list_typedef->is_builtin_va_list = TRUE;
+    add_to_types_list(va_list_typedef, DEPTH_OF_FILE_SCOPE);
+    set_source_corresp(&va_list_typedef->source_corresp, sym);
+    /* The source position must be zero, so we can recognize this typedef
+       as the built-in one. */
+    va_list_typedef->source_corresp.decl_position = null_source_position;
+    /* Note that we update a pre-existing symbol to point to the typedef.
+       this is necessary so that the needed and referenced flags will be
+       set appropriately on uses of va_list after this point. */
+    sym->variant.type = va_list_typedef;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* Put out a source sequence entry for the type. */
-  update_source_sequence_list((char *)builtin_va_list_type,
-                              (an_il_entry_kind)iek_type,
-                              (a_source_sequence_entry_ptr)NULL);
+    /* Put out a source sequence entry for the type. */
+    update_source_sequence_list((char *)va_list_typedef,
+                                (an_il_entry_kind)iek_type,
+                                (a_source_sequence_entry_ptr)NULL);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    builtin_va_list_type = type_symbol_type(sym);
+#undef VA_LIST_NAME
+  }  /* if */
 }  /* declare_builtin_va_list_type */
 
 
