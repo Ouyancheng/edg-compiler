@@ -1925,7 +1925,9 @@ final semicolon if output_final_semi is TRUE.
 #if ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C
           /* The bit field can be put out with its actual base type. */
           dump_general_declaration_using_type(field->type,
-                                              &field->source_corresp,
+                                              has_name(field) ?
+                                               &field->source_corresp:
+                                               (a_source_correspondence *)NULL,
                                               NO_VARIABLE, NO_TEMP, TQ_NONE,
                                               /*suppress_const=*/TRUE);
 #else /* !ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
