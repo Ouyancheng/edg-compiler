@@ -1,5 +1,12 @@
 Version 3.6
 
+3/15/05  GNU compatibility: white space inside line splice
+
+The GNU preprocessor issues a warning but accepts white-space characters
+(space, tab, formfeed, and vertical tab) within a line splice, i.e., between
+the "\" and linefeed characters.  The front end now does the same in gcc and
+g++ modes.
+
 3/15/05  Microsoft mode abort on in-class specialization appearing in multiple
          translation units
 

@@ -604,6 +604,16 @@ static a_file_suffix_ptr
 			/* List of file suffixes used when searching for a
 			   header file whose name does not include a suffix. */
 
+/*
+Table that describes which characters (if any) are allowed to appear between
+a "\" and a newline while still allowing the "\" to introduce a line splice.
+This includes carriage return if IGNORE_CARRIAGE_RETURN_IN_SOURCE is TRUE
+and white-space characters in gnu_mode.
+*/
+
+static a_boolean
+		allowed_after_line_splice[CHAR_MAX-CHAR_MIN+1];
+
 #if DEBUG
 /*
 Counts of tables allocated, to track total use of memory.
@@ -4619,6 +4629,7 @@ for the GNU C multiline string extension.
                                after_end_of_curr_source_line - 2*LE_ESCAPE_LEN;
 		       /* For checking of buffer overflow -- to leave
                           room for the newline and line-end lexical escapes. */
+  a_boolean       white_space_inside_splice = FALSE;
 
   /* This routine handles translation phases 1 (trigraphs, newlines) and
      2 (line splices) from the description of translation phases in
@@ -4786,20 +4797,25 @@ for the GNU C multiline string extension.
       } while (local_ch != '\n');
       ch = local_ch;
       loc_in_line = local_loc_in_line;
-#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-      /* Ignore carriage return right before newline.  Ignore several if
-         they are present (there are Microsoft header files that have
-         backslash, carriage return, carriage return at the end of lines,
-         and that backslash has to be taken as a line splice). */
-      while (*(loc_in_line-1) == '\r') {
+      /* In various configurations, certain characters may occur between
+         a "\" and a newline while still allowing the "\" to introduce a
+         line splice.  If IGNORE_CARRIAGE_RETURN_IN_SOURCE is TRUE, one or
+         more "\r" characters are permitted (some Microsoft header files
+         have more than one).  The GNU compilers ignore white-space
+         characters between "\" and newline (with a warning). */
+      while (allowed_after_line_splice[*(loc_in_line-1)-CHAR_MIN]) {
         loc_in_line--;
         /* Avoid the line splice test if the line is empty except for the
-           carriage return. */
+           carriage return(s) and/or white space. */
         if (loc_in_line == curr_source_line) {
           goto add_newline_and_line_end_and_return;
         }  /* if */
+        if (*loc_in_line != '\r') {
+          /* Save location for warning about ignored white-space characters
+             inside the splice. */
+          white_space_inside_splice = TRUE;
+        }  /* if */
       }  /* while */
-#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
       /* End of a line containing at least one character.  Check to see
          if the last character is a backslash.  If so, the current line
          should be spliced with the line following. */
@@ -5104,6 +5120,12 @@ entry_for_line_splice:
       }  /* if */
 #endif /* BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+      if (white_space_inside_splice) {
+        /* Some white-space characters occurred between "\" and the linefeed.
+           Fix the line so it will display properly and issue a warning. */
+        finish_off_source_line_so_it_can_be_displayed_in_error();
+        warning_at_line_pos(ec_white_space_inside_splice, loc_in_line);
+      }  /* if */
       /* Remove the backslash in the buffer. */
       loc_in_line--;
       /* Add a modification entry recording the position of the line splice. */
@@ -14142,6 +14164,21 @@ are handled in lexical_init.)
       }  /* switch */
     }  /* if */
   }  /* for */
+  /* Initialize allowed_after_line_splice: a TRUE value means the
+     corresponding character may appear between a "\" and a newline while
+     still allowing the "\" to introduce a line splice. */
+  memzero((char*)allowed_after_line_splice, sizeof(allowed_after_line_splice));
+#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
+  allowed_after_line_splice['\r' - CHAR_MIN] = TRUE;
+#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
+  if (gnu_mode) {
+    /* The GNU compilers allow all whitespace characters between "\" and
+       newline. */
+    allowed_after_line_splice[' ' - CHAR_MIN] = TRUE;
+    allowed_after_line_splice['\t' - CHAR_MIN] = TRUE;
+    allowed_after_line_splice['\f' - CHAR_MIN] = TRUE;
+    allowed_after_line_splice[VERTICAL_TAB_CHARACTER - CHAR_MIN] = TRUE;
+  }  /* if */
   /* Compute opname_names from opname_kind_for_token and token_names. */
   (void)memzero((char *)opname_names, sizeof(opname_names));
   { int  tok_kind, opname_kind;
