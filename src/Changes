@@ -1,5 +1,20 @@
 Version 2.37
 
+9/18/97   C++-generating back end: parentheses on ctor-init for array
+
+The C++-generating back end now puts out an empty set of parentheses
+on a ctor-initializer for an array member.
+
+  struct A {
+    A();
+    ~A();
+  };
+  struct B {
+    A x[10];
+    B();
+  };
+  B::B() : x() {}
+
 9/18/97   "typename" accepted in functional-notation type conversions
 
 The keyword "typename" is now accepted in functional-notation type

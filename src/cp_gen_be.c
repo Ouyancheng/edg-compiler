@@ -5996,7 +5996,8 @@ TRUE, "()" is put out.
       if (parenthesized_init &&
           default_class_array_initialization(dip)) {
         /* This is default initialization for a whole class array,
-           so nothing need be put out. */
+           so nothing need be put out, except parens if forced. */
+        if (force_parens) write_tok_str("()");
         break;
       }  /* if */
       /* The constant must be an aggregate and it cannot be put out as
