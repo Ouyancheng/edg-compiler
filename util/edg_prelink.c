@@ -400,7 +400,8 @@ static FILE	*f_obj_file_list;
 static char	curr_dir_name[CURR_DIR_NAME_SIZE];
 			/* Name of the current working directory. */
 
-static int	reserved_info_file_lines = INSTANTIATION_INFO_LINES_RESERVED;
+static int	reserved_info_file_lines =
+					 INSTANTIATION_REQUEST_LINES_RESERVED;
 			/* The number of lines of the instantiation
 			   information file that are reserved and do
 			   not contain instantiation list entries. */
@@ -506,7 +507,7 @@ typedef enum /*a_pl_error_code*/ {
   pl_ec_lib_file_not_found,
   pl_ec_error_occurred_during_name_decoding,
   pl_ec_warning,
-  pl_ec_invalid_reserved_info_lines_option,
+  pl_ec_invalid_reserved_request_lines_option,
   pl_ec_cannot_open_obj_file_list_file,
   pl_ec_cannot_open_info_file,
   pl_ec_cannot_chdir,
@@ -572,7 +573,7 @@ string.
   case pl_ec_warning:
     m = "%s: warning: ";
     break;
-  case pl_ec_invalid_reserved_info_lines_option:
+  case pl_ec_invalid_reserved_request_lines_option:
     m = "invalid reserved information file lines option \"%s\"";
     break;
   case pl_ec_cannot_open_obj_file_list_file:
@@ -2412,12 +2413,12 @@ has changed then write the updated list of instantiations to the file.
 /* Macro that returns a line from the reserved lines array, if the line
    number is valid, and returns a NULL string otherwise. */
 #define get_reserved_line(number) 					\
-  (((number) > (INSTANTIATION_INFO_LINES_RESERVED - 1))			\
+  (((number) > (INSTANTIATION_REQUEST_LINES_RESERVED - 1))		\
                                                 ? ""			\
                                                 : reserved_lines[(number)])
   /* We allocate one additional array element because it is possible
      for there to be zero reserved lines. */
-  char *reserved_lines[INSTANTIATION_INFO_LINES_RESERVED + 1];
+  char *reserved_lines[INSTANTIATION_REQUEST_LINES_RESERVED + 1];
 
   pifp = pl_input_files;
   while (pifp != NULL) {
@@ -2450,7 +2451,7 @@ has changed then write the updated list of instantiations to the file.
       /* If the number of effective reserved lines is less than the
          number in the configuration file, set the remaining lines
          to null strings. */
-      for (; i < INSTANTIATION_INFO_LINES_RESERVED; ++i) {
+      for (; i < INSTANTIATION_REQUEST_LINES_RESERVED; ++i) {
         reserved_lines[i] = "";
       }  /* for */
       fclose(f_info);
@@ -2513,12 +2514,12 @@ flags will be removed.
 /* Macro that returns a line from the reserved lines array, if the line
    number is valid, and returns a NULL string otherwise. */
 #define get_reserved_line(number) 					\
-  (((number) > (INSTANTIATION_INFO_LINES_RESERVED - 1))			\
+  (((number) > (INSTANTIATION_REQUEST_LINES_RESERVED - 1))		\
                                                 ? ""			\
                                                 : reserved_lines[(number)])
   /* We allocate one additional array element because it is possible
      for there to be zero reserved lines. */
-  char *reserved_lines[INSTANTIATION_INFO_LINES_RESERVED + 1];
+  char *reserved_lines[INSTANTIATION_REQUEST_LINES_RESERVED + 1];
 
   pifp = pl_input_files;
   while (pifp != NULL) {
@@ -2541,7 +2542,7 @@ flags will be removed.
       /* If the number of effective reserved lines is less than the
          number in the configuration file, set the remaining lines
          to null strings. */
-      for (; i < INSTANTIATION_INFO_LINES_RESERVED; ++i) {
+      for (; i < INSTANTIATION_REQUEST_LINES_RESERVED; ++i) {
         reserved_lines[i] = "";
       }  /* for */
       fclose(f_info);
@@ -2856,9 +2857,9 @@ int main(int argc, char *argv[])
      Suppress the CodeCenter warning because the if test contains a
      constant expression. */
   /*SUPPRESS 622*/
-  if (INSTANTIATION_INFO_LINES_RESERVED < 3) {
+  if (INSTANTIATION_REQUEST_LINES_RESERVED < 3) {
     /*SUPPRESS 569*/
-    pl_internal_error("INSTANTIATION_INFO_LINES_RESERVED set incorrectly");
+    pl_internal_error("INSTANTIATION_REQUEST_LINES_RESERVED set incorrectly");
   }  /* if */
 
   /* Allocate arrays to hold pointers to -L directory names and library
@@ -2967,8 +2968,8 @@ int main(int argc, char *argv[])
            file lines. */
         reserved_info_file_lines = atoi(optarg);
         if (reserved_info_file_lines < 0 ||
-            reserved_info_file_lines > INSTANTIATION_INFO_LINES_RESERVED) {
-          pl_error(pl_ec_invalid_reserved_info_lines_option, optarg);
+            reserved_info_file_lines > INSTANTIATION_REQUEST_LINES_RESERVED) {
+          pl_error(pl_ec_invalid_reserved_request_lines_option, optarg);
         }  /* if */
         break;
       case 's':
