@@ -1369,6 +1369,9 @@ destructor_on_this_line:
       }  /* if */
       (void)fputc('\n', f_debug);
       break;
+    default:
+      fputs("***BAD DYNAMIC INIT KIND***\n", f_debug);
+      break;
   }  /* switch */
 }  /* db_dynamic_initializer */
 
