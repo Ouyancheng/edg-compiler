@@ -1151,6 +1151,9 @@ Display the indicated decl modifiers.
     if (dm & DM_NOTHROW) {
       disp_boolean("nothrow", TRUE);
     }  /* if */
+    if (dm & DM_NOVTABLE) {
+      disp_boolean("novtable", TRUE);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* disp_decl_modifiers */

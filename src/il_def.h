@@ -2277,6 +2277,7 @@ enum a_decl_modifier_tag {
   dmt_microsoft_inline,
   dmt_selectany,
   dmt_nothrow,
+  dmt_novtable,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   dmt_last
 };
@@ -2293,6 +2294,7 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
   /* dmt_microsoft_inline */	"__inline",
   /* dmt_selectany */		"selectany",
   /* dmt_nothrow */		"nothrow",
+  /* dmt_novtable */		"novtable",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* dmt_last */		"last"
 } /* decl_modifier_names */
@@ -2329,6 +2331,9 @@ about variables and routines.
 #define DM_NOTHROW	(1 << (int)dmt_nothrow)
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(nothrow) specifier. */
+#define DM_NOVTABLE	(1 << (int)dmt_novtable)
+			/* TRUE if the declaration includes the Microsoft
+			   __declspec(novtable) specifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*

@@ -298,6 +298,14 @@ keyword (or a memory attribute keyword).
               } else {
                 decl_modifiers->flags |= DM_NOTHROW;
               }  /* if */
+            } else if (!C_mode() && strcmp(modifier, "novtable") == 0) {
+              if (!is_class_decl) {
+                /* "novtable" is allowed only on a class declaration. */
+                pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                               &pos_curr_token, modifier);
+              } else {
+                decl_modifiers->flags |= DM_NOVTABLE;
+              }  /* if */
             } else if (!C_mode() && strcmp(modifier, "uuid") == 0) {
               if (!is_class_decl) {
                 /* "uuid" is allowed only on a class declaration. */
