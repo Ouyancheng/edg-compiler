@@ -219,12 +219,14 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
     case enk_error:
       /* Who knows what an error node might have done -- suppress the
          warning. */
+      has_side_effects = TRUE;
       suppress = TRUE;
       break;
     case enk_constant:
       if (is_error_constant(node->variant.constant)) {
         /* An error constant might have been anything -- suppress the
            warning. */
+        has_side_effects = TRUE;
         suppress = TRUE;
       }  /* if */
       break;
