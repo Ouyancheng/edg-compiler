@@ -83,7 +83,7 @@ ananchronism is activated.  For example:
 We now issue warnings on classes with
    - one or more virtual functions but nonvirtual destructor
    - operator new() but no operator delete() and vice versa
-   - all private constructors and friend declarations
+   - all private constructors and no friend declarations
 
 -------------------------------------------------------------------------------
 Version 2.06, May 22, 1992
