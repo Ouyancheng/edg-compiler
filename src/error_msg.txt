@@ -688,6 +688,7 @@ ec_out_of_memory_during_pch_allocation;;"insufficient memory for PCH memory allo
 ec_cl_pch_incompatible_with_multiple_inputs;;"precompiled header files may not be used when compiling several input files"
 ec_not_enough_preallocated_memory;;"insufficient preallocated memory for generation of precompiled header file (%s bytes required)"
 ec_program_entity_too_large_for_pch;;"very large entity in program prevents generation of precompiled header file"
+ec_cannot_chdir;;"%sq is not a valid directory"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
