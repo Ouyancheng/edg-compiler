@@ -126,7 +126,7 @@ that may be in process at a given time.  This is used to detect
 runaway recursive instantiations.
 */
 #ifndef MAX_PENDING_INSTANTIATIONS
-#define MAX_PENDING_INSTANTIATIONS 100
+#define MAX_PENDING_INSTANTIATIONS 15
 #endif /* ifndef MAX_PENDING_INSTANTIATIONS */
 
 #endif /* ifndef LANG_FEAT_H */
