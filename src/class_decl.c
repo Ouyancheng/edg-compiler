@@ -3512,11 +3512,14 @@ Do processing for a member constant, including scanning the initializer
 constant and entering the name in the symbol table.  This construct is
 not supported in the ARM.  The syntax we allow is:
 
-  "const" simple-type-name    constant-member-name "=" constant-expression
-                          opt
+  "const" integral-type    member-name "=" constant-expression
+                       opt
 
-where the type specifier includes no storage class.  When simple-type-name
-is omitted, the type defaults to "int".
+where the type specifier includes no storage class.  When integral-type
+is omitted, the type defaults to "int".  Note that "complex" declarators
+(involving the declarations of array, pointer, reference, and
+pointer-to-member objects) are ipso facto not allowed, since they are
+inconsistent with the restriction to integral type.
 */
 {
   a_symbol_ptr     sym;
@@ -3533,7 +3536,6 @@ is omitted, the type defaults to "int".
   /* Scan the constant expression. */
   cp = alloc_constant((a_constant_repr_kind)ck_error);
   scan_constant_initializer_expression(member_type, cp);
-  add_to_constants_list(cp, /*at_file_scope=*/FALSE);
   /* Enter the constant name in the symbol table.  Do this after scanning
      the expression to avoid problems with a recursive reference, though
      it may mean the order in which errors are issued is a little strange. */
@@ -3545,6 +3547,7 @@ is omitted, the type defaults to "int".
   cp->source_corresp.access = access;
   cp->source_corresp.class_of_which_a_member =
                           sym->class_of_which_a_member = class_type;
+  add_to_constants_list(cp, /*at_file_scope=*/FALSE);
   db_exit();
 }  /* decl_member_constant */
 
