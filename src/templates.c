@@ -1491,7 +1491,7 @@ done:;
 }  /* class_template_declaration */
 
 
-static void function_template_declaration(a_symbol_ptr  *sym)
+static a_boolean function_template_declaration(a_symbol_ptr  *sym)
 /*
 */
 {
@@ -1502,19 +1502,20 @@ static void function_template_declaration(a_symbol_ptr  *sym)
   a_func_info_block                 func_info;
   a_type_ptr                        bottom_derived_type = NULL;
   an_expr_node_ptr                  dim_expr_ptr;
-  a_token_cache                     decl_token_cache;
+  a_token_cache                     local_token_cache, *p_token_cache;
   a_template_symbol_supplement_ptr  tssp;
+  a_boolean                         err = FALSE;
 
   db_enter(3, "function_template_declaration");
 
   add_stop_token(tok_semicolon);
   add_stop_token(tok_lbrace);
-  clear_token_cache(&decl_token_cache);
-  cache_token_stream(&decl_token_cache);
+  clear_token_cache(&local_token_cache);
+  cache_token_stream(&local_token_cache);
   /* Add an end-of-source token to the end of the token cache to assure that
      we don't scan past the end of the cache in the actual scan. */
-  terminate_token_cache(&decl_token_cache);
-  rescan_reusable_cache(&decl_token_cache);
+  terminate_token_cache(&local_token_cache);
+  rescan_reusable_cache(&local_token_cache);
   (void)decl_specifiers((DSI_IS_TEMPLATE_DECLARATION |
                          DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_STORAGE_CLASS_SPECIFIER_ALLOWED),
@@ -1522,33 +1523,45 @@ static void function_template_declaration(a_symbol_ptr  *sym)
   declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, type, (a_type_ptr)NULL,
              &locator, &type, &bottom_derived_type, &func_info,
              &dim_expr_ptr);
-  decl_function_template(&locator, type, sym);
+  if (is_error_locator(locator) || !is_function_type(type)) {
+    err = TRUE;
+    discard_token_cache(&local_token_cache);
+    clear_token_cache(&local_token_cache);
+    p_token_cache = &local_token_cache;
+  } else {
+    decl_function_template(&locator, type, sym);
+    tssp = (*sym)->variant.template.extra_info;
+    tssp->variant.function.decl_token_cache = local_token_cache;
+    tssp->variant.function.func_info = func_info;
+    p_token_cache = &tssp->body_token_cache;
+  }  /* if */
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
-  tssp = (*sym)->variant.template.extra_info;
-  tssp->variant.function.decl_token_cache = decl_token_cache;
-  tssp->variant.function.func_info = func_info;
   if (curr_token == tok_end_of_source) {
     /* Advance past the end-of-source token. */
     (void)get_token();
     if (curr_token == tok_lbrace) {
-      (*sym)->defined = TRUE;
+      if (!err) (*sym)->defined = TRUE;
       /* Cache the "{" and advance past it. */
-      cache_curr_token(&tssp->body_token_cache);
+      cache_curr_token(p_token_cache);
       (void)get_token();
       /* Cache all tokens up to the "}" (or end-of-source). */
       add_stop_token(tok_rbrace);
-      cache_token_stream(&tssp->body_token_cache);
+      cache_token_stream(p_token_cache);
       remove_stop_token(tok_rbrace);
       /* Cache the "}" and append an end-of-source token. */
       if (curr_token == tok_rbrace) {
-        cache_curr_token(&tssp->body_token_cache);
+        cache_curr_token(p_token_cache);
         /* Advance to the next token. */
         (void)get_token();
       }  /* if */
-      /* Add an end-of-source token to the end of the token cache to assure
-         that we don't scan past the end of the cache in the actual scan. */
-      terminate_token_cache(&tssp->body_token_cache);
+      if (!err) {
+        /* Add an end-of-source token to the end of the token cache to assure
+           that we don't scan past the end of the cache in the actual scan. */
+        terminate_token_cache(p_token_cache);
+      } else {
+        discard_token_cache(p_token_cache);
+      }  /* if */
     } else {
       /* No body to cache.  Check for final semicolon. */
       (void)required_token(tok_semicolon, ec_exp_semicolon);
@@ -1560,6 +1573,7 @@ static void function_template_declaration(a_symbol_ptr  *sym)
     (void)get_token();
   }  /* if */
   db_exit();
+  return !err;
 }  /* function_template_declaration */
 
 
@@ -1853,9 +1867,7 @@ entry is pushed on the scope stack.
   if (class_template_declaration(template_param_list, &sym, &tag_resolution)) {
     /* The declaration was successfully scanned as a class template
        declaration. */
-  } else {
-    /* It must be a function template declaration. */
-    function_template_declaration(&sym);
+  } else if (function_template_declaration(&sym)) {
     /* Go back through the template params and be sure there are only type
        args.  The other kind is allowed only for class templates. */
     tssp = sym->variant.template.extra_info;
@@ -1876,6 +1888,8 @@ entry is pushed on the scope stack.
                      &param_sym->decl_position, param_sym, sym);
       }  /* if */
     }  /* for */
+  } else {
+    /* Error. */
   }  /* if */
   pop_scope();
   if (tag_resolution) {
@@ -1888,7 +1902,7 @@ entry is pushed on the scope stack.
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
-    db_symbol(sym, "template symbol: ", 2);
+    if (sym != NULL) db_symbol(sym, "template symbol: ", 2);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
