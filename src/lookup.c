@@ -795,7 +795,7 @@ a_symbol_ptr merge_function_into_lookup_set(
                                a_namespace_ptr		qualifier_namespace,
                                an_id_lookup_options_set	options)
 /*
-curr_sym is a pointer to a the current lookup set, and may be NULL,
+curr_sym is a pointer to the current lookup set, and may be NULL,
 a pointer to a single namespace projection symbol, or an
 sk_overloaded_function symbol that points to a number of namespace
 projection symbols.  Add the function(s) pointed to by new_sym

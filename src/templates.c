@@ -3530,8 +3530,9 @@ type should not be used in the matching process.
      template arg list is returned; otherwise, NULL is returned. */
   if (matches_template_type(curr_type, templ_rout_type, 
                             templ_arg_list, templ_param_list,
-                            is_decl_context ? MTT_UNKNOWN_IMPLICIT_THIS_TYPE
-                                            : MTT_NO_FLAGS,
+                            (an_mtt_flag_set)
+                            (is_decl_context ? MTT_UNKNOWN_IMPLICIT_THIS_TYPE
+                                            : MTT_NO_FLAGS),
                             (a_base_class_ptr*)NULL)) {
     match = TRUE;
   }  /* if */
@@ -5273,7 +5274,7 @@ to rescan just the template declaration and not the template parameter list.
     /* Also rescan the tokens from the template parameter list(s).  This
        is done after the rescan of the template declaration because the
        rescanning is a stack-based processed (i.e., the last tokens added
-       the the rescan list are fetched first. */
+       the rescan list are fetched first. */
     rescan_copy_of_cache(&decl_state->param_list_cache);
   }  /* if */
   db_exit();
@@ -7005,7 +7006,7 @@ that follows.
              tokens to the closing right brace. */
           flush_until_matching_token();
         } else {
-          required_token_no_advance(tok_semicolon, ec_exp_semicolon);
+          (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -7060,7 +7061,7 @@ that follows.
                       /*is_old_style_param_decl=*/FALSE,
                       &incomplete_type_error_reported);
         }  /* if */
-        required_token_no_advance(tok_semicolon, ec_exp_semicolon);
+        (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
       } else {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Do fixup on the source sequence entry that was just created to
@@ -7092,7 +7093,7 @@ that follows.
         } else {
           /* No function body, so there ought to be a semicolon following the
              declaration. */
-          required_token_no_advance(tok_semicolon, ec_exp_semicolon);
+          (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
         }  /* if */
       }  /* if */
     }  /* if */

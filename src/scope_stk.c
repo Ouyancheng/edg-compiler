@@ -543,7 +543,7 @@ values needed for the previous call.
   db_enter(4, "update_template_param_symbols");
   /* Loop through the parameters and arguments.  There may be fewer
      template arguments than parameters when push_scope is done while
-     scanning a the template argument list of a template class reference. */
+     scanning the template argument list of a template class reference. */
   while (tpp != NULL) {
     register a_symbol_ptr  param_symbol = tpp->param_symbol;
     if (tap != NULL) {

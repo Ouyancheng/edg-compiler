@@ -126,7 +126,7 @@ typedef struct a_name_hidden_by_old_for_init {
 			   which hidden_by_old_for_init is TRUE. */
   a_symbol_ptr	for_init_decl_sym;
 			/* Pointer to a symbol declared a for-init declaration.
-			   It has the same name a the other symbol, and under
+			   It has the same name as the other symbol, and under
 			   the old rules would have hidden it for the rest of
 			   the current scope. */
   a_byte_boolean
