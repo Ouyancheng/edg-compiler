@@ -16,7 +16,7 @@ class type in a pointer-to-member declaration.  This has been fixed.
 
 Early GNU implementations of the IA-64 ABI sometimes ignore bases of
 virtual primary bases when looking for empty base class conflicts at
-offset zero.  This behavior is not imitated when emulating GNU IA-64
+offset zero.  This behavior is now imitated when emulating GNU IA-64
 bugs.
 
 10/1/03  GNU C++ compatibility: lookup of dependent names
