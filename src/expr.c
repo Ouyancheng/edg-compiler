@@ -12092,6 +12092,8 @@ returned instead of the unqualified function name.
 #if DEBUG
     ++num_generated_entity_blocks_allocated;
 #endif /* DEBUG */
+    ssep->generated_entities->decorated_function_name = NULL;
+    ssep->generated_entities->function_name = NULL;
   }  /* if */
   name_var = decorated_name ?
                            ssep->generated_entities->decorated_function_name :
@@ -12108,12 +12110,8 @@ returned instead of the unqualified function name.
     a_constant_ptr         name_string;
     a_targ_size_t          length = strlen(name_ptr)+1;
     a_memory_region_number region_to_switch_back_to;
-    /* Create an array of const char type. */
-    a_type_ptr             str_type = alloc_type((a_type_kind)tk_array);
-    str_type->variant.array.element_type =
-             make_qualified_type(integer_type(plain_char_int_kind), TQ_CONST);
-    str_type->variant.array.variant.number_of_elements = length;
-    set_type_size(str_type);
+    a_type_ptr             var_type;
+    /* Create the string literal. */
     /* Make sure the string literal constant is allocated in file scope, so
        that we can directly point to it as an initializer from the variable. */
     switch_to_file_scope_region(&region_to_switch_back_to);
@@ -12127,7 +12125,19 @@ returned instead of the unqualified function name.
                  size_t_arg(length));
     /* Create the local static const array and initialize it with the
        string constant. */
-    name_var = make_variable(str_type, (a_storage_class)sc_static,
+    /* In C99, the variable is an array of const.  In Microsoft mode,
+       it has the same type as the string. */
+    if (microsoft_mode) {
+      var_type = name_string->type;
+    } else {
+      /* Create an array of const char type. */
+      var_type = alloc_type((a_type_kind)tk_array);
+      var_type->variant.array.element_type =
+             make_qualified_type(integer_type(plain_char_int_kind), TQ_CONST);
+      var_type->variant.array.variant.number_of_elements = length;
+      set_type_size(var_type);
+    }  /* if */
+    name_var = make_variable(var_type, (a_storage_class)sc_static,
                              depth_innermost_function_scope);
     name_var->source_corresp.name =
                                 locator_for_curr_id.symbol_header->identifier;
