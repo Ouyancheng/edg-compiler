@@ -320,7 +320,7 @@ Dump the indicated name linkage kind.
     case nlk_cplusplus_external:  str = "C++"; break;
     default:                      str = "<bad name linkage kind>"; break;
   }  /* switch */
-  fprintf(f_debug, "%s linkage", str);
+  fprintf(f_debug, "%s", str);
 }  /* db_name_linkage */
 
 
@@ -406,7 +406,7 @@ Dump a static data member (a variable entry), for debug purposes.
   db_name(&vp->source_corresp);
   fputs("\" (", f_debug);
   db_name_linkage((a_name_linkage_kind)vp->source_corresp.name_linkage);
-  fprintf(f_debug, "), sc_%s, type = ",
+  fprintf(f_debug, " linkage), sc_%s, type = ",
                    db_storage_class_names[(int)vp->storage_class]);
   db_abbreviated_type(vp->type);
 }  /* db_static_data_member */
@@ -430,7 +430,7 @@ Dump a member function (a routine entry), for debug purposes.
   db_name(&rp->source_corresp);
   fputs("\" (", f_debug);
   db_name_linkage((a_name_linkage_kind)rp->source_corresp.name_linkage);
-  fprintf(f_debug, ")%s, sc_%s,\n    type = ",
+  fprintf(f_debug, " linkage)%s, sc_%s,\n    type = ",
                    (rp->is_inline) ? ", inline" : "",
                    db_storage_class_names[(int)rp->storage_class]);
   db_abbreviated_type(rp->type);
@@ -855,14 +855,16 @@ class_struct_union:
                 calling_convention_names[(int)rtsp->calling_convention]);
       }  /* if */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
+      if (rtsp->routine_name_linkage != (a_name_linkage_kind)nlk_none) {
+        fputs("[", f_debug);
+        db_name_linkage((a_name_linkage_kind)rtsp->routine_name_linkage);
+        fputs("] ", f_debug);
+      }  /* if */
       fputs("function", f_debug);
       if (rtsp->assoc_routine != NULL) {
         fputs(" ", f_debug);
         db_name(&rtsp->assoc_routine->source_corresp);
       }  /* if */
-      fputs(" (", f_debug);
-      db_name_linkage((a_name_linkage_kind)rtsp->routine_name_linkage);
-      fputs(")", f_debug);
       if (!rtsp->prototyped) {
         fputs(" unprototyped", f_debug);
       }  /* if */
