@@ -5179,8 +5179,11 @@ Returns TRUE if there is an error in the specifiers.
                                DSI_IS_SPECIALIZATION))) {
             /* Unless the declaration is an explicit instantiation or an
                explicit specialization, a diagnostic is issued when
-               DSI_STORAGE_CLASS_SPECIFIER_ALLOWED is not set. */
-            pos_error(ec_storage_class_not_allowed, &specifier_start_pos);
+               DSI_STORAGE_CLASS_SPECIFIER_ALLOWED is not set.  The Microsoft
+               compiler allows (and ignores) __declspec in many places. */
+            pos_diagnostic((an_error_severity)(microsoft_bugs ? es_warning
+                                                              : es_error),
+                           ec_storage_class_not_allowed, &specifier_start_pos);
             err = TRUE;
           } else if (input_flags & DSI_IS_CONDITION_DECL) {
             pos_error(ec_storage_class_not_allowed, &specifier_start_pos);

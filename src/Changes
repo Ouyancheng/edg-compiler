@@ -1,5 +1,18 @@
 Version 3.2
 
+3/21/03  Microsoft compatibility: __declspec and other modifiers allowed
+         in invalid locations
+
+The Microsoft compiler accepts __declspec and other modifiers in a
+variety of invalid locations.  We now emulate this behavior in
+Microsoft bugs mode.  A warning is issued.
+
+  template <class T> class A {};
+  class __declspec(dllexport) B {};
+  template <> class A<__declspec(dllexport) B>;
+  template <> class A<__forceinline B>;
+  int i = sizeof(__declspec(dllexport) B);
+
 3/21/03  Microsoft compatibility: explicit template arguments in
          function declarations
 
