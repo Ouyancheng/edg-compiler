@@ -928,7 +928,7 @@ constant.  Handle unprintable characters and necessary escapes.
     /* Use the \nnn form for unprintable characters. */
     char buffer[10];
     (void)sprintf(buffer, "\\%03o",
-                  (unsigned int)(ch&((1<<TARG_HOST_STRING_CHAR_BIT)-1)));
+                  (unsigned int)(ch&((1<<targ_host_string_char_bit)-1)));
     write_str(buffer);
   }  /* if */
 }  /* gen_char */
