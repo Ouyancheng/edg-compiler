@@ -1,5 +1,18 @@
 Version 2.13
 
+1/6/93 Error on type definition within function return type
+
+We have long dealt with the obvious case in which a class or enum
+definition appears within the return type of a function type declaration,
+which is an error in C++ (ARM 8.2.5):
+
+  struct S { int i; } *func ();
+
+We now issue an error in some related but more obscure cases as well:
+
+  struct S { int i; } (*func_ptr) ();
+  struct S { int i; } (*func_ptr_type) ();
+
 1/6/93 Static data members that are anonymous unions
 
 Static data members that are anonymous unions are disallowed.  They are
