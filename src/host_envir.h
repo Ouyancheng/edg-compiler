@@ -1185,9 +1185,8 @@ extern char *replace_file_name_suffix(char  *suffix,
 /*
 Include the files needed to define the types used with the stat()
 function.  A declaration of stat() is provided in case the standard
-headers to define the prototype.
+headers fail to define the prototype.
 */
-#include <sys/types.h>
 #include <sys/stat.h>
 /* "stat" isn't in ANSI C, but we assume it is available.  If not, this
    file must be changed.  By default, the first argument is assumed to
