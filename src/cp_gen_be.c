@@ -1651,8 +1651,15 @@ or enum.
        have been given compiler-generated names so they can be referred to. */
     write_tok_str(tag_kind(type->kind));
     write_space();
-    gen_decl_name(&type->source_corresp, iek_type);
-    type->declaration_put_out = TRUE;
+    if (type->declaration_put_out) {
+      /* References after the declaration can use a global qualifier. */
+      gen_name(&type->source_corresp, iek_type,
+               /*force_qualified_name=*/FALSE);
+    } else {
+      /* Declarations cannot use a global qualifier. */
+      gen_decl_name(&type->source_corresp, iek_type);
+      type->declaration_put_out = TRUE;
+    }  /* if */
   }  /* if */
 }  /* gen_tag_reference */
 
