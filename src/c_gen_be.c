@@ -2616,7 +2616,55 @@ ANSI C), copy the struct to a temp and select the field from the temp.
   (void)fprintf(f_C_output, ")");
 }  /* dump_rvalue_selection */
 
+#ifdef CFE
 
+static void adjust_bit_field_value(an_expr_node_ptr operand)
+/*
+operand is the lvalue operand of an operation that returns an rvalue
+(e.g., an assignment).  If operand indicates a bit field, generate
+code to truncate and sign-extend the result of the operation to match
+the bit field size and signedness.
+*/
+{
+  a_field_ptr dest_field;
+
+  /* See if the lvalue operand is a bit field. */
+  if (operand->kind == (an_expr_node_kind)enk_operation &&
+      operand->variant.operation.kind ==
+                                        (an_expr_operator_kind)eok_bit_field) {
+    /* For this case, we need to truncate the result of the assignment
+       because pcc does not do it.  For a signed bit field, use __sexten;
+       for an unsigned bit field, use __trunc. */
+    dest_field = operand->variant.operation.operands->next->variant.field;
+    if (dest_field->bit_field_is_signed) {
+      fputs("(__sexten((", f_C_output);
+    } else {
+      fputs("(__trunc((", f_C_output);
+    }  /* if */
+  }  /* if */
+}  /* adjust_bit_field_value */
+
+#endif /* ifdef CFE */
+#ifdef CFE
+
+static void end_adjust_bit_field_value(an_expr_node_ptr operand)
+/*
+Second half of the job begun in adjust_bit_field_lvalue; puts out the
+closing parentheses needed if any code was generated there.
+*/
+{
+  a_field_ptr dest_field;
+
+  /* See if the lvalue operand is a bit field. */
+  if (operand->kind == (an_expr_node_kind)enk_operation &&
+      operand->variant.operation.kind ==
+                                        (an_expr_operator_kind)eok_bit_field) {
+    dest_field = operand->variant.operation.operands->next->variant.field;
+    (void)fprintf(f_C_output, "),%d))", dest_field->bit_size);
+  }  /* if */
+}  /* end_adjust_bit_field_value */
+
+#endif /* ifdef CFE */
 #ifndef CFE
 /*ARGSUSED*/ /* <-- op is only used if CFE is defined. */
 #endif /* ifndef CFE */
@@ -2630,28 +2678,14 @@ because the left operand is an lvalue.
 {
 #ifdef CFE
   a_type_ptr  operand_1_type;
-  a_boolean   simple_assignment = FALSE;
-  a_field_ptr dest_field;
-  a_boolean   dest_is_bit_field = FALSE;
+  a_boolean   simple_assignment = FALSE, remainder_special_case = FALSE;
 #endif /* ifdef CFE */
   char        *operation_string;
 
 #ifdef CFE
-  /* See if the destination is a bit field. */
-  if (operand_1->kind == (an_expr_node_kind)enk_operation &&
-      operand_1->variant.operation.kind ==
-                                        (an_expr_operator_kind)eok_bit_field) {
-    /* For this case, we need to truncate the result of the assignment
-       because pcc does not do it.  For a signed bit field, use __sexten;
-       for an unsigned bit field, use __trunc. */
-    dest_is_bit_field = TRUE;
-    dest_field = operand_1->variant.operation.operands->next->variant.field;
-    if (dest_field->bit_field_is_signed) {
-      fputs("(__sexten((", f_C_output);
-    } else {
-      fputs("(__trunc((", f_C_output);
-    }  /* if */
-  }  /* if */
+  /* If the field being assigned to is a bit field, generate code to
+     truncate/adjust the result of the assignment. */
+  adjust_bit_field_value(operand_1);
 #endif /* ifdef CFE */
   switch (op) {
     case eok_iassign:
@@ -2679,6 +2713,14 @@ because the left operand is an lvalue.
       break;
     case eok_remainder_assign:
       operation_string = " %= ";
+      if (operand_2->kind == (an_expr_node_kind)enk_constant &&
+          operand_2->variant.constant->kind ==
+                                            (a_constant_repr_kind)ck_integer &&
+          eqlit_integer_constant(operand_2->variant.constant, 1L)) {
+        /* The SUN C compiler has a bug with "i %= 1" -- It generates no
+           code.  Generate "i %= (0, 1)" instead, which works. */
+        remainder_special_case = TRUE;
+      }  /* if */
       break;
     case eok_iadd_assign:
     case eok_fadd_assign:
@@ -2744,14 +2786,19 @@ because the left operand is an lvalue.
   }  /* if */
   /* Write the operation string and the right operand. */
   fputs(operation_string, f_C_output);
+  if (remainder_special_case) {
+    /* The SUN C compiler has a bug with "i %= 1" -- It generates no
+       code.  Generate "i %= (0, 1)" instead, which works. */
+    fputs("(0,", f_C_output);
+  }  /* if */
   dump_expression(operand_2, /*need_parens=*/TRUE);
-
+  if (remainder_special_case) {
+    fputs(")", f_C_output);
+  }  /* if */
 #ifdef CFE
   /* If the destination is a bit field, finish off the sign-extend/truncation
      call started earlier. */
-  if (dest_is_bit_field) {
-    (void)fprintf(f_C_output, "),%d))", dest_field->bit_size);
-  }  /* if */
+  end_adjust_bit_field_value(operand_1);
 #endif /* ifdef CFE */
 }  /* dump_assign */
 
@@ -3216,15 +3263,23 @@ expression, then the "right" side with the operator in between.
     case eok_ipost_incr:
     case eok_ppost_incr:
       /* Post increment operators. */
+      /* If the field being incremented is a bit field, generate code to
+         truncate/adjust the result of the assignment. */
+      adjust_bit_field_value(operand_1);
       dump_lvalue(operand_1);
       fputs("++", f_C_output);
+      end_adjust_bit_field_value(operand_1);
       break;
     case eok_ipre_incr:
     case eok_fpre_incr:
     case eok_ppre_incr:
       /* Pre increment operators. */
+      /* If the field being incremented is a bit field, generate code to
+         truncate/adjust the result of the assignment. */
+      adjust_bit_field_value(operand_1);
       fputs("++", f_C_output);
       dump_lvalue(operand_1);
+      end_adjust_bit_field_value(operand_1);
       break;
     case eok_fpost_decr:
       /* There is a bug in the SUN cc with post-decrement of a float value.
@@ -3239,15 +3294,23 @@ expression, then the "right" side with the operator in between.
     case eok_ipost_decr:
     case eok_ppost_decr:
       /* Post decrement operators. */
+      /* If the field being incremented is a bit field, generate code to
+         truncate/adjust the result of the assignment. */
+      adjust_bit_field_value(operand_1);
       dump_lvalue(operand_1);
       fputs("--", f_C_output);
+      end_adjust_bit_field_value(operand_1);
       break;
     case eok_ipre_decr:
     case eok_fpre_decr:
     case eok_ppre_decr:
       /* Pre decrement operators. */
+      /* If the field being incremented is a bit field, generate code to
+         truncate/adjust the result of the assignment. */
+      adjust_bit_field_value(operand_1);
       fputs("--", f_C_output);
       dump_lvalue(operand_1);
+      end_adjust_bit_field_value(operand_1);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -3500,6 +3563,7 @@ char_compare:
     case eok_fmultiply_assign:
     case eok_idivide_assign:
     case eok_fdivide_assign:
+    case eok_remainder_assign:
     case eok_iadd_assign:
     case eok_fadd_assign:
     case eok_padd_assign:
@@ -3518,21 +3582,6 @@ char_compare:
       dump_assign(operand_1, expr->variant.operation.kind, operand_2);
       break;
 #ifdef CFE
-    case eok_remainder_assign:
-      if (operand_2->kind == (an_expr_node_kind)enk_constant &&
-          operand_2->variant.constant->kind ==
-                                        (a_constant_repr_kind)ck_integer &&
-          eqlit_integer_constant(operand_2->variant.constant, 1L)) {
-        /* The SUN C compiler has a bug with "i %= 1" -- It generates no
-           code.  Generate "i %= (0, 1)" instead, which works. */
-        dump_lvalue(operand_1);
-        fputs(" %= (0,", f_C_output);
-        dump_expression(operand_2, /*need_parens=*/FALSE);
-        fputc(')', f_C_output);
-      } else {
-        dump_assign(operand_1, expr->variant.operation.kind, operand_2);
-      }  /* if */
-      break;
     case eok_bassign:
       /* Block assignment, generated only by IL lowering of C++ code. */
 #if __BSD__
