@@ -2579,7 +2579,7 @@ Issue an error if any base class offset exceeds the maximum that is allowed.
 }  /* check_base_class_offsets */
 
 
-void compute_empty_class_bit(a_type_ptr  type)
+static void compute_empty_class_bit(a_type_ptr  type)
 /*
 Determine whether the given class type is empty---i.e., has no nonstatic
 data members, virtual functions, virtual base classes or base classes with
