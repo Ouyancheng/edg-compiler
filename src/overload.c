@@ -4974,6 +4974,9 @@ not for the explicit case.
       make_this_variable_operand(this_var, /*is_implicit=*/TRUE, result);
       /* Get position right in case of errors below. */
       result->position = *member_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      result->end_position = *member_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       if (template_case) {
         /* For the template case, just do a direct cast. */
         a_symbol_ptr fund_sym = fundamental_symbol_of(member_sym);

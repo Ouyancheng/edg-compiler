@@ -1,5 +1,12 @@
 Version 2.46
 
+4/16/01  End position on operand for implicit "this" expression
+
+The end position is now set (in versions with EXTRA_SOURCE_POSITIONS_IN_IL
+set to TRUE) on operands created for implicit uses of "this" (e.g.,
+calling a member function).  This is the an_operand entries used internally
+by the front end, but the expressions in the IL.
+
 4/16/01  C99 lowering of complex constants and
          RECORD_CONSTANT_EXPRESSIONS_IN_IL
 
