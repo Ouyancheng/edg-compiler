@@ -6934,9 +6934,9 @@ of the template.
         source_sequence_entries_disallowed = TRUE;
       }  /* if */
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-      ssep->source_sequence_entries_disallowed =
-                                         source_sequence_entries_disallowed;
     }  /* if */
+    ssep->source_sequence_entries_disallowed =
+                                     source_sequence_entries_disallowed;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DEBUG
