@@ -3983,7 +3983,7 @@ typedef struct a_type {
 			   C++ may be TRUE even when the source-corresp name
 			   pointer is non-NULL, since a name may be acquired
 			   from a typedef name. */
-  bitfield_to_avoid_codecenter_warnings()
+      bitfield_to_avoid_codecenter_warnings()
       union {
         /* When enum_type is TRUE: */
         a_constant_ptr
