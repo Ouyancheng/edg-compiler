@@ -33,6 +33,7 @@ trans_corresp.c -- Routines  related to matching entities across
 
 /* Forward declarations. */
 static a_boolean verify_type_correspondence(a_type_ptr  type);
+static a_boolean verify_template_correspondence(a_template_ptr  templ);
 static void verify_trans_unit_correspondences_for_scope(a_scope_ptr  scope);
 
 
@@ -226,12 +227,15 @@ need to be determined.
   a_boolean        result;
 
   switch (sym->kind) {
-    case sk_class_or_struct_tag:
     case sk_class_template:
+    case sk_function_template:
+      /* FIXME -- should name_linkage be set for templates? */
+      result = TRUE;
+      break;
+    case sk_class_or_struct_tag:
     case sk_constant:
     case sk_enum_tag:
     case sk_field:
-    case sk_function_template:
     case sk_member_function:
     case sk_namespace:
     case sk_static_data_member:
@@ -487,33 +491,64 @@ symbols are listed under the same header).
   f_verify_name_correspondence((char*)ptr)
 
 
+static a_boolean same_str(char *s1,
+                          char *s2)
+/*
+Determine whether the given character strings are the same.  Also handle NULL
+pointers.
+*/
+{
+  a_boolean  result;
+
+  if (s1 == s2) {
+    result = TRUE;
+  } else if (s1 == NULL || s2 == NULL) {
+    result = FALSE;
+  } else {
+    result = (strcmp(s1, s2) == 0);
+  }  /* if */
+  return result;
+}  /* same_str */
+
+
 static a_boolean verify_field_correspondence(a_field_ptr  field)
 /*
 Check that the recorded translation unit correspondence for the given field
 is in fact valid.
 */
 {
-  a_boolean    match = verify_name_correspondence(field);
-  a_field_ptr  corresp_field = (a_field_ptr)canonical_il_entry_of(field);
-
-  if (match && !identical_types(field->type, corresp_field->type)) {
-    match = FALSE;
-    process_bad_trans_unit_corresp(field);
+  a_boolean    match = TRUE;
+  if (has_correspondence(field)) {
+    a_field_ptr  corresp_field = (a_field_ptr)canonical_il_entry_of(field);
+    a_source_correspondence_ptr
+                   scp = &field->source_corresp,
+                   corresp_scp = &corresp_field->source_corresp;
+  
+    match = verify_name_correspondence(field);
+    if (match &&
+        (!identical_types(field->type, corresp_field->type) ||
+         field->offset != corresp_field->offset ||
+         field->offset_bit_remainder != corresp_field->offset_bit_remainder ||
+         field->bit_size != corresp_field->bit_size ||
+         field->is_bit_field != corresp_field->is_bit_field ||
+         field->bit_field_is_signed != corresp_field->bit_field_is_signed ||
+         field->is_anonymous_parent_object !=
+                                   corresp_field->is_anonymous_parent_object ||
+         field->is_mutable != corresp_field->is_mutable ||
+  #if MICROSOFT_EXTENSIONS_ALLOWED
+         !same_str(field->get_property_name,
+                                           corresp_field->get_property_name) ||
+         !same_str(field->put_property_name,
+                                           corresp_field->put_property_name) ||
+  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+         scp->access != corresp_scp->access ||
+         scp->name_linkage != corresp_scp->name_linkage)) {
+      match = FALSE;
+      process_bad_trans_unit_corresp(field);
+    }  /* if */
   }  /* if */
   return match;
 }  /* verify_field_correspondence */
-
-
-static a_boolean verify_template_correspondence(a_template_ptr  templ)
-/*
-Check that the recorded translation unit correspondence for the given template
-is in fact valid.
-*/
-{
-  a_boolean  match = verify_name_correspondence(templ);
-  /* FIXME */
-  return match;
-}  /* verify_template_correspondence */
 
 
 static a_boolean verify_routine_correspondence(a_routine_ptr  routine)
@@ -522,14 +557,34 @@ Check that the recorded translation unit correspondence for the given routine
 is in fact valid.
 */
 {
-  a_boolean      match = verify_name_correspondence(routine);
-  a_routine_ptr  corresp_routine =
-                                (a_routine_ptr)canonical_il_entry_of(routine);
+  a_boolean      match = TRUE;
 
-  if (match &&
-      !types_are_redecl_compatible(routine->type, corresp_routine->type)) {
-    match = FALSE;
-    process_bad_trans_unit_corresp(routine);
+  if (has_correspondence(routine)) {
+    a_routine_ptr  corresp_routine =
+                                  (a_routine_ptr)canonical_il_entry_of(routine);
+    a_source_correspondence_ptr
+                   scp = &routine->source_corresp,
+                   corresp_scp = &corresp_routine->source_corresp;
+    match = verify_name_correspondence(routine);
+    if (match &&
+        (!types_are_redecl_compatible(routine->type, corresp_routine->type) ||
+         routine->is_virtual != corresp_routine->is_virtual ||
+         routine->pure_virtual != corresp_routine->pure_virtual ||
+         routine->is_inline != corresp_routine->is_inline ||
+         routine->is_explicit_constructor !=
+                                    corresp_routine->is_explicit_constructor ||
+         routine->is_specialized != corresp_routine->is_specialized ||
+         routine->fp_contract != corresp_routine->fp_contract ||
+         routine->fenv_access != corresp_routine->fenv_access ||
+         routine->cx_limited_range != corresp_routine->cx_limited_range ||
+  #if DECL_MODIFIERS_IN_USE
+         routine->decl_modifiers != corresp_routine->decl_modifiers ||
+  #endif /* DECL_MODIFIERS_IN_USE */
+         scp->access != corresp_scp->access ||
+         scp->name_linkage != corresp_scp->name_linkage)) {
+      match = FALSE;
+      process_bad_trans_unit_corresp(routine);
+    }  /* if */
   }  /* if */
   return match;
 }  /* verify_routine_correspondence */
@@ -541,12 +596,25 @@ Check that the recorded translation unit correspondence for the given variable
 is in fact valid.
 */
 {
-  a_boolean       match = verify_name_correspondence(var);
-  a_variable_ptr  corresp_var = (a_variable_ptr)canonical_il_entry_of(var);
+  a_boolean       match = TRUE;
 
-  if (match && !types_are_redecl_compatible(var->type, corresp_var->type)) {
-    match = FALSE;
-    process_bad_trans_unit_corresp(var);
+  if (has_correspondence(var)) {
+    a_variable_ptr  corresp_var = (a_variable_ptr)canonical_il_entry_of(var);
+    a_source_correspondence_ptr
+                    scp = &var->source_corresp,
+                    corresp_scp = &corresp_var->source_corresp;
+    match = verify_name_correspondence(var);
+    if (match &&
+        (!types_are_redecl_compatible(var->type, corresp_var->type) ||
+         var->is_specialized != corresp_var->is_specialized ||
+  #if DECL_MODIFIERS_IN_USE
+         var->decl_modifiers != corresp_var->decl_modifiers ||
+  #endif /* DECL_MODIFIERS_IN_USE */
+         scp->access != corresp_scp->access ||
+         scp->name_linkage != corresp_scp->name_linkage)) {
+      match = FALSE;
+      process_bad_trans_unit_corresp(var);
+    }  /* if */
   }  /* if */
   return match;
 }  /* verify_variable_correspondence */
@@ -558,15 +626,23 @@ Check that the recorded translation unit correspondence for the given constant
 is in fact valid.
 */
 {
-  a_boolean       match = verify_name_correspondence(constant);
-  a_constant_ptr  corresp_constant =
-                              (a_constant_ptr)canonical_il_entry_of(constant);
+  a_boolean       match = TRUE;
 
-  if (match &&
-      (!identical_types(constant->type, corresp_constant->type) ||
-       !eq_constants(constant, corresp_constant))) {
-    match = FALSE;
-    process_bad_trans_unit_corresp(constant);
+  if (has_correspondence(constant)) {
+    a_constant_ptr  corresp_constant =
+                               (a_constant_ptr)canonical_il_entry_of(constant);
+    a_source_correspondence_ptr
+                    scp = &constant->source_corresp,
+                    corresp_scp = &corresp_constant->source_corresp;
+    match = verify_name_correspondence(constant);
+    if (match &&
+        (!identical_types(constant->type, corresp_constant->type) ||
+         !eq_constants(constant, corresp_constant) ||
+         scp->access != corresp_scp->access ||
+         scp->name_linkage != corresp_scp->name_linkage)) {
+      match = FALSE;
+      process_bad_trans_unit_corresp(constant);
+    }  /* if */
   }  /* if */
   return match;
 }  /* verify_constant_correspondence */
@@ -592,7 +668,14 @@ type is in fact valid.
       break;
     }  /* if */
   }  /* for */
-  if (match && (enumerator != NULL || corresp_enumerator != NULL)) {
+  if (match && 
+      (enumerator != NULL || corresp_enumerator != NULL ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+       !same_str(type->variant.integer.uuid_string,
+                 corresp_type->variant.integer.uuid_string) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+       type->variant.integer.int_kind ==
+                                     corresp_type->variant.integer.int_kind)) {
     report_bad_trans_unit_corresp(type);
     match = FALSE;
   }  /* if */
@@ -619,8 +702,9 @@ type is in fact valid.
     match = FALSE;
     report_error = TRUE;
   } else if (!type_has_body(type) || !type_has_body(corresp_type)) {
-    /* The types are matching since at least one is incomplete and therefore
-       has no inner structure to conflict with. */
+    /* The types are assumed to match in their inner structure since at least
+       one is incomplete and therefore has no inner structure to conflict
+       with. */
   } else if (corresp_type != NULL) {
     /* Traverse fields: (both C and C++) */
     a_field_ptr  field = skip_generated_field(
@@ -806,6 +890,58 @@ type is in fact valid.
       }
     }  /* if */
   }  /* if */
+  if (match) {
+    /* Check various properties of the type. */
+#define class_info type->variant.class_struct_union
+#define corresp_info corresp_type->variant.class_struct_union
+    a_class_type_supplement_ptr
+        sup = class_info.extra_info, corresp_sup = corresp_info.extra_info;
+    if (class_info.any_const_member != corresp_info.any_const_member ||
+        class_info.any_mutable_member != corresp_info.any_mutable_member ||
+        class_info.any_virtual_base_classes !=
+                                       corresp_info.any_virtual_base_classes ||
+        class_info.abstract != corresp_info.abstract ||
+        class_info.any_virtual_functions !=
+                                          corresp_info.any_virtual_functions ||
+        class_info.any_pure_virtual_functions !=
+                                     corresp_info.any_pure_virtual_functions ||
+        class_info.any_virtual_functions_including_in_base_classes !=
+                corresp_info.any_virtual_functions_including_in_base_classes ||
+        class_info.originally_unnamed != corresp_info.originally_unnamed ||
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+        class_info.is_nonstd_anonymous_union_type !=
+                                 corresp_info.is_nonstd_anonymous_union_type ||
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+        class_info.is_template_class != corresp_info.is_template_class ||
+        class_info.is_nonreal_class != corresp_info.is_nonreal_class ||
+        class_info.is_prototype_instantiation !=
+                                     corresp_info.is_prototype_instantiation ||
+        class_info.is_specialized != corresp_info.is_specialized ||
+        class_info.is_empty_class != corresp_info.is_empty_class ||
+        class_info.contains_flexible_array_member !=
+                                 corresp_info.contains_flexible_array_member ||
+#if USER_CONTROL_OF_STRUCT_PACKING
+        class_info.max_member_alignment != corresp_info.max_member_alignment ||
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+        sup->inheritance_kind != corresp_sup->inheritance_kind ||
+        sup->virtual_function_info_offset !=
+                                   corresp_sup->virtual_function_info_offset ||
+        sup->qualifiers != corresp_sup->qualifiers ||
+        sup->anonymous_union_kind != corresp_sup->anonymous_union_kind ||
+#if DECL_MODIFIERS_IN_USE
+        sup->decl_modifiers != corresp_sup->decl_modifiers ||
+#endif /* DECL_MODIFIERS_IN_USE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        !same_str(sup->uuid_string, corresp_sup->uuid_string) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        !same_field_entities(sup->anonymous_union_field,
+                             corresp_sup->anonymous_union_field)) {
+      match = FALSE;
+      report_error = TRUE;
+    }  /* if */
+#undef class_info
+#undef corresp_info
+  }  /* if */
 done:
   if (!match) {
     if (report_error) {
@@ -823,7 +959,7 @@ Check that the recorded translation unit correspondence for the given type
 is in fact valid.
 */
 {
-  a_boolean   match;
+  a_boolean     match;
   a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
 
   if (!has_correspondence(type)) {
@@ -839,8 +975,22 @@ is in fact valid.
     set_no_trans_unit_corresp(type);
   } else {
     a_type_ptr  corresp_type = (a_type_ptr)canonical_il_entry_of(type);
-    if (type->kind != corresp_type->kind ||
-        !verify_name_correspondence(type)) {
+    a_source_correspondence_ptr
+                scp = &type->source_corresp,
+                corresp_scp = &corresp_type->source_corresp;
+    if (!verify_name_correspondence(type)) {
+      match = FALSE;
+    } else if (type->kind != corresp_type->kind ||
+               type->size != corresp_type->size ||
+               type->alignment != corresp_type->alignment ||
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+               type->use_cfront_transitional_nested_type_name_mangling !=
+                      corresp_type
+                         ->use_cfront_transitional_nested_type_name_mangling ||
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+               type->is_builtin_va_list != corresp_type->is_builtin_va_list ||
+               scp->access != corresp_scp->access ||
+               scp->name_linkage != corresp_scp->name_linkage) {
       match = FALSE;
       process_bad_trans_unit_corresp(type);
     } else if (is_immediate_class_type(type)) {
@@ -856,6 +1006,51 @@ is in fact valid.
   }  /* if */
   return match;
 }  /* verify_type_correspondence */
+
+
+static a_boolean verify_template_correspondence(a_template_ptr  templ)
+/*
+Check that the recorded translation unit correspondence for the given template
+is in fact valid.
+*/
+{
+  a_boolean       match = TRUE;
+
+  if (has_correspondence(templ)) {
+    a_symbol_ptr    templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
+    a_template_symbol_supplement_ptr
+                    tssp = templ_sym->variant.template_info;
+    a_template_ptr  corresp_templ =
+                                  (a_template_ptr)canonical_il_entry_of(templ);
+    a_source_correspondence_ptr
+                    scp = &templ->source_corresp,
+                    corresp_scp = &corresp_templ->source_corresp;
+    match = verify_name_correspondence(templ);
+    if (match &&
+        (scp->access != corresp_scp->access ||
+         scp->name_linkage != corresp_scp->name_linkage)) {
+      match = FALSE;
+      process_bad_trans_unit_corresp(templ);
+    }  /* if */
+    if (!match) {
+      /* The templates don't seem to match, so don't try to verify the
+         instantiations. */
+    } else if (is_class_template_symbol(templ_sym)) {
+      /* Verify the instantiations (if any). */
+      a_type_ptr    class_type = tssp
+                               ->variant.class_template.prototype_instantiation
+                               ->variant.class_struct_union.type;
+      a_symbol_ptr  inst = tssp->variant.class_template.instantiations;
+      for (; inst != NULL; inst = next_instance_sym(inst)) {
+        verify_class_type_correspondence(type_symbol_type(inst));
+      }  /* for */
+      /* Also process the prototype instantiation. */
+      verify_class_type_correspondence(class_type);
+    } else {
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* verify_template_correspondence */
 
 
 static a_boolean verify_namespace_correspondence(a_namespace_ptr  nsp)
@@ -966,6 +1161,27 @@ unit correspondence pointer for each of them.
     }  /* if */
   }  /* for */
 }  /* verify_variable_correspondences_for_scope */
+
+
+static void verify_template_correspondences_for_scope(a_scope_ptr  scope)
+/*
+Traverse the list of templates of the given scope and verify a translation
+unit correspondence pointer for each of them.
+*/
+{
+  a_template_ptr  templ;
+
+  /* Visit all templates. */
+  for (templ = scope->templates;
+       templ != NULL;
+       templ = templ->next) {
+    if (trans_unit_corresp_pointer_of(templ) != NULL &&
+        !verify_template_correspondence(templ)) {
+      /* Some error occurred---clear the association. */
+      set_no_trans_unit_corresp(templ);
+    }  /* if */
+  }  /* for */
+}  /* verify_template_correspondences_for_scope */
 
 
 static void establish_trans_unit_correspondences_for_enum(a_type_ptr  type)
@@ -1225,10 +1441,11 @@ the instantiation to the list of instantiations in the associated template
 symbol supplement.
 */
 {
+  a_symbol_ptr    templ_sym = primary_template_of(
+                                    inst->variant.class_struct_union.extra_info
+                                        ->class_template);
   a_template_symbol_supplement_ptr
-                  tssp = inst->variant.class_struct_union.extra_info
-                             ->class_template
-                             ->variant.template_info;
+                  tssp = templ_sym->variant.template_info;
   a_template_ptr  templ = tssp->il_template_entry,
                   corresp_templ = (a_template_ptr)canonical_il_entry_of(templ);
   a_template_symbol_supplement_ptr
@@ -1839,7 +2056,8 @@ canonical entry.
     /* If we're in the process of establishing correspondences, this particular
        entry may need to be processed now.  Otherwise, it should already have
        been done or no correspondence can be expected. */
-    if (correspondence_checking_underway) {
+    if (correspondence_checking_underway &&
+        trans_unit_corresp_pointer_of(type) == NULL) {
       a_type_ptr  root = type;
       /* Member types have their correspondence set when their parent type is
          processed.  Hence we look for the outermost parent type. */
@@ -2003,6 +2221,7 @@ scope.  The process is repeated in nested scopes.
   verify_type_correspondences_for_scope(scope);
   verify_routine_correspondences_for_scope(scope);
   verify_variable_correspondences_for_scope(scope);
+  verify_template_correspondences_for_scope(scope);
 }  /* verify_trans_unit_correspondences_for_scope */
 
 
