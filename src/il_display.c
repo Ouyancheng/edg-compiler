@@ -1326,6 +1326,9 @@ do_struct_union:
       disp_boolean("any_virtual_functions_including_in_base_classes",
                    (a_boolean)ptr->variant.class_struct_union.
                               any_virtual_functions_including_in_base_classes);
+      if (ptr->variant.class_struct_union.referenced_by_placeholder_typeref) {
+        disp_boolean("referenced_by_placeholder_typeref", TRUE);
+      }  /* if */
       break;
     case tk_typeref:
       (void)printf("tk_typeref\n");

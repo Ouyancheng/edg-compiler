@@ -379,9 +379,12 @@ might not be able to if the template itself has not yet been defined.
          the class scope types list.  To enable il-lowering to get the
          ordering right when it promotes the nested types to file scope,
          enter a placeholder type in the class scope to mark the declaration
-         position of the instantiation. */
+         position of the instantiation.  This is not an issue when the class
+         is a local class, since a template cannot legally be defined in terms
+         of local classes or types that are local class members. */
       if (scope_stack[decl_scope_level].kind ==
-                                 (a_scope_kind)sck_class_struct_union) {
+                                 (a_scope_kind)sck_class_struct_union &&
+          depth_innermost_function_scope != NO_SCOPE_DEPTH) {
         a_type_ptr  tp;
 
         /* Allocate the placeholder type, set its fields, and add it to the
@@ -390,7 +393,8 @@ might not be able to if the template itself has not yet been defined.
         tp = alloc_type((a_type_kind)tk_typeref);
         tp->variant.typeref.type = class_type;
         tp->variant.typeref.is_placeholder_for_file_scope_type = TRUE;
-        cssp->referenced_by_placeholder_typeref = TRUE;
+        class_type->variant.class_struct_union.
+                             referenced_by_placeholder_typeref = TRUE;
         add_to_types_list(tp, decl_scope_level);
       }  /* if */
     }  /* if */

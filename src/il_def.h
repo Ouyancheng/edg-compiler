@@ -2134,6 +2134,12 @@ typedef struct a_type {
 			/* TRUE if one or more member functions declared in
 			   the class, struct, or union or its base classes
 			   is a virtual function (C++ only). */
+      unsigned int
+		referenced_by_placeholder_typeref:1;
+			/* TRUE if the class is pointed to by a placeholder
+			   typeref on a class scope's types list; the type
+			   entry for the associated typeref will have
+			   is_placeholder_for_file_scope_type set to TRUE. */
     } class_struct_union;
     /* When kind == tk_typeref: */
     struct {
