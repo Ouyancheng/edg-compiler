@@ -892,7 +892,7 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	any_dependent_base_classes:1;
 			/* TRUE if any of the base classes should be ignored
 			   during dependent lookup. */
-  a_bit_field	any_template_dependent_fields;
+  a_bit_field	any_template_dependent_fields:1;
 			/*  For a prototype instantiation this is TRUE if any
 			    field is dependent on a template parameter. */
   a_bit_field	instantiation_in_progress:1;
