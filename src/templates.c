@@ -10341,7 +10341,8 @@ is set by update_instantiation_required_flag.
   a_template_instance_ptr	tip;
 #if DO_IL_LOWERING
   a_boolean			instantiation_info_vars_needed =
-				    (!suppress_instantiation_flags &&
+				    (automatic_instantiation_mode &&
+                                     !suppress_instantiation_flags &&
 				     il_lowering_needed());
   a_source_correspondence	*scp;
 #endif /* DO_IL_LOWERING */
