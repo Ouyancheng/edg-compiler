@@ -5376,9 +5376,11 @@ using *pos as the error position.
           /* Ignore function template symbols in the overload set. */
         } else if (types_of_decl_and_using_decl_conflict(decl_sym,
                                                          using_sym, &err)) {
-          /* Unless using_sym is a member function being hidden and/or
-             overridden by decl_sym, an error is issued. */
-          if (err) {
+          /* An error is issued, unless using_sym is a member function being
+             hidden and/or overridden by decl_sym (err == FALSE), or both
+             symbols refer to the same entity (because they are extern "C"
+             declarations). */
+          if (err && !symbols_are_lookup_equivalent(decl_sym, using_sym)) {
             pos_sy2_error(ec_conflicts_with_using_decl, pos, decl_sym,
                           using_sym);
           }  /* if */

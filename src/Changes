@@ -1,5 +1,18 @@
 Version 2.42
 
+7/14/99  Diagnostic when redeclaring an entity already seen through a
+         using declaration
+
+The front end used to issue an unjustified diagnostic when redeclaring an
+extern "C" function that had already been declared in that namespace scope
+with a using declaration.
+
+  namespace N { extern "C" void f(); }
+  using N::f;
+  extern "C" void f(); // Used to result in an error
+
+This is now fixed.
+
 7/14/99  Microsoft compatibility: ignore inline function qualifier
 
 In Microsoft mode, using the keyword "inline" as a function qualifier only
