@@ -89,6 +89,7 @@ static unsigned long
 		num_compares_for_symbols,
 		num_fast_id_lookups,
 		num_slow_id_lookups,
+		num_active_using_directives_allocated,
 		num_access_error_descrs_allocated;
 #endif /* DEBUG */
 
@@ -147,6 +148,12 @@ static an_access_error_descr_ptr
 			/* List of access error description  entries (allocated
                            in front end storage) freed and available for
                            reuse. */
+
+static an_active_using_directive_ptr
+		avail_active_using_directives;
+			/* List of active using directive entries freed and
+			   available for reuse. */
+
 
 
 void form_symbol_name(a_symbol_ptr                          sym,
@@ -1396,6 +1403,53 @@ Initialize the fields in a scope-pointers-block substructure.
 }  /* clear_scope_pointers_block */
 
 
+void add_active_using_directive(a_using_directive_ptr udp)
+/*
+Allocate a new active using directive entry, initialize its fields, and
+link it into a list of active using directives for the current scope.
+Reuse a freed entry if possible. */
+{
+  an_active_using_directive_ptr  audp;
+  a_scope_pointers_block_ptr     pointers_block;
+
+  if (avail_active_using_directives != NULL) {
+    /* Reuse a freed entry. */
+    audp = avail_active_using_directives;
+    avail_active_using_directives = avail_active_using_directives->next;
+  } else {
+    /* Allocate a new entry. */
+    audp = (an_active_using_directive_ptr)
+                                  alloc_fe(sizeof(an_active_using_directive));
+#if DEBUG
+    num_active_using_directives_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  audp->entry = udp;
+  audp->next_in_lookup_list = NULL;
+  pointers_block = assoc_pointers_block_of(&scope_stack[depth_scope_stack]);
+  audp->next = pointers_block->active_using_directives;
+  pointers_block->active_using_directives = audp;
+}  /* add_active_using_directive */
+
+
+static
+void free_active_using_directive_list(an_active_using_directive_ptr audp)
+/*
+Free the specified list of active using directives to the available list.
+*/
+{
+  an_active_using_directive_ptr	last_audp = audp;
+
+  /* Find the end of the list. */
+  while (last_audp->next != NULL) last_audp = last_audp->next;
+  /* Add the current available list to the end of this one.  Set the
+     pointer to the start of the available list to the start of the
+     list passed by the caller. */
+  last_audp->next = avail_active_using_directives;
+  avail_active_using_directives = audp;
+}  /* free_active_using_directive_list */
+
+
 a_namespace_symbol_supplement_ptr  alloc_namespace_symbol_supplement(void)
 /*
 Allocate a new template symbol supplement entry, initialize its fields, and
@@ -1404,7 +1458,6 @@ return a pointer to it.
 {
   a_namespace_symbol_supplement_ptr  nssp;
 
-  db_enter(5, "alloc_namespace_symbol_supplement");
   /* Allocate a namespace symbol supplement. */
   nssp = (a_namespace_symbol_supplement_ptr)
                    alloc_fe(sizeof(a_namespace_symbol_supplement));
@@ -8707,6 +8760,20 @@ End a name scope by popping an entry off the scope stack.
     end_of_scope_pragma_processing(ssep->pending_pragmas);
   }  /* if */
   if (!C_mode()) {
+    /* Free any active using directive entries.  This is not done for
+       namespace and namespace extension scopes because the entries
+       are used if the extension scope is reactivated. */
+    if (kind != (a_scope_kind)sck_namespace &&
+        kind != (a_scope_kind)sck_namespace_extension) {
+      a_scope_pointers_block_ptr	pointers_block;
+      an_active_using_directive_ptr	audp;
+      pointers_block = assoc_pointers_block_of(ssep);
+      audp = pointers_block->active_using_directives;
+      if (audp != NULL) {
+        free_active_using_directive_list(audp);
+        pointers_block->active_using_directives = NULL;
+      }  /* if */
+    }  /* if */
     /* Do management related to the object lifetime stack.  Don't pop the
        file scope object lifetime yet, though, because we need it in IL
        lowering; see below */
@@ -9584,6 +9651,9 @@ for space tracking purposes.
                 a_projection_descr);
   db_space_used_lost("access error descr", avail_access_error_descrs,
                      num_access_error_descrs_allocated, an_access_error_descr);
+  db_space_used_lost("active using directives", avail_active_using_directives,
+                     num_active_using_directives_allocated,
+                     an_active_using_directive);
   grand_total = db_show_routine_fixups_used(grand_total);
   grand_total = db_show_def_arg_expr_fixups_used(grand_total);
 
@@ -9731,6 +9801,7 @@ are handled in symbol_tbl_init.)
       pch_array_saved_var_array_elem(symbol_table),
       pch_saved_var_array_elem(anonymous_parent_object_symbol_header),
       pch_saved_var_array_elem(avail_access_error_descrs),
+      pch_saved_var_array_elem(avail_active_using_directives),
       pch_saved_var_array_elem(avail_dependent_type_fixups),
       pch_saved_var_array_elem(avail_param_ids),
       pch_saved_var_array_elem(error_symbol_header),
@@ -9743,6 +9814,7 @@ are handled in symbol_tbl_init.)
 #if DEBUG
       pch_saved_var_array_elem(db_symbol_buffer_pointer),
       pch_saved_var_array_elem(num_access_error_descrs_allocated),
+      pch_saved_var_array_elem(num_active_using_directives_allocated),
       pch_saved_var_array_elem(num_class_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_classes_on_scope_stack),
       pch_saved_var_array_elem(num_compares_for_symbols),
@@ -9808,6 +9880,7 @@ of the front end.
   avail_param_ids = NULL;
   avail_dependent_type_fixups = NULL;
   avail_access_error_descrs = NULL;
+  avail_active_using_directives = NULL;
   error_symbol_header = NULL;
   unnamed_tag_symbol_header = NULL;
   unnamed_namespace_symbol_header = NULL;
@@ -9845,6 +9918,7 @@ of the front end.
   num_fast_id_lookups                          = 0;
   num_slow_id_lookups                          = 0;
   num_access_error_descrs_allocated            = 0;
+  num_active_using_directives_allocated        = 0;
 #endif /* DEBUG */
 }  /* symbol_tbl_init */
 

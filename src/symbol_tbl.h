@@ -2256,6 +2256,8 @@ extern void make_locator_for_symbol(a_symbol_ptr     sym_ptr,
 
 extern void make_specific_symbol_error_locator(a_symbol_locator *locator);
 
+extern void add_active_using_directive(a_using_directive_ptr udp);
+
 extern a_namespace_symbol_supplement_ptr
                                    alloc_namespace_symbol_supplement(void);
 
