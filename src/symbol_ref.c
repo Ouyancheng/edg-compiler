@@ -876,7 +876,9 @@ indicated scope.
       check_name_hiding_of_tag_by_nontag(sym_ptr, sp);
     }  /* if */
   }  /* if */
-  if (sym_ptr->header->any_decl_in_file_or_namespace_scope) {
+  if (sym_ptr->header->any_decl_in_file_or_namespace_scope ||
+      sym_ptr->header->inactive_symbols != NULL) {
+    /* There are qualifiable symbols that share this name. */
     if (sp->kind != (a_scope_kind)sck_file &&
         (sp->kind != (a_scope_kind)sck_namespace ||
          sp->variant.assoc_namespace->source_corresp.name != NULL ||
