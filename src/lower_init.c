@@ -2011,9 +2011,10 @@ the start of the block statement that is the body of the routine, set
 pointer to the routine.
 */
 {
-  a_routine_ptr init_rout;
-  char          *name;
-  sizeof_t      prefix_len = strlen(prefix), alloc_length;
+  a_routine_ptr   init_rout;
+  char            *name;
+  sizeof_t        prefix_len = strlen(prefix), alloc_length;
+  a_statement_ptr return_stmt;
 
   /* Combine the prefix and an identifier for the current module to make
      a name that is likely to be unique. */
@@ -2029,6 +2030,12 @@ pointer to the routine.
   /* Make a memory region, scope, and block for the init routine definition. */
   *init_rout_scope = make_routine_definition(init_rout, /*make_return=*/TRUE,
                                              il_region);
+  /* Add the return statement at the end of the routine to the return memo
+     list. */
+  return_memo_list = NULL;
+  return_stmt = (*init_rout_scope)->assoc_block->variant.block.statements;
+  add_to_return_memo_list(return_stmt);
+  /* Set the insert location to the start of the top-level block. */
   set_block_start_insert_location((*init_rout_scope)->assoc_block,
                                   insert_location);
   return init_rout;
@@ -2215,7 +2222,6 @@ be kept, FALSE if it should be deleted.
   a_variable_ptr    variable;
   a_boolean         simple_constant_init = FALSE, keep_constant;
   a_constant_ptr    simple_constant;
-  a_context_ptr     cleanup_context;
   a_source_position saved_error_position;
   a_statement_ptr   expr_stmt;
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
@@ -2446,17 +2452,6 @@ do_assignment:;
          the variable (from the termination routine). */
       ipdp->variable->referenced_non_locally = TRUE;
     } else {
-      /* Destruction of other variables must happen at the end of the current
-         scope. */
-      cleanup_context = curr_context;
-      /* For processing of file-scope dynamic inits, put the entry on the
-         file-scope list. */
-      if (processing_file_scope_init_routine) {
-        cleanup_context = file_scope_context;
-      }  /* if */
-      /* Put the new entry on the front of the existing list. */
-      cap->next = cleanup_context->cleanup_actions;
-      cleanup_context->cleanup_actions = cap;
       if (num_conditional_exprs_inside_of != 0) {
         /* Inside a conditional operand of a "?", "&&", or "||" operation.
            Since the construction is conditional, we add a temporary
@@ -2474,11 +2469,16 @@ do_assignment:;
                                     template_static_data_member_init_guard_var;
       }  /* if */
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
-    }  /* if */
-    /* If exceptions are enabled, create a region description entry for
-       this object. */
-    if (exceptions_enabled) {
-      make_region_table_entry(cap, insert_location);
+      /* Destruction of variables other than local statics must happen at
+         the end of the current scope.  Put a cleanup action on the
+         cleanup list.  For processing of file-scope dynamic inits, put
+         the entry on the file-scope list. */
+      /* Put the new entry on the front of the existing list. */
+      add_cleanup_action_to_context_list(cap, 
+                                         processing_file_scope_init_routine ?
+                                             file_scope_context :
+                                             curr_context,
+                                         insert_location);
     }  /* if */
   }  /* if */
   /* In the whole-variable cases, adjust the initialization specified in
@@ -4402,11 +4402,14 @@ Do lowering on the file-scope dynamic initializations list.
     /* There are some file-scope dynamic initializations.  Generate a routine
        containing them. */
     scope = file_scope_init_insert_location(&insert_location);
-    push_context(&context, scope, /*subscope_region=*/FALSE);
-    /* Initialize for exception handling lowering. */
-    eh_function_lower_init();
     switch_il_region(file_scope_init_routine_il_region);
+    push_context(&context, scope, /*subscope_region=*/FALSE);
     processing_file_scope_init_routine = TRUE;
+    if (exceptions_enabled) {
+      /* Initialize for exception handling lowering. */
+      eh_function_lower_init();
+    }  /* if */
+    /* Generate the initializations. */
     for (; dip != NULL; dip = dip->next) {
       set_var_init_pos_descr(dip->variable, &ipd);
       lower_dynamic_init(dip, &ipd,
@@ -4422,6 +4425,10 @@ Do lowering on the file-scope dynamic initializations list.
       }  /* if */
 #endif /* CHECKING */
     }  /* for */
+    if (exceptions_enabled) {
+      /* Add prologue/epilogue code for exceptions if needed. */
+      add_eh_function_prologue(scope);
+    }  /* if */
     processing_file_scope_init_routine = FALSE;
     pop_context();
 #if ORPHAN_PROCESSING_NEEDED
@@ -4445,11 +4452,18 @@ Do lowering on the file-scope dynamic initializations list.
     /* There are some file-scope cleanup actions.  Generate a routine
        containing them. */
     scope = file_scope_term_insert_location(&insert_location);
-    push_context(&context, scope, /*subscope_region=*/FALSE);
-    /* Initialize for exception handling lowering. */
-    eh_function_lower_init();
     switch_il_region(file_scope_term_routine_il_region);
+    push_context(&context, scope, /*subscope_region=*/FALSE);
+    if (exceptions_enabled) {
+      /* Initialize for exception handling lowering. */
+      eh_function_lower_init();
+    }  /* if */
+    /* Generate the cleanup actions. */
     gen_cleanup_actions(file_scope_context, &insert_location);
+    if (exceptions_enabled) {
+      /* Add prologue/epilogue code for exceptions if needed. */
+      add_eh_function_prologue(scope);
+    }  /* if */
     pop_context();
 #if ORPHAN_PROCESSING_NEEDED
     /* Make orphan lists for any local types or static variables in the
