@@ -2698,9 +2698,9 @@ Instantiate the body of the template function associated with tip.
   {
   a_source_sequence_entry_ptr  new_insert_point;
 
-  if (in_instantiation_wrapup) {
-    /* During instantiation wrapup, each function instance should be put out
-       in place -- nothing "floats" to another location. */
+  if (in_instantiation_wrapup && !rout_ptr->is_inline) {
+    /* During instantiation wrapup, each non-inline function instance should
+       be put out in place instead of "floating" to another location. */
     scope_stack[DEPTH_OF_FILE_SCOPE].ss_list_instantiation_insert_point = NULL;
     new_insert_point = NULL;
   } else {
