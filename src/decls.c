@@ -3850,12 +3850,21 @@ skip_overloading:;
        A function instantiation entry with an associated symbol and routine
        entry already exist.  Be sure this local symbol is properly bound
        to the file-scope entities to which it corresponds. */
-    check_assertion_str2(linked_symbol != NULL &&
-                         effective_decl_level != DEPTH_OF_FILE_SCOPE &&
-                         (routine_ptr == NULL ||
-                          routine_ptr == linked_symbol->variant.routine.ptr),
-                         "decl_routine: unexpected conditions for template",
-                         "function specific decl at local scope");
+    if (routine_ptr != NULL &&
+        routine_ptr != linked_symbol->variant.routine.ptr) {
+      /* It must be that this routine was mentioned in a block-extern
+         declaration before the function template declaration was seen. */
+      check_assertion_str2(*ext_sym != NULL &&
+                           (*ext_sym)->variant.extern_symbol_descr->
+                                        variant.routine.ptr == routine_ptr &&
+                           (a_symbol_ptr)routine_ptr->
+                                   source_corresp.assoc_info != linked_symbol,
+                          "decl_routine: unexpected conditions for routine",
+                          "entry mismatch");
+      /* Replace the routine pointed to from the extern-routine symbol with
+         the new one. */
+      (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr = NULL;
+    }  /* if */
     sym->variant.routine.instance_ptr =
                                 linked_symbol->variant.routine.instance_ptr;
     routine_ptr = linked_symbol->variant.routine.ptr;
@@ -4135,8 +4144,9 @@ class template.
   a_scope_depth                     effective_decl_level;
   a_symbol_ptr                      sym = NULL;
   a_symbol_ptr                      overload_symbol = NULL, homonym_symbol;
+  a_symbol_ptr                      rout_sym, ext_sym;
   a_template_symbol_supplement_ptr  tssp;
-  a_routine_ptr                     rout_ptr;
+  a_routine_ptr                     rout_ptr, rp;
   a_memory_region_number            region_to_switch_back_to;
   a_boolean                         changed_to_inline = FALSE;
   a_boolean                         namespace_reactivated = FALSE;
@@ -4362,7 +4372,6 @@ class template.
        instance.  We need to go back over the overload list and associate a
        function instantiation entry with each routine that can in retrospect
        be recognized as a specific declaration of the function template. */
-    a_symbol_ptr  rout_sym;
     for (rout_sym = overload_symbol->variant.overloaded_function.symbols;
          rout_sym != NULL;
          rout_sym = rout_sym->next) {
@@ -4378,7 +4387,7 @@ class template.
        through the instances. */
     a_template_instance_ptr  tip = tssp->variant.function.instantiations;
     for (; tip != NULL; tip = tip->next) {
-      a_routine_ptr  rp = tip->instance_sym->variant.routine.ptr;
+      rp = tip->instance_sym->variant.routine.ptr;
       if (tip->specific_def) {
 #if 0
         /* Must the inline setting of a specific definition of a function
@@ -4399,6 +4408,40 @@ class template.
         rp->is_inline = TRUE;
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (!sym->is_class_member) {
+    /* The overload list for the current scope has been searched for previous
+       declarations that now appear to be instances of the template, but we
+       also need to check for block-extern declarations that fall into the
+       same category.  Issue an error if any such routine was actually used
+       in a call. */
+    for (ext_sym = sym->header->other_symbols;
+         ext_sym != NULL;
+         ext_sym = ext_sym->next) {
+      if (ext_sym->kind == (a_symbol_kind)sk_extern_routine &&
+          ext_sym->parent.namespace_ptr == sym->parent.namespace_ptr) {
+        /* A routine belonging to the same namespace.  Don't check on the
+           the type before determining that there is no instance pointer
+           (i.e., it didn't appear in the search of the overload set) and
+           it was referenced. */
+        rp = ext_sym->variant.extern_symbol_descr->variant.routine.ptr;
+        rout_sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+        if (rp->source_corresp.referenced &&
+            rout_sym->variant.routine.instance_ptr == NULL) {
+          /* This must be a block-extern declaration.  Check whether it is
+             an instance of the function templates represented by sym. */
+          a_type_ptr          tp = skip_typerefs(rp->type);
+          a_template_arg_ptr  templ_arg_list;
+          a_symbol_ptr        dummy;
+
+          if (is_match_for_function_template(sym, tp, &templ_arg_list, &dummy,
+                                             templ_param_list)) {
+            sym_error(ec_template_instance_already_used,
+                      (a_symbol_ptr)rp->source_corresp.assoc_info);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
   }  /* if */
   /* Restore the scope stack. */
   if (namespace_reactivated)  {
