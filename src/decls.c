@@ -5451,11 +5451,11 @@ to point to a routine entry attached to an existing compatible external symbol
 }  /* create_external_symbol_for_routine */
 
 
-#if !MICROSOFT_EXTENSIONS_ALOWED || !GNU_EXTENSIONS_ALLOWED || \
+#if !MICROSOFT_EXTENSIONS_ALLOWED || !GNU_EXTENSIONS_ALLOWED || \
     !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS)
 /* ARGSUSED */ /* decl_modifiers, attributes, and/or decl_pos_block are not
                   used in some configurations. */
-#endif /* !GNU_EXTENSIONS_ALLOWED || !MICROSOFT_EXTENSIONS_ALOWED || ... */
+#endif /* !GNU_EXTENSIONS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED || ... */
 void decl_routine(a_symbol_locator             *locator,
                   a_storage_class              storage_class,
                   a_type_ptr                   type_ptr,
