@@ -328,11 +328,11 @@ do
       ;;
     -gn)
 #     Enable debugging but don't keep the .int.c file.
-      ccsdb=-gx;
+      ccsdb=-g;
       shift;
       ;;
     -g*)
-      ccsdb=-gx;
+      ccsdb=-g;
       keep_int_file=1;
       shift;
       ;;
