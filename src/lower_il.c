@@ -9892,6 +9892,7 @@ the top node of the indicated statement (which is an expression statement).
     rout_type = type_pointed_to(first_arg->type);
   }  /* if */
   rout_type = skip_typerefs(rout_type);
+  lower_os_type(rout_type);
   /* Note that the routine type can be lowered or unlowered at this point.
      Usually it will be unlowered. */
   rtsp = rout_type->variant.routine.extra_info;
