@@ -121,16 +121,11 @@ typedef struct a_pragma_kind_description {
 			/* For pbk_next_construct pragmas, TRUE if this
 			   pragma can bind to a statement. */
   a_bit_field	global:1;
-			/* For pbk_other pragmas, this is TRUE if the pragma
-			   entry should be added to the file-scope pragma
-			   list; otherwise, the pragma is added to the
-			   pragma list associated with the current scope
-			   stack entry.  This flag is used again to determine
-			   the IL scope to be used when
-			   automatically_include_in_il is TRUE and when an
-			   IL entry is created for a pragma by explicitly
-			   calling create_il_entry_for_pragma.  See the
-			   description below. */
+			/* This flag is used to determine the IL scope to be
+			   used when automatically_include_in_il is TRUE
+			   and when an IL entry is created for a pragma by
+			   explicitly calling create_il_entry_for_pragma.
+			   See the description below. */
   a_bit_field	automatically_include_in_il:1;
 			/* This flag is TRUE if the front end should
 			   automatically generate an IL entry for this

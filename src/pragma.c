@@ -572,6 +572,37 @@ information can be updated, if necessary.
 
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+
+static a_source_sequence_entry_ptr add_empty_src_seq_entry_for_pragma(
+					a_pending_pragma_ptr	ppp)
+/*
+Create an empty source sequence entry for the pragma specified by ppp
+and return a pointer to the newly created entry.
+*/
+{
+  a_memory_region_number	region_to_switch_back_to;
+  a_scope_depth			scope_depth_to_switch_to;
+  a_source_sequence_entry_ptr	ssep;
+
+  /* If we are inside a function scope, allocate the source sequence entry
+     in the function scope so that it will match the IL pragma entry to
+     which it gets bound later on.  Global pbk_other pragmas are always
+     allocated in the file scope. */
+  scope_depth_to_switch_to = scope_stack[depth_scope_stack].
+                                               depth_innermost_function_scope;
+  if (scope_depth_to_switch_to == NO_SCOPE_DEPTH ||
+      (ppp->descr_ptr->binding_kind == (a_pragma_binding_kind)pbk_other &&
+       ppp->descr_ptr->global)) {
+    scope_depth_to_switch_to = DEPTH_OF_FILE_SCOPE;
+  }  /* if */
+  switch_to_scope_region(scope_depth_to_switch_to,
+                         &region_to_switch_back_to);
+  ssep = add_empty_source_sequence_entry();
+  switch_back_to_original_region(region_to_switch_back_to);
+  return ssep;
+}  /* add_empty_src_seq_entry_for_pragma */
+
+
 static void add_source_sequence_entry_to_curr_token_pragmas(void)
 /*
 Loop through the current token pragma list and create an empty source
@@ -590,25 +621,12 @@ if it turns out that no IL pragma entry is created).
   db_enter(4, "add_source_sequence_entry_to_curr_token_pragmas");
   if (!is_nonspecialized_instantiation_context() &&
       depth_template_declaration_scope == NO_SCOPE_DEPTH) {
-    a_memory_region_number   region_to_switch_back_to;
-    a_scope_depth            scope_depth_to_switch_to;
-    /* If we are inside a function scope, allocate the source sequence entry
-       in the function scope so that it will match the IL pragma entry to
-       which it gets bound later on. */
-    scope_depth_to_switch_to = scope_stack[depth_scope_stack].
-                                               depth_innermost_function_scope;
-    if (scope_depth_to_switch_to == NO_SCOPE_DEPTH) {
-      scope_depth_to_switch_to = DEPTH_OF_FILE_SCOPE;
-    }  /* if */
-    switch_to_scope_region(scope_depth_to_switch_to,
-                           &region_to_switch_back_to);
     while (ppp != NULL) {
       if (ppp->source_sequence_entry == NULL) {
-        ppp->source_sequence_entry = add_empty_source_sequence_entry();
+        ppp->source_sequence_entry = add_empty_src_seq_entry_for_pragma(ppp);
       }  /* if */
       ppp = ppp->next;
     }  /* while */
-    switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
   db_exit();
 }  /* add_source_sequence_entry_to_curr_token_pragmas */
@@ -930,9 +948,8 @@ already been removed from the list (assuming that the pragmas were
 legally placed).  Diagnostics are issued for any such pragmas that
 remain on the list.
 
-pbk_other pragmas are moved to the pragma list associated with either
-the file scope (if the global flag is set) or the scope associated with
-the current scope stack entry.
+pbk_other pragmas are moved to the pragma list of the current scope stack
+entry.
 
 pbk_immediate pragmas are processed here.
 */
@@ -987,13 +1004,11 @@ pbk_immediate pragmas are processed here.
         break;
       case pbk_other:
         {
-          /* Add this pragma to the pending pragmas list of either the current
-             scope or the file scope depending on the global flag in the
-             pragma kind description. */
+          /* Add this pragma to the pending pragmas list of the current
+             scope. */
           a_scope_stack_entry_ptr	ssep;
           a_pending_pragma_ptr		list_end;
-          ssep = pkdp->global ? &scope_stack[DEPTH_OF_FILE_SCOPE] :
-                                &scope_stack[depth_scope_stack];
+          ssep = &scope_stack[depth_scope_stack];
           list_end = ssep->pending_pragmas;
           if (list_end == NULL) {
             /* No entries on the list yet.  Make the head of the list point
@@ -1062,9 +1077,8 @@ If more than one pending pragma entry of the required kind is found, they
 are returned in a linked list.  This is possible, since the entries returned
 are first removed from the lists they currently reside on.
 
-The curr_scope_only flag is used only when extracting pbk_other pragmas.  It
-limits the search to pragmas in the current scope instead of looking through
-all of the active scope stack entries.
+The curr_scope_only flag limits the search to pragmas in the current scope
+instead of looking through all of the active scope stack entries.
 */
 {
   a_pending_pragma_ptr           ppp;
@@ -1089,8 +1103,7 @@ all of the active scope stack entries.
   } else {
     /* Set up to search for a pbk_other pragma. */
     is_bound_to_curr_construct = FALSE;
-    ssep = &scope_stack[pkdp->global ?
-                                     DEPTH_OF_FILE_SCOPE : depth_scope_stack];
+    ssep = &scope_stack[depth_scope_stack];
     scope_list_addr = &ssep->pending_pragmas;
   }  /* if */
   /* The outer loop examines one or more scope stack entries.  If it's a
@@ -1336,7 +1349,7 @@ Restore a list of pragmas as the current token pragmas.
   /* The source sequence entries were cleared when the current construct
      pragmas were extracted.  Create new source sequence entries now. */
   for (; ppp != NULL; ppp = ppp->next) {
-    ppp->source_sequence_entry = add_empty_source_sequence_entry();
+    ppp->source_sequence_entry = add_empty_src_seq_entry_for_pragma(ppp);
   }  /* for */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();

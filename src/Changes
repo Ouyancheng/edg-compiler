@@ -1,5 +1,17 @@
 Version 3.6
 
+12/1/04  Internal error with global "other" pragmas and source sequence lists
+
+When the front end is configured to generate source sequence lists, an
+internal error would occur if a pragma with an "other" binding kind,
+and with its "global" flag set was not removed from the pragmas list
+of the file scope via a call of extract_specific_pragmas.  To solve
+this problem, we have changed the way "other" pragmas are handled.  Now,
+global "other" pragmas are placed on the scope stack list of the
+current scope instead of being placed on the file scope's pragma list.
+This should have little or no impact on most customers as "other"
+pragmas are seldom used.
+
 11/30/04 Microsoft compatibility: calling conventions ignored in certain
          type comparisons
 
