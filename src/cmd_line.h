@@ -56,6 +56,7 @@ typedef enum /*an_option_kind*/ {
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   optk_automatic_template_instantiation,
   optk_ii_file_name,
+  optk_template_info_file,
 #endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   optk_implicit_template_inclusion,
@@ -160,7 +161,6 @@ typedef enum /*an_option_kind*/ {
 #if ONE_INSTANTIATION_PER_OBJECT
   optk_one_instantiation_per_object,
   optk_instantiation_dir,
-  optk_template_info_file,
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   optk_last		/* Must be last. */
 } an_option_kind;
