@@ -33,8 +33,8 @@ EXTERN_C a_void_ptr bsearch(a_const_void_ptr key,
 EXTERN_C a_void_ptr qsort(a_const_void_ptr *base,
                           sizeof_t         nmemb,
                           sizeof_t         size,
-                          int(*compar)(a_const_void_ptr *,
-                                       a_const_void_ptr *));
+                          int(*compar)(a_const_void_ptr,
+                                       a_const_void_ptr));
 #endif /* __ANSIC__ */
 
 
