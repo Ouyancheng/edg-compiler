@@ -287,6 +287,13 @@ extern a_boolean intf_rout_is_inline_template_function(a_routine_ptr rout);
    ((rout)->is_template_function &&					\
     intf_rout_is_inline_template_function(rout)))
 #endif /* STANDALONE_UTILITY_PROGRAM */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define and_not_dllexport(rout)  && !((rout)->decl_modifiers & DM_DLLEXPORT)
+#else /* MICROSOFT_EXTENSIONS_ALLOWED */
+#define and_not_dllexport(rout)  /* Nothing */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 /* Macro to determine whether a routine is to be treated as a static inline
    function.  This includes "extern inline" functions that are lowered to
    static functions. */
@@ -297,22 +304,33 @@ extern a_boolean intf_rout_is_inline_template_function(a_routine_ptr rout);
 /* When lowering "extern inline" all inline functions are treated as static.
    Those that really are static stay static (actually, they may get
    externalized if there are exported templates, then lowered to static
-   again), and extern inline functions get lowered to static. */
-#define treat_as_static_inline(rout) (rout_is_inline(rout))
+   again), and extern inline functions get lowered to static.  An exception
+   is made for function definitions marked with dllexport: They must be
+   spilled with extern linkage. */
+#define treat_as_static_inline(rout)                                    \
+  (rout_is_inline(rout)                                                 \
+   and_not_dllexport(rout))
 #else /* !(LOWER_EXTERN_INLINE && !IA64_ABI) */
 /* When not lowering "extern inline" only those declared static are treated
    as static. */
 #define treat_as_static_inline(rout)					\
   (rout_is_inline(rout) &&						\
    ((rout)->storage_class == (a_storage_class)sc_static))
-#endif /* LOWER_EXTERN_INLINE */
+#endif /* LOWER_EXTERN_INLINE && !IA64_ABI */
 
 /*
 Return TRUE if the routine should be treated as an extern inline function.
 */
+#if LOWER_EXTERN_INLINE && !IA64_ABI
+#define treat_as_extern_inline(rout)                                    \
+  ((rout)->is_inline &&                                                 \
+   (rout)->storage_class == (a_storage_class)sc_unspecified             \
+   and_not_dllexport(rout))
+#else /* !LOWER_EXTERN_INLINE && !IA64_ABI */
 #define treat_as_extern_inline(rout)                                    \
   ((rout)->is_inline &&                                                 \
    (rout)->storage_class == (a_storage_class)sc_unspecified)
+#endif /* LOWER_EXTERN_INLINE && !IA64_ABI */
 
 #if !STANDALONE_UTILITY_PROGRAM
 

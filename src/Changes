@@ -1,5 +1,15 @@
 Version 3.4
 
+3/3/04   Microsoft compatibility: dllexport and inline functions
+
+In configurations with LOWER_EXTERN_INLINE set to TRUE and IA64_ABI set to
+FALSE, inline functions marked with __declspec(dllexport) were lowered into
+functions with internal linkage ("static").  This caused, for example, the
+C-generating back end to emit the functions with both "static" and
+"__declspec(dllexport)" which is not valid code.  To address this problem,
+inline functions declared with "__declspec(dllexport)" are no longer
+transformed into functions with internal linkage ("static").
+
 3/3/04   GNU mode: Attributes "used" and "unused"
 
 In GNU mode, the front end now accepts with no diagnostic the attribute "used"
