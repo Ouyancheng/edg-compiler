@@ -12259,6 +12259,7 @@ classes.
           }  /* if */
           /* Check for an access adjustment declaration. */
           if (is_decl_qualified_name_start() &&
+              qualifier_class_type(locator_for_curr_id) != NULL &&
               !f_same_entities(qualifier_class_type(locator_for_curr_id),
                                class_type) &&
               locator_for_curr_id.is_qualified_name &&
