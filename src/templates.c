@@ -16198,16 +16198,15 @@ for adding the entries to the actual instantiation request file.
 
 #if ONE_INSTANTIATION_PER_OBJECT
 
-static void write_instantiation_file_name_to_template_info_file(
-					a_source_correspondence	*scp)
+static void write_instantiation_file_name_to_template_info_file(char *name)
 /*
-Write the instantiation file name for "scp" to the template information
+Write the instantiation file name for "name" to the template information
 file.
 */
 {
   char			*file_name;
   /* Generate a file name based on the mangled name of the entity. */
-  file_name = generate_instantiation_output_file_name(scp->name);
+  file_name = generate_instantiation_output_file_name(name);
   /* Write the generated file name to the template info file. */
   write_to_template_info_file(tilt_instantiation_file_name,
                               file_name, (char*)NULL, (a_symbol_ptr)NULL);
@@ -16438,10 +16437,9 @@ and "do not instantiate" flags are set here.
       }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
       if (instantiation_file_generated) {
-        a_source_correspondence	*scp;
-        scp = is_static_data_member ?
-                  &variable->source_corresp : &routine->source_corresp;
-        write_instantiation_file_name_to_template_info_file(scp);
+        char	*name;
+        name = get_mangled_name_for_symbol(instance_sym);
+        write_instantiation_file_name_to_template_info_file(name);
       }  /* if */
     }  /* if */
 #endif /*  ONE_INSTANTIATION_PER_OBJECT */
@@ -16856,9 +16854,9 @@ write an instantiation file name entry to the template information file.
     instantiation_file_generated = instantiation_file_generated &&
                                                !rout_ptr->suppress_inline_body;
     if (instantiation_file_generated) {
-      a_source_correspondence	*scp;
-      scp = &rout_ptr->source_corresp;
-      write_instantiation_file_name_to_template_info_file(scp);
+      char	*name;
+      name = get_mangled_function_name(rout_ptr);
+      write_instantiation_file_name_to_template_info_file(name);
     }  /* if */
   }  /* if */
 }  /* write_instantiation_file_name_for_inline_function */
