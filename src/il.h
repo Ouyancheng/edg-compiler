@@ -97,6 +97,8 @@ typedef enum /*an_il_entry_kind*/ {
   iek_derivation_step,  /* a_derivation_step */
   iek_base_class,	/* a_base_class */
   iek_class_list_entry, /* a_class_list_entry */
+  iek_routine_list_entry,
+                        /* a_routine_list_entry */
   iek_class_type_supplement,
 			/* a_class_type_supplement */
   iek_constructor_init, /* a_constructor_init */
@@ -176,6 +178,8 @@ extern an_access_adjustment_ptr alloc_access_adjustment(
                                               an_access_adjustment_kind  kind);
 
 extern a_class_list_entry_ptr alloc_list_entry_for_class(void);
+
+extern a_routine_list_entry_ptr alloc_list_entry_for_routine(void);
 
 extern a_derivation_step_ptr alloc_derivation_step(void);
 
