@@ -304,12 +304,6 @@ it needs to be executed after all templates have been instantiated.
   if (il_lowering_needed()) {
     /* Do name mangling for all entities.  This has to be done before
        the names for statics referenced from templates are externalized. */
-#if DEBUG
-    if (db_active) {
-      fprintf(f_debug, "About to do name mangling for %s\n",
-                       curr_translation_unit->source_file->name_as_written);
-    }  /* if */
-#endif /* DEBUG */
     do_all_name_mangling();
     if (any_exported_templates()) {
       a_scope_orphaned_list_header_ptr solhp;
