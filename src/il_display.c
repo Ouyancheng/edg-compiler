@@ -1716,7 +1716,7 @@ field storing the register.
   (void)printf(": ");
   switch (reg) {
     case anr_invalid: s ="anr_invalid";  break;
-#ifdef TARG_IS_X86
+#if TARG_IS_X86
     case anr_a:       s = "anr_a";       break;
     case anr_b:       s = "anr_b";       break;
     case anr_c:       s = "anr_c";       break;
