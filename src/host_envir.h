@@ -747,7 +747,7 @@ CLOCK_FREQUENCY is defined properly below.
 #include <sys/param.h>
 #define CLOCK_FREQUENCY HZ
 #else /* !defined(sun) */
-#define CLOCK_FREQUENCEY 60
+#define CLOCK_FREQUENCY 60
 #endif /* defined(sun) */
 #endif /* __ANSIC__ */
 
