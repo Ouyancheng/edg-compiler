@@ -2909,10 +2909,12 @@ current source position and severity or restore the previously saved settings.
                                 &at_end_of_source, /*physical_line=*/FALSE);
       if (sfp != NULL && sfp->from_system_include_dir) {
         error_threshold_to_use = es_discretionary_error;
+#if !STANDALONE_UTILITY_PROGRAM
       } else if (curr_command_line_macro_def != NULL) {
         /* We are processing a command-line macro definition.  Warnings
            detected during this process are ignored. */
         error_threshold_to_use = es_discretionary_error;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
       }  /* if */
     }
     if (diag_kind != (a_diagnostic_category_kind)dck_standalone) {
