@@ -2085,7 +2085,7 @@ do_variable:
       break;
     case enk_throw:
       (void)printf("enk_throw\n");
-      disp_throw_supplement(ptr->variant.throw_object);
+      disp_throw_supplement(ptr->variant.throw_info);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE

@@ -3094,10 +3094,11 @@ typedef struct an_expr_node {
 			   delete operation (C++ only). */
     /* When kind == enk_throw: */
     a_throw_supplement_ptr
-		throw_object;
-			/* The object being thrown in a throw expression;
-			   NULL when a no object is specified (i.e., a
-			   "rethrow" of the current throw object). */
+		throw_info;
+			/* Information about the object being thrown in a
+			   throw expression; NULL when a no object is
+			   specified (i.e., a "rethrow" of the current
+			   throw object). */
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == enk_stmt_label_value: */

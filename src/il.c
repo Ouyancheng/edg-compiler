@@ -1094,7 +1094,7 @@ Dump the contents of the indicated expression node for debug purposes.
       }  /* if */
       break;
     case enk_throw:
-      tsp = node->variant.throw_object;
+      tsp = node->variant.throw_info;
       fprintf(f_debug, "type = ");
       db_abbreviated_type(tsp->type);
       fprintf(f_debug, ", dynamic_init = ");
@@ -5036,7 +5036,7 @@ fields to default values.
     case enk_throw:
       /* Allocate the supplement for a throw. */
       tsp = (a_throw_supplement_ptr)alloc_cil(sizeof(a_throw_supplement));
-      node->variant.throw_object = tsp;
+      node->variant.throw_info = tsp;
 #if DEBUG
       num_throw_supplements_allocated++;
 #endif /* DEBUG */

@@ -557,7 +557,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                      iek_new_delete_supplement);
             break;
           case enk_throw:
-            walk_ptr(ptr->variant.throw_object, a_throw_supplement_ptr,
+            walk_ptr(ptr->variant.throw_info, a_throw_supplement_ptr,
                      iek_throw_supplement);
             break;
 #endif /* ifdef CFE */
