@@ -10138,10 +10138,12 @@ moreover, several fields of *decl_info may be updated by this routine.
 
     if (dso_flags & DSO_DEFINES_SOMETHING) {
       tp->autonomous_primary_tag_decl = TRUE;
-    } else {
+    } else if (!source_sequence_entries_disallowed) {
       a_source_sequence_entry_ptr  ssep =
                               last_matching_source_sequence_entry((char *)tp);
-      if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+      if (ssep == NULL) {
+        /* There is no source sequence entry to update. */
+      } else if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
         /* This is the normal case, but errors while processing declaration
            specifiers may have caused us to not create a secondary source
            sequence entry. */
