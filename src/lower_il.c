@@ -9091,7 +9091,11 @@ arrays with class elements.
        case).  The entity_node is therefore a NULL pointer. */
     make_zero_of_proper_type(ptr_elem_type, &null_constant);
     entity_node = alloc_node_for_constant(&null_constant);
-    /* ndsp->arg is not lowered because it is thrown away. */
+    /* Lower "arg" even though it is usually ignored.  It is used when the
+       array size is nonconstant.  Note that it is not necessary to lower
+       this as an argument list because it will not be used directly as
+       such (pieces might be put into an argument list). */
+    lower_expr_list(ndsp->arg, 0, FALSE);
     preserve_size_node = FALSE;
   } else {
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
