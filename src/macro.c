@@ -5248,10 +5248,10 @@ to deallocate the buffer using free_general.
                             "too many %v in GCC_VERSION_STRING");
         percent_v_seen = TRUE;
         ++src;
-        (void)sprintf(dst, "%ld.%ld", major_num, minor_num);
+        (void)sprintf(dst, "%lu.%lu", major_num, minor_num);
         while (*dst != '\0') ++dst;
         if (patch_num != 0) {
-          (void)sprintf(dst, ".%ld", patch_num);
+          (void)sprintf(dst, ".%lu", patch_num);
           while (*dst != '\0') ++dst;
         }  /* if */
         --dst;
