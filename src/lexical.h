@@ -576,7 +576,7 @@ typedef struct an_input_stack_entry {
 	        nested_inclusion:1;
 			/* TRUE if this is a nested inclusion of a file
 			   already on the input stack. */
-  unsigned int	saved_any_tokens_fetched;
+  unsigned int	saved_any_tokens_fetched:1;
 			/* Used to save and restore the value of the global
 			   variable any_tokens_fetched_from_curr_input_file. */
   a_byte        ifg_state;
