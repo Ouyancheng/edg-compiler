@@ -2385,7 +2385,6 @@ object if complete_object is TRUE.  Return a pointer to the new node.
   a_targ_size_t    data_section_offset;
 #if IA64_ABI
   an_expr_node_ptr second_use, temp_init_node, vbase_offset;
-  a_variable_ptr   temp_var;
   a_boolean        temp_init_used;
 #endif /* IA64_ABI */
 
@@ -2438,7 +2437,7 @@ object if complete_object is TRUE.  Return a pointer to the new node.
          We will have to use a comma expression to ensure that the
          temporary is set before the use in the "+". */
       temp_init_node = node;
-      node = var_rvalue_expr(temp_var);
+      node = make_reusable_copy(node, /*vars_can_change=*/FALSE);
     }  /* if */
     vbase_offset = make_vtbl_entry_expr(second_use,
                                         bcp->vbase_offset_index);
