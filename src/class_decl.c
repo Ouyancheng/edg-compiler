@@ -1909,15 +1909,17 @@ data section in new_bcp.
 
 static void add_indirect_base_class(a_base_class_ptr      base_class_to_copy,
                                     a_base_class_ptr      directly_derived_bcp,
-                                    a_base_class_ptr      add_list,
                                     a_base_class_ptr      *p_end_of_add_list,
                                     a_type_ptr            new_class)
 /*
-Create a new indirect base class based on base_class_to_copy and, typically,
-add it to the end of add_list.  directly_derived_bcp points to a recently
-created (or copied) base class, a direct or indirect base class of new_class,
-of which the new base class will be a direct base class. In addition, check
-for ambiguity and duplicate paths.  The copy will be a base class of new_class.
+
+Create a new indirect base class based on base_class_to_copy and,
+typically, add it to the end of the base classes list for new_class.
+directly_derived_bcp points to a recently created (or copied) base class,
+a direct or indirect base class of new_class, of which the new base class
+will be a direct base class. In addition, check for ambiguity and
+duplicate paths.  The copy will be a base class of new_class.
+
 */
 {
   a_base_class_ptr       new_bcp = NULL, bcp;
@@ -1933,7 +1935,8 @@ for ambiguity and duplicate paths.  The copy will be a base class of new_class.
        virtual base class referring to the same class type is already on
        the base classes list for the new class.  If so, we don't want to
        add it or its own base classes to the list again. */
-    for (bcp = add_list; bcp != NULL; bcp = bcp->next) {
+    bcp = new_class->variant.class_struct_union.extra_info->base_classes;
+    for (; bcp != NULL; bcp = bcp->next) {
       if (bcp->is_virtual && bcp->type == base_class_to_copy->type) {
         fixup_virtual_base_class(bcp, path, base_class_to_copy->access,
                                  new_class);
@@ -2006,7 +2009,8 @@ for ambiguity and duplicate paths.  The copy will be a base class of new_class.
   step = make_derivation_step(new_bcp, (a_derivation_step_ptr)NULL);
   new_bcp->derivation = copy_and_extend_path(path, step, new_bcp);
   /* Check for ambiguity. */
-  for (bcp = add_list; bcp != NULL; bcp = bcp->next) {
+  bcp = new_class->variant.class_struct_union.extra_info->base_classes;
+  for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->type == new_bcp->type) {
       /* Ambiguous base class. */
       bcp->ambiguous = TRUE;
@@ -2019,8 +2023,7 @@ for ambiguity and duplicate paths.  The copy will be a base class of new_class.
                   variant.class_struct_union.extra_info->base_classes;
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct) {
-      add_indirect_base_class(bcp, new_bcp, add_list, p_end_of_add_list,
-                              new_class);
+      add_indirect_base_class(bcp, new_bcp, p_end_of_add_list, new_class);
     }  /* if */
   }  /* for */
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
@@ -2289,7 +2292,7 @@ or struct definition.  The syntax is
         if (bcp->direct) {
           /* Add the direct base class and all *its* base classes to the
              base class list for the derived class. */
-          add_indirect_base_class(bcp, new_direct_bcp, ctsp->base_classes,
+          add_indirect_base_class(bcp, new_direct_bcp,
                                   &end_of_base_classes_list, type_ptr);
         }  /* if */
         if (bcp->overriding_virtual_functions != NULL) {
