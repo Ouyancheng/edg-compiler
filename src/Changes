@@ -20,7 +20,8 @@ again accepted.
 11/4/02  GNU C++ compatibility: Predefined macro _GNU_SOURCE
 
 In GNU C++ mode (but not in GNU C mode) the front end now predefines a
-macro "_GNU_SOURCE" to expand to "1".
+macro "_GNU_SOURCE" to expand to "1".  This macro guards GNU extensions
+in GNU header files.
 
 11/1/02  GNU compatibility: Use of __FUNCTION__ outside a function
 
