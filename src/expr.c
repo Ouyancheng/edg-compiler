@@ -13758,7 +13758,7 @@ in a template instantiation) just do the scan.
       /* Eliminate object lifetimes in prototype instantiations if
          the instantiation is not being saved in the tree. */
       (!prototype_instantiations_in_il &&
-       scope_stack[depth_scope_stack].in_prototype_instantiation)) {
+       is_template_dependent_context())) {
     discard_curr_expr_object_lifetime();
   }  /* if */
   node = wrap_up_full_expression(node);
