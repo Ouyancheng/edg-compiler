@@ -876,6 +876,10 @@ Initialize the option information table.
                          "no_parse_templates",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if C99_IL_EXTENSIONS_SUPPORTED
+  /* The C99 IL extensions are required to provide full C99 support.
+     The C99 command-line options are only enabled when the front end
+     is configured to provide full support. */
   add_option_description(optk_c99_mode,
                          "c99",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -884,6 +888,7 @@ Initialize the option information table.
                          "no_c99",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 }  /* initialize_option_descriptions */
 
 

@@ -284,30 +284,6 @@ floating_point_template_parameters_allowed.
 #endif /* ifndef DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED */
 
 /*
-Flag that is TRUE if variable length arrays (VLAs) are allowed.  A VLA is
-an array whose size is known only at execution time.  This extension
-implements proposal "Arrays of Variable Length", WG14/N637 (X3J11/96-101),
-and is supported in C mode only.  If VLA_ALLOWED is TRUE, support is enabled
-and disabled based on command-line options --[no_]vla, which control global
-variable vla_enabled.
-*/
-#ifndef VLA_ALLOWED
-#define VLA_ALLOWED FALSE
-#endif /* VLA_ALLOWED */
-
-/*
-Flag that is used as the default setting for global variable vla_enabled.
-The variable can also been controlled from the command line by --[no_]vla.
-(Whatever the default, vla_enabled is always turned off in C++ mode.)
-*/
-#ifndef DEFAULT_VLA_ENABLED
-#define DEFAULT_VLA_ENABLED FALSE
-#endif /* ifndef DEFAULT_VLA_ENABLED */
-#if DEFAULT_VLA_ENABLED && !VLA_ALLOWED
-  #error -- DEFAULT_VLA_ENABLED cannot be true unless VLA_ALLOWED is true
-#endif /* DEFAULT_VLA_ENABLED && !VLA_ALLOWED */
-
-/*
 Flag that is used as the default setting for global variable
 operator_overloading_on_enums_enabled.  This controls whether operator
 functions can overload builtin operators for arguments of enum type.
@@ -1117,26 +1093,6 @@ value of the global variable nonstandard_using_decl_allowed.
 #endif /* DEFAULT_NONSTANDARD_USING_DECL_ALLOWED */
 
 /*
-Flag that is TRUE if designators of the form '.x' and '[expr]' should be
-accepted in aggregate initializers.  It is the initial value of the global
-variable designators_allowed.
-*/
-#ifndef DEFAULT_DESIGNATORS_ALLOWED
-#define DEFAULT_DESIGNATORS_ALLOWED FALSE
-#endif /* DEFAULT_DESIGNATORS_ALLOWED */
-
-/*
-Flag that is TRUE if designators of the form 'x:' and '[expr ... expr]'
-should be accepted in aggregate initializers.  This also makes the '='
-following an array element designation optional.  It should not be TRUE
-if DEFAULT_DESIGNATORS_ALLOWED is FALSE.  It is the initial value
-of the global variable extended_designators_allowed.
-*/
-#ifndef DEFAULT_EXTENDED_DESIGNATORS_ALLOWED
-#define DEFAULT_EXTENDED_DESIGNATORS_ALLOWED FALSE
-#endif /* DEFAULT_EXTENDED_DESIGNATORS_ALLOWED */
-
-/*
 Flag that is TRUE if a macro with a variable number of arguments can be
 introduced by adding a final '...' macro parameter.  It is the initial value
 of the global variable variadic_macros_allowed.
@@ -1153,16 +1109,6 @@ the initial value of the global variable extended_variadic_macros_allowed.
 #ifndef DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED
 #define DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED FALSE
 #endif /* DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED */
-
-/*
-Flag that is TRUE if compound literals, which look vaguely like a cast
-whose source expression is a brace-enclosed initializer (e.g.,
-(int []){1, 2, 3}) should be accepted in expressions.  It is the
-initial value of the global variable compound_literals_allowed.
-*/
-#ifndef DEFAULT_COMPOUND_LITERALS_ALLOWED
-#define DEFAULT_COMPOUND_LITERALS_ALLOWED FALSE
-#endif /* DEFAULT_COMPOUND_LITERALS_ALLOWED */
 
 /*
 Flag that is TRUE if the tiebreaker processing in overload resolution

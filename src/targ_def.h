@@ -106,6 +106,37 @@ choose a default based on CFRONT_2_1_OBJECT_CODE_COMPATIBILITY.
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
 
 /*
+Certain C99 features require IL constructs not otherwise present.
+Because certain back ends may not support the new constructs, a mechanism
+is provided to disable the C99 features that require back end support.
+The C99_IL_EXTENSIONS_SUPPORTED flag should be TRUE if a back end
+is prepared to accept all of the C99 IL extensions.
+*/
+#ifndef C99_IL_EXTENSIONS_SUPPORTED
+#defined C99_IL_EXTENSIONS_SUPPORTED TRUE
+#endif /* ifndef C99_IL_EXTENSIONS_SUPPORTED */
+
+#if C99_IL_EXTENSIONS_SUPPORTED
+
+/* Enable support of variable length arrays. */
+#ifndef VLA_ALLOWED
+#define VLA_ALLOWED TRUE
+#endif /* VLA_ALLOWED */
+
+/* Enable support of compound literals. */
+#ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE
+#define COMPOUND_LITERAL_ENABLING_POSSIBLE TRUE
+#endif /* ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE */
+
+/* Enable support of designated initializers. */
+
+#ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
+#define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE TRUE
+#endif /* ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+
+/*
 Target byte order.  Little-endian means the least-significant part of a
 multi-byte integer is at the lowest memory address.
 */
@@ -2122,6 +2153,50 @@ whole process.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+Flag that is TRUE if variable length arrays (VLAs) are allowed.  A VLA is
+an array whose size is known only at execution time.  This is supported in
+C mode only.  If VLA_ALLOWED is TRUE, support is enabled and disabled based
+on command-line options --[no_]vla, which control global variable vla_enabled.
+When VLAs are allowed, they are enabled by default in C99 mode.
+*/
+#ifndef VLA_ALLOWED
+#define VLA_ALLOWED FALSE
+#endif /* VLA_ALLOWED */
+
+/*
+Flag that is used as the default setting for global variable vla_enabled.
+The variable can also been controlled from the command line by --[no_]vla.
+(Whatever the default, vla_enabled is always turned off in C++ mode.)
+*/
+#ifndef DEFAULT_VLA_ENABLED
+#define DEFAULT_VLA_ENABLED FALSE
+#endif /* ifndef DEFAULT_VLA_ENABLED */
+#if DEFAULT_VLA_ENABLED && !VLA_ALLOWED
+  #error -- DEFAULT_VLA_ENABLED cannot be true unless VLA_ALLOWED is true
+#endif /* DEFAULT_VLA_ENABLED && !VLA_ALLOWED */
+
+
+/*
+Flag that is TRUE if designators of the form 'x:' and '[expr ... expr]'
+should be accepted in aggregate initializers.  This also makes the '='
+following an array element designation optional.  It should not be TRUE
+if DEFAULT_DESIGNATORS_ALLOWED is FALSE.  It is the initial value
+of the global variable extended_designators_allowed.
+*/
+#ifndef DEFAULT_EXTENDED_DESIGNATORS_ALLOWED
+#define DEFAULT_EXTENDED_DESIGNATORS_ALLOWED FALSE
+#endif /* DEFAULT_EXTENDED_DESIGNATORS_ALLOWED */
+
+/*
+Flag that is TRUE if designators of the form '.x' and '[expr]' should be
+accepted in aggregate initializers.  It is the initial value of the global
+variable designators_allowed.
+*/
+#ifndef DEFAULT_DESIGNATORS_ALLOWED
+#define DEFAULT_DESIGNATORS_ALLOWED FALSE
+#endif /* DEFAULT_DESIGNATORS_ALLOWED */
+
+/*
 Flag that is TRUE if support for designated initializers and extended
 designated initializers can be enabled.  Having this TRUE means the back
 end is prepared to accept designated initializers, either in the
@@ -2151,6 +2226,16 @@ of times.
 #ifndef LOWER_DESIGNATED_INITIALIZERS
 #define LOWER_DESIGNATED_INITIALIZERS TRUE
 #endif /* ifndef LOWER_DESIGNATED_INITIALIZERS */
+
+/*
+Flag that is TRUE if compound literals, which look vaguely like a cast
+whose source expression is a brace-enclosed initializer (e.g.,
+(int []){1, 2, 3}) should be accepted in expressions.  It is the
+initial value of the global variable compound_literals_allowed.
+*/
+#ifndef DEFAULT_COMPOUND_LITERALS_ALLOWED
+#define DEFAULT_COMPOUND_LITERALS_ALLOWED FALSE
+#endif /* DEFAULT_COMPOUND_LITERALS_ALLOWED */
 
 /*
 This switch controls whether support for compound literals (a C9X feature)

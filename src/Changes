@@ -116,6 +116,11 @@ The following features are disabled:
 -- implicit int
 -- implicit function declarations
 
+Some of the C99 features produce new IL constructs that require
+support in the back end.  These features are enabled by the configuration
+macro C99_IL_EXTENSIONS_SUPPORTED.  When this flag is FALSE, the --c99
+command-line option is disabled.
+
 Regarding inline in C, note that the field suppress_inline_body,
 which formerly was present only when INSTANTIATE_EXTERN_INLINE is
 TRUE, is now present in all cases and is used to indicate C99
