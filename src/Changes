@@ -1,5 +1,34 @@
 Version 2.31
 
+11/18/95  Fixed loop in IL lowering processing of placeholder typerefs
+
+A bug in the use of placeholder typerefs to guide the process of type
+promotion in IL lowering has been fixed.  This came up when typedefs
+were used to represent class templates and the templates are members of
+namespaces.
+
+  namespace N {
+    template <class T> struct P { };
+    template <class T> struct R {
+      struct S { };  
+    };
+    template <class T> struct multimap {
+      typedef R< P<T> >::S S;
+    };
+  }
+  using namespace N;
+
+  template <class T> class PCn {
+    typedef T::S  S;
+  };
+
+  template <class T> struct M : private PCn<multimap<int> > { };
+
+  int main()
+  {
+    M<int> m;
+  }
+
 11/18/95  C++-generating back end: "for" statement declaring multiple variables
           where some variable after the first has a non-trivial declarator
 
