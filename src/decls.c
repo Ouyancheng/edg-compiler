@@ -7938,6 +7938,10 @@ processing of function definition.
   db_enter(3, "inline_function_definition");
   rout_type = skip_typerefs(rout_ptr->type);
   extra_info = rout_type->variant.routine.extra_info;
+  /* Make sure the return type has been instantiated.  This must be done
+     before calling set_routine_calling_method_flag. */
+  return_type = rout_type->variant.routine.return_type;
+  check_for_uninstantiated_template_class(return_type);
   /* Check whether the routine needs special support for returning a class
      object by value.   This flag is set in declarator (i.e., as soon as the
      routine type is seen) and usually that is sufficient.  However, with
@@ -7954,8 +7958,6 @@ processing of function definition.
      3.5.4.3 on function declarators, enforced previously by
      add_to_derived_type_list.  In addition, a reference type (including a
      reference to an array or function) may also be returned (ARM 8.2.5). */
-  return_type = rout_type->variant.routine.return_type;
-  check_for_uninstantiated_template_class(return_type);
   if (is_void_type(return_type) ||
       (is_object_type(return_type) && !is_array_type(return_type)) ||
       is_reference_type(return_type)) {
