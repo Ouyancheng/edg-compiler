@@ -3157,9 +3157,8 @@ NULL.
                  var_ptr->section == NULL &&
                  !var_ptr->unused &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                 !(is_class_struct_union_type(var_ptr->type) &&
-                   (skip_typerefs(var_ptr->type)->
-                                variant.class_struct_union.is_nonreal_class ||
+                 !(is_immediate_class_type(var_type) &&
+                   (var_type->variant.class_struct_union.is_nonreal_class ||
                     symbol_supplement_for_class(var_type)->
                                               any_template_dependent_fields ||
                     symbol_supplement_for_class(var_type)->
