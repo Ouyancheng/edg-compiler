@@ -3,8 +3,10 @@ Version 2.23
 4/29/94  Floating point template parameters are no longer allowed
 
 At the 3/94 X3J16 meeting the committee disallowed floating point
-template parameters.  An error is now issued on an attempt to
-declare a template parameter of a floating point type.
+template parameters.  The front end now disallows this feature by
+default, but it can be enabled by setting a configuration parameter
+in lang_feat.h.  When enabled, diagnostics are issued when the
+feature is used in strict mode.
 
 4/29/94  Qualifiers missing on conversion operators in diagnostic messages
 
