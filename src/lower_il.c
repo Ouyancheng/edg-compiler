@@ -2424,15 +2424,18 @@ class_type if any are needed and if they have not already been generated.
 
 
 static a_boolean virtual_function_table_should_be_defined_here(
-                                                      a_type_ptr class_type,
-                                                      a_boolean  *force_static)
+                                                  a_type_ptr    class_type,
+                                                  a_boolean     *force_static,
+                                                  a_routine_ptr *first_virtual)
 /*
 Return TRUE if the virtual function tables for the class type class_type should
 be defined (i.e., initialized) in this compilation.  Note that this should not
 be called until the end of the file scope, as its value depends on whether
 or not some function in the class has been defined.  If the virtual function
 table should be forced to be local to this compilation, *force_static
-is returned TRUE.
+is returned TRUE.  *first_virtual is set to point to the first noninline
+virtual function of the class if that function was used in deciding whether
+or not to put out the definition; otherwise, it's set to NULL.
 */
 {
   a_boolean                   defined_here;
@@ -2441,6 +2444,7 @@ is returned TRUE.
   a_routine_ptr               routine;
 
   *force_static = FALSE;
+  *first_virtual = NULL;
   /* The virtual function tables for a class are defined in the compilation
      that contains the definition of the lexically first non-inline, virtual,
      non-pure member function of the class.  See ARM 10.8.1c and "New Virtual
@@ -2477,6 +2481,7 @@ is returned TRUE.
           /* This is the first non-inline virtual non-pure member function in
              the class.  If it is defined in this compilation, we should put
              out the virtual function tables here. */
+          *first_virtual = routine;
           defined_here = (routine->assoc_scope != NULL_region_number);
           /* If the routine is local because of the -tlocal instantiation
              mode, make the vtable local too. */
@@ -2517,7 +2522,8 @@ at the end of the translation unit, before IL lowering is done for
 the file scope memory region.
 */
 {
-  a_boolean should_generate = FALSE, force_static;
+  a_boolean     should_generate = FALSE, force_static;
+  a_routine_ptr first_virtual;
 
   if (il_lowering_needed()) {
     /* Force generation of the virtual function table variable (if any) for the
@@ -2529,7 +2535,8 @@ the file scope memory region.
       /* See if the virtual function table will be defined in this
          compilation. */
       if (virtual_function_table_should_be_defined_here(class_type,
-                                                        &force_static)) {
+                                                        &force_static,
+                                                        &first_virtual)) {
         /* The virtual function table will be defined, and it will have a
            reference to the virtual destructor, so the virtual destructor
            should be generated. */
@@ -2764,7 +2771,7 @@ number after the last one filled.
 }  /* fill_virtual_function_table */
 
 
-static void define_one_for_virtual_function_table(
+static void define_one_virtual_function_table(
                                             a_type_ptr       class_type,
                                             a_base_class_ptr bcp,
                                             a_boolean        definition_needed,
@@ -2850,7 +2857,7 @@ to the current compilation even if the class is externally linked.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
-}  /* define_one_for_virtual_function_table */
+}  /* define_one_virtual_function_table */
 
 
 static void define_virtual_function_tables(a_type_ptr class_type)
@@ -2863,6 +2870,7 @@ class_type if any are needed.
   a_base_class_ptr            bcp;
   a_boolean                   need_determined = FALSE;
   a_boolean                   definition_needed, force_static;
+  a_routine_ptr               first_virtual;
 
   /* Make sure the class type has been pre-lowered. */
   prelower_class_type(class_type);
@@ -2872,12 +2880,13 @@ class_type if any are needed.
       /* The class has a virtual function table.  Generate the definition
          if it is supposed to be generated in the present compilation. */
       definition_needed = 
-                  virtual_function_table_should_be_defined_here(class_type,
-                                                                &force_static);
+                 virtual_function_table_should_be_defined_here(class_type,
+                                                               &force_static,
+                                                               &first_virtual);
       need_determined = TRUE;
       /* Generate the virtual function table for the class itself. */
-      define_one_for_virtual_function_table(class_type, (a_base_class_ptr)NULL,
-                                            definition_needed, force_static);
+      define_one_virtual_function_table(class_type, (a_base_class_ptr)NULL,
+                                        definition_needed, force_static);
     }  /* if */
     /* Generate the virtual function table for each base class when it
        is contained within a complete object of the primary class. */
@@ -2885,20 +2894,37 @@ class_type if any are needed.
       if (bcp->virtual_function_table_var != NULL) {
         if (!need_determined) {
           definition_needed = 
-                  virtual_function_table_should_be_defined_here(class_type,
-                                                                &force_static);
+                 virtual_function_table_should_be_defined_here(class_type,
+                                                               &force_static,
+                                                               &first_virtual);
           need_determined = TRUE;
         }  /* if */
         /* If the base class and class_type share a virtual function table,
            it was already defined above; do not define it again. */
         if (bcp->virtual_function_table_var !=
                                             ctsp->virtual_function_table_var) {
-          define_one_for_virtual_function_table(class_type, bcp,
-                                                definition_needed,
-                                                force_static);
+          define_one_virtual_function_table(class_type, bcp,
+                                            definition_needed, force_static);
         }  /* if */
       }  /* for */
     }  /* if */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+    if (ctsp->template_arg_list != NULL && need_determined &&
+        !definition_needed && first_virtual != NULL) {
+      /* Automatic template instantiation is being done.  The class is a
+         template class.  There is at least one virtual function table whose
+         definition was not put out because no definition of the function
+         first_virtual appears in this compilation.  If first_virtual could
+         have been instantiated in this compilation, but wasn't, we need to
+         let the automatic instantiation mechanism know that's the place to
+         start to get the virtual function table defined, which in turn will
+         put out references to all the virtual functions in the class and
+         call for their instantiations. */
+      if (first_virtual->can_be_instantiated) {
+        make_instantiation_info_var("__FVF__", &first_virtual->source_corresp);
+      }  /* if */
+    }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
 }  /* define_virtual_function_tables */
 
@@ -3650,6 +3676,10 @@ Do IL lowering of the indicated variable and everything under it.
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (variable->source_corresp.class_of_which_a_member != NULL) {
       /* Static data member. */
+      if (variable->instance_required) {
+        /* This variable is template-based. */
+        make_instantiation_info_var("__TIR__", &variable->source_corresp);
+      }  /* if */
       if (variable->do_not_instantiate) {
         /* This variable cannot be instantiated. */
         make_instantiation_info_var("__DNI__", &variable->source_corresp);
@@ -3802,10 +3832,9 @@ Do IL lowering of the indicated routine and everything under it.
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
     /* For automatic instantiation, generate a variable or variables with names
        that encode instantiation information. */
-    if (routine->is_instantiation &&
-        routine->source_corresp.class_of_which_a_member == NULL) {
-      /* This routine is a template function. */
-      make_instantiation_info_var("__TF__", &routine->source_corresp);
+    if (routine->instance_required) {
+      /* This routine is template-based. */
+      make_instantiation_info_var("__TIR__", &routine->source_corresp);
     }  /* if */
     if (routine->do_not_instantiate) {
       /* This routine cannot be instantiated. */
