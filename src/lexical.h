@@ -1218,8 +1218,6 @@ typedef a_token_set_array_element
 			/* Generic array-of-unsigned-char both for global
 			   variable stop_token_array and for local arrays
 			   used in token caching. */
-typedef a_token_set_array
-		a_stop_token_array;
 
 /*
 A stack of stop token arrays is maintained.  The top of the stack is
