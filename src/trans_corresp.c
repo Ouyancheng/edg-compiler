@@ -2719,7 +2719,7 @@ is in fact valid.
                 tcp = trans_unit_corresp_of(type);
 
   if (tcp == NULL) {
-    /* This should only happen in if an error prevents us from setting
+    /* This should only happen if an error prevents us from setting
        correspondences on all entities in secondary translation units. */
     expect_error();
     corresp_type = type;
