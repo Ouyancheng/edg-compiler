@@ -3501,6 +3501,14 @@ to FALSE if the entity being declared is not initializable.
           a_boolean  reactivate_scope = FALSE;
 
           sym = locator_for_curr_id.specific_symbol;
+          if (microsoft_mode && sym->kind == (a_symbol_kind)sk_projection) {
+            /* Microsoft compilers allow static member declarators using a
+               derived class qualifier. */
+            a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
+            if (fund_sym->kind == (a_symbol_kind)sk_static_data_member) {
+              sym = fund_sym;
+            }  /* if */
+          }  /* if */
           /* See if the name is the name of a member function. */
           if (sym->kind == (a_symbol_kind)sk_member_function ||
               sym->kind == (a_symbol_kind)sk_overloaded_function ||

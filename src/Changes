@@ -1,5 +1,26 @@
 Version 3.4
 
+9/17/03  Microsoft mode: Static data members and derived class qualifiers
+
+In Microsoft mode, the front end accepts static data member definitions
+using derived class qualifiers (see Changes entry of 4/27/98).  However,
+other member declarations of the parent class used to be invisible to
+such definitions.  For example:
+
+  struct B {
+    enum { N = 7 };
+    static int a[N];
+    static int b[N];
+  };
+  struct D: B {
+    enum { M = 7 };
+  };
+  int D::a[N] = { 1 };  // OK.  (Used to not find "N".)
+  int D::b[M] = { 1 };  // OK.  (Used to not find "M".)
+
+Now, member declaration of the derived class and its base classes are
+visible in such nonstandard static member definitions.
+
 9/16/03  GNU mode: Exception specifications on assignments and initialization
 
 When assigning or initializing pointers or references to functions, the
