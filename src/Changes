@@ -1,5 +1,14 @@
 Version 3.4
 
+9/3/03   GNU IA-64 ABI: Additional padding and spurious conflicts
+
+The front end has been modified to better emulate the emulation of GNU IA-64
+ABI bugs.  Additional padding for trailing empty nonvirtual bases is now 
+counted in the "size as a base subobject" (previously, it was only added
+for complete objects).  Furthermore, certain spurious GNU-specific empty
+base class conflicts are no longer considered if they involve virtual base
+subobjects.
+
 9/2/03   Loop in access checking in Microsoft and Sun modes
 
 A change in version 3.3 exposed a bug in the setting of the scope stack
