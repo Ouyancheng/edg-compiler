@@ -5251,15 +5251,20 @@ type based on the template argument list and the template parameter list
 }  /* make_template_function */
 
 
-static void update_template_arg_usage_info(a_symbol_ptr		rout_sym,
-					   a_template_arg_ptr	templ_arg_list)
+static void update_template_arg_usage_info(
+			a_symbol_ptr		rout_sym,
+			a_template_arg_ptr	templ_arg_list,
+			a_boolean		explicit_arg_list_present)
 /*
 Go through the template argument list specified by templ_arg_list and update
 the corresponding template argument list entry in the template argument
 list associated with rout_sym to indicate whether any of the arguments
 in templ_arg_list were explicitly specified.  Update the flag in the
 routine entry associated with rout_sym if any explicitly specified template
-argument was found.
+argument was found or if the explicit_arg_list_present flag is TRUE.
+explicit_arg_list_present can be TRUE even when none of the template
+arguments is explicitly specified when an empty template argument list
+is present.
 */
 {
   a_template_arg_ptr	rout_tap;
@@ -5273,7 +5278,8 @@ argument was found.
       rout_tap->explicitly_specified = TRUE;
     }  /* if */
   }  /* for */
-  if (rout->template_arg_list->explicitly_specified) {
+  if (explicit_arg_list_present ||
+      rout->template_arg_list->explicitly_specified) {
     /* If any of the templates arguments were explicitly specified, set
        the flag in the routine entry.  We only need to check the first flag
        because the explicit arguments are always specified starting with
@@ -5441,10 +5447,12 @@ done:
 }  /* is_match_for_function_template */
 
 
-a_symbol_ptr matching_template_function(a_symbol_ptr        templ_sym,
-                                        a_type_ptr          curr_type,
-				 	a_template_arg_ptr  explicit_arg_list,
-					a_boolean	    is_decl_context)
+a_symbol_ptr matching_template_function(
+				a_symbol_ptr        templ_sym,
+                                a_type_ptr          curr_type,
+				a_template_arg_ptr  explicit_arg_list,
+				a_boolean	    explicit_arg_list_present,
+				a_boolean	    is_decl_context)
 /*
 Search for a template function based on the function template represented
 by templ_sym and the type pointed to by curr_type.  If no such template
@@ -5487,7 +5495,8 @@ non-NULL if an explicitly specified template argument list was provided.
   }  /* if */
   /* Update the flags that indicate whether any explicitly specified template
      arguments were used. */
-  update_template_arg_usage_info(sym, templ_arg_list);
+  update_template_arg_usage_info(sym, templ_arg_list,
+                                 explicit_arg_list_present);
   db_exit();
   return sym;
 }  /* matching_template_function */
@@ -5916,9 +5925,11 @@ Also, add the instance to the definitions list for the template.
 }  /* find_static_data_member_template */
 
 
-a_symbol_ptr find_template_function(a_symbol_ptr        templ_sym,
-                                    a_template_arg_ptr  *new_list,
-                                    a_source_position   *source_pos)
+a_symbol_ptr find_template_function(
+			a_symbol_ptr		templ_sym,
+                        a_template_arg_ptr	*new_list,
+			a_boolean		explicit_arg_list_present,
+                        a_source_position	*source_pos)
 /*
 templ_sym is a pointer to a symbol representing a function template and
 *new_list is a pointer to a linked list of template arg entries.  If
@@ -6010,7 +6021,7 @@ structure.
   }  /* if */
   /* Update the flags that indicate whether any explicitly specified template
      arguments were used. */
-  update_template_arg_usage_info(sym, *new_list);
+  update_template_arg_usage_info(sym, *new_list, explicit_arg_list_present);
   if (tip != NULL) {
     /* We are reusing a template function that already exists, so *new_list
        will not be used.  Return it to the available list for reuse. */
@@ -9661,6 +9672,7 @@ for the instance, or NULL if no instance is found.
         new_sym = NULL;
       } else {
         new_sym = matching_template_function(sym, type, explicit_arg_list,
+					     explicit_arg_list_present,
                                              /*is_decl_context=*/TRUE);
       }  /* if */
     }  /* for */

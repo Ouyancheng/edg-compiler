@@ -4492,9 +4492,9 @@ next_delete_symbol:;
           for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
             fund_sym = fundamental_symbol_of(sym);
             if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
-              if (has_matching_template_function(fund_sym, tp,
-                                                 (a_template_arg_ptr)NULL,
-                                                 /*is_decl_context=*/TRUE)) {
+              if (has_matching_template_function(
+                                       fund_sym, tp, (a_template_arg_ptr)NULL,
+                                       /*is_decl_context=*/TRUE)) {
                 /* We have a match.  Add the matching template to a list of
                    matching candidates.  Any poorer matches will be removed
                    by this process. */
@@ -4516,10 +4516,11 @@ next_delete_symbol:;
               } else {
                 /* Do a partial instantiation if a match is found so that the
                    template instance can be returned. */
-                corresp_op_delete_sym =
-                         matching_template_function(template_sym, tp,
-                                                    (a_template_arg_ptr)NULL,
-                                                    /*is_decl_context=*/TRUE);
+                corresp_op_delete_sym = matching_template_function(
+ 					   template_sym, tp,
+                                           (a_template_arg_ptr)NULL,
+				           /*explicit_arg_list_present=*/FALSE,
+                                           /*is_decl_context=*/TRUE);
               }  /* if */
             }  /* if */
           }  /* if */

@@ -226,7 +226,7 @@ cast.
           /* Generate a partial instantiation of the matching instance. */
           match_sym = matching_template_function(sym, dest_underlying_type,
                                                  template_arg_list,
-                                                 /*is_template_id,*/
+                                                 is_template_id,
                                                  /*is_decl_context=*/FALSE);
           *match_level = aml_exact;
           number_of_matches = 1;
@@ -3280,7 +3280,7 @@ create_final_list:
       candidates->function_symbol = sym =
                          find_template_function(sym,
                                                 &candidates->template_arg_list,
-                                   /*candidates->expl_template_arg_list_used,*/
+                                       candidates->expl_template_arg_list_used,
                                                 source_pos);
       candidates->is_function_template = FALSE;
       if (candidates->is_user_conversion) {

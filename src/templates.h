@@ -174,9 +174,11 @@ extern a_type_ptr wrapup_function_template_argument_deduction(
                                 a_symbol_ptr         rout_templ_sym,
                                 a_template_param_ptr templ_param_list);
 
-extern a_symbol_ptr find_template_function(a_symbol_ptr        templ_sym,
-                                           a_template_arg_ptr  *templ_arg_list,
-                                           a_source_position   *source_pos);
+extern a_symbol_ptr find_template_function(
+			a_symbol_ptr		templ_sym,
+                        a_template_arg_ptr	*new_list,
+			a_boolean		explicit_arg_list_present,
+                        a_source_position	*source_pos);
 
 extern a_boolean is_match_for_function_template(
 				a_symbol_ptr		templ_sym,
@@ -187,11 +189,12 @@ extern a_boolean is_match_for_function_template(
 				a_template_arg_ptr	explicit_arg_list,
 				a_boolean		is_decl_context);
 
-extern a_symbol_ptr matching_template_function
-                                  (a_symbol_ptr        function_template_sym,
-                                   a_type_ptr          curr_type,
-				   a_template_arg_ptr  explicit_arg_list,
-				   a_boolean	       is_decl_context);
+extern a_symbol_ptr matching_template_function(
+				a_symbol_ptr        templ_sym,
+                                a_type_ptr          curr_type,
+				a_template_arg_ptr  explicit_arg_list,
+				a_boolean	    explicit_arg_list_present,
+				a_boolean	    is_decl_context);
 
 extern
 a_boolean has_matching_template_function(a_symbol_ptr       templ_sym,

@@ -1720,6 +1720,7 @@ ambiguous symbol and return a pointer.  If no match is found, return NULL.
     /* Find or create the template instance that matches the type needed.
        Note that the template argument list is freed in the called function. */
     result_sym = find_template_function(matching_sym, &matching_arg_list,
+					locator->is_template_id,
                                         &locator->source_position);
     if (ambiguous || matching_sym->ambiguous) {
       /* Create a copy of the result_sym and mark that copy as
