@@ -1911,6 +1911,9 @@ if not, return *err_code set to the proper error code.
 
   *err_code = ec_no_error;
 
+  check_assertion_str(shift_count_constant->kind ==
+                                              (a_constant_repr_kind)ck_integer,
+                      "check_shift_count: shift count not ck_integer");
   /* Determine the size of the operand being shifted. */
   operand_type = skip_typerefs(operand_type);
 #if CHECKING
