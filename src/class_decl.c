@@ -2694,12 +2694,7 @@ special function kind (e.g., constructor, destructor), if any.
       }  /* if */
 #endif /* CHECKING */
       /* Set a flag in overload_sym if the instances of an overloaded function
-         name do not all have the same access specifier. */
-      if (!overload_sym->variant.overloaded_function.mixed_access &&
-          access != access_for_symbol(other_sym)) {
-        overload_sym->variant.overloaded_function.mixed_access = TRUE;
-      }  /* if */
-      /* Also check for mixing static and nonstatic member functions. */
+         are a mixture of static and nonstatic member functions. */
       if (!overload_sym->variant.overloaded_function.mixed_static_nonstatic) {
         if (routine_type_is_nonstatic_member_function(member_type) !=
             routine_type_is_nonstatic_member_function(
