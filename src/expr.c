@@ -13494,7 +13494,6 @@ These cases are handled here by coalescing two tokens.
   }  /* if */        
 }  /* check_for_pcc_compound_assignment_operator */
 
-#if GNU_EXTENSIONS_ALLOWED
 
 static void add_template_arg_to_decorated_name(
                                     a_template_arg_ptr                 tap,
@@ -13625,7 +13624,6 @@ is used in g++ compatibility mode for the __FUNCTION__ keyword.
   return temp_text_buffer;
 }  /* get_decorated_function_name */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void make_function_name_operand(an_operand *result,
                                        a_boolean  decorated_name)
@@ -13640,7 +13638,6 @@ returned instead of the unqualified function name.
   a_variable_ptr           name_var = NULL;
   a_scope_stack_entry_ptr  ssep;
 
-  check_assertion(microsoft_mode || gnu_mode || (c99_mode && !decorated_name));
   check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH ||
                   gnu_mode);
   ssep = &scope_stack[depth_innermost_function_scope];
@@ -13693,12 +13690,8 @@ returned instead of the unqualified function name.
       } else if (microsoft_mode) {
         name_ptr = get_mangled_function_name(rp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-      } else if (gpp_mode) {
-        name_ptr = get_decorated_function_name(rp);
-#endif /*GNU_EXTENSIONS_ALLOWED */
       } else {
-        unexpected_condition();
+        name_ptr = get_decorated_function_name(rp);
       }  /* if */
       /* Create the string literal. */
       /* Make sure the string literal constant is allocated in file scope,
@@ -13916,11 +13909,9 @@ see expr.h).
     case tok_function_name:
     case tok_decorated_function_name:
       /* A magic identifier that expands to a string literal containing the
-         name of the current function in C99, GNU C and Microsoft modes.
-         (The "decorated" variant is recognized in Microsoft and GNU C modes
-         only and in Microsoft mode it expands to the mangled name.) */
-      check_assertion(microsoft_mode || gnu_mode ||
-                      (c99_mode && curr_token == tok_function_name));
+         name of the current function.  __PRETTY_FUNCTION__ is a GNU feature
+         that we accept in all modes.  __FUNCDNAME__ is a Microsoft feature
+         accepted in Microsoft mode.  These expand to the mangled name. */
       if (depth_innermost_function_scope == NO_SCOPE_DEPTH && !gnu_mode) {
         /* We're not inside a function. */
         str_error(ec_id_can_only_appear_in_function,

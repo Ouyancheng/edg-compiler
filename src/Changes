@@ -1,5 +1,10 @@
 Version 3.2
 
+3/12/03  __FUNCTION__ and other macros accepted in all modes
+
+The __FUNCTION__, __PRETTY_FUNCTION__, and __BASE_FILE__ macros are now
+accepted in all modes.
+
 3/12/03  GNU C++ mode: friend declaration of undeclared template
 
 In g++ mode, a friend declaration in which the function name is a

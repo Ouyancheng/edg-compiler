@@ -4600,9 +4600,6 @@ Enter symbols for the predefined macros of GNU C and C++.
   (void)enter_predef_macro(GCC_VERSION_STRING, "__VERSION__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-  base_file_macro_symbol = enter_predef_macro((char *)NULL, "__BASE_FILE__",
-                                            /*cannot_be_redefined=*/TRUE,
-                                            /*ref_suppresses_pch_file=*/FALSE);
 }  /* init_gnu_predefined_macros */
 
 
@@ -4866,6 +4863,10 @@ command line -D options.
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
   defined_macro_symbol = enter_predef_macro((char *)NULL, "defined",
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
+  /* The GNU __BASE_FILE__ macro is accepted in all modes. */
+  base_file_macro_symbol = enter_predef_macro((char *)NULL, "__BASE_FILE__",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
   if (c99_mode) {

@@ -329,6 +329,10 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_restrict, "restrict");
     }  /* if */
   }  /* if */
+  /* These gcc/g++ features are accepted in all modes. */
+  enter_keyword((a_token_kind)tok_function_name, "__FUNCTION__");
+  enter_keyword((a_token_kind)tok_decorated_function_name,
+                "__PRETTY_FUNCTION__");
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* If Microsoft extensions are allowed, enter the keywords that are to
@@ -379,9 +383,6 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_null, "__null");
   }  /* if */
   if (gnu_mode) {
-    enter_keyword((a_token_kind)tok_function_name, "__FUNCTION__");
-    enter_keyword((a_token_kind)tok_decorated_function_name,
-                  "__PRETTY_FUNCTION__");
     enter_keyword((a_token_kind)tok_function_name, "__func__");
     enter_keyword((a_token_kind)tok_extension, "__extension__");
     enter_gnu_keyword((a_token_kind)tok_typeof, "typeof");

@@ -111,13 +111,12 @@ typedef struct an_il_to_str_output_control_block {
   a_byte_boolean
 	gen_pcc_code;	/* TRUE if the generated string should be old-style
 			   pcc/K&R C.  Used by the C-generating back end. */
-#if GNU_EXTENSIONS_ALLOWED
   a_byte_boolean
 	suppress_typedefs;
 			/* Skip over typedefs so that they don't show up in
 			   output (used to generate the string for the GNU C++
-			   __PRETTY_FUNCTION__ feature). */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+			   __PRETTY_FUNCTION__ feature, which is also accepted
+			   in default mode). */
   a_byte_boolean
 	suppress_local_typedefs;
 			/* Suppress function-local typedefs in type output,
