@@ -1,5 +1,36 @@
 Version 2.42
 
+7/6/99   Designated initializers for aggregates
+
+In C mode, the front end can now accept designators in aggregate initializers
+when the configuration flag DESIGNATED_INITIALIZER_ENABLING_POSSIBLE is TRUE.
+With the option --designators (which can be enabled by default with the
+configuration flag DEFAULT_DESIGNATORS_ALLOWED) the front end will correctly
+process the syntax proposed for the next revision of the C standard ("C9X").
+In particular, initializers for fields of struct objects and subobjects can be
+designated with syntax of the form ".field_name" and initializers for elements
+of array object and subobjects can be designated with syntax of the form
+"[subscript]".  For example:
+
+  struct X { int a, b, c[10]; };
+  struct { struct X p, q } s = { .q = { 3, 4, 5, 6 }, .q.c[0] = 42 };
+
+This example also shows that designators allow a subobject to be initialized
+multiple times: the last initializer's value is preserved (s.q.c[0] is set to
+42, not 5), but side-effects of overridden initializers do take place.
+The option --extended_designators (set DEFAULT_EXTENDED_DESIGNATORS_ALLOWED to
+enable it by default) implies --designators and adds to that field designators
+of the form "field_name:" (these should not be followed by a "=" or another
+designator) and array range designators of the from "[i...j]".  Furthermore,
+the "=" is made optional after array element and array range designators.
+This allows for the following example (struct X as above):
+
+  struct { struct X p, q, r[5] } x = { p: { 7, 8 }, .q.c[2 ... 4] 78 };
+
+When --microsoft is combined with designators, the designated subinitializers
+may contain a dynamic component (e.g., a function call), but an array range
+designator does not admit such a dynamic component in its subinitializer.
+
 7/6/99   Diagnose referenced functions that are declared inside unnamed
          namespaces, but not defined
 
