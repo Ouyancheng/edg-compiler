@@ -2180,6 +2180,7 @@ if everything went fine.
 */
 {
   a_targ_ptrdiff_t offset_1, offset_2, difference;
+  a_type_ptr       object_type;
 
   *did_not_fold = FALSE;
   *err_code = ec_no_error;
@@ -2190,16 +2191,29 @@ if everything went fine.
     *did_not_fold = TRUE;
   } else {
     /* The pointers are in the same base object, so the difference of
-       their offsets can be taken.  It's a signed quantity.  Note that
-       since the offsets are kept as byte offsets, there's no need to
-       divide by the size of the elements pointed to. */
+       their offsets can be taken.  It's a signed quantity. */
     offset_1 = pointer_offset(constant_1);
     offset_2 = pointer_offset(constant_2);
-    if (subtract_protected(offset_1, offset_2, &difference) &&
-        difference >= TARG_PTRDIFF_T_MIN &&
-        difference <= TARG_PTRDIFF_T_MAX) {
-      set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-      result->variant.integer_value = difference;
+    if (subtract_protected(offset_1, offset_2, &difference)) {
+      /* Divide the difference by the size of the objects pointed to.
+         The caller has already checked that the type pointed to is
+         not incomplete, so the size is not zero. */
+      object_type = type_pointed_to(constant_1->type);
+      object_type = skip_typerefs(object_type);
+#if CHECKING
+      if (object_type->size == 0) {
+        internal_error("do_pdiff: size of object pointed to is zero");
+      }  /* if */
+#endif /* CHECKING */
+      difference /= object_type->size;
+      if (difference >= TARG_PTRDIFF_T_MIN &&
+          difference <= TARG_PTRDIFF_T_MAX) {
+        set_constant_kind(result, (a_constant_repr_kind)ck_integer);
+        result->variant.integer_value = difference;
+      } else {
+        *err_code = ec_integer_overflow;
+        *err_severity = es_error;
+      }  /* if */
     } else {
       *err_code = ec_integer_overflow;
       *err_severity = es_error;
