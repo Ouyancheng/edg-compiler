@@ -165,7 +165,7 @@ a_control_flow_desr is an entry used in tracking gotos, labels, and
 initializing declarations in order to diagnose errors in transferring
 control past an initialization.
 */
-typedef enum a_control_flow_descr_kind_tag {
+enum a_control_flow_descr_kind_tag {
   cfdk_block,		/* Start of a block. */
   cfdk_init,		/* Refers to an stmk_init statement. */
   cfdk_goto,		/* Refers to an stmk_goto statement. */
