@@ -296,21 +296,29 @@ routine is called in C++ mode only.
 }  /* init_remaining_array_elements */
 
 
-static void scan_initializer_of_simple_object(a_boolean       nonconst_allowed,
-                                              a_type_ptr      type,
-                                              a_dynamic_init  *dip)
+static a_constant_ptr scan_initializer_of_simple_object(
+                                         a_boolean           nonconst_allowed,
+                                         a_type_ptr          type,
+                                         a_dynamic_init_ptr  *dip_ptr)
 /*
 Scan a initializer for a non-aggregate object (i.e., not an array and not
 a class/struct/union object).  If nonconst_allowed is TRUE (always the case
 in C++, sometimes otherwise) a nonconstant expression is allowed; if not,
 a constant is required.  type is the data type of the object being
-initialized.  *dip is the dynamic init entry to be updated, even in the case
-of constant initializers.
+initialized.  dip_ptr is a pointer to a dynamic init pointer; if the latter
+is NULL, a dynamic init entry may be allocated and returned, but if *dip_ptr
+is non-NULL, build the intialization information into the object pointed to.
+A (possibly NULL) constant pointer is returned; iff *dip_ptr is updated,
+NULL is returned.  Thus, if nonconst_allowed is TRUE, return a pointer to a
+constant entry.  Otherwise, if the initializer is a constant value then
+return a pointer to a constant only if *dip_ptr is NULL.  If the initializer
+is nonconstant or *dip_ptr is non-NULL, return a NULL constant pointer
+and build *dip_ptr to represent the initialization.
 */
 {
   an_expr_node_ptr expression;
   a_boolean        is_constant;
-  a_constant       constant;
+  a_constant       constant, *cp = NULL;
 
   if (nonconst_allowed) {
     /* Scan a potentially non-constant initializer expression.  The result
@@ -325,18 +333,32 @@ of constant initializers.
   /* See if the scanned expression was constant or not. */
   if (is_constant) {
     /* Constant. */
-    /* Set the dynamic init entry to represent constant initialization.
-       (A local dynamic init entry is used only for convenience --
-       dynamic initialization is not presumed.) */
-    clear_dynamic_init(dip, (a_dynamic_init_kind)dik_constant);
-    dip->variant.constant = alloc_unshared_constant(&constant);
+    cp = alloc_unshared_constant(&constant);
+    if (*dip_ptr == NULL) {
+      /* If the caller has not preallocated a dynamic init entry, it signals
+         that a constant should be returned. */
+    } else {         
+      /* Even though this is a constant, the initialization is dynamic. */
+      clear_dynamic_init(*dip_ptr, (a_dynamic_init_kind)dik_constant);
+      (*dip_ptr)->variant.constant = cp;
+      /* Since the constant is being returned in the dynamic init entry,
+         avoid confusion and set cp to NULL. */
+      cp = NULL;
+    }  /* if */
   } else {
     /* Non-constant. */
     /* Set the dynamic init entry to represent non-constant assignment
        initialization. */
-    clear_dynamic_init(dip, (a_dynamic_init_kind)dik_expression);
-    dip->variant.expression = expression;
+    if (*dip_ptr == NULL) {
+      /* A new one needs to be allocated. */
+      *dip_ptr = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+    } else {
+      /* Use the one whose address is pointed to by dip_ptr. */
+      clear_dynamic_init(*dip_ptr, (a_dynamic_init_kind)dik_expression);
+    }  /* if */
+    (*dip_ptr)->variant.expression = expression;
   }  /* if */
+  return cp;
 }  /* scan_initializer_of_simple_object */
   
 
@@ -818,28 +840,18 @@ ref field of a class object (or an array of same) remains uninitialized.
   } else {
     /* Non-aggregate/union case -- initializer is a single (possibly
        brace-enclosed) value. */
-    a_dynamic_init  local_di;
-
-    scan_initializer_of_simple_object(/*nonconst_allowed=*/
-                                           (C_dialect == C_dialect_cplusplus),
-                                      local_type, &local_di);
-    switch (local_di.kind) {
-      case dik_constant:
-        init_con = local_di.variant.constant;
-        break;
-      case dik_expression:
-        init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-        init_con->variant.dynamic_init = dip =
-                       alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
-        init_con->type = local_type;
-        dip->variant.expression = local_di.variant.expression;
-        *any_dynamic_initialization = TRUE;
-        break;
-#if CHECKING
-      default:
-        internal_error("get_initializer: bad dynamic init kind");
-#endif /* CHECKING */
-    }  /* switch */
+    dip = NULL;
+    init_con = scan_initializer_of_simple_object(/*nonconst_okay=*/!C_mode(),
+                                                 local_type, &dip);
+    if (init_con == NULL) {
+      /* Returning NULL means a nonconstant expression was scanned, and so
+         a dynamic init entry was allocated and returned.  Create a dynamic
+         init constant to point to it. */
+      init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+      init_con->variant.dynamic_init = dip;
+      init_con->type = local_type;
+      *any_dynamic_initialization = TRUE;
+    }  /* if */
     /* If there was an initial opening brace, check for and skip the
        closing brace now.  Check also for an extra comma (required in C++
        per ARM 8.4, offered in C along with the extension that permits
@@ -954,7 +966,6 @@ the source position for an error (dynamic initialization is in
 unreachable code).
 */
 {
-  a_dynamic_init_ptr      new_dip;
   a_statement_ptr         init_stmt;
   a_memory_region_number  region_to_switch_back_to = NULL_region_number;
   a_boolean               static_lifetime;
@@ -987,36 +998,25 @@ unreachable code).
       dip->follows_an_exec_statement = TRUE;
     }  /* if */
   }  /* if */
-  /* Build the dynamic initialization entry. */
-  if (!at_file_scope && static_lifetime) {
-    /* Initializers for local static variables must appear in the file scope
-       memory region. */
-    switch_to_file_scope_region(&region_to_switch_back_to);
-  }  /* if */
-  new_dip = alloc_dynamic_init(dip->kind);
-  if (region_to_switch_back_to != NULL_region_number) {
-    switch_back_to_original_region(region_to_switch_back_to);
-  }  /* if */
-  *new_dip = *dip;
   /* Make the variable point at the dynamic initialization. */
   vp->init_kind = (an_init_kind)initk_dynamic;
-  vp->initializer.dynamic = new_dip;
-  new_dip->variable = vp;
+  vp->initializer.dynamic = dip;
+  dip->variable = vp;
   if (!at_file_scope) {
     /* Must be the initialization of a local variable.  Build the
        initialization statement and add it to the statement block. */
     init_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_init,
                                           &vp->source_corresp.decl_position);
-    init_stmt->variant.dynamic_init = new_dip;
+    init_stmt->variant.dynamic_init = dip;
   } else {
     /* A dynamic file-scope initialization (possible only in C++) has
        no associated stmk_init statement, so attach the dynamic initialization
        entry to the scope list. */
-    add_to_dynamic_inits_list(new_dip);
+    add_to_dynamic_inits_list(dip);
   }  /* if */
   /* If needed, create a destruction entry and associate it with the
      appropriate object-lifetime entry. */
-  record_end_of_lifetime_destruction(new_dip, static_lifetime);
+  record_end_of_lifetime_destruction(dip, static_lifetime);
   /* Mark all dynamically initialized variables as referenced.  (They are
      "referenced" in the sense that a variable assigned to, even if never
      used, is referenced.)  It is especially important not to leave the
@@ -1109,9 +1109,8 @@ issuing an error on an incomplete type.
   a_type_ptr                     vp_type = NULL;
   a_boolean                      brace_flag = FALSE;
   a_constant                     constant;
-  a_dynamic_init                 local_di;
-  a_boolean                      dynamic_init_required;
-  a_boolean                      initialization_is_dynamic;
+  a_constant_ptr                 init_con = NULL;
+  a_dynamic_init_ptr             init_dip = NULL;
   an_expr_node_ptr               arg_list;
   a_class_symbol_supplement_ptr  cssp = NULL;
   a_routine_ptr                  conversion_routine;
@@ -1179,7 +1178,6 @@ issuing an error on an incomplete type.
      initializer, but then discard the value. */
   put_init_in_variable = !err;
   if (vp_type == NULL) vp_type = error_type();
-  initialization_is_dynamic = FALSE;
   if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
     /* Though static data members may be given storage class of extern or
        unspecified, that fixup should not have taken place yet. */
@@ -1205,31 +1203,18 @@ issuing an error on an incomplete type.
     if (cssp->constructor != NULL) {
       /* Depending on the arguments present, a constructor, possibly the copy
          constructor, will be selected and returned. */
-      a_source_position  pos;
-
-      /* Use the source position of the first argument as the call position. */
-      pos = pos_curr_token;
-      scan_ctor_arguments(cssp->constructor, &arg_list, &conversion_routine,
-                          &pos, vp_type);
-      if (conversion_routine == NULL) {
-        err = TRUE;
-      } else {
-        /* Set the dynamic init entry to represent constructor
-           initialization. */
-        clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-        local_di.variant.constructor.ptr = conversion_routine;
-        local_di.variant.constructor.args = arg_list;
-      }  /* if */
+      scan_class_parenthesized_initializer(vp_type, vp_type, &init_dip);
+      if (init_dip == NULL) err = TRUE;
     } else {
       /* C-style class with no constructors, so initialization by bitwise
          copy is allowed. */
-      scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
-                                        vp_type, &local_di);
+      init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+      (void)scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
+                                              vp_type, &init_dip);
       /* The closing right paren will not be consumed, as it is when scanning
          the arg list for a constructor call, so bypass it explicitly. */
       check_closing_paren_after_expr_list();
     }  /* if */
-    initialization_is_dynamic = TRUE;
   } else if (cssp != NULL && !cssp->is_class_aggregate &&
              curr_token == tok_lbrace) {
     /* This is an attempt to do C-style aggregate initialization on a class
@@ -1254,34 +1239,19 @@ issuing an error on an incomplete type.
     /* In ordinary C a struct or union variable may be initialized by an
        object of the same type as long as dynamic initialization is otherwise
        allowed. */
-    a_dynamic_init_ptr  dip;
-
-    if (scan_class_initializer_expression(vp_type, &dip)) {
-      local_di = *dip;
-#if 0
-      /* Note that a dynamic-init entry was allocated in the subroutine,
-         but it is not used here.  We just copy it into local_di, on the
-         basis of which another dynamic-init entry will be allocated in
-         gen_dynamic_initialization.  Using a free-list to eliminate this
-         memory leakage is a possibility, but we have to take into account
-         that not all the dynamic init entries will have been created in
-         the file scope memory region. */
-#endif /* if 0 */
-    } else {
+    if (!scan_class_initializer_expression(vp_type, &init_dip)) {
       /* No appropriate constructor was found.  Abort the initialization. */
-      clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_none);
       err = TRUE;
     }  /* if */
-    initialization_is_dynamic = TRUE;
   } else if (is_aggregate_or_union_type(vp_type) ||
              (is_error_type(vp_type) && curr_token == tok_lbrace)) {
     /* Ordinary C-style aggregate initialization, usually with a brace-
        enclosed list of values.  Except that in C++ such lists may include
        non-constants. */
-    a_constant_ptr       cp;
-    a_boolean            any_member_uninitialized = FALSE;
-    a_boolean            any_const_or_ref_member_uninitialized = FALSE;
-    a_boolean            nothing_taken;
+    a_boolean  any_member_uninitialized = FALSE;
+    a_boolean  any_const_or_ref_member_uninitialized = FALSE;
+    a_boolean  initialization_is_dynamic = FALSE;
+    a_boolean  nothing_taken;
 
     /* Scan the initializer list. */
 #if DEBUG
@@ -1293,28 +1263,37 @@ issuing an error on an incomplete type.
       fputc('\n', f_debug);
     }  /* if */
 #endif /* DEBUG */
-    cp = get_initializer(&vp_type, /*top_level=*/TRUE,
-                         &any_member_uninitialized,
-                         &any_const_or_ref_member_uninitialized,
-                         &initialization_is_dynamic, &nothing_taken);
-    if (cp->kind == (a_constant_repr_kind)ck_error) {
-      err = TRUE;
-      if (is_incomplete_type(vp_type) && is_array_type(vp_type)) {
-        /* Initialization of an incomplete array failed and some appropriate
-           error has been reported.  Suppress further errors on this failed
-           initialization. */
-        *incomplete_type_error_reported = TRUE;
-      }  /* if */
-    } else {
-      /* Check the constant kind. */
-      check_assertion(cp->kind == (a_constant_repr_kind)ck_aggregate ||
-                      (!initialization_is_dynamic &&
-                       cp->kind == (a_constant_repr_kind)ck_string));
-      clear_dynamic_init(&local_di,
-                         (a_dynamic_init_kind)(initialization_is_dynamic ?
-                                               dik_nonconstant_aggregate :
-                                               dik_constant));
-      local_di.variant.constant = cp;
+    init_con = get_initializer(&vp_type, /*top_level=*/TRUE,
+                               &any_member_uninitialized,
+                               &any_const_or_ref_member_uninitialized,
+                               &initialization_is_dynamic, &nothing_taken);
+    switch (init_con->kind) {
+      case ck_error:
+        err = TRUE;
+        if (is_incomplete_type(vp_type) && is_array_type(vp_type)) {
+          /* Initialization of an incomplete array failed and some appropriate
+             error has been reported.  Suppress further errors on this failed
+             initialization. */
+          *incomplete_type_error_reported = TRUE;
+        }  /* if */
+        break;
+      case ck_aggregate:
+        if (initialization_is_dynamic) {
+          init_dip = alloc_dynamic_init(
+                           (a_dynamic_init_kind)dik_nonconstant_aggregate);
+          init_dip->variant.constant = init_con;
+          init_con = NULL;
+        }  /* if */
+        break;
+      case ck_string:
+        check_assertion(!initialization_is_dynamic);
+        break;
+#if CHECKING
+      default:
+        internal_error("initializer: bad constant kind from get_initializer");
+    }  /* switch */
+#endif /* CHECKING */
+    if (!err) {
       if (any_const_or_ref_member_uninitialized) {
         /* A const or ref field was not initialized. */
         if (is_union_type(vp_type)) {
@@ -1323,6 +1302,7 @@ issuing an error on an incomplete type.
           /* Issue an error. */
           an_error_code		code;
           an_error_severity	severity;
+
           if (C_dialect == C_dialect_cplusplus) {
             code = ec_var_with_uninitialized_member;
             severity = es_error;
@@ -1334,31 +1314,39 @@ issuing an error on an incomplete type.
         }  /* if */
       }  /* if */
       if (any_member_uninitialized) vp->is_partially_initialized = TRUE;
-    }  /* if */
-    if (!err && put_init_in_variable) {
-      /* Copy the type back into the variable.  It might have been changed
-         if vp is an incomplete array. */
-      if (vp != NULL && vp_type != vp->type) {
-        put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
-                                    vp_type);
+      if (put_init_in_variable) {
+        /* Copy the type back into the variable.  It might have been changed
+           if vp is an incomplete array. */
+        if (vp != NULL && vp_type != vp->type) {
+          put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
+                                      vp_type);
+        }  /* if */
       }  /* if */
     }  /* if */
   } else {
     /* A non-aggregate object is being initialized.  Braces or parens are
        permitted (but not both, of course).  A constant or non-constant
        expression may be permitted as the initializer. */
+    a_boolean  nonconstant_okay;
+
     if (parenthesized_initializer) {
       add_stop_token(tok_rparen);
     } else {
       check_for_opening_brace(&brace_flag);
     }  /* if */
-    scan_initializer_of_simple_object(
-           /*nonconst_allowed=*/(C_dialect == C_dialect_cplusplus ||
-              (vp != NULL && !has_static_storage_duration(vp->storage_class))),
-           vp_type, &local_di);
-    if (local_di.kind == (a_dynamic_init_kind)dik_expression) {
-      initialization_is_dynamic = TRUE;
+    if (!C_mode()) {
+      /* In C++ either a constant or a nonconstant initializer is allowed. */
+      nonconstant_okay = TRUE;
+    } else {
+      /* In C mode a nonconstant initializer is only allowed for automatic
+         variables. */
+      nonconstant_okay = (vp != NULL &&
+                          !has_static_storage_duration(vp->storage_class));
     }  /* if */
+    /* Scan the initializer.  Either a constant pointer is returned or else
+       a dynamic init entry representing an expression. */
+    init_con = scan_initializer_of_simple_object(nonconstant_okay, vp_type,
+                                                 &init_dip);
     /* Check for matching delimiter if lparen or lbrace appeared in front of
        the initializer. */
     if (parenthesized_initializer) {
@@ -1380,43 +1368,52 @@ issuing an error on an incomplete type.
   if (put_init_in_variable) {
     /* There was no error that precludes initialization, so update the
        variable entry with the initializer. */
+    a_routine_ptr  dtor = NULL;
     if (err) {
       /* There was an error in the initializer.  Put an error constant
          into the initializer field of the variable, if only to be sure
          another initialization will be prevented. */
-      clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constant);
       set_error_constant(&constant);
-      local_di.variant.constant = alloc_unshared_constant(&constant);
+      init_con = alloc_unshared_constant(&constant);
+      init_dip = NULL;
     }  /* if */
-    /* Sometimes the need for dynamic initialization can be inferred from the
-       initializer itself, but all initialization of non-static variables must
-       be handled at run time.  Set a flag to that effect. */
-    dynamic_init_required = !has_static_storage_duration(vp->storage_class);
-    if (local_di.destructor == NULL) {
+    if (init_dip != NULL && init_dip->destructor != NULL) {
+      /* A destructor has already been supplied. */
+    } else if (cssp != NULL) {
       /* Check for the existence of a destructor independently of checks for a
          constructor.  This is to catch the unusual case in which a user has
          defined a destructor but the object can be initialized without a
          constructor. */
-      if (cssp != NULL) {
-        a_routine_ptr rp = select_destructor(vp_type, vp_type, source_pos,
-                                             /*honor_virtual=*/FALSE,
-                                             /*evaluated=*/TRUE,
-                                             /*suppress_access_check=*/FALSE);
-        if (rp != NULL) {
-          local_di.destructor = rp;
-          initialization_is_dynamic = TRUE;
-        }  /* if */
+      dtor = select_destructor(vp_type, vp_type, source_pos,
+                               /*honor_virtual=*/FALSE,
+                               /*evaluated=*/TRUE,
+                               /*suppress_access_check=*/FALSE);
+    }  /* if */
+    if (init_dip == NULL) {
+      check_assertion(init_con != NULL);
+      /* There's no dynamic init entry because the need for one cannot be
+         inferred from the initializer.  Nevertheless, create one if (1)
+         there's a destructor associated with the type of the variable, or
+         (2) it's an automatic variable. */
+      if (dtor != NULL || !has_static_storage_duration(vp->storage_class)) {
+        init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+        init_dip->variant.constant = init_con;
+        init_con = NULL;
       }  /* if */
     }  /* if */
-    if (initialization_is_dynamic || dynamic_init_required) {
-      /* Generate a dynamic initialization entry (based on local_di) and
-         attach it to the variable, and generate an stmk_init statement. */
-      gen_dynamic_initialization(vp, &local_di, source_pos);
+    /* If a destructor was found, add a pointer to it to the dynamic init
+       entry. */
+    if (dtor != NULL) init_dip->destructor = dtor;
+    check_assertion((init_dip == NULL) != (init_con == NULL));
+    if (init_dip != NULL) {
+      /* Generate a dynamic initialization entry, attach it to the variable,
+         and generate an stmk_init statement. */
+      gen_dynamic_initialization(vp, init_dip, source_pos);
     } else {
       /* Neither the variable nor the initializer require initialization to be
          dynamic. */
       vp->init_kind = (an_init_kind)initk_static;
-      vp->initializer.constant = local_di.variant.constant;
+      vp->initializer.constant = init_con;
     }  /* if */
 #if DEBUG
     if (debug_level >= 3) {
@@ -1490,7 +1487,7 @@ the default constructor (if one exists) is called.
   a_variable_ptr                 var = NULL;
   a_type_ptr                     var_type, tp;
   a_class_symbol_supplement_ptr  cssp;
-  a_dynamic_init                 local_di;
+  a_dynamic_init_ptr             init_dip, dip;
   a_routine_ptr                  ctor = NULL, dtor = NULL;
   a_targ_size_t                  count;
   a_memory_region_number         region_to_switch_back_to = NULL_region_number;
@@ -1541,49 +1538,38 @@ the default constructor (if one exists) is called.
           a_param_type_ptr  ptp = (skip_typerefs(ctor->type))->
                                    variant.routine.extra_info->param_type_list;
 
-          clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-          local_di.variant.constructor.ptr = ctor;
+          init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+          init_dip->variant.constructor.ptr = ctor;
           /* A user defined default constructor may have default args that
              should be incorporated into the constructor call. */
-          local_di.variant.constructor.args = copy_default_arg_expr_list(ptp);
+          init_dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
         } else {
           /* Default initialization of an object that has a destructor.  We
              generate a dik_none dynamic initialization entry for this object,
              even though it is not actually initialized, so that the existence
              of the destructor can be duly recorded. */
-          clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_none);
+          init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
         }  /* if */
-        local_di.destructor = dtor;
+        init_dip->destructor = dtor;
         /* A constructor (or at least a destructor) was found and a dynamic
            init entry (local_di) was set to represent the initialization. */
         if (var_type != tp) {
           /* The object has an array type.  We need to build an aggregate
              initialization on top of the other dynamic init entry. */
-          a_dynamic_init  *dip;
-
-          if (decl_scope_level != DEPTH_OF_FILE_SCOPE &&
-              var->storage_class == (a_storage_class)sc_static) {
-            /* Initializers for local static variables must appear in
-               the file scope memory region. */
-            switch_to_file_scope_region(&region_to_switch_back_to);
-          }  /* if */
           /* Copy the dynamic init entry. */
-          dip = alloc_dynamic_init(local_di.kind);
-          *dip = local_di;
-          /* Now that the local_di has been copied, reinitialize it. */
-          clear_dynamic_init(&local_di,
+          dip = init_dip;
+          /* Create a new one to represent a nonconstant aggregate
+             initialization. */
+          init_dip = alloc_dynamic_init(
                                (a_dynamic_init_kind)dik_nonconstant_aggregate);
           /* Compute the repeat count. */
           count = var_type->size / tp->size;
           /* Build the repeat construct. */
-          repeat_nonconstant_init(dip, tp, &local_di, count);
-          if (region_to_switch_back_to != NULL_region_number) {
-            switch_back_to_original_region(region_to_switch_back_to);
-          }  /* if */
+          repeat_nonconstant_init(dip, tp, init_dip, count);
         }  /* if */
         /* Allocate a dynamic init entry (a copy of local_di) and attach it
            to the variable. */
-        gen_dynamic_initialization(var, &local_di, err_pos);
+        gen_dynamic_initialization(var, init_dip, err_pos);
 #if DEBUG
         if (debug_level >= 3) {
           db_variable(var);
@@ -2078,23 +2064,16 @@ scan_paren:
                on the arguments present, a constructor will be selected and
                returned.  The scan function returns FALSE if it finds no
                constructor for which the arguments match. */
-            scan_ctor_arguments(cssp->constructor, &arg_list,
-                                &conversion_routine, &lparen_pos,
-                                object_class_type);
-            if (conversion_routine == NULL) err = TRUE;
-            if (!err) {
-              /* Set the dynamic init entry to represent constructor
-                 initialization. */
-              dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-              dip->variant.constructor.ptr = conversion_routine;
-              dip->variant.constructor.args = arg_list;
-            } else {
+            scan_class_parenthesized_initializer(init_type, object_class_type,
+                                                 &dip);
+            if (dip  == NULL) {
               /* Create a fake initializer to represent the error. */
               a_constant_ptr  cp;
               dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
               cp = alloc_constant((a_constant_repr_kind)ck_error);
               set_error_constant(cp);
               dip->variant.constant = cp;
+              err = TRUE;
             }  /* if */
             new_cip->initializer = dip;
           } else {
@@ -2103,8 +2082,8 @@ scan_paren:
             /* Allocate a new dynamic init entry, setting the kind to
                dik_none for now.  It will be adjusted after the scan. */
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-            scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
-                                              init_type, dip);
+            (void)scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
+                                                    init_type, &dip);
             if (new_cip != NULL) new_cip->initializer = dip;
             remove_stop_token(tok_rparen);
             if (!required_token(tok_rparen, ec_exp_rparen)) {
