@@ -6892,8 +6892,8 @@ issue an error.
       && !microsoft_mode
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                   ) {
-    check_protected_member_access(member_sym, member_proj_sym, position,
-                                  member_proj_sym->parent.class_type);
+    (void)check_protected_member_access(member_sym, member_proj_sym, position,
+                                        member_proj_sym->parent.class_type);
   }  /* if */
   /* No need to instantiate the class; since we have a member of it, it must
      be instantiated already. */

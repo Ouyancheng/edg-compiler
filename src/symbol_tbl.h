@@ -2980,6 +2980,11 @@ typedef struct an_access_error_descr {
 		*overload_sym;
 			/* If "sym" is a member of an overload set, this
 			   points to the set. */
+  a_type_ptr	protected_access_class;
+			/* When non-NULL, the access check was for the
+			   protected member rule of 11.5 in the C++ standard,
+			   and this is the class of the object used to
+			   access the member. */
   a_source_position
 		position;
 			/* Position to be used when the error is issued. */
@@ -3513,10 +3518,10 @@ Throw away any deferred access entries.
   }  /* if */								\
 }
 
-extern void check_protected_member_access(a_symbol_ptr      sym,
-                                          a_symbol_ptr      proj_sym,
-                                          a_source_position *err_pos,
-                                          a_type_ptr        access_class);
+extern a_boolean check_protected_member_access(a_symbol_ptr      sym,
+                                               a_symbol_ptr      proj_sym,
+                                               a_source_position *err_pos,
+                                               a_type_ptr        access_class);
 
 /*
 If symbol is a projection symbol, change it to the fundamental symbol pointed

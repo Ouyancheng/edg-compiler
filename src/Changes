@@ -151,6 +151,10 @@ public will now suppress this check when the member is used
 in the class with the using-declaration or in some derived class
 thereof.
 
+[6/19/04:] Also, this protected member check is now also deferred and
+tried again later when it appears in a section where access checks
+are deferred.
+
 6/16/04  C++-generating back end: Address expression not treated as constant
          by Microsoft C compiler
 

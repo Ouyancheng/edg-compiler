@@ -1927,7 +1927,7 @@ the function is a template function, it should be instantiated.
     } else if (class_of_object != NULL) {
       /* Protected members of a base class can only be accessed through an
          object of a derived class. */
-      check_protected_member_access(sym, sym, pos, class_of_object);
+      (void)check_protected_member_access(sym, sym, pos, class_of_object);
     }  /* if */
   }  /* if */
   /* Update the symbol and the cross-reference listing. */

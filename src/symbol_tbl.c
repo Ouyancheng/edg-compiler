@@ -8122,37 +8122,48 @@ in the source program.
 
 
 static void issue_access_error(a_symbol_ptr       sym,
+                               a_type_ptr         protected_access_class,
                                a_source_position  *err_pos)
 /*
-Issue the appropriate error on the inaccessibility of sym.
+Issue the appropriate error on the inaccessibility of sym at *err_pos.
+If protected_access_class is non-NULL, the checking is the special
+protected member checking of 11.5 of the C++ standard, and
+protected_access_class indicates the type of the object used
+to access the member.
 */
 {
-  an_error_code  	error_code = ec_no_access_to_name;
-  an_error_severity	error_severity = es_discretionary_error;
-  a_routine_ptr  rp;
+  sym = fundamental_symbol_of(sym);
+  if (protected_access_class != NULL) {
+    pos_syty_diagnostic(es_discretionary_error, ec_protected_access_problem,
+                        err_pos, sym, protected_access_class);
+  } else {
+    an_error_code     error_code = ec_no_access_to_name;
+    an_error_severity error_severity = es_discretionary_error;
+    a_routine_ptr     rp;
 
-  if (is_function_symbol(sym)) {
-    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      rp = sym->variant.overloaded_function.symbols->variant.routine.ptr;
-    } else {
-      rp = sym->variant.routine.ptr;
+    if (is_function_symbol(sym)) {
+      if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        rp = sym->variant.overloaded_function.symbols->variant.routine.ptr;
+      } else {
+        rp = sym->variant.routine.ptr;
+      }  /* if */
+      if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
+          rp->special_kind == (a_special_function_kind)sfk_destructor ||
+          rp->special_kind == (a_special_function_kind)sfk_conversion ||
+          (rp->special_kind == (a_special_function_kind)sfk_operator &&
+           rp->variant.opname_kind == (an_opname_kind)onk_assign)) {
+        error_code = ec_inaccessible_special_function;
+      }  /* if */
+    } else if (is_type_symbol(sym)) {
+      if (any_cfront_mode()) {
+        /* In cfront mode access errors on types are only warnings.  cfront
+           doesn't check access to types at all. */
+        error_severity = es_warning;
+        error_code = ec_no_access_to_type_cfront_mode;
+      }  /* if */
     }  /* if */
-    if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
-        rp->special_kind == (a_special_function_kind)sfk_destructor ||
-        rp->special_kind == (a_special_function_kind)sfk_conversion ||
-        (rp->special_kind == (a_special_function_kind)sfk_operator &&
-         rp->variant.opname_kind == (an_opname_kind)onk_assign)) {
-      error_code = ec_inaccessible_special_function;
-    }  /* if */
-  } else if (is_type_symbol(sym)) {
-    if (any_cfront_mode()) {
-      /* In cfront mode access errors on types are only warnings.  cfront
-         doesn't check access to types at all. */
-      error_severity = es_warning;
-      error_code = ec_no_access_to_type_cfront_mode;
-    }  /* if */
+    pos_sy_diagnostic(error_severity, error_code, err_pos, sym);
   }  /* if */
-  pos_sy_diagnostic(error_severity, error_code, err_pos, sym);
 }  /* issue_access_error */
 
 
@@ -8194,15 +8205,24 @@ Put the freed entry on the available list to be reused.
 }  /* free_access_error_descr */
 
 
-static void record_access_error(a_symbol_ptr		sym,
-				a_symbol_ptr		overload_sym,
-				a_symbol_locator	*locator)
+static void record_access_error(a_symbol_ptr            sym,
+                                a_symbol_ptr            overload_sym,
+                                a_type_ptr              protected_access_class,
+                                a_source_position       *source_position,
+                                a_symbol_locator        *locator)
 /*
-An access error on "sym" has been detected.  "locator" is the
-corresponding symbol locator.  If "sym" is a member of an overload set,
-"overload_sym" is the symbol for the set.  If access checking is not being
-deferred, issue the error now.  Otherwise, create an access error
-entry so that the access error can be rechecked or discarded later.
+An access error on "sym" has been detected.  If "sym" is a member of
+an overload set, "overload_sym" is the symbol for the set.
+source_position is the source position of the reference.
+If protected_access_class is non-NULL, the checking is the special
+protected member checking of 11.5 of the C++ standard, and
+protected_access_class indicates the type of the object used
+to access the member.  "locator" is the symbol locator for "sym",
+or NULL one if not available (it's used only to suppress redundant
+error messages, by setting the access_control_error_reported field).
+If access checking is not being deferred, issue the error now.
+Otherwise, create an access error entry so that the access error can
+be rechecked or discarded later.
 */
 {
   a_boolean			defer_access_checks = FALSE;
@@ -8213,10 +8233,11 @@ entry so that the access error can be rechecked or discarded later.
     defer_access_checks = ssep->defer_access_checks;
   }  /* if */
   if (!defer_access_checks) {
-    if (!locator->access_control_error_reported) {
-      issue_access_error(fundamental_symbol_of(sym),
-                         &locator->source_position);
-      locator->access_control_error_reported = TRUE;
+    if (locator == NULL || !locator->access_control_error_reported) {
+      issue_access_error(sym,
+                         protected_access_class,
+                         source_position);
+      if (locator != NULL) locator->access_control_error_reported = TRUE;
     }  /* if */
   } else {
     /* Access checks are deferred, so put an entry on a list for later
@@ -8225,7 +8246,8 @@ entry so that the access error can be rechecked or discarded later.
     aedp = alloc_access_error_descr();
     aedp->sym = sym;
     aedp->overload_sym = overload_sym;
-    aedp->position = locator->source_position;
+    aedp->position = *source_position;
+    aedp->protected_access_class = protected_access_class;
     aedp->token_sequence_number = curr_token_sequence_number;
     if (ssep->deferred_access_checks == NULL) {
       ssep->deferred_access_checks = aedp;
@@ -8294,7 +8316,8 @@ accepted even though the injected class symbol is ambiguous.
   } else if (!have_access_to_symbol(sym)) {
     /* The symbol is not accessible.  Issue the error or record it
        for later checking if access checking is deferred. */
-    record_access_error(sym, (a_symbol_ptr)NULL, locator);
+    record_access_error(sym, (a_symbol_ptr)NULL, (a_type_ptr)NULL,
+                        &locator->source_position, locator);
   }  /* if */
 }  /* f_check_ambiguity_and_verify_access */
 
@@ -8322,18 +8345,37 @@ access.
     an_access_error_descr_ptr	new_tail = NULL;
     an_access_error_descr_ptr	next_aedp;
     a_boolean			remove_from_list = TRUE;
+    a_source_position		prev_error_position;
+    a_symbol_ptr		prev_error_symbol = NULL;
+    prev_error_position = null_source_position;  /* Keep lint happy. */
     if (aedp != NULL) {
       for (; aedp != NULL; aedp = next_aedp) {
         a_boolean	accessible;
         next_aedp = aedp->next;
         aedp->next = NULL;
-        /* Errors originally checked by overload_check_ambiguity... must
-           be rechecked here using have_access_across_derivations. */
-        if (aedp->overload_sym != NULL) {
-          accessible = have_access_across_derivations(aedp->sym,
-                                                      aedp->overload_sym);
+        if (aedp->protected_access_class != NULL) {
+          /* Protected member check of 11.5 in the C++ standard. */
+          if (prev_error_symbol == aedp->sym &&
+              cmp_source_positions(prev_error_position, aedp->position) == 0) {
+            /* We already issued an access error on this symbol at this
+               position, so skip this one. */
+            accessible = TRUE;
+          } else {
+            accessible = check_protected_member_access(
+                                                 aedp->sym,
+                                                 aedp->overload_sym,
+                                                 (a_source_position *)NULL,
+                                                 aedp->protected_access_class);
+          }  /* if */
         } else {
-          accessible = have_access_to_symbol(aedp->sym);
+          /* Errors originally checked by overload_check_ambiguity... must
+             be rechecked here using have_access_across_derivations. */
+          if (aedp->overload_sym != NULL) {
+            accessible = have_access_across_derivations(aedp->sym,
+                                                        aedp->overload_sym);
+          } else {
+            accessible = have_access_to_symbol(aedp->sym);
+          }  /* if */
         }  /* if */
         if (!accessible) {
           /* The access check still failed. */
@@ -8341,8 +8383,12 @@ access.
             /* Keep the entry on the list. */
             remove_from_list = FALSE;
           } else {
-            issue_access_error(fundamental_symbol_of(aedp->sym),
+            issue_access_error(aedp->sym,
+                               aedp->protected_access_class,
                                &aedp->position);
+            /* Record the symbol and position of the previous access error. */
+            prev_error_symbol = aedp->sym;
+            prev_error_position = aedp->position;
           }  /* if */
         }  /* if */
         if (remove_from_list) {
@@ -8491,7 +8537,8 @@ kinds of symbols.
     if (!have_access_across_derivations(symbol, overloaded_symbol)) {
       /* The symbol is not accessible.  Issue the error or record it
          for later checking if access checking is deferred. */
-      record_access_error(symbol, overloaded_symbol, locator);
+      record_access_error(symbol, overloaded_symbol, (a_type_ptr)NULL,
+                          &locator->source_position, locator);
     }  /* if */
   }  /* if */
 }  /* overload_check_ambiguity_and_verify_access */
@@ -8559,10 +8606,10 @@ have_accessibility:
 }  /* have_member_access_to_some_class_on_derivation */
 
 
-void check_protected_member_access(a_symbol_ptr      sym,
-                                   a_symbol_ptr      proj_sym,
-                                   a_source_position *err_pos,
-                                   a_type_ptr        access_class)
+a_boolean check_protected_member_access(a_symbol_ptr      sym,
+                                        a_symbol_ptr      proj_sym,
+                                        a_source_position *err_pos,
+                                        a_type_ptr        access_class)
 /*
 This routine implements the access control check mandated by 11.5 of
 the C++ standard, which requires that a protected nonstatic member
@@ -8576,7 +8623,9 @@ the reference, as defined by the standard.  access_class is the class
 of the pointer or object through which the member is being accessed.
 access_class is NULL if we don't know the object type (which will
 cause an error).  access_class may also be an error type (which will
-cause no error).  *err_pos is the source position for an error.  This
+cause no error).  *err_pos is the source position for an error; if
+it is NULL, no error is put out.  In all cases, the result value is
+TRUE if the access is okay, and FALSE if there is an error.  This
 routine is called only for nonstatic members, but it has not yet been
 established that the member is protected in the naming class.
 */
@@ -8641,17 +8690,17 @@ established that the member is protected in the naming class.
       bcp = find_base_class_of(access_class, base_class);
 #if CHECKING
       if (bcp == NULL) {
-        internal_error(
-                      "f_check_protected_member_access: base class not found");
+        internal_error("check_protected_member_access: base class not found");
       }  /* if */
 #endif /* CHECKING */
       have_access = have_member_access_to_some_class_on_derivation(bcp);
     }  /* if */
   }  /* if */
-  if (!have_access) {
-    pos_syty_diagnostic(es_discretionary_error, ec_protected_access_problem,
-                        err_pos, sym, access_class);
+  if (!have_access && err_pos != NULL) {
+    record_access_error(sym, proj_sym, access_class,
+                        err_pos, (a_symbol_locator *)NULL);
   }  /* if */
+  return have_access;
 }  /* check_protected_member_access */
 
 

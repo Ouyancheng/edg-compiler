@@ -5455,8 +5455,9 @@ source position of the member name reference.
       /* If the member is protected, it can only be accessed through an object
          or pointer of a type to which we have member access (ARM 11.5). */
       if (do_protected_member_check && !access_control_error_reported) {
-        check_protected_member_access(member_sym, projection_member_sym,
-                                      member_pos, class_struct_union_type);
+        (void)check_protected_member_access(member_sym, projection_member_sym,
+                                            member_pos,
+                                            class_struct_union_type);
       }  /* if */
       /* Do nothing if the type is already okay (which it almost always
          will be; only in cases involving qualified names can it be
