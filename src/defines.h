@@ -199,6 +199,7 @@ Flags to be set when using the KAI inliner.
 #define USER_CONTROL_OF_STRUCT_PACKING 1
 #define ASM_FUNCTION_ALLOWED 1
 #define INCLUDE_COMMENTS_IN_ASM_FUNC_BODY 1
+#define RUNTIME_USES_NAMESPACES 0
 
 #endif /* ifdef __LINUX__ */
 #endif /* defined(_WIN32) */
