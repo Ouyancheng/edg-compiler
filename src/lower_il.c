@@ -3811,8 +3811,10 @@ this routine to do a relatively simple copy of the all the fields.
     }  /* if */
     subobject_type->source_corresp.decl_position = 
                                       class_type->source_corresp.decl_position;
-    subobject_type->source_corresp.parent.class_type =
-                            class_type->source_corresp.parent.class_type;
+    subobject_type->source_corresp.parent =
+                                      class_type->source_corresp.parent;
+    subobject_type->source_corresp.is_class_member =
+                                    class_type->source_corresp.is_class_member;
 #if 0
     /* Ideally, the referenced flag would not be set if the class type is
        not referenced.  However, the class type might not be referenced now
@@ -8382,6 +8384,16 @@ Do IL lowering of the indicated statement and everything under it.
 }  /* lower_statement */
 
 
+/*
+Clear the parent information in the indicated entity to remove the entity
+from any class or namespace of which it might be a member.
+*/
+#define clear_parent(entity) \
+{ (entity)->source_corresp.is_class_member = FALSE; \
+  (entity)->source_corresp.parent.namespace_ptr = NULL; \
+}  /* clear_parent */
+
+
 static void promote_constants(a_scope_ptr scope)
 /*
 Promote the constants on the constants list of the indicated scope
@@ -8413,6 +8425,8 @@ Promote the constants on the constants list of the indicated scope
       (void)fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
+    clear_parent(constant);
+    constant->source_corresp.is_local_to_function = FALSE;
     add_to_constants_list(constant, /*at_file_scope=*/TRUE);
   }  /* for */
   /* Clear the list of promoted constants.  Since the scope is for a class
@@ -8437,7 +8451,7 @@ Promote the static variables on the variables list of the indicated scope
      members out of file-scope classes or classes nested within them.
      (Or namespaces in the file scope or nested within such namespaces.)
      For those, the file scope is the right place to promote to. */
-  /* Promote the variables to the end of the proper variables list. */
+  /* Promote the variables to the end of the file-scope variables list. */
   for (variable = scope->variables;
        variable != NULL;
        variable = next_variable) {
@@ -8451,6 +8465,8 @@ Promote the static variables on the variables list of the indicated scope
       (void)fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
+    clear_parent(variable);
+    variable->source_corresp.is_local_to_function = FALSE;
     add_to_variables_list(variable, DEPTH_OF_FILE_SCOPE);
   }  /* for */
   /* Clear the list of promoted variables.  Since the scope is for a class
@@ -8481,6 +8497,10 @@ or namespace scope) into the file scope.
       (void)fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
+    /* clear_parent is not called here because we want to keep the class
+       membership in constructors and destructors so we can figure it out
+       easily.  See clear_parent_info_on_file_scope_routines. */
+    routine->source_corresp.is_local_to_function = FALSE;
     add_to_routines_list(routine, /*at_file_or_namespace_scope=*/TRUE);
   }  /* for */
   /* Clear the list of promoted routines.  Since the scope is for a class
@@ -8511,6 +8531,8 @@ Promote the asm entries on the asm_entries list of the indicated scope
       (void)fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
+    clear_parent(asm_entry);
+    asm_entry->source_corresp.is_local_to_function = FALSE;
     add_to_asm_entries_list(asm_entry);
   }  /* for */
   /* Clear the list of asm entries.  Since the scope is for a namespace,
@@ -8547,6 +8569,27 @@ and set the next pointer in the last entry on the list to NULL.
 }  /* prepare_to_remove_class_along_with_type_as_subobject */
 
 
+static void clear_is_local_to_function_flag_in_type(a_type_ptr type)
+/*
+The indicated type is (part of something) being promoted out of a function.
+Clear its is_local_to_function flag and the flags of any subtypes.
+*/
+{
+  type->source_corresp.is_local_to_function = FALSE;
+  /* If the type is a class, process its type list. */
+  if (is_immediate_class_type(type)) {
+    a_scope_ptr scope =
+                      type->variant.class_struct_union.extra_info->assoc_scope;
+    if (scope != NULL) {
+      a_type_ptr subtype;
+      for (subtype = scope->types; subtype != NULL; subtype = subtype->next) {
+        clear_is_local_to_function_flag_in_type(subtype);
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* clear_is_local_to_function_flag_in_type */
+
+
 static void promote_type_list(a_type_ptr  type,
                               a_scope_ptr promotion_scope,
                               a_type_ptr  *insert_pointer)
@@ -8556,7 +8599,8 @@ Promote the types on the indicated types list into the scope promotion_scope.
 the insertion.
 */
 {
-  a_type_ptr next_type;
+  a_type_ptr   next_type;
+  a_scope_kind kind;
 
   for (; type != NULL; type = next_type) {
     next_type = type->next;
@@ -8642,6 +8686,33 @@ the insertion.
         (*insert_pointer)->next = type;
       }  /* if */
       *insert_pointer = type;
+      /* Adjust the parent information to reflect the new position of this
+         type. */
+      kind = promotion_scope->kind;
+      if (kind == (a_scope_kind)sck_class_struct_union) {
+        /* Promotion is into a class scope. */
+        set_class_membership((a_symbol_ptr)NULL, &type->source_corresp,
+                             promotion_scope->variant.assoc_type);
+      } else if (kind == (a_scope_kind)sck_namespace) {
+        /* Promotion is into a namespace scope. */
+        set_namespace_membership((a_symbol_ptr)NULL, &type->source_corresp,
+                                 promotion_scope->variant.assoc_namespace);
+      } else {
+        /* Promotion is into some other kind of scope. */
+        clear_parent(type);
+      }  /* if */
+      if (type->source_corresp.is_local_to_function) {
+        /* The is_local_to_function flag is set.  See if we have to clear
+           it.  (We never promote into a function from outside, so we never
+           have to set it.) */
+        if (kind == (a_scope_kind)sck_function ||
+            kind == (a_scope_kind)sck_block ||
+            kind == (a_scope_kind)sck_func_prototype) {
+          /* Still inside a function, so leave is_local_to_function set. */
+        } else {
+          clear_is_local_to_function_flag_in_type(type);
+        }  /* if */
+      }  /* if */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
       if (is_immediate_class_type(type)) {
         a_class_type_supplement_ptr ctsp =
@@ -8985,27 +9056,6 @@ by things that will be in the file scope.
 }  /* local_entities_should_be_promoted */
 
 
-static void clear_is_local_to_function_flag_in_type(a_type_ptr type)
-/*
-The indicated type is (part of something) being promoted to file scope.
-Clear its is_local_to_function flag and the flags of any subtypes.
-*/
-{
-  type->source_corresp.is_local_to_function = FALSE;
-  /* If the type is a class, process its type list. */
-  if (is_immediate_class_type(type)) {
-    a_scope_ptr scope =
-                      type->variant.class_struct_union.extra_info->assoc_scope;
-    if (scope != NULL) {
-      a_type_ptr subtype;
-      for (subtype = scope->types; subtype != NULL; subtype = subtype->next) {
-        clear_is_local_to_function_flag_in_type(subtype);
-      }  /* for */
-    }  /* if */
-  }  /* if */
-}  /* clear_is_local_to_function_flag_in_type */
-
-
 void promote_local_entities_to_file_scope(a_scope_ptr   scope,
                                           a_routine_ptr routine)
 /*
@@ -9320,6 +9370,7 @@ have been promoted out of those classes.
         }  /* if */
         prev_type = temp_type;
         scope->types = temp_type_next;
+        clear_parent(temp_type);
         /* Stop on reaching the type pointed to by the placeholder. */
         if (temp_type == namespace_type) break;
       }  /* for */
@@ -9683,6 +9734,24 @@ next_kind:;
 }  /* lower_orphaned_entries */
 
 
+static void clear_parent_info_on_file_scope_routines(void)
+/*
+Clear class/namespace membership information from all file-scope routines.
+This is done late in file scope lowering so that class membership information
+remains in constructors and destructors for the use of IL lowering; that
+information is the easiest way to know the associated class for those.
+*/
+{
+  a_routine_ptr rout;
+
+  for (rout = il_header.primary_scope->routines;
+       rout != NULL;
+       rout = rout->next) {
+    clear_parent(rout);
+  }  /* for */
+}  /* clear_parent_info_on_file_scope_routines */
+
+
 void lower_il_memory_region(a_memory_region_number region_number)
 /*
 Rewrite the intermediate language in memory region region_number from
@@ -9765,6 +9834,9 @@ C++ to C, so that a C back end can handle it without change.
         mark_inlined_routines_as_unreferenced();
       }  /* if */
 #endif /* MINIMAL_INLINING */
+      /* Clear class membership information on routines now that it isn't
+         needed anymore for IL lowering purposes. */
+      clear_parent_info_on_file_scope_routines();
     }  /* if */
     /* Add definitions for any typeinfo variables generated for classes.
        This must be done late so that all the required typeinfo variables
