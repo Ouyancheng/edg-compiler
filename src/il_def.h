@@ -222,22 +222,6 @@ typedef struct a_source_correspondence {
 } a_source_correspondence;
 
 /*
-Numbering for scopes.  Each new scope is given a number.  These
-numbers are unique identifiers for each scope, not simply the nesting
-level of the scope.  Also, each struct or union has a unique scope
-number for its member fields, even though no true scope with that
-number is created.  In C++, a class/struct/union has a true scope
-associated with it.  These scope numbers are mostly of interest to the
-front end.
-*/
-typedef short a_scope_number;
-#define MAX_SCOPE_NUMBER SHRT_MAX
-#define NO_SCOPE_NUMBER (-1)
-			/* Scope number used for things without scope. */
-#define FILE_SCOPE_NUMBER 0
-			/* Scope number for the file scope. */
-
-/*
 Data structures related to constants:
 */
 enum a_constant_repr_kind_tag {
@@ -275,7 +259,7 @@ enum a_constant_repr_kind_tag {
 #ifdef CIL
 			/* Used in C++, not in C. */
   ck_template_param,	/* Nontype parameter in a class template declaration
-                           (C++ only). */
+                           (C++ front end only). */
 #endif /* ifdef CIL */
 #ifdef FIL
   ck_init_position,     /* Used to specify an explicit initialization position
@@ -438,7 +422,7 @@ typedef struct a_dynamic_init {
 
 enum a_template_param_constant_kind_tag {
   /* When a constant is marked as a template parameter it may one of several
-     kinds. */
+     kinds (front end only). */
   tpck_param,		/* The template param constant represents a simple
 			   non-type template parameter, e.g., for I in the
 			   following:
@@ -649,7 +633,7 @@ typedef struct a_constant {
 			   with the storage allocation". */
     } init_repeat;
 #ifdef CIL
-    /* When kind = ck_template_param (used only in C++): */
+    /* When kind = ck_template_param (C++ front end only): */
     struct {
       a_template_param_constant_kind
 		kind;
@@ -734,7 +718,7 @@ enum a_type_kind_tag {
                            (const or volatile) to a type. */
   tk_ptr_to_member,     /* Pointer-to-member (C++ only). */
   tk_template_param,	/* Type parameter in a (class or function) template
-			   declaration (C++ only). */
+			   declaration (C++ front end only). */
 #endif /* ifdef CIL */
 #ifdef FIL
   tk_fcharacter,        /* Fortran character. */
@@ -870,7 +854,8 @@ typedef struct a_param_type {
   unsigned int  type_involves_template_param:1;
 			/* TRUE if the type entry associated with the
 			   parameter involves (anywhere in its type tree) a
-			   tk_template_param type entry (C++ only). */
+			   tk_template_param type entry (C++ front end
+			   only). */
   unsigned int	avoid_codecenter_warnings:2;
 			/* Cleared to avoid warnings from CodeCenter about
 			   uninitialized storage. */
@@ -1157,8 +1142,8 @@ typedef struct a_base_class {
 			   appears. */
   a_source_position
 		decl_position;
-			/* For direct base classes, the source position of
-			   of its declaration.  Otherwise, the source position
+			/* For a direct base class, the source position of
+			   its declaration.  Otherwise, the source position
 			   of a direct base class derived from it. */
   unsigned int	direct:1;
 			/* TRUE if this is a direct base class of
@@ -1440,7 +1425,7 @@ typedef struct a_class_type_supplement {
 
 enum a_template_param_type_kind_tag {
   /* When a type is marked as a template parameter it may one of several
-     kinds. */
+     kinds (C++ front end only). */
   tptk_param,		/* The template param type represents a simple
 			   template parameter, e.g., for T in the following:
 			     template <class T> class A {
@@ -1472,7 +1457,7 @@ typedef struct a_template_param_type_descr *a_template_param_type_descr_ptr;
 typedef struct a_template_param_type_descr {
   /* Information about a template parameter type that may be inferred from
      how it is used -- in particular, when a template parameter is used in a
-     way requiring that it be a class.  (C++ only.) */
+     way requiring that it be a class.  (C++ front end only.) */
   a_type_ptr	class_type;
 			/* The "proxy" class type associated with a given
                            template parameter.  This becomes useful in name
@@ -1588,9 +1573,16 @@ typedef struct a_type {
                            divisible.  1 if not applicable. */
   a_type_kind   kind;
                         /* The kind of type. */
-#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+#if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   a_byte_boolean
-		use_cfront_transitional_nested_type_name_mangling;
+		used_in_exception;
+#else
+  unsigned int	used_in_exception:1;
+			/* TRUE if this type appeared as (1) the type of an
+			   exception-declaration of a handler, (2) the type
+			   of a throw expression, or (3) an
+			   exception-specification. */
+  unsigned int	use_cfront_transitional_nested_type_name_mangling:1;
                         /* TRUE if this type should be treated as a
                            non-nested type for purposes such as name
                            mangling.  This is used for compatibility
@@ -1788,7 +1780,7 @@ typedef struct a_type {
 		type;
 			/* Type of the member pointed to. */
     } ptr_to_member;
-    /* When kind = tk_template_param (used only in C++): */
+    /* When kind = tk_template_param (C++ front end only): */
     struct {
       a_template_param_type_kind
 		kind;
@@ -2176,6 +2168,20 @@ typedef a_byte an_opname_kind;
 /*
 Data structures related to routines:
 */
+#ifdef CIL
+typedef struct an_exception_specification *an_exception_specification_ptr;
+typedef struct an_exception_specification {
+  an_exception_specification_ptr
+		next;
+			/* Pointer to the next in the linked list of
+			   exception specification entries defined for a given
+			   routine. */
+  a_type_ptr	type;
+			/* Pointer to the type declared in the exception
+			   specification. */
+} an_exception_specification;
+#endif /* ifdef CIL */
+
 typedef struct a_routine {
   /* Description of a routine.  Note that this is pointed to from a scope
      block, and the local variables (etc.) are declared there. */
@@ -2281,6 +2287,11 @@ typedef struct a_routine {
                            this function; it is unique among the virtual
 			   functions of a given class.  When is_virtual is
 			   FALSE, this field is undefined. */
+  an_exception_specification_ptr
+		exception_specifications;
+			/* Pointer to a linked list of entries describing
+			   the exception specifications declared for this
+			   routine, or NULL if none were declared. */
 #endif /* ifdef CIL */
 #ifdef FIL
   a_byte_boolean
@@ -2421,6 +2432,7 @@ enum an_expr_node_kind_tag {
   enk_temp_init,	/* Initialization of a temporary within an
 			   expression.  C++ only. */
   enk_new_delete,	/* C++ "new" or "delete". */
+  enk_throw,		/* C++ throw expression. */
 #endif /* ifdef CIL */
 #ifdef FIL
   enk_stmt_label_value, /* A statement label value for an ASSIGN or
@@ -2871,6 +2883,12 @@ typedef struct an_expr_node {
 		new_delete;
 			/* Pointer to an entry that describes the new or
 			   delete operation (C++ only). */
+    /* When kind == enk_throw: */
+    an_expr_node_ptr  
+                throw_object;
+                        /* The object being thrown in a throw expression;
+			   NULL when a no object is specified (i.e., a
+			   "rethrow" of the current throw object). */
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == enk_stmt_label_value: */
@@ -2911,6 +2929,7 @@ enum a_statement_kind_tag {
   stmk_switch,          /* Switch. */
   stmk_init,            /* Do a dynamic initialization. */
   stmk_asm,             /* "asm" statement (or declaration). */
+  stmk_try_block,       /* Try block (C++ only). */
 #endif /* ifdef CIL */
 #ifdef FIL
   stmk_fentry,          /* Code label for an ENTRY. */
@@ -2991,6 +3010,29 @@ typedef struct a_block {
 			   safe setting is TRUE. */
 #endif /* ifdef CIL */
 } a_block;
+
+#ifdef CIL
+/* Information about a handler (or catch-clause) defined within a try block. */
+typedef struct a_handler *a_handler_ptr;
+typedef struct a_handler {
+  a_handler_ptr	next;
+			/* Pointer to the next in the linked list of handlers
+			   defined for a given try block; NULL for the last
+			   in the list. */
+  a_variable_ptr
+		parameter;
+			/* Pointer to a variable entry representing the object
+			   to be initialized by the throw object when the
+			   the handler is invoked.  It may or may not be
+			   named.  It is NULL when the exception declaration
+			   is an ellipsis. */
+  a_statement_ptr
+		statement;
+			/* Pointer to a stmk_block statement representing the
+			   compound statement that makes up the body of the
+			   handler. */
+} a_handler;
+#endif /* ifdef CIL */
 
 #ifdef FIL
 /*
@@ -3380,6 +3422,17 @@ typedef struct a_statement {
                         /* Constant giving the string that is the argument
                            of the "asm" statement, i.e., an assembly-language
                            line. */
+    /* When kind == stmk_try_block: */
+    struct {
+      a_statement_ptr
+                statement;
+                        /* The list of statements contained within the try
+                           block (i.e., those preceding the first handler). */
+      a_handler_ptr
+		handlers;
+			/* A linked list of entries describing the handlers
+			   (or catch-clauses) defined in the try block. */
+    } try_block;
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == stmk_fentry: */
@@ -3557,6 +3610,22 @@ typedef struct an_orphaned_il_list {
 
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
+/*
+Numbering for scopes.  Each new scope is given a number.  These
+numbers are unique identifiers for each scope, not simply the nesting
+level of the scope.  Also, each struct or union has a unique scope
+number for its member fields, even though no true scope with that
+number is created.  In C++, a class/struct/union has a true scope
+associated with it.  These scope numbers are mostly of interest to the
+front end.
+*/
+typedef short a_scope_number;
+#define MAX_SCOPE_NUMBER SHRT_MAX
+#define NO_SCOPE_NUMBER (-1)
+			/* Scope number used for things without scope. */
+#define FILE_SCOPE_NUMBER 0
+			/* Scope number for the file scope. */
+
 enum a_scope_kind_tag {
   /* Kinds of scopes. */
   sck_file,		/* File scope. */
@@ -3633,8 +3702,14 @@ typedef struct a_scope {
     /* When kind == sck_stmt_function, no variant fields. */
 #endif /* ifdef FIL */
 #ifdef CIL
-    /* When kind == sck_block, no variant fields (but see assoc_block
-       below). */
+    /* When kind == sck_block (also see assoc_block below): */
+    a_variable_ptr
+		parameter;
+			/* When the scope is associated with a handler, a
+			   pointer to the handler's "parameter"; NULL when
+			   the handler is declared with an ellipsis as its
+			   exception declaration or when the block scope is
+			   not associated with a handler. */
     /* When kind == sck_func_prototype or sck_class_struct_union: */
     a_type_ptr	assoc_type;
 			/* The function type whose prototype scope this is,

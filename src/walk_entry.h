@@ -442,6 +442,15 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->type, a_type_ptr, iek_type);
       }
       break;
+    case iek_exception_specification:
+      {
+        an_exception_specification_ptr ptr =
+                                   (an_exception_specification_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, an_exception_specification_ptr,
+                       iek_exception_specification);
+        walk_ptr(ptr->type, a_type_ptr, iek_type);
+      }
+      break;
 #endif /* ifdef CFE */
     case iek_routine:
       {
@@ -455,6 +464,8 @@ the file scope, do not process it (but record an orphan in the latter case).
 #ifdef CFE
         walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
                   iek_class_list_entry);
+        walk_list(ptr->exception_specifications,
+                  an_exception_specification_ptr, iek_exception_specification);
 #endif /* ifdef CFE */
 #ifdef FFE
         walk_ptr(ptr->local_routine_scope, a_scope_ptr, iek_scope);
@@ -537,6 +548,10 @@ the file scope, do not process it (but record an orphan in the latter case).
             walk_ptr(ptr->variant.new_delete, a_new_delete_supplement_ptr,
                      iek_new_delete_supplement);
             break;
+          case enk_throw:
+            walk_ptr(ptr->variant.throw_object, an_expr_node_ptr,
+                     iek_expr_node);
+            break;
 #endif /* ifdef CFE */
 #ifdef FFE
           case enk_stmt_label_value:
@@ -557,6 +572,17 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_switch_clause_ptr, iek_switch_clause);
         walk_list(ptr->constant_list, a_constant_ptr, iek_constant);
         walk_list(ptr->statements, a_statement_ptr, iek_statement);
+      }
+      break;
+    case iek_handler:
+      {
+        a_handler_ptr ptr = (a_handler_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_handler_ptr, iek_handler);
+        /* The associated parameter, if any, will appear on the current scope.
+           Therefore, here we just remap the pointer but do not walk the
+           subtree. */
+        remap_ptr(ptr->parameter, a_variable_ptr, iek_variable);
+        walk_ptr(ptr->statement, a_statement_ptr, iek_statement);
       }
       break;
 #endif /* ifdef CFE */
@@ -630,6 +656,12 @@ the file scope, do not process it (but record an orphan in the latter case).
             remap_ptr(ptr->variant.asm_entry, an_asm_entry_ptr,
                       iek_asm_entry);
             break;
+          case stmk_try_block:
+            walk_ptr(ptr->variant.try_block.statement, a_statement_ptr,
+                     iek_statement);
+            walk_list(ptr->variant.try_block.handlers, a_handler_ptr,
+                      iek_handler);
+            break;
 #endif /* ifdef CFE */
 #ifdef FFE
           case stmk_fentry:
@@ -683,13 +715,13 @@ the file scope, do not process it (but record an orphan in the latter case).
 #ifdef FFE
           case sck_stmt_function:
 #endif  /* ifdef FFE */
-#ifdef CFE
-          case sck_block:
-            /* No variant field, but see assoc_block below. */
-#endif  /* ifdef CFE */
             /* No pointers */
             break;
 #ifdef CFE
+          case sck_block:
+            walk_ptr(ptr->variant.parameter, a_variable_ptr, iek_variable);
+            /* Also see assoc_block below. */
+            break;
           case sck_func_prototype:
           case sck_class_struct_union:
             remap_ptr(ptr->variant.assoc_type, a_type_ptr, iek_type);

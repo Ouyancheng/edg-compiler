@@ -60,12 +60,15 @@ typedef enum /*an_il_entry_kind*/ {
   iek_variable,		/* a_variable */
 #ifdef CIL
   iek_field,		/* a_field */
+  iek_exception_specification,
+			/* an_exception_specification */
 #endif /* ifdef CIL */
   iek_routine,		/* a_routine */
   iek_label,		/* a_label */
   iek_expr_node,	/* an_expr_node */
 #ifdef CIL
   iek_switch_clause,	/* a_switch_clause */
+  iek_handler,          /* a_handler */
 #endif /* ifdef CIL */
   iek_block,		/* a_block */
   iek_statement,	/* a_statement */
@@ -392,6 +395,8 @@ extern a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type);
 
 extern a_field_ptr alloc_field(void);
 
+extern an_exception_specification_ptr alloc_exception_specification(void);
+
 extern a_routine_ptr alloc_routine(void);
 
 extern void remove_from_routines_list(a_routine_ptr rout_ptr);
@@ -500,6 +505,8 @@ extern a_statement_ptr make_call_assignment_statement(
                                                    a_source_position *err_pos);
 
 extern a_switch_clause_ptr alloc_switch_clause(void);
+
+extern a_handler_ptr alloc_handler(void);
 
 extern void set_statement_kind(a_statement_ptr  sp,
                                a_statement_kind kind);

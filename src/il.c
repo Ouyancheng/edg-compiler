@@ -78,11 +78,13 @@ static unsigned long
 		num_variables_allocated,
 		num_fields_allocated,
 		num_routines_allocated,
+                num_exception_specifications_allocated,
 		num_asm_entries_allocated,
 		num_labels_allocated,
 		num_expr_nodes_allocated,
 		num_new_delete_supplements_allocated,
 		num_switch_clauses_allocated,
+                num_handlers_allocated,
 		num_blocks_allocated,
 		num_statements_allocated,
                 num_constructor_inits_allocated,
@@ -3162,7 +3164,8 @@ and return a pointer to it.
 {
   a_template_param_type_descr_ptr tptdp;
 
-  tptdp = (a_template_param_type_descr_ptr)alloc_il(sizeof(a_template_param_type_descr));
+  tptdp = (a_template_param_type_descr_ptr)alloc_il(
+                                       sizeof(a_template_param_type_descr));
 #if DEBUG
   num_template_param_type_descrs_allocated++;
 #endif
@@ -3436,6 +3439,7 @@ variant fields to default values.
   pte->based_types = NULL;
   pte->size = 0;
   pte->alignment = 1;
+  pte->used_in_exception = FALSE;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   pte->use_cfront_transitional_nested_type_name_mangling = FALSE;
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
@@ -4604,6 +4608,26 @@ to it.
 }  /* alloc_field */
 
 
+an_exception_specification_ptr alloc_exception_specification(void)
+/*
+Allocate an exception specification, clear it to default values, and
+return a pointer to it.  The entry is allocated in the file scope memory
+region.
+*/
+{
+  an_exception_specification_ptr  esp;
+
+  esp = (an_exception_specification_ptr)alloc_il(
+                                         sizeof(an_exception_specification));
+#if DEBUG
+  num_exception_specifications_allocated++;
+#endif /* DEBUG */
+  esp->next = NULL;
+  esp->type = NULL;
+  return esp;
+}  /* alloc_exception_specification */
+
+
 a_routine_ptr alloc_routine(void)
 /*
 Allocate a routine entry, clear it to default values, and return a pointer
@@ -4636,6 +4660,7 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   rp->befriending_classes     = NULL;
   rp->virtual_function_number = 0;
+  rp->exception_specifications = NULL;
 #ifdef FIL
   rp->is_fortran_entry        = FALSE;
   rp->local_routine_scope     = NULL;
@@ -4869,6 +4894,9 @@ fields to default values.
       ndsp->routine      = NULL;
       ndsp->arg          = NULL;
       ndsp->dynamic_init = NULL;
+      break;
+    case enk_throw:
+      node->variant.throw_object = NULL;
       break;
 #if CHECKING
     default:
@@ -5757,6 +5785,24 @@ to it.
 }  /* alloc_switch_clause */
 
 
+a_handler_ptr alloc_handler(void)
+/*
+Allocate a handler, clear it to default values, and return a pointer to it.
+*/
+{
+  register a_handler_ptr hp;
+
+  hp = (a_handler_ptr)alloc_cil(sizeof(a_handler));
+#if DEBUG
+  num_handlers_allocated++;
+#endif /* DEBUG */
+  hp->next      = NULL;
+  hp->parameter = NULL;
+  hp->statement = NULL;
+  return hp;
+}  /* alloc_handler */
+
+
 void set_statement_kind(a_statement_ptr  sp,
                         a_statement_kind stmt_kind)
 /*
@@ -5809,6 +5855,9 @@ fields to default values.
     case stmk_asm:
       sp->variant.asm_entry = NULL;
       break;
+    case stmk_try_block:
+      sp->variant.try_block.statement = NULL;
+      sp->variant.try_block.handlers  = NULL;
 #if CHECKING
     default:
       internal_error("set_statement_kind: bad kind");
@@ -5910,8 +5959,10 @@ points to the associated routine if the kind is sck_function.
   sp->kind                = kind;
   switch (kind) {
     case sck_file:
-    case sck_block:
       /* No variant fields. */
+      break;
+    case sck_block:
+      sp->variant.parameter = NULL;
       break;
     case sck_func_prototype:
     case sck_class_struct_union:
@@ -5995,6 +6046,9 @@ Display and return the amount of space used for various IL tables.
   db_space_used("variable", num_variables_allocated, a_variable);
   db_space_used("field", num_fields_allocated, a_field);
   db_space_used("routine", num_routines_allocated, a_routine);
+  db_space_used("exception specification",
+                num_exception_specifications_allocated,
+                an_exception_specification);
   db_space_used("asm entry", num_asm_entries_allocated, an_asm_entry);
   db_space_used("label", num_labels_allocated, a_label);
   db_space_used("expr node", num_expr_nodes_allocated, an_expr_node);
@@ -6002,6 +6056,7 @@ Display and return the amount of space used for various IL tables.
                 a_new_delete_supplement);
   db_space_used("switch clause",
                 num_switch_clauses_allocated, a_switch_clause);
+  db_space_used("handler", num_handlers_allocated, a_handler);
   db_space_used("block", num_blocks_allocated, a_block);
   db_space_used("statement", num_statements_allocated, a_statement);
   db_space_used("constructor init", num_constructor_inits_allocated,
@@ -6155,6 +6210,7 @@ of the front end.
   num_variables_allocated                = 0;
   num_fields_allocated                   = 0;
   num_routines_allocated                 = 0;
+  num_exception_specifications_allocated = 0;
   num_asm_entries_allocated              = 0;
   num_labels_allocated                   = 0;
   num_expr_nodes_allocated               = 0;

@@ -1186,6 +1186,7 @@ Display the indicated type entry.
   disp_based_type_list(ptr->based_types);
   disp_unsigned_long("size", (unsigned long)ptr->size);
   disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
+  disp_boolean("used_in_exception", (a_boolean)ptr->used_in_exception);
   disp_name("kind");
   switch (ptr->kind) {
     case tk_error:
@@ -1668,7 +1669,6 @@ Display the indicated name and template arg list.
     }  /* for */
   }  /* if */
 }  /* disp_template_arg_list */
-
 #endif /* ifdef CFE */
 
 static void disp_routine(a_routine_ptr ptr)
@@ -1708,6 +1708,8 @@ Display the indicated routine.
     disp_unsigned_long("virtual_function_number",
                        (unsigned long)ptr->virtual_function_number);
   }  /* if */
+  disp_ptr("exception_specifications", (char *)ptr->exception_specifications,
+           iek_exception_specification);
 #endif /* ifdef CFE */
 #ifdef FFE
   disp_boolean("is_fortran_entry", (a_boolean)ptr->is_fortran_entry);
@@ -2014,6 +2016,11 @@ do_variable:
       (void)printf("enk_new_delete\n");
       disp_new_delete_supplement(ptr->variant.new_delete);
       break;
+    case enk_throw:
+      (void)printf("enk_throw\n");
+      disp_ptr("throw_object", (char *)ptr->variant.throw_object,
+               ieK_variable;
+      break;
 #endif /* ifdef CFE */
 #ifdef FFE
     case enk_stmt_label_value:
@@ -2040,6 +2047,25 @@ Display the indicated switch clause.
   disp_unsigned_long("break_seq_number", (unsigned long)ptr->break_seq_number);
 }  /* disp_switch_clause */
 
+
+static void disp_exception_specifications(an_exception_specification_ptr ptr)
+/*
+Display the indicated exception-specification entry.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_exception_specification);
+  disp_ptr("type", (char *)ptr->type, iek_type);  
+}  /* disp_exception_specifications */
+
+
+static void disp_handler(a_handler_ptr ptr)
+/*
+Display the indicated handler.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_handler);
+  disp_ptr("parameter", (char *)ptr->parameter, iek_variable);
+  disp_ptr("statement", (char *)ptr->statement, iek_statement);
 #endif /* ifdef CFE */
 
 static void disp_block(a_block_ptr ptr)
@@ -2135,6 +2161,14 @@ do_label:
       (void)printf("stmk_asm\n");
       disp_ptr("asm_entry", (char *)ptr->variant.asm_entry, iek_asm_entry);
       break;
+    case stmk_try_block:
+      /* Try block. */
+      (void)printf("stmk_try_block\n");
+      disp_ptr("statement", (char *)ptr->variant.try_block.statement,
+               iek_statement);
+      disp_ptr("handlers", (char *)ptr->variant.try_block.handlers,
+               iek_handler);
+      break;
 #endif /* ifdef CFE */
 #ifdef FFE
     case stmk_fentry:
@@ -2217,6 +2251,9 @@ Display the indicated scope.
 #ifdef CIL
     case sck_block:
       (void)printf("sck_block\n");
+      if (ptr->variant.parameter != NULL) {
+        disp->ptr("parameter", (char *)ptr->variant.parameter, iek_variable);
+      }  /* if */
       break;
     case sck_func_prototype:
       (void)printf("sck_func_prototype\n");
@@ -2873,8 +2910,15 @@ This routine is called during IL walking.
         case iek_field:
           disp_field((a_field_ptr)entry_ptr);
           break;
+        case iek_exception_specification:
+          disp_exception_specification(
+                                 an_exception_specification_ptr)entry_ptr);
+          break;
         case iek_switch_clause:
           disp_switch_clause((a_switch_clause_ptr)entry_ptr);
+          break;
+        case iek_handler:
+          disp_handler((a_handler_ptr)entry_ptr);
           break;
 #endif /* ifdef CFE */
         case iek_statement:
