@@ -161,6 +161,7 @@ extern a_label_ptr scan_label(a_boolean is_definition);
 extern void declaration(a_boolean      function_definition_allowed,
                         a_boolean      extern_implied,
                         a_boolean      is_old_style_param_decl,
+                        a_boolean      is_top_level_declaration,
                         a_param_id_ptr param_id_list);
 
 extern void local_declaration(void);
