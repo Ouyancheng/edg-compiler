@@ -137,6 +137,10 @@ void instantiate_template_function(a_routine_ptr   rout,
 static a_boolean equiv_template_arg_lists(a_template_arg_ptr  list1,
                                           a_template_arg_ptr  list2,
                                           a_boolean           is_func_template)
+#if 0
+/* If this ends up only being called for template classes, we can remove the
+   third parameter and simplify some of the logic. */
+#endif /* if 0 */
 /*
 Return TRUE if the two linked lists of template arguments for a given template
 class or template function are equivalent -- that is, if corresponding type
@@ -336,8 +340,8 @@ If it involves no template-parameter type, simply return "type".
 #endif /* DEBUG */
   switch (type->kind) {
     case tk_template_param:
-      /* If this template parameter type entry corresponds to the n-th
-         parameter, the real type to substitute for it is given in the n-th
+      /* If this template parameter type entry corresponds to the nth
+         parameter, the real type to substitute for it is given in the nth
          template argument.  Find the template argument that matches this
          template parameter and return it to the caller. */
       tap = templ_arg_list;
@@ -449,12 +453,12 @@ a_boolean matches_template_type(a_type_ptr         type,
                                 a_template_arg_ptr *templ_arg_list)
 /*
 Compare type and templ_type.  The latter is from a parameter list of a
-function template.  If they are identical, return TRUE.  If they are
-identical but for a template parameter, return TRUE if the type is consistent
-with other uses of that template parameter, as represented in the template
-argument list.  Otherwise, return FALSE.  When for the nth template
-parameter, the nth template arg has not yet been created, extend the
-template argument list to include n entries.
+function template (function params, not template params).  If the types are
+identical, return TRUE.  If they are identical but for a template parameter,
+return TRUE if the type is consistent with other uses of that template
+parameter, as represented in the template argument list.  Otherwise, return
+FALSE.  When for the nth template parameter, the nth template arg has not
+yet been created, extend the template argument list to include n entries.
 */
 {
   a_boolean           match = FALSE;
@@ -468,17 +472,17 @@ template argument list to include n entries.
     /* A real type "matches" a template parameter type if it is idential to
        the real type, if any, that was previously associated with that
        template type. */
-    /* For the n-th template parameter find the n-th template argument.  If
-       the n-th template argument hasn't been created yet, create it along
+    /* For the nth template parameter find the nth template argument.  If
+       the nth template argument hasn't been created yet, create it along
        with all missing template args that should precede it in the linked
        list. */
     prev_tap = NULL;
     for (i = templ_type->variant.list_position; i > 0; --i) {
-      /* The first time through the loop we look at the first entry in
-         in the template arg list, the second time at the second, etc. */
       if (prev_tap == NULL) {
+        /* This must be the first time through the loop. */
         tap = *templ_arg_list;
       } else {
+        /* Not the first iteration. */
         tap = prev_tap->next;
       }  /* if */
       /* If the template arg doesn't exist yet, create it and add it to the
@@ -487,8 +491,10 @@ template argument list to include n entries.
       if (tap == NULL) {
         tap = alloc_template_arg(/*is_arg_type=*/TRUE);
         if (prev_tap == NULL) {
+          /* First iteration -- the start the list. */
           *templ_arg_list = tap;
         } else {
+          /* Add to the end of the list. */
           prev_tap->next = tap;
         }  /* if */
       }  /* if */
@@ -497,10 +503,10 @@ template argument list to include n entries.
          new entry to it. */
       prev_tap = tap;
     }  /* for */
-    /* Now we have the n-th template argument, which should correspond to
-       the n-th template parameter, whose type is templ_type. */
+    /* Now we have the nth template argument, which should correspond to
+       the nth template parameter, whose type is templ_type. */
     if (tap->variant.type == NULL) {
-      /* No type has been assigned to the template argument yet, so just use
+      /* No type has been bound to this template argument yet, so just use
          "type".  This counts as a match. */
       tap->variant.type = type;
       match = TRUE;
@@ -613,23 +619,30 @@ template argument list to include n entries.
 
 
 #if CHECKING
-static void check_template_arg_list(a_template_arg_ptr  templ_arg_list,
+static void check_function_template_arg_list(
+                                    a_template_arg_ptr  templ_arg_list,
                                     a_symbol_ptr        templ_sym)
+/*
+Do some simple consistency checking on a function template argument list.
+*/
 {
   a_template_param_ptr  tpp;
   a_template_arg_ptr    tap;
 
   tpp = templ_sym->variant.template.extra_info->parameters;
   for (tap = templ_arg_list; tap != NULL; tap = tap->next) {
-    if (tpp == NULL) {
-      internal_error("check_template_arg_list: made too many template args");
+    if (!tap->is_type) {
+      internal_error("check_template_arg_list: not a type arg");
     } else if (tap->variant.type == NULL) {
       internal_error("check_template_arg_list: missing type ptr");
+    }  /* if */
+    if (tpp == NULL) {
+      internal_error("check_template_arg_list: too many template args");
     }  /* if */
     tpp = tpp->next;
   }  /* for */
   if (tpp != NULL) {
-    internal_error("check_template_arg_list: made too few template args");
+    internal_error("check_template_arg_list: too few template args");
   }  /* if */
 }  /* check_template_arg_list */
 #endif /* CHECKING */
@@ -657,7 +670,7 @@ templ_sym).
 
   db_enter(4, "make_template_function");
 #if CHECKING
-  check_template_arg_list(templ_arg_list, templ_sym);
+  check_function_template_arg_list(templ_arg_list, templ_sym);
 #endif /* CHECKING */
   /* Allocate the template function symbol.  Note that it is not entered
      into the symbol table -- it will appear on a function instantiation
@@ -675,17 +688,6 @@ templ_sym).
        function template's parameter list (the function parameters, that is,
        not the template parameters) along with the template argument list. */
     rout_type = copy_type_with_substitution(templ_rout->type, templ_arg_list);
-#if 0
-#else
-#if CHECKING
-  } else {
-    a_type_ptr tp;
-    tp = copy_type_with_substitution(templ_rout->type, templ_arg_list);
-    if (!identical_types(tp, rout_type)) {
-      internal_error("make_template_function: type created wrong");
-    }  /* if */
-#endif /* CHECKING */
-#endif /* if 0 */
   }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
   /* Give the routine entry the type passed in, and set other fields in
