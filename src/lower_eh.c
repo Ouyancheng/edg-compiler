@@ -1206,11 +1206,14 @@ typedef a_host_large_unsigned
 		a_vmi_class_flags_set;
 
 #define VMI_NON_DIAMOND_REPEAT	0x01
-			/* TRUE if the class has "non-diamond repeated
-			   inheritance." */
+			/* TRUE if any non-virtual base class appears more
+			   than once in the hierarchy. */
 
 #define VMI_DIAMOND		0x02
-			/* TRUE if the class is "diamond shaped." */
+			/* TRUE if the class is "diamond shaped."  In other
+			   words, TRUE if any virtual base class can be
+	`		   reached by more than one path through the
+			   hierarchy. */
 
 
 static a_boolean is_incomplete_type_for_purposes_of_rtti(a_type_ptr type)
@@ -1235,6 +1238,45 @@ internal linkage.
   }  /* if */
   return is_incomplete;
 }  /* is_incomplete_type_for_purposes_of_rtti */
+
+
+static a_vmi_class_flags_set vmi_flags_for_type(a_type_ptr	type)
+/*
+Compute the flags that describe the inheritance hierarchy of "type".  The
+flag set value is returned.
+*/
+{
+  a_vmi_class_flags_set	flags = 0;
+  a_base_class_ptr	bcp;
+
+  /* Go through the base class list.  Stop if both of the flags have already
+     been set. */
+  for (bcp = type->variant.class_struct_union.extra_info->base_classes;
+       bcp != NULL && flags != (VMI_DIAMOND | VMI_NON_DIAMOND_REPEAT);
+       bcp = bcp->next) {
+    if (bcp->is_virtual) {
+      /* The VMI_DIAMOND flag should be set if any virtual base class has
+         more than one derivation path. */
+      check_assertion(bcp->derivation != NULL);
+      if (bcp->derivation->next != NULL) flags |= VMI_DIAMOND;
+    } else {
+      /* The VMI_NON_DIAMOND_REPEAT flag should be set if any non-virtual
+         base class appears more than once in the hierarchy. */
+      if (bcp->ambiguous) flags |= VMI_NON_DIAMOND_REPEAT;
+    }  /* if */
+  }  /* for */
+#if DEBUG
+  if (db_flag_is_set("vmi_flags")) {
+    db_type_name(type);
+    if (flags & VMI_DIAMOND) fprintf(f_debug, " vmi_diamond");
+    if (flags & VMI_NON_DIAMOND_REPEAT) {
+      fprintf(f_debug, " vmi_non_diamond_repeat");
+    }  /* if */
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  return flags;
+}  /* vmi_flags_for_type */
 
 #endif /* IA64_ABI */
 
@@ -1658,11 +1700,10 @@ typeinfo variable in a COMDAT group.
           } else {
             a_base_class_derivation_ptr  derivation;
             a_base_class_sequence_number next_base = 1;
-            /* Setting the flags to this value is conservative: if the
-               inheritance is simpler than indicated here the runtime library
-               may do more work than it needs to do, but the answers it gets
-               will be correct. */
-            vmi_flags_value = VMI_NON_DIAMOND_REPEAT | VMI_DIAMOND;
+            /* Compute the flags that describe the inheritance hierarchy.
+               These flags are used by the runtime to optimize the search
+               for a base class. */
+            vmi_flags_value = vmi_flags_for_type(type);
             /* Build up the base class information array. */
             base_count = 0;
             base_array_con = alloc_constant(
