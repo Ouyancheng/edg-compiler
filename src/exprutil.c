@@ -8378,6 +8378,8 @@ Do one-time initialization of variables related to expression processing.
       pch_saved_var_array_elem(avail_candidate_functions),
 #if C99_IL_EXTENSIONS_SUPPORTED
       pch_saved_var_array_elem(imaginary_unit),
+      pch_saved_var_array_elem(nan_constant),
+      pch_saved_var_array_elem(infinity_constant),
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if DEBUG
       pch_saved_var_array_elem(num_arg_operands_allocated),
@@ -8392,9 +8394,11 @@ Do one-time initialization of variables related to expression processing.
   }  /* if */
   /* Register variables that must be saved and restored when switching
      between translation units. */
+#if C99_IL_EXTENSIONS_SUPPORTED
   register_trans_unit_variable(imaginary_unit);
   register_trans_unit_variable(nan_constant);
   register_trans_unit_variable(infinity_constant);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 }  /* expr_one_time_init */
 
 
