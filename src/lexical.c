@@ -12282,6 +12282,7 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(avail_pending_pragmas),
       pch_saved_var_array_elem(avail_stop_token_stack_entries),
       pch_saved_var_array_elem(include_file_history_list),
+      pch_saved_var_array_elem(name_linkage_constants),
 #if DEBUG
       pch_saved_var_array_elem(num_orig_line_modifs_allocated),
       pch_saved_var_array_elem(num_source_line_modifs_allocated),
