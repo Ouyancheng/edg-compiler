@@ -1543,7 +1543,7 @@ typedef struct a_scope_stack_entry {
 			   That is, the routine returns a class value via
 			   a copy constructor, and all return statements
 			   return a single local variable. */
-  unsigned int	is_prototype_instantiation_scope:1;
+  unsigned int	in_prototype_instantiation:1;
 			/* TRUE if kind is sck_template_instantiation and
 			   what is being instantiated is the prototype for a
 			   class template. */

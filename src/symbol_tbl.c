@@ -6615,6 +6615,7 @@ of the template.
          manageable pieces.  This call also allocates the top-level
          scope entry for the region. */
       sp = new_il_region(kind, ssep->number, assoc_routine);
+      sp->depth_in_scope_stack = depth_scope_stack;
       ssep->il_memory_region = curr_il_region_number;
       break;
     case sck_func_prototype:
@@ -6642,8 +6643,12 @@ of the template.
       symbol_supplement_for_class(assoc_type)->member_decl_scope =
                                                               ssep->number;
       /* Only in C++ mode do classes have an associated scope. */
-      sp = C_mode() ? NULL :
-                      alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
+      if (C_mode()) {
+        sp = NULL;
+      } else {
+        sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
+        sp->depth_in_scope_stack = depth_scope_stack;
+      }  /* if */
       break;
     default:
       /* For scopes for which a new memory region is not begun, the associated
@@ -6665,7 +6670,7 @@ of the template.
   ssep->is_loop_scope            = FALSE;
   ssep->slow_lookup_required     = FALSE;
   ssep->return_value_optimization_possible = FALSE;
-  ssep->is_prototype_instantiation_scope = FALSE;
+  ssep->in_prototype_instantiation = FALSE;
   ssep->symbols                  = NULL;
   ssep->last_symbol              = NULL;
   ssep->il_scope                 = sp;
@@ -6739,7 +6744,7 @@ of the template.
       ssep->inactive_symbols_may_be_visible = TRUE;
     } else if (kind != (a_scope_kind)sck_file) {
       ssep->inactive_symbols_may_be_visible =
-              scope_stack[depth_scope_stack-1].inactive_symbols_may_be_visible;
+                                  (ssep-1)->inactive_symbols_may_be_visible;
     }  /* if */
     /* Pragma and instantiation scopes require that the slow lookup
        algorithm be used because they require that certain symbols on the
@@ -6748,8 +6753,7 @@ of the template.
         kind == (a_scope_kind)sck_template_instantiation) {
       ssep->slow_lookup_required = TRUE;
     } else if (kind != (a_scope_kind)sck_file) {
-      ssep->slow_lookup_required =
-                        scope_stack[depth_scope_stack-1].slow_lookup_required;
+      ssep->slow_lookup_required = (ssep-1)->slow_lookup_required;
     }
     if (kind == (a_scope_kind)sck_class_struct_union ||
         kind == (a_scope_kind)sck_class_reactivation) {
@@ -6788,11 +6792,13 @@ of the template.
         reactivate_template_params = TRUE;
       } else if (is_class_template_symbol(template_sym)) {
         if (instance_sym != NULL && is_template_class_symbol(instance_sym)) {
-          ssep->is_prototype_instantiation_scope =
+          ssep->in_prototype_instantiation =
                     instance_sym->variant.class_struct_union.extra_info->
                                                 is_prototype_instantiation;
         }  /* if */
       }  /* if */
+    } else if (kind != (a_scope_kind)sck_file) {
+      ssep->in_prototype_instantiation = (ssep-1)->in_prototype_instantiation;
     }  /* if */
     if (reactivate_template_params) {
       /* We want to ensure that the first declarative scope following
@@ -7858,8 +7864,7 @@ should only be called if cross-reference information is being generated
     /* This symbol is not associated with any particular source position. */
   } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
              (sym_ptr->is_template_param ||
-              scope_stack[depth_innermost_instantiation_scope].
-                                           is_prototype_instantiation_scope)) {
+              scope_stack[depth_scope_stack].in_prototype_instantiation)) {
     /* Ignore template parameter symbols encountered during template
        instantiation and any symbols encountered during prototype
        instantiation. */
