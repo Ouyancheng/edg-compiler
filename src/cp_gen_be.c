@@ -7682,24 +7682,37 @@ done:;
 }  /* gen_statement */
 
 
-static a_boolean default_class_array_initialization(a_dynamic_init_ptr dip)
+static a_boolean default_class_array_initialization(
+                                             a_dynamic_init_ptr dip,
+                                             a_boolean          *is_value_init)
 /*
 Return TRUE if the indicated dynamic initialization entry performs
 default initialization on an array of classes.  Default initialization
 for such a case is to call the default constructor for each element of the
-array.
+array.  If the dynamic initialization performs value-initialization
+on an array, *value_init is returned TRUE, and the function returns FALSE;
 */
 {
   a_boolean is_default_array_init = FALSE;
 
+  *is_value_init = FALSE;
   if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
     a_constant_ptr con = dip->variant.constant;
     check_assertion(con->kind == (a_constant_repr_kind)ck_aggregate);
     if (con->variant.aggregate.first_constant->kind ==
                                         (a_constant_repr_kind)ck_init_repeat) {
-      /* A ck_init_repeat constant is used only to do default initialization
-         of an array, so we need check no further. */
       is_default_array_init = TRUE;
+      con= con->variant.aggregate.first_constant->variant.init_repeat.constant;
+      if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+        a_dynamic_init_ptr dip = con->variant.dynamic_init;
+        if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+          /* Value-initialization is not default-initialization. */
+          if (dip->variant.constructor.value_initialization) {
+            *is_value_init = TRUE;
+            is_default_array_init = FALSE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   return is_default_array_init;
@@ -7731,7 +7744,7 @@ Note that the destructor, if any, is implicit and need not be put out.
 */
 {
   a_constant_ptr con;
-  a_boolean      using_old_style_cast = FALSE;
+  a_boolean      using_old_style_cast = FALSE, is_value_init;
 
   if (dip->is_explicit_cast && !parenthesized_init) {
     a_boolean has_one_argument = FALSE;
@@ -7824,10 +7837,12 @@ Note that the destructor, if any, is implicit and need not be put out.
       */
       con = dip->variant.constant;
       if (parenthesized_init &&
-          default_class_array_initialization(dip)) {
+          (default_class_array_initialization(dip, &is_value_init) ||
+           is_value_init)) {
         /* This is default initialization for a whole class array,
-           so nothing need be put out, except parens if forced. */
-        if (force_parens) write_tok_str("()");
+           so nothing need be put out, except parens if forced.
+           Or value-initialization, which always requires parentheses. */
+        if (force_parens || is_value_init) write_tok_str("()");
         break;
       }  /* if */
       /* The constant must be an aggregate and it cannot be put out as
@@ -7861,8 +7876,10 @@ Note that the destructor, if any, is implicit and need not be put out.
         an_expr_node_ptr args = dip->variant.constructor.args;
         a_boolean        default_init;
 
-        /* See whether this is default-initialization. */
-        default_init = (args == NULL || args->generated_default_arg);
+        /* See whether this is default-initialization.  Value-initialization
+           is not default-initialization. */
+        default_init = (args == NULL || args->generated_default_arg) &&
+                       !dip->variant.constructor.value_initialization;
         if (default_init && !parenthesized_init) {
           /* A default initialization that's implicit and not parenthesized
              has to be put out as X(); you can't put out nothing. */
@@ -7911,7 +7928,7 @@ static void gen_initializer(a_variable_ptr var)
 Output the initializer, if any, for the indicated variable.
 */
 {
-  a_boolean          parenthesized_init;
+  a_boolean          parenthesized_init, is_value_init;
   a_dynamic_init_ptr dip;
   an_init_kind       init_kind;
   an_initializer_ptr initializer;
@@ -7955,7 +7972,7 @@ Output the initializer, if any, for the indicated variable.
                  (dip->variant.constructor.args == NULL ||
                   dip->variant.constructor.args->generated_default_arg)) {
         /* This is default initialization.  Put out nothing. */
-      } else if (default_class_array_initialization(dip)) {
+      } else if (default_class_array_initialization(dip, &is_value_init)) {
         /* This is default initialization for a class array, so put out
            nothing. */
       } else {
