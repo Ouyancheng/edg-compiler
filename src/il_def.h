@@ -2104,8 +2104,7 @@ typedef struct a_param_type {
 			   this parameter.  Because of delayed token scanning
 			   of default arguments for member functions, this
 			   flag may be set even though default_arg_expr
-                           remains NULL; this a temporary state and applies to
-			   front-end processing only. */
+                           remains NULL. */
   a_bit_field	has_unevaluated_template_default:1;
 			/* Default arguments of template functions and
 			   member functions of class templates are evaluated
@@ -2131,7 +2130,10 @@ typedef struct a_param_type {
 			/* Expression node representing the default value
 			   to be used as the actual argument on a function
 			   call when the actual argument corresponding to
-			   this parameter is omitted (C++ only). */
+			   this parameter is omitted (C++ only).  This can
+			   be NULL if the default argument value has not
+			   yet been evaluated, or for a template default
+			   argument value whose value was never needed. */
 #endif /* ifdef CIL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_decl_position_supplement_ptr
