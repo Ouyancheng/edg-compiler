@@ -2362,6 +2362,7 @@ duplicate paths.  The copy will be a base class of new_class.
 {
   a_base_class_ptr     new_bcp = NULL, bcp;
   an_access_specifier  access;
+  a_boolean            any_direct_virtual_base_class_fixup;
 
   db_enter(3, "add_indirect_base_class");
   /* Record the derivation path from the most derived class to the class that
@@ -2431,6 +2432,7 @@ duplicate paths.  The copy will be a base class of new_class.
   }  /* for */
   /* Add the base classes of the current indirect base class to the base
      classes list of the most-derived-class. */
+  any_direct_virtual_base_class_fixup = FALSE;
   for (bcp = base_classes_of(new_bcp->type); bcp != NULL; bcp = bcp->next) {
     if (!bcp->direct) {
       continue;
@@ -2439,7 +2441,10 @@ duplicate paths.  The copy will be a base class of new_class.
          is direct.  However, for our purposes, the "first" path (first in
          a depth-first left-to-right traversal of the derivation graph)
          must be direct. */
-      if (!bcp->derivation->direct) continue;
+      if (!bcp->derivation->direct) {
+        any_direct_virtual_base_class_fixup = TRUE;
+        continue;
+      }  /* if */
     }  /* if */
     add_indirect_base_class(bcp, new_bcp, path, p_end_of_add_list, new_class);
   }  /* for */
@@ -2453,6 +2458,31 @@ duplicate paths.  The copy will be a base class of new_class.
   /* Set shares_virtual_function_info for a base class of new_bcp, if
      appropriate. */
   set_shares_virtual_function_info_flag(new_class, new_bcp);
+  /* Do path fixup, if necessary. */
+  if (any_direct_virtual_base_class_fixup) {
+    a_base_class_ptr             disambiguator, fixup_bcp;
+    a_base_class_derivation_ptr  bcdp;
+
+    for (bcp = base_classes_of(new_bcp->type); bcp != NULL; bcp = bcp->next) {
+      if (bcp->direct && bcp->is_virtual) {
+        bcdp = bcp->derivation;
+        if (!bcdp->direct) {
+          /* Add path information about a direct virtual base class of
+             new_direct_bcp that was not first in the depth-first
+             left-to-right traversal of the latter's derivation graph. */
+          /* Find the base class in new_class that corresponds to bcp. */
+          disambiguator = find_disambiguator(new_class, new_bcp, bcp);
+          fixup_bcp = corresponding_base_class(bcp, new_class, disambiguator);
+          /* Find the derivation, which has the appropriate access. */
+          do {
+            bcdp = bcdp->next;
+          } while (!bcdp->direct);
+          /* Update the path list. */
+          (void)update_base_class_derivation(fixup_bcp, path, bcdp->access);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
   /* Branch here for duplicate virtual base class. */
 done:;
   db_exit();
@@ -2586,7 +2616,7 @@ or struct definition.  The syntax is
   a_type_ptr                    base_class_type;
   a_boolean                     ambiguous;
   a_class_symbol_supplement_ptr cssp, bcp_cssp;
-  a_boolean                     any_base_class_with_override_list;
+  a_boolean                     any_base_class_fixup_required;
   a_boolean                     first_direct_nonvirtual_base_class = TRUE;
   a_source_position             base_class_decl_pos;
   a_derivation_step_ptr         path;
@@ -2822,12 +2852,12 @@ or struct definition.  The syntax is
       new_direct_bcp->offset = 0;
       /* Add base classes derived from this base class to the current class's
          base class list.  They are marked as indirect. */
-      any_base_class_with_override_list = FALSE;
+      any_base_class_fixup_required = FALSE;
       for (bcp = base_classes_of(new_direct_bcp->type);
            bcp != NULL;
            bcp = bcp->next) {
         if (bcp->overriding_virtual_functions != NULL) {
-          any_base_class_with_override_list = TRUE;
+          any_base_class_fixup_required = TRUE;
         }  /* if */
         if (!bcp->direct) {
           continue;
@@ -2835,8 +2865,13 @@ or struct definition.  The syntax is
           /* A virtual base class is marked as "direct" if any of its paths
              is direct.  However, for our purposes, the "first" path (first in
              a depth-first left-to-right traversal of the derivation graph)
-             must be direct. */
-          if (!bcp->derivation->direct) continue;
+             must be direct.  On the other hand, we still need to record the
+             direct path, but so set a flag so another pass will be done over
+             the base class list. */
+          if (!bcp->derivation->direct) {
+            any_base_class_fixup_required = TRUE;
+            continue;
+          }  /* if */
         }  /* if */
           /* Add the direct base class and all *its* base classes to the
            base class list for the derived class. */
@@ -2854,10 +2889,27 @@ or struct definition.  The syntax is
       /* Set shares_virtual_function_info for a base class of new_direct_bcp,
          if appropriate. */
       set_shares_virtual_function_info_flag(type_ptr, new_direct_bcp);
-      if (any_base_class_with_override_list) {
+      if (any_base_class_fixup_required) {
         for (bcp = base_classes_of(new_direct_bcp->type);
              bcp != NULL;
              bcp = bcp->next) {
+          if (bcp->overriding_virtual_functions != NULL ||
+              (bcp->direct && bcp->is_virtual && !bcp->derivation->direct)) {
+            /* bcp is a base class of new_direct_bcp->type.  We need to find
+               the corresponding base class of type_ptr.  Find a disambiguator
+               in case what we are looking for is an ambiguous base class of
+               type_ptr. */
+            disambiguator = find_disambiguator(type_ptr, new_direct_bcp, bcp);
+            new_bcp = corresponding_base_class(bcp, type_ptr, disambiguator);
+          } else {
+            continue;
+          }  /* if */
+          if (bcp->direct && bcp->is_virtual && !bcp->derivation->direct) {
+            /* Add path information about a direct virtual base class of
+               new_direct_bcp that was not first in the depth-first
+               left-to-right traversal of the latter's derivation graph. */
+            (void)update_base_class_derivation(new_bcp, path, access);
+          }  /* if */
           if (bcp->overriding_virtual_functions != NULL) {
 #if DEBUG
             if (debug_level >= 4) {
@@ -2866,6 +2918,7 @@ or struct definition.  The syntax is
               db_virtual_function_override_list(bcp);
             }  /* if */
 #endif /* DEBUG */
+#if 0
             /* bcp is a base class of new_direct_bcp->type.  We need to find
                the corresponding base class of type_ptr.  Find a disambiguator
                in case what we are looking for is an ambiguous base class of
@@ -2876,6 +2929,7 @@ or struct definition.  The syntax is
                on the base classes list for base_class_type) to the
                corresponding copied base class new_bcp (which is on the base
                bases list for type_ptr). */
+#endif /* if 0 */
             copy_virtual_function_override_list(bcp, new_bcp,
                                                 base_class_type, type_ptr);
 #if DEBUG
