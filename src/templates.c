@@ -3336,6 +3336,32 @@ list.
 }  /* add_to_instantiations_required_list */
 
 
+static a_boolean is_static_or_inline_function(a_template_instance_ptr tip)
+/*
+Determines whether a template instance pointer refers to a function that
+is static or inline (i.e., is not an external function).
+*/
+{
+  a_boolean     result = FALSE;
+
+  if (is_function_symbol(tip->instance_sym)) {
+    a_routine_ptr	rout = tip->instance_sym->variant.routine.ptr;
+    result =  rout->is_inline;
+    if (tip->instance_sym->kind != (a_symbol_kind)sk_member_function) {
+      /* Only check the storage class of nonmember functions.  The linkage
+         of member functions has not been determined yet -- and member
+         functions are inline or noninline.  There is no such thing as
+         a noninline member function with static storage class.  This
+         is only important in tim_none mode.  In all other modes any
+         function with the instantiation required flag set will be
+         instantiated. */
+      result |= (rout->storage_class == (a_storage_class)sc_static);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_static_or_inline_function */
+
+
 static a_boolean should_be_instantiated(a_template_instance_ptr tip)
 /*
 Determines whether this template instance needs an instantiation and
@@ -3346,28 +3372,10 @@ such as instantiating a template for which no body was supplied.
   a_boolean	result = TRUE;
   a_boolean	specific_def;
   a_boolean	template_def;
-  a_boolean     is_inline_or_static_function = FALSE;
-
-  if (is_function_symbol(tip->instance_sym)) {
-    /* Inline and static functions should always be instantiated if they
-       are used. */
-    a_routine_ptr	rout = tip->instance_sym->variant.routine.ptr;
-    is_inline_or_static_function =  rout->is_inline;
-    if (tip->instance_sym->kind != (a_symbol_kind)sk_member_function) {
-      /* Only check the storage class of nonmember functions.  The linkage
-         of member functions has not been determined yet -- and member
-         functions are inline or noninline.  There is no such thing as
-         a noninline member function with static storage class.  This
-         is only important in tim_none mode.  In all other modes any
-         function with the instantiation required flag set will be
-         instantiated. */
-      is_inline_or_static_function |=
-                        (rout->storage_class == (a_storage_class)sc_static);
-    }  /* if */
-  }  /* if */
   if (tip->explicit_instantiation ||
       (tip->instantiation_required &&
-        (instantiation_mode != tim_none || is_inline_or_static_function))) {
+        (instantiation_mode != tim_none ||
+         is_static_or_inline_function(tip)))) {
     /* For error checking purposes, find out if a specific definition
        exists and whether a body exists for the template definition. */
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
@@ -3431,38 +3439,38 @@ updated but not removed from the list.
 {
   a_symbol_ptr   sym;
 
-  if (value && (instantiation_mode != tim_can_instantiate)) {
-    if (!tip->already_instantiated) {
-      sym = tip->instance_sym;
-      if (sym == tip->template_sym) {
-        /* Somehow a member function of a nonreal class (e.g., a prototype
-           instantiation of a class template) has been referenced.  (This
-           can occur in a sizeof operation applied to the address of a
-           static member function -- anywhere else?).  Do not instantiate
-           the function. */
-      } else if (is_function_symbol(sym) && sym->defined &&
-                 sym->variant.routine.ptr->is_inline) {
-        /* Inline (member or nonmember) functions are instantiated at the
-           point of first use, in case the back end requires the function
-           body immediately to perform inlining. */
-        instantiate_template_function(tip);
-        tip->instantiation_required = FALSE;
-      } else if (!tip->instantiation_required) {
-        /* The flag is not already set.  If we are in instantiation wrapup
-           then instantiate the function now instead of just adding it to
-	   the end of the list.  This makes it possible to detect runaway
-           recursive instantiations that are very difficult to detect
-	   when the instantiations are done serially. */
-        tip->instantiation_required = TRUE;
-	if (in_instantiation_wrapup) {
-	  if (should_be_instantiated(tip)) {
-	    if (tip->instance_sym->kind ==
-				       (a_symbol_kind)sk_static_data_member) {
-              define_template_static_data_member(tip);
-            } else {
-              instantiate_template_function(tip);
-            }  /* if */
-	  }  /* if */
+  if (instantiation_mode == tim_can_instantiate) {
+    /* Leave the instantiation_required flag unchanged in this mode. */
+  } else if (value) {
+    sym = tip->instance_sym;
+    if (sym == tip->template_sym) {
+      /* Somehow a member function of a nonreal class (e.g., a prototype
+         instantiation of a class template) has been referenced.  (This
+         can occur in a sizeof operation applied to the address of a
+         static member function -- anywhere else?).  Do not instantiate
+         the function. */
+    } else if (is_function_symbol(sym) && sym->defined &&
+               sym->variant.routine.ptr->is_inline) {
+      /* Inline (member or nonmember) functions are instantiated at the
+         point of first use, in case the back end requires the function
+         body immediately to perform inlining. */
+      instantiate_template_function(tip);
+      tip->instantiation_required = TRUE;
+    } else if (!tip->instantiation_required) {
+      /* The flag is not already set.  If we are in instantiation wrapup
+         then instantiate the function now instead of just adding it to
+         the end of the list.  This makes it possible to detect runaway
+         recursive instantiations that are very difficult to detect
+	 when the instantiations are done serially. */
+      tip->instantiation_required = TRUE;
+      if (in_instantiation_wrapup) {
+        if (!tip->already_instantiated && should_be_instantiated(tip)) {
+          if (tip->instance_sym->kind ==
+                                        (a_symbol_kind)sk_static_data_member) {
+            define_template_static_data_member(tip);
+          } else {
+            instantiate_template_function(tip);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -3648,13 +3656,12 @@ were entered in the hash table; otherwise returns FALSE.
 {
   char				*line;
   a_boolean			result = FALSE;
-  an_instance_lookup_entry_ptr	ilp;
 
   if (do_auto_instantiation) {
     /* The variable do_auto_instantiation indicates that an instantiation
        list file is present. */
     while ((line = read_info_file()) != NULL) {
-      ilp = find_instance(line, /*add=*/TRUE);
+      (void)find_instance(line, /*add=*/TRUE);
       result = TRUE;
     }  /* while */
   }  /* if */
@@ -3664,15 +3671,13 @@ were entered in the hash table; otherwise returns FALSE.
 
 static a_boolean can_be_instantiated(a_template_instance_ptr tip)
 /*
-Determines whether this template instance needs an instantiation and
-generates any errors caused by conflicting instantiation information
-such as instantiating a template for which no body was supplied.
+Determines whether this compilation is capable of generating an
+instantiation of a given template instance.
 */
 {
   a_boolean	result = TRUE;
   a_boolean	specific_def;
   a_boolean	template_def;
-
   /* For error checking purposes, find out if a specific definition
      exists and whether a body exists for the template definition. */
   if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
@@ -3706,6 +3711,7 @@ is responsible for setting the appropriate flags.
   a_boolean			instantiations_needed;
   a_template_instance_ptr	tip;
 
+  db_enter(3, "automatic_instantiation");
   /* Set the instantiation mode to tim_none.  This is done to ensure that
      only the instantiations explicitly requested in the list file are
      performed.  We don't want a mode like "used" or "all" to cause
@@ -3728,6 +3734,8 @@ is responsible for setting the appropriate flags.
     a_boolean				can_instantiate;
     an_instance_lookup_entry_ptr	ilp = NULL;
 
+    /* Skip non-external function. */
+    if (is_static_or_inline_function(tip)) continue;
 #if DEBUG
     if (debug_level >= 4) {
       fprintf(f_debug, "Automatic instantiation processing for:\n");
@@ -3772,32 +3780,58 @@ is responsible for setting the appropriate flags.
         }  /* if */
       }  /* if */
     }  /* if */
+  }  /* for */
+  /* Make a second pass through all of the instantiations to set the
+     flags to be passed to the link time instantiation mechanism.
+     This needs to be done after all instantiations have been done
+     so that the flags are in their final state. */
+  tip = instantiations_required;
+  for (; tip != NULL; tip = tip->next_in_instantiation_list) {
+    char	*name;
+    a_symbol_ptr			instance_sym = tip->instance_sym;
+    a_routine_ptr			routine;
+    a_variable_ptr			variable;
+    a_boolean				can_instantiate;
+    a_boolean				is_static_data_member;
+
+    /* Skip non-external function. */
+    if (is_static_or_inline_function(tip)) continue;
+    /* Get a pointer to the IL entry to be processed. */
+    if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+      is_static_data_member = TRUE;
+      variable = instance_sym->variant.variable.ptr;
+    } else {
+      is_static_data_member = FALSE;
+      routine = instance_sym->variant.routine.ptr;
+    }  /* if */
+    can_instantiate = can_be_instantiated(tip);
 #if DEBUG
     if (debug_level >= 4) {
       fprintf(f_debug, " already_instantiated=%d\n",
               tip->already_instantiated);
+      fprintf(f_debug, " instantiation_required=%d\n",
+              tip->instantiation_required);
       fprintf(f_debug, " can_instantiate=%d\n", can_instantiate);
       fprintf(f_debug, " specific_def=%d\n", tip->specific_def);
     }  /* if */
 #endif /* DEBUG */
-    /* Set the flags to be passed to the link-time automatic instantiator.
-       Not that only one of "can_be_instaniated" and "instance_required"
-       is set.  This is because "can_be_instantiated" implied
-       "instance_required". */
     if (is_static_data_member) {
-      if (!tip->already_instantiated && !tip->specific_def) {
-        variable->can_be_instantiated = can_instantiate;
-      }  /* if */
+      variable->can_be_instantiated = can_instantiate;
       variable->instance_required = tip->instantiation_required;
       variable->do_not_instantiate = tip->explicit_do_not_instantiate;
+#if 1
+      variable->is_instantiation = TRUE;
+#endif
     } else {
-      if (!tip->already_instantiated && !tip->specific_def) {
-        routine->can_be_instantiated = can_instantiate;
-      }  /* if */
+      routine->can_be_instantiated = can_instantiate;
       routine->instance_required = tip->instantiation_required;
       routine->do_not_instantiate = tip->explicit_do_not_instantiate;
+#if 1
+      routine->is_instantiation = TRUE;
+#endif
     }  /* if */
   }  /* for */
+  db_exit();
 }  /* automatic_instantiation */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
