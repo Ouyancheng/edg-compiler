@@ -530,6 +530,27 @@ values:
 }  /* fp_compare */
 
 
+unsigned int fp_hash(an_internal_float_value *value)
+/*
+Return a hash value derived from the floating-pointer value "value".  This
+is used in building the hash table for shareable constants.
+*/
+{
+  unsigned int hash = 0;
+  char         *cptr;
+  sizeof_t     n;
+
+  /* It's hard to do something machine-independent for floats.  Add 
+     together the bytes that make up the float.  Note that the whole float
+     was zeroed in initialization, so any gaps have predictable values. */
+  cptr = (char *)value;
+  for (n = sizeof(an_internal_float_value); n > 0; n--) {
+    hash += (unsigned int)*cptr++;
+  }  /* for */
+  return hash;
+}  /* fp_hash */
+
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *

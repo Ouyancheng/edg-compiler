@@ -118,6 +118,8 @@ extern int fp_compare(a_float_kind            kind,
                       an_internal_float_value *float_value_2,
                       a_boolean               *unordered);
 
+extern unsigned int fp_hash(an_internal_float_value *value);
+
 #endif /* ifndef FLOAT_PT_H */
 
 /******************************************************************************
