@@ -79,8 +79,7 @@ a "for"] would have to be rewritten.)
 
 static FILE	*f_C_output;
 			/* File to which the output is written. */
-static unsigned long
-		max_output_line_size = 200; /* Arbitrary. */
+#define MAX_OUTPUT_LINE_SIZE 300 /* Arbitrary. */
 			/* Maximum allowable output line size. */
 /* Current output position -- file, line, sequence number, column: */
 static a_source_file_ptr
@@ -555,7 +554,7 @@ static void end_output_line(void)
 End the current line of output.
 */
 {
-  if (fputc('\n', f_C_output) == EOF) {
+  if (putc('\n', f_C_output) == EOF) {
     /* Error in writing the output file.  This check supplements the check
        done when the file is closed.  The check here helps catch a disk full
        error quickly. */
@@ -563,9 +562,14 @@ End the current line of output.
   }  /* if */
   curr_output_line++;
   curr_output_seq_number++;
-  curr_output_column++;
   curr_output_column = 0;
 }  /* end_output_line */
+
+/*
+End the current output line if it has been begun.
+*/
+#define end_output_line_if_begun()                                    \
+{ if (curr_output_column != 0) end_output_line(); }
 
 
 static void write_line_directive(a_seq_number      seq,
@@ -577,10 +581,7 @@ file.
 */
 {
   /* End the previous line if there is one. */
-  if (curr_output_column != 0) end_output_line();
-#if 0
-  /* Option to output old-style directive? */
-#endif /* 0 */
+  end_output_line_if_begun();
   curr_output_line = line_number;
   (void)fprintf(f_C_output, "#line %lu", curr_output_line);
   curr_output_seq_number = seq;
@@ -592,7 +593,7 @@ file.
 #endif /* 0 */
     (void)fprintf(f_C_output, " \"%s\"", curr_output_file->file_name);
   }  /* if */
-  (void)fputc('\n', f_C_output);
+  (void)putc('\n', f_C_output);
 }  /* write_line_directive */
 
 
@@ -680,7 +681,7 @@ complete token.
   if (output_position_is_pending) adjust_output_position();
   /* Start the current line if we have not started it yet. */
   if (curr_output_column == 0) curr_output_column = 1;
-  (void)fputc(ch, f_C_output);
+  (void)putc(ch, f_C_output);
   /* Keep track of the current column number on output. */
   curr_output_column++;
 }  /* write_ch */
@@ -698,14 +699,39 @@ Write the indicated string to the output file.  It is not necessarily a
 complete token.
 */
 {
+  register char *p;
+  register char ch;
+
   /* Adjust the output position if a set_output_position call is pending. */
   if (output_position_is_pending) adjust_output_position();
   /* Start the current line if we have not started it yet. */
   if (curr_output_column == 0) curr_output_column = 1;
-  (void)fputs(str, f_C_output);
-  /* Keep track of the current column number on output. */
-  curr_output_column += strlen(str);
+  p = str;
+  while ((ch = *p++) != '\0') {
+    (void)putc(ch, f_C_output);
+    /* Keep track of the current column number on output. */
+    curr_output_column++;
+  }  /* while */
 }  /* write_str */
+
+
+static void continue_on_new_line(void)
+/*
+Continue the current line of output on the next line (presumably because
+it is too long).
+*/
+{
+  if (curr_output_seq_number != 0) {
+    /* Continue by emitting a #line directive to repeat the current line
+       number. */
+    write_line_directive(curr_output_seq_number, curr_output_line,
+                         curr_output_file);
+  } else {
+    /* The current line number is unknown, so do not use a #line directive. */
+    end_output_line();
+  }  /* if */
+  curr_output_column = 1;
+}  /* continue_on_new_line */
 
 
 static void write_tok_str(char *str)
@@ -714,19 +740,21 @@ Write the indicated string to the output file.  It's a complete token (or
 several), which means a long line could be broken before or after it.
 */
 {
-  sizeof_t len = strlen(str);
+  register sizeof_t len = strlen(str);
+  register char     *p;
+  register char     ch;
 
   /* Adjust the output position if a set_output_position call is pending. */
   if (output_position_is_pending) adjust_output_position();
   /* Start the current line if we have not started it yet. */
   if (curr_output_column == 0) curr_output_column = 1;
-  if (curr_output_column + len - 1 > max_output_line_size) {
-    /* This token will not fit on the current line, so start a new line.
-       Do that by emitting a #line directive to repeat the current line. */
-    write_line_directive(curr_output_seq_number, curr_output_line,
-                         curr_output_file);
+  if (curr_output_column + len > MAX_OUTPUT_LINE_SIZE + 1) {
+    /* This token will not fit on the current line, so start a new line. */
+    continue_on_new_line();
   }  /* if */
-  (void)fputs(str, f_C_output);
+  /* Write the characters. */
+  p = str;
+  while ((ch = *p++) != '\0') (void)putc(ch, f_C_output);
   /* Keep track of the current column number on output. */
   curr_output_column += len;
 }  /* write_tok_str */
@@ -3505,7 +3533,7 @@ Generate C++ or C from the intermediate language.
   process_file_scope_entities();
 
   /* Finish the last line, if there is one. */
-  if (curr_output_column != 0) end_output_line();
+  end_output_line_if_begun();
   /* Check for errors in writing the output file, then close it. */
   if (fflush(f_C_output) || ferror(f_C_output) ||
       (f_C_output != stdout && fclose(f_C_output))) {
