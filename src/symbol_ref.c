@@ -500,10 +500,12 @@ symbol "used" or "set", if appropriate.
        an error reference, the variable is marked as being both set
        and modified, to keep diagnostics from being issued down the road; nor
        are diagnostics issued here. */
+    a_scope_stack_entry_ptr  ssep;
+    a_variable_ptr  vp;
     if ((kind & SRK_USE) || (kind & SRK_ADDRESS_TAKEN) || (kind & SRK_ERROR)) {
       if (sym_ptr->variant.variable.used) {
         /* This is not the first use. */
-        a_variable_ptr  vp = sym_ptr->variant.variable.ptr;
+        vp = sym_ptr->variant.variable.ptr;
         if (vp->is_parameter || vp->is_handler_param) {
           /* Mark the parameter as multiply used (information that may be
              useful for inlining). */
@@ -516,7 +518,6 @@ symbol "used" or "set", if appropriate.
           /* But its value has not been set yet.  Issue a warning, if
              appropriate. */
           a_boolean                suppress_warning = FALSE;
-          a_scope_stack_entry_ptr  ssep;
 
           /* To determine whether to suppress the warning, examine the scope
              stack for labels and uncompleted loops that might enable the
@@ -601,6 +602,42 @@ check_label_decl_seq:
     if ((kind & SRK_MODIFICATION) || (kind & SRK_ADDRESS_TAKEN) ||
         (kind & SRK_ERROR)) {
       mark_variable_value_set(sym_ptr);
+      if (exceptions_enabled) {
+        /* If the modification takes places inside a try block and the
+           variable was declared in a (function-local) scope that contains
+           the try block, then it may have to be treated as quasi-volatile
+           -- it may need to be stored immediately in case an exception is
+           thrown. */
+        vp = sym_ptr->variant.variable.ptr;
+        if (!vp->source_corresp.is_local_to_function) {
+          /* Don't worry about file-scope variables. */
+        } else if (vp->modified_within_try_block) {
+          /* Flag is already set. */
+        } else {
+          ssep = &scope_stack[decl_scope_level];
+          if (ssep->within_try_block) {
+            /* This modification is inside a try block. */
+            for (;;) {
+              if (ssep->number == sym_ptr->decl_scope) {
+                /* Symbol was declared inside the try block.  It's only those
+                   declared outside the try block we're interested in. */
+                break;
+              } else if (ssep->is_try_block) {
+                /* We've reach the try block's scope without finding the
+                   scope in which the variable was declared.  Set the flag
+                   and break out of the loop. */
+                vp->modified_within_try_block = TRUE;
+                break;
+              }  /* if */
+              /* Advance up the scope stack. */
+              --ssep;
+              check_assertion_str(ssep->within_try_block,
+                                  "record_symbol_reference:"
+                                  "within_try_block not set properly");
+            }  /* for */
+          } /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* record_symbol_reference */
