@@ -6298,9 +6298,6 @@ to indicate whether an enumeration is actually defined.
     enum_type->variant.integer.enum_info.constant_list = NULL;
     if (scope_stack[effective_decl_level].kind ==
                                            (a_scope_kind)sck_func_prototype) {
-      /* A type is actually declared in a function prototype scope only in
-         C mode.  In C++ the type is injected into a containing scope. */
-      check_assertion(C_dialect != C_dialect_cplusplus);
       enum_type->declared_in_function_prototype = TRUE;
     }  /* if */
     /* Enter a new tag symbol, if a tag id was specified (a tag is not
@@ -8377,14 +8374,16 @@ and for the instantiation of template functions.
         a_symbol_ptr  sym = func_info->prototype_scope_symbols;
         for (; sym != NULL; sym = sym->next_in_scope) {
           if (sym->kind == (a_symbol_kind)sk_variable) {
+            /* Function parameter.  Find the corresponding param-id entry. */
             param_id = func_info->param_id_list;
             while (param_id->symbol != sym) param_id = param_id->next;
+            /* Record a definition of the parameter. */
             mark_defined(sym, &sym->decl_position, &param_id->decl_seq_info);
             mark_variable_value_set(sym);
-          } else {
+          } else if (is_tag_symbol(sym)) {
+            /* A type declared in the function prototype scope. */
             a_source_sequence_entry_ptr  ssep;
 
-            check_assertion(is_tag_symbol(sym));
             ssep = type_symbol_type(sym)->source_corresp.source_sequence_entry;
             check_assertion(ssep != NULL);
             make_proxy_ptr_source_sequence_entry(ssep);
