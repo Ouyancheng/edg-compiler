@@ -4511,7 +4511,7 @@ constructor scope, and also lower the user code.
        user code has been lowered, because we want cleanup code emitted
        on the return at the end of the user code.  So we do everything
        short of inserting the "if" and do that at the end. */
-    a_type_ptr         int_type;
+    a_type_ptr         int_type, unqual_this_param_type;
     an_expr_node_ptr   size_node, call_node, assign_node;
     an_expr_node_ptr   new_compare_node, this_param_node;
     an_expr_node_ptr   null_constant_node, this_compare_node;
@@ -4528,8 +4528,8 @@ constructor scope, and also lower the user code.
                                  /*honor_virtual=*/FALSE,
                                  (an_insert_location *)NULL);
       /* Make "this = new_rout(size)". */
-      call_node = add_cast_if_necessary(call_node,
-                                        f_skip_typerefs(this_param_var->type));
+      unqual_this_param_type = f_skip_typerefs(this_param_var->type);
+      call_node = add_cast_if_necessary(call_node, unqual_this_param_type);
       this_param_node = var_lvalue_expr(this_param_var);
       this_param_var->param_value_has_been_changed = TRUE;
       this_param_node->next = call_node;
@@ -4594,7 +4594,7 @@ constructor scope, and also lower the user code.
         curr_context->latest_initialization = dyn_init_to_free_storage;
       }  /* if */
       /* Make "(this = new_rout(size)) != NULL". */
-      make_zero_of_proper_type(this_param_var->type, &null_constant);
+      make_zero_of_proper_type(unqual_this_param_type, &null_constant);
       null_constant_node = alloc_node_for_constant(&null_constant);
       assign_node->next = null_constant_node;
       int_type = integer_type((an_integer_kind)ik_int);
@@ -4602,7 +4602,7 @@ constructor scope, and also lower the user code.
                                             int_type, assign_node);
       /* Make "this != NULL || (this = new-rout(size)) != NULL". */
       this_param_node = var_rvalue_expr(this_param_var);
-      make_zero_of_proper_type(this_param_var->type, &null_constant);
+      make_zero_of_proper_type(unqual_this_param_type, &null_constant);
       null_constant_node = alloc_node_for_constant(&null_constant);
       this_param_node->next = null_constant_node;
       this_compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
@@ -5133,7 +5133,8 @@ destructor scope, and also lower the user code.
       a_constant       null_constant;
       /* Make "this != NULL". */
       this_param_node = var_rvalue_expr(this_param_var);
-      make_zero_of_proper_type(this_param_var->type, &null_constant);
+      make_zero_of_proper_type(f_skip_typerefs(this_param_var->type),
+                               &null_constant);
       null_constant_node = alloc_node_for_constant(&null_constant);
       this_param_node->next = null_constant_node;
       this_compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
@@ -5178,7 +5179,8 @@ destructor scope, and also lower the user code.
        destructor call, and is handy to avoid a test before the call
        even when that is not allowed. */
     this_param_node = var_rvalue_expr(this_param_var);
-    make_zero_of_proper_type(this_param_var->type, &null_constant);
+    make_zero_of_proper_type(f_skip_typerefs(this_param_var->type),
+                             &null_constant);
     null_constant_node = alloc_node_for_constant(&null_constant);
     this_param_node->next = null_constant_node;
     if_node = make_operator_node((an_expr_operator_kind)eok_pne,
