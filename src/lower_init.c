@@ -5659,6 +5659,33 @@ from entity_type itself.  Insert the code for the call at *insert_location.
 }  /* insert_call_to_zero_entity */
 
 
+static a_boolean is_static_variable_address_node(an_expr_node_ptr expr,
+                                                 a_variable_ptr   *var)
+/*
+Return TRUE if the indicated expression is the address of a variable with
+static storage duration, including cases where that is implicitly cast
+to some other type.  Set *var to the variable.
+*/
+{
+  a_boolean is_static_var_addr = FALSE;
+
+  *var = NULL;
+  while (is_operation_node(expr) &&
+         expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
+         expr->variant.operation.compiler_generated) {
+    expr = expr->variant.operation.operands;
+  }  /* while */
+  if (is_variable_address_node(expr) &&
+      has_static_storage_duration(expr->variant.variable->storage_class) &&
+      /* Avoid potential ordering issues with addresses of local variables. */
+      !expr->variant.variable->source_corresp.is_local_to_function) {
+    is_static_var_addr = TRUE;
+    *var = expr->variant.variable;
+  }  /* if */
+  return is_static_var_addr;
+}  /* is_static_variable_address_node */
+
+
 void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         an_init_pos_descr_ptr  ipdp,
                         a_constructor_init_ptr ctor_init,
@@ -5738,6 +5765,7 @@ C99 mode for the same reason.
   a_boolean          constructor_array_init = FALSE;
   a_variable_ptr     local_static_guard_var;
   a_boolean          do_simple_constant_init_opt = FALSE;
+  a_boolean          simple_constant_init_opt_ruled_out = FALSE;
   a_boolean          local_static_that_requires_dynamic_init = FALSE;
   a_dynamic_init_ptr latest_initialization_on_entry;
   a_boolean          have_complete_object = TRUE;
@@ -5767,14 +5795,12 @@ C99 mode for the same reason.
      require some special processing. */
   static_var_init = init_pos_is_static(ipdp);
   if (variable != NULL) {
-    /* Decide whether the optimization of rewriting a dynamic initialization
-       to a constant as a static initialization to the constant is allowed.
-       It is not allowed if the variable is automatic and the context is
-       something other than an stmk_init (that's the keep_dynamic_init
-       test). */
-    if (dip->kind == (a_dynamic_init_kind)dik_constant &&
-        (static_var_init || keep_dynamic_init != NULL)) {
-      do_simple_constant_init_opt = TRUE;
+    if (!static_var_init && keep_dynamic_init == NULL) {
+      /* The optimization of rewriting a dynamic initialization to a constant
+         is not allowed if the variable is automatic and the context is
+         something other than an stmk_init (that's the keep_dynamic_init
+         test). */
+      simple_constant_init_opt_ruled_out = TRUE;
     }  /* if */
     /* See if this is a local static variable promoted out of an extern inline
        function (or template instantiated wherever used). */
@@ -5788,7 +5814,13 @@ C99 mode for the same reason.
       /* Don't allow this case to be turned into a simple constant
          initialization, because we want the variable to be a tentative
          definition (and therefore it must be uninitialized). */
-      do_simple_constant_init_opt = FALSE;
+      simple_constant_init_opt_ruled_out = TRUE;
+    }  /* if */
+    /* Decide whether the optimization of rewriting a dynamic initialization
+       to a constant as a static initialization to the constant is allowed. */
+    if (!simple_constant_init_opt_ruled_out &&
+        dip->kind == (a_dynamic_init_kind)dik_constant) {
+      do_simple_constant_init_opt = TRUE;
     }  /* if */
     /* For local static variables, find the associated local static variable
        initialization entry. */
@@ -5817,6 +5849,7 @@ C99 mode for the same reason.
     }  /* if */
   } else {
     /* Not whole variable initialization. */
+    simple_constant_init_opt_ruled_out = TRUE;
     if (ctor_init != NULL &&
         (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class ||
          ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class)) {
@@ -6025,6 +6058,23 @@ C99 mode for the same reason.
           /* Normal case: not a full expression. */
           lower_expr(source_node, expr_is_lvalue);
         }  /* if */
+        { a_variable_ptr var;
+          if (!simple_constant_init_opt_ruled_out &&
+              is_static_variable_address_node(source_node, &var)) {
+            /* The initial value is a simple constant (the address of a
+               static variable).  Rewrite the initialization as a simple
+               static initialization. */
+            a_constant con;
+            simple_constant_init = TRUE;
+            set_variable_address_constant(var, &con,
+                                          /*set_address_taken_flag=*/TRUE);
+            if (!il_identical_types(con.type, source_node->type)){
+              implicit_cast(&con, source_node->type);
+            }  /* if */
+            simple_constant = alloc_shareable_constant(&con);
+            break;
+          }  /* if */
+        }
       }  /* if */
 do_assignment:;
       check_assertion_str(!ipdp->array_element_sequence,
