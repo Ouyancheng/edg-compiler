@@ -2268,7 +2268,12 @@ typedef struct an_expr_node {
 			   the thing assigned to) instead of an rvalue (the
 			   value of the thing assigned to).  FALSE otherwise,
 			   including for operations that are not
-			   assignments. */
+			   assignments.  Only TRUE in C++. */
+      unsigned int
+		new_or_delete_call_for_array:1;
+			/* TRUE if the operation is an eok_call that calls
+			   a new of delete routine to allocate or free an
+			   array.  FALSE otherwise.  Only TRUE in C++. */
       an_expr_node_ptr  
                 operands;
                         /* The list of operands. */

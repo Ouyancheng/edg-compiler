@@ -3851,13 +3851,14 @@ fields to default values.
 */
 {
   node->kind = kind;
-  switch(kind) {
+  switch (kind) {
     case enk_error:
       /* No variant fields. */
       break;
     case enk_operation:
       node->variant.operation.kind = (an_expr_operator_kind)eok_last;
-      node->variant.operation.assignment_returns_lvalue = TRUE;
+      node->variant.operation.assignment_returns_lvalue = FALSE;
+      node->variant.operation.new_or_delete_call_for_array = FALSE;
       node->variant.operation.operands = NULL;
       break;
     case enk_constant:
@@ -3933,6 +3934,7 @@ Set the operator, type, and operand list in an operator expression node.
   node->type = type;
   node->variant.operation.kind = kind;
   node->variant.operation.assignment_returns_lvalue = FALSE;
+  node->variant.operation.new_or_delete_call_for_array = FALSE;
   node->variant.operation.operands = operands;
 }  /* set_node_operator */
 
