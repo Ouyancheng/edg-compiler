@@ -2681,6 +2681,23 @@ the line number to 0.
   db_exit();
 }  /* conv_seq_to_file_and_line */
 
+#if DEBUG
+
+a_line_number db_line_for_seq(a_seq_number seq_number)
+/*
+Return the line number that corresponds to the given sequence number.
+*/
+{
+  char          *file_name, *full_name;
+  a_boolean     at_end_of_source;
+  a_line_number line_number;
+
+  conv_seq_to_file_and_line(seq_number, &file_name, &full_name,
+                            &line_number, &at_end_of_source);
+  return line_number;
+}  /* db_line_for_seq */
+
+#endif /* DEBUG */
 #if !STANDALONE_UTILITY_PROGRAM
 
 void conv_seq_to_physical_file_and_line(a_seq_number      seq_number,
