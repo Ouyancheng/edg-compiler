@@ -8842,9 +8842,10 @@ class_type.  Set *updated if a projection symbol is created.
              type, we have a potential ambiguity: by also projecting the
              one we are now processing, we will detect such an ambiguity
              downstream. */
-        } else if (/* slep->symbol->header == bcslep->symbol->header || */
-                   types_are_compatible(symbol_return_type(slep->symbol),
-                                        symbol_return_type(bcslep->symbol))) {
+        } else if (slep->symbol->header == bcslep->symbol->header ||
+                   f_identical_types(symbol_return_type(slep->symbol),
+                                     symbol_return_type(bcslep->symbol),
+                                     ITF_NO_FLAGS)) {
           /* A conversion list entry from the current class already represents
              a conversion to the type specified by the conversion defined in
              the base class.  Ignore it.  Note that typedefs may cause the
