@@ -7888,7 +7888,7 @@ to (or a function designator).
 {
   /* Leave an error operand alone. */
   if (!is_error_operand(operand)) {
-    if (is_template_param_type(operand->type)) {
+    if (could_be_dependent_class_type(operand->type)) {
       operand->type = type_of_unknown_templ_param_nontype;
     } else {
       operand->type = type_pointed_to(operand->type);
