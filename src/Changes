@@ -1,6 +1,13 @@
 Version 3.3
 
-6/5/03   IL structure error (based types list), C mode enum operation
+6/10/03  Use of (int)0 as null pointer constant in Microsoft C++ mode
+
+MSVC++ versions up to 7.0 have a bug that considers zero cast to
+an integral type, e.g., (int)0, not to be a null pointer constant.
+This bug has been fixed in MSVC++ 7.1, so the emulation for the
+bug is now turned off when microsoft_version is 1310 or greater.
+
+6/9/03   IL structure error (based types list), C mode enum operation
 
 The result type constructed for a C-mode enum operation sometimes
 was a copy of another type, and the based_types list in the copy
