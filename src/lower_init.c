@@ -267,7 +267,7 @@ and return a pointer to it.  arg_list is assumed to be lowered already.
 A virtual call is generated if the routine is virtual and honor_virtual
 is TRUE.  The virtual call is *not* lowered.  If insert_location is not
 NULL, an expression statement containing the created call node is inserted
-at *insert_location.  insert_location must be a statement insert location.
+at *insert_location.
 */
 {
   an_expr_node_ptr      call_node, rout_node;
@@ -315,8 +315,12 @@ at *insert_location.  insert_location must be a statement insert location.
     call_stmt = alloc_expr_statement(call_node);
     set_stmt_pos_to_code_pos_for_lowering(call_stmt);
     /* Insert the statement at the right place. */
-    check_assertion(!is_expr_insert_location(insert_location));
     insert_statement(call_stmt, insert_location);
+#if MINIMAL_INLINING
+    /* We can optimize the inlining only if the insert location is a
+       statement insert location. */
+    if (is_expr_insert_location(insert_location)) call_stmt = NULL;
+#endif /* MINIMAL_INLINING */
   }  /* if */
 #if MINIMAL_INLINING
   if (inlining_enabled && op == (an_expr_operator_kind)eok_call) {
