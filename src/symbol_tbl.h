@@ -256,7 +256,9 @@ Clear a symbol locator.
 #ifndef DEF_ARG_H
 #include "def_arg.h"
 #endif /* ifndef DEF_ARG_H */
-
+#ifndef STATEMENTS_H
+#include "statements.h"
+#endif /* ifndef STATEMENTS_H */
 
 /*
 Kinds of symbols in the symbol table.
@@ -590,38 +592,6 @@ typedef struct a_class_symbol_supplement {
 			/* For a prototype instantiation this is TRUE
 			   if any of its base classes are nonreal classes. */
 } a_class_symbol_supplement;
-
-
-/*
-Data structure providing information about a label reference in a goto
-statement -- used only for forward references, before the label has been
-defined.  (Used in C++ only.)
-*/
-typedef struct a_goto_entry *a_goto_entry_ptr;
-typedef struct a_goto_entry {
-  a_goto_entry_ptr
-		next;
-			/* Next in a linked list of goto entries, all of which
-			   refer to the same (undefined) label; NULL if this
-			   is the last entry on the list. */
-  a_statement_ptr
-		goto_statement;
-			/* The goto statement in which the given label is
-			   referenced; always a forward reference (i.e., to
-			   to a label that has not yet been defined). */
-  a_statement_ptr
-		assoc_block;
-			/* The block on whose statement list the goto statement
-			   appears. */
-  a_source_position
-		source_position;
-			/* Source position of the goto statement. */
-  unsigned long
-		block_init_count;
-			/* The number of initializing declarations that have
-			   appeared thus far (i.e., preceding the goto) in the
-			   block to which the goto statement belongs. */
-} a_goto_entry;
 
 
 /*
@@ -1159,22 +1129,14 @@ typedef struct a_symbol {
       a_label_ptr
 		ptr;
 			/* The label. */
-      union {
-        /* When defined == FALSE. */
-        a_goto_entry_ptr
-		goto_list;
+      a_control_flow_descr_ptr
+		assoc_control_flow_descr;
 			/* When the label has been referenced in one or more
 			   goto statements but has not yet been defined,
 			   pointer to a list of entries identifying the
-			   references (used in C++ only). */
-        /* When defined == TRUE. */
-	unsigned long
-		curr_block_init_count;
-			/* When the label has been defined, the number of
-			   initializing declarations that have appeared in
-			   the block to which the label belongs and lexically
-			   precede the label (used in C++ only). */
-      } variant;
+			   references; and when the label has been defined,
+			   a pointer to an entry representing the label
+			   statement itself. */
     } label;
     /* When kind == sk_extern_variable or sk_extern_routine: */
     an_extern_symbol_descr_ptr
@@ -1967,8 +1929,6 @@ extern a_conversion_list_entry_ptr alloc_conversion_list_entry(void);
 extern a_template_param_ptr alloc_template_param(a_symbol_ptr sym);
 extern a_template_instance_ptr alloc_template_instance(void);
 extern void add_to_instantiations_required_list(a_template_instance_ptr  tip);
-extern a_goto_entry_ptr alloc_goto_entry(void);
-extern void free_goto_entry_list(a_goto_entry_ptr *list);
 extern a_param_id_ptr alloc_param_id(void);
 extern void free_param_id(a_param_id_ptr *ppip);
 extern void free_param_id_list(a_param_id_ptr *pidlist);

@@ -113,10 +113,6 @@ static a_param_id_ptr
 			/* List of parameter id entries freed and available
 			   for reuse. */
 
-static a_goto_entry_ptr
-		avail_goto_entries;
-			/* List of goto entries freed and available for
-			   reuse. */
 #if DEBUG
 #define DEBUG_LINE_LENGTH 79
 /* Macros used within db_symbol, referencing local variables defined
@@ -1420,7 +1416,7 @@ state.
       break;
     case sk_label:
       sym_ptr->variant.label.ptr = NULL;
-      sym_ptr->variant.label.variant.goto_list = NULL;
+      sym_ptr->variant.label.assoc_control_flow_descr = NULL;
       break;
     case sk_extern_variable:
     case sk_extern_routine:
@@ -7159,59 +7155,6 @@ should act like a stack if the same entity has several fixups).
 }  /* alloc_etype_fixup */
 
 
-a_goto_entry_ptr alloc_goto_entry(void)
-/*
-Allocate a goto entry (or reuse one from the available list), set its fields
-to default values, and return a pointer to it.
-*/
-{
-  register a_goto_entry_ptr  gep;
-
-  db_enter(5, "alloc_goto_entry");
-  if (avail_goto_entries != NULL) {
-    /* Reuse a previously freed entry. */
-    gep = avail_goto_entries;
-    avail_goto_entries = avail_goto_entries->next;
-  } else {
-    /* Allocate a new entry. */
-    gep = (a_goto_entry_ptr)alloc_fe(sizeof(a_goto_entry));
-#if DEBUG
-    num_goto_entries_allocated++;
-#endif /* DEBUG */
-  }  /* if */
-  /* Set the entry's fields to default values. */
-  gep->next = NULL;
-  gep->goto_statement = NULL;
-  gep->assoc_block = NULL;
-  gep->source_position.seq = 0;
-  gep->source_position.column = SP_COL_UNKNOWN;
-  gep->block_init_count = 0;
-
-  db_exit();
-  return gep;
-}  /* alloc_goto_entry */
-
-
-void free_goto_entry_list(a_goto_entry_ptr  *list)
-/*
-Free the list of goto entries that is pointed to by *list and set *list to
-NULL.
-*/
-{
-  a_goto_entry_ptr  gep = *list, next_gep;
-
-  while (gep != NULL) {
-    next_gep = gep->next;
-    /* Put gep at the head of the available list so that it can be reused. */
-    gep->next = avail_goto_entries;
-    avail_goto_entries = gep;
-    gep = next_gep;
-  }  /* while */
-  /* Null out the pointer. */
-  *list = NULL;
-}  /* free_goto_entry_list */
-
-
 a_param_id_ptr alloc_param_id(void)
 /*
 Allocate a parameter id block, set its fields to default values, and
@@ -7490,8 +7433,6 @@ for space tracking purposes.
                 a_template_param);
   db_space_used_lost("param ids", avail_param_ids, num_param_ids_allocated,
                      a_param_id);
-  db_space_used_lost("goto entries", avail_goto_entries,
-                     num_goto_entries_allocated, a_goto_entry);
   db_space_used("template instance", num_template_instances_allocated,
                 a_template_instance);
   db_space_used("conversion list entry", num_conversion_list_entries_allocated,
@@ -7616,7 +7557,6 @@ to avoid an 8-character external name clash with symbol_table.)
   /* ident_buffer and size_ident_buffer are not per-file and should not
      be reset. */
   avail_param_ids = NULL;
-  avail_goto_entries = NULL;
   error_symbol_header = NULL;
   unnamed_class_symbol_header = NULL;
   num_classes_on_scope_stack = 0;
