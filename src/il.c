@@ -11083,7 +11083,7 @@ direct or indirect member of an unnamed namespace.
     scp = &scp->parent.class_type->source_corresp;
     found = is_member_of_unnamed_namespace(scp);
   } else if ((nsp = scp->parent.namespace_ptr) != NULL) {
-    if (nsp->source_corresp.name == NULL) {
+    if (unmangled_name_of(&nsp->source_corresp) == NULL) {
       found = TRUE;
     } else {
       found = is_member_of_unnamed_namespace(&nsp->source_corresp);

@@ -2822,9 +2822,9 @@ NULL.
              is_member_of_unnamed_namespace(&rout_ptr->source_corresp)) &&
             !routine_defined(rout_ptr)) {
           /* A routine with internal linkage or in an unnamed namespace was
-             never given a definition.  For nontemplate cases we check the
-             corresponding sk_extern_routine symbol; for template instances
-             there is no such symbol and hence we check it here. */
+             never given a definition.  For ordinary nontemplate functions we
+             check the corresponding sk_extern_routine symbol; for template
+             instances there is no such symbol and hence we check it here. */
           a_template_instance_ptr  tip = sym->variant.routine.instance_ptr;
           /* If an attempt was made to explicitly instantiate the function
              template, an error will have been issued already. */
@@ -3002,13 +3002,58 @@ NULL.
     case sk_type:
       scp = &sym->variant.type.ptr->source_corresp;
       break;
-    case sk_class_or_struct_tag:
-    case sk_union_tag:
     case sk_enum_tag:
       /* Struct, union, or enum tag. */
       scp = &type_symbol_type(sym)->source_corresp;
       break;
 #endif /* CHECKING */
+    case sk_class_or_struct_tag:
+    case sk_union_tag:
+      if (is_member_of_unnamed_namespace(
+                                    &type_symbol_type(sym)->source_corresp)) {
+        /* Member functions and static data members of classes declared in
+           unnamed namespaces can be checked: they should be defined if used,
+           and they're useless if not used. */
+        a_type_ptr      type = type_symbol_type(sym);
+        a_class_type_supplement_ptr
+                        ctsp = type->variant.class_struct_union.extra_info;
+        a_routine_ptr   rp = ctsp->assoc_scope->routines;
+        a_variable_ptr  vp = ctsp->assoc_scope->variables;
+        /* Diagnose undefined and unused member functions: */
+        for (; rp != NULL; rp = rp->next) {
+          if (rp->source_corresp.referenced || rp->is_virtual) {
+            if (!routine_defined(rp)) {
+              pos_sy_error(ec_never_defined,
+                           &rp->source_corresp.decl_position,
+                           (a_symbol_ptr)rp->source_corresp.assoc_info);
+            }  /* if */
+          } else if (!rp->source_corresp.referenced &&
+                     !rp->compiler_generated &&
+                     !rp->is_virtual) {
+            report_unreferenced((a_symbol_ptr)rp->source_corresp.assoc_info,
+                                ec_declared_but_not_referenced,
+                                es_warning);
+          }  /* if */
+        }  /* for */
+        /* Diagnose undefined and unused static data members: */
+        for (; vp != NULL; vp = vp->next) {
+          if (vp->source_corresp.referenced &&
+              vp->storage_class == (a_storage_class)sc_extern &&
+              !vp->is_member_constant) {
+            pos_sy_error(ec_never_defined,
+                         &vp->source_corresp.decl_position,
+                         (a_symbol_ptr)vp->source_corresp.assoc_info);
+          } else if (!vp->source_corresp.referenced) {
+            report_unreferenced((a_symbol_ptr)vp->source_corresp.assoc_info,
+                                ec_declared_but_not_referenced,
+                                es_warning);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+#if CHECKING
+      scp = &type_symbol_type(sym)->source_corresp;
+#endif /* CHECKING */
+      break;
     case sk_class_template:
       {
       a_template_symbol_supplement_ptr  tssp;

@@ -1,5 +1,12 @@
 Version 2.43
 
+9/21/99  Diagnose undefined and unused members of classes in unnamed
+         namespaces
+
+The front end now issues an error on member functions and static data members
+that are used (or virtual) but not defined.  Furthermore, a warning is
+issued for unused nonvirtual member functions and unused static data members.
+
 9/21/99  Abort with nonstandard anonymous unions (Microsoft mode)
 
 Nonstandard anonymous unions introduced with typedef names could lead to an
