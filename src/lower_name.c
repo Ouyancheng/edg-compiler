@@ -315,6 +315,16 @@ static char *truncate_mangled_name(char                     *mangled_name,
 static void r_mangled_parent_qualifier(a_source_correspondence  *scp,
                                        unsigned long            nesting_level,
                                        a_mangling_control_block *mctl);
+#if IA64_ABI
+static void mangled_ia64_parent_qualifier(
+                              a_source_correspondence  *scp,
+                              an_il_entry_kind         kind,
+                              a_boolean                *need_nested_name_close,
+                              a_mangling_control_block *mctl);
+static void close_ia64_nested_name(
+                              a_boolean                 need_nested_name_close,
+                              a_mangling_control_block *mctl);
+#endif /* IA64_ABI */
 static void mangled_template_arguments(
                                     a_template_arg_ptr       template_arg_list,
                                     a_boolean                partial_spec,
@@ -322,11 +332,14 @@ static void mangled_template_arguments(
                                     a_mangling_control_block *mctl);
 static a_boolean variable_name_mangling_needed(a_variable_ptr variable);
 
+#if !IA64_ABI
 /*
 Interface to r_mangled_parent_qualifier, to provide nesting_level == 1.
+For the IA-64 ABI, see mangled_ia64_parent_qualifier.
 */
 #define mangled_parent_qualifier(parent, mctl)                        \
   r_mangled_parent_qualifier((parent), (unsigned long)1, (mctl))
+#endif /* !IA64_ABI */
 
 
 static void clear_mangling_control_block(a_mangling_control_block_ptr mctl)
@@ -1844,25 +1857,15 @@ has an explicit template argument list, given by template_arg_list.
                                          con->variant.template_param.variant.
                                               unknown_function.conversion_type;
   a_special_function_kind special_kind = (a_special_function_kind)sfk_none;
-  a_boolean               is_member;
+#if IA64_ABI
+  a_boolean               need_nested_name_close = FALSE;
+#endif /* IA64_ABI */
 
   /* This routine is a simplified version of mangled_function_name. */
-  is_member = (con->source_corresp.is_class_member ||
-               con->source_corresp.parent.namespace_ptr != NULL);
 #if IA64_ABI
-  if (is_in_namespace_std(con)) {
-    add_str_to_mangled_name("St", mctl);
-    is_member = FALSE;
-  } else if (is_member) {
-    if (con->source_corresp.is_class_member) {
-      add_prefix_for_local_class_if_necessary(con->source_corresp.
-                                                      parent.class_type, mctl);
-    }  /* if */
-    /* Mark the start of the nested name. */
-    add_to_mangled_name('N', mctl);
-    /* Add a parent qualifier for a member. */
-    mangled_parent_qualifier(&con->source_corresp, mctl);
-  }  /* if */
+  /* Add a parent qualifier for a member if needed. */
+  mangled_ia64_parent_qualifier(&con->source_corresp, iek_constant,
+                                &need_nested_name_close, mctl);
 #endif /* IA64_ABI */
   if (conversion_type != NULL) {
     special_kind = (a_special_function_kind)sfk_conversion;
@@ -1873,12 +1876,6 @@ has an explicit template argument list, given by template_arg_list.
                              /*num_operands=*/0,
                              conversion_type,
                              mctl);
-#if IA64_ABI
-  /* Mark the end of the nested name. */
-  if (is_member) {
-    add_to_mangled_name('E', mctl);
-  }  /* if */
-#endif /* IA64_ABI */
   if (has_template_args) {
     /* Put out the template argument list. */
     mangled_template_arguments(template_arg_list,
@@ -1887,11 +1884,14 @@ has an explicit template argument list, given by template_arg_list.
                                mctl);
   }  /* if */
 #if !IA64_ABI
-  if (is_member) {
+  if (con->source_corresp.is_class_member ||
+      con->source_corresp.parent.namespace_ptr != NULL) {
     /* Add a parent qualifier for a member. */
     add_str_to_mangled_name("__", mctl);
     mangled_parent_qualifier(&con->source_corresp, mctl);
   }  /* if */
+#else /* IA64_ABI */
+  close_ia64_nested_name(need_nested_name_close, mctl);
 #endif /* !IA64_ABI */
 }  /* mangled_encoding_for_unknown_function */
 
@@ -2403,23 +2403,13 @@ given by tap.
 #else /* IA64_ABI */
     if (!add_substitution((char *)temp,
                           (an_il_entry_kind)iek_template, mctl)) {
-      a_boolean is_member = FALSE;
-      if (is_in_namespace_std(temp)) {
-        add_str_to_mangled_name("St", mctl);
-      } else if (scp->is_class_member || scp->parent.namespace_ptr != NULL) {
-        is_member = TRUE;
-        /* Mark the start of the nested name. */
-        add_to_mangled_name('N', mctl);
-        /* Add the qualifying name.  The count starts at 2 because the template
-           name itself is level 1. */
-        r_mangled_parent_qualifier(scp, (unsigned long)2, mctl);
-      }  /* if */
+      a_boolean need_nested_name_close = FALSE;
+      /* Add a parent qualifier if needed. */
+      mangled_ia64_parent_qualifier(scp, iek_template,
+                                    &need_nested_name_close, mctl);
       /* Add the name for the template itself. */
       mangled_name_with_length(scp->name, mctl);
-      if (is_member) {
-        /* Mark the end of the nested name. */
-        add_to_mangled_name('E', mctl);
-      }  /* if */
+      close_ia64_nested_name(need_nested_name_close, mctl);
     }  /* if */
 #endif /* IA64_ABI */
   }  /* if */
@@ -2715,10 +2705,8 @@ should be put out.
       /* Put out an indication of the fact that this class is specialized. */
       mangled_specialization_indication(mctl);
     }  /* if */
-    /* If the class is a local class, put out "__Lnn" using the declaration
-       scope number for "nn".  This is not from the ARM.  cfront uses a
-       similar form but it also includes the function mangling in the name
-       and the number is probably different. */
+    /* If the class is a local class, put out a suffix identifying the
+       function and the class number. */
     /* Don't do this for nested classes. */
     if (type->source_corresp.is_local_to_function &&
         !type->source_corresp.is_class_member) {
@@ -2879,9 +2867,20 @@ that fact should be put out.
 }  /* mangled_class_encoding */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- nesting_level is unused in that case. */
-#endif /* !IA64_ABI */
+/* Return TRUE if the indicated type needs a parent (class or namespace)
+   qualifier. */
+#if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+#define type_needs_parent_qualifier(type)                             \
+  ((type)->source_corresp.is_class_member ||                          \
+   (type)->source_corresp.parent.namespace_ptr != NULL)
+#else /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+#define type_needs_parent_qualifier(type)                             \
+  (((type)->source_corresp.is_class_member ||                         \
+    (type)->source_corresp.parent.namespace_ptr != NULL) &&           \
+   !type->use_cfront_transitional_nested_type_name_mangling)
+#endif /* !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+
+
 static void r_mangled_parent_qualifier(a_source_correspondence  *scp,
                                        unsigned long            nesting_level,
                                        a_mangling_control_block *mctl)
@@ -2891,8 +2890,9 @@ the mangled name for a member of a class or namespace whose source
 correspondence is pointed to by scp.  nesting_level is used to track
 recursive calls of this routine to deal with multiple levels of parents.
 nesting_level == 1 refers to the innermost qualifier of a type,
-nesting_level == 2 is the next level out, etc.  See the macro
-mangled_parent_qualifier, which supplies the usual nesting_level == 1.
+nesting_level == 2 is the next level out, etc.  The value is not
+used in the IA-64 ABI.  See the macro mangled_parent_qualifier, which
+supplies the usual nesting_level == 1.
 */
 {
   a_source_correspondence *parent_scp;
@@ -2913,22 +2913,13 @@ mangled_parent_qualifier, which supplies the usual nesting_level == 1.
                        "r_mangled_parent_qualifier: parent class has no body");
     }  /* if */
 #endif /* CHECKING */
-    parent_scp = &scp->parent.class_type->source_corresp;
+    parent_scp = &class_type->source_corresp;
+    more_levels = type_needs_parent_qualifier(class_type);
   } else {
     check_assertion(scp->parent.namespace_ptr != NULL);
     parent_scp = &scp->parent.namespace_ptr->source_corresp;
+    more_levels = (parent_scp->parent.namespace_ptr != NULL);
   }  /* if */
-  more_levels = (parent_scp->is_class_member ||
-                 parent_scp->parent.namespace_ptr != NULL);
-#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-  /* If this a nested type name promoted into the file scope in
-     cfront 2.1 mode, do not use the nested form. */
-  if (scp->is_class_member &&
-      scp->parent.class_type->
-                           use_cfront_transitional_nested_type_name_mangling) {
-    more_levels = FALSE;
-  }  /* if */
-#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 #if !IA64_ABI
   if (more_levels) {
     /* This level is nested inside something else.  Do a recursive call to
@@ -3054,27 +3045,68 @@ done:;
 #endif /* IA64_ABI */
 }  /* r_mangled_parent_qualifier */
 
+#if IA64_ABI
 
-/* Return TRUE if the indicated type needs a parent (class or namespace)
-   qualifier. */
-#if !IA64_ABI
-#if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-#define type_needs_parent_qualifier(type)                             \
-  ((type)->source_corresp.is_class_member ||                          \
-   (type)->source_corresp.parent.namespace_ptr != NULL)
-#else /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-#define type_needs_parent_qualifier(type)                             \
-  (((type)->source_corresp.is_class_member ||                         \
-    (type)->source_corresp.parent.namespace_ptr != NULL) &&           \
-   !type->use_cfront_transitional_nested_type_name_mangling)
-#endif /* !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-#else /* IA64_ABI */
-#define type_needs_parent_qualifier(type)                             \
-  (((type)->source_corresp.is_class_member ||                         \
-    (type)->source_corresp.parent.namespace_ptr != NULL) &&           \
-   !is_in_namespace_std(type))
+static void mangled_ia64_parent_qualifier(
+                              a_source_correspondence  *scp,
+                              an_il_entry_kind         kind,
+                              a_boolean                *need_nested_name_close,
+                              a_mangling_control_block *mctl)
+/*
+Add to the IA-64 mangled name the encoding for a parent qualifier if
+one is needed in the mangled name for the entity whose source
+correspondence is pointed to by scp and whose kind is given by "kind".
+*need_nested_name_close is returned TRUE if a nested name has been
+started and must be closed later.  This routine is used at the top
+level for a complete name, and not recursively for each level of the
+parent qualifiers.
+*/
+{
+  *need_nested_name_close = FALSE;
+  if (is_source_corresp_in_namespace_std(scp)) {
+    /* Special encoding for "std::".*/
+    add_str_to_mangled_name("St", mctl);
+  } else if ((kind == iek_type) ? type_needs_parent_qualifier((a_type*)scp) :
+                                  (scp->is_class_member ||
+                                   scp->parent.namespace_ptr != NULL)) {
+    /* The entity is a class or namespace member and needs a parent
+       qualifier. */
+    if (scp->is_class_member) {
+      /* Add the encoding for the function if this is a member of a local
+         class. */
+      add_prefix_for_local_class_if_necessary(scp->parent.class_type, mctl);
+    }  /* if */
+    /* Mark the start of the nested name. */
+    add_to_mangled_name('N', mctl);
+    *need_nested_name_close = TRUE;
+    if (kind == iek_routine && scp->is_class_member) {
+      /* Class member function.  Put out the qualifiers on the member function
+         type. */
+      a_routine_ptr routine = (a_routine_ptr)scp;
+      mangled_encoding_for_function_qualifiers(routine->type, mctl);
+    }  /* if */
+    /* Put out the components of the nested name except for the final one.
+       The caller will put out the final name and then close the nested
+       name. */
+    r_mangled_parent_qualifier(scp, (unsigned long)1, mctl);
+  }  /* if */
+}  /* mangled_ia64_parent_qualifier */
+
+
+static void close_ia64_nested_name(
+                               a_boolean                need_nested_name_close,
+                               a_mangling_control_block *mctl)
+/*
+If need_nested_name_close is TRUE, put out the sequence to close a
+nested name in the IA-64 ABI encoding.
+*/
+{
+  if (need_nested_name_close) {
+    add_to_mangled_name('E', mctl);
+  }  /* if */
+}  /* close_ia64_nested_name */
+
 #endif /* IA64_ABI */
-
 
 static void mangled_type_name(a_type_ptr               type,
                               a_mangling_control_block *mctl)
@@ -3089,6 +3121,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
 #if IA64_ABI
   a_template_ptr              tmpl;
   a_class_type_supplement_ptr ctsp;
+  a_boolean                   need_nested_name_close = FALSE;
 #endif /* IA64_ABI */
 
   /* cv-qualifiers are not allowed here. */
@@ -3113,24 +3146,18 @@ and for unnamed classes and enums.  Nested types are encoded as such.
       goto done;
     }  /* if */
   }  /* if */
-  add_prefix_for_local_class_if_necessary(type, mctl);
-#endif /* IA64_ABI */
+  mangled_ia64_parent_qualifier(&type->source_corresp, iek_type,
+                                &need_nested_name_close, mctl);
+#else /* !IA64_ABI */
   if (type_needs_parent_qualifier(type)) {
-#if IA64_ABI
-    /* Mark the start of the nested name. */
-    add_to_mangled_name('N', mctl);
-#endif /* IA64_ABI */
     /* The type is a member of a class or namespace, so put out a qualifier.
        Note that the count starts at 2 because the type name itself is level
        1. */
     r_mangled_parent_qualifier(&type->source_corresp,
                                (unsigned long)2,
                                mctl);
-#if IA64_ABI
-  } else if (is_in_namespace_std(type)) {
-    add_str_to_mangled_name("St", mctl);
-#endif /* IA64_ABI */
   }  /* if */
+#endif /* IA64_ABI */
   /* Put out the type name itself. */
   /* The mangled form of a type name is the type name with a length
        preceding it:
@@ -3160,10 +3187,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
 #endif /* IA64_ABI */
   }  /* if */
 #if IA64_ABI
-  if (type_needs_parent_qualifier(type)) {
-    /* Mark the end of the nested name. */
-    add_to_mangled_name('E', mctl);
-  }  /* if */
+  close_ia64_nested_name(need_nested_name_close, mctl);
 done:;
 #endif /* IA64_ABI */
 }  /* mangled_type_name */
@@ -3926,10 +3950,13 @@ the point where the base name appears.
 */
 {
   a_type_ptr       conversion_type, routine_type;
-  a_boolean        is_member, mangle_as_template;
+  a_boolean        mangle_as_template;
 #if !IA64_ABI
+  a_boolean        is_member;
   a_boolean        is_specialization = FALSE;
   a_boolean        is_template_specialization = FALSE;
+#else /* IA64_ABI */
+  a_boolean        need_nested_name_close = FALSE;
 #endif /* !IA64_ABI */
   unsigned int     num_operands;
   a_param_type_ptr ptp;
@@ -3949,31 +3976,10 @@ the point where the base name appears.
      processing.
   */
   routine_type = skip_typerefs(routine->type);
-  /* See if the function is a class member function or a member of a
-     namespace. */
-  is_member = (routine->source_corresp.is_class_member ||
-               routine->source_corresp.parent.namespace_ptr != NULL);
 #if IA64_ABI
-  if (is_in_namespace_std(routine)) {
-    is_member = FALSE;
-    add_str_to_mangled_name("St", mctl);
-  } else if (is_member) {
-    /* Mark the start of the nested name. */
-    if (routine->source_corresp.is_class_member) {
-      add_prefix_for_local_class_if_necessary(
-                                     routine->source_corresp.parent.class_type,
-                                     mctl);
-    }  /* if */
-    add_to_mangled_name('N', mctl);
-    if (routine->source_corresp.is_class_member) {
-      /* Class member function.  Put out the qualifiers on the member function
-         type. */
-      mangled_encoding_for_function_qualifiers(routine_type, mctl);
-    }  /* if */
-    /* Put out the name of the class or namespace of which this function
-       is a member. */
-    mangled_parent_qualifier(&routine->source_corresp, mctl);
-  }  /* if */
+  /* Add a parent qualifier for a member if needed. */
+  mangled_ia64_parent_qualifier(&routine->source_corresp, iek_routine,
+                                &need_nested_name_close, mctl);
 #endif /* IA64_ABI */
   /* See if the function should be mangled as a template.  In the modern C++
      language, template functions are mangled using the template arguments
@@ -4055,7 +4061,7 @@ the point where the base name appears.
                              opname_kind, num_operands, conversion_type, mctl);
   if (mangle_as_template) {
 #if IA64_ABI
-  mangle_template:
+mangle_template:
 #else /* !IA64_ABI */
     if (is_template_specialization) {
       /* Put out an indication of the fact the template from which this
@@ -4079,6 +4085,10 @@ the point where the base name appears.
 #endif /* !IA64_ABI */
   }  /* if */
 #if !IA64_ABI
+  /* See if the function is a class member function or a member of a
+     namespace. */
+  is_member = (routine->source_corresp.is_class_member ||
+               routine->source_corresp.parent.namespace_ptr != NULL);
   /* If we will be adding the class or namespace name or the parameter types,
      put out two underscores to separate the function name from the rest. */
   if (is_member || !suppress_param_encoding) {
@@ -4092,10 +4102,7 @@ the point where the base name appears.
   }  /* if */
 #endif /* !IA64_ABI */
 #if IA64_ABI
-  if (is_member) {
-    /* Mark the end of the nested name. */
-    add_to_mangled_name('E', mctl);
-  }  /* if */
+  close_ia64_nested_name(need_nested_name_close, mctl);
 #endif /* !IA64_ABI */
   if (!suppress_param_encoding) {
     a_boolean do_return_type;
@@ -4472,24 +4479,13 @@ member specialization.
     mangled_parent_qualifier(scp, mctl);
   }  /* if */
 #else /* IA64_ABI */
-  if (is_source_corresp_in_namespace_std(scp)) {
-    add_str_to_mangled_name("St", mctl);
-  } else {
-    if (scp->is_class_member) {
-      add_prefix_for_local_class_if_necessary(scp->parent.class_type,
-                                              mctl);
-    }  /* if */
-    /* Mark the start of the nested name. */
-    add_to_mangled_name('N', mctl);
-    /* Output the mangled parent name. */
-    mangled_parent_qualifier(scp, mctl);
-  }  /* if */
+  a_boolean need_nested_name_close = FALSE;
+  /* Add a parent qualifier for a member if needed. */
+  mangled_ia64_parent_qualifier(scp, iek_none,
+                                &need_nested_name_close, mctl);
   /* Output the name of the member. */
   mangled_name_with_length(unmangled_name_of(scp), mctl);
-  if (!is_source_corresp_in_namespace_std(scp)) {
-    /* Mark the end of the nested name. */
-    add_to_mangled_name('E', mctl);
-  }  /* if */
+  close_ia64_nested_name(need_nested_name_close, mctl);
 #endif /* IA64_ABI */
 }  /* mangled_member_name */
 
@@ -4965,11 +4961,7 @@ and truncated names.
                        "final_type_name_mangling:", 
                        "mangled_name_cannot_be_included_in_other_name is set");
   if (has_name(type)) {
-    if (type_needs_parent_qualifier(type)
-#if IA64_ABI
-        || is_in_namespace_std(type)
-#endif /* IA64_ABI */
-                                         ) {
+    if (type_needs_parent_qualifier(type)) {
       /* Nested type names must be mangled (because they exist in a scope
          that does not exist in the generated C code).  The mangled form
          is something like
@@ -5285,8 +5277,7 @@ Add to the mangled name the encoding for the name of the class "type"
 for use in a virtual function table name.
 */
 {
-#if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY && \
-    !IA64_ABI
+#if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
   /* cfront mode. */
   if (type_needs_parent_qualifier(type)) {
     /* The type is a nested type.  Add a length in front of the mangled
