@@ -10177,8 +10177,10 @@ not be returned.
       /* Save the starting position of the main block of the function. */
       if (start_pos != NULL) *start_pos = pos_curr_token;
       cache_compound_stmt(p_token_cache, stop_tokens);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
       /* Save the ending position of the main block of the function. */
       if (end_pos != NULL) *end_pos = end_pos_curr_token;
+#endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
       if (try_found) {
         /* If this function is a function try block, cache the associated
            catch clauses. */
