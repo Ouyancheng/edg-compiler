@@ -1311,7 +1311,7 @@ to the secondary translation unit.
         /* The inline flag merging below gets done against the primary IL
            routine. */
         corresp_routine = (a_routine_ptr)transitive_copy_address_of(routine);
-      } else if (check_member_merges && !C_mode() &&
+      } else if (!C_mode() &&
                  befriending_lists_need_to_be_merged(
                                        routine->befriending_classes,
                                        corresp_routine->befriending_classes)) {
