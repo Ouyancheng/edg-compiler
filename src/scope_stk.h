@@ -663,6 +663,14 @@ typedef struct a_scope_stack_entry {
 			   In other words, the number of opening "<" delimiters
 			   that have been seen without matching closing ">"
 			   delimiters. */
+  a_nondependent_call_info_ptr
+		next_nondependent_call;
+			/* When doing dependent name processing, this
+			   field is present for template instantiation scopes
+			   and points to the next nondependent call entry
+			   for the current instantiation.  During a real
+			   instantiation this list is used to determine
+			   whether a given call is dependent. */
 } a_scope_stack_entry;
 
 /*

@@ -1959,33 +1959,39 @@ fields, and return a pointer to it.
 
 
 a_symbol_ptr get_symbol_if_nondependent_call(
-				a_token_sequence_number		tsn,
-				a_nondependent_call_info_ptr	*list_ptr)
+				a_token_sequence_number		tsn)
 /*
 If "tsn" is the token sequence number of a nondependent call in the
 nondependent call list pointed to by "list_ptr", return the associated
 symbol, otherwise return NULL.  The list is maintained in token sequence
-number order, and "list_ptr" points to the next unused entry on the list.
-When a list entry is found, "list_ptr" is updated to point to the next
-unused entry.
+number order.  The current position on the list is maintained in the
+next_nondependent_call field of the scope stack entry for the innermost
+instantiation scope.
 */
 {
-  a_symbol_ptr	result = NULL;
+  a_symbol_ptr			result = NULL;
+  a_scope_stack_entry_ptr	ssep;
+  a_nondependent_call_info_ptr	list_ptr;
 
+  check_assertion(depth_innermost_instantiation_scope != NO_SCOPE_DEPTH);
+  ssep = &scope_stack[depth_innermost_instantiation_scope];
+  list_ptr = ssep->next_nondependent_call;
   /* Find the next entry on the list whose token sequence number is not
      before the one that we are looking for.  Entries should only
      be skipped in error recovery cases. */
-  while (*list_ptr != NULL && tsn > (*list_ptr)->token_sequence_number) {
-    *list_ptr = (*list_ptr)->next;
+  while (list_ptr != NULL && tsn > list_ptr->token_sequence_number) {
+    list_ptr = list_ptr->next;
   }  /* while */
-  if (*list_ptr != NULL) {
-    if (tsn == (*list_ptr)->token_sequence_number) {
+  if (list_ptr != NULL) {
+    if (tsn == list_ptr->token_sequence_number) {
       /* The token sequence number matches the next entry on the list.
          Return the symbol and move to the next entry on the list. */
-      result = (*list_ptr)->symbol;
-      *list_ptr = (*list_ptr)->next;
+      result = list_ptr->symbol;
+      list_ptr = list_ptr->next;
     }  /* if */
   }  /* if */
+  /* Save the updated list pointer back into the scope stack entry. */
+  ssep->next_nondependent_call = list_ptr;
   return result;
 }  /* get_symbol_if_nondependent_call */
 

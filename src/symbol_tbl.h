@@ -2566,8 +2566,7 @@ extern void free_template_cache_segment(a_template_cache_segment_ptr tcsp);
 extern a_template_decl_info_ptr alloc_template_decl_info(void);
 
 extern a_symbol_ptr get_symbol_if_nondependent_call(
-				a_token_sequence_number		tsn,
-				a_nondependent_call_info_ptr	*list_ptr);
+				a_token_sequence_number		tsn);
 
 extern void record_nondependent_call(a_symbol_ptr		symbol,
 				     a_token_sequence_number	tsn);

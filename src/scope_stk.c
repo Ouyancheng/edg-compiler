@@ -1288,6 +1288,7 @@ the scope being pushed.
   ssep->names_hidden_by_old_for_init = NULL;
   ssep->tmpl_decl_state		 = NULL;
   ssep->pending_templ_arg_lists  = 0;
+  ssep->next_nondependent_call   = NULL;
   /* Clear the substructure shared with namespace symbol supplements. */
   ssep->assoc_pointers_block     = NULL;
   clear_scope_pointers_block(&ssep->pointers_block);
@@ -1387,6 +1388,9 @@ the scope being pushed.
            template parameters are added at the instantiation scope. */
         reactivate_template_params = TRUE;
       }  /* if */
+      /* Initialize the pointer to the dependent call list for this
+         template. */
+      ssep->next_nondependent_call = template_decl_info->nondependent_calls;
     } else if (kind != (a_scope_kind)sck_file &&
                kind != (a_scope_kind)sck_namespace &&
                kind != (a_scope_kind)sck_namespace_extension) {
