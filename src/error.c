@@ -787,6 +787,7 @@ level.
     }  /* if */
     if (tap != NULL) {
       /* Display the argument list for this entity. */
+      check_assertion(decl_info != NULL);
       tpp = decl_info->parameters;
       for (; tap != NULL; tap = tap->next, tpp = tpp->next) {
         /* Display "parameter=value". */

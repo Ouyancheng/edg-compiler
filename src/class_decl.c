@@ -6735,8 +6735,8 @@ in-class member function declarations.)
                                   locator, is_ctor, sym, &overload_sym);
   }  /* if */
   rtn = make_routine(member_type, (a_storage_class)sc_unspecified,
-                     prototype_instantiations_in_il ? effective_decl_level :
-                                                      NO_SCOPE_DEPTH);
+                     prototype_instantiations_in_il && !sym->is_error
+                                     ? effective_decl_level : NO_SCOPE_DEPTH);
   tssp = template_supplement_for_symbol(sym);
   tssp->variant.function.routine = rtn;
   /* Copy the func_info block and then null out its param-id pointer so that
@@ -6768,7 +6768,7 @@ in-class member function declarations.)
     rtn->storage_class = (a_storage_class)sc_extern;
   }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-  if (prototype_instantiations_in_il) {
+  if (prototype_instantiations_in_il && !sym->is_error) {
     add_to_routines_list(rtn, NO_SCOPE_DEPTH);
   }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
