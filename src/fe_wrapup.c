@@ -586,6 +586,7 @@ there may be some functions in the primary IL for which lowering was delayed.
       if (!inline_pass) break;
       inline_pass = FALSE;
     }  /* for */
+    function_body_processing_delayed_on_some_func_in_primary_il = FALSE;
   }  /* if */
 }  /* finish_processing_for_function_bodies */
 
