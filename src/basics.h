@@ -231,10 +231,10 @@ typedef unsigned int a_bit_field;
    int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
 /* Note that size_t_arg may evaluate its argument more than once. */
 typedef size_t	true_size_t;
-#if !__MSDOS__
+#if !__MSDOS__ || __WIN32__
 typedef size_t	sizeof_t;
 #define size_t_arg(arg) ((size_t)(arg))
-#else /* __MSDOS__ */
+#else /* !(!__MSDOS__ || __WIN32__) */
 /* Most MS-DOS C compilers have a 16-bit size_t, so use unsigned long. */
 typedef unsigned long sizeof_t;
 /* size_t_arg checks for truncation. */
@@ -242,7 +242,7 @@ typedef unsigned long sizeof_t;
   ((sizeof_t)(arg) > UINT_MAX ? size_t_arg_error() : (true_size_t)(arg))
 #define NEED_SIZE_T_ARG_ERROR 1
 extern true_size_t size_t_arg_error(void);
-#endif /* !__MSDOS__ */
+#endif /* !(!__MSDOS__ || __WIN32__) */
 /* Use a_ptrdiff for ptrdiff_t because ptrdiff_t appears in <sys/types.h> on
    some UNIX systems. */
 typedef ptrdiff_t a_ptrdiff;
