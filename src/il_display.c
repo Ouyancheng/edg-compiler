@@ -349,9 +349,11 @@ typeref_done:
       (void)printf("blockdata");
       break;
 #endif /* ifdef FFE */
+    case tk_template_param:
+      /* Front end only. */
+    default:
       /* Note that certain type kinds are handled by disp_type_first_part
          and disp_type_second_part and shouldn't get here. */
-    default:
       (void)printf("**BAD TYPE SPECIFIER KIND**");
   }  /* switch */
 }  /* disp_type_specifier */
@@ -1315,6 +1317,8 @@ do_struct_union:
       (void)printf("tk_blockdata\n");
       break;
 #endif /* ifdef FFE */
+    case tk_template_param:
+      /* Front end only. */
     default:
       (void)printf("**BAD TYPE KIND**\n");
   }  /* switch */
@@ -1579,6 +1583,28 @@ Display the indicated class list and name.
     }  /* for */
   }  /* if */
 }  /* disp_class_list */
+
+
+static void disp_template_arg_list(char                *name,
+                                   a_template_arg_ptr  ptr)
+/*
+Display the indicated name and template arg list.
+*/
+{
+  if (ptr == NULL) {
+    disp_ptr(name, (char *)ptr, iek_template_arg);
+  } else {
+    disp_name(name);
+    (void)printf("\n");
+    for (; ptr != NULL; ptr = ptr->next) {
+      if (ptr->is_type) {
+        disp_ptr("  type", (char *)ptr->variant.type, iek_type);
+      } else {
+        disp_ptr("  constant", (char *)ptr->variant.constant, iek_constant);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* disp_template_arg_list */
 
 #endif /* ifdef CFE */
 
@@ -2145,6 +2171,9 @@ do_assoc_type:
                iek_variable);
 #endif /* ifdef FFE */
       break;
+    case sck_template_declaration:
+    case sck_template_instantiation:
+      /* Front end only. */
     default:
       (void)printf("**BAD SCOPE KIND**\n");
   }  /* switch */
@@ -2623,6 +2652,7 @@ Display the indicated class type supplement entry.
   }  /* if */
   disp_class_list("befriending_classes", ptr->befriending_classes);
   disp_ptr("assoc_scope", (char * )ptr->assoc_scope, iek_scope);
+  disp_template_arg_list("template_arg_list", ptr->template_arg_list);
 #if ASSIGNMENT_TO_THIS_ALLOWED
   disp_ptr("assoc_operator_new_routine",
            (char *)ptr->assoc_operator_new_routine, iek_routine);
@@ -2711,6 +2741,7 @@ This routine is called during IL walking.
 #endif /* ifdef FFE */
 #ifdef CFE
     case iek_class_list_entry:
+    case iek_template_arg:
     case iek_derivation_step:
 #endif /* ifdef CFE */
       break;
