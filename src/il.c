@@ -12462,6 +12462,9 @@ unlink_expr_destructions.
 }  /* process_dynamic_init_for_unlink_destructions */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- tblock is not used in that mode. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void process_expr_for_unlink_destructions(
                                     an_expr_node_ptr                    expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
