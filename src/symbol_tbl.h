@@ -1000,7 +1000,7 @@ typedef struct a_projection_descr {
 			/* This field is a pointer to the base class entry for
 			   the entity represented by fundamental_symbol.  It
 			   will be a base class entry on the current class's
-			   base classes list, and its derivation field
+			   base classes list, and its derivation
 			   specifies the path between the current class object
 			   and the member specified by fundamental_symbol. */
 } a_projection_descr;
@@ -1850,9 +1850,9 @@ extern an_access_specifier compute_access(an_access_specifier access,
                                           an_access_specifier class_access);
 
 extern an_access_specifier access_to_end_of_path
-                                      (an_access_specifier    sym_access,
-                                       a_derivation_step_ptr  path,
-                                       a_boolean              virt_derivation);
+                                      (an_access_specifier         sym_access,
+                                       a_derivation_step_ptr       path,
+                                       a_base_class_derivation_ptr bcdp);
 
 extern an_access_specifier access_for_symbol(a_symbol_ptr sym_ptr);
 
@@ -1948,8 +1948,9 @@ Return the fundamental symbol for a given symbol.
 
 /*
 Return TRUE if the base class indicated by the base class entry bcp
-is an accessible base class of derived_class.  bcp must be a
-direct or virtual base class of derived_class.  A base class is
+is an accessible base class of viewpoint_class.  bcp must be a direct or
+virtual base class of viewpoint_class, but bcp->derived_class might
+be something other than viewpoint_class.  A base class is
 accessible if its public members are accessible, which means
   (a) if the derivation is public, the base class is accessible;
   (b) if the derivation is private, the base class is accessible if we
@@ -1957,29 +1958,32 @@ accessible if its public members are accessible, which means
   (c) if the derivation is protected, the base class is accessible if we
       have member access to the derived class or to one of its derived
       classes.
-is_accessible_direct_base_class can be used for direct base classes.
 is_accessible_imm_base_class can be used for direct or virtual base classes;
-it calls is_accessible_direct_base_class for direct base classes and
-is_accessible_virtual_base_class for virtual base classes.
-If you need to do this for non-immediate base classes, see the
-function is_accessible_base_class.
+If the derivation step is a non-simple virtual step, it calls
+is_accessible_virtual_base_class.
+is_accessible_direct_base_class_derivation can be used for specific
+derivations of direct or simple virtual base classes.
+The function is_accessible_base_class should be used when it is
+not known that the base class is an immediate base class.
 */
-#define is_accessible_direct_base_class(bcp, derived_class)           \
-  ((bcp)->access == (an_access_specifier)as_public ||                 \
-   have_member_access_privilege(derived_class) ||                     \
-   ((bcp)->access == (an_access_specifier)as_protected &&             \
-    have_protected_member_access_privilege(derived_class)))
+#define is_accessible_direct_base_class_derivation(bcdp, viewpoint_class) \
+  ((bcdp)->access == (an_access_specifier)as_public ||                \
+   have_member_access_privilege(viewpoint_class) ||                   \
+   ((bcdp)->access == (an_access_specifier)as_protected &&            \
+    have_protected_member_access_privilege(viewpoint_class)))
 #define is_virtual_but_not_simple_direct_base_class(bcp)              \
-  ((bcp)->is_virtual &&                                               \
-   (!(bcp)->direct || (bcp)->paths_to_virtual_base_class->next != NULL))
-#define is_accessible_imm_base_class(bcp, derived_class)              \
+  ((bcp)->is_virtual && (!(bcp)->direct || (bcp)->derivation->next != NULL))
+#define is_accessible_imm_base_class(bcp, viewpoint_class)            \
   (is_virtual_but_not_simple_direct_base_class(bcp) ?                 \
-    is_accessible_virtual_base_class(bcp) :                           \
-    is_accessible_direct_base_class(bcp, derived_class))
+    is_accessible_virtual_base_class(bcp, viewpoint_class) :          \
+    is_accessible_direct_base_class_derivation(bcp->derivation,       \
+                                               viewpoint_class))
 
 extern a_boolean is_accessible_base_class(a_base_class_ptr bcp);
 
-extern a_boolean is_accessible_virtual_base_class(a_base_class_ptr bcp);
+extern a_boolean is_accessible_virtual_base_class(
+                                             a_base_class_ptr bcp,
+                                             a_type_ptr       viewpoint_class);
 
 extern a_symbol_ptr curr_scope_id_lookup(a_symbol_locator         *locator,
                                          an_id_lookup_options_set options);
