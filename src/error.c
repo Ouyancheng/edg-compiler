@@ -937,8 +937,8 @@ error code.
     case ec_no_matching_constructor:
       m = "none of the available constructors matches this argument list";
       break;
-    case ec_inaccessible_copy_constructor:
-      m = "copy constructor is inaccessible";
+    case ec_ambiguous_copy_constructor:
+      m = "copy constructor for class \"%s\" is ambiguous";
       break;
     case ec_no_default_constructor:
       m = "no default constructor exists for class \"%s\"";
@@ -1027,7 +1027,7 @@ error code.
       m = "type differs from base class virtual function by return type alone";
       break;
     case ec_ambiguous_virtual_function_override:
-      m = "redefinition of base class virtual function \"%s\" is ambiguous";
+      m = "redefinition of virtual function \"%s\" is ambiguous";
       break;
     case ec_pure_specifier_on_nonvirtual_function:
       m = "pure specifier (\"= 0\") allowed only on virtual functions";
@@ -1063,14 +1063,17 @@ error code.
       m = "member function of local class -- definition is required";
       break;
     case ec_inaccessible_constructor:
-      m = "constructor \"%s()\" is inaccessible";
+      m = "constructor \"%s\" is inaccessible";
       break;
     case ec_inaccessible_destructor:
-      m = "destructor \"%s()\" is inaccessible";
+      m = "destructor \"%s\" is inaccessible";
       break;
     case ec_direct_derivation_less_accessible:
       m =
        "direct path to base class \"%s\" gives less access than indirect path";
+      break;
+    case ec_missing_const_copy_constructor:
+      m = "class \"%s\" has no copy constructor to copy a const object";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
