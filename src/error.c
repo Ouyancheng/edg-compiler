@@ -1938,6 +1938,9 @@ error code.
       m =
       "pointer-to-member selection class types are incompatible (%t1 and %t2)";
       break;
+    case ec_self_friendship:
+      m = "pointless friend declaration";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
