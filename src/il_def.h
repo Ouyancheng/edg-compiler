@@ -2024,7 +2024,7 @@ typedef struct a_routine_list_entry {
 enum an_anonymous_union_kind_tag {
   auk_none,		/* Not an anonymous union. */
   auk_variable,		/* Anonymous union is associated with a variable. */
-  auk_field,		/* Anonymous union is associated with a field. */
+  auk_field		/* Anonymous union is associated with a field. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_anonymous_union_kind;
