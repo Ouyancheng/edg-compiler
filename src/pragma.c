@@ -75,9 +75,7 @@ there is additional processing to be done.
                                 ppp->source_sequence_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (at_file_scope) switch_back_to_original_region(region_to_switch_back_to);
-#if 0
   ppp->il_pragma_entry = pp;
-#endif /* if 0 */
 }  /* add_pragma_to_il */
 
 
