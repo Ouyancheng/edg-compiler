@@ -38,9 +38,10 @@ base class.  For example:
   struct C : public B { void f(); };
   struct D : virtual public C, public B { void f(); } d;
 
-The virtual_info_base_class pointer in D had been set point to the A whose
-path is ==>C==>B==>A; now it is correctly set to the A whose path is
-through D's first direct nonvirtual base class, namely, ==>B==>A.
+The bug was that the virtual_info_base_class pointer in D was being set to
+point to the A whose path is ==>C==>B==>A; now it is correctly set to point
+to the A whose path is through D's first direct nonvirtual base class,
+namely, ==>B==>A.
 
 12/9/94  IL CHANGE: Added implied_break_at_end to a_switch_clause
 
