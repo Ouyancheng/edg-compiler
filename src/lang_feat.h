@@ -597,20 +597,36 @@ Flag that is TRUE if, by default, implicit conversion between pointers to
 extern "C" and extern "C++" function types is permitted.  It is the initial
 value of global variable impl_conv_between_c_and_cpp_function_ptrs_allowed
 and should be set to reflect whether C and C++ functions have the same
-calling conventions in the target environment.  (The variable is reset to
-FALSE in strict-ANSI mode, but it is *not* changed from FALSE to TRUE in
-cfront-compatibility mode, since the characteristics of the target
-environment cannot be overridden.)  For example:
+calling conventions in the target environment.  For example:
   extern "C" void f();         // f's type has extern "C" linkage
   void (*pf)()                 // pf points to an extern "C++" function
                = &f;           // error if conversion is not allowed
-(Note: setting this flag to TRUE takes effect only if two function types
-differing only in extern "C" vs. extern "C++" routine linkage are treated
-as distinct: see global variable c_and_cpp_function_types_are_distinct.)
+The variable is turned off in strict-ANSI mode but can be turned on from
+the command line only if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
+is TRUE.  (Note: setting this flag to TRUE takes effect only if two function
+types differing only in extern "C" vs. extern "C++" routine linkage are
+distinct -- see global variable c_and_cpp_function_types_are_distinct.)
+
 */
 #ifndef DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED
 #define DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED TRUE
 #endif /* DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED */
+
+/*
+Flag that is TRUE if impl_conv_between_c_and_cpp_function_ptrs_allowed can be
+reset from the command line using --[no_]implicit_extern_c_type_conversion.
+This should always be FALSE if C and C++ functions use distinct calling
+conventions.  When it is FALSE, the command line option is unavailable.
+(Note: if DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED is FALSE
+and this flag is TRUE, it means the feature can be turned on from the
+command line.  If DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED
+is TRUE and this flag is FALSE, it means the feature cannot be turned off
+from the command line except by invoking strict ANSI mode.  Typically both
+will have the same value.)
+*/
+#ifndef IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
+#define IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE TRUE
+#endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
 
 #endif /* ifndef LANG_FEAT_H */
 
