@@ -1774,6 +1774,15 @@ error code.
     case ec_local_type_in_template_arg:
       m = "a template argument may not reference a local type";
       break;
+    case ec_tag_kind_incompatible_with_declaration:
+      m = "tag kind of %s is incompatible with declaration of %nfd";
+      break;
+    case ec_name_not_tag_in_file_scope:
+      m = "the global scope has no tag named %sq";
+      break;
+    case ec_not_a_tag_member:
+      m = "%n has no tag member named %sq";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
