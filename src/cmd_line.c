@@ -2652,29 +2652,31 @@ order of development of this front end, and is inconsistent and strange.
      used, the exclude_microsoft_mode call will be done before the Microsoft
      mode test calls exclude_gpp_mode. */
   for (pass = 0; pass <= 1; pass++) {
-    if (sun_mode && DEFAULT_SUN_COMPATIBILITY == pass) {
+    if (sun_mode &&
+        (DEFAULT_SUN_COMPATIBILITY != 0) == pass) {
       /* Issue an error for specifying any other language mode.  Strict mode
          has already been checked for. */
-      exclude_microsoft_mode(ec_cl_cfront_incompatible_with_microsoft);
+      exclude_microsoft_mode(ec_cl_incompatible_language_modes);
       exclude_gcc_mode(ec_cl_incompatible_language_modes);
       exclude_gpp_mode(ec_cl_incompatible_language_modes);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && DEFAULT_MICROSOFT_MODE == pass) {
+    if (microsoft_mode &&
+        (DEFAULT_MICROSOFT_MODE != 0) == pass) {
       /* Issue an error for specifying any other language mode.  Strict mode,
          K&R mode, and cfront mode have already been checked for. */
       exclude_SVR4_C_mode(ec_cl_incompatible_language_modes);
       exclude_gcc_mode(ec_cl_incompatible_language_modes);
       exclude_gpp_mode(ec_cl_incompatible_language_modes);
-      exclude_sun_mode(ec_cl_sun_incompatible_with_cfront);
+      exclude_sun_mode(ec_cl_incompatible_language_modes);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (gnu_mode && DEFAULT_GNU_COMPATIBILITY == pass) {
+    if (gnu_mode && (DEFAULT_GNU_COMPATIBILITY != 0) == pass) {
       /* Issue an error for specifying any other language mode.  Strict mode,
          K&R mode, and cfront mode have already been checked for. */
       exclude_SVR4_C_mode(ec_cl_incompatible_language_modes);
-      exclude_microsoft_mode(ec_cl_cfront_incompatible_with_microsoft);
-      exclude_sun_mode(ec_cl_sun_incompatible_with_cfront);
+      exclude_microsoft_mode(ec_cl_incompatible_language_modes);
+      exclude_sun_mode(ec_cl_incompatible_language_modes);
     }  /* if */
   }  /* for */
 }  /* check_dialect_and_language_modes */
