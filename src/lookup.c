@@ -564,6 +564,40 @@ as indicated by is_qualified_name and conversion_type.
 }  /* create_unknown_function_symbol */
 
 
+a_boolean equiv_unknown_functions(a_symbol_ptr	sym1,
+				  a_symbol_ptr	sym2)
+/*
+Return TRUE if "sym1" and "sym2" represent unknown functions that
+should be considered equivalent.
+*/
+{
+  a_boolean	result = FALSE;
+
+  check_assertion(sym1->is_unknown_function && sym2->is_unknown_function);
+  /* The symbols must have the same name. */
+  if (sym1->header == sym2->header) {
+    /* Make sure the parent information matches. */
+    if (sym1->is_class_member == sym2->is_class_member &&
+        (sym1->is_class_member
+                         ? identical_types(sym1->parent.class_type,
+                                           sym2->parent.class_type)
+                         : same_entities(sym1->parent.namespace_ptr,
+                                         sym2->parent.namespace_ptr))) {
+      a_constant_ptr	cp1 = sym1->variant.constant;
+      a_constant_ptr	cp2 = sym2->variant.constant;
+      result = (cp1->variant.template_param.is_qualified_name ==
+                cp2->variant.template_param.is_qualified_name);
+      /* The entries being compared should not be conversion functions. */
+      check_assertion(cp1->variant.template_param.variant.
+                                  unknown_function.conversion_type == NULL &&
+                      cp2->variant.template_param.variant.
+                                  unknown_function.conversion_type == NULL);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* equiv_unknown_functions */
+
+
 a_symbol_ptr find_unknown_function_symbol(
 					a_symbol_ptr	orig_sym,
 					a_boolean	is_qualified_name)

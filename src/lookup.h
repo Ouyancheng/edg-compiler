@@ -274,6 +274,9 @@ extern a_symbol_list_entry_ptr argument_dependent_lookup(
 extern
 a_type_ptr proxy_class_for_template_param(a_type_ptr   templ_param_type);
 
+extern a_boolean equiv_unknown_functions(a_symbol_ptr	sym1,
+					 a_symbol_ptr	sym2);
+
 extern a_symbol_ptr find_unknown_function_symbol(
 					a_symbol_ptr	orig_sym,
 					a_boolean	is_qualified_name);

@@ -1,5 +1,18 @@
 Version 3.2
 
+2/13/03  Spurious correspondence error
+
+A spurious correspondence error was issued if a class like the one below
+was included in more that one translation unit.  The problem occurred
+when the initializer of a const static data member involved a dependent
+function call.  Now fixed.
+
+  template <class T, class T2> struct A {
+    static int test(...);
+    static int test(T2);
+    static const bool value = sizeof(test((T())));
+  };
+
 2/13/03  Spurious warning on unintended use of alternative token
 
 Certain valid uses of alternative tokens would result in an "unintended

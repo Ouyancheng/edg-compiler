@@ -4472,8 +4472,9 @@ nonidentical.
             case tpck_unknown_function:
               check_assertion(cp1->source_corresp.assoc_info != NULL);
               check_assertion(cp2->source_corresp.assoc_info != NULL);
-              eq = (cp1->source_corresp.assoc_info ==
-                    cp2->source_corresp.assoc_info);
+              eq = equiv_unknown_functions(
+                                 (a_symbol_ptr)cp1->source_corresp.assoc_info,
+                                 (a_symbol_ptr)cp2->source_corresp.assoc_info);
               break;
             case tpck_cast:
             case tpck_address:
