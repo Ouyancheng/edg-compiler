@@ -2160,6 +2160,49 @@ table, since it is accessed from the associated function instantiation entry.
 }  /* make_template_function_symbol */
 
 
+a_symbol_ptr get_member_function_template_symbol(a_symbol_ptr  rout_sym)
+/*
+rout_sym is a symbol representing a member function of a prototype
+instantiation of a template class.  If there is already a function template
+symbol associated with rout_sym, return it.  Otherwise, allocate and
+initialize a function instantiation entry and a function template symbol
+and attach them to rout_sym, and return the function template symbol.
+*/
+{
+  a_symbol_ptr                        template_sym;
+  a_function_instantiation_entry_ptr  fiep;
+
+#if CHECKING
+  if (!(symbol_supplement_for_class(rout_sym->class_of_which_a_member))->
+                                                            is_nonreal_class) {
+    internal_error("make_member_function_template_symbol: real class member");
+  }  /* if */
+#endif /* CHECKING */
+  fiep = rout_sym->variant.routine.instance_ptr;
+  if (fiep != NULL) {
+    template_sym = fiep->template_sym;
+  } else {
+    /* Note that the function template symbol is not entered in the symbol
+       table, since it need only be accessed only through the corresponding
+       member function symbol rout_sym. */
+    template_sym = alloc_symbol((a_symbol_kind)sk_function_template,
+                                rout_sym->header, &rout_sym->decl_position);
+    template_sym->class_of_which_a_member = rout_sym->class_of_which_a_member;
+    template_sym->variant.template_info->variant.function.routine =
+                                            rout_sym->variant.routine.ptr;
+    /* Create the associated function instantiation entry, but do not link it
+       onto the instantiation list for the template. */
+    fiep = alloc_function_instantiation_entry();
+    fiep->template_sym = template_sym;
+    /* Make the function instantiation entry and its associated symbol
+       point at each other. */
+    fiep->routine_sym = rout_sym;
+    rout_sym->variant.routine.instance_ptr = fiep;
+  }  /* if */
+  return template_sym;
+}  /* get_member_function_template_symbol */
+
+
 a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym)
 /*
 If the symbol is a class template that is currently being instantiated,
