@@ -7335,21 +7335,6 @@ Dump debug information about an object lifetime entry.
         db_destruction(dip);
       }  /* for */
     }  /* if */
-    if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
-      a_scope_ptr  sp = (a_scope_ptr)olp->entity.ptr;
-      if (sp->kind == (a_scope_kind)sck_function &&
-          sp->variant.routine.lifetime_of_constructor_inits != NULL) {
-        fputs("\n  ctor init destructions = ", f_debug);
-        dip = sp->variant.routine.lifetime_of_constructor_inits->
-                                                             destructions;
-        db_destruction(dip);
-        dip = dip->next_in_destruction_list;
-        for (; dip != NULL; dip = dip->next_in_destruction_list) {
-          fputs("\n                           ", f_debug);
-          db_destruction(dip);
-        }  /* for */
-      }  /* if */
-    }  /* if */
     fputc('\n', f_debug);
   }  /* if */
 }  /* db_object_lifetime */
@@ -7399,19 +7384,6 @@ stopping when the object lifetime indicated by stop_at is reached.
           fputs("\n      ", f_debug);
           db_destruction(dip);
         }  /* for */
-      }  /* if */
-      if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
-        a_scope_ptr  sp = (a_scope_ptr)olp->entity.ptr;
-        if (sp->kind == (a_scope_kind)sck_function &&
-            sp->variant.routine.lifetime_of_constructor_inits != NULL) {
-          fputs("\n  --for constructor inits:", f_debug);
-          dip = sp->variant.routine.lifetime_of_constructor_inits->
-                                                             destructions;
-          for (; dip != NULL; dip = dip->next_in_destruction_list) {
-            fputs("\n      ", f_debug);
-            db_destruction(dip);
-          }  /* for */
-        }  /* if */
       }  /* if */
       fputc('\n', f_debug);
       /* Note: on a parent destruction list, only those following
@@ -7489,8 +7461,8 @@ static an_object_lifetime_ptr *addr_of_lifetime_ptr(
 /*
 Given an IL entry kind and a pointer to the entry, return the address of the
 field of that entry that points to an object lifetime.  Since scope entries
-have several such pointers, the object lifetime kind is also passed in to
-help determine which address to return.
+have two such pointers, the object lifetime kind is also passed in to help
+determine which address to return.
 */
 {
   an_object_lifetime_ptr *lifetime_addr;
@@ -7499,10 +7471,7 @@ help determine which address to return.
     case iek_scope:
       /* There are three lifetime pointers in a scope entry.  Use kind to
          select the right one. */
-      if (kind == (an_object_lifetime_kind)olk_constructor_init) {
-        lifetime_addr = &((a_scope_ptr)entity_ptr)->
-                              variant.routine.lifetime_of_constructor_inits;
-      } else if (kind == (an_object_lifetime_kind)olk_function_static) {
+      if (kind == (an_object_lifetime_kind)olk_function_static) {
         lifetime_addr = &((a_scope_ptr)entity_ptr)->
                               variant.routine.lifetime_of_local_static_vars;
       } else {
@@ -8055,7 +8024,6 @@ points to the associated routine if the kind is sck_function.
       sp->variant.routine.ptr                           = assoc_routine;
       sp->variant.routine.parameters                    = NULL;
       sp->variant.routine.constructor_inits             = NULL;
-      sp->variant.routine.lifetime_of_constructor_inits = NULL;
       sp->variant.routine.lifetime_of_local_static_vars = NULL;
       sp->variant.routine.this_param_variable           = NULL;
       sp->variant.routine.return_value_variable         = NULL;

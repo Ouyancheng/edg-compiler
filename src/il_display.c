@@ -2345,9 +2345,6 @@ do_assoc_type:
       disp_ptr("constructor_inits",
                (char *)ptr->variant.routine.constructor_inits,
                iek_constructor_init);
-      disp_ptr("lifetime_of_constructor_inits",
-               (char *)ptr->variant.routine.lifetime_of_constructor_inits,
-               iek_object_lifetime);
       disp_ptr("lifetime_of_local_static_vars",
                (char *)ptr->variant.routine.lifetime_of_local_static_vars,
                iek_object_lifetime);
