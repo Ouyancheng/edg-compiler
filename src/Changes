@@ -1,5 +1,12 @@
 Version 2.29
 
+4/5/95   Cfront compatiblity: conversions of class operands to pointer type
+         when they are operands of builtin operators
+
+A small adjustment in cfront mode: for class operands of builtin operators,
+conversions to pointer or pointer to member types are now considered only
+if the other operand has a pointer or pointer to member type.
+
 4/4/95   Handling of incompatible routine redeclarations SVR4-C mode
 
 If two otherwise compatible routine declarations differ in their return
