@@ -1,5 +1,22 @@
 Version 2.32
 
+5/13/96 Failure to find conversion function in template
+
+In cases like the following, the front end failed to instantiate the source
+class early enough and therefore failed to recognize that the conversion
+function applies.  The problem only came up when the destination type
+is also a class, and there are no other conversion functions to that
+class type (or, at least, none instantiated at the time the check is
+made).
+
+  template <class T> struct A {
+    operator T();
+  };
+  struct B {};
+  void f(A<B> &r) {
+    B b = r;
+  }
+
 5/10/96 IL CHANGE: no top-level qualifier on implicit_this_param_type
 
 In the unlowered IL for nonstatic member functions, a top-level const
