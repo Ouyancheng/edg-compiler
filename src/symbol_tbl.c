@@ -8698,7 +8698,7 @@ This is used for error generation of the transitional model for nested
 type support.
 */
 {
-  a_symbol_ptr   sym;
+  a_symbol_ptr  sym;
 
   sym = sym_to_find->header->inactive_symbols;
   while (sym != NULL) {
@@ -8711,12 +8711,6 @@ type support.
     }  /* if */
     sym = sym->next;
   }  /* while */
-#if CHECKING
-  if (sym == NULL) {
-    internal_error
-      ("find_cfront_transitional...: no semivisible symbol found");
-  }  /* if */
-#endif /* CHECKING */
   return sym;
 }  /* find_cfront_transitional_nested_type_symbol */
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
@@ -9224,23 +9218,32 @@ NULL.
 }  /* end_of_scope_symbol_check */
 
 
-static void nested_class_anachronism_processing(a_symbol_ptr symbol_list)
+static void nested_class_anachronism_processing(a_symbol_ptr symbol_list,
+                                                a_boolean    do_tags,
+                                                a_boolean    do_typedefs)
 /*
 This routine is called to process the symbols of a class scope to
 determine whether any nested types should be visible for
 nested class anachronism processing.  It is also used in
 cfront 2.1 object compatibility mode to determine whether any of
 the symbols should receive special treatment when generating
-the mangled named for the nested type.
+the mangled named for the nested type.  do_tags is TRUE if tag symbols
+should be processed, otherwise they should be ignored.  do_typedefs
+is TRUE if typedef symbols should be processed.  Both may be TRUE.
+When cfront 2.1 object compatibility and cfront 2.1 mode are being used,
+this routine is called twice.  Tag symbols are processed the first time,
+and typedefs the second time.
 */
 {
   a_symbol_ptr	sym;
+
   for (sym = symbol_list; sym != NULL; sym = sym->next_in_scope) {
     /* Check for nested class/struct/unions on the inactive list.  If
        there are any, set the flag in the symbol header.  This is
        used to support the nonnested class anachronism.  We do not
        apply the anachronism to template classes. */
-    if ((is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type)) {
+    if ((do_tags && is_tag_symbol(sym)) ||
+        (do_typedefs && sym->kind == (a_symbol_kind)sk_type)) {
       sym->header->any_nested_types_on_inactive_list = TRUE;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
       /* Cfront 2.1 implements a special "transitional model" for nested
@@ -9263,8 +9266,15 @@ the mangled named for the nested type.
           } else {
             a_symbol_ptr other_sym;
             other_sym = find_cfront_transitional_nested_type_symbol(sym);
-            pos_sy2_error(ec_cfront_multiple_nested_types,
-                          &sym->decl_position, sym, other_sym);
+            if (other_sym != NULL) {
+              /* other_sym can be NULL in certain cases where the transitional
+                 nested type flag has already been set for another symbol
+                 in the same class.  This can occur for cases like
+                   typedef class {} A;
+                 which results in two symbols being created in cfront mode. */
+              pos_sy2_error(ec_cfront_multiple_nested_types,
+                            &sym->decl_position, sym, other_sym);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -9272,6 +9282,37 @@ the mangled named for the nested type.
     }  /* if */
   }  /* for */
 }  /* nested_class_anachronism_processing */
+
+
+static void do_nested_class_anachronism_processing(a_symbol_ptr symbol_list)
+/*
+This is an interface routine to nested_class_anachronism_processing.
+When generating cfront 2.1 compatible object code, and in cfront 2.1 mode,
+the processing is done in two passes: first any tag symbols are processed,
+then any typedef symbols.  This ensures that if both a tag and a typedef
+have the same name, the tag will receive the special transitional
+nested type name mangling.
+
+In other modes, nested_class_anachronism_processing is only called once,
+and all symbols are processed in that one pass.
+*/
+{
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+  a_boolean	separate_typedef_pass = cfront_2_1_mode;
+  nested_class_anachronism_processing(symbol_list,
+                                      /*do_tags=*/TRUE,
+                                      !separate_typedef_pass);
+  if (separate_typedef_pass) {
+    nested_class_anachronism_processing(symbol_list,
+                                        /*do_tags=*/FALSE,
+                                        /*do_typedefs=*/TRUE);
+  }  /* if */
+#else /* !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+  nested_class_anachronism_processing(symbol_list,
+                                      /*do_tags=*/TRUE,
+                                      /*do_typedefs=*/TRUE);
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+}  /* do_nested_class_anachronism_processing */
 
 
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
@@ -9500,7 +9541,7 @@ End a name scope by popping an entry off the scope stack.
         do_semivisible_type_processing) {
       /* Determine whether any of the symbols from this class scope should
          be treated as semivisible types. */
-      nested_class_anachronism_processing(pointers_block->symbols);
+      do_nested_class_anachronism_processing(pointers_block->symbols);
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
     } else if (kind == (a_scope_kind)sck_file && cfront_2_1_mode) {
       /* See if any of the file scope symbols conflict with semivisible

@@ -1,5 +1,15 @@
 Version 2.30
 
+7/25/95  Spurious cfront transitional nested type error
+
+In cfront compatibility mode when CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+is being used, cases like the following result in a spurious
+"two nested types have the same name" error.  This has been fixed.
+
+  struct A {
+    typedef class { } Y;
+  };
+
 7/25/95  Bit-field allocation bug
 
 A bug has been fixed in computing the size and alignment of a bit-field
