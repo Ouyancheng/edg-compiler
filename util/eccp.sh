@@ -66,6 +66,7 @@ rofiles=
 loptions=
 Loptions=
 lfiles=
+any_lfiles=0
 #
 # A list of options to pass to front end.
 #
@@ -352,6 +353,7 @@ do
     *\.a)
 #     Collect a list of library archive names (.a) files.
       lfiles=$lfiles" "$1
+      any_lfiles=1
       shift;
       ;;
     *\.c)
@@ -403,7 +405,8 @@ fi
 # file) then use the "instantiate used" option.
 #
 if [ $cmode -eq 0 -a $more_than_one_c_file -eq 0 -a $cc_only -eq 0 -a	\
-     $fe_only -eq 0 -a $instantiation_mode_specified -eq 0 ] ; then
+     $fe_only -eq 0 -a $any_lfiles -eq 0 -a \
+     $instantiation_mode_specified -eq 0 ] ; then
   feoptions=$feoptions" -tused"
 fi
 #
