@@ -8479,18 +8479,42 @@ static void check_function_template_param_usage
 			  a_type_ptr                       type,
 			  a_template_param_ptr             template_param_list)
 /*
-Make sure that all of the template parameters are used as part of the
-signature of the functions that will be generated from this template.
-Use in a function parameter with a default argument is not counted as
-it would not be possible to deduce the value of a template parameter
-when the associated function argument was omitted.
+Perform certain error tests on a function template parameter list.
+When not using distinct template name mangling, all of the template
+parameters must be used as part of the signature of the functions that
+will be generated from this template.  Function templates are not
+permitted to have default template argument values.  This test is also
+done here.
 */
 {
-  a_template_param_ptr   tpp;
-  a_type_ptr	         rout_type = skip_typerefs(type);
-  a_boolean		 is_conversion_operator;
+  a_template_param_ptr  tpp;
+  a_type_ptr	        rout_type = skip_typerefs(type);
+  a_boolean		is_conversion_operator;
+  a_boolean		is_constructor;
+  a_boolean		usage_check_needed = FALSE;
+  an_error_severity	severity;
 
   is_conversion_operator = is_conversion_function_symbol(sym);
+  is_constructor = is_constructor_symbol(sym);
+  if (distinct_mangling_for_templates) {
+    /* The test is not needed because there is no requirement for template
+       parameters to be used in a function signature when templates get
+       the appropriate mangling.  The test is still done for functions
+       that cannot be called with an explicit template argument list, but
+       only a warning is issued. */
+    if (is_conversion_operator || is_constructor) {
+      usage_check_needed = TRUE;
+      severity = es_warning;
+    }  /* if */
+  } else {
+    /* All templates must use their template parameters in the function
+       signature when old template mangling is used.  Otherwise, duplicate
+       mangled named would be generated. */
+    usage_check_needed = TRUE;
+    severity = es_error;
+  }  /* if */
+  /* Go through the loop anyway, to check for function template parameters
+     with default arguments. */
   for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
     a_symbol_ptr param_sym = tpp->param_symbol;
     a_boolean	 param_used;
@@ -8498,22 +8522,25 @@ when the associated function argument was omitted.
       pos_error(ec_default_template_arg_not_allowed,
                 &param_sym->decl_position);
     }  /* if */
-    if (is_conversion_operator) {
-      /* For conversion operator functions, the template parameters must be
-         used in the return type. */
-      param_used =  template_param_used_in_type(
+    if (usage_check_needed) {
+      if (is_conversion_operator) {
+        /* For conversion operator functions, the template parameters must be
+           used in the return type. */
+        param_used =  template_param_used_in_type(
                             param_sym, rout_type->variant.routine.return_type);
-    } else {
-      /* Make sure that all template parameters are used by
-         function parameter types.  If an error occurs set the
-         cannot_be_called flag to prevent an instantiation from
-         being attempted with an incomplete set of template arguments. */
-      param_used = template_param_appears_in_param_list(param_sym, rout_type);
+      } else {
+        /* Make sure that all template parameters are used by
+           function parameter types.  If an error occurs set the
+           cannot_be_called flag to prevent an instantiation from
+           being attempted with an incomplete set of template arguments. */
+        param_used = template_param_appears_in_param_list(param_sym,
+                                                          rout_type);
+      }  /* if */
+      if (!param_used) {
+        pos_sy2_diagnostic(severity, ec_not_used_in_template_function_params,
+                           &param_sym->decl_position, param_sym, sym);
+      } /* if */
     }  /* if */
-    if (!param_used) {
-      pos_sy2_error(ec_not_used_in_template_function_params,
-                    &param_sym->decl_position, param_sym, sym);
-    } /* if */
   } /* for */
 }  /* check_function_template_param_usage */
 
@@ -8740,13 +8767,10 @@ caller.
     /* Out-of-line definition of a member function of a class template.
        Don't impose requirements on the use of template parameters in the
        parameters. */
-  } else if (!distinct_mangling_for_templates) {
+  } else {
     /* Go back through the template params and make sure that all of the
        template parameters were used in a way that effects the function
-       signature.  This only needs to be done when the implementation
-       does not mangle template function instances in a way that guarantees
-       that each will be distinct, even if the template parameter types
-       are not used in the function signature. */
+       signature, and other tests. */
     a_type_ptr  type = tssp->variant.function.routine->type;
     check_function_template_param_usage(sym, type, template_param_list);
   }  /* if */
