@@ -2113,13 +2113,13 @@ appearance of the base class happens to have been marked preferred.
   an_access_specifier          access, preferred_access;
 
   db_enter(4, "set_preferred_base_class_derivation");
-  /* Has this set of virtual derivations been checked yet?  This can be
+  /* Has this set of base class derivations been checked yet?  This can be
      determined by seeing if any has the preferred flag set already. */
   for (bcdp = base_class->derivation; bcdp != NULL; bcdp = bcdp->next) {
     /* Preferred flag has already been set for this group of derivations. */
     if (bcdp->preferred) goto done;
   }  /* for */
-  /* Traverse the linked list of virtual derivations. */
+  /* Traverse the linked list of base class derivations. */
   for (bcdp = base_class->derivation; bcdp != NULL; bcdp = bcdp->next) {
     if (bcdp->path->base_class->is_virtual &&
         bcdp->path->base_class != base_class) {
