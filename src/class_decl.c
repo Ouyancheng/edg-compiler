@@ -5248,7 +5248,7 @@ class/struct/union is actually defined.
        tag, even if it just repeats a previous name.  At least, there's
        a Plum Hall test that implies that. */
     *declares_something = TRUE;
-    tag_sym = scan_tag_name((a_symbol_kind)sk_enum_tag, &locator,
+    tag_sym = scan_tag_name(tag_kind, &locator,
                             /*check_for_vacuous_decl=*/(first_specifier &&
                                                         !is_friend_decl),
                             &effective_decl_level, &tag_resolution);
