@@ -2194,6 +2194,9 @@ associated with the indicated sck_function scope.
       /* Move the declared type pointer from the routine into the
          source-sequence entry, clearing the routine's pointer (since
          rp no longer represents a definition). */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      sssdp->template_decl = rp->template_decl;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       sssdp->declared_type = rp->declared_type;
       rp->declared_type = NULL;
       sssdp->friend_decl = rp->defined_in_friend_decl;
