@@ -1,5 +1,18 @@
 Version 2.46
 
+11/25/01 Abort after error in "?" in Microsoft mode
+
+In some cases, in Microsoft mode, there could be an abort in
+take_address_of_lvalue after an error on the second operand
+of a "?" operator.  Now fixed.
+
+  int global;
+  void f() {
+    int i=3;
+    char *cp=(char*)0;
+    i=cp ? i:: :global;
+  }
+
 11/19/01 Abort while computing overriding virtual functions
 
 The front end used to abort under certain circumstance involving virtual

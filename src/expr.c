@@ -10899,7 +10899,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
          an error type. */
       if (is_error_type(operand_3.type)) {
         result_type = operand_3.type;
-      } else if (microsoft_bugs && !is_class_struct_union_type(result_type)) {
+      } else if (microsoft_bugs &&
+                 !is_class_struct_union_type(result_type) &&
+                 !is_error_type(result_type)) {
         /* In Microsoft mode, the cv-qualifiers are dropped on non-class
            operands. */
         if ((is_qualified_type(operand_2.type) &&
