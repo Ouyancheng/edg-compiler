@@ -7522,8 +7522,8 @@ End a name scope by popping an entry off the scope stack.
   }  /* for */
   /* For template instantiation scopes, restore the template parameters
      to their previous state.  Normally this just involves setting the
-     parameters to point to the "resting " values assigned when the
-     template declaration is scanned. In the event of a recursive
+     parameters to point to the "resting" values assigned when the
+     template declaration is scanned.  In the event of a recursive
      instantiation, however, this requires restoring the values from the
      previous instantiation. */
   if (kind == (a_scope_kind)sck_template_instantiation) {
