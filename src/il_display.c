@@ -1619,6 +1619,7 @@ Display the indicated routine.
   disp_boolean("pure_virtual", (a_boolean)ptr->pure_virtual);
   disp_boolean("is_inline", (a_boolean)ptr->is_inline);
   disp_boolean("compiler_generated", (a_boolean)ptr->compiler_generated);
+  disp_boolean("called", (a_boolean)ptr->called);
 #if ASSIGNMENT_TO_THIS_ALLOWED
   if (ptr->assignment_to_this_done) {
     disp_boolean("assignment_to_this_done",
