@@ -825,6 +825,14 @@ and for the instantiation of template functions.
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
       decl_parameter(param_id, ptp, is_instantiation);
+      if (is_instantiation && param_id->next != NULL && ptp->next == NULL &&
+          is_or_contains_error_type(ptp->type)) {
+        /* Something may have gone wrong while parsing the template.  This
+           might have caused us to miscount the number of parameters (in that
+           case the last parameter type was set to an error type).  Imbue the
+           error type on all the remaining parameters. */
+        ptp->next = alloc_param_type(error_type());
+      }
       /* Be sure param-id and param-type lists are in sync. */
       check_assertion((param_id->next == NULL) == (ptp->next == NULL));
     }  /* for */
