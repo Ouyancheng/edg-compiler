@@ -1,5 +1,13 @@
 Version 2.22
 
+2/11/94  Pointer-to-member types preserved in result of lowered cast
+
+The code produced by IL lowering for a pointer-to-member related class
+cast now preserves the original type pointer in the result.  This
+avoids an internal error when such a cast is the first operand of
+a pointer-to-member call operator.  This should make no difference
+to a back end, as the new type is a typedef of the old type.
+
 2/11/94  Proper error handling on pointer-to-member type in expression
 
 An internal error is no longer given when a pointer-to-member pointer

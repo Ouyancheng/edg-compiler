@@ -4796,6 +4796,7 @@ used as an lvalue if is_lvalue is TRUE.
   a_constant       offset_constant;
   a_targ_ptrdiff_t offset;
   a_variable_ptr   temp_var;
+  a_type_ptr       dest_type = node->type;
 
   /* Use recursion to find a chain of similar casts and compute the overall
      class offset for the chain. */
@@ -4806,12 +4807,13 @@ used as an lvalue if is_lvalue is TRUE.
     /* When the offset is zero no cast is needed.  Overwrite the original
        node with the underlying node. */
     overwrite_node(node, source_node);
+    node->type = dest_type;
   } else {
     /* The offset is non-zero, so some work is needed. */
     /* Make a node for the offset constant. */
     set_delta_constant(offset, &offset_constant);
     offset_node = alloc_node_for_constant(&offset_constant);
-    if (is_or_was_ptr_to_member_function_type(node->type)) {
+    if (is_or_was_ptr_to_member_function_type(dest_type)) {
       /* Pointer to member function.  Change the node to
            (temp = pmf, (temp.i != 0) ? temp.d += offset : 0, temp)
       */
@@ -4848,8 +4850,11 @@ used as an lvalue if is_lvalue is TRUE.
       /* Overwrite the original node with a "," operator to make the
          full expression. */
       comma_node->next = var_rvalue_expr(temp_var);
+      /* Note the use of dest_type here to ensure that information on the
+         original pointer-to-member-function type is available in case
+         there is an eok_pm_call operation above this one. */
       set_node_operator(node, (an_expr_operator_kind)eok_comma,
-                        temp_var->type, comma_node);
+                        dest_type, comma_node);
     } else {
       /* Pointer to data member.  Change the node to
            (pdm != 0) ? pdm + offset : 0
@@ -4868,7 +4873,7 @@ used as an lvalue if is_lvalue is TRUE.
       compare_node->next = plus_node;
       plus_node->next = node_for_integer_constant(0L, TARG_DELTA_INT_KIND);
       set_node_operator(node, (an_expr_operator_kind)eok_question,
-                        plus_node->type, compare_node);
+                        dest_type, compare_node);
     }  /* if */
   }  /* if */
 }  /* lower_pm_related_class_cast */
