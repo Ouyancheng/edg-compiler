@@ -4329,7 +4329,7 @@ way, determine to which other IL entry this might correspond.
               record_function_template_instantiation(
                                                 (a_symbol_ptr)scp->assoc_info);
             } else {
-              find_routine_correspondence((a_routine_ptr)scp);
+              find_routine_correspondence(routine);
             }  /* if */
           }
           break;
@@ -4371,6 +4371,26 @@ way, determine to which other IL entry this might correspond.
                               (a_symbol_ptr)root->source_corresp.assoc_info);
       } else {
         find_type_correspondence(root, /*parent_found=*/FALSE);
+      }  /* if */
+    } else {
+      /* A member of a class that was already visited.  This could be in a
+         member template instantiation. */
+      if (kind == (an_il_entry_kind)iek_type) {
+        a_type_ptr  type = (a_type_ptr)scp;
+        if (is_immediate_class_type(type) &&
+            type->variant.class_struct_union.is_template_class &&
+            type->variant.class_struct_union.extra_info
+                                                ->template_arg_list != NULL) {
+          /* A member class template instantiation. */
+          record_class_template_instantiation(
+                                (a_symbol_ptr)type->source_corresp.assoc_info);
+        }  /* if */
+      } else if (kind == (an_il_entry_kind)iek_routine) {
+        if (((a_routine_ptr)scp)->is_template_function) {
+          /* A member function template instantiation. */
+          record_function_template_instantiation(
+                                                (a_symbol_ptr)scp->assoc_info);
+        }  /* if */
       }  /* if */
     }
     if (trans_unit_corresp_of_unknown_entry(scp) == NULL) {
