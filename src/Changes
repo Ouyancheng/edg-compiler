@@ -1,5 +1,15 @@
 Version 2.35
 
+1/17/96 Invalid pointer in il_header
+
+With elimination of unneeded IL entries enabled, the main_routine pointer
+in il_header was not being cleared when main itself was removed from the
+IL.  Now fixed.  Here's an example:
+
+  class A {
+    friend int main();
+  };
+
 1/17/97 Internal error on specialization of invalid template
 
 An internal error could result on an attempt to specialize a class
