@@ -540,6 +540,10 @@ as needed.
           fprintf(f_debug, "Setting needed on rout ");
           db_name(&((a_routine_ptr)entry_ptr)->source_corresp);
           fprintf(f_debug, "\n");
+        } else if (entry_kind == iek_namespace) {
+          fprintf(f_debug, "Setting needed on namespace ");
+          db_name(&((a_routine_ptr)entry_ptr)->source_corresp);
+          fprintf(f_debug, "\n");
         }  /* if */
       }  /* if */
 #endif /* DEBUG */
@@ -923,6 +927,10 @@ to be kept.
         fprintf(f_debug, "Setting keep_in_il on rout ");
         db_name(&((a_routine_ptr)entry_ptr)->source_corresp);
         fprintf(f_debug, "\n");
+      } else if (entry_kind == iek_namespace) {
+        fprintf(f_debug, "Setting keep_in_il on namespace ");
+        db_name(&((a_routine_ptr)entry_ptr)->source_corresp);
+        fprintf(f_debug, "\n");
       }  /* if */
     }  /* if */
 #endif /* DEBUG */
@@ -982,6 +990,11 @@ only the entries marked as "needed" are marked to keep in the IL.
       ((a_scope_ptr)entry_ptr)->kind == (a_scope_kind)sck_file) {
     file_scope_walk = TRUE;
     il_entry_prefix_of(entry_ptr).keep_in_il = FALSE;
+#if DEBUG
+    if (db_flag_is_set("needed_flags")) {
+      fprintf(f_debug, "Beginning file scope keep_in_il walk\n");
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
 
   /* Walk the IL tree. */
@@ -1025,6 +1038,11 @@ only the entries marked as "needed" are marked to keep in the IL.
        keep_in_il flags have been set. */
     set_keep_in_il_on_source_sequence_entries(scope);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if DEBUG
+    if (db_flag_is_set("needed_flags")) {
+      fprintf(f_debug, "Ending file scope keep_in_il walk\n");
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
 
   /* Restore the state of global variables. */
