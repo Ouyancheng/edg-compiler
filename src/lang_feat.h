@@ -436,6 +436,18 @@ the value x*10000+y*100+z.
 #endif /* ifndef DEFAULT_GNU_VERSION */
 
 /*
+A configuration macro that determines the minimum GNU C/C++ version that can
+be emulated by the front end.  By default, the front end not normally support
+emulation of versions of gcc and g++ prior to 3.2 (30200).
+*/
+#ifndef MIN_GNU_VERSION
+#define MIN_GNU_VERSION 30200
+#endif /* MIN_GNU_VERSION */
+#if (DEFAULT_GNU_VERSION) < (MIN_GNU_VERSION)
+ #error -- DEFAULT_GNU_VERSION too small
+#endif /* (DEFAULT_GNU_VERSION) < (MIN_GNU_VERSION) */
+
+/*
 The value of the __VERSION__ macro in GNU mode.  Note that an extra set of
 quotes is needed as this is the actual macro replacement string to be used.
 The string can contain one occurrence of "%m" (which will be expanded to

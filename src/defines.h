@@ -32,6 +32,10 @@ Set the test version flags to FALSE for demo versions.
 #ifndef DEBUG
 #define DEBUG 0
 #endif /* ifndef DEBUG */
+#else /* !defined(DEMO_VERSION) */
+/* In development versions, allow values of gnu_version less than 30200 so
+   some early gcc compatibility features can be tested. */
+#define MIN_GNU_VERSION 29500
 #endif /* ifdef DEMO_VERSION */
 
 #define ENABLE_TRANS_UNIT_TEST_MODE 1

@@ -3827,7 +3827,7 @@ enable_microsoft_mode:
            then --gcc is implied if --c is specified, and --g++ is implied
            otherwise. */
         gnu_version = scan_opt_arg_number(opt_arg);
-        if (gnu_version < 30200) {
+        if (gnu_version < MIN_GNU_VERSION) {
           str_command_line_error(ec_cl_invalid_gnu_version, opt_arg);
         }  /* if */
         break;
