@@ -1381,8 +1381,9 @@ done:
 
 static a_targ_size_t offset_after_base(a_base_class_ptr  bcp)
 /*
-Return the offset after the last byte covered by the given base class (excluding
-virtual bases, but including the optimized bytes of an empty base class).
+Return the offset after the last byte covered by the given base class
+(excluding virtual bases, but including the optimized bytes of an empty
+base class).
 */
 {
   a_type_ptr     bctp = skip_typerefs(bcp->type);
