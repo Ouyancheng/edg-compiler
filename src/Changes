@@ -1,5 +1,7 @@
 Version 2.06
 
+5/7/92   Apply user-defined conversions on 2nd and 3rd operand of "?".
+
 5/7/92   Bug in IL lowering of virtual destructor calls fixed.
 
 Implicitly-generated calls of virtual destructors were not put
