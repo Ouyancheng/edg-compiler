@@ -9621,6 +9621,12 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
               add_implied_args_to_call(expr, rout);
             }  /* if */
             break;
+          case eok_vacuous_destructor_call:
+            /* A call of a "destructor" for a class or simple type that does
+               not have one, e.g., p->int::~int().  Change the node into
+               a cast to void. */
+            change_to_cast(expr, operand_node, expr->type);
+            break;
           case eok_cast:
             /* A cast from one pointer-to-member type to another does nothing.
                Note that pointer-to-data-member and pointer-to-member-function
