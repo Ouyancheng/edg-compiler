@@ -452,6 +452,9 @@ return a pointer to the new entry. Reuse a freed entry if possible.
   }  /* if */
   audp->entry = NULL;
   audp->next  = NULL;
+  audp->scope_depth_at_which_using_directive_applies = NO_SCOPE_DEPTH;
+  audp->namespace_supplement = NULL;
+  audp->effective_decl_seq = 0;
   return audp;
 }  /* alloc_active_using_directive */
 
@@ -486,36 +489,52 @@ with ssep, looking for namespace scopes.
 
 
 /* Forward declaration. */
-static void add_active_using_directive_to_scope(a_using_decl_ptr         udp,
-                                                a_scope_stack_entry_ptr  ssep);
+static void add_active_using_directive_to_scope(
+				a_using_decl_ptr	udp,
+				a_scope_stack_entry_ptr	ssep,
+				a_decl_sequence_number	effective_decl_seq);
 
 static void add_active_using_directives_for_namespace(
-                                               a_namespace_ptr         nsp,
-                                               a_scope_stack_entry_ptr ssep)
+				a_namespace_ptr		nsp,
+				a_scope_stack_entry_ptr	ssep,
+				a_decl_sequence_number	parent_decl_seq)
 /*
 Create active using directive entries for any using directives present
-in the specified namespace.
+in the specified namespace.  If the namespace specified by nsp was
+made visible by a using-directive, parent_decl_seq is the declaration
+sequence number of the using-directive that made it visible.
 */
 {
   a_using_decl_ptr  udp = nsp->variant.assoc_scope->using_decls;
 
   while (udp != NULL) {
     if (udp->is_using_directive) {
-      /* A using-directive. */
-      add_active_using_directive_to_scope(udp, ssep);
+      a_decl_sequence_number	effective_decl_seq;
+      /* A using-directive.  Use the higher of the parent's declaration
+         sequence number or the one associated with the using directive
+         now being processed.  If the namespace that nominated this namespace
+         should not be visible then neither should this one. */
+      effective_decl_seq = parent_decl_seq > udp->decl_sequence_number ?
+                                   parent_decl_seq : udp->decl_sequence_number;
+      add_active_using_directive_to_scope(udp, ssep, effective_decl_seq);
     }  /* if */
     udp = udp->next;
   }  /* while */
 }  /* add_active_using_directives_for_namespace */
 
 
-static void add_active_using_directive_to_scope(a_using_decl_ptr         udp,
-                                                a_scope_stack_entry_ptr  ssep)
+static void add_active_using_directive_to_scope(
+				a_using_decl_ptr	udp,
+				a_scope_stack_entry_ptr	ssep,
+				a_decl_sequence_number	effective_decl_seq)
 /*
 Allocate a new active using directive entry, initialize its fields, and
 link it into a list of active using directives for the current scope.
 Reuse a freed entry if possible.  If the specified namespace is already
-on the list for the scope, a new entry is not added.
+on the list for the scope, a new entry is not added.  effective_decl_seq
+is the declaration sequence point at which the using-directive is
+effective.  This is used during template instantiations to ignore
+using-directives specified after the point of definition of the template.
 */
 {
   an_active_using_directive_ptr  	audp;
@@ -571,6 +590,7 @@ on the list for the scope, a new entry is not added.
     audp->namespace_supplement = nssp;
     audp->next = ssep->active_using_directives;
     audp->scope_depth_at_which_using_directive_applies = new_depth;
+    audp->effective_decl_seq = effective_decl_seq;
     ssep->active_using_directives = audp;
     /* Set a flag in the scope at which this using directive applies that
        indicates that the using directive processing must be done for
@@ -578,7 +598,7 @@ on the list for the scope, a new entry is not added.
     scope_stack[new_depth].using_directives_apply = TRUE;
     /* Add active using directives for the namespaces that should be
        visible because of the transitivity of using directives. */
-    add_active_using_directives_for_namespace(nsp, ssep);
+    add_active_using_directives_for_namespace(nsp, ssep, effective_decl_seq);
     /* Now that a using directive is active, inactive symbols may be
        visible. */
     scope_stack[depth_scope_stack].inactive_symbols_may_be_visible = TRUE;
@@ -593,7 +613,8 @@ Add a new active using directive entry that was specified in the current scope.
 {
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
 
-  add_active_using_directive_to_scope(udp, ssep);
+  add_active_using_directive_to_scope(udp, ssep,
+                            (a_decl_sequence_number)udp->decl_sequence_number);
   if (ssep->kind == (a_scope_kind)sck_namespace ||
       ssep->kind == (a_scope_kind)sck_namespace_extension) {
     a_namespace_ptr	namespace_added_to;
@@ -620,7 +641,7 @@ Add a new active using directive entry that was specified in the current scope.
         if (skip_namespace_aliases(audp_nsp) == namespace_added_to) {
           /* The enclosing namespace is on the list.  Add the using directive
              to this scope. */
-          add_active_using_directive_to_scope(udp, ssep);
+          add_active_using_directive_to_scope(udp, ssep, decl_seq_counter);
           break;
         }  /* if */
       }  /* for */
@@ -888,8 +909,10 @@ declaration is scanned and are used as placeholders between instantiations.
 }  /* restore_default_template_params */
 
 
-static void set_active_using_list_scope_depths(a_scope_depth starting_depth,
-                                               a_boolean     set_value)
+static void set_active_using_list_scope_depths(
+				a_scope_depth		starting_depth,
+                                a_boolean		set_value,
+				a_decl_sequence_number	effective_decl_seq)
 /*
 This routine goes through the active using list for the scopes that
 are now active and updates the scope at which the using directive
@@ -897,6 +920,11 @@ applies for each of the namespaces referenced.  If set_value is TRUE,
 the flag is set to the value specified in the active using directive
 entry.  If set_value is FALSE the flag is set to NO_SCOPE_DEPTH.
 starting_depth is the innermost scope to be processed.
+
+If effective_decl_seq is not NO_DECL_SEQUENCE_NUMBER, it specifies a
+point after which any symbols that are declared should not be visible. 
+This is used during template instantiations to ignore using-directives
+specified after the point of definition of the template.
 */
 {
   a_scope_stack_entry_ptr	ssep = &scope_stack[starting_depth];
@@ -907,6 +935,13 @@ starting_depth is the innermost scope to be processed.
     for (; audp != NULL; audp = audp->next) {
       a_namespace_symbol_supplement_ptr	nssp;
       a_scope_depth			new_depth;
+      if (set_value &&
+          effective_decl_seq != NO_DECL_SEQUENCE_NUMBER &&
+          (audp->effective_decl_seq > effective_decl_seq)) {
+        /* This using-directive became effective after the point that the
+           using-directive appeared.  Ignore this using-directive. */
+        continue;
+      }  /* if */
       new_depth = set_value 
                     ? audp->scope_depth_at_which_using_directive_applies
                     : NO_SCOPE_DEPTH;
@@ -1652,7 +1687,8 @@ template defined in a namespace.
   /* Add active using directives for the namespaces that should be
      visible because of the transitivity of using directives. */
   add_active_using_directives_for_namespace(assoc_namespace,
-                                            &scope_stack[depth_scope_stack]);
+                                            &scope_stack[depth_scope_stack],
+					    NO_DECL_SEQUENCE_NUMBER);
   return scope;
 }  /* push_namespace_scope */
 
@@ -1683,7 +1719,8 @@ namespace being popped and applying them to the file scope.
      visible because of the transitivity of using directives. */
  a_scope_depth	depth;
  add_active_using_directives_for_namespace(nsp,
-                                           &scope_stack[DEPTH_OF_FILE_SCOPE]);
+                                           &scope_stack[DEPTH_OF_FILE_SCOPE],
+                                           NO_DECL_SEQUENCE_NUMBER);
  /* Update all of the scopes on the scope stack to indicate that symbols
     visible as a result of a using-directive may be visible. */
  for (depth = depth_scope_stack; depth >= DEPTH_OF_FILE_SCOPE; depth--) {
@@ -2342,11 +2379,6 @@ is pushed here, and popped when the instantiation scope is popped.
   pushing_template_instantiation_scope = TRUE;
 #endif /* CHECKING */
   if (!nested_in_prototype_instantiation) {
-    /* Because a template instantiation introduces a new context for
-       name lookup purposes, we need to clear the active using list
-       flags for any namespaces for which it is currently set. */
-    set_active_using_list_scope_depths(depth_scope_stack,
-                                       /*set_value=*/FALSE);
     /* If the template was defined in a namespace, reactivate the namespace
        scope before pushing the instantiation scope. */
     get_parent_information_for_template(decl_info->enclosing_scope,
@@ -2384,8 +2416,15 @@ is pushed here, and popped when the instantiation scope is popped.
     ssep = &scope_stack[depth_scope_stack];
     depth_innermost_namespace_scope =
          ssep->depth_innermost_namespace_scope = new_innermost_namespace_scope;
+    /* Because a template instantiation introduces a new context for
+       name lookup purposes, we need to clear the active using list
+       flags for any namespaces for which it is currently set. */
+    set_active_using_list_scope_depths(depth_scope_stack,
+                                       /*set_value=*/FALSE,
+                                       NO_DECL_SEQUENCE_NUMBER);
     /* Set the active using flags for the newly created context. */
-    set_active_using_list_scope_depths(depth_scope_stack, /*set_value=*/TRUE);
+    set_active_using_list_scope_depths(depth_scope_stack, /*set_value=*/TRUE,
+                                       decl_info->decl_seq);
     check_assertion(scope_stack[new_innermost_namespace_scope].assoc_namespace
                                                                 == parent_nsp);
   } else {
@@ -2434,6 +2473,7 @@ push_template_instantiation_scope.
 {
   a_scope_depth			orig_depth;
   a_scope_depth			saved_innermost_scope_that_affects_access;
+  a_decl_sequence_number	effective_decl_seq;
 
   orig_depth = scope_stack[depth_scope_stack].orig_depth;
   saved_innermost_scope_that_affects_access =
@@ -2459,8 +2499,16 @@ push_template_instantiation_scope.
                                     saved_innermost_scope_that_affects_access;
   /* Reset the active using list flags to the values specified by
      the previous scope stack entries. */
+  effective_decl_seq = NO_DECL_SEQUENCE_NUMBER;
+  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    /* Get the effective declaration sequence number of the template
+       instantiation scope that will become the active one. */
+    effective_decl_seq = scope_stack[depth_innermost_instantiation_scope].
+                                                  template_decl_info->decl_seq;
+  }  /* if */
   set_active_using_list_scope_depths(depth_scope_stack,
-                                     /*set_value=*/TRUE);
+                                     /*set_value=*/TRUE, effective_decl_seq);
+
 }  /* pop_template_instantiation_scope */
 
 
@@ -4094,10 +4142,12 @@ End a name scope by popping an entry off the scope stack.
        by the previous scope stack entries. */
     if (ssep->active_using_directives != NULL) {
       set_active_using_list_scope_depths(depth_scope_stack,
-                                         /*set_value=*/FALSE);
+                                         /*set_value=*/FALSE,
+                                         NO_DECL_SEQUENCE_NUMBER);
       if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
         set_active_using_list_scope_depths(ssep->previous_scope,
-                                           /*set_value=*/TRUE);
+                                           /*set_value=*/TRUE,
+                                           NO_DECL_SEQUENCE_NUMBER);
       }  /* if */
     }  /* if */
     /* Free any active using directive entries. */

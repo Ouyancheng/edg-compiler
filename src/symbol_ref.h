@@ -39,6 +39,11 @@ Set the declaration sequence number of the symbol pointed to by sym.
 #define set_decl_sequence_number(sym) ((sym)->decl_seq = ++decl_seq_counter)
 
 /*
+The special value used to represent an unset declaration sequence number.
+*/
+#define NO_DECL_SEQUENCE_NUMBER ((a_decl_sequence_number)(0))
+
+/*
 A symbol-reference-set is a bit vector designed to describe the declarations
 and uses of symbols.  The bit positions are specified by the SRK_ values
 defined below.  The bit vector is used in generating cross-reference

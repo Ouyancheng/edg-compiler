@@ -1761,6 +1761,15 @@ typedef struct an_active_using_directive {
                            This value is copied to the namespace symbol
                            supplement when the active using list is
 			   processed. */
+  a_decl_sequence_number
+		effective_decl_seq;
+			/* The declaration sequence number of the point at
+			   which this using-directive comes into effect.
+			   This is usually the declaration sequence number
+			   of the using-directive, but for a namespace made
+			   visible as a result of the transitivity of
+			   using-directives, this will be the declaration
+			   sequence number of the outermost using-directive. */
 } an_active_using_directive;
 
 

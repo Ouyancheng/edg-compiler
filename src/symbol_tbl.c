@@ -3238,6 +3238,7 @@ scope_depth is its depth in the scope stack.
   sym = alloc_symbol((a_symbol_kind)sk_namespace_projection,
                      fund_sym->header, pos);
   set_namespace_projection_symbol(sym, fund_sym, scope_depth);
+  set_decl_sequence_number(sym);
   return sym;
 }  /* make_namespace_projection_symbol */
 

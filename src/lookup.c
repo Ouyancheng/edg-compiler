@@ -1440,7 +1440,7 @@ Macro that initializes a lookup state variable.
    (!(lookup_state).must_be_namespace ||				\
     is_namespace_symbol(fund_sym)) &&					\
    ((lookup_state).decl_seq == 0 ||					\
-    (lookup_state).decl_seq >= (fund_sym)->decl_seq))
+    (lookup_state).decl_seq >= (sym)->decl_seq))
 
 
 a_boolean sym_matches_lookup_options(a_symbol_ptr		sym,
