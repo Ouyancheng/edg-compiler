@@ -945,9 +945,9 @@ Print the name of an integer type.
 do_signed_char:
 #endif /* ifdef CFE */
       start_comment();
-      fputs("signed ", f_C_output);
+      fputs("signed", f_C_output);
       end_comment();
-      fputs("char", f_C_output);
+      fputs(" char", f_C_output);
       break;
     case ik_unsigned_char:
 do_unsigned_char:
@@ -993,9 +993,9 @@ Print the name of a float type.
       break;
     case fk_long_double:
       start_comment();
-      fputs("long ", f_C_output);
+      fputs("long", f_C_output);
       end_comment();
-      fputs("double", f_C_output);
+      fputs(" double", f_C_output);
       break;
 #if CHECKING
     default:
@@ -1055,8 +1055,9 @@ Print out the type specifier.
 #ifdef CFE
       if (type->variant.integer.explicitly_signed) {
         start_comment();
-        fputs("signed ", f_C_output);
+        fputs("signed", f_C_output);
         end_comment();
+        fputc(' ', f_C_output);
       }  /* if */
 #endif /* ifdef CFE */
       dump_integer_type_name(type->variant.integer.int_kind);
@@ -1200,7 +1201,7 @@ Print the first of possibly two parts of a type reference.
     start_comment();
     fputs("hollerith", f_C_output);
     end_comment();
-    fputs("char ", f_C_output);
+    fputs(" char", f_C_output);
     if (need_paren) fputc('(', f_C_output);
   } else if (type->kind == (a_type_kind)tk_farray) {
     dump_type_first_part(type->variant.farray.element_type,
@@ -1438,7 +1439,7 @@ is TRUE, this is for the heading of a function being declared with a body.
 #ifdef CFE
     if (extra_info->prototyped) {
       start_comment();
-      fputs("prototyped ", f_C_output);
+      fputs("prototyped", f_C_output);
       end_comment();
     }  /* if */
 #endif /* ifdef CFE */
@@ -1733,6 +1734,76 @@ Dump an enum.  Print the associated source name if there is one.
 #endif /* ifdef CFE */
 #ifdef CFE
 
+static void dump_field_padding(a_targ_size_t    curr_offset,
+                               a_targ_alignment next_field_alignment,
+                               a_targ_size_t    next_field_bit_size,
+                               a_targ_size_t    next_field_offset)
+/*
+Output any declarations required to do padding between fields in a struct.
+The current bit offset in the struct is given by curr_offset.  The next field
+must be at bit offset next_field_offset, and that field has alignment
+as given by next_field_alignment and a bit size if a bit-field given
+by next_field_bit_size.  Note that in pcc mode there may be gaps caused
+by unnamed non-bit-fields.
+*/
+{
+  a_targ_size_t curr_offset_after_alignment;
+  int           nbits, alignment;
+
+  /* Figure out where the next field would go given the current offset and
+     the alignment requirement of the next field. */
+  curr_offset_after_alignment = curr_offset;
+  if (next_field_bit_size == 0) {
+    /* Not a bit field. */
+    alignment = next_field_alignment*TARG_CHAR_BIT;
+    if ((curr_offset_after_alignment % alignment) != 0) {
+      curr_offset_after_alignment += 
+                           alignment - curr_offset_after_alignment % alignment;
+    }  /* if */
+  }  /* if */
+  /* No fill is needed if we're at the right place (or rather, if we will
+     be after alignment). */
+  if (curr_offset_after_alignment != next_field_offset) {
+#if CHECKING
+    if (curr_offset_after_alignment > next_field_offset) {
+      internal_error("dump_field_padding: field offsets out of order");
+      /* Note: one possible cause of this would be allocating C++ nonstatic
+         data members in a way such that declaration order does not match
+         storage order, like all public members first, then all protected,
+         then all private. */
+    }  /* if */
+#endif /* CHECKING */
+    /* Put out dummy fields to get to the required offset. */
+    if (curr_offset / TARG_CHAR_BIT != next_field_offset / TARG_CHAR_BIT) {
+      /* The bit positions are not in the same byte.  Finish out the
+         current byte. */
+      nbits = curr_offset % TARG_CHAR_BIT;
+      if (nbits != 0) {
+        nbits = TARG_CHAR_BIT - nbits;
+        startline((a_seq_number)0);
+        (void)fprintf(f_C_output, "unsigned int :%d;", nbits);
+        curr_offset += nbits;
+      }  /* if */
+      /* Fill out the right number of full bytes. */
+      while (next_field_offset - curr_offset > TARG_CHAR_BIT) {
+        startline((a_seq_number)0);
+        (void)fprintf(f_C_output, "unsigned int :%d;", TARG_CHAR_BIT);
+        curr_offset += TARG_CHAR_BIT;
+      }  /* while */
+    }  /* if */
+    if (curr_offset != next_field_offset) {
+      /* Fill the final part of the gap. */
+      nbits = next_field_offset - curr_offset;
+      startline((a_seq_number)0);
+      (void)fprintf(f_C_output, "unsigned int :%d;", nbits);
+      curr_offset += nbits;
+    }  /* if */
+  }  /* if */
+}  /* dump_field_padding */
+
+#endif /* ifdef CFE */
+#ifdef CFE
+
 static void dump_struct(a_type_ptr type,
                         a_boolean  body)
 /*
@@ -1740,10 +1811,9 @@ Print a struct declaration.  Print the associated source name if there is one.
 Dump the definition ({...}) if body is TRUE.
 */
 {
-  register a_field_ptr   field;
-  register unsigned long temp;
-  a_targ_size_t          exp_next_offset = 0, exp_next_offset_after_alignment;
-#define TARG_BITS_IN_BIT_FIELD_CONTAINER (TARG_SIZEOF_INT*TARG_CHAR_BIT)
+  a_field_ptr   field;
+  unsigned long temp;
+  a_targ_size_t curr_offset = 0;
 
   start_unreferenced_bracket(&type->source_corresp);
   startline(type->source_corresp.decl_position.seq);
@@ -1760,60 +1830,9 @@ Dump the definition ({...}) if body is TRUE.
     }  /* if */
     while (field != NULL) {
       /* Output a field to do necessary alignment if this field is not
-         right after the previous field.  Note that for the extension in
-         pcc mode, this can be a non-bit-field. */
-      /* Figure out where the next field would go given the current
-         offset and the alignment requirement of the next field. */
-      exp_next_offset_after_alignment = exp_next_offset;
-      if (field->bit_size == 0) {
-        /* Not a bit field. */
-        int alignment = field->type->alignment*TARG_CHAR_BIT;
-        if ((exp_next_offset_after_alignment % alignment) != 0) {
-          exp_next_offset_after_alignment += alignment -
-                                 exp_next_offset_after_alignment % alignment;
-        }  /* if */
-      }  /* if */
-      /* No fill is needed if we're at the right place (or rather, if we will
-         be after alignment). */
-      if (exp_next_offset_after_alignment != field->bit_offset) {
-#if CHECKING
-        if (exp_next_offset_after_alignment > field->bit_offset) {
-          internal_error("dump_struct: field offsets out of order");
-          /* Note: one possible cause of this would be allocating C++ nonstatic
-             data members in a way such that declaration order does not match
-             storage order, like all public members first, then all protected,
-             then all private. */
-        }  /* if */
-#endif /* CHECKING */
-        if (field->bit_size == 0 ||
-            field->bit_offset+field->bit_size - exp_next_offset >
-                                            TARG_BITS_IN_BIT_FIELD_CONTAINER) {
-          /* The fill technique depends on how the target C compiler aligns
-             bit fields (i.e., as ints); it may not work for all C
-             compilers. */
-          int bit_field_alignment = TARG_ALIGNOF_INT*TARG_CHAR_BIT;
-          /* This is a big gap, too big for a single bit field.  Fill it with
-             several bit fields of the maximum size. */
-          while (exp_next_offset+TARG_BITS_IN_BIT_FIELD_CONTAINER <=
-                                                           field->bit_offset) {
-            startline((a_seq_number)0);
-            (void)fprintf(f_C_output, "unsigned int :%d;",
-                                      TARG_BITS_IN_BIT_FIELD_CONTAINER);
-            if ((exp_next_offset % bit_field_alignment) != 0) {
-              exp_next_offset += bit_field_alignment -
-                                         exp_next_offset % bit_field_alignment;
-            }  /* if */
-            exp_next_offset += TARG_BITS_IN_BIT_FIELD_CONTAINER;
-          }  /* while */
-        }  /* if */
-        if (exp_next_offset != field->bit_offset) {
-          /* Fill little holes with bit fields. */
-          a_byte nbits = (field->bit_offset - exp_next_offset);
-          startline((a_seq_number)0);
-          (void)fprintf(f_C_output, "unsigned int :%u;", (unsigned int)nbits);
-          exp_next_offset += nbits;
-        }  /* if */
-      }  /* for */
+         right after the previous field. */
+      dump_field_padding(curr_offset, field->type->alignment, field->bit_size,
+                         field->bit_offset);
       startline(field->source_corresp.decl_position.seq);
       /* Use original name, not name from get_name, for field. */
       simple_type_reference(field->source_corresp.name, field->type);
@@ -1829,16 +1848,19 @@ Dump the definition ({...}) if body is TRUE.
       }  /* if */
       fputs(" */", f_C_output);
       /* Keep track of the expected bit offset of the next field. */
-      exp_next_offset = field->bit_offset;
+      curr_offset = field->bit_offset;
       if (field->bit_size != 0) {
         /* Bit-field. */
-        exp_next_offset += field->bit_size;
+        curr_offset += field->bit_size;
       } else {
         /* Non bit-field. */
-        exp_next_offset += skip_typerefs(field->type)->size * TARG_CHAR_BIT;
+        curr_offset += skip_typerefs(field->type)->size * TARG_CHAR_BIT;
       }  /* if */
       field = field->next;
     }  /* while */
+    /* Do any alignment required at the end. */
+    dump_field_padding(curr_offset, type->alignment, (a_targ_alignment)0,
+                       type->size*TARG_CHAR_BIT);
     indent -= 2;
     startline((a_seq_number)0);
     fputc('}', f_C_output);
