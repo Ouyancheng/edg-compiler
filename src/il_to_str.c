@@ -2677,9 +2677,11 @@ precedence confusion.  Do the output in the way described by octl.
     cast_to_nonpointer = TRUE;
     final_cast_needed = TRUE;
     desired_type = NULL;
-  } else if (!octl->debug_output &&
+  } else if (!octl->debug_output && !octl->c_generating_back_end &&
              constant->implicit_cast && !constant->explicit_cast_applied) {
-    /* The constant was cast, but only implicitly, so leave off the cast. */
+    /* The constant was cast, but only implicitly, so leave off the cast.
+       Don't do this in the C-generating back end, because some casts
+       added there are "implicit" and yet they have to be put out. */
     if (constant->variant.address.kind == (an_address_base_kind)abk_variable &&
         is_array_type(constant->variant.address.variant.variable->type)) {
       /* The decay of an array variable to a pointer is implicit, but
@@ -2757,7 +2759,7 @@ precedence confusion.  Do the output in the way described by octl.
                                                : skip_typedefs(desired_type);
   if (desired_type != NULL &&
       !same_entities(direct_achieved_type, direct_desired_type)) {
-    if (!constant->explicit_cast_applied &&
+    if (!constant->implicit_cast &&
         constant->variant.address.kind == (an_address_base_kind)abk_routine) {
       /* Function declarators don't get shared, so a pointer equality test
          doesn't work well.  We also can't use a routine like
@@ -2765,6 +2767,17 @@ precedence confusion.  Do the output in the way described by octl.
          not available in standalone utility programs.  It's okay to err on
          the side of putting out the cast, but in the most common case we
          can know that no cast is needed. */
+    } else if (C_mode() && is_directly_variably_modified_type(desired_type)) {
+      /* Eliminate an implicit cast to a variably-modified type.  We know
+         the cast is implicit because explicit casts to directly
+         variably-modified types are not folded into the constant. */
+      final_cast_needed = FALSE;
+      /* Cast to "(void *)" in case there were intervening casts on the
+         original entity before the implicit cast to a variably-modified
+         type. */
+      output_optional_open_paren(&need_parens,
+                                 &need_final_cast_close_paren, octl);
+      octl->output_str("(void *)");
     } else {
       /* The proper type couldn't be achieved with address operators, so we
          need a final cast to adjust the type.  One important category of cases
@@ -3297,19 +3310,42 @@ precedence confusion.  Do the output in the way described by octl.
         /* The source form involved an explicit cast. */
         need_cast = TRUE;
       } else if (constant->implicit_cast) {
-        if (octl->debug_output) {
+        if (octl->debug_output || octl->c_generating_back_end) {
           /* Give full information about implicit casts when generating
-             debug output. */
+             debug output and in the C generating back end (for the latter,
+             because casts added by IL lowering are "implicit" but they
+             need to be put out). */
           need_cast = TRUE;
-        } else if (is_pointer_type(con_type) &&
-                   kind == (a_constant_repr_kind)ck_integer &&
-                   cmplit_integer_constant(constant,
-                                           (a_host_large_integer)0) == 0) {
-          /* Always put casts on null pointers, because when "x" is
-             changed to "x != (T *)0" because it appears in a condition
-             context, you don't want to put out "x != 0" which might be
-             ambiguous when x has a class type. */
-          need_cast = TRUE;
+          if (octl->gen_compilable_code && C_mode() &&
+              is_directly_variably_modified_type(orig_type)) {
+            /* Casts to directly variably-modified types must be suppressed.
+               That's possible because they are folded into the constant only
+               if they are implicit.  However, we must still deal with the
+               fact that the constant may have been explicitly cast to some
+               other pointer type before it was cast to the variably-modified
+               type. */
+            check_assertion(is_pointer_type(orig_type));
+            need_cast = FALSE;
+            /* For null pointer constants, the extra cast to "void *" is
+               not necessary. */
+            if (constant->kind != (a_constant_repr_kind)ck_integer ||
+                cmplit_integer_constant(constant,
+                                        (a_host_large_integer)0) != 0) {
+              output_optional_open_paren(&need_parens, &need_cast_close_paren,
+                                         octl);
+              octl->output_str("(void *)");
+              suppress_cast_on_integer_constant = TRUE;
+            }  /* if */
+          } else if (is_pointer_type(con_type) &&
+                     kind == (a_constant_repr_kind)ck_integer &&
+                     cmplit_integer_constant(constant,
+                                             (a_host_large_integer)0) == 0) {
+            /* Always put casts on null pointers, because when "x" is
+               changed to "x != (T *)0" because it appears in a condition
+               context, you don't want to put out "x != 0" which might be
+               ambiguous when x has a class type. */
+            need_cast = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       if (need_cast) {
