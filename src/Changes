@@ -1,5 +1,17 @@
 Version 3.1
 
+6/3/02   Improper tiebreaker processing in overload resolution (reference
+         versus pointer)
+
+In certain cases, overload resolution concluded that one or the
+other conversion was better when a reference to pointer and a pointer
+parameter are compared and one has more cv-qualifiers than the
+other.  They are now correctly treated as indistinguishable.
+
+  template <class T1> int f(T1 *p, double = 0.0) { return p->a; }
+  template <class T2> int f(const T2 &p, float = 0.0f) { return p->b; }
+  int x = f((int *)0);  // Now ambiguous
+
 5/30/02  Spurious remark ("controlling expression is constant") on
          dependent expression
 

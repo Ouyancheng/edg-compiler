@@ -3299,15 +3299,18 @@ apply that would make one better than the other, and return
                              is_ref_or_ref_equivalent(param_type1, arg_match1);
         a_boolean param2_is_ref =
                              is_ref_or_ref_equivalent(param_type2, arg_match2);
+        a_type_ptr
+                  base_param_type1 = param_type1,
+                  base_param_type2 = param_type2;
         a_type_qualifier_set
                   qualifiers1 = TQ_NONE, qualifiers2 = TQ_NONE;
         if (param1_is_ref) {
-          param_type1 = type_pointed_to(param_type1);
-          qualifiers1 = get_type_qualifiers(param_type1);
+          base_param_type1 = type_pointed_to(param_type1);
+          qualifiers1 = get_type_qualifiers(base_param_type1);
         }  /* if */
         if (param2_is_ref) {
-          param_type2 = type_pointed_to(param_type2);
-          qualifiers2 = get_type_qualifiers(param_type2);
+          base_param_type2 = type_pointed_to(param_type2);
+          qualifiers2 = get_type_qualifiers(base_param_type2);
         }  /* if */
         /* The tiebreaker for adding cv-qualifiers under a reference is
            applied only when both parameters are references, according to the
@@ -3324,8 +3327,8 @@ apply that would make one better than the other, and return
           if (qualifiers1 != qualifiers2) {
             /* The tiebreaker applies only if the underlying types are the
                same. */
-            if (types_are_compatible_ignoring_qualifiers(param_type1,
-                                                         param_type2)) {
+            if (types_are_compatible_ignoring_qualifiers(base_param_type1,
+                                                         base_param_type2)) {
               a_boolean any_extra_in_2 =
                         any_qualifier_in_set_missing(qualifiers1, qualifiers2);
               a_boolean any_extra_in_1 =
