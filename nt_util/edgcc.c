@@ -1020,8 +1020,11 @@ Compile a file and generate an object file.
   str = copy_of_string(string_buffer);
   add_cl_argument(&cl, str);
   /* VC7 and beyond have some header files in a separate PlatformSDK
-     directory. */
+     directory and atlmfc directory. */
   sprintf(string_buffer, "-I%s/../PlatformSDK/include", microsoft_include);
+  str = copy_of_string(string_buffer);
+  add_cl_argument(&cl, str);
+  sprintf(string_buffer, "-I%s/../atlmfc/include", microsoft_include);
   str = copy_of_string(string_buffer);
   add_cl_argument(&cl, str);
 #endif /* __WIN32__ */
