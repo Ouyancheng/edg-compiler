@@ -3918,7 +3918,7 @@ Syntax:
       expr = make_operator_node((an_expr_operator_kind)eok_dynamic_cast,
                                 cast_type, /* sic: want reference type. */
                                 make_node_from_operand(&operand));
-      expr->implicit_reference_indirection = TRUE;
+      if (reference_case) expr->implicit_reference_indirection = TRUE;
       make_expression_operand(expr, expr->type, result);
     }  /* if */
   }  /* if */
