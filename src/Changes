@@ -1,5 +1,20 @@
 Version 2.29
 
+5/19/95  Bug in ctor_initializer
+
+A bug has been fixed in ctor_initializer that could cause a null-pointer
+failure during IL lowering.  It only appeared when compiling with both
+--long_lifetime_temps and --exceptions.
+
+5/19/95  Added support for based pointers in Microsoft mode
+
+When microsoft_mode is TRUE, "__based" is recognized as a keyword in
+pointer declarator contexts and the tk_pointer type entry is associated
+with a variable entry; the variable must be of pointer type.  A new variant
+field, base_variable, has been added to a_type.  Based pointers are
+otherwise handled like ordinary pointers and are just passed through to
+the back end.
+
 5/18/95  Access checking on conversion functions
 
 Access is properly checked now for conversion functions called for an
