@@ -1361,11 +1361,11 @@ must free that list.
   a_boolean  okay;
   a_type_ptr base_dest_type = type_pointed_to(dest_type);
 
-  if (microsoft_bugs &&
+  if (microsoft_bugs && microsoft_version < 1310 &&
       (!is_an_lvalue(source_operand) || operand_is_temp_init(source_operand))){
-    /* The Microsoft compiler (VC++ 6.0) implements an older rule in
-       the Working Paper that does not allow a conversion function
-       to be used for a direct reference binding unless the original
+    /* The Microsoft compiler (VC++ 6.0, 7.0, fixed in 7.1) implements
+       an older rule in the Working Paper that does not allow a conversion
+       function to be used for a direct reference binding unless the original
        expression is an lvalue.  Note that because there is another
        Microsoft change that makes the result of a function call that
        returns a class into an lvalue, we have to test for temp init

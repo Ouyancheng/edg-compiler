@@ -1,5 +1,12 @@
 Version 3.5
 
+5/10/04  Microsoft 7.1 compatibility: conversion of rvalue via conversion
+         function, direct reference binding
+
+The Microsoft compatibility issue described in the Changes entry of
+10/19/98 is fixed in the MSVC++ 7.1 compiler.  Accordingly, we
+no longer emulate this behavior when microsoft_version >= 1310.
+
 -------------------------------------------------------------------------------
 Version 3.4, May 8, 2004
 
