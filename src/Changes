@@ -1,5 +1,16 @@
 Version 3.1
 
+9/25/02  Microsoft C++ compatibility: 0(x) treated as call, ignored
+
+In Microsoft C++ mode, a call expression where the "function" is a
+constant zero is accepted and ignored.  This is used in some
+Microsoft code for conditional compilation, e.g.,
+
+  TRACE("abc");
+
+where TRACE is defined as either a function to be called or as 0
+when no trace output is wanted.
+
 9/24/02  Typedefs and elaborated type specifiers
 
 The lookup rules for names used in elaborated type specifiers are different

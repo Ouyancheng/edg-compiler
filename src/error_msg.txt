@@ -1250,6 +1250,7 @@ ec_bad_linkage_for_redefine_extname;;"%npd must have external C linkage"
 ec_declaration_hides_for_init;;"variable declaration hides declaration in for-initializer"
 ec_attribute_ignored_on_typedef;;"attribute ignored on typedef declarations"
 ec_typedef_in_elab_type;;"typedef %sq may not be used in an elaborated type specifier"
+ec_call_of_zero;;"call of zero constant ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

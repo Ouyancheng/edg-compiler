@@ -1236,6 +1236,8 @@ Syntax:
                     opening_paren_tok_seq_number;
   a_boolean         unknown_dependent_function = FALSE;
   a_symbol_ptr      member_func_sym = NULL;
+  a_boolean         ignore_call = FALSE;
+  a_boolean         saved_evaluated;
 
   db_enter(4, "scan_function_call");
 
@@ -1444,6 +1446,16 @@ Syntax:
         routine_type = NULL;
         routine = NULL;
         unknown_dependent_function = TRUE;
+      } else if (!C_mode() && microsoft_mode &&
+                 is_constant_operand(operand) &&
+                 is_zero_constant(&operand->variant.constant)) {
+        /* Microsoft Visual C++ allows a call like 0(x) -- it is ignored. */
+        pos_warning(ec_call_of_zero, &operand->position);
+        routine_type = NULL;
+        routine = NULL;
+        ignore_call = TRUE;
+        saved_evaluated = expr_stack->evaluated;
+        expr_stack->evaluated = FALSE;
       } else if (check_function_pointer_operand(operand)) {
         routine_type = type_pointed_to(operand->type);
         /* If we can tell which routine is being called, set routine to
@@ -1648,6 +1660,10 @@ Syntax:
                                    type_of_unknown_templ_param_nontype,
                                    function_node);
     make_expression_operand(call_node, call_node->type, result);
+  } else if (ignore_call) {
+    /* Ignore a call of the form 0(x) -- copy the zero to the result. */
+    copy_operand(operand, result);
+    expr_stack->evaluated = saved_evaluated;
   } else {
     /* Build the call node and an operand for it. */
     assemble_function_call(operand, bound_function_selector, argument_list,
