@@ -1,5 +1,16 @@
 Version 2.43
 
+10/13/99 Stricter error on "void" exception specification
+
+By default, the front end used to issue an error on incomplete types in
+exception specifications for function definitions, except when that incomplete
+type is "void": in that case the error was weakened to a warning.  This
+special case has been removed: an error is issued in all cases.
+
+  void f() throw (void) {}  // Used to be a warning by default; now an error.
+
+Note that previously an error was already issued in strict ANSI mode.
+
 10/12/99 Abort in Microsoft mode with calling conventions applied to a
          nonfunction abstract declarator
 

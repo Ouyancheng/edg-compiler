@@ -896,14 +896,13 @@ specification is handled later (see check_exception_specification).
              type is "void", issue a diagnostic.  Otherwise, suppress the
              diagnostic -- that is, silently allow a non-top-level declaration
              that throws an incomplete type (or pointer thereto) */
-          if (is_top_level_declarator && !is_void_type(tp)) {
+          if (is_top_level_declarator) {
             defer_exception_spec_error(func_info, error_code, &type_pos);
           } else if (strict_ansi_mode) {
             pos_diagnostic(strict_ansi_discretionary_severity, error_code,
                            &type_pos);
           } else if (is_void_type(tp)) {
-            pos_diagnostic(is_top_level_declarator ? es_warning : es_remark,
-                           error_code, &type_pos);
+            pos_diagnostic(es_remark, error_code, &type_pos);
           }  /* if */
         }  /* if */
       }  /* if */
