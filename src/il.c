@@ -8431,6 +8431,7 @@ If not, return the indicated source sequence entry.
   return ssep;
 }  /* find_end_of_tag_construct */
 
+#if MAINTAIN_NEEDED_FLAGS
 
 static a_source_sequence_entry_ptr remove_tag_def_from_src_seq_list(
                                      a_source_sequence_entry_ptr  ssep,
@@ -8561,6 +8562,7 @@ static void drop_from_file_scope_source_sequence_list(
   }  /* if */
 }  /* drop_from_file_scope_source_sequence_list */
 
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if RECORD_TEMPLATES_IN_IL
 
@@ -8613,7 +8615,7 @@ static void turn_class_definition_into_declaration(a_type_ptr  class_type)
 {
   a_class_type_supplement_ptr   ctsp;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr   ssep, last_ssep;
+  a_source_sequence_entry_ptr   ssep;
   a_src_seq_secondary_decl_ptr  sssdp;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
