@@ -318,7 +318,9 @@ definition of the class is needed, and not just the declaration.
        the class is not swept when the class needed flag is set. */
     if (type->source_corresp.needed) {
       type->source_corresp.needed = FALSE;
-      walk_tree_and_set_needed((char *)type, iek_type);
+      /* Can't use walk_tree_and_set_needed here because this routine is
+         callable from outside of the needed flag walk. */
+      mark_as_needed((char *)type, iek_type);
     }  /* if */
   }  /* if */
 }  /* set_class_definition_needed */
@@ -541,7 +543,9 @@ declaration.
        is set. */
     if (il_entry_prefix_of(type).keep_in_il) {
       clear_keep_in_il_to_allow_subtree_walk((char *)type, iek_type);
-      walk_tree_and_set_keep_in_il((char *)type, iek_type);
+      /* Can't call walk_tree_and_set_keep_in_il here because this routine
+         is callable from outside of the keep_in_il walk. */
+      mark_to_keep_in_il((char *)type, iek_type);
     }  /* if */
   }  /* if */
 }  /* set_class_keep_definition_in_il */
