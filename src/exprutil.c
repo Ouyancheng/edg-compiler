@@ -301,11 +301,22 @@ address taken, and if not issue an error.
          be issued only once. */
       rep->kind = (rep->kind & SRK_ALL_REFERENCES) | SRK_ERROR;
       rep->already_recorded = FALSE;
-    } else if (var->storage_class == (a_storage_class)sc_register ||
-               var->is_parameter || var->is_handler_param) {
-      /* On register variables and parameters, taking the address of
-         the variable may mean the variable needs to be forced to
-         memory, so set the address_taken flag now. */
+    } else {
+      /* Indicate that the address of the variable has been taken.  Setting
+         the flag here means it is set even for cases where an address
+         is used at some intermediate step but doesn't escape, e.g.,
+           a[2] = 1;  // address_taken on "a"
+         but a simple interpretation of address_taken seems to be what
+         people prefer.  Note that the flag is also set when the
+         reference is recorded later, but only if the address-taken
+         reference survives to that point, so the setting there is
+         more discriminating.  One can remove the assignment here to
+         get the other interpretation.  If one does so, one should
+         consider whether one wants register variables and parameters
+         treated in some special way (e.g., one might want to set the
+         address_taken flag here anyway for those), since the address_taken
+         flag might be used to decide whether to allocate storage
+         for those variables. */
       var->address_taken = TRUE;
     }  /* if */
   }  /* if */
