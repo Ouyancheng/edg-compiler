@@ -651,6 +651,47 @@ Return TRUE if two PCH events are equivalent.
 }  /* equivalent_pch_events */
 
 
+static void write_list_of_file_timestamps(a_source_file_ptr sfp)
+/*
+Go through a list of source file entries and write the file name and
+timestamp to the PCH output file.  Do a recursive call to process any
+child files encountered.
+*/
+{
+  db_enter(5, "write_list_of_file_timestamps");
+  while (sfp != NULL) {
+    time_t	time;
+    (void)get_file_modification_time(sfp->full_name, &time);
+    pch_write_string(sfp->full_name);
+    pch_write_value(time);
+#if DEBUG
+    if (debug_level >= 0) {
+      fprintf(f_debug, "Writing file timestamp for %s, time is %ld\n",
+              sfp->full_name, time);
+    }  /* if */
+#endif /* DEBUG */
+    if (sfp->first_child_file != NULL) {
+      write_list_of_file_timestamps(sfp->first_child_file);
+    }  /* if */
+    sfp = sfp->next;
+  }  /* while */
+  db_exit();
+}  /* write_list_of_file_timestamps */
+
+
+static void write_include_file_timestamps(void)
+/*
+Write a list of include file names and their associated modification times.
+In order for this PCH to be used later, none of the includes files may have
+changed.
+*/
+{
+  write_list_of_file_timestamps(il_header.primary_source_file);
+  /* Write a NULL string to mark the end of the list. */
+  pch_write_string((char *)NULL);
+}  /* write_include_file_timestamps */
+
+
 void write_precompiled_header_file(void)
 /*
 Create a precompiled header file for the compilation up to the
@@ -663,13 +704,12 @@ current point.
   (void)fwrite(pch_id_string, pch_id_string_length, 1, f_pch_output);
   /* Current directory name. */
   pch_write_string(curr_dir_name);
+  /* Include file names and timestamps. */
+  write_include_file_timestamps();
   /* Write the event list that will be used for PCH file matching. */
   write_pch_events(pch_cmd_line_event_list_head);
   write_pch_events(pch_event_list_head);
   /* Write dependency checking information. */
-#if 0
-  /* Include file names and timestamps. */
-#endif
   (void)fclose(f_pch_output);
 }  /* write_precompiled_header_file */
 
@@ -706,6 +746,38 @@ the current directory.
   ptr = pch_read_string();
   return strcmp(ptr, curr_dir_name) == 0;
 }  /* curr_dir_matches */
+
+
+static a_boolean include_files_have_not_changed(void)
+/*
+Read the include file timestamp information from the PCH input file
+and make the modification times match the current values for the files.
+*/
+{
+  a_boolean	match = TRUE;
+
+  for (;;) {
+    char	*file_name;
+    time_t	time_from_file;
+    time_t	curr_time;
+    /* Read the file name. */
+    file_name = pch_read_string();
+    /* A null string marks the end of the list. */
+    if (*file_name == '\0') break;
+    /* Read the modification time. */
+    pch_read_value(time_from_file);
+    if (!get_file_modification_time(file_name, &curr_time) ||
+        time_from_file != curr_time) {
+      /* Either the file does not exist or the modification time has changed.
+         Note that we require the times to be identical, so even if the include
+         file seems to be older than the last one we still consider it to be
+         a change. */
+      match = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  return match;
+}  /* include_files_have_not_changed */
 
 
 static a_boolean cmd_line_events_match(void)
@@ -852,7 +924,8 @@ matching event is returned.
   a_pch_event_ptr	last_matching_event = NULL;
 
   db_enter(3, "pch_is_applicable");
-  if (id_string_matches() && curr_dir_matches()) {
+  if (id_string_matches() && curr_dir_matches() &&
+      include_files_have_not_changed()) {
     /* This is a valid precompiled header -- see if the event lists match. */
     if (cmd_line_events_match()) {
       last_matching_event = compare_event_lists();
@@ -947,11 +1020,10 @@ be used as part of the applicability check in subsequent compilations.
 */
 {
   db_enter(2, "precompiled_header_processing");
+  /* We have not encountered a condition that would prevent us from
+     using a precompiled header. */
   build_prefix_information();
   compare_prefix_with_existing_headers();
-#if 0
-  write_precompiled_header_file();
-#endif
   db_exit();
 }  /* precompiled_header_processing */
 
@@ -993,6 +1065,15 @@ Initialize variables used by the precompiled header routines.
 #if DEBUG
   num_pch_events_allocated = 0;
 #endif /* DEBUG */
+  /* Check for conditions that make it impossible to do precompiled header
+     processing. */
+  if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) == 0) {
+    /* PCH processing must be able to restart the scan of the primary
+       source file.  This can't be done with standard input, so we have
+       to suppress PCH processing. */
+    abandon_pch_processing();
+  }  /* if */
+
   db_exit();
 }  /* pch_init */
 

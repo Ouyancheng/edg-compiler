@@ -68,7 +68,8 @@ int main(int argc, char *argv[])
       cpp_driver();
     } else {
       /* Compiler is to do preprocessing and compilation. */
-      if (precompiled_header_processing_required) {
+      if (precompiled_header_processing_required &&
+          !cannot_do_pch_processing) {
         fe_init_for_pch_prefix_scan();
         precompiled_header_processing();
       }  /* if */

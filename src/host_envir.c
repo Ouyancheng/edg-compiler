@@ -876,13 +876,14 @@ place in file_name where the suffix begins.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 
-a_boolean is_regular_file(char *file_name)
+a_boolean get_file_modification_time(char   *file_name,
+                                     time_t *time)
 /*
-Return TRUE if the specified file is a regular file (i.e., not a
-directory or some other kind of special file).
+Determine whether a file exists, and if so, return the last modification
+time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.
 */
 {
-  a_boolean	result = FALSE;
+  a_boolean	is_regular = FALSE;
   struct stat   buf;
 
   /* Check the file type.  Use the stat call instead of fstat because some
@@ -891,12 +892,26 @@ directory or some other kind of special file).
     /* Use the POSIX S_ISREG if it is defined.  Otherwise use the
        non-POSIX test using S_IFREG. */
 #ifdef S_ISREG
-    result = S_ISREG(buf.st_mode);
+    is_regular = S_ISREG(buf.st_mode);
 #else /* ifndef S_ISREG */
-    result = ((buf.st_mode & S_IFREG) != 0);
+    is_regular = ((buf.st_mode & S_IFREG) != 0);
 #endif /* ifdef S_ISREG */
+    if (is_regular && time != NULL) *time = buf.st_mtime;
+  } else {
+    /* If the file doesn't exist, set the time to zero just to be neat. */
+    *time = 0;
   }  /* if */
-  return result;
+  return is_regular;
+}  /* get_file_modification_time */
+
+
+a_boolean is_regular_file(char *file_name)
+/*
+Return TRUE if the specified file is a regular file (i.e., not a
+directory or some other kind of special file).
+*/
+{
+  return get_file_modification_time(file_name, (time_t *)NULL);
 }  /* is_regular_file */
 
 

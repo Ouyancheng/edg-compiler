@@ -864,6 +864,41 @@ extern char *replace_file_name_suffix(char  *suffix,
                                       int   buffer_size,
                                       char  **suffix_loc);
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+
+/*
+Include the files needed to define the types used with the stat()
+function.  A declaration of stat() is provided in case the standard
+headers to define the prototype.
+*/
+#if __VMS__
+#include <stat.h>
+#else /* !__VMS__ */
+#include <sys/types.h>
+#include <sys/stat.h>
+#endif /* __VMS__ */
+/* "stat" isn't in ANSI C, but we assume it is available.  If not, this
+   file must be changed.  By default, the first argument is assumed to
+   be const.  If this is not the case, the preprocessor macro
+   STAT_FIRST_PARAM_IS_CONST must be set to the value 0 (FALSE).
+   This function must be declared in a header file when compiling
+   using C++. */
+#ifndef __cplusplus
+#ifndef STAT_FIRST_PARAM_IS_CONST
+/* If not set otherwise, the first parameter of stat is assumed to be
+   const. */
+#define STAT_FIRST_PARAM_IS_CONST TRUE
+#endif /* !defined(STAT_FIRST_PARAM_IS_CONST) */
+#if STAT_FIRST_PARAM_IS_CONST
+EXTERN_C int stat(const char *path, struct stat *buf);
+#else /* !defined(STAT_FIRST_PARAM_IS_CONST) */
+EXTERN_C int stat(char *path, struct stat *buf);
+#endif /* defined(STAT_FIRST_PARAM_IS_CONST) */
+#endif /* !__cplusplus */
+
+/* See if a file exists, if it does, return the modification time. */
+extern a_boolean get_file_modification_time(char   *file_name,
+					    time_t *time);
+
 /* Is the specified file a regular (e.g., not directory) file. */
 extern a_boolean is_regular_file(char *file_name);
 
@@ -927,35 +962,6 @@ EXTERN void display_time_used(char		*message,
 			      a_timer_ptr	start_time,
 			      a_timer_ptr	end_time);
 
-/*
-Include the files needed to define the types used with the stat()
-function.  A declaration of stat() is provided in case the standard
-headers to define the prototype.
-*/
-#if __VMS__
-#include <stat.h>
-#else /* !__VMS__ */
-#include <sys/types.h>
-#include <sys/stat.h>
-#endif /* __VMS__ */
-/* "stat" isn't in ANSI C, but we assume it is available.  If not, this
-   file must be changed.  By default, the first argument is assumed to
-   be const.  If this is not the case, the preprocessor macro
-   STAT_FIRST_PARAM_IS_CONST must be set to the value 0 (FALSE).
-   This function must be declared in a header file when compiling
-   using C++. */
-#ifndef __cplusplus
-#ifndef STAT_FIRST_PARAM_IS_CONST
-/* If not set otherwise, the first parameter of stat is assumed to be
-   const. */
-#define STAT_FIRST_PARAM_IS_CONST TRUE
-#endif /* !defined(STAT_FIRST_PARAM_IS_CONST) */
-#if STAT_FIRST_PARAM_IS_CONST
-EXTERN_C int stat(const char *path, struct stat *buf);
-#else /* !defined(STAT_FIRST_PARAM_IS_CONST) */
-EXTERN_C int stat(char *path, struct stat *buf);
-#endif /* defined(STAT_FIRST_PARAM_IS_CONST) */
-#endif /* !__cplusplus */
 
 /*
 STAT_INFORMATION_INCLUDES_INODE should be TRUE on systems for which the
