@@ -5,7 +5,7 @@ Version 2.34
 With the new mangling scheme for template names, there were cases where
 the mangled name for a nontype template argument that represents the address
 of a function, used in a template argument list in the mangled name of
-another function, to have extra incorrect mangling.  This had the
+another function, had extra incorrect mangling.  This had the
 additional side effect of causing a prelinker loop on the example
 below.  Now fixed.
 
