@@ -1787,11 +1787,23 @@ a definition.
   } else {
     /* Use a normal, possibly-qualified name */
     a_boolean need_closing_paren = FALSE;
+    a_gen_name_options_set options = GN_DECLARATION;
     /* If a leading "::" will be put on the name, put parentheses around
        the whole name to avoid making the "::" look like a qualifier
        on a name in the type specifiers list. */
-    gen_name(scp, entry_kind, GN_DECLARATION | GN_PARENS_IF_GLOBAL_QUALIFIER,
-             &need_closing_paren);
+    if (entry_kind == iek_routine &&
+        (((a_routine_ptr)scp)->special_kind ==
+                                    (a_special_function_kind)sfk_conversion ||
+         ((a_routine_ptr)scp)->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+         ((a_routine_ptr)scp)->special_kind ==
+                                    (a_special_function_kind)sfk_destructor)) {
+      /* Parentheses are not needed around a conversion function,
+         constructor, or destructor, because they do not have return types. */
+    } else {
+      options |= GN_PARENS_IF_GLOBAL_QUALIFIER;
+    }  /* if */
+    gen_name(scp, entry_kind, options, &need_closing_paren);
     if (need_closing_paren) write_tok_ch(')');
   }  /* if */
 }  /* gen_decl_name */
