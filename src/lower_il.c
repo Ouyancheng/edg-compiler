@@ -9583,7 +9583,22 @@ is_lvalue is TRUE.
   }  /* if */
   op1_for_operation = add_indirection_to_node(op1_for_operation);
 #if FIXED_POINT_ALLOWED
-  if (!is_fixed_point_type(operation_type))
+  if (is_fixed_point_type(operation_type)) {
+    a_type_ptr op1_type = skip_typerefs(op1_for_operation->type);
+    a_type_ptr op2_type = skip_typerefs(op2->type);
+    if (is_fixed_point_type(op1_type) && is_fixed_point_type(op2_type) &&
+        op1_type->variant.fixed_point.is_unsigned &&
+        !op2_type->variant.fixed_point.is_unsigned) {
+      /* Convert the unsigned fixed-point first operand to the corresponding
+         signed fixed-point type, because the second operand is signed. */
+      a_type_ptr               new_fx_type;
+      a_fixed_point_type_descr descr = op1_type->variant.fixed_point;
+      descr.is_unsigned = FALSE;
+      new_fx_type = fixed_point_type(descr);
+      op1_for_operation = add_lowered_cast_if_necessary(op1_for_operation,
+                                                        new_fx_type);
+    }  /* if */
+  } else
 #endif /* FIXED_POINT_ALLOWED */
   /* Do not insert code here. */
   {
