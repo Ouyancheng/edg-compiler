@@ -1,5 +1,10 @@
 Version 2.09
 
+9/13/92  New error on static data member definitions
+
+If the type of a static data member is still incomplete at the point of
+its defining declaration, an error is issued.
+
 9/13/92  Fixed bug in choosing base class assignment operator
 
 For a compiler-generated assignment operator the front-end must choose
