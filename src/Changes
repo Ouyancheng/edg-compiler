@@ -1,5 +1,11 @@
 Version 2.22
 
+12/23/93 Reference flag on virtual destructors used only in delete/new
+
+Virtual destructors used only in an array delete, or in an array new
+with exceptions enabled, now cause the referenced flag in the destructor
+to be set.
+
 -------------------------------------------------------------------------------
 Version 2.21, December 21, 1993
 

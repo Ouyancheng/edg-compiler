@@ -4028,7 +4028,8 @@ specification allow a variable-sized array as the top type.
           if (exceptions_enabled) {
             dip->destructor = select_destructor(
                                         base_new_type, base_new_type,
-                                        &type_position, /*honor_virtual=*/TRUE,
+                                        &type_position,
+                                        /*honor_virtual=*/FALSE,
                                         curr_expr_is_potentially_evaluated(),
                                         /*suppress_access_check=*/FALSE);
           }  /* if */
@@ -4248,7 +4249,7 @@ As an anachronism, allow an expression inside the [ ].
         }  /* if */
         dtor_routine = select_destructor(base_delete_type, base_delete_type,
                                          &operand.position,
-                                         /*honor_virtual=*/TRUE,
+                                         /*honor_virtual=*/FALSE,
                                          curr_expr_is_potentially_evaluated(),
                                          /*suppress_access_check=*/FALSE);
         if (dtor_routine != NULL) {
