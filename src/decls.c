@@ -4744,6 +4744,55 @@ parameter controls the restrictions imposed by the context.
 }  /* pointer_declarator */
 
 
+static a_boolean simplify_curr_class_qualified_name(void)
+/*
+
+If the current token is the start of a qualified name in which the class
+name component is the name of a class currently being defined, advance past
+the class name and the "::" so that the current token is a non-qualified
+name.  Return TRUE if such a modification is done and FALSE otherwise.
+This routine is called in C++ only.
+
+This functionality is provided to deal with declarations of class members
+where a qualified name is used instead of a simple name, e.g., when a
+constructor for class A is declared A::A() rather than A().  The ARM does
+not specifically allow this syntax, but it is supported by cfront.
+*/
+{
+  a_boolean                is_member_id = FALSE;
+  a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
+
+  db_enter(3, "simplify_curr_class_qualified_name");
+
+  if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
+      is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL) &&
+      locator_for_curr_id.is_qualified_name) {
+    if (locator_for_curr_id.qualifier_class_type == ssep->assoc_type &&
+        locator_for_curr_id.is_global_qualified_name == FALSE) {
+      is_member_id = TRUE;
+      /* Issue any access errors encountered while scanning the
+         qualifier -- even though there shouldn't be any for this
+         case. */
+      issue_qualifier_access_errors(&locator_for_curr_id.access_errors);
+      /* Reset the fields in the locator to make it appear as if the
+         qualifier was not present. */
+      locator_for_curr_id.is_qualified_name = FALSE;
+      locator_for_curr_id.is_file_scope_qualified_name = FALSE;
+      locator_for_curr_id.is_global_qualified_name = FALSE;
+      locator_for_curr_id.qualifier_class_type = NULL;
+      /* Accepting qualified member names is an extension so issue a
+         diagnostic in strict ANSI mode. */
+      if (strict_ansi_mode) {
+        diagnostic(strict_ansi_error_severity,
+                   ec_qualifier_in_member_declaration);
+      }  /* if */ 
+    }  /* if */
+  }  /* if */
+  db_exit();
+  return is_member_id;
+}  /* simplify_curr_class_qualified_name */
+
+
 void declarator(a_decl_flag_set   input_flags,
                 a_decl_flag_set   *output_flags,
                 a_type_ptr        specifiers_type,
@@ -4823,6 +4872,7 @@ otherwise it is NULL.  The syntax is:
   a_boolean       is_nonstatic_member_function = FALSE;
   a_boolean       nonconstant_dimension_allowed;
   a_boolean       parenthesized_initializer_allowed;
+  a_boolean       is_friend_decl = FALSE;
 
   db_enter(3, "declarator");
   set_err_pos_to_curr_token();
@@ -4835,6 +4885,7 @@ otherwise it is NULL.  The syntax is:
                        (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED);
   nonconstant_dimension_allowed =
                             (input_flags & DI_DIMENSION_EXPRESSION_ALLOWED);
+  is_friend_decl = (input_flags & DI_IS_FRIEND_DECL);
   if (!real_declarator_allowed) {
     func_info = NULL;
     locator = NULL;
@@ -4966,7 +5017,7 @@ otherwise it is NULL.  The syntax is:
                         &locator_for_curr_id.source_position);
           }  /* if */
         }  /* if */
-        if (C_dialect == C_dialect_cplusplus) {
+        if (C_dialect == C_dialect_cplusplus && !is_friend_decl) {
           /* If this declaration appears in the immediate context of a class
              definition and the current token is an identifier representing
              the name of the current class, see if this is a qualified name
@@ -5024,79 +5075,82 @@ otherwise it is NULL.  The syntax is:
         /* Save information on the identifier to be declared. */
         *locator = locator_for_curr_id;
         (void)get_token();
-      } else if ((void)simplify_curr_class_qualified_name(),
-		 ((curr_token == tok_identifier &&
-                     locator_for_curr_id.is_destructor_name) ||
-                  get_destructor_name())) {
-        /* A destructor name, like "~A".  It must have the same name as
-           the class currently being defined, it must be followed by a
-           left paren, and the specifiers must include no type.
-	   The call to simplify_curr_class_qualified_name is placed here
-           so that it will be done at this point for all cases other than
-           the normal identifier case handled above. */
-        if (is_error_locator(locator_for_curr_id)) {
-          /* There is some error in the destructor name. */
-        } else {
-          a_scope_stack_entry_ptr ssep = &scope_stack[decl_scope_level];
-          a_symbol_ptr            class_sym;
-
-          if (ssep->kind != (a_scope_kind)sck_class_struct_union) {
-            /* Not inside a class; destructor is not allowed. */
-            error(ec_bad_destructor_decl);
+      } else {
+        /* The call to simplify_curr_class_qualified_name is placed here so
+           that it will be done at this point for all cases other than the
+           normal identifier case handled above. */
+        if (!is_friend_decl) (void)simplify_curr_class_qualified_name();
+        if ((curr_token == tok_identifier &&
+             locator_for_curr_id.is_destructor_name) ||
+            get_destructor_name()) {
+          /* A destructor name, like "~A".  It must have the same name as
+             the class currently being defined, it must be followed by a
+             left paren, and the specifiers must include no type. */
+          if (is_error_locator(locator_for_curr_id)) {
+            /* There is some error in the destructor name. */
           } else {
-            class_sym = (a_symbol_ptr)ssep->assoc_type->
-                                                     source_corresp.assoc_info;
-            if (!destructor_name_matches_class_name(class_sym)) {
-              /* The name on the destructor is not the name of the class. */
+            a_scope_stack_entry_ptr ssep = &scope_stack[decl_scope_level];
+            a_symbol_ptr            class_sym;
+
+            if (ssep->kind != (a_scope_kind)sck_class_struct_union) {
+              /* Not inside a class; destructor is not allowed. */
               error(ec_bad_destructor_decl);
             } else {
-              if (!is_unknown_type(complete_type)) {
-                error(ec_return_type_not_allowed);
-                complete_type = unknown_type();
-              } else if (!(input_flags & DI_DESTRUCTOR_SPECIFIERS)) {
-                /* The specifiers, including possibly the type specifier,
-                   are not consistent with a destructor declaration (e.g., a
-                   destructor cannot be specified "static" or "void"). */
+              class_sym = (a_symbol_ptr)ssep->assoc_type->
+                                                     source_corresp.assoc_info;
+              if (!destructor_name_matches_class_name(class_sym)) {
+                /* The name on the destructor is not the name of the class. */
                 error(ec_bad_destructor_decl);
               } else {
-                /* Valid destructor declaration. */
-                member_parent_type = ssep->il_scope->variant.assoc_type;
+                if (!is_unknown_type(complete_type)) {
+                  error(ec_return_type_not_allowed);
+                  complete_type = unknown_type();
+                } else if (!(input_flags & DI_DESTRUCTOR_SPECIFIERS)) {
+                  /* The specifiers, including possibly the type specifier,
+                     are not consistent with a destructor declaration (e.g., a
+                     destructor cannot be specified "static" or "void"). */
+                  error(ec_bad_destructor_decl);
+                } else {
+                  /* Valid destructor declaration. */
+                  member_parent_type = ssep->il_scope->variant.assoc_type;
+                }  /* if */
+                is_destructor = TRUE;
+                parenthesized_initializer_allowed = FALSE;
+                *locator = locator_for_curr_id;
               }  /* if */
-              is_destructor = TRUE;
-              parenthesized_initializer_allowed = FALSE;
-              *locator = locator_for_curr_id;
             }  /* if */
           }  /* if */
-        }  /* if */
-        /* Advance past the destructor. */
-        (void)get_token();
-        if (!is_destructor) {
-          /* Invalid destructor name. */
-          set_to_error_locator(*locator);
-          /* Avoid spurious errors later. */
-          if (is_unknown_type(complete_type)) complete_type = void_type();
-        } else if (curr_token != tok_lparen) {
-          /* A valid destructor name is not followed by a left parenthesis. */
-          error(ec_exp_lparen);
-          if (curr_token != tok_rparen) {
-            error(ec_exp_rparen);
-          } else {
-            (void)get_token();
+          /* Advance past the destructor. */
+          (void)get_token();
+          if (!is_destructor) {
+            /* Invalid destructor name. */
+            set_to_error_locator(*locator);
+            /* Avoid spurious errors later. */
+            if (is_unknown_type(complete_type)) complete_type = void_type();
+          } else if (curr_token != tok_lparen) {
+            /* A valid destructor name is not followed by a left
+               parenthesis. */
+            error(ec_exp_lparen);
+            if (curr_token != tok_rparen) {
+              error(ec_exp_rparen);
+            } else {
+              (void)get_token();
+            }  /* if */
+            is_destructor = FALSE;
+            complete_type = error_type();
+            set_to_error_locator(*locator);
           }  /* if */
-          is_destructor = FALSE;
-          complete_type = error_type();
-          set_to_error_locator(*locator);
+          parenthesized_initializer_allowed = FALSE;
+        } else if (get_opname()) {
+          /* The name is an operator name like "operator+". */
+          *locator = locator_for_curr_id;
+          (void)get_token();
+          parenthesized_initializer_allowed = FALSE;
+        } else {
+          copy_source_position(pos_curr_token, locator->source_position);
+          syntax_error(ec_exp_identifier);
+          parenthesized_initializer_allowed = FALSE;
         }  /* if */
-        parenthesized_initializer_allowed = FALSE;
-      } else if (get_opname()) {
-        /* The name is an operator name like "operator+". */
-        *locator = locator_for_curr_id;
-        (void)get_token();
-        parenthesized_initializer_allowed = FALSE;
-      } else {
-        copy_source_position(pos_curr_token, locator->source_position);
-        syntax_error(ec_exp_identifier);
-        parenthesized_initializer_allowed = FALSE;
       }  /* if */
       if (!(input_flags & DI_OPERATOR_NAME_ALLOWED)) {
         if (locator->is_operator_name || locator->is_conversion_name) {
@@ -6724,7 +6778,7 @@ process_class_specifier:
              "A::operator int"." */
           goto operator_or_conversion_name;
         }  /* if */
-        if (locator_for_curr_id.is_destructor_name &&
+        if (locator_for_curr_id.is_destructor_name && !is_friend_decl &&
 	    (simplify_curr_class_qualified_name() ||
 	     !locator_for_curr_id.is_qualified_name)) {
           /* This identifier represents something like "A::~A".  This
