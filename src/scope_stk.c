@@ -828,9 +828,12 @@ the suspect construct is a reference to a file-scope static entity.
 
 static void verify_c99_inline_definitions(void)
 /*
-Traverse the list of suspect local static variables to see if any was defined
-in a C99 "inline definition".  (Called when the file scope is popped for the
-first time.)
+Traverse the list of suspect constructs in C99 function definitions and issue
+a diagnostic if the construct is indeed invalid.  (These constructs are not
+allowed in C99 "inline definitions" with external linkage.  Only when the
+translation unit has been fully parsed can we establish with certainty that a
+function definition is in fact an "inline definition".  This function is
+therefore called when the file scope is popped for the first time.)
 */
 {
   a_c99_inline_definition_locator_ptr  to_verify, entry =
