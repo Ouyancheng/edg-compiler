@@ -9080,6 +9080,11 @@ selection operator, in which case it points to the type of the left operand.
         parent.namespace_ptr = qualifier_namespace;
       }  /* if */
       get_opname(qualifier_is_type, parent);
+      if (locator_for_curr_id.is_operator_name && next_token() == tok_lt) {
+        /* If the operator name is followed by an explicit template argument
+           list, coalesce it now. */
+        (void)coalesce_template_function_reference((a_symbol_ptr)NULL, &err);
+      }  /* if */
     }  /* if */
 wrapup:
     /* The current token must now be the final identifier of the
