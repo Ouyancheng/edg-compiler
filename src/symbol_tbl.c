@@ -6906,12 +6906,37 @@ of the template.
   }  /* if */
   /* The creation of source sequence entries is suppressed in certain
      contexts. */
-  if ((kind == (a_scope_kind)sck_template_instantiation &&
-       (ssep->in_prototype_instantiation || instance_sym == NULL)) ||
-      kind == (a_scope_kind)sck_template_declaration ||
+  if (kind == (a_scope_kind)sck_template_declaration ||
       kind == (a_scope_kind)sck_pragma) {
     ssep->source_sequence_entries_disallowed =
       source_sequence_entries_disallowed = TRUE;
+  } else if (kind == (a_scope_kind)sck_template_instantiation) {
+    if (ssep->in_prototype_instantiation || instance_sym == NULL) {
+      /* Under no circumstances should source sequence entries be generated
+         during a prototype instantiation.  Also, if instance_sym is NULL we
+         are pushing the scope for the declaration (but not the body) of a
+         template function -- no source sequence entries would be involved. */
+      source_sequence_entries_disallowed = TRUE;
+    } else {
+      /* Otherwise, do generate source sequence entries during an
+         instantiation. */
+      source_sequence_entries_disallowed = FALSE;
+      /* ... unless doing so is disabled by a compilation option: */
+#if !FUNCTION_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      if (assoc_routine != NULL) {
+        /* We are pushing the scope for a function template instantiation. */
+        source_sequence_entries_disallowed = TRUE;
+      }  /* if */
+#endif /* !FUNCTION_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      if (assoc_type != NULL) {
+        /* We are pushing the scope for a class template instantiation. */
+        source_sequence_entries_disallowed = TRUE;
+      }  /* if */
+#endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+      ssep->source_sequence_entries_disallowed =
+                                         source_sequence_entries_disallowed;
+    }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DEBUG
