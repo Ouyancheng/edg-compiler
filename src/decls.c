@@ -2806,11 +2806,8 @@ not be TRUE.
         check_assertion_str2(routine_ptr->declared_type == NULL,
                              "reconcile_routine_types: declared type already",
                              "set in definition");
-        if (comp_type == type_ptr) {
-          /* type_ptr will not be modified. */
-          routine_ptr->declared_type = type_ptr;
-        } else {
-           /* type_ptr will be modified, so copy it first. */
+        if (comp_type != type_ptr) {
+          /* type_ptr will be modified, so copy it first. */
           routine_ptr->declared_type =
                                   copy_routine_type_with_param_types(type_ptr);
         }  /* if */
@@ -3760,6 +3757,14 @@ on for use in generating cross-reference output describing this declaration.
     is_function_def = TRUE;
     check_assertion_str(srk_flags & SRK_DEFINITION,
                         "decl_routine: missing SRK_DEFINITION");
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (vla_enabled) {
+      /* type_ptr may be modified when the function body is scanned to strip
+         away the associated VLA dimensions.  Preserve the original type in
+         declared_type. */
+      declared_type = copy_routine_type_with_param_types(type_ptr);
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   effective_decl_level = compute_effective_decl_level(/*is_function=*/TRUE,
                                                       storage_class,
@@ -4412,9 +4417,7 @@ skip_overloading:;
        appeared in the current declaration may already have been set in
        reconcile_routine_types. */
     if (routine_ptr->declared_type == NULL) {
-      check_assertion_str(type_ptr == declared_type,
-                          "decl_routine: type and declared type don't match");
-      routine_ptr->declared_type = type_ptr;
+      routine_ptr->declared_type = declared_type;
     }  /* if */
     if (qualifier_namespace_ptr(*locator) != NULL) {
       check_assertion(!is_friend_decl);
