@@ -1,5 +1,20 @@
 Version 3.3
 
+7/21/03  Microsoft mode: Exception specifications on redeclarations
+
+In Microsoft mode (with exceptions enabled and microsoft_version >= 1300),
+the front end now only issues a warning on function and member function
+redeclarations whose exception specification does not match that of a
+previous declaration.  Previously, an error was issued.  For example:
+
+  struct S {
+    void f() throw(...);
+  };
+  void S::f() throw() {}  // Warning only in Microsoft mode
+                          // (previously an error).
+
+See also the Changes entries of 7/18/03 and 6/19/03.
+
 7/20/03  Abort in gcc mode on difference of pointers to array of empty struct
 
 The front end aborted in do_pdiff ("size of object pointed to is zero") or
