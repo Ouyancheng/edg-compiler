@@ -717,7 +717,7 @@ extra information on template parameters.
         /* Put out a comma between entries and preceding the first entry. */
         write_id_str(", ", dctl);
       }  /* if */
-      /* Write the template parameter name instead of the argument value. */
+      /* Write the template parameter name. */
       write_template_parameter_name(temp_par_info->nesting_level, position,
                                     nontype, dctl);
       if (temp_par_info->output_only_correspondences) {
@@ -725,7 +725,7 @@ extra information on template parameters.
            argument value out after the parameter name. */
         write_id_ch('=', dctl);
       } else {
-        /* This is the first pass.  The argument value is skipped now.  In
+        /* This is the first pass.  The argument value is skipped.  In
            the second pass, its value will be written out. */
         /* We still have to scan over the argument value, but suppress
            output. */
