@@ -4910,7 +4910,6 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
         set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constructor);
         dip->variant.constructor.ptr = NULL;
         dip->variant.constructor.args = opexpr;
-        dip->is_explicit_cast = !is_implicit_cast;
       }  /* if */
       make_expression_operand(expr, dest_type, operand);
     }  /* if */
