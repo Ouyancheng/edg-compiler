@@ -434,6 +434,10 @@ Initialize the option information table.
                          "no_nonconst_ref_anachronism",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_none);
+  add_option_description(optk_no_preproc_only,
+                         "no_preproc_only",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -780,6 +784,7 @@ Process the arguments on the command line that invoked the compiler.
 #if !USE_MMAP_FOR_MEMORY_REGIONS
   a_boolean			non_pch_option_used = FALSE;
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
+  a_boolean                     suppress_do_preprocessing_only;
 
   /* Set a current position indicating we are looking at the command line. */
   pos_curr_token.seq = 0;
@@ -1292,6 +1297,12 @@ Process the arguments on the command line that invoked the compiler.
         /* A reference to nonconst is allowed to bind to a class rvalue. */
         allow_nonconst_ref_anachronism = opt_value;
         break;
+      case optk_no_preproc_only:
+        /* Override the automatic setting of do_preprocessing_only.  This
+	   can be used to force full compilation when it would not normally
+	   be done. */
+        suppress_do_preprocessing_only = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1502,19 +1513,14 @@ Process the arguments on the command line that invoked the compiler.
   }  /* if */
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
 
+  /* The -o option controls either the name of the preprocessing output
+     file or the name of the IL file, depending on the kind of compilation. */
   if (do_preprocessing_only) {
-    /* Doing preprocessing only suppresses running the back end (and
-       generating an IL file). */
-    suppress_back_end = TRUE;
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-    suppress_il_file_write = TRUE;
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-#if DO_IL_LOWERING
-    suppress_il_lowering = TRUE;
-#endif /* DO_IL_LOWERING */
     /* Since preprocessing output is being generated, the output file
        name can be specified by a -o option. */
     pp_file_name = ofile_name;
+    pp_output_file_needed = TRUE;
+    il_file_name = NULL;
     ofile_name = NULL;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   } else {
@@ -1527,7 +1533,24 @@ Process the arguments on the command line that invoked the compiler.
     }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   }  /* if */
-
+  if (do_preprocessing_only && suppress_do_preprocessing_only) {
+    /* The implicit setting of do_preprocessing_only can be overridden
+       by the --no_preproc_only command line option.  Note that this is tested
+       after setting the pp_file_name above so that the -o option specifies
+       the pp_file_name even if a full compilation is being done. */
+    do_preprocessing_only = FALSE;
+  }  /* if */
+  if (do_preprocessing_only) {
+    /* Doing preprocessing only suppresses running the back end (and
+       generating an IL file). */
+    suppress_back_end = TRUE;
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+    suppress_il_file_write = TRUE;
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+#if DO_IL_LOWERING
+    suppress_il_lowering = TRUE;
+#endif /* DO_IL_LOWERING */
+  }  /* if */
   /* If the -o option appeared, its file should have been taken for
      something. */
   if (ofile_name != NULL) {
