@@ -3462,7 +3462,9 @@ unit.
 #if RECORD_HIDDEN_NAMES_IN_IL
 #if CHECKING
         if (!C_mode() && total_errors == 0) {
-          if (!sym->is_error && sym->kind != (a_symbol_kind)sk_undefined) {
+          if (!sym->is_error &&
+              sym->kind != (a_symbol_kind)sk_undefined &&
+              sym->kind != (a_symbol_kind)sk_macro) {
             if (is_tag_symbol(sym)) {
               check_assertion(sym->header->any_tag_decl);
             }  /* if */

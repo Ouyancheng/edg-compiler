@@ -1204,7 +1204,9 @@ created for this entity; otherwise, it is NULL.
      the file scope or a namespace scope.  The information is used in
      building the hidden name table.  Command-line macro definitions should
      not be considered as appearing in file scope. */
-  if (!sym_ptr->is_error && sym_ptr->kind != (a_symbol_kind)sk_undefined) {
+  if (!sym_ptr->is_error &&
+      sym_ptr->kind != (a_symbol_kind)sk_undefined &&
+      sym_ptr->kind != (a_symbol_kind)sk_macro) {
     a_symbol_header_ptr  hdr = sym_ptr->header;
 
     if (is_tag_symbol(sym_ptr)) hdr->any_tag_decl = TRUE;
