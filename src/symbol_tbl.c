@@ -4097,11 +4097,12 @@ done_with_access_control_setting:;
     /* There may or may not be a function scope on the stack, so look for
        one.  (When the variable has the value NO_SCOPE_DEPTH, it may
        mean that a class-struct-union scope had hidden the function scope.) */
-    for (depth_innermost_function_scope = depth_scope_stack;
-         depth_innermost_function_scope >= DEPTH_OF_FILE_SCOPE;
-         depth_innermost_function_scope--) {
-      a_scope_kind kind = scope_stack[depth_innermost_function_scope].kind;
+    a_scope_depth sd = depth_scope_stack;
+    depth_innermost_function_scope = NO_SCOPE_DEPTH;
+    for (; sd >= DEPTH_OF_FILE_SCOPE; --sd) {
+      a_scope_kind kind = scope_stack[sd].kind;
       if (kind == (a_scope_kind)sck_function) {
+        depth_innermost_function_scope = sd;
         break;
       } else if (C_dialect == C_dialect_cplusplus &&
                  kind == (a_scope_kind)sck_class_struct_union) {
@@ -4112,6 +4113,33 @@ done_with_access_control_setting:;
   }  /* if */
   db_exit();
 }  /* pop_scope */
+
+
+a_scope_depth depth_of_containing_function_scope(void)
+/*
+If there is a function scope between the current scope and the file scope,
+return the depth of the function scope (which may be the same as the current
+scope).  Otherwise, return NO_SCOPE_DEPTH.
+*/
+{
+  a_scope_depth            sd, func_scope_depth = NO_SCOPE_DEPTH;
+  a_scope_stack_entry_ptr  ssep;
+  a_scope_kind             kind;
+
+  if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
+    if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      func_scope_depth = depth_innermost_function_scope;
+    } else {
+      for (sd = depth_scope_stack; sd >= DEPTH_OF_FILE_SCOPE; sd--) {
+        if (scope_stack[sd].kind == (a_scope_kind)sck_function) {
+          func_scope_depth = sd;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return func_scope_depth;
+}  /* depth_of_containing_function_scope */
 
 
 void push_class_reactivation_scope(a_type_ptr class_type)
