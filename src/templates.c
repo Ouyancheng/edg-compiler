@@ -2787,6 +2787,7 @@ Scan the declaration of a single template nontype parameter.
   a_source_position			param_pos;
 
   /* Scan the declaration specifiers. */
+  param_pos = pos_curr_token;
   (void)decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_IS_TEMPLATE_PARAMETER),
                          &dso_flags, &param_storage_class,
@@ -3768,7 +3769,7 @@ void create_or_remove_instantiation_information_file(void)
         delete_file(ii_file_name);
       }  /* if */
     }  /* if */
-    discard_memory(ii_file_name);
+    purify_discard_memory(ii_file_name);
   }  /* if */
 }  /* create_or_remove_instantiation_information_file */
 
