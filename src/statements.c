@@ -1090,7 +1090,7 @@ either an expression statement or a declaration statement.
     sp->expr = scan_boolean_controlling_expression();
   } else {
     /* Use a constant "1" for an omitted expression. */
-    set_integer_constant(&constant, 1L);
+    set_integer_constant(&constant, 1L, (an_integer_kind)ik_int);
     sp->expr = alloc_node_for_constant(&constant);
   }  /* if */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
