@@ -8280,6 +8280,7 @@ within this routine if is_parenthesized comes in FALSE.
       array_declarator(&new_type_ptr, /*nonconstant_allowed=*/TRUE,
                        /*vla_is_allowed=*/FALSE,
                        /*vla_asterisk_allowed=*/FALSE,
+                       /*threads_dimension_allowed=*/FALSE,
                        /*top_level_field_decl=*/FALSE,
                        /*top_level_param_decl=*/FALSE,
                        &decl_pos_block);
@@ -8290,6 +8291,7 @@ within this routine if is_parenthesized comes in FALSE.
         array_declarator(&new_type_ptr, /*nonconstant_allowed=*/FALSE,
                          /*vla_is_allowed=*/FALSE,
                          /*vla_asterisk_allowed=*/FALSE,
+                         /*threads_dimension_allowed=*/FALSE,
                          /*top_level_field_decl=*/FALSE,
                          /*top_level_param_decl=*/FALSE,
                          &decl_pos_block);

@@ -2129,10 +2129,15 @@ if this is the function declarator in a friend function declaration.
 }  /* function_declarator */
 
 
+#if !UPC_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* threads_dimension_allowed is only used in configurations
+                 supporting UPC extensions. */
+#endif /* !UPC_EXTENSIONS_ALLOWED */
 void array_declarator(a_type_ptr            *new_type_ptr,
                       a_boolean             nonconstant_dimension_allowed,
                       a_boolean             vla_allowed,
                       a_boolean             vla_asterisk_allowed,
+                      a_boolean             threads_dimension_allowed,
                       a_boolean             top_level_field_decl,
                       a_boolean             top_level_param_decl,
                       a_decl_pos_block_ptr  decl_pos_block)
@@ -2148,7 +2153,8 @@ unknown size can be indicated with the "[*]" syntax in a function prototype.
 top_level_field_decl is TRUE to indicate that this is the declaration of
 a nonstatic data member of a class.  top_level_param_decl is TRUE to
 indicate that this is a a top-level declarator in a function parameter
-declaration.
+declaration.  threads_dimension_allowed indicates whether the dimension
+expression can be a multiple of the special UPC THREADS constant.
 */
 {
   a_targ_size_t           num_of_elements;
@@ -2259,10 +2265,20 @@ declaration.
     if (dim_expr == NULL) {
       switch (constant.kind) {
 #if UPC_EXTENSIONS_ALLOWED
+        case ck_upc_mythread:
+          /* MYTHREAD (and multiples thereof) is not a valid array
+             dimension. */
+          error(ec_expr_not_constant);
+          err = TRUE;
+          break;
         case ck_upc_threads:
           /* The array is dimensioned to a multiple of THREADS.  Set the
              flag and fall through to the integer case. */
           upc_threads_dimension = TRUE;
+          if (!threads_dimension_allowed) {
+            error(ec_expr_not_constant);
+            err = TRUE;
+          }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
         case ck_integer:
           /* Array size must be greater than zero. */
@@ -3741,8 +3757,8 @@ to FALSE if the entity being declared is not initializable.
   db_exit();
 }  /* scan_real_declarator_id */
 
-
 #if UPC_EXTENSIONS_ALLOWED
+
 static void check_and_update_upc_type(a_type_ptr       type,
                                       a_decl_flag_set  input_flags)
 /*
@@ -3753,19 +3769,12 @@ passed to r_declarator.)
 */
 {
   if (is_array_type(type)) {
-    if (is_underlying_threads_dimensioned_array_type(type)) {
-      if (!is_underlying_shared_qualified_type(type)) {
-        /* Nonshared data cannot be THREADS-dimensioned. */
-        error(ec_nonshared_threads_dim);
-      }  /* if */
-    } else if (!(input_flags &
-                 (DI_IS_TYPEDEF_DECLARATION | DI_IS_PARAMETER_DECL)) &&
-               upc_dynamic_threads() &&
-               get_underlying_upc_block_size(type) !=
-                                                   UPC_BLOCK_SIZE_INDEFINITE &&
-               is_underlying_shared_qualified_type(type) &&
-               skip_typerefs(type)->
-                               variant.array.variant.number_of_elements != 0) {
+    if (!(input_flags & (DI_IS_TYPEDEF_DECLARATION | DI_IS_PARAMETER_DECL)) &&
+        upc_dynamic_threads() &&
+        is_underlying_threads_dimensioned_array_type(type) &&
+        get_underlying_upc_block_size(type) != UPC_BLOCK_SIZE_INDEFINITE &&
+        is_underlying_shared_qualified_type(type) &&
+        skip_typerefs(type)->variant.array.variant.number_of_elements != 0) {
       /* Shared data must be THREADS-dimensions (except for parameters, but
          they decay to pointers). */
       error(ec_shared_nonthreads_dim);
@@ -3774,6 +3783,7 @@ passed to r_declarator.)
   /* Resolve any pure block or automatic block sizes. */
   fixup_upc_block_size(type);
 }  /* check_and_update_upc_type */
+
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED || !NEAR_AND_FAR_ALLOWED
@@ -3886,6 +3896,7 @@ The syntax is:
   a_boolean             disallow_default_args, disallow_exception_spec;
   a_func_info_block     *local_func_info;
   an_attribute_ptr      *last_attribute_ptr = NULL;
+  a_boolean             threads_dimension_allowed = FALSE;
 
   db_enter(3, "r_declarator");
   set_err_pos_to_curr_token();
@@ -3929,6 +3940,7 @@ The syntax is:
       is_underlying_shared_qualified_type(complete_type)) {
     /* VLAs of UPC shared types are not allowed. */
     vla_allowed = FALSE;
+    threads_dimension_allowed = TRUE;
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
   derived_type = NULL;
@@ -4304,8 +4316,8 @@ function_lparen:
                              derived_type == NULL;
       array_declarator(&new_type_ptr, nonconstant_dimension_allowed,
                        vla_allowed, vla_asterisk_allowed,
-                       top_level_field_decl, top_level_param_decl,
-                       decl_pos_block);
+                       threads_dimension_allowed, top_level_field_decl,
+                       top_level_param_decl, decl_pos_block);
       if (nonconstant_dimension_allowed) {
         /* In C++ a array declarator that appears in an operator new()
            expression may have a nonconstant expression in the first

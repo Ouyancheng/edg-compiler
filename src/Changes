@@ -1,5 +1,14 @@
 Version 3.4
 
+10/10/03 UPC mode: Diagnostic on THREADS-dimension arrays
+
+In UPC mode, the front end used to issue an error saying that "only arrays
+of a shared type can be dimensioned to a multiple of THREADS" when declaring
+a global array with a dimension equal to THREADS.  Now the error diagnostic
+more correctly reports that the dimension is nonconstant.  For example:
+
+  int a[3][THREADS];  // Still an error in UPC mode, but better diagnostic.
+
 10/9/03  Superfluous namespace qualifiers in declarations
 
 Standard C++ does not permit a namespace member to be declared in that
