@@ -1603,6 +1603,7 @@ Transform the given cast expression into a function call (compatible with C89).
 Runtime routines for fixed-point operations.
 */
 static a_routine_ptr
+		fixed_negate_routine,
 		fixed_eq_routine,
 		fixed_ne_routine,
 		fixed_gt_routine,
@@ -1633,12 +1634,18 @@ Lower a fixed-point operation expression.
   a_boolean             need_result_fxtype = FALSE;
   a_boolean             is_comparison = FALSE;
   a_boolean             is_shift = FALSE;
+  a_boolean             is_unary = FALSE;
   an_integer_kind       fxmask_int_kind = FXMASK_INT_KIND;
   a_type_ptr            return_type;
   a_type_ptr            op2_arg_type = fxvalue_type();
 
   /* Select the proper runtime routine for the operation. */
   switch (op) {
+    case eok_fxnegate:
+      routine_name = "_Fixed_negate";
+      routine = &fixed_negate_routine;
+      is_unary = TRUE;
+      break;
     case eok_fxeq:
       routine_name = "_Fixed_eq";
       routine = &fixed_eq_routine;
@@ -1715,7 +1722,7 @@ Lower a fixed-point operation expression.
   /* First operand fxtype. */
   fxmask |= (fxtype_value_for_type(op1->type) << shift_amount);
   shift_amount += FXTYPE_SIZE;
-  if (!is_shift) {
+  if (!is_shift && !is_unary) {
     /* Second operand fxtype. */
     fxmask |= (fxtype_value_for_type(op2->type) << shift_amount);
     shift_amount += FXTYPE_SIZE;
@@ -1732,13 +1739,18 @@ Lower a fixed-point operation expression.
      runtime. */
   op1->next = NULL;
   op1 = add_cast_if_necessary(op1, fxvalue_type());
-  /* Convert the second operand to the type used to interface to the
-     runtime. */
-  if (is_shift) {
-    /* For a shift, the second operand is the int shift count. */
-    op2_arg_type = integer_type((an_integer_kind)ik_int);
+  if (is_unary) {
+    /* A unary operation has no second operand. */
+    op2_arg_type = NULL;
+  } else {
+    /* Convert the second operand to the type used to interface to the
+       runtime. */
+    if (is_shift) {
+      /* For a shift, the second operand is the int shift count. */
+      op2_arg_type = integer_type((an_integer_kind)ik_int);
+    }  /* if */
+    op2 = add_cast_if_necessary(op2, op2_arg_type);
   }  /* if */
-  op2 = add_cast_if_necessary(op2, op2_arg_type);
   /* Make the call of the runtime comparison routine. */
   fxmask_expr->next = op1;
   op1->next = op2;
@@ -2058,6 +2070,7 @@ _Bool type, and VLA types.
       expr->variant.operation.kind = (an_expr_operator_kind)eok_iassign;
 #endif /* LOWER_FIXED_POINT */
       break;
+    case eok_fxnegate:
     case eok_fxadd:
     case eok_fxsubtract:
     case eok_fxmultiply:
@@ -3430,6 +3443,7 @@ Do one-time initialization of variables related to C99 IL lowering.
       pch_saved_var_array_elem(fixed_conv_routine),
       pch_array_saved_var_array_elem(float_fixed_conv_routine),
       pch_array_saved_var_array_elem(fixed_float_conv_routine),
+      pch_saved_var_array_elem(fixed_negate_routine),
       pch_saved_var_array_elem(fixed_eq_routine),
       pch_saved_var_array_elem(fixed_ne_routine),
       pch_saved_var_array_elem(fixed_gt_routine),
@@ -3501,6 +3515,7 @@ for each translation unit.
 #endif /* LOWER_COMPLEX */
 #if LOWER_FIXED_POINT
   fixed_conv_routine = NULL;
+  fixed_negate_routine = NULL;
   fixed_eq_routine = NULL;
   fixed_ne_routine = NULL;
   fixed_gt_routine = NULL;
