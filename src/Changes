@@ -11,7 +11,7 @@ Illegal by default, zero-length named bit fields are accepted in cfront
 compatibility mode.  Since cfront's support of such declarations appears
 to be accidental (there are various bugs), our support is minimal -- a
 warning is issued, the name is ignored (that is, it is not entered into
-the symbol table), and the bit-field is treated as though no name had be
+the symbol table), and the bit-field is treated as though no name had been
 supplied.
 
 3/31/93 Static data member template with parenthesized initializer
@@ -81,7 +81,6 @@ Moreover, an internal error is no longer produced on the following:
 
   extern void * operator new[](size_t);
 
-
 3/29/93  Cfront compatibility in disambiguation
 
 Contrary to the requirements of the ARM cfront treats the declaration of
@@ -142,7 +141,6 @@ is used:
   void m () { 
     f(a);         // No copy constructor used after conversion function
   }
-
 
 3/26/93  Abort in error message processing when message contains %
 
@@ -257,7 +255,6 @@ the derived class, not in the original declaration.  That has been fixed.
   void Z2::f(Y2* py2) {
     py2->a = 7;    // Was error, now okay
   }
-
 
 3/5/93  Casting class non-lvalues to a reference type
 
@@ -389,9 +386,7 @@ example,
   template <class T> struct A {
     void f();
   };
-
   template <class T> A<int>::f(){}
-
 
 2/25/93  Bug in sizeof applied to overloaded function or operator
 
@@ -433,21 +428,19 @@ whether the body appears in the class definition or outside the class
 definition.
 
   template <class T> struct A {
-    int T;              // error
-    void f() { int T;}  // error
+    int T;                               // error
+    void f() { int T;}                   // error
     void g();
     struct B {
-      int T;            // OK (warning)
+      int T;                             // OK (warning)
     };
   };
-
   template <class T> void g() { int T;}  // error
-
   template <class T> void f(T)
   {
-    int  T;            // error
+    int  T;                              // error
     {
-      int T;           // OK (warning)
+      int T;                             // OK (warning)
     }
   }
 
@@ -627,8 +620,8 @@ For the bad lookup to occur:
      with the same name at the global scope.
 
   2. The declaration of the global scope name must occur between the
-      declaration of the derived class and the declaration of either an
-      out-of-line constructor or destructor.
+     declaration of the derived class and the declaration of either an
+     out-of-line constructor or destructor.
 
   3. No other member function definition -- even one for an unrelated class
      may appear between the destructor and the offending reference. This
@@ -1123,7 +1116,6 @@ now give the appropriate errors.
     }
   };
 
-
 1/27/93 Instantiation of new/delete routines
 
 When new/delete routines are folded into a constructor/destructor,
@@ -1303,7 +1295,7 @@ type of a class that has no nonstatic data members and no constructor.
       object, an implicit initialization is deemed to occur.  For example:
 
         const struct A { } a;    // const variable "a" is implicitly
-                                 // initialized
+                                 //   initialized
 
   (2) The attempt to initialize an empty class object with an initializer
       list produces an error even when the list contains no initializers,
