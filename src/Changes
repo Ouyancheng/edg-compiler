@@ -1,5 +1,14 @@
 Version 3.1
 
+9/10/02  GNU C compatibility: Invalid type specifier combinations
+
+In GNU C mode (but not in GNU C++ mode) the front end now ingores extraneous
+"short" and "long" specifiers in typedef declarations (with a warning).
+For example:
+
+  typedef long short L;      // Same as "typedef long L;"
+  typedef long long long LL; // Same as "typedef long long LL;"
+
 9/9/02   Pragma redefine_extname
 
 The front end now recognizes the redefine_extname pragma when the new

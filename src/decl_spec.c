@@ -5606,9 +5606,12 @@ Returns TRUE if there is an error in the specifiers.
             diagnostic((any_cfront_mode() || gcc_mode) ? es_warning : es_error,
                        ec_dupl_decl_specifier);
           } else {
-            /* Some other bad combination. */
-            bad_combination_of_type_specifiers = TRUE;
-            error(ec_bad_combination_of_type_specifiers);
+            /* Some other bad combination.  GNU C tends to ignore these. */
+            bad_combination_of_type_specifiers =
+                  !(gcc_mode && *storage_class == (a_storage_class)sc_typedef);
+            diagnostic(bad_combination_of_type_specifiers ? es_error
+                                                          : es_warning,
+                       ec_bad_combination_of_type_specifiers);
           }  /* if */
         } else {
           /* First specification of size. */
