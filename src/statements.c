@@ -17,6 +17,7 @@ statements.c -- Scanning of statements.
 #include "basics.h"
 #include "host_envir.h"
 #include "statements.h"
+#include "debug.h"
 #include "decls.h"
 #include "lexical.h"
 #include "error.h"
@@ -89,6 +90,14 @@ static a_control_flow_descr_ptr
 		avail_control_flow_descrs;
 			/* Linked list of a_control_flow_descr entries that
 			   have been freed for reuse. */
+
+#if DEBUG
+/*
+Counts of tables allocated, to track total use of memory.
+*/
+static unsigned long
+		num_control_flow_descrs_allocated;
+#endif /* DEBUG */
 
 /*
 Set var to indicate that the associated code is reachable.
@@ -263,11 +272,9 @@ to it.
   } else {
     /* Allocate a new entry. */
     cfdp = (a_control_flow_descr_ptr)alloc_fe(sizeof(a_control_flow_descr));
-#if 0
 #if DEBUG
     num_control_flow_descrs_allocated++;
 #endif /* DEBUG */
-#endif /* if 0 */
   }  /* if */
   /* Set the entry's fields to default values. */
   cfdp->next = NULL;
@@ -2975,6 +2982,44 @@ Return TRUE if the current code is reachable.
 #endif /* CHECKING */
   return curr_reachability.reachable;
 }  /* curr_code_reachable */
+
+
+#if DEBUG
+unsigned long show_statements_space_used(void)
+/*
+Display and return the amount of space used for various statements tables.
+*/
+{
+  unsigned long num, size, total, grand_total = 0;
+
+  db_space_used_header("Statements table use:");
+  db_space_used_general("struct stmt stack", size_struct_stmt_stack_container,
+                        a_struct_stmt_stack_entry);
+  db_space_used_lost("control flow descrs", avail_control_flow_descrs,
+                     num_control_flow_descrs_allocated,
+                     a_control_flow_descr);
+
+  db_space_used_total();
+
+  return (grand_total);
+}  /* show_statements_space_used */
+#endif /* DEBUG */
+
+
+void statements_init(void)
+/*
+Initialize static variables related to statement processing.  This is done as
+a subroutine (rather than relying on static initialization) so that it
+can be redone to compile more than one source file in a single invocation
+of the front end.
+*/
+{
+  control_flow_descr_list = NULL;
+  end_of_control_flow_descr_list = NULL;
+  avail_control_flow_descrs = NULL;
+
+  num_control_flow_descrs_allocated = 0;
+}  /* statements_init */
 
 
 /******************************************************************************

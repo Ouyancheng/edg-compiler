@@ -279,6 +279,13 @@ typedef struct a_struct_stmt_stack_state {
 extern void new_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);
 extern void restore_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);
 
+extern void statements_init(void);
+
+#if DEBUG
+/* Show and return the amount of memory used by symbol table entries. */
+extern unsigned long show_symbol_space_used(void);
+#endif /* DEBUG*/
+
 #endif /* ifndef STATEMENTS_H */
 
 /******************************************************************************
