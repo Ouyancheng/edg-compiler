@@ -246,6 +246,65 @@ Clear the lint and pragma state in a token cache.
 }  /* clear_lint_and_pragma_state */
 
 
+#if 0
+#else
+static void unimplemented_keyword_warning(a_symbol_ptr  sym)
+/*
+Issue a warning on unimplemented keywords.  These warnings appear once per
+compilation, not once per translation unit.
+*/
+{
+  static a_boolean asm_warning_issued      = FALSE;
+  static a_boolean catch_warning_issued    = FALSE;
+  static a_boolean template_warning_issued = FALSE;
+  static a_boolean throw_warning_issued    = FALSE;
+  static a_boolean try_warning_issued      = FALSE;
+
+  a_boolean        err = FALSE;
+
+  switch (sym->variant.keyword_token) {
+    case tok_asm:
+      if (!asm_warning_issued) {
+        err = TRUE;
+        asm_warning_issued = TRUE;
+      }  /* if */
+      break;
+    case tok_catch:
+      if (!catch_warning_issued) {
+        err = TRUE;
+        catch_warning_issued = TRUE;
+      }  /* if */
+      break;
+    case tok_template:
+      if (!template_warning_issued) {
+        err = TRUE;
+        template_warning_issued = TRUE;
+      }  /* if */
+      break;
+    case tok_throw:
+      if (!throw_warning_issued) {
+        err = TRUE;
+        throw_warning_issued = TRUE;
+      }  /* if */
+      break;
+    case tok_try:
+      if (!try_warning_issued) {
+        err = TRUE;
+        try_warning_issued = TRUE;
+      }  /* if */
+      break;
+#if CHECKING
+    default:
+      internal_error("unimplemented_keyword_warning: unexpected token kind");
+#endif /* if CHECKING */
+  }  /* switch */
+  if (err) {
+    sym_warning(ec_unimplemented_keyword, sym);
+  }  /* if */
+}  /* unimplemented_keyword_warning */
+#endif /* if 0 */
+
+
 void clear_token_cache(a_token_cache *cache)
 /*
 Initialize a token cache, presumably so tokens can be added to it.
@@ -3773,7 +3832,22 @@ start_of_token_scan:  /* Restart here after scanning white space. */
                the keywords mean nothing. */
             if (!fetch_pp_tokens && !in_preprocessing_directive) {
               ctoken = assoc_symbol->variant.keyword_token;
+#if 0
               goto end_id_scan;
+#else
+              /* The keywords defined to support C++ templates are for the
+                 time being ignored and treated as identifiers.  However, a
+                 warning is issued.  This check will be removed when template
+                 support is added. */
+              if (ctoken == tok_asm ||
+                  ctoken == tok_catch || ctoken == tok_template ||
+                  ctoken == tok_throw || ctoken == tok_try) {
+                unimplemented_keyword_warning(assoc_symbol);
+                ctoken = tok_identifier;
+              } else {
+                goto end_id_scan;
+              }  /* if */
+#endif /* if 0 */
             }  /* if */
           }  /* if */
           assoc_symbol = assoc_symbol->next;
