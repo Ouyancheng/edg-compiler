@@ -9324,8 +9324,8 @@ the initializer.
   an_expr_node_ptr              arg_list;
   a_routine_ptr                 conversion_routine;
 
-  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   db_enter(4, "scan_class_parenthesized_initializer");
+  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   start_position = pos_curr_token;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*new_object_lifetime=*/FALSE);
@@ -9342,7 +9342,11 @@ the initializer.
     discard_curr_expr_object_lifetime();
   } else {
     /* Set the dynamic init entry to represent constructor initialization. */
-    *dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+    *dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_constructor,
+                                   class_type, 
+                                   /*evaluated=*/TRUE,
+                                   /*in_return_by_cctor_expression=*/FALSE,
+                                   &start_position);
     (*dip)->variant.constructor.ptr = conversion_routine;
     (*dip)->variant.constructor.args = arg_list;
     /* If there's an object lifetime around the initialization, transfer it
