@@ -1,5 +1,24 @@
 Version 3.5
 
+7/8/04   GNU C compatibility: Flexible arrays when C99 features enabled
+
+In nonstrict C99 mode a struct may include a member whose type contains a
+flexible array member, but such a member must be the last field of the struct.
+In GNU C mode, such a member can be any field of the struct (not just the last
+one).  When both GNU C and C99 extensions were enabled, the front end used to
+require the tighter constraints of plain (nonstrict) C99 mode.  Now the
+broader GNU C mode extension is accepted.  For example:
+
+  struct A {
+    int i;
+    int a[];
+  };
+  struct B {
+    struct A a;  // Previously an error when both C99 and GNU C modes were
+    int i;       // enabled.  Now accepted with that combination of modes.
+  };
+
+
 7/8/04   Determining if source is from an include file with preprocessed input
 
 When compiling preprocessed source, the front end would sometimes treat
