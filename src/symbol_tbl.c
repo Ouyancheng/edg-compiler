@@ -7468,6 +7468,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.must_be_class_lookup              = FALSE;
   cleared_symbol.must_be_namespace_lookup          = FALSE;
   cleared_symbol.ambiguous                         = FALSE;
+  cleared_symbol.hidden_by_old_for_init            = FALSE;
   /* Save variables from symbol_tbl.h and symbol_tbl.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {

@@ -1599,6 +1599,26 @@ typedef struct a_symbol {
 			/* TRUE for synthesized namespace projection symbols
 			   that were generated as a result of an
 			   IDL_MUST_BE_NAMESPACE lookup. */
+  a_bit_field	hidden_by_old_for_init:1;
+			/* TRUE for a symbol that is visible with the new
+			   for-init scoping rules but would be hidden if old
+			   (cfront-compatible) scoping were used.  For example,
+			       int i;
+			       void f() {
+			         for (int i = 0; i < 10; i++) { ... }
+			         return i;
+			       }
+			   Under the old scoping rules the local i is returned
+			   and ::i is hidden, but by the new rules the local
+			   i goes out of scope and ::i is returned.  Unless
+			   global flag use_nonstandard_for_init_scope is TRUE,
+			   hidden_by_for_init will be set for ::i in the
+			   function scope (following the termination of the
+			   for statement) and will be cleared again once the
+			   function scope is terminated.  A symbol for which
+			   this flag is set is pointed to by an entry of type
+			   a_name_hidden_by_old_for_init entry, accessed from
+			   the scope stack.  (Used in C++ only.) */
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
