@@ -15909,11 +15909,11 @@ Create the file containing information about exported templates.
   if (f_exported_template != NULL) {
     /* Output the file name. */
     write_to_exported_template_file(etlt_file_name, primary_source_file_name);
-  }  /* if */
 #if MODULE_ID_NEEDED
-  /* Write the module ID. */
-  write_to_exported_template_file(etlt_module_id, make_module_id());
+    /* Write the module ID. */
+    write_to_exported_template_file(etlt_module_id, make_module_id());
 #endif /* MODULE_ID_NEEDED */
+  }  /* if */
 }  /* generate_exported_template_file */
 
 
