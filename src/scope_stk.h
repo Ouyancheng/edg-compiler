@@ -762,7 +762,7 @@ pointer is NULL, return NO_SCOPE_DEPTH.
 Make sure the specified scope depth is a valid depth on the scope stack.
 */
 #define assert_is_valid_scope_depth(depth)				\
-  { check_assertion(depth == NO_SCOPE_DEPTH || depth >= depth_scope_stack); }
+  { check_assertion(depth == NO_SCOPE_DEPTH || depth <= depth_scope_stack); }
 
 
 /*
