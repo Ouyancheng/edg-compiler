@@ -4132,7 +4132,7 @@ on for use in generating cross-reference output describing this declaration.
       /* Be sure the default arguments, if any, are at the end of the
          parameters list. */
       check_default_args(type_ptr);
-      if (is_friend_decl && arg_dependent_lookup_enabled) {
+      if (is_friend_decl && !friend_injection_enabled) {
         set_invisible = TRUE;
       }  /* if */
     }  /* if */
@@ -4313,7 +4313,7 @@ on for use in generating cross-reference output describing this declaration.
         if (overload_set_is_invisible) {
           overload_symbol->is_invisible = TRUE;
         }  /* if */
-      } else {
+      } else if (!is_friend_decl) {
         overload_symbol->is_invisible = FALSE;
       }  /* if */
     }  /* if */
@@ -4348,7 +4348,7 @@ skip_overloading:;
        already been entered and marked as declared. */
     /* If appropriate, clear the is_invisible flag in the linked symbol and
        in the symbol representing its overload set. */
-    if (sym->is_invisible && !set_invisible) {
+    if (sym->is_invisible && !is_friend_decl) {
       sym->is_invisible = FALSE;
       if (sym->overload_set_member) {
         check_assertion(overload_symbol != NULL);
