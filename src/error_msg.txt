@@ -327,7 +327,7 @@ ec_id_must_be_class_or_namespace_name;;"name followed by \"::\" must be a class 
 ec_bad_friend_decl;;"invalid friend declaration"
 ec_value_returned_in_constructor;;"a constructor or destructor may not return a value"
 ec_bad_destructor_decl;;"invalid destructor declaration"
-ec_class_and_member_name_conflict;;"invalid declaration of a member with the same name as its class"
+ec_class_and_member_name_conflict;;"declaration of a member with the same name as its class"
 ec_global_qualifier_not_allowed;;"global-scope qualifier (leading \"::\") is not allowed"
 ec_name_not_found_in_file_scope;;"the global scope has no %sq"
 ec_qualified_name_not_allowed;;"qualified name is not allowed"
