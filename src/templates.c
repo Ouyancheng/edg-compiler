@@ -568,10 +568,19 @@ class a friend and update the friend information.
 */
 {
   a_class_list_entry_ptr   clep;
+  a_symbol_ptr		   class_sym;
 
-  for (clep = tssp->befriending_classes; clep != NULL; clep = clep->next) {
-    decl_friend_class(clep->class_type, class_type);
-  }  /* for */
+  class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+  check_assertion_str2(class_sym != NULL,
+                       "update_befriending_classes_for_class:",
+                       "NULL assoc_info");
+  if (is_real_class_symbol(class_sym)) {
+    /* Only update the friend information when the class being made a friend
+       is a real class type. */
+    for (clep = tssp->befriending_classes; clep != NULL; clep = clep->next) {
+      decl_friend_class(clep->class_type, class_type);
+    }  /* for */
+  }  /* if */
 }  /* update_befriending_classes_for_class */
 
 
@@ -4217,19 +4226,17 @@ been instantiated, update the befriending information for the instances.
 {
   a_class_list_entry_ptr  clep;
   a_symbol_ptr            instance_sym;
-  a_symbol_ptr            prototype_sym;
 
   clep = alloc_list_entry_for_class();
   clep->next = tssp->befriending_classes;
   clep->class_type = class_declared_in;
   tssp->befriending_classes = clep;
   /* Update any instances that have already been created. */
-  prototype_sym = tssp->variant.class_template.prototype_instantiation;
   for (instance_sym = tssp->variant.class_template.instantiations;
        instance_sym != NULL; instance_sym = instance_sym->next) {
     a_type_ptr  tp = instance_sym->variant.class_struct_union.type;
-    if (instance_sym != prototype_sym) {
-      /* Don't do this for the prototype instantiation. */
+    if (is_real_class_symbol(instance_sym)) {
+      /* Don't do this for the nonreal class types. */
       decl_friend_class(class_declared_in, tp);
     }  /* if */
   }  /* for */
@@ -4439,16 +4446,11 @@ instantiation.
         /* Classes cannot be defined in friend declarations. */
         pos_error(ec_template_friend_definition_not_allowed,
                      &locator.source_position);
+        *invalid_decl_scope_err = TRUE;
       }  /* if */
-      if (!in_prototype_instantiation) {
-        /* Adjust the effective declaration level.  Friend declarations
-           are added to the nearest enclosing namespace scope. */
-        effective_decl_level = depth_innermost_namespace_scope;
-      } else {
-        /* In the prototype instantiation, friend declarations are
-           added to the template instantiation scope. */
-        effective_decl_level = depth_innermost_instantiation_scope;
-      }  /* if */
+      /* Adjust the effective declaration level.  Friend declarations
+         are added to the nearest enclosing namespace scope. */
+      effective_decl_level = depth_innermost_namespace_scope;
     } else {
       /* A friend declaration in a nonclass scope. */
       pos_error(ec_bad_specifier_outside_class_decl, &friend_pos);
@@ -4683,7 +4685,7 @@ instantiation.
     clear_token_cache(&local_token_cache, /*reusable=*/TRUE);
     definition_token_cache = &local_token_cache;
     *defines_something = TRUE;
-    if ((!in_prototype_instantiation || !is_template_friend) && sym != NULL) {
+    if (sym != NULL) {
       mark_defined(sym, &locator.source_position);
       /* Create the symbol for the prototype instantiation (but don't do
          the instantiation yet). */
