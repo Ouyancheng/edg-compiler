@@ -1156,17 +1156,7 @@ Print out the type specifier.
       fputs("<error type>", f_C_output);
       break;
     case tk_void:
-#if INCLUDE_ANNOTATIONS
-      if (annotate) {
-        start_comment();
-        fputs("void", f_C_output);
-        end_comment();
-        fputc(' ', f_C_output);;
-      }  /* if */
-      if (!in_comment) fputs("char", f_C_output);
-#else /* !INCLUDE_ANNOTATIONS */
-      fputs("char", f_C_output);
-#endif /* INCLUDE_ANNOTATIONS */
+      fputs("void", f_C_output);
       break;
     case tk_integer:
       /* Note that enums are translated as the appropriate size of integer. */
