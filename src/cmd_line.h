@@ -136,6 +136,7 @@ typedef enum /*an_option_kind*/ {
   optk_suppress_instantiation_flags,
   optk_old_style_preprocessing,
   optk_old_for_init,
+  optk_for_init_diff_warning,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -740,6 +741,19 @@ EXTERN a_boolean
 			   in which the for-statement appears and FALSE if
 			   it extends only to the end of the for-statement;
 			   the latter is standard-conforming behavior. */
+
+
+EXTERN a_boolean
+		warning_on_for_init_difference
+#if VAR_INITIALIZERS
+                                   = DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE
+#endif /* VAR_INITIALIZERS */
+                                                                           ;
+			/* TRUE if the new C++ for-init scoping rules are in
+			   effect and if a diagnostic should be issued when a
+			   name that is visible with the new rules would be
+			   hidden (by the for-init declaration itself) with
+			   the old rules.
 
 
 /* Process the command line arguments. */

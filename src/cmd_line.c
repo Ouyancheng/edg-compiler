@@ -576,6 +576,14 @@ Initialize the option information table.
                          "new_for_init", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_for_init_diff_warning,
+                         "for_init_diff_warning", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_for_init_diff_warning,
+                         "no_for_init_diff_warning", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1533,6 +1541,10 @@ common_cfront_mode_settings:
         /* Enable/disable old-style scoping for for-init declarations. */
         use_nonstandard_for_init_scope = opt_value;
         break;
+      case optk_for_init_diff_warning:
+        /* Enable/disable warnings when new for-init scoping gives different
+           visibility than old rules. */
+        warning_on_for_init_difference = opt_value;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
