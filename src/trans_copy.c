@@ -1175,6 +1175,9 @@ to the secondary translation unit.
         check_assertion(check_member_merges);
         keep_on_list = TRUE;
         mark_to_merge(routine, iek_routine);
+        /* The inline flag merging below gets done against the primary IL
+           routine. */
+        corresp_routine = (a_routine_ptr)transitive_copy_address_of(routine);
       } else if (check_member_merges && !C_mode() &&
                  befriending_lists_need_to_be_merged(
                                        routine->befriending_classes,
