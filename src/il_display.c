@@ -910,7 +910,9 @@ Display the indicated constant entry.
       break;
     case ck_integer:
       (void)printf("ck_integer\n");
+      disp_name("integer_value");
       write_integer_constant(stdout, ptr);
+      printf("\n");
       break;
     case ck_string:
       (void)printf("ck_string\n");
