@@ -3766,6 +3766,7 @@ TRUE if a const object can be copied.
     if (sym_is_overloaded) sym = sym->variant.overloaded_function.symbols;
     /* Loop through the one or more symbols looking for one with the right
        argument type. */
+    accepts_const = accepts_volatile = FALSE;
     for (; sym != NULL; sym = sym_is_overloaded ? sym->next : NULL) {
       if (is_assignment_operator_for_copy(sym, &is_ref_arg, &accepts_const,
                                           &accepts_volatile)) {
@@ -4473,7 +4474,7 @@ assignment operator.
   for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
     a_boolean  sym_matches_exactly;
     a_boolean  is_ref_arg;
-    a_boolean  const_object_okay, volatile_object_okay;
+    a_boolean  const_object_okay = FALSE, volatile_object_okay = FALSE;
 
     if (is_assignment_operator_for_copy(sym, &is_ref_arg, &const_object_okay,
                                         &volatile_object_okay)) {
