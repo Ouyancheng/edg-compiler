@@ -6487,7 +6487,9 @@ declared member functions.
          the associated declarator. */
       a_name_reference_ptr
         name_ref = qualifiable_name_reference(locator, &rtn->source_corresp);
-      name_ref->used_in_primary_declarator = TRUE;
+      if (name_ref != NULL) {
+        name_ref->used_in_primary_declarator = TRUE;
+      }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
       /* For a definition enter the function type as the "declared_type" in
          the routine entry itself. Avoid adding a redundant type to the IL
