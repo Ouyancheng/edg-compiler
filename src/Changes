@@ -1,5 +1,16 @@
 Version 2.32
 
+4/23/96 struct il_header renamed struct il_header_tag
+
+The struct name il_header has been renamed il_header_tag so that it
+does not have the same name as the variable il_header.
+
+4/23/96 EDG_MAIN to set main program name
+
+The macro EDG_MAIN can now be set to establish a different name (i.e.,
+other than "main") for the top-level routine of the front end.  This
+allows the front end to be called from a higher-level control program.
+
 4/23/96 Bug in generating source-sequence lists for template instances
 
 A bug has been fixed in putting out source-sequence entries for
