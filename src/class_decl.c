@@ -7396,6 +7396,10 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
                 /* Okay. */
               } else if (sym == cssp->trivial_default_constructor) {
                 /* Okay. */
+              } else if (sym->kind == (a_symbol_kind)sk_member_function &&
+                         sym->variant.routine.ptr->compiler_generated) {
+                /* A compiler generated function -- most likely a default
+                   assignment operator.  This is okay. */
               } else {
                 decl_info->is_anonymous_union = FALSE;
                 break;
@@ -8527,23 +8531,18 @@ The routine body is not generated until it is known to be needed.
   /* Create a default assignment operator to copy an object of the current
      class if one doesn't already exist. */
   if (!user_declared_copy_assignment_op) {
-    /* Generate a copy assignment operator if bitwise copying is not allowed.
-       If bitwise copying *is* allowed, generate it only if an assignment
-       operator was declared by the program -- it's needed, even though it
-       won't actually be called, to complete the overload set. */
-    if (!cssp->assignment_by_bitwise_copy_allowed ||
-        (cssp->assignment_operator != NULL && !any_cfront_mode())) {
-      const_okay = default_assignment_of_const_object_okay(class_type);
-      qualifiers = const_okay ? TQ_CONST : TQ_NONE;
-      ptp = alloc_param_type(make_reference_type(
-                               make_qualified_type(class_type, qualifiers)));
-      /* Set a flag in the param type entry if its associated type is or
-         contains a template parameter. */
-      ptp->type_involves_deduced_template_param =
-                                  is_or_contains_template_param(class_type);
-      initialize_member_decl_info(&decl_info, pos);
-      generate_special_function(class_type, class_state, &decl_info, ptp);
-    }  /* if */
+    /* An implicit assignment operator is generated if the class does not
+       contain a user-declared copy assignment operator. */
+    const_okay = default_assignment_of_const_object_okay(class_type);
+    qualifiers = const_okay ? TQ_CONST : TQ_NONE;
+    ptp = alloc_param_type(make_reference_type(
+                                 make_qualified_type(class_type, qualifiers)));
+    /* Set a flag in the param type entry if its associated type is or
+       contains a template parameter. */
+    ptp->type_involves_deduced_template_param =
+                                is_or_contains_template_param(class_type);
+    initialize_member_decl_info(&decl_info, pos);
+    generate_special_function(class_type, class_state, &decl_info, ptp);
   }  /* if */
   db_exit();
 }  /* check_special_member_functions */
