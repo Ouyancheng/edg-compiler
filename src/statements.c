@@ -2488,10 +2488,11 @@ enk_condition expression node, and scanning the variable declaration.
 A pointer to the expression node is returned.
 */
 {
-  an_expr_node_ptr  node, value_expr;
-  a_variable_ptr    vp;
-  a_scope_ptr       scope;
-  a_boolean         is_switch_expr;
+  an_expr_node_ptr          node, value_expr;
+  a_variable_ptr            vp;
+  a_scope_ptr               scope;
+  a_boolean                 is_switch_expr;
+  a_control_flow_descr_ptr  cfdp;
 
   db_enter(3, "start_condition_block_and_scan_declaration");
   /* Push the new scope, and bind the if, switch, for, or while statement to
@@ -2499,6 +2500,11 @@ A pointer to the expression node is returned.
   scope = push_scope((a_scope_kind)sck_condition, NO_SCOPE_NUMBER,
                      (a_type_ptr)NULL, (a_routine_ptr)NULL);
   scope->variant.assoc_statement = sp;
+  /* Add a control flow entry to represent the condition block. */
+  cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
+  cfdp->source_pos = pos_curr_token;
+  cfdp->variant.block.object_lifetime = curr_object_lifetime;
+  add_to_control_flow_descr_list(cfdp);
   /* Allocate an expression node indicating that this is a condition
      declaration. */
   node = alloc_expr_node((an_expr_node_kind)enk_condition);
@@ -2529,8 +2535,11 @@ Do processing required upon completion of a condition "block".
 */
 {
   db_enter(3, "finish_condition_block");
+  /* Terminate the control flow block that was started when the condition
+     block was started. */
+  add_to_control_flow_descr_list(
+       alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
   /* Pop the sck_condition scope. */
-
   pop_scope();
   db_exit();
 }  /* finish_condition_block */
