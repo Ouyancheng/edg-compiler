@@ -1,5 +1,14 @@
 Version 3.4
 
+3/3/04   Microsoft compatibility: repeated typename keyword
+
+The Microsoft compiler allows the typename keyword to be repeated in
+a typename specifier.  We now accept this in Microsoft bugs mode.
+
+  template <class T> struct A {
+     typename typename T::I f();
+  };
+
 3/3/04   Sun compatibility: spurious error on repeated typename keyword
 
 The typename keyword is ignored in Sun mode, allowing it to be repeated and

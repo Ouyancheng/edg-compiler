@@ -4004,6 +4004,8 @@ a declaration.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)get_token();
+  /* The Microsoft compiler allows the typename specifier to be repeated. */
+  while (microsoft_bugs && curr_token == tok_typename) (void)get_token();
   (void)is_generalized_identifier_start(GID_IS_TYPENAME);
   if (microsoft_mode &&
       (curr_token != tok_identifier ||

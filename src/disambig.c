@@ -618,10 +618,14 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         /* typename is ignored in Sun mode.  Simply discard the token
            unless the user has disabled implicit typename mode. */
         if (sun_mode && implicit_typename_enabled) break;
-        cache_curr_token(&state->cache);
-        f_get_token_and_coalesce_if_identifier(
+        /* The Microsoft compiler allows the typename specifier to be
+           repeated. */
+        do {
+          cache_curr_token(&state->cache);
+          f_get_token_and_coalesce_if_identifier(
                        flags, curr_token == tok_typename ? GID_IS_TYPENAME
                                                          : GID_NO_OPTIONS);
+        } while (microsoft_bugs && curr_token == tok_typename);
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
         if (microsoft_mode or_near_and_far_enabled()) {
           /* Check for near/far and a Microsoft decl modifier, such as
