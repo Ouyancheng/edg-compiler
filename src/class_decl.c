@@ -9455,8 +9455,12 @@ nested classes when their definition appears outside of the class template.
       curr_routine_fixup = NULL;
     }  /* if */
     if (curr_token == tok_rbrace) {
-      /* A member list is optional in C++.  In C mode, it's an error, but
-         the diagnostic is issued later, when any_named_fields is checked. */
+      /* A member list is optional in C++.  In C mode issue an error and add
+         a dummy field to reduce error recovery problems down the line. */
+      if (C_mode()) {
+        error(ec_exp_declaration);
+        add_error_field(class_type, &class_state.end_of_field_list);
+      }  /* if */
     } else {
       if (class_type->kind == (a_type_kind)tk_class) {
         /* Members of a C++ class have private access by default. */
@@ -9600,6 +9604,13 @@ next_declaration:
         remove_stop_token(tok_semicolon);
         /* Keep processing member declarations until the closing brace. */
       } while (curr_token != tok_rbrace && curr_token != tok_end_of_source);
+      /* Check that a non-empty struct/union in C mode has at least one
+         named field. */
+      if (C_mode() && strict_ansi_mode && !class_state.any_named_fields) {
+        /* Something like "struct S { int:1; };", which has undefined behavior
+           according to the C standard.  Issue a warning. */
+        warning(ec_no_named_fields);
+      }  /* if */
     }  /* if */
     if (class_state.last_field_is_incomplete_array) {
       /* The last field that was recorded was an incomplete array.  This is
@@ -9619,24 +9630,6 @@ next_declaration:
       /* Flag is needed only in Microsoft C++ mode. */
       if (!C_mode()) cssp->last_field_is_incomplete_array = TRUE;
     }  /* if */    
-    if (C_mode() && curr_token == tok_rbrace &&
-        !class_state.any_named_fields) {
-      /* In ANSI C mode, there must be at least one named field.  This covers
-         both "struct S { };" and "struct S { int:1; };", the latter producing
-         undefined behavior according to the C standard.  Even if not in
-         strict mode, issue an error on "struct S { };".  When the class is
-         completely empty, create a dummy field to reduce error recovery
-         problems down the line. */
-      an_error_severity  severity = es_none;
-
-      if (class_state.end_of_field_list == NULL) {
-        severity = es_error;
-        add_error_field(class_type, &class_state.end_of_field_list);
-      } else if (strict_ansi_mode) {
-        severity = strict_ansi_error_severity;
-      }  /* if */
-      if (severity != es_none) diagnostic(severity, ec_no_named_fields);
-    }  /* if */
     if (!class_state.is_nonreal_instantiation) {
       if (is_template_instantiation && delayed_nested_class_def) {
         /* Force the functions to compute the scope depth, if any. */
