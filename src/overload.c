@@ -5425,9 +5425,6 @@ functions could still apply).
         } else {
           /* Exactly one function applies and is best. */
           proj_function_symbol = candidate_functions->function_symbol;
-          if (proj_function_symbol != NULL) {
-            function_symbol = fundamental_symbol_of(proj_function_symbol);
-          }  /* if */
           arg_match = candidate_functions->arg_matches;
           if (proj_function_symbol == NULL) {
             a_boolean op_1_inside_conditional = FALSE,
@@ -5462,23 +5459,8 @@ functions could still apply).
                                                   op_2_inside_conditional,
                                                   arg_match->next);
             }  /* if */
-          } else if (kind == (an_opname_kind)onk_assign &&
-                     function_symbol->kind ==
-                                           (a_symbol_kind)sk_member_function &&
-                     function_symbol->variant.routine.ptr->compiler_generated&&
-                     symbol_supplement_for_class(
-                                       function_symbol->parent.class_type)->
-                                          assignment_by_bitwise_copy_allowed) {
-            /* This function is the default bitwise copy assignment
-               operator, so give it the predefined meaning. Leave *processed
-               FALSE. */
-#if DEBUG
-            if (debug_level >= 4) {
-              fprintf(f_debug,
-               "check_for_operator_overloading: selected bitwise operator=\n");
-            }  /* if */
-#endif /* DEBUG */
           } else {
+            a_boolean bitwise_assignment = FALSE;
             /* An operator function was selected. */
 #if DEBUG
             if (debug_level >= 4) {
@@ -5487,7 +5469,25 @@ functions could still apply).
             }  /* if */
 #endif /* DEBUG */
             *processed = TRUE;
+            function_symbol = fundamental_symbol_of(proj_function_symbol);
             routine_type = routine_symbol_type(function_symbol);
+            /* Check for the builtin operator=. */
+            if (kind == (an_opname_kind)onk_assign &&
+                function_symbol->kind == (a_symbol_kind)sk_member_function &&
+                function_symbol->variant.routine.ptr->compiler_generated &&
+                symbol_supplement_for_class(
+                                       function_symbol->parent.class_type)->
+                                          assignment_by_bitwise_copy_allowed) {
+              /* This function is the default bitwise copy assignment
+                 operator, so generate an assignment instead of a call. */
+#if DEBUG
+              if (debug_level >= 4) {
+                fprintf(f_debug,
+                 "check_for_operator_overloading: bitwise operator=\n");
+              }  /* if */
+#endif /* DEBUG */
+              bitwise_assignment = TRUE;
+            }  /* if */
             arg_operand = arg_operand_list;
             bound_function_selector = NULL;
             member_is_best_match = 
@@ -5511,30 +5511,58 @@ functions could still apply).
               arg_operand = arg_operand->next;
               arg_match = arg_match->next;
             }  /* if */
-            /* Build an expression-form argument list.  Convert the arguments
-               on the argument list to the right types.  Note that for the
-               member function case we start at the second operand. */
             param = routine_type->variant.routine.extra_info->param_type_list;
-            arg_expr_list = end_arg_expr_list = NULL;
-            for (; arg_operand != NULL;
-                 arg_operand = arg_operand->next,arg_match = arg_match->next) {
-              arg = node_for_arg_of_overloaded_function_call(arg_operand,
-                                                             arg_match,
-                                                             param);
-              if (arg_expr_list == NULL) {
-                arg_expr_list = arg;
-              } else {
-                end_arg_expr_list->next = arg;
-              }  /* if */
-              end_arg_expr_list = arg;
-              /* Advance to the next parameter unless we're at an ellipsis. */
-              if (param != NULL) param = param->next;
-            }  /* for */
-            /* Do the things that would have been done to the symbol but
-               weren't because the specific symbol was not known, and build an
-               operand for the function. */
-            have_selector = member_is_best_match;
-            make_resolved_overloaded_function_operand(
+            if (bitwise_assignment) {
+              /* For the bitwise operator= case, generate an assignment instead
+                 of a call. */
+              an_expr_node_ptr assign_node;
+              an_expr_node_ptr lhs_node =
+                               make_node_from_operand(bound_function_selector);
+              an_expr_node_ptr rhs_node =
+                          node_for_arg_of_overloaded_function_call(arg_operand,
+                                                                   arg_match,
+                                                                   param);
+              rhs_node = add_indirection_to_node(rhs_node);
+              lhs_node->next = rhs_node;
+              assign_node = make_operator_node(
+                                            (an_expr_operator_kind)eok_sassign,
+                                            rhs_node->type, lhs_node);
+              make_expression_operand(assign_node, assign_node->type, result);
+#if 0
+              reference_to_implicitly_invoked_function(function_symbol,
+                                                       operator_position,
+                                                       (a_type_ptr)NULL,
+                                                       /*honor_virtual=*/FALSE,
+                                          curr_expr_is_potentially_evaluated(),
+                                               /*suppress_access_check=*/TRUE);
+#endif /* 0 */
+            } else {
+              /* Not the builtin bitwise operator=. */
+              /* Build an expression-form argument list.  Convert the arguments
+                 on the argument list to the right types.  Note that for the
+                 member function case we start at the second operand. */
+              arg_expr_list = end_arg_expr_list = NULL;
+              for (; arg_operand != NULL;
+                   arg_operand = arg_operand->next,
+                        arg_match = arg_match->next) {
+                arg = node_for_arg_of_overloaded_function_call(arg_operand,
+                                                               arg_match,
+                                                               param);
+                if (arg_expr_list == NULL) {
+                  arg_expr_list = arg;
+                } else {
+                  end_arg_expr_list->next = arg;
+                }  /* if */
+                end_arg_expr_list = arg;
+                /* Advance to the next parameter unless we're at an
+                   ellipsis. */
+                if (param != NULL) param = param->next;
+              }  /* for */
+              /* Do the things that would have been done to the symbol but
+                 weren't because the specific symbol was not known, and build
+                 an operand for the function. */
+              have_selector = member_is_best_match;
+              make_resolved_overloaded_function_operand(
                                                  proj_function_symbol,
                                                  member_is_best_match ?
                                                     member_functions_symbol :
@@ -5544,9 +5572,11 @@ functions could still apply).
                                                  /*is_qualified_name=*/FALSE,
                                                  operator_position,
                                                  &function_operand);
-            /* Make the call node and an operand for it. */
-            assemble_function_call(&function_operand, bound_function_selector,
-                                   arg_expr_list, result);
+              /* Make the call node and an operand for it. */
+              assemble_function_call(&function_operand,
+                                     bound_function_selector,
+                                     arg_expr_list, result);
+            }  /* if */
           }  /* if */
         }  /* if */
         /* Free the candidate functions list. */
