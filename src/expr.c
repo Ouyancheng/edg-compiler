@@ -5564,7 +5564,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
     make_error_operand(result);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
-        is_class_or_error_operand(operand_1)) {
+        is_class_struct_union_type(operand_1->type)) {
       /* Look for C++ operator overloading cases. */
       /* "=" has a predefined meaning for C-style classes (i.e., bitwise
          assignment).  Also go that way for incomplete classes, to get
