@@ -1304,14 +1304,10 @@ error code.
       m = "compiler-generated constructor cannot initialize %n";
       break;
     case ec_uninitialized_const_member:
-      if (C_dialect == C_dialect_cplusplus) {
-        m = "variable contains uninitialized const member";
-      } else {
-        m = "variable contains uninitialized const field";
-      }  /* if */
+      m = "const %n is uninitialized";
       break;
-    case ec_uninitialized_ref_member:
-      m = "variable contains uninitialized reference member";
+    case ec_uninitialized_const_or_ref_member:
+      m = "%n with type %t is uninitialized";
       break;
     case ec_missing_const_assignment_operator:
       m = "class %t has no assignment operator to copy a const object";
@@ -3137,6 +3133,22 @@ indicated position.
 }  /* pos_sy_warning */
 
 
+void pos_syty_warning(an_error_code     error_code,
+                      a_source_position *error_pos,
+                      struct a_symbol   *symbol,
+                      struct a_type     *type)
+/*
+Report the indicated warning (with the indicated symbol and type) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_types[1] = type;
+  error_msg_syms[1] = symbol;
+  diag_message(error_code, error_pos, es_warning);
+}  /* pos_syty_warning */
+
+
 void sym_warning(an_error_code   error_code,
                  struct a_symbol *symbol)
 /*
@@ -3262,7 +3274,7 @@ indicated position.
   error_msg_types[1] = type;
   error_msg_syms[1] = symbol;
   diag_message(error_code, error_pos, es_error);
-}  /* pos_ty_error */
+}  /* pos_syty_error */
 
 
 void sym_error(an_error_code   error_code,

@@ -7969,13 +7969,24 @@ continue_with_declaration:
                    members and no constructor, but this seems to introduce an
                    unnecessary incompatibility with C. */
                 tp = skip_typerefs(tp);
-                if (tp->variant.class_struct_union.any_const_member) {
-                  pos_warning(ec_uninitialized_const_member,
-                              &declarator_pos);
-                }  /* if */
-                if (C_dialect == C_dialect_cplusplus &&
-                    symbol_supplement_for_class(tp)->any_ref_member) {
-                  pos_warning(ec_uninitialized_ref_member, &declarator_pos);
+                if (tp->variant.class_struct_union.any_const_member ||
+                    (C_dialect == C_dialect_cplusplus &&
+                     symbol_supplement_for_class(tp)->any_ref_member)) {
+                  /* Issue a warning on each uninitialized const or ref
+                     member. */
+                  a_symbol_ptr  field_sym;
+                  a_field_ptr   fp = tp->variant.class_struct_union.field_list;
+
+                  for (; fp != NULL; fp = fp->next) {
+                    field_sym = (a_symbol_ptr)fp->source_corresp.assoc_info;
+                    if (field_sym != NULL) {
+                      if (type_or_element_type_is_const_qualified(fp->type) ||
+                          is_reference_type(fp->type)) {
+                        pos_syty_warning(ec_uninitialized_const_or_ref_member,
+                                         &declarator_pos, field_sym, fp->type);
+                      }  /* if */
+                    }  /* if */
+                  }  /* for */
                 }  /* if */
               }  /* if */
             }  /* if */
