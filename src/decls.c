@@ -514,6 +514,7 @@ new fields are set properly.
   an_error_code                  error_code = ec_no_error;
   a_boolean                      err = FALSE;
   a_routine_type_supplement_ptr  rtsp;
+  a_boolean                      is_new, is_delete;
 
   db_enter(4, "check_operator_function_params");
   rout_type = skip_typerefs(rout_type);
@@ -544,10 +545,12 @@ new fields are set properly.
     check_assertion(opname != (an_opname_kind)onk_none);
     is_nonstatic_member_function =
                 routine_type_is_nonstatic_member_function(rout_type);
+    is_new = (opname == (an_opname_kind)onk_new ||
+              opname == (an_opname_kind)onk_array_new);
+    is_delete = (opname == (an_opname_kind)onk_delete ||
+                 opname == (an_opname_kind)onk_array_delete);
     /* Operator new/delete cannot be a nonstatic member function. */
-    check_assertion(!(is_nonstatic_member_function &&
-                      (opname == (an_opname_kind)onk_new ||
-                       opname == (an_opname_kind)onk_delete)));
+    check_assertion(!(is_nonstatic_member_function && (is_new || is_delete)));
     /* Make a pass over the param types list to count the number of
        arguments to see if there are any parameters that are of class type
        or reference-to-class type.  Note that param_count is initialized to
@@ -562,8 +565,7 @@ new fields are set properly.
       if (is_reference_type(tp)) tp = type_pointed_to(tp);
       if (is_class_struct_union_type(tp)) any_class_type_params = TRUE;
     }  /* if */
-    if (opname == (an_opname_kind)onk_function_call ||
-        opname == (an_opname_kind)onk_new) {
+    if (opname == (an_opname_kind)onk_function_call || is_new) {
       /* Function call and new must have one or more arguments. */
       if (param_count == 0) {
         if (rtsp->has_ellipsis) {
@@ -574,7 +576,8 @@ new fields are set properly.
         } else {
           error_code = ec_too_few_args_for_operator;
         }  /* if */
-      } else if (opname == (an_opname_kind)onk_new) {
+      } else if (is_new) {
+        /* operator new or operator new[]. */
         ptp = rout_type->variant.routine.extra_info->param_type_list;
         tp = ptp->type;
         if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
@@ -627,7 +630,8 @@ new fields are set properly.
           err = TRUE;
         }  /* if */
       }  /* if */
-    } else if (opname == (an_opname_kind)onk_delete) {
+    } else if (opname == (an_opname_kind)onk_delete ||
+               opname == (an_opname_kind)onk_array_delete) {
       ptp = rout_type->variant.routine.extra_info->param_type_list;
       if (param_count == 0) {
         error_code = ec_too_few_args_for_operator;
@@ -692,20 +696,20 @@ new fields are set properly.
       pos_error(error_code, &locator->source_position);
       err = TRUE;
     }  /* if */
-    if (opname == (an_opname_kind)onk_new ||
-        opname == (an_opname_kind)onk_delete) {
+    if (is_new || is_delete) {
       /* Check return type. */
       tp = rout_type->variant.routine.return_type;
       if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
-        if (opname == (an_opname_kind)onk_new) {
-          /* Return type must be "void *". */
+        if (is_new) {
+          /* operator new or operator new[]: return type must be "void *". */
           if (!is_void_star_type(tp)) {
             pos_error(ec_bad_return_type_for_op_new,
                       &locator->source_position);
             err = TRUE;
           }  /* if */
         } else {
-          /* Return type must be "void". */
+          /* operator delete or operator delete[]: return type must be
+             "void". */
           if (!is_void_type(tp) || is_qualified_type(tp)) {
             pos_error(ec_bad_return_type_for_op_delete,
                       &locator->source_position);
@@ -2773,7 +2777,8 @@ describing this declaration.
           homonym_symbol->kind != (a_symbol_kind)sk_function_template) {
         a_routine_ptr  rp = homonym_symbol->variant.routine.ptr;
         if (rp->special_kind == (a_special_function_kind)sfk_operator &&
-            rp->opname_kind == (an_opname_kind)onk_delete) {
+            (rp->opname_kind == (an_opname_kind)onk_delete ||
+             rp->opname_kind == (an_opname_kind)onk_array_delete)) {
           /* Overloading is not allowed for operator delete() (ARM 12.5). */
           pos_error(ec_delete_already_declared, &locator->source_position);
           redecl_error_already_issued = TRUE;
@@ -3112,12 +3117,15 @@ skip_overloading:;
         /* This is an entry for a compiler generated ::operator new or
            ::operator delete.  It was created during initialization, but
            is overridden by the present declaration. */
-        check_assertion(routine_ptr->special_kind ==
-                                (a_special_function_kind)sfk_operator &&
-                        (routine_ptr->opname_kind ==
-                                                 (an_opname_kind)onk_new ||
-                         routine_ptr->opname_kind ==
-                                                 (an_opname_kind)onk_delete));
+#if CHECKING
+        if (routine_ptr->special_kind ==
+                             (a_special_function_kind)sfk_operator) {
+           an_opname_kind  kind = (an_opname_kind)routine_ptr->opname_kind;
+           check_assertion_str(kind == onk_new || kind == onk_array_new ||
+                               kind == onk_delete || kind == onk_array_delete,
+                               "decl_var_or_routine: bad opname kind");
+        }  /* if */
+#endif /* CHECKING */
         routine_ptr->compiler_generated = FALSE;
         check_assertion(sym->decl_position.seq == 0);
         /* Record the new source position, both in the symbol and in the
@@ -3466,7 +3474,8 @@ class template.
       pos_error(ec_function_template_named_main, &locator->source_position);
       set_to_error_locator(*locator);
     } else if (locator->is_operator_name) {
-      if (locator->variant.opname == (an_opname_kind)onk_delete) {
+      if (locator->variant.opname == (an_opname_kind)onk_delete ||
+          locator->variant.opname == (an_opname_kind)onk_array_delete) {
         /* A template definition of operator delete is not allowed.  This
            is inferred from the ARM prohibition against overloading
            operator delete. */
