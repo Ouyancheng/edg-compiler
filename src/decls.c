@@ -7563,7 +7563,8 @@ is saved and restored as needed by the token caching mechanism.
     clear_constant(&asm_string, (a_constant_repr_kind)ck_string);
     /* The asm string is already allocated in IL memory. */
     asm_string.variant.string.value = curr_token_asm_string;
-    asm_string.variant.string.length = strlen(curr_token_asm_string) + 1;
+    asm_string.variant.string.length =
+                            (a_targ_size_t)(strlen(curr_token_asm_string)) + 1;
     asm_string.type = string_type(asm_string.variant.string.length);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_pos_curr_token;

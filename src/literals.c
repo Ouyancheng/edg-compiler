@@ -746,7 +746,7 @@ processing, and in wide characters if the constant is wide).
     constant_size = (sizeof_t)(num_chars*targ_sizeof_wchar_t);
     centity_mask = (unsigned long)1 << ((targ_sizeof_wchar_t*targ_char_bit)-1);
     centity_mask = centity_mask | (centity_mask - 1);
-    centity_bits = targ_sizeof_wchar_t*targ_char_bit;
+    centity_bits = (int)targ_sizeof_wchar_t*targ_char_bit;
     centity_is_signed = int_kind_is_signed[(int)targ_wchar_t_int_kind];
   } else {
      /* Normal character constant. */
@@ -901,7 +901,7 @@ processing, and in wide characters if the string is wide).
   *err_pos = NULL;  /* To make lint happy. */
   /* The number of array elements is one more than the number of characters,
      to leave space for the terminating null. */
-  num_elems = num_chars + 1;
+  num_elems = (a_targ_size_t)num_chars + 1;
   /* Build a mask used to mask individual characters. */
   centity_mask = (unsigned long)1 << (targ_host_string_char_bit-1);
   centity_mask = centity_mask | (centity_mask-1);

@@ -3979,9 +3979,9 @@ or the current scope.  This is used for member constants.
 }  /* add_to_constants_list */
 
 
-void set_integer_constant(a_constant      *cp,
-                          long            value,
-                          an_integer_kind kind)
+void set_integer_constant(a_constant		*cp,
+                          a_host_large_integer	value,
+                          an_integer_kind	kind)
 /*
 Set the constant entry *cp to the integer constant given by value.
 Its integer kind is as given by kind.  Note that the kind is not restricted
@@ -3994,9 +3994,9 @@ to be a signed kind.
 }  /* set_integer_constant */
 
 
-void set_unsigned_integer_constant(a_constant      *cp,
-                                   unsigned long   value,
-                                   an_integer_kind kind)
+void set_unsigned_integer_constant(a_constant			*cp,
+                                   a_host_large_unsigned	value,
+                                   an_integer_kind		kind)
 /*
 Set the constant entry *cp to the integer constant given by value.
 Its integer kind is as given by kind.  Note that the kind is not restricted
@@ -4021,7 +4021,8 @@ for making NULL pointer constants.
   a_boolean did_not_fold;
 
   /* Make an integer zero and convert it to the desired type. */
-  set_integer_constant(zero_constant, 0L, (an_integer_kind)ik_int);
+  set_integer_constant(zero_constant, (a_host_large_integer)0,
+                       (an_integer_kind)ik_int);
   type_change_constant(zero_constant, desired_type,
                        /*is_implicit_cast=*/TRUE,
                        /*constant_context=*/TRUE,
@@ -6893,11 +6894,28 @@ and return a pointer to it.
   an_expr_node_ptr node;
   a_constant       constant;
 
-  set_integer_constant(&constant, value, kind);
+  set_integer_constant(&constant, (a_host_large_integer)value, kind);
   node = alloc_node_for_constant(&constant);
 
   return node;
 }  /* node_for_integer_constant */
+
+
+an_expr_node_ptr node_for_host_large_integer(a_host_large_integer	value,
+                                             an_integer_kind		kind)
+/*
+Make a node for a host large integer with value "value" and kind "kind",
+and return a pointer to it.
+*/
+{
+  an_expr_node_ptr node;
+  a_constant       constant;
+
+  set_integer_constant(&constant, value, kind);
+  node = alloc_node_for_constant(&constant);
+
+  return node;
+}  /* node_for_host_large_integer */
 
 
 a_boolean is_bad_type_for_template_arg_operand(a_type_ptr type)
@@ -7501,11 +7519,11 @@ in doing substitution on a type), set *copy_error to TRUE.
               /* sizeof/alignof. */
               a_boolean is_sizeof = (con->variant.template_param.kind ==
                                   (a_template_param_constant_kind)tpck_sizeof);
-              set_unsigned_integer_constant(constant,
-                                            is_sizeof ?
-                                            (unsigned long)new_type->size :
-                                            (unsigned long)new_type->alignment,
-                                            targ_size_t_int_kind);
+              set_unsigned_integer_constant(
+                                  constant, is_sizeof ?
+                                    (a_host_large_unsigned)new_type->size :
+                                    (a_host_large_unsigned)new_type->alignment,
+                                  targ_size_t_int_kind);
             }  /* if */
             con_copy = NULL;
           }  /* if */

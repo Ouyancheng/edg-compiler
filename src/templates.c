@@ -1197,9 +1197,9 @@ values, and the handling of array bounds of unknown type.
         } else {
           a_constant_ptr	constant;
           constant = fs_constant((a_constant_repr_kind)ck_integer);
-          set_unsigned_integer_constant
-                      (constant, (unsigned long)tap->variant.integer_value,
-                       skip_typerefs(constant_type)->variant.integer.int_kind);
+          set_unsigned_integer_constant(
+                   constant, (a_host_large_unsigned)tap->variant.integer_value,
+                   skip_typerefs(constant_type)->variant.integer.int_kind);
           tap->variant.constant = constant;
           tap->is_array_bound_of_unknown_type = FALSE;
         }  /* if */
@@ -3647,7 +3647,7 @@ list of a template function.  Returns TRUE if a match is found.
              a match if the number of elements matches the previously
              deduced constant. */
           match = cmpulit_integer_constant(constant,
-                                           tap->variant.integer_value) == 0;
+                       (a_host_large_unsigned)tap->variant.integer_value) == 0;
           if (match) {
             /* The values match.  Use the constant value instead of the
                integer array bound as the new value of the argument. */
@@ -3815,7 +3815,8 @@ of types after all of the function arguments have been processed.
         /* An array bound can only match an integral value.  We have
            a match if the number of elements matches the previously
            deduced constant. */
-        match = cmpulit_integer_constant(cp, elements) == 0;
+        match = cmpulit_integer_constant(cp,
+                                         (a_host_large_unsigned)elements) == 0;
       }  /* if */
     }  /* if */
   }  /* if */

@@ -2565,7 +2565,8 @@ function.  The result is placed in *result.
   a_type_ptr result_type;
 
   /* Make a constant "1" of the right type. */
-  set_integer_constant(&one_constant, 1L, (an_integer_kind)ik_int);
+  set_integer_constant(&one_constant, (a_host_large_integer)1L,
+                       (an_integer_kind)ik_int);
   make_constant_operand(&one_constant, &one_operand);
   /* Determine the operation type. */
   result_type = determine_arithmetic_conversions(operand, &one_operand);
@@ -2637,7 +2638,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
          them from the prefix ++/--, which use a one-argument function.
          See ARM 13.4.7.  The second compiler-supplied argument is an
          integer zero. */
-      make_integer_constant_operand(&zero_operand, 0L);
+      make_integer_constant_operand(&zero_operand, (a_host_large_integer)0L);
       opname_kind = opname_kind_for_token[(int)curr_token];
       check_for_operator_overloading(opname_kind,
                                      /*unary_operator=*/FALSE,  /* sic! */
@@ -3620,7 +3621,7 @@ Syntax:
       constant.type = integer_type(targ_size_t_int_kind);
     } else {
       set_unsigned_integer_constant(&constant,
-                                    (unsigned long)sizeof_type->size,
+                                    (a_host_large_unsigned)sizeof_type->size,
                                     targ_size_t_int_kind);
     }  /* if */
     make_constant_operand(&constant, result);
@@ -3702,9 +3703,9 @@ be inappropriate, because the feature is probably used to implement
     constant.variant.template_param.variant.type = alignof_type;
     constant.type = integer_type(targ_size_t_int_kind);
   } else {
-    set_unsigned_integer_constant(&constant,
-                                  (unsigned long)alignof_type->alignment,
-                                  targ_size_t_int_kind);
+    set_unsigned_integer_constant(
+                     &constant, (a_host_large_unsigned)alignof_type->alignment,
+                     targ_size_t_int_kind);
   }  /* if */
   make_constant_operand(&constant, result);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -5002,8 +5003,8 @@ specification allow a variable-sized array as the top type.
         sizeof_node = new_array_dimension;
       } else {
         /* Multiply the number of elements by the size of each element. */
-        sizeof_node = node_for_integer_constant((long)element_type->size,
-                                                targ_size_t_int_kind);
+        sizeof_node = node_for_host_large_integer(
+               (a_host_large_integer)element_type->size, targ_size_t_int_kind);
         new_array_dimension->next = sizeof_node;
         sizeof_node = make_operator_node((an_expr_operator_kind)eok_imultiply,
                                          sizeof_node->type,
@@ -5017,7 +5018,8 @@ specification allow a variable-sized array as the top type.
          or
            new int
       */
-      set_integer_constant(&sizeof_constant, (long)unqual_new_type->size,
+      set_integer_constant(&sizeof_constant,
+                           (a_host_large_integer)unqual_new_type->size,
                            targ_size_t_int_kind);
       make_constant_operand(&sizeof_constant, &sizeof_operand);
     }  /* if */
@@ -7315,7 +7317,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
         /* See if the cast is valid in the current expression kind by
            seeing whether a constant zero can be cast to the destination
            type. */
-        make_integer_constant_operand(result, 0L);
+        make_integer_constant_operand(result, (a_host_large_integer)0L);
         if (!cast_is_valid_in_current_expression_kind(result, type_cast_to,
                                                       local_options,
                                                       start_position)) {
@@ -8382,7 +8384,7 @@ standard.
   an_operand            operand_2;
   a_source_position     operator_position;
   a_boolean             operand_1_is_false = FALSE;
-  long                  local_result;
+  a_host_large_integer  local_result;
   a_boolean             known_result       = FALSE;
   a_token_kind          save_token;
   a_type_ptr            result_type;

@@ -985,8 +985,8 @@ TRUE, the entity is the destination of an initialization operation.
       }  /* if */
       if (modifiers->curr_elem != 0) {
         /* Add the subscript if it's non-zero. */
-        elem_num_node = node_for_integer_constant((long)modifiers->curr_elem,
-                                                  targ_size_t_int_kind);
+        elem_num_node = node_for_host_large_integer(
+             (a_host_large_integer)modifiers->curr_elem, targ_size_t_int_kind);
         entity_node->next = elem_num_node;
         entity_node = make_operator_node((an_expr_operator_kind)eok_padd_subsc,
                                          entity_node->type, entity_node);
@@ -1428,9 +1428,9 @@ array.
   an_expr_node_ptr num_elem_node;
   a_constant       num_elem_constant;
 
-  set_integer_constant_with_overflow_check(&num_elem_constant,
-                                           (long)array_element_count,
-                                           (an_integer_kind)ik_int);
+  set_integer_constant_with_overflow_check(
+                 &num_elem_constant, (a_host_large_integer)array_element_count,
+                 (an_integer_kind)ik_int);
   /* Allocate an expression node for the constant. */
   num_elem_node = alloc_node_for_constant(&num_elem_constant);
   return num_elem_node;
@@ -1467,8 +1467,8 @@ type of the array pointed to by ptr_type, and return a pointer to it.
 
   elem_type = new_delete_base_type_from_operation_type(
                                                     type_pointed_to(ptr_type));
-  size_elem_node = node_for_integer_constant((long)elem_type->size,
-                                             targ_size_t_int_kind);
+  size_elem_node = node_for_host_large_integer(
+                  (a_host_large_integer)elem_type->size, targ_size_t_int_kind);
   return size_elem_node;
 }  /* size_elem_node_from_pointer_type */
 
@@ -2951,7 +2951,8 @@ to be inserted, it is inserted at *insert_location.
     /* Otherwise, for an automatic variable, the variable must be explicitly
        initialized to zero. */
     a_constant zero_constant;
-    set_integer_constant(&zero_constant, 0L, (an_integer_kind)ik_int);
+    set_integer_constant(&zero_constant, (a_host_large_integer)0,
+                         (an_integer_kind)ik_int);
     if (is_expr_insert_location_kind(insert_location->kind)) {
        /* The insert location is inside an expression, so use an stmk_expr. */
       (void)insert_assignment_statement(var_lvalue_expr(cond_var),
@@ -3922,8 +3923,8 @@ lower initialization for nonconstant aggregates.
             entity_size *= ipdp->array_element_count;
           }  /* if */
           entity_node = add_cast_if_necessary(entity_node, void_star_type());
-          entity_node->next = node_for_integer_constant((long)entity_size,
-                                                        targ_size_t_int_kind);
+          entity_node->next = node_for_host_large_integer(
+                      (a_host_large_integer)entity_size, targ_size_t_int_kind);
           memzero_call = make_runtime_rout_call("__memzero", &memzero_routine,
                                                 void_type(), entity_node);
           (void)insert_expr_statement_set_pos(memzero_call,
@@ -4596,8 +4597,8 @@ arrays with class elements.
        elements.  Do a division to get the right answer for the
        multi-dimensional array case. */
     set_unsigned_integer_constant(&num_elem_constant,
-                                  array_type->size / elem_type->size,
-                                  targ_size_t_int_kind);
+                     (a_host_large_unsigned)array_type->size / elem_type->size,
+                     targ_size_t_int_kind);
     num_elem_node = alloc_node_for_constant(&num_elem_constant);
   } else {
     /* Nonconstant number of elements in the array.  The number of elements
@@ -5114,9 +5115,9 @@ the call expression.
   if (is_two_argument_delete(delete_routine)) {
     /* Two-argument form.  Add a second argument of type size_t that
        indicates the (static) size of the object. */
-    second_arg_node = node_for_integer_constant(
-                                    (long)(f_skip_typerefs(delete_type)->size),
-                                    targ_size_t_int_kind);
+    second_arg_node = node_for_host_large_integer(
+                    (a_host_large_integer)(f_skip_typerefs(delete_type)->size),
+                    targ_size_t_int_kind);
     arg_node->next = second_arg_node;
   }  /* if */
   /* Make the call. */
@@ -5372,7 +5373,8 @@ This routine returns TRUE if guard code was emitted.
        all other initialization code.  No test of the guard variable is
        needed here. */
     test_var->init_kind = (an_init_kind)initk_static;
-    set_integer_constant(&minus_one_constant, -1L, (an_integer_kind)ik_int);
+    set_integer_constant(&minus_one_constant, (a_host_large_integer)-1,
+                         (an_integer_kind)ik_int);
     switch_to_file_scope_region(&region_to_switch_back_to);
     test_var->initializer.constant =
                                   alloc_unshared_constant(&minus_one_constant);
@@ -6939,8 +6941,9 @@ constructor scope, and also lower the user code.
        not one that takes a single argument. */
     if (new_routine != NULL) {
       /* Make "new-rout(size)". */
-      size_node = node_for_integer_constant((long)class_type->size,
-                                            targ_size_t_int_kind);
+      size_node = node_for_host_large_integer(
+                                        (a_host_large_integer)class_type->size,
+                                        targ_size_t_int_kind);
       call_node = make_call_node(new_routine, size_node,
                                  /*honor_virtual=*/FALSE,
                                  (an_insert_location *)NULL);
@@ -7998,8 +8001,9 @@ destructor scope, and also lower the user code.
       /* Two-argument form.  Add a second argument of type size_t that
          indicates the (static) size of the object. */
       this_param_node->next =
-              node_for_integer_constant((long)(class_type->size),
-                                        targ_size_t_int_kind);
+              node_for_host_large_integer(
+                                      (a_host_large_integer)(class_type->size),
+                                      targ_size_t_int_kind);
     }  /* if */
     delete_routine->source_corresp.referenced = TRUE;
     make_call_statement(delete_routine, this_param_node, &insert_location2);

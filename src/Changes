@@ -1,5 +1,17 @@
 Version 2.43
 
+9/27/99  Support for long long size_t and ptrdiff_t
+
+The front end did not work properly when configured to have "long" be
+32 bits, but for size_t and ptrdiff_t to be 64 bits.  This has been
+fixed. It did work properly if "long" was 64 bits and size_t and ptrdiff_t
+were also 64 bits. Two new configuration macros have been added:
+PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER and PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED.
+These will usually be configured properly by default, but will need to
+be explicitly specified when using simulated integers (i.e., when
+INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is FALSE) and when a_host_large_integer
+is of a type other than "long".
+
 9/23/99  Partial overriding of virtual functions in multiple inheritance cases
 
 The front end used to always issue a warning when a virtual function in a

@@ -836,9 +836,11 @@ variables.
             is_false_constant(operand->variant.constant)) {
           /* Yes, this is &auto_variable != NULL, which is always 1,
              or the "== 0" case, which is always 0. */
+          a_host_large_integer	temp_value;
           has_constant_value = TRUE;
-          set_integer_constant(&constant,
-                               (op == (an_expr_operator_kind)eok_pne)? 1L : 0L,
+          temp_value = (a_host_large_integer)
+                             ((op == (an_expr_operator_kind)eok_pne)? 1L : 0L);
+          set_integer_constant(&constant, temp_value,
                                (an_integer_kind)ik_int);
         }  /* if */
       }  /* if */

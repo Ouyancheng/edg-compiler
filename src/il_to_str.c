@@ -85,7 +85,7 @@ indicated by octl.
 
 #endif /* BACK_END_IS_C_GEN_BE */
 
-static void form_num(long                                  num,
+static void form_num(a_host_large_integer                  num,
                      an_il_to_str_output_control_block_ptr octl)
 /*
 Output a signed number as indicated by octl.
@@ -93,12 +93,12 @@ Output a signed number as indicated by octl.
 {
   char buffer[50];
 
-  (void)sprintf(buffer, "%ld", num);
+  (void)sprintf(buffer, PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER, num);
   octl->output_str(buffer);
 }  /* form_num */
 
 
-static void form_unsigned_num(unsigned long                         num,
+static void form_unsigned_num(a_host_large_unsigned                 num,
                               an_il_to_str_output_control_block_ptr octl)
 /*
 Output an unsigned number as indicated by octl.
@@ -106,7 +106,7 @@ Output an unsigned number as indicated by octl.
 {
   char buffer[50];
 
-  (void)sprintf(buffer, "%lu", num);
+  (void)sprintf(buffer, PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED, num);
   octl->output_str(buffer);
 }  /* form_unsigned_num */
 
@@ -640,7 +640,7 @@ by octl.
       str = "<error>";
       break;
     case bk_constant:
-      form_num((long)biptr->variant.constant_bound, octl);
+      form_num((a_host_large_integer)biptr->variant.constant_bound, octl);
       goto end_of_routine;
     case bk_adjustable:
       str = "<adjustable>";
@@ -748,13 +748,14 @@ by octl.
       if (type->variant.fcharacter.star_star) {
         octl->output_str("(*)");
       } else {
-        form_unsigned_num((unsigned long)type->variant.fcharacter.length,
-                          octl);
+        form_unsigned_num((a_host_large_unsigned)
+                                        type->variant.fcharacter.length, octl);
       }  /* if */
       break;
     case tk_hollerith:
       octl->output_str("hollerith*");
-      form_unsigned_num((unsigned long)type->variant.hollerith_length, octl);
+      form_unsigned_num((a_host_large_unsigned)
+                                         type->variant.hollerith_length, octl);
       break;
     case tk_farray:
       form_type_specifier(type->variant.farray.element_type, octl);
@@ -781,7 +782,7 @@ by octl.
       break;
     case tk_association:
       octl->output_str("association of size ");
-      form_unsigned_num((unsigned long)type->size, octl);
+      form_unsigned_num((a_host_large_unsigned)type->size, octl);
       break;
     case tk_unspec_routine:
       octl->output_str("<unspec-routine>");
@@ -1195,7 +1196,7 @@ the way described by octl.
   } else if (type->variant.array.variant.number_of_elements == 0) {
     /* For unknown-bound arrays, put nothing between the []. */
   } else {
-    form_unsigned_num((unsigned long)type->
+    form_unsigned_num((a_host_large_unsigned)type->
                                      variant.array.variant.number_of_elements,
                       octl);
   }  /* if */
@@ -1396,7 +1397,9 @@ precedence confusion.  Do the output in the way described by octl.
   } else {
     /* Treat null pointer constants as signed since it doesn't change the
        meaning and looks nicer. */
-    if (cmplit_integer_constant(constant, 0L) == 0) signed_constant = TRUE;
+    if (cmplit_integer_constant(constant, (a_host_large_integer)0) == 0) {
+      signed_constant = TRUE;
+    }  /* if */
   }  /* if */
   if (!suppress_cast &&
       /* If this is an integer value or enumerator constant cast to
@@ -2371,7 +2374,7 @@ precedence confusion.  Do the output in the way described by octl.
       /* For negative numbers, the sign on the number will be the operator. */
       octl->output_str(" ");
     }  /* if */
-    form_num((long)offset, octl);
+    form_num((a_host_large_integer)offset, octl);
     output_optional_close_paren(need_offset_addition_close_paren, octl);
   }  /* if */
   output_optional_close_paren(need_final_cast_close_paren, octl);
@@ -2482,7 +2485,8 @@ confusion.  Do the output in the way described by octl.
           /* For null pointer constants, the extra cast to "void *" is
              not necessary. */
           if (constant->kind != (a_constant_repr_kind)ck_integer ||
-              cmplit_integer_constant(constant, 0L) != 0) {
+              cmplit_integer_constant(constant,
+                                      (a_host_large_integer)0) != 0) {
             output_optional_open_paren(&need_parens, &need_cast_close_paren,
                                        octl);
             octl->output_str("(void *)");
@@ -2530,7 +2534,8 @@ confusion.  Do the output in the way described by octl.
                  is_bool_type(con_type)) {
         /* A bool constant. */
         octl->output_str((char *)(
-               cmplit_integer_constant(constant, 0L) != 0 ? "true" : "false"));
+               cmplit_integer_constant(constant,
+                            (a_host_large_integer)0) != 0 ? "true" : "false"));
       } else if (!octl->c_generating_back_end &&
                  il_header.source_language == sl_Cplusplus &&
                  is_character_type(con_type)) {
@@ -2675,8 +2680,8 @@ confusion.  Do the output in the way described by octl.
       if (constant->variant.stack_offset.offset != 0) {
         octl->output_str("+");
         form_unsigned_num(
-                         (unsigned long)constant->variant.stack_offset.offset,
-                         octl);
+                  (a_host_large_unsigned)constant->variant.stack_offset.offset,
+                  octl);
       }  /* if */
       octl->output_str(">");
       break;

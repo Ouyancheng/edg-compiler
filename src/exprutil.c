@@ -1760,8 +1760,8 @@ current token will be used as the operand position.
 }  /* make_string_constant_operand */
 
 
-void make_integer_constant_operand(an_operand *operand,
-				   long       value)
+void make_integer_constant_operand(an_operand		*operand,
+				   a_host_large_integer	value)
 /*
 Make a constant operand and set it to some integer value.
 */
@@ -3878,8 +3878,8 @@ value is used).
                      size 1, since that's probably a clue that the programmer
                      is cheating. */
                   if (num_elements > 1) {
-                    cmp = cmpulit_integer_constant(rhs_con,
-                                                  (unsigned long)num_elements);
+                    cmp = cmpulit_integer_constant(
+                                 rhs_con, (a_host_large_unsigned)num_elements);
                     valid = (cmp <= 0);  /* Subscript <= number of elements */
                     *just_past_end = (cmp == 0);
                                          /* Subscript == number of elements */
@@ -5699,7 +5699,8 @@ return without setting *optimized_case to TRUE.
         /* The address is a valid address of a character in the string.
            Build an operand for the character from the string. */
         an_integer_kind ikind = char_type->variant.integer.int_kind;
-        long char_value = string_constant->variant.string.value[offset];
+        a_host_large_integer char_value;
+        char_value = string_constant->variant.string.value[offset];
         /* Remove any sign extension. */
         char_value &= (long)(~((~(unsigned long)0) << targ_char_bit));
         clear_operand((an_operand_kind)ok_constant, operand);
@@ -6595,7 +6596,7 @@ types to get a boolean expression (see process_boolean_controlling_expression).
           } else {
             /* Normal case (constant bool value is known at compile time). */
             make_integer_constant_operand(operand,
-                                       (long)(!op_is_false_constant(operand)));
+                       (a_host_large_integer)(!op_is_false_constant(operand)));
             operand->variant.constant.null_pointer_constant_ruled_out =
                  orig_operand.variant.constant.null_pointer_constant_ruled_out;
           }  /* if */

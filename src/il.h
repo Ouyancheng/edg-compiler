@@ -491,13 +491,13 @@ extern void empty_shareable_constants_table(void);
 
 extern void empty_func_shareable_constants_table(void);
 
-extern void set_integer_constant(a_constant      *cp,
-                                 long            value,
-                                 an_integer_kind kind);
+extern void set_integer_constant(a_constant		*cp,
+                                 a_host_large_integer	value,
+                                 an_integer_kind	kind);
 
-extern void set_unsigned_integer_constant(a_constant      *cp,
-                                          unsigned long   value,
-                                          an_integer_kind kind);
+extern void set_unsigned_integer_constant(a_constant		*cp,
+                                          a_host_large_unsigned	value,
+                                          an_integer_kind	kind);
 
 extern a_boolean is_enum_constant(a_constant_ptr con);
 
@@ -584,6 +584,10 @@ extern an_expr_node_ptr alloc_node_for_allocated_constant(
 
 extern an_expr_node_ptr node_for_integer_constant(long            value,
                                                   an_integer_kind kind);
+
+extern an_expr_node_ptr node_for_host_large_integer(
+					     a_host_large_integer	value,
+                                             an_integer_kind		kind);
 
 extern a_boolean is_bad_type_for_template_arg_operand(a_type_ptr type);
 

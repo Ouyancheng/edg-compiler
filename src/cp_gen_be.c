@@ -1863,7 +1863,7 @@ conversions on nonconstants are handled in eok_cast processing.
   if (con->kind == (a_constant_repr_kind)ck_integer) {
     a_type_ptr con_type = skip_typerefs(con->type);
     if (con_type->kind == (a_type_kind)tk_pointer &&
-        cmplit_integer_constant(con, 0L) == 0) {
+        cmplit_integer_constant(con, (a_host_large_integer)0) == 0) {
       /* Zero converted to a pointer type. */
       is_implicit_cast = TRUE;
     } else if (con_type->kind == (a_type_kind)tk_integer &&
@@ -2430,7 +2430,8 @@ parameter.
                is_constant_node(expr) &&
                expr->variant.constant->kind ==
                                             (a_constant_repr_kind)ck_integer &&
-               cmplit_integer_constant(expr->variant.constant, 0L) == 0) {
+               cmplit_integer_constant(expr->variant.constant,
+                                       (a_host_large_integer)0) == 0) {
       /* A null pointer constant default argument.  Use a simple "0" and
          count on implicit conversion.  This works around a bug in
          MSVC++ 5.0. */
@@ -4562,7 +4563,8 @@ return FALSE.
       if (is_constant_node(operand_2)) {
         a_constant_ptr con = operand_2->variant.constant;
         if (con->kind == (a_constant_repr_kind)ck_integer &&
-            cmpulit_integer_constant(con, (unsigned long)elem_size) == 0) {
+            cmpulit_integer_constant(con,
+                                     (a_host_large_unsigned)elem_size) == 0) {
           /* Yes, the expression is "operand_1 * elem-size", so operand_1
              is the number-of-elements expression. */
           found = TRUE;

@@ -431,8 +431,9 @@ applied to an address constant that has been cast to an integral type.
   switch (constant->kind) {
     case ck_address:
       /* Address of a routine, variable, or constant, plus some offset. */
-      set_integer_constant(offset, constant->variant.address.offset,
-                           targ_ptrdiff_t_int_kind);
+      set_integer_constant(
+                offset, (a_host_large_integer)constant->variant.address.offset,
+                targ_ptrdiff_t_int_kind);
       break;
     case ck_integer:
       /* Integer cast to a pointer type (probably 0/NULL). */
@@ -574,7 +575,7 @@ set on entry.
       curr_type = base_class->type;
       get_pointer_offset(constant_1, &offset);
       if (!is_object_pointer &&
-          cmplit_integer_constant(&offset, 0L) == 0 &&
+          cmplit_integer_constant(&offset, (a_host_large_integer)0) == 0 &&
           base_object(constant_1) == NULL) {
         /* Preserve a NULL pointer.  Note that we suppress this test when
            is_object_pointer is TRUE, to allow the usual idiom for the
@@ -650,7 +651,7 @@ desired derived type.  If there is an error, it is issued at *err_pos.
     copy_constant(constant_1, result);
     /* Determine the offset and adjust it for the cast. */
     get_pointer_offset(result, &offset);
-    if (cmplit_integer_constant(&offset, 0L) == 0 &&
+    if (cmplit_integer_constant(&offset, (a_host_large_integer)0) == 0 &&
         base_object(result) == NULL) {
       /* Preserve a NULL pointer. */
     } else {
@@ -1071,7 +1072,7 @@ Convert an integer constant to a pointer constant of type as specified by
   *err_code = ec_no_error;
   *err_severity = es_warning;
   if (is_implicit_cast) {
-    if (cmplit_integer_constant(old_constant, 0L) != 0) {
+    if (cmplit_integer_constant(old_constant, (a_host_large_integer)0) != 0) {
       /* Any value other than zero (NULL).  Issue a warning. */
       *err_code = ec_non_zero_int_conv_to_pointer;
       *err_severity = es_warning;
@@ -1419,7 +1420,8 @@ Return TRUE if the constant is an integer or floating zero.
 
   if (constant->kind == (a_constant_repr_kind)ck_integer &&
       !constant->implicit_cast) {
-    is_zero = (cmplit_integer_constant(constant, 0L) == 0);
+    is_zero = (cmplit_integer_constant(constant,
+                                       (a_host_large_integer)0) == 0);
   } else if (constant->kind == (a_constant_repr_kind)ck_float) {
     float_kind = skip_typerefs(constant->type)->variant.float_kind;
     is_zero = fp_is_zero_constant(float_kind,
@@ -1452,7 +1454,8 @@ operators.  Can also be used to test for a NULL pointer or pointer to member.
   } else if (constant->kind == (a_constant_repr_kind)ck_integer &&
              constant->implicit_cast) {
     /* Check for NULL pointer constant (0 cast to a pointer type). */
-    is_false = (cmplit_integer_constant(constant, 0L) == 0);
+    is_false = (cmplit_integer_constant(constant,
+                                        (a_host_large_integer)0) == 0);
   } else if (constant->kind == (a_constant_repr_kind)ck_ptr_to_member) {
     /* Pointer to member constant.  See if null. */
     is_false = pm_constant_is_null(constant);
@@ -1472,7 +1475,7 @@ Return TRUE if the given constant is a null pointer constant.
     /* A null pointer constant has the value zero, perhaps cast to "void *"
        in C.  Only certain kinds of casts are allowed. */
     if (!constant->null_pointer_constant_ruled_out &&
-        cmplit_integer_constant(constant, 0L) == 0) {
+        cmplit_integer_constant(constant, (a_host_large_integer)0) == 0) {
       if (!enum_type_is_integral && is_enum_type(constant->type)) {
         /* In C++ (except for cfront compatibility) an enumerator with value
            zero is not a null pointer constant. */
@@ -1885,7 +1888,7 @@ Do the divide operation on all types of integers.
   divide_integer_values(&result_value, &constant_2->variant.integer_value,
                         is_signed, &err);
   if (err) {
-    if (cmplit_integer_constant(constant_2, 0L) == 0) {
+    if (cmplit_integer_constant(constant_2, (a_host_large_integer)0) == 0) {
       /* Division by zero. */
       *err_code = ec_divide_by_zero;
       *err_severity = es_error;
@@ -1924,7 +1927,7 @@ Do the remainder operation ("%") on all types of integers.
   remainder_integer_values(&result_value, &constant_2->variant.integer_value,
                            is_signed, &err);
   if (err) {
-    if (cmplit_integer_constant(constant_2, 0L) == 0) {
+    if (cmplit_integer_constant(constant_2, (a_host_large_integer)0) == 0) {
       /* Division (remainder) by zero. */
       *err_code = ec_mod_by_zero;
       *err_severity = es_error;
@@ -1974,7 +1977,8 @@ if not, return *err_code set to the proper error code.
   if (sign_of_integer_constant(shift_count_constant) < 0) {
     /* Negative shift count. */
     *err_code = ec_negative_shift_count;
-  } else if (cmplit_integer_constant(shift_count_constant, (long)size) >= 0) {
+  } else if (cmplit_integer_constant(shift_count_constant,
+                                     (a_host_large_integer)size) >= 0) {
     /* Shift count is too large. */
     *err_code = ec_shift_count_too_large;
   }  /* if */

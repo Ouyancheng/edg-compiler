@@ -418,7 +418,7 @@ static a_type_ptr
 Bit set values for the flags byte of base_class_spec.  These must
 match the runtime's definition.
 */
-typedef unsigned long a_base_class_flags_set;
+typedef a_host_large_unsigned a_base_class_flags_set;
 #define BCS_VIRTUAL		0x01
 			/* TRUE if the offset gives the position of a
 			   pointer to the (virtual) base class rather than
@@ -570,11 +570,12 @@ allocated in the file scope memory region.
 #endif /* ABI_CHANGES_FOR_RTTI */
       offset_con = alloc_constant((a_constant_repr_kind)ck_integer);
       set_integer_constant_with_overflow_check(offset_con,
-                                               (long)offset,
+                                               (a_host_large_integer)offset,
                                                TARG_DELTA_INT_KIND);
       /* Make the flags constant. */
       flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
-      set_unsigned_integer_constant(flags_con, (unsigned long)flags_value,
+      set_unsigned_integer_constant(flags_con,
+                                    (a_host_large_unsigned)flags_value,
                                     (an_integer_kind)ik_unsigned_char);
       /* Link the constants together and make an aggregate constant. */
       typeinfo_con->next = offset_con;
@@ -1263,11 +1264,11 @@ the multi-level pointer type type, for use in qualifying a typeinfo.
 Return a pointer to the variable.
 */
 {
-  a_constant_ptr       aggr_con, flag_con;
-  a_variable_ptr       var;
-  a_boolean            done;
-  a_type_qualifier_set qualifiers;
-  unsigned long        flags_value;
+  a_constant_ptr	aggr_con, flag_con;
+  a_variable_ptr	var;
+  a_boolean		done;
+  a_type_qualifier_set	qualifiers;
+  a_host_large_unsigned	flags_value;
 
   /* Create the array variable. */
 #define PTR_FLAGS_INT_KIND ((an_integer_kind)ik_unsigned_char)
@@ -1426,7 +1427,8 @@ just increases the size of the array by one.
     object_addr_table_var = make_unnamed_local_array_var(elem_type);
   }  /* if */
   /* Add an element to the object address table array. */
-  entry_number = incr_nelems_of_array_var(object_addr_table_var);
+  entry_number = (a_handle_number)
+                               incr_nelems_of_array_var(object_addr_table_var);
   return entry_number;
 }  /* object_addr_table_index */
 
@@ -1651,9 +1653,9 @@ a variable) and return a pointer to the constant.
   /* Portable scheme: the number is the index in the object address table
      or the array table. */
   handle_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  set_unsigned_integer_constant_with_overflow_check(handle_con,
-                                                    (unsigned long)*handle,
-                                                    targ_var_handle_int_kind);
+  set_unsigned_integer_constant_with_overflow_check(
+                                    handle_con, (a_host_large_unsigned)*handle,
+                                    targ_var_handle_int_kind);
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* Non-portable scheme -- can use a ck_stack_offset for the offset of
      a variable. */
@@ -1680,8 +1682,8 @@ a variable) and return a pointer to the constant.
        array table). */
     handle_con = alloc_constant((a_constant_repr_kind)ck_integer);
     set_unsigned_integer_constant_with_overflow_check(handle_con,
-                                                 (unsigned long)handle->offset,
-                                                 targ_var_handle_int_kind);
+                                         (a_host_large_unsigned)handle->offset,
+                                         targ_var_handle_int_kind);
   }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   return handle_con;
@@ -1800,10 +1802,12 @@ region description entry).
   }  /* if */
   elem_type = skip_typerefs(elem_type);
   elem_size_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  set_unsigned_integer_constant(elem_size_con, (unsigned long)elem_type->size,
+  set_unsigned_integer_constant(elem_size_con,
+                                (a_host_large_unsigned)elem_type->size,
                                 targ_size_t_int_kind);
   size_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  set_integer_constant(size_con, (long)elem_count, (an_integer_kind)ik_long);
+  set_integer_constant(size_con, (a_host_large_integer)elem_count,
+                       (an_integer_kind)ik_long);
   /* Link the constants together and make an aggregate constant. */
   handle_con->next = elem_size_con;
   elem_size_con->next = size_con;
@@ -1812,8 +1816,9 @@ region description entry).
   aggr_con->variant.aggregate.first_constant = handle_con;
   aggr_con->variant.aggregate.last_constant = size_con;
   /* Add the aggregate as an element of the object address table array. */
-  entry_number = add_elem_to_array_var(aggr_con, array_table_var,
-                                       array_table_aggr_con);
+  entry_number = (a_handle_number)add_elem_to_array_var(aggr_con,
+                                                        array_table_var,
+                                                        array_table_aggr_con);
   /* Adjust the handle to refer to the index into the array table in place
      of the original object. */
 #if DO_FULL_PORTABLE_EH_LOWERING
@@ -1926,7 +1931,7 @@ This routine is used to relink entries after they've been created.
   a_constant_ptr con = next_region_number_constant(dip);
   a_constant_ptr con_next = con->next;
 
-  set_unsigned_integer_constant(con, next_region_number,
+  set_unsigned_integer_constant(con, (a_host_large_unsigned)next_region_number,
                                 TARG_REGION_NUMBER_INT_KIND);
   con->next = con_next;
 }  /* set_next_region_number */
@@ -1941,7 +1946,7 @@ Fetch the next region number of the indicated destruction.
   a_constant_ptr          con = next_region_number_constant(dip);
   a_boolean               ovflo;
   a_cleanup_region_number next_region_number =
-                               unsigned_value_of_integer_constant(con, &ovflo);
+      (a_cleanup_region_number)unsigned_value_of_integer_constant(con, &ovflo);
   check_assertion(!ovflo);
   return next_region_number;
 }  /* get_next_region_number */
@@ -2036,11 +2041,11 @@ the aggregate constant.
   /* Make the next region index number.  NOTE that next_region_number_constant
      expects the constant to be the third one on the list. */
   next_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  set_unsigned_integer_constant(next_con, next_region,
+  set_unsigned_integer_constant(next_con, (a_host_large_unsigned)next_region,
                                 TARG_REGION_NUMBER_INT_KIND);
   /* Make the flags constant. */
   flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  set_unsigned_integer_constant(flags_con, (unsigned long)flags_value,
+  set_unsigned_integer_constant(flags_con, (a_host_large_unsigned)flags_value,
                                 (an_integer_kind)ik_unsigned_char);
   /* Link the constants together to make an aggregate constant. */
   dtor_con->next = handle_con;
@@ -2541,7 +2546,7 @@ beginning and end of the list of constants for the array.  Increment
   }  /* if */
   if (last_entry) flags_value |= ETS_LAST;
   flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  set_unsigned_integer_constant(flags_con, flags_value,
+  set_unsigned_integer_constant(flags_con, (a_host_large_unsigned)flags_value,
                                 (an_integer_kind)ik_unsigned_char);
   sub_aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
   sub_aggr_con->type = exception_type_spec_type;
@@ -4061,8 +4066,8 @@ Lower an enk_throw expression node.
                                          &ptr_flags_var);
     /* Make the arguments for the __throw_setup call. */
     typeinfo_node = var_lvalue_expr(typeinfo_var);
-    size_node = node_for_integer_constant((long)throw_type->size,
-                                          targ_size_t_int_kind);
+    size_node = node_for_host_large_integer(
+                 (a_host_large_integer)throw_type->size, targ_size_t_int_kind);
     typeinfo_node->next = size_node;
     if (ptr_flags_var != NULL) {
       /* Build the parameter list for __throw_setup_ptr. */
@@ -4456,7 +4461,7 @@ invocation of the front end.
     if (size >= sizeof(unsigned long)*CHAR_BIT) {
       null_eh_region_number = ~(unsigned long)0;
     } else {
-      null_eh_region_number = ((unsigned long)1 << size) - 1;
+      null_eh_region_number = ((unsigned long)1 << (int)size) - 1;
     }  /* if */
   }
 #endif /* GENERATE_EH_TABLES */

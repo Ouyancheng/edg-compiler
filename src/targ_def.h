@@ -348,6 +348,20 @@ typedef a_signed_integer_value a_host_large_integer;
 typedef an_integer_value a_host_large_unsigned;
 
 /*
+The printf formatting specifier to be used to print a host large integer.
+These default to the values used for integer values when an integer value
+is a host integer.
+*/
+#ifndef PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER
+#define PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER \
+			PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE
+#endif /* ifndef PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER */
+#ifndef PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED
+#define PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED \
+			PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE
+#endif /* ifndef PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED */
+
+/*
 Minimum and maximum values that can be represented in a_host_large_integer
 and a_host_large_unsigned.
 */
@@ -428,6 +442,16 @@ typedef struct an_integer_value {
 } an_integer_value;
 #define BITS_IN_AN_INTEGER_VALUE (BITS_IN_INT_VALUE_PART *	      \
 				  INT_VALUE_PARTS_PER_INTEGER_VALUE)
+
+/*
+The printf formatting specifier to be used to print a host large integer.
+*/
+#ifndef PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER
+#define PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER "%ld"  /* long */
+#endif /* ifndef PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER */
+#ifndef PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED
+#define PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED "%lu"  /* unsigned long */
+#endif /* ifndef PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED */
 
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
@@ -710,7 +734,8 @@ targ_sizeof_pointer and targ_alignof_pointer will not be declared at all.
 /* Integer type for the difference of two pointer types (ptrdiff_t).
    This type must be signed.  See 3.3.6 in the standard and the header
    file <stddef.h>. */
-typedef long a_targ_ptrdiff_t;  /* Must be host "long". */
+typedef a_host_large_integer a_targ_ptrdiff_t;  /* Must be
+                                                   a_host_large_integer. */
 
 /* TARG_PTRDIFF_T_MAX and TARG_PTRDIFF_T_MIN define the limits of the host
    representation of ptrdiff_t constants; the range they define can be equal

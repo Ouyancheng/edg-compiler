@@ -25,7 +25,7 @@ layout.h -- Declarations related to layout.c (having to do with laying out
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
-typedef unsigned long an_unnormalized_bit_offset;
+typedef a_host_large_unsigned an_unnormalized_bit_offset;
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 typedef struct a_pack_alignment_stack_entry *a_pack_alignment_stack_entry_ptr;

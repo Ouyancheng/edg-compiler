@@ -410,9 +410,9 @@ declaration of a class member.
                   decl_modifiers->uuid_string=alloc_il((sizeof_t)length+1);
                   /* Copy the string, lower-casing hex letters so that
                      strcmp can be used to compare strings. */
-                  { char     *src = str;
-                    char     *dst = decl_modifiers->uuid_string;
-                    sizeof_t count = length;
+                  { char		*src = str;
+                    char		*dst = decl_modifiers->uuid_string;
+                    a_targ_size_t	count = length;
                     for (; count != 0; count--) {
                       char ch = *src++;
                       if (isalpha((unsigned char)ch)) ch = tolower(ch);
@@ -2763,7 +2763,8 @@ to indicate whether an enumeration is actually defined.
           /* No explicit value. */
           if (end_of_enum_con_list == NULL) {
             /* This is the first enumerator.  Start with zero. */
-            set_integer_constant(&constant, 0L, (an_integer_kind)ik_int);
+            set_integer_constant(&constant, (a_host_large_integer)0,
+                                 (an_integer_kind)ik_int);
           } else if (is_error_constant(&constant)) {
             /* There was a previous error. */
             err = TRUE;

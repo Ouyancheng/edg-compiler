@@ -771,7 +771,7 @@ This is the non-macro version.
 }  /* write_tok_str */
 
 
-static void write_unsigned_num(unsigned long num)
+static void write_unsigned_num(a_host_large_unsigned num)
 /*
 Write the indicated unsigned number to the output file.  The number is assumed
 to be a complete token.
@@ -803,7 +803,7 @@ to be a complete token.
   }  /* if */
   /* General case: */
   { char buffer[50];
-    (void)sprintf(buffer, "%lu", num);
+    (void)sprintf(buffer, PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED, num);
     m_write_tok_str(buffer);
   }
   goto done;
@@ -1068,9 +1068,9 @@ entity is unnamed, generate a name.
     ensure_enough_room_on_line(strlen(name)+14);
     m_write_ch('_');
     m_write_ch('_');
-    write_unsigned_num((unsigned long)scp->decl_position.seq);
+    write_unsigned_num((a_host_large_unsigned)scp->decl_position.seq);
     m_write_ch('_');
-    write_unsigned_num((unsigned long)scp->decl_position.column);
+    write_unsigned_num((a_host_large_unsigned)scp->decl_position.column);
     m_write_ch('_');
     m_write_str(name);
   }  /* if */
@@ -1936,7 +1936,7 @@ final semicolon if output_final_semi is TRUE.
         indent = 0;
         disable_line_wrapping();
         write_str("#pragma pack(");
-        write_unsigned_num((unsigned long)pack_alignment);
+        write_unsigned_num((a_host_large_unsigned)pack_alignment);
         write_str(")");
         enable_line_wrapping();
         end_output_line();
@@ -2068,13 +2068,13 @@ final semicolon if output_final_semi is TRUE.
             dump_field_name(field);
           }  /* if */
           write_tok_str(": ");
-          write_unsigned_num((unsigned long)field->bit_size);
+          write_unsigned_num((a_host_large_unsigned)field->bit_size);
           write_tok_ch(';');
         }
       }  /* if */
       if (annotate) {
         /* Display the offset in an annotation comment. */
-        unsigned long temp = field->offset;
+        a_host_large_unsigned temp = field->offset;
         write_space();
         start_comment();
         write_tok_str(" offset = ");
@@ -2903,12 +2903,12 @@ closing parentheses needed if any code was generated there.
       if (dest_field->bit_field_is_signed) {
         /* End of __sexten call. */
         write_tok_str("),");
-        write_unsigned_num((unsigned long)dest_field->bit_size);
+        write_unsigned_num((a_host_large_unsigned)dest_field->bit_size);
         write_tok_str("))");
       } else {
         /* End of truncation code: ((i)&((1<<n)-1)). */
         write_tok_str(")&((1<<");
-        write_unsigned_num((unsigned long)dest_field->bit_size);
+        write_unsigned_num((a_host_large_unsigned)dest_field->bit_size);
         write_tok_str(")-1))");
       }  /* if */
     }  /* if */
@@ -2958,7 +2958,8 @@ Return TRUE if the indicated expression is a zero constant.
   a_boolean is_zero =
            (expr->kind == (an_expr_node_kind)enk_constant &&
             expr->variant.constant->kind == (a_constant_repr_kind)ck_integer &&
-            cmplit_integer_constant(expr->variant.constant, 0L) == 0);
+            cmplit_integer_constant(expr->variant.constant,
+                                    (a_host_large_integer)0) == 0);
   return is_zero;
 }  /* expr_is_zero_constant */
 
@@ -3324,7 +3325,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           if (operand_2->kind == (an_expr_node_kind)enk_constant &&
               operand_2->variant.constant->kind ==
                                             (a_constant_repr_kind)ck_integer &&
-              eqlit_integer_constant(operand_2->variant.constant, 1L)) {
+              eqlit_integer_constant(operand_2->variant.constant,
+                                     (a_host_large_integer)1)) {
             /* The SUN cc compiler has a bug with "i %= 1" -- It generates no
                code.  Generate "i %= (0, 1)" instead, which works. */
             remainder_special_case = TRUE;
@@ -3416,7 +3418,7 @@ process_assignment:
               /* No cast to size_t or the like is needed; in BSD and System V
                  the length is int, and in ANSI C the function is prototyped
                  so the conversion will be implicit. */
-              write_unsigned_num((unsigned long)operand_1_type->size);
+              write_unsigned_num((a_host_large_unsigned)operand_1_type->size);
               write_tok_ch(')');
             }
           }  /* if */
@@ -3460,7 +3462,7 @@ process_assignment:
 #if !C_GEN_BE_GENERATES_ANSI_C
           if (is_signed) {
             write_tok_ch(',');
-            write_unsigned_num((unsigned long)field->bit_size);
+            write_unsigned_num((a_host_large_unsigned)field->bit_size);
             write_tok_str("))");
           }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
@@ -3755,10 +3757,10 @@ done_with_operation:
           write_tok_str("cleanup_state");
           write_tok_str(" = ");
 #if GENERATE_EH_TABLES
-          write_unsigned_num((unsigned long)expr->variant.
+          write_unsigned_num((a_host_large_unsigned)expr->variant.
                                      lowered_eh.variant.cleanup_region_number);
 #else /* !GENERATE_EH_TABLES */
-          write_unsigned_num((unsigned long)expr->variant.
+          write_unsigned_num((a_host_large_unsigned)expr->variant.
                                      lowered_eh.variant.cleanup_ptr);
 #endif /* GENERATE_EH_TABLES */
           break;
@@ -3784,7 +3786,7 @@ done_with_operation:
         case leck_initialization_completed:
           write_tok_str("initialization_completed");
           write_tok_str(" = ");
-          write_unsigned_num((unsigned long)expr->variant.
+          write_unsigned_num((a_host_large_unsigned)expr->variant.
                                      lowered_eh.variant.dynamic_init);
           break;
 #endif /* !GENERATE_EH_TABLES */
@@ -3887,7 +3889,10 @@ by parentheses.
       if (con_op == NULL) break;
       con = con_op->variant.constant;
       if (con->kind != (a_constant_repr_kind)ck_integer ||
-          con->implicit_cast || !eqlit_integer_constant(con, 0L)) break;
+          con->implicit_cast ||
+          !eqlit_integer_constant(con, (a_host_large_integer)0)) {
+        break;
+      }  /* if */
       /* This is a "!= 0" case.  Rewrite it to get rid of the "!= 0". */
       if (parent_node == NULL) {
         /* Rewrite is at the top level. */
@@ -4151,7 +4156,7 @@ the list pointed to by "ipdp".
   for (; ipdp != NULL; ipdp = ipdp->next) {
     if (is_array_type(ipdp->type)) {
       write_tok_ch('[');
-      write_unsigned_num((unsigned long)ipdp->curr_elem);
+      write_unsigned_num((a_host_large_unsigned)ipdp->curr_elem);
       write_tok_ch(']');
     } else {
       write_tok_ch('.');
@@ -4258,7 +4263,7 @@ described by the list pointed to by "ipdp" to the constant pointed to by
     /* No cast to size_t or the like is needed; in BSD and System V
        the length is int, and in ANSI C the function is prototyped
        so the conversion will be implicit. */
-    write_unsigned_num((unsigned long)constant->variant.string.length);
+    write_unsigned_num((a_host_large_unsigned)constant->variant.string.length);
     write_tok_ch(')');
   } else {
     /* Normal case (not string); generate an assignment statement. */
@@ -4459,7 +4464,7 @@ value.
   for (a = 0; a < len; a += targ_sizeof_wchar_t) {
     /* Assemble the right number of bytes into one integer. */
     temp = extract_wide_char_from_string(constant->variant.string.value + a);
-    write_unsigned_num(temp);
+    write_unsigned_num((a_host_large_unsigned)temp);
     if (a != len-targ_sizeof_wchar_t) write_tok_ch(',');
   }  /* for */
 }  /* dump_exploded_wide_string */
@@ -4529,7 +4534,8 @@ the field.
   } else {
     /* Array element designator. */
     write_tok_ch('[');
-    write_unsigned_num((unsigned long)con->variant.designator.array_element);
+    write_unsigned_num((a_host_large_unsigned)
+                                       con->variant.designator.array_element);
     write_tok_ch(']');
   }  /* if */
   write_tok_str(" = ");
@@ -4701,7 +4707,7 @@ block with state information for the processing.
           continue_on_new_line();
           start_comment();
           write_tok_str(" [");
-          write_unsigned_num((unsigned long)ipdp->curr_elem);
+          write_unsigned_num((a_host_large_unsigned)ipdp->curr_elem);
           write_tok_str("]: ");
           end_comment();
         }  /* if */
@@ -4720,7 +4726,7 @@ block with state information for the processing.
           if (annotate) {
             start_comment();
             write_tok_str(" ");
-            write_unsigned_num((unsigned long)count);
+            write_unsigned_num((a_host_large_unsigned)count);
             write_tok_str(" repetitions: ");
             end_comment();
           }  /* if */

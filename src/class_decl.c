@@ -7654,12 +7654,12 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
 *p_is_signed is set to indicate whether or not the bit field is signed.
 */
 {
-  unsigned long    bit_field_size, max_size_allowed;
-  a_type_ptr       base_type = *p_base_type;
-  a_boolean        err = FALSE, is_signed = FALSE;
-  a_constant       constant;
-  a_type_ptr       bit_field_type;
-  an_integer_kind  int_kind;
+  unsigned long		bit_field_size, max_size_allowed;
+  a_type_ptr		base_type = *p_base_type;
+  a_boolean		err = FALSE, is_signed = FALSE;
+  a_constant		constant;
+  a_type_ptr		bit_field_type;
+  an_integer_kind  	int_kind;
 
   db_enter(3, "scan_bit_field_size");
   /* ANSI C says the type of a bit-field must be int, unsigned int,
@@ -7701,20 +7701,22 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
          type could produce surprising diagnostics.  So, simply use the
          largest number of bits any enum could have. */
       if (!enum_types_can_be_larger_than_int) {
-        max_size_allowed = targ_sizeof_int*targ_char_bit;
+        max_size_allowed = (unsigned long)(targ_sizeof_int*targ_char_bit);
       } else {
 #if LONG_LONG_ALLOWED
-        max_size_allowed = targ_sizeof_long_long*targ_char_bit;
+        max_size_allowed = (unsigned long)
+                                         (targ_sizeof_long_long*targ_char_bit);
 #else /* !LONG_LONG_ALLOWED */
-        max_size_allowed = targ_sizeof_long*targ_char_bit;
+        max_size_allowed = (unsigned long)(targ_sizeof_long*targ_char_bit);
 #endif /* LONG_LONG_ALLOWED */
       }  /* if */
     } else {
       /* Normal case.  Number of bits cannot exceed the capacity of the
          bit field type. */
-      max_size_allowed = bit_field_type->size*targ_char_bit;
+      max_size_allowed = (unsigned long)(bit_field_type->size*targ_char_bit);
     }  /* if */
-    bit_field_size = unsigned_value_of_integer_constant(&constant, &err);
+    bit_field_size = (unsigned long)
+                           unsigned_value_of_integer_constant(&constant, &err);
     /* Note that one reason for err to be TRUE is if the constant is
        less than zero. */
     if (err || bit_field_size > max_size_allowed) {

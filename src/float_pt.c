@@ -578,7 +578,31 @@ Convert unsigned_value to a floating-point value of kind "kind" in
 */
 {
   *err = FALSE;
+#if __MSC__
+  {
+    a_host_fp_value	fp_value;
+    /* The Microsoft compiler (as of Visual C++ 6.0) cannot convert an
+       unsigned __int64 to double.  The conversion is done as a signed
+       conversion instead.  If the value is larger than the largest
+       unsigned, it is reduced to a value that can be represented as
+       a signed and adjusted back after the conversion. */
+    if (unsigned_value > MAX_HOST_LARGE_INTEGER) {
+      a_host_large_integer	signed_value;
+      unsigned_value = unsigned_value - MAX_HOST_LARGE_INTEGER;
+      unsigned_value = unsigned_value - 1;
+      signed_value = (a_host_large_integer)unsigned_value;
+      fp_value = (a_host_fp_value)signed_value;
+      fp_value = fp_value + MAX_HOST_LARGE_INTEGER;
+      fp_value = fp_value + 1;
+    } else {
+      /* The value in known to be representable as a host large integer. */
+      fp_value = (a_host_fp_value)(a_host_large_integer)unsigned_value;
+    }  /* if */
+    store_host_fp_value(fp_value, kind, float_value, err);
+  }
+#else /* !__MSC__ */
   store_host_fp_value((a_host_fp_value)unsigned_value, kind, float_value, err);
+#endif /* __MSC__ */
 }  /* fp_host_large_unsigned_to_float */
 
 #endif /* ifdef CFE */

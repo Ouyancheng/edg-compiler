@@ -133,8 +133,12 @@ a_host_large_unsigned unsigned_value_of_integer_constant(a_constant *cp,
 extern int cmp_integer_constants(a_constant *con1,
                                  a_constant *con2);
 
-extern int cmplit_integer_constant(a_constant *con1,
-                                   long       value2);
+extern int cmplit_integer_constant(a_constant			*con1,
+	                           a_host_large_integer	value2);
+
+extern int cmpulit_integer_constant(
+				a_constant		       *con1,
+				a_host_large_unsigned      unsigned_value2);
 
 /* Interface to cmplit_integer_constant for the simple case of testing
    for equality. */
@@ -143,10 +147,8 @@ extern int cmplit_integer_constant(a_constant *con1,
 
 /* Interface to cmplit_integer_constant for the simple case of getting
    the sign (-1, 0, +1) of an integer constant. */
-#define sign_of_integer_constant(con) cmplit_integer_constant((con), 0L)
-
-extern int cmpulit_integer_constant(a_constant    *con1,
-                                    unsigned long unsigned_value2);
+#define sign_of_integer_constant(con) \
+  cmplit_integer_constant((con), (a_host_large_integer)0)
 
 extern a_boolean in_range_for_integer_kind(a_constant      *min_con,
                                            a_constant      *max_con,

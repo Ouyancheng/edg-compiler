@@ -772,8 +772,8 @@ extern a_boolean check_object_or_incomp_array_pointer_operand(
 
 extern a_boolean check_arithmetic_or_enum_operand(an_operand *operand);
 
-extern void make_integer_constant_operand(an_operand *operand,
-				          long       value);
+extern void make_integer_constant_operand(an_operand		*operand,
+				          a_host_large_integer	value);
 
 extern void promote_operand(an_operand *operand);
 

@@ -277,10 +277,10 @@ Compare the integer constants con1 and con2, and return
 }  /* cmp_integer_constants */
 
 
-int cmplit_integer_constant(a_constant *con1,
-                            long       value2)
+int cmplit_integer_constant(a_constant			*con1,
+                            a_host_large_integer	value2)
 /*
-Compare the integer constant con1 to the long value value2, and return
+Compare the integer constant con1 to value2, and return
 
   -1   if con1 <  value2
    0   if con1 == value2
@@ -290,7 +290,7 @@ Compare the integer constant con1 to the long value value2, and return
   int              cmp;
   an_integer_value intval2;
 
-  set_integer_value(&intval2, (a_host_large_integer)value2);
+  set_integer_value(&intval2, value2);
   cmp = cmp_integer_values(&con1->variant.integer_value,
                            int_constant_is_signed(con1),
                            &intval2,
@@ -299,10 +299,10 @@ Compare the integer constant con1 to the long value value2, and return
 }  /* cmplit_integer_constant */
 
 
-int cmpulit_integer_constant(a_constant    *con1,
-                             unsigned long unsigned_value2)
+int cmpulit_integer_constant(a_constant			*con1,
+                             a_host_large_unsigned	unsigned_value2)
 /*
-Compare the integer constant con1 to the unsigned long value unsigned_value2,
+Compare the integer constant con1 to the unsigned value unsigned_value2,
 and return
 
   -1   if con1 <  unsigned_value2
@@ -313,7 +313,7 @@ and return
   int              cmp;
   an_integer_value intval2;
 
-  set_unsigned_integer_value(&intval2, (a_host_large_unsigned)unsigned_value2);
+  set_unsigned_integer_value(&intval2, unsigned_value2);
   cmp = cmp_integer_values(&con1->variant.integer_value,
                            int_constant_is_signed(con1),
                            &intval2,
@@ -1560,17 +1560,20 @@ preceded by a "-".
        ten, then convert it to a long and we are done.  Otherwise
        divide the value by the maximum power of 10, store the
        remainder and continue looping. */
+    a_host_large_integer	tmp_result;
     if (cmp_integer_values(&value, /*op_1_signed=*/FALSE,
 			   &iv_max_power_of_10, /*op_2_signed=*/FALSE) <= 0) {
       conv_integer_value_to_host_large_integer(&value, /*is_signed=*/FALSE,
-                                               &parts[i], &err);
+                                               &tmp_result, &err);
+      parts[i] = (long)tmp_result;
       break;
     } else {
       divide_and_remainder_integer_values(&value, &iv_max_power_of_10,
 					  &value, &remainder,
 					  /*is_signed=*/FALSE, &err);
       conv_integer_value_to_host_large_integer(&remainder, /*is_signed=*/FALSE,
-                                               &parts[i], &err);
+                                               &tmp_result, &err);
+      parts[i] = (long)tmp_result;
     }  /* if */
   }  /* for */
   /* Print the first part. The first part includes the sign and is

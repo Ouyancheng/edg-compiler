@@ -272,7 +272,7 @@ truth value.
   } else {
     /* The constant is guaranteed to be integer. */
     /* Determine whether or not it is zero. */
-    *condition = !eqlit_integer_constant(&temp_const, 0L);
+    *condition = !eqlit_integer_constant(&temp_const, (a_host_large_integer)0);
   }  /* if */
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;

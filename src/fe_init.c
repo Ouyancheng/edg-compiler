@@ -446,10 +446,10 @@ Initialize target machine characteristics.
   } else {
     /* Compute the maximum base class offset value that will fit in the
        delta field of a virtual function table. */
-    a_targ_size_t     size;
-    unsigned long     temp;
-    a_targ_alignment  alignment;
-    unsigned int      bits;
+    a_targ_size_t		size;
+    a_host_large_unsigned	temp;
+    a_targ_alignment		alignment;
+    a_host_large_unsigned	bits;
 
     /* Get the size of whatever integer kind is associated with delta field
        of the virtual function table. */
@@ -458,10 +458,10 @@ Initialize target machine characteristics.
        accommodate. */
     bits = size * targ_char_bit;
     if (int_kind_is_signed[TARG_DELTA_INT_KIND]) bits -= 1;
-    temp = ~((~(unsigned long)0) << bits);
-    if (temp > (unsigned long)targ_size_t_max) {
+    temp = ~((~(a_host_large_unsigned)0) << bits);
+    if (temp > (a_host_large_unsigned)targ_size_t_max) {
       /* It shouldn't exceed the maximum that can fit in a_targ_size_t. */
-      temp = (unsigned long)targ_size_t_max;
+      temp = (a_host_large_unsigned)targ_size_t_max;
     }  /* if */
     if (temp >= targ_max_base_class_offset) {
       /* Don't increase the maximum offset beyond what was specified. */

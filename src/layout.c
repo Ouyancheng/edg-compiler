@@ -840,7 +840,8 @@ targ_microsoft_bit_field_allocation is FALSE.)
         /* The field can't be made to fit at the current position, so alignment
            will have to be done.  A smaller container size might now apply,
            since the field will be optimally aligned. */
-        container_size = (bit_size + (targ_char_bit-1)) / targ_char_bit;
+        container_size = ((a_targ_size_t)bit_size +
+                                        (targ_char_bit-1)) / targ_char_bit;
         if (container_size <= 1) {
           /* Char. */
           container_size      = 1;

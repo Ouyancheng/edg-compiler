@@ -1721,7 +1721,7 @@ applying any applicable integral promotions, and return a pointer to it.
   an_expr_node_ptr node;
   a_constant       constant;
 
-  set_integer_constant(&constant, value, kind);
+  set_integer_constant(&constant, (a_host_large_integer)value, kind);
   promote_integer_constant(&constant);
   node = alloc_node_for_constant(&constant);
 
@@ -2330,7 +2330,7 @@ The safe return value is FALSE.
     a_constant_ptr con = expr->variant.constant;
     if (con->kind == (a_constant_repr_kind)ck_integer) {
       /* An integer constant is non-NULL if it's non-zero. */
-      cannot_be = !eqlit_integer_constant(con, 0L);
+      cannot_be = !eqlit_integer_constant(con, (a_host_large_integer)0);
     } else if (con->kind == (a_constant_repr_kind)ck_address) {
       /* An address constant cannot be NULL. */
       cannot_be = TRUE;
@@ -2949,9 +2949,10 @@ Do IL lowering of the indicated source correspondence.
 }  /* lower_source_correspondence */
 
 
-void set_integer_constant_with_overflow_check(a_constant_ptr  con,
-                                              long            con_val,
-                                              an_integer_kind ikind)
+void set_integer_constant_with_overflow_check(
+					a_constant_ptr		con,
+                                        a_host_large_integer	con_val,
+                                        an_integer_kind		ikind)
 /*
 Set the constant "con" to the integer value "con_val" with integer kind
 "ikind".  Check to make sure that the value will fit an integer of that size,
@@ -2974,9 +2975,9 @@ and if not, issue an error.  This version is for signed integer kinds.
 
 
 void set_unsigned_integer_constant_with_overflow_check(
-                                              a_constant_ptr  con,
-                                              unsigned long   con_val,
-                                              an_integer_kind ikind)
+                                          a_constant_ptr	con,
+                                          a_host_large_unsigned	con_val,
+                                          an_integer_kind	ikind)
 /*
 Set the constant "con" to the integer value "con_val" with integer kind
 "ikind".  Check to make sure that the value will fit an integer of that size,
@@ -3102,8 +3103,8 @@ Do IL lowering of a pointer-to-member constant.
     /* Pointer to data member. */
     repr_for_ptr_to_data_member_constant(constant, &delta);
     set_unsigned_integer_constant_with_overflow_check(
-                                             constant, (unsigned long)delta,
-                                             targ_ptr_to_data_member_int_kind);
+                                        constant, (a_host_large_unsigned)delta,
+                                        targ_ptr_to_data_member_int_kind);
   }  /* if */
   constant->next = constant_next;
   /* The assoc_info field will be used to point to an associated temporary
@@ -4108,7 +4109,8 @@ virtual function table.
   /* The "i" field is set to zero -- it's not used in virtual function
      tables, only in pointers to member functions. */
   i_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  set_integer_constant(i_con, (long)0, TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
+  set_integer_constant(i_con, (a_host_large_integer)0,
+                       TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
   /* Put together the aggregate constant. */
   entry_aggr->variant.aggregate.first_constant = delta_con;
   delta_con->next = i_con;
@@ -6055,8 +6057,8 @@ proper type if necessary.  If the offset is zero, return the original node.
     /* Cast the original node to char * to avoid scaling problems. */
     cast_to_char_star_node = add_cast_to_char_star(source_node);
     /* Make the node for the constant. */
-    offset_constant_node = node_for_integer_constant((long)byte_offset,
-                                                     targ_size_t_int_kind);
+    offset_constant_node = node_for_host_large_integer(
+                      (a_host_large_integer)byte_offset, targ_size_t_int_kind);
     cast_to_char_star_node->next = offset_constant_node;
     /* Make the node for the pointer subtraction. */
     source_node = make_operator_node((an_expr_operator_kind)eok_psubtract,
@@ -6559,7 +6561,7 @@ used as an lvalue if is_lvalue is TRUE.
       /* Make a node for the offset constant. */
       set_unsigned_integer_constant_with_overflow_check(
                                              &offset_constant,
-                                             (unsigned long)offset,
+                                             (a_host_large_unsigned)offset,
                                              targ_ptr_to_data_member_int_kind);
       if (!targ_ptr_to_data_member_is_promoted_integral_type()) {
         promote_integer_constant(&offset_constant);
@@ -6852,7 +6854,8 @@ created.
      function to get the address of the applicable entry of the table. */
   index = routine_ptr->virtual_function_number;
   index_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  set_integer_constant(index_con, (long)index, (an_integer_kind)ik_int);
+  set_integer_constant(index_con, (a_host_large_integer)index,
+                       (an_integer_kind)ik_int);
   index_node = make_node_for_il_constant(index_con);
   vtbl_entry_node = make_operator_node((an_expr_operator_kind)eok_padd,
                                        vptr_node->type, vptr_node);
@@ -7333,7 +7336,8 @@ can have changed since the first reference.
 
       check_assertion(field == mptr_f_field);
       if (routine == NULL) {
-        set_integer_constant(&constant, (long)offset, TARG_DELTA_INT_KIND);
+        set_integer_constant(&constant, (a_host_large_integer)offset,
+                             TARG_DELTA_INT_KIND);
       } else {
         set_routine_address_constant(routine, &constant,
                                      /*set_address_taken_flag=*/TRUE);
@@ -8431,7 +8435,8 @@ is_full_expr is TRUE.
       a_constant     constant;
       a_constant_ptr conp;
       set_integer_constant(&constant,
-                           (long)!is_false_constant(expr->variant.constant),
+                           (a_host_large_integer)
+                                    !is_false_constant(expr->variant.constant),
                            (an_integer_kind)ik_int);
       conp = alloc_shareable_constant(&constant);
       expr->variant.constant = conp;
