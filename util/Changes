@@ -1,5 +1,11 @@
 Version 2.30
 
+7/26/95  Executable permissions when using "patch" with eccp
+
+eccp has been changed to respect the umask setting when changing
+the permissions on the executable file when using "patch" to
+handle static initialization.
+
 7/21/95  eccp and prelinker support for -Bstatic and -Bdynamic
 
 The -Bstatic and -Bdynamic options are now supported by eccp and

@@ -1003,7 +1003,7 @@ then
           dummy=1   # Shell does not like an empty if
         elif [ $patch_mode = 1 ] ; then
 #         Do "patch" processing.
-          chmod 664 $executable
+          chmod -x $executable
           command="$PATCH $executable"
           if [ $driver_debug -ne 0 ] ; then
             echo $command
@@ -1015,7 +1015,7 @@ then
           fi
           if [ $status = 0 ]
           then
-            chmod 775 $executable
+            chmod +x $executable
           fi
         else
 #
