@@ -2135,7 +2135,7 @@ static void merge_function_sublists_into_file_scope_src_seq_list(
 /*
 scope is a pointer to the scope of a function body that may contain source
 sequence sublists of items in file scope memory.  Before the body (function
-scope memory) is released, we must make sure that these sublists be
+scope memory) is released, we must make sure that these sublists remain
 accessible from the remaining source sequence structures---i.e., we must move
 the sublists to their appropriate place in the file scope source sequence
 list.  This function performs that task.
