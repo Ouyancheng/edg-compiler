@@ -358,6 +358,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_integer_to_fixed_conversion)*/
 /*lint -esym(769,ec_bad_fixed_operation_result)*/
 /*lint -esym(769,ec_fixed_to_float_conversion)*/
+/*lint -esym(769,ec_fixed_to_integer_conversion)*/
 /*lint -esym(769,ec_fixed_to_fixed_conversion)*/
 /*lint -esym(759,number_of_bits_in_mantissa)*/
 /*lint -esym(765,number_of_bits_in_mantissa)*/
@@ -379,6 +380,10 @@ extern int fileno(FILE *);
 /*lint -esym(765,mantissa_is_zero)*/
 /*lint -esym(759,conv_mantissa_to_floating_point)*/
 /*lint -esym(765,conv_mantissa_to_floating_point)*/
+/*lint -esym(759,str_for_integer_value)*/
+/*lint -esym(765,str_for_integer_value)*/
+/*lint -esym(759,value_of_integer_value)*/
+/*lint -esym(765,value_of_integer_value)*/
 #endif /* !FIXED_POINT_ALLOWED */
 #if !NAMED_ADDRESS_SPACES_ALLOWED
 /*lint -esym(759,named_address_spaces_enabled)*/
