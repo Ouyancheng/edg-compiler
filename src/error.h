@@ -663,11 +663,12 @@ extern DOES_NOT_RETURN assertion_failed(char *filename,
    the condition is not TRUE.  The macro expands to nothing when checking
    code is not being used. */
 #define check_assertion(test)						\
-  if (!(test)) assertion_failed(__FILE__, __LINE__, NULL);
+  if (!(test)) assertion_failed(__FILE__, __LINE__, (char *)NULL);
 /* Macro that generates an assertion failed internal error.  Intended to
    be used in the else clause of an if statement or the default case of a
    switch statement that is not intended to be reached. */
-#define unexpected_condition()  assertion_failed(__FILE__, __LINE__, NULL)
+#define unexpected_condition()						\
+  assertion_failed(__FILE__, __LINE__, (char *)NULL)
 /* Macros that are the same as above except that a string describing the
    assertion is provided. */
 #define check_assertion_str(test, string)				\
