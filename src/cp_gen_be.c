@@ -4838,11 +4838,10 @@ associated parameter, or is NULL if the parameter information is not
 available.
 */
 {
-  if (param != NULL && param->passed_via_copy_constructor) {
+  if (param != NULL && param->passed_via_copy_constructor &&
+      arg->kind == (an_expr_node_kind)enk_temp_init) {
     /* For an argument passed using a copy constructor, optimize out
        the copy constructor reference. */
-    check_assertion_str(arg->kind == (an_expr_node_kind)enk_temp_init,
-                        "gen_argument: cctor arg not enk_temp_init");
     gen_dynamic_init(arg->variant.init.dynamic_init, param->type,
                      /*parenthesized_init=*/FALSE,
                      /*force_parens=*/FALSE);
