@@ -5825,17 +5825,19 @@ termination.
   if (file_scope_init_routine != NULL || file_scope_term_routine != NULL) {
     /* Create a __link variable pointing to a struct that points to the
        initialization/termination routine, using the same form as cfront:
-         static void _file_scope_inits() {...}
-         static void _file_scope_terms() {...}
+         char __sti__module_id() {...}
+         char __std__module_id() {...}
          struct __linkl {
            struct __linkl *next;
            void           (*ctor)();
            void           (*dtor)();
          };
-         static struct __linkl __link = {NULL, _file_scope_inits,
-                                               _file_scope_terms};
+         static struct __linkl __link = {NULL, __sti__module_id,
+                                               __std__module_id};
        The AT&T patch step will find the __link static variable
        and link it with other initialization code to be invoked by _main.
+       Alternatively, the munch step will find the routines with names
+       beginning "__sti__" and "__std__".
     */
     switch_to_file_scope_region(&region_to_switch_back_to);
     /* Make the __linkl struct type.  It doesn't actually have a name. */
@@ -5858,7 +5860,7 @@ termination.
     link_var = make_variable("__link", /*already_il_name=*/FALSE, struct_type,
                              (a_storage_class)sc_static);
     /* Give the __link variable the initial value
-         {NULL, _file_scope_inits, _file_scope_terms}
+         {NULL, __sti__module_id, __std__module_id}
        If either routine does not exist, use a NULL instead. */
     aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
     link_var->init_kind = (an_init_kind)initk_static;
@@ -5866,7 +5868,7 @@ termination.
     /* Zero for "next" field. */
     init_con1 = alloc_constant((a_constant_repr_kind)ck_address);
     make_zero_of_proper_type(ptr_struct_type, init_con1);
-    /* Address of _file_scope_inits for "ctor" field. */
+    /* Address of __sti__module_id for "ctor" field. */
     init_con2 = alloc_constant((a_constant_repr_kind)ck_address);
     if (file_scope_init_routine != NULL) {
       init_con2->variant.address.kind = (an_address_base_kind)abk_routine;
@@ -5876,7 +5878,7 @@ termination.
       /* No init routine.  Use NULL. */
       make_zero_of_proper_type(ptr_func_type, init_con2);
     }  /* if */
-    /* Address of _file_scope_inits for "dtor" field. */
+    /* Address of __std__module_id for "dtor" field. */
     init_con3 = alloc_constant((a_constant_repr_kind)ck_address);
     if (file_scope_term_routine != NULL) {
       init_con3->variant.address.kind = (an_address_base_kind)abk_routine;
@@ -5896,23 +5898,76 @@ termination.
 }  /* make_code_to_invoke_file_scope_init_and_term_routines */
 
 
+/*
+String made from the primary source file name and the current date/time,
+used to generate unique names for the initialization and termination routines.
+NULL until set by make_module_id.
+*/
+static char	*module_id;
+
+
+static void change_non_id_characters(char *str)
+/*
+Change any non-identifier characters in the indicated string to underscores.
+*/
+{
+  for (; *str != '\0'; str++) if (!isalnum(*str)) *str = '_';
+}  /* change_non_id_characters */
+
+
+static void make_module_id(void)
+/*
+Make a string that is based on the name of the current module and is used to
+qualify static names that are put out as external names, to make them unique.
+Set module_id to the string.  Do not make the string again it it has already
+been made.
+*/
+{
+  char     *file_name = il_header.primary_source_file->file_name;
+  char     *date_time = il_header.time_of_compilation;
+  sizeof_t file_name_len = strlen(file_name);
+
+  if (module_id == NULL) {
+    /* The identifier is made of the primary source file name plus the
+       current date and time, with non-identifier characters changed to
+       underscores. */
+    module_id = alloc_general(file_name_len + 1 + strlen(date_time) + 1);
+    (void)strcpy(module_id, file_name);
+    module_id[file_name_len] = '_';
+    (void)strcpy(module_id+file_name_len+1, date_time);
+    /* Change non-identifier characters to "_". */
+    change_non_id_characters(module_id);
+  }  /* if */
+}  /* make_module_id */
+
+
 static a_routine_ptr make_file_scope_init_or_term_routine(
-                                       char                   *name,
+                                       char                   *prefix,
                                        an_insert_location_ptr insert_location,
                                        a_scope_ptr            *init_rout_scope,
                                        a_memory_region_number *il_region)
 /*
-Make a routine to do file-scope initialization or termination.  name indicates
-the name of the routine.  Set *insert_location for insertion at the start
-of the block statement that is the body of the routine, set *init_rout_scope
-to point to the scope entry for the routine, set *il_region to the IL
-memory region number for the routine, and return a pointer to the routine.
+Make a routine to do file-scope initialization or termination.  prefix is
+the prefix for the name of the routine.  Set *insert_location for insertion at
+the start of the block statement that is the body of the routine, set
+*init_rout_scope to point to the scope entry for the routine, set
+*il_region to the IL memory region number for the routine, and return a
+pointer to the routine.
 */
 {
   a_routine_ptr init_rout;
+  char          *name;
+  sizeof_t      prefix_len = strlen(prefix);
 
+  /* Combine the prefix and an identifier for the current module to make
+     a name that is likely to be unique. */
+  make_module_id();
+  name = alloc_il(prefix_len + strlen(module_id) + 1);
+  (void)memcpy(name, prefix, (int)prefix_len);
+  (void)strcpy(name+prefix_len, module_id);
   /* Make a type and routine entry for the routine. */
-  init_rout = make_routine(name, (a_storage_class)sc_static, void_type(),
+  init_rout = make_routine(name, (a_storage_class)sc_unspecified,
+                           integer_type((an_integer_kind)ik_char),
                            (a_type_ptr)NULL);
   /* Make a memory region, scope, and block for the init routine definition. */
   *init_rout_scope = make_routine_definition(init_rout, /*make_return=*/TRUE,
@@ -5933,7 +5988,7 @@ Determine the insert location for a file-scope initialization statement.
 
   if (file_scope_init_routine == NULL) {
     file_scope_init_routine = make_file_scope_init_or_term_routine(
-                                      IL_LOWERING_INIT_ROUTINE_NAME,
+                                      IL_LOWERING_INIT_ROUTINE_PREFIX,
                                       &file_scope_init_routine_insert_location,
                                       &scope,
                                       &file_scope_init_routine_il_region);
@@ -5953,7 +6008,7 @@ Determine the insert location for a file-scope termination statement.
 
   if (file_scope_term_routine == NULL) {
     file_scope_term_routine = make_file_scope_init_or_term_routine(
-                                      IL_LOWERING_TERM_ROUTINE_NAME,
+                                      IL_LOWERING_TERM_ROUTINE_PREFIX,
                                       &file_scope_term_routine_insert_location,
                                       &scope,
                                       &file_scope_term_routine_il_region);
@@ -10726,6 +10781,7 @@ of the front end.
 */
 {
   /* Static variables in lower_il.c: */
+  module_id = NULL;
   avail_init_pos_modifiers = NULL;
   avail_required_destructor_calls = NULL;
   destructor_calls_for_local_static_variables = NULL;
