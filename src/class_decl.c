@@ -8265,7 +8265,7 @@ following the member declaration.
     if (!sym->is_error) {
       check_assertion_str2(sym->is_class_member &&
                            sym->parent.class_type == class_type,
-                           "scan_class_definition:",
+                           "class_member_declaration:",
                            "bad parent type on nested type");
     }  /* if */
 #endif /* CHECKING */
@@ -8825,6 +8825,7 @@ class (prototype instantiation of a class template).
   sym = class_member_declaration(class_type, class_state_ptr,
                                  /*is_member_template=*/TRUE,
                                  &skip_semicolon_check, &dummy_type);
+  if (sym->is_error) sym = NULL;
   if (sym == NULL) {
     pos_error(ec_bad_member_template_decl, &decl_start_pos);
   } else if (sym->kind != (a_symbol_kind)sk_function_template) {
@@ -9322,52 +9323,49 @@ next_declaration:
     pop_scope();
     if (delayed_nested_class_def) {
       /* A nested class defined outside the parent class definition. */
-      a_type_ptr  placeholder;
+      if (is_template_instantiation) {
+        /* The class reactivation scope is popped along with the template
+           instantiation scope. */
+        /* No nested class placeholders are put out for instances of member
+           templates -- instantiation placeholders are used where needed (see
+           add_to_types_list). */
+      } else {
+        a_type_ptr  placeholder;
 
-      /* Restore the scope stack to its original state.  For template
-         instantiations this is done when the instantiation scope is
-         popped. */
-      if (!is_template_instantiation) {
+        /* Restore the scope stack to its original state.  For template
+           instantiations this is done when the instantiation scope is
+           popped. */
         pop_class_reactivation_scope();
-      }  /* if */
-      if (!class_state.is_nonreal_instantiation) {
-        if (class_type->variant.class_struct_union.
-                   referenced_by_class_instantiation_placeholder_typeref) {
-          /* A placeholder indicating that an instantiation occurred inside
-             a class definition has been put out.  A nested-class placeholder
-             is not required. */
-        } else {
-          /* Enter a typedef entry that points at the nested class just
-             defined.  It will serve to indicate just where (in the sequence
-             of type declarations) the delayed nested type definition
-             appeared. */
-          placeholder = alloc_type((a_type_kind)tk_typeref);
-          placeholder->variant.typeref.type = class_type;
-          placeholder->variant.typeref.
-                                is_placeholder_for_nested_class_def = TRUE;
-          class_type->variant.class_struct_union.
-                                nested_class_defined_outside_of_parent = TRUE;
-          /* Note that we add the placeholder type to the types list of the
-             scope active when the original declaration was seen -- before any
-             namespace extension scopes were pushed if the nested class was
-             specified with a namespace-qualified name -- for instance:
-               namespace N { class A { class B; }; }
-               class N::A::B { };
-             Here the namespace-extension scope for N is still on the scope
-             stack, but we want the placeholder typeref to be added to the file
-             scope, which is what orig_decl_level should specify. */
-          if (scope_stack[orig_decl_level].il_scope->kind ==
+        /* Enter a typedef entry that points at the nested class just
+           defined.  It will serve to indicate just where (in the sequence
+           of type declarations) the delayed nested type definition
+           appeared. */
+        placeholder = alloc_type((a_type_kind)tk_typeref);
+        placeholder->variant.typeref.type = class_type;
+        placeholder->variant.typeref.
+                               is_placeholder_for_nested_class_def = TRUE;
+        class_type->variant.class_struct_union.
+                               nested_class_defined_outside_of_parent = TRUE;
+        /* Note that we add the placeholder type to the types list of the
+           scope active when the original declaration was seen -- before any
+           namespace extension scopes were pushed if the nested class was
+           specified with a namespace-qualified name -- for instance:
+             namespace N { class A { class B; }; }
+             class N::A::B { };
+           Here the namespace-extension scope for N is still on the scope
+           stack, but we want the placeholder typeref to be added to the file
+           scope, which is what orig_decl_level should specify. */
+        if (scope_stack[orig_decl_level].il_scope->kind ==
                                             (a_scope_kind)sck_namespace) {
-            /* The original declaration scope is a namespace scope instead of
-               the file scope.  Make the placeholder a member of the
-               namespace. */
-            a_namespace_ptr nsp = scope_stack[orig_decl_level].il_scope->
-                                                      variant.assoc_namespace;
-            set_namespace_membership((a_symbol_ptr)NULL,
-                                     &placeholder->source_corresp, nsp);
-          }  /* if */
-          add_to_types_list(placeholder, orig_decl_level);
+          /* The original declaration scope is a namespace scope instead of
+             the file scope.  Make the placeholder a member of the
+             namespace. */
+          a_namespace_ptr nsp = scope_stack[orig_decl_level].il_scope->
+                                                    variant.assoc_namespace;
+          set_namespace_membership((a_symbol_ptr)NULL,
+                                   &placeholder->source_corresp, nsp);
         }  /* if */
+        add_to_types_list(placeholder, orig_decl_level);
       }  /* if */
     }  /* if */
     remove_stop_token(tok_rbrace);
