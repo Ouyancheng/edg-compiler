@@ -148,7 +148,7 @@ terminated).  Now fixed.
 When MICROSOFT_EXTENSIONS_ALLOWED is TRUE, global variable microsoft_mode
 is defined (with an initial value of DEFAULT_MICROSOFT_MODE).  This is not
 a change.  However, now when MICROSOFT_EXTENSIONS_ALLOWED is FALSE,
-microsoft_mode is a macro name; it's value is always FALSE.
+microsoft_mode is a macro name; its value is always FALSE.
 
 2/4/97  Microsoft compatibility: "extern template" suppresses instantiation
 
