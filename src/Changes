@@ -1,5 +1,17 @@
 Version 2.46
 
+1/16/01  Declared parameter types recorded in IL
+
+A declared_type field was added to a_param_type entries (which describe
+function parameter types).  This is useful, among other things, to determine
+which array bound was specified for a static array parameter in C99.
+
+  void f(int a[static 4]) {}  // Bound "4" recorded in declared_type field
+                              // of a_param_type entry
+
+The C++-generating back end also uses this type (when available) to
+regenerate function declarators.
+
 1/15/01  Missing diagnostic when overloading static and nonstatic member
          function templates
 

@@ -2812,16 +2812,20 @@ default arguments should be suppressed (needed for template specializations).
         } else {
           /* This is just a declaration, so put out the type and no name
              (unless one was recorded). */
-          form_type_first_part(param->type, /*under_lhs_declarator=*/FALSE,
+          a_type_ptr            param_type = param->declared_type != NULL ?
+                                           param->declared_type : param->type;
+          a_type_qualifier_set  extra_qual = param->declared_type != NULL ?
+                                                  TQ_NONE : param->qualifiers;
+          form_type_first_part(param_type, /*under_lhs_declarator=*/FALSE,
                                /*need_trailing_space=*/FALSE,
-                               param->qualifiers, FTO_NO_OPTIONS, &octl);
+                               extra_qual, FTO_NO_OPTIONS, &octl);
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
           if (param->name != NULL) {
             write_space();
             write_tok_str(param->name);
           }  /* if */
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
-          form_type_second_part_simple(param->type,
+          form_type_second_part_simple(param_type,
                                        /*under_lhs_declarator=*/FALSE, &octl);
         }  /* if */
         if (!suppress_def_args) {
