@@ -14337,7 +14337,9 @@ been annotated in the source with the GNU keyword __extension__.
         op->variant.constant.expr = expr;
         switch_back_to_original_region(region_to_switch_back_to);
       }  /* if */
-      expr->marked_as_gnu_extension = TRUE;
+      if (expr != NULL) {
+        expr->marked_as_gnu_extension = TRUE;
+      }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       break;
     default:
