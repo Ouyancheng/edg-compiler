@@ -9337,11 +9337,13 @@ TRUE if a symbol that can only be a vacuous destructor is returned.
   a_boolean	do_class_lookup;
 
   /* Do the lookup if a type was provided that is a class type that is
-     either complete or in the process of being defined. */
+     either complete or in the process of being defined.  Also do the
+     lookup if the class is nonreal. */
   do_class_lookup = class_type != NULL &&
                     is_class_struct_union_type(class_type) &&
-                    class_type->variant.class_struct_union.
-                                         extra_info->assoc_scope != NULL;
+                    (class_type->variant.class_struct_union.
+                                         extra_info->assoc_scope != NULL ||
+                     class_type->variant.class_struct_union.is_nonreal_class);
   /* Only get normal_sym from the locator if a fundamental symbol was
      returned by the lookup.  The specific symbol in the locator could
      be non-NULL in error cases. */ 
