@@ -65,7 +65,10 @@ Definitions for Solaris:
 /* __BSD__ may be set if building on SunOS. */
 #define __ANSIC__ 1
 #endif /* ifndef __BSD__ */
+/* C_GEN_BE_GENERATES_ANSI_C may be set to 0 if building on SunOS. */
+#ifndef C_GEN_BE_GENERATES_ANSI_C
 #define C_GEN_BE_GENERATES_ANSI_C 1
+#endif /* ifndef C_GEN_BE_GENERATES_ANSI_C */
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
 #define LONG_LONG_ALLOWED 1
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0

@@ -61,7 +61,7 @@ Flags to be set when using the KAI inliner.
 /* Default to SOLARIS unless SUNOS is defined. */
 #ifndef SUNOS
 #ifndef SOLARIS
-#define SOLARIS
+#define SOLARIS 1
 #endif /* ifndef SOLARIS */
 #endif /* ifndef SUNOS */
 
@@ -72,6 +72,10 @@ Flags to be set when using the KAI inliner.
 #define __BSD__ 1
 #endif /* ifndef __ANSIC__ */
 #endif /* ifndef __BSD__ */
+/* Default to generating pcc C on SunOS. */
+#ifndef C_GEN_BE_GENERATES_ANSI_C
+#define C_GEN_BE_GENERATES_ANSI_C 0
+#endif /* ifndef C_GEN_BE_GENERATES_ANSI_C */
 #endif /* SUNOS */
 
 #ifndef SUN_TEST_VERSION
@@ -79,6 +83,8 @@ Flags to be set when using the KAI inliner.
 #endif /* ifndef SUN_TEST_VERSION */
 
 #if SUN_TEST_VERSION
+/* Settings needed to make CodeCenter happy (it doesn't understand long
+   double). */
 #define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
 #define TARG_SIZEOF_LONG_DOUBLE 8
 #endif /* SUN_TEST_VERSION */
