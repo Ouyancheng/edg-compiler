@@ -482,15 +482,17 @@ be issued.
 }  /* simplify_void_node */
 
 
-static void do_void_operand_transformations(an_operand *operand)
+static void do_void_operand_transformations(an_operand *operand,
+                                            a_boolean  force_lvalue_to_rvalue)
 /*
 Do whatever transformations are appropriate on a void expression operand,
-e.g., lvalue-to-rvalue in C, not in C++.
+e.g., lvalue-to-rvalue in C, not in C++.  If force_lvalue_to_rvalue is
+TRUE, the lvalue-to-rvalue (etc.) transformations are forced even in C++ mode.
 */
 {
   a_transformation_options_set options = TOPT_NO_OPTIONS;
 
-  if (!C_mode()) {
+  if (!C_mode() && !force_lvalue_to_rvalue) {
     /* In C++, lvalue-to-rvalue transformations are not done on an expression
        scanned as a void expression. */
     options |= (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
@@ -513,7 +515,8 @@ transformations are done in all cases.
   a_boolean suppress_warning = FALSE;
 
   /* Do lvalue-to-rvalue transformations, etc. as appropriate. */
-  do_void_operand_transformations(operand);
+  do_void_operand_transformations(operand,
+                                  /*force_lvalue_to_rvalue=*/FALSE);
   if (!is_expression_operand(operand)) {
     /* An operand that is not an expression cannot have side effects.
        For error operands, assume that the original form might have had
@@ -14909,7 +14912,7 @@ expression.
   if (!result_used) {
     simplify_void_operand(&result);
   } else {
-    do_void_operand_transformations(&result);
+    do_void_operand_transformations(&result, /*force_lvalue_to_rvalue=*/TRUE);
   }  /* if */
   expression = make_node_from_void_expression_operand(&result);
   expression = wrap_up_full_expression(expression);
@@ -15265,7 +15268,8 @@ required_type will be void if the expression should have void type
       /* We don't use simplify_void_operand here on purpose.  We don't want
          to remove an explicit cast to void, and we don't want to issue a
          warning on an expression with no side effects. */
-      do_void_operand_transformations(&result);
+      do_void_operand_transformations(&result,
+                                      /*force_lvalue_to_rvalue=*/FALSE);
       expression = make_node_from_void_expression_operand(&result);
       if (microsoft_mode && C_mode()) {
         /* The type is not checked in Microsoft C mode. */

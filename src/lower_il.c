@@ -11339,10 +11339,23 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       break;
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if GNU_EXTENSIONS_ALLOWED
-    case enk_statement:  /* Used only in C mode. */
-                         /* Note that if this is changed inlining may
-                            have to be suppressed inside statement
-                            expressions, as is done in lower_c99.c. */
+    case enk_statement:
+      /* GNU statement expression, ({ ... }). */
+      {
+#if MINIMAL_INLINING
+        a_boolean saved_inlining_enabled = inlining_enabled;
+        /* Turn off inlining, because the last statement creates a
+           value that gets returned, and it needs to be an expression
+           statement to get returned (inlining would turn it into a
+           block statement). */
+        inlining_enabled = FALSE;
+#endif /* MINIMAL_INLINING */
+        lower_statement(expr->variant.statement);
+#if MINIMAL_INLINING
+        inlining_enabled = saved_inlining_enabled;
+#endif /* MINIMAL_INLINING */
+      }
+      break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str("lower_expr: bad kind");
