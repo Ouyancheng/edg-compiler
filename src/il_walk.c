@@ -468,6 +468,23 @@ static void set_routine_keep_definition_in_il(a_routine_ptr rout);
 #include "walk_entry.h"
 
 
+static void set_canonical_routine_definition_needed(a_routine_ptr rout)
+/*
+If the indicated routine has an associated canonical entry in a secondary
+translation unit, mark the canonical entry's definition as needed.
+*/
+{
+  if (trans_unit_corresp_of(rout) != NULL) {
+    a_routine_ptr canonical_rout =
+                         (a_routine_ptr)trans_unit_corresp_of(rout)->canonical;
+    if (canonical_rout != rout &&
+        in_secondary_trans_unit(canonical_rout)) {
+      set_routine_definition_needed(canonical_rout);
+    }  /* if */
+  }  /* if */      
+}  /* set_canonical_routine_definition_needed */
+
+
 static void set_routine_definition_needed(a_routine_ptr rout)
 /*
 Set the definition_needed flag on the indicated routine.  This means the
@@ -503,8 +520,16 @@ definition of the routine is needed, and not just the declaration.
     }  /* if */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  if (walking_secondary_trans_unit &&
+      !in_secondary_trans_unit(rout)) {
+    /* If a routine in the primary IL is encountered while walking the
+       IL for a secondary translation unit, do not set the definition needed
+       flag, because we want the primary IL flags to be set only on the final
+       IL after copying.  Do set the flag on the associated canonical
+       entry if there is one, however. */
+    set_canonical_routine_definition_needed(rout);
+  } else if (!routine_definition_needed_flag_is_set(rout)) {
   /* Set the flag if it is not set already. */
-  if (!routine_definition_needed_flag_is_set(rout)) {
     check_assertion_str(!rout->is_trivial_default_constructor,
                         "set_routine_definition_needed: trivial default ctor");
     set_routine_definition_needed_flag(rout);
@@ -579,6 +604,10 @@ definition of the routine is needed, and not just the declaration.
         }  /* if */
       }  /* if */
     }  /* if */
+    /* For a routine that has linkage, mark the associated canonical entry
+       to have its definition kept too, since that's the one that will be
+       copied to the primary IL. */
+    set_canonical_routine_definition_needed(rout);
   }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
 end_of_routine:;
@@ -625,14 +654,39 @@ body of the function when the routine "defined" flag gets set after some
 }  /* remark_routine_definition_needed */
 
 
+static void set_canonical_class_definition_needed(a_type_ptr type)
+/*
+If the indicated class type has an associated canonical entry in a secondary
+translation unit, mark the canonical entry's definition as needed.
+*/
+{
+  if (trans_unit_corresp_of(type) != NULL) {
+    a_type_ptr canonical_type =
+                            (a_type_ptr)trans_unit_corresp_of(type)->canonical;
+    if (canonical_type != type &&
+        in_secondary_trans_unit(canonical_type)) {
+      set_class_definition_needed(canonical_type);
+    }  /* if */
+  }  /* if */      
+}  /* set_canonical_class_definition_needed */
+
+
 void set_class_definition_needed(a_type_ptr type)
 /*
 Set the definition_needed flag on the indicated class type.  This means the
 definition of the class is needed, and not just the declaration.
 */
 {
-  /* Set the flag if it is not set already. */
-  if (!class_definition_needed_flag_is_set(type)) {
+  if (walking_secondary_trans_unit &&
+      !in_secondary_trans_unit(type)) {
+    /* If a class in the primary IL is encountered while walking the
+       IL for a secondary translation unit, do not set the definition needed
+       flag, because we want the primary IL flags to be set only on the final
+       IL after copying.  Do set the flag on the associated canonical
+       entry if there is one, however. */
+    set_canonical_class_definition_needed(type);
+  } else if (!class_definition_needed_flag_is_set(type)) {
+    /* Set the flag if it is not set already. */
     set_class_definition_needed_flag(type);
 #if DEBUG
     if (db_trace("needed_flags", type, iek_type)) {
@@ -657,16 +711,28 @@ definition of the class is needed, and not just the declaration.
     /* For a type that has linkage, mark the associated canonical entry
        to have its definition kept too, since that's the one that will be
        copied to the primary IL. */
-    if (trans_unit_corresp_of(type) != NULL) {
-      a_type_ptr canonical_type =
-                            (a_type_ptr)trans_unit_corresp_of(type)->canonical;
-      if (canonical_type != type &&
-          in_secondary_trans_unit(canonical_type)) {
-        set_class_definition_needed(canonical_type);
-      }  /* if */
-    }  /* if */      
+    set_canonical_class_definition_needed(type);
   }  /* if */
 }  /* set_class_definition_needed */
+
+
+static void mark_canonical_as_needed(char             *entry_ptr,
+                                     an_il_entry_kind entry_kind)
+/*
+If the indicated entity has an associated canonical entry in a secondary
+translation unit, mark the canonical entry as needed.
+*/
+{
+  a_source_correspondence *scp =
+                            source_corresp_for_il_entry(entry_ptr, entry_kind);
+
+  if (scp != NULL && scp->trans_unit_corresp != NULL) {
+    char *canonical = scp->trans_unit_corresp->canonical;
+    if (canonical != entry_ptr && in_secondary_trans_unit(canonical)) {
+      mark_as_needed(canonical, entry_kind);
+    }  /* if */
+  }  /* if */    
+}  /* mark_canonical_as_needed */
 
 
 /*
@@ -731,11 +797,15 @@ as needed.
   scp = source_corresp_for_il_entry(entry_ptr, entry_kind);
   if (scp != NULL) {
     /* The entry does have a "needed" flag. */
-    /* If walking the IL for a secondary translation unit, do not go into
-       the primary IL. */
     if (walking_secondary_trans_unit &&
         !in_secondary_trans_unit(entry_ptr)) {
+      /* If an entry in the primary IL is encountered while walking the
+         IL for a secondary translation unit, do not set the needed flag,
+         because we want the primary IL flags to be set only on the final
+         IL after copying.  Do set the flag on the associated canonical
+         entry if there is one, however. */
       prune = TRUE;
+      mark_canonical_as_needed(entry_ptr, entry_kind);
     } else if (needed_flag_is_set(scp)) {
       /* The flag is set already, so prune the walk at this entry.  */
       prune = TRUE;
@@ -909,15 +979,7 @@ references.
   /* For an entity that has linkage, mark the associated canonical entry
      as needed too, since that's the one that will be copied to the
      primary IL. */
-  {  a_source_correspondence *scp =
-                            source_corresp_for_il_entry(entry_ptr, entry_kind);
-    if (scp != NULL && scp->trans_unit_corresp != NULL) {
-      char *canonical = scp->trans_unit_corresp->canonical;
-      if (canonical != entry_ptr && in_secondary_trans_unit(canonical)) {
-        mark_as_needed(canonical, entry_kind);
-      }  /* if */
-    }  /* if */    
-  }
+  mark_canonical_as_needed(entry_ptr, entry_kind);
 }  /* mark_as_needed */
 
 
@@ -1204,6 +1266,24 @@ declaration.
 }  /* set_routine_keep_definition_in_il */
 
 
+static void set_canonical_class_keep_definition_in_il(a_type_ptr type)
+/*
+If the indicated class type has an associated canonical entry in a secondary
+translation unit, mark the canonical entry's definition to be kept in
+the IL.
+*/
+{
+  if (trans_unit_corresp_of(type) != NULL) {
+    a_type_ptr canonical_type =
+                            (a_type_ptr)trans_unit_corresp_of(type)->canonical;
+    if (canonical_type != type &&
+        in_secondary_trans_unit(canonical_type)) {
+      set_class_keep_definition_in_il(canonical_type);
+    }  /* if */
+  }  /* if */      
+}  /* set_canonical_class_keep_definition_in_il */
+
+
 void set_class_keep_definition_in_il(a_type_ptr type)
 /*
 Set the keep_definition_in_il flag on the indicated class type.  This means
@@ -1211,8 +1291,16 @@ the definition of the class must be kept in the IL, and not just the
 declaration.
 */
 {
-  /* Set the flag if it is not set already. */
-  if (!type->variant.class_struct_union.keep_definition_in_il) {
+  if (walking_secondary_trans_unit &&
+      !in_secondary_trans_unit(type)) {
+    /* If a class in the primary IL is encountered while walking the
+       IL for a secondary translation unit, do not set the definition
+       keep-in-il flag, because we want the primary IL flags to be set
+       only on the final IL after copying.  Do set the flag on the associated
+       canonical entry if there is one, however. */
+    set_canonical_class_keep_definition_in_il(type);
+  } else if (!type->variant.class_struct_union.keep_definition_in_il) {
+    /* Set the flag if it is not set already. */
     type->variant.class_struct_union.keep_definition_in_il = TRUE;
 #if DEBUG
     if (db_trace("needed_flags", type, iek_type)) {
@@ -1229,14 +1317,7 @@ declaration.
     /* For a type that has linkage, mark the associated canonical entry
        to have its definition kept too, since that's the one that will
        be copied to the primary IL. */
-    if (trans_unit_corresp_of(type) != NULL) {
-      a_type_ptr canonical_type =
-                            (a_type_ptr)trans_unit_corresp_of(type)->canonical;
-      if (canonical_type != type &&
-          in_secondary_trans_unit(canonical_type)) {
-        set_class_keep_definition_in_il(canonical_type);
-      }  /* if */
-    }  /* if */      
+    set_canonical_class_keep_definition_in_il(type);
   }  /* if */
 }  /* set_class_keep_definition_in_il */
 
