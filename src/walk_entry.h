@@ -436,9 +436,13 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* ifdef FFE */
           case ck_template_param:
             /* Front end only. */
-#if NEEDED_FLAG_WALK
+#if MAINTAIN_NEEDED_FLAGS
+#if !NEEDED_FLAG_WALK
+            check_assertion_str(walking_to_set_keep_in_il,
+                      "walk_entry_and_subtree: ck_template_param encountered");
+#endif /* !NEEDED_FLAG_WALK */
             break;
-#endif /* NEEDED_FLAG_WALK */
+#endif /* MAINTAIN_NEEDED_FLAGS */
           default:
             unexpected_condition_str(
                                   "walk_entry_and_subtree: bad constant kind");
@@ -605,9 +609,13 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* ifdef FFE */
           case tk_template_param:
             /* Front end only. */
-#if NEEDED_FLAG_WALK
+#if MAINTAIN_NEEDED_FLAGS
+#if !NEEDED_FLAG_WALK
+            check_assertion_str(walking_to_set_keep_in_il,
+                      "walk_entry_and_subtree: tk_template_param encountered");
+#endif /* !NEEDED_FLAG_WALK */
             break;
-#endif /* NEEDED_FLAG_WALK */
+#endif /* MAINTAIN_NEEDED_FLAGS */
           default:
             unexpected_condition_str("walk_entry_and_subtree: bad type kind");
         }  /* switch */
@@ -1175,9 +1183,13 @@ the file scope, do not process it (but record an orphan in the latter case).
           case sck_template_declaration:
           case sck_template_instantiation:
             /* Front end only. */
-#if NEEDED_FLAG_WALK
+#if MAINTAIN_NEEDED_FLAGS
+#if !NEEDED_FLAG_WALK
+            check_assertion_str(walking_to_set_keep_in_il,
+                       "walk_entry_and_subtree: sck_template_... encountered");
+#endif /* !NEEDED_FLAG_WALK */
             break;
-#endif /* NEEDED_FLAG_WALK */
+#endif /* MAINTAIN_NEEDED_FLAGS */
           default:
             unexpected_condition_str("walk_entry_and_subtree: bad scope kind");
         }  /* switch */
