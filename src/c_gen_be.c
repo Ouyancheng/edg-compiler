@@ -8378,6 +8378,7 @@ from the primary source file name in the IL information.
   primary_source_file_name = il_header.primary_source_file->file_name;
   /* Generate C code. */
   c_gen_be();
+  (void)fclose(f_il_input);
   normal_termination();
   /*NOTREACHED*/
 }  /* main */
@@ -8403,10 +8404,6 @@ version is for use as a subroutine called in the same program as the front end.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Generate C code. */
   c_gen_be();
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-  /* If the intermediate language file is a temp file, delete it. */
-  if (il_file_name == NULL) close_temp_file(f_il_output);
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   free_memory_region(FILE_SCOPE_REGION_NUMBER);
 }  /* back_end */
 #endif /* (else of) STANDALONE_UTILITY_PROGRAM */

@@ -25,6 +25,10 @@ Enhanced to support C++ by J. Stephen Adamczyk and R. Michael Anderson, 1991.
 #include "host_envir.h"
 #include "decls.h"
 
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+#include "il_write.h"
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+
 #if BACK_END_IS_C_GEN_BE
 #include "c_gen_be.h"
 #endif /* BACK_END_IS_C_GEN_BE */
@@ -64,6 +68,11 @@ main (int argc, char *argv[])
       back_end();
     }  /* if */
 #endif /* BACK_END_SHOULD_BE_CALLED */
+
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+    /* Close the IL output file, be it a temporary or actual file. */
+    close_il_output_file();
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
     /* Write a signoff message (with count of errors) if necessary. */
     write_signoff();

@@ -2962,6 +2962,7 @@ where file.cil specifies the IL file.  Output is to stdout.
     disp_routine_scope_il(region_number);
     free_memory_region(region_number);
   }  /* for */
+  (void)fclose(f_il_input);
   normal_termination();
   /*NOTREACHED*/
 }  /* main */
