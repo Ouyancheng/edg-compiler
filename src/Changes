@@ -1,5 +1,23 @@
 Version 2.22
 
+2/23/94  Bug with compiler-generated assignment operators
+
+A bug has been fixed in the code produced when a compiler-generated
+assignment operator has to call an assignment operator for a base class or
+field -- specifically, a cast node is produced over the source expression
+if required.  Here's an example:
+
+  struct A { };
+  struct B : public A {
+    operator=(const A&){}
+  };
+  struct C {
+    B b;
+  };
+
+Now, when C::operator= is generated, the parameter passed in the call to
+B::operator= is cast to an A.
+
 2/22/94  Enum values larger than int in strict ANSI warning mode
 
 Examples such as this were incorrectly causing an error to be issued
