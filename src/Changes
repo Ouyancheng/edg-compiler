@@ -12,10 +12,11 @@ not recorded, the C++-generating back end will not use the class prototype
 instantiations to regenerate source code (the unparsed template token
 sequence will be output instead).
 
-8/30/00  Compilation errors in il_display.c (see also entry of 8/21/00)
+8/30/00  Compilation errors in il_display.c
 
 Compilation errors occurred in il_display.c when building an IL display
 program configured with PROTOTYPE_INSTANTIATIONS_IN_IL equal to TRUE.
+(See also entry of 8/21/00.)
 
 8/29/00  Microsoft mode: bad output of IL display program
 
@@ -749,7 +750,9 @@ Prototype instantiations can only be supplied when doing semantic
 analysis of nonclass template definitions because it is the semantic
 analysis that produces the IL for the template definition.  Consequently,
 it is only possible to produce prototype instantiations for code that
-can be parsed using the --parse_templates option.
+can be parsed using the --parse_templates option.  [See Changes entry
+of 8/30/00: class template prototype instantiations can now be saved even
+if nonclass template prototype instantiations are not done.]
 
 When PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the a_template entry
 contains a pointer to the prototype instantiation for the template and
