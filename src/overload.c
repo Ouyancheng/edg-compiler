@@ -8032,14 +8032,19 @@ to be acceptable, and *conversion describes it.
          except as an anachronism. */
       /* Use a different message for the case where the operand is
          an rvalue. */
-      error_in_operand(operand_was_rvalue ?
-                             (ref_to_const_volatile ?
+      if (operand_was_rvalue) {
+        error_in_operand(ref_to_const_volatile ?
                                        ec_const_volatile_ref_init_from_rvalue :
-                                       ec_nonconst_ref_init_from_rvalue) :
-                             (ref_to_const_volatile ?
+                                       ec_nonconst_ref_init_from_rvalue,
+                         source_operand);
+      } else {
+        pos_ty2_error(ref_to_const_volatile ?
                                        ec_bad_const_volatile_ref_init :
-                                       ec_bad_nonconst_ref_init),
-                       source_operand);
+                                       ec_bad_nonconst_ref_init,
+                      &source_operand->position,
+                      orig_dest_type, orig_source_type);
+        conv_to_error_operand(source_operand);
+      }  /* if */
     } else {
       /* Allocate a temporary and copy the operand into it, converting
          if necessary.  source_operand is set to the address of the
@@ -8074,14 +8079,19 @@ to be acceptable, and *conversion describes it.
             /* cfront doesn't allow this case. */
             /* Use a different message for the case where the operand is
                an rvalue. */
-            error_in_operand(operand_was_rvalue ?
-                               (ref_to_const_volatile ?
+            if (operand_was_rvalue) {
+              error_in_operand(ref_to_const_volatile ?
                                        ec_const_volatile_ref_init_from_rvalue :
-                                       ec_nonconst_ref_init_from_rvalue) :
-                               (ref_to_const_volatile ?
+                                       ec_nonconst_ref_init_from_rvalue,
+                               source_operand);
+            } else {
+              pos_ty2_error(ref_to_const_volatile ?
                                        ec_bad_const_volatile_ref_init :
-                                       ec_bad_nonconst_ref_init),
-                             source_operand);
+                                       ec_bad_nonconst_ref_init,
+                            &source_operand->position,
+                            orig_dest_type, orig_source_type);
+              conv_to_error_operand(source_operand);
+            }  /* if */
             err = TRUE;
           }  /* if */
         } else {
