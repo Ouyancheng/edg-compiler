@@ -81,7 +81,14 @@ Integer types:
 #define TARG_ALIGNOF_LONG 2
 
 /*
-If this switch is TRUE, integer types with the same representation
+If this flag is TRUE, overflows on signed integer operations do
+not cause errors (only warnings).  Usually this would be set to
+match the target machine behavior on integer operations in C.
+*/
+#define TARG_NO_ERROR_ON_INTEGER_OVERFLOW TRUE
+
+/*
+If this flag is TRUE, integer types with the same representation
 (same size, alignment, and signedness) are considered to be
 identical in the IL.  This requires back end support, i.e., the back
 end must be comfortable with the fact that these types will be used
