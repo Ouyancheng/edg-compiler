@@ -3497,7 +3497,7 @@ void decl_function_template(a_symbol_locator    *locator,
 */
 {
   a_scope_depth                     effective_decl_level;
-  a_symbol_ptr                      sym;
+  a_symbol_ptr                      sym = NULL;
   a_symbol_ptr                      overload_symbol = NULL, homonym_symbol;
   a_template_symbol_supplement_ptr  tssp;
   a_routine_ptr                     rout_ptr;
@@ -3511,23 +3511,51 @@ void decl_function_template(a_symbol_locator    *locator,
     storage_class = (a_storage_class)sc_extern;
   }  /* if */
   effective_decl_level = DEPTH_OF_FILE_SCOPE;
-  (void)id_linkage(locator, &storage_class, type_ptr,
-                   /*is_main_function=*/FALSE, &sym, &homonym_symbol,
-                   &effective_decl_level);
-  if (sym != NULL) {
-#if CHECKING
-    if (sym->kind != (a_symbol_kind)sk_function_template) {
-      internal_error("decl_function_template:  unexpected linked symbol");
+  if (locator->is_qualified_name && locator->specific_symbol != NULL) {
+    sym = locator->specific_symbol;
+    if (sym->kind != (a_symbol_kind)sk_function_template &&
+        sym->kind != (a_symbol_kind)sk_overloaded_function) {
+      /* We must have nonfunction class member.  This is an error, so set sym
+         to NULL to force the creation of a fake member function symbol. */
+      pos_sy_error(ec_not_compatible_with_previous_decl,
+                   &locator->source_position, locator->specific_symbol);
+      sym = NULL;
+      set_to_error_locator(*locator);
+    } else {
+      /* Look for a member function symbol of this type in the symbol table.
+         It is an error if it is  not already there. */
+      sym = member_function_redecl_sym(sym, type_ptr);
+      if (sym == NULL) {
+        /* No member function with a matching type was found.  Issue an
+           error. */
+        pos_sy_error(locator->specific_symbol->kind ==
+                                     (a_symbol_kind)sk_overloaded_function ?
+                        ec_overloaded_function_incompatible_type :
+                        ec_not_compatible_with_previous_decl,
+                   &locator->source_position, locator->specific_symbol);
+        set_to_error_locator(*locator);
+      }  /* if */
     }  /* if */
+  }  /* if */
+  if (sym == NULL) {
+    (void)id_linkage(locator, &storage_class, type_ptr,
+                     /*is_main_function=*/FALSE, &sym, &homonym_symbol,
+                     &effective_decl_level);
+    if (sym != NULL) {
+#if CHECKING
+      if (sym->kind != (a_symbol_kind)sk_function_template) {
+        internal_error("decl_function_template:  unexpected linked symbol");
+      }  /* if */
 #endif /* CHECKING */
-    /* Error checking here? -- reconcile_routine_types call? -- etc. */
-  } else if (homonym_symbol != NULL) {
-    sym = enter_overloaded_symbol((a_symbol_kind)sk_function_template, locator,
-                                  homonym_symbol, &overload_symbol);
-  } else {
-    sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
-                             DEPTH_OF_FILE_SCOPE,
-                             /*suppress_redecl_error=*/FALSE);
+      /* Error checking here? -- reconcile_routine_types call? -- etc. */
+    } else if (homonym_symbol != NULL) {
+      sym = enter_overloaded_symbol((a_symbol_kind)sk_function_template,
+                                    locator, homonym_symbol, &overload_symbol);
+    } else {
+      sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
+                               DEPTH_OF_FILE_SCOPE,
+                               /*suppress_redecl_error=*/FALSE);
+    }  /* if */
   }  /* if */
   tssp = sym->variant.template.extra_info;
   rout_ptr = tssp->variant.function.routine;
