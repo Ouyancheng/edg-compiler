@@ -1927,17 +1927,14 @@ extern a_scope_depth depth_of_containing_function_scope(void);
 extern void mark_declared(a_symbol_ptr      sym_ptr,
                           a_source_position *source_position,
                           a_boolean         save_as_decl_position);
-extern void mark_referenced(a_symbol_ptr      sym_ptr,
-                            a_source_position *source_position);
-extern void mark_symbol_referenced(a_symbol_reference_kind kind,
-                                   a_symbol_ptr            sym_ptr,
-                                   a_source_position       *source_position);
-extern void reference_to_symbol(a_symbol_reference_kind kind,
-                                a_symbol_ptr            sym_ptr,
-                                a_source_position       *source_position);
-extern void mark_used(a_symbol_ptr        sym,
-                      a_source_position   *err_pos,
-                      a_boolean           suppress_warning);
+extern void reference_to_symbol(a_symbol_reference_kind  kind,
+                                a_symbol_ptr             sym_ptr,
+                                a_source_position        *source_position,
+                                a_boolean                update_il_entry);
+
+#define mark_used(sym, err_pos)                                         \
+  reference_to_symbol(srk_use, (sym), (err_pos), /*update_il_entry=*/TRUE)
+
 extern void mark_variable_value_set(a_symbol_ptr  sym);
 
 extern void set_source_corresp(a_source_correspondence *sc,

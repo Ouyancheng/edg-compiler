@@ -130,11 +130,8 @@ current expression, output them now.
     /* Go write information on this entry to a file. */
     /* References in not-evaluated expressions should not set the IL
        entry referenced flag. */
-    if (!curr_expr_is_evaluated()) {
-      mark_symbol_referenced(xep->kind, xep->symbol, &xep->position);
-    } else {
-      reference_to_symbol(xep->kind, xep->symbol, &xep->position);
-    }  /* if */
+    reference_to_symbol(xep->kind, xep->symbol, &xep->position,
+                        /*update_il_entry=*/curr_expr_is_evaluated());
     free_xref_entry(xep);
   }  /* while */
 }  /* flush_xref_entries_list */
@@ -156,11 +153,8 @@ do not allocate the entry, and return NULL.
     /* Cross-reference information is not being generated. */
     /* References in not-evaluated expressions should not set the IL
        entry referenced flag. */
-    if (!curr_expr_is_evaluated()) {
-      mark_symbol_referenced(srk_use, sym_ptr, source_position);
-    } else {
-      mark_referenced(sym_ptr, source_position);
-    }  /* if */
+    reference_to_symbol(srk_use, sym_ptr, source_position,
+                        /*update_il_entry=*/curr_expr_is_evaluated());
     xep = NULL;
   } else {
     xep = alloc_xref_entry(srk_use, sym_ptr, source_position);

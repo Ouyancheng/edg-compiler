@@ -7064,32 +7064,6 @@ Should "R" be changed to "U"?
 }  /* write_xref_entry */
 
 
-void mark_used(a_symbol_ptr        sym,
-               a_source_position   *err_pos,
-               a_boolean           suppress_warning)
-/*
-*/
-{
-  if (sym->kind == (a_symbol_kind)sk_variable) {
-    if (sym->variant.variable.used) {
-      /* This is not the first use. */
-      if (sym->variant.variable.ptr->is_parameter) {
-        /* Mark the parameter as multiply used (information that may be
-           useful for inlining). */
-        sym->variant.variable.ptr->param_used_more_than_once = TRUE;
-      }  /* if */
-    } else {
-      /* This is the first use of the variable. */
-      if (!sym->variant.variable.value_has_been_set && !suppress_warning) {
-        /* But its value has not been set yet.  Issue a warning. */
-        pos_sy_warning(ec_used_before_set, err_pos, sym);
-      }  /* if */
-      sym->variant.variable.used = TRUE;
-    }  /* if */
-  }  /* if */
-}  /* mark_used */
-
-
 void mark_variable_value_set(a_symbol_ptr  sym)
 /*
 */
@@ -7131,15 +7105,19 @@ for the symbol.
 }  /* mark_declared */
 
 
-void mark_symbol_referenced(a_symbol_reference_kind kind,
-                            a_symbol_ptr            sym_ptr,
-                            a_source_position       *source_position)
+void reference_to_symbol(a_symbol_reference_kind  kind,
+                         a_symbol_ptr             sym_ptr,
+                         a_source_position        *source_position,
+                         a_boolean                update_il_referenced)
 /*
-Record a reference of the indicated kind to the indicated symbol.
-Set the reference flag in the symbol entry.  Do not set the referenced
-flag in the associated IL entry.
+Record a reference of the indicated kind to the indicated symbol.  Set the
+reference flag in the symbol entry.  If update_il_referenced is TRUE, also
+set the referenced flag in the associated IL entry, if any, and mark the
+symbol "used" or "set", if appropriate.
 */
 {
+  a_source_correspondence *scptr;
+
   if (f_xref_info != NULL) {
     /* If writing cross-reference information, write an entry for this
        declaration. */
@@ -7147,53 +7125,49 @@ flag in the associated IL entry.
   }  /* if */
   /* Set the referenced flag in the symbol. */
   sym_ptr->referenced = TRUE;
-}  /* mark_symbol_referenced. */
+  if (update_il_referenced) {
+    /* Set the referenced flag in the associated intermediate language entry,
+       if there is one.  Note that more than one symbol can point to the same
+       IL entry.  Use the fact that all the IL tables begin with
+       a_source_correspondence. */
+    /* If the symbol is for a virtual function, do not set the IL referenced
+       flag; a reference to the symbol is not necessarily a reference to the
+       corresponding IL entry.  When it is, the flag is set explicitly
+       elsewhere. */
+    if (sym_ptr->kind == (a_symbol_kind)sk_member_function &&
+        sym_ptr->variant.routine.ptr->is_virtual) {
+      /* Do not set IL referenced flag. */
+    } else {
+      scptr = source_corresp_entry_for_symbol(sym_ptr);
+      if (scptr != NULL) scptr->referenced = TRUE;
+    }  /* if */
+    if (kind == srk_modification || kind == srk_address_taken) {
+      mark_variable_value_set(sym_ptr);
+    }  /* if */
+    if (kind == srk_use || kind == srk_address_taken) {
+      if (sym_ptr->kind == (a_symbol_kind)sk_variable) {
+        if (sym_ptr->variant.variable.used) {
+          /* This is not the first use. */
+          if (sym_ptr->variant.variable.ptr->is_parameter) {
+            /* Mark the parameter as multiply used (information that may be
+               useful for inlining). */
+            sym_ptr->variant.variable.ptr->param_used_more_than_once = TRUE;
+          }  /* if */
+        } else {
+          /* This is the first use of the variable. */
+          a_boolean  suppress_warning = FALSE;
 
-
-void reference_to_symbol(a_symbol_reference_kind kind,
-                         a_symbol_ptr            sym_ptr,
-                         a_source_position       *source_position)
-/*
-Record a reference of the indicated kind to the indicated symbol.
-Set the reference flag in the symbol entry.  Also set the referenced
-flag in the associated IL entry, if any.
-*/
-{
-  a_source_correspondence *scptr;
-
-  mark_symbol_referenced(kind, sym_ptr, source_position);
-  /* Set the referenced flag in the associated intermediate language entry,
-     if there is one.  Note that more than one symbol can point to the same
-     IL entry.  Use the fact that all the IL tables begin with
-     a_source_correspondence. */
-  /* If the symbol is for a virtual function, do not set the IL referenced
-     flag; a reference to the symbol is not necessarily a reference to the
-     corresponding IL entry.  When it is, the flag is set explicitly
-     elsewhere. */
-  if (sym_ptr->kind == (a_symbol_kind)sk_member_function &&
-      sym_ptr->variant.routine.ptr->is_virtual) {
-    /* Do not set IL referenced flag. */
-  } else {
-    scptr = source_corresp_entry_for_symbol(sym_ptr);
-    if (scptr != NULL) scptr->referenced = TRUE;
-  }  /* if */
-  if (kind == srk_modification || kind == srk_address_taken) {
-    mark_variable_value_set(sym_ptr);
-  }  /* if */
-  if (kind == srk_use || kind == srk_address_taken) {
-    mark_used(sym_ptr, source_position, /*suppress_warning=*/FALSE);
+          if (!sym_ptr->variant.variable.value_has_been_set &&
+              !suppress_warning) {
+            /* But its value has not been set yet.  Issue a warning. */
+            pos_sy_warning(ec_used_before_set, source_position, sym_ptr);
+          }  /* if */
+          sym_ptr->variant.variable.used = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* reference_to_symbol */
-
-
-void mark_referenced(a_symbol_ptr      sym_ptr,
-                     a_source_position *source_position)
-/*
-Indicate that the given symbol is referenced at the given position.
-*/
-{
-  reference_to_symbol(srk_use, sym_ptr, source_position);
-}  /* mark_referenced */
 
 
 an_extern_type_fixup_ptr alloc_etype_fixup(void)
