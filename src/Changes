@@ -1,5 +1,16 @@
 Version 2.33
 
+7/17/96 C-generating back end: output of "const void"
+
+In an attempt to avoid the "const" when putting out
+
+  extern const void x;
+
+(which some C compilers don't like), the C-generating back end did
+an overly broad transformation, changing "const void" to "void" in
+all cases, which also affected things of type "const void *".  Now,
+the transformation is done only on the type of a variable.
+
 7/17/96 Size of empty class when TARG_MINIMUM_STRUCT_ALIGNMENT > 1
 
 A bug has been fixed in computing the size of an (e.g., empty) class when
