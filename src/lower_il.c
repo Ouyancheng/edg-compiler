@@ -7886,15 +7886,15 @@ had at the start of the block.
     /* Insert after the last statement. */
     set_insert_location(last_statement, &insert_location);
   }  /* if */
+  if (block_statement == innermost_function_scope->assoc_block) {
+    scope = innermost_function_scope;
+  }  /* if */
   if (new_lifetime) {
     /* An object lifetime must be ended.  If there were labels in the
        block, this may end several object lifetimes.  (That's one reason
        why we can't just use curr_context->lifetime here.)   Note also
        that for the topmost block in a function, we end the lifetime
        here but do not pop the context. */
-    if (block_statement == innermost_function_scope->assoc_block) {
-      scope = innermost_function_scope;
-    }  /* if */
     if (scope != NULL) lifetime = scope->lifetime;
     /* Insert any cleanup actions after the last statement in the block
        if the end of the block is reachable. */
