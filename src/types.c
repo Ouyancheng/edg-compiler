@@ -3596,85 +3596,90 @@ care about.
 }  /* ttt_is_local_type */
 
 
+/* A pointer to the specific template parameter type to be found by
+   ttt_is_or_contains_template_param. */
+static a_type_ptr specific_template_param_type;
+/* A pointer to the specific template parameter constant to be found by
+   ttt_contains_template_param_constant. */
+static a_constant_ptr specific_template_param_constant;
+
+
+static a_boolean ttt_contains_template_param_constant(
+                                       a_type_ptr  type_ptr,
+                                       a_boolean   *force_end_of_traversal)
+{
+  an_expr_node_ptr    count;
+  a_template_arg_ptr  tap;
+  a_boolean           found;
+
+  if (is_array(type_ptr)) {
+    if (type_ptr->variant.array.is_variable_size_array) {
+      count = type_ptr->variant.array.variant.element_count_expr;
+      if (count->kind == (an_expr_node_kind)enk_constant &&
+          count->variant.constant->kind ==
+                                (a_constant_repr_kind)ck_template_param) {
+        if (specific_template_param_constant == NULL ||
+            expr_tree_contains_template_param_constant(
+                                        count,
+                                        specific_template_param_constant)) {
+          *force_end_of_traversal = found = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else if (is_class_struct_union(type_ptr)) {
+    /* For nested classes only the outermost class can have template
+       arguments.  Find the outermost class before doing the check. */
+    while (type_ptr->source_corresp.class_of_which_a_member != NULL) {
+      type_ptr = type_ptr->source_corresp.class_of_which_a_member;
+    }  /* while */
+    for (tap = type_ptr->variant.class_struct_union.extra_info->
+                                                         template_arg_list;
+         tap != NULL;
+         tap = tap->next) {
+      if (!tap->is_type) {
+        if (tap->variant.constant->kind ==
+                               (a_constant_repr_kind)ck_template_param &&
+            (specific_template_param_constant == NULL ||
+             expr_tree_contains_template_param_constant(
+                                         count,
+                                         specific_template_param_constant))) {
+          *force_end_of_traversal = found = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* switch */
+  return found;
+}  /* ttt_contains_template_param_constant */
+
+
 static a_boolean ttt_is_or_contains_template_param(
                                        a_type_ptr  type_ptr,
                                        a_boolean   *force_end_of_traversal)
 /*
 This is a service function designed to be called from traverse_type_tree
-(whence the ttt_ prefix).  It returns TRUE if type_ptr is a template
-parameter type or is based on a template parameter constant.
+(whence the ttt_ prefix).  If specific_template_param_type is NULL, it
+returns TRUE if type_ptr is a template parameter type or is based on a
+template parameter constant.  If specific_template_param_type is non-NULL,
+it returns TRUE if type_ptr is the specified template parameter type.
 */
 {
-  a_boolean           is_templ_param = FALSE;
-  an_expr_node_ptr    count;
-  a_template_arg_ptr  tap;
-
-  switch (type_ptr->kind) {
-    case tk_template_param:
-      *force_end_of_traversal = is_templ_param = TRUE;
-      break;
-    case tk_array:
-      if (type_ptr->variant.array.is_variable_size_array) {
-        count = type_ptr->variant.array.variant.element_count_expr;
-        if (count->kind == (an_expr_node_kind)enk_constant &&
-            count->variant.constant->kind ==
-                                  (a_constant_repr_kind)ck_template_param) {
-          *force_end_of_traversal = is_templ_param = TRUE;
-        }  /* if */
-      }  /* if */
-      break;
-    case tk_class:
-    case tk_struct:
-    case tk_union:
-      /* For nested classes only the outermost class can have template
-         arguments.  Find the outermost class before doing the check. */
-      while (type_ptr->source_corresp.class_of_which_a_member != NULL) {
-        type_ptr = type_ptr->source_corresp.class_of_which_a_member;
-      }  /* while */
-      for (tap = type_ptr->variant.class_struct_union.extra_info->
-                                                         template_arg_list;
-           tap != NULL;
-           tap = tap->next) {
-        if (!tap->is_type) {
-          if (tap->variant.constant->kind ==
-                               (a_constant_repr_kind)ck_template_param) {
-            *force_end_of_traversal = is_templ_param = TRUE;
-            break;
-          }  /* if */
-        }  /* if */
-      }  /* for */
-      break;
-    default:;
-      /* is_templ_param remains FALSE. */
-  }  /* switch */
-  return is_templ_param;
-}  /* ttt_is_or_contains_template_param */
-
-
-/* A pointer to the specific template parameter to be found by
-   ttt_is_specific_template_param. */
-static a_type_ptr specific_template_param_type;
-
-
-static a_boolean ttt_is_specific_template_param(
-                                       a_type_ptr  type_ptr,
-                                       a_boolean   *force_end_of_traversal)
-/*
-This is a service function designed to be called from traverse_type_tree
-(whence the ttt_ prefix).  It returns TRUE if type_ptr is the template
-parameter type given in specific_template_param_type.
-*/
-{
-  a_boolean         is_templ_param = FALSE;
+  a_boolean  found = FALSE;
 
   if (is_template_param(type_ptr)) {
     if (specific_template_param_type == NULL ||
         identical_types(type_ptr, specific_template_param_type)) {
-      *force_end_of_traversal = is_templ_param = TRUE;
+      *force_end_of_traversal = found = TRUE;
     }  /* if */
+  } else if (specific_template_param_type == NULL) {
+    /* We are not looking for a specific template param type, so any
+       template constant (e.g., appearing as an array bound) will also
+       serve. */
+    found = ttt_contains_template_param_constant(type_ptr,
+                                                 force_end_of_traversal);
   }  /* if */
-  return is_templ_param;
-}  /* ttt_is_specific_template_param */
+  return found;
+}  /* ttt_is_or_contains_template_param */
 
 
 static a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
@@ -3847,6 +3852,10 @@ a template parameter constant.
                                                TTT_PARAM_TYPES |
                                                TTT_TEMPLATE_ARGS);
 
+  /* Setting these pointers to NULL indicates that any template param type
+     or constant will do. */
+  specific_template_param_type = NULL;
+  specific_template_param_constant = NULL;
   return (traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
           ttt_flags));
 }  /* is_or_contains_template_param */
@@ -3866,9 +3875,23 @@ containing such a reference to the type.
 
   /* This indicates that only a specific template parameter may be found. */
   specific_template_param_type = tparam_type;
-  return (traverse_type_tree(type_ptr, ttt_is_specific_template_param,
+  specific_template_param_constant = NULL;
+  return (traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
           ttt_flags));
 }  /* is_or_contains_specific_template_param */
+
+
+a_boolean type_contains_specific_template_param_constant(a_type_ptr     tp,
+                                                         a_constant_ptr cp)
+{
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                               TTT_PARAM_TYPES |
+                                               TTT_TEMPLATE_ARGS);
+
+  specific_template_param_constant = cp;
+  return (traverse_type_tree(tp, ttt_contains_template_param_constant,
+                             ttt_flags));
+}  /* type_contains_specific_template_param_constant */
 
 
 /******************************************************************************
