@@ -3394,12 +3394,15 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         } else if (is_function(unqual_source_type_pointed_to)) {
           /* Converting a pointer to function to a pointer to void. */
           if (C_dialect == C_dialect_cplusplus) {
-            /* In C++, a pointer to a function may be converted to "void *" if
-               the pointer will fit in a "void *".  ARM 4.6 (pointer
-               conversions). */
-            if (dest_of_ptr_cast_big_enough(source_type, dest_type)) {
+            /* In ARM C++, a pointer to a function may be converted to
+               "void *" if the pointer will fit in a "void *".
+               ARM 4.6 (pointer conversions).  This is no longer
+               allowed in standard C++, but we allow it as an extension. */
+            if (!suppress_extensions &&
+                dest_of_ptr_cast_big_enough(source_type, dest_type)) {
               okay = TRUE;
               std_conv->pointer_normalization_needed = TRUE;
+              std_conv->warning_suggested = default_warning_code;
             }  /* if */
           } else {
             /* In C, such a conversion is nonstandard, but allowed as

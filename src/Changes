@@ -1,5 +1,11 @@
 Version 2.37
 
+7/31/97   Implicit conversion of pointer-to-function to void * nonstandard
+
+The implicit conversion of a pointer-to-function to void * was allowed
+by the ARM, but it is no longer allowed by the WP.  We now issue an
+error in strict mode, and a warning otherwise.
+
 7/29/97   Microsoft compatibility: "constructor call" returns an lvalue
 
 In Microsoft bugs mode, a "constructor call" like X(y) -- which is actually
