@@ -1173,12 +1173,12 @@ Output the name of the indicated variable, qualified is necessary.
 }  /* gen_variable_name */
 
 
-static void gen_integer_constant(a_constant_ptr constant)
+static void gen_integer_constant(a_constant_ptr constant,
+                                 a_boolean      suppress_cast)
 /*
 Write out an integer constant (i.e., a constant with a ck_integer
-representation).  The constant is written as an integer even if it has
-been implicitly cast to some other type.  The caller must handle the
-implicit cast if appropriate.
+representation).  If suppress_cast is TRUE, suppress any cast of the
+constant to another type.
 */
 {
   a_boolean      need_cast_close_paren = FALSE;
@@ -1191,7 +1191,8 @@ implicit cast if appropriate.
      an enum type in C mode, or an integer value cast to an enum
      type in C++ mode (note that real enumerator constants don't
      get here), ... */
-  if ((con_type->kind == (a_type_kind)tk_integer &&
+  if (!suppress_cast &&
+      (con_type->kind == (a_type_kind)tk_integer &&
        con_type->variant.integer.enum_type) ||
       /* ... or, if we're generating K&R C and it's an unsigned constant
          (pcc doesn't support unsigned integral constants), ... */
@@ -1555,7 +1556,7 @@ Output the indicated constant.
         write_tok_ch('\'');
       } else {
         /* A normal integer constant. */
-        gen_integer_constant(constant);
+        gen_integer_constant(constant, /*suppress_cast=*/FALSE);
       }  /* if */
       break;
     case ck_string:
@@ -3371,7 +3372,7 @@ put out for them).
              another type in a context where the other type might involve
              a prototype scope type, so put out the constant without the
              cast, leaving the cast as implicit. */
-          gen_integer_constant(arg->variant.constant);
+          gen_integer_constant(arg->variant.constant, /*suppress_cast=*/TRUE);
         } else {
           /* Normal case. */
           gen_initializer_expr(arg, param->type, /*need_parens=*/TRUE);
