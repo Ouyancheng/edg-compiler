@@ -3616,14 +3616,12 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
           (cexpr->next != NULL && !cexpr->next->generated_default_arg)) {
         /* Use an inner cast. */
         gen_type(skip_typerefs(temp_type));
-        gen_dynamic_init(dip,
-                         (a_type_ptr)NULL, /* Not a reference, not needed. */
-                         /*parenthesized_init=*/TRUE,
-                         /*force_parens=*/TRUE);
-      } else {
-        /* Only one cast is needed.  Put out the argument for it. */
-        gen_expr_with_parens(cexpr);
       }  /* if */
+      /* Put out the argument list, in parentheses. */
+      gen_dynamic_init(dip,
+                       (a_type_ptr)NULL, /* Not a reference, not needed. */
+                       /*parenthesized_init=*/TRUE,
+                       /*force_parens=*/TRUE);
       write_tok_ch(')');
     }  /* if */
   } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
