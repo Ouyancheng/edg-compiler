@@ -221,6 +221,8 @@ Dump a list of template arguments, enclosed by angle brackets.
         } else {
           db_type_name(tap->variant.type);
         }  /* if */
+      } else if (tap->is_array_bound_of_unknown_type) {
+        fprintf(f_debug, "array-bound=%d", tap->variant.integer_value);
       } else {
         db_constant(tap->variant.constant);
       }  /* if */
@@ -229,7 +231,7 @@ Dump a list of template arguments, enclosed by angle brackets.
     } while (tap != NULL);
     fputs(">", f_debug);
   }  /* if */
-}  /* if */
+}  /* db_template_arg_list */
 
 
 void db_type_name(a_type_ptr  tp)
