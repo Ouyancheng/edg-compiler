@@ -217,11 +217,6 @@ extern void f_register_trans_unit_variable(a_void_ptr	var,
 					   sizeof_t	size,
 					   sizeof_t	field_offset);
 
-extern void f_register_trans_unit_variable_with_field(
-					a_void_ptr	var,
-					sizeof_t	size,
-					sizeof_t	field_offset);
-
 extern a_trans_unit_corresp_ptr alloc_trans_unit_corresp(void);
 
 extern void free_trans_unit_corresp(a_trans_unit_corresp_ptr	tucp);
