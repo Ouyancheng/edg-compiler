@@ -2441,19 +2441,19 @@ two-pass sweep.
   }  /* for */
   finish_type_list_moved_function_processing(scope->types, do_inlines);
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
-    if (routine->assoc_scope != NULL_region_number) {
-      a_scope_ptr rout_scope =
-                            il_header.region_scope_entry[routine->assoc_scope];
-      check_assertion_str(rout_scope != NULL,
-                          "finish_moved_function_processing: body missing");
-      /* Handle local classes (and their member functions).  Note that,
-         because the routine scope has already been moved, the types
-         list here is in the primary IL. */
-      finish_type_list_moved_function_processing(rout_scope->types,
-                                                 do_inlines);
-    }  /* if */
-    /* Process inline functions only if appropriate. */
+    /* Process functions on the right pass (inline/noninline). */
     if ((do_inlines != 0) == (routine->is_inline != 0)) {
+      if (routine->assoc_scope != NULL_region_number) {
+        a_scope_ptr rout_scope =
+                            il_header.region_scope_entry[routine->assoc_scope];
+        check_assertion_str(rout_scope != NULL,
+                            "finish_moved_function_processing: body missing");
+        /* Handle local classes (and their member functions).  Note that,
+           because the routine scope has already been moved, the types
+           list here is in the primary IL. */
+        finish_type_list_moved_function_processing(rout_scope->types,
+                                                   do_inlines);
+      }  /* if */
       wrap_up_moved_function(routine);
     }  /* if */
   }  /* for */
