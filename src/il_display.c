@@ -1839,6 +1839,19 @@ Display the name of an expression operator.
 }  /* disp_expr_operator_name */
 
 
+static void disp_new_delete_supplement(a_new_delete_supplement_ptr ndsp)
+/*
+Display the indicated new/delete supplement to an expression node.
+*/
+{
+  disp_boolean("is_new", (a_boolean)ndsp->is_new);
+  disp_ptr("type", (char *)ndsp->type, iek_type);
+  disp_ptr("routine", (char *)ndsp->routine, iek_routine);
+  disp_ptr("arg", (char *)ndsp->arg, iek_expr_node);
+  disp_ptr("dynamic_init", (char *)ndsp->dynamic_init, iek_dynamic_init);
+}  /* disp_new_delete_supplement */
+
+
 static void disp_expr_node(an_expr_node_ptr ptr)
 /*
 Display the indicated expression node.
@@ -1862,10 +1875,6 @@ Display the indicated expression node.
       if (ptr->variant.operation.assignment_returns_lvalue) {
         disp_boolean("assignment_returns_lvalue",
                  (a_boolean)ptr->variant.operation.assignment_returns_lvalue);
-      }  /* if */
-      if (ptr->variant.operation.new_or_delete_call_for_array) {
-        disp_boolean("new_or_delete_call_for_array",
-               (a_boolean)ptr->variant.operation.new_or_delete_call_for_array);
       }  /* if */
       if (ptr->variant.operation.compiler_generated) {
         disp_boolean("compiler_generated",
@@ -1902,13 +1911,13 @@ do_variable:
       break;
     case enk_temp_init:
       (void)printf("enk_temp_init\n");
-      goto init_cases;
-    case enk_new_init:
-      (void)printf("enk_new_init\n");
-init_cases:
       disp_ptr("dynamic_init", (char *)ptr->variant.init.dynamic_init,
                iek_dynamic_init);
       disp_ptr("expr", (char *)ptr->variant.init.expr, iek_expr_node);
+      break;
+    case enk_new_delete:
+      (void)printf("enk_new_delete\n");
+      disp_new_delete_supplement(ptr->variant.new_delete);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -2629,12 +2638,14 @@ Display the indicated class type supplement entry.
   disp_class_list("befriending_classes", ptr->befriending_classes);
   disp_ptr("assoc_scope", (char * )ptr->assoc_scope, iek_scope);
   disp_template_arg_list("template_arg_list", ptr->template_arg_list);
-#if ASSIGNMENT_TO_THIS_ALLOWED
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
   disp_ptr("assoc_operator_new_routine",
            (char *)ptr->assoc_operator_new_routine, iek_routine);
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
   disp_ptr("assoc_operator_delete_routine",
            (char *)ptr->assoc_operator_delete_routine, iek_routine);
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
   /* Do not print out the IL entry members that are used only
      during IL lowering. */
@@ -2716,9 +2727,10 @@ This routine is called during IL walking.
     case iek_do_loop:
 #endif /* ifdef FFE */
 #ifdef CFE
+    case iek_derivation_step:
     case iek_class_list_entry:
     case iek_template_arg:
-    case iek_derivation_step:
+    case iek_new_delete_supplement:
 #endif /* ifdef CFE */
       break;
     default:
