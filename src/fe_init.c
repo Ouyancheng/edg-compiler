@@ -83,6 +83,9 @@ in the include files will become external definitions for the symbols.
 #if BACK_END_IS_C_GEN_BE
 #include "c_gen_be.h"
 #endif /* BACK_END_IS_C_GEN_BE */
+#if BACK_END_IS_CP_GEN_BE
+#include "cp_gen_be.h"
+#endif /* BACK_END_IS_CP_GEN_BE */
 
 #if DO_IL_LOWERING
 #include "lower_il.h"
