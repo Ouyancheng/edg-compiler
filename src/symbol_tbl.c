@@ -5702,7 +5702,13 @@ End a name scope by popping an entry off the scope stack.
   /* Remove the symbols declared in this scope from the symbol table.
      Check for unreferenced symbols, and issue warnings for those. */
   for (sym = ssep->symbols; sym != NULL; sym = sym->next_in_scope) {
-    end_of_scope_symbol_check(sym, curr_routine);
+    if (kind == (a_scope_kind)sck_func_prototype) {
+      /* Don't check on symbols entered in the scope of a function prototype.
+         They will be reentered in the scope of the function and should be
+         checked when the function scope is popped. */
+    } else {
+      end_of_scope_symbol_check(sym, curr_routine);
+    }  /* if */
     /* Remove the symbol from the symbol table.  (Note that symbols are not
        removed from the scope list.  This is because they must sometimes
        remain accessible and the scope list, saved away in some other data
