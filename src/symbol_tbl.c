@@ -6751,7 +6751,9 @@ End a name scope by popping an entry off the scope stack.
        popped.  This is necessary because template parameter lists are
        shared between a class and the member functions defined inside the
        class. */
-    for (scope_depth = depth_scope_stack; scope_depth >= 0; scope_depth--) {
+    for (scope_depth = depth_scope_stack - 1;
+         scope_depth >= 0;
+         scope_depth--) {
       if (scope_stack[scope_depth].kind ==
           (a_scope_kind)sck_template_instantiation &&
           scope_stack[scope_depth].template_param_list == tssp->parameters) {
