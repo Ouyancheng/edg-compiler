@@ -2961,7 +2961,7 @@ static a_statement_ptr start_block_statement(a_boolean dependent_statement)
 /*
 Do processing to begin a block or compound statement.  Return a pointer
 to the block statement.  dependent_statement is TRUE if the block is
-being created to surround a dependent statement in C++.
+being created to surround a dependent statement in C++ or C99.
 */
 {
   a_struct_stmt_kind      kind;
@@ -3055,10 +3055,9 @@ the block statement.
 
 static void dependent_statement(void)
 /*
-In C++ the dependent statement of a loop-statement or a selection-statement
-implicitly defines a local scope.  Push a new scope on the scope stack and then
-call statement().  In C mode or when the dependent statement is a compound
-statement no new scope is required.
+Scan the dependent statement of an if, switch, while, do-while, or for
+statement.  In C++ and C99, such a dependent statement implicitly defines
+a local scope.
 */
 {
   a_boolean         block_added, is_executable;
@@ -3067,12 +3066,12 @@ statement no new scope is required.
 
   db_enter(3, "dependent_statement");
   start_position = pos_curr_token;
-  /* In C++, add a block (and potential scope).  Do not do so, however,
+  /* In C++ and C99, add a block (and potential scope).  Do not do so, however,
      if a block will be created anyway. */
-  if (C_dialect != C_dialect_cplusplus || curr_token == tok_lbrace) {
+  if ((C_mode() && !c99_mode) || curr_token == tok_lbrace) {
     block_added = FALSE;
   } else {
-    /* Normal case (in C++): add a block and potential scope.
+    /* Normal case (in C++ and C99): add a block and potential scope.
        In cfront mode, the block is added but not the scope. */
     block = start_block_statement(/*dependent_statement=*/TRUE);
     block_added = TRUE;
