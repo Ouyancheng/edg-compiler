@@ -2963,6 +2963,10 @@ catch a B.
   an_exception_specification_type_ptr  estp1, estp2;
 
   if (exceptions_enabled) {
+    type1 = skip_typerefs(type1);
+    type2 = skip_typerefs(type2);
+    check_assertion(type1->kind == (a_type_kind)tk_routine &&
+                    type2->kind == (a_type_kind)tk_routine);
     esp1 = type1->variant.routine.extra_info->exception_specification;
     esp2 = type2->variant.routine.extra_info->exception_specification;
     if (esp2 == NULL) {
