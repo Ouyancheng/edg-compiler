@@ -306,15 +306,15 @@ when using dependent name lookup:
 The front end is now capable of doing semantic analysis of nonclass
 template definitions (it always has done semantic analysis of class
 template definitions).  This processing is enabled using the
---parse_function_templates option, and is automatically enabled when
+--parse_templates option, and is automatically enabled when
 standard conforming dependent name lookup is enabled.  Although the
-option is called --parse_function_templates, it also controls the
+option is called --parse_templates, it also controls the
 analysis of template static data member definitions, function template
 default arguments, and default template arguments.
 
 The EDG term for the semantic analysis of a template definition
 is "prototype instantiation".  The processing enabled by the
---parse_function_templates option is known as nonclass prototype
+--parse_templates option is known as nonclass prototype
 instantiations.
 
 The semantic analysis of these constructs requires the ability to parse
@@ -350,7 +350,7 @@ Prototype instantiations can only be supplied when doing semantic
 analysis of nonclass template definitions because it is the semantic
 analysis that produces the IL for the template definition.  Consequently,
 it is only possible to produce prototype instantiations for code that
-can be parsed using the --parse_function_templates option.
+can be parsed using the --parse_templates option.
 
 When PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the a_template entry
 contains a pointer to the prototype instantiation for the template and
