@@ -29,6 +29,8 @@ a_template_cache_ptr cache_for_template(a_template_symbol_supplement_ptr tssp);
 
 extern a_template_arg_ptr templ_arg_list_for_class(a_type_ptr class_type);
 
+extern a_symbol_ptr primary_template_of(a_symbol_ptr sym);
+
 extern a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
                                         a_template_arg_ptr  *template_arg_list,
 				 	a_boolean	    prototype_allowed);

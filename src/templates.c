@@ -668,7 +668,7 @@ instantiation.
 }  /* func_info_for_template */
 
 
-static a_symbol_ptr primary_template_of(a_symbol_ptr sym)
+a_symbol_ptr primary_template_of(a_symbol_ptr sym)
 /*
 If sym is a partial specialization, return the primary template.  Otherwise,
 just return sym.
