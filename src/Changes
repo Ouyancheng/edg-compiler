@@ -1,5 +1,17 @@
 Version 3.4
 
+12/19/03 Missing error on invalid non-class destructor call
+
+No diagnostic was issued when an explicit destructor call for a non-class
+type used a qualified name that names a class without an explicitly declared
+destructor.  Now fixed.
+
+  struct A { };
+  int main() {
+    int x;
+    x.A::~A();
+  }
+
 12/19/03 C99 mode error on very large integer constant
 
 According to the C99 standard, a decimal integer constant with

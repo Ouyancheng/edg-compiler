@@ -12082,9 +12082,14 @@ selection operator, in which case it points to the type of the left operand.
         reference, then it must be a non-class destructor reference
 	(e.g., int::~int). */
      is_nonclass_dtor = is_vacuous_dtor;
-     if (!is_vacuous_dtor && can_be_vacuous_dtor &&
-         (is_qualified_name && qualifier_is_type) &&
-         qualifier_type_is_class && !err) {
+     if (can_be_vacuous_dtor && field_sel_type != NULL &&
+         !is_class_struct_union_type(field_sel_type)) {
+       /* A destructor call for a non-class type is always vacuous, even if
+          the destructor name erroneously named a class type. */
+       is_nonclass_dtor = is_vacuous_dtor = TRUE;
+     } else if (!is_vacuous_dtor && can_be_vacuous_dtor &&
+                (is_qualified_name && qualifier_is_type) &&
+                qualifier_type_is_class && !err) {
        /* So far this looks like a normal destructor reference (i.e.,
           the qualified name represents a class, not some other type).
           See if the class has a destructor.  If it does not, this is a
