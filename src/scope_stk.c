@@ -2908,13 +2908,9 @@ End a name scope by popping an entry off the scope stack.
          need to be kept in the IL. */
       eliminate_unneeded_il_entries(il_scope);
     } else {
-      if (remove_unneeded_entities) {
-        /* okay_to_eliminate_unneeded_il_entries, though now FALSE, was
-           originally TRUE: if any memory regions would have been written out
-           if it had been known earlier that unneeded IL entries should not
-           be eliminated, write them out at this time. */
-        check_for_done_with_all_function_memory_regions();
-      }  /* if */
+      /* Check for memory regions that were not written out but now should
+         be. */
+      check_for_done_with_all_function_memory_regions();
     }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
