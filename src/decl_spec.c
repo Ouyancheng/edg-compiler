@@ -382,10 +382,13 @@ declaration of a class member.
           /* Advance past "uuid". */
           (void)get_token();
           if (required_token(tok_lparen, ec_exp_lparen)) {
-            if (curr_token != tok_string_literal ||
-                is_error_constant(&const_for_curr_token)) {
+            if (curr_token != tok_string_literal) {
               /* Error. */
               syntax_error(ec_bad_uuid_string);
+            } else if (is_error_constant(&const_for_curr_token)) {
+              /* We encountered a misformed string literal.  An error should
+                 have been issued already. */
+              check_assertion(total_errors != 0);
             } else {
               char          *str =
                                const_for_curr_token.variant.string.value;
