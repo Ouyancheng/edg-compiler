@@ -1,5 +1,11 @@
 Version 2.24
 
+6/28/94 Related class casts folded into constants in initializer expressions
+
+In initializer expressions in C++ that can be constant or nonconstant,
+base/derived-class casts are now folded as constant addresses instead
+of being rendered as dynamic initializations.
+
 6/28/94 Friend declaration of member function may not be a definition
 
 An error is now issued when a friend declaration of a member function

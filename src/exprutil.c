@@ -1428,6 +1428,7 @@ except for casts to ambiguous or inaccessible base classes.
       type_change_constant(&local_constant, new_type, is_implicit_cast,
                            /*constant_context=*/FALSE,
                            /*evaluated_context=*/TRUE,
+                           /*fold_constant_addr_exprs=*/FALSE,
                            &did_not_fold, err_pos);
     }  /* if */
     if (did_not_fold) {
@@ -1506,6 +1507,7 @@ except for casts to ambiguous or inaccessible base classes.
           type_change_constant(&local_constant, new_type, is_implicit_cast,
                                curr_expr_kind_is_const(),
                                curr_expr_is_evaluated(),
+                               (a_boolean)expr_stack->fold_constant_addr_exprs,
                                &did_not_fold, &operand->position);
           if (did_not_fold) {
             /* Cast of a constant did not fold. */

@@ -3271,6 +3271,7 @@ Scan a case label definition.  The syntax is:
                            /*is_implicit_cast=*/TRUE,
                            /*constant_context=*/TRUE,
                            /*evaluated_context=*/TRUE,
+                           /*fold_constant_addr_exprs=*/TRUE,
                            &did_not_fold, &error_position);
     }  /* if */
     /* Allocate a copy of the case constant. */

@@ -2273,6 +2273,7 @@ and if not, issue an error.  This version is for signed integer kinds.
                        /*is_implicit_cast=*/TRUE,
                        /*constant_context=*/TRUE,
                        /*evaluated_context=*/TRUE,
+                       /*fold_constant_addr_exprs=*/TRUE,
                        &did_not_fold, &error_position);
 }  /* set_integer_constant_with_overflow_check */
 
@@ -2297,6 +2298,7 @@ and if not, issue an error.  This version is for unsigned integer kinds.
                        /*is_implicit_cast=*/TRUE,
                        /*constant_context=*/TRUE,
                        /*evaluated_context=*/TRUE,
+                       /*fold_constant_addr_exprs=*/TRUE,
                        &did_not_fold, &error_position);
 }  /* set_unsigned_integer_constant_with_overflow_check */
 
@@ -2505,6 +2507,7 @@ Do IL lowering of a pointer-to-member constant.
                          /*is_implicit_cast=*/FALSE,
                          /*constant_context=*/TRUE,
                          /*evaluated_context=*/TRUE,
+                         /*fold_constant_addr_exprs=*/TRUE,
                          &did_not_fold, &error_position);
     /* Change the original constant into a ck_aggregate constant. */
     set_constant_kind(constant, (a_constant_repr_kind)ck_aggregate);

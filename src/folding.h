@@ -50,6 +50,7 @@ extern void type_change_constant(a_constant        *constant,
                                  a_boolean         is_implicit_cast,
                                  a_boolean         constant_context,
                                  a_boolean         evaluated_context,
+                                 a_boolean         fold_constant_addr_exprs,
                                  a_boolean         *did_not_fold,
                                  a_source_position *err_pos);
 

@@ -616,19 +616,20 @@ desired derived type.  If there is an error, it is issued at *err_pos.
 }  /* fold_derived_class_cast */
 
 
-static void conv_pointer_to_whatever(a_constant        *old_constant,
-				     a_constant        *new_constant,
-                                     a_boolean         is_implicit_cast,
-                                     a_boolean         constant_context,
-                                     a_boolean         *did_not_fold,
-                                     a_source_position *err_pos,
-				     an_error_code     *err_code,
-				     an_error_severity *err_severity)
+static void conv_pointer_to_whatever(
+                                    a_constant        *old_constant,
+                                    a_constant        *new_constant,
+                                    a_boolean         is_implicit_cast,
+                                    a_boolean         fold_constant_addr_exprs,
+                                    a_boolean         *did_not_fold,
+                                    a_source_position *err_pos,
+                                    an_error_code     *err_code,
+                                    an_error_severity *err_severity)
 /*
 Convert a pointer constant to a constant of type as specified by
 "new_constant".  If is_implicit_cast is TRUE, the cast is implicit.
-If constant_context is TRUE, this conversion is being done in a constant
-context.  If the cast cannot be folded, return *did_not_fold TRUE.
+If fold_constant_addr_exprs is TRUE, fold related class casts in constant
+form; if it's FALSE, do not do such folding and return *did_not_fold TRUE.
 If there is an error, either issue it immediately at *err_pos (if it
 cannot be reduced to a warning in a nonconstant context), or return
 *err_code and *err_severity set appropriately.  Note that this routine
@@ -672,10 +673,9 @@ type.
     /* In C++, a cast of a pointer to a class to a pointer to a base class
        or derived class. */
     related_class_cast = TRUE;
-    /* Do not fold such casts in constant form unless the current expression
-       is a constant expression.  That's to preserve detailed addressing
-       information in the IL. */
-    if (!constant_context) {
+    /* Do not fold such casts in constant form unless told to.  That's to
+       preserve detailed addressing information in the IL. */
+    if (!fold_constant_addr_exprs) {
       *did_not_fold = TRUE;
     } else if (baseward_cast) {
       /* Derived --> base.  Valid unless the cast is ambiguous or
@@ -1058,6 +1058,7 @@ void type_change_constant(a_constant        *constant,
 			  a_boolean         is_implicit_cast,
                           a_boolean         constant_context,
                           a_boolean         evaluated_context,
+                          a_boolean         fold_constant_addr_exprs,
                           a_boolean         *did_not_fold,
                           a_source_position *err_pos)
 /*
@@ -1070,7 +1071,9 @@ If evaluated_context is FALSE, this operation is being done in a
 not-evaluated context (e.g., a sizeof or a dead branch of a "?" operator),
 so any error is thrown away and *did_not_fold is returned TRUE.
 *did_not_fold is also returned TRUE in other cases where the folding
-cannot be done.
+cannot be done.  fold_constant_addr_exprs is TRUE if constant address
+expressions should be folded (e.g., base class casts); if it is FALSE,
+*did_not_fold is set instead for those.
 */
 {
   a_type_ptr        constant_type, new_type_with_typedefs;
@@ -1123,7 +1126,7 @@ cannot be done.
        would have constant_type->kind == tk_integer and new_type->kind
        == tk_integer, and so would not look like it involves pointers. */
     conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
-                             constant_context,
+                             fold_constant_addr_exprs,
                              did_not_fold, err_pos, &err_code, &err_severity);
     goto exit;
   }  /* if */
@@ -1185,7 +1188,8 @@ cannot be done.
     case tk_pointer:
       /* Converting from pointer. */
       conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
-                               constant_context, did_not_fold, err_pos,
+                               fold_constant_addr_exprs,
+                               did_not_fold, err_pos,
                                &err_code, &err_severity);
       break;
 
