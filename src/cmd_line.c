@@ -155,6 +155,11 @@ Initialize the option information table.
   add_option_description(optk_keep_comments_in_pp_output, "comments", 'C',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+  add_option_description(optk_old_line_dirs, "old_line_commands", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   add_option_description(optk_C_dialect_pcc, "old_c", 'K',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -730,6 +735,14 @@ Process the arguments on the command line that invoked the compiler.
         check_assertion(opt_value == TRUE);
         keep_comments_in_pp_output = TRUE;
         break;
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+      case optk_old_line_dirs:
+        /* Generate old-style line directives in generated C/C++ output,
+           i.e., "# nnn" instead of "#line nnn". */
+        check_assertion(opt_value == TRUE);
+        gen_old_style_line_dirs = TRUE;
+        break;
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
       case optk_C_dialect_pcc:
         /* Compile K&R/pcc dialect of C. */
         check_assertion(opt_value == TRUE);

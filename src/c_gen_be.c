@@ -406,7 +406,13 @@ file.
   /* End the previous line if there is one. */
   end_output_line_if_begun();
   curr_output_line = line_number;
-  (void)fprintf(f_C_output, "#line %lu", curr_output_line);
+  if (gen_old_style_line_dirs) {
+    /* Generate old-style directives, i.e., the kind output by the Reiser
+       cpp. */
+    (void)fprintf(f_C_output, "# %lu", curr_output_line);
+  } else {
+    (void)fprintf(f_C_output, "#line %lu", curr_output_line);
+  }  /* if */
   curr_output_seq_number = seq;
   if (new_output_file != curr_output_file) {
     /* The file name is put out only if it changed. */

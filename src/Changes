@@ -1,5 +1,12 @@
 Version 2.26
 
+9/29/94  --old_line_commands command-line option
+
+A new command-line option, --old_line_commands, works with the C and C++-
+generating back ends.  It requests that #line directives in the output
+be generated in the style of the output of the Reiser cpp, i.e., as
+"# nnn" instead of "#line nnn".
+
 9/29/94  Macros in string literal concatenation
 
 A bug with string literal concatenation has been fixed.  The following

@@ -28,15 +28,8 @@ cmd_line.h -- Declarations relating to cmd_line.c (relating
 #include "lang_feat.h"
 #endif /* ifndef LANG_FEAT_H */
 
-typedef enum /*a_C_dialect*/ {
-  /* Possible C dialects to compile. */
-  C_dialect_ANSI,	/* ANSI C. */
-  C_dialect_pcc,	/* UNIX pcc C. */
-  C_dialect_cplusplus	/* C++. */
-} a_C_dialect;
-
 /*
-List of possible option kinds.
+List of all command-line option kinds.
 */
 typedef enum /*an_option_kind*/ {
   optk_none,
@@ -45,6 +38,9 @@ typedef enum /*an_option_kind*/ {
   optk_preprocess_only_no_line_dirs,
   optk_preprocess_only_emit_line_dirs,
   optk_keep_comments_in_pp_output,
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+  optk_old_line_dirs,
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   optk_C_dialect_pcc,
   optk_list_makefile_dependencies,
   optk_list_include_files,
@@ -100,6 +96,13 @@ typedef enum /*an_option_kind*/ {
   optk_pch,
   optk_last		/* Must be last. */
 } an_option_kind;
+
+typedef enum /*a_C_dialect*/ {
+  /* Possible C/C++ dialects to compile. */
+  C_dialect_ANSI,	/* ANSI C. */
+  C_dialect_pcc,	/* UNIX pcc C. */
+  C_dialect_cplusplus	/* C++. */
+} a_C_dialect;
 
 EXTERN a_C_dialect
 		C_dialect
@@ -164,6 +167,13 @@ EXTERN a_boolean
 			/* If TRUE, comments should be retained in
 			   preprocessing output.  Meaningful only when
 			   generate_pp_output is TRUE. */
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+EXTERN a_boolean
+		gen_old_style_line_dirs /* = FALSE */;
+			/* If TRUE, generate old-style line directives in
+			   generated C/C++ output, i.e., "# nnn" instead of
+			   "#line nnn". */
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 EXTERN a_boolean
 		gen_line_info_in_pp_output /* = FALSE */;
 			/* If TRUE, generate #line directives in
