@@ -1,5 +1,31 @@
 Version 3.6
 
+1/11/05  C++-generating back end: ambiguous references caused by
+         using-directives
+
+When there are using-directives naming the same namespace in nested scopes,
+the C++-generating back end sometimes omitted name qualification required
+to avoid ambiguities resulting from a using-directive.  For example:
+
+  namespace A {
+    namespace B {
+      namespace C {
+        namespace D {
+        }
+      }
+      using namespace A::B::C;
+    }
+    using namespace A::B;
+  }
+  using namespace A::B;
+
+  namespace A {
+    namespace D {
+    }
+    using namespace A::D;  // Formerly generated as D, now A::D
+  }
+
+
 1/11/05  Microsoft compatibility: path names in #line directives
          and diagnostic messages
 

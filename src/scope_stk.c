@@ -1404,11 +1404,20 @@ specified after the point of definition of the template.
            but certain symbols are ignored later. */
         continue;
       }  /* if */
-      new_depth = set_value 
-                    ? audp->scope_depth_at_which_using_directive_applies
-                    : NO_SCOPE_DEPTH;
       nssp = audp->namespace_supplement;
-      nssp->scope_depth_at_which_using_directive_applies = new_depth;
+      if (set_value) {
+        new_depth = audp->scope_depth_at_which_using_directive_applies;
+        if (new_depth > nssp->scope_depth_at_which_using_directive_applies) {
+          /* If there are using-directives for this namespace at several
+             scope levels, leave this at the innermost (the previous
+             value will be NO_SCOPE_DEPTH when processing the innermost
+             level). */
+          nssp->scope_depth_at_which_using_directive_applies = new_depth;
+        }  /* if */
+      } else {
+        new_depth = NO_SCOPE_DEPTH;
+        nssp->scope_depth_at_which_using_directive_applies = NO_SCOPE_DEPTH;
+      }  /* if */
 #if DEBUG
       if (db_flag_is_set("using_dir")) {
         fprintf(f_debug,
