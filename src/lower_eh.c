@@ -437,9 +437,9 @@ This is used as part of the typeinfo information.
   /* Put the BCS_LAST bit on in the last entry. */
   check_assertion_str(flags_con != NULL,
                       "make_base_class_array_var: no base classes");
-  flags_value = value_of_integer_constant(flags_con, &ovflo);
+  flags_value = unsigned_value_of_integer_constant(flags_con, &ovflo);
   flags_value |= BCS_LAST;
-  set_integer_value(&flags_con->variant.integer_value, flags_value);
+  set_unsigned_integer_value(&flags_con->variant.integer_value, flags_value);
   /* Finish off the variable. */
   finish_array_var(bc_var);
   return bc_var;
@@ -671,8 +671,8 @@ and return a pointer to it.  Its definition is
 }  /* make_exception_type_spec_type */
 
 
-static a_variable_ptr typeinfo_var_for_type(a_type_ptr type,
-                                            long       *flags_value)
+static a_variable_ptr typeinfo_var_for_type(a_type_ptr    type,
+                                            unsigned long *flags_value)
 /*
 Create the typeinfo variable for the indicated type, and return a pointer
 to it.  Type qualifiers on the type are dropped.  For a pointer or reference
@@ -1040,7 +1040,7 @@ Lower an enk_throw expression node.
   an_expr_node_ptr   call_node, typeinfo_node, size_node, flags_node;
   an_expr_node_ptr   temp_node, assign_node;
   a_dynamic_init_ptr dip;
-  long               flags_value;                
+  unsigned long      flags_value;                
   an_init_pos_descr  ipd;
   an_insert_location insert_location;
   a_boolean          keep_dynamic_init;
@@ -1074,7 +1074,7 @@ Lower an enk_throw expression node.
     size_node = node_for_integer_constant((long)throw_type->size,
                                           TARG_SIZE_T_INT_KIND);
     typeinfo_node->next = size_node;
-    flags_node = node_for_integer_constant(flags_value,
+    flags_node = node_for_integer_constant((long)flags_value,
                                            (an_integer_kind)ik_int);
     size_node->next = flags_node;
     /* Make the __throw_alloc call. */
@@ -1520,7 +1520,7 @@ If type is NULL, add an ellipsis entry.
 */
 {
   a_variable_ptr typeinfo_var;
-  long           flags_value;
+  unsigned long  flags_value;
   a_constant_ptr typeinfo_con, flags_con, aggr_con;
 
   /* The current region is already the file scope memory region when
@@ -1543,8 +1543,8 @@ If type is NULL, add an ellipsis entry.
     set_variable_address_constant(typeinfo_var, typeinfo_con);
   }  /* if */
   flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  set_integer_constant(flags_con, flags_value,
-                       (an_integer_kind)ik_unsigned_char);
+  set_unsigned_integer_constant(flags_con, flags_value,
+                                (an_integer_kind)ik_unsigned_char);
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
   aggr_con->variant.aggregate.first_constant = typeinfo_con;
   typeinfo_con->next = flags_con;
@@ -1562,16 +1562,16 @@ type specification entries.
 */
 {
   a_constant_ptr array_aggr_con, aggr_con, flags_con;
-  long           flags_value;
+  unsigned long  flags_value;
   a_boolean      ovflo;
 
   /* Put the ETS_LAST bit on in the last entry. */
   array_aggr_con = var->initializer.constant;
   aggr_con = array_aggr_con->variant.aggregate.last_constant;
   flags_con = aggr_con->variant.aggregate.last_constant;
-  flags_value = value_of_integer_constant(flags_con, &ovflo);
+  flags_value = unsigned_value_of_integer_constant(flags_con, &ovflo);
   flags_value |= ETS_LAST;
-  set_integer_value(&flags_con->variant.integer_value, flags_value);
+  set_unsigned_integer_value(&flags_con->variant.integer_value, flags_value);
   /* Finish off the variable. */
   finish_array_var(var);
 }  /* finish_exception_type_spec_array */
