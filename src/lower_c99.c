@@ -75,7 +75,7 @@ routine meant to be used with traverse_type_tree.  It always returns FALSE
 and it never sets *end_traversal (so the whole type tree is traversed).
 */
 {
-  if (tp->kind == (a_type_kind)tk_array && tp->variant.array.is_vla) {
+  if (tp->kind == (a_type_kind)tk_array && is_vla_type(tp)) {
     /* VLA types will be lowered to pointers to the underlying element type. */
     record_vla_type_for_lowering(tp);
   } else if (tp->kind == (a_type_kind)tk_pointer) {
