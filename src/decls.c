@@ -3196,12 +3196,15 @@ diagnostics.
           case dmt_global_link_scope:
           case dmt_symbolic_link_scope:
           case dmt_hidden_link_scope:
+            /* If any of the Sun link scope specifiers were seen, handle them
+               all at the same time. */
             if (routine->source_corresp.name_linkage ==
                                          (a_name_linkage_kind)nlk_internal||
                 routine->source_corresp.name_linkage ==
                                          (a_name_linkage_kind)nlk_none) {
               pos_error(ec_link_scope_requires_external_linkage, position);
             } else if ((new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) != 0) {
+              /* A redeclaraton cannot relax the link scope of a routine. */
               if (is_redecl &&
                   (new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) <
                           (routine->decl_modifiers & DM_ANY_SUN_LINK_SCOPE)) {
@@ -3210,12 +3213,13 @@ diagnostics.
                 /* An explicit instantiation may include a link scope different
                    from that recorded in the template.  Therefore, we clear
                    any existing link scope recorded in the entry. */
-                routine->decl_modifiers &= ~DM_ANY_SUN_LINK_SCOPE;
+                routine->decl_modifiers &=
+                                      (a_decl_modifier)~DM_ANY_SUN_LINK_SCOPE;
                 routine->decl_modifiers |=
                                (new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE);
               }  /* if */
             }  /* if */
-            new_modifiers->flags &= ~DM_ANY_SUN_LINK_SCOPE;
+            new_modifiers->flags &= (a_decl_modifier)~DM_ANY_SUN_LINK_SCOPE;
             break;
 #endif /* SUN_EXTENSIONS_ALLOWED */
           default:
@@ -3316,12 +3320,15 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
           case dmt_global_link_scope:
           case dmt_symbolic_link_scope:
           case dmt_hidden_link_scope:
+            /* If any of the Sun link scope specifiers were seen, handle them
+               all at the same time. */
             if (variable->source_corresp.name_linkage ==
                                          (a_name_linkage_kind)nlk_internal ||
                 variable->source_corresp.name_linkage ==
                                          (a_name_linkage_kind)nlk_none) {
               pos_error(ec_link_scope_requires_external_linkage, position);
             } else if ((new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) != 0) {
+              /* A redeclaraton cannot relax the link scope of a variable. */
               if ((new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) <
                          (variable->decl_modifiers & DM_ANY_SUN_LINK_SCOPE)) {
                 pos_error(ec_link_scope_relaxation, position);
@@ -3330,7 +3337,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
                                (new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE);
               }  /* if */
             }  /* if */
-            new_modifiers->flags &= ~DM_ANY_SUN_LINK_SCOPE;
+            new_modifiers->flags &= (a_decl_modifier)~DM_ANY_SUN_LINK_SCOPE;
             break;
 #endif /* SUN_EXTENSIONS_ALLOWED */
           default:
@@ -11688,8 +11695,9 @@ continue_with_declaration:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   if ((dso_flags & DSO_NO_DECL_SPECIFIERS) && !is_linkage_spec_decl) {
-    /* This is something like ``extern "C" f();'' -- treat the linkage
-       specifier like a decl-specifier, for the purposes of diagnostics. */
+    /* Note that for the purposes of diagnostic, something like
+       ``extern "C" f();'' is treated as having a decl-specifier (hence
+       the test for !is_linkage_spec_decl). */
     decl_specifiers_omitted = TRUE;
   } else {
     /* Check for cases without a declarator and issue a diagnostic if it's

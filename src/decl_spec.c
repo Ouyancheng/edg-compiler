@@ -5304,10 +5304,10 @@ static void scan_link_scope_specifier(a_decl_flag_set         input_flags,
                                       a_decl_modifiers_block  *decl_modifiers)
 /*
 The current token corresponds to a Sun link scope specifier.  Update
-decl_modifiers to reflect the specifier if appropriate.  Issue an error
-if this is there are several such specifiers on the current declaration or
-if the specifiers appear on a parameter declaration.  input_flags is the
-flag set passed to the call to decl_specifiers.
+decl_modifiers to reflect the specifier if appropriate.  Issue an error if
+there are several such specifiers on the current declaration or if the
+specifiers appear on a parameter declaration.  input_flags is the flag set
+passed to the call to decl_specifiers.
 */
 {
   if (input_flags & DSI_IS_PARAMETER) {
