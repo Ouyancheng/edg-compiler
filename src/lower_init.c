@@ -3099,7 +3099,7 @@ The subtree of the node has not yet been lowered.
          top of this node. */
       init_node = var_rvalue_expr(temp_var);
       set_expr_insert_location(init_node, &insert_location);
-      if (exceptions_enabled) {
+      if (ndsp->delete_routine != NULL) {
         /* Exceptions are enabled, so make a cak_new_allocation cleanup action
            entry to get the storage freed if a throw occurs. */
         new_allocation_cap =
@@ -3126,7 +3126,7 @@ The subtree of the node has not yet been lowered.
                          (a_constructor_init_ptr)NULL,
                          &insert_location, &keep_dynamic_init);
       check_assertion(!keep_dynamic_init);
-      if (exceptions_enabled) {
+      if (ndsp->delete_routine != NULL) {
         /* Now that the region entry and the code to set the region number have
            been emitted, remove the cleanup action. */
         remove_cleanup_action(new_allocation_cap);

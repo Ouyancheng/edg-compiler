@@ -3656,7 +3656,7 @@ specification allow a variable-sized array as the top type.
   an_arg_operand_ptr
                     arg_operand_list, sizeof_arg_operand;
   an_expr_node_ptr  dummy;
-  a_boolean         array_new = FALSE;
+  a_boolean         placement_new = FALSE, array_new = FALSE;
   a_targ_size_t     effective_num_of_elements;
   an_arg_match_summary_ptr
                     arg_match_list = NULL;
@@ -3703,6 +3703,7 @@ specification allow a variable-sized array as the top type.
       trapped_left_paren = TRUE;
     } else {
       /* This is the placement expression list. */
+      placement_new = TRUE;
       if (curr_token == tok_rparen) {
         /* An empty list is not allowed. */
         error(ec_exp_primary_expr);
@@ -4035,9 +4036,11 @@ specification allow a variable-sized array as the top type.
     arg_operand_list = NULL;
     arg_match_list = NULL;
     /* If exceptions are enabled, record the delete routine to be used to
-       undo the allocation if an exception is thrown. */
+       undo the allocation if an exception is thrown.  Do not do this for
+       a "placement" new; the storage in that case is not freed automatically
+       when an exception is thrown. */
     delete_routine = NULL;
-    if (exceptions_enabled && new_routine != NULL) {
+    if (exceptions_enabled && new_routine != NULL && !placement_new) {
       delete_routine = select_delete_routine(base_new_type,
                                              use_global_new,
                                              array_new,
