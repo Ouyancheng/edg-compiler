@@ -1606,12 +1606,16 @@ straightforward for const and volatile, but restrict and __unaligned are
 valid only with certain configurations.
 */
 #if RESTRICT_ALLOWED
+/*lint -save -e773*/
 #define or_is_restrict_token(tok) || (tok) == tok_restrict
+/*lint -restore*/
 #else /* !RESTRICT_ALLOWED */
 #define or_is_restrict_token(tok)  /* Nothing */
 #endif /* RESTRICT_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+/*lint -save -e773*/
 #define or_is_unaligned_token(tok) || (tok) == tok_unaligned
+/*lint -restore*/
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define or_is_unaligned_token(tok)  /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
