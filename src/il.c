@@ -4314,6 +4314,22 @@ Return a type that is the unqualified version of the type given by type.
 }  /* make_unqualified_type */
 
 
+a_type_ptr make_field_selection_type(a_field_ptr           field,
+                                     a_type_qualifier_set  qualifiers)
+/*
+Return the type based on the type of the specified field, with the
+indicated qualifiers added.  However, it the field was declared mutable,
+"const" in the qualifier set is ignored.
+*/
+{
+  /* The selected field has all the type qualifiers of both the field
+     and the selecting pointer -- except that const is removed if the
+     field was declared to be mutable. */
+  if (field->is_mutable) qualifiers &= ~TQ_CONST;
+  return make_qualified_type(field->type, qualifiers);
+}  /* make_field_selection_type */
+
+
 void skip_common_type_qualifiers(a_type_ptr  *type1,
                                  a_type_ptr  *type2)
 /*
@@ -5702,6 +5718,7 @@ selections for anonymous unions.
   an_expr_operator_kind op;
   an_expr_node_ptr      field_node;
   a_type_ptr            selection_type;
+  a_type_qualifier_set  qualifiers;
 
   /* Make the expression node for the field. */
   field_node = alloc_expr_node((an_expr_node_kind)enk_field);
@@ -5713,8 +5730,8 @@ selections for anonymous unions.
                                (an_expr_operator_kind)eok_field;
   /* The selected field has all the type qualifiers of both the field
      and the selecting pointer. */
-  selection_type = type_plus_qualifiers_from_second_type(field->type,
-                                                  type_pointed_to(node->type));
+  qualifiers = get_type_qualifiers(type_pointed_to(node->type));
+  selection_type = make_field_selection_type(field, qualifiers);
   selection_type = make_pointer_type(selection_type);
   /* Make the field selection node. */
   node = make_operator_node(op, selection_type, node);

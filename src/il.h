@@ -202,6 +202,9 @@ under the qualifiers.
 
 extern a_type_ptr make_unqualified_type(a_type_ptr old_type);
 
+extern a_type_ptr make_field_selection_type(a_field_ptr           field,
+                                            a_type_qualifier_set  qualifiers);
+
 extern void skip_common_type_qualifiers(a_type_ptr  *type1,
                                         a_type_ptr  *type2);
 

@@ -1825,6 +1825,7 @@ The result is placed in *result.
   an_expr_operator_kind op;
   a_boolean             did_not_fold;
   an_operand            field_operand;
+  a_type_qualifier_set  qualifiers;
     
   if (is_error_operand(operand_1)) {
     make_error_operand(result);
@@ -1838,9 +1839,9 @@ The result is placed in *result.
     } else {
       /* The result type is set to the type of the field with the union of the
          qualifiers of the field and the qualifiers of the class, struct,
-         or union. */
-      result_type = type_plus_qualifiers_from_second_type(field->type,
-                                                      class_struct_union_type);
+         or union. const is ignored if the field was declared mutable. */
+      qualifiers = get_type_qualifiers(class_struct_union_type);
+      result_type = make_field_selection_type(field, qualifiers);
     }  /* if */
     /* Determine the IL operator to use.  If the first operand is a pointer
        (either explicitly, or because it's an lvalue and the operation is "."),
