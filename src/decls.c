@@ -8691,8 +8691,8 @@ currently being processed (NULL if none).
   clear_specific_symbol(locator);
   decl_pos = locator_for_curr_id.source_position;
   if (overload_sym == NULL) {
-    /* If we bring in a type that was already declared previously,
-       suppress a redeclaration error.  This is similar to the case
+    /* If we bring in a type that was declared previously, suppress a
+       redeclaration error.  This is similar to the case
        "typedef struct S {} S;". */
     if (!suppress_redecl_error && other_decl != NULL &&
         is_type_symbol(other_decl) && is_type_symbol(fund_sym)) {
