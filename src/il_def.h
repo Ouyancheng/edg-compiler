@@ -1995,7 +1995,10 @@ enum an_init_kind_tag {
   /* Kinds of initialization of a variable: */
   initk_none,		/* No initialization. */
   initk_static,		/* Static initialization to a constant. */
-  initk_dynamic		/* Dynamic initialization (code is required). */
+  initk_dynamic,	/* Dynamic initialization (code is required). */
+  initk_zero		/* Static initialization to zero.  Used to distinguish
+			   a tentative definition from a real definition.
+			   Produced by IL lowering. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_init_kind;
@@ -2096,7 +2099,8 @@ typedef struct a_variable {
   an_init_kind	init_kind;
 			/* Kind of initialization, if any. */
   union {
-    /* When init_kind == initk_none, no variant fields. */
+    /* When init_kind == initk_none or init_kind == initk_zero, no variant
+       fields. */
     /* When init_kind == initk_static: */
     a_constant_ptr
                 constant;

@@ -5695,6 +5695,7 @@ parameters.
   char            *var_name;
   a_storage_class storage_class;
   a_constant_ptr  init_con;
+  a_type_ptr      var_type = variable->type;
 #ifdef CFE
   a_boolean       forced_static;
 #endif /* ifdef CFE */
@@ -5777,11 +5778,10 @@ parameters.
         }  /* if */
         var_name = get_var_name(variable);
 #ifdef FFE
-        if (variable->type->kind == (a_type_kind)tk_association) {
+        if (var_type->kind == (a_type_kind)tk_association) {
           /* Put out association variables in a way that allows initialization
              of their components. */
-          dump_association_type(var_name, variable->type,
-                                variable->initializer);
+          dump_association_type(var_name, var_type, variable->initializer);
         } else if (is_non_arith_initialized_float(variable)) {
           /* A float or complex initialized with some non-arithmetic data
              must be put out like an association. */
@@ -5790,16 +5790,36 @@ parameters.
           variable->storage_class = (a_storage_class)sc_associated;
           variable->base_var = variable;  /* I.e., self. */
           variable->association_offset = 0;
-          dump_association_type(var_name, variable->type,
-                                variable->initializer);
+          dump_association_type(var_name, var_type, variable->initializer);
         } else
 #endif /* ifdef FFE */
         {
-          simple_type_reference(var_name, variable->type);
+          simple_type_reference(var_name, var_type);
         }  /* if */
         /* Dump the initializer if there is a constant one. */
         if (dump_initializers && init_con != NULL) {
           dump_initializer(variable, init_con, /*is_dynamic_init=*/FALSE);
+        } else if (variable->init_kind == (an_init_kind)initk_zero) {
+          /* Variable is initialized to zero (this distinguishes a tentative
+             definition from a real definition). */
+          a_type_kind tkind = skip_typerefs(var_type)->kind;
+          if (tkind == (a_type_kind)tk_array ||
+              tkind == (a_type_kind)tk_struct) {
+            /* Aggregates. */
+            (void)fprintf(f_C_output, " = {0}");
+          } else if (tkind == (a_type_kind)tk_union) {
+            /* Sorry, there's just no way to say this in K&R C.  That is,
+               there's no way to initialize a union so as to make it clear
+               that it is a definition. */
+#if CHECKING
+            internal_error(
+ "C-generating back end limitation: no way to force definition of union in C");
+#endif /* CHECKING */
+          } else {
+            /* Non-aggregates.  The zero initializer should work for all the
+               scalar cases. */
+            (void)fprintf(f_C_output, " = 0");
+          }  /* if */
         }  /* if */
         fputc(';', f_C_output);
       }  /* if */

@@ -414,6 +414,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->assoc_param_type, a_param_type_ptr, iek_param_type);
         switch (ptr->init_kind) {
           case initk_none:
+          case initk_zero:
             /* No pointers. */
             break;
           case initk_static:

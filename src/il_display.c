@@ -1449,6 +1449,9 @@ Display the indicated variable.
       (void)printf("initk_dynamic\n");
       disp_ptr("dynamic", (char *)ptr->initializer.dynamic, iek_dynamic_init);
       break;
+    case initk_zero:
+      (void)printf ("initk_zero\n");
+      break;
     default:
       (void)printf("**BAD INITIALIZATION KIND**\n");
   }  /* switch */

@@ -1310,6 +1310,9 @@ destructor_on_this_line:
 
 void db_initializer(a_variable_ptr  var,
                     int             level)
+/*
+Dump the initializer of a variable for debug purposes.
+*/
 {
   int  a;
 
@@ -1319,6 +1322,8 @@ void db_initializer(a_variable_ptr  var,
       fputs("static init: ", f_debug);
       db_static_initializer(var->initializer.constant);
       (void)fputc('\n', f_debug);
+    } else if (var->init_kind == (an_init_kind)initk_zero) {
+      fputs("zero init\n", f_debug);
     } else {
       fputs("dynamic init: ", f_debug);
       db_dynamic_initializer(var->initializer.dynamic, level + 2);
