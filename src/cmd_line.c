@@ -324,6 +324,8 @@ Process the arguments on the command line that invoked the compiler.
       case 'b':
         /* cfront compatibility mode. */
         cfront_compatibility_mode = TRUE;
+        /* This option implies C++ dialect. */
+        C_dialect = C_dialect_cplusplus;
         break;
       case 'n':
         /* Suppress execution of back end. */
@@ -509,6 +511,18 @@ unknown_option:
        error threshold was set at a higher level. */
     if ((int)error_threshold > (int)strict_ansi_error_severity) {
       error_threshold = strict_ansi_error_severity;
+    }  /* if */
+  }  /* if */
+  /* Check for the use of C++ options in when the dialect being compiled
+     is not C++. */
+  if (C_dialect != C_dialect_cplusplus) {
+    if (allow_anachronisms != DEFAULT_ALLOW_ANACHRONISMS) {
+      command_line_error
+        ("Anachronism option (-O) can only be used when compiling C++");
+    }  /* if */
+    if (suppress_virtual_function_table_definition) {
+      command_line_error
+        ("Suppress vtbl option (-V) can only be used when compiling C++");
     }  /* if */
   }  /* if */
   /* Determine the appropriate error level for anachronism messages based
