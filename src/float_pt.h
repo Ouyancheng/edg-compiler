@@ -101,8 +101,10 @@ extern a_boolean make_fp_nan(an_internal_float_value *value,
 extern a_boolean make_fp_infinity(an_internal_float_value *value,
                                   a_float_kind            kind);
 
+#if FIXED_POINT_ALLOWED
 extern a_boolean fp_is_nan_or_infinity(an_internal_float_value	*value,
 				       a_float_kind		kind);
+#endif /* FIXED_POINT_ALLOWED */
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
 extern void fp_change_kind(an_internal_float_value *old_value,

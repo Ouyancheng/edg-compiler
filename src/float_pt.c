@@ -659,6 +659,7 @@ return TRUE otherwise.
   return !err && !fp_mode_dependent;
 }  /* make_fp_infinity */
 
+#if FIXED_POINT_ALLOWED
 
 a_boolean fp_is_nan_or_infinity(an_internal_float_value	*value,
 				a_float_kind		kind)
@@ -677,6 +678,7 @@ floating-point kind of value.
   return result;
 }  /* fp_is_nan_or_infinity */
 
+#endif /* FIXED_POINT_ALLOWED */
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
 void fp_change_kind(an_internal_float_value *old_value,
@@ -1182,8 +1184,8 @@ adjusted to make the implicit bit explicit.
     val = *fp_ptr;
     mp->parts[0] |= (val >> 20);
     mp->parts[1] = val << 12;
-  } else {
-    check_assertion(kind == (a_float_kind)fk_long_double);
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+  } else if (kind == (a_float_kind)fk_long_double) {
     if (targ_ldbl_mant_dig == 64) {
       /* The code below constructs the value from fp_temp.  Copy the source to
          fp_temp. */
@@ -1224,6 +1226,9 @@ adjusted to make the implicit bit explicit.
     } else {
       unexpected_condition_str("load_hex_fp_value: bad long double size");
     }  /* if */
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+  } else {
+    unexpected_condition_str("load_hex_fp_value: bad float kind");
   }  /* if */
   if (restore_implicit_bit &&
       (kind != (a_float_kind)fk_long_double ||

@@ -238,9 +238,9 @@ Store the value represented by mp in the fixed-point value "value".
 fxp_descr describes the format of the value being stored.
 */
 {
-  int			parts_to_copy;
-  int			source_size;
-  int			part_offset;
+  unsigned int	parts_to_copy;
+  unsigned int	source_size;
+  unsigned int	part_offset;
 
   /* Zero the memory so that all of the space occupied by "value"
      is cleared, even if we are not storing all of the bytes of the value. */
@@ -304,9 +304,9 @@ Create mantissa (mp), exponent, and is_negative from a_fixed_point_value
 (value).  fxp_descr describes the format of the fixed-point value.
 */
 {
-  int			parts_to_copy;
-  int			dest_size;
-  int			part_offset;
+  unsigned int		parts_to_copy;
+  unsigned int		dest_size;
+  unsigned int		part_offset;
   a_fixed_point_value	local_value;
 
   init_mantissa(mp);
@@ -332,7 +332,7 @@ Create mantissa (mp), exponent, and is_negative from a_fixed_point_value
      This needs to be copied from the low order bytes of the fixed-point
      value.  See the comments in store_hex_fxp_value for more information. */
   if (host_little_endian) {
-    int i;
+    unsigned int i;
     for (i = 0; i < dest_size; ++i) {
       char	*dest;
       char	*source;
@@ -390,7 +390,7 @@ value is negative, is_negative will be TRUE.
   /* The source value is in the low order bytes of the integer value.
      This needs to be copied to the high order bytes of the mantissa. */
   if (host_little_endian) {
-    int i;
+    unsigned int i;
     for (i = 0; i < sizeof(an_integer_value); ++i) {
       char	*source;
       char	*dest;
