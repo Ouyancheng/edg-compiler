@@ -7894,7 +7894,7 @@ instantiation.
       }  /* if */
       /* If the symbol found is an injected template symbol, replace it with
          the template that it represents. */
-      if (is_injected_template_symbol(sym)) {
+      if (sym != NULL && is_injected_template_symbol(sym)) {
         sym = class_template_for_injected_template_symbol(sym);
       }  /* if */
     } else {
