@@ -3230,12 +3230,14 @@ caller is responsible for sorting that out.)
                           "ensure_il_scope_exists: routine_type is NULL");
       routine_type->variant.routine.extra_info->prototype_scope = sp;
       sp->variant.assoc_type = routine_type;
+    }  /* if */
+    if (sp != NULL) {
+      /* Set the scope-stack-entry depth. */
+      sp->depth_in_scope_stack = (scope_stack - ssep);
     } else {
       check_assertion_str(ssep->kind == (a_scope_kind)sck_pragma,
                           "ensure_il_scope_exists: NULL IL scope");
     }  /* if */
-    /* Set the scope-stack-entry depth. */
-    sp->depth_in_scope_stack = (scope_stack - ssep);
   }  /* if */
   return sp;
 }  /* ensure_il_scope_exists */
