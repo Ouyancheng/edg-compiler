@@ -8,7 +8,6 @@ in comparisons.  A warning is issued.
 
   main () {
     char a;
-    char *p;
     if (a > "  B ");  /* Okay with warning. */
     a = "  B ";       /* Okay with warning. */
   }
