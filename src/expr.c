@@ -8855,6 +8855,21 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                         conditional_operator_conversion_possible(&operand_3,
                                                                  &operand_2,
                                                                  &conv_3_to_2);
+      if (microsoft_bugs && conv_2_to_3_possible && conv_3_to_2_possible) {
+        /* The Microsoft compiler prefers a conversion using a constructor
+           to one that uses a conversion function. */
+        a_boolean conv_func_2_to_3 = (conv_2_to_3.routine != NULL &&
+                                      conv_2_to_3.routine->special_kind ==
+                                      (a_special_function_kind)sfk_conversion);
+        a_boolean conv_func_3_to_2 = (conv_3_to_2.routine != NULL &&
+                                      conv_3_to_2.routine->special_kind ==
+                                      (a_special_function_kind)sfk_conversion);
+        if (conv_func_2_to_3 && !conv_func_3_to_2) {
+          conv_2_to_3_possible = FALSE;
+        } else if (conv_func_3_to_2 && !conv_func_2_to_3) {
+          conv_3_to_2_possible = FALSE;
+        }  /* if */
+      }  /* if */
       if (conv_2_to_3_possible && conv_3_to_2_possible) {
         /* Each operand can be converted to the other, so the operation
            is ambiguous. */
