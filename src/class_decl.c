@@ -3702,25 +3702,65 @@ table.
 }  /* decl_static_data_member */
 
 
+static a_boolean is_assignment_operator_for_copy(
+                                               a_symbol_ptr  sym,
+                                               a_boolean     *is_ref_arg,
+                                               a_boolean     *accepts_const,
+                                               a_boolean     *accepts_volatile)
+/*
+Return TRUE if sym qualifies as an assignment operator that can copy a
+class object (ARM 12.8).  It qualifies if its first parameter has a type of
+"A", "A&", or "const A&", where "A" is the class of which it is a member.
+(The logic also supports a more relaxed (and dubious) reading of the ARM
+whereby a first parameter involving type B also qualifies if B is a base
+class of A; this interpretation is supported to provide compatibility with
+other C++ compilers, which work this way.)  Set *is_ref_arg to TRUE if the
+first parameter is a reference type.  Set *accepts_const and
+*accepts_volatile based on how the first parameter is qualified.
+*/
+{
+  a_boolean         found = FALSE;
+  a_param_type_ptr  ptp;
+  a_type_ptr        tp;
+
+  ptp = routine_symbol_type(sym)->variant.routine.extra_info->param_type_list;
+#if CHECKING
+  if (ptp == NULL) {
+    internal_error("is_assignment_operator_for_copy: null param type ptr");
+  }  /* if */
+#endif /* CHECKING */
+  tp = skip_typerefs(ptp->type);
+  if (is_reference_type(tp)) {
+    /* Reference argument. */
+    tp = type_pointed_to(tp);
+    *is_ref_arg = TRUE;
+  } else {
+    /* Not a reference argument. */
+    *is_ref_arg = FALSE;
+  }  /* if */
+  if (is_class_struct_union_type(tp) &&
+      is_same_class_or_base_class_thereof(sym->class_of_which_a_member, tp)) {
+    /* Found it. */
+    found = TRUE;
+    /* Check the qualifiers. */
+    *accepts_const = is_const_qualified_type(tp);
+    *accepts_volatile = is_volatile_qualified_type(tp);
+  }  /* if */
+  return found;
+}  /* is_assignment_operator_for_copy */
+
+
 static a_boolean assignment_operator_for_copy_exists(a_symbol_ptr  sym,
                                                      a_boolean     *const_okay)
 /*
-
 Return TRUE if sym is not NULL and qualifies as an assignment operator that
-can copy a class object (ARM 12.8).  It qualifies if its first parameter
-has a type of "const A&" or "A&", where "A" is the class of which it is a
-member.  (The logic also supports a more relaxed (and dubious) reading of
-the ARM whereby a first parameter involving type B also qualifies if B is a
-base class of A; this interpretation is supported to provide compatibility
-with other C++ compilers, which work this way.)  If sym is an overloaded
-function, return TRUE if at least one of the functions qualifies.  Set
-*const_okay TRUE if a const object can be copied.
-
+can copy a class object (ARM 12.8).  If sym is an overloaded function,
+return TRUE if at least one of the functions qualifies.  Set *const_okay
+TRUE if a const object can be copied.
 */
 {
-  a_type_ptr        tp, class_type;
-  a_param_type_ptr  ptp;
   a_boolean         sym_is_overloaded;
+  a_boolean         is_ref_arg, accepts_const, accepts_volatile;
   a_boolean         found_assignment_operator_for_copy = FALSE;
 
   db_enter(4, "assignment_operator_for_copy_exists");
@@ -3730,47 +3770,29 @@ function, return TRUE if at least one of the functions qualifies.  Set
     *const_okay = TRUE;
   } else {
     *const_okay = FALSE;
-    class_type = sym->class_of_which_a_member;
     sym_is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
     if (sym_is_overloaded) sym = sym->variant.overloaded_function.symbols;
     /* Loop through the one or more symbols looking for one with the right
        argument type. */
     for (; sym != NULL; sym = sym_is_overloaded ? sym->next : NULL) {
-      ptp = routine_symbol_type(sym)->
-                               variant.routine.extra_info->param_type_list;
-      if (ptp != NULL) {
-        tp = skip_typerefs(ptp->type);
-        /* We are looking for a reference to the current class. */
-        if (is_reference_type(tp)) {
-          tp = type_pointed_to(tp);
-          /* Look for an exact match between tp and either the parent class or
-             a base class of the parent class.  (A strict reading of the ARM
-             seems to disallow the base class match.) */
-          if (is_class_struct_union_type(tp) &&
-              is_same_class_or_base_class_thereof(class_type, tp)) {
-            /* Found it. */
-            found_assignment_operator_for_copy = TRUE;
-            /* Now see if it a const qualified object can be copied.  If not
-               keep looping in case there's another that accepts a const
-               object. */
-            if (is_const_qualified_type(tp)) {
-              *const_okay = TRUE;
-              break;
-            }  /* if */
-          }  /* if */
-        } else if (is_class_struct_union_type(tp) &&
-                   is_same_class_or_base_class_thereof(class_type, tp)) {
-          /* The argument is not the class object by reference but rather
-             the class object by value.  We accept this, but it presents a
-             special set of problems. */
-          found_assignment_operator_for_copy = TRUE;
-          /* An argument passed by value is not modified, so the assignment
-             function can accept a const source operand. */
+      if (is_assignment_operator_for_copy(sym, &is_ref_arg, &accepts_const,
+                                          &accepts_volatile)) {
+        /* Found an assignment operator that can serve to make a copy of the
+           current class. */
+        found_assignment_operator_for_copy = TRUE;
+        /* If it takes the object to be copied by value, a const object
+           may be copied; if it takes it by reference, a const qualifier must
+           be present on the parameter declaration. */
+        if (!is_ref_arg || accepts_const) {
           *const_okay = TRUE;
+          break;
+        } else {
+          /* This one does not accept a const object, but another in the
+             overload list might, so keep looping. */
         }  /* if */
       }  /* if */
-    }  /* if */
-  }  /* for */
+    }  /* for */
+  }  /* if */
   db_exit();
   return found_assignment_operator_for_copy;
 }  /* assignment_operator_for_copy_exists */
@@ -4428,11 +4450,9 @@ assignment operator.
 {
   a_symbol_ptr    sym, opass_sym = NULL;
   a_boolean       is_overloaded_function;
-  a_type_ptr      tp;
-  a_boolean       const_object_okay, volatile_object_okay, ambiguous = FALSE;
-  a_boolean       sym_matches_exactly, opass_sym_matches_exactly = FALSE;
+  a_boolean       ambiguous = FALSE;
+  a_boolean       opass_sym_matches_exactly = FALSE;
   a_routine_ptr   opass_routine;
-  a_boolean       is_ref_arg;
 
   db_enter(4, "select_assignment_operator");
   sym = symbol_supplement_for_class(class_type)->assignment_operator;
@@ -4447,50 +4467,42 @@ assignment operator.
   /* Find an assignment operator whose argument is ref-class (pass by
      reference) or class (pass_by_value). */
   for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-    /* Get the parameter type of the first (and only) parameter. */
-    tp = routine_symbol_type(sym)->
-                          variant.routine.extra_info->param_type_list->type;
-    /* Reference types and non-reference types are treated differently. */
-    if (is_reference_type(tp)) {
-      tp = type_pointed_to(tp);
-      is_ref_arg = TRUE;
-    } else {
-      is_ref_arg = FALSE;
-    }  /* if */
-    if (skip_typerefs(tp) != class_type) {
-      /* No match -- keep looking. */
-      continue;
-    }  /* if */
-    if (!is_ref_arg) {
-      /* Not a reference type, so qualifiers are ignored. */
-      sym_matches_exactly = TRUE;
-    } else {
-      /* Reference type.  See if it's const or volatile qualified. */
-      const_object_okay = is_const_qualified_type(tp);
-      volatile_object_okay = is_volatile_qualified_type(tp);
-      if ((const_object_required && !const_object_okay) ||
-          (volatile_object_required && !volatile_object_okay)) {
-        /* No match -- keep looking. */
-        continue;
-      } else if (const_object_okay == const_object_required &&
-                 volatile_object_okay == volatile_object_required) {
-        /* It's an exact match. */
+    a_boolean  sym_matches_exactly;
+    a_boolean  is_ref_arg;
+    a_boolean  const_object_okay, volatile_object_okay;
+
+    if (is_assignment_operator_for_copy(sym, &is_ref_arg, &const_object_okay,
+                                        &volatile_object_okay)) {
+      /* Found an assignment operator that can copy the current class. */
+      if (!is_ref_arg) {
+        /* Not a reference type, so qualifiers are ignored. */
         sym_matches_exactly = TRUE;
       } else {
-        /* It's not quite an exact match. */
-        sym_matches_exactly = FALSE;
+        /* Reference type. */
+        if ((const_object_required && !const_object_okay) ||
+            (volatile_object_required && !volatile_object_okay)) {
+          /* No match -- keep looking. */
+          continue;
+        } else if (const_object_okay == const_object_required &&
+                   volatile_object_okay == volatile_object_required) {
+          /* It's an exact match. */
+          sym_matches_exactly = TRUE;
+        } else {
+          /* It's not quite an exact match. */
+          sym_matches_exactly = FALSE;
+        }  /* if */
       }  /* if */
+      if (opass_sym != NULL) {
+        /* We have a match on this symbol, but we've already had one before
+           as well.  If one but not the other is an exact match, take the
+           one that matches.  Otherwise it's an ambiguity.  */
+        ambiguous = (sym_matches_exactly == opass_sym_matches_exactly);
+        if (!sym_matches_exactly) continue;
+      }  /* if */
+      opass_sym = sym;
+      opass_sym_matches_exactly = sym_matches_exactly;
+      *pass_by_value = !is_ref_arg;
     }  /* if */
-    if (opass_sym != NULL) {
-      /* We have a match on this symbol, but we've already had one before
-         as well.  If one but not the other is an exact match, take the
-         one that matches.  Otherwise it's an ambiguity.  */
-      ambiguous = (sym_matches_exactly == opass_sym_matches_exactly);
-      if (!sym_matches_exactly) continue;
-    }  /* if */
-    opass_sym = sym;
-    opass_sym_matches_exactly = sym_matches_exactly;
-    *pass_by_value = !is_ref_arg;
   }  /* for */
   opass_routine = NULL;
   if (opass_sym == NULL) {
@@ -4609,6 +4621,10 @@ operator routine or do bitwise assignment.
           rp = select_assignment_operator(bcp->type, const_source_var,
                                           /*volatile_object_required=*/FALSE,
                                           err_pos, &pass_by_value);
+          if (rp == NULL) {
+            /* Error has already been issued in the subroutine. */
+            continue;
+          }  /* if */
           /* Any assignment operator invoked by this publicly accessible
              compiler-generated assignment operator should itself be publicly
              accessible. (This is not exactly what ARM 12.8 says, but it
@@ -4674,6 +4690,10 @@ operator routine or do bitwise assignment.
             rp = select_assignment_operator(tp, const_source_var,
                                             /*volatile_object_required=*/FALSE,
                                             err_pos, &pass_by_value);
+            if (rp == NULL) {
+              /* Error has already been issued in the subroutine. */
+              continue;
+            }  /* if */
             /* Any assignment operator invoked by this publicly accessible
                compiler-generated assignment operator should itself be publicly
                accessible. (This is not exactly what ARM 12.8 says, but it
