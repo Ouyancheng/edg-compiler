@@ -411,11 +411,6 @@ Extract the constant value from the operand *operand and place it in
       break;
     case ok_constant:
       copy_constant(&operand->variant.constant, constant);
-      if (constant->kind == (a_constant_repr_kind)ck_template_param) {
-        /* Use an error constant for a template parameter constant within
-           a prototype instantiation. */
-        set_error_constant(constant);
-      }  /* if */
       break;
 #if CHECKING
     default:
