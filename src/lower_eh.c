@@ -2662,7 +2662,7 @@ involved in exception handling.  (Variables that need to be reinitialized
 with each new translation unit are handled in eh_lower_init.)
 */
 {
-  /* Save variables from lower_il.h and lower_il.c that are needed for
+  /* Save variables from lower_eh.h and lower_eh.c that are needed for
      precompiled headers */
   if (exceptions_enabled && precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
