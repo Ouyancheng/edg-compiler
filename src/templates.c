@@ -2494,38 +2494,7 @@ template parameter list.
       /* The qualifier on templ_type did not also appear on type, so there is
          no match. */
     } else {
-      /* If the template parameter has an associated tag kind, make sure
-         that the type of the actual argument is consistent with the
-         tag kind. */
-      a_boolean				tag_kind_ok = TRUE;
-      a_template_param_type_descr_ptr	tptdp;
-      tptdp = templ_type->variant.template_param.descr;
-      if (tptdp != NULL && tptdp->tag_kind != (a_type_kind)tk_unknown) {
-        a_type_kind	actual_tag_kind = (a_type_kind)tk_unknown;
-        /* Determine the tag kind (if any) of the actual type. */
-        switch (type->kind) {
-          case tk_struct:
-          case tk_class:
-            /* Classes and structs are both represented as tk_struct. */
-            actual_tag_kind = (a_type_kind)tk_struct;
-            break;
-          case tk_union:
-            actual_tag_kind = (a_type_kind)tk_union;
-            break;
-          case tk_enum:
-            /* tk_enum is actually tk_integer, make sure that this is really
-               an enum type. */
-	    if (type->variant.integer.enum_type) {
-              actual_tag_kind = (a_type_kind)tk_enum;
-            }  /* if */
-            break;
-        }  /* switch */
-        /* If the tag kinds are OK we can continue with the other tests. */
-        tag_kind_ok = actual_tag_kind == tptdp->tag_kind;
-      }  /* if */
-      if (!tag_kind_ok) {
-        /* No match. */
-      } else if (templ_type->variant.template_param.kind ==
+      if (templ_type->variant.template_param.kind ==
                              (a_template_param_type_kind)tptk_param) {
         a_template_param_list_pos list_pos;
         /* This is a template parameter from the original source program
@@ -4183,15 +4152,6 @@ Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
          type. */
       old_tptdp = old_type->variant.template_param.descr;
       new_tptdp = new_type->variant.template_param.descr;
-      if (old_tptdp != NULL && new_tptdp != NULL) {
-        /* Both types have type descriptions.  Make sure that the tag kinds
-           are consistent. */
-        if (old_tptdp->tag_kind != (a_type_kind)tk_unknown &&
-            new_tptdp->tag_kind != (a_type_kind)tk_unknown &&
-            old_tptdp->tag_kind != new_tptdp->tag_kind) {
-          err = TRUE;
-        }  /* if */
-      }  /* if */
       /* If neither type has a type description, allocate a new one. */
       if (old_tptdp == NULL) {
         old_tptdp = new_tptdp;
