@@ -29,6 +29,7 @@ and parsing of them into tokens.
 #include "il.h"
 #include "literals.h"
 #include "statements.h"
+#include "decls.h"
 
 #if ASM_FUNCTION_ALLOWED
 #include "asm_func.h"
