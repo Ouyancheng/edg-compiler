@@ -367,6 +367,11 @@ treated as separate translation units of a single compilation.
     /* Save the currently active set of translation unit specific variables. */
     save_translation_unit_state(curr_translation_unit);
   }  /* if */
+  /* Set a current position indicating we are in initialization.  This
+     actually does something for a secondary translation unit. */
+  pos_curr_token.seq = 0;
+  pos_curr_token.column = SP_COL_UNKNOWN;
+  set_err_pos_to_curr_token();
   /* Initialize the front end. */
   is_primary_translation_unit = is_primary;
   translation_unit_needed_only_for_exported_templates = exported_file != NULL;

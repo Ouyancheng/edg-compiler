@@ -3210,8 +3210,7 @@ Scan and process a #define directive.
                            locator_for_curr_id.source_position);
       /* The macro symbol is entered in file scope, unless it is a macro
          resulting from a "-D" command-line option. */
-      if (pos_curr_token.seq == 0 &&
-          pos_curr_token.column == SP_COL_CMD_LINE) {
+      if (depth_scope_stack == NO_SCOPE_DEPTH) {
         scope_depth = NO_SCOPE_DEPTH;
       } else {
         scope_depth = DEPTH_OF_FILE_SCOPE;
@@ -4401,7 +4400,11 @@ the "-D").
   a_boolean	save_expand_macros = expand_macros;
   a_boolean	save_fetch_pp_tokens = fetch_pp_tokens;
 
-  /* Don't expand macro while preprocessing: */
+  /* Set a current position indicating we are looking at the command line. */
+  pos_curr_token.seq = 0;
+  pos_curr_token.column = SP_COL_CMD_LINE;
+  set_err_pos_to_curr_token();
+  /* Don't expand macros while preprocessing: */
   expand_macros = FALSE;
   in_preprocessing_directive = TRUE;
   fetch_pp_tokens = TRUE;
@@ -4449,6 +4452,10 @@ the "-D").
   in_preprocessing_directive = FALSE;
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;
+  /* Set a current position indicating we are in initialization. */
+  pos_curr_token.seq = 0;
+  pos_curr_token.column = SP_COL_UNKNOWN;
+  set_err_pos_to_curr_token();
 }  /* process_command_line_macro_definitions */
 
 

@@ -615,6 +615,10 @@ unit, in case multiple source files are allowed.  This initialization is done
 after the command-line processing has been done.
 */
 {
+  /* Set a current position indicating we are still in initialization. */
+  pos_curr_token.seq = 0;
+  pos_curr_token.column = SP_COL_UNKNOWN;
+  set_err_pos_to_curr_token();
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 #if !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
   if (multibyte_chars_in_source_enabled) {
@@ -688,11 +692,6 @@ source file's compilation.
   (void)strcpy(curr_date_time, ctime(&timer));
 
   in_front_end = TRUE;
-
-  /* Set a current position indicating we are still in initialization. */
-  pos_curr_token.seq = 0;
-  pos_curr_token.column = SP_COL_UNKNOWN;
-  set_err_pos_to_curr_token();
 
   /* error.h: */
   total_remarks = total_warnings = total_errors = total_catastrophes = 0;
@@ -948,6 +947,11 @@ is TRUE when the current translation is a primary file, and FALSE
 when it is a secondary file.
 */
 {
+  /* Set a current position indicating we are still in initialization. */
+  pos_curr_token.seq = 0;
+  pos_curr_token.column = SP_COL_UNKNOWN;
+  set_err_pos_to_curr_token();
+
   mem_manage_trans_unit_init();
   host_envir_trans_unit_init();
   error_trans_unit_init();
