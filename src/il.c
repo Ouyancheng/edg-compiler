@@ -1441,10 +1441,12 @@ by recording that the last sequence number contained therein is seq_number.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-static a_source_file_ptr source_file_for_seq(a_seq_number  seq_number,
-                                             a_line_number *line_number,
-                                             a_boolean     *at_end_of_source,
-                                             unsigned long *nesting_depth)
+static a_source_file_ptr source_file_for_seq(a_seq_number   seq_number,
+                                             a_line_number  *line_number,
+                                             a_boolean      *at_end_of_source,
+                                             unsigned long  *nesting_depth,
+                                             a_source_file_ptr
+                                                            *parent_file)
 /*
 Find the source file entry within which the sequence number seq_number falls,
 and return a pointer to it.  Return NULL if the sequence number falls
@@ -1453,7 +1455,9 @@ return *line_number set to the line number in the file.  Return
 *at_end_of_source TRUE if the line number is the special number indicating
 the end-of-file line (one more than the last line in the primary input file).
 Return the file nesting depth in *nesting_depth (0 => not inside any file,
-1 => in primary source file, 2 => inside one level of #include, etc.).
+1 => in primary source file, 2 => inside one level of #include, etc.).  If
+the sequence number falls within a file, also return a pointer to that 
+source file entry's parent source file entry.
 */
 {
   register a_source_file_ptr curr_file, child_file;
@@ -1462,6 +1466,7 @@ Return the file nesting depth in *nesting_depth (0 => not inside any file,
   *at_end_of_source = FALSE;
   *line_number = 0;
   *nesting_depth = 0;
+  *parent_file = NULL;
   curr_file = il_header.primary_source_file;
   if (curr_file == NULL) {
     /* No files, so any sequence number is not within any file. */
@@ -1497,6 +1502,7 @@ examine_children:
       } else if (seq_number <= child_file->last_seq_number) {
         /* The sequence number falls within this child (or one of its
            children). */
+        *parent_file = curr_file;
         curr_file = child_file;
         goto examine_children;
       }  /* if */
@@ -1529,14 +1535,14 @@ unknown position, the file names will be set to zero-length strings, and
 the line number to 0.
 */
 {
-  a_source_file_ptr proper_file;
+  a_source_file_ptr proper_file, parent_file;
   unsigned long     nesting_depth;
 
   db_enter(5, "conv_seq_to_file_and_line");
 
   /* Find out which file the sequence number is in. */
   proper_file = source_file_for_seq(seq_number, line_number, at_end_of_source,
-                                    &nesting_depth);
+                                    &nesting_depth, &parent_file);
   if (proper_file == NULL) {
     /* Strange or unknown position. */
     *file_name = *full_name = "";
@@ -1561,20 +1567,92 @@ the line number to 0.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
+void conv_seq_to_physical_file_and_line(a_seq_number      seq_number,
+                                        a_source_file_ptr *src_file,
+                                        a_line_number     *physical_line,
+                                        a_boolean         *at_end_of_source)
+/*
+For the sequence number given by seq_number, find the corresponding
+physical file and line number.  A pointer to the IL source file entry is
+returned in *src_file , and the physical line number is returned in
+*physical_line.  If the sequence number indicates the end-of-source line,
+the source file pointer will be set to the primary source file,
+the line number to the last line in that file, and *at_end_of_source will be
+set TRUE (it is set to FALSE in all other cases).  If the sequence number
+indicates an unknown position, the source file pointer  will be set to
+NULL, and the line number to 0.
+*/
+{
+  a_source_file_ptr proper_file, parent_file, child_file;
+  unsigned long     nesting_depth;
+  unsigned long     lines_in_children;
+  a_line_number     line_number;
+
+  db_enter(5, "conv_seq_to_physical_file_and_line");
+
+  /* Find out which file the sequence number is in. */
+  proper_file = source_file_for_seq(seq_number, &line_number, at_end_of_source,
+                                    &nesting_depth, &parent_file);
+  if (proper_file == NULL) {
+    /* Strange or unknown position. */
+    *src_file = NULL;
+    *physical_line = 0;
+  } else {
+    if (proper_file->full_name != NULL) {
+      /* The desired sequence number is in an actual file */
+      *src_file = proper_file;
+      *physical_line = line_number - proper_file->first_line_number + 1;
+    }  else {
+      /* The desired sequence number is in a sequence of source governed
+         by a #line directive.  The actual file is the parent file, but
+         the physical line within that file is dependent upon the number
+         of source lines in any include files that fall between the  first
+         sequence number of the parent and the target sequence number. */
+      *src_file = parent_file;
+      lines_in_children = 0;
+      child_file = parent_file->first_child_file;
+      /* Check the sequence number against each child (in order by sequence
+         number); it must be within one of the children. */
+      while (child_file != NULL) {
+        if (seq_number <= child_file->last_seq_number) {
+          /* The sequence number falls within this child. */
+          break;
+        }  /* if */
+        if (child_file->full_name != NULL) {
+          /* This is a "real" include file, count the number of sequence
+             lines in this file. */
+          lines_in_children += child_file->last_seq_number -
+                               child_file->first_seq_number + 1;
+        }  /* if */
+        child_file = child_file->next;
+      }  /* while */
+      *physical_line = seq_number - parent_file->first_seq_number -
+                       lines_in_children + 1;
+    }  /* if */
+  }  /* if */
+
+  db_exit();
+}  /* conv_seq_to_physical_file_and_line */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+#if !STANDALONE_UTILITY_PROGRAM
+
 a_boolean seq_is_in_include_file(a_seq_number seq_number)
 /*
 Return TRUE if the sequence number seq_number falls within an include file.
 */
 {
   a_boolean         in_include_file;
-  a_source_file_ptr proper_file, primary_file, first_file_under_primary;
+  a_source_file_ptr proper_file, primary_file, first_file_under_primary,
+                    parent_file;
   a_line_number     line_number;
   a_boolean         at_end_of_source;
   unsigned long     nesting_depth;
 
   primary_file = il_header.primary_source_file;
   proper_file = source_file_for_seq(seq_number, &line_number,
-                                    &at_end_of_source, &nesting_depth);
+                                    &at_end_of_source, &nesting_depth,
+                                    &parent_file);
   if (proper_file == NULL) {
     /* Sequence number is not in a file, so it's not in an include file. */
     in_include_file = FALSE;

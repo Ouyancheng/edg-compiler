@@ -414,14 +414,25 @@ extern void record_start_of_source_file(a_source_file_ptr parent_file,
 			                char              *file_name,
 			                char              *full_name,
 			                a_source_file_ptr *new_file);
+
 extern void record_end_of_source_file(a_source_file_ptr curr_file,
 			              a_seq_number      seq_number);
+
 extern void conv_seq_to_file_and_line(a_seq_number  seq_number,
 			              char          **file_name,
 				      char          **full_name,
 				      a_line_number *line_number,
                                       a_boolean     *at_end_of_source);
+#if !STANDALONE_UTILITY_PROGRAM
+
+extern void conv_seq_to_physical_file_and_line(
+                                          a_seq_number      seq_number,
+                                          a_source_file_ptr *src_file,
+                                          a_line_number     *physical_line,
+                                          a_boolean         *at_end_of_source);
+
 extern a_boolean seq_is_in_include_file(a_seq_number seq_number);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern void break_source_corresp(a_source_correspondence *sc);
 
