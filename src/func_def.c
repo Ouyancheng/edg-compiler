@@ -1185,8 +1185,10 @@ and for the instantiation of template functions.
                          ((flags & SFB_IMPLICITLY_DECLARED_RETURN_TYPE) == 0);
 
     if (curr_token == tok_try) {
+      /* This must be a function-try-block.  Do some initialization that has
+         to be done before ctor-initializers are processed and bypass "try". */
+      start_of_function_try_block();
       is_function_try_block = TRUE;
-      setup_function_try_block();
     }  /* if */
 #if CHECKING
     if (total_errors == 0) {
@@ -1214,16 +1216,16 @@ and for the instantiation of template functions.
                                       dtor_initializer(rout_ptr);
     }  /* if */
     if (is_function_try_block) {
-      /* Scan the function try block. */
+      /* Scan the function try block.  This includes scanning the catch
+         clauses that follow the function body. */
       scope_ptr->assoc_block = function_try_block(explicit_return_type);
     } else {
       /* Scan the compound statement defining the function.  The closing "}"
          is not swallowed by compound_statement, so that the pop_scope call
          can be done to get any errors out right on the "}". */
-      scope_ptr->assoc_block = 
-                          compound_statement(/*at_function_level=*/TRUE,
-                                             explicit_return_type,
-                                             /*is_catch_clause=*/FALSE);
+      scope_ptr->assoc_block = compound_statement(/*at_function_level=*/TRUE,
+                                                  explicit_return_type,
+                                                  /*is_catch_clause=*/FALSE);
     }  /* if */
   }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -2382,6 +2384,7 @@ empty statement block.
     }  /* if */
     /* End of statement block is unreachable because of the return
        statement. */
+    check_assertion(scope->assoc_block->kind == (a_statement_kind)stmk_block);
     scope->assoc_block->
                    variant.block.extra_info->end_of_block_reachable = FALSE;
     /* Terminate the function scope. */

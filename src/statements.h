@@ -398,7 +398,7 @@ extern a_statement_ptr compound_statement(a_boolean at_function_level,
                                           a_boolean explicit_return_type,
                                           a_boolean is_catch_clause);
 
-extern void setup_function_try_block(void);
+extern void start_of_function_try_block(void);
 
 extern a_statement_ptr function_try_block(a_boolean  explicit_return_type);
 

@@ -3033,10 +3033,13 @@ See also 3.6.5.2.
 }  /* do_statement */
 
 
-static void setup_try_block(a_statement_ptr  sp)
+static void start_of_try_block(a_statement_ptr  sp)
 /*
+Do initialization for a try-block statement or a function-try-block.  The
+current token should be "try", which is consumed.
 */
 {
+  db_enter(3, "start_of_try_block");
   check_assertion(curr_token == tok_try);
   /* Do processing required for any pragmas that are bound to the current
      statement. */
@@ -3060,7 +3063,8 @@ static void setup_try_block(a_statement_ptr  sp)
   }  /* if */
   /* Bypass "try". */
   (void)get_token();
-}  /* setup_try_block */
+  db_exit();
+}  /* start_of_try_block */
 
 
 static void try_block_statement(a_statement_ptr  sp,
@@ -3074,6 +3078,12 @@ where handler-seq is a sequence of one or more handlers of the form
 
   catch ( exception-declaration ) compound-statement
 
+This function is also called to scan a function try block, in which case the
+"try" keyword will already have been consumed and other initialization done.
+sp points to an stmk_try_block statement when a function try block is being
+scanned but is NULL for an ordinary try-block.  explicit_return_type is TRUE
+only for function try blocks and only when the associated function was
+declared with an explicit return type.
 */
 {
   a_source_position  catch_pos;
@@ -3086,7 +3096,7 @@ where handler-seq is a sequence of one or more handlers of the form
     check_for_unreachable_code();
     sp = add_statement((a_statement_kind)stmk_try_block);
     stmt_update_source_sequence_list(sp);
-    setup_try_block(sp);
+    start_of_try_block(sp);
   }  /* if */
   /* "catch" is not put into the stop tokens set on purpose because the
      guarded statement is always a compound statement.  It wouldn't do
@@ -5379,9 +5389,10 @@ branching into it is disallowed).
   set_stmt_source_position(block->end_position, end_pos_curr_token);
   curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Check for the closing "}".  Note that for a function, the "}" is left
-     for the caller (function_definition) to handle. */
-  if (!at_function_level) {
+  if (at_function_level) {
+    /* The "}" is left for the caller (scan_function_body) to handle. */
+  } else {
+    /* Check for the closing "}". */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
   }  /* if */
   remove_stop_token(tok_rbrace);
@@ -5406,7 +5417,7 @@ branching into it is disallowed).
 }  /* compound_statement */
 
 
-void setup_function_try_block(void)
+void start_of_function_try_block(void)
 /*
 Do initialization required for scanning the body of a function try block.
 Note that this is done independently of function_try_block, since
@@ -5417,6 +5428,7 @@ function try block has to have been established first.
 {
   a_statement_ptr  sp;
 
+  db_enter(3, "start_of_function_try_block");
   /* Some of this is identical to initializations done for function blocks
      in compound_statement. */
   set_reachable(curr_reachability);
@@ -5434,8 +5446,9 @@ function try block has to have been established first.
   scope_stack[depth_scope_stack].curr_scope_object_lifetime = NULL;
 #endif /* if 0 */
   /* Do additional initialization generic to scanning a try statement. */
-  setup_try_block(sp);
-}  /* setup_function_try_block */
+  start_of_try_block(sp);
+  db_exit();
+}  /* start_of_function_try_block */
 
 
 a_statement_ptr function_try_block(a_boolean  explicit_return_type)
@@ -5450,6 +5463,7 @@ is in effect a wrapper around compound statement.
 {
   a_statement_ptr  sp;
 
+  db_enter(3, "function_try_block");
   check_assertion(depth_stmt_stack == 0 &&
                   struct_stmt_stack[0].kind ==
                                  (a_struct_stmt_kind)ssk_try_block);
@@ -5468,6 +5482,7 @@ is in effect a wrapper around compound statement.
     db_statement_list(sp, /*indent=*/0, "", how_deep);
   }  /* if */
 #endif /* DEBUG */
+  db_exit();
   return sp;
 }  /* function_try_block */
 
