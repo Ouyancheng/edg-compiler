@@ -10613,19 +10613,27 @@ Return TRUE if any destructor calls are required to exit from the contexts
 indicated by curr_context through outer_context, inclusive.
 */
 {
-  a_boolean     any_required = FALSE;
-  a_context_ptr context_ptr;
+  a_boolean                      any_required = FALSE;
+  a_context_ptr                  context_ptr;
+  a_required_destructor_call_ptr rdcp;
 
   /* Loop outward through the indicated scopes. */
   for (context_ptr = curr_context;; context_ptr = context_ptr->parent) {
-    if (context_ptr->required_destructor_calls != NULL) {
-      /* There are some required destructor calls. */
-      any_required = TRUE;
-      break;
-    }  /* if */
+    /* Walk the required_destructor_calls list to see if any of the entries
+       are actually required calls (as opposed to label markers). */
+    for (rdcp = context_ptr->required_destructor_calls;
+         rdcp != NULL;
+         rdcp = rdcp->next) {
+      if (rdcp->label_marker == NULL) {
+        /* There are some required destructor calls. */
+        any_required = TRUE;
+        goto done;
+      }  /* if */
+    }  /* for */
     /* Stop when the outer context is reached. */
     if (context_ptr == outer_context) break;
   }  /* for */
+done:
   return any_required;
 }  /* any_required_destructor_calls */
 
