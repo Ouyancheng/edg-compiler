@@ -2672,6 +2672,11 @@ Do IL lowering of a pointer-to-member constant.
       /* For a non-virtual function, a pointer to the routine. */
       set_routine_address_constant(routine, func_con,
                                    /*set_address_taken_flag=*/TRUE);
+      /* Make sure the routine type is lowered.  This call is necessary when
+         the type now is from a declaration of the function and later that
+         will be replaced by an equivalent but separate type from the
+         definition. */
+      lower_os_type(routine->type);
     } else {
       /* For a virtual function, the offset of the virtual function table
          pointer in the class of the routine.  Also handles the NULL case. */
