@@ -3598,17 +3598,13 @@ function symbols.
          name.  The routine overload_distinguishable returns TRUE if the
          routine types are candidates for overloading; if it returns FALSE
          it also returns the error code for a diagnostic explaining why. */
-      if (is_operator_delete_symbol(sym)) {
-        /* Overloading is not allowed for operator delete() (ARM 12.5). */
-        pos_error(ec_delete_already_declared, &locator->source_position);
-        suppress_redecl_error = TRUE;
-      /* template_case is FALSE in the following because although member
+      /* template_case is FALSE in the following call because although member
          functions of class templates have template types in their parameters,
          they are not called using the template overload resolution
          mechanism. */
-      } else if (!overload_distinguishable(sym, type,
-                                           /*template_case=*/FALSE, /* sic! */
-                                           &error_code)) {
+      if (!overload_distinguishable(sym, type,
+                                    /*template_case=*/FALSE, /* sic! */
+                                    &error_code)) {
         pos_error(error_code, &locator->source_position);
         suppress_redecl_error = TRUE;
       } else {

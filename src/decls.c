@@ -3677,25 +3677,14 @@ on for use in generating cross-reference output describing this declaration.
          parameters list. */
       check_default_args(type_ptr);
     }  /* if */
-    if (homonym_symbol != NULL) {
+    if (homonym_symbol != NULL &&
+        homonym_symbol->kind != (a_symbol_kind)sk_function_template) {
       /* homonym_symbol is a previously declared routine symbol with the
          same name but a different type signature from that of the current
          declaration.  We may have an instance of function overloading. */
       an_error_code  error_code;
 
-      if (homonym_symbol->kind != (a_symbol_kind)sk_overloaded_function &&
-          homonym_symbol->kind != (a_symbol_kind)sk_function_template) {
-        a_routine_ptr  rp = homonym_symbol->variant.routine.ptr;
-        if (rp->special_kind == (a_special_function_kind)sfk_operator &&
-            is_delete_operator(rp->opname_kind)) {
-          /* Overloading is not allowed for operator delete() (ARM 12.5). */
-          pos_error(ec_delete_already_declared, &locator->source_position);
-          redecl_error_already_issued = TRUE;
-          goto skip_overloading;
-        }  /* if */
-      }  /* if */
-      if (homonym_symbol->kind != (a_symbol_kind)sk_function_template &&
-          !overload_distinguishable(homonym_symbol, type_ptr,
+      if (!overload_distinguishable(homonym_symbol, type_ptr,
                                     /*new_is_template=*/FALSE, &error_code)) {
         /* The previous declaration and the current one are not "overload
            distinguishable" for a reason given by the error code returned. */
@@ -4229,13 +4218,7 @@ class template.
       pos_error(ec_function_template_named_main, &locator->source_position);
       set_to_error_locator(*locator);
     } else if (locator->is_operator_name) {
-      if (is_delete_operator(locator->variant.opname)) {
-        /* A template definition of operator delete is not allowed.  This
-           is inferred from the ARM prohibition against overloading
-           operator delete. */
-        pos_error(ec_template_operator_delete, &locator->source_position);
-        set_to_error_locator(*locator);
-      } else if (is_default_operator_new(locator, type_ptr)) {
+      if (is_default_operator_new(locator, type_ptr)) {
         /* Overloading should not be allowed on the single-argument
            version of operator new(size_t), though it is not expressly
            prohibited.  At least one C++ test suite expects an error. */
