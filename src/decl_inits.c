@@ -4015,7 +4015,8 @@ initialized.  These are addressed in the course of the processing.
           }  /* if */
           init_type = type_symbol_type(member_or_base_sym);
           init_type = skip_typerefs(init_type);
-          if (template_param_init) {
+          if (template_param_init &&
+              init_type->kind == (a_type_kind)tk_template_param) {
             init_type = proxy_class_for_template_param(init_type);
           }  /* if */
           if (is_qualified_type(init_type)) {
