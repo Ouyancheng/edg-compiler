@@ -1,5 +1,11 @@
 Version 2.45
 
+12/4/00  Diagnostic on invalid long long suffix
+
+A diagnostic is now issued in strict mode when a long long suffix of
+"lL" or "Ll" is used on an integral constant (only "ll" or "LL" should
+be used).
+
 12/2/00  C-generating back end, RECORD_NAME_IN_PARAM_TYPE_ENTRY: parameter
          names on function declarations
 

@@ -48,6 +48,7 @@ constants).  The number may have a "u" or "l" suffix, or both.
   a_boolean        has_u_suffix = FALSE, has_l_suffix = FALSE;
 #if LONG_LONG_ALLOWED
   a_boolean        has_ll_suffix = FALSE;
+  char		   l_char_used = '\0';
 #endif /* LONG_LONG_ALLOWED */
   char             *temp_ptr;
   a_boolean        err, ovflo = FALSE, do_sign_extension = FALSE;
@@ -124,10 +125,19 @@ constants).  The number may have a "u" or "l" suffix, or both.
         if (has_l_suffix) {
           has_l_suffix = FALSE;
           has_ll_suffix = TRUE;
+          if (*real_end_pos != l_char_used && strict_ansi_mode) {
+            /* An invalid suffix such as "Ll" or "lL".  Give an error but
+               still treat it as a long long. */
+            *err_pos = real_end_pos;
+            *err_code = ec_bad_suffix;
+          }  /* if */
         } else
 #endif /* LONG_LONG_ALLOWED */
         {
           has_l_suffix = TRUE;
+#if LONG_LONG_ALLOWED
+          l_char_used = *real_end_pos;
+#endif /* LONG_LONG_ALLOWED */
         }  /* if */
         real_end_pos--;
       } else {
