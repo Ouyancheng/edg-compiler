@@ -2250,15 +2250,15 @@ for more information.
   a_routine_type_supplement_ptr rtsp1, rtsp2;
   a_symbol_ptr                  sym_1, sym_2;
   a_boolean			il_identical;
-  a_boolean			unknown_implicit_this_type;
+  a_boolean			unknown_this_class_type;
 
   db_enter(5, "f_identical_types");
 
   il_identical = (flags & ITF_IL_IDENTICAL) != 0;
-  unknown_implicit_this_type = (flags & ITF_UNKNOWN_IMPLICIT_THIS_TYPE) != 0;
+  unknown_this_class_type = (flags & ITF_UNKNOWN_THIS_CLASS_TYPE) != 0;
   /* Reset the unknown implicit this type flag so that it won't be passed
      to recursive calls of this routine. */
-  flags &= ~ITF_UNKNOWN_IMPLICIT_THIS_TYPE;
+  flags &= ~ITF_UNKNOWN_THIS_CLASS_TYPE;
   /* Although the macros do the type_1 == type_2 test, repeat it here
      so it's present for the recursive calls. */
   if (type_1 == type_2) {
@@ -2351,7 +2351,7 @@ for more information.
           break;
         case tk_routine:
           {
-            a_boolean	implicit_this_matches = FALSE;
+            a_boolean	this_class_matches = FALSE;
             a_type_ptr	this1;
             a_type_ptr	this2;
             rtsp1 = type_1->variant.routine.extra_info;
@@ -2360,27 +2360,26 @@ for more information.
             this2 = rtsp2->this_class;
             if (this1 == NULL && this2 == NULL) {
               /* Both this parameter types are NULL -- they match. */
-              implicit_this_matches = TRUE;
+              this_class_matches = TRUE;
             } else if (this1 == NULL || this2 == NULL) {
               /* One, but not both, of the this parameter types are NULL.
                  This is considered a match if the flag is set that 
                  indicates that we don't yet know whether the type has
                  an implicit this parameter type and if the non-NULL type
                  has no qualifiers. */
-              implicit_this_matches = unknown_implicit_this_type &&
+              this_class_matches = unknown_this_class_type &&
                                       rtsp1->qualifiers == TQ_NONE &&
                                       rtsp2->qualifiers == TQ_NONE;
             } else {
               /* Both types are non-null, see if they are identical. */
-              implicit_this_matches =
+              this_class_matches =
                         rtsp1->qualifiers == rtsp2->qualifiers &&
-                        equiv_class_types(this1, this2,
-                                          /*error_matches_anything=*/FALSE);
+                        identical_types(this1, this2);
             }  /* if */
             /* For functions, the return types must be identical, the
                parameter lists must be identical, and the implicit "this"
                parameter type (if any) must be identical. */
-            if (implicit_this_matches &&
+            if (this_class_matches &&
                 f_identical_types(type_1->variant.routine.return_type,
                                   type_2->variant.routine.return_type,
                                   flags) &&
@@ -2812,13 +2811,13 @@ for exact pointer equality.
                                      type_2->variant.routine.return_type,
                                      flags) &&
               param_types_are_compatible(type_1, type_2, flags) &&
-              ((flags & TCF_IGNORE_IMPLICIT_THIS_PARAM_TYPE) ||
+              ((flags & TCF_IGNORE_THIS_CLASS_TYPE) ||
                (rtsp1->qualifiers == rtsp2->qualifiers &&
                 ((rtsp1->this_class == NULL) ?
                     (rtsp2->this_class == NULL) :
                     (rtsp2->this_class != NULL &&
-                     equiv_class_types(rtsp1->this_class, rtsp2->this_class,
-                                       error_matches_anything))))) &&
+                     f_types_are_compatible(rtsp1->this_class,
+                                            rtsp2->this_class, flags))))) &&
               (ignore_calling_conventions ||
                (routine_linkages_are_compatible(
                              (a_name_linkage_kind)rtsp1->routine_name_linkage,
@@ -2836,7 +2835,7 @@ for exact pointer equality.
           /* Pointer-to-member types are compatible if they refer to the same
              class type and their member types are compatible. */
           if (flags & TCF_IGNORE_PTR_TO_MEMBER_CLASS_TYPE) {
-            flags |= TCF_IGNORE_IMPLICIT_THIS_PARAM_TYPE;
+            flags |= TCF_IGNORE_THIS_CLASS_TYPE;
           }  /* if */
           if (f_types_are_compatible(pm_member_type(type_1),
                                      pm_member_type(type_2), flags)) {
@@ -5280,7 +5279,7 @@ the old list.  Only callable in C++ mode.  See ARM 13.
     if ((old_this_qualified != new_this_qualified && any_cfront_mode()) ||
         (old_this_class != NULL && new_this_class != NULL &&
          (old_this_qualifiers != new_this_qualifiers ||
-          !equiv_class_types(old_this_class, new_this_class, TCF_NO_FLAGS)))) {
+          !identical_types(old_this_class, new_this_class)))) {
       /* "this" parameter types are distinguishable; this probably means
          one function is const or volatile and the other isn't. */
       distinguishable = TRUE;

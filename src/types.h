@@ -317,20 +317,18 @@ typedef unsigned int an_itf_flag_set;
 			   il_identical_types, which do the initial
 			   test for exact pointer equality. */
 
-#define ITF_UNKNOWN_IMPLICIT_THIS_TYPE 0x02
-			/* TRUE if the implicit this parameter may not
+#define ITF_UNKNOWN_THIS_CLASS_TYPE 0x02
+			/* TRUE if the this class type may not
 			   be known yet.  When this flag is set, a
-			   NULL implicit this parameter type is
-			   ignored (i.e., no attempt is made to match
-			   it with the template type). */
+			   NULL this class type is ignored. */
 
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_NO_FLAGS))
 #define il_identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_IL_IDENTICAL))
-#define unknown_implicit_this_identical_types(t1, t2) \
+#define unknown_this_class_identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), \
-                                     ITF_UNKNOWN_IMPLICIT_THIS_TYPE))
+                                     ITF_UNKNOWN_THIS_CLASS_TYPE))
 
 /* Compare one level of two array types. */
 extern a_boolean f_identical_types(a_type_ptr      type_1,
@@ -384,9 +382,9 @@ Bit flags for calls of f_types_are_compatible et al.
 			   should be done for the class-types.  This flag is
 			   used in Microsoft-bugs mode only, to deal with a
 			   bug in redeclaration of static data members. */
-#define TCF_IGNORE_IMPLICIT_THIS_PARAM_TYPE 0x80
+#define TCF_IGNORE_THIS_CLASS_TYPE 0x80
 			/* Two function types are deemed compatible even if
-			   the implicit-this-param types do not match.
+			   the this class types do not match.
 			   This flag is used in Microsoft-bugs mode only, to
 			   deal with a bug in redeclaration of static data
 			   members. */
