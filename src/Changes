@@ -1,5 +1,30 @@
 Version 2.32
 
+5/24/96 Restarting initialization of local static when exception thrown
+
+When an exception is thrown during the initialization of a local static
+variable, the partial initialization done so far is supposed to be
+backed out, and then things should be set so that the initialization
+is attempted again the next time it is encountered.  This is now done.
+
+To implement this, a new object lifetime (of kind olk_block) has been
+attached to the a_local_static_variable_init entry for a dynamic local
+static initialization.  This object lifetime surrounds the entire
+initialization of the local static variable, and therefore its extent
+is exactly the period of time during which the variable is partially
+initialized.  The object lifetime is kept only when exceptions are
+enabled.
+
+If you use IL lowering, you will find that this new object lifetime
+is reattached to the block statement of the "if" statement generated
+to guard the initialization of the variable.  A new dynamic initialization,
+with is_guard_var_for_local_static_var_init TRUE, is added to that
+object lifetime to indicate the cleanup action of resetting the guard
+variable to zero if an exception is thrown.  If GENERATE_EH_TABLES
+is TRUE, a region table entry for this cleanup is also generated,
+with the new flag RDF_GUARD_VAR_FOR_LOCAL_STATIC set to indicate
+this special case.
+
 5/22/96 Global qualifier on friend declaration
 
 The 9/12/95 entry describes the addition of an extension that is since
