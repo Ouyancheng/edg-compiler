@@ -365,11 +365,18 @@ Bit flags for calls of f_types_are_compatible et al.
 			   redeclaration.  It's important in C++ because it's
 			   the only context in which known- and unknown-bound
 			   array types are "compatible" (WP 3.5). */
-#if MICROSOFT_EXTENSIONS_ALLOWED
 #define TCF_IGNORE_CALLING_CONVENTIONS 0x8
-			/* Ignore the calling conventions on top-level
-			   function types. */
+			/* Ignore the calling conventions implied by name
+			   linkage specified on top-level function types. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+			/* Also ignore Microsoft style calling convention
+			   specifications. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#define TCF_IMPLICIT_CONVERSION 0x10
+			/* The conversion appears in the context of an
+			   implicit conversion, which (in C++) may affect how
+			   how routine linkage compatibility is determined. */
+
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 
@@ -413,17 +420,18 @@ circuit some of the processing in common cases.
                           TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |   \
                           TCF_IGNORE_TYPE_QUALIFIERS))
 /* Use routine_types_are_compatible to check types of routines, ignoring
-   calling convention modifiers. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+   top-level calling convention modifiers. */
 #define routine_types_are_compatible(t1, t2, extra_flags)             \
          ((t1) == (t2) ||                                             \
           f_types_are_compatible((t1), (t2),                          \
                        TCF_IGNORE_CALLING_CONVENTIONS | (extra_flags)))
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define routine_types_are_compatible(t1, t2, extra_flags)             \
-         ((t1) == (t2) ||                                             \
-          f_types_are_compatible((t1), (t2), TCF_NO_FLAGS | (extra_flags)))
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+#define types_are_compatible_for_impl_conversion(t1, t2)              \
+  ((t1) == (t2) ||                                                    \
+   f_types_are_compatible((t1), (t2),                                 \
+                          TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |   \
+                          TCF_IGNORE_TYPE_QUALIFIERS |                \
+                          TCF_IMPLICIT_CONVERSION))
 
 
 extern a_boolean same_type_with_added_qualifiers
@@ -545,25 +553,10 @@ extern a_boolean is_or_contains_ptr_or_ref_to_unknown_bound_array(
                                                            a_boolean  *is_ref);
 extern a_type_ptr strip_local_and_nonreal_typedefs(a_type_ptr  type);
 
-/*
-Macro provided to determine the "compatibility" of name linkages.  In
-effect, this means comparing the calling conventions they imply, but by
-default this is not an issue.  Since it could vary from environment to
-environment, especially if additional linkage specifications (beyond "C" and
-"C++") are added.  Implementations for which the comparison is meaningful
-should replace this macro with an appropriate test, perhaps a call of
-a function in types.c.
-*/
-#define routine_linkages_are_compatible(link1, link2) TRUE
-
-/*
-Macro provided to determine the identity of name linkages.  As with
-linkage compatibility, this means comparing the calling conventions they
-imply, so by default we always return TRUE.  However, implementations for
-which the comparison is meaningful should replace this macro with an
-appropriate test, perhaps a call of a function in types.c
-*/
-#define routine_linkages_are_identical(link1, link2) TRUE
+extern a_boolean routine_linkages_are_compatible(
+                                           a_name_linkage_kind  nlk1,
+                                           a_name_linkage_kind  nlk2,
+                                           a_boolean            is_impl_conv);
 
 /*
 Return the type of the variable (lvalue) represented by node.  This mainly

@@ -1937,6 +1937,65 @@ checking instead of equivalence checking).
 }  /* equiv_class_types */
 
 
+a_boolean routine_linkages_are_compatible(a_name_linkage_kind  nlk1,
+                                          a_name_linkage_kind  nlk2,
+                                          a_boolean            is_impl_conv)
+/*
+Return TRUE if the indicated name linkages are compatible with respect to the
+calling conventions they imply.  is_impl_conv is TRUE if the compatibility
+check occurs in connection with an implicit type conversion.
+*/
+{
+  a_boolean  compat;
+
+  check_assertion_str2((nlk1 == (a_name_linkage_kind)nlk_external ||
+                        nlk1 == (a_name_linkage_kind)nlk_cplusplus_external) &&
+                       (nlk2 == (a_name_linkage_kind)nlk_external ||
+                        nlk2 == (a_name_linkage_kind)nlk_cplusplus_external),
+                       "routine_linkages_are_compatible:",
+                       "unexpected linkage for routine type");
+  if (is_impl_conv &&
+      impl_conv_between_c_and_cpp_function_ptrs_allowed) {
+    /* Implicit conversion -- extern "C" and extern "C++" function types
+       are treated as compatible. */
+    check_assertion(!strict_ansi_mode);
+    compat = TRUE;
+  } else {
+    /* If c_and_cpp_function_types_are_distinct is TRUE, nlk_external and
+       nlk_cplusplus_external are compatible. */
+    if (c_and_cpp_function_types_are_distinct) {
+      /* extern "C" and extern "C++" function pointers are incompatible, so
+         be sure nlk1 and nlk2 are identical. */
+      compat = (nlk1 == nlk2);
+    } else {
+      /* extern "C" and extern "C++" function pointers are compatible. */
+      compat = TRUE;
+    }  /* if */
+  }  /* if */    
+  return compat;
+}  /* routine_linkages_are_compatible */
+
+
+static a_boolean routine_linkages_are_identical(a_name_linkage_kind nlk1,
+                                                a_name_linkage_kind nlk2)
+/*
+Return TRUE if the indicated name linkages are identical with respect to the
+calling conventions they imply.  In a default implementation, extern "C"
+routine linkage is construed as different from extern "C++" linkage.
+*/
+{
+  check_assertion_str2((nlk1 == (a_name_linkage_kind)nlk_external ||
+                        nlk1 == (a_name_linkage_kind)nlk_cplusplus_external) &&
+                       (nlk2 == (a_name_linkage_kind)nlk_external ||
+                        nlk2 == (a_name_linkage_kind)nlk_cplusplus_external),
+                       "routine_linkages_are_identical:",
+                       "unexpected linkage for routine type");
+  /* Unless c_and_cpp_function_types_are_distinct is TRUE, nlk_external and
+     nlk_cplusplus_external are treated as identical. */
+  return (c_and_cpp_function_types_are_distinct ? (nlk1 == nlk2) : TRUE);
+}  /* routine_linkages_are_identical */
+
+
 a_boolean f_identical_types(a_type_ptr      type_1,
                             a_type_ptr      type_2,
                             an_itf_flag_set flags)
@@ -2338,15 +2397,16 @@ for exact pointer equality.
   register a_boolean            compat = FALSE;
   a_routine_type_supplement_ptr rtsp1, rtsp2;
   a_boolean                     ignore_type_qualifiers = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                     ignore_calling_conventions = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_boolean                     error_matches_anything = 
-                        (flags & TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) != 0;
+  a_boolean                     error_matches_anything;
+  a_boolean                     is_impl_conv;
   a_boolean                     top_level_for_redeclaration = FALSE;
 
   db_enter(5, "f_types_are_compatible");
 
+  is_impl_conv = (flags & TCF_IMPLICIT_CONVERSION) != 0;
+  error_matches_anything = 
+                 (flags & TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) != 0;
   /* The TCF_IGNORE_TYPE_QUALIFIERS flag does not get passed down in general,
      so if it's present remove it from the flags set and keep it off to
      the side. */
@@ -2360,13 +2420,11 @@ for exact pointer equality.
     top_level_for_redeclaration = TRUE;
     flags &= ~TCF_REDECLARATION;
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   /* Ditto for TCF_IGNORE_CALLING_CONVENTIONS. */
   if (flags & TCF_IGNORE_CALLING_CONVENTIONS) {
     ignore_calling_conventions = TRUE;
     flags &= ~TCF_IGNORE_CALLING_CONVENTIONS;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Although the macros do the type_1 == type_2 test, repeat it here
      so it's present for the recursive calls. */
   if (type_1 == type_2) {
@@ -2502,12 +2560,14 @@ for exact pointer equality.
                    f_types_are_compatible(rtsp1->implicit_this_param_type,
                                           rtsp2->implicit_this_param_type,
                                           flags))) &&
-#if MICROSOFT_EXTENSIONS_ALLOWED
               (ignore_calling_conventions ||
-               calling_conventions_are_compatible(type_1, type_2)) &&
+               (routine_linkages_are_compatible(rtsp1->routine_name_linkage,
+                                                rtsp2->routine_name_linkage,
+                                                is_impl_conv))
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                && calling_conventions_are_compatible(type_1, type_2)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-              routine_linkages_are_compatible(rtsp1->routine_name_linkage,
-                                              rtsp2->routine_name_linkage)) {
+                                                                     )) {
             compat = TRUE;
           }  /* if */
           break;
@@ -3023,10 +3083,12 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
     /* Get the type pointed to and drop type qualifiers and typedefs. */
     source_type_pointed_to = type_pointed_to(source_type);
     unqual_source_type_pointed_to = skip_typerefs(source_type_pointed_to);
-    /* The "_ignoring_qualifiers" version is used to get proper handling of
-       pointers to arrays with qualified element types. */
-    if (types_are_compatible_ignoring_qualifiers(unqual_source_type_pointed_to,
-                                                unqual_dest_type_pointed_to)) {
+    /* The "_for_impl_conversion" version is used to get proper handling of
+       pointers to arrays with qualified element types and (in C++) to deal
+       appropriately with routine linkages on function types. */
+    if (types_are_compatible_for_impl_conversion(
+                                            unqual_source_type_pointed_to,
+                                            unqual_dest_type_pointed_to)) {
       /* The types pointed to are compatible, ignoring the type qualifiers.
          ANSI C 3.3.6 (pointer - pointer: caller will check that types are
          object types); ANSI C 3.3.8 (relational operators: caller will check
@@ -4647,12 +4709,11 @@ in C++ mode.  See ARM 13.
       goto distinguishable_determined;
     }  /* if */
     /* If linkage specifications on the routine types are not compatible,
-       the types are distinguishable.  (This only happens when name-linkages
-       other than "C" and "C++" are supported by an implementation, and
-       only then when routines can be overloaded based on name-linkage.) */
+       the types are distinguishable. */
     linkages_compat = routine_linkages_are_compatible(
                                  old_extra_info->routine_name_linkage,
-                                 new_extra_info->routine_name_linkage);
+                                 new_extra_info->routine_name_linkage,
+                                 /*is_impl_conv=*/FALSE);
     if (!linkages_compat) {
       distinguishable = TRUE;
       goto distinguishable_determined;
