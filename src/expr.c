@@ -8903,7 +8903,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     if (!C_mode() && types_are_the_same &&
         ((is_an_lvalue(&operand_2) && is_an_lvalue(&operand_3)) ||
          (is_a_function_designator(&operand_2) &&
-          is_a_function_designator(&operand_3)))) {
+          !is_sym_for_member_operand(&operand_2) &&
+          is_a_function_designator(&operand_3)) &&
+          !is_sym_for_member_operand(&operand_3))) {
       /* In C++, if the second and third operands have the same type and
          they are lvalues, the result is also an lvalue. */
       result_is_an_lvalue = TRUE;
