@@ -733,6 +733,13 @@ and before the back end (if any) is executed.
      error being issued (otherwise, abort compilation). */
   check_expected_errors();
 #endif /* CHECKING */
+#if DEBUG
+  if (db_flag_is_set("source_file_for_seq_info")) {
+    /* Display some debug information about the source file to sequence
+       number translation process. */
+    db_source_file_for_seq_info();
+  }  /* if */
+#endif /* DEBUG */
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* Finish writing the IL file, if there is one. */

@@ -1,5 +1,12 @@
 Version 3.4
 
+2/26/04  File returned when converting the end-of-source sequence number
+
+When converting a sequence number into a source file and line number,
+the information returned for the special end-of-source sequence number
+was incorrect if the last line of the primary source file was an include
+directive.  Now fixed.
+
 2/25/04  Problem with inlining function returning bool
 
 The code generated for the inlining of a function call when

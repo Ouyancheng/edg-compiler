@@ -2384,6 +2384,45 @@ Display the sequence number lookup table, for debugging purposes.
   }  /* if */
 }  /* db_seq_number_lookup_table */
 
+
+void db_source_file_for_seq_info(void)
+/*
+Display some information about the sequence number to source file translation
+process.  Specifically, this does the conversion for the special
+end-of-source sequence number, and for the last actual sequence number
+of the translation unit.
+*/
+{
+  a_line_number		line;
+  a_boolean		at_end_of_source;
+  a_source_file_ptr	sfp;
+
+  db_seq_number_lookup_table();
+  sfp = source_file_for_seq(curr_seq_number, &line, &at_end_of_source,
+                            /*physical_line=*/FALSE);
+  fprintf(f_debug, "End of source, physical_line=FALSE\n");
+  fprintf(f_debug, "file=%s, line=%ld, end-of-source=%d\n",
+          sfp ? sfp->file_name : "<NULL>", line, at_end_of_source);
+
+  sfp = source_file_for_seq(curr_seq_number, &line, &at_end_of_source,
+                            /*physical_line=*/TRUE);
+  fprintf(f_debug, "End of source, physical_line=TRUE\n");
+  fprintf(f_debug, "file=%s, line=%ld, end-of-source=%d\n",
+          sfp ? sfp->file_name : "<NULL>", line, at_end_of_source);
+
+  sfp = source_file_for_seq(curr_seq_number - 1, &line, &at_end_of_source,
+                            /*physical_line=*/FALSE);
+  fprintf(f_debug, "Last line of file, physical_line=FALSE\n");
+  fprintf(f_debug, "file=%s, line=%ld, end-of-source=%d\n",
+          sfp ? sfp->file_name : "<NULL>", line, at_end_of_source);
+
+  sfp = source_file_for_seq(curr_seq_number - 1, &line, &at_end_of_source,
+                            /*physical_line=*/TRUE);
+  fprintf(f_debug, "Last line of file, physical_line=TRUE\n");
+  fprintf(f_debug, "file=%s, line=%ld, end-of-source=%d\n",
+          sfp ? sfp->file_name : "<NULL>", line, at_end_of_source);
+}  /* db_source_file_for_seq_info */
+
 #endif /* DEBUG */
 
 #if !STANDALONE_UTILITY_PROGRAM
@@ -2794,7 +2833,28 @@ pointer points into the lookup array.
   snlep1 = (a_seq_number_lookup_entry_ptr)arg1;
   snlep2 = *(a_seq_number_lookup_entry_ptr*)arg2;
   seq_to_find = snlep1->first;
-  if (seq_to_find < snlep2->first) {
+  if (snlep1->source_file != NULL && seq_to_find == snlep2->last) {
+    /* When snlep1 has a non-NULL source file pointer, the sequence
+       number supplied was the special end-of-source sequence number for
+       the translation unit associated with the specified source file.
+       When a source file ends with an include, the included file and
+       the source file have the same ending sequence number.  When the
+       condition above is TRUE, we have found one of those two (or more)
+       files.  The test below determines whether we've found the entry
+       for the primary source file.  Note also, that when the primary
+       source file ends in an include, the lookup entry will actually
+       have a starting sequence number one greater than the ending
+       sequence number.  That is why the test above checks for equality
+       with the ending sequence number. */
+    if (snlep1->source_file == snlep2->source_file) {
+      /* We've found the entry for the primary source file. */
+      result = 0;
+    } else {
+      /* This is the entry for an include file.  The entry for the primary
+         source file follows this entry. */
+      result = 1;
+    }  /* if */
+  } else if (seq_to_find < snlep2->first) {
     /* The sequence number we're looking for precedes this entry. */
     result = -1;
   } else if (seq_to_find > snlep2->last) {
@@ -2842,11 +2902,13 @@ lookup table.
       /* At end of source.  Use the last line of the primary source file. */
       *at_end_of_source = TRUE;
       seq_number--;
+      break;
     }  /* if */
   }  /* for */
   /* Construct a special lookup entry whose "first" value holds the sequence
      number we are looking for. */
   snle_to_find.first = seq_number;
+  snle_to_find.source_file = *at_end_of_source ? curr_file : NULL;
   /* Use bsearch to find the entry that contains the sequence number that we
      are looking for. */
   bsearch_result = (a_seq_number_lookup_entry_ptr*)
@@ -2946,9 +3008,11 @@ examine_children:
       /* Sequence number falls before the start of this child, and
          therefore must be in the current file. */
       break;
-    } else if (seq_number <= child_file->last_seq_number) {
+    } else if (!*at_end_of_source &&
+               seq_number <= child_file->last_seq_number) {
       /* The sequence number falls within this child (or one of its
-         children). */
+         children).  Don't search the child files when looking for the
+         source file for the end-of-source file location. */
       curr_file = child_file;
       goto examine_children;
     }  /* if */

@@ -1345,6 +1345,8 @@ extern unsigned long db_show_based_type_fixups_used(unsigned long grand_total);
 extern unsigned long show_il_space_used(void);
 
 extern void db_seq_number_lookup_table(void);
+
+extern void db_source_file_for_seq_info(void);
 #endif /* DEBUG */
 
 #if ORPHAN_PROCESSING_NEEDED
