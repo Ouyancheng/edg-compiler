@@ -519,7 +519,7 @@ typedef enum /*an_error_code*/ {
   ec_not_a_tag_member,
   ec_ptr_to_member_typedef,
   ec_bad_use_of_ptr_to_member_typedef,
-  ec_empty_initializer_list,
+  ec_empty_initializer_list,                                    /* removed */
   ec_nonexternal_entity_in_template_arg,
   ec_id_must_be_class_or_type_name,
   ec_destructor_name_mismatch,
