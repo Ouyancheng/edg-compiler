@@ -386,6 +386,9 @@ typedef unsigned short a_virtual_function_number;
 Control over whether or not C++ "new" and "delete" operations are allowed
 to be folded into the constructor or destructor if possible.
 */
+/* IL lowering requires that the delete be folded into the destructor.
+   Otherwise the size is not available for the two-argument delete case.
+   There is a consistency check in lower_il.c */
 #define NEW_CAN_BE_FOLDED_INTO_CTOR TRUE
 #define DELETE_CAN_BE_FOLDED_INTO_DTOR TRUE
 /* If assignment to "this" is allowed, the folding must be done. */
@@ -395,11 +398,6 @@ to be folded into the constructor or destructor if possible.
 #if ASSIGNMENT_TO_THIS_ALLOWED && !DELETE_CAN_BE_FOLDED_INTO_DTOR
 ??=error -- DELETE_CAN_BE_FOLDED_INTO_DTOR set wrong.
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED ... */
-/* IL lowering requires that the delete be folded into the destructor.
-   Otherwise the size is not available for the two-argument delete case. */
-#if DO_IL_LOWERING && !DELETE_CAN_BE_FOLDED_INTO_DTOR
-??=error -- DELETE_CAN_BE_FOLDED_INTO_DTOR set wrong.
-#endif /* DO_IL_LOWERING ... */
 
 /*
 Enumerated types:
