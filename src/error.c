@@ -671,7 +671,7 @@ error code.
       m = "a break statement may only be used within a loop or switch";
       break;
     case ec_no_value_returned_in_non_void_function:
-      m = "a non-void function should return a value";
+      m = "non-void %nd should return a value";
       break;
     case ec_value_returned_in_void_function:
       m = "a void function may not return a value";

@@ -1246,11 +1246,15 @@ the current routine.
 {
   a_routine_ptr   rout;
   a_type_ptr      tp;
+  a_symbol_ptr    function_name_symbol;
+  a_boolean       issue_no_value_returned_warning;
+
 
   /* Get a pointer to the current routine entry, and get its return
      type. */
   rout = current_routine_entry();
   tp = rout->type->variant.routine.return_type;
+  issue_no_value_returned_warning = FALSE;
   if (!is_void_type(tp) && !is_error_type(tp)) {
     if (C_dialect != C_dialect_cplusplus) {
       /* If a return with no expression appears in a function with a
@@ -1263,7 +1267,7 @@ the current routine.
       } else if (rout == il_header.main_routine) {
         /* No warning for "main". */
       } else {
-        warning(ec_no_value_returned_in_non_void_function);
+        issue_no_value_returned_warning = TRUE;
       }  /* if */
     } else {
       /* C++:  Issue a warning unless we are returning from a constructor
@@ -1274,9 +1278,23 @@ the current routine.
            level they have no return type; however, in the IL they are
            represented as returning the "this" parameter. */
       } else {
-        warning(ec_no_value_returned_in_non_void_function);
+        issue_no_value_returned_warning = TRUE;
       }  /* if */
     }  /* if */
+  }  /* if */
+
+  /* Output message warning of no value returned from non-void function
+     if necessary. */
+  if (issue_no_value_returned_warning) {
+    /* Get pointer to the symbol for the function name. */
+    function_name_symbol = (a_symbol_ptr)rout->source_corresp.assoc_info;
+#if CHECKING
+    if (function_name_symbol == NULL) {
+        internal_error("check_void_return_okay: unexpected NULL assoc_info");
+    }  /* if */
+#endif /* CHECKING */
+    sym_warning(ec_no_value_returned_in_non_void_function,
+                function_name_symbol);
   }  /* if */
 }  /* check_void_return_okay */
 
