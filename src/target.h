@@ -162,6 +162,7 @@ typedef long a_signed_integer_value;
 /* The printf formatting specifier to be used to print the integer type. */
 #define PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE   "%ld"  /* long */
 #define PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE "%lu"  /* unsigned long */
+#define PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE "%lx"	/* hexadecimal */
 
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
