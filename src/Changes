@@ -1,5 +1,14 @@
 Version 2.23
 
+4/20/94  Internal error during processing of #pragma instantiate
+
+A change made in version 2.22 resulted in an internal error when an
+instantiate pragma contained an invalid operator name.  This has been
+fixed.
+
+  template <class T> struct A {};
+  #pragma instantiate A<int>::operator
+
 4/20/94  Symbol reference kind flags on declarations
 
 A new routine, record_symbol_declaration, has been added (replacing
