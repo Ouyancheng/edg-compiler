@@ -19,9 +19,17 @@ in Microsoft mode.  A warning is issued.
 
 4/2/01   Extraneous deallocation points for variable length arrays (VLAs)
 
-The front end used to generate VLA object deallocation points at the end of
-many statement blocks that followed (but didn't contain the definition of a 
-VLA object.  This is now fixed.  (See also Change entry of 9/8/00.)
+The front end used to generate VLA object deallocation points
+(stmk_vla_dealloc statements entries) at the end of many statement blocks
+that followed (but didn't contain) the definition of a VLA object.
+
+  void f(int n) {
+    int A[n];
+    {}  /* Used to generate an extraneous stmk_vla_dealloc entry for A
+           at this point. */
+  }  /* stmk_vla_dealloc entry at this point is valid. */
+
+This is now fixed.  (See also Change entry of 9/8/00.)
 
 3/30/01  Malformed float constants accepted in Microsoft mode
 
