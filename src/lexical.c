@@ -12325,6 +12325,7 @@ are handled in lexical_init.)
   register_trans_unit_variable(any_initial_get_token_tests_needed);
   register_trans_unit_variable(treat_newline_as_token);
   register_trans_unit_variable(curr_token_asm_string);
+  register_trans_unit_variable(curr_token_sequence_number);
 }  /* lexical_one_time_init */
 
 
