@@ -8424,9 +8424,10 @@ only if a redeclaration error is issued.
 {
   /* Check if we missed a tag symbol; it should be imported too. */
   a_symbol_ptr      null_sym_ptr = NULL, tag_sym;
-  a_symbol_locator  locator = locator_for_curr_id;
+  a_symbol_locator  locator;
 
   *redecl_error = FALSE;
+  locator = locator_for_curr_id;
   clear_specific_symbol(locator);
   tag_sym = namespace_qualified_id_lookup(
               &locator, nsp,
