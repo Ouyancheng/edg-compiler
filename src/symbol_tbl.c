@@ -3979,6 +3979,16 @@ therefore might be a projection symbol.
   is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
   if (is_overloaded) sym = sym->variant.overloaded_function.symbols;
   for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
+    if (sym->kind == (a_symbol_kind)sk_projection) {
+      /* An overload set can contain a projection symbol as the result of a
+         using declaration. */
+      if (sym->ambiguous) {
+        /* All bets are off if the symbol is ambiguous. */
+        default_sym = NULL;
+        break;
+      }  /* if */
+      reduce_projection_symbol_to_fundamental_symbol(sym);
+    }  /* if */
     /* Ignore function templates. */
     if (is_function_symbol(sym)) {
       /* Look for a symbol for a function with just one parameter.  A default
@@ -4020,6 +4030,16 @@ class-specific operator delete(), and therefore might be a projection symbol.
   is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
   if (is_overloaded) sym = sym->variant.overloaded_function.symbols;
   for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
+    if (sym->kind == (a_symbol_kind)sk_projection) {
+      /* An overload set can contain a projection symbol as the result of a
+         using declaration. */
+      if (sym->ambiguous) {
+        /* All bets are off if the symbol is ambiguous. */
+        default_sym = NULL;
+        break;
+      }  /* if */
+      reduce_projection_symbol_to_fundamental_symbol(sym);
+    }  /* if */
     /* Ignore function templates. */
     if (is_function_symbol(sym)) {
       /* Look for a symbol for a function with just one parameter.  A default
