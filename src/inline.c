@@ -124,6 +124,15 @@ attributes of var to temp_var.
 }  /* transfer_variable_attributes_to_temporary */
 
 
+/*
+Return TRUE if the indicated variable has a non-null address.  We assume
+that extern variables might have zero addresses through linker magic (e.g.,
+weak externals).
+*/
+#define variable_has_non_null_address(variable)                       \
+  ((variable)->storage_class != (a_storage_class)sc_extern)
+
+
 static a_boolean expr_is_non_null(an_expr_node_ptr expr)
 /*
 Return TRUE if the indicated expression (a constant or the address of a
@@ -135,11 +144,7 @@ variable) does not have a null value.
   if (is_constant_node(expr)) {
     is_non_null = !is_false_constant(expr->variant.constant);
   } else if (is_variable_address_node(expr)) {
-    /* Consider the address of a variable non-null unless it is extern.
-       Weak linkage or similar linker tricks could make an extern have
-       address zero. */
-    is_non_null = (expr->variant.variable->storage_class !=
-                                                   (a_storage_class)sc_extern);
+    is_non_null = variable_has_non_null_address(expr->variant.variable);
   } else {
     unexpected_condition();
   }  /* if */
@@ -507,10 +512,7 @@ variables.
          operand: &variable != 0 is always 1.  The "== 0" case is
          always 0. */
       if (is_variable_address_node(operand)) {
-        /* Don't do this trick for extern variables, because they might
-           have address zero through linker magic (e.g., weak externals). */
-        if (operand->variant.variable->storage_class !=
-                                                  (a_storage_class)sc_extern) {
+        if (variable_has_non_null_address(operand->variant.variable)) {
           operand = operand->next;
           if (is_constant_node(operand) &&
               is_false_constant(operand->variant.constant)) {
