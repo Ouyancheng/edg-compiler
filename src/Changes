@@ -1,5 +1,21 @@
 Version 2.15
 
+3/3/93  Cleanup of use of <ctype.h> macros
+
+All uses of the <ctype.h> macros (e.g., isalpha) in the front end code
+have been changed slightly to make them work properly in the presence of
+non-ASCII input characters on systems where plain "char" is signed.
+The changes are all on the order of changing
+
+  isalpha(ch)
+
+to
+
+  isalpha((unsigned char)ch)
+
+The macro isascii is no longer used (it was defined by basics.h for
+systems that don't have it).
+
 3/3/93  Allow const/volatile qualifier on new-type-name
 
 The syntax of ARM 5.3.3 does not permit a type qualifier on new-type-name,
