@@ -4505,7 +4505,10 @@ done_with_operation:
     case enk_uuidof:
       /* Microsoft C++ __uuidof operator. */
       write_tok_str("__uuidof(");
-      if (expr->variant.typeid_info.expr == NULL) {
+      if (expr->variant.typeid_info.type == NULL) {
+        /* NULL GUID case. */
+        write_tok_ch('0');
+      } else if (expr->variant.typeid_info.expr == NULL) {
         /* Use type. */
         gen_type(expr->variant.typeid_info.type);
       } else {
