@@ -3739,6 +3739,37 @@ unit.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* DEBUG */
+  /* Determine whether types defined in this scope should be handled
+     as semivisible types.  Template classes and classes nested within
+     template classes do not have this processing done. */
+  if (allow_anachronisms &&
+      depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
+    a_boolean do_semivisible_type_processing = TRUE;
+    /* Loop back through the scope stack until we find a scope that is
+       not a class_struct_union scope or until we find a class_struct_union
+       scope that is a template class_struct_union. */
+    a_scope_depth sd = depth_scope_stack;
+    for (; sd > DEPTH_OF_FILE_SCOPE; sd--) {
+      a_scope_kind skind = scope_stack[sd].kind;
+      if (skind != (a_scope_kind)sck_class_struct_union) break;
+      if (is_template_class_type(scope_stack[sd].assoc_type)) {
+        do_semivisible_type_processing = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+    if (kind == (a_scope_kind)sck_class_struct_union &&
+        do_semivisible_type_processing) {
+      /* Determine whether any of the symbols from this class scope should
+         be treated as semivisible types. */
+      do_nested_class_anachronism_processing(pointers_block->symbols);
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+    } else if (kind == (a_scope_kind)sck_file && cfront_2_1_mode) {
+      /* See if any of the file scope symbols conflict with semivisible
+         nested types. */
+      file_scope_transitional_nested_type_processing(pointers_block->symbols);
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+    }  /* if */
+  }  /* if */
 #if RECORD_HIDDEN_NAMES_IN_IL
   if (!C_mode() && total_errors == 0) {
     if (kind == (a_scope_kind)sck_function ||
@@ -4212,37 +4243,6 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
-  /* Determine whether types defined in this scope should be handled
-     as semivisible types.  Template classes and classes nested within
-     template classes do not have this processing done. */
-  if (allow_anachronisms &&
-      depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
-    a_boolean do_semivisible_type_processing = TRUE;
-    /* Loop back through the scope stack until we find a scope that is
-       not a class_struct_union scope or until we find a class_struct_union
-       scope that is a template class_struct_union. */
-    a_scope_depth sd = depth_scope_stack;
-    for (; sd > DEPTH_OF_FILE_SCOPE; sd--) {
-      a_scope_kind skind = scope_stack[sd].kind;
-      if (skind != (a_scope_kind)sck_class_struct_union) break;
-      if (is_template_class_type(scope_stack[sd].assoc_type)) {
-        do_semivisible_type_processing = FALSE;
-        break;
-      }  /* if */
-    }  /* for */
-    if (kind == (a_scope_kind)sck_class_struct_union &&
-        do_semivisible_type_processing) {
-      /* Determine whether any of the symbols from this class scope should
-         be treated as semivisible types. */
-      do_nested_class_anachronism_processing(pointers_block->symbols);
-#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-    } else if (kind == (a_scope_kind)sck_file && cfront_2_1_mode) {
-      /* See if any of the file scope symbols conflict with semivisible
-         nested types. */
-      file_scope_transitional_nested_type_processing(pointers_block->symbols);
-#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-    }  /* if */
-  }  /* if */
   /* Get a new pointer to the current scope stack entry in case the scope
      stack has been reallocated (e.g., by check_name_hiding_for_scope). */
   ssep = &scope_stack[depth_scope_stack];
