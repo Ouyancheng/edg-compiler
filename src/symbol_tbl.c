@@ -3717,20 +3717,6 @@ check_routine:
            previously because no actual definition appeared. */
         add_to_types_list(type_ptr, decl_scope_level,
                           /*in_old_style_param_decl_list=*/FALSE);
-        if (!is_immediate_class_type(type_ptr)) {
-          /* If this is a reference-to-class type, we want to add both types
-             to the appropriate scope list.  The referenced type will be at
-             at file scope. */
-#if CHECKING
-          if (type_ptr->kind != (a_type_kind)tk_typeref ||
-              !type_ptr->variant.typeref.is_function_scope_tag) {
-            internal_error("end_of_scope_symbol_check: expected tag typeref");
-          }  /* if */
-#endif /* CHECKING */
-          add_to_types_list(type_ptr->variant.typeref.type,
-                            DEPTH_OF_FILE_SCOPE,
-                            /*in_old_style_param_decl_list=*/FALSE);
-        }  /* if */
       }  /* if */
 #if CHECKING
       scp = &type_ptr->source_corresp;
