@@ -8102,6 +8102,7 @@ non-NULL return *con_value == NULL.
                                            (a_constant_ptr *)NULL);
           op2 = conv_lvalue_expr_to_rvalue(op2, &constant_case3,
                                            (a_constant_ptr *)NULL);
+          node->variant.operation.operands = op1;
           op1->next = op2;
           *constant_case = constant_case2 && constant_case3;
           if (is_constant_node(op1) && is_constant_node(op2)) {
