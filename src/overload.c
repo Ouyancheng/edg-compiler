@@ -5806,8 +5806,9 @@ Convert it if necessary (issuing an error if the conversion cannot be done),
 and build a dynamic initialization entry to describe the initialization.
 The dynamic initialization entry will also indicate a destructor if
 appropriate.  Return a pointer to that entry in *dip (or NULL for an
-error).  This routine is used in both C and C++ mode, but it exists to
-do copy constructor elision in C++ mode.
+error).  source_operand may be changed by this routine.  This routine
+is used in both C and C++ mode, but it exists to do copy constructor
+elision in C++ mode.
 */
 {
   a_user_conv_descr user_conversion;
