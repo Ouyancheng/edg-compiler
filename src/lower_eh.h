@@ -35,6 +35,11 @@ extern void define_scope_class_typeinfo_vars(a_scope_ptr scope);
 extern a_variable_ptr make_typeinfo_var(a_type_ptr type);
 
 #if ABI_CHANGES_FOR_RTTI
+EXTERN a_variable_ptr
+		vtbl_for_type_info;
+			/* The variable for the virtual function table for
+			   the user-visible type_info type, once created.
+			   NULL until then. */
 extern void lower_typeid(an_expr_node_ptr expr);
 #endif /* ABI_CHANGES_FOR_RTTI */
 

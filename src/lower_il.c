@@ -2900,6 +2900,20 @@ It might be changed later to add a definition.
   char           *mangled_name;
   sizeof_t       mangled_name_length, alloc_length;
 
+#if ABI_CHANGES_FOR_RTTI
+  a_boolean      type_info_case = FALSE;
+  /* If the class is type_info, save the vtbl pointer for use by
+     the EH lowering routines, or use the variable created by the EH
+     routines. */
+  if (class_type == type_of_type_info && bcp == NULL) {
+    type_info_case = TRUE;
+    if (vtbl_for_type_info != NULL) {
+      /* The virtual function table was already allocated by EH lowering. */
+      vtbl_var = vtbl_for_type_info;
+      goto have_vtbl_var;
+    }  /* if */
+  }  /* if */
+#endif /* ABI_CHANGES_FOR_RTTI */
   /* Make an array of virtual table entries.  The size is [] until the virtual
      function table is defined, if it ever is in this compilation. */
   /* Note that the array type must not be shared, because it is modified
@@ -2934,6 +2948,12 @@ It might be changed later to add a definition.
      flag. */
   vtbl_var->source_corresp.referenced = FALSE;
   vtbl_var->source_corresp.name_has_been_mangled = TRUE;
+#if ABI_CHANGES_FOR_RTTI
+  /* If this is the virtual function table for type_info, remember it for
+     the use of EH lowering. */
+  if (type_info_case) vtbl_for_type_info = vtbl_var;
+have_vtbl_var:;
+#endif /* ABI_CHANGES_FOR_RTTI */
   /* Remember the variable in the class type supplement or the base class
      entry so it can be found when constructor/destructor lowering is done. */
   if (bcp == NULL) {

@@ -627,11 +627,6 @@ type, for use in typeinfo implementation constants.
 }  /* make_typeinfo_name_constant */
 
 
-static a_variable_ptr
-		vtbl_for_type_info;
-			/* The variable for the virtual function table for
-			   the user-visible type_info type, once created.
-			   NULL until then. */
 #if RUNTIME_USES_NAMESPACES
 static a_namespace_ptr fake_std_namespace;
 			/* Pointer to a namespace called "std", but not the

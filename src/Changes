@@ -1,5 +1,14 @@
 Version 2.32
 
+2/11/96   Virtual function table for type_info duplicated
+
+When a program includes <typeinfo> and therefore has a definition of
+type_info, the IL ended up with two (extern) variables for the virtual
+function table for type_info, one generated for the source code and
+one added by IL lowering for typeid information.  This was not a problem
+when generating C code, but it could cause difficulties for back
+ends.  Now there's only one.
+
 2/9/96    Anachronisms in overload resolution
 
 The handling of anachronisms as tiebreakers in overload resolution has
