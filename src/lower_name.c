@@ -4445,11 +4445,13 @@ expressions on nontype template parameters in function signatures.
 #if GNU_EXTENSIONS_ALLOWED
     case eok_ignu_min:
     case eok_fgnu_min:
+    case eok_pgnu_min:
     case eok_gnu_min:
       opkind = (an_opname_kind)onk_gnu_min;
       break;
     case eok_ignu_max:
     case eok_fgnu_max:
+    case eok_pgnu_max:
     case eok_gnu_max:
       opkind = (an_opname_kind)onk_gnu_max;
       break;

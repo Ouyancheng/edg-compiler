@@ -7265,7 +7265,9 @@ is an lvalue if is_lvalue is TRUE.
                 op == (an_expr_operator_kind)eok_fgnu_min ||
                 op == (an_expr_operator_kind)eok_fgnu_max ||
                 op == (an_expr_operator_kind)eok_pgnu_min ||
-                op == (an_expr_operator_kind)eok_pgnu_max)) {
+                op == (an_expr_operator_kind)eok_pgnu_max ||
+                op == (an_expr_operator_kind)eok_gnu_min ||
+                op == (an_expr_operator_kind)eok_gnu_max)) {
       /* The GNU C++ minimum and maximum operators can return an lvalue. */
       expr1 = node->variant.operation.operands;
       expr2 = expr1->next;

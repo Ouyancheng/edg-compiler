@@ -10873,12 +10873,8 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
                                                       second_is_constant,
                                                       &constant_sign)) {
         if (constant_sign == 0) {
-          /* Comparison of an unsigned value with zero.  Some cases make
-             sense. */
-          if (second_is_constant ?  save_token == tok_gnu_max :
-                                    save_token == tok_gnu_min) {
-            pos_warning(ec_unsigned_compare_with_zero, &operator_position);
-          }  /* if */
+          /* Comparison of an unsigned value with zero. */
+          pos_warning(ec_unsigned_compare_with_zero, &operator_position);
         } else if (constant_sign < 0) {
           /* Comparison of an unsigned value with a negative constant.
              No cases make sense. */
