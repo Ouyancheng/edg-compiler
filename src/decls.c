@@ -5094,7 +5094,8 @@ caution when modifying this routine.
      in the current scope for now, but we may have to do a complete lookup
      later.) */
   if (C_dialect == C_dialect_cplusplus && curr_token == tok_identifier &&
-      decl_scope_level == DEPTH_OF_FILE_SCOPE) {
+      decl_scope_level == DEPTH_OF_FILE_SCOPE &&
+      tag_kind != (a_symbol_kind)sk_enum_tag) {
     /* Check for an identifier that is a class template name.  A class
        template name at file scope must have an argument list.  A use
        of a class template name in another scope is actually a
@@ -5142,7 +5143,6 @@ caution when modifying this routine.
     tag_sym = NULL;
   } else if (tag_sym != NULL) {
     /* Tag symbol is a template class reference. */
-    *tag_resolution = FALSE;
     /* Return a copy of the locator to the caller. */
     *locator = locator_for_curr_id;
   } else {
