@@ -655,16 +655,19 @@ process_option()
       used_two_params=1
       executable=$curr_param
       output_file_specified=1
+      add_to_instantiation_command=0
       ;;
     -o*)
 #     Explicitly name the executable.
       executable=`expr $arg : '-o\(.*\)'`    # Get the string after the -o
       output_file_specified=1
+      add_to_instantiation_command=0
       ;;
     --output=*)
 #     Explicitly name the executable.
       executable=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
       output_file_specified=1
+      add_to_instantiation_command=0
       ;;
     $library_option | --library_directory)
 #     Collect a list of -L options to pass to the linker.
@@ -1379,7 +1382,7 @@ do
     output_file_specified=0
     # The output file must be included in the options in the command line saved
     # in the .ii file for this object file.
-    instantiation_command_suffix=$instantiation_command_suffix" -o $output_file"
+    instantiation_command_suffix=$instantiation_command_suffix"-o $output_file"
     # Build the .ii file name based on the name of the object file being
     # built.
     output_basename=`expr $output_file : '\(.*\)\.'`  # Get basename
@@ -1478,7 +1481,7 @@ do
       # must come before any of the instantiation file name entries.
       if [ -f $ti_file_name ] ; then
         ti_tmp=$TMPDIR/ti$$
-        echo "cmd:$instantiation_command_line" >$ti_tmp
+        echo "cmd:$instantiation_command_line $instantiation_command_suffix" >$ti_tmp
         echo "dir:$curr_dir" >>$ti_tmp
         echo "fnm:$cfile" >>$ti_tmp
         if [ $one_instantiation_per_object -ne 0 ] ; then
@@ -1503,7 +1506,7 @@ do
         else
 #         Old format
           sed -e "1,1 d" $ii_file_name >$ii_tmp_file
-          echo $instantiation_command_line $cfile >$ii_file_name
+          echo $instantiation_command_line $instantiation_command_suffix $cfile >$ii_file_name
         fi
         cat $ii_tmp_file >>$ii_file_name
         rm -f $ii_tmp_file
