@@ -242,6 +242,10 @@ typedef int a_decl_flag_set;
 #define DI_IS_TYPEDEF_DECLARATION 0x200
 			/* If this bit is set a storage class of "typedef" has
 			   been encountered. */
+#define DI_OPERATOR_NAME_ALLOWED 0x400
+			/* If this bit is set an operator name (e.g.,
+			   "operator+" or "operator int") is allowed as the
+			   declarator identifier. */
 /* Constants defining bits in the output bit vector used in calls to
    declarator. */
 #define DO_NO_OUTPUT_FLAGS 0x0
