@@ -1,5 +1,27 @@
 Version 2.46
 
+8/28/01  GNU C compatibility option
+
+The front end now supports command-line switches --gcc and --no_gcc that
+provide some language compatibility with GNU C compilers.  The compatibility
+is neither exact (i.e., some extensions may have a slightly different meaning)
+nor complete (some extensions are not implemented).  This compatibility is 
+only provided in C mode; in fact, the command-line switches imply C mode even
+when no "--c" option is specified.
+
+To enable these switches, GNU_EXTENSIONS_ALLOWED must be configured TRUE.
+In that case, the default value of the command-line switch is determined by
+the new configuration option DEFAULT_GCC_COMPATIBILITY.
+
+The set of extensions enabled with the --gcc option initially includes:
+variable length arrays, extended designated initializers, compound literals,
+extended variadic macros, identifiers with dollar signs, C++-style comments,
+digraphs, long long (and related extensions provided by C99), hexadecimal
+floating-point constants, nonconstant aggregate initializers for automatic
+variables, the typeof operator, the __inline__ (and inline), __asm__, and 
+__extension__ keywords, __FUNCTION__ and __PRETTY_FUNCTION__, zero-sized 
+arrays, and the \e escape sequence.
+
 8/28/01  C++-generating back end: unnamed classes/structs not given names
 
 The C++-generating back end no longer gives names to unnamed classes
