@@ -15985,6 +15985,15 @@ and "do not instantiate" flags are set here.
     can_be_instantiated = tip->already_instantiated ||
                   entity_can_be_instantiated(tip,
                                              /*implicit_inclusion_okay=*/TRUE);
+#if 0
+#else
+    /* FIXME - temporary measure to set can_be_instantiated for all exported
+       templates. */
+    if (template_supplement_for_symbol(tip->template_sym)
+                                           ->il_template_entry->is_exported) {
+      can_be_instantiated = TRUE;
+    }  /* if */
+#endif
     if (is_static_data_member) {
       variable->can_be_instantiated = can_be_instantiated;
       do_not_instantiate = variable->do_not_instantiate
