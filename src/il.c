@@ -899,13 +899,13 @@ Dump the contents of the indicated constant, for debug purposes.
 
   con_type = cp->type;
   if (con_type != NULL) {
+    con_type = skip_typerefs(con_type);
     /* Dump the type preceding the constant, looking like a type cast. */
     (void)fputc('(', f_debug);
     db_type(con_type);
     (void)fputc(')', f_debug);
   }  /* if */
 
-  con_type = skip_typerefs(con_type);
   switch (cp->kind) {
     case ck_error:
       fputs("<error constant>", f_debug);
