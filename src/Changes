@@ -1,5 +1,25 @@
 Version 2.29
 
+5/16/95  Setting the IL referenced flag for nested types
+
+The IL referenced flag is no longer automatically set for nested class and
+enum types -- except for nested anonymous unions, which (at least for the
+time being) continue to be marked as "referenced" at the point of
+declaration.
+
+5/16/95  Mixing tag kinds in cfront-compatibility mode
+
+We now permit elaborated type specifiers for a class to mix union and
+struct/class tag kinds in cfront compatibility mode:
+
+  union S { int i, j; };
+  struct S x;              // Only a warning in cfront mode
+
+5/16/95  Uninitialized const object of empty-class type
+
+We used to issue no diagnostic on an uninitialized const object if its
+type was an empty class.  Now we issue a warning (or in -A mode an error).
+
 5/16/95  Using typedef names in explicit destructor calls
 
 In cfront mode, typedef names may now be used in explicit destructor
