@@ -1,5 +1,11 @@
 Version 2.42
 
+5/5/99   Exception specifications missing on delete routines
+
+The new.h file was missing exception specifications for the placement
+delete routines.  In addition, the runtime routines for all of the
+delete operators were missing exception specifications.
+
 5/3/99   Implicitly declared delete functions missing from new.h
 
 The new.h header file in the include_src directory was missing the
