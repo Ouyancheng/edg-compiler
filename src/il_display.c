@@ -66,7 +66,7 @@ static void disp_ptr(char             *ptr_name,
                      an_il_entry_kind entry_kind);
 
 
-/* Many support functions and macros thar are generally available in the
+/* Many support functions and macros that are generally available in the
    front end are duplicated here so that c_gen_be.c can be compiled
    independently of a front end. */
 #ifdef CFE
@@ -664,7 +664,7 @@ no name.
   if (name != NULL) {
     printf("%s:", name);
     /* Get the text following indented the same amount regardless of the
-       langth of the name. */
+       length of the name. */
 #define Label_indent 25
     name_len = strlen(name) + 1;  /* 1 for the ":". */
     if (name_len >= Label_indent) {
@@ -675,6 +675,7 @@ no name.
     /* Print spaces to get the following data in column Label_indent+1. */
     printf("%*c", Label_indent - name_len, ' ');
   }  /* if */
+#undef Label_indent
 }  /* disp_name */
 
 
