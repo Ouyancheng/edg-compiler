@@ -4739,7 +4739,8 @@ C-style casts and C++ functional-notation type conversions.
     /* There was a previous error (e.g., the type to cast to is invalid
        regardless of the type of the source).  Do no further checking. */
   } else {
-    /* Check for user-defined conversions, but not in C. */
+    /* Check for user-defined conversions and casts to reference type,
+       but not in C. */
     if (!C_mode()) {
       /* See if we're casting to a reference type. */
       cast_to_reference = is_reference_type(type_cast_to);
@@ -4771,15 +4772,18 @@ C-style casts and C++ functional-notation type conversions.
                  the error message. */
               err = TRUE;
               processed = TRUE;
-              (void)user_defined_conversion_possible(operand, eff_type_cast_to,
-                                                    /*is_initialization=*/TRUE,
-                                                   /*need_lvalue_result=*/TRUE,
-                                                     &conversion,
-                                                     &failed);
+              (void)user_defined_conversion_possible(
+                                              operand, eff_type_cast_to,
+                                              /*is_initialization=*/TRUE,
+                                              /*need_lvalue_result=*/TRUE,
+                                              /*is_explicit_cast=*/TRUE,
+                                              &conversion,
+                                              &failed);
             }  /* if */
           }  /* if */
         } else {
           /* Normal case (not a cast to a reference type). */
+          /* Check for user-defined conversions. */
           /* Don't check for user-defined conversions when casting to void
              or a template parameter (unknown) type. */
           if (!is_void_type(type_cast_to) &&
@@ -4787,6 +4791,7 @@ C-style casts and C++ functional-notation type conversions.
             if (user_defined_conversion_possible(operand, type_cast_to,
                                                  /*is_initialization=*/TRUE,
                                                  /*need_lvalue_result=*/FALSE,
+                                                 /*is_explicit_cast=*/TRUE,
                                                  &conversion,
                                                  &failed)) {
               /* A user-defined conversion can be done. */

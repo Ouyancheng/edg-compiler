@@ -37,6 +37,7 @@ static a_boolean conversion_to_class_possible(
                                   an_operand               *source_operand,
                                   a_type_ptr               dest_type,
                                   a_boolean                is_initialization,
+                                  a_boolean                is_explicit_cast,
                                   a_conv_descr             *conversion,
                                   a_boolean                *ambiguous,
                                   a_candidate_function_ptr *ambiguity_list);
@@ -695,6 +696,7 @@ already set, with a value of NULL indicating a same-class copy.
     a_boolean ambiguous;
     if (conversion_to_class_possible(arg_operand, param_type,
                                      /*is_initialization=*/TRUE,
+                                     /*is_explicit_cast=*/FALSE,
                                      conversion, &ambiguous,
                                      (a_candidate_function_ptr *)NULL) ||
         ambiguous) {
@@ -1071,6 +1073,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     if (param_is_class_type &&
         (conversion_to_class_possible(orig_arg_operand, param_type,
                                       /*is_initialization=*/TRUE,
+                                      /*is_explicit_cast=*/FALSE,
                                       &conversion, &ambiguous,
                                       (a_candidate_function_ptr *)NULL) ||
          ambiguous)) {
@@ -1232,6 +1235,7 @@ static void try_overloaded_function_match(
                  an_operand               *bound_function_selector,
                  a_boolean                selector_is_object_pointer,
                  a_boolean                user_conversion_case,
+                 a_boolean                try_user_conversions,
                  a_candidate_function_ptr *candidate_functions,
                  a_boolean                *matched_except_for_missing_selector)
 /*
@@ -1246,11 +1250,12 @@ list along with information on the level of argument matches.  If a
 match would have been found except for the absence of a selector, set
 *matched_except_for_missing_selector TRUE; that allows a different
 error message.  If user_conversion_case is TRUE, this analysis is
-being done as part of resolving an implicit conversion: the functions
-are constructors, have_selector is FALSE (sic; the "this" parameter
-is not matched up); user-defined conversions are not tried on argument
-matches, and the "conversion" field is set in any candidate function
-entries created.
+being done as part of resolving an implicit or explicit conversion
+to a class type: the functions are constructors, have_selector is FALSE
+(sic; the "this" parameter is not matched up); the "conversion" field
+is set in any candidate function entries created.  try_user_conversions
+is TRUE to indicate that user-defined conversions should be tried on
+argument matches.
 */
 {
   a_boolean                overloaded_function_case;
@@ -1420,7 +1425,7 @@ entries created.
           /* Compare their types. */
           determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
                                     param->type,
-                                    !user_conversion_case,
+                                    try_user_conversions,
                                     arg_match);
           /* If no match is possible, go on to the next function. */
           if (arg_match->match_level == aml_none) goto reject_function;
@@ -1514,7 +1519,7 @@ entries created.
                                                candidate_functions);
       if (user_conversion_case) {
         /* If we are analyzing a user-defined conversion routine to resolve
-           an implicit conversion, set "conversion" appropriately.
+           an implicit or explicit conversion, set "conversion" appropriately.
            Note that this cannot happen for the template case. */
         a_candidate_function_ptr candidate = *candidate_functions;
         candidate->is_user_conversion = TRUE;
@@ -2545,6 +2550,7 @@ only in C++ mode.
                                 bound_function_selector,
                                 /*selector_is_object_pointer=*/TRUE,
                                 /*user_conversion_case=*/FALSE,
+                                /*try_user_conversions=*/TRUE,
                                 &candidate_functions,
                                 &matched_except_for_missing_selector);
   /* The candidate_functions list now contains all the viable functions.
@@ -3243,7 +3249,7 @@ arguments.  arg_operand_list and arg_match_list are freed.
 function_symbol can be NULL to indicate that the overload resolution
 failed; in that case, this routine does nothing except for freeing the
 lists.  This routine is used for cases that look like calls (i.e.,
-they have argument lists in parentheses); it is not used for
+they have argument lists in parentheses) or casts; it is not used for
 overloaded operator cases.
 */
 {
@@ -3388,7 +3394,7 @@ routine is called only in C++ mode.
   }  /* if */
   /* Build an expression-form argument list.  Convert the arguments on
      the argument list to the right types.  Free arg_operand_list
-     and_arg_match_list (the call is done even when function_symbol
+     and arg_match_list (the call is done even when function_symbol
      is NULL so that the freeing will be done). */
   adjust_overloaded_function_call_arguments(function_symbol,
                                             have_selector,
@@ -4441,6 +4447,7 @@ functions could still apply).
                                           operand_1,
                                           /*selector_is_object_pointer=*/FALSE,
                                           /*user_conversion_case=*/FALSE,
+                                          /*try_user_conversions=*/TRUE,
                                           &candidate_functions,
                                          &matched_except_for_missing_selector);
           }  /* if */
@@ -4456,6 +4463,7 @@ functions could still apply).
                                           (an_operand *)NULL,
                                           /*selector_is_object_pointer=*/TRUE,
                                           /*user_conversion_case=*/FALSE,
+                                          /*try_user_conversions=*/TRUE,
                                           &candidate_functions,
                                          &matched_except_for_missing_selector);
           }  /* if */
@@ -4639,6 +4647,7 @@ static a_boolean conversion_to_class_possible(
                                   an_operand               *source_operand,
                                   a_type_ptr               dest_type,
                                   a_boolean                is_initialization,
+                                  a_boolean                is_explicit_cast,
                                   a_conv_descr             *conversion,
                                   a_boolean                *ambiguous,
                                   a_candidate_function_ptr *ambiguity_list)
@@ -4648,12 +4657,18 @@ constructor, conversion function, or bitwise copy) set *conversion
 to describe the conversion and return TRUE.  Otherwise, return FALSE.
 If is_initialization is TRUE, this conversion is for an initialization;
 otherwise, it's for an assignment.  The result is always an rvalue.
-If more than one function matches, set *ambiguous to TRUE and return
+If is_explicit_cast is TRUE, this conversion is an explicit cast;
+allow user-defined conversions on constructor arguments, and convert
+source_operand to the argument type of the constructor before returning
+(because of that, this routine cannot be called experimentally in
+that mode -- it should only be called when one knows that the conversion
+is to be done; also, no conversion is done for bitwise copies).  If
+more than one function matches, set *ambiguous to TRUE and return
 FALSE.  If ambiguity_list is non-NULL in that case, it is set to point
 to a list describing the set of ambiguous functions; the caller must
-free that list.  *ambiguity_list is set to NULL to indicate a case that
-is undecidable because of an error.  This routine is only used in C++
-mode.
+free that list.  *ambiguity_list is set to NULL to indicate a case
+that is undecidable because of an error.  This routine is only used in
+C++ mode.
 */
 {
   a_boolean                     okay, bitwise_copy_okay;
@@ -4681,6 +4696,8 @@ mode.
   class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
   cssp = class_symbol->variant.class_struct_union.extra_info;
   source_type = source_operand->type;
+  /* candidate_functions will contain the list of viable functions. */
+  candidate_functions = NULL;
   /* Check for a same-class bitwise copy.  The derived-class bitwise copy
      is checked for below. */
   /* A bitwise copy cannot be done if any type qualifiers are dropped. */
@@ -4699,14 +4716,10 @@ mode.
   } else {
     /* A same-class bitwise copy is not possible, so do the full overload
        resolution. */
-    /* candidate_functions will contain the list of viable functions. */
-    candidate_functions = NULL;
     /* Make an argument list with just the source operand. */
     arg_operand_list = alloc_arg_operand();
     copy_operand(source_operand, &arg_operand_list->operand);
     constructor_symbol = cssp->constructor;
-    /* Constructors don't create lvalues, so don't try them if we need
-       an lvalue result. */
     if (constructor_symbol != NULL) {
       /* The class has constructors. */
       /* Try all the constructors with that argument list. */
@@ -4716,6 +4729,7 @@ mode.
                                     (an_operand *)NULL,
                                     /*selector_is_object_pointer=*/FALSE,
                                     /*user_conversion_case=*/TRUE,
+                                    /*try_user_conversions=*/is_explicit_cast,
                                     &candidate_functions,
                                     &matched_except_for_missing_selector);
     }  /* if */
@@ -4777,19 +4791,45 @@ mode.
           okay = TRUE;
           /* Return information on how the conversion is to be done. */
           *conversion = candidate_functions->conversion;
+          /* In the explicit cast case, do any required conversions on the
+             argument of a constructor call, since there may be user-defined
+             conversions involved. */
+          if (is_explicit_cast &&
+              candidate_functions->conversion.routine->special_kind ==
+                                    (a_special_function_kind)sfk_constructor) {
+            an_expr_node_ptr arg_expr;
+            an_operand       orig_operand;
+            adjust_overloaded_function_call_arguments(conversion_symbol,
+                                                      /*have_selector=*/FALSE,
+                                                      (an_operand *)NULL,
+                                                      arg_operand_list,
+                                                      candidate_functions->
+                                                                   arg_matches,
+                                                      &arg_expr);
+            /* arg_operand_list is freed by adjust_overloaded_..., so clear
+               it so it will not be freed again. */
+            arg_operand_list = NULL;
+            /* Likewise the argument match list attached to the candidate
+               function entry. */
+            candidate_functions->arg_matches = NULL;
+            /* Rebuild source_operand from the converted argument. */
+            orig_operand = *source_operand;
+            make_expression_operand(arg_expr, arg_expr->type, source_operand);
+            restore_operand_details(source_operand, &orig_operand);
+          }  /* if */
         }  /* if */
-      }  /* if */
-      conversion->ambiguous = *ambiguous;
-      if (*ambiguous && ambiguity_list != NULL) {
-        /* Return the candidate functions list to the caller, for use in
-           generating an ambiguity error.  The caller will free the list. */
-        *ambiguity_list = candidate_functions;
-      } else {
-        /* Free the candidate functions list. */
-        free_candidate_function_list(candidate_functions);
       }  /* if */
     }  /* if */
     free_arg_operand_list(arg_operand_list);
+  }  /* if */
+  conversion->ambiguous = *ambiguous;
+  if (*ambiguous && ambiguity_list != NULL) {
+    /* Return the candidate functions list to the caller, for use in
+       generating an ambiguity error.  The caller will free the list. */
+    *ambiguity_list = candidate_functions;
+  } else {
+    /* Free the candidate functions list. */
+    free_candidate_function_list(candidate_functions);
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
@@ -4948,6 +4988,7 @@ a_boolean user_defined_conversion_possible(an_operand   *source_operand,
                                            a_type_ptr   dest_type,
                                            a_boolean    is_initialization,
                                            a_boolean    need_lvalue_result,
+                                           a_boolean    is_explicit_cast,
                                            a_conv_descr *conversion,
                                            a_boolean    *failed)
 /*
@@ -4962,6 +5003,9 @@ type), and no conversion was found, issue an error, change
 source_operand to an error operand, set *failed to TRUE, and return
 FALSE.  need_lvalue_result is TRUE if the result is required to be
 an lvalue; otherwise, the result can be an lvalue or an rvalue.
+If is_explicit_cast is TRUE, the conversion is an explicit cast;
+allow user-defined conversions on constructor arguments, and convert
+source_operand to the argument type of the constructor before returning.
 Note that this routine should only be called when the conversion must
 be done, not when we're just wondering if it can be done, because it
 issues errors.  See 12.3 in the ARM.  This routine is only called in
@@ -4989,6 +5033,7 @@ caller should have rewritten that case).
        function. */
     if (conversion_to_class_possible(source_operand, dest_type,
                                      is_initialization,
+                                     is_explicit_cast,
                                      conversion, &ambiguous,
                                      &ambiguity_list)) {
       /* A user-defined conversion (constructor or conversion function) or
@@ -5104,6 +5149,7 @@ in error messages.
       user_defined_conversion_possible(source_operand, dest_type,
                                        is_initialization,
                                        /*need_lvalue_result=*/FALSE,
+                                       /*is_explicit_cast=*/FALSE,
                                        conversion, &failed)) {
     /* A user-defined conversion can be done. */
     okay = TRUE;

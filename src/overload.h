@@ -371,6 +371,7 @@ extern a_boolean user_defined_conversion_possible(
                                             a_type_ptr   dest_type,
                                             a_boolean    is_initialization,
                                             a_boolean    need_lvalue_result,
+                                            a_boolean    is_explicit_cast,
                                             a_conv_descr *conversion,
                                             a_boolean    *failed);
 
