@@ -10939,11 +10939,17 @@ FALSE and a pointer to the expression tree in *expression.
   an_expr_stack_entry expr_stack_entry;
   int                 constant_sign;
   a_boolean           processed = FALSE;
+  an_expression_kind  ekind;
 
   db_enter(3, "scan_nonconstant_dimension_expression");
 
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE);
+  ekind = (an_expression_kind)ek_normal;
+  /* When a dimension bound expression is scanned inside a constant expression,
+     it must be an integral constant. */
+  if (expr_stack != NULL && curr_expr_kind_is_const()) {
+    ekind = (an_expression_kind)ek_integral_constant;
+  }  /* if */
+  push_expr_stack(ekind, &expr_stack_entry, /*force_object_lifetime=*/FALSE);
   if (is_vla_decl) expr_stack_entry.is_vla_dimension_expression = TRUE;
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
