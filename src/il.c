@@ -4707,6 +4707,7 @@ parameter field of the current block scope, and return a pointer to it.
   /* Allocate the variable. */
   vp = alloc_variable((a_storage_class)sc_auto);
   vp->type = type_ptr;
+  vp->is_handler_param = TRUE;
   /* Add it to the scope entry. */
   add_to_variables_list(vp, /*at_file_scope=*/FALSE);
 

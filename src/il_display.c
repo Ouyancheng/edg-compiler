@@ -1440,7 +1440,11 @@ Display the indicated variable.
   disp_name("storage_class");
   disp_storage_class_name(ptr->storage_class);
   disp_boolean("address_taken", (a_boolean)ptr->address_taken);
-  disp_boolean("is_parameter", (a_boolean)ptr->is_parameter);
+  if (ptr->is_parameter) {
+    disp_boolean("is_parameter", (a_boolean)ptr->is_parameter);
+  } else if (ptr->is_handler_param) {
+    disp_boolean("is_handler_param", (a_boolean)ptr->is_handler_param);
+  }  /* if */
 #ifdef FFE
   disp_boolean("by_address", (a_boolean)ptr->by_address);
 #endif /*ifdef FFE */
@@ -1468,7 +1472,7 @@ Display the indicated variable.
   if (ptr->specific_def) {
     disp_boolean("specific_def", (a_boolean)ptr->specific_def);
   }  /* if */
-  if (ptr->is_parameter) {
+  if (ptr->is_parameter || ptr->is_handler_param) {
     disp_boolean("param_value_has_been_changed",
                  (a_boolean)ptr->param_value_has_been_changed);
     disp_boolean("param_used_more_than_once",

@@ -2401,16 +2401,18 @@ typedef struct a_variable {
 			/* TRUE if this instance has been explicitly
                            defined (in which case no implicit instantiation
                            will be done). */
-  unsigned int
-		param_value_has_been_changed:1;
-			/* TRUE if is_parameter is TRUE and the variable
-			   is assigned to or has had its address taken at
-			   least once within the body of the routine. */
-  unsigned int
-		param_used_more_than_once:1;
-			/* TRUE if is_parameter is TRUE and the variable
-			   is used more than once within the body of the
-			   routine. */
+  unsigned int  param_value_has_been_changed:1;
+			/* TRUE if is_parameter or is_handler_param is TRUE
+			   and the variable is assigned to or has had its
+			   address taken at least once within the body of the
+			   routine or handler. */
+  unsigned int  param_used_more_than_once:1;
+			/* TRUE if is_parameter or is_handler_param is TRUE
+			   and the variable is used more than once within
+			   the body of the routine or handler. */
+  unsigned int  is_handler_param:1;
+			/* TRUE if the variable is a handler parameter. */
+		
 #endif /* ifdef CIL */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any. */

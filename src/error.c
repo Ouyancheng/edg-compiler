@@ -3061,6 +3061,8 @@ declaration position to eliminate redundant file names in a diagnostic.
       type = fund_sym->variant.variable.ptr->type;
       if (fund_sym->variant.variable.ptr->is_parameter) {
         entity_kind = "parameter ";
+      } else if (fund_sym->variant.variable.ptr->is_handler_param) {
+        entity_kind = "handler parameter ";
       } else {
         entity_kind = "variable ";
       }  /* if */
