@@ -5685,7 +5685,7 @@ static void gen_routine_specifiers_and_declaration(
                           a_routine_ptr                rout,
                           a_type_ptr                   rout_type,
                           a_boolean                    is_definition,
-                          a_boolean                    is_specialization,
+                          a_boolean                    force_unqualified_name,
                           a_boolean                    friend_decl,
                           a_boolean                    decl_within_class,
                           a_boolean                    instantiation_directive,
@@ -5738,7 +5738,7 @@ Generate code for an instantiation directive.
           gen_routine_specifiers_and_declaration(
                                          rout, rout->type,
                                          /*is_definition=*/FALSE,
-                                         /*is_specialization=*/FALSE,
+                                         /*force_unqualified_name=*/FALSE,
                                          /*friend_decl=*/FALSE,
                                          /*decl_within_class=*/FALSE,
                                          /*instantiation_directive=*/TRUE,
@@ -6913,7 +6913,7 @@ static void gen_routine_specifiers_and_declaration(
                           a_routine_ptr                rout,
                           a_type_ptr                   rout_type,
                           a_boolean                    is_definition,
-                          a_boolean                    is_specialization,
+                          a_boolean                    force_unqualified_name,
                           a_boolean                    friend_decl,
                           a_boolean                    decl_within_class,
                           a_boolean                    instantiation_directive,
@@ -6926,8 +6926,8 @@ static void gen_routine_specifiers_and_declaration(
 Generate the type specifiers and declarator for a declaration of the
 routine rout.  Its type is rout_type (that may differ from rout->type for
 a declared_type).  If is_definition is TRUE, this is a definition; if
-is_specialization is TRUE, this is a specialization declaration; if
-friend_decl is TRUE, this is a friend declaration; if decl_within_class
+force_unqualified_name is TRUE, use an unqualified name in the declaration;
+if friend_decl is TRUE, this is a friend declaration; if decl_within_class
 is TRUE, this is a declaration of a member within its class; if
 instantiation_directive is TRUE, this is an instantiation directive.
 If this is a secondary declaration, sec_decl points to the entry;
@@ -6942,7 +6942,6 @@ be saved in *saved_state before the transition to the source sequence
 list for the function definition.
 */
 {
-  a_boolean  force_unqualified_name;
   a_type_ptr qual_rout_type = rout_type;
   a_routine_type_supplement_ptr
              rtsp = f_skip_typerefs(rout_type)->variant.routine.extra_info;
@@ -6956,10 +6955,6 @@ list for the function definition.
          !typeref_is_typedef(rout_type)) {
     rout_type = rout_type->variant.typeref.type;
   }  /* while */
-  /* An unqualified name is used in the declarator if this is a declaration
-     rather than a definition.  Specializations are an exception, and
-     get the full normal handling. */
-  force_unqualified_name = !is_definition && !is_specialization;
   if (rout_type->kind != (a_type_kind)tk_routine) {
     /* If the function type comes from a typedef, handle the declaration
        in the conventional way.  This can occur only for declarations. */
@@ -7065,6 +7060,7 @@ TRUE if the declaration following this one is such a continuation.
   a_function_state              state;
   a_boolean                     decl_within_function =
                                             (innermost_function_scope != NULL);
+  a_boolean                     force_unqualified_name;
   a_boolean                     need_to_unset_typedefs = FALSE;
 
   *another_decl_in_comma_list = FALSE;
@@ -7262,10 +7258,14 @@ TRUE if the declaration following this one is such a continuation.
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+  /* An unqualified name is used in the declarator if this is a declaration
+     rather than a definition.  Specializations are an exception, and
+     get the full normal handling. */
+  force_unqualified_name = !is_definition && !is_specialization;
   /* Generate a declaration for the routine name with the right type. */
   gen_routine_specifiers_and_declaration(rout, rout_type,
                                          is_definition,
-                                         is_specialization,
+                                         force_unqualified_name,
                                          friend_decl,
                                          decl_within_class,
                                          /*instantiation_directive=*/FALSE,
