@@ -346,14 +346,15 @@ static a_constant_ptr get_initializer(a_type_ptr          *type,
 /*
 Scan a constant initializer or initializer list, and return a pointer to
 the constant for it (an aggregate constant if an initializer list is
-scanned).  *type indicates the type of the object being initialized.
-It will be updated if the object is an incomplete array whose size is
-now known because it is initialized.  If there is some error in the
-initializer, an error constant is returned.  top_level is TRUE if this
-is a top-level initializer (braces are required surrounding initializers
-for unions and aggregates at that level).  *nothing_taken is returned
-TRUE if no source tokens were taken because the entity being initialized
-is an empty class.
+scanned).  *type indicates the type of the object being initialized.  It
+will be updated if the object is an incomplete array whose size is now
+known because it is initialized.  If there is some error in the
+initializer, an error constant is returned.  top_level is TRUE if this is
+a top-level initializer (braces are required surrounding initializers for
+unions and aggregates at that level).  *nothing_taken is returned TRUE if
+no source tokens were taken because the entity being initialized is an
+empty class. *incomplete_init is returned TRUE when at least one const or
+ref field of a class object (or an array of same) remains uninitialized.
 */
 {
   a_constant_ptr      init_con = NULL;
