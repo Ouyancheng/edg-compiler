@@ -9116,6 +9116,25 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
           }  /* if*/
         }  /* if */ 
       }  /* if */
+      /* If the symbol found is a class template then this must be a
+         reference to a instance of the class template.  This can occur when
+         a template name appears in a qualified name without a template
+         argument list (if a template argument list were specified it would
+         have been coalesced by f_is_generized_identifier_start). */
+      {
+        a_symbol_ptr	symbol;
+	a_boolean	templ_err = FALSE;
+        symbol = locator_for_curr_id.specific_symbol;
+        if (symbol != NULL &&
+            symbol->kind == (a_symbol_kind)sk_class_template) {
+          symbol = coalesce_template_class_reference(symbol,
+                                                     options, &templ_err);
+           if (templ_err) {
+             okay = FALSE;
+             *err = TRUE;
+           }  /* if */
+        }  /* if */
+      }
       /* A qualified declarator name in a template declaration must name
          a template or a member of a class template. */
       if (check_for_template_declarator_errors(options, &error_position)) {

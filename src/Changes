@@ -1,5 +1,22 @@
 Version 2.36
 
+4/16/97   Internal error on missing template argument list of member class
+          template in field selection operator
+
+An internal error could result when a member class template name is used
+in a qualified name in a field selection operator without a template
+argument list.  This has been fixed.
+
+  struct A {
+    template <class T> struct B {};
+  };
+  int main()
+  {
+    A a;
+    a.A::B;
+  }
+
+
 4/16/97   Internal error on specialization in invalid context
 
 An internal error could result if a specialization of a member function
