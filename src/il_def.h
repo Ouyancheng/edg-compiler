@@ -5282,6 +5282,17 @@ enum an_expr_operator_kind_tag {
                            is the array address; the rest are the subscripts.
                            The result is the value of the array element. */
 #endif /* ifdef FIL */
+  /* Operators used when the <stdarg.h> macros are treated as builtins: */
+  eok_va_start,		/* va_start macro reference.  First operand is
+			   lvalue address of variable of type va_list,
+			   second is lvalue address of last parameter before
+			   "..." of function. */
+  eok_va_arg,		/* va_arg macro reference.  First operand is lvalue
+			   address of variable of type va_list.  Second
+			   argument of macro is represented by the result type
+			   of the expression node. */
+  eok_va_end,		/* va_end macro reference.  First operand is lvalue
+			   address of variable of type va_list. */
   /* Special operators: */
   eok_error,            /* This is a special operator used in the cases when
                            the operator cannot be determined.  This operator
@@ -7420,6 +7431,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #ifdef FIL
    "()", "v()",
 #endif /* ifdef FIL */
+   "va_start", "va_arg", "va_end",
    "error", "last"
 }
 #endif /* VAR_INITIALIZERS */

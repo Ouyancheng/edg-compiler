@@ -1950,6 +1950,9 @@ Display the name of an expression operator.
     case eok_fsubscript:        s = "eok_fsubscript";             break;
     case eok_value_fsubscript:  s = "eok_value_fsubscript";       break;
 #endif /* ifdef FFE */
+    case eok_va_start:          s = "eok_va_start";               break;
+    case eok_va_arg:            s = "eok_va_arg";                 break;
+    case eok_va_end:            s = "eok_va_end";                 break;
     case eok_error:             s = "eok_error";                  break;
     default:                    s = "**BAD EXPR OPERATOR KIND**"; break;
   }  /* switch */
