@@ -1564,7 +1564,7 @@ specified after the point of definition of the template.
                 (int)scope_depth_of(ssep),
                 nssp->namespace_list_entry->ptr->source_corresp.name,
                 (int)new_depth);
-        fprintf(f_debug, ", decl_seq %ld\n", effective_decl_seq);
+        fprintf(f_debug, ", decl_seq %lu\n", effective_decl_seq);
       }  /* if */
 #endif /* DEBUG */
       /* Record the scope depth of the innermost active using directive for
