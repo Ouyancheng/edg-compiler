@@ -5303,7 +5303,7 @@ typedef struct a_routine {
 			/* This field is TRUE when the body of an extern
 			   inline function should not be emitted by the back
 			   end.	 This field is used both in C99 mode, for
-			   so-call "inline definitions" (see 6.7.4), and
+			   so-called "inline definitions" (see 6.7.4), and
 			   when INSTANTIATE_EXTERN_INLINE is TRUE (i.e.,
 			   when inline functions are instantiated using a
 			   mechanism similar to the template instantiation
