@@ -93,8 +93,8 @@ command-line macro contained an unclosed comment.
   edgcpfe -DM='/*' ...
 
 Versions prior to 2.43 would accept this and expand the macro textually.
-Now, however, the command-line macro is diagnosed as having an invalid
-definition (just as would the equivalent #define in the source).
+With this fix, however, the command-line macro is diagnosed as having an
+invalid definition (just as would the equivalent #define in the source).
 
 2/1/00   Exception handling cleanup state: new not folded into constructor
 
