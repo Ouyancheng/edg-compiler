@@ -1,5 +1,10 @@
 Version 2.07
 
+6/12/92  Symbol names are not available when STANDALONE_UTILITY_PROGRM.
+
+Conditional compilation added to suppress symbol name expansion when error.c
+is part of a utility program.
+
 6/5/92  Added protected member access check of ARM 11.5.
 
 Access control checking has been enchanced to do the checking mandated
