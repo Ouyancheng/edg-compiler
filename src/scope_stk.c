@@ -1471,6 +1471,8 @@ the scope being pushed.
       /* Keep track of the number of classes and class reactivations. */
       num_classes_on_scope_stack++;
       if (kind == (a_scope_kind)sck_class_reactivation) {
+        /* When a class is reactivated, ignore any enclosing functions
+           scopes. */
         depth_innermost_function_scope =
               ssep->depth_innermost_function_scope = NO_SCOPE_DEPTH;
         innermost_function_scope = NULL;
