@@ -1702,9 +1702,10 @@ the default constructor (if one exists) is called.
   a_variable_ptr                 var = NULL;
   a_type_ptr                     var_type, tp;
   a_class_symbol_supplement_ptr  cssp;
-  a_dynamic_init_ptr             init_dip, dip;
+  a_dynamic_init_ptr             init_dip, orig_init_dip;
   a_routine_ptr                  ctor = NULL, dtor = NULL;
   a_targ_size_t                  count;
+  an_object_lifetime_ptr         expr_temp_lifetime = NULL;
 
   db_enter(3, "def_initializer");
   /* Default initialization is done only in C++ and only for variables and
@@ -1758,7 +1759,16 @@ the default constructor (if one exists) is called.
           init_dip->variant.constructor.ptr = ctor;
           /* A user defined default constructor may have default args that
              should be incorporated into the constructor call. */
-          init_dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
+          if (ptp != NULL) {
+            /* Push an object lifetime, in case the expression requires
+               generating a temporary. */
+            push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
+                                 (an_object_lifetime_kind)olk_expr_temporary);
+            expr_temp_lifetime = curr_object_lifetime;
+            /* Copy the default-arg list. */
+            init_dip->variant.constructor.args =
+                                          copy_default_arg_expr_list(ptp);
+          }  /* if */
         } else {
           /* Default initialization of an object that has a destructor.  We
              generate a dik_none dynamic initialization entry for this object,
@@ -1769,6 +1779,9 @@ the default constructor (if one exists) is called.
         init_dip->destructor = dtor;
         /* A constructor (or at least a destructor) was found and a dynamic
            init entry (local_di) was set to represent the initialization. */
+        /* Save a pointer to init_dip, since it may be modified if this is
+           an array initialization. */
+        orig_init_dip = init_dip;
         if (var_type != tp) {
           /* The object has an array type.  We need to build an aggregate
              initialization on top of the other dynamic init entry. */
@@ -1776,12 +1789,10 @@ the default constructor (if one exists) is called.
              that will not be "on top" when gen_dynamic_initialization is
              called, record the destruction, if needed, with the appropriate
              object-lifetime entry. */
-          record_end_of_lifetime_destruction(init_dip,
+          record_end_of_lifetime_destruction(orig_init_dip,
                                              has_static_storage_duration(
                                                           var->storage_class),
                                              /*block_lifetime=*/TRUE);
-          /* Copy the dynamic init entry. */
-          dip = init_dip;
           /* Create a new one to represent a nonconstant aggregate
              initialization. */
           init_dip = alloc_dynamic_init(
@@ -1789,12 +1800,22 @@ the default constructor (if one exists) is called.
           /* Compute the repeat count. */
           count = var_type->size / tp->size;
           /* Build the repeat construct. */
-          repeat_nonconstant_init(dip, var_type, tp, init_dip, count);
+          repeat_nonconstant_init(orig_init_dip, var_type, tp, init_dip,
+                                  count);
         }  /* if */
         /* Allocate a dynamic init entry (a copy of local_di) and attach it
            to the variable. */
         gen_dynamic_initialization(var, init_dip, err_pos,
                                    (a_statement_ptr *)NULL);
+        if (expr_temp_lifetime != NULL) {
+          check_assertion(expr_temp_lifetime == curr_object_lifetime);
+          if (!is_useless_object_lifetime(expr_temp_lifetime)) {
+            bind_object_lifetime(expr_temp_lifetime,
+                                 (an_il_entry_kind)iek_dynamic_init,
+                                 (char *)orig_init_dip);
+          }  /* if */
+          (void)pop_object_lifetime();
+        }  /* if */
 #if DEBUG
         if (debug_level >= 3) {
           db_variable(var);
