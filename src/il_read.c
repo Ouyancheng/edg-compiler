@@ -343,7 +343,6 @@ necessary to make it directly accessible in memory.
   a_boolean                 first_block;
   a_boolean                 any_blocks_at_different_addresses;
 #endif /* ALTERNATE_IL_FILE_FORMAT */
-  a_remap_function_ptr      saved_walk_remap_func = walk_remap_func;
 
   db_enter(2, "read_memory_region");
 #if DEBUG
@@ -426,17 +425,14 @@ necessary to make it directly accessible in memory.
     }
 #endif /* CHECKING && DEBUG */
   }  /* for */
-  /* Establish the remapping function (from entry number to pointer) to
-     be used by the IL walk routines. */
-  walk_remap_func = remap_ptr_to_ptr;
   if (reading_file_scope_il) {
     /* In the alternate file format, the IL tree is not walked on the reading
        end -- each IL entry's pointers are remapped as the entry is read.
        Therefore header pointers (like these) are remapped as a separate
        step here. */
-    remap_il_header_pointers();
-    remap_first_ptr_of_orphaned_file_scope_entry_array();
-    remap_last_ptr_of_orphaned_file_scope_entry_array();
+    remap_il_header_pointers(remap_ptr_to_ptr, remap_ptr_to_ptr);
+    remap_first_ptr_of_orphaned_file_scope_entry_array(remap_ptr_to_ptr);
+    remap_last_ptr_of_orphaned_file_scope_entry_array(remap_ptr_to_ptr);
   }  /* if */
   /* Remember the location of the primary scope entry.  It's the first scope
      entry, because il_write assigns its number first. */
@@ -557,7 +553,8 @@ necessary to make it directly accessible in memory.
     if (!is_string_entry) {
       /* Change the pointers in the entry from entry numbers to real
          pointers. */
-      remap_pointers_in_il_entry(entry_ptr, entry_kind);
+      remap_pointers_in_il_entry(entry_ptr, entry_kind,
+                                 remap_ptr_to_ptr, remap_ptr_to_ptr);
     }  /* if */
   }  /* for */
   /* Zero entry kind indicating end of list has been encountered. */
@@ -784,12 +781,11 @@ necessary to make it directly accessible in memory.
          The "first" pointers are left alone for now; they will be remapped
          by the call of walk_orphaned_file_scope_il_entries at the end
          of the file-scope IL walk. */
-      walk_remap_func = ptr_remap_function;
-      remap_last_ptr_of_orphaned_file_scope_entry_array();
+      remap_last_ptr_of_orphaned_file_scope_entry_array(ptr_remap_function);
       /* Walk the file scope IL tree. */
       walk_file_scope_il((an_entry_process_function_ptr)NULL,
                          (a_string_entry_process_function_ptr)NULL,
-                         ptr_remap_function,
+                         ptr_remap_function, ptr_remap_function,
                          (a_walk_termination_test_function_ptr)NULL,
                          /*clear_fe_pointers=*/TRUE);
     } else {
@@ -797,7 +793,7 @@ necessary to make it directly accessible in memory.
       walk_routine_scope_il(region_number,
                             (an_entry_process_function_ptr)NULL,
                             (a_string_entry_process_function_ptr)NULL,
-                            ptr_remap_function,
+                            ptr_remap_function, ptr_remap_function,
                             (a_walk_termination_test_function_ptr)NULL,
                             /*clear_fe_pointers=*/TRUE);
     }  /* if */
@@ -808,7 +804,6 @@ necessary to make it directly accessible in memory.
   }  /* if */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
-  walk_remap_func = saved_walk_remap_func;
   db_exit();
 }  /* read_memory_region */
 

@@ -79,29 +79,11 @@ EXTERN unsigned long array_bound_walk_index;
 EXTERN unsigned long num_walk_array_bounds;
 #endif /* ifdef FFE */
 
-EXTERN a_remap_function_ptr
-		walk_remap_func;
-			/* The function to be used to remap each pointer
-			   from an old value to a new value.  NULL if no
-			   remapping is to be done. */
-EXTERN a_boolean
-		walking_file_scope;
-			/* TRUE if walking the file-scope IL, FALSE if
-			   walking the IL for a function scope. */
-EXTERN a_boolean
-		walking_secondary_trans_unit;
-			/* TRUE if we are walking an IL tree in a secondary
-			   translation unit, FALSE if we are walking the
-			   IL in a primary translation unit. */
 EXTERN unsigned int
 		flag_value_meaning_visited;
 			/* Value to be placed in the il_walk_flag field
 			   to indicate that an entry has been visited.
 			   The value alternates between 0 and 1. */
-EXTERN a_boolean
-		clear_fe_pointers_during_walk;
-			/* If TRUE, pointers to front end information should
-			   be cleared during the IL walk. */
 
 #if IL_WALK_NEEDED 
 
@@ -110,6 +92,7 @@ extern void walk_file_scope_il(
             an_entry_process_function_ptr        entry_process_function,
             a_string_entry_process_function_ptr  string_entry_process_function,
             a_remap_function_ptr                 remap_function,
+            a_remap_function_ptr                 list_remap_function,
             a_walk_termination_test_function_ptr termination_test_function,
             a_boolean                            clear_fe_pointers);
 
@@ -119,6 +102,7 @@ extern void walk_routine_scope_il(
             an_entry_process_function_ptr        entry_process_function,
             a_string_entry_process_function_ptr  string_entry_process_function,
             a_remap_function_ptr                 remap_function,
+            a_remap_function_ptr                 list_remap_function,
             a_walk_termination_test_function_ptr termination_test_function,
             a_boolean                            clear_fe_pointers);
 
@@ -127,6 +111,7 @@ extern void walk_il_subtree(
             an_entry_process_function_ptr        entry_process_function,
             a_string_entry_process_function_ptr  string_entry_process_function,
             a_remap_function_ptr                 remap_function,
+            a_remap_function_ptr                 list_remap_function,
             a_walk_termination_test_function_ptr termination_test_function,
             a_boolean                            clear_fe_pointers,
             char                                 *ptr,
@@ -170,17 +155,23 @@ EXTERN a_boolean
 			   and classes to set needed flags. */
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
 
-extern void remap_pointers_in_il_entry(char             *entry_ptr,
-                                       an_il_entry_kind entry_kind);
+extern
+void remap_pointers_in_il_entry(char                 *entry_ptr,
+                                an_il_entry_kind     entry_kind,
+                                a_remap_function_ptr remap_function,
+                                a_remap_function_ptr list_remap_function);
 
 #if REMAP_ONLY_ROUTINES_NEEDED
-extern void remap_il_header_pointers(void);
+extern void remap_il_header_pointers(a_remap_function_ptr remap_function,
+                                     a_remap_function_ptr list_remap_function);
 
-extern void remap_first_ptr_of_orphaned_file_scope_entry_array(void);
+extern void remap_first_ptr_of_orphaned_file_scope_entry_array(
+                                          a_remap_function_ptr remap_function);
 #endif /* REMAP_ONLY_ROUTINES_NEEDED */
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
-extern void remap_last_ptr_of_orphaned_file_scope_entry_array(void);
+extern void remap_last_ptr_of_orphaned_file_scope_entry_array(
+                                          a_remap_function_ptr remap_function);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 extern void il_walk_init(void);

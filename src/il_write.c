@@ -635,12 +635,9 @@ its length.
      We can't just change the copy. */
   if (!is_string_entry) {
     (void)memcpy(entry_copy, entry_ptr, size_t_arg(entry_length));
-    /* walk_remap_func is set to point to the remap routine to be called,
-       but it must be restored to NULL for the overall tree walk that is
-       going on around this call. */
-    walk_remap_func = remap_ptr_to_entry_number;
-    remap_pointers_in_il_entry(entry_ptr, entry_kind);
-    walk_remap_func = NULL;
+    remap_pointers_in_il_entry(entry_ptr, entry_kind,
+                               remap_ptr_to_entry_number,
+                               remap_ptr_to_entry_number);
   }  /* if */
   /* Write the entry kind. */
   byte_entry_kind = (int)entry_kind;
@@ -792,12 +789,14 @@ Write the indicated memory region to the file f_il_output.
         /* The memory region is the file scope region. */
         walk_file_scope_il(write_nonstring_entry, write_entry,
                            (a_remap_function_ptr)NULL,
+                           (a_remap_function_ptr)NULL,
                            (a_walk_termination_test_function_ptr)NULL,
                            /*clear_fe_pointers=*/FALSE);
       } else {
         /* The memory region is a function scope. */
         walk_routine_scope_il(region_number,
                               write_nonstring_entry, write_entry,
+                              (a_remap_function_ptr)NULL,
                               (a_remap_function_ptr)NULL,
                               (a_walk_termination_test_function_ptr)NULL,
                               /*clear_fe_pointers=*/FALSE);
@@ -836,6 +835,7 @@ Write the indicated memory region to the file f_il_output.
         walk_routine_scope_il(region_number,
                               (an_entry_process_function_ptr)NULL,
                               (a_string_entry_process_function_ptr)NULL,
+                              (a_remap_function_ptr)NULL,
                               (a_remap_function_ptr)NULL,
                               (a_walk_termination_test_function_ptr)NULL,
                               /*clear_fe_pointers=*/FALSE);
@@ -917,8 +917,8 @@ Write the indicated memory region to the file f_il_output.
 #if ALTERNATE_IL_FILE_FORMAT
       /* In the alternate form, the pointers in the header must be remapped to
          entry numbers. */
-      walk_remap_func = remap_ptr_to_entry_number;
-      remap_il_header_pointers();
+      remap_il_header_pointers(remap_ptr_to_entry_number,
+                               remap_ptr_to_entry_number);
 #endif /* ALTERNATE_IL_FILE_FORMAT */
       (void)fwrite((char *)&il_header, sizeof(il_header), 1, f_il_output);
       /* Restore il_header. */
@@ -931,8 +931,10 @@ Write the indicated memory region to the file f_il_output.
                    sizeof(orphaned_file_scope_il_entries));
       /* The pointers in the orphaned IL entry table must be remapped to
          entry numbers. */
-      remap_first_ptr_of_orphaned_file_scope_entry_array();
-      remap_last_ptr_of_orphaned_file_scope_entry_array();
+      remap_first_ptr_of_orphaned_file_scope_entry_array(
+                                                    remap_ptr_to_entry_number);
+      remap_last_ptr_of_orphaned_file_scope_entry_array(
+                                                    remap_ptr_to_entry_number);
 #endif /* ALTERNATE_IL_FILE_FORMAT */
       /* Copy the orphaned_file_scope_il_entries array to the file. */
       (void)fwrite((char *)orphaned_file_scope_il_entries,

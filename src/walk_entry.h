@@ -67,6 +67,24 @@ the entry is not reached from elsewhere.
 #endif /* NEEDED_FLAG_WALK && ... */
 
 /*
+Like remap_ptr, but used for pointers in lists, i.e., "next" pointers
+and start-of-list pointers.
+*/
+#undef remap_list_ptr
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+/* When doing the IL walk to set the "needed" or "keep_in_il" flags, all
+   references are significant and must be followed. */
+#define remap_list_ptr(ptr, ptr_type, entry_kind) \
+  walk_list_ptr(ptr, ptr_type, entry_kind)
+#else /* !(NEEDED_FLAG_WALK && ...) */
+#define remap_list_ptr(ptr, ptr_type, entry_kind) \
+{ if (walk_list_remap_func != NULL) { \
+    (ptr) = (ptr_type)walk_list_remap_func((char *)(ptr), (entry_kind)); \
+  }  /* if */ \
+}  /* remap_list_ptr */
+#endif /* NEEDED_FLAG_WALK && ... */
+
+/*
 Like remap_ptr, but used for "next" pointers in entries.  These are
 remapped only if not processing subtrees (if subtrees are being processed,
 walk_list handles the remapping when doing the parent of this entry).
@@ -76,7 +94,7 @@ walk_list handles the remapping when doing the parent of this entry).
 #define remap_next_ptr(ptr, ptr_type, entry_kind) /* Nothing */
 #else /* !DO_SUBTREE_WALK */
 #define remap_next_ptr(ptr, ptr_type, entry_kind) \
-  remap_ptr((ptr), ptr_type, (entry_kind))
+  remap_list_ptr((ptr), ptr_type, (entry_kind))
 #endif /* DO_SUBTREE_WALK */
 
 /*
@@ -119,6 +137,27 @@ ptr_type is the type of ptr, and entry_kind is the kind of entry pointed to.
 #else /* !DO_SUBTREE_WALK */
 #define walk_ptr(ptr, ptr_type, entry_kind) \
   remap_ptr((ptr), ptr_type, (entry_kind))
+#endif /* DO_SUBTREE_WALK */
+
+/*
+Like walk_ptr, but used for pointers in lists, i.e., "next" pointers
+and start-of-list pointers.
+*/
+#undef walk_list_ptr
+#if DO_SUBTREE_WALK
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+/* Walking to set the "needed" or "keep_in_il" flag.  Same as walk_ptr. */
+#define walk_list_ptr(ptr, ptr_type, entry_kind) \
+  walk_ptr((ptr), ptr_type, (entry_kind))
+#else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
+#define walk_list_ptr(ptr, ptr_type, entry_kind) \
+{ remap_list_ptr((ptr), ptr_type, (entry_kind)); \
+  if ((ptr) != NULL) walk_entry_and_subtree((char *)(ptr), (entry_kind)); \
+}  /* walk_list_ptr */
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+#else /* !DO_SUBTREE_WALK */
+#define walk_list_ptr(ptr, ptr_type, entry_kind) \
+  remap_list_ptr((ptr), ptr_type, (entry_kind))
 #endif /* DO_SUBTREE_WALK */
 
 /*
@@ -165,12 +204,12 @@ other than "next".
 #define walk_list_on_link_field(ptr, ptr_type, entry_kind, link_field) \
 { ptr_type *ptr_ptr = &(ptr); \
   for (; *ptr_ptr != NULL; ptr_ptr = &(*ptr_ptr)->link_field) { \
-    walk_ptr(*ptr_ptr, ptr_type, (entry_kind)); \
+    walk_list_ptr(*ptr_ptr, ptr_type, (entry_kind)); \
   }  /* for */ \
 }  /* walk_list_on_link_field */
 #else /* !DO_SUBTREE_WALK */
 #define walk_list_on_link_field(ptr, ptr_type, entry_kind, link_field) \
-  remap_ptr((ptr), ptr_type, (entry_kind))
+  remap_list_ptr((ptr), ptr_type, (entry_kind))
 #endif /* DO_SUBTREE_WALK */
 #undef walk_list
 #define walk_list(ptr, ptr_type, entry_kind) \
@@ -415,7 +454,7 @@ necessary.
 
 
 /* The name is provided by a macro so it can be different things, e.g.,
-    walk_entry_and_subtree and remap_pointers_in_il_entry. */
+    walk_entry_and_subtree and remap_pointers_in_entry. */
 WALK_ENTRY_ROUTINE_STATIC /* "static" if routine should be static. */
 void WALK_ENTRY_ROUTINE_NAME(char             *entry_ptr,
                              an_il_entry_kind entry_kind)
@@ -1863,8 +1902,8 @@ end_sizeof:;
              They will be processed during the file scope memory region
              walk because a_scope_orphaned_list_header entry for these lists
              would have been created. */
-          remap_ptr(ptr->types, a_type_ptr, iek_type);
-          remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
+          remap_list_ptr(ptr->types, a_type_ptr, iek_type);
+          remap_list_ptr(ptr->variables, a_variable_ptr, iek_variable);
         } else {
           /* Not a function or block scope. */
           walk_list(ptr->types, a_type_ptr, iek_type);
@@ -1875,9 +1914,9 @@ end_sizeof:;
 #endif /* NEEDED_FLAG_WALK */
 #else /* !DO_SUBTREE_WALK */
         /* Not walking subtrees.  Just remap the pointers. */
-        remap_ptr(ptr->types, a_type_ptr, iek_type);
-        remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
-        remap_ptr(ptr->routines, a_routine_ptr, iek_routine);
+        remap_list_ptr(ptr->types, a_type_ptr, iek_type);
+        remap_list_ptr(ptr->variables, a_variable_ptr, iek_variable);
+        remap_list_ptr(ptr->routines, a_routine_ptr, iek_routine);
 #endif /* DO_SUBTREE_WALK */
         walk_list_not_needed(ptr->nonstatic_variables, a_variable_ptr,
                              iek_variable);
@@ -1938,8 +1977,10 @@ end_sizeof:;
         /* The src_seq_sublist_list, which appears only on function scopes,
            is not walked at this time: it is handled during orphan list
            processing. */
-        remap_ptr_not_needed(ptr->src_seq_sublist_list, a_src_seq_sublist_ptr,
-                             iek_src_seq_sublist);
+#if !NEEDED_FLAG_WALK
+        remap_list_ptr(ptr->src_seq_sublist_list, a_src_seq_sublist_ptr,
+                       iek_src_seq_sublist);
+#endif /* !NEEDED_FLAG_WALK */
 #endif /* KEEP_IN_IL_WALK */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }
@@ -2654,8 +2695,8 @@ after_entry_from_class:
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* Don't walk these lists.  They will have been walked from the
            function scope if necessary. */
-        remap_ptr(ptr->orphaned_types, a_type_ptr, iek_type);
-        remap_ptr(ptr->orphaned_variables, a_variable_ptr, iek_variable);
+        remap_list_ptr(ptr->orphaned_types, a_type_ptr, iek_type);
+        remap_list_ptr(ptr->orphaned_variables, a_variable_ptr, iek_variable);
 #else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
         walk_list(ptr->orphaned_types, a_type_ptr, iek_type);
         walk_list(ptr->orphaned_variables, a_variable_ptr, iek_variable);
@@ -2856,29 +2897,40 @@ of each kind.
 #if !DO_SUBTREE_WALK
 #if REMAP_ONLY_ROUTINES_NEEDED
 
-void remap_il_header_pointers(void)
+void remap_il_header_pointers(a_remap_function_ptr remap_function,
+                              a_remap_function_ptr list_remap_function)
 /*
-Remap the pointers in il_header by running them through walk_remap_func.
-The subtree is not processed.
+Remap the pointers in il_header by running them through the indicated
+remapping routines.  list_remap_function is used for start-of-list
+pointers.  The subtree is not processed.
 */
 {
-  remap_ptr(il_header.primary_source_file, a_source_file_ptr, iek_source_file);
+  a_remap_function_ptr saved_walk_remap_func = walk_remap_func;
+  a_remap_function_ptr saved_walk_list_remap_func = walk_list_remap_func;
+
+  walk_remap_func = remap_function;
+  walk_list_remap_func = list_remap_function;
+  remap_list_ptr(il_header.primary_source_file, a_source_file_ptr,
+                 iek_source_file);
   remap_ptr(il_header.primary_scope, a_scope_ptr, iek_scope);
   remap_ptr(il_header.main_routine, a_routine_ptr, iek_routine);
   remap_ptr(il_header.compiler_version, a_char_ptr, iek_other_text);
   remap_ptr(il_header.time_of_compilation, a_char_ptr, iek_other_text);
-  remap_ptr(il_header.scope_orphaned_list_headers,
-            a_scope_orphaned_list_header_ptr, iek_scope_orphaned_list_header);
+  remap_list_ptr(il_header.scope_orphaned_list_headers,
+                 a_scope_orphaned_list_header_ptr,
+                 iek_scope_orphaned_list_header);
 #if RECORD_MACROS_IN_IL
-  remap_ptr(il_header.macros, a_macro_ptr, iek_macro);
+  remap_list_ptr(il_header.macros, a_macro_ptr, iek_macro);
 #endif /* RECORD_MACROS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT
   remap_ptr(il_header.instantiation_dir_name, a_char_ptr, iek_other_text);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-  remap_ptr(il_header.nontag_types_used_in_exception_or_rtti, a_type_ptr,
-            iek_type);
+  remap_list_ptr(il_header.nontag_types_used_in_exception_or_rtti, a_type_ptr,
+                 iek_type);
   /* region_scope_entry should not be changed; it's not a pointer into
      IL memory in the usual way.  It's changed explicitly as needed. */
+  walk_remap_func = saved_walk_remap_func;
+  walk_list_remap_func = saved_walk_list_remap_func;
 }  /* remap_il_header_pointers. */
 
 #endif /* REMAP_ONLY_ROUTINES_NEEDED */
@@ -2889,9 +2941,11 @@ The subtree is not processed.
 Get rid of the macros defined in this file so they aren't used accidentally.
 */
 #undef remap_ptr
+#undef remap_list_ptr
 #undef remap_next_ptr
 #undef remap_ptr_not_needed
 #undef walk_ptr
+#undef walk_list_ptr
 #undef walk_ptr_not_needed
 #undef walk_string_ptr
 #undef walk_list_on_link_field

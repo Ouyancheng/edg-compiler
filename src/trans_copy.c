@@ -196,6 +196,7 @@ in the current IL walk.
           if (!in_trans_copy_setup) {
             walk_il_subtree(copy_entry, copy_string_entry,
                             (a_remap_function_ptr)NULL,
+                            (a_remap_function_ptr)NULL,
                             copy_termination_test,
                             /*clear_fe_pointers=*/FALSE,
                             ptr, kind);
@@ -363,14 +364,11 @@ and remap the pointers in the copy by calling remap_function.
 {
   a_source_correspondence *scp = NULL;
   char                    *copy;
-  a_remap_function_ptr    saved_walk_remap_func = walk_remap_func;
 
   if (!in_file_scope(ptr)) {
     /* Process an entry in a function scope memory region.  Remap
        the pointers but don't copy. */
-    walk_remap_func = remap_function;
-    remap_pointers_in_il_entry(ptr, kind);
-    walk_remap_func = saved_walk_remap_func;
+    remap_pointers_in_il_entry(ptr, kind, remap_function, remap_function);
 #if MAINTAIN_NEEDED_FLAGS
     copy = ptr;
     scp = source_corresp_for_il_entry(copy, kind);
@@ -382,9 +380,7 @@ and remap the pointers in the copy by calling remap_function.
     /* Copy the entry to its corresponding space and remap the pointers
        in the copy. */
     (void)memcpy(copy, ptr, size_t_arg(sizeof_il_entry[(int)kind]));
-    walk_remap_func = remap_function;
-    remap_pointers_in_il_entry(copy, kind);
-    walk_remap_func = saved_walk_remap_func;
+    remap_pointers_in_il_entry(copy, kind, remap_function, remap_function);
     scp = source_corresp_for_il_entry(copy, kind);
     if (scp != NULL) {
       a_trans_unit_corresp_ptr tucp = scp->trans_unit_corresp;
@@ -503,6 +499,7 @@ primary translation unit IL.
   db_enter(1, "copy_from_secondary_to_primary_il");
   walk_file_scope_il(copy_entry, copy_string_entry,
                      (a_remap_function_ptr)NULL,
+                     (a_remap_function_ptr)NULL,
                      copy_termination_test,
                      /*clear_fe_pointers=*/FALSE);
   db_exit();
@@ -524,6 +521,7 @@ it and remapping pointers.
   walk_routine_scope_il(routine->assoc_scope,
                         copy_entry,
                         copy_string_entry,
+                        (a_remap_function_ptr)NULL,
                         (a_remap_function_ptr)NULL,
                         copy_termination_test,
                         /*clear_fe_pointers=*/FALSE);
@@ -2886,6 +2884,7 @@ primary IL.)
       walk_file_scope_il((an_entry_process_function_ptr)NULL,
                          (a_string_entry_process_function_ptr)NULL,
                          remap_func,
+                         remap_func,
                          mark_secondary_termination_test,
                          /*clear_fe_pointers=*/FALSE);
       /* Loop through the memory regions looking for functions in the
@@ -2897,6 +2896,7 @@ primary IL.)
           walk_routine_scope_il(n,
                                 (an_entry_process_function_ptr)NULL,
                                 (a_string_entry_process_function_ptr)NULL,
+                                remap_func,
                                 remap_func,
                                 mark_secondary_termination_test,
                                 /*clear_fe_pointers=*/FALSE);
@@ -3044,6 +3044,7 @@ before lowering and needed flag marking of the primary IL.
       walk_file_scope_il((an_entry_process_function_ptr)NULL,
                          (a_string_entry_process_function_ptr)NULL,
                          remap_func,
+                         remap_func,
                          rewrite_secondary_termination_test,
                          /*clear_fe_pointers=*/FALSE);
       /* Loop through the memory regions looking for functions in the
@@ -3055,6 +3056,7 @@ before lowering and needed flag marking of the primary IL.
           walk_routine_scope_il(n,
                                 (an_entry_process_function_ptr)NULL,
                                 (a_string_entry_process_function_ptr)NULL,
+                                remap_func,
                                 remap_func,
                                 rewrite_secondary_termination_test,
                                 /*clear_fe_pointers=*/FALSE);

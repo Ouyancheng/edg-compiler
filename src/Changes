@@ -1,5 +1,17 @@
 Version 2.46
 
+1/20/02  IL walk routines: separate remap routine for list pointers
+
+The IL walk routines (il_walk.c, walk_entry.h) have been changed so
+that there are now two pointer-remapping routines (optionally) used
+during the walk process.  The new one is used for list pointers,
+i.e., "next" pointers and start-of-list pointers.  The calling
+sequences of some of the top-level routines (e.g., walk_file_scope_il,
+walk_routine_scope_il) have been changed by adding a parameter for
+the new remapping function.  The list pointer remapping routine is
+generally the same as the normal one, but having two routines allows
+them to be different if necessary.
+
 1/18/02  Mangling of virtual function table names for ambiguous base classes
 
 The name mangling for virtual function tables for ambiguous base classes
