@@ -8966,7 +8966,7 @@ TRUE.
 static void create_member_using_declaration(
                                           a_symbol_ptr      sym,
                                           a_symbol_ptr      declared_sym,
-                                          a_symbol_ptr      other_sym,
+                                          a_symbol_ptr      *other_sym,
                                           a_base_class_ptr  bcp,
                                           a_type_ptr        class_type,
                                           a_using_decl_ptr  *prev_udp,
@@ -8975,7 +8975,7 @@ static void create_member_using_declaration(
 Check that a valid explicit projection (a class-scope using-declaration) can
 be created for the symbol "sym", and if so create it.  "declared_sym" is
 either equal to "sym", or it points to the overload set symbol of which "sym"
-is an element.  "other_sym" points to a declaration of the same name in the
+is an element.  "*other_sym" points to a declaration of the same name in the
 scope of the derived class "class_type" (NULL if none exists).  "bcp" is the
 base class from which the symbol is being projected.  "*prev_udp" is the
 previous a_using_decl structure created for the using-declaration that is
@@ -8998,8 +8998,8 @@ the new declaration.
     /* Using-declaration cannot apply to a copy-assignment operator,
        since they are not inheritable. */
     pos_sy_warning(ec_using_declaration_ignored, &decl_pos, sym);
-  } else if (other_sym != NULL &&
-             conflicts_with_previous_function_decl(fund_sym, other_sym,
+  } else if (*other_sym != NULL &&
+             conflicts_with_previous_function_decl(fund_sym, *other_sym,
                                                    &decl_pos)) {
     /* Error (if one was required) was issued by subroutine.  Don't
        enter a projection symbol. */
@@ -9038,17 +9038,17 @@ the new declaration.
        other projection symbols take on the source position of the
        fundamental symbol. */
     new_sym->decl_position = decl_pos;
-    if (other_sym == NULL) {
+    if (*other_sym == NULL) {
       /* Just enter it, since no overloading is involved. */
       reenter_symbol(new_sym, depth_scope_stack,
                      /*suppress_error=*/TRUE);
-      /* Save new_sym as other_sym, in case is_overloaded is TRUE. */
-      if (!new_sym->is_error) other_sym = new_sym;
+      /* Save new_sym as *other_sym, in case is_overloaded is TRUE. */
+      if (!new_sym->is_error) *other_sym = new_sym;
     } else {
-      other_sym = add_symbol_to_overload_list(new_sym, other_sym,
+      *other_sym = add_symbol_to_overload_list(new_sym, *other_sym,
                                               /*use_namespace=*/FALSE,
                                               (a_namespace_ptr)NULL);
-      set_mixed_static_nonstatic_flag(other_sym);
+      set_mixed_static_nonstatic_flag(*other_sym);
     }  /* if */
     if (fund_sym->kind == (a_symbol_kind)sk_member_function) {
       rp = fund_sym->variant.routine.ptr;
@@ -9067,7 +9067,7 @@ the new declaration.
         /* Record the assignment operator in the symbol. */
         record_assignment_operator_in_class_symbol(
                                  symbol_supplement_for_class(class_type),
-                                 new_sym, other_sym);
+                                 new_sym, *other_sym);
       }  /* if */
     }  /* if */
     /* Create a class member using decl entry to represent this
@@ -9314,22 +9314,24 @@ or implicit) controlling the declaration.
     }  /* if */
     /* This is a loop in case the using-declaration specifies an overload
        set -- each member of the overload set is projected independently. */
-    if (!is_tag_symbol(sym)) {
-      /* Check if we missed a tag symbol; it should be imported too. */
-      a_symbol_ptr      tag_sym;
-      a_symbol_locator  locator = locator_for_curr_id;
+    if (!(scope_stack[depth_scope_stack].in_prototype_instantiation ||
+          is_tag_symbol(sym))) {
+      /* Check if we missed a tag symbol; it should be imported too.
+         A dummy overload_sym is used, because tag names are not overloaded. */
+      a_symbol_ptr      tag_sym, overload_sym = NULL;
+      locator = locator_for_curr_id;
       clear_specific_symbol(locator);
       tag_sym = class_qualified_id_lookup(&locator, bcp->type,
                                           IDL_MUST_BE_TAG |
                                             IDL_DIRECT_CLASS_MEMBERS_ONLY);
       if (tag_sym != NULL && !is_class_template_symbol(tag_sym)) {
         create_member_using_declaration(tag_sym, tag_sym,
-                                        other_sym, bcp, class_type,
+                                        &overload_sym, bcp, class_type,
                                         &prev_udp, access);
       }  /* if */
     }  /* if */
     for (;;) {
-      create_member_using_declaration(sym, declared_sym, other_sym,
+      create_member_using_declaration(sym, declared_sym, &other_sym,
                                       bcp, class_type, &prev_udp, access);
       if (!is_overloaded) break;
       if ((sym = sym->next) == NULL) break;
