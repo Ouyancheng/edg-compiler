@@ -1259,13 +1259,16 @@ are handled in mem_manage_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if USE_MMAP_FOR_MEMORY_REGIONS
   mmap_initialized = FALSE;
   /* When doing precompiled header processing, we allocate memory blocks
      in mapped memory, which cannot be freed. */
   okay_to_free_mem_blocks = !precompiled_header_processing_required;
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+#else /* STANDALONE_UTILITY_PROGRAM */
+  /* The memory blocks can always be freed by standalone utility programs. */
+  okay_to_free_mem_blocks = TRUE;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* mem_manage_one_time_init */
 
 
