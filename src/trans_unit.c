@@ -428,7 +428,7 @@ treated as separate translation units of a single compilation.
   }  /* if */
   translation_unit_wrapup();
 #if COMPILE_MULTIPLE_TRANSLATION_UNITS
-  if (!is_primary) {
+  if (is_primary) {
     /* Process any secondary translation units specified on the
        command line. */
     proc_secondary_translation_units();
