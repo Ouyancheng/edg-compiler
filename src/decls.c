@@ -1351,12 +1351,12 @@ called by id_linkage.
   a_boolean     decls_at_same_scope;
   a_boolean     is_list;
   a_symbol_ptr  other_decl, other_decl_saved;
-  a_symbol_ptr  linked_symbol = NULL;
   a_boolean     function_template_seen = FALSE;
   a_boolean     is_function = is_function_type(idlbp->type);
   a_boolean     is_namespace_member_def = FALSE;
   a_symbol_locator  *locator = idlbp->locator;
   a_boolean     is_guiding_decl = FALSE;
+  a_boolean     is_block_extern_decl = FALSE;
 
   db_enter(4, "find_linked_symbol");
   if (locator->specific_symbol != NULL &&
@@ -1384,10 +1384,7 @@ called by id_linkage.
          local class.  Find the visible declaration of the same name. */
       (void)normal_id_lookup(locator, IDL_LINKAGE_LOOKUP);
       other_decl = locator->specific_symbol;
-      if (other_decl != NULL &&
-          other_decl->decl_scope != scope_stack[depth_scope_stack].number) {
-        idlbp->prior_decl_in_enclosing_scope = other_decl;
-      }  /* if */
+      is_block_extern_decl = TRUE;
     } else {
       /* Not a context in which lookup in enclosing scopes is meaningful.
          Just check for a prior declaration in the current scope. */
@@ -1635,6 +1632,10 @@ called by id_linkage.
       }  /* if */
     } else if (is_namespace_member_def) {
       idlbp->linked_symbol = other_decl;
+    }  /* if */
+    if (other_decl != NULL && is_block_extern_decl &&
+        other_decl->decl_scope != scope_stack[depth_scope_stack].number) {
+      idlbp->prior_decl_in_enclosing_scope = other_decl;
     }  /* if */
     if (idlbp->linked_symbol != NULL) {
       if (idlbp->homonym_symbol == NULL) {
