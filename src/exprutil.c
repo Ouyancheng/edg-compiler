@@ -5797,7 +5797,8 @@ template has the right number of parameters.
        but we allow some trivial conversions anyway (involving references,
        array and function type decay, and type qualifiers).  It seems to
        be necessary, and cfront seems to allow those. */
-    /* The code here must match determine_arg_match_level. */
+    /* The code here must match determine_arg_match_level and
+       overload_distinguishable. */
     param_type = ptp->type;
     arg_type = arg_operand->operand.type;
     template_param = ptp->type_involves_template_param;
