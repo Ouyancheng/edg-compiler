@@ -1,5 +1,16 @@
 Version 2.12
 
+11/9/92 Error recovery on incompatible operands
+
+A change was made to avoid an internal error on
+
+  int foo(int);
+  int gg(float);
+  main () {
+    if (foo > gg) {}
+    return 0;
+  }
+
 -------------------------------------------------------------------------------
 Version 2.11, October 29, 1992
 

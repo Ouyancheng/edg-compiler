@@ -2669,15 +2669,23 @@ If the operands are constant, the operation will be folded if possible.
     if (try_folding &&
         is_constant_operand(operand_1) && is_constant_operand(operand_2)) {
       clear_operand((an_operand_kind)ok_constant, result);
-      result->type = result_type;
-      /* In a nonconstant context, reduce any error to a warning
-         and leave the operation to be done at runtime. */
-      binary_operation(op,
-                       &operand_1->variant.constant,
-                       &operand_2->variant.constant,
-                       result_type, &result->variant.constant,
-                       is_const_expr_kind(expression_kind),
-                       &did_not_fold, operator_position);
+      /* If the operator could not be determined (because the operand types
+         are incompatible), fold the operation to an error constant. */
+      if (op == (an_expr_operator_kind)eok_error) {
+        set_error_constant(&result->variant.constant);
+        result->type = error_type();
+        did_not_fold = FALSE;
+      } else {
+        result->type = result_type;
+        /* In a nonconstant context, reduce any error to a warning
+           and leave the operation to be done at runtime. */
+        binary_operation(op,
+                         &operand_1->variant.constant,
+                         &operand_2->variant.constant,
+                         result_type, &result->variant.constant,
+                         is_const_expr_kind(expression_kind),
+                         &did_not_fold, operator_position);
+      }  /* if */
     }  /* if */
     if (did_not_fold) {
       if (is_const_expr_kind(expression_kind)) {
