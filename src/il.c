@@ -5015,6 +5015,11 @@ for the scope, which means no last-pointer is being maintained (anymore).
       /* Compute the scope and pointers-block for the scope associated with
          the parent class. */
       class_type = scp->parent.class_type;
+    } else if (!C_mode() &&
+               scp->name_linkage == (a_name_linkage_kind)nlk_external) {
+      /* extern "C" functions and variables are always on the file scope
+         list, even if they are namespace members. */
+      scope_level = DEPTH_OF_FILE_SCOPE;
     } else {
       /* Compute the scope and pointers-block for the namespace scope if this
          is a namespace member or the file scope otherwise. */
@@ -5049,10 +5054,6 @@ for the scope, which means no last-pointer is being maintained (anymore).
        deal with some cases where the file scope is not on the stack.
        It works fine also for the cases where the file scope is on the
        scope stack. */
-    /* Note that remove_from_primary_file_variables_list and similar
-       routines call this routine after switching only the
-       curr_translation_unit pointer, so use that and not other
-       global variables like il_header. */
     sp = curr_translation_unit->primary_scope;
     *pointers_block = &curr_translation_unit->file_scope_pointers_block;
   } else {
