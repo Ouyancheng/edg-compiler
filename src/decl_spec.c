@@ -1356,6 +1356,12 @@ the template.
                              &tag_position, tag_sym);
               } else {
                 class_type->variant.class_struct_union.is_specialized = TRUE;
+                if (instantiation_mode == tim_local) {
+                  /* In tim_local mode generated instances have internal
+                     linkage.  For specialized classes, the name linkage must
+                     be reset. */
+                  set_name_linkage_for_type(class_type);
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
@@ -1414,6 +1420,12 @@ the template.
             class_type->variant.class_struct_union.
                                       specialized_with_old_syntax = TRUE;
             is_template_specific_decl = TRUE;
+            if (instantiation_mode == tim_local) {
+              /* In tim_local mode generated instances have internal
+                 linkage.  For specialized classes, the name linkage must
+                 be reset. */
+              set_name_linkage_for_type(class_type);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */

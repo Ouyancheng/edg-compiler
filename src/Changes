@@ -1,5 +1,18 @@
 Version 2.37
 
+8/20/97   Incorrect linkage for members of specialized classes in -tlocal mode
+
+The linkage of specialized classes was incorrecting being affected
+by -tlocal mode.  This has been fixed.
+
+  template <class T> struct A {
+    void f();
+  };
+  struct A<int> {
+    void f();
+    void g() { f(); }
+  };
+
 8/20/97   Eliminated "no accessible constructors" diagnostic
 
 The "no accessible constructors" warning has been eliminated because
