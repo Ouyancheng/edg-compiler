@@ -1353,7 +1353,7 @@ pointer transformation should be done.
 }  /* function_transformation_needed_on_reference_init */
 
 
-static a_boolean conversion_for_direct_reference_binding_possible(
+a_boolean conversion_for_direct_reference_binding_possible(
                                       an_operand               *source_operand,
                                       a_type_ptr               dest_type,
                                       a_conv_descr             *conversion,
@@ -12220,7 +12220,7 @@ Issue a warning if it is a local entity.
 }  /* check_for_returning_reference_to_local_entity */
 
 
-static void prep_reference_initializer_operand(
+void prep_reference_initializer_operand(
                               an_operand    *source_operand,
                               a_type_ptr    dest_type,
                               a_conv_descr  *conversion,

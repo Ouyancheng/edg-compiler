@@ -673,6 +673,12 @@ extern void prep_elision_initializer_operand(
                                   an_error_code      err_code,
                                   a_dynamic_init_ptr *dip);
 
+extern a_boolean conversion_for_direct_reference_binding_possible(
+                                     an_operand               *source_operand,
+                                     a_type_ptr               dest_type,
+                                     a_conv_descr             *conversion,
+                                     a_boolean                *ambiguous,
+                                     a_candidate_function_ptr *ambiguity_list);
 
 extern a_boolean direct_reference_binding_possible(
                                        an_operand   *source_operand,
@@ -684,6 +690,15 @@ extern a_boolean direct_reference_binding_possible(
                                        a_boolean    *dropping_qualifiers,
                                        a_boolean    *template_case,
                                        a_symbol_ptr *function_symbol);
+extern void prep_reference_initializer_operand(
+                              an_operand    *source_operand,
+                              a_type_ptr    dest_type,
+                              a_conv_descr  *conversion,
+                              a_boolean     initializing_return_value,
+                              a_boolean     initializing_variable,
+                              a_boolean     static_lifetime,
+                              a_boolean     bitwise_assignment_param,
+                              an_error_code incompatible_err);
 
 extern void prep_initializer_operand(an_operand    *source_operand,
                                      a_type_ptr    dest_type,

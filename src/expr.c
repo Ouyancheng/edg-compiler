@@ -8270,55 +8270,62 @@ for non-class operands).  This routine is called only in C++ mode.
         *allow_rvalue_on_rewrite = binding_to_rvalue_allowed;
       } else {
         /* A cast from a class to a reference type can be handled by a
-           conversion function that returns a reference.  Look for such
-           a function, but if one is not found, go on to the general case
-           of casting to a reference (below).  This is different than
-           other user-defined conversion cases, where if there is a
-           class operand and no user-defined conversion applies,
-           we know we have an error.  That's the reason that
+           conversion function.  Look for such a function, but if one is
+           not found, go on to the general case of casting to a reference
+           (handled by rewrite_cast_to_reference_as_pointer_cast).  This
+           is different than other user-defined conversion cases, where
+           if there is a class operand and no user-defined conversion
+           applies, we know we have an error.  That's the reason that
            user_defined_conversion_possible is not called. */
-        a_type_ptr eff_type_cast_to = type_pointed_to(type_cast_to);
+        a_boolean possible = FALSE;
         if (is_class_struct_union_type(operand->type)) {
-          a_boolean  ambiguous;
-          if (conversion_from_class_possible(
-                                           operand, eff_type_cast_to,
+          a_boolean ambiguous;
+          if (conversion_for_direct_reference_binding_possible(
+                                           operand,
+                                           type_cast_to,
+                                           &conversion,
+                                           &ambiguous,
+                                           (a_candidate_function_ptr *)NULL) ||
+              ambiguous) {
+            /* A conversion can be done that will allow the reference to be
+               bound directly to the result of the conversion function. */
+            possible = TRUE;
+          } else if (binding_to_rvalue_allowed &&
+                     (conversion_from_class_possible(
+                                           operand,
+                                           type_pointed_to(type_cast_to),
                                            (a_builtin_type_kind_set)BTK_NONE,
-                                           /*need_lvalue_result=*/TRUE,
+                                           /*need_lvalue_result=*/FALSE,
                                            /*is_copy_initialization=*/FALSE,
                                            /*is_reference_binding=*/TRUE,
-                                           &conversion, &ambiguous,
-                                           (a_candidate_function_ptr *)NULL)) {
-            /* A user-defined conversion can be done. */
-            user_convert_operand(operand, eff_type_cast_to, &conversion,
-                                 (a_conv_descr *)NULL,
-                                 /*force_temp_for_class_bitwise_copy=*/FALSE,
-                                 /*is_explicit_cast=*/TRUE);
-            *processed = TRUE;
-          } else if (ambiguous) {
-            /* The conversion is ambiguous.  Do the analysis again to get
-               the error message. */
-            *err = TRUE;
-            *processed = TRUE;
-            (void)user_defined_conversion_possible(
-                                         operand, eff_type_cast_to,
-                                         /*need_lvalue_result=*/TRUE,
-                                         /*initializing_return_value=*/FALSE,
-                                         /*is_copy_initialization=*/FALSE,
-                                         /*orig_is_copy_initialization=*/FALSE,
-                                         /*is_reference_binding=*/TRUE,
-                                         /*processed_arg=*/FALSE,
-                                         &conversion,
-                                         (a_conv_descr *)NULL,
-                                         &failed);
+                                           &conversion,
+                                           &ambiguous,
+                                           (a_candidate_function_ptr *)NULL) ||
+                      ambiguous)) {
+            /* A user-defined conversion can be done to create a temporary
+               to which the reference can be bound. */
+            possible = TRUE;
           }  /* if */
         } else if (is_template_param_type(operand->type)) {
           /* A template parameter type could be a class type, so assume that
              a conversion is possible. */
+          possible = TRUE;
+        }  /* if */
+        if (possible) {
+          /* Do the user-defined conversion.  This might produce an ambiguity
+             error, but otherwise the conversion has been checked to be
+             valid above. */
+          prep_reference_initializer_operand(
+                                           operand,
+                                           type_cast_to,
+                                           &conversion,
+                                           /*initializing_return_value=*/FALSE,
+                                           /*initializing_variable=*/FALSE,
+                                           /*static_lifetime=*/FALSE,
+                                           /*bitwise_assignment_param=*/FALSE,
+                                           ec_bad_cast /* arbitrary */);
+          conv_object_pointer_to_lvalue(operand);
           *processed = TRUE;
-          generic_cast_operand(operand, make_pointer_type(eff_type_cast_to),
-                               (an_expr_operator_kind)eok_cast,
-                               /*is_implicit_cast=*/FALSE,
-                               /*is_reference_cast=*/TRUE);
         }  /* if */
       }  /* if */
     } else {

@@ -1,5 +1,21 @@
 Version 3.5
 
+7/24/04  Cast to reference type can use conversion to non-reference
+
+A cast of a class object to a reference to const type can use a conversion
+function to a non-reference type to produce an rvalue, and then bind
+the reference to that.  Formerly, the front end did not consider
+that possibility (it only looked for conversion functions that return
+lvalues).  Now fixed.
+
+  struct A {};
+  struct B {
+    operator const A() const;
+  };
+  void foo(const B& v) {
+    static_cast<const A&>(v);  // Now accepted
+  }
+
 7/23/04  Internal error on invalid template-dependent using-declaration
 
 Certain invalid template-dependent using-declarations caused the front end
