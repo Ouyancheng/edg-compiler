@@ -3624,9 +3624,10 @@ the symbol and its linkage (which is always "none").
     }  /* if */
     err = TRUE;
   }  /* if */
-  /* Record the symbol referenced, using the original symbol, even if there
+  /* Record the symbol declaration, using the original symbol, even if there
      was an error.  This will make it show up on a cross reference listing. */
-  mark_symbol_referenced(srk_reference, sym, &locator->source_position);
+  mark_declared(sym, &locator->source_position,
+                /*save_as_decl_position=*/FALSE);
   if (err) {
     /* An error occurred which prevents using the object specified as
        target of any initialization that may follow.  Create a dummy
