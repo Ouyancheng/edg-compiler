@@ -10,7 +10,8 @@
 
 /*
 
-trans_unit.c -- Translation unit management routines.
+trans_corresp.c -- Routines  related to matching entities across
+                   translation units.
 
 */
 
@@ -37,7 +38,7 @@ static a_boolean verify_type_correspondence(a_type_ptr  type);
 char* f_canonical_il_entry_of(char *il_entry)
 /*
 Return the canonical IL entry for the given entry.  This is the entry itself
-if the entry is from a primary translation unit of if it has not corresponding
+if the entry is from a primary translation unit or if it has no corresponding
 entry in another translation unit.
 */
 {
@@ -67,7 +68,7 @@ unexamined nodes).
 */
 {
   trans_unit_corresp_pointer_of(ptr) = NULL;
-}  /*  */
+}  /* f_clear_trans_unit_corresp */
 
 #define clear_trans_unit_corresp(ptr)                                  \
   f_clear_trans_unit_corresp((char*)ptr)
@@ -113,7 +114,7 @@ entity1 point to the IL node pointed to by entity2.
   f_record_trans_unit_corresp((char*)entity1, (char*)entity2)
 
 
-static void f_report_bad_trans_unit_corresp(char *entity)
+static void f_report_bad_trans_unit_corresp(char *entity1)
 /*
 The given IL node has a source correspondence and an associated symbol.  It
 also has a non-NULL translation unit correspondence, but it points to a node
@@ -121,15 +122,39 @@ that does not actually correspond to the given entity.  Therefore, issue a
 diagnostic.
 */
 {
-  a_symbol_ptr  sym = (a_symbol_ptr)((a_source_correspondence_ptr)entity)->
-                                                                   assoc_info;
-  char          *corresp_entity = trans_unit_corresp_pointer_of(entity);
+  a_symbol_ptr   sym = (a_symbol_ptr)((a_source_correspondence_ptr)entity1)->
+                                                                    assoc_info;
+  char           *entity2 = trans_unit_corresp_pointer_of(entity1);
+  a_source_correspondence_ptr
+                 scp2 = (a_source_correspondence_ptr)entity2;
+  a_source_position_ptr
+                 pos1 = &sym->decl_position,
+                 pos2 = &scp2->decl_position;
+  a_line_number  line1, line2;
+  unsigned long  nesting_depth;
+  a_boolean      at_end_of_source;
+  a_source_file_ptr
+                 src_file1 = source_file_for_seq(
+                                pos1->seq, &line1, &at_end_of_source,
+                                &nesting_depth, /*physical_line=*/TRUE),
+                 src_file2 = source_file_for_seq(
+                                pos2->seq, &line2, &at_end_of_source,
+                                &nesting_depth, /*physical_line=*/TRUE);
 
-  pos_sy_start_error(ec_corresp_decl_incompatible, &sym->decl_position, sym);
-  add_diag_info_with_pos_insert(
-               ec_corresp_decl_at,
-               &((a_source_correspondence_ptr)corresp_entity)->decl_position);
-  end_error();
+  if (src_file1 != NULL && src_file2 != NULL &&
+      src_file1->full_name != NULL && src_file2->full_name != NULL &&
+      strcmp(src_file1->full_name, src_file2->full_name) == 0) {
+    /* The entities correspond to the same source construct, but resulted in
+       incompatible IL (perhaps due to preprocessor effects). */
+    a_source_file_ptr  primary_file2 = primary_source_file_for_seq(pos2->seq);
+    pos_stsy_error(ec_entity_differs_in_other_trans_unit, &sym->decl_position,
+                   primary_file2->name_as_written, sym);
+  } else {
+
+    pos_sy_start_error(ec_corresp_decl_incompatible, &sym->decl_position, sym);
+    add_diag_info_with_pos_insert(ec_corresp_decl_at, &scp2->decl_position);
+    end_error();
+  }  /* if */
 }  /* f_report_bad_trans_unit_corresp */
 
 #define report_bad_trans_unit_corresp(entity)                        \
@@ -255,9 +280,16 @@ returns FALSE for nonprototype nonreal template instantiations even though
 no definition is available for such types.
 */
 {
+  a_boolean  result;
+
   check_assertion(is_immediate_class_type(type));
-  return type->variant.class_struct_union.field_list != NULL ||
-         type->variant.class_struct_union.extra_info->assoc_scope != NULL;
+  if (C_mode()) {
+    result = !is_incomplete_type(type);
+  } else {
+    result = type->variant.class_struct_union.field_list != NULL ||
+             type->variant.class_struct_union.extra_info->assoc_scope != NULL;
+  }  /* if */
+  return result;
 }  /* type_has_body */
 
 
@@ -323,7 +355,7 @@ Clear the correspondence pointers in the substructure of an enum type.
 
 static void clear_class_type_correspondence(a_type_ptr  type)
 /*
-Clear the correspondence pointers in the substructure of an enum type.
+Clear the correspondence pointers in the substructure of a class type.
 */
 {
   if (type_has_body(type)) {
@@ -404,8 +436,8 @@ symbols are listed under the same header).
   sh2 = ((a_symbol_ptr)scp2->assoc_info)->header;
   match = (sh1 == sh2);
   if (!match) {
-    /* This is possible if the associated is not part of the symbol table
-       (which is TRUE of template instances). */
+    /* This is possible if the associated symbol is not part of the symbol
+       table (which is TRUE of template instances). */
     match = !strncmp(sh1->identifier, sh2->identifier,
                      (sh1->identifier_length < sh2->identifier_length) ?
                        sh1->identifier_length : sh2->identifier_length);
@@ -689,14 +721,14 @@ is in fact valid.
   if (type->kind != corresp_type->kind || !verify_name_correspondence(type)) {
     match = FALSE;
     process_bad_trans_unit_corresp(type);
-  } else if (is_immediate_class_type(type) &&
-             is_immediate_class_type(corresp_type)) {
+  } else if (is_immediate_class_type(type)) {
+    /* corresp_type is also a class type since the type kinds are identical. */
     match = verify_class_type_correspondence(type);
   } else if (is_immediate_enum_type(type) &&
              is_immediate_enum_type(corresp_type)) {
     match = verify_enum_type_correspondence(type);
   } else {
-    match = TRUE;
+    match = identical_types(type, corresp_type);
   }  /* if */
   return match;
 }  /* verify_type_correspondence */
@@ -705,7 +737,9 @@ is in fact valid.
 static a_boolean verify_namespace_correspondence(a_namespace_ptr  nsp)
 /*
 If the given namespace has a canonical entry in another translation unit,
-check that the two indeed match up beyond name, kind and scope attributes.
+and assuming it already matches in name, kind and scope attributes, verify
+that any other significant attributes also match.  Only namespace aliases
+have such an attribute: the aliased namespace.
 */
 {
   a_boolean  result = TRUE;
@@ -998,6 +1032,7 @@ translation unit correspondence pointer if one is found.
   sym = nsp_sym->header->inactive_symbols;
   for (; sym != NULL; sym = sym->next) {
     if (sym->decl_scope != nsp_sym->decl_scope &&
+        may_have_correspondence(sym) &&
         same_parents(sym, nsp_sym)) {
       /* Two different declarations in the same namespace and with the same
          name: they should probably match up. */
@@ -1008,11 +1043,9 @@ translation unit correspondence pointer if one is found.
         record_trans_unit_corresp(nsp, sym->variant.namespace_info.ptr);
         break;
       } else {
-        /* An error if the conflicting entity has external linkage. */
-        if (may_have_correspondence(sym)) {
-          pos_sy_error(ec_not_compatible_with_previous_decl,
-                       &nsp_sym->decl_position, sym);
-        }  /* if */
+        /* An error since the conflicting entity has external linkage. */
+        pos_sy_error(ec_not_compatible_with_previous_decl,
+                     &nsp_sym->decl_position, sym);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -1054,7 +1087,7 @@ unit correspondence pointer if one is found.
 static void record_class_template_instantiation(a_symbol_ptr  inst)
 /*
 Search for an instantiation that corresponds to inst in a prior translation
-unit that.  If there is one, record a correspondence pointer; otherwise, add
+unit.  If there is one, record a correspondence pointer; otherwise, add
 the instantiation to the list of instantiations in the associated template
 symbol supplement.
 */
@@ -1114,7 +1147,7 @@ static void record_function_template_instantiation(
                                                 a_template_instance_ptr  inst)
 /*
 Search for an instantiation that corresponds to inst in a prior translation
-unit that.  If there is one, record a correspondence pointer; otherwise, add
+unit.  If there is one, record a correspondence pointer; otherwise, add
 the instantiation to the list of instantiations in the associated template
 symbol supplement.
 */
@@ -1229,11 +1262,11 @@ and are handled elsewhere.
     for (; inst != NULL; inst = next_instance_sym(inst)) {
       record_class_template_instantiation(inst);
     }  /* for */
-     /* Also process prototype instantiation. */
+    /* Also process the prototype instantiation. */
     proto_inst = ((a_symbol_ptr)((a_template_ptr)canonical_il_entry_of(templ))
                    ->source_corresp.assoc_info)
-                   ->variant.template_info
-                   ->variant.class_template.prototype_instantiation;
+                     ->variant.template_info
+                     ->variant.class_template.prototype_instantiation;
     /* For instantiations from template template parameters proto_inst will
        be NULL. */
     if (proto_inst != NULL) {
@@ -1424,7 +1457,8 @@ translation unit correspondence pointer if one is found.
       a_symbol_ptr  sub_sym = is_list ?
                                sym->variant.overloaded_function.symbols : sym;
       for (; sub_sym != NULL; sub_sym = is_list ? sub_sym->next : NULL) {
-        if (same_parents(sub_sym, routine_sym)) {
+        if (may_have_correspondence(sub_sym) &&
+            same_parents(sub_sym, routine_sym)) {
           /* Two different declarations in the same namespace or class, and
              with the same name: they should probably match up. */
           switch (sub_sym->kind) {
@@ -1432,8 +1466,7 @@ translation unit correspondence pointer if one is found.
             case sk_member_function:
               {
                 a_type_ptr  sym_type = routine_symbol_type(sub_sym);
-                if (identical_types(sym_type, routine->type) &&
-                    may_have_correspondence(sub_sym)) {
+                if (identical_types(sym_type, routine->type)) {
                   /* Record the correspondence. */
                   record_trans_unit_corresp(routine,
                                             sub_sym->variant.routine.ptr);
@@ -1450,10 +1483,8 @@ translation unit correspondence pointer if one is found.
               if (sym->variant.type.is_injected_class_name) break;
               /* FALLTHROUGH */
             default:
-              if (may_have_correspondence(sub_sym)) {
-                pos_sy_error(ec_not_compatible_with_previous_decl,
-                             &routine_sym->decl_position, sub_sym);
-              }  /* if */
+              pos_sy_error(ec_not_compatible_with_previous_decl,
+                           &routine_sym->decl_position, sub_sym);
           }  /* switch */
         }  /* if */
       }  /* for */
@@ -1476,15 +1507,14 @@ translation unit correspondence pointer if one is found.
   for (; sym != NULL; sym = sym->next) {
     /* Don't consider symbols in the same file. */
     if (sym->decl_scope != var_sym->decl_scope &&
+        may_have_correspondence(sym) &&
         same_parents(sym, var_sym)) {
       /* Two different declarations in the same namespace or class, and
          with the same name: they should probably match up. */
       switch (sym->kind) {
         case sk_variable:
-          if (may_have_correspondence(sym)) {
-            /* Record the correspondence. */
-            record_trans_unit_corresp(var, sym->variant.variable.ptr);
-          }  /* *if */
+          /* Record the correspondence. */
+          record_trans_unit_corresp(var, sym->variant.variable.ptr);
           break;
         case sk_class_or_struct_tag:
         case sk_union_tag:
@@ -1494,10 +1524,8 @@ translation unit correspondence pointer if one is found.
           if (sym->variant.type.is_injected_class_name) break;
           /* FALLTHROUGH */
         default:
-          if (may_have_correspondence(sym)) {
-            pos_sy_error(ec_not_compatible_with_previous_decl,
-                         &var_sym->decl_position, sym);
-          }  /* if */
+          pos_sy_error(ec_not_compatible_with_previous_decl,
+                       &var_sym->decl_position, sym);
       }  /* switch */
     }  /* if */
   }  /* for */

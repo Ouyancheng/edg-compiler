@@ -2397,7 +2397,7 @@ for more information.
       /* The top level kinds are different, so the types are different. */
       /* identical = FALSE;  -- Already set. */
     } else if (change_to_canonical_types(&type_1, &type_2)) {
-      /* The types might have been if different translation units, so restart
+      /* The types might have come from different translation units: restart
          the comparison with the canonical entries instead. */
       identical = f_identical_types(type_1, type_2, flags);
     } else {
