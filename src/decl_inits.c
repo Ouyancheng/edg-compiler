@@ -1692,7 +1692,7 @@ which subobjects require initialization and therefore must be implicitly
 initialized.  These are addressed in the course of the processing.
 */
 {
-  a_boolean                     err, is_generated_cctor;
+  a_boolean                     is_generated_cctor;
   a_type_qualifier_set          required_qualifiers, object_qualifiers;
   a_type_ptr                    class_type, init_type, tp, array_type;
   a_symbol_ptr                  sym, class_sym, member_or_base_sym;
@@ -1836,7 +1836,6 @@ initialized.  These are addressed in the course of the processing.
     add_stop_token(tok_lbrace);
     /* Loop through the comma-separated list of initializers. */
     do {
-      err = FALSE;
       new_cip = NULL;
       add_stop_token(tok_comma);
       /* Unless this is an old style base class initializer, a base class
@@ -1865,7 +1864,6 @@ initialized.  These are addressed in the course of the processing.
             init_type = bcp->type;
             if (new_cip->initializer != NULL) {
               type_error(ec_base_class_already_initialized, init_type);
-              err = TRUE;
             } else {
               type_diagnostic(anachronism_error_severity,
                               ec_base_class_init_anachronism, init_type);
@@ -1884,7 +1882,6 @@ initialized.  These are addressed in the course of the processing.
           member_or_base_sym = coalesce_and_lookup_generalized_identifier
                                    (GID_NO_OPTIONS, ilm_ctor_initializer_name,
                                     &gid_err);
-          err |= gid_err;
         }
         if (member_or_base_sym == NULL ||
             member_or_base_sym->kind == (a_symbol_kind)sk_undefined) {
@@ -1924,7 +1921,6 @@ initialized.  These are addressed in the course of the processing.
                                    member_or_base_sym->variant.field.ptr) {
               if (new_cip->initializer != NULL) {
                 sym_error(ec_member_already_initialized, member_or_base_sym);
-                err = TRUE;
                 goto scan_paren;
               }  /* if */
               break;
@@ -2067,7 +2063,6 @@ initialized.  These are addressed in the course of the processing.
             new_cip->compiler_generated = FALSE;
             if (new_cip->initializer != NULL) {
               type_error(ec_base_class_already_initialized, bcp->type);
-              err = TRUE;
             }  /* if */
           }  /* if */
         } else {
@@ -2135,7 +2130,6 @@ scan_paren:
               cp = alloc_constant((a_constant_repr_kind)ck_error);
               set_error_constant(cp);
               dip->variant.constant = cp;
-              err = TRUE;
             }  /* if */
             new_cip->initializer = dip;
           } else {
