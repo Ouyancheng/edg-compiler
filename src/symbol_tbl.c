@@ -4667,8 +4667,9 @@ functions befriending_list_test and class_scope_test.
 {
   a_boolean               have_member_privilege = FALSE;
   a_scope_stack_entry_ptr ssep;
-  a_routine_ptr           scope_routine;
-  a_scope_depth           scope_depth, scope_depth_to_skip = NO_SCOPE_DEPTH;
+  a_routine_ptr           scope_routine, test_routine = NULL;
+  a_scope_depth           scope_depth;
+  a_boolean               skipping_to_function = FALSE;
 
   /* Consider each scope on the scope stack that affects access control.
      They are linked together on a list. */
@@ -4678,57 +4679,62 @@ functions befriending_list_test and class_scope_test.
     a_scope_kind kind;
     ssep = &scope_stack[scope_depth];
     kind = ssep->kind;
-    if (kind == (a_scope_kind)sck_function) {
-      /* A function.  See if class_type is on its befriending list. */
-      scope_routine = ssep->il_scope->variant.routine.ptr;
+    if (kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_function_access) {
+      /* A function or function access scope.  See if class_type is on
+         its befriending list. */
+      if (kind == (a_scope_kind)sck_function_access) {
+        scope_routine = ssep->assoc_routine;
+      } else {
+        scope_routine = ssep->il_scope->variant.routine.ptr;
+        test_routine = scope_routine;
+      }  /* if */
       if (befriending_list_test(scope_routine->befriending_classes,
                                 class_type)) {
         /* We are inside a function that is a friend of class_type. */
         have_member_privilege = TRUE;
         break;
       }  /* if */
-      /* The ARM says "Member functions of a nested class have no special
-         access to members of an enclosing class".  It's not clear that's
-         right or precise enough, but in strict mode, we'll do exactly that.
-         For a member function in a nested class, set up to skip all
-         the reactivations for the classes within which it is nested. */
-      if (strict_ansi_mode &&
-          (ssep-1)->kind == (a_scope_kind)sck_class_reactivation &&
-          (ssep-2)->kind == (a_scope_kind)sck_class_reactivation) {
-        scope_depth_to_skip = scope_depth - 2;
-      }  /* if */
-    } else if (kind == (a_scope_kind)sck_function_access) {
-      /* A function access scope.  Note that these are more like function
-         prototype scopes and therefore aren't considered part of the
-         body of the function (so the surrounding class reactivations
-         are not checked). */
-      /* See if class_type is on its befriending list. */
-      scope_routine = ssep->assoc_routine;
-      if (befriending_list_test(scope_routine->befriending_classes,
-                                class_type)) {
-        /* We are inside a function that is a friend of class_type. */
-        have_member_privilege = TRUE;
-        break;
-      }  /* if */
+      /* Terminate the skip of enclosing classes of nested functions now that
+         a function scope has been found. */
+      skipping_to_function = FALSE;
     } else {
       check_assertion_str(kind == (a_scope_kind)sck_class_struct_union ||
                           kind == (a_scope_kind)sck_class_reactivation,
                    "have_particular_member_access_privilege: bad stack entry");
-      /* A class or class reactivation.  Check for access granted by being
-         a member of the class. */
-      if (scope_depth == scope_depth_to_skip) {
-        /* This is a reactivation that should be skipped (see comment above).
-           If the entry below this one is also a reactivation, keep skipping.
-           Otherwise, stop skipping. */
-        if ((ssep-1)->kind == (a_scope_kind)sck_class_reactivation) {
-          scope_depth_to_skip--;
-        } else {
-          scope_depth_to_skip = NO_SCOPE_DEPTH;
+      /* A class or class reactivation. */
+      if (skipping_to_function) {
+        /* We're skipping class scopes until we get to a function.  The
+           class scopes being skipped are parent classes of a nested class. */
+      } else {
+        /* Check for access granted by being a member of the class. */
+        if (class_scope_test(class_type, ssep)) {
+          /* We are inside a class that gives us member access. */
+          have_member_privilege = TRUE;
+          break;
         }  /* if */
-      } else if (class_scope_test(class_type, ssep)) {
-        /* We are inside a class that gives us member access. */
-        have_member_privilege = TRUE;
-        break;
+        /* Continue through the scope stack.  However, skip classes within
+           which the current one is nested, because nested classes have no
+           special access to the members of the enclosing classes.  In
+           non-strict mode, allow access as an extension. */
+        if (strict_ansi_mode) {
+#if 0
+          skipping_to_function = TRUE;
+#else /* 0 */
+          /* Until name injection is implemented, use the old ARM formulation
+             that "member functions of a nested class have no special access
+             to the enclosing class".  That is, references outside of
+             member functions do have special access.  This allows nested
+             classes to use their own names in a data member declaration. */
+          if (test_routine != NULL &&
+              test_routine->source_corresp.is_class_member &&
+              test_routine->source_corresp.parent.class_type ==
+                                                            ssep->assoc_type) {
+            skipping_to_function = TRUE;
+          }  /* if */
+          test_routine = NULL;
+#endif /* 0 */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
