@@ -2,8 +2,9 @@ Version 2.46
 
 4/3/01   Return type of main() in C99 mode
 
-A return type different from int now produces a warning in default C99 mode
-and an error in strict C99 mode.
+A main() function with a return type different from int now produces a warning
+in default C99 mode and an error in strict C99 mode.  (Previously, no
+diagnostic was issued.)
 
   void main() {}  /* Warning or error in C99 mode. */
 
