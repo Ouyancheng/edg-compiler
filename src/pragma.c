@@ -15,6 +15,7 @@ pragma.c -- Routines to support #pragma directives
 
 #include "basics.h"
 #include "mem_manage.h"
+#include "decls.h"
 #include "host_envir.h"
 #include "lang_feat.h"
 #include "target.h"
@@ -252,6 +253,7 @@ Return a pending pragma entry to the available list.
 #if 0
   /* Add code to discard token caches when appropriate. */
 #endif
+  db_exit();
 }  /* free_pending_pragma */
 
 
@@ -431,7 +433,11 @@ return FALSE.
   add_source_sequence_entry_to_curr_token_pragmas();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   ssep = &scope_stack[depth_scope_stack];
+#if 0
   list_start = *(ssep->curr_list_of_curr_construct_pragmas);
+#else
+  list_start = ssep->curr_construct_pragmas;
+#endif
   /* Find the end of the current list. */
   list_end = list_start;
   if (list_end != NULL) {
@@ -508,7 +514,11 @@ return FALSE.
     }  /* if */
     ppp = next_ppp;
   }  /* while */
+#if 0
   *(ssep->curr_list_of_curr_construct_pragmas) = list_start;
+#else
+  ssep->curr_construct_pragmas = list_start;
+#endif
   /* Return TRUE if there are any entrys of the list. */
   return list_start != NULL;
 }  /* select_curr_construct_pragmas */
@@ -650,7 +660,11 @@ are first removed from the lists they currently reside on.
        statement. */
     is_bound_to_curr_construct = TRUE;
     ssep = &scope_stack[depth_scope_stack];
+#if 0
     scope_list_addr = ssep->curr_list_of_curr_construct_pragmas;
+#else
+    scope_list_addr = &ssep->curr_construct_pragmas;
+#endif
   } else {
     /* Set up to search for a pbk_other pragma. */
     is_bound_to_curr_construct = FALSE;
@@ -732,7 +746,11 @@ the pragmas.
   /* Go though the pragmas that are meant to apply to the current
      declaration or statement. */
   ssep = &scope_stack[depth_scope_stack];
+#if 0
   ppp = *(ssep->curr_list_of_curr_construct_pragmas);
+#else
+  ppp = ssep->curr_construct_pragmas;
+#endif
   list_start = ppp;
   for(; ppp != NULL; ppp = ppp->next) {
     a_next_construct_pragma_function_ptr ncpfp;
@@ -758,7 +776,11 @@ the pragmas.
   if (list_start != NULL) {
     free_pending_pragma_list(list_start);
   }  /* if */
+#if 0
   *(ssep->curr_list_of_curr_construct_pragmas) = NULL;
+#else
+  ssep->curr_construct_pragmas = NULL;
+#endif
 }  /* process_curr_construct_pragmas */
 
 
@@ -788,7 +810,7 @@ Initialize the pragma description table.
   }  /* for */
   (void)add_next_construct_pragma_description
 		(pk_printf_args,
-		 (a_next_construct_pragma_function_ptr)NULL,
+		 record_arg_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/TRUE,
 		 /*may_bind_to_stmt=*/FALSE,
@@ -799,7 +821,7 @@ Initialize the pragma description table.
                  es_error);
   (void)add_next_construct_pragma_description
 		(pk_scanf_args,
-	         (a_next_construct_pragma_function_ptr)NULL,
+	         record_arg_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/TRUE,
 		 /*may_bind_to_stmt=*/FALSE,

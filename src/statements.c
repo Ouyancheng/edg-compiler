@@ -1450,10 +1450,12 @@ the associated il statement.
      to point to the curr_construct_pragma list that is part of this structured
      statement stack entry. */
   sssep->curr_construct_pragmas = NULL;
+#if 0
   sssep->saved_curr_list_of_curr_construct_pragmas =
            scope_stack[depth_scope_stack].curr_list_of_curr_construct_pragmas;
   scope_stack[depth_scope_stack].curr_list_of_curr_construct_pragmas
                                              = &sssep->curr_construct_pragmas;
+#endif
   db_exit();
 }  /* push_stmt_stack */
 
@@ -1585,10 +1587,12 @@ a structured statement has ended.
     add_to_control_flow_descr_list(
        alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
   }  /* if */
+#if 0
   /* Restore the saved value of the curr_list_of_curr_construct_pragmas
      in the current scope stack entry. */
   scope_stack[depth_scope_stack].curr_list_of_curr_construct_pragmas
                           = sssep->saved_curr_list_of_curr_construct_pragmas;
+#endif
   /* Pop the stack. */
   depth_stmt_stack--;
   /* If the break label for this statement was referenced, generate 
