@@ -371,12 +371,16 @@ typedef struct an_expr_stack_entry {
 			   operand of a sizeof. */
   a_byte_boolean
 		is_default_arg_expression;
-			/* TRUE if the expression is a C++ default argument
-			   expression in a parameter list. */
+			/* TRUE if the expression is or is inside of a
+			   C++ default argument expression in a parameter
+			   list. */
   a_byte_boolean
 		is_template_arg_expression;
-			/* TRUE if the expression is an argument of a
-			   template reference. */
+			/* TRUE if the expression is an argument of a C++
+			   template reference.  This is only TRUE for the
+			   top level major expression for a template
+			   argument, e.g., it's not TRUE inside a sizeof
+			   inside a template argument. */
   unsigned long	nested_construct_depth;
 			/* Number of nested constructs like parentheses
 			   begun within this major expression level. */
