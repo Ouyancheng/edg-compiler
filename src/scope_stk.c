@@ -4245,13 +4245,6 @@ been completed.
       fprintf(f_debug, "End of set_needed_flags_at_end_of_file_scope\n");
     }  /* if */
 #endif /* DEBUG */
-#if DO_IL_LOWERING
-    /* Any statics referenced from instantiation slices in
-       one-instantiation-per-object mode must be made external so that
-       they can be referenced from the instantiation object files.
-       Likewise for statics referenced from exported templates. */
-    make_statics_referenced_from_instantiations_external();
-#endif /* DO_IL_LOWERING */
     end_of_file_scope_needed_flags_phase = FALSE;
   }  /* if */
 }  /* set_needed_flags_at_end_of_file_scope */

@@ -121,7 +121,12 @@ static void file_scope_il_wrapup_part_1(void)
 Do the processing required to complete the file scope IL.  This is
 called both for secondary translation units (is_primary_translation_unit
 is FALSE) and for primary translation units (is_primary_translation_unit
-is TRUE).
+is TRUE).  "Part 1" deals with processing and diagnostics on what's actually
+in the translation unit, e.g., checks for unreferenced symbols.
+When the primary translation unit is processed here, code from any
+secondary translation units will not have been copied over already.
+Code should be executed here instead of translation_unit_wrapup if
+it needs to be executed after all templates have been instantiated.
 */
 {
   a_scope_ptr	il_scope;
@@ -144,7 +149,13 @@ is TRUE).
 
 static void file_scope_il_wrapup_part_2(void)
 /*
-Do the final wrapup processing on a translation unit.
+Do the final wrapup processing on a translation unit.  This is
+called both for secondary translation units (is_primary_translation_unit
+is FALSE) and for primary translation units (is_primary_translation_unit
+is TRUE).  "Part 2" does IL lowering, needed flag processing, and
+copying of IL from secondary translation units into the primary IL.
+When the primary translation unit is processed here, code from any
+secondary translation units will have already been copied over.
 */
 {
   a_scope_ptr	il_scope;
@@ -189,6 +200,15 @@ Do the final wrapup processing on a translation unit.
   /* Set the "needed" flag in defined variables with external linkage --
      both in the file scope and in each of the namespace scopes. */
   set_needed_flags_at_end_of_file_scope(il_scope);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+#if DO_IL_LOWERING
+  /* Any statics referenced from instantiation slices in
+     one-instantiation-per-object mode must be made external so that
+     they can be referenced from the instantiation object files.
+     Likewise for statics referenced from exported templates. */
+  make_statics_referenced_from_instantiations_external();
+#endif /* DO_IL_LOWERING */
+#if MAINTAIN_NEEDED_FLAGS
   /* Don't bother pruning the IL of unneeded entries if errors were seen. */
   if (total_errors != 0) okay_to_eliminate_unneeded_il_entries = FALSE;
   if (okay_to_eliminate_unneeded_il_entries) {
