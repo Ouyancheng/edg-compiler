@@ -3713,7 +3713,7 @@ type should not be used in the matching process.
 
 #if CHECKING
   if (!is_function_type(curr_type)) {
-    internal_error("matching_template_function: expected routine type");
+    internal_error("has_matching_template_function: expected routine type");
   }  /* if */
 #endif /* CHECKING */
   curr_type = skip_typerefs(curr_type);
@@ -4673,7 +4673,7 @@ generated.
       }  /* for */
     }  /* if */
   }  /* if */
-}  /* specialization_permitted */
+}  /* record_specialization */
 
 
 static
