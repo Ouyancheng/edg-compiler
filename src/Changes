@@ -1,5 +1,22 @@
 Version 2.19
 
+8/5/93  IL lowering: reusable copies of expressions
+
+In a number of cases, IL lowering must make a copy of an expression
+that can be reused.  That is, the reusable copy must have the same value
+as the original expression but must not cause any side effects of the
+first expression to be done again.  This can always be achieved by
+copying the original expression to a temporary and then using the
+temporary, but many simple cases don't need that rewriting.  The
+routine make_reusable_copy handled this, deciding when a temporary
+was needed.  However, in some cases involving array new's, assignments
+returning lvalues, and pointer-to-member-function comparisons,
+it did not use a temporary but should have, because although the
+expression reused did not have side effects it might depend on the
+values of program variables that might have changed between
+the point of original use and the point of reuse.  For those cases,
+a temporary is now used.
+
 8/5/93  Type declared in parameter declaration (C mode)
 
 A bug has been fixed in how a type declared in a parameter list is handled
