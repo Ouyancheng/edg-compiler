@@ -495,9 +495,8 @@ function returns the address of the last attribute.
       }  /* for */
       attribute_kind = (an_attribute_kind)i;
       if (attribute_kind == (an_attribute_kind)ak_last) {
-        /* If the attribute name was not recognized issue an error
-           message. */
-        str_error(ec_unrecognized_attribute, attribute_name);
+        /* If the attribute name was not recognized issue a warning. */
+        str_warning(ec_unrecognized_attribute, attribute_name);
         attribute_kind = (an_attribute_kind)ak_error;
         attribute = NULL;
       } else {
