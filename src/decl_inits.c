@@ -326,6 +326,7 @@ that routine.  This routine ignores a closing brace if that is appropriate.
       push_stop_token_stack();
       if (stop_at_semicolon) add_stop_token(tok_semicolon);
       (void)required_token(tok_rbrace, ec_exp_rbrace);
+      if (stop_at_semicolon) remove_stop_token(tok_semicolon);
       pop_stop_token_stack();
     }  /* if */
     remove_stop_token(tok_rbrace);
