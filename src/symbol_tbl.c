@@ -4376,11 +4376,15 @@ declaration is scanned and are used as placeholders between instantiations.
      constant. */
   while (tpp != NULL) {
     register a_symbol_ptr  param_symbol = tpp->param_symbol;
-    if (param_symbol->kind != (a_symbol_kind)sk_type) {
+    if (param_symbol->kind == (a_symbol_kind)sk_type) {
       param_symbol->variant.type = tpp->param_type;
     } else {
+      /* Get the type pointer from the constant so that it can be restored
+         to the new error constant. */
+      a_type_ptr type = param_symbol->variant.constant->type;
       param_symbol->variant.constant =
                                  fs_constant((a_constant_repr_kind)ck_error);
+      param_symbol->variant.constant->type = type;
     }  /* if */
     tpp = tpp->next;
   }  /* while */
