@@ -1,5 +1,28 @@
 Version 3.6
 
+12/13/04 Microsoft compatibility: injected class names in MSVC 6
+
+Our emulation of the way in which MSVC++ 6 handles injected class names
+was not quite right.  In particular, an unqualified lookup will find the
+injected class names for certain lookups done within the class.  Base
+class injected class names are not found by such lookups, however.  We
+now duplicate this behavior in Microsoft mode when microsoft_version
+is <= 1200.
+
+  void A();
+  void B();
+  struct B {
+    B(){}
+  };
+  struct A : public B {
+    A(){}
+    void f();
+  };
+  void A::f() {
+    A a; // class A
+    B b; // function B (and an error)
+  } 
+
 12/13/04 Microsoft compatibility: functions defined in in-class specializations
 
 Version 3.5 introduced a problem with functions defined in Microsoft

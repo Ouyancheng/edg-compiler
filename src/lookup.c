@@ -2158,11 +2158,20 @@ that do normal id lookup processing.
       }  /* if */
       /* The Microsoft compiler (versions prior to 7.0) ignores inherited
          injected class names in most cases.  The principal case in which
-         it is found is at the start of a qualified name. */
+         it is found is at the start of a qualified name.  The name is also
+         found for certain lookups (which we approximate using the tentative
+         type lookup flag) when the name is the name of the current class
+         (but not an injected name from a base class). */
       if (sym != NULL && microsoft_bugs &&
           microsoft_version < 1300 &&
-          !lookup_state->must_be_class_or_namespace &&
-          is_injected_class_symbol(fundamental_symbol_of(sym))) sym = NULL;
+          !lookup_state->must_be_class_or_namespace) {
+        a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+        if ((!lookup_state->tentative_type_lookup ||
+             fund_sym != sym) &&
+            is_injected_class_symbol(fundamental_symbol_of(sym))) {
+          sym = NULL;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   return sym;
