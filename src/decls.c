@@ -3045,9 +3045,11 @@ not be TRUE.
          We want to preserve fields like assoc_routine and arg_pragma in
          rout_type, so we can't just do a copy_type. */
       rout_type->variant.routine.return_type =
-                      comp_type->variant.routine.return_type;
+              comp_type->variant.routine.return_type;
       rout_type->variant.routine.extra_info->prototyped =
-                      comp_type->variant.routine.extra_info->prototyped;
+              comp_type->variant.routine.extra_info->prototyped;
+      rout_type->variant.routine.extra_info->constructor_or_destructor =
+              comp_type->variant.routine.extra_info->constructor_or_destructor;
       if (rout_type->variant.routine.extra_info->param_type_list == NULL) {
         /* The entire list may just be transferred over. */
         rout_type->variant.routine.extra_info->param_type_list =
