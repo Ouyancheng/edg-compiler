@@ -1646,8 +1646,6 @@ entries in the primary IL.
                                        a_namespace_ptr);
   change_pointer_to_primary_IL_pointer(pointers_block->last_using_decl,
                                        a_using_decl_ptr);
-  change_pointer_to_primary_IL_pointer(pointers_block->last_template,
-                                       a_template_ptr);
   change_pointer_to_primary_IL_pointer(pointers_block->last_pragma,
                                        a_pragma_ptr);
   change_pointer_to_primary_IL_pointer(pointers_block->last_template,
