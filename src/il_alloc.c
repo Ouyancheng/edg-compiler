@@ -1149,7 +1149,7 @@ to it.
   vp->modified_within_try_block   = FALSE;
   vp->is_template_static_data_member
                                   = FALSE;
-  vp->is_explicit_specialization  = FALSE;
+  vp->is_specialization           = FALSE;
   vp->suppress_instantiation      = FALSE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   vp->can_be_instantiated         = FALSE;
@@ -1301,7 +1301,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->assignment_to_this_done   = FALSE;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   rp->is_template_function      = FALSE;
-  rp->is_explicit_specialization = FALSE;
+  rp->is_specialization         = FALSE;
   rp->suppress_instantiation    = FALSE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   rp->can_be_instantiated       = FALSE;

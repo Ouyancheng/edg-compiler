@@ -7123,14 +7123,14 @@ that follows.
           if (vp->declared_type == NULL) vp->declared_type = type;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        if (is_definition) vp->suppress_instantiation = TRUE;
-        if (is_definition) tip->specific_def = TRUE;
         tip->specific_decl = TRUE;
-        vp->is_explicit_specialization = TRUE;
+        vp->is_specialization = TRUE;
         /* Deal with initializer. */
         if (is_definition) {
           a_boolean  incomplete_type_error_reported = FALSE;
 
+          vp->suppress_instantiation = TRUE;
+          tip->specific_def = TRUE;
           sym->variant.static_data_member.variable->
                            storage_class = (a_storage_class)sc_unspecified;
           /* Advance past "=". */
@@ -7156,12 +7156,12 @@ that follows.
           if (rp->declared_type == NULL) rp->declared_type = type;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-        if (is_definition) rp->suppress_instantiation = TRUE;
-        if (is_definition) tip->specific_def = TRUE;
         tip->specific_decl = TRUE;
-        rp->is_explicit_specialization = TRUE;
+        rp->is_specialization = TRUE;
         if (is_definition) {
           /* This is a defining declaration of the function template. */
+          rp->suppress_instantiation = TRUE;
+          tip->specific_def = TRUE;
           func_info.is_definition = TRUE;
           if (func_info.function_type_from_typedef) {
             /* Just as it is an error when a normal function is defined for

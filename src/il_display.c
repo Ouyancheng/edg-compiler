@@ -1215,8 +1215,8 @@ Display the indicated variable.
   if (ptr->is_template_static_data_member) {
     disp_boolean("is_template_static_data_member", TRUE);
   }  /* if */
-  if (ptr->is_explicit_specialization) {
-    disp_boolean("is_explicit_specialization", TRUE);
+  if (ptr->is_specialization) {
+    disp_boolean("is_specialization", TRUE);
   }  /* if */
   if (ptr->suppress_instantiation) {
     disp_boolean("suppress_instantiation", TRUE);
@@ -1551,8 +1551,8 @@ Display the indicated routine.
   if (ptr->is_template_function) {
     disp_boolean("is_template_function", TRUE);
   }  /* if */
-  if (ptr->is_explicit_specialization) {
-    disp_boolean("is_explicit_specialization", TRUE);
+  if (ptr->is_specialization) {
+    disp_boolean("is_specialization", TRUE);
   }  /* if */
   if (ptr->suppress_instantiation) {
     disp_boolean("suppress_instantiation", TRUE);

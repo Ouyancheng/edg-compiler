@@ -3577,7 +3577,7 @@ typedef struct a_variable {
 			   provided by the user.  FALSE for all other cases,
 			   including a static data member of a class that
 			   is a specialization of a template class. */
-  a_bit_field	is_explicit_specialization:1;
+  a_bit_field	is_specialization:1;
 			/* TRUE if is_template_static_data_member is TRUE and
 			   the member is an explicit specialization (i.e., if
 			   it has been explicitly declared with the template<>
@@ -3586,10 +3586,10 @@ typedef struct a_variable {
 			/* TRUE if is_template_static_data_member is TRUE but
 			   the static data member should not be instantiated
 			   based on the template with which it is associated.
-			   This flag will be set if is_explicit_specialization
-			   is TRUE, or if the member was subject to an
-			   old-style specific definition, or if it was
-			   specified in a do-not-instantiate pragma. */
+			   This flag will be set if is_specialization is TRUE,
+			   or if the member was subject to an old-style
+			   specific definition, or if it was specified in a
+			   do-not-instantiate pragma. */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;
 			/* TRUE if this is a template static data member
@@ -4044,7 +4044,7 @@ typedef struct a_routine {
 			   all other functions, including a function that is
 			   a member of a class that is a specialization of
 			   a template class. */
-  a_bit_field	is_explicit_specialization:1;
+  a_bit_field	is_specialization:1;
 			/* TRUE if is_template_function is TRUE and the
 			   function is an explicit specialization (i.e., if it
 			   has been explicitly declared with the template<>
@@ -4053,9 +4053,9 @@ typedef struct a_routine {
 			/* TRUE when is_template_function is TRUE but the
 			   function should not be instantiated based on the
 			   template with which it is associated.  This flag
-			   will be set if is_explicit_specialization is TRUE,
-			   or if the routine was subject to an old-style
-			   specific definition, or if it was specified in a
+			   will be set if is_specialization is TRUE, or if
+			   the routine was subject to an old-style specific
+			   definition, or if it was specified in a
 			   do-not-instantiate pragma. */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;
