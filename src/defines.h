@@ -36,7 +36,6 @@ Flags to be set for any version that uses the C++ generating back end.
 #define NEW_CAN_BE_FOLDED_INTO_CTOR 0
 #define DELETE_CAN_BE_FOLDED_INTO_DTOR 0
 #define ASSIGNMENT_TO_THIS_ALLOWED 0
-#define USER_CONTROL_OF_STRUCT_PACKING FALSE /* Until #pragma pack push/pop */
 #endif /* ifdef _WIN32 */
 #endif /* ifdef CP_GEN_BE_VERSION */
 
