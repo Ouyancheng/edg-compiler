@@ -607,6 +607,7 @@ Initialize everything that has to do with the front end.
   lexical_init();
   sym_tbl_init();
   keyword_init();
+  class_decl_init();
   expr_init();
   macro_proc_init();
   /* preproc_init must be called after keyword initialization so that
