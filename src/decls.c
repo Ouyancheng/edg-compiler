@@ -1793,23 +1793,32 @@ cases.  Return TRUE if the two types are compatible by these relaxed rules.
   if (is_function_type(tp1)) {
     /* Two function types.  In SVR4 mode if they are incompatible solely
        because of their return types, and if the return types are "close
-       enough", then consider the routine types themselves to be
-       compatible. */
+       enough", then consider the routine types themselves to be compatible.
+       Further, if the return types are "close enough" and one type has a
+       prototyped and the other a nonprototyped parameter list, also consider
+       the types compatible. */
     tp1 = skip_typerefs(tp1);
     ret1 = tp1->variant.routine.return_type;
     check_assertion(is_function_type(tp2));
     tp2 = skip_typerefs(tp2);
     ret2 = tp2->variant.routine.return_type;
-    if (!types_are_compatible(ret1, ret2) &&
-        is_integral_type(ret1) && is_integral_type(ret2) &&
-        interchangeable_types(ret1, ret2)) {
-      /* The return types are incompatible but both are integral and they are
-         interchangeable (i.e., they have the same size and alignment).  See
-         whether the two routine types are otherwise compatible. */
-      tp1->variant.routine.return_type = ret2;
-      compat = types_are_compatible(tp1, tp2);
-      /* Restore the original return type. */
-      tp1->variant.routine.return_type = ret1;
+    if (types_are_compatible(ret1, ret2) ||
+        (is_integral_type(ret1) && interchangeable_types(ret1, ret2))) {
+      /* Either the return types are compatible or else they are incompatible
+         but both are integral and they are interchangeable (i.e., they have
+         the same size and alignment).  See whether the two routine types
+         are otherwise compatible. */
+      if (tp1->variant.routine.extra_info->prototyped !=
+            tp2->variant.routine.extra_info->prototyped) {
+        /* One of the routine types is prototyped and the other is not.
+           Ignore incompatibilities (if there are any) in SVR4 mode. */
+        compat = TRUE;
+      } else {
+        tp1->variant.routine.return_type = ret2;
+        compat = types_are_compatible(tp1, tp2);
+        /* Restore the original return type. */
+        tp1->variant.routine.return_type = ret1;
+      }  /* if */
     }  /* if */
   } else {
     check_assertion(is_object_type(tp1) && is_object_type(tp2));
