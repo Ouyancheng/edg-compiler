@@ -532,6 +532,11 @@ static a_stop_token_stack_entry_ptr
 			/* List of stop token stack entries that have been
 			   freed and are available for reuse. */
 
+static a_boolean
+		caching_tokens;
+			/* TRUE when caching a token stream to be scanned
+			   later. */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static a_boolean
 		scanning_microsoft_asm;
@@ -1313,6 +1318,9 @@ be copies to the new cache.
   a_token_sequence_number	last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
 
   db_enter(4, "cache_token_stream_with_coalesce_flag");
+  /* Set a flag that indicates that the tokens being scanned are to be
+     cached. */
+  caching_tokens = TRUE;
   if (coalesce_ids) {
     a_cached_token_ptr	ctp = src_cache->first_token;
     /* Find the last token in the cache to make sure that we don't scan past
@@ -1369,6 +1377,9 @@ be copies to the new cache.
       (void)get_token();
     }  /* if */
   }  /* if */
+  /* Clear the flag that indicates that the tokens being scanned are to be
+     cached. */
+  caching_tokens = FALSE;
   db_exit();
 }  /* cache_token_stream_with_coalecse_flag */
 
@@ -1429,6 +1440,18 @@ be in the set of stop tokens.
   /* Rescan the cached tokens from a copy of this token cache. */
   rescan_copy_of_cache(cache);
 }  /* cache_rest_of_declaration */
+
+
+a_token_kind get_token_to_be_cached(void)
+/*
+Interface to get_token that sets the caching_tokens flag.
+*/
+{
+  caching_tokens = TRUE;
+  (void)get_token();
+  caching_tokens = FALSE;
+  return curr_token;
+}  /* get_token_to_be_cached */
 
 
 void rescan_cached_tokens(a_token_cache *cache)
@@ -6649,6 +6672,104 @@ mechanism.  This routine scans and builds the asm string.
 #endif /* DEBUG */
   scanning_microsoft_asm = FALSE;
 }  /* build_microsoft_asm_string */
+
+
+static a_boolean scan_if_exists_identifier(void)
+/*
+Scan the identifier in a Microsoft __if_exists or __if_not_exists
+directive.  Return TRUE if the identifier exists.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (is_generalized_identifier_start(GID_IN_IF_EXISTS)) {
+    a_boolean		err;
+    a_symbol_ptr	sym;
+    sym = coalesce_and_lookup_generalized_identifier(
+                                 GID_IN_IF_EXISTS, ilm_normal, &err);
+    result = sym != NULL;
+    /* Bypass the identifier. */
+    (void)get_token();
+  } else {
+    error(ec_exp_identifier);
+  }  /* if */
+  return result;
+}  /* scan_if_exists_identifier */
+
+
+static void cache_if_exists_tokens(a_token_cache_ptr	cache)
+/*
+Cache then tokens between the braces of an __if_exists or __if_not_exists
+directive.
+*/
+{
+  /* Initialize a local stop token set. */
+  a_token_set_array  stop_tokens;
+  clear_token_set_array(stop_tokens);
+  incr_token_set_array_element(stop_tokens, tok_rbrace);
+  clear_token_cache(cache, /*reusable=*/FALSE);
+  cache_token_stream(cache, stop_tokens);
+}  /* cache_if_exists_tokens */
+
+
+static void scan_microsoft_if_exists(a_token_kind	ctoken)
+/*
+Scan a Microsoft __if_exists or __if_not_exists of the form:
+
+	__if_exists ( name ) { tokens }
+
+"name" is a qualified or unqualified name.  The name is looked up, and
+if found the associated "tokens" are either scanned or discarded (depending
+on which form of the directive is being used).  When the tokens are
+to be scanned, a cache is created and the tokens are rescanned from
+the cache.
+*/
+{
+  a_boolean	exists;
+  a_boolean	keep_tokens;
+  a_token_cache	cache;
+
+  /* Bypass the directive token. */
+  (void)get_token();
+  /* Scan the "(". */
+  if (curr_token == tok_lparen) {
+    (void)get_token();
+  } else {
+    error(ec_exp_lparen);
+  }  /* if */
+  add_stop_token(tok_rparen);
+  add_stop_token(tok_lbrace);
+  /* Scan the identifier. */
+  exists = scan_if_exists_identifier();
+  /* Scan the ")". */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_stop_token(tok_rparen);
+  remove_stop_token(tok_lbrace);
+  /* Scan the open brace. */
+  if (curr_token != tok_lbrace) {
+    error(ec_exp_lbrace);
+  } else {
+    /* Bypass the open brace of the directive. */
+    (void)get_token();
+  }  /* if */
+  /* Determine whether we should keep or discard the tokens.  Always
+     keep the tokens in a prototype instantiation. */
+  check_assertion(depth_scope_stack != NO_SCOPE_DEPTH);
+  keep_tokens = exists == (ctoken == tok_if_exists) ||
+                is_prototype_instantiation_context();
+  /* Cache tokens up to the matching brace. */
+  cache_if_exists_tokens(&cache);
+  /* Bypass the closing brace. */
+  if (curr_token != tok_end_of_source) (void)get_token();
+  /* If keeping the tokens, rescan the from the cache; otherwise just
+     discard the tokens. */
+  if (keep_tokens) {
+    rescan_cached_tokens(&cache);
+  } else {
+    discard_token_cache(&cache);
+  }  /* if */
+}  /* scan_microsoft_if_exists */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
@@ -6929,9 +7050,7 @@ to speed in some cases.
   a_symbol_kind		id_kind;
   a_boolean		rescan, is_inert_macro = FALSE;
   a_boolean		continue_scan;
-#if DEBUG
   a_boolean             gotten_from_cache = FALSE;
-#endif /* DEBUG */
 
   if (any_initial_get_token_tests_needed &&
       !fetching_tokens_from_insert_string()) {
@@ -6951,17 +7070,27 @@ to speed in some cases.
        list. */
     if (cached_token_rescan_list != NULL) {
       ctoken = get_token_from_cached_token_rescan_list();
-#if DEBUG
       gotten_from_cache = TRUE;
-#endif /* DEBUG */
-      goto return_from_token_scan;
     } else if (reusable_cache_stack != NULL) {
       /* If there are tokens to be rescanned from the reusable cache stack
          take the next one on the list. */
       ctoken = get_token_from_reusable_cache_stack();
-#if DEBUG
       gotten_from_cache = TRUE;
-#endif /* DEBUG */
+    }  /* if */
+    if (gotten_from_cache) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (!caching_tokens &&
+          (ctoken == tok_if_exists ||
+           ctoken == tok_if_not_exists)) {
+          /* A Microsoft __if_exists or __if_not_exists directive.
+             upon return from this routine the current token will
+             be either the first token of the conditional text
+	     or then token following the closing brace of the
+	     directive. */
+          scan_microsoft_if_exists(ctoken);
+          ctoken = curr_token;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       goto return_from_token_scan;
     }  /* if */
   }  /* if */
@@ -7489,11 +7618,23 @@ id_scan:
 		scan_boolean_constant(ctoken);
               } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                if (ctoken == tok_microsoft_asm && microsoft_mode &&
-                    !scanning_microsoft_asm) {
-                  /* Build a string representation of a Microsoft asm
-                     and attach it to the current token. */
-                  build_microsoft_asm_string();
+                if (microsoft_mode){
+                  if (ctoken == tok_microsoft_asm && !scanning_microsoft_asm) {
+                    /* Build a string representation of a Microsoft asm
+                       and attach it to the current token. */
+                    build_microsoft_asm_string();
+                  } else if (!caching_tokens &&
+                             (ctoken == tok_if_exists ||
+                              ctoken == tok_if_not_exists)) {
+                    /* A Microsoft __if_exists or __if_not_exists directive.
+                       upon return from this routine the current token will
+		       be either the first token of the conditional text
+		       or then token following the closing brace of the
+		       directive. */
+                    scan_microsoft_if_exists(ctoken);
+                    ctoken = curr_token;
+                    goto return_from_token_scan;
+                  }  /* if */
                 }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                 goto end_id_scan;
@@ -10166,7 +10307,8 @@ static a_symbol_ptr look_up_qualifier_start(
 			a_type_ptr			class_type,
 			a_boolean			might_be_vacuous_dtor,
 			a_boolean			*is_vacuous_dtor,
-			a_boolean			might_be_template)
+			a_boolean			might_be_template,
+			a_boolean			in_if_exists)
 /*
 This routine does the "dual lookup" that is done in contexts such as
 the "A" in "p->A::B" and "f" in "p->f<...>...".  This involves looking
@@ -10177,6 +10319,8 @@ TRUE if the name being looked up is followed by "::~", and a vacuous
 destructor is valid in the current context.  *is_vacuous_dtor is set to
 TRUE if a symbol that can only be a vacuous destructor is returned.
 class_type is the type of the left operand of the field selection.
+in_if_exists is TRUE when scanning the identifier of a Microsoft
+__if_exists or __if_not_exists directive.
 */
 {
   a_symbol_ptr	normal_sym;
@@ -10226,7 +10370,8 @@ class_type is the type of the left operand of the field selection.
        destructor. */
     *is_vacuous_dtor = TRUE;
   }  /* if */
-  if (sym == NULL && (might_be_vacuous_dtor || microsoft_bugs)) {
+  if (sym == NULL && (might_be_vacuous_dtor ||
+                      (microsoft_bugs && !in_if_exists))) {
     /* The lookup has failed so far.  If this might be a vacuous destructor,
        do a more general lookup to find a nonclass type that might be
        used as a qualifier for a vacuous destructor.  The more general lookup
@@ -10414,6 +10559,10 @@ selection operator, in which case it points to the type of the left operand.
   a_token_sequence_number	start_seq_number;
   a_boolean			follows_template;
 
+/* Macro used to determine whether we are processing the identifier in
+   a Microsoft __if_exits or __if_not_exists directive. */
+#define in_if_exists ((options & GID_IN_IF_EXISTS) != 0)
+
   db_enter(4, "f_is_generalized_identifier_start");
   /* If the current token is an identifier, then check the flag in the
      locator to see if it has already been coalesced.  If so, simply
@@ -10582,7 +10731,8 @@ selection operator, in which case it points to the type of the left operand.
                                    lookup_kind, field_sel_type,
                                    might_be_vacuous_dtor, &is_vacuous_dtor,
 				   /*might_be_template=*/next_tok == tok_lt ||
-                                                         follows_template);
+                                                         follows_template,
+                                   in_if_exists);
         if (locator_for_curr_id.is_semivisible_nested_type) {
           /* The symbol in the locator is a nested class that is not visible
              according to the ARM lookup rules but is returned in support of
@@ -10677,6 +10827,7 @@ selection operator, in which case it points to the type of the left operand.
       is_qualified_name = TRUE;
     } else if (next_token() == qualifier_separator &&
                (!microsoft_bugs || is_vacuous_dtor ||
+                in_if_exists ||
                 is_microsoft_qualifier_start(qualifier_sym))) {
       /* This is an identifier followed by the qualifier separator
          (usually something like "X::").  Scan the qualified name. */
@@ -10748,7 +10899,9 @@ selection operator, in which case it points to the type of the left operand.
         if (invalid_qualifier_sym) {
           /* The identifier is followed by a "::" but is not a class symbol. */
           if (!err) {
-            if (is_vacuous_dtor) {
+            if (in_if_exists) {
+              /* Silently ignore the error. */
+            } else if (is_vacuous_dtor) {
               error(ec_id_must_be_class_or_type_name);
             } else {
               error(ec_id_must_be_class_or_namespace_name);
@@ -10770,7 +10923,7 @@ selection operator, in which case it points to the type of the left operand.
         (void)get_token();
         if (curr_token == tok_template) {
           is_template = TRUE;
-          if (!is_template_context()) {
+          if (!is_template_context() && !in_if_exists) {
             /* The template keyword, when used for syntactic disambiguation,
                may only appear within a template. */
             diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
@@ -10821,7 +10974,9 @@ selection operator, in which case it points to the type of the left operand.
 	       currently being defined -- it is considered complete if it
 	       is being defined.  We determine this by checking the
 	       assoc_scope field of the class type supplement. */
-            pos_error(ec_incomplete_type_not_allowed, &type_position);
+            if (!in_if_exists) {
+              pos_error(ec_incomplete_type_not_allowed, &type_position);
+            }  /* if */
 	    err = TRUE;
 	    qualifier_sym = NULL;
           } else {
@@ -10944,7 +11099,8 @@ selection operator, in which case it points to the type of the left operand.
           }  /* if */
           if (is_template && qualifier_sym != NULL &&
               !err && next_tok == tok_lt &&
-              !sym_can_follow_template_keyword(qualifier_sym)) {
+              !sym_can_follow_template_keyword(qualifier_sym) &&
+              !in_if_exists) {
             /* A construct like "p->A::template X< ...".  When the template
                keyword is so used, "X" must be a member template. The test of
                next_tok is used to suppress this error if we already complained
@@ -11130,8 +11286,10 @@ selection operator, in which case it points to the type of the left operand.
           qualifier_type = dtor_type;
           qualifier_is_type = TRUE;
         } else {
-          pos_st_error(ec_not_a_type_name, &tilde_position,
-                       locator_for_curr_id.symbol_header->identifier);
+          if (!in_if_exists) {
+            pos_st_error(ec_not_a_type_name, &tilde_position,
+                         locator_for_curr_id.symbol_header->identifier);
+          }  /* if */
           err = TRUE;
 	}  /* if */
       } else if (!strict_ansi_mode && (dtor_type = type_keyword()) != NULL) {
@@ -11149,7 +11307,7 @@ selection operator, in which case it points to the type of the left operand.
         curr_token = tok_identifier;
       } else {
         /* The token after the "~" is not an identifier or a type name. */
-        error(ec_exp_identifier);
+        if (!in_if_exists) error(ec_exp_identifier);
         err = TRUE;
       }  /* if */
       locator_for_curr_id.is_destructor_name = TRUE;
@@ -11161,8 +11319,10 @@ selection operator, in which case it points to the type of the left operand.
         check_assertion(dtor_type != NULL);
         if (!identical_types(field_sel_type,
                              f_skip_typerefs(dtor_type))) { /*lint !e666*/
-          pos_ty_error(ec_invalid_destructor_name, &tilde_position,
-                       field_sel_type);
+          if (!in_if_exists) {
+            pos_ty_error(ec_invalid_destructor_name, &tilde_position,
+                         field_sel_type);
+          }  /* if */
           err = TRUE;
         }  /* if */
       }  /* if */
@@ -11206,8 +11366,10 @@ selection operator, in which case it points to the type of the left operand.
 	       coalesce routine that an error has occurred. */
              qualifier_type = NULL;
           } else if (!destructor_name_matches_class_name(class_sym)) {
-            pos_ty_error(ec_destructor_name_mismatch, &tilde_position,
-			 qualifier_type);
+            if (!in_if_exists) {
+              pos_ty_error(ec_destructor_name_mismatch, &tilde_position,
+                           qualifier_type);
+            }  /* if */
   	    err = TRUE;
             /* Set the class type to NULL as an indicator to the
 	       coalesce routine that an error has occurred. */
@@ -11226,8 +11388,10 @@ selection operator, in which case it points to the type of the left operand.
 	  qualifier_type = NULL;
         } else if (dtor_type == NULL ||
                         !identical_types(dtor_class_type, dtor_type)) {
-          pos_ty_error(ec_destructor_type_mismatch, &tilde_position,
-		       dtor_class_type);
+          if (!in_if_exists) {
+            pos_ty_error(ec_destructor_type_mismatch, &tilde_position,
+		         dtor_class_type);
+          }  /* if */
           err = TRUE;
           /* Set the class type to NULL as an indicator to the
 	     coalesce routine that an error has occurred. */
@@ -11258,7 +11422,7 @@ wrapup:
       unget_token();
       curr_token = tok_identifier;
       /* syntax_error is deliberately not called. */
-      error(ec_exp_identifier);
+      if (!in_if_exists) error(ec_exp_identifier);
       /* For the error cases, set the current locator to an error locator
          with specific_symbol pointing to a newly-created error
          symbol of kind sk_undefined. */
@@ -11305,6 +11469,7 @@ wrapup:
 exit:
   db_exit();
   return result;
+#undef in_if_exists
 }  /* f_is_generalized_identifier_start */
 
 
@@ -11327,6 +11492,10 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
   a_boolean		qualifier_is_type = TRUE;
   a_boolean		is_vacuous_dtor = FALSE;
   db_enter(4, "coalesce_and_lookup_qualified_name");
+
+/* Macro used to determine whether we are processing the identifier in
+   a Microsoft __if_exits or __if_not_exists directive. */
+#define in_if_exists ((options & GID_IN_IF_EXISTS) != 0)
 
   *err = FALSE;
   if (C_dialect != C_dialect_cplusplus) goto exit;
@@ -11395,7 +11564,7 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
                                           idl_options) != NULL) {
           } else {
             /* The identifier could not be found in the file scope. */
-	    if (ilm == ilm_tentative_type) {
+	    if (ilm == ilm_tentative_type || in_if_exists) {
 	      /* It is OK for a tentative type lookup to fail. */
 	      okay = TRUE;
 	    } else {
@@ -11434,7 +11603,9 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
                a class/struct/union type is needed because the type may
                also be a template parameter type. */
             okay = FALSE;
-            pos_error(ec_incomplete_type_not_allowed, &pos_curr_token);
+            if (!in_if_exists) {
+              pos_error(ec_incomplete_type_not_allowed, &pos_curr_token);
+            }  /* if */
           } else {
             /* Don't try to look up a vacuous destructor name. */
             if (is_vacuous_dtor) {
@@ -11468,7 +11639,7 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
 	      } else {
                 /* The identifier could not be found in the class or namespace
                    scope. */
-	        if (ilm == ilm_tentative_type) {
+	        if (ilm == ilm_tentative_type || in_if_exists) {
 		  /* It is OK for a tentative type lookup to fail. */
 		  okay = TRUE;
 		} else if (is_error_locator(locator_for_curr_id)) {
@@ -11579,6 +11750,7 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
 exit:
   db_exit();
   return return_value;
+#undef in_if_exists
 }  /* coalesce_and_lookup_qualified_name */
 
 
@@ -12844,6 +13016,7 @@ of the front end.
   token_insertion_buffer = NULL;
   in_token_insertion_from_string = FALSE;
   token_insertion_position = null_source_position;
+  caching_tokens = FALSE;
 #if TOKENS_TO_STRING_NEEDED
   /* Initialize the output control block for the il-to-str routines. */
   clear_il_to_str_output_control_block(&octl);

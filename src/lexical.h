@@ -172,6 +172,8 @@ typedef enum /*a_token_kind*/ {
   tok_uuidof,
   tok_assume,
   tok_charize,
+  tok_if_exists,
+  tok_if_not_exists,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_microsoft_asm,
   /* Special named string constants available in C99 and Microsoft modes
@@ -263,7 +265,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__cdecl", "__declspec", "__fastcall", "__inline", "__forceinline",
    "__stdcall", "__unaligned", "__try", "__finally", "__leave", "__except",
    "__int8", "__int16", "__int32", "__int64", "__based",
-   "__uuidof", "__assume", "#@",
+   "__uuidof", "__assume", "#@", "__if_exists", "__if_not_exists",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__asm",
    "__func__",
@@ -414,6 +416,9 @@ typedef int an_identifier_options_set;
 #define GID_IMPLICIT_TYPE_CONTEXT 0x40000
 			/* TRUE if the name is known to be a type based on
 			   context. */
+#define GID_IN_IF_EXISTS 0x80000
+			/* TRUE when scanning the identifier of a Microsoft
+			   __if_exists or __if_not_exists directive. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)
@@ -611,6 +616,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_uuidof */
    (an_opname_kind)onk_none,          /* tok_assume */
    (an_opname_kind)onk_none,          /* tok_charize */
+   (an_opname_kind)onk_none,          /* tok_if_exists */
+   (an_opname_kind)onk_none,          /* tok_if_not_exists */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_microsoft_asm */
    (an_opname_kind)onk_none,          /* tok_function_name */
@@ -1535,6 +1542,7 @@ extern
 void cache_token_stream_coalesce_identifiers(a_token_cache_ptr  cache,
                                              a_token_set_array  stop_tokens,
                                              a_token_cache_ptr	src_cache);
+extern a_token_kind get_token_to_be_cached(void);
 extern
 void cache_rest_of_declaration(a_token_cache_ptr	cache,
                                a_boolean		stop_on_colon,

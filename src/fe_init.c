@@ -361,6 +361,8 @@ Install the keywords in the symbol table.
     }  /* if */
     enter_keyword((a_token_kind)tok_function_name, "__FUNCTION__");
     enter_keyword((a_token_kind)tok_decorated_function_name, "__FUNCDNAME__");
+    enter_keyword((a_token_kind)tok_if_exists, "__if_exists");
+    enter_keyword((a_token_kind)tok_if_not_exists, "__if_not_exists");
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (gcc_mode) {

@@ -10679,7 +10679,7 @@ declaration of a partial specialization declared outside of its class.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Swallow the "{" and then cache everything through to the "}". */
       cache_curr_token(definition_token_cache);
-      (void)get_token();
+      (void)get_token_to_be_cached();
       incr_token_set_array_element(stop_tokens, tok_rbrace);
       cache_token_stream(definition_token_cache, stop_tokens);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
