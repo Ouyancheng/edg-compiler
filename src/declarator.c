@@ -1835,6 +1835,18 @@ are NULL.
         pos_diagnostic(es_discretionary_error,
                        ec_calling_convention_not_allowed,
                        &start_pos);
+      } else if (first_call_conv_allowed &&
+                 specifiers_type != NULL &&
+                 (curr_token == tok_star ||
+                  (curr_token == tok_ampersand && reference_allowed) ||
+                  (!C_mode() && is_ptr_to_member_declarator_start()))) {
+        /* If a specifiers type was present, the calling convention may
+           be applied immediately. */
+        a_call_conv_descr	ccd;
+        ccd.call_conv = new_call_conv;
+        ccd.position = start_pos;
+        update_calling_convention(&complete_type, &ccd,
+                                  &ccd.position);
       } else if (first_call_conv.call_conv ==
                                       (a_calling_convention)cc_default &&
                  first_call_conv_allowed) {
@@ -1930,12 +1942,6 @@ are NULL.
       /* A pointer operator was seen.  Return the first calling convention,
          if any, in p_calling_convention.  Return the unbound calling
          convention in p_unbound_calling_convention. */
-      if (specifiers_type != NULL) {
-        /* If a specifiers type was present, the calling convention may
-           be applied immediately. */
-        update_calling_convention(&specifiers_type, &first_call_conv,
-                                  &first_call_conv.position);
-      }  /* if */
       *p_unbound_calling_convention = unbound_call_conv;
       *p_calling_convention = first_call_conv;
     }  /* if */
