@@ -120,6 +120,15 @@ are those of Appendix A, section 17 of K&R I:
 #define C_ANACHRONISMS_ALLOWED FALSE
 #endif /* ifndef C_ANACHRONISMS_ALLOWED */
 
+/*
+The maximum number of pending instantiations of a given template class
+that may be in process at a given time.  This is used to detect
+runaway recursive instantiations.
+*/
+#ifndef MAX_PENDING_INSTANTIATIONS
+#define MAX_PENDING_INSTANTIATIONS 100
+#endif /* ifndef MAX_PENDING_INSTANTIATIONS */
+
 #endif /* ifndef LANG_FEAT_H */
 
 
