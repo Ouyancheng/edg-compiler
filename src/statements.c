@@ -1061,10 +1061,10 @@ initializing declarations.
                                       variant.block.last_case_label != NULL) {
         an_error_severity  severity = es_none;
 
-        /* Check for and report switch-over errors.  There should be at
-           least one. */
+        /* Check for and report switch-over errors. */
         report_switch_past_init(new_cfdp->variant.start_of_block, &severity);
-        check_assertion(severity != es_none);
+        /* Unless the initializations were of static variables only, there
+           will have been at least one diagnostic. */
         if (severity != es_none) end_error();
       }  /* if */
       /* Remove all init entries in the block that trail the last label or
