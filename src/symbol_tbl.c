@@ -9911,7 +9911,7 @@ Assign the next scope number in sequence, and return it.
     catastrophe(ec_program_too_large);
   }  /* if */
   next_scope_number++;
-  if (next_scope_number >= size_of_trans_unit_for_scope) {
+  if (next_scope_number >= (long)size_of_trans_unit_for_scope) {
     /* The table used to map scope numbers to translation unit pointers
        is full.  Expand it by reallocating it. */
     sizeof_t new_size = size_of_trans_unit_for_scope +
