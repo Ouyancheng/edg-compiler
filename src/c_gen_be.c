@@ -6201,7 +6201,8 @@ parameters.
         write_space();
 #if GCC_IS_GENERATED_CODE_TARGET
         if (dump_vars_without_initializers && 
-            init_kind == (an_init_kind)initk_none) {
+            (init_kind == (an_init_kind)initk_none ||
+             init_kind == (an_init_kind)initk_zero)) {
           /* GCC does not accept weak variables that do not have explicit
              initializers, so force the variable to be initialized
              to zero. */
