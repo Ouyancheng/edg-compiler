@@ -2272,15 +2272,14 @@ extern a_boolean is_accessible_virtual_base_class(
                                              a_base_class_ptr bcp,
                                              a_type_ptr       viewpoint_class);
 
-extern a_symbol_ptr find_progenitor_symbol(
-                                        a_type_ptr            class_ptr,
-                                        a_symbol_locator      *locator,
-                                        a_boolean             must_be_tag,
-                                        a_derivation_step_ptr *path,
-                                        an_access_specifier   *access,
-                                        a_boolean             *ambiguous,
-                                        a_boolean             *any_using_decl);
-
+extern
+a_symbol_ptr find_progenitor_symbol(a_type_ptr               class_ptr,
+                                    a_symbol_locator         *locator,
+                                    an_id_lookup_options_set options,
+                                    a_derivation_step_ptr    *path,
+                                    an_access_specifier      *access,
+                                    a_boolean                *ambiguous,
+                                    a_boolean                *any_using_decl);
 
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);

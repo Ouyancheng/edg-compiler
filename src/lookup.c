@@ -1063,6 +1063,28 @@ Macro that initializes a lookup state variable.
    (!(lookup_state).must_be_namespace || is_namespace_symbol(fund_sym)))
 
 
+a_boolean sym_matches_lookup_options(a_symbol_ptr		sym,
+				     an_id_lookup_options_set	options)
+/*
+Return TRUE if the symbol specified by "sym" is acceptable according to
+the lookup options specified by "options".  This routine is similar to the
+is_acceptable_symbol macro, but is intended to be called from routines that
+do not have the appropriate local variables (e.g., lookup_state) set that
+are needed to use is_acceptable_symbol.
+*/
+{
+  a_boolean	result;
+ 
+  result = ((!((options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0) ||
+             symbol_may_precede_qualifier(sym)) &&
+            (!((options & IDL_MUST_BE_TAG) != 0) ||
+             is_tag_or_tag_proxy_symbol(sym)) &&
+            (!((options & IDL_MUST_BE_NAMESPACE) != 0) ||
+             is_namespace_symbol(sym)));
+  return result;
+}  /* sym_matches_lookup_options */
+
+
 static a_symbol_ptr do_using_directive_lookup
                               (a_scope_stack_entry_ptr	ssep,
                                a_symbol_ptr		sym_from_scope,
@@ -1347,7 +1369,7 @@ that do normal id lookup processing.
   a_symbol_ptr	sym = NULL;
 
   if (find_projected_symbol(ssep->assoc_type, locator,
-                            lookup_state->must_be_tag,
+                            lookup_state->options,
                             lookup_state->tentative_type_lookup,
                             lookup_state->add_to_active_list,
                             lookup_state->insert_sym, &sym)) {
@@ -2195,8 +2217,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                                  class_type,
                                                  &add_to_active_list,
                                                  &insert_sym);
-      (void)find_projected_symbol(class_type, locator, /*must_be_tag=*/FALSE,
-                                  /*must_be_type_name=*/FALSE,
+      (void)find_projected_symbol(class_type, locator, options,
+                                  /*tentative_type_lookup=*/FALSE,
                                   add_to_active_list, insert_sym, &sym);
     }  /* if */
 end_lookup:

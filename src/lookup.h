@@ -28,9 +28,6 @@ represented as a bit set:
                                    things that, in C++, may precede a ::. */
 #define IDL_MUST_BE_TAG 0x2	/* The symbol must be a class, struct, union,
 				   or enum (not a typedef of one of those). */
-#define IDL_CONSTRAINTS (IDL_MUST_BE_CLASS_OR_NAMESPACE | IDL_MUST_BE_TAG)
-				/* The set of all options that impose
-				   constraints on the symbol to be found. */
 #define IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR 0x4
 				/* Suppress the error on a qualified name
 				   not being found on lookup. */
@@ -95,6 +92,10 @@ reused later.
                 IDL_TENTATIVE_TYPE_LOOKUP |				\
                 IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) == 0)
 
+
+extern
+a_boolean sym_matches_lookup_options(a_symbol_ptr		sym,
+				     an_id_lookup_options_set	options);
 
 extern a_boolean already_in_lookup_set(a_symbol_ptr curr_sym,
                                        a_symbol_ptr new_sym);

@@ -5388,23 +5388,23 @@ next_derivation:;
 
 
 /* Declaration needed because of mutual recursion: */
-a_symbol_ptr find_progenitor_symbol(a_type_ptr            class_ptr,
-                                    a_symbol_locator      *locator,
-                                    a_boolean             must_be_tag,
-                                    a_derivation_step_ptr *path,
-                                    an_access_specifier   *access,
-                                    a_boolean             *ambiguous,
-                                    a_boolean             *any_using_decl);
+a_symbol_ptr find_progenitor_symbol(a_type_ptr               class_ptr,
+                                    a_symbol_locator         *locator,
+                                    an_id_lookup_options_set options,
+                                    a_derivation_step_ptr    *path,
+                                    an_access_specifier      *access,
+                                    a_boolean                *ambiguous,
+                                    a_boolean                *any_using_decl);
 
 
 static a_symbol_ptr symbol_projected_from_base_class(
-                                        a_base_class_ptr      base_class,
-                                        a_symbol_locator      *locator,
-                                        a_boolean             must_be_tag,
-                                        a_derivation_step_ptr *path,
-                                        an_access_specifier   *access,
-                                        a_boolean             *ambiguous,
-                                        a_boolean             *any_using_decl)
+                                      a_base_class_ptr         base_class,
+                                      a_symbol_locator         *locator,
+                                      an_id_lookup_options_set options,
+                                      a_derivation_step_ptr    *path,
+                                      an_access_specifier      *access,
+                                      a_boolean                *ambiguous,
+                                      a_boolean                *any_using_decl)
 /*
 Given a pointer to a base class (the "current class") and a locator, determine
 whether the name specified in the locator is either defined in the class or
@@ -5418,6 +5418,7 @@ represents a using declaration or is or the projection of symbol that does.
   a_symbol_ptr         sym, tag_sym;
   a_scope_ptr          scope;
   an_access_specifier  local_access;
+  a_boolean	       must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
 
   db_enter(4, "symbol_projected_from_base_class");
 #if DEBUG
@@ -5444,6 +5445,9 @@ represents a using declaration or is or the projection of symbol that does.
     tag_sym = NULL;
     for (; sym != NULL; sym = sym->next) {
       if (sym->decl_scope == scope->number) {
+        /* Ignore this symbol if it doesn't match the lookup options
+           specified by the caller. */
+        if (!sym_matches_lookup_options(sym, options)) continue;
         if (is_tag_symbol(fundamental_symbol_of(sym))) {
           if (must_be_tag) {
             /* Tag symbol is required and that's what we have. */
@@ -5500,7 +5504,7 @@ represents a using declaration or is or the projection of symbol that does.
     }  /* if */
   } else {
     /* Not found in the base class, so examine its own base classes, if any. */
-    sym = find_progenitor_symbol(base_class->type, locator, must_be_tag, path,
+    sym = find_progenitor_symbol(base_class->type, locator, options, path,
                                  &local_access, ambiguous, any_using_decl);
   }  /* if */
   if (sym != NULL) {
@@ -5776,13 +5780,13 @@ qualified reference either to A::i or to C::i will pick up A::i).
 }  /* check_for_dominance */       
 
 
-a_symbol_ptr find_progenitor_symbol(a_type_ptr            class_ptr,
-                                    a_symbol_locator      *locator,
-                                    a_boolean             must_be_tag,
-                                    a_derivation_step_ptr *path,
-                                    an_access_specifier   *access,
-                                    a_boolean             *ambiguous,
-                                    a_boolean             *any_using_decl)
+a_symbol_ptr find_progenitor_symbol(a_type_ptr               class_ptr,
+                                    a_symbol_locator         *locator,
+                                    an_id_lookup_options_set options,
+                                    a_derivation_step_ptr    *path,
+                                    an_access_specifier      *access,
+                                    a_boolean                *ambiguous,
+                                    a_boolean                *any_using_decl)
 /*
 Given a pointer to a class (or struct or union) type and a locator, find
 in the classes from which the current class is derived a symbol that
@@ -5812,14 +5816,14 @@ represents a using declaration or is or the projection of symbol that does.
       if (sym == NULL) {
         /* Look for a projection from this base class (or from any class from
            which it is derived). */
-        sym = symbol_projected_from_base_class(bcp, locator, must_be_tag,
+        sym = symbol_projected_from_base_class(bcp, locator, options,
                                                path, access, ambiguous,
                                                any_using_decl);
       } else {
         /* One projection has already been found; look for another. */
         other_path = NULL;
         other_sym = symbol_projected_from_base_class(bcp, locator,
-                                                     must_be_tag, &other_path,
+                                                     options, &other_path,
                                                      &other_access, ambiguous,
                                                      any_using_decl);
         if (other_sym != NULL) {
@@ -5878,13 +5882,13 @@ represents a using declaration or is or the projection of symbol that does.
 }  /* find_progenitor_symbol */
 
 
-a_boolean find_projected_symbol(a_type_ptr        class_ptr,
-                                a_symbol_locator  *locator,
-                                a_boolean         must_be_tag,
-                                a_boolean         must_be_type_name,
-                                a_boolean         add_to_active_list,
-                                a_symbol_ptr      insert_sym,
-                                a_symbol_ptr      *projected_symbol)
+a_boolean find_projected_symbol(a_type_ptr               class_ptr,
+                                a_symbol_locator         *locator,
+                                an_id_lookup_options_set options,
+                                a_boolean                tentative_type_lookup,
+                                a_boolean                add_to_active_list,
+                                a_symbol_ptr             insert_sym,
+                                a_symbol_ptr             *projected_symbol)
 /*
 Given class_ptr, which identifies a class (or struct or union) type, search
 its base classes for a symbol that projects the name specified in *locator
@@ -5897,6 +5901,13 @@ the locator's inactive list; if it is TRUE, it is inserted in the locator's
 active list (which is order dependent) immediately following insert_sym
 (or, if insert_sym is NULL, at the beginning of the list), and in addition
 it is added to the end of the scope entry symbol list for the class.
+The symbol found must meet the criteria indicated by "options".  If
+tentative_type_lookup is TRUE, a projection symbol is only created if
+the symbol returned by find_progenitor_symbol is a type.  Note that
+"options" and tentative_type_lookup are handled differently: a
+symbol that fails the lookup options test does not hide symbols from
+deeper base classes, while a symbol that is not a type does hide
+symbols from deeper base classes that may be types.
 */
 {
   a_derivation_step_ptr        path = NULL;
@@ -5928,7 +5939,7 @@ it is added to the end of the scope entry symbol list for the class.
     /* Assignment operators are not inherited (13.4.3). */
     progenitor_sym = NULL;
   } else {
-    progenitor_sym = find_progenitor_symbol(class_ptr, locator, must_be_tag,
+    progenitor_sym = find_progenitor_symbol(class_ptr, locator, options,
                                             &path, &access, &ambiguous,
                                             &any_using_decl);
   }  /* if */
@@ -5938,7 +5949,7 @@ it is added to the end of the scope entry symbol list for the class.
   } else {
     /* A symbol was found. */
     found = TRUE;
-    if (must_be_type_name &&
+    if (tentative_type_lookup &&
         !is_type_symbol(fundamental_symbol_of(progenitor_sym))) {
       /* The symbol found is not a type name symbol, so do not create a
          projection for it. */

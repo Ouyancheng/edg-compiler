@@ -1,5 +1,28 @@
 Version 2.31
 
+11/16/95  Projection symbols created for symbols that fail lookup criteria
+
+Projection symbols were incorrectly being created for symbols that did
+not meet the criteria for the lookup being done.  In the following example,
+the lookup of A::A2 was incorrectly creating a projection symbol for X::A,
+even though X::A is not a class or namespace symbol.  This resulted in an
+error later when py->A() found the projection symbol X::A instead of the
+member Y::A.  This has been fixed.
+
+  struct A { typedef int A2; };
+  struct X { int A(); };
+
+  struct Y : private X
+  {
+    int A();
+    Y(A::A2);
+  };
+
+  void f(Y *py)
+  {
+    py->A();  // Formerly, gave a spurious error
+  }
+
 11/13/95  Added global variable allow_nonstandard_anonymous_unions
 
 This variable, set to TRUE when microsoft mode is enabled and by default
