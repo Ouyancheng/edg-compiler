@@ -761,9 +761,7 @@ any_errors=0
 max_status=0
 for cfile in $cfiles
 do
-set -x
   basefile=`expr $cfile : '\(.*\)\.`  # Get basename
-set +x
   if [ $more_than_one_c_file -ne 0 ]
   then
     echo "$cfile:" 1>&2
