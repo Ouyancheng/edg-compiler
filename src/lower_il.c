@@ -9247,6 +9247,74 @@ assignment.  expr is being used as an lvalue if is_lvalue is TRUE.
   }  /* if */
 }  /* lower_bool_compound_assignment */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void lower_gnu_min_max(an_expr_node_ptr expr)
+/*
+Lower the GNU C++ "<?" (min) and ">?" (max) operators.
+*/
+{
+  an_expr_node_ptr      op1 = expr->variant.operation.operands;
+  an_expr_node_ptr      op2 = op1->next;
+  an_expr_node_ptr      temp1, temp2, rel_node;
+  an_expr_operator_kind op;
+  a_boolean             op1_has_side_effects, op2_has_side_effects;
+  a_boolean             result_is_lvalue = expr->variant.operation.
+                                        returns_lvalue_instead_of_usual_rvalue;
+
+  /* Rewrite
+       a <? b
+     as
+       ((temp1 = a) < (temp2 = b)) ? temp1 : temp2
+  */
+  op1_has_side_effects = node_has_side_effects(op1, (a_boolean *)NULL);
+  op2_has_side_effects = node_has_side_effects(op2, (a_boolean *)NULL);
+  temp1 = make_reusable_copy(op1, op2_has_side_effects);
+  temp2 = make_reusable_copy(op2, op1_has_side_effects);
+  /* Determine the comparison operator to use. */
+  switch (expr->variant.operation.kind) {
+    case eok_ignu_min:
+      op = (an_expr_operator_kind)eok_ilt;
+      break;
+    case eok_fgnu_min:
+      op = (an_expr_operator_kind)eok_flt;
+      break;
+    case eok_pgnu_min:
+      op = (an_expr_operator_kind)eok_plt;
+      break;
+    case eok_ignu_max:
+      op = (an_expr_operator_kind)eok_igt;
+      break;
+    case eok_fgnu_max:
+      op = (an_expr_operator_kind)eok_fgt;
+      break;
+    case eok_pgnu_max:
+      op = (an_expr_operator_kind)eok_pgt;
+      break;
+    default:
+      unexpected_condition_str("lower_gnu_min_max: bad operator");
+  }  /* switch */
+  if (result_is_lvalue) {
+    /* In the lvalue-returning case, the operands are the addresses of
+       the values.  In order to compare the values, we have to add an
+       indirection to the nodes. */
+    op1->next = NULL;
+    op1 = add_indirection_to_node(op1);
+    op2 = add_indirection_to_node(op2);
+    op1->next = op2;
+  }  /* if */
+  /* Make "(temp1 = a) < (temp2 = b)". */
+  rel_node = make_operator_node(op, integer_type((an_integer_kind)ik_int),
+                                op1);
+  /* Assemble the "?" operation, overwriting the original node. */
+  rel_node->next = temp1;
+  temp1->next = temp2;
+  set_node_operator(expr, (an_expr_operator_kind)eok_question,
+                    temp1->type, rel_node);
+}  /* lower_gnu_min_max */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 
 void eliminate_assignment_if_empty_class(an_expr_node_ptr expr)
 /*
@@ -11130,6 +11198,17 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                                                                          FALSE;
             }  /* if */
             break;
+#if GNU_EXTENSIONS_ALLOWED
+          case eok_ignu_min:
+          case eok_fgnu_min:
+          case eok_pgnu_min:
+          case eok_ignu_max:
+          case eok_fgnu_max:
+          case eok_pgnu_max:
+            /* GNU C++ "<? and ">?". */
+            lower_gnu_min_max(expr);
+            break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
           case eok_question:
             /* If one operand is a throw and the other is non-void, wrap
                the throw in a comma expression to give it the right type. */
