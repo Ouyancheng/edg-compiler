@@ -7093,18 +7093,17 @@ qualified name.
         if (is_file_scope_qualified_name) {
           type_sym = file_scope_id_lookup(&locator_for_curr_id,
                                           IDL_NO_OPTIONS);
-	} else if (qualifier_sym != NULL) {
-          if (qualifier_sym->is_class_member) {
-            type_sym = class_qualified_id_lookup
+	} else if (qualifier_sym != NULL && qualifier_sym->is_class_member) {
+          type_sym = class_qualified_id_lookup
                                              (&locator_for_curr_id,
                                               qualifier_sym->parent.class_type,
                                               IDL_NO_OPTIONS);
-          } else {
-            type_sym = namespace_qualified_id_lookup
+        } else if (qualifier_sym != NULL && !qualifier_is_type &&
+                   qualifier_sym->parent.namespace_ptr != NULL) {
+          type_sym = namespace_qualified_id_lookup
                                           (&locator_for_curr_id,
                                            qualifier_sym->parent.namespace_ptr,
                                            IDL_NO_OPTIONS);
-          }  /* if */
 	} else {
 	  type_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
         }  /* if */
