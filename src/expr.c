@@ -2066,10 +2066,12 @@ bound with the function in *bound_function_selector.
     if (!err) {
       /* Drop any qualifiers or typedefs on the class/struct/union type. */
       class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
-      /* Instantiate the class if it is a template class. */
-      check_for_uninstantiated_template_class(class_struct_union_type);
-      operand_1_is_complete_class =
-                  is_complete_class_struct_union_type(class_struct_union_type);
+      if (is_class_struct_union_type(class_struct_union_type)) {
+        /* Instantiate the class if it is a template class. */
+        instantiate_template_class(class_struct_union_type);
+        operand_1_is_complete_class =
+                                  !is_incomplete_type(class_struct_union_type);
+      }  /* if */
       /* No error is issued yet if the first operand is not (a pointer to)
          a class, because (a) pcc mode allows fields to be selected from
          non-class pointers, and (b) C++ allows p->int::~int(). */
@@ -4109,7 +4111,7 @@ As an anachronism, allow an expression inside the [ ].
       dtor_routine = NULL;
       if (is_class_struct_union_type(base_delete_type)) {
         /* Instantiate the class if it is a template class. */
-        check_for_uninstantiated_template_class(base_delete_type);
+        instantiate_template_class(base_delete_type);
         if (is_incomplete_type(base_delete_type)) {
           /* Deleting a pointer to an incomplete class.  Give a warning,
              because we may not know how to do the right thing (like call
