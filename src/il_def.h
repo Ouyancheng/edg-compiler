@@ -6015,7 +6015,7 @@ enum an_ELF_visibility_kind_tag {
   evk_unspecified,
   evk_hidden,
   evk_protected,
-  evk_internal,
+  evk_internal
 };
 
 /* Define as "a_byte" to explicitly control storage size. */
