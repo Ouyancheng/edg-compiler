@@ -306,7 +306,7 @@ Data structures and variables used to index into source files to locate
 a needed source line for a diagnostic.  For each source file, an index
 table is created and updated as the file is read.
 */
-#define INITIAL_PHYSICAL_LINE_COUNT_INCREMENT 100;
+#define INITIAL_PHYSICAL_LINE_COUNT_INCREMENT 100
 				/* Constant value specifying the starting
 				   interval at which physical line positions
 				   will be recorded in the error_file_index
