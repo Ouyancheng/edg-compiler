@@ -807,6 +807,12 @@ extern void reenter_symbol(a_symbol_ptr     symbol_to_reenter,
 
 extern a_symbol_ptr make_projection_symbol(a_symbol_ptr basis_sym);
 
+extern a_symbol_ptr make_unnamed_class_symbol(a_symbol_kind      sym_kind,
+                                              a_type_ptr         class_type,
+                                              a_source_position  *pos);
+
+extern a_boolean is_unnamed_class_symbol(a_symbol_ptr  sym);
+
 extern a_symbol_ptr full_enter_symbol(char          *identifier,
 				      sizeof_t      identifier_length,
 				      a_symbol_kind sym_kind,
