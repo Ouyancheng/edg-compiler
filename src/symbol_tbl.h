@@ -1355,20 +1355,18 @@ typedef struct a_template_cache_segment {
 
 
 /*
-Structure that contains the default argument information associated with
-a friend template declared in a class template.
+Structure that contains information associated with a friend template
+declared in a class template.
 */
-typedef struct a_templ_friend_def_arg *a_templ_friend_def_arg_ptr;
-typedef struct a_templ_friend_def_arg {
-  a_templ_friend_def_arg_ptr
+typedef struct a_templ_friend_info *a_templ_friend_info_ptr;
+typedef struct a_templ_friend_info {
+  a_templ_friend_info_ptr
 		next;
 			/* Pointer to the next entry on the list, or NULL
 			   for the last entry. */
-  a_def_arg_expr_fixup_ptr
-		default_args;
-			/* Pointer to a list of default argument expression
-			   fixup entries that represent the default arguments
-			   for the friend template function. */
+  a_symbol_ptr	symbol;
+			/* Pointer to the symbol entry for the friend
+			   declaration. */
   a_token_sequence_number
 		token_number;
 			/* Then token sequence number of end of the friend
@@ -1376,7 +1374,7 @@ typedef struct a_templ_friend_def_arg {
 			   a declaration in a real instantiation with the
 			   corresponding declaration in the prototype
 			   instantiation. */
-} a_templ_friend_def_arg;
+} a_templ_friend_info;
 
 
 /* Used to track the number of pending instantiations of a given class. */
@@ -1508,8 +1506,8 @@ typedef struct a_template_symbol_supplement {
 			/* For partial specialization, points back to the
 			   primary template of which this is a partial
 			   specialization. */
-      a_templ_friend_def_arg_ptr
-		friend_def_arg_info;
+      a_templ_friend_info_ptr
+		friend_info;
 			/* Information about default arguments of friend
 			   templates declared in this class template. */
       a_bit_field
@@ -1610,6 +1608,14 @@ typedef struct a_template_symbol_supplement {
                            template that are in the process of being
 			   instantiated.  Used to detect runaway recursive
 			   instantiations. */
+      a_symbol_ptr
+		prototype_friend_symbol;
+			/* If this template was declared as a friend of a
+			   class template this field is used for friend
+			   declarations of real instantiations of the
+			   class template and points to the corresponding
+			   friend symbol from the prototype instantiation
+			   of the class template. */
       a_bit_field
 		template_param_not_in_function_type:1;
 			/* TRUE if the function template has template
@@ -2464,7 +2470,7 @@ extern void free_template_cache_segment(a_template_cache_segment_ptr tcsp);
 
 extern a_template_decl_info_ptr alloc_template_decl_info(void);
 
-extern a_templ_friend_def_arg_ptr alloc_templ_friend_def_arg(void);
+extern a_templ_friend_info_ptr alloc_templ_friend_info(void);
 
 extern
 void clear_template_cache(a_template_cache_ptr	tcp,

@@ -88,7 +88,7 @@ static unsigned long
 		num_substituted_type_list_entries_allocated,
 		num_template_cache_segments_allocated,
 		num_template_decl_info_allocated,
-		num_templ_friend_def_args_allocated,
+		num_templ_friend_info_allocated,
 		num_namespace_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
 		num_vla_fixups_allocated,
@@ -1856,24 +1856,24 @@ fields, and return a pointer to it.
 }  /* alloc_template_decl_info */
 
 
-a_templ_friend_def_arg_ptr alloc_templ_friend_def_arg(void)
+a_templ_friend_info_ptr alloc_templ_friend_info(void)
 /*
-Allocate a new template friend default argument entry, initialize its
-fields, and return a pointer to it.
+Allocate a new template friend information entry, initialize its fields,
+and return a pointer to it.
 */
 {
-  a_templ_friend_def_arg_ptr  tfdap;
+  a_templ_friend_info_ptr  tfip;
 
   /* Allocate a template friend default argument entry. */
-  tfdap = (a_templ_friend_def_arg_ptr)alloc_fe(sizeof(a_templ_friend_def_arg));
-  tfdap->next = NULL;
-  tfdap->default_args = NULL;
-  tfdap->token_number = NO_TOKEN_SEQUENCE_NUMBER;
+  tfip = (a_templ_friend_info_ptr)alloc_fe(sizeof(a_templ_friend_info));
+  tfip->next = NULL;
+  tfip->symbol = NULL;
+  tfip->token_number = NO_TOKEN_SEQUENCE_NUMBER;
 #if DEBUG
-  num_templ_friend_def_args_allocated++;
+  num_templ_friend_info_allocated++;
 #endif /* DEBUG */
-  return tfdap;
-}  /* alloc_templ_friend_def_arg */
+  return tfip;
+}  /* alloc_templ_friend_info */
 
 
 static a_namespace_symbol_supplement_ptr
@@ -1969,7 +1969,7 @@ and return a pointer to it.
       tssp->variant.class_template.prototype_instantiation = NULL;
       tssp->variant.class_template.partial_specializations = NULL;
       tssp->variant.class_template.primary_template_sym = NULL;
-      tssp->variant.class_template.friend_def_arg_info = NULL;
+      tssp->variant.class_template.friend_info = NULL;
       tssp->variant.class_template.prototype_instantiation_complete = FALSE;
       tssp->variant.class_template.access =
                                          (an_access_specifier)as_inaccessible;
@@ -1994,6 +1994,7 @@ and return a pointer to it.
       tssp->variant.function.substituted_types = FALSE;
       tssp->variant.function.unused_instantiations = 0;
       tssp->variant.function.pending_partial_instantiations = 0;
+      tssp->variant.function.prototype_friend_symbol = NULL;
       tssp->variant.function.template_param_not_in_function_type = FALSE;
 #if CHECKING 
       tssp->variant.function.avoid_codecenter_warnings = FALSE;
@@ -9400,8 +9401,8 @@ for space tracking purposes.
                      a_template_cache_segment);
   db_space_used("template decl info", num_template_decl_info_allocated,
                 a_template_decl_info);
-  db_space_used("templ friend def arg", num_templ_friend_def_args_allocated,
-                a_templ_friend_def_arg);
+  db_space_used("templ friend def arg", num_templ_friend_info_allocated,
+                a_templ_friend_info);
   db_space_used("namespace list entry", num_namespace_list_entries_allocated,
                 a_namespace_list_entry);
   db_space_used("projection symbol descr", num_projection_descrs_allocated,
@@ -9729,7 +9730,7 @@ of the front end.
   num_substituted_type_list_entries_allocated  = 0;
   num_template_cache_segments_allocated        = 0;
   num_template_decl_info_allocated             = 0;
-  num_templ_friend_def_args_allocated          = 0;
+  num_templ_friend_info_allocated              = 0;
   num_namespace_list_entries_allocated         = 0;
   num_extern_symbol_descrs_allocated           = 0;
   num_vla_fixups_allocated                     = 0;

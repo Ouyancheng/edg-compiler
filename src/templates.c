@@ -9451,6 +9451,55 @@ the size of arr can be computed.
 
 
 #if RECORD_TEMPLATES_IN_IL
+
+static void select_caches_and_make_template_string(
+				a_tmpl_decl_state_ptr	decl_state,
+				a_symbol_ptr		sym,
+                                a_token_cache		*p_template_body_cache)
+/*
+Create a template string for the current template.  Usually the token
+caches used to build the token string are the ones from the declaration
+just scanned, but for member template declarations of class templates and
+friend declarations of class templates, the declaration cache information
+is taken from the declaration scanned during the prototype instantiation
+of the enclosing class template.  This is done because the default argument
+information is removed from the token cache after the prototype instantiation
+is done.  sym is the symbol of the template for which the template string
+is being created.
+*/
+{
+  a_token_cache				*decl_cache = NULL;
+
+  /* Determine whether there is a corresponding declaration in a prototype
+     instantiation that should be used. */
+  if (sym->kind == (a_symbol_kind)sk_function_template) {
+    a_template_symbol_supplement_ptr	proto_tssp = NULL;
+    a_template_symbol_supplement_ptr	tssp;
+    tssp = template_supplement_for_symbol(sym);
+    if (tssp->prototype_template != NULL) {
+      /* A member template of a class template.  Get the template supplement
+         for the prototype template. */
+      proto_tssp = template_supplement_for_symbol(tssp->prototype_template);
+    } else if (tssp->variant.function.prototype_friend_symbol != NULL) {
+      /* A friend of a class template.  Get the template supplement for the
+         friend of the prototype instantiation. */
+      a_symbol_ptr	friend_sym;
+      friend_sym = tssp->variant.function.prototype_friend_symbol;
+      proto_tssp = template_supplement_for_symbol(friend_sym);
+    }  /* if */
+    if (proto_tssp != NULL) {
+      decl_cache = &proto_tssp->variant.function.decl_cache.tokens;
+    }  /* if */
+  }  /* if */
+  if (decl_cache == NULL) decl_cache = &decl_state->decl_token_cache;
+  /* Create a new template string from the tokens. */
+  make_template_string(decl_state->il_template_entry,
+                       &decl_state->param_list_cache,
+                       decl_cache,
+                       p_template_body_cache);
+}  /* select_caches_and_make_template_string */
+
+
 static
 void complete_il_template_entry(a_tmpl_decl_state_ptr  decl_state,
                                 a_symbol_ptr           sym,
@@ -9539,10 +9588,8 @@ set, and its source sequence entry, if any, has been put out.)
           } /* if */
         }  /* if */
 	/* Create the string that represents the template declaration. */
-	make_template_string(il_template_entry,
-                             &decl_state->param_list_cache,
-			     &decl_state->decl_token_cache,
-                             p_template_body_cache);
+        select_caches_and_make_template_string(decl_state, sym,
+                                               p_template_body_cache);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         /* Record source range information for this template declaration. */
         il_template_entry->source_corresp.decl_pos_info =
@@ -9855,63 +9902,61 @@ been instantiated, update the befriending information for the instances.
 }  /* add_befriending_class_to_function_template */
 
 
-static a_def_arg_expr_fixup_ptr get_friend_def_arg_info_from_prototype(
+static a_symbol_ptr find_friend_info_from_prototype(
 			a_symbol_ptr			proto_sym)
 /*
-Get the default argument information for this friend declaration from
-information that was saved earlier about the corresponding declaration
-in the prototype instantiation of the enclosing class template.
+Get information about this friend declaration that was saved during
+the prototype information of the class.  This is only used for friends
+declared within class templates.  Return a pointer to the function
+template symbol from the prototype instantiation.
 */
 {
-  a_templ_friend_def_arg_ptr		tfdap;
+  a_templ_friend_info_ptr		tfip;
   a_template_symbol_supplement_ptr	tssp;
 
   tssp = template_supplement_for_symbol(proto_sym);
   /* Find the default argument entry that corresponds to the current
      token sequence number. */
-  for (tfdap = tssp->variant.class_template.friend_def_arg_info;
-       tfdap != NULL; tfdap = tfdap->next) {
-    if (tfdap->token_number == curr_token_sequence_number) break;
+  for (tfip = tssp->variant.class_template.friend_info;
+       tfip != NULL; tfip = tfip->next) {
+    if (tfip->token_number == curr_token_sequence_number) break;
   }  /* for */
-  return tfdap != NULL ? tfdap->default_args : NULL;
-}  /* get_friend_def_arg_info_from_prototype */
+  return tfip != NULL ? tfip->symbol : NULL;
+}  /* find_friend_info_from_prototype */
 
 
-static void set_friend_def_arg_info_for_prototype(
+static void set_friend_info_for_prototype(
 			a_symbol_ptr			proto_sym,
-			a_def_arg_expr_fixup_ptr	default_args)	
+			a_symbol_ptr			friend_sym)
 /*
-Save the default argument information for this friend declaration in
-the template information for the enclosing class template.  proto_sym
-is the symbol for the enclosing class template.
+Save information about this friend declaration in the enclosing class
+template.  proto_sym is the symbol for the enclosing class template.
+friend_sym is the symbol for the friend declaration.
 */
 {
-  a_templ_friend_def_arg_ptr		tfdap;
   a_template_symbol_supplement_ptr	tssp;
-  a_symbol_ptr				template_sym;
+  a_templ_friend_info_ptr		tfip;
 
-  template_sym = template_for_instance(proto_sym);
-  tssp = template_sym->variant.template_info;
-  tfdap = alloc_templ_friend_def_arg();
-  tfdap->default_args = default_args;
-  tfdap->token_number = curr_token_sequence_number;
+  tssp = template_supplement_for_symbol(proto_sym);
+  tfip = alloc_templ_friend_info();
+  tfip->symbol = friend_sym;
+  tfip->token_number = curr_token_sequence_number;
   /* Add this entry to the front of a list of default argument entries
      associated with enclosing class template. */
-  tfdap->next = tssp->variant.class_template.friend_def_arg_info;
-  tssp->variant.class_template.friend_def_arg_info = tfdap;
-}  /* set_friend_def_arg_info_for_prototype */
+  tfip->next = tssp->variant.class_template.friend_info;
+  tssp->variant.class_template.friend_info = tfip;
+}  /* set_friend_info_for_prototype */
 
 
-static void process_templ_friend_def_args(
-			a_tmpl_decl_state_ptr		decl_state,
-			a_def_arg_expr_fixup_ptr	*default_args)	
+static void set_or_find_prototype_friend_info(
+			a_tmpl_decl_state_ptr			decl_state,
+			a_symbol_ptr				sym,
+			a_template_symbol_supplement_ptr	tssp)
 /*
 When a function template is declared as a friend of a class template,
-the default argument information is saved during the prototype
-instantiation and reused during the real instantiations.  This is done
-so that the default argument does not need to be skipped-over during a
-real instantiation when some of the template parameters may already
-have real types.
+certain information is saved during the prototype instantiation and
+a pointer back to the prototype information is established during
+a real instantiation.
 */
 {
   a_type_ptr			encl_class;
@@ -9921,21 +9966,20 @@ have real types.
   encl_class = decl_state->class_declared_in;
   encl_class_sym = (a_symbol_ptr)encl_class->source_corresp.assoc_info;
   if (ssep->in_prototype_instantiation) {
-    if (*default_args != NULL) {
-      proto_sym = encl_class_sym;
-      set_friend_def_arg_info_for_prototype(proto_sym, *default_args);
-    }  /* if */
+    proto_sym = encl_class_sym;
+    set_friend_info_for_prototype(proto_sym, sym);
   } else {
     proto_sym = corresp_prototype_for_class_symbol(encl_class_sym);
     if (proto_sym == NULL) {
       /* Not a template-based class. */
     } else {
-      /* Free the existing original set of default arguments. */
-      free_def_arg_expr_fixup(*default_args);
-      *default_args = get_friend_def_arg_info_from_prototype(proto_sym);
+      /* Find the symbol of the corresponding friend declaration from the
+         prototype instantiation. */
+      tssp->variant.function.prototype_friend_symbol =
+                                    find_friend_info_from_prototype(proto_sym);
     }  /* if */
   }  /* if */
-}  /* process_templ_friend_def_args */
+}  /* set_or_find_prototype_friend_info */
 
 
 static void update_function_template_default_args(
@@ -9949,7 +9993,8 @@ default argument information that was saved during the prototype
 instantiation.
 */
 {
-  a_def_arg_expr_fixup_ptr    daefp;
+  a_def_arg_expr_fixup_ptr	daefp;
+  a_symbol_ptr			proto_sym;
 
   /* Update the template declaration information to refer to
      the declaration information of the function template. */
@@ -9957,10 +10002,15 @@ instantiation.
   for (daefp = curr_default_args; daefp != NULL; daefp = daefp->next) {
     daefp->cache.decl_info = decl_state->decl_info;
   }  /* for */
-  if (decl_state->is_template_friend &&
-      decl_state->class_declared_in != NULL) {
-    /* Special processing is needed for friends of class templates. */
-    process_templ_friend_def_args(decl_state, &curr_default_args);
+  proto_sym = tssp->variant.function.prototype_friend_symbol;
+  if (proto_sym != NULL) {
+    /* Use the default argument information from the friend declaration from
+       the prototype instantiation. */
+    a_template_symbol_supplement_ptr	proto_tssp;
+    proto_tssp = template_supplement_for_symbol(proto_sym);
+    /* Free the existing original set of default arguments. */
+    free_def_arg_expr_fixup(curr_default_args);
+    curr_default_args = proto_tssp->variant.function.def_arg_expr_list;
   }  /* if */
   /* Link the default argument list from the template supplement
      onto the end of the list of current default arguments.  The
@@ -10008,23 +10058,29 @@ caller.
     sym = NULL;
   }  /* if */
   if (sym != NULL) tssp = template_supplement_for_symbol(sym);
-  if (sym != NULL && sym->kind == (a_symbol_kind)sk_function_template &&
-      sym->is_class_member && !decl_state->is_template_friend) {
-    if (decl_state->in_prototype_instantiation) {
-      /* Save the token sequence number associated with this declaration.
-         This is done here for function templates that are class members.
-         This information is used later to match a template declaration in
-         a real instantiation with the corresponding template from the
-         prototype instantiation. */
-      tssp->token_sequence_number = curr_token_sequence_number;
-    } else {
-      /* Find the associated template from the prototype instantiation.  This
-         can be changed later if a specialization is seen before any
-         instantiations are done. */
-      if (decl_state->class_declared_in != NULL) {
-        /* Only do this for the original declaration inside the class. */
-        find_function_template_member(sym, decl_state->class_declared_in);
+  if (sym != NULL && sym->kind == (a_symbol_kind)sk_function_template) {
+    if (sym->is_class_member && !decl_state->is_template_friend) {
+      if (decl_state->in_prototype_instantiation) {
+        /* Save the token sequence number associated with this declaration.
+           This is done here for function templates that are class members.
+           This information is used later to match a template declaration in
+           a real instantiation with the corresponding template from the
+           prototype instantiation. */
+        tssp->token_sequence_number = curr_token_sequence_number;
+      } else {
+        /* Find the associated template from the prototype instantiation.  This
+           can be changed later if a specialization is seen before any
+           instantiations are done. */
+        if (decl_state->class_declared_in != NULL) {
+          /* Only do this for the original declaration inside the class. */
+          find_function_template_member(sym, decl_state->class_declared_in);
+        }  /* if */
       }  /* if */
+    } else if (decl_state->is_template_friend &&
+               decl_state->class_declared_in != NULL) {
+      /* Information about friend declarations is saved during the prototype
+         instantiation of a class and reused during real instantiations. */
+      set_or_find_prototype_friend_info(decl_state, sym, tssp);
     }  /* if */
   }  /* if */
   /* Make sure that the template parameter list is compatible with
@@ -11525,11 +11581,6 @@ are either the specialization of a template or a template declaration.
 #if RECORD_TEMPLATES_IN_IL
   if (decl_state.is_full_specialization) {
     /* No IL template entry required. */
-#if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  } else if (decl_state.in_prototype_instantiation) {
-    /* Unless class templates are being included in source sequence lists,
-       no IL template entry is required. */
-#endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   } else {
     /* Create an IL template entry for this declaration.  This is only done
        for template declarations and specializations that are still templates.
