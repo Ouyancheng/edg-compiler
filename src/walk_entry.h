@@ -485,9 +485,11 @@ the file scope, do not process it (but record an orphan in the latter case).
                end-of-file-scope wrapup phase.  That avoids processing
                before the class is fully defined, and before prelowering has
                been done on the class.  For function-local classes, don't
-               delay the processing. */
+               delay the processing.  Ditto for structs in function prototype
+               scopes in C. */
             if (end_of_file_scope_needed_flags_phase ||
-                ptr->source_corresp.is_local_to_function)
+                ptr->source_corresp.is_local_to_function ||
+                ptr->declared_in_function_prototype)
 #endif /* NEEDED_FLAG_WALK */
             {
               walk_list(ptr->variant.class_struct_union.field_list,
