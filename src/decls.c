@@ -1605,6 +1605,7 @@ called by id_linkage.
   a_boolean     decls_at_same_scope;
   a_boolean     is_list;
   a_symbol_ptr  other_decl, other_decl_saved;
+  a_symbol_kind kind = sk_last;
   a_boolean     function_template_seen = FALSE;
   a_boolean     is_function = is_function_type(idlbp->type);
   a_boolean     is_namespace_member_def = FALSE;
@@ -1661,7 +1662,7 @@ called by id_linkage.
   /* We are only interested in variable and function declarations.  If
      something else was found, we're not interested. */
   if (other_decl != NULL) {
-    a_symbol_kind  kind = other_decl->kind;
+    kind = other_decl->kind;
 
     decls_at_same_scope = (other_decl->decl_scope ==
                             scope_stack[idlbp->effective_decl_level].number);
@@ -1675,8 +1676,7 @@ called by id_linkage.
       a_symbol_ptr  fund_other_decl = fundamental_symbol_of(other_decl);
       if (source_corresp_entry_for_symbol(fund_other_decl)->name_linkage ==
                                           (a_name_linkage_kind)nlk_external) {
-        other_decl = fund_other_decl;
-        kind = other_decl->kind;
+        kind = fund_other_decl->kind;
       }  /* if */
     }  /* if */
     if (kind == (a_symbol_kind)sk_variable ||
@@ -1686,9 +1686,9 @@ called by id_linkage.
       /* Okay to use other_decl. */
     } else {
       if (!C_mode() && kind == (a_symbol_kind)sk_namespace_projection) {
-        kind = fundamental_symbol_of(other_decl)->kind;
-        if (kind == (a_symbol_kind)sk_routine ||
-            kind == (a_symbol_kind)sk_function_template) {
+        a_symbol_kind  fund_kind = fundamental_symbol_of(other_decl)->kind;
+        if (fund_kind == (a_symbol_kind)sk_routine ||
+            fund_kind == (a_symbol_kind)sk_function_template) {
           /* In a case like:
                namespace N { void f(int); }
                using N::f;
@@ -1697,7 +1697,7 @@ called by id_linkage.
           if (decls_at_same_scope) {
             idlbp->homonym_symbol = other_decl;
           }  /* if */
-        } else if (kind == (a_symbol_kind)sk_variable &&
+        } else if (fund_kind == (a_symbol_kind)sk_variable &&
                    depth_innermost_function_scope == NO_SCOPE_DEPTH) {
           /* This is a variable declaration at file/namespace scope.  We need
              to deal with a case like this:
@@ -1740,7 +1740,7 @@ called by id_linkage.
        match amongst the instances of the name.  Even if it was an
        sk_routine symbol, we may want to overload the two functions. */
     if (C_dialect == C_dialect_cplusplus && is_function &&
-        other_decl->kind != (a_symbol_kind)sk_variable) {
+        kind != (a_symbol_kind)sk_variable) {
       /* C++ function -- type compatibility check is required. */
       if (decls_at_same_scope) {
         /* *overload_symbol is set for cases in which the current symbol
@@ -1765,7 +1765,7 @@ called by id_linkage.
         a_type_ptr  tp;
         a_symbol_ptr	fund_other_decl;
         fund_other_decl = fundamental_symbol_of(other_decl);
-        if (other_decl->kind == (a_symbol_kind)sk_namespace_projection &&
+        if (kind == (a_symbol_kind)sk_namespace_projection &&
             !locator->is_template_id) {
           /* Ignore namespace projection symbols that may have gotten into
              this overload set by a using declaration -- e.g.,
@@ -1773,6 +1773,7 @@ called by id_linkage.
                using N::f;
                void f();
                int f(int);           // Does *not* match N::f(int)
+             (except in Sun and Microsoft modes.)
           */
         } else if (fund_other_decl->kind ==
                                          (a_symbol_kind)sk_function_template) {
