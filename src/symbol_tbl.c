@@ -6511,38 +6511,55 @@ of the template.
      region. */
   ssep->prev_il_memory_region = curr_il_region_number;
   /* Allocate the IL scope entry if one is needed. */
-  if (kind == (a_scope_kind)sck_file || kind == (a_scope_kind)sck_function) {
-    /* Start a new memory region for the file scope or a function scope.
-       This ensures that the intermediate language is divided into 
-       manageable pieces.  This call also allocates the top-level
-       scope entry for the region. */
-    sp = new_il_region(kind, ssep->number, assoc_routine);
-    ssep->il_memory_region = curr_il_region_number;
-  } else {
-    if (C_dialect == C_dialect_cplusplus &&
-        kind == (a_scope_kind)sck_class_struct_union) {
-      /* In C++, a class/struct/union has an associated IL scope (but no new
-         memory region). */
-      a_class_symbol_supplement_ptr	cssp;
-      sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
-      /* Save a copy of the scope number in the class symbol supplement. */
-      cssp = symbol_supplement_for_class(assoc_type);
-      cssp->member_decl_scope = ssep->number;
-    } else {
-      /* For function prototype and block scopes, the IL scope is not
-         allocated until it is needed, because usually it will not be needed.
-         For struct/unions in C, no scope is ever allocated.  For class
-         reactivations in C++, no scope is ever allocated. */
+  switch (kind) {
+    case sck_file:
+    case sck_function:
+      /* Start a new memory region for the file scope or a function scope.
+         This ensures that the intermediate language is divided into 
+         manageable pieces.  This call also allocates the top-level
+         scope entry for the region. */
+      sp = new_il_region(kind, ssep->number, assoc_routine);
+      ssep->il_memory_region = curr_il_region_number;
+      break;
+    case sck_func_prototype:
+      /* Use the file scope memory region for a function prototype scope,
+         since param types and types declared within it are pointed to from
+         the function type, which is also in file scope memory.  (Parameter
+         variables are not created until the function scope is pushed.)
+         However, the IL scope is not allocated until it is needed -- it
+         usually isn't. */
       sp = NULL;
-    }  /* if */
-    /* For scopes for which a new memory region is not begun, the associated
-       memory region is the same as for the enclosing scope (there must be an
-       enclosing scope, because the scope we're opening here is not the file
-       scope).  Note that because of "temporary" switches into the file scope
-       memory region, the new scope may in fact spend no time at all in
-       its official associated memory region. */
-    ssep->il_memory_region = (ssep-1)->il_memory_region;
-  }  /* if */
+      if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
+        switch_il_region(FILE_SCOPE_REGION_NUMBER);
+      }  /* if */
+      ssep->il_memory_region = FILE_SCOPE_REGION_NUMBER;
+      break;
+    case sck_class_struct_union:
+      /* Class/struct/union definitions require the file-scope memory region,
+         since the entities created to represent the members are pointed to
+         from the type entry. */
+      if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
+        switch_il_region(FILE_SCOPE_REGION_NUMBER);
+      }  /* if */
+      ssep->il_memory_region = FILE_SCOPE_REGION_NUMBER;
+      /* Save a copy of the scope number in the class symbol supplement. */
+      symbol_supplement_for_class(assoc_type)->member_decl_scope =
+                                                              ssep->number;
+      /* Only in C++ mode do classes have an associated scope. */
+      sp = C_mode() ? NULL :
+                      alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
+      break;
+    default:
+      /* For scopes for which a new memory region is not begun, the associated
+         memory region is the same as for the enclosing scope (there must be an
+         enclosing scope, because the scope we're opening here is not the file
+         scope). */
+      ssep->il_memory_region = (ssep-1)->il_memory_region;
+      /* For block scopes the IL scope is not allocated until it is needed,
+         because usually it will not be needed. For class reactivations in
+         C++, no scope is ever allocated. */
+      sp = NULL;
+  }  /* switch */
   /* Fill in the fields of the scope entry. */
   ssep->kind                     = kind;
   ssep->current_access           = (an_access_specifier)as_public;

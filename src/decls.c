@@ -2035,7 +2035,6 @@ scope is that of a class definition.
   a_boolean               bad_first_param_for_copy_constructor = FALSE;
   a_source_position       pos_of_first_param_type;
   a_func_info_block       local_func_info_block;
-  a_memory_region_number  region_to_switch_back_to;
 
   db_enter(3, "function_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -2128,7 +2127,6 @@ scope is that of a class definition.
     (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
                      *new_type_ptr, (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
                      (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
-    switch_to_file_scope_region(&region_to_switch_back_to);
     /* Remember the scope number for later use if and when a body appears. */
     func_info->scope_number = scope_stack[depth_scope_stack].number;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -2507,7 +2505,6 @@ scope is that of a class definition.
                                               ss_entry_start_prev);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
-    switch_back_to_original_region(region_to_switch_back_to);
     /* Pop the function prototype scope. */
     pop_scope();
   } else if (any_params) {
@@ -8984,11 +8981,6 @@ specified (rather than defaulted to "int").
                        func_info->scope_number, rout_type,
                        (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
                        (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
-#if CHECKING
-      if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
-        internal_error("function_definition: bad region number");
-      }  /* if */
-#endif /* CHECKING */
 #if 0
 #else /* 0 */
       /* Remember the scope number for later use when the body is scanned. */
