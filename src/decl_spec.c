@@ -2298,7 +2298,10 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
     /* This is the initial declaration of this class type. */
     add_to_types_list(class_type, effective_decl_level);
   }  /* if */
-  if (err || total_errors != 0) {
+  if (err ||
+      (depth_template_declaration_scope != NO_SCOPE_DEPTH &&
+       scope_stack[depth_scope_stack].kind ==
+                                      (a_scope_kind)sck_class_struct_union)) {
     /* Pragma processing may run into invalid scopes.  So discard them. */
     discard_curr_construct_pragmas();
   } else if (is_class_definition || curr_token == tok_semicolon) {
