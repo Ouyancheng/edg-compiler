@@ -1740,6 +1740,64 @@ function table is for class_type itself.  Place the mangled name at
 #undef VTBL_STR
 }  /* mangled_vtbl_name */
 
+
+static sizeof_t mangled_prefixed_type_encoding(char       *prefix,
+                                               a_type_ptr type,
+                                               char       *store_at)
+/*
+Make a mangled name consisting of the indicated prefix followed by
+the mangled encoding for the indicated type.  Place the mangled name
+at *store_at if store_at != NULL, and (always) return the length of the name.
+*/
+{
+  sizeof_t mangled_name_length, section_length;
+
+  /* Determine the length of the mangled name. */
+  mangled_name_length = strlen(prefix);
+  if (store_at != NULL) {
+    (void)strcpy(store_at, prefix);
+    store_at += mangled_name_length;
+  }  /* if */
+  /* Add the mangled name of the type. */
+  section_length = mangled_encoding_for_type(type, store_at);
+  mangled_name_length += section_length;
+  if (store_at != NULL) store_at += section_length;
+  return mangled_name_length;
+}  /* mangled_prefixed_type_encoding */
+
+
+sizeof_t mangled_typeinfo_name(a_type_ptr type,
+                               char       *store_at)
+/*
+Determine the mangled form of the name of the typeinfo variable for
+type "type".  Place the mangled name at *store_at if store_at != NULL,
+and (always) return the length of the name.  A typeinfo variable is
+used to describe runtime type information.
+*/
+{
+  /* The mangled name looks like
+       __T_<mangled-type-name>
+  */
+  return mangled_prefixed_type_encoding("__T_", type, store_at);
+}  /* mangled_typeinfo_name */
+
+
+sizeof_t mangled_id_object_name(a_type_ptr type,
+                                char       *store_at)
+/*
+Determine the mangled form of the name of the id object variable for
+type "type".  Place the mangled name at *store_at if store_at != NULL,
+and (always) return the length of the name.  The id object variable
+is pointed to by the typeinfo variable used to provide runtime type
+information.
+*/
+{
+  /* The mangled name looks like
+       __TID_<mangled-type-name>
+  */
+  return mangled_prefixed_type_encoding("__TID_", type, store_at);
+}  /* mangled_id_object_name */
+
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
 
 void mangle_promoted_entity_name(a_source_correspondence *scp,
