@@ -8547,9 +8547,7 @@ such cases (where operator overloading might apply, but we can't tell).
   *processed = FALSE;
   /* Check for template-dependent operands in a prototype instantiation. */
   if (is_template_dependent_context() &&
-      ((must_be_member_function ?
-                 is_template_param_or_nonreal_class_type(operand_1->type) :
-                 is_template_dependent_type(operand_1->type)) ||
+      (is_template_dependent_type(operand_1->type) ||
        (!unary_operator && is_template_dependent_type(operand_2->type)))) {
     /* There is at least one template-dependent operand, so we cannot
        check for operator overloading.  Just build an expression with a

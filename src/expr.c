@@ -687,13 +687,16 @@ in a prototype instantiation, because they might be overloadable (and
 we want to go to check_for_operator_overloading to handle that).
 */
 {
+  /* Note that we check for all dependent types and not just
+     ones that could be class or enum types.  That allows us to generate
+     a generic operation in check_for_operator_overloading and
+     avoid testing for template cases in each place that calls it. */
   a_boolean is_overloadable = is_error_operand(operand) ||
                               is_class_struct_union_type(operand->type) ||
                               (operator_overloading_on_enums_enabled &&
                                is_enum_type(operand->type)) ||
                               (is_template_dependent_context() &&
-                               is_template_param_or_nonreal_class_type(
-                                                               operand->type));
+                               is_template_dependent_type(operand->type));
   return is_overloadable;
 }  /* is_overloadable_type_operand */
 
