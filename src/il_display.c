@@ -1877,8 +1877,8 @@ Display the indicated condition supplement to an expression node.
 */
 {
   disp_ptr("scope", (char *)csp->scope, iek_scope);
-  disp_ptr("dynamic_init", (char *)ptr->dynamic_init, iek_dynamic_init);
-  disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
+  disp_ptr("dynamic_init", (char *)csp->dynamic_init, iek_dynamic_init);
+  disp_ptr("expr", (char *)csp->expr, iek_expr_node);
 }  /* disp_condition_supplement */
 
 
