@@ -5543,7 +5543,7 @@ specifier is restored.
   saved_linkage = def_external_linkage;
   /* Look for a matching string. */
   for (kind = (a_name_linkage_kind)nlk_cplusplus_external;
-       kind < (int)nlk_last;
+       (int)kind < (int)nlk_last;
        kind = (a_name_linkage_kind)(kind + 1)) {
     if (strcmp(str, name_linkage_kind_names[kind]) == 0) {
       /* Found a matching linkage kind string. */
