@@ -4574,6 +4574,18 @@ typedef struct a_pragma {
 			   either globally (if it is on the pragma list for
 			   the file scope) or locally (if it is on the pragma
 			   list for a nonfile scope). */
+  a_source_position
+		decl_position;
+			/* Source position of the pragma-id in the declaration
+			   of this pragma. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		source_sequence_entry;
+			/* Pointer to source sequence entry that represents
+			   the place this pragma appears within the current
+			   file or function scope relative to other
+			   declarations, statements, comments, etc. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   union {
     /* When kind == pk_none or refers to "front-end-only" pragma, no variant
        fields. */

@@ -2507,11 +2507,47 @@ Display the indicated pragma entry.
   disp_ptr("next", (char *)ptr->next, iek_pragma);
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
+  disp_unsigned_long("decl_position.seq",
+                     (unsigned long)ptr->decl_position.seq);
+  disp_unsigned_long("decl_position.column",
+                     (unsigned long)ptr->decl_position.column);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (ptr->source_sequence_entry != NULL) {
+    disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,
+             iek_source_sequence_entry);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   disp_name("kind");
   switch (ptr->kind) {
     case pk_none:
       (void)printf("pk_none\n");
       break;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    case pk_printf_args:
+      (void)printf("pk_printf_args\n");
+      break;
+    case pk_scanf_args:
+      (void)printf("pk_scanf_args\n");
+      break;
+    case pk_lint_argsused:
+      (void)printf("pk_lint_argsused\n");
+      break;
+    case pk_lint_varargs_count:
+      (void)printf("pk_lint_varargs_count\n");
+      break;
+    case pk_lint_not_reached:
+      (void)printf("pk_lint_not_reached\n");
+      break;
+    case pk_instantiate:
+      (void)printf("pk_instantiate\n");
+      break;
+    case pk_do_not_instantiate:
+      (void)printf("pk_do_not_instantiate\n");
+      break;
+    case pk_can_instantiate:
+      (void)printf("pk_can_instantiate\n");
+      break;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if 0
 #else
     /* Temporary, for testing purposes. */

@@ -6685,10 +6685,14 @@ pointer to it.
 #if DEBUG
   num_pragmas_allocated++;
 #endif /* DEBUG */
-  pp->next        = NULL;
-  pp->kind        = (a_pragma_kind)pk_none;
-  pp->entity.kind = (a_byte_il_entry_kind)iek_none;
-  pp->entity.ptr  = NULL;
+  pp->next                  = NULL;
+  pp->kind                  = (a_pragma_kind)pk_none;
+  pp->entity.kind           = (a_byte_il_entry_kind)iek_none;
+  pp->entity.ptr            = NULL;
+  pp->decl_position         = null_source_position;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  pp->source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   switch (kind) {
     case pk_none:
 #if 0
@@ -6700,6 +6704,22 @@ pointer to it.
       pp->variant.dummy = 0;
 #endif /* if 0 */
       break;
+    /* The following identify pragmas that have immediate effect in the
+       front end and do not get passed to the back end; therefore, no IL
+       pragma entries are created for them.  The exception is when
+       source-sequence lists are being put out, since all pragmas need to be
+       included on such lists. */
+    case pk_printf_args:
+    case pk_scanf_args:
+    case pk_lint_argsused:
+    case pk_lint_varargs_count:
+    case pk_lint_not_reached:
+    case pk_instantiate:
+    case pk_do_not_instantiate:
+    case pk_can_instantiate:
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      break;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if CHECKING
     default:
       internal_error("alloc_pragma: bad pragma kind");
