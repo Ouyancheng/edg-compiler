@@ -1,5 +1,15 @@
 Version 3.2
 
+2/19/03  IL lowering generated multiple virtual function tables for type_info
+
+When the source code for the EDG runtime routine typeinfo.c is compiled
+by the front end, a bug introduced in version 3.1 caused IL lowering
+to generate two virtual function table variables for type_info.  With
+C generation, this made no difference, because the declarations for
+the two variables would be considered to declare a single variable.
+However, when the IL is fed to a back end, the two global variables
+with the same name could end up causing problems.  Now fixed.
+
 2/19/03  Internal error when lowering base classes with classic EDG layout
 
 Under relatively rare circumstances, an internal error was triggered while

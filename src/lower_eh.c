@@ -1293,9 +1293,12 @@ typeinfo variable in a COMDAT group.
   a_boolean      is_class_type = is_immediate_class_type(type);
   a_type_info_kind
                  typeinfo_kind = get_typeinfo_kind(type);
+  a_type_info_kind
+                 typeinfo_kind_for_vtbl;
   a_type_ptr     tinfo_type = make_typeinfo_type(typeinfo_kind, 
                                                  (a_type_ptr)NULL);
   a_variable_ptr typeinfo_var = type->typeinfo_var;
+  a_variable_ptr vtbl_var;
   a_constant_ptr aggr_con;
 #if !IA64_ABI
   a_constant_ptr id_con, bc_con;
@@ -1344,7 +1347,7 @@ typeinfo variable in a COMDAT group.
     if (one_instantiation_per_object) {
       /* Put the typeinfo variable into the same slice as the virtual
          function table, if there is one. */
-      a_variable_ptr vtbl_var = type->variant.class_struct_union.extra_info->
+      vtbl_var = type->variant.class_struct_union.extra_info->
                                                     virtual_function_table_var;
       if (vtbl_var != NULL) {
         typeinfo_var->instantiation_needed_bit_number =
@@ -1393,19 +1396,32 @@ typeinfo variable in a COMDAT group.
 #if ABI_CHANGES_FOR_RTTI
     /* Make the virtual function table pointer.  This is just the address of
        an extern variable.  The runtime provides the definition. */
+    typeinfo_kind_for_vtbl = typeinfo_kind;
 #if !IA64_ABI
     curr_field_type = curr_field->type;
+    /* The implementation type does not have a corresponding user type.
+       Use tik_user. */
+    if (typeinfo_kind == tik_implementation) typeinfo_kind_for_vtbl = tik_user;
 #endif /* !IA64_ABI */
-    vptr_con = alloc_constant((a_constant_repr_kind)ck_address);
-    if (vtbls_for_type_info[(int)typeinfo_kind] == NULL) {
-      /* Make the variable for the virtual function table for the typeinfo
-         type we are dealing with. */
-      /* Give the type its real name briefly so the name can be used
-         in generating the virtual function table name. */
-      char *saved_name = tinfo_type->source_corresp.name;
-      a_symbol_ptr ns_sym = NULL;
+    vtbl_var = vtbls_for_type_info[(int)typeinfo_kind_for_vtbl];
+    if (vtbl_var == NULL) {
+      /* Make the variable for the virtual function table for the type_info
+         type that corresponds to the typeinfo we are filling. */
+      char            *saved_name;
+      a_namespace_ptr saved_namespace;
+      a_symbol_ptr    ns_sym = NULL;
+      a_type_ptr      type_info_type =
+                               types_of_type_info[(int)typeinfo_kind_for_vtbl];
+      check_assertion(type_info_type != NULL);
+      /* Give the type its original (unmangled) name briefly so the name can
+         be used in generating the virtual function table name. */
+      saved_name = type_info_type->source_corresp.name;
+      type_info_type->source_corresp.name =
+                                  type_info_names[(int)typeinfo_kind_for_vtbl];
+      /* Add a parent pointer for the namespace temporarily to get the
+         mangled name right. */
 #if IA64_ABI
-      ns_sym = get_namespace_sym_for_type_info(typeinfo_kind);
+      ns_sym = get_namespace_sym_for_type_info(typeinfo_kind_for_vtbl);
 #else /* !IA64_ABI */
       if (type_info_in_namespace_std) {
         check_assertion(symbol_for_namespace_std != NULL);
@@ -1413,27 +1429,23 @@ typeinfo variable in a COMDAT group.
       }  /* if */
 #endif /* !IA64_ABI */
       if (ns_sym != NULL) {
-        /* Add a parent pointer for the namespace temporarily to get the
-           mangled name right. */
-        tinfo_type->source_corresp.parent.namespace_ptr =
+        saved_namespace = type_info_type->source_corresp.parent.namespace_ptr;
+        type_info_type->source_corresp.parent.namespace_ptr =
                                             ns_sym->variant.namespace_info.ptr;
       }  /* if */
-#if IA64_ABI
-      tinfo_type->source_corresp.name = type_info_names[(int)typeinfo_kind];
-#else /* !IA64_ABI */
-      tinfo_type->source_corresp.name = "type_info";
-#endif /* !IA64_ABI */
-      vtbls_for_type_info[(int)typeinfo_kind] =
-                   make_var_for_virtual_function_table(tinfo_type,
-                                                       (a_base_class_ptr)NULL,
-                                                       (a_base_class_ptr)NULL);
-      tinfo_type->source_corresp.name = saved_name;
+      vtbl_var = make_var_for_virtual_function_table(type_info_type,
+                                                     (a_base_class_ptr)NULL,
+                                                     (a_base_class_ptr)NULL);
+      /* Restore the former name and parent information. */
+      type_info_type->source_corresp.name = saved_name;
       if (ns_sym != NULL) {
-        tinfo_type->source_corresp.parent.namespace_ptr = NULL;
+        type_info_type->source_corresp.parent.namespace_ptr = saved_namespace;
       }  /* if */
     }  /* if */
-    set_variable_address_constant(vtbls_for_type_info[(int)typeinfo_kind],
-                                  vptr_con, /*set_address_taken_flag=*/TRUE);
+    vptr_con = alloc_constant((a_constant_repr_kind)ck_address);
+    set_variable_address_constant(vtbl_var, vptr_con,
+                                  /*set_address_taken_flag=*/TRUE);
+    vtbl_var->source_corresp.referenced = TRUE;
 #if IA64_ABI
     /* The vptr is supposed to point at the first virtual function entry, so
        skip the offset and typeinfo pointer.  (We know that there are no
@@ -1441,7 +1453,6 @@ typeinfo variable in a COMDAT group.
        vcall offsets.) */
     vptr_con->variant.address.offset = 2 * vtbl_entry_size();
 #endif /* !IA64_ABI */
-    vtbls_for_type_info[(int)typeinfo_kind]->source_corresp.referenced = TRUE;
     /* Do the array --> pointer decay. */
     implicit_cast(vptr_con, pointer_to_vtbl_type());
     /* Make the constant for the type_info.  For cases involving a
