@@ -18,6 +18,9 @@ target.h -- Definition of target machine characteristics.
 #ifndef TARGET_H
 #define TARGET_H 1
 
+#ifndef HOST_ENVIR_H
+#include "host_envir.h"
+#endif /* ifndef HOST_ENVIR_H */
 #ifndef LANG_FEAT_H
 #include "lang_feat.h"
 #endif /* ifndef LANG_FEAT_H */
