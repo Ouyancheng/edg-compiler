@@ -2221,7 +2221,7 @@ typedef struct a_symbol {
 			   was declared. */
   a_decl_sequence_number
 		decl_seq;
-			/* A number (> 0) that, within the declaration scope,
+			/* A number (> 0) that, within a translation unit,
 			   uniquely identifies the declaration associated with
 			   this symbol.  The numbers are assigned sequentially,
 			   so that a symbol with a higher decl_seq value was
