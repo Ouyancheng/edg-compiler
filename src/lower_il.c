@@ -5995,6 +5995,13 @@ table.
 #endif /* IA64_ABI */
 
 #if IA64_ABI
+  /* For construction vtables, each virtual function table is placed in
+     a separate variable.  For normal (non-construction) vtables, a
+     single variable contains the primary vtable and all the base class
+     vtables, concatenated together.  Determine whether we are building
+     the first/only vtable in the variable (main_vtbl == TRUE) or
+     a vtable to be added to the end of the existing contents of the
+     variable (main_vtbl == FALSE). */
   if (ctor_bcp != NULL || bcp == NULL) {
     main_vtbl = TRUE;
   } else if (!needs_virtual_function_table(class_type)) {
