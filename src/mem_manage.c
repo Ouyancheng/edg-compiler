@@ -1143,7 +1143,7 @@ memory or with an IL file.
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
 #if DEBUG
-  if (rout != NULL && (debug_level >= 3 || db_flag_is_set("needed_flags"))) {
+  if (rout != NULL && debug_level >= 2) {
     fprintf(f_debug, "check_for_done_with_memory_region: ");
     fprintf(f_debug, "%s memory region for ",
             keep_memory ? "keeping" : "writing/freeing");
@@ -1205,7 +1205,7 @@ part of secondary translation units (perhaps).
                            "check_for_done_with_all_function_memory_regions:",
                            "trivial default constructor");
 #if DEBUG
-        if (debug_level >= 3 || db_flag_is_set("needed_flags")) {
+        if (debug_level >= 2) {
           fprintf(f_debug,
                   "check_for_done_with_all_function_memory_regions: ");
           fprintf(f_debug, "%s memory region for ",
