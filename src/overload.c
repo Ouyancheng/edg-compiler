@@ -3926,6 +3926,7 @@ and return NULL.  This routine is called only in C++ mode.
   a_boolean                sym_is_undefined = FALSE;
   a_boolean                some_function_tried = FALSE;
   a_boolean                dependent_call = FALSE;
+  a_boolean                known_to_be_visible = FALSE;
   an_arg_operand_ptr       arg_operand;
 
   db_enter(4, "select_overloaded_function");
@@ -4016,8 +4017,7 @@ and return NULL.  This routine is called only in C++ mode.
                overload resolution. */
             overloaded_function_symbol = function_symbol;
             do_arg_dep_lookup = FALSE;
-            is_template_id = FALSE;
-            template_arg_list = NULL;
+            known_to_be_visible = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -4031,11 +4031,12 @@ and return NULL.  This routine is called only in C++ mode.
         function_symbol = fundamental_symbol_of(overloaded_function_symbol);
         if ((function_symbol->kind == (a_symbol_kind)sk_routine ||
              function_symbol->kind == (a_symbol_kind)sk_member_function) &&
-            candidate_function_is_visible(overloaded_function_symbol,
-                                          is_template_id,
+            (known_to_be_visible ||
+             candidate_function_is_visible(overloaded_function_symbol,
+                                           is_template_id,
                                          /*effects_copy_initialization=*/FALSE,
-                                          /*from_arg_dep_lookup=*/FALSE,
-                                          dependent_call)) {
+                                           /*from_arg_dep_lookup=*/FALSE,
+                                           dependent_call))) {
           *single_function = TRUE;
           function_symbol = overloaded_function_symbol;
           goto have_function;
