@@ -87,6 +87,7 @@ Flags to be set when using the KAI inliner.
 #define KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED 1
 #define DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE 1
 #define MICROSOFT_EXTENSIONS_ALLOWED 1
+#define USER_CONTROL_OF_STRUCT_PACKING 1
 #define DEFAULT_MICROSOFT_MODE 0
 /* Use 1 for mmap PCH, 0 for non-mmap PCH. */
 #if 1
