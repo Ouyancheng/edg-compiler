@@ -6801,9 +6801,13 @@ such as instantiating a template for which no body was supplied.
   a_boolean	result = TRUE;
   a_boolean	specific_def;
   a_boolean	template_def;
+  a_boolean     is_inline_function;
 
+  is_inline_function = (is_function_symbol(tip->instance_sym) &&
+                        tip->instance_sym->variant.routine.ptr->is_inline);
   if (tip->explicit_instantiation ||
-      tip->instantiation_required && instantiation_mode != tim_none) {
+      (tip->instantiation_required &&
+        (instantiation_mode != tim_none || is_inline_function))) {
     /* For error checking purposes, find out if a specific definition
        exists and whether a body exists for the template definition. */
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
