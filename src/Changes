@@ -75,7 +75,7 @@ INSTANTIATION_BY_IMPLICIT_INCLUSION.  Now fixed.
 10/29/99 Using-declarations for tag names and non-tag names
 
 The front end used to ignore tag names referred to by using-declarations if
-non-tag names were also present in the nominated scope.  This leads to an
+non-tag names were also present in the nominated scope.  This led to an
 error in the following example:
 
   namespace N {
@@ -83,8 +83,8 @@ error in the following example:
     void S();
   }
   void f() {
-    using N::S;  // Imports function N::S, but not struct N::S
-    struct S s;  // Error: ::S is incomplete
+    using N::S;  // Used to only import function N::S, but not struct N::S
+    struct S s;  // Used to cause an error message (::S was incomplete)
   }
 
 This is now fixed (also for using-declarations appearing in class
