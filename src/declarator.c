@@ -1708,8 +1708,6 @@ are NULL.
   a_call_conv_descr		first_call_conv;
   a_boolean			first_loop = TRUE;
   a_boolean			is_call_conv = FALSE;
-  a_boolean			last_operator_is_call_conv;
-  a_boolean			ptr_operator_seen = FALSE;
 
   unbound_call_conv.call_conv = (a_calling_convention)cc_default;
   first_call_conv.call_conv = (a_calling_convention)cc_default;
@@ -1731,24 +1729,8 @@ are NULL.
     a_boolean	first_call_conv_allowed;
     /* Set a flag that indicates this is the first pass through the loop. */
     first_call_conv_allowed = first_loop;
-    /* Set a flag that indicates whether a pointer operator has been seen.
-       If the thing scanned in the previous iteration was not a calling
-       convention, it must have been a pointer operator. */
-    ptr_operator_seen |= !first_loop && !is_call_conv;
     first_loop = FALSE;
-    last_operator_is_call_conv = is_call_conv;
     is_call_conv = FALSE;
-    if (!last_operator_is_call_conv &&
-        unbound_call_conv.call_conv != (a_calling_convention)cc_default) {
-      /* Apply the calling convention to the complete type built this
-         far.  This always results in the calling convention being
-         discarded because it is being applied to a pointer. */
-      /* A previous calling convention has been seen and is being
-         discarded.  This occurs when a calling convention is seen
-         between two pointer operators. */
-      update_calling_convention(&complete_type, &unbound_call_conv,
-                                &unbound_call_conv.position);
-    }  /* if */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
     err = FALSE;
     if (curr_token == tok_star ||
@@ -1825,40 +1807,46 @@ are NULL.
 #if MICROSOFT_KEYWORDS_ALLOWED
     } else if (is_microsoft_calling_convention()) {
       /* A Microsoft calling convention specifier. */
-      a_calling_convention	new_call_conv;
-      a_source_position		start_pos;
-      start_pos = pos_curr_token;
+      a_call_conv_descr		ccd;
+      a_boolean			next_token_is_ptr_operator = FALSE;
       is_call_conv = TRUE;
-      new_call_conv = scan_microsoft_qualifiers();
+      ccd.position = pos_curr_token;
+      ccd.call_conv = scan_microsoft_qualifiers();
+      /* See if the next token is another pointer operator. */
+      if (curr_token == tok_star ||
+          (curr_token == tok_ampersand && reference_allowed) ||
+          (!C_mode() && is_ptr_to_member_declarator_start())) {
+        next_token_is_ptr_operator = TRUE;
+      }  /* if */
       /* Check for an calling convention used where none is allowed. */
       if (!call_conv_allowed) {
         pos_diagnostic(es_discretionary_error,
                        ec_calling_convention_not_allowed,
-                       &start_pos);
-      } else if (first_call_conv_allowed &&
-                 specifiers_type != NULL &&
-                 (curr_token == tok_star ||
-                  (curr_token == tok_ampersand && reference_allowed) ||
-                  (!C_mode() && is_ptr_to_member_declarator_start()))) {
-        /* If a specifiers type was present, the calling convention may
-           be applied immediately. */
-        a_call_conv_descr	ccd;
-        ccd.call_conv = new_call_conv;
-        ccd.position = start_pos;
-        update_calling_convention(&complete_type, &ccd,
-                                  &ccd.position);
-      } else if (first_call_conv.call_conv ==
-                                      (a_calling_convention)cc_default &&
-                 first_call_conv_allowed) {
-        /* No calling conventions or pointer operators have been seen yet.
-           We don't yet know whether this will be considered to be the
-           initial specifier or the unbound one.  If no pointer operators
-           follow, then it is the unbound calling convention. */
-        first_call_conv.call_conv = new_call_conv;
-        first_call_conv.position = start_pos;
+                       &ccd.position);
+      } else if (next_token_is_ptr_operator) {
+        /* The next token is another pointer operator so we know that
+           this is not an unbound calling convention. */
+        if (first_call_conv_allowed) {
+          if (specifiers_type != NULL) {
+            /* A specifiers type was present, the calling convention may
+               be applied immediately. */
+            update_calling_convention(&complete_type, &ccd,
+                                      &ccd.position);
+          } else {
+            /* This is the first calling convention and is not unbound. */
+            first_call_conv = ccd;
+          }  /* if */
+        } else {
+          /* This is a calling convention in the middle of a pointer
+             operator list.  Apply it to the complete type built so far. */
+          update_calling_convention(&complete_type, &ccd,
+                                    &ccd.position);
+
+        }  /* if */
       } else {
-        unbound_call_conv.call_conv = new_call_conv;
-        unbound_call_conv.position = start_pos;
+        /* The next token is not a pointer operator.  This is an unbound
+           calling convention. */
+        unbound_call_conv = ccd;
       }  /* if */
       /* Suppress the get_token() that is normally done before scanning
          the qualifiers below, as this will have been done when scanning
@@ -1929,22 +1917,8 @@ are NULL.
 #if MICROSOFT_KEYWORDS_ALLOWED
   if (p_calling_convention != NULL) {
     check_assertion(p_unbound_calling_convention != NULL);
-    if (!ptr_operator_seen) {
-      /* There were no pointer operators scanned.  In other words, if a calling
-         convention was scanned, it was the only thing present.
-         In this case, the first calling convention  should be returned as
-         the unbound calling convention.  And the other calling convention
-         is set to cc_default (indicating none was scanned). */
-      *p_unbound_calling_convention = first_call_conv;
-      p_calling_convention->call_conv = (a_calling_convention)cc_default;
-      p_calling_convention->position = null_source_position;
-    } else {
-      /* A pointer operator was seen.  Return the first calling convention,
-         if any, in p_calling_convention.  Return the unbound calling
-         convention in p_unbound_calling_convention. */
-      *p_unbound_calling_convention = unbound_call_conv;
-      *p_calling_convention = first_call_conv;
-    }  /* if */
+    *p_unbound_calling_convention = unbound_call_conv;
+    *p_calling_convention = first_call_conv;
   }  /* if */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
   db_exit();
