@@ -1,5 +1,18 @@
 Version 2.44
 
+6/23/00  Keeping do-nothing explicit casts in the IL
+
+In the past, casts that have no effect, for example
+
+  int i = 0;
+  int j = (int)i;
+
+have not been included in the IL.  Now, when
+PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL is set to TRUE, they are.
+This may be useful for some source-analysis applications.
+Note that class casts always create a temporary, and consequently they
+are never do-nothing casts, so they are unaffected by this change.
+
 6/22/00  Position information for redeclared function prototypes
 
 When processing a function prototype redeclaration, the front end used to

@@ -1245,6 +1245,16 @@ and "?" are eliminated.  For example, "1 ? i : j" becomes simply "i".
 #endif /* ifndef ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
 
 /*
+If this is TRUE, explicit casts that do nothing, for example
+  int i = 0; int j = (int)i;
+are preserved in the IL.  This may be desirable for certain source-analysis
+applications.
+*/
+#ifndef PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL
+#define PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL FALSE
+#endif /* ifndef PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL */
+
+/*
 This switch controls whether or not type qualifiers are removed from
 parameter types (e.g., a "const int" parameter is seen simply as "int").
 This may seem like a language feature, but it's an ABI issue, because the

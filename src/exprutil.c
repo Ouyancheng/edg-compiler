@@ -2275,14 +2275,28 @@ conversions.
 {
   a_constant local_constant;
   a_boolean  did_not_fold;
+  a_boolean  need_cast;
 
   /* Drop any qualifiers on the destination type, as appropriate. */
   new_type = rvalue_type(new_type);
-  if (il_identical_types((*node)->type, new_type) &&
-      /* Don't allow dropping a cast to the same type over a bit-field
-         extraction node, because the node with the cast has different
-         integral promotion behavior. */
-      !is_bit_field_extract_node(*node)) {
+  /* See whether the cast is actually needed.  Implicit casts that do
+     not change the type, for example, are not needed. */
+  if (!il_identical_types((*node)->type, new_type)) {
+    /* A cast that changes the type is needed. */
+    need_cast = TRUE;
+  } else if (is_bit_field_extract_node(*node)) {
+    /* Don't allow dropping a cast to the same type over a bit-field
+       extraction node, because the node with the cast has different
+       integral promotion behavior. */
+    need_cast = TRUE;
+  } else if (!is_implicit_cast) {
+    /* Do-nothing explicit casts are preserved in some configurations. */
+    need_cast = PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL;
+  } else {
+    /* Do-nothing implicit casts are not needed. */
+    need_cast = FALSE;
+  }  /* if */
+  if (!need_cast) {
     /* If the new type is identical to the old type, just put the new type
        in the node (since it may be "identical" but not exactly the same). */
     (*node)->type = new_type;
@@ -2378,131 +2392,119 @@ user-defined conversions.
 
   /* Drop any qualifiers on the destination type, as appropriate. */
   new_type = rvalue_type(new_type);
-  /* If the cast doesn't change the type, do nothing.
-     Can't test for il_identical_types at this point, since for an
-     ok_expression the node type would have to be adjusted as well.
-     Leave that to cast_node.  However, we can check for exact pointer
-     equality ("il_identical_types" includes some cases where the pointers
-     aren't exactly the same).  Don't do the optimization for constants,
-     because type_change_constant does some special things with null
-     pointer constants and casts. */
-  if (new_type != operand->type || is_constant_operand(operand) ||
-      /* Don't allow dropping a cast to the same type over a bit-field
-         extraction node, because the node with the cast has different
-         integral promotion behavior. */
-      (is_expression_operand(operand) &&
-       is_bit_field_extract_node(operand->variant.expression))) {
-    /* Save the operand's source position, etc. */
-    orig_operand = *operand;
-    if (m_is_error_type(new_type)) {
-      /* Casting to an error type.  Produce an error operand. */
-      conv_to_error_operand(operand);
-    } else {
-      switch (operand->kind) {
-        case ok_error:
-          /* Do nothing. */
-          break;
-        case ok_expression:
-          /* Cast the expression node.  If the expression is a constant,
-             change its type in place.  Otherwise, add a cast expression
-             node. */
-          node = operand->variant.expression;
-          cast_node(&node, new_type, check_cast_access, is_implicit_cast,
-                    is_reinterpret_cast, reinterpret_semantics,
-                    &operand->position);
-          make_expression_operand(node, new_type, operand);
-          break;
-        case ok_constant:
-          /* Cast the constant by changing its type.  In a nonconstant
-             context, reduce any error to a warning and leave the
-             conversion to be done at runtime. */
-          did_not_fold = TRUE;
-          copy_constant(&operand->variant.constant, &local_constant);
-          type_change_constant(&local_constant, new_type, is_implicit_cast,
-                               curr_expr_kind_is_const(),
-                               curr_expr_is_evaluated(),
-                               (a_boolean)expr_stack->fold_constant_addr_exprs,
-                               reinterpret_semantics,
-                               &did_not_fold, &operand->position);
-          if (did_not_fold) {
-            /* Cast of a constant did not fold. */
-            if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
-              error_in_operand(ec_expr_not_constant, operand);
-            } else if (il_identical_types(operand->type, new_type)) {
-              /* If the new type is identical to the old type, just put the
-                 new type in the node (since it may be "identical" but not
-                 exactly the same). */
-              operand->type = new_type;
-            } else {
-              /* Create an expression node for the cast of the constant. */
-              /* Note that the constant type-change was attempted on a
-                 copy of the constant.  The original constant was not
-                 changed, and therefore can be used here. */
-              node = make_node_from_operand(operand);
-              add_cast_to_node(&node, new_type, check_cast_access,
-                               is_implicit_cast, is_reinterpret_cast,
-                               reinterpret_semantics, &operand->position);
-              make_expression_operand(node, new_type, operand);
-            }  /* if */
+  /* Save the operand's source position, etc. */
+  orig_operand = *operand;
+  if (m_is_error_type(new_type)) {
+    /* Casting to an error type.  Produce an error operand. */
+    conv_to_error_operand(operand);
+  } else {
+    switch (operand->kind) {
+      case ok_error:
+        /* Do nothing. */
+        break;
+      case ok_expression:
+        /* Cast the expression node.  If the expression is a constant,
+           change its type in place.  Otherwise, add a cast expression
+           node. */
+        node = operand->variant.expression;
+        cast_node(&node, new_type, check_cast_access, is_implicit_cast,
+                  is_reinterpret_cast, reinterpret_semantics,
+                  &operand->position);
+        make_expression_operand(node, new_type, operand);
+        break;
+      case ok_constant:
+        /* Cast the constant by changing its type.  In a nonconstant
+           context, reduce any error to a warning and leave the
+           conversion to be done at runtime. */
+        did_not_fold = TRUE;
+        copy_constant(&operand->variant.constant, &local_constant);
+        type_change_constant(&local_constant, new_type, is_implicit_cast,
+                             curr_expr_kind_is_const(),
+                             curr_expr_is_evaluated(),
+                             (a_boolean)expr_stack->fold_constant_addr_exprs,
+                             reinterpret_semantics,
+                             &did_not_fold, &operand->position);
+        if (did_not_fold) {
+          /* Cast of a constant did not fold. */
+          if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
+            error_in_operand(ec_expr_not_constant, operand);
+          } else if (il_identical_types(operand->type, new_type)) {
+            /* If the new type is identical to the old type, just put the
+               new type in the node (since it may be "identical" but not
+               exactly the same). */
+            operand->type = new_type;
           } else {
-            /* The operation was successfully folded to a constant. */
-            /* Mark the constant as the result of a reinterpret_cast if it
-               is.  Don't clear the flag once it gets set (an implicit cast
-               after a reinterpret_cast still counts as a reinterpret_cast). */
-            local_constant.is_reinterpret_cast |= is_reinterpret_cast;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-            if (!(curr_expr_kind_is(ek_pp) ||
-                  curr_expr_kind_is(ek_template_arg))) {
-              /* Record the constant's expression (inhibit normal diagnostics
-                 during that process, since they were already issued). */
-              an_error_severity  saved_error_threshold = error_threshold;
-
-              error_threshold = es_catastrophe;
-              local_constant.expr = make_node_from_operand(operand);
-              add_cast_to_node(&local_constant.expr, new_type,
-                               check_cast_access, is_implicit_cast,
-                               is_reinterpret_cast, reinterpret_semantics,
-                               &operand->position);
-              error_threshold = saved_error_threshold;
-            }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-            make_constant_operand(&local_constant, operand);
+            /* Create an expression node for the cast of the constant. */
+            /* Note that the constant type-change was attempted on a
+               copy of the constant.  The original constant was not
+               changed, and therefore can be used here. */
+            node = make_node_from_operand(operand);
+            add_cast_to_node(&node, new_type, check_cast_access,
+                             is_implicit_cast, is_reinterpret_cast,
+                             reinterpret_semantics, &operand->position);
+            make_expression_operand(node, new_type, operand);
           }  /* if */
-          break;
-        case ok_indefinite_function:
-          /* Cast of overloaded function to a pointer type.  Note that
-             the legality of such casts is checked by conversion_possible.
-             A cast cannot get here unless allowed by that routine. */
-          overloaded_function_symbol = operand->variant.symbol;
-          function_symbol = find_addr_of_overloaded_function_match(
-                                                    overloaded_function_symbol,
-                                                    (a_boolean)operand->
-                                                             is_template_id,
-                                                    operand->template_arg_list,
-                                                    new_type,
-                                                    /*is_cast=*/
+        } else {
+          /* The operation was successfully folded to a constant. */
+          /* Mark the constant as the result of a reinterpret_cast if it
+             is.  Don't clear the flag once it gets set (an implicit cast
+             after a reinterpret_cast still counts as a reinterpret_cast). */
+          local_constant.is_reinterpret_cast |= is_reinterpret_cast;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+          if ((!is_implicit_cast || operand->type != new_type) &&
+              !(curr_expr_kind_is(ek_pp) ||
+                curr_expr_kind_is(ek_template_arg))) {
+            /* Record a cast expression for the constant (inhibit normal
+               diagnostics during that process, since they were already
+               issued). */
+            an_error_severity  saved_error_threshold = error_threshold;
+
+            error_threshold = es_catastrophe;
+            local_constant.expr = make_node_from_operand(operand);
+            add_cast_to_node(&local_constant.expr, new_type,
+                             check_cast_access, is_implicit_cast,
+                             is_reinterpret_cast, reinterpret_semantics,
+                             &operand->position);
+            error_threshold = saved_error_threshold;
+          }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+          make_constant_operand(&local_constant, operand);
+        }  /* if */
+        break;
+      case ok_indefinite_function:
+        /* Cast of overloaded function to a pointer type.  Note that
+           the legality of such casts is checked by conversion_possible.
+           A cast cannot get here unless allowed by that routine. */
+        overloaded_function_symbol = operand->variant.symbol;
+        function_symbol = find_addr_of_overloaded_function_match(
+                                                   overloaded_function_symbol,
+                                                   (a_boolean)operand->
+                                                                is_template_id,
+                                                   operand->template_arg_list,
+                                                   new_type,
+                                                   /*is_cast=*/
                                                              !is_implicit_cast,
-                                                    &match_level,
-                                                    &std_conversion,
+                                                   &match_level,
+                                                   &std_conversion,
                                                    &unknown_dependent_function,
-                                                    &ambiguous);
-          if (unknown_dependent_function) {
-            /* The cast is in a prototype instantiation, and we don't know
-               which function is selected. */
-            make_unknown_dependent_function_operand(overloaded_function_symbol,
-                                                    operand);
-          } else {
+                                                   &ambiguous);
+        if (unknown_dependent_function) {
+          /* The cast is in a prototype instantiation, and we don't know
+             which function is selected. */
+          make_unknown_dependent_function_operand(overloaded_function_symbol,
+                                                  operand);
+        } else {
 #if CHECKING
-            if (function_symbol == NULL) {
-              internal_error("cast_operand: bad func symbol");
-            }  /* if */
+          if (function_symbol == NULL) {
+            internal_error("cast_operand: bad func symbol");
+          }  /* if */
 #endif /* CHECKING */
-            ptr_to_member_case = is_ptr_to_member_type(new_type);
-            /* Do whatever would have been done with the function if we had
-               known all along which function was intended.  Make an operand
-               for the specific function's address, except for the
-               pointer to member case. */
-            overloaded_function_catch_up(function_symbol,
+          ptr_to_member_case = is_ptr_to_member_type(new_type);
+          /* Do whatever would have been done with the function if we had
+             known all along which function was intended.  Make an operand
+             for the specific function's address, except for the
+             pointer to member case. */
+          overloaded_function_catch_up(function_symbol,
                                        overloaded_function_symbol,
                                        (a_boolean)operand->is_qualified_name,
                                        &orig_operand.position,
@@ -2512,41 +2514,40 @@ user-defined conversions.
                                        ptr_to_member_case ? (an_operand *)NULL:
                                                             operand,
                                        &access_error_reported);
-            if (ptr_to_member_case) {
-              /* Make an operand for the pointer-to-member case. */
-              make_ptr_to_member_constant_operand(fundamental_symbol_of(
+          if (ptr_to_member_case) {
+            /* Make an operand for the pointer-to-member case. */
+            make_ptr_to_member_constant_operand(fundamental_symbol_of(
                                                               function_symbol),
-                                                  overloaded_function_symbol,
-                                                  &orig_operand.position,
-                                                  !access_error_reported,
-                                                  (a_boolean)operand->
-                                                        is_qualified_name,
-                                                  (a_boolean)operand->
+                                                overloaded_function_symbol,
+                                                &orig_operand.position,
+                                                !access_error_reported,
+                                                (a_boolean)operand->
+                                                      is_qualified_name,
+                                                (a_boolean)operand->
                                                       is_operand_of_address_of,
-                                                  operand);
-            }  /* if */
+                                                operand);
           }  /* if */
-          /* If the pointer to member is to a related class, or the pointer
-             to function differs because of a conversion (e.g., a C++ vs.
-             C linkage on the function type), adjust the operand. */
-          if (operand->type != new_type) {
-            cast_operand(new_type, operand, check_cast_access,
-                         is_implicit_cast,
-                         is_reinterpret_cast, reinterpret_semantics);
-          }  /* if */
-          break;
+        }  /* if */
+        /* If the pointer to member is to a related class, or the pointer
+           to function differs because of a conversion (e.g., a C++ vs.
+           C linkage on the function type), adjust the operand. */
+        if (operand->type != new_type) {
+          cast_operand(new_type, operand, check_cast_access,
+                       is_implicit_cast,
+                       is_reinterpret_cast, reinterpret_semantics);
+        }  /* if */
+        break;
 #if CHECKING
-        default:
-          internal_error("cast_operand: bad operand kind");
+      default:
+        internal_error("cast_operand: bad operand kind");
 #endif /* CHECKING */
-      }  /* switch */
-    }  /* if */
-    /* Restore the original source position, etc.  Keep the reference
-       information (useful when this is a pointer to a class being cast to
-       a base class, or a pointer to an array being cast to a pointer to
-       the first element). */
-    restore_operand_details_incl_ref(operand, &orig_operand);
+    }  /* switch */
   }  /* if */
+  /* Restore the original source position, etc.  Keep the reference
+     information (useful when this is a pointer to a class being cast to
+     a base class, or a pointer to an array being cast to a pointer to
+     the first element). */
+  restore_operand_details_incl_ref(operand, &orig_operand);
 }  /* cast_operand */
 
 
