@@ -562,9 +562,14 @@ if the truth cannot be discovered, is FALSE.
   an_expr_node_ptr expr;
 
   if (stmt->kind == (a_statement_kind)stmk_while ||
-      stmt->kind == (a_statement_kind)stmk_end_test_while) {
+      stmt->kind == (a_statement_kind)stmk_end_test_while ||
+      stmt->kind == (a_statement_kind)stmk_for) {
     expr = stmt->expr;
-    if (expr->kind == (an_expr_node_kind)enk_constant) {
+    /* In the "for" loop, the expression can be NULL and that implies an
+       infinite loop. */
+    if (expr == NULL) {
+      is_inf_loop = TRUE;
+    } else if (expr->kind == (an_expr_node_kind)enk_constant) {
       if (!is_false_constant(expr->variant.constant)) {
         /* Loop expression is a non-zero constant: it's an infinite loop. */
         is_inf_loop = TRUE;
