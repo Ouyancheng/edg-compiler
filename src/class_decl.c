@@ -9407,11 +9407,7 @@ next_declaration:
         /* Restore the scope stack to its original state. */
         pop_class_reactivation_scope();
       }  /* if */
-      if (is_template_class_type(class_type)) {
-        /* No nested class placeholders are put out for instances of member
-           templates -- instantiation placeholders are used where needed (see
-           add_to_types_list). */
-      } else if (class_type->variant.class_struct_union.
+      if (class_type->variant.class_struct_union.
                     referenced_by_class_instantiation_placeholder_typeref) {
         /* A class-instantiation placeholder may also be put out for
            nontemplate classes that are nested within template class
