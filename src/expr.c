@@ -5726,7 +5726,7 @@ never be any references to flush at this point.
 */
 {
   flush_ref_entries_except(operand->ref_entries_list, (a_ref_entry_ptr)NULL,
-                           curr_expr_ref_entries);
+                           (a_ref_entry_ptr)NULL);
 }  /* prepare_for_sequence_point_after_operand */
 
 
@@ -5855,8 +5855,7 @@ standard.
       /* There is a sequence point after the first operand, so record any
          modifications made in that operand. */
       flush_ref_entries_except(operand_2.ref_entries_list,
-                               (a_ref_entry_ptr)NULL,
-                               curr_expr_ref_entries);
+                               (a_ref_entry_ptr)NULL, (a_ref_entry_ptr)NULL);
     }  /* if */
     (void)check_boolean_controlling_expr(operand_1);
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
@@ -6872,8 +6871,7 @@ EOPT_DISALLOW_COMMA_OPERATOR).
       /* There is a sequence point after the first operand, so record any
          modifications made in that operand. */
       flush_ref_entries_except(operand_2.ref_entries_list,
-                               (a_ref_entry_ptr)NULL,
-                               curr_expr_ref_entries);
+                               (a_ref_entry_ptr)NULL, (a_ref_entry_ptr)NULL);
       do_operand_transformations(&operand_2,
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
       /* Simplify the void expression. */
