@@ -622,6 +622,7 @@ End the current line of output.
        error quickly. */
     str_catastrophe(ec_file_write_error, "generated C output");
   }  /* if */
+  curr_output_line++;
   curr_output_seq_number++;
   curr_output_column++;
   curr_output_column = 0;
@@ -653,9 +654,6 @@ file.
     (void)fprintf(f_C_output, " \"%s\"", curr_output_file->file_name);
   }  /* if */
   (void)fputc('\n', f_C_output);
-  /* There must be a line following a #line directive, and the line's
-     number is already set, so consider the line started already. */
-  curr_output_column = 1;
 }  /* write_line_directive */
 
 
@@ -687,6 +685,8 @@ etc.
                                           &at_end_of_source,
                                           &nesting_depth,
                                           /*physical_line=*/FALSE);
+    /* Don't put out line 0 for empty files. */
+    if (at_end_of_source && line_number == 0) line_number = 1;
     if (new_output_file != curr_output_file) {
       /* We've gone into a new file, so we need a #line directive. */
       line_directive_needed = TRUE;
@@ -1046,17 +1046,18 @@ Output the indicated constant.
       }  /* if */
       offset = constant->variant.address.offset;
       if (offset != 0) {
+        a_targ_size_t underlying_object_size = underlying_object_type->size;
         /* Non-zero offset.  Deal with scaling issues. */
         write_tok_str("(");
         scaled_offset_cast = FALSE;
         /* See if the size of the underlying object is such that scaling
            can be done implicitly instead of playing tricks with casting
            to "char *" and back. */
-        if (underlying_object_type->size != 0 &&
-            (offset % underlying_object_type->size) == 0) {
+        if (underlying_object_size != 0 &&
+            (offset % underlying_object_size) == 0) {
           /* The offset is divisible by the size of the object, so adjust
              the offset to the proper units. */
-          offset /= con_type->size;
+          offset /= underlying_object_size;
         } else {
           /* The offset is not evenly divisible by the object size, so
              cast to "char *" and back again.  If the implicit_cast flag
@@ -3422,8 +3423,9 @@ static void cp_gen_be(void)
 Generate C++ or C from the intermediate language.
 */
 {
-  char      *C_output_file_name;
-  a_boolean cannot_open, bad_name;
+  char              *C_output_file_name;
+  a_boolean         cannot_open, bad_name;
+  a_source_position pos;
 
   /* Open the output file. */
   if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) == 0) {
@@ -3443,6 +3445,11 @@ Generate C++ or C from the intermediate language.
     /* Make Purify happy. */
     purify_discard_memory(C_output_file_name);
   }  /* if */
+
+  /* Start with a #line directive that identifies the primary file. */
+  pos.seq = 1;
+  pos.column = SP_COL_UNKNOWN;
+  set_output_position(&pos);
 
   /* Process all the file scope entities (and the rest, too, as the
      associated functions/classes are encountered). */
