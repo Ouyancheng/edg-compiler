@@ -989,7 +989,7 @@ consistent with that of the previous declaration.
   if (exceptions_enabled && prev_type->kind != (a_type_kind)tk_typeref) {
     an_error_severity  severity = es_error;
     if (microsoft_mode && microsoft_version >= 1300) {
-      /* Recent Microsoft compilers do not require exception specification
+      /* Recent Microsoft compilers do not require exception specifications
          on multiple declarations to match.  We issue a warning in case of
          a mismatch.  Note that calls to composite_type will ensure that
          the original specification is retained. */
