@@ -496,104 +496,106 @@ for unions and aggregates at that level).
         }  /* if */
 #endif /* CHECKING */
         curr_field = local_type->variant.class_struct_union.field_list;
-        done = (curr_field == NULL);
+        no_more_members = done = (curr_field == NULL);
       }  /* if */
       con_list = end_of_con_list = NULL;
       took_extra_comma = FALSE;
       /* Loop, scanning initializers. */
-      while (!done) {
-        /* Determine the type of the member being initialized. */
-        if (kind == (a_type_kind)tk_array || kind == (a_type_kind)tk_error) {
-          /* member_type was set outside the loop. */
+      do {
+        if (!done) {
+          /* Determine the type of the member being initialized. */
+          if (kind == (a_type_kind)tk_array || kind == (a_type_kind)tk_error) {
+            /* member_type was set outside the loop. */
 #if DEBUG
-          if (debug_level == 4 && kind == (a_type_kind)tk_array) {
-            fprintf(f_debug, "getting initializer for element %d, type = ",
-                    (int)curr_array_element);
-            db_abbreviated_type(member_type);
-            fputc('\n', f_debug);
-          }  /* if */
+            if (debug_level == 4 && kind == (a_type_kind)tk_array) {
+              fprintf(f_debug, "getting initializer for element %d, type = ",
+                      (int)curr_array_element);
+              db_abbreviated_type(member_type);
+              fputc('\n', f_debug);
+            }  /* if */
 #endif /* DEBUG */
-        } else if (is_immediate_class_type(local_type)) {
-          /* Get the type of the current field. */
-          member_type = curr_field->type;
+          } else if (is_immediate_class_type(local_type)) {
+            /* Get the type of the current field. */
+            member_type = curr_field->type;
 #if DEBUG
-          if (debug_level == 4) {
-            fputs("getting initializer for field \"", f_debug);
-            db_name(&curr_field->source_corresp);
-            fputs("\", type = ", f_debug);
-            db_abbreviated_type(member_type);
-            fputc('\n', f_debug);
-          }  /* if */
+            if (debug_level == 4) {
+              fputs("getting initializer for field \"", f_debug);
+              db_name(&curr_field->source_corresp);
+              fputs("\", type = ", f_debug);
+              db_abbreviated_type(member_type);
+              fputc('\n', f_debug);
+            }  /* if */
 #endif /* DEBUG */
 #if CHECKING
-          /* Members of unions or aggregates cannot be incomplete. */
-          if (is_incomplete_type(member_type)) {
-            internal_error(
+            /* Members of unions or aggregates cannot be incomplete. */
+            if (is_incomplete_type(member_type)) {
+              internal_error(
                       "get_initializer: member of aggregate has incomp type");
-          }  /* if */
-#endif /* CHECKING */
-        }  /* if */
-        add_stop_token(tok_comma);
-        /* Get the initializer for this one member. */
-        member_con = get_initializer(&member_type, di_list, end_of_di_list,
-                                     /*top_level=*/FALSE, incomplete_init);
-        remove_stop_token(tok_comma);
-        /* Add the constant to the list. */
-        if (con_list == NULL) {
-          con_list = member_con;
-        } else {
-          end_of_con_list->next = member_con;
-        }  /* if */
-        end_of_con_list = member_con;
-        /* Advance to the next member. */
-        no_more_members = FALSE;
-        if (kind == (a_type_kind)tk_error) {
-          /* No processing for this case. */
-        } else if (kind == (a_type_kind)tk_array) {
-          if (curr_array_element == TARG_SIZE_T_MAX) {
-            /* Array too long; presumably, this is an incomplete array
-               being initialized with a ridiculous number of initial
-               values. */
-            if (!array_too_long_error_given) {
-              error(ec_array_size_too_large);
-              array_too_long_error_given = TRUE;
             }  /* if */
+#endif /* CHECKING */
+          }  /* if */
+          add_stop_token(tok_comma);
+          /* Get the initializer for this one member. */
+          member_con = get_initializer(&member_type, di_list, end_of_di_list,
+                                       /*top_level=*/FALSE, incomplete_init);
+          remove_stop_token(tok_comma);
+          /* Add the constant to the list. */
+          if (con_list == NULL) {
+            con_list = member_con;
           } else {
-            /* Advance to next array element. */
-            curr_array_element++;
-            /* Exit the loop if there are no elements remaining. */
-            if (!is_incomplete_array &&
-                local_type->variant.array.number_of_elements <=
+            end_of_con_list->next = member_con;
+          }  /* if */
+          end_of_con_list = member_con;
+          /* Advance to the next member. */
+          no_more_members = FALSE;
+          if (kind == (a_type_kind)tk_error) {
+            /* No processing for this case. */
+          } else if (kind == (a_type_kind)tk_array) {
+            if (curr_array_element == TARG_SIZE_T_MAX) {
+              /* Array too long; presumably, this is an incomplete array
+                 being initialized with a ridiculous number of initial
+                 values. */
+              if (!array_too_long_error_given) {
+                error(ec_array_size_too_large);
+                array_too_long_error_given = TRUE;
+              }  /* if */
+            } else {
+              /* Advance to next array element. */
+              curr_array_element++;
+              /* Exit the loop if there are no elements remaining. */
+              if (!is_incomplete_array &&
+                  local_type->variant.array.number_of_elements <=
                                                          curr_array_element) {
+                no_more_members = TRUE;
+              }  /* if */
+            }  /* if */
+          } else if (kind == (a_type_kind)tk_class ||
+                     kind == (a_type_kind)tk_struct) {
+            /* Advance to the next field of the class or struct. */
+            curr_field = curr_field->next;
+            /* Exit the loop if there are no fields remaining. */
+            if (curr_field == NULL) {
+              no_more_members = TRUE;
+            } else if (curr_field->next == NULL &&
+                       is_incomplete_type(curr_field->type)) {
+              /* Also exit on an incomplete array at the final field of a
+                 struct (allowed as an extension, but not allowed to be
+                 initialized).  This would come up in a case like
+                   struct {int i; int j[];} = {0, 0};  <-- Error on 2nd 0.
+              */
               no_more_members = TRUE;
             }  /* if */
-          }  /* if */
-        } else if (kind == (a_type_kind)tk_class ||
-                   kind == (a_type_kind)tk_struct) {
-          /* Advance to the next field of the class or struct. */
-          curr_field = curr_field->next;
-          /* Exit the loop if there are no fields remaining. */
-          if (curr_field == NULL) {
-            no_more_members = TRUE;
-          } else if (curr_field->next == NULL &&
-                     is_incomplete_type(curr_field->type)) {
-            /* Also exit on an incomplete array at the final field of a
-               struct (allowed as an extension, but not allowed to be
-               initialized).  This would come up in a case like
-                 struct {int i; int j[];} = {0, 0};  <-- Error on 2nd 0.
-            */
-            no_more_members = TRUE;
-          }  /* if */
-        } else {
+          } else {
 #if CHECKING
-          if (kind != (a_type_kind)tk_union) {
-            internal_error(
-                     "get_initializer: in loop, not array/struct/union");
-          }  /* if */
+            if (kind != (a_type_kind)tk_union) {
+              internal_error(
+                       "get_initializer: in loop, not array/struct/union");
+            }  /* if */
 #endif /* CHECKING */
-          /* Only the first field in a union is initialized, so having done
-             that field, we are done with the union. */
-          no_more_members = TRUE;
+            /* Only the first field in a union is initialized, so having done
+               that field, we are done with the union. */
+            no_more_members = TRUE;
+          }  /* if */
         }  /* if */
         /* If there are no more members and this is not a brace-enclosed list,
            exit the loop now, without taking a comma or brace following.
@@ -687,7 +689,7 @@ for unions and aggregates at that level).
             }  /* if */
           }  /* if */
         }  /* if */
-      }  /* while */
+      } while (!done);
       /* The entire list of values for the entity being initialized has
          now been read.  We stopped either because we exhausted the
          initial values or because we ran out of members to initialize. */
@@ -713,11 +715,9 @@ for unions and aggregates at that level).
       }  /* if */
       /* Allocate the aggregate constant that is the value for the
          initializer. */
-      if (con_list != NULL) {
-        init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-        init_con->variant.aggregate.first_constant = con_list;
-        init_con->variant.aggregate.last_constant  = end_of_con_list;
-      }  /* if */
+      init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+      init_con->variant.aggregate.first_constant = con_list;
+      init_con->variant.aggregate.last_constant  = end_of_con_list;
       if (brace_flag) {
         /* Allow an extra comma before the "}" in a brace-enclosed list.
            Do not allow it if an extra comma was taken already in 
@@ -1178,7 +1178,6 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
        enclosed list of values.  Except that in C++ such lists may include
        non-constants. */
     a_constant_ptr       cp;
-    a_type_ptr           tp = vp_type;
     a_dynamic_init_ptr   di_list = NULL, end_of_di_list = NULL;
     a_boolean            incomplete_init = FALSE;
 
@@ -1192,20 +1191,6 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
       fputc('\n', f_debug);
     }  /* if */
 #endif /* DEBUG */
-    if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-    tp = skip_typerefs(tp);    
-    if (C_dialect == C_dialect_cplusplus &&
-        is_class_struct_union_type(tp) && curr_token == tok_lbrace &&
-        !symbol_supplement_for_class(tp)->any_nonstatic_data_members) {
-      /* Attempting to initialize an empty object with an initializer list
-         is prohibited by the C++ syntax, since initializer lists may not be
-         empty. */
-      sym_error(ec_initializer_list_for_empty_class_object,
-                (a_symbol_ptr)tp->source_corresp.assoc_info);
-      vp_type = error_type();
-      err = TRUE;
-      put_init_in_variable = FALSE;
-    }  /* if */
     cp = get_initializer(&vp_type, &di_list, &end_of_di_list,
                          /*top_level=*/TRUE, &incomplete_init);
     if (cp->kind == (a_constant_repr_kind)ck_error) {
