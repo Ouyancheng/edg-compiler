@@ -1319,6 +1319,12 @@ declaration.
                               &param_type_ptr, &qualifiers, 
                               &attributes, &decl_modifiers,
                               &local_decl_pos_block);
+#if GNU_EXTENSIONS_ALLOWED
+        /* Find the end of the current attribute list. */
+        while (*last_attribute != NULL) {
+          last_attribute = &(*last_attribute)->next;
+        }  /* while */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
         defines_something = dso_flags & DSO_DEFINES_SOMETHING;
         if (last_param_type == NULL && curr_token == tok_rparen) {
@@ -1387,16 +1393,18 @@ declaration.
                      /*member_parent_type=*/(a_type_ptr)NULL,
                      &param_locator, &param_type_ptr, &param_ssep,
                      (a_func_info_block_ptr)NULL, &local_decl_pos_block,
-                     (an_attribute_ptr *)NULL);
+                     last_attribute);
+#if GNU_EXTENSIONS_ALLOWED
+          /* Find the end of the current attribute list. */
+          while (*last_attribute != NULL) {
+            last_attribute = &(*last_attribute)->next;
+          }  /* while */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         } else {
           /* No declarator. */
           set_to_error_locator(param_locator);
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-        /* Find the end of the current attribute list. */
-        while (*last_attribute != NULL) {
-          last_attribute = &(*last_attribute)->next;
-        }  /* while */
         /* Scan any attributes that apply to the function
            parameter. */
         *last_attribute = scan_attributes();
