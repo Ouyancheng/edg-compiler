@@ -1893,7 +1893,15 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
          ARM 4.6 (pointer conversions: qualifiers cannot be dropped
          implicitly), 5.17 (assignment), 8.4 (initializers). */
       if (fewer_qualifiers(dest_type_pointed_to, source_type_pointed_to)) {
-        okay = FALSE;
+        if (cfront_compatibility_mode && 
+            is_void(unqual_dest_type_pointed_to) &&
+            is_void(unqual_source_type_pointed_to)) {
+          /* cfront 2.1 allows conversion of a pointer to qualified void
+             (e.g., "const void *") to "void *". */
+        } else {
+          /* Qualifiers are being dropped. */
+          okay = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (C_dialect == C_dialect_pcc &&
