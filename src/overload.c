@@ -2205,6 +2205,7 @@ static void determine_function_viability(
                  a_boolean                effects_copy_initialization,
                  a_boolean                from_arg_dep_lookup,
                  a_boolean                dependent_call,
+                 a_boolean                known_to_be_visible,
                  a_candidate_function_ptr *candidate_functions,
                  a_boolean                *matched_except_for_missing_selector)
 /*
@@ -2238,7 +2239,8 @@ conversion in a copy-initialization; user-defined conversions are not
 tried on argument matches, and constructors that are marked "explicit"
 are ignored.  from_arg_dep_lookup is TRUE if the function was found by
 argument-dependent lookup.  dependent_call is TRUE if the call is a
-template-dependent call.
+template-dependent call.  known_to_be_visible is TRUE if the function
+is known to be visible and the visibility check should be suppressed.
 */
 {
   a_symbol_ptr             function_symbol;
@@ -2260,7 +2262,8 @@ template-dependent call.
 
   if (proj_function_symbol != NULL) {
     /* Normal case: a known function. */
-    if (!candidate_function_is_visible(proj_function_symbol,
+    if (!known_to_be_visible &&
+        !candidate_function_is_visible(proj_function_symbol,
                                        is_template_id,
                                        effects_copy_initialization,
                                        from_arg_dep_lookup,
@@ -2568,6 +2571,7 @@ static void try_overloaded_function_match(
                  a_boolean                effects_copy_initialization,
                  a_boolean                from_arg_dep_lookup,
                  a_boolean                dependent_call,
+                 a_boolean                known_to_be_visible,
                  a_candidate_function_ptr *candidate_functions,
                  a_boolean                *matched_except_for_missing_selector)
 /*
@@ -2594,7 +2598,9 @@ is TRUE if this call is the user-defined conversion in a copy-initialization;
 user-defined conversions are not tried on argument matches, and constructors
 that are marked "explicit" are ignored.  from_arg_dep_lookup is TRUE if
 the function was found by argument-dependent lookup.  dependent_call is
-TRUE if the call is a template-dependent call.
+TRUE if the call is a template-dependent call.  known_to_be_visible is
+TRUE if the function is known to be visible and the visibility check
+should be suppressed.
 */
 {
   a_boolean     overloaded_function_case;
@@ -2685,6 +2691,7 @@ TRUE if the call is a template-dependent call.
                                  effects_copy_initialization,
                                  from_arg_dep_lookup,
                                  dependent_call,
+                                 known_to_be_visible,
                                  candidate_functions,
                                  matched_except_for_missing_selector);
   }  /* for */
@@ -2722,6 +2729,7 @@ are viable functions, FALSE if not.  Issues no errors.
                                 effects_copy_initialization,
                                 /*from_arg_dep_lookup=*/FALSE,
                                 /*dependent_call=*/FALSE,
+                                /*known_to_be_visible=*/FALSE,
                                 &candidate_functions,
                                 &matched_except_for_missing_selector);
   possible = (candidate_functions != NULL);
@@ -2810,6 +2818,7 @@ arguments of the call (given by arg_operand_list).
                                        /*effects_copy_initialization=*/FALSE,
                                        /*from_arg_dep_lookup=*/FALSE,
                                        /*dependent_call=*/FALSE,
+                                       /*known_to_be_visible=*/FALSE,
                                        candidate_functions,
                                        &matched_except_for_missing_selector);
         }  /* if */
@@ -4122,6 +4131,7 @@ in_instantiation:
                                     /*effects_copy_initialization=*/FALSE,
                                     /*from_arg_dep_lookup=*/FALSE,
                                     dependent_call,
+                                    known_to_be_visible,
                                     &candidate_functions,
                                     &matched_except_for_missing_selector);
       some_function_tried = TRUE;
@@ -4193,6 +4203,7 @@ in_instantiation:
                                                 function_symbol !=
                                                 normal_lookup_function_symbol),
                                       dependent_call,
+                                      /*known_to_be_visible=*/FALSE,
                                       &candidate_functions,
                                       &matched_except_for_missing_selector);
         some_function_tried = TRUE;
@@ -7928,6 +7939,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*effects_copy_initialization=*/FALSE,
                                          /*from_arg_dep_lookup=*/FALSE,
                                          /*dependent_call=*/FALSE,
+                                         /*known_to_be_visible=*/TRUE,
                                          &candidate_functions,
                                          &matched_except_for_missing_selector);
             goto select_best_function;
@@ -7963,6 +7975,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*effects_copy_initialization=*/FALSE,
                                          /*from_arg_dep_lookup=*/FALSE,
                                          dependent_call,
+                                         /*known_to_be_visible=*/FALSE,
                                          &candidate_functions,
                                          &matched_except_for_missing_selector);
           }  /* if */
@@ -8032,6 +8045,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                                   nonmember_functions_symbol !=
                                                   normal_sym),
                                          dependent_call,
+                                         /*known_to_be_visible=*/FALSE,
                                          &candidate_functions,
                                          &matched_except_for_missing_selector);
             }  /* if */
@@ -8426,6 +8440,7 @@ because of an error.  This routine is used only in C++ mode.
                                                         is_copy_initialization,
                                     /*from_arg_dep_lookup=*/FALSE,
                                     /*dependent_call=*/FALSE,
+                                    /*known_to_be_visible=*/FALSE,
                                     &candidate_functions,
                                     &matched_except_for_missing_selector);
     }  /* if */
