@@ -5845,7 +5845,7 @@ declaration appears, and access is the current access (explicitly specified
 or implicit) controlling the declaration.
 */
 {
-  a_symbol_ptr              sym, declared_sym, new_sym, other_sym;
+  a_symbol_ptr              sym, declared_sym, new_sym, other_sym, fund_sym;
   a_base_class_ptr          bcp;
   a_boolean                 err = FALSE;
   a_boolean                 is_overloaded;
@@ -5946,26 +5946,33 @@ or implicit) controlling the declaration.
     /* No error so far, so enter the using-declaration symbol. */
     other_sym = NULL;
     sym = declared_sym;
+    fund_sym = fundamental_symbol_of(sym);
     is_overloaded = FALSE;
-    if (is_function_symbol(fundamental_symbol_of(declared_sym))) {
+    /* See if the using declaration refers to a function or overload set. */
+    if (is_function_symbol(fund_sym)) {
       /* Member function. */
       if (locator.specific_symbol != NULL) {
         /* If other_sym is non-NULL, we have to deal with overloading. */
         other_sym = fundamental_symbol_of(locator.specific_symbol);
       }  /* if */
-      if (declared_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
         /* The using-declaration specifies a base-class member function
            overload set. */
         is_overloaded = TRUE;
-        sym = sym->variant.overloaded_function.symbols;
+        sym = fund_sym->variant.overloaded_function.symbols;
+        /* The overload set may contain sk_projection as well as
+           sk_member_function symbols, but fund_sym will point to an
+           sk_member_function. */
+        fund_sym = fundamental_symbol_of(sym);
       }  /* if */
     }  /* if */
     /* This is a loop in case the using-declaration specifies an overload
        set -- each member of the overload set is projected independently. */
-    do {
+    for (;;) {
       if (!have_access_to_symbol(sym)) {
-        /* The specified symbol is inaccessible.  Issue an error instead of
-           creating the projection symbol. */
+        /* The specified symbol (either the explicitly declared symbol or
+           a member of the overload set the symbol refers to) is inaccessible.
+           Issue an error instead of creating the projection symbol. */
         pos_sy_error(ec_no_access_to_name,
                      &locator_for_curr_id.source_position, sym);
       } else {
@@ -5985,8 +5992,8 @@ or implicit) controlling the declaration.
           other_sym = add_symbol_to_overload_list(new_sym, other_sym);
           set_mixed_static_nonstatic_flag(other_sym);
         }  /* if */
-        if (sym->kind == (a_symbol_kind)sk_member_function &&
-            sym->variant.routine.ptr->special_kind ==
+        if (fund_sym->kind == (a_symbol_kind)sk_member_function &&
+            fund_sym->variant.routine.ptr->special_kind ==
                                  (a_special_function_kind)sfk_conversion) {
           /* Allocate the new conversion list entry and link it in the
              list for the current class. */
@@ -5995,19 +6002,21 @@ or implicit) controlling the declaration.
         }  /* if */
         /* Create an access-adjustment entry to represent this declaration in
            the IL. */
-        aap = new_access_adjustment(fundamental_symbol_of(sym), access);
+        aap = new_access_adjustment(fund_sym, access);
         /* Attach it the class type entry. */
         aap->next = class_type->variant.class_struct_union.
                                            extra_info->access_adjustments;
         class_type->variant.class_struct_union.extra_info->
                                                  access_adjustments = aap;
         /* Update cross-reference and source sequence info, if required. */
-        record_access_adjustment(aap, fundamental_symbol_of(sym),
+        record_access_adjustment(aap, fund_sym,
                                  &locator_for_curr_id.source_position);
       }  /* if */
       if (!is_overloaded) break;
-      sym = sym->next;
-    } while (sym != NULL);
+      if ((sym = sym->next) == NULL) break;
+      /* As we advance through the overload set, keep fund_sym in sync. */
+      fund_sym = fundamental_symbol_of(sym);
+    }  /* for */
   }  /* if */
   /* Bypass the identifier. */
   (void)get_token();
