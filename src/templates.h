@@ -310,11 +310,6 @@ extern void prescan_function_template_default_arg_expr(
 					a_param_type_ptr  ptp,
 					a_scope_depth	  assoc_scope_depth);
 
-extern void check_for_function_template_default_args(
-		    a_routine_ptr		     templ_rout,
-		    a_routine_ptr		     rout_ptr,
-                    a_template_symbol_supplement_ptr tssp);
-
 extern void instantiate_default_argument(a_symbol_ptr		rout_sym,
 					 a_param_type_ptr	param);
 

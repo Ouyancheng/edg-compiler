@@ -6525,7 +6525,7 @@ done:
 }  /* instantiate_default_argument */
 
 
-void check_for_function_template_default_args(
+static void check_for_function_template_default_args(
 		    a_routine_ptr		     templ_rout,
 		    a_routine_ptr		     rout_ptr,
                     a_template_symbol_supplement_ptr tssp)
