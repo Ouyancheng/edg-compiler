@@ -1,5 +1,15 @@
 Version 2.43
 
+12/1/99  static_cast of float literal to integral type in constant expression
+
+A static_cast of a floating-point literal to an integral type is now
+allowed in a constant expression.
+
+  class bar {
+    static const int foo1 = (int)1.0;              // Was already allowed
+    static const int foo2 = static_cast<int>(1.0); // Now allowed
+  };
+
 12/1/99  Hidden name table, C++-generating back end: better name output
 
 Several improvements have been made in the name generation in the

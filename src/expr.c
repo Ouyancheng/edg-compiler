@@ -4333,7 +4333,7 @@ the type defines something); FALSE is returned if there is an error.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_matching_stop_token(tok_rparen);
   /* Scan the expression. */
-  scan_expr(operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+  scan_expr(operand, PREC_LOWEST, EOPT_OPERAND_OF_CAST);
   /* Check for and pass over the ")". */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   *end_position = end_pos_curr_token;
