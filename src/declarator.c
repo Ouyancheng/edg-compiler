@@ -339,13 +339,13 @@ type is legal.
         } else if (is_immediate_class_type(temp_type)) {
           complete_class_type_is_needed(temp_type);
           if (is_incomplete_type(temp_type)) {
-            /* As an extension (in both C and C++ modes), allow an array of
+            /* In C++ mode and as an extension in C mode, allow an array of
                incomplete class type.  Obviously, the element type has to be
-               completed before the array is actually used.  Add the array
-               type to a list of array types to be fixed up when the
-               class/struct/union declaration is completed. */
+               completed before the array is actually used. (The array type
+               will be added to a list of types to be fixed up when the
+               class/struct/union declaration is completed.) */
             array_of_incomp_class_or_enum = TRUE;
-            if (strict_ansi_mode) {
+            if (C_mode() && strict_ansi_mode) {
               diagnostic(strict_ansi_error_severity,
                          ec_array_of_incomplete_type);
               if (strict_ansi_error_severity == es_error) err = TRUE;
@@ -353,13 +353,13 @@ type is legal.
           }  /* if */
         } else if (is_immediate_enum_type(temp_type)) {
           if (is_incomplete_type(temp_type)) {
-            /* As an extension (in both C and C++ modes), allow an array of
+            /* In C++ mode and as an extension in C mode, allow an array of
                incomplete enum type.  Obviously, the element type has to be
-               completed before the array is actually used.  Add the array
-               type to a list of array types to be fixed up when the enum
-               declaration is completed. */
+               completed before the array is actually used. (The enum type
+               will be added to a list of types to be fixed up when the
+               class/struct/union declaration is completed.) */
             array_of_incomp_class_or_enum = TRUE;
-            if (strict_ansi_mode) {
+            if (C_mode() && strict_ansi_mode) {
               diagnostic(strict_ansi_error_severity,
                          ec_array_of_incomplete_type);
               if (strict_ansi_error_severity == es_error) err = TRUE;

@@ -1,5 +1,11 @@
 Version 2.32
 
+4/19/96 Diagnostic on array of incomplete class/enum type
+
+In conformance with a recent Working Paper change, a diagnostic is no
+longer issued in strict ANSI C++ mode on the declaration of an array of
+incomplete class or enum type.
+
 4/19/96 Abort on generating label in IL lowering for exception handling
 
 In some obscure cases, the process of generating a label during IL
