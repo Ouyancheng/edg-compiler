@@ -4901,6 +4901,27 @@ empty statement block.
 }  /* define_special_member_function */
 
 
+static a_boolean is_cfront_base_class_destructor_access_bug
+				(a_symbol_ptr	sym,
+				 a_routine_ptr	rp,
+				 a_type_ptr	class_of_object)
+/*
+Cfront has a bug in which a private destructor in a base class can be
+called when the derived class really should not have access to it.
+This function, which should only be called in cfront mode, detects
+the condition in which the access error should be suppressed.
+*/
+{
+  a_boolean	result = FALSE;
+  if (rp->special_kind == (a_special_function_kind)sfk_destructor &&
+      sym->class_of_which_a_member != class_of_object &&
+      class_of_object != NULL) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_cfront_base_class_destructor_access_bug */
+
+
 void reference_to_implicitly_invoked_function
 				(a_symbol_ptr       sym,
                                  a_source_position  *err_pos,
@@ -4937,7 +4958,16 @@ and conversion functions.
 #endif /* CHECKING */
   /* Check for accessibility. */
   if (!have_access_to_symbol(sym)) {
-    pos_sy_error(ec_inaccessible_special_function, err_pos, sym);
+    an_error_severity	severity = es_error;
+    /* Normally an error, but in cfront mode there is a special case
+       involving a private base class destructor where we issue a warning. */
+    if (cfront_compatibility_mode &&
+        is_cfront_base_class_destructor_access_bug(sym, rp,
+						   class_of_object)) {
+      severity = es_warning;
+    }  /* if */
+    pos_sy_diagnostic(severity, ec_inaccessible_special_function,
+		      err_pos, sym);
   } else if (class_of_object != NULL) {
     /* Protected members of a base class can only be accessed through an
        object of a derived class. */
