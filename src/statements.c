@@ -2004,15 +2004,24 @@ from the structured statement stack entry.
 
 static void stmt_update_source_sequence_entry(
                                           a_statement_ptr              sp,
-                                          a_source_sequence_entry_ptr  ssep) {
+                                          a_source_sequence_entry_ptr  ssep)
+/*
+Associate the given source sequence entry with the given statement.
+*/
+{
   if (!source_sequence_entries_disallowed) {
-    if (C_dialect == C_dialect_cplusplus) {
+    if (C_dialect == C_dialect_cplusplus
+#if GNU_EXTENSIONS_ALLOWED
+        && !(sp->kind == (a_statement_kind)stmk_block &&
+             sp->variant.block.extra_info->is_statement_expression)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                                   ) {
       /* If the previous statement was a decl-statement, deactivate it. */
       wrapup_decl_statement();
     }  /* if */
     f_update_source_sequence_list((char *)sp, iek_statement, ssep);
   }  /* if */
-}  /* if */
+}  /* stmt_update_source_sequence_entry */
 
 
 static void stmt_update_source_sequence_list(a_statement_ptr  sp)
@@ -4021,7 +4030,10 @@ well.
     discard_curr_construct_pragmas();
   }  /* if */
 #if REPRESENT_EMPTY_STATEMENTS_IN_IL
-  (void)add_statement((a_statement_kind)stmk_empty);
+  {
+    a_statement_ptr  esp = add_statement((a_statement_kind)stmk_empty);
+    stmt_update_source_sequence_list(esp);
+  }
 #else /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
   if (C_mode() && struct_stmt_stack[depth_stmt_stack].in_else_of_if) {
     a_statement_ptr  sp;

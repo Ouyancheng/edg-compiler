@@ -1,5 +1,23 @@
 Version 3.5
 
+5/12/04  Missing source sequence entries for empty statements
+
+In configurations with REPRESENT_EMPTY_STATEMENTS_IN_IL set to TRUE, the
+front end failed to produce source sequence entries for empty statements.
+This could for example confuse the C++-generating back end under certain
+circumstances.  For example:
+
+  void f() {
+    switch (1) {
+      my_label:
+        ;  // Empty statement.  Previous rendered after all switch clauses
+           // along with a spurious goto statement.
+      default: break;
+    }
+  }
+
+This is now fixed.
+
 5/12/04  Microsoft compatibility: token pasting, L##__FUNCTION__
 
 MSVC++ 7.0 and 7.1 allow token pasting in a macro to paste an "L"
