@@ -1040,8 +1040,13 @@ associated a_template entry.
   /* Advance past the source sequence entry for the type itself. */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (ss_entry_kind(curr_source_sequence_entry) == iek_template) {
+    /* We may end up here when generating the class declaration part of a
+       class template declaration.  In that case the current source sequence
+       entry is pointing to the a_template entry which in turn points to
+       "type". */
     check_assertion(is_immediate_class_type(type) &&
-                    type->variant.class_struct_union.is_nonreal_class &&
+                    type->variant.class_struct_union.
+                                                 is_prototype_instantiation &&
                     ss_entry_ptr(curr_source_sequence_entry, a_template_ptr)
                                       ->prototype_instantiation.type == type);
     adv_curr_source_sequence_entry();
