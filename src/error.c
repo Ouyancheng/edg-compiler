@@ -2139,7 +2139,7 @@ Add a string representing a constant value to a string being formed.
       /* Use the indicated character count to cycle through the string
          constant, since there may be embedded NULLs. */
       count = cp->variant.string.length;
-      for (p_char = cp->variant.string.value; count-- >= 0; ++p_char) {
+      for (p_char = cp->variant.string.value; --count > 0; ++p_char) {
         if (count == 0 && *p_char == 0) {
           /* This is the terminating NULL in the string -- we don't want to
              display it. */
