@@ -7108,10 +7108,8 @@ class and record it in the class's assoc_operator_new_routine field.
       /* Look for a global operator new(). */
       sym = opname_function_symbol((an_opname_kind)onk_new);
       /* "new" can be overloaded; find the default (one-argument) version
-         of the routine if so.  Since the default version always exists,
-         we must find something here. */
+         of the routine if so. */
       sym = find_default_operator_new_sym(sym, &ambiguous);
-      check_assertion(sym != NULL);
     }  /* if */
     if (sym != NULL) {
       a_routine_ptr     rp = sym->variant.routine.ptr;

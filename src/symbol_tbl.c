@@ -4028,16 +4028,18 @@ and therefore might be a projection symbol.  If there is an ambiguity return
       ptp = skip_typerefs(sym->variant.routine.ptr->type)->
                                   variant.routine.extra_info->param_type_list;
       check_assertion(ptp != NULL);
-      if (ptp->next == NULL || ptp->next->has_default_arg) {
-        if (default_sym == NULL) {
-          /* A match.  But keep looking in case there's an ambiguity. */
-          default_sym = sym;
-        } else {
-          /* It's ambiguous, so just return NULL.  No error is issued at
-             this point. */
-          default_sym = NULL;
-          *ambiguous = TRUE;
-          break;
+      if (!is_error_type(ptp->type)) {
+        if (ptp->next == NULL || ptp->next->has_default_arg) {
+          if (default_sym == NULL) {
+            /* A match.  But keep looking in case there's an ambiguity. */
+            default_sym = sym;
+          } else {
+            /* It's ambiguous, so just return NULL.  No error is issued at
+               this point. */
+            default_sym = NULL;
+            *ambiguous = TRUE;
+            break;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
