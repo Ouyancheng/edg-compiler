@@ -1871,8 +1871,7 @@ static void lower_dynamic_init_aggregate_constant(
                                    a_boolean              dtor_case,
                                    a_constructor_init_ptr ctor_init,
                                    an_insert_location_ptr insert_location,
-                                   a_boolean              *keep_constant,
-                                   a_boolean              *partial_init)
+                                   a_boolean              *keep_constant)
 /*
 aggr_const points to a ck_aggregate constant that contains one or more
 ck_dynamic_init dynamic initializations.  The ck_aggregate constant is
@@ -1885,7 +1884,6 @@ initialization is part of a constructor initializer, ctor_init points to
 the constructor-init entry.  Insert statements to implement the
 initialization at *insert_location and update *insert_location.  If there
 are any (genuine) constants in the aggregate, set *keep_constant to TRUE.
-If the aggregate is only partially initialized, set *partial_init to TRUE.
 */
 {
   an_init_pos_descr    ipd;
@@ -1965,8 +1963,7 @@ If the aggregate is only partially initialized, set *partial_init to TRUE.
       lower_dynamic_init_aggregate_constant(con_ptr, &ipd,
                                             conditional_flag_var,
                                             dtor_case, ctor_init,
-                                            insert_location, keep_constant,
-                                            partial_init);
+                                            insert_location, keep_constant);
     } else {
       /* Normal constant. */
       lower_constant(con_ptr);
@@ -1982,15 +1979,6 @@ If the aggregate is only partially initialized, set *partial_init to TRUE.
     }  /* if */
     /* Loop while there are more constants. */
   }  /* for */
-  /* See if we initialized the whole aggregate. */
-  if (array_aggr) {
-    if (ipmp->curr_elem !=
-        aggr_type->variant.array.variant.number_of_elements) {
-      *partial_init = TRUE;
-    }  /* if */
-  } else {
-    if (ipmp->curr_field != NULL) *partial_init = TRUE;
-  }  /* if */
 }  /* lower_dynamic_init_aggregate_constant */
 
 
@@ -2623,7 +2611,6 @@ be kept, FALSE if it should be deleted.
   an_expr_node_ptr  entity_node, source_node;
   a_variable_ptr    variable;
   a_boolean         simple_constant_init = FALSE, keep_constant;
-  a_boolean         partial_init = FALSE;
   a_constant_ptr    simple_constant;
   a_source_position saved_error_position, saved_code_pos;
   a_statement_ptr   expr_stmt;
@@ -2806,7 +2793,7 @@ do_assignment:;
                                             ipdp, conditional_flag_var, 
                                             /*dtor_case=*/FALSE, ctor_init,
                                             insert_location,
-                                            &keep_constant, &partial_init);
+                                            &keep_constant);
       if (keep_constant) {
         /* Keep a (now-)constant aggregate value as the static initial value
            of the variable.  The nonconstant parts have been put out as
@@ -2969,7 +2956,7 @@ do_assignment:;
          sure the rest of the aggregate is initialized to zero.
          So we change the initialization kind to initialization to zero. */
       if (has_static_storage_duration(variable->storage_class) ||
-          partial_init) {
+          variable->is_partially_initialized) {
         variable->init_kind = (an_init_kind)initk_zero;
       } else {
         variable->init_kind = (an_init_kind)initk_none;
@@ -4579,7 +4566,7 @@ at *insert_location, and *insert_location is updated.
   an_init_pos_descr    ipd;
   an_init_pos_modifier ipm;
   a_dynamic_init_ptr   dip;
-  a_boolean            keep_constant, partial_init;
+  a_boolean            keep_constant;
 
   /* Develop a position description for the entity to destroy. */
   develop_ctor_init_pos_descr(ctor_init, this_param_var, &ipd, &ipm);
@@ -4599,7 +4586,7 @@ at *insert_location, and *insert_location is updated.
                                           /*dtor_case=*/TRUE,
                                           (a_constructor_init_ptr)NULL,
                                           insert_location,
-                                          &keep_constant, &partial_init);
+                                          &keep_constant);
 #if CHECKING
     if (keep_constant) {
       internal_error("lower_dtor_init: keep_constant unexpected");
