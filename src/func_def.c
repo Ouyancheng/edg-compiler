@@ -620,8 +620,7 @@ and for the instantiation of template functions.
            static void f() { extern void g(); }
          }
        where the extern "C" block must be regenerated so that g() has C
-       linkage.
-    */
+       linkage.  */
     rout_ptr->surrounding_name_linkage_state =
                           scope_stack[depth_scope_stack].default_name_linkage;
 #endif /* BACK_END_IS_CP_GEN_BE */

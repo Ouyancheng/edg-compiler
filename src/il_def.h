@@ -3267,6 +3267,12 @@ typedef struct a_class_type_supplement {
 			/* Qualifiers that apply to the class as a whole,
 			   as in "class __far A {}". */
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if BACK_END_IS_CP_GEN_BE
+  a_bit_field	surrounding_name_linkage_state:NUM_BITS_FOR_NAME_LINKAGE;
+			/* Name linkage in effect when this class was defined.
+			   Used by the C++-generating back end to reconstruct
+			   name linkage blocks when appropriate. */
+#endif /* BACK_END_IS_CP_GEN_BE */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous

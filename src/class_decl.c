@@ -10850,6 +10850,19 @@ nested classes when their definition appears outside of the class template.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (C_dialect == C_dialect_cplusplus) {
+#if BACK_END_IS_CP_GEN_BE
+    /* Set the "name linkage environment" for this class type.  This is used
+       by the C++-generating back end to decide when to emit extern "C"; this
+       may be necessary because extern "C" cannot be emitted in the class.
+       E.g.,    extern "C" {
+                  struct A {
+                    void f() { void g(); g(); } -- ::g has extern "C" linkage
+                  };
+                }                                                           */
+    class_type->
+      variant.class_struct_union.extra_info->surrounding_name_linkage_state =
+                          scope_stack[depth_scope_stack].default_name_linkage;
+#endif /* BACK_END_IS_CP_GEN_BE */
     if (cssp->is_prototype_instantiation) {
       /* This is a prototype instantiation, so the resulting class is
          "nonreal" (i.e., based on template arguments that include the dummy
