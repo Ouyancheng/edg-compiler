@@ -46,7 +46,13 @@ calls of operator new.
     if (_new_handler != NULL) {
       (*_new_handler) ();
     } else {
+      /* There is no new handler.  If exception handling is supported, throw
+         a bad_alloc exception, otherwise return a NULL value. */
+#if EXCEPTION_HANDLING
+      throw STD_NAMESPACE::bad_alloc();
+#else /* !EXCEPTION_HANDLING */
       return (void *)NULL;
+#endif /* EXCEPTION_HANDLING */
     }  /* if */
   }  /* while */
   return ptr;
