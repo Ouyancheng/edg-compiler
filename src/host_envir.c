@@ -1042,8 +1042,8 @@ char *get_file_modification_time_string(char		*file_name,
 Return the last modification time of "file_name" as a date/time string.
 If the file does not exist, or is not a regular file, return NULL.
 The ctime function includes a newline in the returned string.  If
-strip_newline is TRUE, the newline is replaced with null terminator.
-When a string is the static buffer returned by the ctime function,
+strip_newline is TRUE, the newline is replaced with a null terminator.
+The string returned is the static buffer returned by the ctime function,
 which will be overwritten when ctime is called again.
 */
 {
