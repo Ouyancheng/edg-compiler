@@ -2213,7 +2213,8 @@ qualified_name_check:
     an_error_code err_code;
     /* If the problem is that the class is incomplete, use a different
        error message. */
-    if (is_incomplete_type(class_struct_union_type)) {
+    if (is_incomplete_type(class_struct_union_type) &&
+        is_class_struct_union_type(class_struct_union_type)) {
       err_code = is_arrow_operator ?
                                   ec_ptr_to_incomplete_class_type_not_allowed :
   				  ec_incomplete_type_not_allowed;
