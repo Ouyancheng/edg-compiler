@@ -9129,11 +9129,9 @@ definition.
     /* There is a currenly active argsused comment. */
     rtsp = rout_sym->variant.routine.ptr->type->variant.routine.extra_info;
     rtsp->lint_argsused_flag = TRUE;
-#if 0
     /* The pending-pragma entry has been unlinked from the scope stack entry
        list, but it still must be returned to the available list. */
     free_pending_pragma_list(ppp);
-#endif /* if 0 */
   }  /* if */
   /* Determine whether a lint varargs count comment immediately preceded this
      function definition. */
@@ -9145,11 +9143,9 @@ definition.
       rtsp = rout_sym->variant.routine.ptr->type->variant.routine.extra_info;
     }  /* if */
     rtsp->lint_varargs_count = ppp->variant.lint_varargs_count;
-#if 0
     /* The pending-pragma entry has been unlinked from the scope stack entry
        list, but it still must be returned to the available list. */
     free_pending_pragma_list(ppp);
-#endif /* if 0 */
   }  /* if */
 }  /* record_lint_argsused_and_varargs_state */
 
@@ -9938,6 +9934,9 @@ of local variables (and types, etc.) of functions and in blocks.
 
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, decl_start_pos);
+  /* Move cached #pragma declarations (if any) to the current scope stack
+     entry so they can be examined and acted upon in subsequent processing. */
+  (void)select_curr_construct_pragmas(/*is_decl=*/TRUE);
   if (C_dialect == C_dialect_cplusplus) {
     if (curr_token == tok_extern && next_token() == tok_string_literal) {
       /* This looks like a C++ linkage specification, which is "extern"
@@ -9959,9 +9958,6 @@ of local variables (and types, etc.) of functions and in blocks.
       goto return_point;
     }  /* if */
   }  /* if */
-  /* Move cached #pragma declarations (if any) to the current scope stack
-     entry so they can be examined and acted upon in subsequent processing. */
-  (void)select_curr_construct_pragmas(/*is_decl=*/TRUE);
   add_stop_token(tok_semicolon);
   need_semicolon_remove_stop_token = TRUE;
   if (curr_token == tok_asm) {
