@@ -8563,16 +8563,6 @@ and for the instantiation of template functions.
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
       decl_parameter(param_id, ptp, is_instantiation);
-#if 0
-      if (is_instantiation && sym != NULL) {
-        /* Ordinarily the call to mark_defined is done in later, in a way
-           that assures correct source-sequence ordering for parameters and
-           types.  For function instantantiations, however, mark_defined must
-           be called now. */
-        mark_defined(sym, &sym->decl_position);
-        mark_variable_value_set(sym);
-      }  /* if */
-#endif /* if 0 */
       /* Be sure param-id and param-type lists are in sync. */
       check_assertion((param_id->next == NULL) == (ptp->next == NULL));
     }  /* for */
@@ -8583,38 +8573,6 @@ and for the instantiation of template functions.
          types that were defined in the prototype scope are reactivated now
          so that they will be available in the current scope. */
       if (func_info->prototype_scope_symbols != NULL) {
-#if 0
-        sym = func_info->prototype_scope_symbols;
-        for (; sym != NULL; sym = sym->next_in_scope) {
-          if (sym->kind == (a_symbol_kind)sk_variable) {
-            /* Function parameter.  Find the corresponding param-id entry. */
-            param_id = func_info->param_id_list;
-            for (; param_id != NULL; param_id = param_id->next) {
-              if (param_id->symbol == sym) break;
-            }  /* for */
-            if (param_id == NULL) {
-              /* This can happen with an error in an old-style param
-                 declaration. */
-            } else {
-              /* Record a definition of the parameter. */
-              mark_defined(sym, &sym->decl_position);
-              mark_variable_value_set(sym);
-            }  /* if */
-          } else if (is_tag_symbol(sym)) {
-            /* A type declared in the function prototype scope.  A source
-               sequence entry will already have been created for it in the
-               file scope, but another entry should be created for the function
-               scope.  The new entry will point to the entry in the file
-               scope. */
-            ssep = type_symbol_type(sym)->source_corresp.source_sequence_entry;
-            check_assertion(ssep != NULL);
-            make_proxy_ptr_source_sequence_entry(ssep);
-          } else {
-            /* Note that symbols for enum constants can also appear on this
-               list (in C mode only).  Ignore them. */
-          }  /* if */
-        }  /* for */
-#endif /* if 0 */
         reactivate_prototype_scope_symbols(func_info->prototype_scope_symbols);
       }  /* if */
       /* Free the list of parameter ids, now that it is no longer needed. */
