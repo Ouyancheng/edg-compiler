@@ -69,56 +69,49 @@ standalone utility programs.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /*
-The following canonical_*_entry_of routines return the canonical entry
-associated with the given entity.  If it has not yet been looked up, that
-canonical entry will be established as part of the call.
+The following routine is used by the macros corresponding_* to determine
+whether two entities in different translation units correspond.  This may
+entail actually searching for the correspondence.
+*/
+extern a_boolean corresponding_entries(char              *entity1,
+                                       char              *entity2,
+                                       an_il_entry_kind  kind);
 
+/*
 The same_*_entities macros determine whether the two given entities are in fact
 the same, even though they might have been declared in different translation
 units (resulting in distinct IL entries).
 */
 
-extern a_namespace_ptr canonical_namespace_entry_of(a_namespace_ptr  nsp);
-
 #define corresponding_namespaces(ptr1, ptr2)                               \
   ((ptr1) == (ptr2) ||                                                     \
    (canonical_test_needed(ptr1, ptr2) &&                                   \
-    canonical_namespace_entry_of(ptr1) == canonical_namespace_entry_of(ptr2)))
-
-extern a_field_ptr canonical_field_entry_of(a_field_ptr  field);
+    corresponding_entries((char*)ptr1, (char*)ptr2, iek_namespace)))
 
 #define corresponding_fields(ptr1, ptr2)                                   \
   ((ptr1) == (ptr2) ||                                                     \
    (canonical_test_needed(ptr1, ptr2) &&                                   \
-    canonical_field_entry_of(ptr1) == canonical_field_entry_of(ptr2)))
-
-extern a_routine_ptr canonical_routine_entry_of(a_routine_ptr  routine);
+    corresponding_entries((char*)ptr1, (char*)ptr2, iek_field)))
 
 #define corresponding_routines(ptr1, ptr2)                                 \
   ((ptr1) == (ptr2) ||                                                     \
    (canonical_test_needed(ptr1, ptr2) &&                                   \
-    canonical_routine_entry_of(ptr1) == canonical_routine_entry_of(ptr2)))
-
-extern a_variable_ptr canonical_variable_entry_of(a_variable_ptr  var);
+    corresponding_entries((char*)ptr1, (char*)ptr2, iek_routine)))
 
 #define corresponding_variables(ptr1, ptr2)                                \
   ((ptr1) == (ptr2) ||                                                     \
    (canonical_test_needed(ptr1, ptr2) &&                                   \
-    canonical_variable_entry_of(ptr1) == canonical_variable_entry_of(ptr2)))
-
-extern a_type_ptr canonical_type_entry_of(a_type_ptr type);
+    corresponding_entries((char*)ptr1, (char*)ptr2, iek_variable)))
 
 #define corresponding_types(ptr1, ptr2)                                    \
   ((ptr1) == (ptr2) ||                                                     \
    (canonical_test_needed(ptr1, ptr2) &&                                   \
-    canonical_type_entry_of(ptr1) == canonical_type_entry_of(ptr2)))
-
-extern a_template_ptr canonical_template_entry_of(a_template_ptr templ);
+    corresponding_entries((char*)ptr1, (char*)ptr2, iek_type)))
 
 #define corresponding_templates(ptr1, ptr2)                                \
   ((ptr1) == (ptr2) ||                                                     \
    (canonical_test_needed(ptr1, ptr2) &&                                   \
-    canonical_template_entry_of(ptr1) == canonical_template_entry_of(ptr2)))
+    corresponding_entries((char*)ptr1, (char*)ptr2, iek_template)))
 
 
 /*
@@ -226,6 +219,10 @@ extern void corresp_one_time_init(void);
 extern void corresp_trans_unit_init(void);
 
 extern void corresp_init(void);
+
+extern a_type_ptr canonical_type_entry_of(a_type_ptr type);
+
+extern a_template_ptr canonical_template_entry_of(a_template_ptr templ);
 
 #endif /* ifndef TRANS_CORRESP_H */
 

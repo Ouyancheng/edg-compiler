@@ -4462,6 +4462,71 @@ canonical entry.
 }  /* canonical_template_entry_of */
 
 
+static char* get_canonical_entry_of(char              *entity,
+                                    an_il_entry_kind  kind)
+/*
+Find the canonical entry for the given entity.  If the entity is in a
+secondary translation unit, this may entail searching for a corresponding
+entry.
+*/
+{
+  char  *result;
+
+  if (in_secondary_trans_unit(entity)) {
+    switch (kind) {
+      case iek_namespace:
+        result = (char*)canonical_namespace_entry_of((a_namespace_ptr)entity);
+        break;
+      case iek_field:
+        result = (char*)canonical_field_entry_of((a_field_ptr)entity);
+        break;
+      case iek_routine:
+        result = (char*)canonical_routine_entry_of((a_routine_ptr)entity);
+        break;
+      case iek_variable:
+        result = (char*)canonical_variable_entry_of((a_variable_ptr)entity);
+        break;
+      case iek_type:
+        result = (char*)canonical_type_entry_of((a_type_ptr)entity);
+        break;
+      case iek_template:
+        result = (char*)canonical_template_entry_of((a_template_ptr)entity);
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  } else {
+    result = canonical_il_entry_of(entity);
+  }  /* if */
+  return result;
+}  /* get_canonical_entry_of */
+
+
+a_boolean corresponding_entries(char              *entity1,
+                                char              *entity2,
+                                an_il_entry_kind  kind)
+/*
+Check if both given entities (of the given kind) correspond.  If necessary,
+determine the correspondences.
+*/
+{
+  char  *canon1, *canon2;
+
+  /* Be sure to determine the correspondence of an entity in the secondary
+     translation unit first.  Correspondence pointers in the primary
+     translation unit are only set as a consequence of an entity in a
+     secondary translation unit being processed. */
+  if (in_secondary_trans_unit(entity1)) {
+    canon1 = get_canonical_entry_of(entity1, kind);
+    canon2 = get_canonical_entry_of(entity2, kind);
+  } else {
+    canon2 = get_canonical_entry_of(entity2, kind);
+    canon1 = get_canonical_entry_of(entity1, kind);
+  }  /* else */
+  return canon1 == canon2;
+}  /* corresponding_entries */
+
+
 void establish_block_extern_function_correspondence(a_routine_ptr  routine)
 /*
 The given routine entry was just created as the result of a block extern
