@@ -15509,10 +15509,10 @@ nonstandard class member constants.  Assumes copy-initialization
 #if UPC_EXTENSIONS_ALLOWED
     if (upc_mode && constant != NULL) {
       /* We cannot use THREADS or MYTHREAD as a constant initializer. */
-      if (constant->kind == ck_upc_threads) {
+      if (constant->kind == (a_constant_repr_kind)ck_upc_threads) {
         error(ec_threads_constant_not_allowed);
         set_error_constant(constant);
-      } else if (constant->kind == ck_upc_mythread) {
+      } else if (constant->kind == (a_constant_repr_kind)ck_upc_mythread) {
         error(ec_mythread_constant_not_allowed);
         set_error_constant(constant);
       }  /* if */
