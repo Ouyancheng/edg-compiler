@@ -133,6 +133,10 @@ feoptions=$defines
 ccsdb=
 keep_int_file=0
 #
+# Should we link using the purify command?
+#
+link_using_purify=0
+#
 # Generate position independent code
 #
 ccpic=
@@ -398,6 +402,10 @@ do
 #     source files (depending on how the front end is configured)
       feoptions=$feoptions" "$1;
       ;;
+    -purify)
+#     Link using the purify command
+      link_using_purify=1
+      ;;
     -sun*)
 #     SunOS 4.n option, as in "-sun4" -- ignored.
       ;;
@@ -630,6 +638,12 @@ then
                        $ofiles $lfiles $loptions -lstd$EDG_LIB_SUFFIX \
 		       $EDG_C_TO_OBJ_LIBRARIES"
       link_command_suffix=" -lC$EDG_LIB_SUFFIX"
+      if [ $link_using_purify -eq 1 ] ; then
+        link_command="purify $link_command"
+      fi
+#
+#     Link the executable
+#
       $link_command $link_command_suffix
       status=$?
       if [ $status = 0 -a $cmode -eq 0 ]
