@@ -7621,6 +7621,14 @@ types, e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
 void scan_function_body(a_routine_ptr     rout_ptr,
                         a_func_info_block *func_info,
                         a_decl_flag_set   flags)
+/*
+Scan the function body of the routine pointed to rout_ptr.  *func_info
+contains information accumulated during the declaration.  The flags control
+specific requirements of the scan, since this routine is called not only
+for normal function definitions but also (in C++ mode only, of course) for the
+delayed scan of cached tokens of member functions defined in a class definition
+and for the instantiation of template functions.
+*/
 {
   a_type_ptr                     class_type, rout_type;
   a_routine_type_supplement_ptr  rtsp;
@@ -7771,6 +7779,10 @@ void scan_function_body(a_routine_ptr     rout_ptr,
     /* Pop the class symbol reactivation scope. */
     pop_class_reactivation_scope();
   }  /* if */  
+  /* The lint "argsused" and "varargs" flags are only applicable until
+     the end of a function declaration. */
+  lint_argsused_flag = FALSE;
+  lint_varargs_count = NOT_LINT_VARARGS;
   /* Check for the closing "}", not done in compound_statement.  Note that
      required_token is not called; if compound_statement returned on
      anything other than a right brace, it's because we should start parsing
@@ -8005,10 +8017,6 @@ explicitly specified (rather than defaulted to "int").
     }  /* if */
   }  /* if */
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
-  /* The lint "argsused" and "varargs" flags are only applicable until
-     the end of a function declaration. */
-  lint_argsused_flag = FALSE;
-  lint_varargs_count = NOT_LINT_VARARGS;
 
   db_exit();
   return;
