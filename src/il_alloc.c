@@ -1336,6 +1336,7 @@ the associated variant fields to default values.
       dip->variant.constructor.args = NULL;
       dip->variant.constructor.is_copy_constructor_with_implied_source = FALSE;
       dip->variant.constructor.is_implicit_copy_for_copy_initialization= FALSE;
+      dip->variant.constructor.zero_for_value_initialization = FALSE;
 #if CHECKING
       dip->variant.constructor.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
