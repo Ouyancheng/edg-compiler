@@ -2680,8 +2680,8 @@ be customized if additional linkage kinds are added to a_name_linkage_kind
 
 
 static a_boolean f_change_to_canonical_types(a_type_ptr  *type_1,
-                                           a_type_ptr  *type_2,
-                                           a_boolean   seek_corresp)
+                                             a_type_ptr  *type_2,
+                                             a_boolean   seek_corresp)
 /*
 If the given types have a canonical correspondence in another translation
 unit change the pointers to point to those entries and return TRUE.
@@ -2693,7 +2693,8 @@ In that case, type_1 will have its correspondence set to type_2.
 */
 {
   a_boolean   changed = FALSE;
-  a_type_ptr  new_type_1 = *type_1, new_type_2 = *type_2;
+  a_type_ptr  new_type_1 = skip_typerefs(*type_1),
+              new_type_2 = skip_typerefs(*type_2);
   a_boolean   is_class_1 = is_immediate_class_type(new_type_1),
               is_class_2 = is_immediate_class_type(new_type_2),
               is_enum_1 = is_immediate_enum_type(new_type_1),
@@ -2716,21 +2717,19 @@ In that case, type_1 will have its correspondence set to type_2.
     (void)seek_type_corresp(new_type_1, new_type_2);
   }  /* if */
   /* Convert each type to its canonical entry if applicable. */
-  if (is_immediate_class_type(new_type_1) ||
-      is_immediate_enum_type(new_type_1) ||
-      (new_type_1->kind == (a_type_kind)tk_typeref &&
-       typeref_is_typedef(new_type_1))) {
-    new_type_1 = canonical_type_entry_of(new_type_1);
+  if (is_class_1 || is_enum_1 ||
+      ((*type_1)->kind == (a_type_kind)tk_typeref &&
+       typeref_is_typedef(*type_1))) {
+    new_type_1 = canonical_type_entry_of(*type_1);
     if (new_type_1 != *type_1) {
       *type_1 = new_type_1;
       changed = TRUE;
     }  /* if */
   }  /* if */
-  if (is_immediate_class_type(new_type_2) ||
-      is_immediate_enum_type(new_type_2) ||
-      (new_type_2->kind == (a_type_kind)tk_typeref &&
-       typeref_is_typedef(new_type_2))) {
-    new_type_2 = canonical_type_entry_of(new_type_2);
+  if (is_class_2 || is_enum_2 ||
+      ((*type_2)->kind == (a_type_kind)tk_typeref &&
+       typeref_is_typedef(*type_2))) {
+    new_type_2 = canonical_type_entry_of(*type_2);
     if (new_type_2 != *type_2) {
       *type_2 = new_type_2;
       changed = TRUE;
@@ -2774,6 +2773,7 @@ for more information.
   } else {
     /* Now that type qualifiers are no longer an issue, strip them and other
        typerefs off the types. */
+    a_type_ptr  orig_type_1 = type_1, orig_type_2 = type_2;
     type_1 = skip_typerefs(type_1);
     type_2 = skip_typerefs(type_2);
     if (type_1 == type_2) {
@@ -2782,11 +2782,11 @@ for more information.
     } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
       /* The top level kinds are different, so the types are different. */
       /* identical = FALSE;  -- Already set. */
-    } else if (change_to_canonical_types(&type_1, &type_2,
+    } else if (change_to_canonical_types(&orig_type_1, &orig_type_2,
                                          (flags & ITF_SEEK_CORRESP) != 0)) {
       /* The types might have come from different translation units: restart
          the comparison with the canonical entries instead. */
-      identical = f_identical_types(type_1, type_2, flags);
+      identical = f_identical_types(orig_type_1, orig_type_2, flags);
     } else {
       /* The top level kinds are the same, check further. */
       a_boolean  il_identical = (flags & ITF_IL_IDENTICAL) != 0;
@@ -3234,7 +3234,8 @@ for exact pointer equality.
     compat = TRUE;
   } else {
     /* Test for a qualifier mismatch. */
-    a_boolean qualifier_mismatch = FALSE;
+    a_type_ptr  orig_type_1 = type_1, orig_type_2 = type_2;
+    a_boolean   qualifier_mismatch = FALSE;
     if (!ignore_type_qualifiers &&
         !type_qualifiers_match(type_1, type_2)) {
       qualifier_mismatch = TRUE;
@@ -3254,11 +3255,11 @@ for exact pointer equality.
     } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
       /* The top level kinds are different, so the types are different. */
       /* compat = FALSE;  -- Already set. */
-    } else if (change_to_canonical_types(&type_1, &type_2,
+    } else if (change_to_canonical_types(&orig_type_1, &orig_type_2,
                                          (flags & TCF_SEEK_CORRESP) != 0)) {
       /* The types might have come from different translation units: restart
          the comparison with the canonical entries instead. */
-      compat = f_types_are_compatible(type_1, type_2, flags);
+      compat = f_types_are_compatible(orig_type_1, orig_type_2, flags);
     } else {
       /* The top level kinds are the same, check further. */
       is_impl_conv = (flags & TCF_IMPLICIT_CONVERSION) != 0;
