@@ -417,7 +417,7 @@ pointers) and move the list as a whole to the available list.
     /* Reset the prev pointer of tail's successor on the list, or if there is
        no successor entry reset the list tail pointer. */
     if (tail->next == NULL) {
-      check_assertion(tail = end_of_control_flow_descr_list);
+      check_assertion(tail == end_of_control_flow_descr_list);
       end_of_control_flow_descr_list = head->prev;
     } else {
       tail->next->prev = head->prev;
