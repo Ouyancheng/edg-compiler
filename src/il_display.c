@@ -2452,8 +2452,15 @@ Display the indicated label.
                  (a_boolean)ptr->case_fallthrough_label);
   }  /* if */
 #if defined(FFE) || GNU_EXTENSIONS_ALLOWED
-  disp_boolean("used_in_assign", (a_boolean)ptr->used_in_assign);
+  if (ptr->used_in_assign) {
+    disp_boolean("used_in_assign", (a_boolean)ptr->used_in_assign);
+  }  /* if */
 #endif /* defined(FFE) || GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->locally_declared) {
+    disp_boolean("locally_declared", (a_boolean)ptr->locally_declared);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #ifdef FFE
   disp_name("kind");
   switch (ptr->kind) {

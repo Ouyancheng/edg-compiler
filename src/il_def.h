@@ -6028,7 +6028,6 @@ typedef struct a_label {
 			/* TRUE if this is a compiler-generated label that
 			   is used for a fall-through from one case of a
 			   switch to the next. */
-  bitfield_to_avoid_codecenter_warnings()
 #if defined(FIL) || GNU_EXTENSIONS_ALLOWED
   a_bit_field	used_in_assign:1;
 			/* TRUE if this label appears in an ASSIGN
@@ -6040,6 +6039,7 @@ typedef struct a_label {
 			/* TRUE if this label was declared in a GNU C
 			   __label__ declaration. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  bitfield_to_avoid_codecenter_warnings()
 #ifdef FIL
   a_label_kind  kind;
                         /* Kind of label: executable, format, specification.

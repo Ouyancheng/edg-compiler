@@ -1859,6 +1859,12 @@ to it.
   lp->leave_label = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   lp->case_fallthrough_label = FALSE;
+#if defined(FIL) || GNU_EXTENSIONS_ALLOWED
+  lp->used_in_assign = FALSE;
+#endif /* defined(FIL) || GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  lp->locally_declared = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if CHECKING
   lp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
