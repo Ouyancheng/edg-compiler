@@ -1,4 +1,4 @@
-Version 2.33
+Version 2.33, October 2, 1996
 
 9/26/96 Guard against _main being called more than once
 
