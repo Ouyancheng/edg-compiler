@@ -2533,6 +2533,7 @@ vp had an incomplete array type that has been completed by an initializer.
   a_symbol_locator     locator, ext_locator;
 
   db_enter(5, "put_type_back_into_variable");
+  check_assertion(is_array_type(vp->type) && is_incomplete_type(vp->type));
   /* See if the variable has linkage. */
   if (symbol_ptr->kind == (a_symbol_kind)sk_variable && linkage != idl_none) {
     /* The type of a variable with linkage has been adjusted because it
@@ -3010,8 +3011,17 @@ returned set to TRUE.
           /* Copy the type back into the variable.  It might have been changed
              if vp is an incomplete array. */
           if (vp != NULL && !same_entities(vp_type, vp->type)) {
-            put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
-                                        vp_type);
+            if (is_array_type(vp->type) && is_incomplete_type(vp->type)) {
+              /* An array variable with unspecified bound is dimensioned
+                 according to its initializer. */
+              put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
+                                          vp_type);
+            } else {
+              /* In all other cases, the initializer should have matched the
+                 type of the variable.  Since that is not case, the initializer
+                 must be in error. */
+              check_assertion(is_error_type(vp_type));
+            }  /* if */
           }  /* if */
         }  /* if */
       } else {
