@@ -2143,39 +2143,47 @@ Dump a single #pragma from the IL entry.
 }  /* dump_pragma */
 
 
-static void dump_scope_pragmas(a_scope_ptr scope,
-                               char        *entity_ptr)
+static void dump_scope_pragmas(a_scope_ptr scope)
 /*
-Dump any pragmas in the indicated scope that are associated with the entity
-at the indicated address, or that are associated with no entity if
-entity_ptr == NULL.  If entity_ptr != NULL, the caller is assumed to have
-checked that there are some pragmas associated with the entity.
+Dump any pragmas in the indicated scope that are not associated with an
+IL entity.
 */
 {
   a_pragma_ptr pp;
-#if CHECKING
-  a_boolean    found_any = FALSE;
-#endif /* CHECKING */
 
   for (pp = scope->pragma_list; pp != NULL; pp = pp->next) {
-    /* Process only pragmas that are bound to the right entity (or to no
-       entity, if entity_ptr == NULL). */
-    if (pp->entity.ptr == entity_ptr) {
+    /* Process only pragmas that are not bound to an entity. */
+    if (pp->entity.ptr == NULL) {
       dump_pragma(pp);
-#if CHECKING
-      found_any = TRUE;
-#endif /* CHECKING */
     }  /* if */
   }  /* for */
-#if CHECKING
-  if (entity_ptr != NULL && !found_any) {
-    internal_error("dump_scope_pragmas: no pragmas found for entity");
-  }  /* if */
-#endif /* CHECKING */
 }  /* dump_scope_pragmas */
 
 
-static void dump_associated_pragmas(a_source_correspondence *scp)
+static void dump_associated_pragmas(char *entity_ptr)
+/*
+Dump out any pragmas associated with the entity at the given address.
+The caller has already determined that the entity does have one or more
+associated pragmas.
+*/
+{
+  a_pragma_ptr pp, prev_pp = NULL;
+
+  while ((pp = find_assoc_pragma(entity_ptr,
+                                 (curr_function_scope != NULL) ? curr_scope :
+                                                                 NULL,
+                                 (a_type_ptr)NULL,
+                                 prev_pp)) != NULL) {
+    dump_pragma(pp);
+    prev_pp = pp;
+  }  /* for */
+  /* Make sure we found at least one pragma. */
+  check_assertion_str(prev_pp != NULL,
+                      "dump_associated_pragmas: assoc pragma not found");
+}  /* dump_associated_pragmas */
+
+
+static void dump_decl_associated_pragmas(a_source_correspondence *scp)
 /*
 Dump out any pragmas associated with the entity whose source correspondence
 information is given by scp.
@@ -2183,9 +2191,9 @@ information is given by scp.
 {
   if (scp->has_associated_pragma) {
     /* The entity has one or more associated pragmas.  Dump them. */
-    dump_scope_pragmas(curr_scope, (char *)scp);
+    dump_associated_pragmas((char *)scp);
   }  /* if */
-}  /* dump_associated_pragmas */
+}  /* dump_decl_associated_pragmas */
 
 
 static void dump_typedef_decl(a_type_ptr type)
@@ -2196,7 +2204,7 @@ Print a typedef declaration.
   type->definition_put_out = TRUE;
   if (start_unreferenced_bracket(&type->source_corresp)) {
     /* Dump any pragmas associated with the type. */
-    dump_associated_pragmas(&type->source_corresp);
+    dump_decl_associated_pragmas(&type->source_corresp);
     set_output_position(&type->source_corresp.decl_position);
     write_tok_str("typedef ");
     dump_declaration_using_type(type->variant.typeref.type,
@@ -2232,7 +2240,7 @@ Output the definition of the indicated enum type.
   write_if_0_directive();
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   /* Dump any pragmas associated with the type. */
-  dump_associated_pragmas(&type->source_corresp);
+  dump_decl_associated_pragmas(&type->source_corresp);
   set_output_position(&type->source_corresp.decl_position);
   /* Generate "enum <name>". */
   write_tok_str("enum ");
@@ -2281,7 +2289,7 @@ Output the definition of the indicated struct or union type.
   type->definition_put_out = TRUE;
   if (start_unreferenced_bracket(&type->source_corresp)) {
     /* Dump any pragmas associated with the type. */
-    dump_associated_pragmas(&type->source_corresp);
+    dump_decl_associated_pragmas(&type->source_corresp);
     set_output_position(&type->source_corresp.decl_position);
     write_tok_str(tag_kind(type->kind));
     write_space();
@@ -2439,7 +2447,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
           if (type->size == 0) {
             /* Dump any pragmas associated with the type if no definition
                will be output on the second pass. */
-            dump_associated_pragmas(&type->source_corresp);
+            dump_decl_associated_pragmas(&type->source_corresp);
           }  /* if */
           set_output_position(&type->source_corresp.decl_position);
           dump_tag_reference(type);
@@ -4446,7 +4454,7 @@ parameters.
       /* Dump any pragmas associated with the variable on the first
          declaration of the variable. */
       if (dump_vars_without_initializers) {
-        dump_associated_pragmas(&variable->source_corresp);
+        dump_decl_associated_pragmas(&variable->source_corresp);
       }  /* if */
       set_output_position(&variable->source_corresp.decl_position);
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -4516,7 +4524,7 @@ Generate C for an asm statement or declaration.
 */
 {
   /* Dump any pragmas associated with the entry. */
-  dump_associated_pragmas(&aep->source_corresp);
+  dump_decl_associated_pragmas(&aep->source_corresp);
   set_output_position(&aep->source_corresp.decl_position);
   write_tok_str("asm(");
   dump_constant(aep->asm_string);
@@ -4583,7 +4591,7 @@ Dump out one constant declaration as a #define.
 {
   if (annotate) {
     /* Dump any pragmas associated with the constant. */
-    dump_associated_pragmas(&constant->source_corresp);
+    dump_decl_associated_pragmas(&constant->source_corresp);
     set_output_position(&constant->source_corresp.decl_position);
     end_output_line_if_begun();
     disable_line_wrapping();
@@ -4644,7 +4652,7 @@ Dump out the declarations (if any) for a block.
     /* Subscopes are processed when the associated block statement is
        encountered. */
     /* Local types are dumped out as part of the file scope. */
-    dump_scope_pragmas(scope, (char *)NULL);
+    dump_scope_pragmas(scope);
     dump_scope_variables(scope,
                          /*interleave_asm_decls=*/FALSE,
                          /*dump_vars_without_initializers=*/TRUE,
@@ -4782,7 +4790,7 @@ Generate C for a statement.
   /* Dump out any pragmas associated with the statement. */
   if (statement->has_associated_pragma) {
     /* The statement has one or more associated pragmas.  Dump them. */
-    dump_scope_pragmas(curr_scope, (char *)statement);
+    dump_associated_pragmas((char *)statement);
   }  /* if */
   /* Identify the line number except for lines that put out their own
      line info. */
@@ -5343,7 +5351,7 @@ if this routine has a body (dump nothing if it has no body).
     /* Dump any pragmas associated with the routine on the definition
        of the routine if it has one, otherwise on the declaration. */
     if (is_definition || !has_defn) {
-      dump_associated_pragmas(&rout->source_corresp);
+      dump_decl_associated_pragmas(&rout->source_corresp);
     }  /* if */
     /* Dump the routine interface. */
     set_output_position(&rout->source_corresp.decl_position);
@@ -5543,7 +5551,7 @@ Generate C from the intermediate language.
 
   /* Dump all of the declarative information at the top-most (file) level. */
   curr_scope = scope = il_header.primary_scope;
-  dump_scope_pragmas(scope, (char *)NULL);
+  dump_scope_pragmas(scope);
   dump_scope_constants(scope);
   dump_scope_types(scope);
   dump_scope_routines(scope, /*dump_defn=*/FALSE);
