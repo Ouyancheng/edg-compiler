@@ -37,20 +37,6 @@ instead of K&R C.
 /* See if this code is needed at all. */
 #if BACK_END_IS_C_GEN_BE
 
-/*
-See if the target is the Sun cc compiler, which has some bugs we know
-about and can work around.
-*/
-#ifdef sun
-#if !C_GEN_BE_GENERATES_ANSI_C
-#define suncc TRUE
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-#endif /* ifdef sun */
-#ifndef suncc
-#define suncc FALSE
-#endif /* ifndef suncc */
-
-
 #include "c_gen_be.h"
 #include "debug.h"
 #include "error.h"
@@ -81,6 +67,20 @@ about and can work around.
 ??=error -- The C-generating back end requires \
             LOWER_LVALUE_RETURNING_OPERATIONS TRUE
 #endif /* !LOWER_LVALUE_RETURNING_OPERATIONS */
+
+
+/*
+See if the target is the Sun cc compiler, which has some bugs we know
+about and can work around.
+*/
+#ifdef sun
+#if !C_GEN_BE_GENERATES_ANSI_C
+#define suncc TRUE
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+#endif /* ifdef sun */
+#ifndef suncc
+#define suncc FALSE
+#endif /* ifndef suncc */
 
 
 static unsigned long
@@ -1527,6 +1527,13 @@ visible now because we're processing the file scope.
 #define is_invisible_local_type(type)                                 \
  ((type)->source_corresp.is_local_to_function && curr_function_scope == NULL)
 
+/*
+Return TRUE if the indicated type is a typedef that is local to a
+function and is invisible now because we're processing the file scope.
+*/
+#define is_invisible_local_typedef(type)                              \
+  ((type)->kind == tk_typeref && is_invisible_local_type(type))
+
 
 static void dump_type_specifier(a_type_ptr type)
 /*
@@ -1620,7 +1627,7 @@ Print the first of possibly two parts of a type reference.
      that aren't visible here. */
   qual_type = type;
   while (is_immediate_type_qualifier(type) ||
-         is_invisible_local_type(type)) type = type->variant.typeref.type;
+         is_invisible_local_typedef(type)) type = type->variant.typeref.type;
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer type. */
@@ -1692,30 +1699,33 @@ is non-NULL, in which case that is the function scope.
 
   if (scope != NULL) param_var = scope->variant.routine.parameters;
   write_tok_str("(");
-  if (!rtsp->prototyped) {
+  if (!rtsp->prototyped
+#if !C_GEN_BE_GENERATES_ANSI_C
+      /* When generating K&R C, a definition of a prototyped function is put
+         out as an old-style function. */
+      || scope != NULL
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+                       ) {
     /* Old-style list. */
     if (scope != NULL) {
       /* This is the definition of an old-style function.  Put out the
          parameter id list. */
       dump_param_id_list(param_var);
+#if suncc
+      if (rtsp->has_ellipsis) {
+        /* This takes advantage of a special feature of the Sun cc compiler
+           to handle variable argument lists.  The name "__builtin_va_alist"
+           is recognized by the Sun compiler to indicate the end of a variable
+           argument list. */
+        /* Note that one of the cases that comes here is C++ functions that
+           have been turned into old-style functions by IL lowering.
+           The has_ellipsis flag remains set, which is unusual but convenient
+           in this case. */
+        if (param_var != NULL) write_tok_str(", ");
+        write_tok_str("__builtin_va_alist");
+      }  /* if */
+#endif /* suncc */
     }  /* if */
-#if !C_GEN_BE_GENERATES_ANSI_C
-  } else if (scope != NULL) {
-    /* When generating K&R C, a definition of a prototyped function is put
-       out as an old-style function. */
-    dump_param_id_list(param_var);
-#if sun && sparc
-    if (rtsp->has_ellipsis) {
-      /* This takes advantage of a special feature of the Sun cc compiler
-         to handle variable argument lists.  The name "__builtin_va_alist"
-         is recognized by the Sun compiler along with some other reserved
-         identifiers found in the stdarg.h include file. */
-      /* Suppress the comma if the ellipsis is the only argument. */
-      if (param_var != NULL) write_tok_str(", ");
-      write_tok_str("__builtin_va_alist");
-    }  /* if */
-#endif /* sun && sparc */
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
   } else {
     /* Prototyped list. */
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -1810,7 +1820,7 @@ out first if anything is generated.
   /* Remove type qualifiers but not typedefs.  Also drop local typedefs
      that aren't visible here. */
   while (is_immediate_type_qualifier(type) ||
-         is_invisible_local_type(type)) type = type->variant.typeref.type;
+         is_invisible_local_typedef(type)) type = type->variant.typeref.type;
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
