@@ -10,7 +10,7 @@ parameter name is omitted, e.g.,
   void foo(void f(void*));  // okay
 
 The C++-generating back end puts out no name for parameters on
-function declarations even if the source code included a name, so
+function declarations even if the source code includes a name, so
 it ran into this problem.  It now generates a name for a function-typed
 parameter.
 
