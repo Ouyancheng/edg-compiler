@@ -1304,6 +1304,28 @@ Otherwise, supply a reasonable default value.
 #endif /* ifdef LDBL_MAX_EXP */
 #endif /* ifndef TARG_LDBL_MAX_EXP */
 
+/*
+Maximum floating-point values.  If a TARG_ macro has been defined, we use that.
+Otherwise, if the corresponding standard C macros are defined, we use those.
+Otherwise, we leave these undefined.
+*/
+#ifndef TARG_FLT_MAX
+#ifdef FLT_MAX
+#define TARG_FLT_MAX FLT_MAX
+#endif /* ifdef FLT_MAX */
+#endif /* ifndef TARG_FLT_MAX */
+
+#ifndef TARG_DBL_MAX
+#ifdef DBL_MAX
+#define TARG_DBL_MAX DBL_MAX
+#endif /* ifdef DBL_MAX */
+#endif /* ifndef TARG_DBL_MAX */
+
+#ifndef TARG_LDBL_MAX
+#ifdef LDBL_MAX
+#define TARG_LDBL_MAX LDBL_MAX
+#endif /* ifdef LDBL_MAX */
+#endif /* ifndef TARG_LDBL_MAX */
 
 /*
 C++ pointer-to-member type.

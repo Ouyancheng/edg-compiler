@@ -585,11 +585,14 @@ static float float_zero = 0.0;
 
 #endif /* ifndef __CENTERLINE__ */
 
-void make_fp_nan(an_internal_float_value *value)
+a_boolean make_fp_nan(an_internal_float_value *value,
+                      a_float_kind             kind)
 /*
-Make a float quiet Not-a-Number value in *value.
+Make a float quiet Not-a-Number value in *value.  Return FALSE if the operation
+did not succeed or if it is mode-dependent; return TRUE otherwise.
 */
 {
+  a_boolean  err = FALSE, fp_mode_dependent = FALSE;
   float nan;
 
 #ifdef __CENTERLINE__
@@ -606,14 +609,23 @@ Make a float quiet Not-a-Number value in *value.
 #endif /* ifdef __CENTERLINE__ */
   memzero((char *)value, sizeof(an_internal_float_value));
   (void)memcpy((char *)value, (char *)&nan, sizeof(float));
+  if (kind != (a_float_kind)fk_float) {
+    /* Convert the NaN to the right type. */
+    fp_change_kind(value, (a_float_kind)fk_float, value, kind,
+                   &err, &fp_mode_dependent);
+  }  /* if */
+  return !err && !fp_mode_dependent;
 }  /* make_fp_nan */
 
 
-void make_fp_infinity(an_internal_float_value *value)
+a_boolean make_fp_infinity(an_internal_float_value *value,
+                           a_float_kind             kind)
 /*
-Make a float positive Infinity value in *value.
+Make a float positive Infinity value in *value.  Return FALSE if the operation
+did not succeed or if it is mode-dependent; return TRUE otherwise.
 */
 {
+  a_boolean  err = FALSE, fp_mode_dependent = FALSE;
   float infinity;
 
 #ifdef __CENTERLINE__
@@ -630,9 +642,16 @@ Make a float positive Infinity value in *value.
 #endif /* ifdef __CENTERLINE__ */
   memzero((char *)value, sizeof(an_internal_float_value));
   (void)memcpy((char *)value, (char *)&infinity, sizeof(float));
+  if (kind != (a_float_kind)fk_float) {
+    /* Convert the Infinity to the right type. */
+    fp_change_kind(value, (a_float_kind)fk_float, value, kind,
+                   &err, &fp_mode_dependent);
+  }  /* if */
+  return !err && !fp_mode_dependent;
 }  /* make_fp_infinity */
 
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
+
 
 void fp_change_kind(an_internal_float_value *old_value,
                     a_float_kind            old_kind,
@@ -668,6 +687,63 @@ depends on the floating-point mode, *depends_on_fp_mode is returned TRUE
                  sizeof(an_internal_float_value));
   }  /* if */
 }  /* fp_change_kind */
+
+
+a_boolean make_huge_fp_val(an_internal_float_value  *value,
+                           a_float_kind             kind)
+/*
+Store the maximum floating-point value of the given kind in *value.  Return
+FALSE if no such value can be produced; TRUE otherwise.  On IEEE floating-
+point targets, the maximum value is positive infinity.
+*/
+{
+  a_boolean  result;
+
+#if TARG_HAS_IEEE_FLOATING_POINT
+  {
+    /* With IEEE floating point, the generated value should be positive
+       Infinity. */
+    result = make_fp_infinity(value, kind);
+  }
+#else /* !TARG_HAS_IEEE_FLOATING_POINT */
+  /* This is not an IEEE floating-point platform.  Use the configured
+     maximum floating-point values if available. */
+  memzero((char *)value, sizeof(an_internal_float_value));
+  switch (kind) {
+#ifdef TARG_FLT_MAX
+    case fk_float:
+      {
+        float  max_float_value = TARG_FLT_MAX;
+        (void)memcpy((char *)value, (char *)&max_float_value, sizeof(float));
+        result = TRUE;
+      }
+      break;
+#endif /* TARG_FLT_MAX */
+#ifdef TARG_DBL_MAX
+    case fk_double:
+      {
+        double  max_double_value = TARG_DBL_MAX;
+        (void)memcpy((char *)value, (char *)&max_double_value, sizeof(double));
+        result = TRUE;
+      }
+      break;
+#endif /* TARG_DBL_MAX */
+#ifdef TARG_LDBL_MAX
+    case fk_long_double:
+      {
+        long double  max_long_double_value = TARG_LDBL_MAX;
+        (void)memcpy((char *)value, (char *)&max_long_double_value,
+                     sizeof(long double));
+        result = TRUE;
+      }
+      break;
+#endif /* TARG_LDBL_MAX */
+    default:
+      result = FALSE;
+  }  /* switch */
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+  return result;
+}  /* make_huge_fp_val */
 
 
 /*
@@ -1009,15 +1085,7 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
     if (gnu_mode) {
       /* gcc silently uses infinity for values out of range.  The error flag is
          still returned, but will be cleared. */
-      make_fp_infinity(float_value);
-      if (kind != (a_float_kind)fk_float) {
-        /* make_fp_infinity returns a float.  If we need a different kind,
-           convert the infinity to the proper kind. */
-        a_boolean	dummy_err;
-        a_boolean	depends_on_fp_mode;
-        fp_change_kind(float_value, (a_float_kind)fk_float, float_value,
-                       kind, &dummy_err, &depends_on_fp_mode);
-      }  /* if */
+      (void)make_fp_infinity(float_value, kind);
     }  /* if */
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
     *err = TRUE;

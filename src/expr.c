@@ -921,6 +921,106 @@ is after the closing parenthesis of the argument list.
   db_exit();
 }  /* scan_ctor_arguments */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+#if TARG_HAS_IEEE_FLOATING_POINT
+
+static a_boolean is_empty_string_literal(a_constant_ptr  cp)
+/*
+Return TRUE if the given constant is the empty string literal ("") or the
+address thereof.
+*/
+{
+  a_boolean  result;
+
+  if (cp->kind == (a_constant_repr_kind)ck_address &&
+      cp->variant.address.kind == (an_address_base_kind)abk_constant) {
+    cp = cp->variant.address.variant.constant;
+  }  /* if */
+  if (cp->kind == (a_constant_repr_kind)ck_string &&
+      cp->variant.string.length == 1 &&
+      cp->variant.string.value[0] == '\0') {
+    result = TRUE;
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_empty_string_literal */
+
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+
+static a_boolean fold_call_if_possible(an_operand  *op)
+/*
+The given operand must represent a function call.  Some GNU __builtin_xxx
+functions must be constant-folded.  This routine does so by replacing the
+given operand by a constant operand if appropriate.
+*/
+{
+  a_boolean         folded = FALSE;
+  an_expr_node_ptr  call, args;
+  a_constant        result;
+
+  check_assertion(is_expression_operand(op));
+  call = op->variant.expression;
+  check_assertion(call != NULL &&
+                  call->kind == (an_expr_node_kind)enk_operation &&
+                  call->variant.operation.kind ==
+                                             (an_expr_operator_kind)eok_call);
+  args = call->variant.operation.operands;
+  if (args->kind == (an_expr_node_kind)enk_routine_address) {
+    /* A direct call: Examine which routine is called. */
+    a_routine_ptr  rp = args->variant.routine;
+    if (rp->special_kind == (a_special_function_kind)sfk_none) {
+      args = args->next;
+      switch (rp->variant.builtin_function_kind) {
+        case bfk_huge_valf:
+        case bfk_huge_val:
+        case bfk_huge_vall:
+          if (args == NULL && is_floating_type(call->type)) {
+            clear_constant(&result, (a_constant_repr_kind)ck_float);
+            result.type = call->type;
+            folded = make_huge_fp_val(&result.variant.float_value,
+                                      skip_typerefs(call->type)
+                                                        ->variant.float_kind);
+          }  /* if */
+          break;
+#if TARG_HAS_IEEE_FLOATING_POINT
+        case bfk_nanf:
+        case bfk_nan:
+        case bfk_nanl:
+          if (args != NULL && args->next == NULL &&
+              args->kind == (an_expr_node_kind)enk_constant &&
+              is_empty_string_literal(args->variant.constant) &&
+              is_floating_type(call->type)) {
+            clear_constant(&result, (a_constant_repr_kind)ck_float);
+            result.type = call->type;
+            folded = make_fp_nan(&result.variant.float_value,
+                                 skip_typerefs(call->type)
+                                                        ->variant.float_kind);
+          }  /* if */
+          break;
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+        default:
+          /* Nothing to be done. */
+          break;
+      }  /* switch */
+      if (folded) {
+        an_operand  orig_op;
+        copy_operand(op, &orig_op);
+        make_constant_operand(&result, op);
+        restore_operand_details(op, &orig_op);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+        if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+          op->variant.constant.expr = call;
+        }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return folded;
+}  /* fold_call_if_possible */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void scan_function_call(an_operand *operand,
                                an_operand *bound_function_selector,
@@ -965,6 +1065,7 @@ Syntax:
   a_boolean         ignore_call = FALSE;
   a_boolean         saved_evaluated, saved_potentially_evaluated;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean         call_folded_to_constant = FALSE;
 
   db_enter(4, "scan_function_call");
 
@@ -986,15 +1087,11 @@ Syntax:
                                 &call_position) < 0) ?
                                             bound_function_selector->position :
                                             call_position;
-  if (curr_expr_kind_is_const()) {
-    /* Routine calls not allowed in constant expressions. */
-    error_in_operand(ec_bad_constant_function_call, operand);
-  } else if (is_expression_operand(operand) &&
-             is_operation_node(operand->variant.expression) &&
-             (op = operand->variant.expression->variant.operation.kind,
-              (op == (an_expr_operator_kind)eok_vacuous_destructor_call ||
-               op == (an_expr_operator_kind)eok_value_vacuous_destructor_call)
-                                                                           )) {
+  if (is_expression_operand(operand) &&
+      is_operation_node(operand->variant.expression) &&
+      (op = operand->variant.expression->variant.operation.kind,
+       (op == (an_expr_operator_kind)eok_vacuous_destructor_call ||
+        op == (an_expr_operator_kind)eok_value_vacuous_destructor_call))) {
     /* This operand was generated from a vacuous destructor call, e.g.,
        p->int::~int().
     */
@@ -1404,6 +1501,16 @@ Syntax:
                            /*compiler_generated=*/FALSE,
                            /*is_conversion=*/FALSE,
                            &call_position, result);
+#if GNU_EXTENSIONS_ALLOWED
+    if (gnu_mode) {
+      /* Some __builtin_xxx functions act as constant-expressions. */
+      call_folded_to_constant = fold_call_if_possible(result);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
+  if (!call_folded_to_constant && curr_expr_kind_is_const()) {
+    /* Routine calls not allowed in constant expressions. */
+    error_in_operand(ec_bad_constant_function_call, result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);

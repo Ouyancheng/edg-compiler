@@ -1,5 +1,17 @@
 Version 3.4
 
+11/19/03 GNU mode: built-in functions in constant-expressions
+
+In GNU modes, the front end now evaluates certain calls to built-in functions
+at compile time, which allows these calls to appear in constant-expressions.
+Currently, calls to __builtin_huge_valf, __builtin_huge_val, and
+__builtin_huge_vall are evaluated.  In addition, calls to __builtin_nanf,
+__builtin_nan, and __builtin_nanl are evaluated if they are called with
+an argument that is the empty string literal.  For example:
+
+  float f = __builtin_nan("");  // Accepted in GNU C mode because the
+                                // call is treated as a constant.
+
 11/19/03 Memory allocation problem with multiple translation units
 
 A problem in the way in which memory was allocated when using multiple

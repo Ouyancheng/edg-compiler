@@ -3544,7 +3544,8 @@ expands to this value.
   if (nan_constant == (a_constant_ptr)NULL) {
     nan_constant = fs_constant((a_constant_repr_kind)ck_float);
     nan_constant->type = float_type((a_float_kind)fk_float);
-    make_fp_nan(&nan_constant->variant.float_value);
+    (void)make_fp_nan(&nan_constant->variant.float_value,
+                      (a_float_kind)fk_float);
   }  /* if */
   make_constant_operand(nan_constant, result);
 }  /* make_nan_operand */
@@ -3563,7 +3564,8 @@ macro INFINITY that expands to this value.
   if (infinity_constant == (a_constant_ptr)NULL) {
     infinity_constant = fs_constant((a_constant_repr_kind)ck_float);
     infinity_constant->type = float_type((a_float_kind)fk_float);
-    make_fp_infinity(&infinity_constant->variant.float_value);
+    (void)make_fp_infinity(&infinity_constant->variant.float_value,
+                           (a_float_kind)fk_float);
   }  /* if */
   make_constant_operand(infinity_constant, result);
 }  /* make_infinity_operand */
