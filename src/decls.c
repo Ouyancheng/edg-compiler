@@ -3316,35 +3316,43 @@ a pointer to it in *symbol_ptr.
   } else if (C_dialect == C_dialect_cplusplus) {
     /* No symbol by this name.  See if this is a tagless class, struct,
        union, or enum type.  If so, the present name will serve as the
-       tag (ARM 7.1.3). */
-    if (!is_error_type(type_ptr) && !is_error_locator(*locator) &&
-        (type_ptr->source_corresp.assoc_info == NULL ||
-          is_unnamed_class_symbol((a_symbol_ptr)type_ptr->
-                                             source_corresp.assoc_info))) {
-      /* Note that we do NOT want to do a skip_typerefs on the type.  Only
-         if *type_ptr itself lacks an associated tag symbol do we want
-         to create a new symbol. */
-      if (type_ptr->kind == (a_type_kind)tk_class ||
-          type_ptr->kind == (a_type_kind)tk_struct) {
-        sym = enter_local_symbol((a_symbol_kind)sk_class_or_struct_tag,
-                                 locator, decl_scope_level,
-                                 /*suppress_redecl_error=*/FALSE);
-        sym->variant.class_struct_union.type = type_ptr;
-      } else if (type_ptr->kind == (a_type_kind)tk_union) {
-        sym = enter_local_symbol((a_symbol_kind)sk_union_tag,
-                                 locator, decl_scope_level,
-                                 /*suppress_redecl_error=*/FALSE);
-        sym->variant.class_struct_union.type = type_ptr;
-      } else if (type_ptr->kind == (a_type_kind)tk_integer &&
-                 type_ptr->variant.integer.enum_type) {
-        sym = enter_local_symbol((a_symbol_kind)sk_enum_tag, locator,
-                                 decl_scope_level,
-                                 /*suppress_redecl_error=*/FALSE);
-        sym->variant.type = type_ptr;
-      }  /* if */
-      if (sym != NULL) {
-        suppress_redecl_error = TRUE;
-        set_source_corresp(&(type_ptr->source_corresp), sym);
+       tag (ARM 7.1.3).  Note that we do NOT want to do a skip_typerefs on
+       the type; only if *type_ptr itself lacks an associated tag symbol
+       with a name do we want to create a new symbol. */
+    if (!is_error_type(type_ptr) && !is_error_locator(*locator)) {
+      a_symbol_ptr old_sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
+      if (old_sym == NULL || is_unnamed_class_symbol(old_sym)) {
+        if (type_ptr->kind == (a_type_kind)tk_class ||
+            type_ptr->kind == (a_type_kind)tk_struct) {
+          sym = enter_local_symbol((a_symbol_kind)sk_class_or_struct_tag,
+                                   locator, decl_scope_level,
+                                   /*suppress_redecl_error=*/FALSE);
+          sym->variant.class_struct_union.type = type_ptr;
+        } else if (type_ptr->kind == (a_type_kind)tk_union) {
+          sym = enter_local_symbol((a_symbol_kind)sk_union_tag,
+                                   locator, decl_scope_level,
+                                   /*suppress_redecl_error=*/FALSE);
+          sym->variant.class_struct_union.type = type_ptr;
+        } else if (type_ptr->kind == (a_type_kind)tk_integer &&
+                   type_ptr->variant.integer.enum_type) {
+          sym = enter_local_symbol((a_symbol_kind)sk_enum_tag, locator,
+                                   decl_scope_level,
+                                   /*suppress_redecl_error=*/FALSE);
+          sym->variant.type = type_ptr;
+        }  /* if */
+        if (sym != NULL) {
+          suppress_redecl_error = TRUE;
+          set_source_corresp(&(type_ptr->source_corresp), sym);
+          if (old_sym != NULL) {
+            if (is_class_symbol(sym)) {
+              sym->variant.class_struct_union.extra_info =
+                              old_sym->variant.class_struct_union.extra_info;
+            }  /* if */
+            sym->class_of_which_a_member = old_sym->class_of_which_a_member;
+            sym->referenced = old_sym->referenced;
+            sym->defined = old_sym->defined;
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
