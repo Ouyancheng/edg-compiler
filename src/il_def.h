@@ -4439,9 +4439,7 @@ typedef struct a_new_delete_supplement {
   an_expr_node_ptr
 		arg;	/* For new, the argument list for the "new" call,
 			   provided even when routine == NULL.  For delete,
-			   the pointer to the object to be deleted; if the
-			   two-argument version of delete is used, the size
-			   is attached as a second argument. */
+			   the pointer to the object to be deleted. */
   a_dynamic_init_ptr
 		dynamic_init;
 			/* If non-NULL, points to a dynamic initialization
