@@ -898,7 +898,8 @@ scope lookup.  options specifies the options being used for the lookup.
     } else {
       /* If new_sym is not already in the lookup set, add it. */
       if (!already_in_lookup_set(curr_sym, new_sym)) {
-        new_sym = make_namespace_projection_symbol(new_sym, locator,
+        new_sym = make_namespace_projection_symbol(new_sym,
+                                                   &locator->source_position,
                                                    depth_scope_stack);
         curr_sym = add_symbol_to_overload_list(new_sym, curr_sym,
                                                qualified_lookup,
@@ -930,9 +931,10 @@ scope lookup.  options specifies the options being used for the lookup.
     for (; rout_sym != NULL; rout_sym = rout_sym->next) {
       /* If rout_sym is not already in the lookup set, add it. */
       if (!already_in_lookup_set(curr_sym, rout_sym)) {
-        new_rout_sym = make_namespace_projection_symbol(rout_sym,
-                                                        locator,
-                                                        depth_scope_stack);
+        new_rout_sym =
+                   make_namespace_projection_symbol(rout_sym,
+                                                    &locator->source_position,
+                                                    depth_scope_stack);
         curr_sym = add_symbol_to_overload_list(new_rout_sym, curr_sym,
                                                qualified_lookup,
                                                qualifier_namespace);

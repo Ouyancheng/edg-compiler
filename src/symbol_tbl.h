@@ -2447,10 +2447,10 @@ extern void relink_unnamed_tag_symbol(a_symbol_ptr      sym,
 
 extern a_symbol_ptr enter_undefined_member_symbol(a_symbol_locator *locator);
 
-extern
-a_symbol_ptr make_namespace_projection_symbol(a_symbol_ptr     fund_sym,
-                                              a_symbol_locator *locator,
-                                              a_scope_depth    scope_depth);
+extern a_symbol_ptr make_namespace_projection_symbol(
+                                              a_symbol_ptr       fund_sym,
+                                              a_source_position  *pos,
+                                              a_scope_depth      scope_depth);
 
 extern void set_namespace_projection_symbol(a_symbol_ptr     proj_sym,
                                             a_symbol_ptr     fund_sym,

@@ -2956,10 +2956,10 @@ void set_namespace_projection_symbol(a_symbol_ptr     proj_sym,
                                      a_symbol_ptr     fund_sym,
                                      a_scope_depth    scope_depth)
 /*
-Initialize the fields of the symbol proj_sym to point to be a
-a namespace projection symbol that points to fund_sym.
-proj_sym must already point to a sk_namespace_projection symbol.
-synthesized is TRUE if this is a synthesized namespace projection symbol.
+Initialize the fields of the symbol proj_sym to point to be a namespace
+projection symbol that points to fund_sym.  proj_sym must already point to
+an sk_namespace_projection symbol. scope_depth is the depth in the scope
+stack of the projection symbol.
 */
 {
   /* Make sure fund_sym is really a fundamental symbol and not another
@@ -2970,19 +2970,19 @@ synthesized is TRUE if this is a synthesized namespace projection symbol.
 }  /* set_namespace_projection_symbol */
 
 
-a_symbol_ptr make_namespace_projection_symbol(a_symbol_ptr     fund_sym,
-                                              a_symbol_locator *locator,
-                                              a_scope_depth    scope_depth)
+a_symbol_ptr make_namespace_projection_symbol(a_symbol_ptr       fund_sym,
+                                              a_source_position  *pos,
+                                              a_scope_depth      scope_depth)
 /*
-Create a synthesized namespace projection symbol and set it to point
-to fund_sym.  synthesized is TRUE if this is a synthesized namespace
-projection symbol.
+Create a namespace projection symbol and set it to point to fund_sym.  pos
+is the source position to be associated with the projection symbol, and
+scope_depth is its depth in the scope stack.
 */
 {
   a_symbol_ptr	sym;
 
   sym = alloc_symbol((a_symbol_kind)sk_namespace_projection,
-                     fund_sym->header, &locator->source_position);
+                     fund_sym->header, pos);
   set_namespace_projection_symbol(sym, fund_sym, scope_depth);
   return sym;
 }  /* make_namespace_projection_symbol */
@@ -3004,7 +3004,9 @@ is called.
 {
   a_symbol_ptr	sym_ptr;
 
-  sym_ptr = make_namespace_projection_symbol(fund_sym, location, scope_depth);
+  sym_ptr = make_namespace_projection_symbol(fund_sym,
+                                             &location->source_position,
+                                             scope_depth);
   sym_ptr->is_error = location->is_error;
   /* Set the locator to point to the symbol entered. */
   location->specific_symbol = sym_ptr;
@@ -3061,7 +3063,8 @@ the options being used for the lookup.
   a_scope_pointers_block_ptr	pointers_block;
   a_boolean			can_be_reused;
 
-  sym_ptr = make_namespace_projection_symbol(fund_sym, location,
+  sym_ptr = make_namespace_projection_symbol(fund_sym,
+                                             &location->source_position,
                                              depth_scope_stack);
   sym_ptr->is_error = location->is_error;
   /* Set the locator to point to the symbol entered. */

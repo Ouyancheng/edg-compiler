@@ -7861,8 +7861,10 @@ current scope.
             } else {
               /* Add a new symbol to the overload set. */
               a_symbol_ptr  new_overload_sym;
-              new_sym = make_namespace_projection_symbol(fund_sym, &locator,
-                                                         depth_scope_stack);
+              new_sym =
+                  make_namespace_projection_symbol(fund_sym,
+                                                   &locator.source_position,
+                                                   depth_scope_stack);
               new_overload_sym =
                         add_symbol_to_overload_list(new_sym, overload_sym,
                                                     /*use_namespace=*/FALSE,
