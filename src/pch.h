@@ -117,15 +117,31 @@ typedef struct a_pch_saved_variable {
   sizeof_t	var_size;
 			/* The size of the variable (that is, the number of
 			   bytes that comprise its value). */
+#if DEBUG
+  char		*var_name;
+			/* The name of the variable being saved.  Used for
+			   debug output purposes. */
+#endif /* DEBUG */
 } a_pch_saved_variable;
+
+/*
+Macro to generate a string containing a variable name.  Only used when
+debug code is enabled and when using a compiler that support ANSI C
+preprocessing.  The actual string generated is ', "var-name"'.
+*/
+#if DEBUG && USING_ISO_C
+#define pch_saved_var_name(var) , #var
+#else /* !(DEBUG && USING_ISO_C) */
+#define pch_saved_var_name(var)	/* nothing */
+#endif /* !(DEBUG && USING_ISO_C) */
 
 /*
 Macro used to initialize one element of an array of a_pch_saved_variable.
 */
 #define pch_saved_var_array_elem(var)                                   \
-  { (a_void_ptr)&var, sizeof(var) }
+  { (a_void_ptr)&var, sizeof(var) pch_saved_var_name(var) }
 #define pch_saved_var_array_terminating_elem()                          \
-  { (a_void_ptr)NULL, (sizeof_t)0 }
+  { (a_void_ptr)NULL, (sizeof_t)0 pch_saved_var_name(NULL) }
 
 extern void register_pch_saved_variables(a_pch_saved_variable array[]);
 
