@@ -56,9 +56,10 @@ preprocessing operation.
 #define suppress_pragma_processing					\
   (fetch_pp_tokens || in_preprocessing_directive)
 
+
 /*
 Macro that determines whether any of the initial special case tests
-at the beginning of get_token need to be processed.
+at the beginning of get_token need to be done.
 */
 #define recalc_any_initial_get_token_tests_needed()			\
   (any_initial_get_token_tests_needed = curr_token_pragmas != NULL ||	\
@@ -678,7 +679,7 @@ in the cache, nothing is done.
     /* Clear the cache to be neat. */
     cache->first_token = cache->last_token = NULL;
     /* Indicate that the special case code at the beginning of get_token
-       is needed to cached token rescanning. */
+       is needed to check for cached token rescanning. */
     any_initial_get_token_tests_needed = TRUE;
     /* Fetch the first cached token. */
     (void)get_token();
@@ -3928,6 +3929,97 @@ reusable value of the constant.
 }  /* scan_literal_constant */
 
 
+static void concat_adjacent_string_literals(void)
+/*
+The current token (not in curr_token yet) is a string literal
+(tok_string_literal), and in the current lexical mode normal (not pp)
+tokens should be fetched, and concatenation of adjacent string literals
+should be done.  Look to see if the next token of input is a string literal,
+and if so, concatenate it with the current token.  Loop to pick up all
+the adjacent string literals.  The C standard says that a wide string literal
+next to a normal string literal is undefined; we choose not to concatenate
+them unless wchar_t is char.
+*/
+{
+  an_integer_kind    centity_int_kind;
+  a_token_cache      cache;
+  a_cached_token_ptr ctp, ctp_next;
+
+  db_enter(5, "concat_adjacent_string_literals");
+  check_assertion_str(!fetch_pp_tokens && do_string_literal_concatenation,
+                      "concat_adjacent_string_literals: bad mode");
+  /* Get the string element integer kind from the string. */
+  centity_int_kind = plain_char_int_kind;
+  /* Watch out for the case where the constant is an error constant. */
+  if (!is_error_constant(&const_for_curr_token)) {
+    centity_int_kind =
+                     char_int_kind_from_string_type(const_for_curr_token.type);
+  }  /* if */
+  /* Start a token cache in which we will accumulate all the adjacent
+     string literals.  Usually, this will be just a single string literal. */
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  /* Set up the first string literal as the current token, so it can be
+     cached.  This routine is called from get_token at a point where
+     there is, in effect, no current token, so we're just anticipating the
+     action that would be done on return from get_token here.
+     const_for_curr_token is already set; start_of_curr_token is already
+     set (if it needs to be); len_of_curr_token does not need to be set. */
+  curr_token = tok_string_literal;
+  /* Loop as long as the next token is a string literal. */
+  for (;;) {
+    /* Save the current token (a string literal) by adding it to the token
+       cache. */
+    cache_curr_token(&cache);
+    /* Scan the next token.  Suppress string literal concatenation so that
+       when scanning something like
+         "aaa" "bbb" "ccc"
+       the get_token call at "bbb" does not fetch "bbbccc" (which would cause
+       undesirable behavior in terms of memory use). */
+    do_string_literal_concatenation = FALSE;
+    (void)get_token();
+    do_string_literal_concatenation = TRUE;
+    /* End the loop if the new token is not a string literal. */
+    if (curr_token != tok_string_literal) break;
+    /* Also end the loop if the new string is wide and the old is not, or
+       vice-versa (actually, if the underlying character representations
+       are different). */
+    if (!is_error_constant(&const_for_curr_token) &&
+        centity_int_kind != 
+              char_int_kind_from_string_type(const_for_curr_token.type)) break;
+    /* This string literal is okay, and will be added to the concatenation
+       in the token cache. */
+    /* Process pragmas between string literals before going on to the next
+       token.  This is done so that the pragmas between the strings do
+       not go into the cache. */
+    process_curr_token_pragmas();
+    recalc_any_initial_get_token_tests_needed();
+  }  /* for */
+  /* Here, all the adjacent string literals have been captured in a token
+     cache.  Concatenate them into a single string literal. */
+  if (cache.first_token->next == NULL) {
+    /* The common degenerate case of a single string literal requires no
+       concatenation. */
+  } else {
+    /* More than one string literal -- concatenate. */
+    concat_string_literals(&cache, centity_int_kind);
+    /* The constants have been concatenated into the first constant in the
+       token cache.  Discard the token cache entries for the tokens after
+       the first one. */
+    for (ctp = cache.first_token->next; ctp != NULL; ctp = ctp_next) {
+      ctp_next = ctp->next;
+      free_cached_token(ctp);
+    }  /* for */
+    cache.first_token->next = NULL;
+    cache.last_token = cache.first_token;
+    cache.token_count = 1;
+  }  /* if */
+  /* Stick the remaining single string literal back onto the input token
+     stream (ahead of the non-string-literal token that stopped the loop). */
+  rescan_cached_tokens(&cache);
+  db_exit();
+}  /* concat_adjacent_string_literals */
+
+
 /*
 Remember that a token has been gotten from the current source line.
 Remember the start position (sequence number, column) of the token,
@@ -3956,9 +4048,12 @@ the current token, and len_of_curr_token will be set to its length.
 If expand_macros is TRUE, preprocessing macros are expanded as they are
 scanned.  The caller sees only the tokens after expansion.
 
+When fetch_pp_tokens is FALSE, do_string_literal_concatenation controls
+whether adjacent string literals are concatenated.
+
 If in_preprocessing_directive is TRUE, the definition of white space is
 changed to that for within preprocessing directives, and newline is
-returned as a token.  If in_preprocessing_directive is TRUE
+returned as a token.  If in_preprocessing_directive is TRUE and
 processing_C_code_in_pragma is FALSE, keywords are not recognized, and
 "#", and "##" are recognized and returned as tokens.
 
@@ -4001,14 +4096,11 @@ If in_asm_function_body is TRUE, return tok_newline for ends of lines.
   register a_symbol_ptr	assoc_symbol;
   a_boolean             err;
   unsigned long         num_chars;
-  a_constant		con_copy;
-  a_source_position     save_pos_curr_token;
   a_symbol_kind		id_kind;
   a_boolean		rescan;
 #if DEBUG
   a_boolean             gotten_from_cache = FALSE;
 #endif /* DEBUG */
-
 
   if (any_initial_get_token_tests_needed) {
     /* Before fetching a new token, do any processing required for pragmas
@@ -4646,85 +4738,19 @@ three_char_token:
 concatenate_adjacent_string_literals:
   /* Come here after scanning a string literal or wide string literal.
      If appropriate, string literals following the current one will be
-     concatenated with it.  See 2.1.1.2, translation phase 6. */
-  if (!(fetch_pp_tokens ||
-        (in_preprocessing_directive && !processing_C_code_in_pragma))) {
-    /* The standard says that a wide string literal next to a normal
-       string literal is undefined; we choose not to concatenate them
-       unless wchar_t is char. */
-    /* Get the string element integer kind from the string. */
-    an_integer_kind centity_int_kind = plain_char_int_kind;
-    if (ctoken == tok_string_literal &&
-        const_for_curr_token.kind == (a_constant_repr_kind)ck_string) {
-      centity_int_kind =
-                     char_int_kind_from_string_type(const_for_curr_token.type);
-    }  /* if */
-    /* Scan forward to the next token, to see if it is another string literal.
-       One catch: the second string literal may come from a macro expansion,
-       so if the next thing looks like the start of an identifier, scan
-       it and expand it.  Similarly, if the next token is "#", it might
-       be the start of a preprocessing directive, so scan it. */
-    /* remember_token_start should already have been called before the
-       token was accumulated. */
-    copy_source_position(pos_curr_token, save_pos_curr_token);
-    skip_white_space();
-    while (*curr_char_loc == '"' || *curr_char_loc == '#' ||
-           (*curr_char_loc == 'L' && *(curr_char_loc+1) == '"') ||
-           (is_id_char[*curr_char_loc-CHAR_MIN] &&
-            !isdigit((unsigned char)*curr_char_loc) &&
-            (*curr_char_loc != 'L' || *(curr_char_loc+1) != '\''))) {
-      /* The next thing is a string literal, a wide string literal,
-          or an identifier (the last test rules out wide character constants,
-          like L'a'). */
-      /* Scan the next token.  Scan it as a pp token to avoid string literal
-         concatenation and errors during tokenization.  Note that we know that
-         fetch_pp_tokens is already FALSE, because of the test above. */
-      /* Save the current string literal value because const_for_curr_token
-         may be changed in the scan forward. */
-      copy_constant(&const_for_curr_token, &con_copy);
-      fetch_pp_tokens = TRUE;
-      (void)get_token();
-      fetch_pp_tokens = FALSE;
-      /* Restore the value of the current string literal. */
-      copy_constant(&con_copy, &const_for_curr_token);
-      curr_char_loc = start_of_curr_token;
-      if (curr_token != tok_string_literal) {
-        /* The next token is not a string literal, so do not take it; leave
-           it for next time. */
-        start_of_curr_token = NULL;
-        break;
-      } else if (centity_int_kind != ((*start_of_curr_token == 'L') ?
-                                         targ_wchar_t_int_kind :
-                                         plain_char_int_kind)) {
-        /* If the new string will not have the same underlying character
-           entity type as what we have so far, do not add the new string
-           to the old one.  That happens when a wide string literal is next
-           to a normal string literal and wchar_t is not the same as char. */
-        start_of_curr_token = NULL;
-        break;
-      }  /* if */
-      /* The next token is a string literal. */
-      /* Note that the constant must be re-scanned, not just converted,
-         because we need to have the count of characters.  In particular,
-         there is a problem if the macro that generated this string has
-         previously been expanded as a manifest constant; in that case,
-         the string has not been scanned at this time. */
-      if (*start_of_curr_token == 'L') {
-        ctoken = scan_wide_string_literal();
-      } else {
-        ctoken = scan_string_literal();
-      }  /* if */
-      if (ctoken == tok_string_literal) {
-        /* No error; concatenate the two. */
-        concat_string_literals(&con_copy, &const_for_curr_token);
-      }  /* if */
-      skip_white_space();
-    }  /* while */
-    /* Use the source position of the initial piece of the string as the
-       position for the overall compound token. */
-    copy_source_position(save_pos_curr_token, pos_curr_token);
+     concatenated with it.  See ANSI C 2.1.1.2, translation phase 6. */
+  if (fetch_pp_tokens ||
+      (in_preprocessing_directive && !processing_C_code_in_pragma) ||
+      !do_string_literal_concatenation) {
+    /* String literal concatenation should not be done in the current mode. */
+    goto end_of_token_scan_b;
   }  /* if */
-  goto end_of_token_scan_b;
+  /* Do string literal concatenation. */
+  check_assertion_str(ctoken == tok_string_literal,
+                      "get_token: concatenating string literal, bad token");
+  concat_adjacent_string_literals();
+  start_of_curr_token = NULL;
+  goto return_from_token_scan;
 }  /* get_token */
 
 
@@ -4924,7 +4950,7 @@ This routine cannot be used when fetching raw preprocessing tokens.
   a_token_kind 		ntoken;
   a_cached_token_ptr	ctp = NULL;
 
-  db_enter(3, "next_token");
+  db_enter(5, "next_token");
   if (in_preprocessing_directive && curr_token == tok_newline) {
     /* If we have reached the end of a preprocessing directive, don't attempt
        to scan tokens past the end.  Return a tok_newline without actually
@@ -4936,8 +4962,8 @@ This routine cannot be used when fetching raw preprocessing tokens.
      just be able to fetch the token kind from the next token on the
      list to be rescanned.  This code does not handle some of the more complex
      cases such as when we have to scan over the end of a reusable cache.
-     In these cases we use the more general (and slower) method is used
-     to fetch the next token. */
+     In those cases we use the more general (and slower) method to fetch
+     the next token. */
   if (cached_token_rescan_list != NULL) {
     /* There are tokens on the non-reusable rescan list. */
     ctp = cached_token_rescan_list;
@@ -6919,8 +6945,6 @@ is actived is popped here.
   /* Pop the pragma scope. */
   pop_scope();
 }  /* wrapup_rescan_of_pragma_tokens */
-
-
 
 
 #if DEBUG
