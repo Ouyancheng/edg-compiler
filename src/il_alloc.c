@@ -941,9 +941,9 @@ variant fields to default values.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   pte->autonomous_primary_tag_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if DO_IL_LOWERING && GENERATE_EH_TABLES
+#if DO_IL_LOWERING
   pte->typeinfo_var = NULL;
-#endif /* DO_IL_LOWERING && GENERATE_EH_TABLES */
+#endif /* DO_IL_LOWERING */
   set_type_kind(pte, kind);
 }  /* clear_type */
 

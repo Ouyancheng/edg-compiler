@@ -860,11 +860,11 @@ Display the indicated type entry.
     disp_boolean("use_cfront_transitional_nested_type_name_mangling", TRUE);
   }  /* if */
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-#if DO_IL_LOWERING && GENERATE_EH_TABLES
+#if DO_IL_LOWERING
   if (ptr->typeinfo_var != NULL) {
     disp_ptr("typeinfo_var", (char *)ptr->typeinfo_var, iek_variable);
   }  /* if */
-#endif /* DO_IL_LOWERING && GENERATE_EH_TABLES */
+#endif /* DO_IL_LOWERING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ptr->autonomous_primary_tag_decl) {
     disp_boolean("autonomous_primary_tag_decl", TRUE);

@@ -352,9 +352,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_type_ptr, iek_type);
         walk_list(ptr->based_types, a_based_type_list_member_ptr,
                   iek_based_type_list_member);
-#if DO_IL_LOWERING && GENERATE_EH_TABLES
+#if DO_IL_LOWERING
         remap_ptr(ptr->typeinfo_var, a_variable_ptr, iek_variable);
-#endif /* DO_IL_LOWERING && GENERATE_EH_TABLES */
+#endif /* DO_IL_LOWERING */
         switch (ptr->kind) {
           case tk_error:
           case tk_unknown:
