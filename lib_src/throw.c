@@ -61,6 +61,14 @@ typedef struct a_throw_stack_entry {
 			   (that is not currently in a handler) at
 			   the point at which the throw was started.
 			   This is used to detect abandoned throws. */
+  a_throw_stack_entry_ptr
+		primary_entry;
+			/* If this is a rethrow, points to the throw stack
+			   entry of the original throw. */
+  unsigned long	use_count;
+			/* Present only in primary entries (not rethrows).
+			   Represents the number of throw stack entries
+			   that are still active that refer to the object. */
   a_byte_boolean
 		is_rethrow;
 			/* TRUE if this entry represents a rethrow.
@@ -681,10 +689,10 @@ entry is returned in etsp_found.
 #endif /* !ABI_CHANGES_FOR_RTTI */
     } else if ((is_pointer(etsp->flags) == is_pointer(flags)) &&
 	       type_info->base_class_entries != NULL &&
-	       derived_to_base_conversion(object_ptr, &new_ptr, type_info,
-					  etsp->type_info,
-					  &local_access_flags,
-                                          use_access_flags)) {
+	       __derived_to_base_conversion(object_ptr, &new_ptr, type_info,
+					    etsp->type_info,
+					    &local_access_flags,
+                                            use_access_flags)) {
       /* A base class of the class that was thrown.  If the base class
 	 is ambiguous or inaccessible then the base class flag will not
          be set.  The pointer is converted from a pointer to the derived 
@@ -727,10 +735,8 @@ indicate that the throw stack entry may be discarded when it reaches the
 top of the throw stack.
 */
 {
-  void*				object_address = tsep->object_address;
+  void*				object_address;
   a_throw_stack_entry_ptr	primary_tsep;
-  a_boolean			can_be_destroyed = TRUE;
-  a_boolean			entry_found = FALSE;
 
 #if DEBUG
   if (__debug_level >= 6) {
@@ -740,39 +746,25 @@ top of the throw stack.
   }  /* if */
 #endif /* DEBUG */
   tsep->discard_entry = TRUE;
-  /* Go back through the throw stack and find the entry whose object is being
-     destroyed.  If tsep refers to an entry associated with a rethrow, keep
-     going until the primary entry is found.  Make sure that all of the
-     entries (the primary and any rethrows) all have the discard flag set.
-     If any of them don't have the discard flag set, then the object can't
-     be destroyed yet. */
-  for (primary_tsep = curr_throw_stack_entry;;
-       primary_tsep = primary_tsep->next) {
-    if (primary_tsep == tsep) entry_found = TRUE;
-    if (!primary_tsep->discard_entry) can_be_destroyed = FALSE;
-    /* If this entry is not a rethrow, then it is either the primary
-       entry (in which case entry_found will be TRUE) or it must mean that
-       the previous entries on the stack were associated with some other
-       primary entry (in which case the can_be_destroyed flag should be
-       reset). */
-    if (!primary_tsep->is_rethrow) {
-      if (entry_found) break;
-      can_be_destroyed = TRUE;
-    }  /* if */
-  }  /* for */
+  /* If this is a rethrow, get a pointer to the throw stack entry associated
+     with the original throw. */
+  primary_tsep = tsep->is_rethrow ? tsep->primary_entry : tsep;
+  primary_tsep->use_count--;
   /* If the entry can be destroyed, and the destructor has not already been
      called, then call it now. */
-  if (can_be_destroyed && !primary_tsep->dtor_called) {
+  if (primary_tsep->use_count == 0 && !primary_tsep->dtor_called) {
     /* Call the destructor for the object if needed. */
     primary_tsep->dtor_called = TRUE;
-    if (tsep->object_copy_complete && !is_pointer(tsep->flags)) {
+    object_address = primary_tsep->object_address;
+    if (primary_tsep->object_copy_complete &&
+        !is_pointer(primary_tsep->flags)) {
 #if DEBUG
       if (__debug_level >= 4) {
         fprintf(__f_debug, "Destroying object at %p\n", object_address);
       }  /* if */
 #endif /* DEBUG */
       a_destructor_ptr	dtor_ptr;
-      dtor_ptr = (a_destructor_ptr)tsep->type_info->destructor;
+      dtor_ptr = (a_destructor_ptr)primary_tsep->type_info->destructor;
       if (dtor_ptr != NULL) {
         (dtor_ptr)(object_address, 2);
       }  /* if */
@@ -999,12 +991,13 @@ a try block with a catch that matches the type of the object thrown.
 }  /* __throw */
 
 
-static void push_throw_stack(a_type_info_impl_ptr  type_info,
-			     an_ETS_flag_set	   flags,
-                             an_access_flag_string access_flags,
-                             a_boolean             use_access_flags,
-			     void*		   object_address,
-			     a_boolean		   is_rethrow)
+static void push_throw_stack(a_type_info_impl_ptr    type_info,
+			     an_ETS_flag_set	     flags,
+                             an_access_flag_string   access_flags,
+                             a_boolean               use_access_flags,
+			     void*		     object_address,
+			     a_boolean		     is_rethrow,
+                             a_throw_stack_entry_ptr primary_entry)
 /*
 Push an entry onto the throw stack and initialize its fields.
 */
@@ -1022,6 +1015,15 @@ Push an entry onto the throw stack and initialize its fields.
   tsep->use_access_flags = use_access_flags;
   tsep->object_address = object_address;
   tsep->pointer_buffer = NULL;
+  tsep->primary_entry = primary_entry;
+  tsep->use_count = 0;
+  /* If this is a rethrow, increment the use count of the primary entry.
+     Otherwise, increment the use count of this entry. */
+  if (is_rethrow) {
+    primary_entry->use_count++;
+  } else {
+    tsep->use_count++;
+  }  /* if */
   tsep->is_rethrow = is_rethrow;
   tsep->dtor_called = FALSE;
   tsep->discard_entry = FALSE;
@@ -1055,7 +1057,13 @@ EXTERN_C void __rethrow(void)
 Rethrow the current thrown object.
 */
 {
-  if (curr_throw_stack_entry == NULL || !curr_throw_stack_entry->in_handler) {
+  a_throw_stack_entry_ptr	tsep = curr_throw_stack_entry;
+
+  /* Find the throw stack entry for the throw currently being handled. */
+  for (; tsep != NULL; tsep = tsep->next) {
+    if (tsep->in_handler) break;
+  }  /* for */
+  if (tsep == NULL) {
     /* No handler is currently active. */
     __call_terminate();
   }  /* if */
@@ -1064,7 +1072,8 @@ Rethrow the current thrown object.
 		   curr_throw_stack_entry->access_flags,
 		   curr_throw_stack_entry->use_access_flags,
 		   curr_throw_stack_entry->object_address,
-		   /*is_rethrow=*/TRUE);
+		   /*is_rethrow=*/TRUE,
+                   tsep);
   __throw();
 }  /* __rethrow */
 
@@ -1084,7 +1093,8 @@ because that is how it is passed by the code generated by the front end.
   object_address = (void *)eh_alloc_on_stack(size);
   push_throw_stack(type_info, ets_flags, access_flags,
                    /*use_access_flags=*/TRUE,
-		   object_address, /*is_rethrow=*/FALSE);
+		   object_address, /*is_rethrow=*/FALSE,
+                   (a_throw_stack_entry_ptr)NULL);
   return object_address;
 }  /* __throw_alloc */
 
@@ -1105,7 +1115,8 @@ because that is how it is passed by the code generated by the front end.
   object_address = (void *)eh_alloc_on_stack(size);
   push_throw_stack(type_info, ets_flags, (an_access_flag_string)NULL,
 	           /*use_access_flags=*/FALSE, object_address,
-		   /*is_rethrow=*/FALSE);
+		   /*is_rethrow=*/FALSE,
+                   (a_throw_stack_entry_ptr)NULL);
   return object_address;
 }  /* __throw_setup */
 #endif /* ABI_CHANGES_FOR_RTTI */

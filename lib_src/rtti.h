@@ -143,13 +143,13 @@ is accessible or not.
 			   not accessible.  Could be caused by a base
                            being ambiguous. */
 
-extern
-a_boolean derived_to_base_conversion(void**		   p_ptr,
-				     void**                p_new_ptr,
-				     a_type_info_impl_ptr  class_info,
-				     a_type_info_impl_ptr  base_info,
-				     an_access_flag_string *access_flags,
-				     a_boolean             use_access_flags);
+EXTERN_C
+a_boolean __derived_to_base_conversion(void**		   p_ptr,
+				       void**                p_new_ptr,
+				       a_type_info_impl_ptr  class_info,
+				       a_type_info_impl_ptr  base_info,
+				       an_access_flag_string *access_flags,
+				       a_boolean             use_access_flags);
 #endif /* ifndef _RTTI_H */
 
 

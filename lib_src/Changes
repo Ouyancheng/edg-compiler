@@ -1,5 +1,12 @@
 Version 2.32
 
+2/7/96   Rethrow failed while a new throw was being processed
+
+If a rethrow occurred after a the processing of a nested throw had
+already begun, but before the nested throw entered a handler, the
+runtime incorrectly called unexpected because it believed that no
+handler was active.  This has been fixed.
+
 2/5/96   incorrect deallocation routine may be called if an exception is
          thrown while an array is being destroyed
 

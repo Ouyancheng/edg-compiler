@@ -23,12 +23,14 @@ Run-time type identification.
 #include "vtbl.h"
 #endif /* ABI_CHANGES_FOR_RTTI */
 
-a_boolean derived_to_base_conversion(void**		   p_ptr,
-				     void**                p_new_ptr,
-				     a_type_info_impl_ptr  class_info,
-				     a_type_info_impl_ptr  base_info,
-				     an_access_flag_string *access_flags,
-				     a_boolean             use_access_flags)
+
+EXTERN_C
+a_boolean __derived_to_base_conversion(void**		     p_ptr,
+		  		       void**                p_new_ptr,
+				       a_type_info_impl_ptr  class_info,
+				       a_type_info_impl_ptr  base_info,
+				       an_access_flag_string *access_flags,
+				       a_boolean             use_access_flags)
 /*
 Converts p_ptr from a pointer to a derived class (described by class_info)
 to a pointer to a base class (described by base_info) and stores
@@ -156,9 +158,9 @@ The access_flags string was retained for backward compatibility.
           /* This base class has its own bases.  Call this routine
              recursively. */
 	  void* local_new_ptr;
-          if (derived_to_base_conversion(&new_ptr, &local_new_ptr, test_info,
-					 base_info, access_flags,
-                                         use_access_flags)) {
+          if (__derived_to_base_conversion(&new_ptr, &local_new_ptr, test_info,
+					   base_info, access_flags,
+                                           use_access_flags)) {
 	    if (ptr != NULL) {
 	      /* We have found a match.  Update the pointer passed to us
 		 to reflect the value found by the recursive call. */
@@ -177,7 +179,7 @@ The access_flags string was retained for backward compatibility.
     }  /* if */
   }  /* if */
   return result;
-}  /* derived_to_base_conversion */
+}  /* __derived_to_base_conversion */
 
 #if ABI_CHANGES_FOR_RTTI
 
@@ -244,12 +246,11 @@ following information:
   } else {
     a_boolean	conversion_done;
     void	*new_ptr = NULL;
-    conversion_done = derived_to_base_conversion(&complete_object_ptr,
-						 &new_ptr,
-						 object_tiip,
-						 tiip,
-						 (an_access_flag_string*)NULL,
-						 /*use_access_flags=*/FALSE);
+    conversion_done = __derived_to_base_conversion(
+                               &complete_object_ptr, &new_ptr,
+			       object_tiip, tiip,
+			       (an_access_flag_string*)NULL,
+			       /*use_access_flags=*/FALSE);
     if (conversion_done) result = new_ptr;
   }  /* if */
   return result;
