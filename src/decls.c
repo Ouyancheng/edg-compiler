@@ -8310,6 +8310,97 @@ processing is done for using-directives by make_using_directive.
 }  /* make_using_decl */
 
 
+static void create_nonmember_using_declaration(
+                                           a_symbol_ptr     sym,
+                                           a_symbol_ptr     *overload_sym_ptr,
+                                           a_symbol_ptr     other_decl,
+                                           a_namespace_ptr  nsp,
+                                           a_using_decl_ptr *prev_udp,
+                                           a_boolean        is_list)
+/*
+Create a projection for symbol "sym" from namespace "nsp".  If this is part
+of an overload set being imported, "is_list" will be TRUE and
+"*overload_sym_ptr" will point to the overload symbol.  Even when it is not
+part of an overload set, we may need to create such a set because existing
+declarations in the scope are being overloaded.  "*prev_udp" is the previous
+using-declaration structure for the using-declaration construct that is
+currently being processed (NULL if none).
+*/
+{
+  a_symbol_locator   locator;
+  a_symbol_ptr       new_sym;
+  a_symbol_ptr       overload_sym = *overload_sym_ptr;
+  a_symbol_ptr       fund_sym = fundamental_symbol_of(sym);
+  a_source_position  decl_pos;
+
+  locator = locator_for_curr_id;
+  clear_specific_symbol(locator);
+  decl_pos = locator_for_curr_id.source_position;
+  if (overload_sym == NULL) {
+    a_boolean  suppress_redecl_error = FALSE;
+    /* If we bring in a type, and a previous declaration was a tag,
+       suppress a redeclaration error.  This is similar to the case
+       "typedef struct S {} S;". */
+    if (other_decl != NULL &&
+        is_tag_symbol(other_decl) && is_type_symbol(fund_sym)) {
+      a_type_ptr  type1 = type_symbol_type(other_decl),
+                  type2 = type_symbol_type(fund_sym);
+      suppress_redecl_error = identical_types(type1, type2);
+    }  /* if */
+    /* No overloading. */
+    new_sym = enter_namespace_projection_symbol(fund_sym, &locator,
+                                                depth_scope_stack,
+                                                suppress_redecl_error);
+    /* If is_list is TRUE, there will be overloading on the next
+       iteration of this loop. */
+    if (is_list) { *overload_sym_ptr = new_sym; }
+  } else if (already_in_lookup_set(overload_sym, sym)) {
+    /* Don't try to add a symbol that is already pointed to by
+       overload_sym. */
+    goto done;
+  } else if (conflicts_with_previous_function_decl(
+                                         fund_sym, overload_sym, &decl_pos)) {
+    /* A function introduced by a using declaration cannot have the
+       same type as a function already declared in the scope
+       (WP 7.3.3 [namespace.udecl] paragraph 12).  The diagnostic
+       will have been issued by the subroutine; don't create a
+       projection symbol. */
+    goto done;
+  } else {
+    /* Add a new symbol to the overload set. */
+    new_sym = make_namespace_projection_symbol(fund_sym,
+                                               &locator.source_position,
+                                               depth_scope_stack);
+    overload_sym = add_symbol_to_overload_list(new_sym, overload_sym,
+                                               /*use_namespace=*/FALSE,
+                                               (a_namespace_ptr)NULL);
+    if (overload_sym != *overload_sym_ptr) {
+      *overload_sym_ptr = overload_sym;
+      set_namespace_membership(overload_sym, (a_source_correspondence *)NULL,
+                               (a_namespace_ptr)NULL);
+    }  /* if */
+  }  /* if */
+  set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
+                           (a_namespace_ptr)NULL);
+  if (fund_sym->kind == (a_symbol_kind)sk_undefined) {
+    /* Undefined symbols have no IL entries, so don't create an
+      IL entry for this using-declaration. */
+  } else {
+    /* Create a using-decl entry to represent this declaration in
+       the IL. */
+    a_using_decl_ptr  udp = make_using_decl(fund_sym, &decl_pos);
+    /* Record the class that was actually specified in the qualified
+       name in the source. */
+    udp->qualifier.namespace_ptr = nsp;
+    /* Update cross-reference and source-sequence info, if
+       required. */
+    record_using_decl(fund_sym, &decl_pos, udp, *prev_udp);
+    *prev_udp = udp;
+  }  /* if */
+done:;
+}  /* create_nonmember_using_declaration */
+
+
 static void nonmember_using_declaration(void)
 /*
 Scan a using_declaration in a nonclass scope.  Its syntax is:
@@ -8320,14 +8411,11 @@ A sk_namespace_projection is created and added to the symbol table for the
 current scope.
 */
 {
-  a_symbol_ptr             sym, new_sym, overload_sym, other_decl, fund_sym;
+  a_symbol_ptr             sym, overload_sym, other_decl, fund_sym;
   a_boolean                err = FALSE;
   a_symbol_locator         locator;
   a_boolean                is_list = FALSE;
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
-  a_namespace_ptr          nsp;
-  a_using_decl_ptr         udp, prev_udp = NULL;
-  a_source_position        decl_pos;
 
   db_enter(3, "nonmember_using_declaration");
   /* A using declaration is outside the "Embedded C++" subset. */
@@ -8375,6 +8463,7 @@ current scope.
       /* Ignore pragma declarations. */
       discard_curr_construct_pragmas();
     } else {
+      a_namespace_ptr  nsp;
       /* Pragmas cannot bind to a using declaration. */
       cannot_bind_to_curr_construct();
       if ((nsp = qualifier_namespace_ptr(locator_for_curr_id)) != NULL &&
@@ -8438,79 +8527,24 @@ current scope.
              says duplicates are allowed in file or namespace scope, so ignore
              the declaration. */
         } else {
+          a_using_decl_ptr  prev_udp = NULL;
           /* Create the new sk_namespace_projection symbol(s). */
-          decl_pos = locator_for_curr_id.source_position;
-          for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+          if (!is_tag_symbol(sym)) {
+            /* Check if we missed a tag symbol; it should be imported too. */
+            a_symbol_ptr null_sym_ptr = NULL, tag_sym;
             locator = locator_for_curr_id;
             clear_specific_symbol(locator);
-            fund_sym = fundamental_symbol_of(sym);
-            if (overload_sym == NULL) {
-              a_boolean  suppress_redecl_error = FALSE;
-              /* If we bring in a type, and a previous declaration was a tag,
-                 suppress a redeclaration error.  This is similar to the case
-                 "typedef struct S {} S;". */
-              if (other_decl != NULL &&
-                  is_tag_symbol(other_decl) && is_type_symbol(fund_sym)) {
-                a_type_ptr  type1 = type_symbol_type(other_decl),
-                            type2 = type_symbol_type(fund_sym);
-                suppress_redecl_error = identical_types(type1, type2);
-              }  /* if */
-              /* No overloading. */
-              new_sym = enter_namespace_projection_symbol(
-                                                     fund_sym, &locator,
-                                                     depth_scope_stack,
-                                                     suppress_redecl_error);
-              /* If is_list is TRUE, there will be overloading on the next
-                 iteration of this loop. */
-              if (is_list) overload_sym = new_sym;
-            } else if (already_in_lookup_set(overload_sym, sym)) {
-              /* Don't try to add a symbol that is already pointed to by
-                 overload_sym. */
-              continue;
-            } else if (conflicts_with_previous_function_decl(fund_sym,
-                                                             overload_sym,
-                                                             &decl_pos)) {
-              /* A function introduced by a using declaration cannot have the
-                 same type as a function already declared in the scope
-                 (WP 7.3.3 [namespace.udecl] paragraph 12).  The diagnostic
-                 will have been issued by the subroutine; don't create a
-                 projection symbol. */
-              continue;
-            } else {
-              /* Add a new symbol to the overload set. */
-              a_symbol_ptr  new_overload_sym;
-              new_sym =
-                  make_namespace_projection_symbol(fund_sym,
-                                                   &locator.source_position,
-                                                   depth_scope_stack);
-              new_overload_sym =
-                        add_symbol_to_overload_list(new_sym, overload_sym,
-                                                    /*use_namespace=*/FALSE,
-                                                    (a_namespace_ptr)NULL);
-              if (new_overload_sym != overload_sym) {
-                overload_sym = new_overload_sym;
-                set_namespace_membership(overload_sym,
-                                         (a_source_correspondence *)NULL,
-                                         (a_namespace_ptr)NULL);
-              }  /* if */
+            tag_sym = namespace_qualified_id_lookup(&locator, nsp,
+                                                    IDL_MUST_BE_TAG);
+            if (tag_sym != NULL) {
+              create_nonmember_using_declaration(tag_sym, &null_sym_ptr,
+                                                 other_decl, nsp, &prev_udp,
+                                                 /*is_list=*/FALSE);
             }  /* if */
-            set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
-                                     (a_namespace_ptr)NULL);
-            if (fund_sym->kind == (a_symbol_kind)sk_undefined) {
-              /* Undefined symbols have no IL entries, so don't create an
-                IL entry for this using-declaration. */
-            } else {
-              /* Create a using-decl entry to represent this declaration in
-                 the IL. */
-              udp = make_using_decl(fund_sym, &decl_pos);
-              /* Record the class that was actually specified in the qualified
-                 name in the source. */
-              udp->qualifier.namespace_ptr = nsp;
-              /* Update cross-reference and source-sequence info, if
-                 required. */
-              record_using_decl(fund_sym, &decl_pos, udp, prev_udp);
-              prev_udp = udp;
-            }  /* if */
+          }  /* if */
+          for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+            create_nonmember_using_declaration(sym, &overload_sym, other_decl,
+                                               nsp, &prev_udp, is_list);
           }  /* for */
         }  /* if */
       }  /* if */

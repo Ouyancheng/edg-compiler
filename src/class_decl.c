@@ -8963,6 +8963,128 @@ TRUE.
 }  /* is_duplicate_member_using_decl */
 
 
+static void create_member_using_declaration(
+                                          a_symbol_ptr      sym,
+                                          a_symbol_ptr      declared_sym,
+                                          a_symbol_ptr      other_sym,
+                                          a_base_class_ptr  bcp,
+                                          a_type_ptr        class_type,
+                                          a_using_decl_ptr  *prev_udp,
+                                          an_access_specifier  access)
+/*
+Check that a valid explicit projection (a class-scope using-declaration) can
+be created for the symbol "sym", and if so create it.  "declared_sym" is
+either equal to "sym", or it points to the overload set symbol of which "sym"
+is an element.  "other_sym" points to a declaration of the same name in the
+scope of the derived class "class_type" (NULL if none exists).  "bcp" is the
+base class from which the symbol is being projected.  "*prev_udp" is the
+previous a_using_decl structure created for the using-declaration that is
+currently being processed.  "access" is the access specifier applicable to
+the new declaration.
+*/
+{
+  a_symbol_ptr       fund_sym = fundamental_symbol_of(sym);
+  a_source_position  decl_pos = locator_for_curr_id.source_position;
+
+  if (!have_access_to_symbol(sym)) {
+    /* The specified symbol (either the explicitly declared symbol or
+       a member of the overload set the symbol refers to) is inaccessible.
+       Issue an error instead of creating the projection symbol. */
+    pos_sy_error(ec_no_access_to_name, &decl_pos, sym);
+  } else if (sym->kind == (a_symbol_kind)sk_member_function &&
+             sym->variant.routine.ptr->compiler_generated) {
+    /* Ignore compiler-generated member functions silently. */
+  } else if (is_copy_assignment_operator_sym(sym)) {
+    /* Using-declaration cannot apply to a copy-assignment operator,
+       since they are not inheritable. */
+    pos_sy_warning(ec_using_declaration_ignored, &decl_pos, sym);
+  } else if (other_sym != NULL &&
+             conflicts_with_previous_function_decl(fund_sym, other_sym,
+                                                   &decl_pos)) {
+    /* Error (if one was required) was issued by subroutine.  Don't
+       enter a projection symbol. */
+  } else {
+    a_using_decl_ptr  udp;
+    /* Find the base class of class_type to which fund_sym belongs.  bcp
+       points to the base class to which declared_sym belongs. */
+    a_symbol_ptr      new_sym;
+    a_base_class_ptr  fund_base_class;
+    a_routine_ptr     rp = NULL;
+
+    if (fund_sym == declared_sym ||
+        fund_sym->parent.class_type == declared_sym->parent.class_type) {
+      /* Common case: the fundamental symbol is the same as the declared
+         symbol, or a member of the overload set it represents. */
+      fund_base_class = bcp;
+    } else {
+      /* Special case:  Find the base class associated with the
+         fundamental symbol. */
+      fund_base_class = base_classes_of(class_type);
+      for (;;) {
+        if (fund_base_class->type == fund_sym->parent.class_type &&
+            is_on_any_derivation_of(fund_base_class, bcp)) break;
+        fund_base_class = fund_base_class->next;
+        check_assertion(fund_base_class != NULL);
+      }  /* for */
+    }  /* if */
+    /* Create the projection symbol. */
+    new_sym = make_projection_symbol(sym, class_type, fund_base_class,
+                                     (a_derivation_step_ptr)NULL,
+                                     /*ambiguous=*/FALSE);
+    new_sym->variant.projection.is_using_decl = TRUE;
+    new_sym->variant.projection.access = access;
+    /* Note that projection symbols for using-declarations have the
+       source position of the using-declaration itself, whereas
+       other projection symbols take on the source position of the
+       fundamental symbol. */
+    new_sym->decl_position = decl_pos;
+    if (other_sym == NULL) {
+      /* Just enter it, since no overloading is involved. */
+      reenter_symbol(new_sym, depth_scope_stack,
+                     /*suppress_error=*/TRUE);
+      /* Save new_sym as other_sym, in case is_overloaded is TRUE. */
+      if (!new_sym->is_error) other_sym = new_sym;
+    } else {
+      other_sym = add_symbol_to_overload_list(new_sym, other_sym,
+                                              /*use_namespace=*/FALSE,
+                                              (a_namespace_ptr)NULL);
+      set_mixed_static_nonstatic_flag(other_sym);
+    }  /* if */
+    if (fund_sym->kind == (a_symbol_kind)sk_member_function) {
+      rp = fund_sym->variant.routine.ptr;
+    } else if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
+      rp = fund_sym->variant.template_info->variant.function.routine;
+    }  /* if */
+    if (rp != NULL) {
+      if (rp ->special_kind == (a_special_function_kind)sfk_conversion) {
+        /* Allocate the new conversion list entry and link it in the
+           list for the current class. */
+        add_to_conversion_list(new_sym, 
+                               symbol_supplement_for_class(class_type));
+      } else if (rp->special_kind ==
+                               (a_special_function_kind)sfk_operator &&
+                 rp->opname_kind == (an_opname_kind)onk_assign) {
+        /* Record the assignment operator in the symbol. */
+        record_assignment_operator_in_class_symbol(
+                                 symbol_supplement_for_class(class_type),
+                                 new_sym, other_sym);
+      }  /* if */
+    }  /* if */
+    /* Create a class member using decl entry to represent this
+       declaration in the IL. */
+    udp = make_using_decl(fund_sym, &decl_pos);
+    /* Record the class that was actually specified in the qualified
+       name in the source. */
+    udp->qualifier.class_type = declared_sym->parent.class_type;
+    udp->access = access;
+    udp->is_class_member = TRUE;
+    /* Update cross-reference and source-sequence info, if required. */
+    record_using_decl(fund_sym, &decl_pos, udp, *prev_udp);
+    *prev_udp = udp;
+  }  /* if */
+}  /* create_member_using_declaration */
+
+
 static void member_using_declaration(a_type_ptr           class_type,
                                      an_access_specifier  access)
 /*
@@ -8974,12 +9096,12 @@ or implicit) controlling the declaration.
 */
 {
   a_symbol_ptr       sym, declared_sym;
-  a_symbol_ptr       new_sym, other_sym, fund_sym;
+  a_symbol_ptr       other_sym, fund_sym;
   a_base_class_ptr   bcp;
   a_boolean          err = FALSE;
   a_boolean          is_overloaded;
   a_symbol_locator   locator;
-  a_using_decl_ptr   udp, prev_udp = NULL;
+  a_using_decl_ptr   prev_udp = NULL;
   a_source_position  decl_pos, using_pos;
 
   db_enter(3, "member_using_declaration");
@@ -9188,113 +9310,29 @@ or implicit) controlling the declaration.
            overload set. */
         is_overloaded = TRUE;
         sym = fund_sym->variant.overloaded_function.symbols;
-        /* The overload set may contain sk_projection as well as
-           sk_member_function symbols, but fund_sym will point to an
-           sk_member_function. */
-        fund_sym = fundamental_symbol_of(sym);
       }  /* if */
     }  /* if */
     /* This is a loop in case the using-declaration specifies an overload
        set -- each member of the overload set is projected independently. */
-    for (;;) {
-      if (!have_access_to_symbol(sym)) {
-        /* The specified symbol (either the explicitly declared symbol or
-           a member of the overload set the symbol refers to) is inaccessible.
-           Issue an error instead of creating the projection symbol. */
-        pos_sy_error(ec_no_access_to_name, &decl_pos, sym);
-      } else if (sym->kind == (a_symbol_kind)sk_member_function &&
-                 sym->variant.routine.ptr->compiler_generated) {
-        /* Ignore compiler-generated member functions silently. */
-      } else if (is_copy_assignment_operator_sym(sym)) {
-        /* Using-declaration cannot apply to a copy-assignment operator,
-           since they are not inheritable. */
-        pos_sy_warning(ec_using_declaration_ignored, &decl_pos, sym);
-      } else if (other_sym != NULL &&
-                 conflicts_with_previous_function_decl(fund_sym, other_sym,
-                                                       &decl_pos)) {
-        /* Error (if one was required) was issued by subroutine.  Don't
-           enter a projection symbol. */
-      } else {
-        /* Find the base class of class_type to which fund_sym belongs.  bcp
-           points to the base class to which declared_sym belongs. */
-        a_base_class_ptr  fund_base_class;
-        a_routine_ptr     rp = NULL;
-
-        if (fund_sym == declared_sym ||
-            fund_sym->parent.class_type == declared_sym->parent.class_type) {
-          /* Common case: the fundamental symbol is the same as the declared
-             symbol, or a member of the overload set it represents. */
-          fund_base_class = bcp;
-        } else {
-          /* Special case:  Find the base class associated with the
-             fundamental symbol. */
-          fund_base_class = base_classes_of(class_type);
-          for (;;) {
-            if (fund_base_class->type == fund_sym->parent.class_type &&
-                is_on_any_derivation_of(fund_base_class, bcp)) break;
-            fund_base_class = fund_base_class->next;
-            check_assertion(fund_base_class != NULL);
-          }  /* for */
-        }  /* if */
-        /* Create the projection symbol. */
-        new_sym = make_projection_symbol(sym, class_type, fund_base_class,
-                                         (a_derivation_step_ptr)NULL,
-                                         /*ambiguous=*/FALSE);
-        new_sym->variant.projection.is_using_decl = TRUE;
-        new_sym->variant.projection.access = access;
-        /* Note that projection symbols for using-declarations have the
-           source position of the using-declaration itself, whereas
-           other projection symbols take on the source position of the
-           fundamental symbol. */
-        new_sym->decl_position = decl_pos;
-        if (other_sym == NULL) {
-          /* Just enter it, since no overloading is involved. */
-          reenter_symbol(new_sym, depth_scope_stack,
-                         /*suppress_error=*/TRUE);
-          /* Save new_sym as other_sym, in case is_overloaded is TRUE. */
-          if (!new_sym->is_error) other_sym = new_sym;
-        } else {
-          other_sym = add_symbol_to_overload_list(new_sym, other_sym,
-                                                  /*use_namespace=*/FALSE,
-                                                  (a_namespace_ptr)NULL);
-          set_mixed_static_nonstatic_flag(other_sym);
-        }  /* if */
-        if (fund_sym->kind == (a_symbol_kind)sk_member_function) {
-          rp = fund_sym->variant.routine.ptr;
-        } else if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
-          rp = fund_sym->variant.template_info->variant.function.routine;
-        }  /* if */
-        if (rp != NULL) {
-          if (rp ->special_kind == (a_special_function_kind)sfk_conversion) {
-            /* Allocate the new conversion list entry and link it in the
-               list for the current class. */
-            add_to_conversion_list(new_sym, 
-                                   symbol_supplement_for_class(class_type));
-          } else if (rp->special_kind ==
-                                   (a_special_function_kind)sfk_operator &&
-                     rp->opname_kind == (an_opname_kind)onk_assign) {
-            /* Record the assignment operator in the symbol. */
-            record_assignment_operator_in_class_symbol(
-                                     symbol_supplement_for_class(class_type),
-                                     new_sym, other_sym);
-          }  /* if */
-        }  /* if */
-        /* Create a class member using decl entry to represent this
-           declaration in the IL. */
-        udp = make_using_decl(fund_sym, &decl_pos);
-        /* Record the class that was actually specified in the qualified
-           name in the source. */
-        udp->qualifier.class_type = declared_sym->parent.class_type;
-        udp->access = access;
-        udp->is_class_member = TRUE;
-        /* Update cross-reference and source-sequence info, if required. */
-        record_using_decl(fund_sym, &decl_pos, udp, prev_udp);
-        prev_udp = udp;
+    if (!is_tag_symbol(sym)) {
+      /* Check if we missed a tag symbol; it should be imported too. */
+      a_symbol_ptr      tag_sym;
+      a_symbol_locator  locator = locator_for_curr_id;
+      clear_specific_symbol(locator);
+      tag_sym = class_qualified_id_lookup(&locator, bcp->type,
+                                          IDL_MUST_BE_TAG |
+                                            IDL_DIRECT_CLASS_MEMBERS_ONLY);
+      if (tag_sym != NULL) {
+        create_member_using_declaration(tag_sym, tag_sym,
+                                        other_sym, bcp, class_type,
+                                        &prev_udp, access);
       }  /* if */
+    }  /* if */
+    for (;;) {
+      create_member_using_declaration(sym, declared_sym, other_sym,
+                                      bcp, class_type, &prev_udp, access);
       if (!is_overloaded) break;
       if ((sym = sym->next) == NULL) break;
-      /* As we advance through the overload set, keep fund_sym in sync. */
-      fund_sym = fundamental_symbol_of(sym);
     }  /* for */
   }  /* if */
   /* Bypass the identifier. */
