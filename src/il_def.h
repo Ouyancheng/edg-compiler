@@ -1312,6 +1312,17 @@ typedef struct a_routine {
   unsigned int	is_virtual:1;
 			/* TRUE for class member functions declared with a
 			   virtual specification (C++ only). */
+  a_class_list_entry_ptr
+                befriending_classes;
+                        /* A linked list of entries identifying classes that
+                           have declared the current routine a friend (i.e.,
+                           classes that have "befriended" the current routine).
+                           Note that the representation is backwards
+                           compared to the source language: in the source
+                           the befriended class (or routine) is declared in
+                           the befriending class; in the IL the befriending
+                           class is recorded in the befriended class (or
+                           routine). */
 #endif /* ifdef CIL */
 #ifdef FIL
   a_byte_boolean

@@ -2343,11 +2343,12 @@ to it.
   set_default_source_corresp(&(rp->source_corresp));
   rp->next                        = NULL;
   rp->type                        = NULL;
+  rp->assoc_scope                 = NULL_region_number;
   rp->parent_class_struct_union   = NULL;
   rp->storage_class               = (a_storage_class)sc_unspecified;
-  rp->assoc_scope                 = NULL_region_number;
   rp->is_inline                   = FALSE;
   rp->is_virtual                  = FALSE;
+  rp->befriending_classes         = NULL;
 #ifdef FIL
   rp->is_fortran_entry            = FALSE;
   rp->local_routine_scope         = NULL;
