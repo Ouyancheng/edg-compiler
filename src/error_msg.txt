@@ -376,7 +376,7 @@ ec_inline_and_nonfunction;;"inline specifier allowed on function declarations on
 ec_inline_not_allowed;;"\"inline\" is not allowed"
 ec_bad_storage_class_with_inline;;"invalid storage class for an inline function"
 ec_bad_member_storage_class;;"invalid storage class for a class member"
-ec_local_class_function_def_missing;;"member function of local class -- definition is required"
+ec_local_class_function_def_missing;;"local class member %n is undefined"
 ec_inaccessible_special_function;;"%nf is inaccessible"
 REMOVED;ec_direct_derivation_less_accessible;;"direct path to base class %t gives less access than indirect path"
 ec_missing_const_copy_constructor;;"class %t has no copy constructor to copy a const object"
