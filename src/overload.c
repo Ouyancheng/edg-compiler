@@ -1158,8 +1158,7 @@ class or a derived class thereof (except for error cases).
     this_match_summary->match_level = aml_exact;
   } else {
     /* Get the "this" parameter type. */
-    this_param_type =
-            routine_type->variant.routine.extra_info->implicit_this_param_type;
+    this_param_type = implicit_this_param_type_of(routine_type);
 #if CHECKING
     if (this_param_type == NULL) {
       internal_error("selector_match_with_this_param: this_param_type NULL");
@@ -4225,9 +4224,7 @@ gives the type of the routine being called.
   a_base_class_ptr bcp;
 
   conv_class_operand_to_object_pointer(operand);
-  routine_type = skip_typerefs(routine_type);
-  this_param_type = routine_type->variant.routine.
-                                          extra_info->implicit_this_param_type;
+  this_param_type = implicit_this_param_type_of(routine_type);
   this_class_type = f_skip_typerefs(type_pointed_to(this_param_type));
   if (is_pointer_type(operand->type)) {
     operand_class_type = f_skip_typerefs(type_pointed_to(operand->type));
@@ -5222,9 +5219,8 @@ is used only in C++ mode.
      referenced. */
   conversion_symbol =
                  (a_symbol_ptr)(conversion_routine->source_corresp.assoc_info);
-  routine_type = skip_typerefs(conversion_routine->type);
-  this_param_type = routine_type->variant.routine.extra_info->
-                                                      implicit_this_param_type;
+  routine_type = conversion_routine->type;
+  this_param_type = implicit_this_param_type_of(routine_type);
   reference_to_implicitly_invoked_function(conversion_symbol,
                                            &operand->position,
                                            operand->type,
