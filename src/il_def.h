@@ -117,12 +117,14 @@ enum an_access_specifier_tag {
   /* C++ Access control:  "public", "private", or "protected" for class
      members or "public" (meaning no access control) for other entities. */
   as_public,            /* No access restrictions. */
-  as_private,           /* Class member name can be referenced only by
-                           member functions and by friends of its class. */
-  as_protected          /* Class member name can be referenced by functions
+  as_protected,         /* Class member name can be referenced by functions
                            that are members of its own class or of classes
                            derived from its class or by friends of its
                            class or friends of classes derived from it. */
+  as_private,           /* Class member name can be referenced only by
+                           member functions and by friends of its class. */
+  as_inaccessible	/* Entity cannot be accessed.  (This value is used
+			   in the symbol table but not in the IL.) */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_access_specifier;
@@ -632,7 +634,8 @@ typedef struct a_routine_type_supplement {
 } a_routine_type_supplement;
 
 #ifdef CIL
-/* Data structures related to classes (type entries of kind tk_class). */
+/* Data structures related to C++ classes (type entries of kind tk_class,
+   tk_struct, and tk_union). */
 
 enum an_access_adjustment_kind_tag {
   aak_member_field,     /* Non-static data member. */
@@ -684,11 +687,9 @@ typedef struct a_base_class {
   a_base_class_ptr
                 next;   /* Next in linked list of base class entries. */
   a_type_ptr    base_class;
-                        /* Pointer to the tk_class type entry representing
-                           a base class of the current derived class.  (Note
-			   that even a base class declared as a struct or
-			   union in the source is represented as a class in
-			   the IL.) */
+                        /* Pointer to the tk_class or tk_struct type entry
+			   representing a base class of the current derived
+			   class.  (Unions may not be used as base classes.) */
   an_access_specifier
                 access; /* The kind of derivation (public or private), as
 			   indicated by the access specifier on the base
@@ -710,7 +711,7 @@ typedef struct a_class_list_entry {
   /* An entry used to represent a member of an arbitrary set of classes. */
   a_class_list_entry_ptr
                 next;   /* Next in a linked list of class list entries. */
-  a_type_ptr    class;  /* The tk_class type entry. */
+  a_type_ptr    class;  /* The tk_class, tk_struct, or tk_union type entry. */
 } a_class_list_entry;
 
 /* Minimal definition of template argument entries.  Additional fields are
@@ -721,9 +722,9 @@ typedef struct a_template_arg {
                 next;   /* Next entry in a linked list of template args. */
 } a_template_arg;
 
-/* Entry containing additional information about a class type (segregated
-   to keep down the size of a_type).  The list of nonstatic data members
-   (i.e., "fields") is kept in the type entry. */
+/* Entry containing additional information about a class type (tk_class,
+   tk_struct, or tk_union). The list of nonstatic data members (i.e.,
+   "fields") is kept in the type entry. */
 typedef struct a_class_type_supplement *a_class_type_supplement_ptr;
 typedef struct a_class_type_supplement {
   a_routine_ptr member_functions;
@@ -911,14 +912,11 @@ typedef struct a_type {
                 extra_info;
                         /* Supplementary information, in a separate block
                            to keep down the size of a_type.  This pointer
-                           will always be NULL for tk_struct and tk_union,
-                           which always represent C-style structs and
-                           unions (including entities in a C++ program
-                           that map exactly to a C-style struct or union).
-                           A supplement is required only for C++ classes,
-                           including C++ structs and unions that have non-
-                           public fields, are involved in inheritance in
-                           any way, have member functions, etc. */
+                           will be NULL for tk_struct and tk_union types
+                           that represent C-style structs and unions (i.e.,
+			   no static data members, no member functions, no
+			   base classes, etc.); it will also be NULL for a
+			   tk_class type that maps to a C-style struct. */
       a_byte_boolean
                 any_const_member;
                         /* TRUE if any member of the class, struct, or union
@@ -1117,7 +1115,7 @@ typedef struct a_variable {
 Data structures related to fields (members) of structs and unions:
 */
 typedef struct a_field {
-  /* Description of a field (member of a struct or union). */
+  /* Description of a field (member of a class, struct, or union). */
   /* Note that unnamed bit fields do not appear.  They affect the offsets,
      but are not needed in the list of fields. */
   /* The source_corresp field must be first. */
