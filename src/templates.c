@@ -7216,11 +7216,11 @@ type based on the template argument list and the template parameter list
   tip = alloc_template_instance();
   tip->template_sym = templ_sym;
   templ_rout = tssp->variant.function.routine;
+  /* Switch to the translation unit containing the template, if needed. */
+  trans_unit_pushed = push_translation_unit_if_needed(templ_sym);
   /* All IL routines must be at the file scope level, so switch to that
      memory region if necessary to allocate the routine entry. */
   switch_to_file_scope_region(&region_to_switch_back_to);
-  /* Switch to the translation unit containing the template, if needed. */
-  trans_unit_pushed = push_translation_unit_if_needed(templ_sym);
   rp = alloc_routine();
   {
     /* Create a routine type by rescanning the original declaration
