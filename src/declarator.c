@@ -480,15 +480,16 @@ type is legal.
         }  /* if */
         if (is_qualified_type(new_type_ptr) &&
             !is_reference_type(new_type_ptr)) {
-          /* Type qualifiers on a function return type are meaningless. */
-          /* Issue just a remark for "volatile void" -- gcc uses that to
-             indicate a function (like exit()) that does not return.  Also
-             just issue a remark for "const void". */
+          /* Except for "restrict", type qualifiers on a function return
+             type are meaningless. */
           if (is_void_type(skip_typerefs(new_type_ptr))) {
+            /* Issue just a remark for "volatile void" -- gcc uses that to
+               indicate a function (like exit()) that does not return.  Also
+               just issue a remark for "const void". */
             remark(ec_useless_type_qualifiers);
 #if RESTRICT_ALLOWED
           } else if (get_type_qualifiers(new_type_ptr) == TQ_RESTRICT) {
-            /* Okay. */
+            /* Exactly one type qualifier -- "restrict".  No warning. */
 #endif /* RESTRICT_ALLOWED */
           } else {
             warning(ec_useless_type_qualifiers);
