@@ -345,22 +345,17 @@ hiding.
   a_namespace_ptr   nsp;
   a_boolean         tag_hidden_by_nontag, global_hidden_by_nonglobal;
   a_routine_ptr     rp;
-  a_boolean         suppress_check = FALSE;
 
   if (sym_ptr->is_error) {
     /* Ignore error symbols. */
-    suppress_check = TRUE;
   } else if (decl_scope_level == depth_innermost_namespace_scope &&
              sym_ptr->is_class_member) {
     /* Ignore member definitions outside the class definition. */
-    suppress_check = TRUE;
   } else if (sym_ptr->kind == (a_symbol_kind)sk_parameter) {
     /* Ignore parameter symbols.  The only parameters that are interesting
        are the ones that have been turned into variables. */
-    suppress_check = TRUE;
   } else if (is_unnamed_tag_symbol(sym_ptr)) {
     /* No name hiding for unnamed entities. */
-    suppress_check = TRUE;
   } else if (
 #if 0
              depth_innermost_instantiation_scope != NO_SCOPE_DEPTH ||
@@ -368,35 +363,7 @@ hiding.
              depth_template_declaration_scope != NO_SCOPE_DEPTH ||
              scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* We don't deal with templates yet. */
-    suppress_check = TRUE;
   } else {
-    /* Screen out user-defined conversion functions and overloaded operator
-       functions (except for new and delete). */
-    switch (sym_ptr->kind) {
-      case sk_routine:
-      case sk_member_function:
-        rp = sym_ptr->variant.routine.ptr;
-        break;
-      case sk_function_template:
-        rp = sym_ptr->variant.template_info->variant.function.routine;
-        break;
-      default:
-        rp = NULL;
-    }  /* switch */
-    if (rp != NULL) {
-      if (rp->special_kind == (a_special_function_kind)sfk_conversion) {
-        /* Ignore conversion functions -- they can only be declared as
-           member functions. */
-        suppress_check = TRUE;
-      } else if (rp->special_kind == (a_special_function_kind)sfk_operator &&
-                 !is_new_operator(rp->opname_kind) &&
-                 !is_delete_operator(rp->opname_kind)) {
-        /* Ignore most operator functions. */
-        suppress_check = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  if (!suppress_check) {
 #if 0
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
