@@ -1012,7 +1012,7 @@ into the runtime routine to process those.
 /* This must be TRUE for IL lowering.  There's a consistency check there. */
 
 /*
-Enumerated types:  Default setting for enum_types_can_be_smaller_than_int.
+Enumerated types:  Default setting for targ_enum_types_can_be_smaller_than_int.
 If TRUE, enumerated types can be allocated in integral types smaller than int.
 */
 #ifndef TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT
