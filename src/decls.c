@@ -1615,7 +1615,7 @@ consistent with that of the previous declaration.
             if (!any_difference_seen) {
               /* The diagnostics will be combined with a header message
                  followed by additional messages identifying the specific
-                 discrepency.  This is the first diagnostic, so put out
+                 discrepancy.  This is the first diagnostic, so put out
                  the header message first. */
               pos_stsy_start_error(ec_incompatible_throw_specification,
                                    &func_info->throw_position, ":",
@@ -1676,7 +1676,7 @@ Scan a throw specification, which may be empty or take either of two forms:
 A throw specification with a list of names means "these types will be
 thrown".  A throw specification the an empty list ("throw ()") means "no
 exception with be thrown".  An empty throw specification means "any
-exception may be thown".
+exception may be thrown".
 
 Update the func_info block with a pointer to the appropriate kind of throw
 specification entry.

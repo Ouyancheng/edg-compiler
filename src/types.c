@@ -1018,13 +1018,13 @@ because any exception it can handle would be caught by type_1's handler.
          Does this apply to masking that can be diagnosed at compile time?
          Or is it a restriction on runtime behavior?  For now, we will
          ignore a strict literal interpretation of 15.4 para 2, even
-         though it is very explcit about when a masking error is required and
+         though it is very explicit about when a masking error is required and
          does not provide a loophole when the base class is inaccessible. */
       masked = (bcp != NULL && is_accessible_base_class(bcp, type_2));
 #endif /* if 0 */
     } else if (is_pointer_type(type_1) && is_pointer_type(type_2)) {
       /* A pointer-type masks another pointer-type if the latter can be
-         implicitly converted to the former.  (This is not explcit in
+         implicitly converted to the former.  (This is not explicit in
          the working paper or the ARM and may turn out to be an incorrect
          inference; see 15.4 para 1 and para 2.) */
       a_constant     dummy_con;
