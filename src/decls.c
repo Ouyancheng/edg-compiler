@@ -4431,6 +4431,13 @@ of local variables (and types, etc.) of functions and in blocks.
 
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, decl_start_pos);
+  if (function_definition_allowed) {
+    /* This is a file scope or namespace scope declaration.  Indicate
+       that access checking should be deferred until the declarator has
+       been scanned. */
+    begin_deferral_of_access_checks();
+    access_checks_deferred = TRUE;
+  }  /* if */
   if (extern_implied) {
     /* Called in the midst of an ``extern "C"'' declaration, so
        select_curr_construct_pragmas has already been called. */
@@ -4516,13 +4523,6 @@ of local variables (and types, etc.) of functions and in blocks.
       /* "inline" is allowed only on function declarations at file scope. */
       if (!extern_implied) dsi_flags |= DSI_INLINE_ALLOWED;
     }  /* if */
-  }  /* if */
-  if (function_definition_allowed) {
-    /* This is a file scope or namespace scope declaration.  Indicate
-       that access checking should be deferred until the declarator has
-       been scanned. */
-    begin_deferral_of_access_checks();
-    access_checks_deferred = TRUE;
   }  /* if */
   /* Scan the initial declaration specifiers (including storage class,
      type specifiers, and type qualifiers).  For a function definition,
