@@ -2699,7 +2699,8 @@ often.  The syntax is:
    <substitution> ::= Sd # ::std::basic_iostream<char, std::char_traits<char> >
 
 When the substitution is a type, type_pass_num indicates whether to
-do the first-part (1) or second-part (2) processing.  cv_quals,
+do the first-part (1) or second-part (2) processing.  type_pass_num == 0
+means do both parts, i.e., the whole type.  cv_quals,
 under_lhs_declarator, and need_trailing_space give extra information
 to be passed through to the type demangling routines in that case.  If
 last_component_name is non-NULL, and the substitution decoded is a
@@ -2806,12 +2807,13 @@ of constructors and destructors.
             }
             break;
           case subk_type:
-            if (type_pass_num == 1) {
+            if (type_pass_num == 1 || type_pass_num == 0) {
               (void)demangle_type_first_part(p, cv_quals,
                                              under_lhs_declarator,
                                              need_trailing_space,
                                              dctl);
-            } else {
+            }  /* if */
+            if (type_pass_num == 2 || type_pass_num == 0) {
               demangle_type_second_part(p, cv_quals,
                                         under_lhs_declarator, dctl);
             }  /* if */
@@ -3959,7 +3961,7 @@ substitution, the name of the last component in the substitution is used.
     if (dctl->err_in_id) break;
     /* Going around again, so the part put out so far is a qualifier and
        needs to be followed by "::". */
-    if (!is_substitution) write_id_str("::", dctl);
+    write_id_str("::", dctl);
   }  /* for */
   if (last_component_name != NULL) *last_component_name = prev_component_name;
   return ptr;
