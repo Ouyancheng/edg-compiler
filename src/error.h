@@ -454,7 +454,7 @@ typedef enum /*an_error_code*/ {
   ec_param_not_allowed,
   ec_unimplemented_keyword,
   ec_asm_not_allowed,
-  ec_nonstd_asm_declaration,
+  ec_no_conversion_function,
   ec_delete_of_incomplete_class
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;

@@ -1139,7 +1139,8 @@ error code.
       m = "cannot overload functions distinguished by return type alone";
       break;
     case ec_no_conversion_constructor:
-      m = "no appropriate constructor or conversion function exists";
+      m =
+      "no appropriate constructor or conversion function to class %t exists";
       break;
     case ec_function_qualifier_not_allowed:
       m = "const or volatile qualifier on this function is not allowed";
@@ -1455,8 +1456,8 @@ error code.
     case ec_asm_not_allowed:
       m = "\"asm\" declaration not allowed";
       break;
-    case ec_nonstd_asm_declaration:
-      m = "\"asm\" declaration is nonstandard";
+    case ec_no_conversion_function:
+      m = "no appropriate conversion function from class %t exists";
       break;
     case ec_delete_of_incomplete_class:
       m = "delete of pointer to incomplete class";
