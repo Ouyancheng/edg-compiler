@@ -8842,6 +8842,41 @@ list.
 }  /* add_to_dynamic_inits_list */
 
 
+static void fix_dependent_initialization_master_entry_pointers(
+                                                    a_dynamic_init_ptr dip,
+                                                    a_dynamic_init_ptr new_dip)
+/*
+The dynamic initialization entry dip has just been copied to new_dip.
+It is known to include some dependent initializations with master_entry
+non-NULL.  Fix master_entry in the copied dependent initializations
+to point to the master entry copy new_dip.
+*/
+{
+  an_expr_node_ptr   expr, op1, op2, op3;
+  a_dynamic_init_ptr dip2, dip3;
+
+  /* Presently, this only has to deal with the optimized class rvalue
+     case.  If the master_entry pointer is used more widely this
+     routine might have to do a general tree walk and fixup. */
+  check_assertion(new_dip->kind == (a_dynamic_init_kind)dik_expression);  
+  expr = new_dip->variant.expression;
+  check_assertion(is_operation_node(expr) &&
+                  expr->variant.operation.kind ==
+                                          (an_expr_operator_kind)eok_question);
+  op1 = expr->variant.operation.operands;
+  op2 = op1->next;
+  op3 = op2->next;
+  check_assertion(op2->kind == (an_expr_node_kind)enk_temp_init &&
+                  op3->kind == (an_expr_node_kind)enk_temp_init);
+  dip2 = op2->variant.init.dynamic_init;
+  dip3 = op3->variant.init.dynamic_init;
+  check_assertion(dip2->master_entry == dip &&
+                  dip3->master_entry == dip);
+  dip2->master_entry = new_dip;
+  dip3->master_entry = new_dip;
+}  /* fix_dependent_initialization_master_entry_pointers */
+
+
 static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr       dip,
                                             an_expr_copy_options_set options)
 /*
@@ -8947,9 +8982,10 @@ expression node.  options is a set of options for the copy.
     new_dip->destructible_entity_descr = NULL;
   }  /* if */
 #endif /* DO_IL_LOWERING */
-  if (dip->master_entry != NULL) {
-    new_dip->master_entry = dip->master_entry->last_copied_to;
-    check_assertion(dip->master_entry->last_copied_to != NULL);
+  if (new_dip->is_optimized_class_rvalue_question_mark) {
+    /* Fix the master_entry pointers in the dependent initializations of
+       this initialization to point to the copy. */
+    fix_dependent_initialization_master_entry_pointers(dip, new_dip);
   }  /* if */
   return new_dip;
 }  /* copy_dynamic_init */
