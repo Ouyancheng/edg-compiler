@@ -3195,11 +3195,12 @@ new(), and therefore might be a projection symbol.
 
 void make_global_operator_new_or_delete_symbol(an_opname_kind  opname)
 /*
-Create a symbol and routine entry for ::operator new or ::operator delete.
-These are entered into the symbol table as part of initialization, so
-the locator has a default value (as used with keywords).  The routine
-entry is marked as compiler generated; if a user declaration appears later,
-the compiler-generated flag should be cleared.
+Create a symbol and routine entry for ::operator new, ::operator new[],
+::operator delete, or ::operator delete[].  These are entered into the
+symbol table as part of initialization, so the locator has a default value
+(as used with keywords).  The routine entry is marked as compiler generated;
+f a user declaration appears later, the compiler-generated flag should be
+cleared.
 */
 {
   a_symbol_locator               locator;
@@ -3212,7 +3213,9 @@ the compiler-generated flag should be cleared.
   db_enter(5, "make_global_operator_new_or_delete_symbol");
 #if CHECKING
   if (opname != (an_opname_kind)onk_new &&
-      opname != (an_opname_kind)onk_delete) {
+      opname != (an_opname_kind)onk_array_new &&
+      opname != (an_opname_kind)onk_delete &&
+      opname != (an_opname_kind)onk_array_delete) {
     internal_error("global_operator_new_or_delete_symbol: bad opname kind");
   }  /* if */
 #endif /* CHECKING */
@@ -3225,11 +3228,15 @@ the compiler-generated flag should be cleared.
   /* Return type for operator delete is void; return type for operator new
      is void*. */
   tp = void_type();
-  if (opname == (an_opname_kind)onk_new) tp = make_pointer_type(tp);
+  if (opname == (an_opname_kind)onk_new ||
+      opname == (an_opname_kind)onk_array_new) {
+     tp = make_pointer_type(tp);
+  }  /* if */
   rout_type->variant.routine.return_type = tp;
   /* Both new and delete take one parameter -- the size for the former and
      void* for the latter. */
-  if (opname == (an_opname_kind)onk_new) {
+  if (opname == (an_opname_kind)onk_new ||
+      opname == (an_opname_kind)onk_array_new) {
     tp = integer_type(targ_size_t_int_kind);
   } else {
     tp = make_pointer_type(void_type());

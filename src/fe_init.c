@@ -727,6 +727,10 @@ to replace the initial portion of this compilation.
        table initialization) because routine entries are also created. */
     make_global_operator_new_or_delete_symbol((an_opname_kind)onk_new);
     make_global_operator_new_or_delete_symbol((an_opname_kind)onk_delete);
+    /* Add symbols for the array verions, too. */
+    make_global_operator_new_or_delete_symbol((an_opname_kind)onk_array_new);
+    make_global_operator_new_or_delete_symbol(
+                                           (an_opname_kind)onk_array_delete);
   }  /* if */
   /* The primary source file pointer is updated when the file is opened. */
   il_header.primary_source_file = NULL;
