@@ -542,7 +542,7 @@ caution when modifying this routine.
         if (strict_ansi_mode) {
           /* Incomplete enum declarations are nonstandard in C and C++. */
           pos_diagnostic(strict_ansi_error_severity,
-                         ec_nonstd_forward_def_enum,
+                         ec_nonstd_forward_decl_enum,
                          &locator->source_position);
         }  /* if */
       }  
