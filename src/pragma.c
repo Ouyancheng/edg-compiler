@@ -1120,7 +1120,7 @@ Initialize the pragma description table.
                  /*expand_macros=*/FALSE,
                  /*processing_C_code_in_pragma=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
-                 es_error);
+                 es_warning);
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_scanf_args,
 	         record_arg_pragma,
@@ -1132,7 +1132,7 @@ Initialize the pragma description table.
                  /*expand_macros=*/FALSE,
                  /*processing_C_code_in_pragma=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
-                 es_error);
+                 es_warning);
 #if 0
   /* Change lint comment error severities to es_none. */
 #endif 
@@ -1147,7 +1147,7 @@ Initialize the pragma description table.
                  /*expand_macros=*/FALSE,
                  /*processing_C_code_in_pragma=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
-                 es_warning);
+                 es_none);
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_lint_varargs_count,
 		 (a_next_construct_pragma_function_ptr)NULL,
@@ -1159,7 +1159,7 @@ Initialize the pragma description table.
                  /*expand_macros=*/FALSE,
                  /*processing_C_code_in_pragma=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
-                 es_warning);
+                 es_none);
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_lint_notreached,
 		 (a_next_construct_pragma_function_ptr)NULL,
@@ -1171,7 +1171,7 @@ Initialize the pragma description table.
                  /*expand_macros=*/FALSE,
                  /*processing_C_code_in_pragma=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
-                 es_warning);
+                 es_none);
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_instantiate,
 	         instantiation_pragma,
