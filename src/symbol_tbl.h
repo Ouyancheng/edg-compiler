@@ -2428,8 +2428,8 @@ typedef struct a_symbol {
 			     namespace A { int i; }
 			     namespace B { using A::i; }
 			     namespace C { using B::i; }
-			   The sk_namespace_projection symbols in the scope
-			   s of B and C both point to A::i as fundamental
+			   The sk_namespace_projection symbols in the scopes
+			   of B and C both point to A::i as fundamental
 			   symbol: the fundamental_symbol is never itself an
 			   an sk_namespace_projection symbol.  Nor will the
 			   fundamental symbol be an sk_overloaded_function
