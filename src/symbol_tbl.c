@@ -308,10 +308,8 @@ static void put_str_into_db_symbol_buffer(char *str)
 /*
 Output a string into the db_symbol buffer.  Used once
 set_up_for_output_to_buffer has been called to set the buffer address.
+Note: There is no overflow check on this.
 */
-#if 0
-/* There is no overflow check on this. */
-#endif  /* 0 */
 {
   /* Copy the string including the terminating null. */
   while ((*db_symbol_buffer_pointer++ = *str++) != '\0') {}
