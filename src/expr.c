@@ -7220,7 +7220,7 @@ The symbol may be a member of an anonymous union.
      class (the class itself or one of its member functions) or a
      default argument expression. */
   if (inside_local_class || expr_stack->is_default_arg_expression) {
-    if (sym_ptr->decl_scope == scope_stack[DEPTH_OF_FILE_SCOPE].number) {
+    if (sym_ptr->decl_scope == FILE_SCOPE_NUMBER) {
       /* A reference to the file scope is okay. */
     } else if (sym_ptr->class_of_which_a_member != NULL) {
       /* A reference to a class member is okay. */
