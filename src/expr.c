@@ -12499,7 +12499,9 @@ The given operand (an expression or a constant) should be marked as having
 been annotated in the source with the GNU keyword __extension__.
 */
 {
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   an_expr_node_ptr  expr;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
   switch (op->kind) {
     case ok_error:
