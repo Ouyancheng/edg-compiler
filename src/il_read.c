@@ -27,25 +27,13 @@ il_read.c -- Read the intermediate language.
 ??=error -- ORPHAN_PROCESSING_NEEDED must be set if IL reading is needed.
 #endif /* !ORPHAN_PROCESSING_NEEDED */
 
-#if __ANSIC__
-#include <stdlib.h>
-#else
-#if __BSD__ || __VMS__
-extern char *malloc(unsigned size);
-#else /* __SYSV__ */
-#include <malloc.h>
-#endif /* __BSD__ || __VMS__ */
-#endif /* __ANSIC__ */
 #include "il_file.h"
 #include "il_read.h"
 #include "il.h"
 #include "il_walk.h"
 #include "error.h"
 #include "version.h"
-
-#if ALTERNATE_IL_FILE_FORMAT
 #include "mem_manage.h"
-#endif /* ALTERNATE_IL_FILE_FORMAT */
 
 #if __CENTERLINE__
 extern int centerline_untype(void *, unsigned int);
@@ -113,21 +101,6 @@ static a_block_remap_entry_ptr
 			   memory region (or NULL while reading the file
 			   scope memory region). */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
-
-
-static char *local_malloc(sizeof_t size)
-/*
-Interface to malloc that allocates "size" bytes.  Checks for failure of 
-allocation and generates a catastrophic error.
-*/
-{
-  char *ptr;
-
-  if ((ptr = (char *)malloc(size)) == NULL) {
-    catastrophe(ec_out_of_memory);
-  } /* if */
-  return (ptr);
-}  /* local_malloc */
 
 
 /*
@@ -358,10 +331,11 @@ necessary to make it directly accessible in memory.
   an_il_entry_number        trimmed_entry_number;
 #endif /* CHECKING */
 #else /* !ALTERNATE_IL_FILE_FORMAT */
-  a_mem_block_header_ptr    old_hdr, hdr;
+  a_mem_block_header_ptr    old_hdr;
+  a_scope_ptr               old_region_scope_entry;
   sizeof_t                  total_bytes;
-  char                      *new_addr;
   a_block_remap_entry_ptr   remap_entry;
+  a_boolean                 first_block;
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
   db_enter(2, "read_memory_region");
@@ -413,7 +387,7 @@ necessary to make it directly accessible in memory.
   /* Allocate the space needed for the indicated number of entries.
      The space for all entries of a given kind is allocated contiguously,
      so it's in effect an array of entries of that kind. */
-  init_memory_region(region_number);
+  init_memory_region(region_number, (sizeof_t)0);
   for (byte_entry_kind = 1+(int)iek_none;
        byte_entry_kind < (int)iek_last;
        byte_entry_kind++) {
@@ -660,59 +634,79 @@ necessary to make it directly accessible in memory.
      address of the primary scope entry, and total size of the region
      blocks). */
   fread_with_check((char *)&old_hdr, sizeof(old_hdr));
-  /* This address is remapped later. */
-  fread_with_check((char *)&il_header.region_scope_entry[region_number],
-                   sizeof(a_scope_ptr));
+  fread_with_check((char *)&old_region_scope_entry, sizeof(a_scope_ptr));
   fread_with_check((char *)&total_bytes, sizeof(total_bytes));
-  /* Allocate space for the memory region and read the whole region
-     (all blocks) with one read. */
-  new_addr = local_malloc(total_bytes);
-  fread_with_check(new_addr, total_bytes);
-  mem_region_table[region_number] = (a_mem_block_header_ptr)new_addr;
-  /* The memory blocks were at one address when written out, and are
-     probably at a different address now that they have been read in.
-     Go through all the block headers, and change the pointers in them
-     to conform with the blocks' new locations in memory.  Save the
-     old locations in a table, which will be used in mapping old addresses
-     to new addresses while walking the IL tree. */
   block_remap_list = NULL;
   if (reading_file_scope_il) fs_block_remap_list = NULL;
-  for (hdr = (a_mem_block_header_ptr)new_addr;
-       hdr != NULL;) {
+  /* Loop for each block of the memory region. */
+  first_block = TRUE;
+  do {
+    a_mem_block_header old_block_header;
+    sizeof_t           block_size, block_used;
+    char               *new_start_of_block;
+
+    /* Read a block.  Start by reading the header. */
+    fread_with_check((char *)&old_block_header, sizeof(old_block_header));
+    total_bytes -= sizeof(old_block_header);
+    block_size = old_block_header.after_end_of_block -
+                 old_block_header.start_of_block;
+    block_used = old_block_header.next_avail_in_block -
+                 old_block_header.start_of_block;
 #if CHECKING
     /* Do some sanity checking. */
-    if (!((char *)old_hdr < hdr->start_of_block &&
-          hdr->start_of_block <= hdr->next_avail_in_block)) {
-      internal_error("read_memory_region: bad pointers in block header");
+    if (block_used > total_bytes || block_used > block_size) {
+      internal_error("read_memory_region: bad block header");
     }  /* if */
 #endif /* CHECKING */
-    /* Add an entry for this block to the remap list, giving the old and 
-       new addresses.  Change the old addresses in the header
-       to new addresses.  hdr points to where the block header is now;
-       old_hdr was its address when written out. */
+    if (first_block) {
+      /* Create the region on the first block, and make the initial
+         allocation at least as large as the first block. */
+      init_memory_region(region_number, block_size);
+      first_block = FALSE;
+    }  /* if */
+    /* Allocate the space for the block. */
+    new_start_of_block = alloc_in_region(region_number, block_used);
+    /* Free any extra space allocated at the end of the block. */
+    trim_memory_region(region_number);
+    /* Read the block into the allocated space. */
+    fread_with_check(new_start_of_block, block_used);
+    total_bytes -= block_used;
+    /* The memory block was at one address when written out, and is
+       probably at a different address now that it has been read in.
+       The pointers will have to be remapped.  Build an entry that
+       describes the old and new addresses, to be used when doing the
+       remapping. */
     remap_entry = (a_block_remap_entry_ptr)
-                                     local_malloc(sizeof(a_block_remap_entry));
+                                    alloc_general(sizeof(a_block_remap_entry));
     remap_entry->next = block_remap_list;
     block_remap_list = remap_entry;
-    remap_entry->old_start_addr = hdr->start_of_block;
-    remap_entry->old_after_end_addr = hdr->next_avail_in_block;
-    hdr->start_of_block = remap_entry->new_start_addr =
-                         (char *)hdr + (hdr->start_of_block - (char *)old_hdr);
-    hdr->next_avail_in_block = hdr->after_end_of_block =
-                    (char *)hdr + (hdr->next_avail_in_block - (char *)old_hdr);
-    /* Only the first block was allocated directly by malloc. */
-    hdr->malloc_size = ((char *)hdr == new_addr) ? total_bytes : 0;
-    /* Prepare to move on to the next entry. */
-    /* Recall that the blocks are written end-to-end, so the next one
-       is just after the current one unless this is the last one. */
-    old_hdr = hdr->next;
-    hdr = hdr->next = (a_mem_block_header_ptr)
-                          ((old_hdr != NULL) ? hdr->after_end_of_block : NULL);
-  }  /* for */
+    remap_entry->old_start_addr = old_block_header.start_of_block;
+    remap_entry->old_after_end_addr = old_block_header.next_avail_in_block;
+    remap_entry->new_start_addr = new_start_of_block;
+  } while (total_bytes > 0);
+#if DEBUG
+  if (debug_level >= 2) {
+    /* See how many of the blocks ended up at their original addresses. */
+    unsigned long           num_same = 0, num_different = 0;
+    a_block_remap_entry_ptr remap_entry;
+
+    for (remap_entry = block_remap_list;
+         remap_entry != NULL;
+         remap_entry = remap_entry->next) {
+      if (remap_entry->old_start_addr == remap_entry->new_start_addr) {
+        num_same++;
+      } else {
+        num_different++;
+      }  /* if */
+    }  /* for */
+    fprintf(f_debug, "Blocks at same/different addresses: %lu/%lu\n",
+                     num_same, num_different);
+  }  /* if */
+#endif /* DEBUG */
   /* Change the address of the primary scope entry to a "new" address. */
   il_header.region_scope_entry[region_number] = (a_scope_ptr)
-        ptr_remap_function((char *)il_header.region_scope_entry[region_number],
-                           iek_scope);
+                             ptr_remap_function((char *)old_region_scope_entry,
+                                                iek_scope);
   /* Walk the IL tree for the region and update all pointers,
      changing their old addresses to new addresses. */
   if (reading_file_scope_il) {
@@ -785,6 +779,7 @@ build the in-memory version.
   a_file_position         index_pos, file_scope_pos;
   char                    check_string[LEN_IL_FILE_MAGIC_STRING],
                           magic_string[LEN_IL_FILE_MAGIC_STRING];
+  a_memory_region_number  new_size_of_mem_region_table;
 
   db_enter(1, "il_read");
 
@@ -835,14 +830,30 @@ build the in-memory version.
   /* Read the orphaned_file_scope_il_entries array. */
   fread_with_check((char *)orphaned_file_scope_il_entries,
                    sizeof(orphaned_file_scope_il_entries));
-  /* Allocate index tables of the right size for the number of regions. */
-  size_of_mem_region_table = highest_used_region_number+1;
-  mem_region_table = (a_mem_block_header_ptr *)
-                           local_malloc((sizeof_t)(size_of_mem_region_table*
-                                              sizeof(a_mem_block_header_ptr)));
-  il_header.region_scope_entry = (a_scope_ptr *)
-                           local_malloc((sizeof_t)(size_of_mem_region_table*
-                                                         sizeof(a_scope_ptr)));
+  /* Allocate index tables of the right size for the number of regions, or
+     use them if they are already allocated. */
+  new_size_of_mem_region_table = highest_used_region_number+1;
+  if (size_of_mem_region_table < new_size_of_mem_region_table) {
+    mem_region_table = (a_mem_block_header_ptr *)
+                         realloc_general((char *)mem_region_table,
+                                         size_of_mem_region_table*
+                                               sizeof(a_mem_block_header_ptr),
+                                         new_size_of_mem_region_table*
+                                               sizeof(a_mem_block_header_ptr));
+    il_header.region_scope_entry = (a_scope_ptr *)
+                         realloc_general((char *)il_header.region_scope_entry,
+                                         size_of_mem_region_table*
+                                                          sizeof(a_scope_ptr),
+                                         new_size_of_mem_region_table*
+                                                          sizeof(a_scope_ptr));
+    index_for_il_file = (a_file_position *)
+                         realloc_general((char *)index_for_il_file,
+                                         size_of_mem_region_table*
+                                                      sizeof(a_file_position),
+                                         new_size_of_mem_region_table*
+                                                      sizeof(a_file_position));
+    size_of_mem_region_table = new_size_of_mem_region_table;
+  }  /* if */
 #if CHECKING
   /* Set the undefined entries to NULL to improve checking for a bad
      IL file. */
@@ -853,9 +864,6 @@ build the in-memory version.
     }  /* for */
   }
 #endif /* CHECKING */
-  index_for_il_file = (a_file_position *)local_malloc(
-                                          (sizeof_t)(size_of_mem_region_table*
-                                                     sizeof(a_file_position)));
   /* Read the file index. */
   if (fseek(f_il_input, index_pos, SEEK_SET) != 0) {
     catastrophe(ec_bad_il_file);
