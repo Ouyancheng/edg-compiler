@@ -264,9 +264,11 @@ increase pos_in_templ_str_buffer by the number of characters added.
   a_column_number  column_incr;
 
   db_enter(5, "add_token_to_template_string");
-  if (pos_curr_token.seq == curr_seq) {
-    /* We're on the same line as the previous token processed, so just
-       add a space (in most cases) to separate the tokens. */
+  if (pos_curr_token.seq <= curr_seq) {
+    /* We're on the same line as the previous token processed, so just add
+       a space (in most cases) to separate the tokens.  (Note: the line for
+       the current token may be less than curr_seq when a macro expansion
+       occurs.  Treat the token as being on the current line.) */
     if (curr_token == tok_comma || curr_token == tok_semicolon ||
         pos_in_templ_str_buffer == 0) {
       /* No space is needed before a comma or semicolon -- or if this is
@@ -339,9 +341,11 @@ encountered, whatever their other characteristics, are included.
 
   db_enter(5, "add_curr_token_pragmas_to_template_string");
   for (ppp = curr_token_pragmas; ppp != NULL; ppp = ppp->next) {
-    if (ppp->pragma_position.seq == curr_seq) {
-      /* We're on the same line as the previous token processed, so just
-         add a space to separate the tokens. */
+    if (ppp->pragma_position.seq <= curr_seq) {
+      /* We're on the same line as the previous token processed, so just add
+         a space (in most cases) to separate the tokens.  (Note: the line for
+         the current token may be less than curr_seq when a macro expansion
+         occurs.  Treat the token as being on the current line.) */
       column_incr = 1;
       /* Don't add a line feed. */
       seq_incr = 0;
