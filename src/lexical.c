@@ -5644,10 +5644,34 @@ can be avoided.
        from a cache. */
     /* delim_does_not_follow = FALSE;  -- already set. */
   } else {
-    /* Skip white space following the token.  */
-    (void)skip_white_space();
+    a_boolean	check_further = TRUE;
+    /* Skip over any initial white space blanks and horizontal tabs.
+       These are very common, so they're handled inline here. */
+    if ((ch = *curr_char_loc) == ' ' || ch == '\t') {
+      do {} while ((ch = *(++curr_char_loc)) == ' ' || ch == '\t');
+    }  /* if */
+    /* If the current character is a punctuation character but not a slash,
+       or if the current character is alphabetic then we know we don't have
+       to check for the more complex forms of white space; otherwise call
+       skip_white_space to handle the other cases. */
+    if (ispunct((unsigned char)ch) && ch != '/') {
+      /* Not the start of a comment but possibly a character that could
+         be a qualifier delimiter. */
+    } else if (isalpha((unsigned char)ch)) {
+      /* An alphabetic character.  This might be a macro call so we
+         can't tell whether or not this might be a qualifier delimiter.
+         No need to check further below. */
+      check_further = FALSE;
+    } else {
+      /* Not one of the special cases.  Call the general skip white space
+         routine before further checking. */
+      (void)skip_white_space();
+    }  /* if */
     ch = *curr_char_loc;
-    if (ispunct((unsigned char)ch)) {
+    if (!check_further) {
+      /* We have already determined that we can't tell the answer. */
+      /* delim_does_not_follow = FALSE;  -- already set. */
+    } else if (ispunct((unsigned char)ch)) {
       /* The next token begins with a punctuation character.  Check for the
          special cases. */
       if (ch == ':' && curr_char_loc[1] == ':') {
