@@ -2135,8 +2135,9 @@ type support.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 
 
-static void check_referenced_member_functions(a_scope_ptr  scope,
-                                              a_boolean    is_function_local)
+static void check_referenced_member_functions(a_scope_ptr scope,
+                                              a_boolean   is_function_local,
+                                              a_boolean   within_unnamed_class)
 /*
 If scope is a class scope, issue an error for any of its member functions
 that have been referenced but are undefined and lack external linkage (i.e.,
@@ -2161,7 +2162,10 @@ body.  Only called in C++ mode.
       class_scope = tp->variant.class_struct_union.extra_info->assoc_scope;
       if (class_scope != NULL) {
         /* Check the member functions of the nested class. */
-        check_referenced_member_functions(class_scope, is_function_local);
+        check_referenced_member_functions(class_scope, is_function_local,
+                                          (within_unnamed_class ||
+                                           tp->variant.class_struct_union.
+                                                         originally_unnamed));
       }  /* if */
     }  /* if */
   }  /* for */
@@ -2190,23 +2194,31 @@ body.  Only called in C++ mode.
                  that are used must be defined), and it is plausibly an error
                  otherwise.  However, cfront accepts it (though it may put
                  out bad code). */
-              pos_sy_diagnostic(any_cfront_mode() ? es_warning : es_error,
-                                ec_virtual_inline_never_defined,
-                                &sym->decl_position, sym);
-              if (any_cfront_mode()) {
-                /* Modify the routine entry so that the IL will be valid;
-                   otherwise there may appear to be a reference to an
-                   undefined function with static storage class. */
-                rp->storage_class = (a_storage_class)sc_extern;
-                rp->source_corresp.name_linkage =
-                                 (a_name_linkage_kind)nlk_cplusplus_external;
-                rp->is_inline = FALSE;
+              if (within_unnamed_class) {
+                /* Diagnostic has already been put out. */
+              } else {
+                pos_sy_diagnostic(any_cfront_mode() ? es_warning : es_error,
+                                  ec_virtual_inline_never_defined,
+                                  &sym->decl_position, sym);
+                if (any_cfront_mode()) {
+                  /* Modify the routine entry so that the IL will be valid;
+                     otherwise there may appear to be a reference to an
+                     undefined function with static storage class. */
+                  rp->storage_class = (a_storage_class)sc_extern;
+                  rp->source_corresp.name_linkage =
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
+                  rp->is_inline = FALSE;
+                }  /* if */
               }  /* if */
             } else if (is_function_local) {
               /* A referenced but undefined member function of a local
                  class. */
-              pos_sy_error(ec_local_class_function_def_missing,
-                           &sym->decl_position, sym);
+              if (rp->is_virtual) {
+                /* Diagnostic has already been put out. */
+              } else {
+                pos_sy_error(ec_local_class_function_def_missing,
+                             &sym->decl_position, sym);
+              }  /* if */
             } else if (rp->is_inline ||
                        rp->storage_class != (a_storage_class)sc_extern) {
               /* A referenced but undefined member function that is either
@@ -3096,9 +3108,10 @@ unit.
           (kind == (a_scope_kind)sck_namespace && is_namespace_wrapup)) {
         /* Issue a diagnostic on non-extern member functions that have been
            referenced but not defined. */
-        check_referenced_member_functions(scope_ptr,
-                                          kind != (a_scope_kind)sck_file &&
-                                          kind != (a_scope_kind)sck_namespace);
+        a_boolean  is_function_local = (kind == (a_scope_kind)sck_function ||
+                                        kind == (a_scope_kind)sck_block);
+        check_referenced_member_functions(scope_ptr, is_function_local,
+                                          /*within_unnamed_class=*/FALSE);
       }  /* if */
     }  /* if */
   }  /* if */
