@@ -445,11 +445,11 @@ dimension information.
 #ifdef CFE
   } else if (type->kind == (a_type_kind)tk_array) {
     if (need_parens) putchar(')');
-    if (type->variant.array.number_of_elements == 0) {
+    if (type->variant.array.variant.number_of_elements == 0) {
       (void)printf("[]");
     } else {
-      (void)printf("[%lu]",
-                   (unsigned long)type->variant.array.number_of_elements);
+      (void)printf("[%lu]", (unsigned long)type->variant.array.
+                                                   variant.number_of_elements);
     }  /* if */
     disp_type_second_part(type->variant.array.element_type,
                           /*need_parens=*/TRUE);
