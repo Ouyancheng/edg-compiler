@@ -1135,6 +1135,8 @@ See ARM 13.3, "Address of Overloaded Function".
     dest_underlying_type = pm_member_type(dest_type);
   }  /* if */
   if (is_ptr || is_ptr_to_member) {
+    /* dest_type is a pointer or pointer-to-member type, but the underlying
+       type is not necessarily a function type. */
     dest_underlying_type = skip_typerefs(dest_underlying_type);
     reduce_projection_symbol_to_fundamental_symbol(ovl_sym);
     if (ovl_sym->kind == (a_symbol_kind)sk_function_template) {
@@ -1187,8 +1189,10 @@ See ARM 13.3, "Address of Overloaded Function".
         }  /* if */
       }  /* if */
     }  /* for */
-    if (number_of_matches == 0 && any_function_templates) {
-      /* Try matching function templates. */
+    if (number_of_matches == 0 && any_function_templates &&
+        is_function_type(dest_underlying_type)) {
+      /* Try matching function templates.  Do not try if the underlying type
+         is not a function type. */
       for (sym = ovl_sym;
            sym != NULL;
            sym = (sym_is_list ? sym->next : NULL)) {

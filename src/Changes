@@ -1,5 +1,12 @@
 Version 2.13
 
+1/6/93 Bug fixed in resolution of pointer to overloaded function
+
+A bug that caused an internal error on the following has been fixed:
+
+  template <class T> void f(T){}
+  void *p = f;
+
 1/6/93 Error on type definition within function return type
 
 We have long dealt with the obvious case in which a class or enum
