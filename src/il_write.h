@@ -1,0 +1,63 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C Front End                            - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+il_write.h -- Declarations relating to il_write.c (having to do with
+              writing the intermediate language to a file).
+
+*/
+
+/* Avoid including these declarations more than once. */
+#ifndef IL_WRITE_H
+#define IL_WRITE_H 1
+
+#ifndef HOST_ENVIR_H
+#include "host_envir.h"
+#endif /* ifndef HOST_ENVIR_H */
+
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+
+#ifndef MEM_TABLES_H
+#include "mem_tables.h"
+#endif /* ifndef MEM_TABLES_H */
+#ifndef IL_FILE_H
+#include "il_file.h"
+#endif /* ifndef IL_FILE_H */
+
+EXTERN FILE	*f_il_output /* = NULL */;
+			/* File to which the intermediate language is 
+			   written.  NULL if file should not be written. */
+EXTERN char	*il_file_name /* = NULL */;
+			/* Name of the IL file, NULL if there isn't one or
+			   it's a temporary file. */
+
+extern void start_il_file(void);
+
+extern void finish_il_file(void);
+
+extern void close_il_output_file(void);
+
+extern void cancel_il_file(void);
+
+extern void write_memory_region(a_memory_region_number region_number);
+
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+#endif /* ifndef IL_WRITE_H */
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C Front End                            - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
