@@ -2757,7 +2757,7 @@ a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_type(
 /*
 Set the declared_type field to "type" in the recently created secondary
 source sequence entry created for the IL entry pointed to by il_entry_ptr.
-Also, set the explicit_template_specialization flag to the value indicated
+Also, set the is_specialization flag in the new entry to the value indicated
 by is_specialization.
 */
 {
@@ -2773,7 +2773,7 @@ by is_specialization.
       check_assertion(ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
       sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
       sssdp->declared_type = type;
-      sssdp->explicit_template_specialization = is_specialization;
+      sssdp->is_specialization = is_specialization;
     }  /* if */
   }  /* if */
   return sssdp;

@@ -3343,9 +3343,7 @@ Display the indicated source sequence secondary declaration entry.
   if (sssdp->declared_in_func_prototype) {
     disp_boolean("declared_in_func_prototype", TRUE);
   }  /* if */
-  if (sssdp->explicit_template_specialization) {
-    disp_boolean("explicit_template_specialization", TRUE);
-  }  /* if */
+  if (sssdp->is_specialization) disp_boolean("is_specialization", TRUE);
 }  /* disp_src_seq_secondary_decl */
 
 

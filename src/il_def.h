@@ -601,7 +601,7 @@ typedef struct a_src_seq_secondary_decl {
 			   when this is the first declaration of A.  Used in
 			   both C and C++, though the interpretation of such
 			   declarations differs between the two languages. */
-  a_bit_field	explicit_template_specialization:1;
+  a_bit_field	is_specialization:1;
 			/* TRUE if the declaration is an explicit template
 			   specialization (i.e., the template<> is used). */
   bitfield_to_avoid_codecenter_warnings()

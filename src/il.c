@@ -8027,9 +8027,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           if (sssdp->friend_decl) is_friend = TRUE;
           if (sssdp->implicit_decl) is_implicit = TRUE;
           if (sssdp->declared_in_func_prototype) func_prototype_decl = TRUE;
-          if (sssdp->explicit_template_specialization) {
-            is_specialization = TRUE;
-          }  /* if */
+          if (sssdp->is_specialization) is_specialization = TRUE;
         } else {
           scp = source_corresp_for_il_entry(
                                          ssep->entity.ptr,
