@@ -534,6 +534,11 @@ the newly created token.
   ctp->token_sequence_number = sequence_number;
   ctp->source_position = *position;
   ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
+#if DEBUG
+  /* For accounting purposes, assume that this token will be used in a
+     reusable cache. */
+  num_cached_tokens_in_reusable_caches++;
+#endif /* DEBUG */
   return ctp;
 }  /* build_cached_token */
 
