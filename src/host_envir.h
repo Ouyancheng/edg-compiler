@@ -630,10 +630,14 @@ in the current translation unit.
 /*
 Flag that is TRUE if the front end should record the original structure of
 constant-expressions in addition to their resulting value.  (See expr field
-of struct a_constant.)
+of struct a_constant.)  This can be useful for source-analysis applications.
 */
 #ifndef RECORD_CONSTANT_EXPRESSIONS_IN_IL
+#if BACK_END_IS_CP_GEN_BE
+#define RECORD_CONSTANT_EXPRESSIONS_IN_IL TRUE
+#else /* !BACK_END_IS_CP_GEN_BE */
 #define RECORD_CONSTANT_EXPRESSIONS_IN_IL FALSE
+#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
 /*
