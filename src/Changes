@@ -1,5 +1,12 @@
 Version 2.39
 
+4/18/98   Internal error on expansion of macro that is unclosed string ending
+          in "\"
+
+An internal error has been eliminated on expansion of a macro that expands
+to an unclosed string whose last character is a backslash.  This is possible
+if the macro definition is given by a command-line option.
+
 4/16/98   Internal error on pragma in class template nested class declaration
 
 An internal error would occur if a pragma appeared in a class template

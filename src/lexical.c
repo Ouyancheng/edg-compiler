@@ -5354,23 +5354,36 @@ for header names in #include directives.
          those digits so we can accurately count characters, but we do
          not convert them at this point. */
       ch = *(++curr_char_loc);
-      curr_char_loc++;
-      (*num_chars)++;
-      if (isdigit((unsigned char)ch) && ch != '8' && ch != '9') {
-        /* Octal escape, one to three digits.  Note that neither ANSI nor
-           pcc allows 8 and 9 as octal digits in this case.  Note that
-           there is code in conv_single_char that must match this code.*/
-        ch = *curr_char_loc;
+      if (ch == LE_ESCAPE) {
+        /* Token ends after the "\" -- this is an unclosed string.  This can
+           happen because of macro definitions on the command line. */
+        err_code_for_error_token = ec_unclosed_string;
+        if (fetch_pp_tokens) {
+          ctoken = tok_error;
+        } else {
+          error_at_line_pos(err_code_for_error_token, start_of_curr_token);
+        }  /* if */
+        *err = TRUE;
+        goto return_point;
+      } else {
+        curr_char_loc++;
+        (*num_chars)++;
         if (isdigit((unsigned char)ch) && ch != '8' && ch != '9') {
-          curr_char_loc++;
+          /* Octal escape, one to three digits.  Note that neither ANSI nor
+             pcc allows 8 and 9 as octal digits in this case.  Note that
+             there is code in conv_single_char that must match this code.*/
           ch = *curr_char_loc;
           if (isdigit((unsigned char)ch) && ch != '8' && ch != '9') {
             curr_char_loc++;
+            ch = *curr_char_loc;
+            if (isdigit((unsigned char)ch) && ch != '8' && ch != '9') {
+              curr_char_loc++;
+            }  /* if */
           }  /* if */
+        } else if (ch == 'x') {
+          /* Hex escape, any number of digits. */
+          while (isxdigit((unsigned char)*curr_char_loc)) curr_char_loc++;
         }  /* if */
-      } else if (ch == 'x') {
-        /* Hex escape, any number of digits. */
-        while (isxdigit((unsigned char)*curr_char_loc)) curr_char_loc++;
       }  /* if */
     } else if (ch == LE_ESCAPE) {
       /* Lexical escape, e.g., newline. */
