@@ -55,8 +55,9 @@ Whenever the canonical entry of a correspondence set changes from an entry
 in a translation unit that is already processed to an entry in the current
 translation unit, the previous canonical entry must be verified against the
 new one.  However, this verification must be delayed until all the
-correspondences have been set.  Therefore a list of "previous canonical
-entry" is created to keep track of items to verify later on.
+correspondences have been set.  Therefore a list of "previously canonical
+entries" is created to keep track of items to verify later on (see function
+process_verification_list).
 */
 typedef struct a_verification_entry *a_verification_entry_ptr;
 typedef struct a_verification_entry {
@@ -116,7 +117,7 @@ finding the correspondences for the associates templates.  However, the
 processing of templates must occur before the corresponding instantiations
 to avoid infinite recursion.  Therefore, we build a list of instantiations
 to process as we find correspondences for templates.  The list is then
-processed later.
+processed later (see process_pending_instantiations).
 */
 static a_symbol_list_entry_ptr  instantiations_to_process;
 
@@ -200,13 +201,18 @@ sym.
   a_name_linkage_kind  name_linkage;
   a_type_ptr           routine_type;
 
-  check_assertion(is_function_symbol(sym) ||
+  check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
+                  sym->kind == (a_symbol_kind)sk_member_function ||
                   sym->kind == (a_symbol_kind)sk_variable);
-  if (is_function_symbol(sym)) {
+  /* All of the hard work is done by find_external_symbol; we just have
+     to pass it the appropriate linkage and type. */
+  if (sym->kind != (a_symbol_kind)sk_variable) {
+    /* An ordinary function or a member function. */
     a_routine_ptr  routine = sym->variant.routine.ptr;
     name_linkage = routine->source_corresp.name_linkage;
     routine_type = routine->type;
   } else {
+    /* A variable symbol. */
     a_variable_ptr  variable = sym->variant.variable.ptr;
     name_linkage = variable->source_corresp.name_linkage;
     routine_type = NULL;
@@ -218,6 +224,11 @@ sym.
 
 
 #if DEBUG
+/*
+The following variable can be set to point to an IL entry from within a 
+debugger.  When that IL entry's correspondence is modified, corresp_intercept
+is called.
+*/
 static void *trace_corresp_ptr = NULL;
 
 static void corresp_intercept(void)
@@ -236,7 +247,8 @@ pointed to by trace_corresp_ptr is modified.
 
 void* db_corresp(void *ptr)
 /*
-Report correspondence pointer for given entry.
+Report correspondence pointer for given entry and return the address of the
+canonical entry (or NULL if none).
 */
 {
   void  *result;
@@ -246,6 +258,7 @@ Report correspondence pointer for given entry.
     fprintf(f_debug, "Correspondence for 0x%x is 0x%x",
             (unsigned)ptr, (unsigned)result);
   } else {
+    /* This entry doesn't belong to a correspondence set yet. */
     result = NULL;
     fprintf(f_debug, "No correspondence for 0x%x",
             (unsigned)ptr);
@@ -359,8 +372,8 @@ importance):
    (a) Is the entity's parent canonical?
    (b) Is the entity in the primary IL?
    (c) Does the entity have an explicit initializer? (variables only)
-   (d) Is the entity a definition?
-   (e) Is the entity a template specialization?
+   (d) Is the entity a template specialization?
+   (e) Is the entity a definition?
 The entity with the highest ranking in a correspondence set should be the
 canonical entry.  (See also corresp_ranking in trans_copy.c for a reduced
 version of this function.)
@@ -448,13 +461,16 @@ static void update_canonical_entry(an_il_entry_kind  kind,
                                    char              *entity)
 /*
 The given IL entity (of the given kind) may be a more appropriate canonical
-entry than the current canonical in the attached correspondence entry.  If so,
+entry than the current canonical entry of its correspondence set.  If so,
 the canonical entity is changed by this routine.  In general, canonical
 entries should be definitions if possible, and among the definitions, one from
-the primary translation unit is preferred.
+the primary translation unit is preferred (see canonical_ranking for the
+exact criteria).
 */
 {
   if (kind == (an_il_entry_kind)iek_base_class) {
+    /* Base class entries belong to correspondence sets, but are canonical
+       if and only if their associated derived class is canonical. */
     a_base_class_ptr  bcp = (a_base_class_ptr)entity;
     a_type_ptr        derived = bcp->derived_class;
     if (canonical_il_entry_of(derived) == (char*)derived) {
@@ -540,6 +556,9 @@ the primary translation unit is preferred.
           break;
       }  /* switch */
       if (in_secondary_trans_unit(tcp->canonical)) {
+        /* Make sure that the previously canonical entry is compared against
+           whichever entry ends up being the canonical entry of the
+           correspondence set. */
         add_verification_entry(kind, tcp->canonical);
       }  /* if */
       change_canonical_entry(tcp, entity);
@@ -616,6 +635,8 @@ this routine will create such a correspondence entry.
   }  /* if */
 #endif /* DEBUG */
   if (kind == (an_il_entry_kind)iek_base_class) {
+    /* Base class entries are the only entries with a correspondence pointer
+       that is not part of a source correspondence structure. */
     tcp1 = &((a_base_class*)entity1)->trans_unit_corresp;
     tcp2 = &((a_base_class*)entity2)->trans_unit_corresp;
   } else {
@@ -636,6 +657,7 @@ this routine will create such a correspondence entry.
 #endif /* CHECKING */
       update_canonical_entry(kind, entity2);
     } else {
+      /* Neither of the two entries had a correspondence node: create one. */
       *tcp2 = alloc_trans_unit_corresp();
       (*tcp2)->kind = kind;
 #if CHECKING
@@ -695,6 +717,8 @@ has not yet been examined for a matching entry in another translation unit.
   }  /* if */
 #endif /* DEBUG */
   if (kind == (an_il_entry_kind)iek_base_class) {
+    /* Base class entries are the only entries with a correspondence pointer
+       that is not part of a source correspondence structure. */
     tcp = &((a_base_class*)entity)->trans_unit_corresp;
   } else {
     tcp = &trans_unit_corresp_of_unknown_entry(entity);
@@ -899,11 +923,13 @@ given symbols are identical.
   if (sym1->is_class_member != sym2->is_class_member) {
     result = FALSE;
   } else if (sym1->is_class_member) {
+    /* Two class members. */
     a_type_ptr  parent1 = sym1->parent.class_type;
     a_type_ptr  parent2 = sym2->parent.class_type;
     check_assertion(parent1 != NULL && parent2 != NULL);
     result = corresponding_types(parent1, parent2);
   } else {
+    /* Members of namespaces (possibly global scope). */
     a_namespace_ptr              parent1 = sym1->parent.namespace_ptr;
     a_namespace_ptr              parent2 = sym2->parent.namespace_ptr;
     an_il_entry_kind             kind;
@@ -943,8 +969,8 @@ static a_boolean known_same_parents(a_symbol_ptr  sym1,
                                     a_symbol_ptr  sym2)
 /*
 Return TRUE if and only if the parent (namespace or class) entities of the
-given symbols have the same canonical entry.  (This differs from 
-"same_parents" in that no attempt is made to establish a canonical entry.)
+given symbols have the same canonical entry.  (This differs from "same_parents"
+in that no attempt is made to establish a canonical entry for the parents.)
 */
 {
   a_boolean  result;
@@ -1005,6 +1031,8 @@ need to be determined.
     case sk_static_data_member:
     case sk_variable:
       {
+        /* These entities can have correspondences if they have external
+           linkage. */
         an_il_entry_kind             kind;
         a_source_correspondence_ptr  scp;
         scp = (a_source_correspondence_ptr)il_entry_for_symbol_null_okay(
@@ -1022,6 +1050,8 @@ need to be determined.
     case sk_extern_routine:
     case sk_extern_variable:
       {
+        /* These entities can have correspondences if they have external
+           linkage. */
         a_source_correspondence_ptr  scp;
         if (is_function_type(sym->variant.extern_symbol_descr->type)) {
           scp = &sym->variant.extern_symbol_descr
@@ -1361,7 +1391,7 @@ its corresponding primary template supplement will be used instead.
 
   if (templ != NULL) {
     a_symbol_ptr  templ_sym;
-    templ = (a_template_ptr)canonical_il_entry_of(templ);
+    templ = canonical_template_entry_of(templ);
     templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
     if (is_type_symbol(inst)) {
       templ_sym = primary_template_of(templ_sym);
