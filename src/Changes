@@ -131,7 +131,8 @@ been fixed.
 
 12/18/95  C++-generating back end: function-local anonymous union
 
-A function-local anonymous union is no longer put out as static.
+A function-local anonymous union is no longer invariably put out as static;
+it now gets the proper storage class (static, auto, or register).
 
   void foo() {
     union {  // was put out as static
