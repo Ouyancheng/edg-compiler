@@ -3560,14 +3560,17 @@ Return TRUE if the candidate functions cfp1 and cfp2 are the same function.
       same = TRUE;
     } else if (sym1->kind == (a_symbol_kind)sk_projection &&
                sym2->kind == (a_symbol_kind)sk_projection &&
-               sym1->variant.projection.extra_info->fundamental_base_class !=
-               sym2->variant.projection.extra_info->fundamental_base_class) {
+               canonical_il_entry_of(sym1->variant.projection.extra_info->
+                                                     fundamental_base_class) !=
+               canonical_il_entry_of(sym2->variant.projection.extra_info->
+                                                     fundamental_base_class)) {
       /* When dealing with class member projections, if the subobjects
          involved are different (e.g., because of an ambiguous base class)
          the functions are different because they deal with different base
          class subobjects. */
       /* same = FALSE; -- already set. */
     } else {
+      a_routine_ptr rout1, rout2;
       sym1 = fundamental_symbol_of(sym1);
       sym2 = fundamental_symbol_of(sym2);
       /* Note that sym1 or sym2 can be a function template here. */
@@ -3576,7 +3579,9 @@ Return TRUE if the candidate functions cfp1 and cfp2 are the same function.
             sym1->kind == (a_symbol_kind)sk_member_function) &&
            sym1->kind == sym2->kind &&
            /* Compare IL entry pointers to deal with block extern symbols. */
-           sym1->variant.routine.ptr == sym2->variant.routine.ptr)) {
+           (rout1 = sym1->variant.routine.ptr,
+            rout2 = sym2->variant.routine.ptr,
+            same_routine_entities(rout1, rout2)))) {
         same = TRUE;
       }  /* if */
     }  /* if */
