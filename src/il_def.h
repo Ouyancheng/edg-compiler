@@ -2240,7 +2240,7 @@ typedef struct an_entry_description {
 
 #endif /* ifdef FIL */
 
-typedef enum /*a_scope_kind*/ {
+enum a_scope_kind_tag {
   /* Kinds of scopes. */
   sck_file,		/* File scope. */
 #ifdef CIL
@@ -2265,7 +2265,9 @@ typedef enum /*a_scope_kind*/ {
   sck_stmt_function,	/* Statement function scope. */
 #endif /* ifdef FIL */
   sck_function		/* Function scope. */
-} a_scope_kind;
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_scope_kind;
 
 /*
 Numbering for scopes.  Each new scope is given a number.  These
