@@ -1,5 +1,14 @@
 Version 2.44
 
+1/25/00   C-generating back end: startup code using the Sun C compiler
+
+The Sun C compiler has a pragma that can be used to indicate initialization
+routines that must be called at program startup.  The C-generating back
+end now generates that pragma.  The pragma is automatically enabled
+when the front end is compiled with the Sun C compiler.  The pragma
+can be enabled separately by compiling with SUNPRO_C_IS_C_GEN_BE_TARGET
+set to TRUE.
+
 1/24/00  Microsoft compatibility: default #import directory
 
 The default value for the #import directory (i.e., when it is not specified
