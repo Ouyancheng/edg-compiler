@@ -4073,24 +4073,26 @@ table.
   var->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
   var->source_corresp.access = access;
 
-  if (curr_token == tok_assign &&
-      (is_const_qualified_type(member_type) &&
-       is_integral_type(member_type)) ||
-      (is_nonreal_class && is_or_contains_template_param(member_type))) {
-    /* A const integral or const enumeration type may be initialized inside
-       the class definition (9.5.2).  Note that the variable entry will have
-       an initializer but will not yet be defined. */
-    a_constant_ptr  cp = alloc_constant((a_constant_repr_kind)ck_error);
-    /* Advance past the "=". */
-    (void)get_token();
-    /* Scan the constant expression. */
-    scan_constant_initializer_expression(member_type, cp);
-    var->init_kind = (an_init_kind)initk_static;
-    var->initializer.constant = cp;
-    /* Set the flag indicating to the back end that, even though there is
-       an initializer for this variable entry, it has not necessarily been
-       defined. */
-    var->is_member_constant = TRUE;
+  if (curr_token == tok_assign) {
+    if ((is_const_qualified_type(member_type) &&
+         is_integral_type(member_type)) ||
+        (is_nonreal_class &&
+         is_or_contains_template_param(member_type))) {
+      /* A const integral or const enumeration type may be initialized inside
+         the class definition (9.5.2).  Note that the variable entry will have
+         an initializer but will not yet be defined. */
+      a_constant_ptr  cp = alloc_constant((a_constant_repr_kind)ck_error);
+      /* Advance past the "=". */
+      (void)get_token();
+      /* Scan the constant expression. */
+      scan_constant_initializer_expression(member_type, cp);
+      var->init_kind = (an_init_kind)initk_static;
+      var->initializer.constant = cp;
+      /* Set the flag indicating to the back end that, even though there is
+         an initializer for this variable entry, it has not necessarily been
+         defined. */
+      var->is_member_constant = TRUE;
+    }  /* if */
   }  /* if */
   /* This is entered as a declaration rather than a definition, since the
      definition must appear outside the class definition. */
@@ -6173,8 +6175,6 @@ Scan the body of a class definition, including the base classes list.
       a_class_symbol_supplement_ptr  parent_cssp;
       check_assertion(tag_sym->class_of_which_a_member ==
                               scope_stack[decl_scope_level].assoc_type);
-      class_type->source_corresp.access =
-                              scope_stack[decl_scope_level].current_access;
       parent_cssp =
                symbol_supplement_for_class(tag_sym->class_of_which_a_member);
       /* A class nested within a nonreal class is itself nonreal and a
@@ -6403,15 +6403,12 @@ Scan the body of a class definition, including the base classes list.
 #if CHECKING
           if (C_dialect == C_dialect_cplusplus) {
             /* Should be a nested class, struct, union, or enum definition.
-               Be sure the parent class and access were marked correctly. */
+               Be sure the parent class was marked correctly. */
             a_symbol_ptr sym = (a_symbol_ptr)(tp->source_corresp.assoc_info);
             if (sym != NULL &&
                 sym->class_of_which_a_member != class_type) {
              internal_error(
                       "scan_class_definition: bad parent type on nested type");
-            } else if (tp->source_corresp.access != access) {
-              internal_error(
-                      "scan_class_definition: bad access on nested type");
             } /* if */
           }  /* if */
 #endif /* CHECKING */
@@ -7089,7 +7086,7 @@ Scan the body of a class definition, including the base classes list.
             /* Typedef declaration. */
             decl_typedef(&locator, local_type, class_type, &typedef_sym_ptr,
                          declarator_ssep);
-            typedef_sym_ptr->variant.type->source_corresp.access = access;
+            /* Note: access will have been set in decl_typedef. */
             if (access != (an_access_specifier)as_public) {
               /* Strictly speaking, any nonpublic member prevents a class from
                  being an aggregate -- keep track. */
