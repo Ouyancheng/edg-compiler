@@ -6129,7 +6129,8 @@ current scope.
         locator = locator_for_curr_id;
         clear_specific_symbol(locator);
         /* Look for a declaration of the same name in the current scope. */
-        overload_sym = curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
+        (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
+        overload_sym = locator.specific_symbol;
         if (overload_sym != NULL &&
             !is_function_symbol(fundamental_symbol_of(overload_sym))) {
           /* There is no function symbol in the current scope with which the
