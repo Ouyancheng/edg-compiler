@@ -194,7 +194,7 @@ itself recursively to process classes nested within this class.
     while (rout != NULL) {
       sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
       tip = sym->variant.routine.instance_ptr;
-      if (tip != NULL) {
+      if (tip != NULL && !tip->instantiation_required) {
         /* Under certain conditions the instance pointer will be NULL.  This
            occurs for compiler generated routines and under some error
            conditions.  Simply skip this routine. */
@@ -220,7 +220,7 @@ itself recursively to process classes nested within this class.
          to skip setting the instantiation required flag rather than
          generate a possibly spurious internal error. */
 #endif /* 0 */
-      if (tip != NULL) {
+      if (tip != NULL && !tip->instantiation_required) {
         update_instantiation_required_flag(tip, /*value=*/TRUE);
       }  /* if */
       var = var->next;
@@ -3960,7 +3960,7 @@ a line of input is being returned.  Returns FALSE at end-of-file.
 {
   register char*    buffer_pos;
   register sizeof_t size = 0;
-  register char     ch;
+  register int      ch;
   char              *result;
   static char	    *input_line;
   static sizeof_t   info_file_line_size = 0;
