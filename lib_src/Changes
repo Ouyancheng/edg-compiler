@@ -1,9 +1,9 @@
-Version 3.1
+Version 3.1, January 26, 2003
 
 1/22/03  IA-64 ABI
 
-We have added support for the IA-64 ABI in the demangler, prelinker, etc.
-See the front end Changes file for more information.
+We have added support for the IA-64 ABI.  See the front end Changes
+file for more information.
 
 1/20/03  EH destruction of base class subobjects, with construction vtables
 
