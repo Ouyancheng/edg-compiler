@@ -105,6 +105,21 @@ Output an unsigned number as indicated by octl.
   octl->output_str(buffer);
 }  /* form_unsigned_num */
 
+#if DEBUG
+
+static void form_unsigned_hex(unsigned long                         num,
+                              an_il_to_str_output_control_block_ptr octl)
+/*
+Output an unsigned number in hexadecimal form, as indicated by octl.
+*/
+{
+  char buffer[50];
+
+  (void)sprintf(buffer, "%lx", num);
+  octl->output_str(buffer);
+}  /* form_unsigned_hex */
+
+#endif /* DEBUG */
 
 void form_template_args(a_template_arg_ptr                    tap,
                         an_il_to_str_output_control_block_ptr octl)
@@ -164,7 +179,14 @@ The output includes template arguments on template classes.
   if (name == NULL) {
     /* For entities without names, use <unnamed>. */
     check_assertion(!octl->gen_compilable_code);
-    octl->output_str("<unnamed>");
+    octl->output_str("<unnamed");
+#if DEBUG
+    if (octl->debug_output) {
+      octl->output_str("@");
+      form_unsigned_hex((unsigned long)scp, octl);
+    }  /* if */
+#endif /* DEBUG */
+    octl->output_str(">");
   } else {
     /* Output the base name. */
     octl->output_str(name);
