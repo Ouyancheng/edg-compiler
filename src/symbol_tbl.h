@@ -2152,6 +2152,18 @@ extern a_routine_ptr select_copy_constructor(
                                   a_boolean             evaluated,
                                   a_boolean             suppress_access_check);
 
+extern a_symbol_ptr find_copy_assignment_operator(
+                                    a_type_ptr            class_type,
+                                    a_type_qualifier_set  required_qualifiers,
+                                    a_boolean             *pass_by_value,
+                                    a_boolean             *ambiguous);
+
+extern a_routine_ptr select_copy_assignment_operator(
+                                    a_type_ptr            class_type,
+                                    a_type_qualifier_set  required_qualifiers,
+                                    a_source_position     *err_pos,
+                                    a_boolean             *pass_by_value);
+
 extern char *il_entry_for_symbol(a_symbol_ptr      sym,
                                  an_il_entry_kind  *kind);
 
