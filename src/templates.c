@@ -2995,6 +2995,7 @@ and create a function instantiation entry to bind the two symbols together.
   a_template_instance_ptr           tip;
   a_type_ptr                        tp;
   a_scope_number                    corresp_prototype_decl_scope;
+  a_symbol_ptr			    sym_from_prototype = NULL;
 
   db_enter(3, "find_member_function_template");
   /* In certain error cases, two declarations that are distinct in the
@@ -3064,10 +3065,12 @@ and create a function instantiation entry to bind the two symbols together.
     for (sym = rout_sym->header->inactive_symbols;
          sym != NULL;
          sym = sym->next) {
-      if (sym->decl_scope == corresp_prototype_decl_scope &&
-          (sym->kind == (a_symbol_kind)sk_member_function ||
-           sym->kind == (a_symbol_kind)sk_overloaded_function)) {
-        break;
+      if (sym->decl_scope == corresp_prototype_decl_scope) {
+        sym_from_prototype = sym;
+        if (sym->kind == (a_symbol_kind)sk_member_function ||
+            sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          break;
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
@@ -3092,6 +3095,24 @@ and create a function instantiation entry to bind the two symbols together.
         }  /* if */
       }  /* if */
     }  /* for */
+  }  /* if */
+  if (sym == NULL && sym_from_prototype != NULL) {
+    /* If we haven't found a match, see if there is a symbol from the
+       prototype instantiation with the same name as the function
+       being declared, but that is a static data member or variable
+       in the prototype instantiation.  This could occur if a template
+       parameter were used as the type of a variable (in the prototype)
+       but now that template parameter has a function type.  This is
+       not permitted by the standard.   For example:
+         template <class T> struct A { 	T t; };
+         A<int()> a;
+       The same situation can occur if a name inherited from a template
+       dependent base class turns out to be a function type. */
+    if (sym_from_prototype->kind == (a_symbol_kind)sk_static_data_member ||
+        sym_from_prototype->kind == (a_symbol_kind)sk_field) {
+      error(ec_function_type_not_allowed);
+      goto error_exit;
+    }  /* if */
   }  /* if */
 #if CHECKING
   if (sym == NULL || sym->kind != (a_symbol_kind)sk_member_function) {

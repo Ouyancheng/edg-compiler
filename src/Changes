@@ -1,5 +1,22 @@
 Version 2.30
 
+8/30/95  Function types as template parameters
+
+In version 2.26 we made it an error to use a function type as a
+template parameter.  X3J16/WG21 decided to permit function types
+as template parameters, but prohibit them from being used to
+declare a function without using the function declarator syntax.
+The front end has been modified to reflect this decision.
+
+The following example illustrates the valid and invalid uses of
+a template parameter that has a function type.
+
+  template <class T> struct A {
+     T t;     // Error: invalid use of function type
+     T* t2(); // okay
+   };
+  A<int()> a;
+
 8/30/95  Allowing "&..." and, in C mode, "(...)"
 
 The lang_feat.h configuration switches ADDRESS_OF_ELLIPSIS_ALLOWED and

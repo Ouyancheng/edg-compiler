@@ -6245,14 +6245,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
            themselves externally linked. */
         pos_error(ec_local_type_in_template_arg, &arg_pos);
         argument_type = error_type();
-      } else if (is_function_type(argument_type)) {
-        /* Template parameters may not refer to a function type.  This is
-           not yet (as of version 2.26) in the WP, but is needed to
-           prevent class template definitions from being interpreted
-           differently between the prototype instantiation and a real
-           instantiation. */
-        pos_error(ec_function_type_in_template_arg, &arg_pos);
-        argument_type = error_type();
       }  /* if */
       arg_ptr->variant.type = argument_type;
     } else {  /* else executed when !is_type_param */
