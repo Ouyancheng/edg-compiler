@@ -709,6 +709,10 @@ typedef struct a_template_instance {
   unsigned int	explicit_instantiation:1;
 			/* TRUE if an instantiation has been explicitly
 			   requested using a pragma directive. */
+  unsigned int  already_instantiated:1;
+			/* TRUE if instantiation has already been performed
+			   (for instance, for inline functions, which are
+			   instantiated at the point of first reference). */
   a_source_position
 		explicit_instantiation_pos;
 			/* The position of the instantiation request pragma
