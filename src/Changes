@@ -2,26 +2,26 @@ Version 2.37
 
 7/8/97    C++-generating back end: representation of partial instantiations
 
-The C++-generating back end now puts out explicit specializations to
-represent "partial instantiations" -- that is, instantiations of template
-declarations only, as opposed to full instantiations that indicate the
-definitions of the template instances.  The information is put out in
-secondary-declaration source sequence entries when either
-NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS or
+The C++-generating back end now puts out an explicit specialization to
+represent a "partial instantiation" -- that is, an instantiation of a
+template declaration only, as opposed to a full instantiation that
+indicates the definition of the template instance.  The front end records
+this information by means of a secondary-declaration source sequence entry
+when either NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS or
 CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE.  For
 example, if the original source looked like this:
 
-  template <class T> struct S;
+  template <class T> struct S { ... };
   S<int> *psi;
 
 the generated C++ would be:
 
-  template <class T> struct S;
+  template <class T> struct S { ... };
   template<> S<int>;
   S<int> *psi;
 
 which assumes a full specialization of S<int> appears elsewhere in the
-generated program.
+generated program, once it is needed.
 
 7/8/97    C++-generating back end: reference of nested class to itself
 
