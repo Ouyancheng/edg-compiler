@@ -124,13 +124,17 @@ is prepared to accept all of the C99 IL extensions.
  #error -- C99 IL lowering cannot be done if C99 IL extensions not supported
 #endif /* !C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING */
 
-/* Enable long long. */
+/*
+Flag that is TRUE if the "long long" data type and the associated language
+features (e.g., suffixes for constants) are allowed.  "long long" is
+standard in C99, and Microsoft mode needs the IL support for __int64.
+*/
 #ifndef LONG_LONG_ALLOWED
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if MICROSOFT_EXTENSIONS_ALLOWED || C99_IL_EXTENSIONS_ALLOWED
 #define LONG_LONG_ALLOWED TRUE
-#else /* !C99_IL_EXTENSIONS_SUPPORTED */
+#else /* !(MICROSOFT_EXTENSIONS_ALLOWED || C99_IL_EXTENSIONS_ALLOWED) */
 #define LONG_LONG_ALLOWED FALSE
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || C99_IL_EXTENSIONS_ALLOWED */
 #endif /* ifndef LONG_LONG_ALLOWED */
 
 /*
@@ -1346,18 +1350,6 @@ TARG_MINIMUM_STRUCT_ALIGNMENT is larger than one.
 #ifndef TARG_PAD_ALLOCATED_EMPTY_BASE
 #define TARG_PAD_ALLOCATED_EMPTY_BASE BACK_END_IS_C_GEN_BE
 #endif /* ifndef TARG_PAD_ALLOCATED_EMPTY_BASE */
-
-/*
-Flag that is TRUE if the "long long" data type and the associated language
-features (e.g., suffixes for constants) are allowed.
-*/
-#ifndef LONG_LONG_ALLOWED
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#define LONG_LONG_ALLOWED TRUE  /* Default for Microsoft mode. */
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define LONG_LONG_ALLOWED FALSE
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifndef LONG_LONG_ALLOWED */
 
 /*
 When a class with a copy constructor is passed to an ellipsis, does the
