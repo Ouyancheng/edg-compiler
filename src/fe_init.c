@@ -412,6 +412,9 @@ Initialize things related to preprocessing.
   /* For example:
   enter_assert_predicate("m68k ", "machine");
   */
+#ifdef sparc
+  enter_assert_predicate("sparc ", "machine");
+#endif /* ifdef sparc */
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 
   /* Now process command-line defines of symbols (-D). */  
