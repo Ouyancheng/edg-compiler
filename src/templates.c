@@ -2852,15 +2852,9 @@ entry is pushed on the scope stack.
 	       with default arguments. */
 	    a_boolean	only_in_default_args;
 	    a_boolean	param_used;
-	    a_boolean	param_used_in_return_type;
 	    param_used = template_param_appears_in_param_list
                       (param_sym->variant.type, type, &only_in_default_args);
-	    param_used_in_return_type = template_param_appears_in_type_tree
-					(param_sym->variant.type,
-					 type->variant.routine.return_type);
-
-	    if (!param_sym->referenced ||
-		(param_used_in_return_type && !param_used)) {
+	    if (!param_sym->referenced || !param_used) {
               pos_sy2_error(ec_not_used_in_template_function_params,
                             &param_sym->decl_position, param_sym, sym);
 	    } else if (only_in_default_args) {
