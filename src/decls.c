@@ -9789,6 +9789,12 @@ an asm "declaration" is actually treated as an executable statement.
     copy_source_position(asm_pos, ap->source_corresp.decl_position);
     /* Add the asm entry to the list for the current scope. */
     add_to_asm_entries_list(ap);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* There's no name or symbol for the asm declaration, so call
+       update_source_sequence_list directly. */
+    update_source_sequence_list((char *)ap, (an_il_entry_kind)iek_asm_entry,
+                                &asm_pos, (a_source_sequence_entry_ptr)NULL);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 
   db_exit();
