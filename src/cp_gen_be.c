@@ -2987,6 +2987,9 @@ Print a set of Microsoft declaration modifiers.
   if (decl_modifiers & DM_MICROSOFT_INLINE) {
     write_tok_str("__inline ");
   }  /* if */
+  if (decl_modifiers & DM_FORCEINLINE) {
+    write_tok_str("__forceinline ");
+  }  /* if */
 }  /* gen_microsoft_decl_modifiers */
 
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
@@ -7050,7 +7053,9 @@ TRUE if the declaration following this one is such a continuation.
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
     { a_decl_modifier decl_modifiers = rout->decl_modifiers;
       /* __inline and __declspec(naked) apply only to definitions. */
-      if (!is_definition) decl_modifiers &= ~(DM_NAKED | DM_MICROSOFT_INLINE);
+      if (!is_definition) {
+        decl_modifiers &= ~(DM_NAKED | DM_MICROSOFT_INLINE | DM_FORCEINLINE);
+      }  /* if */
       suppress_microsoft_decl_modifiers_put_out_on_class(&decl_modifiers,
                                                         &rout->source_corresp);
       gen_microsoft_decl_modifiers(decl_modifiers);

@@ -6244,6 +6244,9 @@ if this routine has a body (dump nothing if it has no body).
       if (rout->decl_modifiers & DM_MICROSOFT_INLINE) {
         write_tok_str("__inline ");
       }  /* if */
+      if (rout->decl_modifiers & DM_FORCEINLINE) {
+        write_tok_str("__forceinline ");
+      }  /* if */
     }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
