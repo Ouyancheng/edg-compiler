@@ -1,5 +1,31 @@
 Version 2.29
 
+5/10/95  Referenced but undefined member functions
+
+An undefined member function of a local class is now reported as an error
+only if it is actually referenced:
+
+  main() {
+    struct S {
+      void f();       // Error -- referenced but not defined
+      void g();       // No error -- never referenced
+    } s;
+    s.f();
+  }
+
+Some bugs have been fixed in this area as well.  The checking of member
+functions of unnamed classes and nested classes has been improved, not
+only for local classes but also for file-scope classes with member
+functions declared "inline".  For instance, in the following an error is
+now issued on referenced but undefined inline function S::T::f():
+
+  struct S {
+    struct T {
+      inline void f();       // Never defined
+    } t;
+  } s;
+  void g() { s.t.f(); }
+
 5/10/95  integer->x in pcc mode
 
 In pcc mode, a selection of the form integer->x, where integer is an
