@@ -2912,10 +2912,15 @@ with a routine.
                           strlen(buffer);
 #else /* IA64_ABI */
     /* IA-64 ABI encoding:
-         _Z Z function-mangled-name E name-with-length _ discriminator
+         __ Z function-mangled-name E name-with-length _ discriminator
        We don't have an accurate discriminator value, so we use the
        scope number for that.  The routine name already has the "_Z"
        at the front. */
+    /* Starting with "__" instead of "_Z" matches PREFIX_ON_NESTED_TYPE_NAME
+       in lower_name.c.  Thie name here is not an external name, so it's not
+       dictated by the IA-64 ABI, so we generate a name in the style
+       of the IA-64 ABI but without the prefix that might make it
+       appear to be a mandated name. */
     (void)sprintf(buffer, "E%lu", (unsigned long)name_length);
     (void)sprintf(buffer2, "_%lu", (unsigned long)scope_number);
     mangled_name_length = routine_name_length + 1 + strlen(buffer) +
@@ -2938,7 +2943,7 @@ with a routine.
     }  /* if */
     (void)strcpy(store_at, buffer);
 #else /* IA64_ABI */
-    (void)strcpy(mangled_name, "_ZZ");
+    (void)strcpy(mangled_name, "__Z");
     store_at = mangled_name+3;
     if (routine_name_length != 0) {
       check_assertion(routine_name_length >= 5);
