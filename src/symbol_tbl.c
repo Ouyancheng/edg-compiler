@@ -2907,8 +2907,12 @@ the file scope is used.
     /* The existing symbol is not an sk_overloaded_function symbol
        (i.e., it's a simple function symbol of some kind). */
     if (!use_namespace) {
-      /* Find the scope stack entry associated with this declaration. */
-      ssep = &scope_stack[decl_scope_level];
+      /* Find the scope stack entry associated with this declaration.
+         depth_scope_stack is used instead of decl_scope_level because
+         the previous "declaration" may actually be a synthesized 
+         namespace projection symbol that can be created in any scope,
+         not just a declarative scope. */
+      ssep = &scope_stack[depth_scope_stack];
       /* If the scope stack entry for the overloaded function is not that of
          the current scope (e.g., when a friend declaration refers to a 
          function at file scope), find the correct one. */
