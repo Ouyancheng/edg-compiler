@@ -13897,7 +13897,7 @@ Exists to avoid difficulties with referring to a function in
 templates.c from a macro (rout_is_inline) in il.h.
 */
 {
-  return rout_is_inline_template_function(rout);
+  return in_front_end && rout_is_inline_template_function(rout);
 }  /* intf_rout_is_inline_template_function */
 
 
