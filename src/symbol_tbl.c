@@ -8380,7 +8380,7 @@ void record_access_adjustment(an_access_adjustment_ptr  aap,
                               a_symbol_ptr              sym,
                               a_source_position         *pos)
 /*
-aap is points to an access-adjustment entry created to represent the an
+aap points to an access-adjustment entry created to represent the an
 access adjustment declaration of the inherited member sym.  If appropriate,
 update the cross reference and source sequence output.
 */
