@@ -2750,12 +2750,18 @@ final semicolon if output_final_semi is TRUE.
       } else {
         padding = type->size - offset_after_field(last_field);
       }  /* if */
-      if (padding == 1) {
-        write_tok_str("char __dummy;");
-      } else if (padding != 0) {
+      if (padding > 1) {
         write_tok_str("char __dummy[");
         write_unsigned_num((a_host_large_unsigned)padding);
         write_tok_str("];");
+      } else if (padding == 1 ||
+                 next_initializable_field(
+                        type->variant.class_struct_union.field_list) == NULL) {
+        /* One byte of padding needed, or... */
+        /* Avoid a zero-sized struct for the bizarre case "struct {int :0;}"
+           (which is undefined behavior) and for fieldless classes from C++
+           passed through IL lowering. */
+        write_tok_str("char __dummy;");
       }  /* if */
     }
     indent -= 2;
