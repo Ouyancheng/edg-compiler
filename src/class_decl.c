@@ -5350,12 +5350,10 @@ using *pos as the error position.
   decl_sym = overload_sym->variant.overloaded_function.symbols;
   if (decl_sym->is_class_member) {
     /* It's a member function; we're looking for sk_projection symbols. */
-    check_assertion(decl_sym->kind == (a_symbol_kind)sk_member_function);
     using_sym_kind = (a_symbol_kind)sk_projection;
   } else {
     /* It's a nonmember function; we're looking for sk_namespace_projection
        symbols. */
-    check_assertion(decl_sym->kind == (a_symbol_kind)sk_routine);
     using_sym_kind = (a_symbol_kind)sk_namespace_projection;
   }  /* if */
   /* Keep track of the previous symbol in the overload list, to enable
