@@ -228,7 +228,14 @@ Flag that is TRUE if the intermediate language should be written to a file.
 FALSE means the IL is passed in memory to the back end.
 */
 #if STANDALONE_UTILITY_PROGRAM
+#ifndef IL_SHOULD_BE_WRITTEN_TO_FILE
 #define IL_SHOULD_BE_WRITTEN_TO_FILE TRUE /* Do not change this. */
+#else /* defined(IL_SHOULD_BE_WRITTEN_TO_FILE) */
+#if !IL_SHOULD_BE_WRITTEN_TO_FILE
+!!!! IL_SHOULD_BE_WRITTEN_TO_FILE must be TRUE when STANDALONE_UTILITY_PROGRAM
+     is set.
+#endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
+#endif /* !defined(IL_SHOULD_BE_WRITTEN_TO_FILE) */
 #else /* !STANDALONE_UTILITY_PROGRAM */
 #ifndef IL_SHOULD_BE_WRITTEN_TO_FILE
 #define IL_SHOULD_BE_WRITTEN_TO_FILE FALSE
@@ -381,7 +388,7 @@ declarations, statements, comments, macros, and pragmas appear in the
 source program.
 */
 #ifndef GENERATE_SOURCE_SEQUENCE_LISTS
-#define GENERATE_SOURCE_SEQUENCE_LISTS TRUE
+#define GENERATE_SOURCE_SEQUENCE_LISTS FALSE
 #endif /* ifndef GENERATE_SOURCE_SEQUENCE_LISTS */
 /* The C++/C-generating back end requires this feature. */
 

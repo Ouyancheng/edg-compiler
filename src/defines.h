@@ -29,9 +29,6 @@ the release should contain no defines.
 /* Options for Sun optimized version. */
 #define CHECKING 1
 #define DEBUG 1
-#define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 1
-#define LONG_LONG_ALLOWED 0
-#define GENERATE_SOURCE_SEQUENCE_LISTS 0
 
 #else /* !defined(OPTIMIZED_VERSION) */
 
@@ -41,6 +38,9 @@ the release should contain no defines.
 #define IL_SHOULD_BE_WRITTEN_TO_FILE 1
 #endif /* !defined(STANDALONE_IL_DISPLAY) */
 #define FIL 1
+#define GENERATE_SOURCE_SEQUENCE_LISTS 1
+#define LONG_LONG_ALLOWED 1
+#define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
 
 #endif /* !defined(OPTIMIZED_VERSION) */
 
@@ -56,9 +56,6 @@ the release should contain no defines.
 #define TARG_JMP_BUF_NUM_ELEMENTS 10
 #define CHECKING 1
 #define DEBUG 1
-#define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 1
-#define LONG_LONG_ALLOWED 0
-#define GENERATE_SOURCE_SEQUENCE_LISTS 0
 #define C_GEN_BE_GENERATES_ANSI_C 1
 #define SAME_REPR_INTS_INTERCHANGEABLE_IN_IL 0
 #define ASSIGNMENT_TO_THIS_ALLOWED 0

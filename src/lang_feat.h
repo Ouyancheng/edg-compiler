@@ -89,7 +89,7 @@ Flag that is TRUE if the "long long" data type and the associated language
 features (e.g., suffixes for constants) are allowed.
 */
 #ifndef LONG_LONG_ALLOWED
-#define LONG_LONG_ALLOWED TRUE
+#define LONG_LONG_ALLOWED FALSE
 #endif /* ifndef LONG_LONG_ALLOWED */
 
 /*
