@@ -2801,7 +2801,7 @@ for handling virtual bases and functions.
   if (debug_level >= 3) {
     if (C_dialect == C_dialect_cplusplus) db_base_class_list(class_type);
   }  /* if */
-  if (db_flag_is_set("dump_layout")) {
+  if (db_trace("dump_layout", class_type, iek_type)) {
     db_type(class_type);
     fputs("\n", f_debug);
   }  /* if */
