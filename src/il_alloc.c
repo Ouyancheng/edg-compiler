@@ -2701,7 +2701,7 @@ Display and return the amount of space used for various IL tables.
   db_space_used("macros", num_macros_allocated, a_macro);
 #endif /* RECORD_MACROS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT
-  db_space_used("per instantiation needed flags entries",
+  db_space_used("per inst needed flags",
                 num_per_instantiation_needed_flags_entries_allocated,
                 a_per_instantiation_needed_flags_entry);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
