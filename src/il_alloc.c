@@ -3298,7 +3298,7 @@ Display and return the amount of space used for various IL tables.
 }  /* show_il_alloc_space_used */
 #endif /* DEBUG */
 
-#if CHECKING
+#if CHECKING && defined(offsetof)
 
 static void check_host_alignment_parameters(void)
 /*
@@ -3344,7 +3344,7 @@ you will need to modify or remove these tests.
     "check_host_alignment...: HOST_IL_ENTRY_PREFIX_ALIGNMENT set incorrectly");
   }  /* if */
 }  /* check_host_alignment_parameters */
-#endif /* CHECKING */
+#endif /* CHECKING && defined(offsetof) */
 
 void il_alloc_one_time_init(void)
 /*
@@ -3425,10 +3425,10 @@ in il_alloc_init.)
   def_source_corresp.per_instantiation_needed_flags = NULL;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-#if CHECKING
+#if CHECKING && defined(offsetof)
   /* Make sure the host alignment macros are set properly. */
   check_host_alignment_parameters();
-#endif /* CHECKING */
+#endif /* CHECKING && defined(offsetof) */
 
   /* Save static variables that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
