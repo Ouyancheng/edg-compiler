@@ -158,6 +158,9 @@ typedef struct a_source_correspondence {
   char          *name;
                         /* Pointer to null-terminated name, or NULL if
                            there is no corresponding source entity. */
+  a_type_ptr    class_of_which_a_member;
+			/* For class members a pointer to the parent class;
+			   NULL for nonmembers. */ 
   a_source_position
                 decl_position;
                         /* The source position at which this entity is

@@ -160,9 +160,8 @@ Dump the name from a source correspondence (if any).
 */
 {
   if (sc->name != NULL) {
-    a_symbol_ptr sym = (a_symbol_ptr)sc->assoc_info;
-    if (sym != NULL && sym->class_of_which_a_member != NULL) {
-      db_name(&sym->class_of_which_a_member->source_corresp);
+    if (sc->class_of_which_a_member != NULL) {
+      db_name(&sc->class_of_which_a_member->source_corresp);
       fputs("::", f_debug);
     }  /* if */
     fputs(sc->name, f_debug);
@@ -1473,14 +1472,15 @@ void set_default_source_corresp(a_source_correspondence *sc)
 Set the given source correspondence struct to default values.
 */
 {
-  sc->assoc_info           = NULL;
-  sc->name                 = NULL;
-  sc->decl_position.seq    = 0;
-  sc->decl_position.column = SP_COL_UNKNOWN;
+  sc->assoc_info              = NULL;
+  sc->name                    = NULL;
+  sc->class_of_which_a_member = NULL;
+  sc->decl_position.seq       = 0;
+  sc->decl_position.column    = SP_COL_UNKNOWN;
   /* access is set to "public" because "no access restriction" is the default
      for everything except class members.  For the latter the field must be
      set manually. */
-  sc->access               = (an_access_specifier)as_public;
+  sc->access                  = (an_access_specifier)as_public;
   /* referenced is set TRUE because so far this is an entity not associated
      with one in the source program.  All unassociated entities are assumed
      to be referenced (otherwise, they wouldn't be created).  This does away
@@ -1488,9 +1488,9 @@ Set the given source correspondence struct to default values.
      different places for unassociated entities. set_source_corresp resets
      the flag to FALSE for associated entities, for which the flag is then
      set to TRUE (for an actual reference) by mark_referenced. */
-  sc->referenced           = TRUE;
-  sc->il_walk_flag         = curr_initial_il_walk_flag_setting;
-  sc->name_linkage         = (a_name_linkage_kind)nlk_none;
+  sc->referenced              = TRUE;
+  sc->il_walk_flag            = curr_initial_il_walk_flag_setting;
+  sc->name_linkage            = (a_name_linkage_kind)nlk_none;
 }  /* set_default_source_corresp */
 
 
