@@ -981,6 +981,7 @@ TRUE, the entity is the destination of an initialization operation.
   an_expr_node_ptr entity_node;
 
   /* Make a node for the base address. */
+  check_assertion(ipdp->variable != NULL);
 #if !DO_FULL_PORTABLE_EH_LOWERING
   if (ipdp->thrown_object_address) {
     /* The address is the address in the runtime to which a thrown object
