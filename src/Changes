@@ -21072,7 +21072,7 @@ in an error later if the builtin operator was selected as the best
 match, or ambiguity if the builtin operator was one of several best
 matches.
 
-3/1/54   Minimal inlining in IL lowering
+3/1/95   Minimal inlining in IL lowering
 
 IL lowering can now do inlining of function calls.  This option is
 by default enabled when the C-generating back end is being used.
