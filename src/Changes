@@ -1,5 +1,12 @@
 Version 2.42
 
+6/25/99  Microsoft compatibility: calling convention applied to constructors
+
+The front end now accepts calling convention specifications on constructor
+declarations. For example,
+
+  struct S { __stdcall S(); };
+
 6/25/99  IL lowering: promotion of class in function in class in namespace
 
 The type promotion code in IL lowering did not work correctly for
