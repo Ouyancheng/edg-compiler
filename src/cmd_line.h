@@ -396,6 +396,11 @@ EXTERN char	*pch_input_file_name;
 			   the name of the precompiled header file to be
 			   used. */
 
+EXTERN char	*pch_output_file_name;
+			/* When create_precompiled_header is TRUE, this
+                           specifies the name of the precompiled header
+                           file to be created. */
+
 EXTERN a_boolean
 		automatic_pch_processing /* = FALSE */;
 			/* TRUE if the compiler should automatically

@@ -338,7 +338,7 @@ directory name is being used, a pointer to the original name is returned.
   char				*result;
   static a_file_name_buffer	buffer;  /* Staticly initialized. */
 
-  if (pch_dir_name == NULL) {
+  if (pch_dir_name == NULL || is_absolute_file_name(file_name)) {
     result = file_name;
   } else {
     sizeof_t	name_size;
@@ -637,9 +637,14 @@ Create or truncate the precompiled header file.
 {
   a_boolean	cannot_open;
   a_boolean	bad_name;
+  char		*file_name;
 
-  pch_file_name = build_pch_file_name(derived_name(primary_source_file_name,
-                                                   PCH_FILE_SUFFIX));
+  if (create_precompiled_header) {
+    file_name = pch_output_file_name;
+  } else {
+    file_name = derived_name(primary_source_file_name, PCH_FILE_SUFFIX);
+  }  /* if */
+  pch_file_name = build_pch_file_name(file_name);
   if (is_regular_file(pch_file_name)) {
     /* Delete the file before writing it.  This way, if someone already
        has the file open for reading, we won't be overwriting the
@@ -983,7 +988,7 @@ variable lists.
          psvp++) {
       a_void_ptr	address = psvp->var_address;
       /* If the indirect flag is set, get the address stored at the
-         specified addrerss. */
+         specified address. */
       if (psvp->indirect) address = *(a_void_ptr*)address;
 #if DEBUG
       if (debug_level >= 5) {

@@ -334,7 +334,7 @@ Initialize the option information table.
                          pchek_none);
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   add_option_description(optk_create_pch, "create_pch",
-                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
   add_option_description(optk_use_pch, "use_pch",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
@@ -1104,6 +1104,9 @@ Process the arguments on the command line that invoked the compiler.
         check_assertion(opt_value == TRUE);
         create_precompiled_header = TRUE;
         precompiled_header_processing_required = TRUE;
+        pch_output_file_name = opt_arg;
+        automatic_pch_processing = FALSE;
+        use_precompiled_header = FALSE;
         break;
       case optk_use_pch:
         /* Use a precompiled header file as part of this compilation. */
@@ -1111,12 +1114,16 @@ Process the arguments on the command line that invoked the compiler.
         use_precompiled_header = TRUE;
         pch_input_file_name = opt_arg;
         precompiled_header_processing_required = TRUE;
+        automatic_pch_processing = FALSE;
+        create_precompiled_header = FALSE;
         break;
       case optk_pch:
         /* Do automatic precompiled header processing as part of this
            compilation. */
         check_assertion(opt_value == TRUE);
         automatic_pch_processing = TRUE;
+        use_precompiled_header = FALSE;
+        create_precompiled_header = FALSE;
         precompiled_header_processing_required = TRUE;
         break;
       case optk_pch_messages:
