@@ -3315,6 +3315,7 @@ of assoc_field_object and assoc_var_object is defined.
 {
   a_symbol_ptr                   sym, next_sym, mf_sym;
   a_class_symbol_supplement_ptr  cssp;
+  a_class_type_supplement_ptr    ctsp;
   an_anonymous_union_ptr         aup;
   an_access_specifier            access;
   a_boolean                      access_error_already_issued = FALSE;
@@ -3344,8 +3345,12 @@ of assoc_field_object and assoc_var_object is defined.
       }  /* if */
     }  /* if */
     if (sym->kind == (a_symbol_kind)sk_field) {
-      /* Unlink the symbol from the inactive list. */
+      /* Unlink the symbol from the inactive list and link it back into the
+         symbol table in the current scope. */
       remove_from_inactive_symbols_list(sym);
+#if 0
+#else
+  /* Remove the following code. */
       /* Field symbols are promoted to the scope of the containing class, but
          they will continue to point to the field entry of the anonymous
          union.  The bridge is represented by the anonymous_union entry. */
@@ -3362,7 +3367,18 @@ of assoc_field_object and assoc_var_object is defined.
       sym->variant.field.anonymous_union = aup;
       sym->class_of_which_a_member = class_type;
       /* Link it back into the symbol table. */
+#endif
       reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
+      /* Update the IL. */
+      ctsp = sym->variant.field.ptr->source_corresp.class_of_which_a_member->
+                                        variant.class_struct_union.extra_info;
+      if (class_type == NULL) {
+        ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_variable;
+        ctsp->anonymous_union.variable = assoc_var_object;
+      } else {
+        ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field;
+        ctsp->anonymous_union.field = assoc_field_object;
+      }  /* if */
     } else if (is_member_function_symbol(sym)) {
       /* This may be a compiler generated default assignment operator, which
          is okay.  Any user-defined member function is illegal. */
