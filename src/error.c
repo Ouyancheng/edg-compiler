@@ -2887,6 +2887,26 @@ Add a type to the string being formatted.
 }  /* form_type */
 
 
+static void form_implicit_this_qualifiers(a_type_ptr        implicit_this_type,
+                                          a_msg_segment_ptr seg_ptr)
+/*
+Add any qualifiers associated with the implicit this parameter to
+the type string being formatted.
+*/
+{
+  a_type_ptr	type = skip_typerefs(implicit_this_type);
+  if (type->kind == (a_type_kind)tk_pointer &&
+      (type = type->variant.pointer.type)->kind == (a_type_kind)tk_typeref) {
+    if (type->variant.typeref.is_const) {
+      add_string_to_segment(" const", seg_ptr);
+    }  /* if */
+    if (type->variant.typeref.is_volatile) {
+      add_string_to_segment(" volatile", seg_ptr);
+    }  /* if */
+  }  /* if */
+}  /* form_implicit_this_qualifiers */
+
+
 static void form_param_list(a_routine_type_supplement_ptr suppl_ptr,
                             a_msg_segment_ptr             seg_ptr)
 /*
@@ -2917,16 +2937,7 @@ Add the parameter list of a function to the type string being formatted.
   /* Check if this is a "const" or "volatile" member function by looking at
      the type of the implicit "this" parameter. */
   if ((type = suppl_ptr->implicit_this_param_type) != NULL) {
-    type = skip_typerefs(type);
-    if (type->kind == (a_type_kind)tk_pointer &&
-        (type = type->variant.pointer.type)->kind == (a_type_kind)tk_typeref) {
-      if (type->variant.typeref.is_const) {
-        add_string_to_segment(" const", seg_ptr);
-      }  /* if */
-      if (type->variant.typeref.is_volatile) {
-        add_string_to_segment(" volatile", seg_ptr);
-      }  /* if */
-    }  /* if */
+    form_implicit_this_qualifiers(type, seg_ptr);
   }  /* if */
 #endif /* ifdef CFE */
 }  /* form_param_list */
@@ -3336,6 +3347,15 @@ symbol_name:
              parameter list or in C-mode a function with an old-style
              declaration, in which case the param type list is accidental. */
           add_string_to_segment("()", seg_ptr);
+          if (is_conversion) {
+            /* For conversion functions, add any qualifiers that may be
+               present. */
+            a_type_ptr	this_param_type = type->variant.routine.extra_info->
+                                                      implicit_this_param_type;
+            if (this_param_type != NULL) {
+              form_implicit_this_qualifiers(this_param_type, seg_ptr);
+            }  /* if */
+          }  /* if */
         }  else {
           form_type_second_part(type, /*need_parens=*/FALSE, seg_ptr);
         }  /* if */
