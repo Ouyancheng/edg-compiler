@@ -1668,18 +1668,41 @@ A reference is not the definition unless the type is unnamed.
     gen_type_name(type);
   } else {
     /* A class, struct, union, or enum. */
+    a_boolean use_elab_type_spec;
     /* In C++, don't use "class X" instead of "X" unless that is required,
        e.g., because there's something else called "X" in the same scope. */
-    if (il_header.source_language == sl_Cplusplus &&
-        /* You can't omit the "class" etc. on a first use that's a declaration,
-           except for a template entity (the declaration will have been put
-           out, but declaration_put_out is not set). */
-        (type->declaration_put_out ||
-         (is_class_type_kind(type->kind) &&
-          type->variant.class_struct_union.extra_info->
-                                                 template_arg_list != NULL)) &&
-        !type->definition_delayed &&
-        !type->elaborated_type_specifier_needed) {
+    if (il_header.source_language != sl_Cplusplus) {
+      /* The elaborated type specifier is always required in C mode. */
+      use_elab_type_spec = TRUE;
+    } else if ((!type->declaration_put_out &&
+                (!is_class_type_kind(type->kind) ||
+                 type->variant.class_struct_union.extra_info->
+                                                 template_arg_list == NULL)) ||
+               type->definition_delayed) {
+      /* You can't omit the "class" etc. on a first use that's a declaration,
+         except for a template entity (the declaration will have been put
+         out, but declaration_put_out is not set). */
+      use_elab_type_spec = TRUE;
+    } else {
+      /* See if the type is a member of a class or namespace.  If so, we
+         need to push the hidden name information for that scope to see if
+         the elaborated type specifier is needed. */
+      a_scope_ptr scope = NULL;
+      if (type->source_corresp.is_class_member) {
+        scope = type->source_corresp.parent.class_type->variant.
+                                    class_struct_union.extra_info->assoc_scope;
+      } else if (type->source_corresp.parent.namespace_ptr != NULL) {
+        scope = type->source_corresp.parent.namespace_ptr->variant.assoc_scope;
+      }  /* if */
+      if (scope != NULL) {
+        /* This type is a member of a class or namespace, so push the
+           hidden name information for that name context. */
+        push_name_context(scope);
+      }  /* if */
+      use_elab_type_spec = type->elaborated_type_specifier_needed;
+      if (scope != NULL) pop_name_context();
+    }  /* if */
+    if (!use_elab_type_spec) {
       /* Use just the type name. */
       gen_type_name(type);
     } else {

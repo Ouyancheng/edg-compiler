@@ -1,5 +1,12 @@
 Version 2.30
 
+8/13/95  C++-generating back end: Hidden name table use
+
+The C++-generating back end now uses the hidden name table when putting
+out references to nested types (e.g., "class A::B").  When it installs
+the hidden name information for a class, it now also installs the hidden
+names from any base classes.
+
 8/8/95   IL CHANGE: an_access_adjustment ==> a_class_member_using_decl
 
 Certain entities have be renamed now that access-declarations are just a
