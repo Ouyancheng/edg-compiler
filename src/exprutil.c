@@ -211,11 +211,10 @@ freed.  If the proper kind of reference is known right away, it is
 recorded right away and no entry is created; NULL is returned.
 */
 {
-  a_ref_entry_ptr         rep;
-  a_boolean               ref_kind_can_be_affected_by_context;
-  a_boolean               evaluated = curr_expr_is_potentially_evaluated();
-  a_symbol_ptr            fund_sym = fundamental_symbol_of(sym_ptr);
-  a_symbol_reference_kind initial_ref_kind;
+  a_ref_entry_ptr rep;
+  a_boolean       ref_kind_can_be_affected_by_context;
+  a_boolean       evaluated = curr_expr_is_potentially_evaluated();
+  a_symbol_ptr    fund_sym = fundamental_symbol_of(sym_ptr);
 
   /* For only certain kinds of symbols can the kind of reference be affected
      by context: for example, variables can have srk_use, srk_modification,
@@ -226,13 +225,9 @@ recorded right away and no entry is created; NULL is returned.
     case sk_variable:            /* Variable or parameter. */
     case sk_field:               /* Noonstatic data member of a class. */
     case sk_static_data_member:  /* Static data member of a class. */
-      ref_kind_can_be_affected_by_context = TRUE;
-      initial_ref_kind = srk_use;
-      break;
     case sk_member_function:     /* Member function of a class. */
     case sk_routine:             /* Nonmember function. */
       ref_kind_can_be_affected_by_context = TRUE;
-      initial_ref_kind = srk_reference;
       break;
 #if CHECKING
     case sk_overloaded_function: /* Overloaded function (member or not). */
@@ -253,7 +248,7 @@ recorded right away and no entry is created; NULL is returned.
   } else {
     /* The kind of reference can be affected by context, so build an entry
        for it. */
-    rep = alloc_ref_entry(initial_ref_kind, sym_ptr, source_position);
+    rep = alloc_ref_entry(srk_reference, sym_ptr, source_position);
     /* Put the entry on the list of entries for the current expression.
        The list is dumped when flush_ref_entries_list is called. */
     rep->next = curr_expr_ref_entries;
@@ -284,14 +279,28 @@ field.
          }
        One really wants both kinds of references. */
     old_kind = rep->kind;
-    if ((old_kind == srk_modification || old_kind == srk_use_and_modif) &&
-        new_kind == srk_address_taken) {
-      reference_to_symbol(old_kind, rep->symbol, &rep->position,
-                          /*update_il_entry=*/TRUE);
+    if (old_kind == srk_error) {
+      /* An error reference is never changed to something else. */
+    } else {
+      if ((old_kind == srk_modification || old_kind == srk_use_and_modif) &&
+          new_kind == srk_address_taken) {
+        reference_to_symbol(old_kind, rep->symbol, &rep->position,
+                            /*update_il_entry=*/TRUE);
+      }  /* if */
+      rep->kind = new_kind;
     }  /* if */
-    rep->kind = new_kind;
   }  /* for */
 }  /* change_ref_kinds */
+
+
+void change_refs_to_error(a_ref_entry_ptr ref_list)
+/*
+Change the reference entries on the list ref_list to error references.
+The list is linked by the next_operand_ref field.
+*/
+{
+  change_ref_kinds(ref_list, srk_error);
+}  /* change_refs_to_error */
 
 
 void change_some_ref_kinds(a_ref_entry_ptr         ref_list,
@@ -2147,6 +2156,10 @@ lvalue.  If there is an error, change the operand to an error operand.
     if (is_error_operand(operand)) {
       /* An error message has already been issued for this operand. */
     } else {
+      /* Avoid further errors by changing the references to error
+         references. */
+      change_refs_to_error(operand->ref_entries_list);
+      /* Issue the error. */
       error_in_operand(ec_expr_not_a_modifiable_lvalue, operand);
     }  /* if */
   }  /* if */
@@ -3913,6 +3926,12 @@ not an lvalue, it is left alone.
       error_in_operand(ec_incomplete_type_not_allowed, operand);
     } else {
       using_lvalue(operand);
+      /* Change simple "reference" references to "use" references. */
+      /* Note that what we want to avoid here is changing "modified" references
+         to "use" references, as would happen for references surviving
+         from an lvalue-returning assignment. */
+      change_some_ref_kinds(operand->ref_entries_list, srk_reference,
+                            srk_use);
       /* Change the kind in the reference entry for a subscripted array from an
          address-taken entry to a simple "use" reference. */
       change_some_ref_kinds(operand->ref_entries_list, srk_address_taken,

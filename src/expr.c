@@ -2234,6 +2234,11 @@ bound with the function in *bound_function_selector.
     if (is_error_locator(locator_for_curr_id)) {
       /* Some error in ambiguity or access control checking. */
       make_error_operand(result);
+      /* Avoid further diagnostics by making this an error reference.
+         This is necessary because with something like x.y where y is
+         ambiguous, some versions of y might be nonstatic and some static,
+         which means we do not know whether x is really used. */
+      change_refs_to_error(operand_1->ref_entries_list);
     } else {
       projection_member_sym = locator_for_curr_id.specific_symbol;
       /* See what kind of member we have. */
@@ -2532,6 +2537,8 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
           if (!rvalue_selection) {
             /* The result is an lvalue. */
             result->state = (an_operand_state)os_lvalue;
+            /* Keep the references from the first operand. */
+            result->ref_entries_list = operand_1->ref_entries_list;
           }  /* if */
           /* If the field is a reference add an implicit indirection. */
           if (C_dialect == C_dialect_cplusplus &&
@@ -3674,6 +3681,10 @@ specification allow a variable-sized array as the top type.
       unqual_new_type->variant.array.variant.number_of_elements = 0;
       unqual_new_type->size = 0;
       set_type_size(unqual_new_type);
+    } else if (is_incomplete_type(new_type)) {
+      /* A case like "new int[]" -- an incomplete array type. */
+      pos_error(ec_incomplete_type_not_allowed, &type_position);
+      err = TRUE;
     }  /* if */
   }  /* if */
   ptr_new_type = make_pointer_type(base_new_type);
@@ -7177,6 +7188,10 @@ variable:
             if (bad_nested_function_variable_ref(sym_ptr)) {
               error_and_make_error_operand(ec_ref_to_nested_function_var,
                                            result);
+              /* Avoid further diagnostics by making this an error
+                 reference. */
+              change_refs_to_error(rep);
+              rep = NULL;
             } else {
               /* Make a variable operand that is a variable address node.
                  The type of the operand is a pointer to the type of the
@@ -7220,6 +7235,10 @@ normal_function:
             if (bad_nested_function_variable_ref(sym_ptr)) {
               error_and_make_error_operand(ec_ref_to_nested_function_var,
                                            result);
+              /* Avoid further diagnostics by making this an error
+                 reference. */
+              change_refs_to_error(rep);
+              rep = NULL;
             } else {
               make_anonymous_union_field_operand(sym_ptr,
                                                  &locator_for_curr_id.
