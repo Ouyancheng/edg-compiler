@@ -4478,12 +4478,13 @@ position of the colon.
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/* ARGSUSED */ /* <-- keyword_position and colon_position not always used. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void add_switch_clause(a_struct_stmt_stack_entry_ptr sssep,
                               a_constant_ptr                constant_ptr,
-#if EXTRA_SOURCE_POSITIONS_IN_IL
                               a_source_position             *keyword_position,
                               a_source_position             *colon_position,
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
                               a_source_position             *label_position)
 /*
 Begin a clause of the switch statement associated with the structured
@@ -4939,11 +4940,16 @@ Scan a case label definition.  The syntax is:
   if (sssep != NULL) {
     if (constant_ptr != NULL) {
       /* Add the proper switch clause. */
-      add_switch_clause(sssep, constant_ptr,
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+      add_switch_clause(sssep, constant_ptr,
                         &case_position, &pos_curr_token,
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
                         &label_position);
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+      add_switch_clause(sssep, constant_ptr,
+                        (a_source_position_ptr)NULL,
+                        (a_source_position_ptr)NULL,
+                        &label_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     } else {
       /* Make code reachable if the switch is reachable for the error case. */
       start_stmt_clause(sssep);
@@ -4995,11 +5001,16 @@ Scan a default case label definition.  The syntax is:
   if (sssep != NULL) {
     /* Found the proper enclosing switch statement. */
     sssep->switch_has_default_clause = TRUE;
-    add_switch_clause(sssep, (a_constant_ptr)NULL,
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+    add_switch_clause(sssep, (a_constant_ptr)NULL,
                       &label_position, &pos_curr_token,
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
                       &label_position);
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+    add_switch_clause(sssep, (a_constant_ptr)NULL,
+                      (a_source_position_ptr)NULL,
+                      (a_source_position_ptr)NULL,
+                      &label_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  else {
     /* We are not inside a switch statement. */
     pos_error(ec_default_label_must_be_in_switch, &label_position);
