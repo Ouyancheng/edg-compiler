@@ -2518,8 +2518,8 @@ though neither constructors nor initialization is involved here.)
   a_type_ptr                    class_type, tp, array_type;
   a_symbol_ptr                  sym, class_sym;
   a_constructor_init_ptr        cip;
-  a_constructor_init_ptr        cip_list, end_of_cip_list;
-  a_constructor_init_ptr        virtual_list;
+  a_boolean                     is_virtual_pass;
+  a_constructor_init_ptr        cip_list;
   a_routine_ptr                 rp;
   a_base_class_ptr              bcp;
   a_dynamic_init_ptr            dip;
@@ -2532,6 +2532,12 @@ though neither constructors nor initialization is involved here.)
                                                    class_of_which_a_member;
   check_assertion(class_type != NULL);
   ctsp = class_type->variant.class_struct_union.extra_info;
+  if (exceptions_enabled) {
+    /* Push an object lifetime on which to record remaining cleanup
+       required if an exception is thrown during destruction. */
+    push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
+                         (an_object_lifetime_kind)olk_constructor_init);
+  }  /* if */
   /* The order of destructor calls is exactly the reverse of the order of
      constructor calls.  In other words, destructors for virtual base classes
      are last, preceded by destructors for nonvirtual direct base classes,
@@ -2539,51 +2545,51 @@ though neither constructors nor initialization is involved here.)
      logic in ctor_initializer, except that the lists are built backwards and
      merged backwards.   First construct the lists for virtual base classes
      and nonvirtual direct base classes. */
-  virtual_list = NULL;
-  cip_list = end_of_cip_list = NULL;
-  for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-    if (bcp->is_virtual || bcp->direct) {
-      /* If the virtual base class or direct base class has a destructor, a
-         dynamic init entry will be required.  Create the constructor init
-         entry now; the dynamic init will be added later. */
-      rp = select_destructor(bcp->type, class_type, &source_pos,
-                             /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
-                             /*suppress_access_check=*/FALSE);
-      if (rp != NULL) {
-        cip = alloc_ctor_init((a_constructor_init_kind)
+  /* First loop through the base classes looking for virtual base classes. */
+  is_virtual_pass = TRUE;
+  for (;;) {
+    cip_list = NULL;
+    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+      if (is_virtual_pass ? bcp->is_virtual : bcp->direct) {
+        /* If the virtual base class or direct base class has a destructor, a
+           dynamic init entry will be required. */
+        rp = select_destructor(bcp->type, class_type, &source_pos,
+                               /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
+                               /*suppress_access_check=*/FALSE);
+        if (rp != NULL) {
+          cip = alloc_ctor_init((a_constructor_init_kind)
                                                     (bcp->is_virtual ?
                                                      cik_virtual_base_class :
                                                      cik_direct_base_class));
-        cip->variant.base_class = bcp;
-        cip->compiler_generated = TRUE;
-        /* Create a dynamic init entry. */
-        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-        dip->destructor = rp;
-        /* Attach the new dynamic init entry to the constructor initializer. */
-        cip->initializer = dip;
-        /* Add the constructor init to the end of the appropriate list. */
-        if (bcp->is_virtual) {
-          /* Add to the start of the virtual list. */
-          cip->next = virtual_list;
-          virtual_list = cip;
-        } else {
-          /* Add to the start of the direct list.  If this is the first
-             entry, keep track of it, since it will be the tail of the list
-             to which the virtual list will be attached later. */
-          if (end_of_cip_list == NULL) end_of_cip_list = cip;
+          cip->variant.base_class = bcp;
+          cip->compiler_generated = TRUE;
+          /* Create a dynamic init entry. */
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+          dip->destructor = rp;
+          if (exceptions_enabled) {
+            /* Create a destruction entry and associate it with the
+               appropriate object-lifetime entry. */
+            record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                               /*scope_lifetime=*/FALSE);
+          }  /* if */
+          /* Attach the new dynamic init entry to the constructor
+             initializer. */
+          cip->initializer = dip;
+          /* Add the constructor init to the end of the appropriate list. */
           cip->next = cip_list;
           cip_list = cip;
         }  /* if */
       }  /* if */
+    }  /* for */
+    if (is_virtual_pass) {
+      /* Repeat the loop through the base classes, this time picking up the
+         direct base classes. */
+      is_virtual_pass = FALSE;
+    } else {
+      /* Only go through twice. */
+      break;
     }  /* if */
   }  /* for */
-  if (cip_list != NULL) {
-    /* Attach the virtual list, if any, to the end of the direct list. */
-    end_of_cip_list->next = virtual_list;
-  } else {
-    /* No direct list.  Just use the virtual list. */
-    cip_list = virtual_list;
-  }  /* if */
   /* Now add entries for destructors required by nonstatic data members.
      Loop through the symbol list for the class, not the field list, since
      the symbol list contains only user-defined fields whereas the field
@@ -2614,6 +2620,12 @@ though neither constructors nor initialization is involved here.)
           /* Create a dynamic init entry. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
           dip->destructor = rp;
+          if (exceptions_enabled) {
+            /* Create a destruction entry and associate it with the
+               appropriate object-lifetime entry. */
+            record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                               /*scope_lifetime=*/FALSE);
+          }  /* if */
           if (array_type != NULL) {
             a_targ_size_t count;
             /* We have an array of objects with destructors.  Create a dynamic
@@ -2639,6 +2651,11 @@ though neither constructors nor initialization is involved here.)
       }  /* if */
     }  /* if */
   }  /* for */
+  if (exceptions_enabled) {
+    /* Pop the object lifetime.  Note that the binding will be done as part
+       of this processing if the lifetime is not "useless". */
+    pop_object_lifetime();
+  }  /* if */
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
   { a_routine_ptr delete_routine;
     /* Determine and remember the default operator delete() routine for the
