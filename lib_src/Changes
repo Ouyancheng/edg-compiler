@@ -1,5 +1,12 @@
 Version 2.42
 
+6/17/99  Dynamic case access checking problem
+
+The 2.41 change to do the standard-mandated access checking of dynamic
+casts introduced a bug that could cause a dynamic cast to fail when
+multiple type_info objects exist for the base class to which the
+cast is being done.  This has been fixed.
+
 6/9/99   Including standard headers
 
 The references in the runtime library to standard header files have been

@@ -218,7 +218,8 @@ but need not be unambiguous.
          pointer and use that value. */
       new_ptr = *((void **)new_ptr);
     }  /* if */
-    if (new_ptr == base_ptr && bcsp->type_info == base_info) {
+    if (new_ptr == base_ptr &&
+        matching_type_info(bcsp->type_info, base_info)) {
       /* We found a match.  Note that both the address and type must match
          because base classes can share an address. */
       result = bcsp;
