@@ -156,6 +156,7 @@ extern void remainder_integer_values(an_integer_value *op_1,
 extern void conv_float_string_to_integer_value
                                        (char			*float_str,
 					an_integer_value	*intval,
+					a_boolean		is_signed,
 					a_boolean		*err);
 
 extern void get_integer_size_and_alignment(an_integer_kind  ikind,
