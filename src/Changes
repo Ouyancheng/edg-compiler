@@ -1,5 +1,19 @@
 Version 3.5
 
+5/12/04  Abort on value-initializer for flexible array members
+
+GNU and Microsoft C++ modes accept flexible array members (a C99 feature).
+When such a member was value-initialized in a constructor definition, the
+front end sometimes aborted in types.c during IL lowering.  For example:
+
+  struct S {
+    S(int k): n(k), x() {}  // Initialization of x caused abort.
+    int n;
+    int x[];  // Flexible array member.
+  };
+
+This is now fixed (the initializer has no effect).
+
 5/12/04  Position information for anonymous union fields
 
 The front end previously did not record any position information for anonymous

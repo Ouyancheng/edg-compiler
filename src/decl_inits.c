@@ -3742,6 +3742,7 @@ initialized.  These are addressed in the course of the processing.
     do {
       a_boolean          template_param_init = FALSE;
       a_boolean          dependent_class_init = FALSE;
+      a_boolean          flexible_array_member = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       a_source_position  init_start_pos;
 
@@ -3912,12 +3913,15 @@ initialized.  These are addressed in the course of the processing.
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           init_type = field->type;
-          if (is_array_type(init_type) && !is_string_type(init_type)) {
-            /* Arrays can be default-initialized if the expression-list is
-               omitted. */
-            array_type = init_type;
-            init_type = f_skip_typerefs(
-                             underlying_array_element_type(init_type));
+          if (is_array_type(init_type)) {
+            flexible_array_member = is_incomplete_type(init_type);
+            if (!is_string_type(init_type)) {
+              /* Arrays can be default-initialized if the expression-list is
+                 omitted. */
+              array_type = init_type;
+              init_type = f_skip_typerefs(
+                                    underlying_array_element_type(init_type));
+            }  /* if */
           }  /* if */
           /* Only one member of a union or an anonymous union subobject is
              allowed to appear in the ctor-initializer list. */
@@ -4252,11 +4256,13 @@ scan_paren:
                    cases have already been dealt with, so value initialization
                    is tantamount to zero-initialization (8.5 [dcl.init]). */
                 a_dynamic_init_kind init_kind = (a_dynamic_init_kind)dik_zero;
-                if (microsoft_bugs &&
-                    emulate_msvc_value_initialization_bugs &&
-                    microsoft_version < 1310) {
-                  /* MSVC++ up to version 7.0 did not initialize the entity
-                     in this case. */
+                if ((microsoft_bugs && microsoft_version < 1310 &&
+                     emulate_msvc_value_initialization_bugs) ||
+                    flexible_array_member) {
+                  /* MSVC++ up to version 7.0 never initialize the entity in
+                     cases like this.  The flexible array member case cannot
+                     be initialized since the array has no known number of
+                     elements. */
                   init_kind = (a_dynamic_init_kind)dik_none;
                 }  /* if */
                 dip = alloc_dynamic_init(init_kind);
