@@ -39,6 +39,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #define AUTOMATIC_TEMPLATE_INSTANTIATION 1
 #define RECORD_FORM_OF_NAME_REFERENCE 0
 #else /* !defined(SSI_VERSION) */
+#define INSTANTIATE_EXTERN_INLINE 0
 #define AUTOMATIC_TEMPLATE_INSTANTIATION 0
 #endif /* ifdef SSI_VERSION */
 #endif /* ifdef CP_GEN_BE_VERSION */
