@@ -1,5 +1,14 @@
 Version 2.36
 
+4/18/97   Missing diagnostic when an operator name is used as a class
+          template name
+
+The front end failed to issue a diagnostic on examples such as this one.
+This has been fixed.
+
+  typedef int A;
+  template <class T2> struct operator A {};
+
 4/17/97   Internal error on use of an undefined symbol created in a base class
 
 When an undefined name is referenced, an sk_undefined symbol is created

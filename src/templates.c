@@ -6024,6 +6024,14 @@ instantiation.
     /* An incorrectly formed identifier. */
     set_to_error_locator(locator);
     next_tok = next_token();
+  } else if (locator_for_curr_id.is_operator_name ||
+             locator_for_curr_id.is_conversion_name) {
+    /* Issue an error for something like "class operator+" or
+       "class operator int". */
+    pos_error(ec_operator_name_not_allowed,
+              &locator_for_curr_id.source_position);
+    set_to_error_locator(locator);
+    next_tok = next_token();
   } else {
     /* Look up the identifier.  If it's a qualified name there will be an
        error down the line.  The options used when coalescing the 
