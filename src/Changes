@@ -1,5 +1,20 @@
 Version 3.1
 
+1/22/03  Overload resolution, nonstatic member function and no selector
+
+In accordance with core issue 364, overload resolution now does not
+disqualify a nonstatic member function if no implicit selector
+object can be created.  If the function is chosen as the best
+function, an error is issued because it is not callable.
+
+  struct S {
+    static void f (int);
+    void f (char);
+  };
+  void g () {
+    S::f ('a');  // Now gets error.  Formerly, f(int) was chosen.
+  }
+
 1/22/03  Placement array delete on exception handles array prefix
 
 The code generated to do a delete on exception for a placement

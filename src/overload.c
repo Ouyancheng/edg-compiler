@@ -2693,14 +2693,10 @@ is known to be visible and the visibility check should be suppressed.
         }  /* if */
       }  /* if */
     } else {
-      /* We have no selector. */
-      if (function_is_nonstatic_member_function) {
-        /* A selector is needed and one is not available, so the function
-           is not suitable.  Remember this case to select a different
-           error message if it turns out no function matches. */
-        *matched_except_for_missing_selector = TRUE;
-        goto reject_function;
-      }  /* if */
+      /* We have no selector.  For functions other than a nonstatic
+         member function, this is fine.  For a nonstatic member function,
+         it doesn't count against the function (see core issue 364),
+         but the function is not callable if selected. */
     }  /* if */
   }  /* if */
 accept_function:
@@ -6480,22 +6476,23 @@ overloaded operator cases.
   if (routine_type != NULL) {
     arg_match = arg_match_list;
     if (have_selector) {
-      check_assertion_str2(arg_match->is_match_for_this_param,
-                           "adjust_overloaded_function_call_arguments:",
-                           "is_match_for_this_param not set");
-      /* Issue any warning about the "this" parameter detected while
-         evaluating the alternatives. */
-      if (bound_function_selector != NULL) {
-        issue_warning_from_arg_match_summary(arg_match,
+      if (arg_match == NULL || !arg_match->is_match_for_this_param) {
+        /* An implied selector was added after overload resolution. */
+      } else {
+        /* Issue any warning about the "this" parameter detected while
+           evaluating the alternatives. */
+        if (bound_function_selector != NULL) {
+          issue_warning_from_arg_match_summary(arg_match,
                                            &bound_function_selector->position);
+        }  /* if */
+        /* Note that no cast is done here.  It was done when the "." or "->"
+           operator was processed (that still may leave a difference here
+           involving type qualifiers, but it's not meaningful). */
+        /* If the function is const, change the reference kinds on the
+           selector. */
+        change_refs_on_selector_if_const_function(routine_type,
+                                                  bound_function_selector);
       }  /* if */
-      /* Note that no cast is done here.  It was done when the "." or "->"
-         operator was processed (that still may leave a difference here
-         involving type qualifiers, but it's not meaningful). */
-      /* If the function is const, change the reference kinds on the
-         selector. */
-      change_refs_on_selector_if_const_function(routine_type,
-                                                bound_function_selector);
     }  /* if */
     if (arg_match != NULL && arg_match->is_match_for_this_param) {
       /* Move past the match entry for the selector.  Note that this entry
