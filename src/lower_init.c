@@ -2631,6 +2631,9 @@ in *cap (a destruction).
   a_memory_region_number region_to_switch_back_to = curr_il_region_number;
   a_context              context;
   a_routine_ptr          routine;
+  /* The return_memo_list is saved and restored because we may be inside
+     a routine. */
+  a_return_memo_ptr      saved_return_memo_list = return_memo_list;
 
   /* Create a routine. */
   scope = file_scope_term_insert_location(&insert_location, &region_number);
@@ -2642,6 +2645,7 @@ in *cap (a destruction).
   /* Mark the variable as referenced from another function. */
   cap->variant.object.init_pos_descr.variable->referenced_non_locally = TRUE;
   free_return_memo_list(return_memo_list);
+  return_memo_list = saved_return_memo_list;
   pop_context();
   done_with_memory_region(region_number);
   switch_il_region(region_to_switch_back_to);
