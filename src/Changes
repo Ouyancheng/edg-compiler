@@ -1,5 +1,22 @@
 Version 2.32
 
+4/19/96 Abort on generating label in IL lowering for exception handling
+
+In some obscure cases, the process of generating a label during IL
+lowering for exception handling could cause an abort.  Now fixed.
+
+  struct Foo {
+    virtual ~Foo();
+  };
+  struct Bar {
+    virtual ~Bar();
+  };
+  Foo::~Foo() {
+    Bar bar;
+    try {}  
+    catch (...) {}
+  }
+
 4/19/96 C++-generating back end: generating reinterpret_cast
 
 The C++-generating back end now puts out reinterpret_cast for casts that
