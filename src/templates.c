@@ -839,9 +839,15 @@ the class template token cache in class_tssp.
     prev_ctp->next = replacement_token;
     replacement_token->next = last_to_discard->next;
   } else {
-    /* No semicolon is needed.  Just link the tokens to remove the member
-       body */
+    /* No semicolon is needed.  Link the tokens to remove the member
+       body.  Update the token sequence number of the token that now
+       follows the function declarator to have the token sequence number
+       of the opening brace of the function.  This is needed for matching
+       a function declaration in an actual instantiation with the
+       correpsonding declaration in the prototype instantiation. */
     prev_ctp->next = last_to_discard->next;
+    last_to_discard->next->token_sequence_number =
+                                       first_to_discard->token_sequence_number;
   }  /* if */
   last_to_discard->next = NULL;
   /* Remove the extracted tokens from the original cache. */
@@ -1139,25 +1145,17 @@ Instantiate the body of the template function associated with tip.
   rout_ptr->declared_type = rout_ptr->type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Set the linkage and storage class. */
-  if (rout_sym->is_class_member) {
-    /* Member functions are handled in check_class_linkage. */
-#if 0
-    /* Should the reference flag be set in scan_function body? */
-#endif /* 0 */
-    rout_sym->parent.class_type->source_corresp.referenced = TRUE;
-  } else {
-    if (instantiation_mode == tim_local) {
-      /* Put out template function as internally linked. */
-      rout_ptr->storage_class = (a_storage_class)sc_static;
-      rout_ptr->source_corresp.name_linkage =
-                                  (a_name_linkage_kind)nlk_internal;
-    } else if (!rout_ptr->is_inline &&
-               !(rout_ptr->storage_class == (a_storage_class)sc_static)) {
-      /* Set the linkage for the definition of an externally linked routine. */
-      rout_ptr->storage_class = (a_storage_class)sc_unspecified;
-      rout_ptr->source_corresp.name_linkage =
-                                  (a_name_linkage_kind)nlk_cplusplus_external;
-    }  /* if */
+  if (instantiation_mode == tim_local) {
+    /* Put out template function as internally linked. */
+    rout_ptr->storage_class = (a_storage_class)sc_static;
+    rout_ptr->source_corresp.name_linkage =
+                                (a_name_linkage_kind)nlk_internal;
+  } else if (!rout_ptr->is_inline &&
+             !(rout_ptr->storage_class == (a_storage_class)sc_static)) {
+    /* Set the linkage for the definition of an externally linked routine. */
+    rout_ptr->storage_class = (a_storage_class)sc_unspecified;
+    rout_ptr->source_corresp.name_linkage =
+                                (a_name_linkage_kind)nlk_cplusplus_external;
   }  /* if */
   ++(tssp->pending_instantiations);
   /* If this template was declared within a class scope, reactivate
