@@ -4037,17 +4037,16 @@ typedef struct a_routine {
 			   only. */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   a_bit_field	is_template_function:1;
-			/* TRUE if this routine is a member of a class
-			   generated from a template, including both the case
-			   where the function is generated from the template
-			   and the case where a specialization of the function
-			   is provided by the user.  Also TRUE for a nonmember
-			   function that is related to a function template,
-			   i.e., a function generated from the template or
-			   a specialization provided by the user.  FALSE for
-			   all other functions, including a function that is
-			   a member of a class that is a specialization of
-			   a template class. */
+			/* TRUE for: instances and specializations of
+			   function templates; instances and
+			   specializations of member function
+			   templates; instances and specializations of
+			   member functions of generated template
+			   class instances.  FALSE for all other
+			   functions, including a function that is a
+			   member (but not a member template) of a
+			   class that is a specialization of a
+			   template class. */
   a_bit_field	is_specialization:1;
 			/* TRUE if is_template_function is TRUE and the
 			   function is an explicit specialization (i.e., if it
