@@ -8079,85 +8079,85 @@ prep_elision_initializer_operand.
         /* Not okay -- qualifiers are being dropped. */
         type_is_correct_or_derived = FALSE;
       }  /* if */
-      if (type_is_correct_or_derived && is_an_lvalue(source_operand)) {
-        /* The initial value is an lvalue of the right type; the initialization
-           can be done directly. */
-        /* Convert the lvalue to an rvalue pointer to the object. */
-        take_address_of_lvalue(source_operand, expression_kind);
-        if (is_constant_operand(source_operand) &&
-            is_zero_constant(&source_operand->variant.constant)) {
-          /* Initializing a reference to NULL, which is not allowed:
-               int &p = *(int *)0;
-          */
-          error_in_operand(ec_null_reference, source_operand);
-        } else {
-          /* Use a pointer type instead of a reference type on the
-             destination. */
-          dest_type = make_pointer_type(base_dest_type);
-          /* Cast the operand to the result type. */
-          cast_operand(dest_type, source_operand, expression_kind,
-                       /*is_implicit_cast=*/TRUE);
-        }  /* if */
-      } else if (type_is_correct_or_derived &&
-                 is_a_function_designator(source_operand)) {
-        /* The initial value is a function designator of the right type;
-           the initialization can be done directly. */
-        conv_function_designator_to_ptr_to_function(source_operand,
-                                                    expression_kind);
+    }  /* if */
+    if (type_is_correct_or_derived && is_an_lvalue(source_operand)) {
+      /* The initial value is an lvalue of the right type; the initialization
+         can be done directly. */
+      /* Convert the lvalue to an rvalue pointer to the object. */
+      take_address_of_lvalue(source_operand, expression_kind);
+      if (is_constant_operand(source_operand) &&
+          is_zero_constant(&source_operand->variant.constant)) {
+        /* Initializing a reference to NULL, which is not allowed:
+             int &p = *(int *)0;
+        */
+        error_in_operand(ec_null_reference, source_operand);
       } else {
-        /* The initialization cannot be done directly; a temporary must be
-           used. */
-        conversion_to_temp_done = FALSE;
-        if (type_is_correct_or_derived) {          
-          /* The source is an rvalue but otherwise has the right type.
-             Get the address of the rvalue, then cast the pointer to the right
-             type to handle the derived-class case. */
-          conv_operand_to_object_pointer(source_operand, expression_kind);
-          /* Use a pointer type instead of a reference type on the
-             destination. */
-          dest_type = make_pointer_type(base_dest_type);
-          cast_operand(dest_type, source_operand, expression_kind,
-                       /*is_implicit_cast=*/TRUE);
-        } else {
-          /* Allocate a temporary and copy the operand into it, converting
-             if necessary.  source_operand is set to the address of the
-             temporary. */
-          /* The temp has the same type as the operand, but without
-             type qualifiers. */
-          convert_operand_into_temp(source_operand,
-                                    skip_typerefs(base_dest_type),
-                                    expression_kind, incompatible_err, &err);
-          conversion_to_temp_done = TRUE;
+        /* Use a pointer type instead of a reference type on the
+           destination. */
+        dest_type = make_pointer_type(base_dest_type);
+        /* Cast the operand to the result type. */
+        cast_operand(dest_type, source_operand, expression_kind,
+                     /*is_implicit_cast=*/TRUE);
+      }  /* if */
+    } else if (type_is_correct_or_derived &&
+               is_a_function_designator(source_operand)) {
+      /* The initial value is a function designator of the right type;
+         the initialization can be done directly. */
+      conv_function_designator_to_ptr_to_function(source_operand,
+                                                  expression_kind);
+    } else {
+      /* The initialization cannot be done directly; a temporary must be
+         used. */
+      conversion_to_temp_done = FALSE;
+      if (type_is_correct_or_derived) {          
+        /* The source is an rvalue but otherwise has the right type.
+           Get the address of the rvalue, then cast the pointer to the right
+           type to handle the derived-class case. */
+        conv_operand_to_object_pointer(source_operand, expression_kind);
+        /* Use a pointer type instead of a reference type on the
+           destination. */
+        dest_type = make_pointer_type(base_dest_type);
+        cast_operand(dest_type, source_operand, expression_kind,
+                     /*is_implicit_cast=*/TRUE);
+      } else {
+        /* Allocate a temporary and copy the operand into it, converting
+           if necessary.  source_operand is set to the address of the
+           temporary. */
+        /* The temp has the same type as the operand, but without
+           type qualifiers. */
+        convert_operand_into_temp(source_operand,
+                                  skip_typerefs(base_dest_type),
+                                  expression_kind, incompatible_err, &err);
+        conversion_to_temp_done = TRUE;
+      }  /* if */
+      if (!err) {
+        /* The reference must be to a const object (otherwise the user might
+           change the temporary thinking he is changing the original
+           object). */
+        if (ref_to_nonconst) {
+          /* A reference to non-const; this is an error according to the ARM
+             (8.4.3), but we allow it as an anachronism. */
+          if (allow_anachronisms) {
+            pos_diagnostic(anachronism_error_severity,
+                           ec_nonconst_ref_init_anachronism,
+                           &source_operand->position);
+          } else {
+            /* Anachronism is not allowed. */
+            error_in_operand(incompatible_err, source_operand);
+          }  /* if */
+          err = TRUE;
         }  /* if */
-        if (!err) {
-          /* The reference must be to a const object (otherwise the user might
-             change the temporary thinking he is changing the original
-             object). */
-          if (ref_to_nonconst) {
-            /* A reference to non-const; this is an error according to the ARM
-               (8.4.3), but we allow it as an anachronism. */
-            if (allow_anachronisms) {
-              pos_diagnostic(anachronism_error_severity,
-                             ec_nonconst_ref_init_anachronism,
-                             &source_operand->position);
-            } else {
-              /* Anachronism is not allowed. */
-              error_in_operand(incompatible_err, source_operand);
-            }  /* if */
-            err = TRUE;
-          }  /* if */
-          if (initializing_return_value) {
-            /* A temporary should not be created to return a value, since
-               what would happen immediately is that the address of the
-               (stack-based) temporary would be returned to the caller. */
-            pos_error(ec_return_ref_init_requires_temp,
-                      &source_operand->position);
-            err = TRUE;
-          }  /* if */
-          if (!err && conversion_to_temp_done ) {
-            /* Let the user know a temp was used. */
-            pos_remark(ec_temp_used_for_ref_init, &source_operand->position);
-          }  /* if */
+        if (initializing_return_value) {
+          /* A temporary should not be created to return a value, since
+             what would happen immediately is that the address of the
+             (stack-based) temporary would be returned to the caller. */
+          pos_error(ec_return_ref_init_requires_temp,
+                    &source_operand->position);
+          err = TRUE;
+        }  /* if */
+        if (!err && conversion_to_temp_done) {
+          /* Let the user know a temp was used. */
+          pos_remark(ec_temp_used_for_ref_init, &source_operand->position);
         }  /* if */
       }  /* if */
     }  /* if */
