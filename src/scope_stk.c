@@ -2459,32 +2459,41 @@ NULL.
         /* An unreferenced or unused variable or an unused parameter. */
         a_boolean           suppress_warning;
         an_error_code       error_code;
-        an_error_severity   severity;
+        an_error_severity   severity = es_warning;
         an_init_kind        init_kind;
         an_initializer_ptr  ip;
 
         /* Check for a dynamic initialization that has side effects (such as
-           a constructor call).  If such an initialization exists, issue a
-           remark rather than a warning. */
+           a constructor call).  If such an initialization exists, suppress
+           the warning. */
         get_variable_initializer(var_ptr,
                                  scope_stack[depth_scope_stack].il_scope,
                                  &init_kind, &ip);
-        if (init_kind == (an_init_kind)initk_dynamic &&
-            (dynamic_init_has_side_effects(ip->dynamic, &suppress_warning) ||
-             suppress_warning)) {
-          severity = es_remark;
-        } else {
-          severity = es_warning;
+        if (init_kind == (an_init_kind)initk_dynamic) {
+          if (ip->dynamic->kind == (a_dynamic_init_kind)dik_constructor) {
+            /* Issue no diagnostic when a variable is initialized by
+               a constructor, to avoid spurious diagnostics when the user
+               defines a variable simply to assure that the constructor is
+               called. */
+            severity = es_none;
+          } else if (dynamic_init_has_side_effects(ip->dynamic,
+                                                   &suppress_warning) ||
+                     suppress_warning) {
+            /* Initialization has side-effects -- issue a remark. */
+            severity = es_remark;
+          }  /* if */
         }  /* if */
-        /* Issue different warnings depending on whether the variable was
-           completely unreferenced or was set but not used. */
-        if (!sym->referenced) {
-          error_code = ec_declared_but_not_referenced;
-        } else {
-          check_assertion(sym->variant.variable.value_has_been_set);
-          error_code = ec_set_but_not_used;
+        if (severity != es_none) {
+          /* Issue different diagnostics depending on whether the variable
+             was completely unreferenced or was set but not used. */
+          if (!sym->referenced) {
+            error_code = ec_declared_but_not_referenced;
+          } else {
+            check_assertion(sym->variant.variable.value_has_been_set);
+            error_code = ec_set_but_not_used;
+          }  /* if */
+          report_unreferenced(sym, error_code, severity);
         }  /* if */
-        report_unreferenced(sym, error_code, severity);
       }  /* if */
 #if CHECKING
       scp = &var_ptr->source_corresp;

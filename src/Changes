@@ -1,5 +1,20 @@
 Version 2.36
 
+5/16/97   Diagnostic for defined but unreferenced variable that is initialized
+          by constructor call
+
+In most cases a warning is issued if a non-external variable goes
+unreferenced; an exception has been that only a remark is put out when
+there is an initializer with side effects.  However, this approach has
+caused a diagnostic to be issued for use of the idiom in which a variable
+of class type is defined simply to force its constructor to be called.  To
+avoid what may sometimes be a spurious diagnostic, the front end is now
+silent on an unreferenced variable that is initialized by a non-trivial
+constructor:
+
+  struct S { S(); };
+  static S s;                   // a remark is no longer issued
+
 5/15/97   Microsoft compatibility: Microsoft bugs mode
 
 A new mode called "Microsoft bugs mode" has been added, and some of the
