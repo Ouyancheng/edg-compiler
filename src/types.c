@@ -4371,6 +4371,81 @@ conversions (constructors and conversion functions).
 }  /* expl_conversion_possible */
 
 
+static a_type_ptr composite_array_type(a_type_ptr array_type1,
+                                       a_type_ptr array_type2)
+/*
+Determine the composite type of array types array_type1 and array_type2
+and return a pointer to it.  Note: one of the types passed in may be returned
+as the composite type; if either could be returned as the composite type,
+preference is given to the first.
+*/
+{
+  a_type_ptr    comp_type, comp_elem;
+  a_targ_size_t num_elems;
+
+  /* When VLAs (variable length arrays) appear, "array[expr]" is preferred
+     over "array[*]", which is preferred over "array[const]" or "array[]".
+     Since the "array[expr]" form can appear only in a function definition,
+     at most one of the types should have that form.  The composite of
+     the element types is not formed: the proposed words (WG14/N637) for
+     6.1.2.6 of the C standard say "if one type is a variable length array
+     type the composite type is that type."  This is good, because forming
+     the composite element type and building a new VLA type on top would
+     be problematical; it would require creation of a new a_vla_dimension
+     entry. */
+  if (array_type1->variant.array.has_assoc_vla_dimension) {
+    check_assertion_str(!array_type2->variant.array.has_assoc_vla_dimension,
+                        "composite_array_type: both array types are VLAs");
+    /* array_type1 is "array[expr]". */
+    comp_type = array_type1;
+  } else if (array_type2->variant.array.has_assoc_vla_dimension) {
+    /* array_type2 is "array[expr]". */
+    comp_type = array_type2;
+  } else if (array_type1->variant.array.is_vla) {
+    /* array_type1 is "array[*]". */
+    comp_type = array_type1;
+  } else if (array_type2->variant.array.is_vla) {
+    /* array_type2 is "array[*]". */
+    comp_type = array_type2;
+  } else {
+    /* Non-VLA cases. */
+    /* The composite type is an array with elements of the composite type
+       of the two array element types.  The size is the size of the
+       non-incomplete array type, if there is one.  The composite_type
+       call is done in two different orders because if both types are
+       equivalent to the composite type, the first operand is returned, and
+       we'd like the element type to be the one from the non-incomplete
+       array. */
+    check_assertion(!array_type1->variant.array.is_variable_size_array);
+    check_assertion(!array_type2->variant.array.is_variable_size_array);
+    if (array_type1->variant.array.variant.number_of_elements != 0) {
+      num_elems = array_type1->variant.array.variant.number_of_elements;
+      comp_elem = composite_type(array_type1->variant.array.element_type,
+                                 array_type2->variant.array.element_type);
+    } else {
+      num_elems = array_type2->variant.array.variant.number_of_elements;
+      comp_elem = composite_type(array_type2->variant.array.element_type,
+                                 array_type1->variant.array.element_type);
+    }  /* if */
+    /* Try to use one of the two types we already have.  If that's
+       not possible, build a new array type. */
+    if (comp_elem == array_type1->variant.array.element_type &&
+        num_elems == array_type1->variant.array.variant.number_of_elements) {
+      comp_type = array_type1;
+    } else if (comp_elem == array_type2->variant.array.element_type &&
+        num_elems == array_type2->variant.array.variant.number_of_elements) {
+      comp_type = array_type2;
+    } else {
+      comp_type = alloc_type((a_type_kind)tk_array);
+      comp_type->variant.array.element_type = comp_elem;
+      comp_type->variant.array.variant.number_of_elements = num_elems;
+      set_type_size(comp_type);
+    }  /* if */
+  }  /* if */
+  return comp_type;
+}  /* composite_array_type */
+
+
 static a_type_ptr composite_parameter_type(a_type_ptr  type1,
                                            a_type_ptr  type2)
 /*
@@ -4688,11 +4763,9 @@ possible, this routine tries to return type_1.  Note that if a new type
 is allocated, it is allocated in the file scope.
 */
 {
-  a_type_ptr       comp_type;
-  a_type_ptr       base_type_1, base_type_2;
-  a_type_ptr       member_type_1, member_type_2;
-  a_type_ptr       comp_elem;
-  a_targ_size_t    num_elems;
+  a_type_ptr comp_type, comp_elem;
+  a_type_ptr base_type_1, base_type_2;
+  a_type_ptr member_type_1, member_type_2;
 
   db_enter(5, "composite_type");
   if (type_1 == type_2) {
@@ -4770,45 +4843,7 @@ is allocated, it is allocated in the file scope.
           }  /* if */
           break;
         case tk_array:
-          /* Array types.  The composite type is an array with elements
-             of the composite type of the two array element types.  The size
-             is the size of the non-incomplete array type, if there is
-             one.  The composite_type call is done in two different orders
-             because if both types are equivalent to the composite type,
-             the first operand is returned, and we'd like the element type
-             to be the one from the non-incomplete array. */
-          /* It's not entirely clear how composite types should be formed
-             involving VLAs.  For the time being... */
-          check_assertion_str(!array_is_vla(base_type_1) &&
-                              !array_is_vla(base_type_2),
-                              "composite_type: VLAs are not yet supported");
-          check_assertion(!base_type_1->variant.array.is_variable_size_array);
-          check_assertion(!base_type_2->variant.array.is_variable_size_array);
-          if (base_type_1->variant.array.variant.number_of_elements != 0) {
-            num_elems = base_type_1->variant.array.variant.number_of_elements;
-            comp_elem = composite_type(base_type_1->variant.array.element_type,
-                                      base_type_2->variant.array.element_type);
-          } else {
-            num_elems = base_type_2->variant.array.variant.number_of_elements;
-            comp_elem = composite_type(base_type_2->variant.array.element_type,
-                                      base_type_1->variant.array.element_type);
-          }  /* if */
-          /* Try to use one of the two types we already have.  If that's
-             not possible, build a new array type. */
-          if (comp_elem == base_type_1->variant.array.element_type &&
-              num_elems == base_type_1->
-                                  variant.array.variant.number_of_elements) {
-            comp_type = base_type_1;
-          } else if (comp_elem == base_type_2->variant.array.element_type &&
-              num_elems == base_type_2->
-                                  variant.array.variant.number_of_elements) {
-            comp_type = base_type_2;
-          } else {
-            comp_type = alloc_type((a_type_kind)tk_array);
-            comp_type->variant.array.element_type = comp_elem;
-            comp_type->variant.array.variant.number_of_elements = num_elems;
-            set_type_size(comp_type);
-          }  /* if */
+          comp_type = composite_array_type(base_type_1, base_type_2);
           break;
         case tk_routine:
           /* Function types. */
