@@ -223,6 +223,9 @@ Install the keywords in the symbol table.
      definition of offsetof. */
   enter_keyword((a_token_kind)tok_alignof,   "__ALIGNOF__");
   enter_keyword((a_token_kind)tok_intaddr,   "__INTADDR__");
+#if RESTRICT_ALLOWED
+  enter_keyword((a_token_kind)tok_restrict,  "restrict");
+#endif /* RESTRICT_ALLOWED */
   /* "asm" is a C++ keyword that is treated as a keyword in C mode, too,
      because, even though not part of the ANSI C language, it is used widely
      in C programs. */
