@@ -1,5 +1,21 @@
 Version 2.46
 
+11/16/01 Microsoft compatibility: abort caused by lookup emulation bug
+
+In Microsoft mode, an abort could occur when a template name is used
+in a derived class and the base class contains an overload set in which
+one of the members is a nonstatic member function template with the
+same name.  This has been fixed.
+
+  template <class T> struct x {};
+  class A {
+    void x(int);
+    template <class X> void x(X);
+  };
+  class B : public A {
+    typedef x<int> xi;  // Microsoft compiler finds template ::x
+  };
+
 11/16/01 "this" as selector doesn't make call dependent
 
 Overload resolution has assumed that a member function called on

@@ -8979,7 +8979,11 @@ a symbol that should be ignored in favor of a template to be found later.
       a_routine_type_supplement_ptr	rtsp;
       /* All of the symbols are either static or all are nonstatic.
          Check the first symbol on the list to see which. */
-      rp = sym->variant.routine.ptr;
+      if (sym->kind == (a_symbol_kind)sk_function_template) {
+        rp = sym->variant.template_info->variant.function.routine;
+      } else {
+        rp = sym->variant.routine.ptr;
+      }  /* if */
       rtsp = rp->type->variant.routine.extra_info;
       /* If the name found is a nonstatic member function, discard it. */
       if (rtsp->this_class != NULL) result = TRUE;
@@ -9130,7 +9134,11 @@ created if a projected symbol cannot be found in any of the real bases.
                                             &path, &access, &ambiguous,
                                             &any_using_decl,
                                             &unambiguous_injected_template);
-    if (microsoft_bugs && progenitor_sym != NULL) {
+    if (microsoft_bugs && progenitor_sym != NULL &&
+        scope_stack[depth_scope_stack].kind ==
+                                        (a_scope_kind)sck_class_struct_union) {
+      /* Check for cases in which Microsoft ignores certain names in class
+         scopes. */
       if (tentative_template_lookup) {
         /* In Microsoft bugs mode, if the progenitor symbol is for a nonstatic
            member (data or function), and we are doing a tentative template
@@ -9138,13 +9146,10 @@ created if a projected symbol cannot be found in any of the real bases.
         if (check_for_microsoft_template_lookup_bug(progenitor_sym)) {
           progenitor_sym = NULL;
         }  /* if */
-      } else if (tentative_type_lookup &&
-                 scope_stack[depth_scope_stack].kind ==
-                                        (a_scope_kind)sck_class_struct_union) {
+      } else if (tentative_type_lookup) {
         /* In Microsoft bugs mode, ignore non-types found by a tentative
            type lookup and continue looking for the symbol in enclosing
-           scopes.  This bug only occurs in certain contexts in class
-           definitions. */
+           scopes. */
         if (check_for_microsoft_type_lookup_bug(progenitor_sym)) {
           progenitor_sym = NULL;
         }  /* if */
