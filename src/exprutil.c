@@ -7091,6 +7091,7 @@ type appears on the list of conversion functions.
     internal_error("find_conversion_function: source not class type");
   }  /* if */
 #endif /* CHECKING */
+  dest_type = skip_typerefs(dest_type);
   /* Examine each conversion function from the source class. */
   for (clep = symbol_supplement_for_class(class_type)->conversion_list;
        clep != NULL;
@@ -7099,6 +7100,12 @@ type appears on the list of conversion functions.
     reduce_projection_symbol_to_fundamental_symbol(conversion_symbol);
     conv_routine_type = routine_symbol_type(conversion_symbol);
     return_type = conv_routine_type->variant.routine.return_type;
+    if (is_reference_type(return_type)) {
+      /* Drop a reference type; a conversion function that returns "const int&"
+         can be used like one that returns "const int". */
+      return_type = type_pointed_to(return_type);
+    }  /* if */
+    return_type = skip_typerefs(return_type);
     if (identical_types(dest_type, return_type)) {
       /* Found the required function. */
       goto end_of_search;
@@ -7561,7 +7568,6 @@ if non-NULL, indicates the pointer type of a previous non-class operand.
 }  /* pointer_type_previously_handled */
 
 
-
 static void try_pointer_builtin_operands_match(
                                 char                     *operand_type_pattern,
                                 an_arg_operand_ptr       arg_operand_list,
@@ -7613,6 +7619,12 @@ that must have the same type.
         base_conversion_symbol = fundamental_symbol_of(conversion_symbol);
         conv_routine_type = routine_symbol_type(base_conversion_symbol);
         return_type = conv_routine_type->variant.routine.return_type;
+        if (is_reference_type(return_type)) {
+          /* Drop a reference type; a conversion function that returns
+             "const int&" can be used like one that returns "const int". */
+          return_type = type_pointed_to(return_type);
+        }  /* if */
+        return_type = skip_typerefs(return_type);
         if (is_pointer_type(return_type)) {
           /* We've found a conversion function to a pointer type.  Make
              sure it's not a type we've already checked while examining a
