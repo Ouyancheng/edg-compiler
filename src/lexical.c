@@ -4914,7 +4914,6 @@ on other template parameters.
   a_symbol_locator   			param_locator;
   a_source_position  			saved_pos_curr_token;
   a_source_position  			saved_error_position;
-  a_source_position			param_pos;
 
   tssp = template_sym->variant.template_info;
   /* Push the template instantiation scope.  Note that the instance symbol
@@ -4929,7 +4928,6 @@ on other template parameters.
   saved_pos_curr_token = pos_curr_token;
   saved_error_position = error_position;
   rescan_reusable_cache(&param_ptr->token_cache);
-  param_pos = pos_curr_token;
   /* Scan the declaration specifiers. */
   scan_a_template_parameter_declaration(&param_locator, &param_type_ptr);
   error_position = saved_error_position;
