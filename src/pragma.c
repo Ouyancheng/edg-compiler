@@ -24,6 +24,7 @@ pragma.c -- Routines to support #pragma directives
 
 /* Additional header files. */
 #include "decls.h"
+#include "pch.h"
 #include "pragma.h"
 #include "statements.h"
 #include "templates.h"
@@ -1127,6 +1128,25 @@ has been reached.
   process_curr_token_pragmas();
   db_exit();
 }  /* process_pragmas_at_end_of_source */
+
+
+void pragma_one_time_init(void)
+/*
+Do one-time initialization of variables related to pragma processing.
+(Variables that need to be reinitialized with each new translation unit
+are handled in pragma_init.)
+*/
+{
+  /* Save variables from pragma.h and pragma.c that are needed for
+     precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(curr_token_pragmas),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* pragma_one_time_init */
 
 
 void pragma_init(void)

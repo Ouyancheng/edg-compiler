@@ -318,6 +318,8 @@ extern void process_curr_construct_pragmas(a_symbol_ptr     sym,
 
 extern void process_pragmas_at_end_of_source(void);
 
+extern void pragma_one_time_init(void);
+
 extern void pragma_init(void);
 #endif /* ifndef PRAGMA_H */
 
