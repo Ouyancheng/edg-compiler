@@ -420,7 +420,11 @@ extern a_ref_entry_ptr ref_entry(a_symbol_ptr      sym_ptr,
                                  a_source_position *source_position);
 
 extern void change_ref_kinds(a_ref_entry_ptr         ref_list,
-                             a_symbol_reference_kind kind);
+                             a_symbol_reference_kind new_kind);
+
+extern void change_some_ref_kinds(a_ref_entry_ptr         ref_list,
+                                  a_symbol_reference_kind old_kind,
+                                  a_symbol_reference_kind new_kind);
 
 extern an_arg_operand_ptr alloc_arg_operand(void);
 

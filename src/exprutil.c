@@ -264,19 +264,51 @@ recorded right away and no entry is created; NULL is returned.
 
 
 void change_ref_kinds(a_ref_entry_ptr         ref_list,
-                      a_symbol_reference_kind kind)
+                      a_symbol_reference_kind new_kind)
 /*
-Change the kind-of-reference field to "kind" in each of the reference
+Change the kind-of-reference field to new_kind in each of the reference
 entries on the list ref_list.  The list is linked by the next_operand_ref
 field.
+*/
+{
+  a_ref_entry_ptr         rep;
+  a_symbol_reference_kind old_kind;
+
+  for (rep = ref_list; rep != NULL; rep = rep->next_operand_ref) {
+    /* For some cases, the old kind of reference is put out before the new
+       kind is set.  That's necessary, for example, in
+         void f(int &);
+         int j;
+         void m () {
+           f(j = 1);  // Modification gets replaced by address taken
+         }
+       One really wants both kinds of references. */
+    old_kind = rep->kind;
+    if ((old_kind == srk_modification || old_kind == srk_use_and_modif) &&
+        new_kind == srk_address_taken) {
+      reference_to_symbol(old_kind, rep->symbol, &rep->position,
+                          /*update_il_entry=*/TRUE);
+    }  /* if */
+    rep->kind = new_kind;
+  }  /* for */
+}  /* change_ref_kinds */
+
+
+void change_some_ref_kinds(a_ref_entry_ptr         ref_list,
+                           a_symbol_reference_kind old_kind,
+                           a_symbol_reference_kind new_kind)
+/*
+Change the kind-of-reference field to "new_kind" in each of the reference
+entries on the list ref_list that currently has the kind "old_kind".
+The list is linked by the next_operand_ref field.
 */
 {
   a_ref_entry_ptr rep;
 
   for (rep = ref_list; rep != NULL; rep = rep->next_operand_ref) {
-    rep->kind = kind;
+    if (rep->kind == old_kind) rep->kind = new_kind;
   }  /* for */
-}  /* change_ref_kinds */
+}  /* change_some_ref_kinds */
 
 
 an_arg_operand_ptr alloc_arg_operand(void)
@@ -3878,9 +3910,10 @@ not an lvalue, it is left alone.
       error_in_operand(ec_incomplete_type_not_allowed, operand);
     } else {
       using_lvalue(operand);
-      /* Change the kind in the reference entry for the array from an
+      /* Change the kind in the reference entry for a subscripted array from an
          address-taken entry to a simple "use" reference. */
-      change_ref_kinds(operand->ref_entries_list, srk_use);
+      change_some_ref_kinds(operand->ref_entries_list, srk_address_taken,
+                            srk_use);
       if (is_constant_operand(operand)) {
         /* The lvalue address is specified by a constant. */
         a_constant_ptr con = &operand->variant.constant;
