@@ -1766,9 +1766,11 @@ scope is that of a class definition.
           /* Argument expressions are not allowed in overloaded operator
              declarations.  Issue an error, but go ahead and scan the
              expression. */
-          a_scope_kind        parent_scope_kind;
-          a_boolean           is_member_function;
-          a_boolean           cache_default_arg;
+          a_scope_kind  parent_scope_kind;
+          a_boolean     is_member_function;
+          a_boolean     cache_default_arg;
+          a_boolean     ignore_default_arg_expr;
+
           if (!default_arg_expr_allowed) {
             pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
           } else if (locator->is_operator_name &&
@@ -1794,6 +1796,7 @@ scope is that of a class definition.
              default argument tokens and rescan them later. */
           cache_default_arg = FALSE;
           is_member_function = FALSE;
+          ignore_default_arg_expr = !default_arg_expr_allowed;
           parent_scope_kind = scope_stack[depth_scope_stack-1].kind;
           if (default_arg_expr_allowed) {
             if (parent_scope_kind == (a_scope_kind)sck_class_struct_union) {
@@ -1802,10 +1805,16 @@ scope is that of a class definition.
               cache_default_arg = TRUE;
               is_member_function = TRUE;
             } else if (parent_scope_kind ==
-                                   (a_scope_kind)sck_template_declaration &&
-                       ptp->type_involves_template_param) {
-              /* A function template declaration. */
+                                   (a_scope_kind)sck_template_declaration) {
+              /* A function template declaration.  Note that all default
+                 arguments are cached. */
               cache_default_arg = TRUE;
+            } else if (parent_scope_kind ==
+                                   (a_scope_kind)sck_template_instantiation) {
+              /* A template instantion -- the function declarator tokens are
+                 being rescanned.  All the default arguments are scanned from
+                 caches during a later fixup, so ignore the expression now. */
+              ignore_default_arg_expr = TRUE;
             } else if (parent_scope_kind ==
                                   (a_scope_kind)sck_class_reactivation &&
                        scope_stack[depth_scope_stack-2].kind ==
@@ -1814,6 +1823,7 @@ scope is that of a class definition.
                  outside of the class declaration.  This is not supported. */
               pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
               default_arg_expr_allowed = FALSE;
+              ignore_default_arg_expr = TRUE;
             }  /* if */
           }  /* if */
           if (cache_default_arg &&
@@ -1841,8 +1851,8 @@ scope is that of a class definition.
             /* Not a case in which the default argument should be
                cached -- or else a syntax error.  Go ahead and
                scan the expression and convert it to the required type. */
-            scan_default_arg_expr(default_arg_expr_allowed ?
-                                    ptp : (a_param_type_ptr)NULL);
+            scan_default_arg_expr(ignore_default_arg_expr ?
+                                    (a_param_type_ptr)NULL : ptp);
           }  /* if */
           ptp->has_default_arg = default_arg_expr_allowed;
         }  /* if */
