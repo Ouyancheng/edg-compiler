@@ -1,6 +1,16 @@
 Version 2.21
 
-12/1/93   Error now issued if an unnamed enum is used as a template argument
+12/1/93  Name mangling for unnamed enums
+
+There is now a mangled name representation (_Enn) for unnamed enums.
+Previously, a case that needed such a thing provoked an internal
+error.  For example:
+
+  typedef enum {a} *P;
+  void f(P x) {}
+
+
+12/1/93  Error now issued if an unnamed enum is used as a template argument
 
 An error is now issued if a template argument has a type containing
 an unnamed enumeration.

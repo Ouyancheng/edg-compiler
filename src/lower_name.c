@@ -580,6 +580,38 @@ If the indicated class type is unnamed, give it a name.
     type->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* give_unnamed_class_a_name */
+
+
+/*
+Seed number for unnamed enum names.
+*/
+static unsigned long
+		unnamed_enum_name_seed;
+
+
+static void give_unnamed_enum_a_name(a_type_ptr type)
+/*
+If the indicated enum type is unnamed, give it a name.
+*/
+{
+  char     *name;
+  sizeof_t name_len;
+
+  /* Note that we may be changing a type that is not being lowered yet, but
+     that's okay -- the name in the IL entry is not used by the front end. */
+  if (type->source_corresp.name == NULL) {
+    /* The enum is unnamed, so make up a name. */
+    /* The name is __Enn, where nn is a unique number for the
+       enum.  This is not from the ARM.  cfront uses the __En form, but
+       the number is different. */
+    unnamed_enum_name_seed++;
+    name_len = digits_to_represent(unnamed_enum_name_seed) + 4; /*"__E"+null*/
+    name = alloc_lowered_name_string(name_len);
+    (void)sprintf(name, "__E%lu", (unsigned long)unnamed_enum_name_seed);
+    type->source_corresp.name = name;
+    type->source_corresp.name_has_been_mangled = TRUE;
+  }  /* if */
+}  /* give_unnamed_enum_a_name */
     
 
 sizeof_t mangled_basic_class_name(a_type_ptr type,
@@ -741,6 +773,8 @@ initial parts of the qualified names.
     name_length = r_mangled_type_name(parent_class, nesting_level+1, store_at);
     mangled_name_length += name_length;
     if (store_at != NULL) store_at += name_length;
+  } else if (!is_immediate_class_type(type)) {
+    /* The type is not a class type (it's a typedef or enum). */
   } else {
     /* Got to the topmost class. */
     /* If the class is a local class, put out "Lnn__" using the declaration
@@ -786,6 +820,12 @@ initial parts of the qualified names.
   } else {
     /* Not a class name (typedef or enum). */
     name = type->source_corresp.name;
+    if (name == NULL) {
+      /* Unnamed entity. */
+      check_assertion(is_enum_type(type));
+      give_unnamed_enum_a_name(type);
+      name = type->source_corresp.name;
+    }  /* if */
     name_length = strlen(name);
     digits = digits_to_represent((unsigned long)name_length);
     mangled_name_length += name_length + digits;
@@ -879,11 +919,11 @@ See ARM 7.2.1c for name encoding.
         s = "v";
         break;
       case tk_integer:
-#if CHECKING
         if (type->variant.integer.enum_type) {
-          internal_error("mangled_encoding_for_type: unnamed enum");
+          /* Unnamed enum.  mangled_type_name will make up a name. */
+          mangled_name_length = mangled_type_name(type, store_at);
+          goto have_whole_mangled_name;
         }  /* if */
-#endif /* CHECKING */
         switch (type->variant.integer.int_kind) {
           case ik_char:           s = "c";  break;
           case ik_signed_char:    s = "Sc"; break;
@@ -1920,6 +1960,7 @@ of the front end.
 {
   /* Static variable in lower_name.c: */
   unnamed_class_name_seed = 0;
+  unnamed_enum_name_seed = 0;
 }  /* name_lower_init */
 
 #endif /* DO_IL_LOWERING */
