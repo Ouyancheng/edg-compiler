@@ -347,7 +347,7 @@ Make a copy of the specified string in the memory region indicated by
 "region".
 */
 {
-  size_t	length;
+  sizeof_t	length;
   char		*new_string;
 
   length = strlen(string);

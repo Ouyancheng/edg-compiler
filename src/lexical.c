@@ -3303,7 +3303,7 @@ used.
              fsp != NULL;
              fsp = fsp->next) {
           /* Replace the existing suffix with a new one. */
-          (void)replace_file_name_suffix(fsp->suffix, buffer);
+          replace_file_name_suffix(fsp->suffix, buffer);
           /* Get the current buffer pointer in case it was reallocated. */
           name_to_try = buffer->buffer;
           /* Now try to open the modified file. */

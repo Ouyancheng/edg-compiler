@@ -15216,9 +15216,9 @@ templates defined in the file.
   f_file = open_exported_template_file_for_input(file_name, dnep);
   while ((line = read_line_from_file(f_file)) != NULL) {
     if (strncmp(line, "fnm:", 4) == 0) {
-      char	*file_name = &line[4];
+      char	*name = &line[4];
       etfp->source_file_name = copy_string_to_region(
-                                           FRONT_END_REGION_NUMBER, file_name);
+                                           FRONT_END_REGION_NUMBER, name);
     } else if (strncmp(line, "tnm:", 4) == 0) {
       a_template_lookup_entry_ptr	tlp;
       tlp = find_exported_template(line, /*add=*/TRUE);
