@@ -1178,9 +1178,6 @@ instantiated.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "deferred_friend_function_fixup");
-  /* Reset the routine fixup pointer in the routine to prevent this
-     process from being attempted again. */
-  rp->routine_fixup = NULL;
   /* Reactivate the scope containing the function definition. */
   push_class_and_template_reactivation_scope(rfp->class_type,
 					     /*is_template_based=*/TRUE,
@@ -1228,6 +1225,9 @@ instantiated.
   }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Reset the routine fixup pointer in the routine to prevent this
+     process from being attempted again. */
+  rp->routine_fixup = NULL;
   /* Make sure various flags are set correctly in the routine entry.  This
      won't have been done before, since decl_routine was called for a
      declaration, not a definition. */

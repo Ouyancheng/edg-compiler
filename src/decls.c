@@ -4496,6 +4496,7 @@ type entry if appropriate, otherwise using the indicated declared_type.
   if (routine_ptr->declared_type != NULL) {
     check_assertion_str(routine_ptr->is_template_function ||
                         routine_ptr->is_prototype_instantiation ||
+                        routine_ptr->routine_fixup != NULL ||
                         (total_errors !=  0),
                        "set_routine_declared_type: declared type already set");
     declared_type = routine_ptr->declared_type;
