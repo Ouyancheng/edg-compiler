@@ -79,6 +79,10 @@ typedef struct a_try_supplement *a_try_supplement_ptr;
 typedef struct an_object_lifetime *an_object_lifetime_ptr;
 typedef struct a_namespace   *a_namespace_ptr;
 typedef struct a_scope       *a_scope_ptr;
+#if DO_IL_LOWERING
+typedef struct a_destructible_entity_descr
+                             a_destructible_entity_descr_dummy_typedef;
+#endif /* DO_IL_LOWERING */
 
 /* Opaque type definition for an_arg_operand (used in the expression
    processing routines, but a pointer to it appears in a front-end only

@@ -1,5 +1,12 @@
 Version 2.37
 
+7/1/97    Predeclaration of structs to allow compilation with old C++ compilers
+
+A few structs in il_def.h, lexical.h, scope_stk.h, and symbol_tbl.h are
+now predeclared outside of any other structs.  This allows the front
+end source to be compiled with C++ compilers that use nonstandard rules
+for the scope in which a struct declaration is injected.
+
 7/1/97    Microsoft compatibility: last line of file can end with backslash
 
 In Microsoft mode, if the last line of a file ends with a backslash,

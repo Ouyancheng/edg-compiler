@@ -396,12 +396,13 @@ typedef enum /* an_identifier_lookup_mode */ {
 
 
 typedef struct a_token_cache *a_token_cache_ptr;
+typedef struct a_cached_token *a_cached_token_ptr;
 typedef struct a_token_cache {
   /* Data structure used to hold a token cache, i.e., some number of
      tokens that are being saved for later rescanning. */
-  struct a_cached_token
-		*first_token,
-		*last_token;
+  a_cached_token_ptr
+		first_token,
+		last_token;
 			/* First and last tokens on the list, or both NULL
 			   if the list is empty. */
   a_byte_boolean
@@ -1267,7 +1268,6 @@ enum a_token_extra_info_kind_tag {
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_token_extra_info_kind;
-typedef struct a_cached_token *a_cached_token_ptr;
 typedef struct a_cached_token {
   /* Information on a single token, saved for later rescanning of the
      token. */

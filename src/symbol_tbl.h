@@ -33,6 +33,7 @@ typedef struct an_access_error_descr *an_access_error_descr_ptr;
 typedef struct a_template_cache_segment *a_template_cache_segment_ptr;
 typedef struct a_template_decl_info *a_template_decl_info_ptr;
 typedef struct a_template_cache *a_template_cache_ptr;
+typedef struct a_control_flow_descr a_control_flow_descr_dummy_typedef;
 
 /* The pointer to a_routine_fixup is declared here even though the struct
    itself is defined in class_decl.c.  This allows the pointer to be made
