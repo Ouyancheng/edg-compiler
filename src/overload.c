@@ -2957,11 +2957,11 @@ Issue any suggested warning recorded in an argument match summary.
 }  /* issue_warning_from_arg_match_summary */
 
 
-static a_type_ptr operand_complete_object_type(an_operand *operand,
-                                               a_boolean  call_case)
+a_type_ptr operand_complete_object_type(an_operand *operand,
+                                        a_boolean  call_case)
 /*
 Return the type of the complete object that contains the location indicated
-by operand (an address), or NULL if no complete object can be determined.
+by operand (an address), or NULL if no complete object type can be determined.
 call_case is TRUE if the answer will be used to optimize a virtual function
 call.  NULL is always a safe answer; non-NULL values may permit optimizations.
 Note that "complete object" means an object that is not a base class of
