@@ -1737,10 +1737,12 @@ Scan a statement.  Add it to the current statement sequence.
 {
   a_label_ptr      label;
   a_boolean        prev_was_label = FALSE, is_declaration = FALSE;
+  a_boolean        get_another_statement;
 
   db_enter(3, "statement");
 
 rescan_statement:
+  get_another_statement = FALSE;
   /* If a lint-style "notreached" comment was detected, suppress the
      warning on unreachable code. */
   check_lint_notreached_flag();
@@ -1798,12 +1800,14 @@ rescan_statement:
       /* Case label (3.6.1). */
       case_label();
       prev_was_label = TRUE;
-      goto rescan_statement;
+      get_another_statement = TRUE;
+      break;
     case tok_default:
       /* Default label (3.6.1). */
       default_label();
       prev_was_label = TRUE;
-      goto rescan_statement;
+      get_another_statement = TRUE;
+      break;
     case tok_identifier:
       /* Identifier.  Probably the start of an expression-statement,
          but first we must check to see if it is a label definition
@@ -1830,7 +1834,8 @@ rescan_statement:
 #endif /* CHECKING */
         (void)get_token();
         prev_was_label = TRUE;
-        goto rescan_statement;
+        get_another_statement = TRUE;
+        break;
       }  /* if */
       /* Other cases are expression statements. */
       goto expr_statement;
@@ -1873,6 +1878,8 @@ expr_statement:
   if (!is_declaration) {
     struct_stmt_stack[depth_stmt_stack].any_exec_statement_seen = TRUE;
   }  /* if */
+  /* Loop if we just got a label and not an actual statement. */
+  if (get_another_statement) goto rescan_statement;
 
   db_exit();
 }  /* statement */
