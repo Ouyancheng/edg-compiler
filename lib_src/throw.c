@@ -535,15 +535,22 @@ is ambiguous.
     do {
       void*		new_ptr;
       a_typeinfo_ptr	test_info = bcsp->typeinfo;
-      char              access_flag;
+      a_boolean         is_accessible;
       if (ptr != NULL) {
         /* Adjust the pointer by the offset provided in the base class
            specification. */
         new_ptr = (void*) (((char *) ptr) + bcsp->offset);
       }  /* if */
-      access_flag = **access_flags;
-      (*access_flags)++;
-      if (access_flag == BASE_ACCESSIBLE &&
+      /* See if this base class is accessible.  *access_flags either points
+         to a string of characters associated with each base class in the
+	 tree, or is NULL if none of the base classes are accessible. */
+      if (*access_flags != NULL) {
+        is_accessible = **access_flags == BASE_ACCESSIBLE;
+        (*access_flags)++;
+      } else {
+	is_accessible = FALSE;
+      }  /* if */
+      if (is_accessible &&
 	  matching_typeinfo(test_info, base_info)) {
         /* We have found a match. */
         result = TRUE;
@@ -754,6 +761,7 @@ entry is returned in etsp_found.
     } else if (etsp->typeinfo->unique_id == NULL) {
       /* No unique ID -- don't check any further.  No match. */
     } else if ((is_pointer(etsp->flags) == is_pointer(flags)) &&
+	       typeinfo->base_class_entries != NULL &&
 	       derived_to_base_conversion(object_ptr, &new_ptr, typeinfo,
 					  etsp->typeinfo,
 					  &local_access_flags)) {
