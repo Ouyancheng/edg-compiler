@@ -1951,8 +1951,7 @@ is in fact valid.
       templ = templ->canonical_template->definition_template;
       corresp_templ = corresp_templ->canonical_template->definition_template;
       if (templ != NULL && corresp_templ != NULL) {
-        if (templ->cache_checksum != corresp_templ->cache_checksum &&
-            !db_flag_is_set("no_inline_corresp_check")) {
+        if (templ->cache_checksum != corresp_templ->cache_checksum) {
           match = FALSE;
           process_bad_trans_unit_corresp(iek_routine, routine);
         }  /* if */
@@ -4243,6 +4242,42 @@ entities.
 }  /* find_template_correspondence */
 
 
+static a_symbol_ptr check_routine_sym_corresponds(a_symbol_ptr   sym,
+                                                  a_routine_ptr  routine)
+/*
+*/
+{
+  a_routine_ptr  corresp_routine;
+  a_type_ptr     sym_type;
+  a_symbol_ptr   corresp_sym = NULL;
+
+  if (sym->kind == (a_symbol_kind)sk_extern_routine) {
+    corresp_routine = sym->variant.extern_symbol_descr->variant.routine.ptr;
+  } else {
+    corresp_routine = sym->variant.routine.ptr;
+  }  /* if */
+  sym_type = corresp_routine->type;
+  if (routine == corresp_routine) {
+    /* Skip this symbol. */
+  } else if (param_types_are_compatible(routine->type,
+                                        sym_type,
+                                        TCF_REDECLARATION |
+                                        TCF_SEEK_CORRESP) ||
+             /* The function ::main doesn't overload. */
+             (is_main_function(routine) &&
+              is_main_function(corresp_routine))) {
+    corresp_sym = (a_symbol_ptr)corresp_routine->source_corresp.assoc_info;
+  } else if (routine->source_corresp.name_linkage ==
+                          (a_name_linkage_kind)nlk_external &&
+             corresp_routine->source_corresp.name_linkage ==
+                          (a_name_linkage_kind)nlk_external) {
+    f_report_bad_trans_unit_corresp((char*)routine,
+                                    &sym->decl_position);
+  }  /* if */
+  return corresp_sym;
+}  /* check_routine_sym_corresponds */
+
+
 static a_symbol_ptr find_corresponding_routine_on_list(
                                                      a_symbol_ptr  routine_sym,
                                                      a_symbol_ptr  syms)
@@ -4288,28 +4323,8 @@ translation unit) on the list of symbols headed by syms.
           switch (sub_sym->kind) {
             case sk_routine:
             case sk_member_function:
-              {
-                a_routine_ptr  corresp_routine =
-                                                sub_sym->variant.routine.ptr;
-                a_type_ptr     sym_type = corresp_routine->type;
-                if (routine == corresp_routine) {
-                  /* Skip this symbol. */
-                } else if (param_types_are_compatible(routine->type,
-                                                      sym_type,
-                                                      TCF_REDECLARATION |
-                                                      TCF_SEEK_CORRESP) ||
-                           /* The function ::main doesn't overload. */
-                           (is_main_function(routine) &&
-                            is_main_function(corresp_routine))) {
-                  corresp_sym = sub_sym;
-                } else if (routine->source_corresp.name_linkage ==
-                                        (a_name_linkage_kind)nlk_external &&
-                           corresp_routine->source_corresp.name_linkage ==
-                                        (a_name_linkage_kind)nlk_external) {
-                  f_report_bad_trans_unit_corresp((char*)routine,
-                                                  &sub_sym->decl_position);
-                }  /* if */
-              }
+            case sk_extern_routine:
+              corresp_sym = check_routine_sym_corresponds(sub_sym, routine);
               break;
             case sk_function_template:
             case sk_class_or_struct_tag:
@@ -4394,6 +4409,13 @@ unit) on the list of symbols headed by syms.
       /* Two different declarations in the same namespace or class, and
          with the same name: they should probably match up. */
       switch (sym->kind) {
+        case sk_extern_variable:
+          if (corresp_var_sym == NULL &&
+              var != sym->variant.extern_symbol_descr->variant.variable) {
+            corresp_var_sym = (a_symbol_ptr)sym->variant.extern_symbol_descr
+                                               ->variant.variable
+                                               ->source_corresp.assoc_info;
+          }  /* if */
         case sk_variable:
           {
             if (var != sym->variant.variable.ptr) {
