@@ -3151,6 +3151,11 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
           } else {
             error_in_operand(ec_bool_type_not_allowed, operand);
           }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+        } else if (is_nonreal_floating_type(operand->type)) {
+          /* Complex and imaginary operands are not allowed (in C99).*/
+          error_in_operand(ec_complex_type_not_allowed, operand);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         }  /* if */
       }  /* if */
       if (err) {
@@ -3370,6 +3375,11 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
           } else {
             error_in_operand(ec_bool_type_not_allowed, &operand);
           }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+        } else if (is_nonreal_floating_type(operand.type)) {
+          /* Complex and imaginary operands are not allowed (in C99).*/
+          error_in_operand(ec_complex_type_not_allowed, &operand);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         }  /* if */
       }  /* if */
       if (err) {
@@ -9246,10 +9256,10 @@ standard.
 #if C99_IL_EXTENSIONS_SUPPORTED
     } else if (is_nonreal_floating_type(operand_1->type)) {
       /* Complex and imaginary operands are unordered. */
-      pos_error(ec_invalid_complex_operator, &operand_1->position);
+      pos_error(ec_complex_type_not_allowed, &operand_1->position);
       operation_type = error_type();
     } else if (is_nonreal_floating_type(operand_2.type)) {
-      pos_error(ec_invalid_complex_operator, &operand_2.position);
+      pos_error(ec_complex_type_not_allowed, &operand_2.position);
       operation_type = error_type();
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     } else {
