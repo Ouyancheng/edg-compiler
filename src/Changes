@@ -1,5 +1,24 @@
 Version 2.44
 
+2/11/00  Incorrect lookup in certain instantiations within namespaces
+
+When using templates in namespaces, a lookup bug could cause the wrong
+declaration to be found.  In particular, when the instantiation involved
+a class reactivation inside a particular namespace, names from the namespace
+sometimes hid names from the class reactivation scope.  This has been fixed.
+
+  namespace N {
+    int ZZ;
+    template<class T> struct B {
+      static int i;
+      struct ZZ {};
+      friend void f() {
+        ZZ z;  // Incorrect ZZ found
+      }
+    };
+    struct A { int f() { return B<int>::i; } };
+  }
+
 2/10/00  Microsoft compatibility: anonymous structs with non-POD fields
 
 The front end now accepts Microsoft anonymous struct members with non-POD

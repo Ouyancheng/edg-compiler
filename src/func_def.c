@@ -679,6 +679,12 @@ and for the instantiation of template functions.
       if (nsp != NULL) {
         a_scope_stack_entry_ptr  decl_ssep = &scope_stack[decl_scope_level];
         a_scope_stack_entry_ptr  curr_ssep = &scope_stack[depth_scope_stack];
+        if (curr_ssep->kind == (a_scope_kind)sck_class_reactivation) {
+          /* If the current scope is a class reactivation, use the previous
+             scope for the following check for a template instantiation
+             scope. */
+          curr_ssep--;
+        }  /* if */
         if (curr_ssep->kind == (a_scope_kind)sck_template_instantiation) {
           /* The namespace is pushed when the template instantiation
              scope is pushed.  Don't do it again now. */
