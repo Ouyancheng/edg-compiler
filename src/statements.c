@@ -133,7 +133,7 @@ otherwise be issued later.
 { if (lint_notreached_flag) {                                         \
     curr_reachability.reachable_considering_hints = FALSE;            \
     curr_reachability.suppress_unreachable_warning = TRUE;            \
-    lint_notreached_flag = FALSE;                                     \
+    clear_stmt_lint_and_pragma_globals();                             \
   }  /* if */                                                         \
 }  /* check_lint_notreached_flag */
 
@@ -3379,7 +3379,7 @@ branching into it is disallowed).
   if (at_function_level) {
     /* Block for a function. */
     set_reachable(curr_reachability);
-    lint_notreached_flag = FALSE;
+    clear_stmt_lint_and_pragma_globals();
     control_flow_descr_list = end_of_control_flow_descr_list = NULL;
     block = alloc_statement((a_statement_kind)stmk_block);
     set_stmt_source_position(block->position, pos_curr_token);
