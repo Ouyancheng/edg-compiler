@@ -6242,7 +6242,7 @@ Syntax:
       if (is_class_struct_union_type(underlying_cast_type)) {
         /* Casting to a pointer to a complete class type is okay.  Note that
            nonreal class types look complete here, so no special test
-           is mneeded for them. */
+           is needed for them. */
         complete_class_type_is_needed(underlying_cast_type);
         if (!is_incomplete_type(underlying_cast_type)) {
           cast_type_okay = TRUE;
