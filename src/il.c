@@ -3277,7 +3277,8 @@ Allocate and initialize a derivation step entry and return a pointer to it.
 
 a_base_class_derivation_ptr alloc_base_class_derivation(void)
 /*
-Allocate and initialize a virtual derivation entry and return a pointer to it.
+Allocate and initialize a base class derivation entry and return a pointer
+to it.
 */
 {
   a_base_class_derivation_ptr  bcdp;
@@ -3301,8 +3302,8 @@ Allocate and initialize a virtual derivation entry and return a pointer to it.
 a_base_class_derivation_ptr preferred_virtual_derivation_of(
                                                      a_base_class_ptr  bcp)
 /*
-Return a pointer to the base class derivation entry associated with virtual
-base class bcp that is marked "preferred", namely, the one with the greatest
+Return a pointer to the base class derivation entry associated with base
+class bcp that is marked "preferred", namely, the one with the greatest
 accessibility of a public member in the context of the most derived class.
 There must be a derivation so marked.
 */
@@ -6778,7 +6779,7 @@ Display and return the amount of space used for various IL tables.
                 an_overriding_virtual_function_ptr);
   db_space_used("derivation steps", num_derivation_steps_allocated,
                 a_derivation_step);
-  db_space_used("virtual derivations", num_base_class_derivations_allocated,
+  db_space_used("base class derivations", num_base_class_derivations_allocated,
                 a_base_class_derivation);
   db_space_used("base class", num_base_classes_allocated, a_base_class);
   db_space_used("template args", num_template_args_allocated, a_template_arg);
