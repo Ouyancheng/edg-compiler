@@ -1,5 +1,13 @@
 Version 2.31
 
+12/21/95  C++/C-generating back end: "unsigned" instead of "unsigned int"
+
+The C++- and C-generating back ends now put out "unsigned" instead of
+"unsigned int" in all cases, to make one obscure C++-generating back end
+case work correctly:
+
+  p->unsigned::~unsigned();
+
 12/21/95  #pragma once bug with open include files
 
 The #pragma once directive was incorrectly only taking effect once an
