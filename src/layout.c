@@ -1744,17 +1744,33 @@ bcp base if it has a subobject of the same type as the first base.
     for (; first_base != NULL; first_base = first_base->next) {
       if (first_base->direct && first_base->direct_base_number == 1) {
         if (first_base->is_virtual || !first_base->offset_is_set) {
-          /* The first base should be a nonvirtual primary base. */
+          /* The first base should be a nonvirtual base that has been
+             allocated already. */
           first_base = NULL;
         }  /* if */
         break;
       }  /* if */
     }  /* for */
     if (first_base != NULL) {
+      a_base_class_ptr  sub_ebcp = base_classes_of(first_base->type);
       check_assertion(first_base->offset == 0);
-      result = gnu_conflict_found(skip_typerefs(bcp->type),
-                                  skip_typerefs(first_base->type),
-                                  /*in_field=*/FALSE);
+      /* Only examine conflicts with bottom-most base classes. */
+      if (sub_ebcp == NULL &&
+          gnu_conflict_found(skip_typerefs(bcp->type),
+                             skip_typerefs(first_base->type),
+                             /*in_field=*/FALSE)) {
+        result = TRUE;
+      } else {
+        for (; sub_ebcp != NULL; sub_ebcp = sub_ebcp->next) {
+          if (base_classes_of(sub_ebcp->type) == NULL &&
+              gnu_conflict_found(skip_typerefs(bcp->type),
+                                 skip_typerefs(sub_ebcp->type),
+                                 /*in_field=*/FALSE)) {
+            result = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
