@@ -1373,6 +1373,16 @@ or to FALSE otherwise.
 #endif /* INSTANTIATION_FLAGS_IN_TEMPLATE_INFO_FILE ... */
 
 /*
+When using the IA-64 ABI, template information files must be used for
+automatic instantiation purposes because the alternate entry point
+facility is only supported with template information files.
+*/
+#if !USE_TEMPLATE_INFO_FILE && IA64_ABI
+ #error -- USE_TEMPLATE_INFO_FILE must be TRUE when \
+           using the IA-64 ABI with AUTOMATIC_TEMPLATE_INSTANTIATION.
+#endif /* !USE_TEMPLATE_INFO_FILE && IA64_ABI */
+
+/*
 The number of lines of the instantiation request file that are reserved
 and do not contain instantiation list entries.
 
