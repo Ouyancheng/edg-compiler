@@ -4760,8 +4760,20 @@ and doing any required expansions, the diagnostic is written.
 #if CHECKING
   int                i;
 #endif /* CHECKING */
+  /* This variable does not have to be reset by fe_init. */
+  static a_boolean   catastrophe_loop = FALSE;
 
   if (check_severity(&error_pos, &severity, diag_kind)) {
+    if (severity == es_catastrophe &&
+        (diag_kind == dck_standalone || diag_kind == dck_primary)) {
+      /* Make sure that if catastrophic error leads to another, we abort
+         the compilation instead of looping. */
+      if (catastrophe_loop) {
+        fprintf(stderr, "Loop in catastrophic error processing.\n");
+        term_compilation(es_catastrophe);
+      }  /* if */
+      catastrophe_loop = TRUE;
+    }  /* if */
     /* Get the error message text (template) and construct the message
        segment list. */
     if (diag_kind != dck_end_list && diag_kind != dck_end_context) {
