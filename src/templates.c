@@ -1514,7 +1514,7 @@ for each parameter.
 
 static a_boolean wrapup_template_argument_deduction(
 				a_template_arg_ptr   templ_arg_list,
-                                a_symbol_ptr         rout_templ_sym,
+                                a_symbol_ptr         template_sym,
                                 a_template_param_ptr templ_param_list)
 /*
 This routine is used after doing argument deduction for each argument to
@@ -1527,20 +1527,21 @@ from the template symbol supplement is used.  The parameter is supplied
 because some calls of this routine occur before the field in the
 template symbol supplement has been set.  The templ_param_list is also
 passed explicitly when this routine is used to check the nontype
-template arguments of a partial specialization of a class template.  In
-such cases, the rout_templ_sym field is NULL.  For partial specializations
-the only tests that are needed are the check that all parameters have
-values, and the handling of array bounds of unknown type.
+template arguments of a partial specialization of a class template.
+For partial specializations the only tests that are needed are the
+check that all parameters have values, and the handling of array
+bounds of unknown type.
 */
 {
   a_boolean				match = TRUE;
   a_template_param_ptr			tpp;
   a_template_arg_ptr			tap;
 
+  check_assertion(template_sym != NULL);
   if (templ_param_list == NULL) {
     a_template_symbol_supplement_ptr	tssp;
     a_template_decl_info_ptr		tdip;
-    tssp = template_supplement_for_symbol(rout_templ_sym);
+    tssp = template_supplement_for_symbol(template_sym);
     /* The decl_info pointer can be NULL if the template parameter list is
        missing (in an error case), and the template declaration information
        has not yet been filled in. */
@@ -1560,9 +1561,8 @@ values, and the handling of array bounds of unknown type.
            because of a dependence on another template argument. */
         if (tpp->variant.constant.type_involves_template_param) {
           /* Rescan the tokens that make up the parameter declaration. */
-          check_assertion(rout_templ_sym != NULL);
           constant_type = rescan_template_constant_parameter
-                                     (rout_templ_sym, tpp->param_symbol, tpp,
+                                     (template_sym, tpp->param_symbol, tpp,
                                       templ_arg_list, /*do_default_arg=*/FALSE,
                                       (a_constant_ptr*)NULL);
         } else {
@@ -1589,7 +1589,6 @@ values, and the handling of array bounds of unknown type.
              the type involves a template parameter. */
           check_assertion(tap->variant.constant != NULL);
           if (tpp->variant.constant.type_involves_template_param) {
-            check_assertion(rout_templ_sym != NULL);
             match = identical_types(constant_type,
                                     tap->variant.constant->type);
           }  /* if */
@@ -1610,7 +1609,7 @@ values, and the handling of array bounds of unknown type.
              Rescan the template template parameter declaration to create a
              new parameter template. */
           param_template = rescan_template_template_parameter(
-                                          rout_templ_sym, tpp, templ_arg_list);
+                                          template_sym, tpp, templ_arg_list);
           tap->variant.templ.substituted_param_template = param_template;
         }  /* if */
         /* Compare the parameter list of the (potentially) rescanned template
@@ -1915,7 +1914,7 @@ in ps_arg_list.
   if (matches_template_type(instance_type, prototype_type, ps_arg_list,
                             templ_param_list, MTT_NO_FLAGS)) {
     if (wrapup_template_argument_deduction(
-                        *ps_arg_list, (a_symbol_ptr)NULL, templ_param_list)) {
+                        *ps_arg_list, template_sym, templ_param_list)) {
       a_type_ptr			test_type;
       a_boolean				copy_error = FALSE;
       /* Substitute the template parameters of the template with the deduced
@@ -10238,6 +10237,26 @@ the type specified by tp.
 }  /* template_param_used_in_type */
 
 
+static a_boolean is_constant_with_dependent_type(a_constant_ptr	cp)
+/*
+This routine is used to check the validity of a nontype template argument
+used in a partial specialization declaration.  A specialized nontype
+template argument (one that is an actual constant value and not a template
+parameter) cannot have a type that depends on a template parameter.  This
+routine returns TRUE if "cp" is a constant that violates this rule.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (cp->kind != (a_constant_repr_kind)ck_template_param ||
+      cp->variant.template_param.kind !=
+                                  (a_template_param_constant_kind)tpck_param) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_constant_with_depdendent_type */
+
+
 static void check_partial_spec_template_param_usage(
 					a_tmpl_decl_state_ptr	decl_state,
 					a_symbol_ptr		sym)
@@ -10265,45 +10284,17 @@ list and template argument list of a partial specialization are valid.
      specialization. */
   for (tpp = templ_param_list; tpp != NULL; tpp = tpp->next) {
     a_symbol_ptr	param_sym = tpp->param_symbol;
-    a_boolean		param_used = FALSE;
-    a_boolean		error_on_this_param = FALSE;
-    if (param_sym->kind == (a_symbol_kind)sk_constant) {
-      /* The type of a nontype parameter is not allowed to reference another
-         template parameter.  For purposes of this test, only consider
-         template parameters of the current nesting depth so that parameters
-         of an enclosing template are not considered. */
-      if (tpp->variant.constant.type_involves_template_param &&
-          is_or_contains_template_param_at_depth(
-                                          tpp->variant.constant.ptr->type,
-                                          decl_state->nesting_depth)) {
-        pos_sy_error(ec_partial_spec_param_depends_on_templ_param,
-                     &param_sym->decl_position, param_sym);
-        any_errors = TRUE;
-        error_on_this_param = TRUE;
-        /* Reset the flag that indicates that this parameter has a template
-           dependent type.  This is done because the routines that handle
-           partial specialization later on are not prepared to handle such
-           cases (because they are errors). */
-        tpp->variant.constant.type_involves_template_param = FALSE;
-      }  /* if */
-    }  /* if */
-    if (!error_on_this_param) {
-      if (template_param_used_in_type(param_sym, prototype_type)) {
-       param_used = TRUE;
-      }  /* for */
-      if (!param_used) {
-        pos_sy2_error(ec_not_used_in_partial_spec_arg_list,
-                      &param_sym->decl_position, param_sym, prototype_sym);
-        any_errors = TRUE;
-        decl_state->decl_scope_err = TRUE;
-      } /* if */
-    }  /* if */
+    if (!template_param_used_in_type(param_sym, prototype_type)) {
+      pos_sy2_error(ec_not_used_in_partial_spec_arg_list,
+                    &param_sym->decl_position, param_sym, prototype_sym);
+      any_errors = TRUE;
+      decl_state->decl_scope_err = TRUE;
+    } /* if */
   } /* for */
   if (!any_errors && !decl_state->in_prototype_instantiation) {
     /* If no errors were detected above, check each of the template arguments
-       to make sure that its type is not dependent on a template parameter.
-       This can happen when a value is used as a template argument (of the
-       primary template) whose type depends on another template parameter. */
+       to make sure that it is not an expression involving a template
+       parameter. */
     a_template_arg_ptr	templ_arg_list;
     a_template_arg_ptr	tap;
     templ_arg_list = prototype_type->
@@ -10311,17 +10302,29 @@ list and template argument list of a partial specialization are valid.
     for (tap = templ_arg_list; tap != NULL; tap = tap->next) {
       if (is_nontype_templ_arg(tap)) {
         a_constant_ptr	cp = tap->variant.constant;
-        if (is_or_contains_template_param_at_depth(
-                                        cp->type, decl_state->nesting_depth)) {
-          error(ec_partial_spec_arg_depends_on_templ_param);
-          tap->variant.constant = alloc_error_constant();
-        } else if (cp->kind == (a_constant_repr_kind)ck_template_param &&
+        /* If this is a cast of a template parameter constant, use the constant
+           under the cast. */
+        if (cp->variant.template_param.kind ==
+                                   (a_template_param_constant_kind)tpck_cast) {
+          a_constant_ptr	cp2;
+          cp2 = cp->variant.template_param.variant.constant;
+          if (cp2->kind == (a_constant_repr_kind)ck_template_param) {
+            cp = cp2;
+          }  /* if */
+        }  /* if */
+        if (cp->kind == (a_constant_repr_kind)ck_template_param &&
                    cp->variant.template_param.kind !=
                                  (a_template_param_constant_kind)tpck_param) {
-          /* A nontype argument that involves a template parameter is
-             only supposed to be a single nontype parameter.  If we have
-             something other than a tpck_param, issue an error. */
-          error(ec_partial_spec_nontype_expr);
+          /* This case indicates one of two errors: Either a specialized
+             parameter (e.g., an integer constant) has a dependent type, or
+             the parameter involves an expression.  Determine which case it is,
+             and issue the appropriate diagnostic. */
+          if (is_constant_with_dependent_type(cp)) {
+            pos_error(ec_partial_spec_arg_depends_on_templ_param,
+                      &sym->decl_position);
+          } else {
+            pos_error(ec_partial_spec_nontype_expr, &sym->decl_position);
+          }  /* if */
           tap->variant.constant = alloc_error_constant();
         }  /* if */
       }  /* if */
