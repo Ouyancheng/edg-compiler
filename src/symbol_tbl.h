@@ -2955,6 +2955,14 @@ extern a_boolean is_member_enum_symbol(a_symbol_ptr sym);
   ((sym)->kind == (a_symbol_kind)sk_class_template ||                  \
    (sym)->kind == (a_symbol_kind)sk_function_template)
 
+/* Return TRUE if a symbol is a class or function template symbol or an
+   overload set containing a function template symbol */
+#define symbol_is_or_contains_template(sym)				\
+  ((sym)->kind == (a_symbol_kind)sk_class_template ||			\
+   (sym)->kind == (a_symbol_kind)sk_function_template ||		\
+   ((sym)->kind == (a_symbol_kind)sk_overloaded_function &&		\
+    overload_set_contains_template(sym)))
+
 /* Return TRUE if a symbol is a function symbol. */
 #define is_function_symbol(sym)                                       \
   ((sym)->kind == (a_symbol_kind)sk_routine ||                        \

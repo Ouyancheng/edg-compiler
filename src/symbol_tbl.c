@@ -1159,6 +1159,25 @@ Return TRUE if the symbol refers to a class member enumeration.
 }  /* is_member_enum_symbol */
 
 
+a_boolean overload_set_contains_template(a_symbol_ptr sym)
+/*
+Return TRUE if sym points to an overload set containing a function
+template symbol.
+*/
+{
+  a_boolean	result = FALSE;
+
+  check_assertion(sym->kind == (a_symbol_kind)sk_overloaded_function);
+  for (sym = sym->variant.overloaded_function.symbols;
+       sym != NULL && !result; sym = sym->next) {
+    a_symbol_ptr	fund_sym;
+    fund_sym = fundamental_symbol_of(sym);
+    if (fund_sym->kind == (a_symbol_kind)sk_function_template) result = TRUE;
+  }  /* for */
+  return result;
+}  /* overload_set_contains_template */
+
+
 static a_symbol_header_ptr alloc_symbol_header(void)
 /*
 Allocate a new symbol header, and return a pointer to it.
@@ -7422,7 +7441,7 @@ created if a projected symbol cannot be found in any of the real bases.
       /* The symbol found is not a type name symbol, so do not create a
          projection for it. */
     } else if (tentative_template_lookup &&
-        !is_template_symbol(fund_progenitor_sym)) {
+               !symbol_is_or_contains_template(fund_progenitor_sym)) {
       /* The symbol found is not a template name symbol, so do not create a
          projection for it. */
     } else {

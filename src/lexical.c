@@ -8008,30 +8008,6 @@ the one actually associated with this reference.
 }  /* coalesce_template_function_reference */
 
 
-static a_boolean symbol_is_or_contains_template(a_symbol_ptr sym)
-/*
-Return TRUE if sym points to a template symbol or an overload set
-containing a function template symbol.
-*/
-{
-  a_boolean	result = FALSE;
-
-  if (sym->kind == (a_symbol_kind)sk_class_template ||
-      sym->kind == (a_symbol_kind)sk_function_template) {
-    /* Okay -- the symbol found refers to a template. */
-    result = TRUE;
-  } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    for (sym = sym->variant.overloaded_function.symbols;
-         sym != NULL && !result; sym = sym->next) {
-      a_symbol_ptr	fund_sym;
-      fund_sym = fundamental_symbol_of(sym);
-      if (fund_sym->kind == (a_symbol_kind)sk_function_template) result = TRUE;
-    }  /* for */
-  }  /* if */
-  return result;
-}  /* symbol_is_or_contains_template */
-
-
 static a_symbol_ptr coalesce_template_id(
 			a_symbol_ptr			template_sym,
 			an_identifier_options_set	options,
