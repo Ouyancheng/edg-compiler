@@ -1090,6 +1090,10 @@ current name context).
       } else {
         gen_class_qualifier(class_type);
       }  /* if */
+    } else if (curr_name_context != NULL && !scp->is_local_to_function) {
+      /* This is a reference to a file-scope entity from within a class
+         or function, so add a leading "::". */
+      write_tok_str("::");
     }  /* if */
   }  /* if */
   gen_unqualified_name(scp, type);
