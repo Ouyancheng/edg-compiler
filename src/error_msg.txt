@@ -844,6 +844,7 @@ ec_specialization_of_referenced_entity;;"explicit specialization of %n must prec
 ec_template_param_in_elab_type;;"template parameter %s may not be used in an elaborated type specifier"
 ec_old_specialization_of_member_template;;"\"template <>\" syntax is required for a member template explicit specialization"
 ec_bad_member_template_friend_decl;;"\"template <>\" syntax is required when declaring a member function template instance as a friend"
+ec_nonstd_asm_decl_within_template;;"nonstandard \"asm\" declaration is not supported inside a template"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
