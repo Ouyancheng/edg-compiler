@@ -4470,11 +4470,14 @@ parameters.
       /* Dump the initializer if there is a constant one or if the
          variable should be initialized to zero. */
       /* Don't initialize static arrays to zero, because it blows up
-         the size of the executable. */
+         the size of the executable.  However, do put out definitions
+         for template static data members that are arrays, or otherwise
+         the template prelinker could loop. */
       if ((dump_initializers && init_con != NULL) ||
           (init_kind == (an_init_kind)initk_zero &&
            (!has_static_storage_duration(variable->storage_class) ||
-            !is_array_type(variable->type)))) {
+            !is_array_type(variable->type) ||
+            variable->is_template_static_data_member))) {
         dump_initializer(variable, init_con, /*is_dynamic_init=*/FALSE);
       }  /* if */
       write_tok_ch(';');

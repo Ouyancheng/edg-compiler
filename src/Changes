@@ -1,5 +1,18 @@
 Version 2.32
 
+4/17/96 C-generating back end: definitions for template array static data
+        members
+
+As a rule, the C-generating back end puts out initialization to zero
+on variables that are defined but not initialized.  This explicit
+initialization makes the variables defined instead of tentatively
+defined (in C terms), so that one will get an error if the variable
+is defined in more than one translation unit.  This has not been
+done for arrays, however, because it can increase the size of the
+executable program a lot.  This optimization caused a loop in the
+template prelinker, however, for arrays that are static data members
+of templates.  For those, the initialization to zero is now forced.
+
 4/16/96 DEFAULT_BRIEF_DIAGNOSTICS
 
 A default initial value for the variable brief_diagnostics is now
