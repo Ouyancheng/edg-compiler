@@ -49,6 +49,20 @@ typedef struct a_mangling_control_block {
 } a_mangling_control_block;
 
 
+/*
+Text buffer used for mangling.
+*/
+static a_text_buffer_ptr
+		mangling_text_buffer;
+
+/*
+Second text buffer, needed when a recursive call to the mangling routines
+is made, e.g., when generating a module id.
+*/
+static a_text_buffer_ptr
+		second_mangling_text_buffer;
+
+
 static void mangled_encoding_for_type(a_type_ptr               type,
                                       a_mangling_control_block *mctl);
 static void mangled_function_base_name(
@@ -125,11 +139,11 @@ Set the fields of the indicated mangling control block to default values.
 static void start_mangling(a_mangling_control_block_ptr mctl)
 /*
 Do initialization for mangling one name.  This includes clearing
-temp_text_buffer and mctl.
+mangling_text_buffer and mctl.
 */
 {
   clear_mangling_control_block(mctl);
-  pos_in_temp_text_buffer = 0;
+  reset_text_buffer(mangling_text_buffer);
 }  /* start_mangling */
 
 
@@ -160,8 +174,8 @@ Add the indicated character to the mangled name.
     /* Output is suppressed.  Count suppressed characters. */
     mctl->slength++;
   } else {
-    put_ch_to_temp_text_buffer(ch);
-    check_assertion(mctl->length == pos_in_temp_text_buffer);
+    add_char_to_text_buffer(mangling_text_buffer, ch);
+    check_assertion(mctl->length == mangling_text_buffer->size);
   }  /* if */
 }  /* add_to_mangled_name */
 
@@ -180,8 +194,8 @@ Add the indicated null-terminated string to the mangled name.
     /* Output is suppressed.  Count suppressed characters. */
     mctl->slength += len;
   } else {
-    put_str_to_temp_text_buffer(str);
-    check_assertion(mctl->length == pos_in_temp_text_buffer);
+    add_to_text_buffer(mangling_text_buffer, str, len);
+    check_assertion(mctl->length == mangling_text_buffer->size);
   }  /* if */
 }  /* add_str_to_mangled_name */
 
@@ -203,7 +217,7 @@ other mangled names.
 
   /* Add the final null. */
   add_to_mangled_name('\0', mctl);
-  buffer = temp_text_buffer;
+  buffer = mangling_text_buffer->buffer;
   if (final) {
     /* Compress the mangled name to make it smaller. */
     buffer = compress_mangled_name((char *)NULL, scp, mctl);
@@ -1191,7 +1205,17 @@ If the indicated namespace is unnamed, give it a name.
       if (curr_translation_unit == tup) {
         /* Normal case -- the namespace is from the current translation
            unit. */
+        /* Because generation of the module id can make a recursive call
+           to the name mangling routines, save and restore the mangling
+           buffer. */
+        a_text_buffer_ptr saved_text_buffer = mangling_text_buffer;
+        check_assertion(mangling_text_buffer != second_mangling_text_buffer);
+        if (second_mangling_text_buffer == NULL) {
+          second_mangling_text_buffer = alloc_text_buffer(2048);
+        }  /* if */
+        mangling_text_buffer = second_mangling_text_buffer;
         module_id = make_module_id();
+        mangling_text_buffer = saved_text_buffer;
       } else {
         /* The namespace is from a translation unit other than the current
            one. */
@@ -3094,7 +3118,7 @@ and truncated names.
       char     *name = type->source_corresp.name;
       sizeof_t length = strlen(name)+1;
       /* One reason for calling start_mangling here is to zero
-         pos_in_temp_text_buffer. */
+         mangling_text_buffer->size. */
       start_mangling(&mctl);
       mctl.length = length;
       name = compress_mangled_name(name, &type->source_corresp, &mctl);
@@ -3719,13 +3743,13 @@ static char *compress_mangled_name(char                     *mangled_name,
 /*
 Compress the mangled name that's been built up (pointed to by mangled_name,
 with length given by mctl->length, including a terminating null).
-If mangled_name is NULL, the mangled name is in temp_text_buffer, starting
+If mangled_name is NULL, the mangled name is in mangling_text_buffer, starting
 at offset 0.  It is important to pass NULL, and not a pointer to
-temp_text_buffer, in that case.  Return a pointer to the name, either
+mangling_text_buffer, in that case.  Return a pointer to the name, either
 the original one or a compressed version.  The compressed version is
-in temp_text_buffer if mangled_name is NULL, and allocated in IL memory if
-mangled_name is non-NULL.  pos_in_temp_text_buffer must indicate the
-first available position in temp_text_buffer (e.g., after the terminating
+in mangling_text_buffer if mangled_name is NULL, and allocated in IL memory if
+mangled_name is non-NULL.  mangling_text_buffer->size must indicate the
+first available position in mangling_text_buffer (e.g., after the terminating
 null of the mangled name).  scp, if non-NULL, points to the source
 correspondence entry for the entity whose name this is.
 */
@@ -3733,9 +3757,9 @@ correspondence entry for the entity whose name this is.
   char *compr_name = NULL;
 
 /* Macro to determine the input buffer address.  This is recomputed each
-   time it is needed because the temp_text_buffer might move. */
+   time it is needed because the mangling_text_buffer might move. */
 #define src_mangled_name \
-  ((mangled_name == NULL) ? temp_text_buffer : mangled_name)
+  ((mangled_name == NULL) ? mangling_text_buffer->buffer : mangled_name)
 
   /* See whether the name should be examined to see if it is
      compressible.  mctl->length indicates the length of the name,
@@ -3745,13 +3769,13 @@ correspondence entry for the entity whose name this is.
      with libraries compiled by cfront.  The largest name noted in the
      iostream package had 56 characters. */
   if (compress_mangled_names && mctl->length >= 60) {
-    /* Build up the compressed name in the temp_text_buffer, following
+    /* Build up the compressed name in the mangling_text_buffer, following
        anything already in there (e.g., after the null character at the
        end of the mangled name). */
-    /* Note that positions in the temp_text_buffer are kept as offsets
-       rather than pointers because the temp_text_buffer may get moved
+    /* Note that positions in the mangling_text_buffer are kept as offsets
+       rather than pointers because the mangling_text_buffer may get moved
        if it is resized. */
-    sizeof_t start_of_compressed_name = pos_in_temp_text_buffer;
+    sizeof_t start_of_compressed_name = mangling_text_buffer->size;
     sizeof_t src_pos = 0;
     a_compressible_string_pos_ptr
              cspp;
@@ -3772,10 +3796,10 @@ correspondence entry for the entity whose name this is.
       char ch = src_mangled_name[src_pos];
       if (ch == '\0') break;
       if (!isdigit((unsigned char)ch)) {
-        put_ch_to_temp_text_buffer(ch);
+        add_char_to_text_buffer(mangling_text_buffer, ch);
         /* If a "J" appears, copy it as "JJ" to avoid confusion with the
            "J" markers used to indicate compression. */
-        if (ch == 'J') put_ch_to_temp_text_buffer('J');
+        if (ch == 'J') add_char_to_text_buffer(mangling_text_buffer, 'J');
         src_pos++;
       } else {
         /* A digit.  This may be the start of a compressible string. */
@@ -3834,7 +3858,7 @@ correspondence entry for the entity whose name this is.
           /* Replace the string by "JnnnJ", where "nnn" is the position of
              the previous identical string. */
           (void)sprintf(buffer, "J%luJ", (unsigned long)cspp->str_pos);
-          put_str_to_temp_text_buffer(buffer);
+          add_string_to_text_buffer(mangling_text_buffer, buffer);
           /* Continue scanning the original string after the full string
              that was compressed away. */
           src_pos += length;
@@ -3849,7 +3873,8 @@ correspondence entry for the entity whose name this is.
           }  /* if */
           /* Put out the digit string. */
           for (i = 0; i < num_digits; i++) {
-            put_ch_to_temp_text_buffer(src_mangled_name[src_pos]);
+            add_char_to_text_buffer(mangling_text_buffer,
+                                    src_mangled_name[src_pos]);
             src_pos++;
           }  /* for */
           /* Continue scanning the original string after the digit
@@ -3858,7 +3883,7 @@ correspondence entry for the entity whose name this is.
       }  /* if */
     }  /* for */
     /* Add the final null. */
-    put_ch_to_temp_text_buffer('\0');
+    add_char_to_text_buffer(mangling_text_buffer, '\0');
     /* Free the entries in the hash table. */
     for (i = 0; i < NUM_BUCKETS_IN_COMPRESSION_HASH_TABLE; i++) {
       a_compressible_string_pos_ptr cspp_next;
@@ -3875,11 +3900,12 @@ correspondence entry for the entity whose name this is.
     /* Make sure the name does not already have the compression prefix in
        it.  If it does, we've used a previously compressed name in building
        up this name, and that won't work. */
-    check_assertion_str(strstr(temp_text_buffer+start_of_compressed_name,
+    check_assertion_str(strstr(mangling_text_buffer->buffer +
+                                                      start_of_compressed_name,
                                "__CPR") == NULL,
                         "compress_mangled_name: double compression");
 #endif /* EXPENSIVE_CHECKING */
-    size_of_compressed_name = (pos_in_temp_text_buffer -
+    size_of_compressed_name = (mangling_text_buffer->size -
                                start_of_compressed_name) +
                               prefix_length;
     /* Note that both size_of_compressed_name and size_of_mangled_name
@@ -3888,21 +3914,22 @@ correspondence entry for the entity whose name this is.
       /* The compressed name is shorter, so use it.  (There are some
          pathological cases where the compressed version might be larger.) */
       if (mangled_name == NULL) {
-        /* The original mangled name is in temp_text_buffer, preceding
+        /* The original mangled name is in mangling_text_buffer, preceding
            the compressed form. */
         /* Put the prefix out in front of the compressed name, and return
            the position of the prefix in that position as the address of
            the full compressed name. */
         check_assertion(start_of_compressed_name >= prefix_length);
-        compr_name = temp_text_buffer+start_of_compressed_name - prefix_length;
+        compr_name = mangling_text_buffer->buffer+start_of_compressed_name -
+                     prefix_length;
         (void)memcpy(compr_name, buffer, size_t_arg(prefix_length));
       } else {
-        /* The mangled name is not in temp_text_buffer.  Allocate new IL
+        /* The mangled name is not in mangling_text_buffer.  Allocate new IL
            memory for the compressed name, including the prefix. */
         compr_name = alloc_lowered_name_string(size_of_compressed_name);
         (void)memcpy(compr_name, buffer, size_t_arg(prefix_length));
         (void)strcpy(compr_name+prefix_length,
-                     temp_text_buffer+start_of_compressed_name);
+                     mangling_text_buffer->buffer+start_of_compressed_name);
       }  /* if */
       mangled_name = compr_name;
       /* Update the length, including the null terminator. */
@@ -3958,6 +3985,9 @@ void name_lower_one_time_init(void)
 Do one-time initialization of variables related to name mangling.
 */
 {
+  /* Allocate the text buffer used for mangling. */
+  mangling_text_buffer = alloc_text_buffer(2048);
+  second_mangling_text_buffer = NULL;
   /* Save variables from lower_name.c that are needed for precompiled
      headers */
   if (exceptions_enabled && precompiled_header_processing_required) {
