@@ -5173,8 +5173,9 @@ is used only in C++ mode.
   routine_type = skip_typerefs(conversion_routine->type);
   this_param_type = routine_type->variant.routine.extra_info->
                                                       implicit_this_param_type;
-  reference_to_implicitly_invoked_function(conversion_symbol, &error_position,
-					   operand->type,
+  reference_to_implicitly_invoked_function(conversion_symbol,
+                                           &operand->position,
+                                           operand->type,
                                            /*honor_virtual=*/FALSE,
                                            curr_expr_is_evaluated(),
                                            /*suppress_access_check=*/FALSE);
@@ -5222,8 +5223,9 @@ is used only in C++ mode.
 
   /* Check that the constructor is accessible and mark it as referenced. */
   ctor_symbol = (a_symbol_ptr)(ctor_routine->source_corresp.assoc_info);
-  reference_to_implicitly_invoked_function(ctor_symbol, &error_position,
-					   ctor_routine->source_corresp.
+  reference_to_implicitly_invoked_function(ctor_symbol,
+                                           &operand->position,
+                                           ctor_routine->source_corresp.
                                                        class_of_which_a_member,
                                            /*honor_virtual=*/FALSE,
                                            curr_expr_is_evaluated(),
