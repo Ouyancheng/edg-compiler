@@ -2919,7 +2919,11 @@ Mangle the name of the indicated function, if necessary.
     /* Mangle the function name. */
     start_mangling(&mctl);
     mangled_function_name(routine, suppress_param_encoding, &mctl);
-    (void)end_mangling(&routine->source_corresp, /*final=*/TRUE, &mctl);
+    /* Note final=FALSE to prevent compression and truncation at this
+       time, so that the name can be used in building names of types
+       and variables promoted out of the routine.  do_final_name_mangling
+       will do the compression or truncation if necessary. */
+    (void)end_mangling(&routine->source_corresp, /*final=*/FALSE, &mctl);
   }  /* if */
 }  /* mangle_function_name */
 
@@ -3035,6 +3039,35 @@ the orphan lists for function-local entities are also processed.
 }  /* do_scope_other_name_mangling */
 
 
+static void final_entity_name_mangling(a_source_correspondence *scp)
+/*
+Do any final name mangling processing required on the entity with
+the indicated source correspondence.  This means checking for
+compression and truncation.
+*/
+{
+  char *name = scp->name;
+
+  if (name != NULL) {
+    a_mangling_control_block mctl;
+    sizeof_t                 length = strlen(name)+1;
+
+    error_position = scp->decl_position;
+    /* One reason for calling start_mangling here is to zero
+       mangling_text_buffer->size. */
+    /* If neither compression nor truncation is done, the name pointer
+       is passed through unchanged.  If compression is done, the compressed
+       name is allocated in IL memory.  If truncation is done, the existing
+       name is truncated in place. */
+    start_mangling(&mctl);
+    mctl.length = length;
+    name = compress_mangled_name(name, scp, &mctl);
+    name = truncate_mangled_name(name, scp, &mctl);
+    scp->name = name;
+  }  /* if */
+}  /* final_entity_name_mangling */
+
+
 /*
 The prefix put on the front of the type encoding for a nested type to get
 the name placed in the nested type itself.
@@ -3076,29 +3109,20 @@ and truncated names.
       (void)end_mangling(&type->source_corresp, /*final=*/TRUE, &mctl);
       type->source_corresp.mangled_name_cannot_be_included_in_other_name= TRUE;
     } else {
-      /* Not a nested type.  Check for compression and truncation.  If
-         neither is done, the name pointer is passed through unchanged.
-         If compression is done, the compressed name is allocated in IL
-         memory.  If truncation is done, the existing name is truncated
-         in place. */
-      char     *name = type->source_corresp.name;
-      sizeof_t length = strlen(name)+1;
-      /* One reason for calling start_mangling here is to zero
-         mangling_text_buffer->size. */
-      start_mangling(&mctl);
-      mctl.length = length;
-      name = compress_mangled_name(name, &type->source_corresp, &mctl);
-      name = truncate_mangled_name(name, &type->source_corresp, &mctl);
-      type->source_corresp.name = name;
+      /* Not a nested type.  Check for compression and truncation. */
+      final_entity_name_mangling(&type->source_corresp);
     }  /* if */
   }  /* if */
 }  /* final_type_name_mangling */
 
 
-static void do_type_list_final_type_name_mangling(a_type_ptr type_list)
+static void do_scope_final_name_mangling(a_scope_ptr scope);
+
+
+static void do_type_list_final_name_mangling(a_type_ptr type_list)
 /*
 Do final name mangling for the types on the indicated type list
-and subscopes thereunder.
+and subscopes thereunder.  Functions in the subscopes are also processed.
 */
 {
   a_type_ptr  type;
@@ -3112,13 +3136,13 @@ and subscopes thereunder.
                                    type->variant.class_struct_union.extra_info;
       class_scope = ctsp->assoc_scope;
       if (class_scope != NULL) {
-        do_type_list_final_type_name_mangling(class_scope->types);
+        do_scope_final_name_mangling(class_scope);
       }  /* if */
 #if DO_IL_LOWERING
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
       /* If some local types of member functions were promoted into the
          class on their way to the file scope, mangle them now too. */
-      do_type_list_final_type_name_mangling(ctsp->promoted_local_types);
+      do_type_list_final_name_mangling(ctsp->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #endif /* DO_IL_LOWERING */
     }  /* if */
@@ -3128,33 +3152,38 @@ and subscopes thereunder.
        classes nested within it have been processed. */
     final_type_name_mangling(type);
   }  /* for */
-}  /* do_type_list_final_type_name_mangling */
+}  /* do_type_list_final_name_mangling */
 
 
-static void do_scope_final_type_name_mangling(a_scope_ptr scope)
+static void do_scope_final_name_mangling(a_scope_ptr scope)
 /*
-Do final name mangling for all type names in the indicated scope (the
-file scope or a namespace scope) and all subscopes in the file-scope
-memory region.
+Do final name mangling for all type and function names in the indicated
+scope (a file, namespace, or class scope) and all subscopes in the
+file-scope memory region.
 */
 {
   a_namespace_ptr nsp;
+  a_routine_ptr   routine;
 
   /* Process the types in the scope. */
-  do_type_list_final_type_name_mangling(scope->types);
+  do_type_list_final_name_mangling(scope->types);
   /* Process the namespaces in the scope. */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
     if (!nsp->is_namespace_alias) {
-      do_scope_final_type_name_mangling(nsp->variant.assoc_scope);
+      do_scope_final_name_mangling(nsp->variant.assoc_scope);
     }  /* if */
   }  /* for */
-}  /* do_scope_final_type_name_mangling */
+  /* Visit all routines. */
+  for (routine = scope->routines; routine != NULL; routine = routine->next) {
+    final_entity_name_mangling(&routine->source_corresp);
+  }  /* for */
+}  /* do_scope_final_name_mangling */
 
 
-static void do_final_type_name_mangling(void)
+static void do_final_name_mangling(void)
 /*
-Do final name mangling for all type names.  This must be done separately
-from and later than normal type name mangling because the simple form
+Do final name mangling for all type and function names.  This must be done
+separately from and later than normal name mangling because the simple form
 of the name must remain available for use in mangled names (e.g.,
 virtual function table variable names).
 */
@@ -3163,14 +3192,14 @@ virtual function table variable names).
 
   /* Process the file scope and all subscopes in the file-scope memory
      region. */
-  do_scope_final_type_name_mangling(il_header.primary_scope);
+  do_scope_final_name_mangling(il_header.primary_scope);
   /* Process local types by visiting the types on orphan lists. */
   for (solhp = il_header.scope_orphaned_list_headers;
        solhp != NULL;
        solhp = solhp->next) {
-    do_type_list_final_type_name_mangling(solhp->orphaned_types);
+    do_type_list_final_name_mangling(solhp->orphaned_types);
   }  /* for */
-}  /* do_final_type_name_mangling */
+}  /* do_final_name_mangling */
 
 
 void do_all_name_mangling(void)
@@ -3188,7 +3217,7 @@ orphan lists).
   /* Do final mangling on type names, but only in the primary
      translation unit. */
   if (is_primary_translation_unit) {
-    do_final_type_name_mangling();
+    do_final_name_mangling();
   }  /* if */
 }  /* do_all_name_mangling */
 
@@ -3637,6 +3666,8 @@ name if necessary.  If is_type is TRUE, the entity is a type.
     add_str_to_mangled_name("__", &mctl);
     if (routine->source_corresp.name != NULL) {
       if (routine->source_corresp.name_has_been_mangled) {
+        check_assertion(!routine->source_corresp.
+                                mangled_name_cannot_be_included_in_other_name);
         /* Using the mangled name as written is important if the routine
            is a static function that has been externalized. */
         add_str_to_mangled_name(routine->source_corresp.name, &mctl);
