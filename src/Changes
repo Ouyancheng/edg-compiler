@@ -1,5 +1,21 @@
 Version 2.12
 
+11/10/92 Token-wise handling of pcc compound assignment operator variants
+
+The variant forms of compound assignment operators allowed in pcc mode
+
+  i + = 1;  /* Embedded space */
+  i =- 1;   /* Reversed */
+
+are now handled at the token level in expression processing instead of
+at the lexical level.  This solves a problem with the following:
+
+  main() {
+    int i=-1;
+  }
+
+which got a warning followed by an error.
+
 11/9/92 Cleaner allocation of IL entry number and orphan pointer
 
 When the alternate file format is used for the IL, each IL entry in

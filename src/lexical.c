@@ -3560,22 +3560,6 @@ reusable value of the constant.
 
 
 /*
-Macro called to check for compound assignment operators written as
-two tokens in pcc mode (e.g., "+=" written as "+" and "=").  "tok"
-is the compound assignment token that should be placed in ctoken if the
-"=" is present; ctoken is left unchanged otherwise.  Note that this macro
-does a "goto" in the pcc case, and continues in sequence in the non-pcc
-case; its position is therefore highly important.
-*/
-#define check_for_pcc_compound_assignment_operator(tok)               \
-{ if (C_dialect == C_dialect_pcc) {                                   \
-    compound_token = tok;                                             \
-    goto check_for_compound_assignment_operator;                      \
-  }  /* if */                                                         \
-}  /* check_for_pcc_compound_assignment_operator */
-
-
-/*
 Remember that a token has been gotten from the current source line.
 Remember the start position (sequence number, column) of the token,
 and also put that into error_position.
@@ -3651,7 +3635,6 @@ If in_asm_function_body is TRUE, return tok_newline for ends of lines.
   a_source_position     save_pos_curr_token;
   a_symbol_kind		id_kind;
   a_boolean		rescan;
-  a_token_kind          compound_token;
 #if DEBUG
   a_boolean             gotten_from_cache = FALSE;
 #endif /* DEBUG */
@@ -3801,7 +3784,6 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       }  /* if */
       /* Just plain "-". */
       ctoken = tok_minus;
-      check_for_pcc_compound_assignment_operator(tok_minus_assign);
       break;
     case '+':
       /* One of "++", "+=", or "+". */
@@ -3814,7 +3796,6 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       }  /* if */
       /* Just plain "+". */
       ctoken = tok_plus;
-      check_for_pcc_compound_assignment_operator(tok_plus_assign);
       break;
     case '*':
       /* One of "*=" or "*". */
@@ -3824,7 +3805,6 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       }  /* if */
       /* Just plain "*". */
       ctoken = tok_star;
-      check_for_pcc_compound_assignment_operator(tok_times_assign);
       break;
     case '/':
       /* One of "/ *" (start of comment), "/=", or "/". */
@@ -3839,7 +3819,6 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       }  /* if */
       /* Just plain "/". */
       ctoken = tok_divide;
-      check_for_pcc_compound_assignment_operator(tok_divide_assign);
       break;
     case '&':
       /* One of "&&", "&=", or "&". */
@@ -3852,7 +3831,6 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       }  /* if */
       /* Just plain "&". */
       ctoken = tok_ampersand;
-      check_for_pcc_compound_assignment_operator(tok_and_assign);
       break;
     case '%':
       /* One of "%=" or "%". */
@@ -3862,7 +3840,6 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       }  /* if */
       /* Just plain "%". */
       ctoken = tok_remainder;
-      check_for_pcc_compound_assignment_operator(tok_remainder_assign);
       break;
     case '<':
       /* One of "<<", "<<=", "<=", or "<".  If exp_header_name is
@@ -3875,9 +3852,8 @@ start_of_token_scan:  /* Restart here after scanning white space. */
           ctoken = tok_shift_left_assign;
           goto three_char_token;
         } else {
-           ctoken = tok_shift_left;
-           check_for_pcc_compound_assignment_operator(tok_shift_left_assign);
-           goto two_char_token;
+          ctoken = tok_shift_left;
+          goto two_char_token;
         }  /* if */
       } else if (ch == '=') {
         ctoken = tok_le;
@@ -3894,7 +3870,6 @@ start_of_token_scan:  /* Restart here after scanning white space. */
           goto three_char_token;
         } else {
           ctoken = tok_shift_right;
-          check_for_pcc_compound_assignment_operator(tok_shift_right_assign);
           goto two_char_token;
         }  /* if */
       } else if (ch == '=') {
@@ -3912,56 +3887,6 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       }  /* if */
       /* Just plain "=". */
       ctoken = tok_assign;
-      if (C_dialect == C_dialect_pcc) {
-        /* For pcc mode, the old-fashioned assignment operators of K&R
-           (first edition) Appendix A section 17 (Anachronisms) should
-           be recognized (with a warning).  An example is "=-" instead
-           of "-=".  Note that no space is allowed between the "=" and
-           the other character. */
-        if ((ch = *(curr_char_loc+1)) == '+') {
-          /* "=+" becomes "+=". */
-          ctoken = tok_plus_assign;
-        } else if (ch == '-') {
-          /* "=-" becomes "-=". */
-          ctoken = tok_minus_assign;
-        } else if (ch == '*') {
-          /* "=*" becomes "*=". */
-          ctoken = tok_times_assign;
-        } else if (ch == '/' && *(curr_char_loc+2) != '*') {
-          /* "=/" becomes "/=".  Watch out for "=/" followed by "*"; that's
-             a "=" followed by the start of a comment. */
-          ctoken = tok_divide_assign;
-        } else if (ch == '%') {
-          /* "=%" becomes "%=". */
-          ctoken = tok_remainder_assign;
-        } else if (ch == '&') {
-          /* "=&" becomes "&=". */
-          ctoken = tok_and_assign;
-        } else if (ch == '^') {
-          /* "=^" becomes "^=". */
-          ctoken = tok_excl_or_assign;
-        } else if (ch == '|') {
-          /* "=|" becomes "|=". */
-          ctoken = tok_or_assign;
-        } else if (ch == '>' && *(curr_char_loc+2) == '>') {
-          /* "=>>" becomes ">>=". */
-          ctoken = tok_shift_right_assign;
-        } else if (ch == '<' && *(curr_char_loc+2) == '<') {
-          /* "=<<" becomes "<<=". */
-          ctoken = tok_shift_left_assign;
-        } else {
-          /* Not an old-fashioned compound assignment operator. */
-        }  /* if */
-        if (ctoken != tok_assign) {
-          if (!fetch_pp_tokens) warning(ec_old_fashioned_assignment_operator);
-          if (ctoken == tok_shift_right_assign ||
-              ctoken == tok_shift_left_assign) {
-            goto three_char_token;
-          } else {
-            goto two_char_token;
-          }  /* if */
-        }  /* if */
-      }  /* if */
       break;
     case '!':
       /* One of "!=" or "!". */
@@ -3980,7 +3905,6 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       }  /* if */
       /* Just plain "^". */
       ctoken = tok_excl_or;
-      check_for_pcc_compound_assignment_operator(tok_excl_or_assign);
       break;
     case '|':
       /* One of "||", "|=", or "|". */
@@ -3993,7 +3917,6 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       }  /* if */
       /* Just plain "|". */
       ctoken = tok_or;
-      check_for_pcc_compound_assignment_operator(tok_or_assign);
       break;
     case '.':
       /* One of ".", a float constant, or "...". */
@@ -4252,7 +4175,6 @@ bad_token:
       ctoken = tok_error;
   }  /* switch */
 
-one_char_token:
   /* Normal assumption on break from switch is that the current character
      is part of the token, and therefore the current position needs to be
      incremented. */
@@ -4394,39 +4316,6 @@ concatenate_adjacent_string_literals:
     copy_source_position(save_pos_curr_token, pos_curr_token);
   }  /* if */
   goto end_of_token_scan_b;
-
-check_for_compound_assignment_operator:
-  /* In pcc mode, compound assignment operators can be written as two
-     tokens (e.g., "+=" can be written as "+ =").  If we come here, we
-     are in pcc mode and a token has been scanned that could be the
-     first part of such a compound token.  compound_token has been set
-     to the token to be used for the compound token if "=" is next. */
-  /* If fetching preprocessing tokens, the two parts of a compound
-     token are passed through separately (i.e., one keeps the original
-     tokens).  Note that "<<" and ">>" are two-character tokens. */
-  if (fetch_pp_tokens) {
-    if (ctoken == tok_shift_left || ctoken == tok_shift_right) {
-      goto two_char_token;
-    } else {
-      goto one_char_token;
-    }  /* if */
-  }  /* if */
-  remember_token_start();
-  /* Advance past the first operator (two characters for "<<" and ">>"). */
-  curr_char_loc++;
-  if (ctoken == tok_shift_left || ctoken == tok_shift_right) curr_char_loc++;
-  (void)skip_white_space();
-  /* Give up if the next character is not "=". */
-  /* The check for the "=" next is done on a character basis, where pcc 
-     does it on a token basis.  This means that something like "a + == b"
-     would be parsed here as "+=" then "=" where pcc would see "+" then
-     "==".  No legal programs are affected, however. */
-  if (*curr_char_loc != '=') goto end_of_token_scan_b;
-  /* This IS the strange compound assignment operator. */
-  start_of_curr_token = curr_char_loc;
-  ctoken = compound_token;
-  goto one_char_token;
-
 }  /* get_token */
 
 

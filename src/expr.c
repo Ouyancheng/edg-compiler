@@ -6615,6 +6615,90 @@ after_advance_past_id:
 }  /* scan_identifier */
 
 
+static void check_for_pcc_compound_assignment_operators(void)
+/*
+In pcc mode, compound assignment operators can be written in two
+nonstandard ways:
+
+  (1)  There can be whitespace between the characters, as in "- =".
+       No warning is issued.
+  (2)  The "=" can appear first, as in "=-".  No whitespace is
+       allowed.  This is described in Appendix A, section 17
+       (Anachronisms) of K&R I.  A warning is issued.
+
+These cases are handled here by coalescing two tokens.
+*/
+{
+  a_boolean         equals_first = FALSE;
+  a_token_kind      token = curr_token, compound_token;
+  a_source_position start_position;
+
+  if (token == tok_assign) {
+    /* "=" is first.  If the next token follows immediately (i.e.,
+       there is no white space), enable the check for things like "=-". */
+    skip_white_space();
+    if (kind_of_white_space_skipped == 0) {
+      equals_first = TRUE;
+      token = next_token();
+    }  /* if */
+  }  /* if */
+  compound_token = token;
+  switch (token) {
+    case tok_plus:
+      compound_token = tok_plus_assign;
+      break;
+    case tok_minus:
+      compound_token = tok_minus_assign;
+      break;
+    case tok_star:
+      compound_token = tok_times_assign;
+      break;
+    case tok_divide:
+      compound_token = tok_divide_assign;
+      break;
+    case tok_remainder:
+      compound_token = tok_remainder_assign;
+      break;
+    case tok_ampersand:
+      compound_token = tok_and_assign;
+      break;
+    case tok_excl_or:
+      compound_token = tok_excl_or_assign;
+      break;
+    case tok_or:
+      compound_token = tok_or_assign;
+      break;
+    case tok_shift_right:
+      compound_token = tok_shift_right_assign;
+      break;
+    case tok_shift_left:
+      compound_token = tok_shift_left_assign;
+      break;
+    default:;
+      /* No action. */
+  }  /* switch */
+  if (compound_token != token) {
+    if (equals_first) {
+      /* "=-" form. */
+      start_position = pos_curr_token;
+      pos_warning(ec_old_fashioned_assignment_operator, &start_position);
+      (void)get_token();
+      pos_curr_token = start_position;
+      curr_token = compound_token;
+    } else {
+      /* Check for "- =" form. */
+      if (next_token() == tok_assign) {
+        /* This is the "- =" form. */
+        start_position = pos_curr_token;
+        (void)get_token();
+        pos_curr_token = start_position;
+        curr_token = compound_token;
+      }  /* if */
+    }  /* if */
+  }  /* if */        
+}  /* check_for_pcc_compound_assignment_operator */
+
+
 static void scan_expr_full(an_operand               *result,
                            an_operand               *bound_function_selector,
                            int                      prec_level,
@@ -6804,9 +6888,14 @@ bad_start_of_primary:
      and the second iteration will scan "*4" and assemble "(2*3)*4".
      The loop will then end and this invocation of scan_expr_full will
      return to its caller (also scan_expr_full). */
-  /* See if the current token is an operator, and if so, whether it ends
-     the current expression given its precedence and associativity. */
-  while (!token_ends_expr(curr_token, prec_level, local_options)) {
+  for (;;) {
+    if (C_dialect == C_dialect_pcc) {
+      /* In pcc mode, check for nonstandard assignment operators like "+ =". */
+      check_for_pcc_compound_assignment_operators();
+    }  /* if */
+    /* See if the current token is an operator, and if so, whether it ends
+       the current expression given its precedence and associativity. */
+    if (token_ends_expr(curr_token, prec_level, local_options)) break;
     /* The operator is to be taken at this level.  Do any necessary
        transformations and error checks on it.  Do NOT obey the options
        flags passed in to this routine in local_options, because
@@ -6942,7 +7031,7 @@ bad_start_of_primary:
         internal_error("scan_expr_full: bad operator token in loop");
 #endif /* CHECKING */
     }  /* switch */
-  }  /* while */
+  }  /* for */
 
   /* Set error_position to the start of the expression. */
   copy_source_position(start_position, error_position);
