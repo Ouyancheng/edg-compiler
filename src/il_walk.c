@@ -17,17 +17,20 @@ il_walk.c -- Routines to walk the intermediate language tree.
 #include "basics.h"
 #include "host_envir.h"
 
-#if IL_WALK_NEEDED
-
-#if !ORPHAN_PROCESSING_NEEDED
- #error -- ORPHAN_PROCESSING_NEEDED must be set if IL walking is needed.
-#endif /* !ORPHAN_PROCESSING_NEEDED */
+#if IL_WALK_NEEDED || NEED_DECLARATIVE_WALK
 
 #include "lang_feat.h"
 #include "il_walk.h"
 #include "il.h"
 #include "error.h"
 #include "mem_manage.h"
+#include "types.h"
+
+#if IL_WALK_NEEDED
+
+#if !ORPHAN_PROCESSING_NEEDED
+ #error -- ORPHAN_PROCESSING_NEEDED must be set if IL walking is needed.
+#endif /* !ORPHAN_PROCESSING_NEEDED */
 
 
 static an_entry_process_function_ptr
@@ -533,6 +536,84 @@ running them through walk_remap_func.
      use those. */
 
 #endif /* IL_WALK_NEEDED */
+
+#if NEED_DECLARATIVE_WALK
+
+void walk_declarative_entities_in_scope(
+                          a_scope_ptr                   scope,
+                          an_entry_process_function_ptr entry_process_function)
+/*
+Walk all the declarative entities contained in the indicated scope, and
+call the given processing function for each entity.
+*/
+{
+  a_type_ptr     type;
+  a_variable_ptr variable;
+  a_routine_ptr  routine;
+  a_scope_ptr    block_scope;
+
+  /* Some things not visited:
+       -- Parameters of routines.
+       -- Handler parameters (in exception catch clauses).
+       -- enum constants.
+  */
+  /* Visit all types. */
+  for (type = scope->types; type != NULL; type = type->next) {
+    (*entry_process_function)((char *)type, iek_type);
+    if (is_immediate_class_type(type)) {
+      /* For a class, visit the members. */
+      a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
+      a_field_ptr field;
+      /* Visit the nonstatic data members (these exist even in C). */
+      for (field = type->variant.class_struct_union.field_list;
+           field != NULL;
+           field = field->next) {
+        (*entry_process_function)((char *)field, iek_field);
+      }  /* for */
+      /* Visit the class scope if it has one. */
+      if (ctsp != NULL) {
+        a_scope_ptr class_scope = ctsp->assoc_scope;
+        if (class_scope != NULL) {
+          walk_declarative_entities_in_scope(class_scope,
+                                             entry_process_function);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Visit all nonstatic variables (only present in function and block
+     scopes). */
+  for (variable = scope->nonstatic_variables;
+       variable != NULL;
+       variable = variable->next) {
+    (*entry_process_function)((char *)variable, iek_variable);
+  }  /* for */
+  /* Visit all static variables (if this is a class scope, these are the
+     static data members). */
+  for (variable = scope->variables;
+       variable != NULL;
+       variable = variable->next) {
+    (*entry_process_function)((char *)variable, iek_variable);
+  }  /* for */
+  /* Visit all routines (if this is a class scope, these are the member
+     functions). */
+  for (routine = scope->routines;
+       routine != NULL;
+       routine = routine->next) {
+    (*entry_process_function)((char *)routine, iek_routine);
+  }  /* for */
+  /* Visit all block scopes (only present in function and block scopes). */
+  for (block_scope = scope->scopes;
+       block_scope != NULL;
+       block_scope = block_scope->next) {
+    walk_declarative_entities_in_scope(block_scope, entry_process_function);
+  }  /* for */
+}  /* walk_declarative_entities_in_scope */
+
+#endif /* NEED_DECLARATIVE_WALK */
+
+#endif /* IL_WALK_NEEDED || NEED_DECLARATIVE_WALK */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *

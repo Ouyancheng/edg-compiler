@@ -1,5 +1,12 @@
 Version 2.23
 
+5/20/94  walk_declarative_entities_in_scope
+
+This new routine, included when NEED_DECLARATIVE_WALK is defined,
+walks through the declarative entities in a scope and calls a user-supplied
+processing routine on each one.  This can be useful to walk the IL
+tree to generate symbolic debugging information.
+
 5/20/94  C mode null pointer constants in pointer operations
 
 When, in C mode, an operation has a left operand that is a (void *)0
