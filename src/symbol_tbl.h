@@ -136,14 +136,6 @@ Clear a symbol locator.
    (locator)->source_position = *position;                            \
 }  /* clear_locator */
 
-
-/* Return TRUE if two locators indicate the same symbol. */
-/* Only used in checking whether or not a declaration in an old-style
-   parameter list has the same name as one of the old-style parameters.
-   For that application, specific_symbol should not be checked. */
-#define are_locators_for_same_symbol(loc1, loc2)                      \
-  ((loc1).symbol_header == (loc2).symbol_header)
-
 /* Set a symbol locator to a dummy value indicating an error. */
 #define set_to_error_locator(loc) clear_locator(&(loc), &error_position)
 
@@ -1016,6 +1008,8 @@ extern a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
                                             a_symbol_locator *location,
                                             a_symbol_ptr     old_sym_ptr,
                                             a_symbol_ptr     *overload_sym);
+
+extern a_symbol_ptr make_parameter_symbol(a_symbol_locator  *locator);
 
 extern a_symbol_ptr make_unnamed_class_symbol(a_symbol_kind      sym_kind,
                                               a_source_position  *pos);
