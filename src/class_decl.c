@@ -6990,6 +6990,10 @@ next_declaration:
         }  /* if */
       }  /* if */
     }  /* if */
+    /* Process pragmas associated with the closing brace before the current
+       scope is popped and before add_end_of_construct_source_sequence_entry
+       is called. */
+    process_curr_token_pragmas();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry marking the end of the class definition. */
     add_end_of_construct_source_sequence_entry((char *)class_type,

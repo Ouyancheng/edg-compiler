@@ -2636,6 +2636,9 @@ scope is that of a class definition.
                                               ss_entry_start_prev);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
+    /* Process pragmas associated with the closing paren before the current
+       scope is popped. */
+    process_curr_token_pragmas();
     /* Pop the function prototype scope. */
     pop_scope();
   } else if (any_params) {
@@ -7075,13 +7078,13 @@ to indicate whether an enumeration is actually defined.
       } while (!done);
       remove_stop_token(tok_rbrace);
     }  /* if */
+    /* Check for and pass over the closing "}". */
+    (void)required_token(tok_rbrace, ec_exp_rbrace);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry marking the end of the enum definition. */
     add_end_of_construct_source_sequence_entry((char *)enum_type,
                                                (a_byte_il_entry_kind)iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    /* Check for and pass over the closing "}". */
-    (void)required_token(tok_rbrace, ec_exp_rbrace);
     /* Determine the representation type for the enumeration.  In pcc mode,
        and when targ_enum_types_can_be_smaller_than_int is FALSE, it's always
        "int", and that's already set.  Otherwise, pick the first of "char",
@@ -7759,6 +7762,7 @@ process_class_specifier:
         break;
       case QUALIFIED_NAME_START_CASE:  /* Identifier or "::". */
         /* Identifier. */
+        /* In case the identifier has not yet been coalesced, do it now. */
         options = GID_DEFER_ACCESS_ERRORS;
         if (input_flags & DSI_IS_NEW_TYPE_NAME) {
           options |= GID_IS_NEW_TYPE_NAME;
@@ -9364,8 +9368,21 @@ specified (rather than defaulted to "int").
          transferred to the function scope later. */
       func_info->prototype_scope_symbols =
                                       scope_stack[depth_scope_stack].symbols;
+      /* Process pragmas associated with the opening brace before the current
+         scope is popped.  This means, for old-style param lists, a pragma
+         immediately preceding the left brace is interpreted as belonging to
+         the function prototype scope; it's different for prototyped
+         param lists. */
+      process_curr_token_pragmas();
       /* Pop the function prototype scope. */
       pop_scope();
+    } else {
+      /* Prototyped. */
+      /* Process pragmas associated with the opening brace before pushing
+         the function scope.  This means, for prototyped param lists, a pragma
+         immediately preceding the left brace is interpreted as belonging to
+         the file; it's different for old-style param lists. */
+      process_curr_token_pragmas();
     }  /* if */
     /* Create the symbol entry and routine entry for the routine. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS

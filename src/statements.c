@@ -3591,6 +3591,12 @@ branching into it is disallowed).
       /* Insert an implied return value if there is one. */
       sp->expr = return_expr;
     }  /* if */
+  }  /* if */
+  /* Process pragmas associated with the closing brace before the current
+     scope is popped.  (Note: process_curr_token_pragmas must be called after
+     calling select_curr_construct_pragmas and before calling pop_scope.) */
+  process_curr_token_pragmas();
+  if (at_function_level) {
     /* Pop the statement stack. */
     pop_stmt_stack();
     /* Clear statement stack just to be careful. */
