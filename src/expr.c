@@ -13196,7 +13196,13 @@ in a template instantiation) just do the scan.
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
   }  /* if */
   node = make_node_from_operand(&result);
-  if (ptp == NULL) discard_curr_expr_object_lifetime();
+  if (ptp == NULL ||
+      /* Eliminate object lifetimes in prototype instantiations if
+         the instantiation is not being saved in the tree. */
+      (!prototype_instantiations_in_il &&
+       scope_stack[depth_scope_stack].in_prototype_instantiation)) {
+    discard_curr_expr_object_lifetime();
+  }  /* if */
   node = wrap_up_full_expression(node);
   if (ptp != NULL) ptp->default_arg_expr = node;
   pop_expr_stack();
