@@ -1,5 +1,17 @@
 Version 3.2
 
+4/22/03  Error on branch into GNU statement expression
+
+An error is now issued on a transfer into a GNU statement expression.
+gcc and g++ do not enforce this, but we think this is ridiculous
+enough that an error check is appropriate.  It may also make life
+easier for back ends.
+
+  int main() {
+    int i = ({ L: 0; });
+    goto L;  // Gets error now
+  }
+
 4/21/03  GNU C++: Format attribute on nonstatic member functions
 
 In GNU C++ mode, the parameter numbering scheme for the "format" and

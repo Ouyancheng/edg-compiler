@@ -161,15 +161,14 @@ typedef struct a_control_flow_descr {
 			/* TRUE if this is the top level block of a try
 			   statement. */
       a_bit_field
-		is_function_try_block:1;
-			/* TRUE for the block that contains a function try
-			   block, including its catch clauses.  No particular
-			   statement corresponds to it. */
+		is_statement_expr:1;
+			/* TRUE if this is the top level block of a GNU
+			   statement expression, i.e., ({ ... }). */
       a_bit_field
-		is_within_catch_or_try_block:1;
-			/* TRUE if is_catch_block or is_try_block is TRUE for
-			   the current block or a block in which the current
-			   block is enclosed. */
+		is_within_goto_protected_block:1;
+			/* TRUE if this block is or is contained within
+			   a block for which transfers of control into the
+			   block are prohibited. */
     } block;
     /* When kind == cfdk_init: */
     struct {

@@ -272,10 +272,10 @@ purposes.
         fprintf(f_debug, ", catch");
       } else if (cfdp->variant.block.is_try_block) {
         fprintf(f_debug, ", try");
-      } else if (cfdp->variant.block.is_within_catch_or_try_block) {
-        fprintf(f_debug, ", inside catch or try");
-      } else if (cfdp->variant.block.is_function_try_block) {
-        fprintf(f_debug, ", function try");
+      } else if (cfdp->variant.block.is_statement_expr) {
+        fprintf(f_debug, ", statement expr");
+      } else if (cfdp->variant.block.is_within_goto_protected_block) {
+        fprintf(f_debug, ", inside goto protected block");
       }  /* if */
       if (cfdp->variant.block.is_switch_block) {
         fprintf(f_debug, ", switch");
@@ -535,8 +535,8 @@ to it.
       cfdp->variant.block.exposed_init_in_switch = FALSE;
       cfdp->variant.block.is_catch_block = FALSE;
       cfdp->variant.block.is_try_block = FALSE;
-      cfdp->variant.block.is_function_try_block = FALSE;
-      cfdp->variant.block.is_within_catch_or_try_block = FALSE;
+      cfdp->variant.block.is_statement_expr = FALSE;
+      cfdp->variant.block.is_within_goto_protected_block = FALSE;
       break;
     case cfdk_init:
       cfdp->variant.init.statement = NULL;
@@ -730,27 +730,29 @@ cfdp2. */
 }  /* is_on_cfd_parent_list */
 
 
-static a_boolean check_for_branch_into_try_or_catch_block(
+static a_boolean check_for_branch_into_goto_protected_block(
                                       a_control_flow_descr_ptr  label_cfdp,
                                       a_control_flow_descr_ptr  goto_cfdp)
 /*
-Check for an attempt to branch into a try block or a catch clause (an
-exception handler).  Either label_cfdp points to a label entry and goto_cfdp
-to a goto entry, or else label_cfdp points to a case label entry and
-goto_cfdp is NULL (in which case we need to find the switch with which the
-case label is associated).  If an error is found, issue the diagnostic and
+Check for an attempt to branch into a try block, a catch clause (an
+exception handler), or a GNU statement expression.  Either label_cfdp
+points to a label entry and goto_cfdp to a goto entry, or else
+label_cfdp points to a case label entry and goto_cfdp is NULL (in
+which case we need to find the switch with which the case label is
+associated).  If an error is found, issue the diagnostic and
 return TRUE.
 */
 {
   a_boolean                 err = FALSE;
   a_control_flow_descr_ptr  cfdp;
 
-  db_enter(4, "check_for_branch_into_try_or_catch_block");
+  db_enter(4, "check_for_branch_into_goto_protected_block");
   cfdp = label_cfdp->parent;
-  if (cfdp->variant.block.is_within_catch_or_try_block) {
-    /* The label is inside a catch clause or a try block. */
+  if (cfdp->variant.block.is_within_goto_protected_block) {
+    /* The label is inside a statement that cannot be branched into. */
     while (!cfdp->variant.block.is_catch_block &&
-           !cfdp->variant.block.is_try_block) {
+           !cfdp->variant.block.is_try_block &&
+           !cfdp->variant.block.is_statement_expr) {
       cfdp = cfdp->parent;
       check_assertion(cfdp != NULL);
     }  /* while */
@@ -778,16 +780,25 @@ return TRUE.
       pos_warning(ec_branch_into_try_block, &goto_cfdp->source_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
-      /* It's a branch into the catch or try block from outside. */
-      pos_error(cfdp->variant.block.is_catch_block ?
-                  ec_branch_into_handler : ec_branch_into_try_block,
-                &goto_cfdp->source_pos);
+      /* It's a branch into a protected block from outside. */
+      an_error_code err_code;
+      if (cfdp->variant.block.is_catch_block) {
+        err_code = ec_branch_into_handler;
+      } else if (cfdp->variant.block.is_try_block) {
+        err_code = ec_branch_into_try_block;
+      } else if (cfdp->variant.block.is_statement_expr) {
+        err_code = ec_branch_into_statement_expr;
+      } else {
+        unexpected_condition_str(
+             "check_for_branch_into_goto_protected_block: unknown block kind");
+      }  /* if */
+      pos_error(err_code, &goto_cfdp->source_pos);
       err = TRUE;
     }  /* if */
   }  /* if */
   db_exit();
   return err;
-}  /* check_for_branch_into_try_or_catch_block */
+}  /* check_for_branch_into_goto_protected_block */
 
 
 static void report_switch_past_init(a_control_flow_descr_ptr  block,
@@ -1359,7 +1370,7 @@ initializing declarations.
           } while (cfdp != NULL);
           break;
         case cfdk_case_label:
-          if (check_for_branch_into_try_or_catch_block(
+          if (check_for_branch_into_goto_protected_block(
                                   new_cfdp, (a_control_flow_descr_ptr)NULL)) {
             /* Case label is within a handler or try block and the switch
                statement with which it is associated is outside.  The error
@@ -1404,8 +1415,8 @@ initializing declarations.
                           parent->variant.block.exposed_init_in_switch;
             }  /* if */
           }  /* if */
-          if (parent->variant.block.is_within_catch_or_try_block) {
-            new_cfdp->variant.block.is_within_catch_or_try_block = TRUE;
+          if (parent->variant.block.is_within_goto_protected_block) {
+            new_cfdp->variant.block.is_within_goto_protected_block = TRUE;
           }  /* if */
           break;
         default:
@@ -2590,22 +2601,24 @@ statement stack.
 }  /* restore_struct_stmt_stack */
 
 
-static void push_stmt_stack(a_struct_stmt_kind      kind,
-                            a_statement_ptr         sp,
-                            an_object_lifetime_ptr  olp)
+static void push_stmt_stack_full(a_struct_stmt_kind      kind,
+                                 a_statement_ptr         sp,
+                                 an_object_lifetime_ptr  olp,
+                                 a_boolean               is_statement_expr)
 /*
 Push an entry onto the structured statement stack, to record that we
 are within a structured statement of the indicated kind.  sp points to
 the associated il statement.  olp (NULL unless kind is ssk_compound)
 points to an object lifetime entry that was expressly created for the
-current structured statement.
+current structured statement.  is_statement_expr is TRUE if this
+statement is the top block of a GNU statement expression ({ ... }).
 */
 {
   register a_struct_stmt_stack_entry_ptr sssep;
   a_control_flow_descr_ptr               cfdp;
 
 
-  db_enter(4, "push_stmt_stack");
+  db_enter(4, "push_stmt_stack_full");
   /* Expand the structured statement stack if necessary. */
   ensure_struct_stmt_stack_space();
   /* Push the stack and initialize the new entry. */
@@ -2625,7 +2638,7 @@ current structured statement.
                               = FALSE;
   sssep->label_invalidates_curr_block_object_lifetime
                               = FALSE;
-  sssep->is_statement_expr    = FALSE;
+  sssep->is_statement_expr    = is_statement_expr;
   sssep->statement            = sp;
   sssep->curr_switch_clause   = NULL;
   sssep->discarded_case_label_constants
@@ -2702,13 +2715,13 @@ current structured statement.
           /* This block represents the compound statement immediately within a
              catch clause. */
           cfdp->variant.block.is_catch_block = TRUE;
-          cfdp->variant.block.is_within_catch_or_try_block = TRUE;
+          cfdp->variant.block.is_within_goto_protected_block = TRUE;
           sssep->is_catch_clause = TRUE;
         } else if (sssep[-1].kind == (a_struct_stmt_kind)ssk_try_block) {
           /* This block represents the compound statement immediately within a
              try block statement. */
           cfdp->variant.block.is_try_block = TRUE;
-          cfdp->variant.block.is_within_catch_or_try_block = TRUE;
+          cfdp->variant.block.is_within_goto_protected_block = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -2723,13 +2736,25 @@ current structured statement.
       /* This block represents the compound statement immediately within a
          try block statement. */
       cfdp->variant.block.is_try_block = TRUE;
-      cfdp->variant.block.is_within_catch_or_try_block = TRUE;
+      cfdp->variant.block.is_within_goto_protected_block = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (is_statement_expr) {
+      /* Set flags for a GNU statement expression, ({ ... }). */
+      cfdp->variant.block.is_statement_expr = TRUE;
+      cfdp->variant.block.is_within_goto_protected_block = TRUE;
+    }  /* if */
     add_to_control_flow_descr_list(cfdp);
   }  /* if */
   db_exit();
-}  /* push_stmt_stack */
+}  /* push_stmt_stack_full */
+
+
+/*
+Interface to push_stmt_stack_full for the usual case.
+*/
+#define push_stmt_stack(kind, sp, olp) \
+  push_stmt_stack_full((kind), (sp), (olp), /*is_statement_expr=*/FALSE);
 
 
 static void end_stmt_sequence(a_struct_stmt_stack_entry_ptr sssep)
@@ -3132,10 +3157,8 @@ statement expression, ({ ... }).
     }  /* if */
   }  /* if */
   /* Push an entry on the structured statement stack. */
-  push_stmt_stack(ssk_compound, block_stmt, curr_object_lifetime);
-  if (is_statement_expr) {
-    struct_stmt_stack[depth_stmt_stack].is_statement_expr = TRUE;
-  }  /* if */
+  push_stmt_stack_full(ssk_compound, block_stmt, curr_object_lifetime,
+                       is_statement_expr);
   return block_stmt;
 }  /* start_block_statement */
 
@@ -4523,7 +4546,7 @@ diagnose the condition.
   } else
 #endif /* UPC_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
-  if (check_for_branch_into_try_or_catch_block(label_cfdp, goto_cfdp)) {
+  if (check_for_branch_into_goto_protected_block(label_cfdp, goto_cfdp)) {
     /* Ignore the jump-over-initialization errors -- this is an illegal
        branch into a catch clause or try block.  (The diagnostic has
        already been issued.) */
@@ -6799,7 +6822,6 @@ function try block has to have been established first.
   /* The function try block (including its catch clauses) is contained
      within a block entry in the control_flow_descr_list. */
   cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
-  cfdp->variant.block.is_function_try_block = TRUE;
   /* Set the lifetime in the control flow entry. */
   cfdp->variant.block.object_lifetime = curr_object_lifetime;
   add_to_control_flow_descr_list(cfdp);
