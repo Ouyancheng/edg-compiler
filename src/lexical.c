@@ -7933,12 +7933,16 @@ by the options.  Returns TRUE if any errors were diagnosed.
   a_boolean   any_errors = FALSE;
   a_boolean   qualified_name_error;
   a_boolean   global_qualifier_error;
+  a_boolean   operator_name_error;
   /* If no position was specified use the current error position. */
   if (pos == NULL) pos = &error_position;
   qualified_name_error = (locator_for_curr_id.is_qualified_name &&
                           (options & GID_DISALLOW_QUALIFIED_NAME));
   global_qualifier_error = (locator_for_curr_id.is_global_qualified_name &&
                             (options & GID_DISALLOW_GLOBAL_QUALIFIER));
+  operator_name_error = (locator_for_curr_id.is_operator_name ||
+                         locator_for_curr_id.is_conversion_name) &&
+                          (options & GID_DISALLOW_OPERATOR_NAME);
   if (qualified_name_error && global_qualifier_error) {
     /* If both errors are being checked for, and both errors exist, only
        issue one of the errors using the following rules:
@@ -7959,14 +7963,9 @@ by the options.  Returns TRUE if any errors were diagnosed.
   } else if (global_qualifier_error) {
     pos_error(ec_global_qualifier_not_allowed, pos);
     any_errors = TRUE;
+  } else if (operator_name_error) {
+    pos_error(ec_operator_name_not_allowed, pos);
   }  /* if */
-#if CHECKING
-  if ((locator_for_curr_id.is_operator_name ||
-       locator_for_curr_id.is_conversion_name) &&
-      (options & GID_DISALLOW_OPERATOR_NAME)) {
-    internal_error("f_check_for_generalized...: operator name error used");
-  }  /* if */
-#endif /* CHECKING */
   return any_errors;
 }  /* f_check_for_generalized_identifier_errors */
 

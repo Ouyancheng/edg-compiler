@@ -1,5 +1,15 @@
 Version 2.35
 
+2/21/97  Internal error on "~ operator name"
+
+The use of an operator name in a destructor name resulted in an internal
+error.  This has been fixed.
+
+  struct A {
+    virtual ~ operator new(); 
+  };
+
+
 2/21/97  No deduction of cv-qualified function types
 
 cv-qualified function types are not allowed, so type deduction for
