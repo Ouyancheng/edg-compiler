@@ -1800,8 +1800,10 @@ integer kind -- an internal error is issued otherwise.
       goto have_kind;
     }  /* if */
   }  /* for */
+#if CHECKING
   internal_error(
         "int_kind_for_size_and_alignment: no integer of right size/alignment");
+#endif /* CHECKING */
 have_kind:;
   return int_kind;
 }  /* int_kind_for_size_and_alignment */
