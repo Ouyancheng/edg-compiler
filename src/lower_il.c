@@ -3462,12 +3462,15 @@ this routine to do a relatively simple copy of the all the fields.
        Also give it the same declaration position as the original type. */
     name_ptr = class_type->source_corresp.name;
     if (name_ptr != NULL) {
-      name_length = strlen(name_ptr);
 #define SUB_PREFIX "_"
-      alloc_length = name_length + sizeof(SUB_PREFIX);
+      name_length = mangled_basic_class_name(class_type, (char *)NULL) +
+                    sizeof(SUB_PREFIX) - 1;
+      alloc_length = name_length + 1;
       new_name_ptr = alloc_lowered_name_string(alloc_length);
       (void)memcpy(new_name_ptr, SUB_PREFIX, size_t_arg(sizeof(SUB_PREFIX)-1));
-      (void)strcpy(new_name_ptr + (sizeof(SUB_PREFIX)-1), name_ptr);
+      (void)mangled_basic_class_name(class_type,
+                                     new_name_ptr + (sizeof(SUB_PREFIX)-1));
+      new_name_ptr[name_length] = '\0';
       subobject_type->source_corresp.name = new_name_ptr;
 #undef SUB_PREFIX
     }  /* if */
