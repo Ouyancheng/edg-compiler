@@ -1,5 +1,18 @@
 Version 2.32
 
+5/22/96 Global qualifier on friend declaration
+
+The 9/12/95 entry describes the addition of an extension that is since
+been approved as part of the language, and so a strict mode diagnostic is
+no longer issued for a global qualifier on a friend declaration:
+
+  void f();
+  namespace N {
+    class A {
+      friend ::f();         // No longer treated as an extension
+    };
+  }
+
 5/22/96 Wrap diagnostics option
 
 The options --wrap_diagnostics and --no_wrap_diagnostics enable

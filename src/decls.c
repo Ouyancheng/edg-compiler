@@ -3031,12 +3031,8 @@ namespace-extension scope.
       }  /* if */
       *namespace_reactivated = TRUE;
     } else {
+      /* Must be something like "friend ::f();" */
       check_assertion(locator->is_file_scope_qualified_name && is_friend_decl);
-      if (strict_ansi_mode) {
-        pos_diagnostic(strict_ansi_error_severity,
-                       ec_nonstd_global_qualifier_on_friend_decl,
-                       &pos_curr_token);
-      }  /* if */
     }  /* if */
     /* Look up the name. */
     linked_symbol = find_linked_symbol(locator, depth_scope_stack, type_ptr,
