@@ -8315,7 +8315,8 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
              another entity.  Furthermore, an alias should not be redeclared
              as a namespace name, nor should a plain namespace name be
              redeclared as an alias. */
-          str_error(ec_id_already_declared, locator.symbol_header->identifier);
+          pos_st_error(ec_id_already_declared, &locator.source_position,
+                       locator.symbol_header->identifier);
           ns_sym = NULL;
         }  /* if */
       }  /* if */
