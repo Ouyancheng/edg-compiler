@@ -3796,6 +3796,293 @@ routine body is generated at this time.
 }  /* generate_special_function */
 
 
+
+static a_statement_ptr make_default_constructor_body(void)
+/*
+Create the body for a default constructor or a default copy constructor.  It
+will return a pointer to the constructed object.
+*/
+{
+  a_statement_ptr  block, sp;
+
+  /* Create an statement block that is empty except for the return
+     statement. */
+  block = alloc_statement((a_statement_kind)stmk_block);
+  block->variant.block.statements = sp =
+          alloc_statement((a_statement_kind)stmk_return);
+  sp->expr = this_param_value_expr();
+  return block;
+}  /* make_default_constructor_body */
+
+
+static a_statement_ptr make_default_destructor_body(void)
+/*
+Create the body for a default destructor.  It will return no value.
+*/
+{
+  a_statement_ptr  block;
+
+  /* Create an statement block that is empty except for the return
+     statement. */
+  block = alloc_statement((a_statement_kind)stmk_block);
+  block->variant.block.statements =
+          alloc_statement((a_statement_kind)stmk_return);
+  return block;
+}  /* make_default_destructor_body */
+
+
+static a_boolean is_virtual_base_class_of(a_type_ptr  base_class_type,
+                                          a_type_ptr  derived_type)
+/*
+Return TRUE if base_class_type is a virtual base class of derived_type.
+*/
+{
+  a_base_class_ptr  bcp;
+
+  /* Loop through the base classes. */
+  bcp = derived_type->variant.class_struct_union.extra_info->base_classes;
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->type == base_class_type) {
+      /* Found it if it's virtual. */
+      if (!bcp->is_virtual) bcp = NULL;
+      break;
+    }  /* if */
+  }  /* for */
+  /* Return TRUE if we found it. */
+  return (bcp != NULL);
+}  /* is_virtual_base_class_of */
+
+
+static a_boolean virtual_base_class_is_indirect(a_base_class_ptr  vbcp,
+                                                a_type_ptr        class_type)
+/*
+vbcp points to a virtual direct base class of the current class (class_type).
+Return TRUE if it is also an indirect base class of the current class -- i.e.,
+if at least one direct base class of the current class is virtually derived
+from the same class as the one with which vbcp is associated.
+*/
+{
+  a_base_class_ptr  bcp;
+  a_boolean         is_indirect = FALSE;
+
+  bcp = class_type->variant.class_struct_union.extra_info->base_classes;
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (is_virtual_base_class_of(vbcp->type, bcp->type)) {
+      is_indirect = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return is_indirect;
+}  /* virtual_base_class_is_indirect */
+
+
+static void check_access_on_assignment_operator(void)
+/*
+Issue an error if we have no access to the assignment operator for the
+class.
+*/
+{
+#if 0
+  /* NOT YET IMPLEMENTED */
+#endif /* if */
+}  /* check_access_on_assignment_operator */
+
+
+static a_routine_ptr select_assignment_operator(a_type_ptr  class_type)
+/*
+Return a pointer to the routine entry for the current class's default
+assignment operator.
+*/
+{
+  a_symbol_header_ptr  sym_hdr;
+  a_symbol_ptr         sym;
+  a_boolean            is_overloaded_function;
+  a_type_ptr           arg_type;
+
+  /* Look up the symbol in the portion of the symbol table containing
+     operator function symbols.  The lookup is done not by name but by
+     operator. */
+  sym_hdr = opname_symbol_table[onk_assign];
+  /* Search the inactive list first, then the active list if necessary. */
+  for (sym = sym_hdr->inactive_symbols; sym != NULL; sym = sym->next) {
+    if (sym->class_of_which_a_member == class_type) break;
+  }  /* for */
+  if (sym == NULL) {
+    for (sym = sym_hdr->symbol; sym != NULL; sym = sym->next) {
+      if (sym->class_of_which_a_member == class_type) break;
+    }  /* for */
+  }  /* if */
+#if CHECKING
+  if (sym == NULL) {
+    internal_error("select_assignment_operator: sym is NULL");
+  }  /* if */
+#endif /* CHECKING */
+  /* If sym is an overloaded function symbol we need to go through the whole
+     list. */
+  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    is_overloaded_function = TRUE;
+    sym = sym->variant.overloaded_function.symbols;
+  } else {
+    is_overloaded_function = FALSE;
+  }  /* if */
+  /* We need to find an assignment operator whose argument is ref-class or
+     ref-const-class. */
+  for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
+    arg_type = sym->variant.routine->type->
+                      variant.routine.extra_info->param_type_list->type;
+    if (is_reference_type(arg_type) &&
+        type_pointed_to(arg_type) == class_type) {
+      /* Found it. */
+      break;
+    }  /* if */
+  }  /* for */
+#if CHECKING
+  if (sym == NULL) {
+    internal_error("select_assignment_operator: can't copy ref-class");
+  }  /* if */
+#endif /* CHECKING */
+  reference_to_special_member_function(sym);
+  return sym->variant.routine;
+}  /* select_assignment_operator */
+
+
+static a_statement_ptr make_default_assignment_body(a_scope_ptr  scope)
+/*
+*/
+{
+  a_type_ptr        class_type, tp, array_type;
+  a_statement_ptr   block, sp;
+  a_statement       head_of_statement_list;
+  a_variable_ptr    source_var;
+  an_expr_node_ptr  source_expr, dest_expr;
+  a_base_class_ptr  bcp;
+  a_field_ptr       fp;
+  a_routine_ptr     rp;
+
+  /* The source variable of the copy is the first parameter on the paramters
+     list for the routine.  There must be exactly one parameter for an
+     assignment function. */
+  source_var = scope->variant.routine.parameters;
+  class_type = type_pointed_to(scope->
+                                variant.routine.this_param_variable->type);
+  /* "head_of_statement_list" is a local statement variable whose only
+      interesting property is its "next" field, from which a linked list of
+      allocated statement entries will be hung.  That list will eventually be
+      transferred to the block statement that is returned to the caller. */
+  head_of_statement_list.next = NULL;
+  sp = &head_of_statement_list;
+  /* See if a bitwise copy is all that is called for. */
+  if (symbol_supplement_for_class(class_type)->
+                   assignment_by_bitwise_copy_allowed) {
+    /* Yes.  (Then why are we defining a routine?  Probably because the
+       address of the default assignment operator was taken, forcing the
+       actual creation of the routine.) */
+    /* Get the source and destination expressions to use as operands for an
+       assignment statement. */
+    source_expr = var_rvalue_expr(source_var);
+    dest_expr = this_param_value_expr();
+    sp = sp->next = make_assignment_statement(dest_expr, source_expr);
+  } else {
+    /* Memberwise copy is required.  That is, first do the appropriate
+       operation on each direct base class (direct assignment or calling
+       the base class's assignment function), and then do the appropriate
+       copy of each member. */
+    bcp = class_type->variant.class_struct_union.extra_info->base_classes;
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (bcp->direct) {
+        /* We are only interested in direct base classes. */
+        if (bcp->is_virtual &&
+            virtual_base_class_is_indirect(bcp, class_type)) {
+          /* If it is also an indirect base class, it will be handled by
+             the assignment function of some other base class. */
+          continue;
+        }  /* if */
+        dest_expr = base_class_selection_expr(this_param_value_expr(), bcp);
+        if (symbol_supplement_for_class(bcp->type)->
+                         assignment_by_bitwise_copy_allowed) {
+          check_access_on_assignment_operator();
+          source_expr = base_class_selection_expr(var_rvalue_expr(source_var),
+                                                  bcp);
+          source_expr = make_operator_node((an_expr_operator_kind)eok_indirect,
+                                           make_pointer_type(bcp->type),
+                                           source_expr);
+          sp = sp->next = make_assignment_statement(dest_expr, source_expr);
+        } else {
+          rp = select_assignment_operator(bcp->type);
+          source_expr = base_class_selection_expr(var_lvalue_expr(source_var),
+                                                  bcp);
+          sp = sp->next = make_call_assignment_statement(rp, dest_expr,
+                                                         source_expr);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    fp = class_type->variant.class_struct_union.field_list;
+    for (; fp != NULL; fp = fp->next) {
+      tp = fp->type;
+#if 0
+      if (is_reference_type(tp)) {
+        error();
+        continue;
+      }  /* if */
+      if (is_const_qualified_or_has_const_element_or_has_const_member) error;
+#endif /* if 0 */
+      array_type = NULL;
+      if (is_array_type(tp)) {
+        array_type = tp;
+        do {
+          tp = array_element_type(tp);
+        } while(is_array_type(tp));
+        tp = skip_typerefs(tp);
+      }  /* if */
+      if (is_class_struct_union_type(tp)) {
+        check_access_on_assignment_operator();
+        if (symbol_supplement_for_class(tp)->
+                         assignment_by_bitwise_copy_allowed) {
+          if (array_type != NULL) tp = array_type;
+          dest_expr = field_lvalue_selection_expr(this_param_value_expr(), fp);
+          source_expr =
+                  field_rvalue_selection_expr(var_rvalue_expr(source_var), fp);
+          sp = sp->next = make_assignment_statement(dest_expr, source_expr);
+        } else {
+          if (array_type != NULL) {
+#if 0
+            add_statement(for, ...call...);
+#else
+            internal_error("make_default_assignment_body: array of ctor NYI");
+#endif /* if 0 */
+          } else {
+            rp = select_assignment_operator(bcp->type);
+            dest_expr =
+                  field_lvalue_selection_expr(this_param_value_expr(), fp);
+            source_expr =
+                  field_lvalue_selection_expr(var_lvalue_expr(source_var), fp);
+            sp = sp->next = make_call_assignment_statement(rp, dest_expr,
+                                                           source_expr);
+          }  /* if */
+        }  /* if */
+      } else {
+        dest_expr = field_lvalue_selection_expr(this_param_value_expr(), fp);
+        source_expr =
+                  field_rvalue_selection_expr(var_rvalue_expr(source_var), fp);
+        sp = sp->next = make_assignment_statement(dest_expr, source_expr);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  /* Make the return statement.  A pointer to the variable assigned to is
+     the return value. */
+  sp = sp->next = alloc_statement((a_statement_kind)stmk_return);
+  sp->expr = this_param_value_expr();
+  /* We now have a list of one or more statements hanging off the local
+     variable head_of_statement_list.  The start of the list is pointed to
+     by the next field.  Create a block statement and attach the list to
+     it. */
+  block = alloc_statement((a_statement_kind)stmk_block);
+  block->variant.block.statements = head_of_statement_list.next;
+  /* Return a pointer to the block statement. */
+  return block;
+}  /* make_default_assignment_body */
+
+
 static void define_special_member_function(a_routine_ptr  rout_ptr)
 /*
 Define a compiler generated routine for a member function (constructor or
@@ -3805,7 +4092,6 @@ empty statement block.
 {
   a_scope_ptr               scope;
   a_routine_type_supplement *rtsp = rout_ptr->type->variant.routine.extra_info;
-  a_statement_ptr           sp;
 
   db_enter(4, "define_special_member_function");
   scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
@@ -3836,9 +4122,11 @@ empty statement block.
         }  /* if */
 #endif /* CHECKING */
       }  /* if */    
+      scope->assoc_block = make_default_constructor_body();
       break;
     case sfk_destructor:
       scope->variant.routine.constructor_inits = dtor_initializer(rout_ptr);
+      scope->assoc_block = make_default_destructor_body();
       break;
     case sfk_operator:
 #if CHECKING
@@ -3846,21 +4134,13 @@ empty statement block.
         internal_error("define_special_member_function: bad opname kind");
       }  /* if */
 #endif /* CHECKING */
+      make_default_assignment_body(scope);
       break;
 #if CHECKING
     default:
       internal_error("define_special_member_function: bad special func kind");
 #endif /* CHECKING */
   }  /* switch */
-  /* For a user routine compound_statement, which returns a block statement,
-     would be called at this point.  Create an statement block that is empty
-     except for the return statement. */
-  scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
-  sp = alloc_statement((a_statement_kind)stmk_return);
-  if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor) {
-    sp->expr = this_param_value_expr();
-  }  /* if */
-  scope->assoc_block->variant.block.statements = sp;
   /* End of statement block is unreachable because of the return statement. */
   scope->assoc_block->variant.block.extra_info->end_of_block_reachable = FALSE;
   /* Terminate the scope. */
@@ -4142,9 +4422,9 @@ destination type is not yet on the current class's conversion list.
       /* Examine each conversion list entry in the base class. */
       bcclep = (symbol_supplement_for_class(bcp->type))->conversion_list;
       for (; bcclep != NULL; bcclep = bcclep->next) {
-        /* Compare the conversion list entry from the base class with the
-           each conversion list entry for the current class.  They convert
-           to the same type if they have the same header. */
+        /* Compare the conversion list entry from the base class with each
+           conversion list entry for the current class.  They convert to the
+           same type if they have the same header. */
         for (clep = cssp->conversion_list; clep != NULL; clep = clep->next) {
           if (clep->symbol->header == bcclep->symbol->header) break;
         }  /* for */
