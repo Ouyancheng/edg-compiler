@@ -1519,7 +1519,7 @@ error code.
       m = "no instance of %n matches the required type";
       break;
     case ec_delete_count_anachronism:
-      m = "delete array size expression no longer allowed (anachronism)";
+      m = "delete array size expression ignored (anachronism)";
       break;
     case ec_bad_return_type_for_op_arrow:
       m = "operator->() requires pointer-to-class return type";
