@@ -1,5 +1,27 @@
 Version 2.15
 
+3/19/93 Rework of il_walk_flag and entry number prefix
+
+Several things relating to walking the IL tree and writing IL to/reading
+IL from a file have been cleaned up.
+
+(1)  The entry number that preceded IL entries in the alternate file
+format is now defined as a struct called an_il_entry_prefix.  The
+prefix is present (though perhaps in smaller form) even when the
+non-alternate file form is used.
+(2)  The il_walk_flag in the source_correspondence struct has been
+moved into the prefix.  This gets rid of the need for code to handle
+several messy problems in initializing the il_walk_flag correctly.
+(3)  There is a new separate walk flag for IL lowering in the prefix.
+(4)  There is a file_scope flag in the prefix that in_file_scope now uses.
+(This is much more efficient, and was the pricipal motivation for this
+change.)
+(5)  The next-orphan pointer preceding file-scope IL entries is now
+allocated *before* the entry prefix.
+(6)  String IL entries now have a prefix after they've been read back
+in (previously, they had no prefix-equivalent preceding the entry once
+they were read back in).
+
 3/16/93 Spurious error on specific definition of template function
 
 A spurious "referenced-but-not-defined" error was sometimes being issued
