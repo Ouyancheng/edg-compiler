@@ -631,6 +631,14 @@ typedef struct a_source_correspondence {
 		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* Kind of linkage for the name, e.g., is it
 			   externally visible. */
+  unsigned int	has_associated_pragma:1;
+			/* TRUE if an entry of type a_pragma has been created
+			   and bound to this entity.  The pragma entry, which
+			   will contain a pointer to this entity, is found by
+			   searching the pragma_list of the scope entry for
+			   the file scope if this entity belongs to the
+			   file-scope memory region or the pragma_list of
+			   the current function scope otherwise. */
 #ifdef CIL
   unsigned int  is_local_to_function:1;
 			/* TRUE if a function scope intervenes in the scope
@@ -4157,8 +4165,7 @@ typedef struct a_statement {
   a_statement_kind
                 kind;
                         /* The kind of statement. */
-  a_byte_boolean
-		dependent_statement;
+  unsigned int	dependent_statement:1;
 			/* TRUE if this statement is the dependent statement
 			   of another (e.g., "f();" in "if (i) f();") and it
 			   does not have its own associated scope.  This can
@@ -4166,6 +4173,12 @@ typedef struct a_statement {
 			   of interest because destructor calls for objects
 			   created within a dependent statement must be placed
 			   at the end of the dependent statement. */
+  unsigned int	has_associated_pragma:1;
+			/* TRUE if an entry of type a_pragma has been created
+			   and bound to this statement.  The pragma entry,
+			   which will contain a pointer to this statement, is
+			   found by searching the pragma_list of the scope
+			   entry for the current function scope. */
   an_expr_node_ptr
                 expr;
                         /* The primary expression, if applicable
@@ -4456,6 +4469,114 @@ typedef struct a_constructor_init {
 
 #endif /* ifdef CIL */
 
+/* The pragma kinds representing the specific pragmas that are recognized
+   by the implementation.  Some may refer to pragmas for which entries of
+   type a_pragma are added to the IL for processing by the back end, but
+   some may be for front-end processing only. */
+enum a_pragma_kind_tag {
+  pk_none,
+  pk_printf_args,	/* Next function declaration has a printf-style format
+			   string that should be checked against the arguments
+			   in the call; front-end only. */
+  pk_scanf_args,	/* Next function declaration has a scanf-style format
+			   string that should be checked against the arguments
+			   in the call; front-end only. */
+  pk_lint_argsused,	/* Lint "argsused" comment; not strictly a pragma but
+			   processed similarly; front-end only. */
+  pk_lint_varargs_count,/* Lint "varargs" comment; not strictly a pragma but
+			   processed similarly; front-end only. */
+  pk_lint_not_reached,	/* Lint "not reached" comment; not strictly a pragma
+			   but processed similarly; front-end only. */
+  pk_instantiate,	/* Instantiation of the specified template entity
+			   is required; front-end only. */
+  pk_do_not_instantiate,/* Instantiation of the specified template entity
+			   should not be done in the current translation
+			   unit; front-end only. */
+  pk_can_instantiate,	/* Instantiation of the specified template entity
+			   may be done in the current translation unit if
+			   needed; front-end only. */
+
+#if 0
+#else
+  /* Temporary -- for testing only. */
+  pk_test_next_statement,
+  pk_test_next_decl,
+  pk_test_immediate,
+  pk_test_other,
+#endif /* if 0 */
+
+  /* The preceding pragma kinds are required for the default implementation
+     of the EDG front end.  If additional pragma kinds are supplied for a
+     given implementation, be sure to update pragma_ids, a_pragma (if
+     variant fields are required), and alloc_pragma (which initializes the
+     variant part of a_pragma), and add an entry to the pragma_descriptions
+     array. */
+
+  pk_last		/* Must be last. */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_pragma_kind;
+
+
+EXTERN char *pragma_ids[(int)pk_last + 1]
+#if VAR_INITIALIZERS
+= {
+/* pk_none */			"none",
+/* pk_printf_args */		"__printf_args",
+/* pk_scanf_args */		"__scanf_args",
+/* pk_lint_argsused */		"ARGSUSED",
+/* pk_lint_varargs_count */     "VARARGS",
+/* pk_lint_not_reached */	"NOTREACHED",
+/* pk_instantiate */		"instantiate",
+/* pk_do_not_instantiate */	"do_not_instantiate",
+/* pk_can_instantiate */	"can_instantiate",
+#if 0
+#else
+/* Temporary -- for testing only. */
+/* pk_test_next_statement */	"test_next_statement",
+/* pk_test_next_decl */		"test_next_decl",
+/* pk_test_immediate */		"test_immediate",
+/* pk_test_other */		"test_other",
+#endif /* if 0 */
+/* pk_last */			"last"
+} /* pragma_ids */
+#endif /* VAR_INITIALIZERS */
+;
+
+
+/* A pragma entry represents a pragma declaration that either has general
+   effect (over an entire translation unit or over the current scope) or is
+   bound to one or more entities (declarations or statements) in the current
+   scope.  The entities are in the IL because they represent state that is
+   passed to the back-end. */
+typedef struct a_pragma *a_pragma_ptr;
+typedef struct a_pragma {
+  a_pragma_ptr	next;
+			/* Next in a linked list of pragma entries
+			   declared in the current scope. */
+  a_pragma_kind	kind;
+			/* The kind of pragma. */
+  a_tagged_pointer
+		entity;
+			/* A struct containing a tag and a generic pointer to
+			   the entity (statement, variable, function, etc.) to
+			   which this pragma is bound; a given pragma entry
+			   is bound to only one such entity.  If the entity's
+			   ptr field is NULL, this pragma has general effect,
+			   either globally (if it is on the pragma list for
+			   the file scope) or locally (if it is on the pragma
+			   list for a nonfile scope). */
+  union {
+    /* When kind == pk_none or refers to "front-end-only" pragma, no variant
+       fields. */
+    a_byte	dummy;
+			/* Remove this field (present only to avoid compiler
+			   diagnostics) if additional variant fields are
+			   added. */
+  } variant;
+} a_pragma;
+
+
 /*
 Numbering for scopes.  Each new scope is given a number.  These
 numbers are unique identifiers for each scope, not simply the nesting
@@ -4711,6 +4832,11 @@ typedef struct a_scope {
 			   the points within the code where each initialization
 			   should be done. */
 #endif /* ifdef CIL */
+  a_pragma_ptr	pragma_list;
+			/* A linked list of pragma entries.  They may be
+			   bound to specific declarations or statements or
+			   they may be unbound, meaning they have general
+			   effect over this scope. */
 #ifdef FIL
   an_entry_description_ptr
                 entries;

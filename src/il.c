@@ -6540,6 +6540,7 @@ to it.  The statement kind is set as indicated.
   clear_stmt_source_position(sp->position);
   sp->next                = NULL;
   sp->dependent_statement = FALSE;
+  sp->has_associated_pragma = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sp->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -6653,6 +6654,7 @@ points to the associated routine if the kind is sck_function.
   sp->asm_entries         = NULL;
   sp->scopes              = NULL;
   sp->dynamic_inits       = NULL;
+  sp->pragma_list         = NULL;
 #ifdef FIL
   sp->entries             = NULL;
   sp->namelist_groups     = NULL;
@@ -7908,6 +7910,7 @@ of the front end.
      set to TRUE (for an actual reference) by record_symbol_reference. */
   def_source_corresp.referenced = TRUE;
   def_source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
+  def_source_corresp.has_associated_pragma = FALSE;
   def_source_corresp.is_local_to_function = FALSE;
 #if DO_IL_LOWERING
   def_source_corresp.name_has_been_mangled = FALSE;
