@@ -5813,7 +5813,7 @@ the constants following, and set *previous_con to the constant after which
 to insert (or NULL for insertion at the beginning of the aggregate).
 If the new constants will overwrite earlier initialization constants,
 set *earlier_con to indicate the first of the constants being
-overwritten; otherwise, set it indicate no constant.  This routine
+overwritten; otherwise, set it to indicate no constant.  This routine
 is not called for union initializations.
 */
 {
@@ -5914,6 +5914,8 @@ have already had their designated initializers lowered.
 
   if (earlier_aggr_con != NULL) {
     /* There is an earlier list of constants, being overwritten. */
+    check_assertion(earlier_aggr_con->kind ==
+                                           (a_constant_repr_kind)ck_aggregate);
     temp_con = earlier_aggr_con->variant.aggregate.first_constant;
     if (union_init) {
       /* For a union, previous processing may have left a ck_designator.
