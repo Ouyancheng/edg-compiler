@@ -1328,12 +1328,6 @@ EXTERN a_boolean
 			   also END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE. */
 
 EXTERN a_boolean
-		mixed_decls_and_statements_allowed /* = FALSE */;
-			/* TRUE in C++ and C99 modes, to allow interspersed
-			   declarations and executable statements within a
-			   block. */
-
-EXTERN a_boolean
 		flexible_array_members_allowed /* = FALSE */;
 			/* TRUE if the final field of a struct may be an
 			   incomplete array type.  This is part of the C99
