@@ -1337,7 +1337,8 @@ execute the preprocessor directive.
      after processing the directive, we need to call
      generate_precompiled_header. */
   if (header_stop_position_pending) {
-    if (curr_ise->actual_line == 
+    if (!curr_ise->is_include_file &&
+        curr_ise->actual_line == 
                            (a_line_number)header_stop_source_position.seq &&
         start_of_dir_position.column == header_stop_source_position.column) {
       is_header_stop_dir = TRUE;
