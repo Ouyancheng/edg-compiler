@@ -4103,6 +4103,10 @@ entity is known to be a type.
        i.e., the parent class is not a template reference.  Just return the
        original symbol. */
     new_sym = sym;
+  } else if (!is_class_struct_union_type(parent_type)) {
+    /* The new type is not a class type, and so cannot be a parent. */
+    *copy_error = TRUE;
+    goto done;
   } else {
     /* If the original parent type of "type" was A<T>, tp now represents a
        class with the substitution performed on the template parameter,
