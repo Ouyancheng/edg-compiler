@@ -3539,9 +3539,11 @@ otherwise it is NULL.  The syntax is:
         /* Enforce some restrictions on the declarations of overloaded
            operator functions. */
         if (member_parent_type != NULL) {
-          if (!(input_flags & DI_NONSTATIC_MEMBER) &&
-              locator->variant.opname != (an_opname_kind)onk_new &&
-              locator->variant.opname != (an_opname_kind)onk_delete) {
+          if (locator->specific_symbol != NULL) {
+            /* This must be a redeclaration. */
+          } else if (!(input_flags & DI_NONSTATIC_MEMBER) &&
+                     locator->variant.opname != (an_opname_kind)onk_new &&
+                     locator->variant.opname != (an_opname_kind)onk_delete) {
             pos_error(ec_static_member_operator_not_allowed,
                       &locator->source_position);
             set_to_error_locator(*locator);
