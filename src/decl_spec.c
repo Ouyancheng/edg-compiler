@@ -199,7 +199,7 @@ caution when modifying this routine.
                                          source_corresp.assoc_info;
       if (locator_for_curr_id.symbol_header == type_info_sym->header) {
         /* The identifier is indeed "type_info".  Check for the pragma that
-           specifically identifies it as the type_info that returned by
+           specifically identifies it as the type_info that is returned by
            typeid (typically, the type_info defined in typeinfo.h). */
         a_pending_pragma_ptr  ppp;
         ppp = extract_specific_pragmas((a_pragma_kind)pk_define_type_info,
