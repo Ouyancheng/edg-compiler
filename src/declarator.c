@@ -1523,6 +1523,9 @@ otherwise it is NULL.  The syntax is:
   a_boolean       parenthesized_initializer_allowed;
   a_boolean       is_friend_decl = FALSE;
   a_boolean       class_scope_deactivation_required = FALSE;
+#if CHECKING
+  a_boolean       any_syntax_error = FALSE;
+#endif /* if CHECKING */
 
   db_enter(3, "declarator");
   set_err_pos_to_curr_token();
@@ -1608,6 +1611,9 @@ otherwise it is NULL.  The syntax is:
        5.3.3).  Set the flag to FALSE for subsequent processing. */
     nonconstant_dimension_allowed = FALSE;
     /* Check for and get the closing parenthesis. */
+#if CHECKING
+    if (curr_token != tok_rparen) any_syntax_error = TRUE;
+#endif /* if CHECKING */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
   } else {
@@ -2070,10 +2076,12 @@ function_lparen:
   if (specifiers_type != NULL) {
     /* Use m_is_error_type instead of is_error_type for efficiency. */
     if (!m_is_error_type(complete_type)) {
+#if CHECKING
       check_assertion((*output_flags & DO_REAL_DECLARATOR_SCANNED) ||
                       is_ptr_or_ref_type(complete_type) ||
-                      derived_type != NULL ||
+                      derived_type != NULL || any_syntax_error ||
                       is_ptr_to_member_type(complete_type));
+#endif /* if CHECKING */
       (skip_typerefs(specifiers_type))->source_corresp.referenced = TRUE;
     }  /* if */
   }  /* if */
