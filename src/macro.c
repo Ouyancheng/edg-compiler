@@ -2088,6 +2088,7 @@ end_scan_for_macro_modifs:;
                _Pragma("pragma-name pragma-operands(opt)")
            Call a routine to translate the string into a pending pragma
            entry. */
+        is_macro_call = FALSE;
         scan_pragma_operator(); 
         repl_text = "";
         repl_text_len = 0;
@@ -2580,7 +2581,8 @@ copy_done:;
   if ((pcc_preprocessing_mode ||
        /* Avoid a problem with a missing parenthesis on a "defined"
           operator. */
-       (microsoft_mode && curr_token != tok_newline)) && macro_depth == 1) {
+       (microsoft_mode && curr_token != tok_newline)) &&
+      is_macro_call && macro_depth == 1) {
     /* In pcc mode, in order to more closely approximate the token-pasting
        behavior of pcc, we immediately macro-expand the text resulting from a
        top-level macro invocation, then make a copy of the macro-expanded

@@ -1,3 +1,17 @@
+Version 2.46
+
+12/31/00 Microsoft mode macro expansion: abort on inert macro name
+
+A bug introduced in 2.44 caused aborts in some cases in Microsoft
+mode preprocessing.  The cases involved a top-level macro call that
+expands to a string that includes a recursive reference to the macro
+(such a reference is not expanded; we refer to that as an "inert"
+macro name).  The aborts are now corrected.
+
+  #define f() +f()
+  f()   // Formerly aborted in Microsoft mode
+
+-------------------------------------------------------------------------------
 Version 2.45, December 26, 2000
 
 12/25/00 More automatic configuration for long long host integer container
