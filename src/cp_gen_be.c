@@ -4627,6 +4627,8 @@ array.
 static a_boolean rout_is_copy_constructor(a_routine_ptr rout)
 /*
 Return TRUE if the indicated routine (a constructor) is a copy constructor.
+(More specifically, if it is a copy constructor that takes exactly one
+argument.)
 */
 {
   a_routine_type_supplement_ptr rtsp = rout->type->variant.routine.extra_info;
@@ -4636,12 +4638,10 @@ Return TRUE if the indicated routine (a constructor) is a copy constructor.
   /* A constructor is deemed a copy constructor if (1) the type of the first
      parameter is reference-to-class or reference-to-qualified-class where
      "class" is the class of which it is a member function, and (2) where
-     the function can be called with only one argument. */
-  /* If the param type entry is non-NULL there is at least one argument.  If
-     there is a second argument and it has a default expression, the function
-     call need not explicitly mention the second argument. */
-  if (param != NULL && is_reference_type(param->type) &&
-      (param->next == NULL || param->next->has_default_arg)) {
+     the function can be called with only one argument.  Here, we test
+     for exactly one argument, because we only want to handle cases like
+     that. */
+  if (param != NULL && is_reference_type(param->type) && param->next == NULL) {
     a_type_ptr tp = type_pointed_to(param->type);
     if (skip_typerefs(tp) == rout->source_corresp.class_of_which_a_member) {
       /* It is a copy constructor. */
@@ -4744,8 +4744,9 @@ TRUE, "()" is put out.
         args = dip->variant.constructor.args;
         if (!parenthesized_init && rout_is_copy_constructor(ctor)) {
           /* This is the copy constructor elision case -- we don't have to
-             write the copy constructor because it's implied. */
-          gen_expression(args);
+             write the copy constructor because it's implied.  Just write the
+             source argument. */
+          gen_argument_list(args, ctor->type, /*skip_num=*/0);
         } else {
           /* This is the non-elision case. */
           if (parenthesized_init && args == NULL) {
