@@ -37,7 +37,6 @@ in .h files.
 #if STANDALONE_UTILITY_PROGRAM
 
 /* Header files used by standalone utility programs. */
-#include "il_display.h"
 #include "il_walk.h"
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_file.h"
