@@ -1,5 +1,29 @@
 Version 2.23
 
+5/24/94  Overload resolution bug when static & non-static functions compete
+
+When a static and a nonstatic member function compete against one
+another in overload resolution, and the static member function wins,
+the conversions needed on the arguments were sometimes not done right:
+
+  struct A {operator char*() const;};
+  struct B {
+    void f();
+    static B *f(char *);
+  };
+  struct C {
+    void h();
+  };
+  void C::h()
+  {
+    A id;
+    // id should be converted to char* using A::operator char*():
+    B::f(id);
+  }
+
+
+5/24/94  IL version number changed to 2.15
+
 5/24/94  Cfront-style member function typedef
 
 A bug has been fixed in our support for cfront-compatible member-function

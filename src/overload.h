@@ -151,7 +151,11 @@ typedef struct an_arg_match_summary {
 			   that the match was possible only because of the
 			   anachronism that allows a non-const function to
 			   be called for a const object. */
-  a_type_ptr    param_type;
+  a_byte_boolean
+		is_match_for_this_param;
+			/* TRUE if this entry describes the match for the
+			   "this" parameter. */
+  a_type_ptr	param_type;
 			/* The type of the parameter.  Used in looking
 			   for conversion subsequences involving addition
 			   of type qualifiers at the end of a conversion.

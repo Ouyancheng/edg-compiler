@@ -237,6 +237,7 @@ values.
   amsp->cast_base_class            = NULL;
   amsp->reversed_cast              = FALSE;
   amsp->const_anachronism          = FALSE;
+  amsp->is_match_for_this_param    = FALSE;
   amsp->param_type                 = NULL;
   clear_user_conv_descr(&amsp->user_conversion);
   amsp->warning_suggested          = ec_no_error;
@@ -406,10 +407,13 @@ Print a candidate function entry for debugging purposes.
     fprintf(f_debug, "(function template)\n");
   }  /* if */
   /* Display the arg match list. */
-  for (narg = 1, amsp = cfp->arg_matches;
-       amsp != NULL;
-       narg++, amsp = amsp->next) {
-    fprintf(f_debug, "  arg %lu: ", narg);
+  narg = 0;
+  for (amsp = cfp->arg_matches; amsp != NULL; amsp = amsp->next) {
+    if (amsp->is_match_for_this_param) {
+      fprintf(f_debug, "  this:  ");
+    } else {
+      fprintf(f_debug, "  arg %lu: ", ++narg);
+    }  /* if */
     db_arg_match_summary(amsp);
   }  /* for */
 }  /* db_candidate_function */
@@ -1221,6 +1225,7 @@ class or a derived class thereof (except for error cases).
       }  /* if */
     }  /* if */
   }  /* if */
+  this_match_summary->is_match_for_this_param = TRUE;
   db_exit();
 }  /* selector_match_with_this_param */
 
@@ -1445,6 +1450,7 @@ created.
         /* We have a selector. */
         /* Put a match entry for it on the front of the match list. */
         this_match = alloc_arg_match_summary();
+        this_match->is_match_for_this_param = TRUE;
         this_match->next = this_match_next = arg_match_list;
         arg_match_list = this_match;
         if (!function_is_nonstatic_member_function) {
@@ -1463,6 +1469,7 @@ created.
                                       rtsp->implicit_this_param_type,
                                       /*try_user_conversions=*/FALSE,
                                       this_match);
+            this_match->is_match_for_this_param = TRUE;
             /* Set the "next" pointer again, because it is cleared by
                determine_arg_match_level. */
             this_match->next = this_match_next;
@@ -3243,6 +3250,9 @@ overloaded operator cases.
     old_style_function = !routine_type->variant.routine.extra_info->prototyped;
     arg_match = arg_match_list;
     if (have_selector) {
+      check_assertion_str2(arg_match->is_match_for_this_param,
+                           "adjust_overloaded_function_call_arguments:",
+                           "is_match_for_this_param not set");
       /* Issue any warning about the "this" parameter detected while
          evaluating the alternatives. */
       if (bound_function_selector != NULL) {
@@ -3252,7 +3262,10 @@ overloaded operator cases.
       /* Note that no cast is done here.  It was done when the "." or "->"
          operator was processed (that still may leave a difference here
          involving type qualifiers, but it's not meaningful). */
-      /* Move past the match entry for the selector. */
+    }  /* if */
+    if (arg_match->is_match_for_this_param) {
+      /* Move past the match entry for the selector.  Note that this entry
+         might be present even if this function doesn't need it. */
       arg_match = arg_match->next;
     }  /* if */
     prev_arg = NULL;
