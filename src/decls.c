@@ -3614,14 +3614,12 @@ cross-reference output describing this declaration.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (C_mode() && microsoft_mode &&
               is_integral_type(type_ptr) && is_integral_type(*old_type) &&
-              integral_types_the_same_except_for_signedness(type_ptr,
-                                                            *old_type)) {
-            /* Compatible but for a difference in signedness -- just issue a
-               warning in Microsoft C mode. */
+              type_ptr->size == (*old_type)->size &&
+              type_ptr->alignment == (*old_type)->alignment) {
+            /* Just issue a warning in Microsoft C mode.  MSVC uses the first
+               declaration, so adjust type_ptr. */
             severity = es_warning;
-            /* MSVC gives preference to the signedness of the first
-               declaration. */
-            type_ptr = variable_ptr->type;
+            type_ptr = *old_type;
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
