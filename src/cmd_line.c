@@ -1884,17 +1884,10 @@ enable_microsoft_mode:
       case optk_pending_instantiations:
         /* The number of instantiations of a given template that may be in
            progress at any given time, or zero for an unlimited number. */
-        { long	opt_number;
-          opt_number = scan_opt_arg_number(opt_arg);
-          if (opt_number < 0) {
-            str_command_line_error(ec_cl_invalid_pending_instantiations,
-                                   opt_arg);
-          }  /* if */
-          max_pending_instantiations = opt_number;
-          if (max_pending_instantiations == 0) {
-            max_pending_instantiations = ULONG_MAX;
-          }  /* if */
-        }
+        max_pending_instantiations = scan_opt_arg_number(opt_arg);
+        if (max_pending_instantiations == 0) {
+          max_pending_instantiations = ULONG_MAX;
+        }  /* if */
         break;
       default:
         /* It should not be possible to get here. */
