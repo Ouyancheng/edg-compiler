@@ -294,7 +294,7 @@ the current class.  Otherwise free it for later use.
   a_symbol_ptr  sym = curr_routine_fixup->symbol;
   a_boolean     needed = FALSE;
 
-  if (sym != NULL) {
+  if (sym != NULL && !sym->is_error) {
     if (curr_routine_fixup->function_body_token_cache.first_token != NULL  ||
         curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
       needed = TRUE;

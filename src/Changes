@@ -1,5 +1,14 @@
 Version 2.45
 
+9/11/00  Abort on invalid friend declaration in a class template
+
+2.44 introduced a problem that could cause an abort on a friend declaration
+that specified an invalid qualified name.  This has been fixed.
+
+  template <class T> struct A {
+    friend void A::f(){}
+  };
+
 9/11/00  defined_outside_of_parent flag for member function specializations
 
 The flag defined_outside_of_parent in a_routine entries (present when
