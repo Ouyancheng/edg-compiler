@@ -823,10 +823,14 @@ itself recursively to process classes nested within this class.
          this is a static data member will itself be put out as a
          specialization, because that definition will include declarations
          of all the static data members. */
-      add_source_sequence_entry_for_partial_instantiation(
+      { a_type_ptr  declared_type = var->declared_type;
+
+        if (declared_type == NULL) declared_type = var->type;
+        add_source_sequence_entry_for_partial_instantiation(
                                            (char *)var,
                                            (an_il_entry_kind)iek_variable,
-                                           var->declared_type);
+                                           declared_type);
+      }
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

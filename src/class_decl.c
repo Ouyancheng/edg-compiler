@@ -1205,14 +1205,15 @@ nested class.
                                                      is_template_based);
           curr_scope_class_type = rfp->class_type;
         }  /* if */
-        tip = rfp->symbol->variant.routine.instance_ptr;
-        check_assertion(tip != NULL && tip->partial_instantiation != NULL);
-        check_assertion(!source_sequence_entries_disallowed);
-        f_update_source_sequence_list(
+        if (!source_sequence_entries_disallowed) {
+          tip = rfp->symbol->variant.routine.instance_ptr;
+          check_assertion(tip != NULL && tip->partial_instantiation != NULL);
+          f_update_source_sequence_list(
                                (char *)tip->partial_instantiation,
                                (an_il_entry_kind)iek_src_seq_secondary_decl,
                                (a_source_sequence_entry_ptr)NULL);
-        tip->partial_instantiation = NULL;
+          tip->partial_instantiation = NULL;
+        }  /* if */
       }  /* if */
     }  /* for */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -1289,7 +1290,8 @@ nested class.
           }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-          if (rfp->func_info.is_movable_member_or_friend_def) {
+          if (rfp->func_info.is_movable_member_or_friend_def &&
+              !source_sequence_entries_disallowed) {
             /* Within the class definition a secondary-decl source sequence
                entry was put out for the member or friend function
                definition.  The primary source sequence entry was deferred
@@ -1336,7 +1338,8 @@ nested class.
           flush_past_token_cache_terminator();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-          if (rfp->func_info.is_movable_member_or_friend_def) {
+          if (rfp->func_info.is_movable_member_or_friend_def &&
+              !source_sequence_entries_disallowed) {
             pop_ss_insert_stack();
           }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
