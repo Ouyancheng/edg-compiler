@@ -9883,7 +9883,7 @@ floating-point template parameters are allowed in default mode:
 
 8/16/99  Allow global qualifier on access declaration
 
-The font end now accepts a leading "::" on an access declaration.
+The front end now accepts a leading "::" on an access declaration.
 
   struct B { int x; };
   struct D: private B {
