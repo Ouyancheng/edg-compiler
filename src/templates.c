@@ -5845,7 +5845,8 @@ static void complete_function_template_decl(
                      a_boolean                        is_template_friend,
                      a_type_ptr                       class_declared_in,
                      a_template_symbol_supplement_ptr *p_tssp,
-                     a_boolean                        *defines_something)
+                     a_boolean                        *defines_something,
+                     a_source_position		      *decl_pos)
 /*
 Complete the processing for a function template declaration.  sym is a symbol
 indicating the template.  func_info points to the block of information for
@@ -5862,16 +5863,24 @@ caller.  defines_something is set to TRUE if this is a function definition
 and not just a declaration.
 */
 {
-  a_boolean                        err = sym->is_error;
+  a_boolean                        err = sym == NULL || sym->is_error;
   a_template_symbol_supplement_ptr tssp = NULL;
   a_template_param_ptr             template_param_list =
                                                template_decl_info->parameters;
   a_boolean                        in_prototype_instantiation;
 
-  tssp = template_supplement_for_symbol(sym);
+  if (!err && !is_function_or_template_symbol(sym)) {
+    /* The symbol is something other than a function symbol.  Issue
+       an error and set the symbol to NULL.  This error test only applies
+       to class member templates. */
+    pos_sy_error(ec_bad_member_template_decl, decl_pos, sym);
+    err = TRUE;
+    sym = NULL;
+  }  /* if */
+  if (sym != NULL) tssp = template_supplement_for_symbol(sym);
   in_prototype_instantiation = scope_stack[depth_scope_stack].
                                                     in_prototype_instantiation;
-  if (sym->kind == (a_symbol_kind)sk_function_template &&
+  if (sym != NULL && sym->kind == (a_symbol_kind)sk_function_template &&
       sym->is_class_member && !is_template_friend) {
     if (in_prototype_instantiation) {
       /* Save the token sequence number associated with this declaration.
@@ -5893,10 +5902,10 @@ and not just a declaration.
   /* Make sure that the template parameter list is compatible with
      any previous declaration (i.e., the declaration of the class
      if this is a member function. */
-  if (sym->is_class_member &&
+  if (!err && sym->is_class_member &&
       (class_declared_in == NULL || is_template_friend)) {
     if (!member_template_param_list_matches_class(template_decl_info,
-                                                  sym, &error_position)) {
+                                                  sym, decl_pos)) {
       err = TRUE;
     } /* if */
   } /* if */
@@ -5945,10 +5954,13 @@ and not just a declaration.
         *decl_token_cache_used = TRUE;
       }  /* if */
       if (*defines_something || 
-          tssp->variant.function.func_info.param_id_list == NULL) {
+          tssp->cache.decl_info == NULL) {
+        /* This is either the defining declaration or the initial declaration
+           (or both). */
         if (func_info != NULL) {
           /* The func_info block should point to the declaration associated
-             with the definition, if a definition is present. */
+             with the definition, if a definition is present.  This is done
+             elsewhere for class members. */
           tssp->variant.function.func_info = *func_info;
           /* Copy the func_info block and then null out its param-id
              pointer so that it won't be freed. */
@@ -5988,13 +6000,13 @@ and not just a declaration.
       }        /* if */
     } /* if */
   } /* if */
-  if (sym->kind != (a_symbol_kind)sk_function_template) {
+  if (err) {
+    /* Avoid spurious errors -- skip the check for template params, since
+       this might have been intended to be a member function. */
+  } else if (sym->kind != (a_symbol_kind)sk_function_template) {
     /* Out-of-line definition of a member function of a class template.
        Don't impose requirements on the use of template parameters in the
        parameters. */
-  } else if (err) {
-    /* Avoid spurious errors -- skip the check for template params, since
-       this might have been intended to be a member function. */
   } else {
     /* Go back through the template params and make sure that all of the
        template parameters were used in a way that effects the function
@@ -6390,13 +6402,14 @@ as the current token; otherwise, it is consumed.
       pos_error(ec_exp_declaration, &pos_curr_token);
     } else if (is_member_decl && !is_template_friend) {
       /* A member template declaration. */
+      a_source_position	decl_start_pos = pos_curr_token;
       sym = class_member_template_declaration(class_declared_in);
       complete_function_template_decl(sym, (a_func_info_block *)NULL,
                                       template_decl_info, &decl_token_cache,
                                       &decl_token_cache_used,
                                       /*is_template_friend=*/FALSE,
                                       class_declared_in, &tssp,
-                                      defines_something);
+                                      defines_something, &decl_start_pos);
 #if RECORD_TEMPLATES_IN_IL
       if (*defines_something) {
         /* Save a pointer to the token cache for function body.  tssp may
@@ -6454,7 +6467,8 @@ as the current token; otherwise, it is consumed.
                                         template_decl_info, &decl_token_cache,
                                         &decl_token_cache_used,
                                         is_template_friend, class_declared_in,
-                                        &tssp, defines_something);
+                                        &tssp, defines_something,
+                                        &locator.source_position);
 #if RECORD_TEMPLATES_IN_IL
         if (*defines_something) {
           /* Save a pointer to the token cache for function body.  tssp may

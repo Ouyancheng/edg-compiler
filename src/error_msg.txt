@@ -833,6 +833,7 @@ ec_unnamed_class_virtual_function_def_missing;;"definition of virtual %n is requ
 ec_svr4_token_pasting_comment;;"empty comment interpreted as token-pasting operator \"##\""
 ec_storage_class_in_friend_decl;;"a storage class is not allowed in a friend declaration"
 ec_templ_param_list_not_allowed;;"template parameter list for %no is not allowed in this declaration"
+ec_bad_member_template_decl;;"%n is not a class or function template"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

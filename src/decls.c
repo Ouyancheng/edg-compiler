@@ -4409,6 +4409,22 @@ is not a template declaration scope.
 #if DECL_MODIFIERS_IN_USE
   redeclaration = rout_ptr != NULL;
 #endif /* DECL_MODIFIERS_IN_USE */
+  if (!is_error_locator(*locator)) {
+    if (func_info->is_definition) {
+      if (sym->defined) {
+        pos_sy_error(ec_already_defined, &locator->source_position, sym);
+      } /* if */
+      mark_defined(sym, &locator->source_position);
+    } else {
+      mark_declared(sym, &locator->source_position);
+      if (sym->is_class_member && !is_friend_decl) {
+        /* A non-defining declaration of a member function is not
+           allowed. */
+        pos_sy_error(ec_member_function_redecl_outside_class,
+                     &locator->source_position, sym);
+      } /* if */
+    } /* if */
+  } /* if */
   /* A routine entry is created for the function template, but it is not
      entered in the IL.  It is a convenient place to keep track of prototype
      information: type, storage class, etc.  These values may be reused
