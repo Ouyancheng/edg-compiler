@@ -3446,7 +3446,7 @@ char *il_entry_for_symbol(a_symbol_ptr      sym,
                           an_il_entry_kind  *kind)
 /*
 Return a pointer to the IL entry to which the specified symbol refers.  Also
-return the kind of il entry that is found.  If the symbol is not associated
+return the kind of IL entry that is found.  If the symbol is not associated
 with an IL entry, return NULL, and leave kind set to iek_none.
 */
 {
@@ -3455,11 +3455,10 @@ with an IL entry, return NULL, and leave kind set to iek_none.
   *kind = iek_none;
   switch (sym->kind) {
     case sk_macro:
-      /* Only manifest constant macros have an associated IL entry. */
-      if (sym->variant.macro_def->is_manifest_constant) {
-        entry_ptr = (char *)sym->variant.macro_def->constant_value;
-        *kind = iek_constant;
-      }  /* if */
+#if RECORD_MACROS_IN_IL
+      entry_ptr = (char *)sym->variant.macro_def->macro;
+      if (entry_ptr != NULL) *kind = iek_macro;
+#endif /* RECORD_MACROS_IN_IL */
       break;
     case sk_constant:
       entry_ptr = (char *)sym->variant.constant;

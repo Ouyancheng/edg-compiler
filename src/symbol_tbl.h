@@ -422,6 +422,10 @@ typedef struct a_macro_def {
 	       	constant_value;
 			/* If is_manifest_constant is TRUE, this points to
 			   the value of the literal constant. */
+#if RECORD_MACROS_IN_IL
+  a_macro_ptr	macro;	/* The IL macro entry.  NULL for predefined macros
+			   and those defined on the command line. */
+#endif /* RECORD_MACROS_IN_IL */
 } a_macro_def;
 
 /*

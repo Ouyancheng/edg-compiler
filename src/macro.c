@@ -481,6 +481,9 @@ Clear a macro definition entry to default values.
   mdp->repl_text                           = NULL;
   mdp->constant_token_kind                 = tok_error;
   mdp->constant_value                      = NULL;
+#if RECORD_MACROS_IN_IL
+  mdp->macro                               = NULL;
+#endif /* RECORD_MACROS_IN_IL */
 }  /* clear_macro_def */
 
 
@@ -2484,13 +2487,9 @@ source position *macro_pos.
   mp->text = ptr;
   mp->source_corresp.decl_position = *macro_pos;
   set_source_corresp(&mp->source_corresp, macro_sym);
+  mdp->macro = mp;
   /* Add the macro to the IL list. */
   add_to_macros_list(mp);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* Add a source sequence entry for the macro. */
-  update_source_sequence_list((char *)mp, (an_il_entry_kind)iek_macro,
-                              (a_source_sequence_entry_ptr)NULL);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* make_il_macro_entry */
 
 #endif /* RECORD_MACROS_IN_IL */
@@ -2909,11 +2908,13 @@ redef_error:
 			= constant_token_kind;
     /* Put the macro def block pointer into the symbol entry. */
     assoc_symbol->variant.macro_def = mdp;
+def_done:;
 #if RECORD_MACROS_IN_IL
     /* Make an IL entry for the macro. */
     make_il_macro_entry(assoc_symbol, &start_pos);
 #endif /* RECORD_MACROS_IN_IL */
-def_done:;
+    /* Mark the symbol as defined. */
+    assoc_symbol->defined = FALSE;  /* Avoid secondary declarations. */
     mark_defined(assoc_symbol, &start_pos);
   }  /* if */
   /* Drop any local pointer registrations. */
