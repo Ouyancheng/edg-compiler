@@ -819,6 +819,24 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, a_routine_ptr, iek_routine);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+        /* If the routine is a virtual function with a covariant return
+           type, the class type in the return type must be complete. */
+        if (ptr->covariant_return_virtual_override) {
+          a_type_ptr temp_type = ptr->type;
+          temp_type = skip_typerefs(temp_type);
+          check_assertion_str2(temp_type->kind == (a_type_kind)tk_routine,
+                               "walk_entry_and_subtree:",
+                               "type of virtual function is not tk_routine");
+          temp_type = temp_type->variant.routine.return_type;
+          temp_type = skip_typerefs(temp_type);
+          check_assertion_str2(temp_type->kind == (a_type_kind)tk_pointer,
+                               "walk_entry_and_subtree:",
+                            "return type of covariant virtual is not pointer");
+          temp_type = temp_type->variant.pointer.type;
+          definition_needed_if_class(temp_type);
+        }
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
         /* assoc_scope points to a different memory region and is not
            walked automatically.  The entry_process_func can arrange
            to call walk_routine_scope_il if it wants to. */

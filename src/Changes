@@ -1,5 +1,12 @@
 Version 2.35
 
+12/22/96 Maintaining "needed" flags: virtual functions with covariant
+         return types
+
+The processing to maintain "needed" flags now ensures that the definition
+of a class type underlying a covariant return type is kept, i.e., that
+that context is one that requires a complete class type.
+
 12/20/96 Removing unneeded IL entities and namespaces
 
 The processing for removing unneeded IL entities (controlled by
@@ -11,6 +18,7 @@ This abort only occurred, however, when IL lowering lowering was not done.
 
 The IL display program did not intialize the f_debug variable, causing an
 abort if the program attempted to produce debug output.  This has been fixed.
+
 -------------------------------------------------------------------------------
 Version 2.34, December 18, 1996
 
