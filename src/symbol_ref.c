@@ -616,6 +616,9 @@ information on the reference, if required.
 }  /* reference_to_invalid_name */
 
 
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
+/*ARGSUSED*/ aap is used only when a source sequence entry is created.
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 void record_access_adjustment(an_access_adjustment_ptr  aap,
                               a_symbol_ptr              sym,
                               a_source_position         *pos)
