@@ -3341,13 +3341,14 @@ scan_paren:
         dip->kind == (a_dynamic_init_kind)dik_constructor) {
       /* We have an array whose elements are constructible.  dip is the
          dynamic init entry for the element.  Create a dynamic init entry to
-         represent the initialization of array as a whole. */
+         represent the initialization of the array as a whole. */
       check_assertion(dip->is_constructor_init);
       ctor_dip = dip;
       dip = alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
       /* Build the looping constant entry. */
       repeat_nonconstant_init(ctor_dip, array_type, tp, dip,
                               array_element_count(array_type, tp));
+      dip->is_constructor_init = TRUE;
       if (ctor_dip->destructor != NULL) {
         /* A destructor is recorded in the array element dynamic-init entry.
            This is in case an exception is thrown in the midst of constructing
