@@ -1402,6 +1402,7 @@ ec_register_in_address_space;;"a register variable cannot be allocated in a name
 ec_bad_stdc_fx_overflow_pragma_arg;;"expected \"SAT\" or \"DEFAULT\""
 ec_no_corresponding_member_delete;;"%n has no corresponding member operator delete%s (to be called if an exception is thrown during initialization of an allocated object)"
 ec_dll_thread_conflict;;"a thread-local variable cannot be declared with \"dllimport\" or \"dllexport\""
+ec_function_returning_named_address_space;;"a function return type cannot be qualified with a named address space"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

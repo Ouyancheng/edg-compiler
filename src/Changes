@@ -1,5 +1,13 @@
 Version 3.5
 
+8/23/04  Embedded C: Named address space qualifiers on return types
+
+When Embedded C extensions are enabled, the front end now issues an error on
+a function whose return type is qualified with a named address space.
+For example:
+
+  int _EDG_NAS_A f();  // Now an error.
+
 8/20/04  Microsoft and GNU C++ compatibility: Duplicate extern "C" definitions
 
 In GNU C++ and Microsoft C++ modes, the front end normally does not attempt to

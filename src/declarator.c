@@ -664,6 +664,12 @@ property fields).
                could end up being instantiated with a class type). */
           } else if (get_type_qualifiers(new_type_ptr) == TQ_RESTRICT) {
             /* Exactly one type qualifier -- "restrict".  No warning. */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+          } else if (type_qualified_with_named_address_space(new_type_ptr)) {
+            /* Functions cannot return a value in a named address space. */
+            error(ec_function_returning_named_address_space);
+            err = TRUE;
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
           } else if (is_shared_qualified_type(new_type_ptr)) {
             /* Functions cannot return a shared type. */
