@@ -1440,7 +1440,7 @@ common_cfront_mode_settings:
         break;
       case optk_remove_unneeded_entities:
         /* If FALSE, suppress elimination of unneeded IL entries. */
-        suppress_elimination_of_unneeded_il_entries = !opt_value;
+        okay_to_eliminate_unneeded_il_entries = opt_value;
         break;
       default:
         /* It should not be possible to get here. */
