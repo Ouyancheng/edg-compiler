@@ -4015,7 +4015,7 @@ value.
 {
   a_targ_size_t a, len;
   unsigned char ch;
-  int           i;
+  unsigned int  i;
   unsigned long temp;
   
   len = constant->variant.string.length;
