@@ -250,10 +250,7 @@ typedef unsigned int
 #endif /* __ANSIC__ */
 
 /*
-Definition of a generic byte.  Should be whichever of "char", "signed
-char", or "unsigned char" is most efficient.  Also significant, perhaps:
-How does the debugging environment display these -- integer form rather
-than character form is nice.
+Definition of a generic byte.  Always "unsigned char".
 */
 typedef unsigned char a_byte;
 #define BYTE_MAX UCHAR_MAX
