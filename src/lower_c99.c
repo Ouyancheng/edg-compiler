@@ -1096,7 +1096,7 @@ Do C99 lowering on the indicated variable and its subtree.
 }  /* lower_c99_variable */
   
 
-void lower_c99_scope(a_scope_ptr scope)
+static void lower_c99_scope(a_scope_ptr scope)
 /*
 Do C99 lowering for all entities in and under the given scope.
 */
@@ -1179,6 +1179,11 @@ Do C99 lowering for all entities in and under the given scope.
 
 static void lower_c99_imaginary_type(a_float_kind  kind,
                                      char          *name)
+/*
+Lower the C99 imaginary type whose precision is given by kind.
+The lowered form is a typedef to one of the floating-point types.
+The lowered type is given the name indicated by "name".
+*/
 {
   a_type_ptr  im_type = imaginary_type(kind);
 
@@ -1192,6 +1197,12 @@ static void lower_c99_imaginary_type(a_float_kind  kind,
 
 static void lower_c99_complex_type(a_float_kind  kind,
                                    char          *name)
+/*
+Lower the C99 complex type whose precision is given by kind.
+The lowered form is a typedef to a struct containing an array of
+two floating-point values of the appropriate kind.
+The lowered type is given the name indicated by "name".
+*/
 {
   a_type_ptr   cmplx_type = complex_type(kind);
   a_type_ptr   lowered_repr = lowered_complex_type(kind);
@@ -1214,7 +1225,7 @@ static void lower_c99_complex_type(a_float_kind  kind,
 }  /* lower_c99_complex_type */
 
 
-void lower_c99_nonreal_float_types(void)
+static void lower_c99_nonreal_float_types(void)
 /*
 Replace the imaginary and complex C99 types by their lowered representations.
 */
@@ -1227,6 +1238,21 @@ Replace the imaginary and complex C99 types by their lowered representations.
   lower_c99_complex_type((a_float_kind)fk_double, "_Complex_double");
   lower_c99_complex_type((a_float_kind)fk_long_double, "_Complex_long_double");
 }  /* lower_c99_nonreal_float_types */
+
+
+void lower_c99_il_memory_region(a_scope_ptr scope)
+/*
+Do C99 lowering for a memory region.  scope is the top-level scope for
+the memory region, i.e., either the file scope or a function scope.
+*/
+{
+  il_lowering_underway = TRUE;
+  lower_c99_scope(scope);
+  if (scope->kind == (a_scope_kind)sck_file) {
+    lower_c99_nonreal_float_types();
+  }  /* if */
+  il_lowering_underway = FALSE;
+}  /* lower_c99_il_memory_region */
 
 
 void lower_c99_one_time_init(void)
@@ -1319,6 +1345,9 @@ front end.
   /* Do inline.c initialization. */
   if (inlining_enabled) inline_init();
 #endif /* MINIMAL_INLINING */
+  /* The following is also cleared in il_lower_init, but clear it here also
+     to be sure. */
+  il_lowering_underway = FALSE;
 }  /* lower_c99_init */
 
 #endif /* DO_C99_IL_LOWERING */

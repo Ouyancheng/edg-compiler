@@ -101,10 +101,10 @@ been included by the inclusion of fe_common.h.
 #if MINIMAL_INLINING
 #include "inline.h"
 #endif /* MINIMAL_INLINING */
-#endif /* DO_IL_LOWERING */
 #if DO_C99_IL_LOWERING
 #include "lower_c99.h"
 #endif /* DO_C99_IL_LOWERING */
+#endif /* DO_IL_LOWERING */
 
 /*
 Date/time of compilation, in ctime format ("Sun Sep 16 01:03:52 1973\n"):
@@ -645,10 +645,10 @@ after the command-line processing has been done.
      is done because some of the variables that are initialized in IL
      lowering are used elsewhere even when IL lowering is not being done. */
   il_lower_one_time_init();
-#endif /* DO_IL_LOWERING */
 #if DO_C99_IL_LOWERING
   lower_c99_one_time_init();
 #endif /* DO_C99_IL_LOWERING */
+#endif /* DO_IL_LOWERING */
 #if NEED_NAME_MANGLING
   name_lower_one_time_init();
 #endif /* NEED_NAME_MANGLING */
@@ -727,10 +727,10 @@ source file's compilation.
      (for example, null_eh_region_number when the --building_runtime
      option is used). */
   il_lower_init();
-#endif /* DO_IL_LOWERING */
 #if DO_C99_IL_LOWERING
   lower_c99_init();
 #endif /* DO_C99_IL_LOWERING */
+#endif /* DO_IL_LOWERING */
 #if NEED_NAME_MANGLING
   /* Do lower_name.c initialization.  Name mangling can be included
      independently of the rest of IL lowering. */

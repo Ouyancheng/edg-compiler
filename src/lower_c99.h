@@ -24,9 +24,7 @@ lower_c99.h -- Declarations related to lower_c99.c.
 #define c99_il_lowering_needed()                                             \
   (c99_mode && !suppress_il_lowering && total_errors == 0)
 
-extern void lower_c99_scope(a_scope_ptr scope);
-
-extern void lower_c99_nonreal_float_types(void);
+extern void lower_c99_il_memory_region(a_scope_ptr scope);
 
 extern void lower_c99_one_time_init(void);
 
