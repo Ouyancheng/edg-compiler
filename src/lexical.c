@@ -13263,10 +13263,13 @@ of characters added.
                                                                identifier);
   } else if (token == tok_restrict) {
 #if !SUPPRESS_RESTRICT_IN_GENERATED_CODE
+    char *restrict_kw = "restrict";
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
     /* When targeting a gcc/g++ compiler, put out "__restrict__" since
        "restrict" may not be accepted. */
-    put_str_to_temp_text_buffer(gcc_is_generated_code_target ? "__restrict__"
-                                                             : "restrict");
+    if (gcc_is_generated_code_target) restrict_kw = "__restrict__";
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+    put_str_to_temp_text_buffer(restrict_kw);
 #endif /* !SUPPRESS_RESTRICT_IN_GENERATED_CODE */
   } else if (microsoft_mode && token == tok_asm) {
     /* In Microsoft mode always put out "__asm", since "asm" is not

@@ -1,5 +1,12 @@
 Version 3.4
 
+10/1/03  Compilation problem in lexical.c, with no EDG back end
+
+There was a compilation problem in add_token_to_string in lexical.c
+when BACK_END_IS_C_GEN_BE and BACK_END_IS_CP_GEN_BE are both
+FALSE and SUPPRESS_RESTRICT_IN_GENERATED_CODE is also FALSE.
+Now fixed.
+
 9/30/03  IA-64 ABI: Spurious padding in "size without virtual bases classes"
 
 In IA-64 ABI configurations allowing the reuse of tail padding (configuration
