@@ -3263,7 +3263,7 @@ overloaded operator cases.
          operator was processed (that still may leave a difference here
          involving type qualifiers, but it's not meaningful). */
     }  /* if */
-    if (arg_match->is_match_for_this_param) {
+    if (arg_match != NULL && arg_match->is_match_for_this_param) {
       /* Move past the match entry for the selector.  Note that this entry
          might be present even if this function doesn't need it. */
       arg_match = arg_match->next;
