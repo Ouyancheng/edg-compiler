@@ -884,14 +884,21 @@ static an_expr_node_ptr drop_const_on_init_entity_node(
 The entity whose address is given by the expression entity_node is to
 be initialized by executable code.  If it is "const", drop the const by
 casting so the entity can be written to.  ipdp is the init position
-description for the complete entity being initialized.  entity_node
+description for the complete entity being initialized (or NULL for
+an internal adjustment, e.g., for an array element).  entity_node
 cannot be a bitfield selection.
 */
 {
   a_type_ptr entity_type = type_pointed_to(entity_node->type);
 
-  if (is_const_qualified_type(entity_type)) {
+  /* If the entity is an array, don't drop the const at this level.  It
+     will be dropped on the address of the array element once that is
+     extracted. */
+  if (is_const_qualified_type(entity_type) && !is_array_type(entity_type)) {
+    a_type_qualifier_set qualifiers = get_type_qualifiers(entity_type);
+    qualifiers &= ~(a_type_qualifier_set)TQ_CONST;
     entity_type = make_unqualified_type(entity_type);
+    entity_type = make_qualified_type(entity_type, qualifiers);
     entity_node = add_cast(entity_node, make_pointer_type(entity_type));
     /* Because of the cast, we're using the object's address as a real
        address, not just as an lvalue address, so set the address taken
@@ -899,7 +906,8 @@ cannot be a bitfield selection.
        address_taken flag has changed a few times, so the processing
        here is conservative -- it sets the flag in all cases, which
        guarantees it will work. */
-    if (!ipdp->indirect_through_variable && ipdp->variable != NULL) {
+    if (ipdp != NULL &&
+        !ipdp->indirect_through_variable && ipdp->variable != NULL) {
       set_lowering_variable_address_taken(ipdp->variable);
     }  /* if */
   }  /* if */
@@ -945,14 +953,13 @@ TRUE, the entity is the destination of an initialization operation.
       /* Do the pointer decay from array to pointer to element. */
       a_type_ptr elem_type = array_element_type(type_pointed_to(
                                                            entity_node->type));
+      entity_node = add_cast(entity_node, make_pointer_type(elem_type));
       if (using_as_dest) {
         /* The entity will be used as the destination of an initialization, so
            drop "const" (if present) from the type to make it modifiable. */
-        elem_type = make_unqualified_type(elem_type);
-        /* The address_taken flag on the underlying variable is already
-           set appropriately. */
+        entity_node = drop_const_on_init_entity_node(entity_node,
+                                                  (an_init_pos_descr_ptr)NULL);
       }  /* if */
-      entity_node = add_cast(entity_node, make_pointer_type(elem_type));
       if (modifiers->curr_elem != 0) {
         /* Add the subscript if it's non-zero. */
         elem_num_node = node_for_integer_constant((long)modifiers->curr_elem,
