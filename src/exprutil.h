@@ -755,7 +755,7 @@ expressions.
   (gpp_mode && is_floating_type((var)->type) &&                         \
    is_const_qualified_type((var)->type))
 #else /* !GNU_EXTENSIONS_ALLOWED */
-#define or_is_gpp_const_floating_variable(var)
+#define or_is_gpp_const_floating_variable(var)  /*nothing*/
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
