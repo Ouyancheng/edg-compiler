@@ -4832,70 +4832,46 @@ in some way, e.g., two pointers that must have the same type.
       /* This operand takes a pointer type and the operand value has a class
          type.  Look for conversion functions that convert the class type
          to any pointer type. */
-      a_boolean consider = TRUE;
-      if (any_cfront_mode()) {
-        /* Cfront only considers these conversions if the other operand
-           has a pointer (or pointer-to-member) type. */
-        if (arg_operand != arg_operand_list) {
-          /* This is the second operand, so the first must have had an
-             appropriate pointer type. */
-          if (previous_pointer_type_considered == NULL) consider = FALSE;
-        } else {
-          /* This is the first operand, so the second operand must have
-             an appropriate pointer type. */
-          an_arg_operand_ptr second_operand = arg_operand->next;
-          a_type_ptr         second_operand_type= second_operand->operand.type;
-          second_operand_type =
-                    do_implicit_type_transformations(second_operand_type,
-                                                     &second_operand->operand);
-          if (!type_matches_type_code(operand_type,
-                                      type_pattern_position[1])) {
-            consider = FALSE;
-          }  /* if */
+      class_type = skip_typerefs(operand_type);
+      any_ptr_conversion_function_this_operand = FALSE;
+      /* Look at all the conversion functions for the source class. */
+      for (slep = symbol_supplement_for_class(class_type)->conversion_list;
+           slep != NULL;
+           slep = slep->next) {
+        conversion_symbol = slep->symbol;
+        base_conversion_symbol = fundamental_symbol_of(conversion_symbol);
+        conv_routine_type = routine_symbol_type(base_conversion_symbol);
+        return_type = conv_routine_type->variant.routine.return_type;
+        if (is_reference_type(return_type)) {
+          /* Drop a reference type; a conversion function that returns
+             "const int&" can be used like one that returns "const int". */
+          return_type = type_pointed_to(return_type);
         }  /* if */
-      }  /* if */
-      if (consider) {
-        class_type = skip_typerefs(operand_type);
-        any_ptr_conversion_function_this_operand = FALSE;
-        /* Look at all the conversion functions for the source class. */
-        for (slep = symbol_supplement_for_class(class_type)->conversion_list;
-             slep != NULL;
-             slep = slep->next) {
-          conversion_symbol = slep->symbol;
-          base_conversion_symbol = fundamental_symbol_of(conversion_symbol);
-          conv_routine_type = routine_symbol_type(base_conversion_symbol);
-          return_type = conv_routine_type->variant.routine.return_type;
-          if (is_reference_type(return_type)) {
-            /* Drop a reference type; a conversion function that returns
-               "const int&" can be used like one that returns "const int". */
-            return_type = type_pointed_to(return_type);
-          }  /* if */
-          return_type = skip_typerefs(return_type);
-          if (type_matches_type_code(return_type, *type_pattern_position)) {
-            /* We've found a conversion function to an appropriate type.  Make
-               sure it's not a type we've already checked while examining a
-               previous operand.  If it is, ignore it. */
-            pointer_type = return_type;
-            if (!pointer_type_previously_handled(
+        return_type = skip_typerefs(return_type);
+        if (type_matches_type_code(return_type, *type_pattern_position)) {
+          /* We've found a conversion function to an appropriate type.  Make
+             sure it's not a type we've already checked while examining a
+             previous operand.  If it is, ignore it. */
+          pointer_type = return_type;
+          if (!pointer_type_previously_handled(
                                            pointer_type, class_type,
                                            previous_class_type_considered,
                                            previous_pointer_type_considered)) {
-              /* Try matching the operands, with the chosen pointer type
-                 as the target type for operands that must be pointers. */
-              any_ptr_conversion_function_this_operand = TRUE;
-              try_builtin_operands_match(kind, operand_type_pattern,
-                                         first_operand_must_be_lvalue,
-                                         arg_operand_list,
-                                         candidate_functions,
-                                         pointer_type);
-            }  /* if */
+            /* Try matching the operands, with the chosen pointer type
+               as the target type for operands that must be pointers. */
+            any_ptr_conversion_function_this_operand = TRUE;
+            try_builtin_operands_match(kind, operand_type_pattern,
+                                       first_operand_must_be_lvalue,
+                                       arg_operand_list,
+                                       candidate_functions,
+                                       pointer_type);
           }  /* if */
-        }  /* for */
-        /* Remember if we've processed any class types with pointer conversion
-           functions. */
-        if (any_ptr_conversion_function_this_operand) {
-          previous_class_type_considered = class_type;
         }  /* if */
+      }  /* for */
+      /* Remember if we've processed any class types with pointer conversion
+         functions. */
+      if (any_ptr_conversion_function_this_operand) {
+        previous_class_type_considered = class_type;
       }  /* if */
     } else {
       /* The operand requires a pointer and the value supplied does not
