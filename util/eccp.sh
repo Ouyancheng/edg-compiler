@@ -93,6 +93,16 @@ EDG_C_TO_OBJ_COMPILER=${EDG_C_TO_OBJ_COMPILER-cc}
 EDG_C_TO_OBJ_DEFAULT_OPTIONS=${EDG_C_TO_OBJ_DEFAULT_OPTIONS--temp=$TMPDIR}
 cc_command="$EDG_C_TO_OBJ_COMPILER $EDG_C_TO_OBJ_DEFAULT_OPTIONS"
 #
+# Flag that indicates that the generated C file should always be created
+# in the current directory.  This provides compatibility with earlier
+# versions of the front and that don't support then --gen_c_file_name
+# option.
+#
+gen_c_in_curr_dir=0
+if [ "$EDG_GEN_C_IN_CURR_DIR" != "" ] ; then
+  gen_c_in_curr_dir=1
+fi
+#
 error=0
 #
 # When set to 1, run front end and cc producing a .o file.
@@ -557,7 +567,7 @@ do
   then
     echo $cfile: 1>$2
   fi
-  if [ $keep_int_file -eq 1 ] ; then
+  if [ $keep_int_file -eq 1 -o $gen_c_in_curr_dir -eq 1 ] ; then
     gen_c_file_name=$basefile.int.c
     gen_c_obj_name=$basefile.int.o
   else
