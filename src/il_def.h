@@ -2855,6 +2855,8 @@ typedef struct an_entry_description {
    called.  This information will reflect constructor initializers that the
    user has supplied with constructor definitions (see ARM 12.6.2), as
    well as all default constructors that are to be invoked. */
+/* A list of these is also used on destructors to indicate destructor
+   calls that must be made for base classes and members. */
 enum a_constructor_init_kind_tag {
   cik_virtual_base_class,
 			/* Object to be initialized is a virtual base class. */
