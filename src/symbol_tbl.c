@@ -1484,17 +1484,20 @@ return a pointer to the new entry. Reuse a freed entry if possible.
 
 
 static a_scope_depth
-           determine_scope_at_which_using_directive_applies(a_symbol_ptr sym)
+determine_scope_at_which_using_directive_applies(a_symbol_ptr            sym,
+                                                 a_scope_stack_entry_ptr ssep)
 /*
 Given a symbol that points to a namespace (sym), find the scope at which
 names in that namespace should be visible as a consequence of a using
-directive.  This is done by going back through the scope stack looking for
-namespace scopes, starting with the innermost namespace scope.
+directive.  This is done by going back through the scope stack, starting
+with ssep, looking for namespace scopes.
 */
 {
-  a_scope_depth			depth = depth_innermost_namespace_scope;
-  a_scope_stack_entry_ptr	ssep = &scope_stack[depth];
+  a_scope_depth			depth;
 
+  /* Compute the scope depth associated with the scope stack entry pointer
+     passed by the caller. */
+  depth = ssep - &scope_stack[0];
   for (;;) {
     if (ssep->kind == (a_scope_kind)sck_file ||
         ssep->kind == (a_scope_kind)sck_namespace) {
@@ -1522,7 +1525,15 @@ namespace scopes, starting with the innermost namespace scope.
 }  /* determine_scope_at_which_using_directive_applies */
 
 
-static void add_active_using_directives_for_namespace(a_namespace_ptr nsp)
+/* Forward declaration. */
+static
+void add_active_using_directive_to_scope(a_using_directive_ptr    udp,
+                                         a_scope_stack_entry_ptr  ssep);
+
+
+static
+void add_active_using_directives_for_namespace(a_namespace_ptr         nsp,
+                                               a_scope_stack_entry_ptr ssep)
 /*
 Create active using directive entries for any using directives present
 in the specified namespace.
@@ -1530,20 +1541,23 @@ in the specified namespace.
 {
   a_using_directive_ptr	udp = nsp->variant.assoc_scope->using_directives;
   while (udp != NULL) {
-    add_active_using_directive(udp);
+    add_active_using_directive_to_scope(udp, ssep);
     udp = udp->next;
   }  /* while */
 }  /* add_active_using_directives_for_namespace */
 
 
-void add_active_using_directive(a_using_directive_ptr udp)
+static
+void add_active_using_directive_to_scope(a_using_directive_ptr    udp,
+                                         a_scope_stack_entry_ptr  ssep)
 /*
 Allocate a new active using directive entry, initialize its fields, and
 link it into a list of active using directives for the current scope.
-Reuse a freed entry if possible. */
+Reuse a freed entry if possible.  If the specified namespace is already
+on the list for the scope, a new entry is not added.
+*/
 {
   an_active_using_directive_ptr  	audp;
-  a_scope_stack_entry_ptr	 	ssep = &scope_stack[depth_scope_stack];
   a_namespace_ptr		 	nsp;
   a_symbol_ptr			 	ns_sym;
   a_scope_depth			 	new_depth;
@@ -1553,27 +1567,74 @@ Reuse a freed entry if possible. */
   nsp = skip_namespace_aliases(udp->assoc_namespace);
   ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
   nssp = ns_sym->variant.namespace_info.extra_info;
-  /* Determine the depth at which this using directive applies.  If
-     the new value is greater than the old value, use the new value.  This
-     test does two thing: it allows a namespace to be added to a list even
-     if it is already on a list for an enclosing scope, and it makes sure
-     that a namespace is not on the active using list for a given scope
-     more than once. */
-  new_depth = determine_scope_at_which_using_directive_applies(ns_sym);
-  if (new_depth > nssp->scope_depth_at_which_using_directive_applies) {
+  /* Determine the depth at which this using directive applies. */
+  new_depth = determine_scope_at_which_using_directive_applies(ns_sym, ssep);
+  /* Determine whether this namespace is already on the active using list
+     for this scope. */
+  audp = ssep->active_using_directives;
+  for (; audp != NULL; audp = audp->next) {
+    if (skip_namespace_aliases(audp->entry->assoc_namespace) == nsp) break;
+  }  /* for */
+  if (audp == NULL) {
     /* Add the using directive to the active list for this scope. */
-    nssp->scope_depth_at_which_using_directive_applies = new_depth;
+    if (new_depth > nssp->scope_depth_at_which_using_directive_applies) {
+      /* Only set the scope depth if it is greated than the existing value.
+         When entries are added to previous scopes, we don't want to
+         reset this value. */
+      nssp->scope_depth_at_which_using_directive_applies = new_depth;
+    }  /* if */
     audp = alloc_active_using_directive();
     audp->entry = udp;
     audp->namespace_supplement = nssp;
     audp->next = ssep->active_using_directives;
+    audp->scope_depth_at_which_using_directive_applies = new_depth;
     ssep->active_using_directives = audp;
     /* Add active using directives for the namespaces that should be
        visible because of the transitivity of using directives. */
-    add_active_using_directives_for_namespace(nsp);
+    add_active_using_directives_for_namespace(nsp, ssep);
     /* Now that a using directive is active, inactive symbols may be
        visible. */
     scope_stack[depth_scope_stack].inactive_symbols_may_be_visible = TRUE;
+  }  /* if */
+}  /* add_active_using_directive_to_scope */
+
+
+void add_active_using_directive(a_using_directive_ptr udp)
+/*
+Add a new active using directive entry that was specified in
+the current scope.
+*/
+{
+  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+
+  add_active_using_directive_to_scope(udp, ssep);
+  if (ssep->kind == (a_scope_kind)sck_namespace ||
+      ssep->kind == (a_scope_kind)sck_namespace_extension) {
+    a_namespace_ptr	namespace_added_to;
+    /* When a using directive is added to a namespace scope, we need to
+       go through any previous scope stack entries to see if they reference
+       the enclosing namespace.  If so, the new using directive, and any
+       new namespaces transitively referenced by the new using directive,
+       must be added to the previous scope stack entries. */
+    namespace_added_to = ssep->il_scope->variant.assoc_namespace;
+    namespace_added_to = skip_namespace_aliases(namespace_added_to);
+    for (;; ssep--) {
+      an_active_using_directive_ptr	audp;
+      /* Look for namespace_added_to on the list of active using directives for
+         this scope. */
+      audp = ssep->active_using_directives;
+      for (; audp != NULL; audp = audp->next) {
+        a_namespace_ptr	audp_namespace;
+        audp_namespace = skip_namespace_aliases(audp->entry->assoc_namespace);
+        if (audp_namespace == namespace_added_to) break;
+      }  /* for */
+      if (audp != NULL) {
+        /* The enclosing namespace is on the list.  Add the using directive
+           to this scope. */
+        add_active_using_directive_to_scope(udp, ssep);
+      }  /* if */
+      if (ssep->kind == (a_scope_kind)sck_file) break;
+    }  /* for */
   }  /* if */
 }  /* add_active_using_directive */
 
@@ -8707,7 +8768,8 @@ entry (for "extension-namespace-definitions").
                           /*nested_instantiation=*/FALSE);
   /* Add active using directives for the namespaces that should be
      visible because of the transitivity of using directives. */
-  add_active_using_directives_for_namespace(assoc_namespace);
+  add_active_using_directives_for_namespace(assoc_namespace,
+                                            &scope_stack[depth_scope_stack]);
   return scope;
 }  /* push_namespace_scope */
 
