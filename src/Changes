@@ -73,6 +73,16 @@ via an unqualified name.
     A::I xx;  // Still an error
   };
 
+6/4/97    Character "]" when multibyte character support enabled
+
+We've been informed that in some German character sets the character
+position that is ASCII "]" is "U umlaut".  That means once the setlocale
+call has been done, "]" suddenly looks like an identifier character.
+We have changed the initialization of the is_id_char array to ensure
+that "]" is always a non-identifier character.  Let us know if you
+encounter problems like this with any other character sets, so we
+can add similar changes for those.
+
 6/4/97    Overloading operators on enum operands
 
 Operator functions can now be overloaded on enum types.  Specifically,
