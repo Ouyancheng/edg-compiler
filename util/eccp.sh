@@ -561,6 +561,8 @@ do
          --no_svr4 | \
          --brief_diagnostics | \
          --no_brief_diagnostics | \
+         --wrap_diagnostics | \
+         --no_wrap_diagnostics | \
          --nonconst_ref_anachronism | \
          --no_nonconst_ref_anachronism | \
 	 --no_preproc_only | \
