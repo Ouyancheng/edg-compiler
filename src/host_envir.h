@@ -399,6 +399,15 @@ back end is being used.
 /* The C++/C-generating back end requires this feature. */
 
 /*
+Flag that is TRUE if the source_corresp.needed flag in IL entries and the
+definition_needed flag in class/struct/union type entries should be
+maintained.
+*/
+#ifndef MAINTAIN_NEEDED_FLAGS
+#define MAINTAIN_NEEDED_FLAGS TRUE
+#endif /* ifndef MAINTAIN_NEEDED_FLAGS */
+
+/*
 Flag that is TRUE if source sequence lists are being generated and if they
 should include information about comments.
 */
