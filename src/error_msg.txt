@@ -725,6 +725,8 @@ ec_const_volatile_ref_init_from_rvalue;;"initial value of reference to const vol
 ec_cl_SVR4_C_option_only_in_ansi_C;;"SVR4 C compatibility option can be used only when compiling ANSI C"
 ec_using_out_of_scope_declaration;;"using out of scope declaration of %nd"
 ec_cl_strict_ansi_incompatible_with_SVR4;;"strict ANSI mode is incompatible with SVR4 C mode"
+ec_cannot_inline_call;;"call of %nd cannot be inlined"
+ec_cannot_inline;;"%nd cannot be inlined"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
