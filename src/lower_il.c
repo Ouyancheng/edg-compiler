@@ -1102,11 +1102,10 @@ is the file scope.  Return a pointer to it.
   temp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
   /* See if the scope we are adding to is active on the scope stack.
      If so, we have to maintain the "last" pointer too. */
-  for (ssep = scope_stack; ssep <= &scope_stack[depth_scope_stack]; ssep++) {
-    if (ssep->il_scope == scope) goto have_ssep;
-  }  /* for */
   ssep = NULL;
-have_ssep:
+  if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+    ssep = &scope_stack[scope->depth_in_scope_stack];
+  }  /* if */
   /* Add the temporary to the scope list (at the front).  We cannot use
      add_to_variables_list because we might be working on an internally-
      generated routine, like a constructor, for which a push_scope was
@@ -7132,24 +7131,6 @@ promotion_scope, at the position indicated by *insert_position, and
 }  /* promote_class_members */
 
 
-static a_scope_depth scope_depth_for_scope(a_scope_ptr scope)
-/*
-See if the indicated scope appears in the scope stack.  If so, return the
-index of the associated entry in the stack.  If not, return NO_SCOPE_DEPTH.
-*/
-{
-  a_scope_depth depth;
-
-  for (depth = depth_scope_stack; depth != NO_SCOPE_DEPTH; depth--) {
-    if (scope_stack[depth].il_scope == scope) {
-      /* Found it. */
-      break;
-    }  /* if */
-  }  /* for */
-  return depth;
-}  /* scope_depth_for_scope */
-
-
 static void do_scope_class_member_promotion(a_scope_ptr scope)
 /*
 Do promotion of members of classes out of those classes in the indicated
@@ -7219,7 +7200,7 @@ scope and all subscopes.
       insert_pointer = type;
     }  /* for */
     /* If this scope is in the scope_stack, update its last_type pointer. */
-    depth = scope_depth_for_scope(scope);
+    depth = scope->depth_in_scope_stack;
     if (depth != NO_SCOPE_DEPTH) {
       scope_stack[depth].last_type = insert_pointer;
     }  /* if */
@@ -7359,7 +7340,7 @@ lowering of the file scope memory region.
   type = scope->types;
   variable = scope->variables;
   if (type != NULL || variable != NULL) {
-    depth = scope_depth_for_scope(scope);
+    depth = scope->depth_in_scope_stack;
     /* Promote local types to file scope. */
     for (; type != NULL; type = next_type) {
       next_type = type->next;
