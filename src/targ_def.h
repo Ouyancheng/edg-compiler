@@ -1327,6 +1327,107 @@ and a nontemplate function could satisfy the need for a template function.
 
 #endif /* NEED_NAME_MANGLING */
 
+/*
+This switch controls whether or not the ABI changes for runtime
+type information (RTTI) are done.  This affects element 0 of virtual
+function tables, the BCS_PUBLIC and BCS_AMBIGUOUS flags in base class
+arrays, and the user type_info and name fields in the typeinfo
+implementation structure.  Because the name field must be initialized
+in all cases, typeinfo variables for non-class types are always
+initialized in the new scheme (in the old scheme, a tentative
+definition with default initialization to zero was enough).
+If the switch is off, compatibility with versions up to 2.28
+is preserved, but the RTTI language features are turned off.
+The typeinfo generated in that case is adequate for exception
+handling but not for RTTI.
+*/
+#ifndef ABI_CHANGES_FOR_RTTI
+/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
+#if ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_OBJECT_CODE_COMPATIBILITY
+#define ABI_CHANGES_FOR_RTTI FALSE /* Versions up to 2.28. */
+#else /* ABI_COMPATIBILITY_VERSION > 228  && !CFRONT_... */
+#define ABI_CHANGES_FOR_RTTI TRUE  /* Versions after 2.28. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_... */
+#endif /* ifndef ABI_CHANGES_FOR_RTTI */
+#if ABI_CHANGES_FOR_RTTI && (ABI_COMPATIBILITY_VERSION <= 228)
+ #error -- ABI_CHANGES_FOR_RTTI TRUE is incompatible with \
+           ABI_COMPATIBILITY_VERSION <= 228
+#endif /* ABI_CHANGES_FOR_RTTI && (ABI_COMPATIBILITY_VERSION <= 228) */
+
+/*
+This switch controls whether or not the ABI changes for array
+new and delete are done.  New runtime routines are added, and the
+way array sizes are recorded by the runtime is different.
+The changes are upward-compatible (you can use old object code
+with new object code and the new library).  If the switch is off,
+compatibility with versions up to 2.28 is preserved, but the
+array new and delete language features are turned off.
+*/
+#ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
+/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
+#if ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_OBJECT_CODE_COMPATIBILITY
+#define ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE FALSE /* Versions up to 2.28. */
+#else /* ABI_COMPATIBILITY_VERSION > 228 && !CFRONT_... */
+#define ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE TRUE  /* Versions after 2.28. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_... */
+#endif /* ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
+#if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE && (ABI_COMPATIBILITY_VERSION <= 228)
+ #error -- ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE TRUE is incompatible with \
+           ABI_COMPATIBILITY_VERSION <= 228
+#endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE && ... */
+
+/*
+This switch controls whether or not the ABI changes for placement
+delete are done.  New runtime routines/variables are added.
+The changes are upward-compatible (you can use old object code
+with new object code and the new library).  If the switch is off,
+compatibility with versions up to 2.33 is preserved, but the
+placement delete language feature is turned off.  Allocating an
+array with placement new and then using the delete operator on it
+is also considered part of "placement delete" and is controlled by
+this switch.
+*/
+#ifndef ABI_CHANGES_FOR_PLACEMENT_DELETE
+/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
+#if ABI_COMPATIBILITY_VERSION <= 233 || CFRONT_OBJECT_CODE_COMPATIBILITY
+#define ABI_CHANGES_FOR_PLACEMENT_DELETE FALSE /* Versions up to 2.33. */
+#else /* ABI_COMPATIBILITY_VERSION > 233 && !CFRONT_... */
+#define ABI_CHANGES_FOR_PLACEMENT_DELETE TRUE  /* Versions after 2.33. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 233 || CFRONT_... */
+#endif /* ifndef ABI_CHANGES_FOR_PLACEMENT_DELETE */
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE && (ABI_COMPATIBILITY_VERSION <= 233)
+ #error -- ABI_CHANGES_FOR_PLACEMENT_DELETE TRUE is incompatible with \
+           ABI_COMPATIBILITY_VERSION <= 233
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE && ... */
+
+/*
+This switch controls whether or not ABI changes are made to support
+covariant return types on overriding virtual functions.  If the switch is
+off, compatibility with versions up to 2.33 is preserved, but support for
+covariant return types on overriding virtual functions is disabled (meaning
+errors will be issued when compiling programs using the feature).
+*/
+#ifndef ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
+#if ABI_COMPATIBILITY_VERSION <= 233 || CFRONT_OBJECT_CODE_COMPATIBILITY
+#define ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN FALSE
+                                                    /* Versions up to 2.33. */
+#else /* ABI_COMPATIBILITY_VERSION > 233 && !CFRONT_... */
+#define ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN TRUE
+                                                    /* Versions after 2.33. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 233 || CFRONT_... */
+#endif /* ifndef ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+#if ABI_COMPATIBILITY_VERSION <= 233
+ #error -- ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN TRUE is incompatible \
+           with ABI_COMPATIBILITY_VERSION <= 233
+#endif /* ABI_COMPATIBILITY_VERSION <= 233 */
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+
 #if DO_IL_LOWERING
 
 /* Switches that control aspects of IL lowering: */
@@ -1472,107 +1573,6 @@ no smaller than the size of a_virtual_function_number.
 #ifndef TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND
 #define TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND ((an_integer_kind)ik_short)
 #endif /* ifndef TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND */
-
-/*
-This switch controls whether or not the ABI changes for runtime
-type information (RTTI) are done.  This affects element 0 of virtual
-function tables, the BCS_PUBLIC and BCS_AMBIGUOUS flags in base class
-arrays, and the user type_info and name fields in the typeinfo
-implementation structure.  Because the name field must be initialized
-in all cases, typeinfo variables for non-class types are always
-initialized in the new scheme (in the old scheme, a tentative
-definition with default initialization to zero was enough).
-If the switch is off, compatibility with versions up to 2.28
-is preserved, but the RTTI language features are turned off.
-The typeinfo generated in that case is adequate for exception
-handling but not for RTTI.
-*/
-#ifndef ABI_CHANGES_FOR_RTTI
-/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
-   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
-#if ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_OBJECT_CODE_COMPATIBILITY
-#define ABI_CHANGES_FOR_RTTI FALSE /* Versions up to 2.28. */
-#else /* ABI_COMPATIBILITY_VERSION > 228  && !CFRONT_... */
-#define ABI_CHANGES_FOR_RTTI TRUE  /* Versions after 2.28. */
-#endif /* ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_... */
-#endif /* ifndef ABI_CHANGES_FOR_RTTI */
-#if ABI_CHANGES_FOR_RTTI && (ABI_COMPATIBILITY_VERSION <= 228)
- #error -- ABI_CHANGES_FOR_RTTI TRUE is incompatible with \
-           ABI_COMPATIBILITY_VERSION <= 228
-#endif /* ABI_CHANGES_FOR_RTTI && (ABI_COMPATIBILITY_VERSION <= 228) */
-
-/*
-This switch controls whether or not the ABI changes for array
-new and delete are done.  New runtime routines are added, and the
-way array sizes are recorded by the runtime is different.
-The changes are upward-compatible (you can use old object code
-with new object code and the new library).  If the switch is off,
-compatibility with versions up to 2.28 is preserved, but the
-array new and delete language features are turned off.
-*/
-#ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
-/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
-   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
-#if ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_OBJECT_CODE_COMPATIBILITY
-#define ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE FALSE /* Versions up to 2.28. */
-#else /* ABI_COMPATIBILITY_VERSION > 228 && !CFRONT_... */
-#define ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE TRUE  /* Versions after 2.28. */
-#endif /* ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_... */
-#endif /* ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
-#if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE && (ABI_COMPATIBILITY_VERSION <= 228)
- #error -- ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE TRUE is incompatible with \
-           ABI_COMPATIBILITY_VERSION <= 228
-#endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE && ... */
-
-/*
-This switch controls whether or not the ABI changes for placement
-delete are done.  New runtime routines/variables are added.
-The changes are upward-compatible (you can use old object code
-with new object code and the new library).  If the switch is off,
-compatibility with versions up to 2.33 is preserved, but the
-placement delete language feature is turned off.  Allocating an
-array with placement new and then using the delete operator on it
-is also considered part of "placement delete" and is controlled by
-this switch.
-*/
-#ifndef ABI_CHANGES_FOR_PLACEMENT_DELETE
-/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
-   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
-#if ABI_COMPATIBILITY_VERSION <= 233 || CFRONT_OBJECT_CODE_COMPATIBILITY
-#define ABI_CHANGES_FOR_PLACEMENT_DELETE FALSE /* Versions up to 2.33. */
-#else /* ABI_COMPATIBILITY_VERSION > 233 && !CFRONT_... */
-#define ABI_CHANGES_FOR_PLACEMENT_DELETE TRUE  /* Versions after 2.33. */
-#endif /* ABI_COMPATIBILITY_VERSION <= 233 || CFRONT_... */
-#endif /* ifndef ABI_CHANGES_FOR_PLACEMENT_DELETE */
-#if ABI_CHANGES_FOR_PLACEMENT_DELETE && (ABI_COMPATIBILITY_VERSION <= 233)
- #error -- ABI_CHANGES_FOR_PLACEMENT_DELETE TRUE is incompatible with \
-           ABI_COMPATIBILITY_VERSION <= 233
-#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE && ... */
-
-/*
-This switch controls whether or not ABI changes are made to support
-covariant return types on overriding virtual functions.  If the switch is
-off, compatibility with versions up to 2.33 is preserved, but support for
-covariant return types on overriding virtual functions is disabled (meaning
-errors will be issued when compiling programs using the feature).
-*/
-#ifndef ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
-   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
-#if ABI_COMPATIBILITY_VERSION <= 233 || CFRONT_OBJECT_CODE_COMPATIBILITY
-#define ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN FALSE
-                                                    /* Versions up to 2.33. */
-#else /* ABI_COMPATIBILITY_VERSION > 233 && !CFRONT_... */
-#define ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN TRUE
-                                                    /* Versions after 2.33. */
-#endif /* ABI_COMPATIBILITY_VERSION <= 233 || CFRONT_... */
-#endif /* ifndef ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-#if ABI_COMPATIBILITY_VERSION <= 233
- #error -- ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN TRUE is incompatible \
-           with ABI_COMPATIBILITY_VERSION <= 233
-#endif /* ABI_COMPATIBILITY_VERSION <= 233 */
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
 /*
 This switch controls whether or not operations with
