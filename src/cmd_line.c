@@ -1519,9 +1519,6 @@ by a command line option.
       /* Enum overloading is supported by Microsoft Visual C++ 4.x. */
       operator_overloading_on_enums_enabled = microsoft_version >= 1000;
     }  /* if */
-    if (!option_kind_used[(int)optk_const_string_literals]) {
-      string_literals_are_const = FALSE;
-    }  /* if */
     if (!option_kind_used[(int)optk_class_name_injection]) {
       class_name_injection_enabled = TRUE;
     }  /* if */
