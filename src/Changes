@@ -113,10 +113,10 @@ a variable length array type (in modes accepting variable length arrays; e.g.,
 C99 mode).
 
   void f(int n) {
-    extern int a[n] = { 1 };  // Used to abort in C99 mode
+    extern int a[n] = { 1 };  // Invalid, but used to abort in C99 mode
   }
 
-This is now fixed.
+This is now fixed: an error is issued.
 
 1/9/01   SVR4 mode error erroneously issued as warning in some configurations
 
