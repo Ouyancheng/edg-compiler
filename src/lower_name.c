@@ -6595,11 +6595,10 @@ in the routine must be set already.
 {
   a_boolean dummy;
 
-  /* A constructor or destructor for an unnamed class may not have a
-     name.  For example, if a local class is used to declare a variable
-     ("struct { C c; } x;"), the constructor will have no name.  In this
-     case, the alternate entry point does not need a name either. */
-  if (function_name_mangling_needed(prim_routine, &dummy)) {
+  /* Leave the entry point unnamed if the primary entry point will
+     stay unnamed, e.g., for an unnamed class. */
+  if (prim_routine->source_corresp.name_has_been_mangled ||
+      function_name_mangling_needed(prim_routine, &dummy)) {
       char ch;
       char *name, *mangled_name;
     /* Compute the mangled name for this new entry point.  It's the same as
