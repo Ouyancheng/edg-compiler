@@ -2880,7 +2880,7 @@ out as the original enum constant.
        enum type. */
     enum_type = con_type->variant.integer.enum_info.affiliated_type;
   }  /* if */
-  check_assertion(enum_type->kind == (a_constant_repr_kind)tk_integer &&
+  check_assertion(enum_type->kind == (a_type_kind)tk_integer &&
                   enum_type->variant.integer.enum_type);
   /* Go through the list of enum constants and compare each one to the
      constant we want. */
