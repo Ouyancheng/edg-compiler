@@ -5634,6 +5634,14 @@ Initialize for the C-generating back end.
 #if ASM_FUNCTION_ALLOWED
   within_asm_function_definition = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
+#if !C_GEN_BE_GENERATES_ANSI_C
+  /* When generating K&R C, double and long double must be the same size. */
+  if (targ_sizeof_double != targ_sizeof_long_double ||
+      targ_alignof_double != targ_alignof_long_double) {
+    internal_error(
+         "double and long double must be the same size when generating K&R C");
+  }  /* if */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
 }  /* init_c_gen_be */
 
 
