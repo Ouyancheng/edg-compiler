@@ -92,8 +92,9 @@ Macro that compares the current token (an identifier) with the pragma
 identifier associated with the specified pragma kind.
 */
 #define curr_id_matches_pragma_id(pragma_kind)				\
-   (strncmp(pragma_ids[(int)(pragma_kind)], start_of_curr_token,	\
-            strlen(pragma_ids[(int)(pragma_kind)])) == 0)
+   (len_of_curr_token == strlen(pragma_ids[(int)(pragma_kind)]) &&	\
+    strncmp(pragma_ids[(int)(pragma_kind)], start_of_curr_token,	\
+            len_of_curr_token) == 0)
 
 static a_pp_directive_kind identify_dir_keyword(void)
 /*
