@@ -8559,6 +8559,8 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
             set_source_corresp(&nsp->source_corresp, ns_sym);
             set_namespace_membership(ns_sym, &nsp->source_corresp,
                                      (a_namespace_ptr)NULL);
+            nsp->source_corresp.name_linkage =
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
             ns_sym->variant.namespace_info.ptr = nsp;
             add_to_namespaces_list(nsp);
             record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION,
@@ -8621,6 +8623,8 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       if (is_unnamed_namespace) nsp->source_corresp.name = NULL;
       set_namespace_membership(ns_sym, &nsp->source_corresp,
                                (a_namespace_ptr)NULL);
+      nsp->source_corresp.name_linkage =
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
       ns_sym->variant.namespace_info.ptr = nsp;
       /* Set a flag indicating that this namespace is itself an unnamed
          namespace or is enclosed by an unnamed namespace. */

@@ -2368,16 +2368,9 @@ for more information.
   a_param_type_ptr              list1, list2;
   a_routine_type_supplement_ptr rtsp1, rtsp2;
   a_symbol_ptr                  sym_1, sym_2;
-  a_boolean			il_identical;
-  a_boolean			unknown_this_class_type;
 
   db_enter(5, "f_identical_types");
 
-  il_identical = (flags & ITF_IL_IDENTICAL) != 0;
-  unknown_this_class_type = (flags & ITF_UNKNOWN_THIS_CLASS_TYPE) != 0;
-  /* Reset the unknown implicit this type flag so that it won't be passed
-     to recursive calls of this routine. */
-  flags &= ~ITF_UNKNOWN_THIS_CLASS_TYPE;
   /* Although the macros do the type_1 == type_2 test, repeat it here
      so it's present for the recursive calls. */
   if (type_1 == type_2) {
@@ -2402,6 +2395,12 @@ for more information.
       identical = f_identical_types(type_1, type_2, flags);
     } else {
       /* The top level kinds are the same, check further. */
+      a_boolean  il_identical = (flags & ITF_IL_IDENTICAL) != 0;
+      a_boolean  unknown_this_class_type =
+                                   (flags & ITF_UNKNOWN_THIS_CLASS_TYPE) != 0;
+      /* Reset the unknown implicit this type flag so that it won't be passed
+         to recursive calls of this routine. */
+      flags &= ~ITF_UNKNOWN_THIS_CLASS_TYPE;
       switch (type_1->kind) {
         case tk_error:
         case tk_unknown:
@@ -2793,27 +2792,9 @@ for exact pointer equality.
 
   db_enter(5, "f_types_are_compatible");
 
-  is_impl_conv = (flags & TCF_IMPLICIT_CONVERSION) != 0;
   error_matches_anything = 
                  (flags & TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) != 0;
-  /* The TCF_IGNORE_TYPE_QUALIFIERS flag does not get passed down in general,
-     so if it's present remove it from the flags set and keep it off to
-     the side. */
-  if (flags & TCF_IGNORE_TYPE_QUALIFIERS) {
-    ignore_type_qualifiers = TRUE;
-    flags &= ~TCF_IGNORE_TYPE_QUALIFIERS;
-  }  /* if */
-  /* Ditto for TCF_REDECLARATION -- it's only set for the top-level types of
-     a redeclaration. */
-  if (flags & TCF_REDECLARATION) {
-    top_level_for_redeclaration = TRUE;
-    flags &= ~TCF_REDECLARATION;
-  }  /* if */
-  /* Ditto for TCF_IGNORE_CALLING_CONVENTIONS. */
-  if (flags & TCF_IGNORE_CALLING_CONVENTIONS) {
-    ignore_calling_conventions = TRUE;
-    flags &= ~TCF_IGNORE_CALLING_CONVENTIONS;
-  }  /* if */
+  ignore_type_qualifiers = flags & TCF_IGNORE_TYPE_QUALIFIERS;
   /* Although the macros do the type_1 == type_2 test, repeat it here
      so it's present for the recursive calls. */
   if (type_1 == type_2) {
@@ -2846,6 +2827,23 @@ for exact pointer equality.
       compat = f_types_are_compatible(type_1, type_2, flags);
     } else {
       /* The top level kinds are the same, check further. */
+      is_impl_conv = (flags & TCF_IMPLICIT_CONVERSION) != 0;
+      /* The TCF_IGNORE_TYPE_QUALIFIERS flag does not get passed down in
+         general, so if it's present remove it from the flags. */
+      if (ignore_type_qualifiers) {
+        flags &= ~TCF_IGNORE_TYPE_QUALIFIERS;
+      }  /* if */
+      /* Ditto for TCF_REDECLARATION -- it's only set for the top-level types
+         of a redeclaration.  Save it off to the side. */
+      if (flags & TCF_REDECLARATION) {
+        top_level_for_redeclaration = TRUE;
+        flags &= ~TCF_REDECLARATION;
+      }  /* if */
+      /* Ditto for TCF_IGNORE_CALLING_CONVENTIONS. */
+      if (flags & TCF_IGNORE_CALLING_CONVENTIONS) {
+        ignore_calling_conventions = TRUE;
+        flags &= ~TCF_IGNORE_CALLING_CONVENTIONS;
+      }  /* if */
       switch (type_1->kind) {
         case tk_error:
           /* Error types are not compatible by the test above, so they are not

@@ -473,15 +473,14 @@ Clear the correspondence pointers in the substructure of a class type.
 }  /* set_no_class_type_correspondence */
 
 
-static a_boolean f_verify_name_correspondence(char  *entity1)
+static a_boolean f_same_name(char  *entity1,
+                             char  *entity2)
 /*
-Verify that the given entity and the one pointed to by its translation unit
-correspondence pointer have the same name (effectively, that their associated
-symbols are listed under the same header).
+Return whether the given entities have the same name (in most cases, their
+associated symbols are listed under the same header).
 */
 {
   a_boolean  match;
-  char       *entity2 = trans_unit_corresp_pointer_of(entity1);
   a_source_correspondence_ptr
              scp1 = (a_source_correspondence_ptr)entity1,
              scp2 = (a_source_correspondence_ptr)entity2;
@@ -498,11 +497,28 @@ symbols are listed under the same header).
                      (sh1->identifier_length < sh2->identifier_length) ?
                        sh1->identifier_length : sh2->identifier_length);
   }  /* if */
+  return match;
+}  /* f_same_name */
+
+#define same_name(ptr1, ptr2)                                       \
+  f_same_name((char*)ptr1, (char*)ptr2)
+
+
+static a_boolean f_verify_name_correspondence(char  *entity1)
+/*
+Verify that the given entity and the one pointed to by its translation unit
+correspondence pointer have the same name (effectively, that their associated
+symbols are listed under the same header).
+*/
+{
+  char       *entity2 = trans_unit_corresp_pointer_of(entity1);
+  a_boolean  match = same_name(entity1, entity2);
   if (!match) {
     /* Only class members have a correspondence pointer set without testing
        whether the names match.  If the names don't match, an error
        contrasting the to member entities would not make much sense.
        Instead, report the error on the parent type. */
+    a_source_correspondence_ptr  scp1 = (a_source_correspondence_ptr)entity1;
     check_assertion(scp1->is_class_member);
     report_bad_trans_unit_corresp(scp1->parent.class_type);
   }  /* if */
@@ -679,24 +695,28 @@ type is in fact valid.
   a_boolean       match = verify_name_correspondence(type);
   a_type_ptr      corresp_type = (a_type_ptr)canonical_il_entry_of(type);
   a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list;
-  a_constant_ptr  corresp_enumerator = 
-                         corresp_type->variant.integer.enum_info.constant_list;
-  
-  for (; enumerator != NULL && corresp_enumerator != NULL;
-       enumerator = enumerator->next,
-                               corresp_enumerator = corresp_enumerator->next) {
-    if (!verify_constant_correspondence(enumerator)) {
-      match = FALSE;
-      break;
-    }  /* if */
-  }  /* for */
+
+  if (match) {
+    for (; enumerator != NULL; enumerator = enumerator->next) {
+      void  *corresp_entity = trans_unit_corresp_pointer_of(enumerator);
+      if (!same_name(enumerator, corresp_entity)) {
+        /* The error should be issued on the enum type since there is not
+           much in common between the enumerators if even their names don't
+           match. */
+        break;
+      } else if (!verify_constant_correspondence(enumerator)) {
+        match = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   if (match && 
-      (enumerator != NULL || corresp_enumerator != NULL ||
+      (enumerator != NULL ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
        !same_str(type->variant.integer.uuid_string,
                  corresp_type->variant.integer.uuid_string) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-       type->variant.integer.int_kind ==
+       type->variant.integer.int_kind !=
                                      corresp_type->variant.integer.int_kind)) {
     report_bad_trans_unit_corresp(type);
     match = FALSE;
@@ -1072,19 +1092,20 @@ is in fact valid.
         a_type_ptr  inst_type = type_symbol_type(inst);
         if (!inst_type->variant.class_struct_union.is_specialized) {
           /* Specializations appear on the types list of their scope. */
-          verify_type_correspondence(inst_type);
+          (void)verify_type_correspondence(inst_type);
         }  /* if */
       }  /* for */
       /* Also process the prototype instantiation. */
-      verify_type_correspondence(class_type);
+      (void)verify_type_correspondence(class_type);
     } else if (templ_sym->kind == (a_symbol_kind)sk_function_template) {
       /* A function template.  Verify the instantiations (if any). */
       a_template_instance_ptr  inst = tssp->variant.function.instantiations;
       for (; inst != NULL; inst = inst->next) {
-        verify_routine_correspondence(inst->instance_sym->variant.routine.ptr);
+        (void)verify_routine_correspondence(
+                                      inst->instance_sym->variant.routine.ptr);
       }  /* for */
       /* Also process prototype instantiation. */
-      verify_routine_correspondence(tssp->variant.function.routine);
+      (void)verify_routine_correspondence(tssp->variant.function.routine);
     }  /* if */
   }  /* if */
   return match;
@@ -1886,8 +1907,19 @@ translation unit correspondence pointer if one is found.
            with the same name: they should probably match up. */
         switch (sym->kind) {
           case sk_variable:
-            /* Record the correspondence. */
-            record_trans_unit_corresp(var, sym->variant.variable.ptr);
+            {
+              a_variable_ptr  corresp_var = sym->variant.variable.ptr;
+              /* Record the correspondence. */
+              record_trans_unit_corresp(var, corresp_var);
+              /* If the variable has an anonymous type, assume it matches that
+                 of the corresponding entity. */
+              if (!has_correspondence(var->type) &&
+                  !has_name(var->type) && !has_name(corresp_var->type) &&
+                  (is_immediate_class_type(var->type) ||
+                   is_immediate_enum_type(var->type))) {
+                record_trans_unit_corresp(var->type, corresp_var->type);
+              }  /* if */
+            }
             break;
           case sk_class_or_struct_tag:
           case sk_union_tag:
