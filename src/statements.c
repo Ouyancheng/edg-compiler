@@ -4827,7 +4827,10 @@ The return expression is also set for a return from a constructor.
   /* Output diagnostic about no value returned from non-void function
      if necessary. */
   if (issue_no_value_returned_diag) {
-    if (c99_mode && !microsoft_mode) {
+    if (strict_ansi_mode && !C_mode()) {
+      /* In strict C++ mode, the severity may be an error. */
+      no_returned_value_severity = strict_ansi_discretionary_severity;
+    } else if (c99_mode && !microsoft_mode) {
       /* In C99 mode a non-void function must return a value.  Just
          give a warning if we're also in Microsoft mode. */
       no_returned_value_severity = es_error;
