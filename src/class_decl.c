@@ -6805,15 +6805,6 @@ Scan the body of a class definition, including the base classes list.
                                          is_nonstd_anonymous_union,
                                          declarator_ssep, &end_of_field_list);
               if (!class_aggregate_ruled_out) {
-#if 0
-                /* The ARM says that classes with private or protected members
-                   are not treated as "aggregates" (8.4.1).  We interpret this
-                   to refer to nonstatic data members only (given the context).
-                   Furthermore, we suppose that a class with a field whose type
-                   is a nonaggregate class (or an array thereof) cannot be
-                   treated as an aggregate either; this seems in accord with
-                   the intent of 8.4.1 if not the letter. */
-#endif /* if 0 */
                 if (access != (an_access_specifier)as_public) {
                   if (unnamed_field) {
                     /* Unnamed bit fields are not subject to initialization
@@ -6821,14 +6812,16 @@ Scan the body of a class definition, including the base classes list.
                        nonpublic one (whatever that means) has no effect on
                        aggregate status. */
                   } else {
+                    /* No class with private or protected members is an
+                       aggregate (WP 8.5.1). */
                     class_aggregate_ruled_out = TRUE;
                   }  /* if */
-#if 0
-/* It isn't clear in the WP that an aggregate may not contain nonaggregate
-   members. */
-
                 } else {
+                  /* It is not explicit in the WP, but is seems appropriate
+                     that a class with a field of nonaggregate class type (or
+                     array thereof) should not itself be an aggregate. */
                   a_type_ptr  tp = local_type;
+
                   if (is_array_type(tp)) {
                     tp = underlying_array_element_type(tp);
                   }  /* if */
@@ -6836,7 +6829,6 @@ Scan the body of a class definition, including the base classes list.
                      !symbol_supplement_for_class(tp)->is_class_aggregate) {
                     class_aggregate_ruled_out = TRUE;
                   }  /* if */
-#endif /* if 0 */
                 }  /* if */
               }  /* if */
               if (!any_const_or_ref_fields &&
