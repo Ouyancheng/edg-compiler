@@ -1880,7 +1880,8 @@ Rescan the default arguments of a function template.
         /* It's a default arg expression that needs to be rescanned. */
         /* Let get_token know about the cache. */
         rescan_reusable_cache(&daefp->token_cache);
-        delayed_scan_of_default_arg_expr(daefp->param_type);
+        delayed_scan_of_default_arg_expr(daefp->param_type,
+                                         /*check_for_errors=*/FALSE);
         daefp = daefp->next;
       }  /* if */
     }  /* for */

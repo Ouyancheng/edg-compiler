@@ -382,7 +382,8 @@ routine recursively for each nested class.
             /* It's a default arg expression that needs to be rescanned. */
             /* Let get_token know about the cache. */
             rescan_cached_tokens(&daefp->token_cache);
-            delayed_scan_of_default_arg_expr(daefp->param_type);
+            delayed_scan_of_default_arg_expr(daefp->param_type,
+                                            /*check_for_errors=*/TRUE);
           }  /* for */
           /* Restore the prototype scope symbols pointer in the func info
              block. It shouldn't have changed, but we do it to be safe. */

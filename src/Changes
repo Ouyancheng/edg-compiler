@@ -1,5 +1,18 @@
 Version 2.25
 
+8/12/94  Default arguments in function template declarations
+
+A bug has been fixed that would cause a spurious error if the default
+argument declarations for a function template were spread among several
+declarations.
+
+  template <class T> int f(T t, int i, int j = 3);
+  template <class T> int f(T t, int i = 2, int j);
+  int main()
+  {
+    f(10);
+  }
+
 8/9/94   Diagnostic on omitted access specifier on base class declaration
 
 A remark (instead of a warning) is now issued when the access specifier

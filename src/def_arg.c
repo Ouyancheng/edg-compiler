@@ -158,12 +158,18 @@ entry onto the list provided by the caller.
 }  /* prescan_default_function_arg_expr */
 
 
-void delayed_scan_of_default_arg_expr(a_param_type_ptr param_type_entry)
+void delayed_scan_of_default_arg_expr(a_param_type_ptr param_type_entry,
+                                      a_boolean	       check_for_errors)
 /*
 Do the delayed scan of the default argument expression for a parameter.  The
 cache has just been reactivated, so curr_token should represent the first
-token in the cache.  Before doing the scan check that default expressions have
-been declared for all successor arguments.
+token in the cache.  If check_for_errors is TRUE, then before doing the scan
+check that default expressions have been declared for all successor arguments.
+
+The error checks are suppressed when this routine is called for a
+function template because the checks are done elsewhere (and cannot
+be done here because the default arguments for a given function template
+may be spread between several declarations).
 */
 {
   a_param_type_ptr  ptp;
@@ -174,20 +180,22 @@ been declared for all successor arguments.
       !is_error_node(param_type_entry->default_arg_expr)) {
     pos_error(ec_default_arg_already_defined, &pos_curr_token);
   }  /* if */
-  /* Make a pass over all the param type entries that follow the current one.
-     It is an error if there are any without a default argument. */
-  for (ptp = param_type_entry->next; ptp != NULL; ptp = ptp->next) {
-    if (!ptp->has_default_arg) {
-      /* Issue an error on the first successor in the parameter list that does
-         not have a default argument. */
-      if (!err) {
-        pos_error(ec_default_arg_not_at_end, &pos_curr_token);
-        err = TRUE;
+  if (check_for_errors) {
+    /* Make a pass over all the param type entries that follow the current one.
+       It is an error if there are any without a default argument. */
+   for (ptp = param_type_entry->next; ptp != NULL; ptp = ptp->next) {
+     if (!ptp->has_default_arg) {
+        /* Issue an error on the first successor in the parameter list that
+           does not have a default argument. */
+        if (!err) {
+          pos_error(ec_default_arg_not_at_end, &pos_curr_token);
+          err = TRUE;
+        }  /* if */
+        ptp->has_default_arg = TRUE;
+        ptp->default_arg_expr = error_node();
       }  /* if */
-      ptp->has_default_arg = TRUE;
-      ptp->default_arg_expr = error_node();
-    }  /* if */
-  }  /* for */
+    }  /* for */
+  }  /* if */
   /* We scan the expression whether an error was detected or not. */
   scan_default_arg_expr(param_type_entry);
   /* In the normal case the current token should be end_of_source,
