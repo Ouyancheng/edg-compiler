@@ -4618,6 +4618,9 @@ exception specifications are not checked.
         okay = FALSE;
       }  /* if */
     }  /* if */
+  } else if (is_enum_type(source_type) && is_enum_type(dest_type)) {
+    /* Core Issue 128 makes enum --> enum a valid static_cast. */
+    okay = TRUE;
   } else if (!C_mode() &&
              is_bool_type(source_type) && is_enum_type(dest_type)) {
     /* Allow bool --> enum.  [expr.static.cast] paragraphs 6 and 7
@@ -4749,21 +4752,15 @@ static a_boolean compound_conversion_possible(a_type_ptr source_type,
 /*
 Some conversions that are allowed in an explicit C++ cast are allowed
 because they are a combination of other casts, e.g., a static_cast
-plus a const_cast, or two static_casts.  Test for such conversions
-between the given source and destination types, and return TRUE if
-one is allowed.
+plus a const_cast.  Test for such conversions between the given source
+and destination types, and return TRUE if one is allowed.
 */
 {
   a_boolean        okay = FALSE;
   a_boolean        baseward_cast;
   a_base_class_ptr bcp;
 
-  if (is_enum_type(source_type) && is_enum_type(dest_type)) {
-    /* In C++, enum --> enum is not a static_cast or a reinterpret_cast,
-       but it can be done by enum --> integral --> enum (two static_casts). */
-    okay = TRUE;
-  } else if (related_class_pointers(source_type, dest_type, &baseward_cast,
-                                    &bcp)) {
+  if (related_class_pointers(source_type, dest_type, &baseward_cast, &bcp)) {
     /* A cast from const Derived * to Base * is allowed as a combination
        of a static_cast and a const_cast. */
     okay = TRUE;
