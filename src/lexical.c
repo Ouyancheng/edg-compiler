@@ -5084,14 +5084,13 @@ by the options.  Returns TRUE if any errors were diagnosed.
         locator_for_curr_id.qualifier_class_type != NULL &&
         options & GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION) {
       a_symbol_ptr  type_sym;
-      type_sym = (a_symbol_ptr)skip_typerefs(locator_for_curr_id.
-			qualifier_class_type)->source_corresp.assoc_info;
+      a_type_ptr	type = locator_for_curr_id.qualifier_class_type;
+      while (type->source_corresp.class_of_which_a_member != NULL) {
+        type = type->source_corresp.class_of_which_a_member;
+      }  /* while */
+      type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
       if (!is_template_class_symbol(type_sym)) {
         /* The class is not a template class. */
-        a_type_ptr	type = locator_for_curr_id.qualifier_class_type;
-        while (type->source_corresp.class_of_which_a_member != NULL) {
-          type = type->source_corresp.class_of_which_a_member;
-        }  /* while */
         pos_ty_error(ec_not_a_class_template, &pos_curr_token, type);
         any_errors = TRUE;
       } else if (!is_prototype_instantiation_symbol(type_sym)) {
