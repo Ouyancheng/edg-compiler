@@ -6912,7 +6912,9 @@ any non-empty template parameter lists that were scanned.
     /* We are not where we expected to be after scanning the template parameter
        lists.  Recache the template declaration now for better error
        recovery.  This should only happen in error cases. */
-    check_assertion(total_errors != 0 || curr_token == tok_end_of_source);
+    check_assertion(total_errors != 0 || curr_token == tok_end_of_source ||
+                    curr_token == tok_colon || curr_token == tok_lbrace ||
+                    curr_token == tok_semicolon);
     cache_template_declaration(decl_state, /*skip_params=*/TRUE);
   }  /* if */
   /* See if it is a class template declaration.  If it is, scan the tokens
