@@ -833,6 +833,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
              be wasted, and the crude simulation will act like the operand
              would in the argument match process.  The crude simulation
              is a NULL pointer constant of the right type. */
+          /* This is a fake version of conv_array_operand_to_pointer_operand.*/
           arg_type = make_pointer_type(array_element_type(arg_type));
           clear_operand((an_operand_kind)ok_constant,
                         &implicit_arg_operand);
@@ -4060,11 +4061,10 @@ instead of conversion_possible and does those things.
   do_operand_transformations(operand,
                              TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                              TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
-  if (!user_conversion->result_is_an_lvalue) {
-    /* Except when a user-defined conversion returns a reference and
-       we want an lvalue, force the operand to an rvalue. */
-    conv_lvalue_to_rvalue(operand);
-  }  /* if */
+  /* When there's a conversion routine to call, it might take an lvalue
+     parameter, so do not convert to an rvalue yet.  For all other cases,
+     convert to an rvalue. */
+  if (user_conversion->routine == NULL) conv_lvalue_to_rvalue(operand);
 }  /* prep_for_known_possible_conversion */
 
 
