@@ -141,6 +141,7 @@ cast.  For example:
     CR *p;
     R* mf() const { return (R*)this->p; }
   };
+  struct R {};
   struct CR: R {};
 
 The cast in X::mf() used to be issued by the C++ generating back-end as a
