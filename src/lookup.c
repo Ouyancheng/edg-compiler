@@ -2025,6 +2025,7 @@ that do normal id lookup processing.
        sequence number of the symbol found.  This check should be suppressed
        for class scopes. */
     lookup_state->check_decl_seq = !lookup_state->is_linkage_lookup &&
+                         !lookup_state->is_friend_lookup &&
                          ssep->kind != (a_scope_kind)sck_class_reactivation &&
                          ssep->kind != (a_scope_kind)sck_class_struct_union;
     if (kind == (a_scope_kind)sck_namespace_extension ||

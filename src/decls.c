@@ -8000,7 +8000,7 @@ will be found during name lookup.
   udp->entity.kind = (a_byte_il_entry_kind)iek_namespace;
   udp->entity.ptr = (char *)nsp;
   udp->is_using_directive = TRUE;
-  udp->decl_sequence_number = decl_seq_counter;
+  udp->decl_sequence_number = ++decl_seq_counter;
   add_to_using_decls_list(udp);
   /* Activate it. */
   add_active_using_directive(udp);
