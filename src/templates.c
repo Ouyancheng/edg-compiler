@@ -10886,7 +10886,7 @@ that follows.
       /* Specializations of namespace members can only occur within the
          namespace they belong to or a namespace that encloses it. */
       if (sym->decl_scope != scope_stack[depth_scope_stack].number &&
-          (sym->parent.namespace_ptr == NULL ||
+          ((!sym->is_class_member && sym->parent.namespace_ptr == NULL) ||
            !namespace_is_enclosed_by_curr_scope(sym))) {
         if (!decl_state->decl_scope_err) {
           pos_sy_error(ec_bad_scope_for_specialization,
