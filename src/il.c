@@ -3967,11 +3967,18 @@ rather than determined directly.
     /* Add the type to the list of types for this scope. */
     if (sp->types == NULL) {
       sp->types = type_ptr;
-    } else {
+    } else if (pointers_block != NULL) {
       pointers_block->last_type->next = type_ptr;
+    } else {
+      /* The scope stack entry is no longer on the stack, so just look for
+         the end of the types list and add the new type. */
+      a_type_ptr tp = sp->types;
+      while (tp->next != NULL) tp = tp->next;
+      tp->next = type_ptr;
     }  /* if */
-    pointers_block->last_type = type_ptr;
-    if (is_immediate_class_type(type_ptr) &&
+    if (pointers_block != NULL) pointers_block->last_type = type_ptr;
+    if (!type_ptr->source_corresp.is_class_member &&
+        is_immediate_class_type(type_ptr) &&
         is_template_class_type(type_ptr)) {
       /* A class instantiation; if it appears inside a class definition,
          a placeholder typeref must often be added to the types list for the
