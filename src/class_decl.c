@@ -305,36 +305,37 @@ routine recursively for each nested class.
 */
 {
   a_delayed_scan_fixup_ptr       dsfp, next_dsfp;
+  a_type_ptr                     class_type;
   a_class_symbol_supplement_ptr  cssp;
   a_symbol_ptr                   sym;
 
   db_enter(3, "delayed_scan_fixup_for_class");
   cssp = class_sym->variant.class_struct_union.extra_info;
+  /* Process nested classes first. */
+  if (cssp->any_nested_classes) {
+    for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
+      if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
+          sym->kind == (a_symbol_kind)sk_union_tag) {
+        delayed_scan_fixup_for_class(sym);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  /* Do processing for the current class only if there are tokens cached for
+     delayed scanning ("rewriting"). */
   dsfp = cssp->delayed_scan_fixup_list;
-  /* Do processing only if there are tokens cached for delayed scanning
-     ("rewriting"), or else if there are nested classes for which this
-     might be true. */
-  if (dsfp != NULL || cssp->any_nested_classes) {
+  if (dsfp != NULL) {
+    class_type = skip_typerefs(class_sym->variant.class_struct_union.type);
 #if DEBUG
     if (debug_level >= 3) {
-      fputs("class to rescan: ", f_debug);
-      db_name(&class_sym->variant.class_struct_union.type->source_corresp);
+      fputs("delayed scan fixup for ", f_debug);
+      db_name(&class_type->source_corresp);
       fputc('\n', f_debug);
     }  /* if */
 #endif /* DEBUG */
-    push_class_reactivation_scope(class_sym->variant.class_struct_union.type);
-    /* Process nested classes first. */
-    if (cssp->any_nested_classes) {
-      for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
-        if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
-            sym->kind == (a_symbol_kind)sk_union_tag) {
-          delayed_scan_fixup_for_class(sym);
-        }  /* if */
-      }  /* for */
-    }  /* if */
-    /* Now take care of the current class.  Each delayed-scan-fixup entry
-       contains the cache for a token stream, either for a default arg
-       expression or for an inline function definition. */
+    push_class_reactivation_scope(class_type);
+    /* Each delayed-scan-fixup entry contains the cache for a token stream,
+       either for a default arg expression or for an inline function
+       definition. */
     for (; dsfp != NULL; dsfp = next_dsfp) {
       /* Let get_token know about the cache. */
       rescan_cached_tokens(&dsfp->token_cache);
