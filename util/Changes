@@ -1,5 +1,11 @@
 Version 2.26, October 13, 1994
 
+10/20/94 Order of -L options passed to the prelinker
+
+-L options were being passed to the prelinker in the wrong sequence.
+Specifically, the system directories were incorrectly placed at the
+front of the list instead of after any user specified directories.
+
 10/5/94 Generated C file suffix
 
 The environment variable EDG_GEN_C_SUFFIX may now be used to select
