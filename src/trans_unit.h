@@ -146,6 +146,14 @@ extern void pop_translation_unit_stack(void);
 extern void f_register_trans_unit_variable(a_void_ptr	var,
 					   sizeof_t	size);
 
+
+/*
+Macro that returns whether a secondary translation unit has been seen.
+*/
+#define secondary_translation_unit_seen()          \
+  (translation_units->next != NULL)
+
+
 /*
 Macro used to register a variable that is related to a specific translation
 unit.  This is used to save and restore the contents of the variable when

@@ -2103,7 +2103,7 @@ type.
 {
   if (in_secondary_trans_unit(type)) {
     establish_trans_unit_correspondences_for_class(type);
-  } else {
+  } else if (secondary_translation_unit_seen()) {
     a_symbol_ptr  inst = (a_symbol_ptr)type->source_corresp.assoc_info,
                   templ_sym;
     a_symbol_list_entry_ptr
