@@ -5045,6 +5045,7 @@ Return a pointer to the variable that is declared.
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
   a_boolean                    incomplete_type_error_reported;
   a_boolean                    missing_declarator = FALSE;
+  a_symbol_reference_kind      srk_flags;
 
   db_enter(3, "condition_declaration");
   decl_pos = pos_curr_token;
@@ -5103,8 +5104,13 @@ Return a pointer to the variable that is declared.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sym->variant.variable.ptr->declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
-                            &sym->decl_position, declarator_ssep);
+  mark_variable_value_set(sym);
+  srk_flags = SRK_DECLARATION | SRK_DEFINITION;
+  if (!missing_declarator && curr_token == tok_assign) {
+    srk_flags |= SRK_INITIALIZATION;
+  }  /* if */
+  record_symbol_declaration(srk_flags, sym, &sym->decl_position,
+                            declarator_ssep);
   if (missing_declarator) {
     syntax_error(ec_exp_declarator_in_condition_decl);
   } else {
