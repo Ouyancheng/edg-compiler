@@ -1879,7 +1879,6 @@ template arguments, or NULL if deduction failed.
   an_arg_operand_ptr arg_operand;
   a_type_ptr         param_type, arg_type;
   a_boolean          param_is_reference;
-  a_base_class_ptr   base_class_conv_needed;
 
   db_enter(4, "function_template_call_argument_deduction");
   check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
@@ -1983,8 +1982,7 @@ template arguments, or NULL if deduction failed.
       if (!matches_template_type(arg_type, param_type, template_arg_list,
                                  tssp->variant.function.decl_cache.
                                                          decl_info->parameters,
-                                 MTT_ALLOW_CONVERSION,
-                                 &base_class_conv_needed)) {
+                                 MTT_ALLOW_CONVERSION)) {
         /* Mismatch. */
         goto done;
       }  /* if */
@@ -2167,9 +2165,9 @@ that are marked "explicit" are ignored.
            an updated template argument list (template arguments are cast to
            the types of the template parameters), which may be different for
            each template considered. */
-        routine_type = substitute_template_arguments(function_symbol,
-                                                     template_arg_list,
-                                                     &local_template_arg_list);
+        routine_type = substitute_template_arguments(
+                         function_symbol, template_arg_list,
+                         &local_template_arg_list, (a_template_param_ptr)NULL);
         /* Bail out if there is a mismatch. */
         if (routine_type == NULL) goto reject_function;
       }  /* if */
@@ -4316,8 +4314,7 @@ This routine is only used in C++ mode.
                                  &template_arg_list,
                                  tssp->variant.function.decl_cache.
                                                          decl_info->parameters,
-                                 MTT_NO_FLAGS,
-                                 (a_base_class_ptr *)NULL)) {
+                                 MTT_NO_FLAGS)) {
         /* Type deduction failed, so the conversion function is not viable. */
         goto reject_function;
       }  /* if */
