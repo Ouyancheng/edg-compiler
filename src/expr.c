@@ -10717,7 +10717,6 @@ variable:
           }  /* if */
           break;
         case sk_routine:
-normal_function:
           if (!C_mode() &&
               arg_dependent_lookup_enabled &&
               next_token() == tok_lparen) {
@@ -10726,6 +10725,7 @@ normal_function:
                if it is an overloaded function. */
             goto overloaded_function;
           }  /* if */
+normal_function:
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* Function identifiers are not allowed in integral constant
                expressions. */
