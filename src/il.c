@@ -3246,6 +3246,36 @@ the indicated constant.
   con->type = make_pointer_type(constant->type);
 }  /* set_constant_address_constant */
 
+
+a_boolean con_is_exact_addr_of_variable(a_constant_ptr con,
+                                        a_variable_ptr *var)
+/*
+If the indicated constant is the exact address of a variable, set *var
+to the variable and return TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_boolean is_exact_addr = FALSE;
+
+  while (con->kind == (a_constant_repr_kind)ck_template_param &&
+         con->variant.template_param.kind ==
+                                   (a_template_param_constant_kind)tpck_cast &&
+         con->type == con->variant.template_param.variant.constant->type) {
+    /* Eliminate do-nothing template parameter casts added to force
+       a constant to be template-dependent.  These come up in prototype
+       instantiations. */
+    con = con->variant.template_param.variant.constant;
+  }  /* while */
+  if (con->kind == (a_constant_repr_kind)ck_address &&
+      con->variant.address.kind == (an_address_base_kind)abk_variable &&
+      con->variant.address.offset == 0 &&
+      !con->implicit_cast) {
+    is_exact_addr = TRUE;
+    *var = con->variant.address.variant.variable;
+  }  /* if */
+  return is_exact_addr;
+}  /* con_is_exact_addr_of_variable */
+
+
 #if GNU_EXTENSIONS_ALLOWED
 
 void set_label_address_constant(a_label_ptr label,

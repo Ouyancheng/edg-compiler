@@ -1935,12 +1935,13 @@ This is used only in C++ mode; it is useful to know what the complete object
 type is to optimize base class casts and virtual function calls.
 */
 {
-  a_type_ptr complete_object_type = NULL;
+  a_type_ptr     complete_object_type = NULL;
+  a_variable_ptr var;
 
-  if (con_is_exact_addr_of_variable(constant)) {
+  if (con_is_exact_addr_of_variable(constant, &var)) {
     /* Unmodified address of a variable.  The variable is the complete
        object and its type is the complete object type. */
-    complete_object_type = constant->variant.address.variant.variable->type;
+    complete_object_type = var->type;
   }  /* if */
   return complete_object_type;
 }  /* con_complete_object_type */

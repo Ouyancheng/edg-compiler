@@ -5955,6 +5955,22 @@ if is_lvalue is TRUE.  Return NULL if the expression cannot be generated.
 
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
+static void force_constant_to_be_dependent(a_constant *constant)
+/*
+Force the indicated constant to appear template-dependent by adding a
+do-nothing ck_template_param cast on top of it.
+*/
+{
+  a_constant constant_copy;
+
+  copy_constant(constant, &constant_copy);
+  make_template_param_cast_constant(&constant_copy,
+                                    constant,
+                                    constant->type,
+                                    /*is_explicit=*/FALSE);
+}  /* force_constant_to_be_dependent */
+
+
 #if !RECORD_CONSTANT_EXPRESSIONS_IN_IL
 /*ARGSUSED*/  /* <-- record_expr is not used in that case. */
 #endif /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
@@ -6002,6 +6018,14 @@ FALSE means the reference is compiler-generated).
       clear_operand((an_operand_kind)ok_constant, result);
       set_variable_address_constant(variable, &result->variant.constant,
                                     /*set_address_taken_flag=*/FALSE);
+      if (is_template_dependent_context() &&
+          variable->source_corresp.is_class_member &&
+          variable->source_corresp.parent.
+                     class_type->variant.class_struct_union.is_nonreal_class) {
+        /* In a prototype instantiation, a static data member of the current
+           class is template-dependent. */
+        force_constant_to_be_dependent(&result->variant.constant);
+      }  /* if */
       result->type = variable_type;
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       if (record_expr) {
@@ -6187,12 +6211,8 @@ issue an error.
   if (is_template_dependent_context() &&
       is_template_dependent_type(constant.type)) {
     /* In a prototype instantiation, a member of the current class is
-       template-dependent.  Make a template param constant by adding a
-       do-nothing cast. */
-    a_constant constant_copy;
-    copy_constant(&constant, &constant_copy);
-    make_template_param_cast_constant(&constant_copy, &constant,
-                                      constant.type, /*is_explicit=*/FALSE);
+       template-dependent. */
+    force_constant_to_be_dependent(&constant);
   }  /* if */
   make_constant_operand(&constant, result);
   result->position = *position;
@@ -6239,6 +6259,15 @@ associated reference entry, or is NULL if none is needed.
   /* Set up an address-of-function constant. */
   set_routine_address_constant(routine, &result->variant.constant,
                                /*set_address_taken_flag=*/FALSE);
+  if (is_template_dependent_context() &&
+      !routine_type_is_nonstatic_member_function(routine->type) &&
+      routine->source_corresp.is_class_member &&
+      routine->source_corresp.parent.
+                     class_type->variant.class_struct_union.is_nonreal_class) {
+    /* In a prototype instantiation, a static member function of the current
+       class is template-dependent. */
+    force_constant_to_be_dependent(&result->variant.constant);
+  }  /* if */
   /* The type of the operand is the function type. */
   result->type = routine->type;
   result->state = (an_operand_state)os_function_designator;
@@ -7423,9 +7452,8 @@ variable.
   if (p_var != NULL) *p_var = NULL;
   if (is_constant_node(node)) {
     a_constant_ptr con = node->variant.constant;
-    if (con_is_exact_addr_of_variable(con)) {
-      /* The lvalue is the address of an variable. */
-      var = con->variant.address.variant.variable;
+    if (con_is_exact_addr_of_variable(con, &var)) {
+      /* The lvalue is the address of a variable. */
     }  /* if */
   } else if (is_variable_address_node(node)) {
     /* The lvalue address an enk_variable_address node. */
@@ -7452,8 +7480,10 @@ variable's value.  Otherwise, return NULL.
 
   if (is_constant_operand(operand)) {
     a_constant_ptr con = &operand->variant.constant;
-    if (con_is_exact_addr_of_variable(con)) {
-      con_var_value= var_constant_value(con->variant.address.variant.variable);
+    a_variable_ptr var;
+    if (con_is_exact_addr_of_variable(con, &var)) {
+      /* The lvalue is the exact address of a variable. */
+      con_var_value = var_constant_value(var);
     }  /* if */
   } else if (is_expression_operand(operand)) {
     con_var_value =
@@ -7749,10 +7779,10 @@ not an lvalue, it is left alone.
       if (is_constant_operand(operand)) {
         /* The lvalue address is specified by a constant. */
         a_constant_ptr con = &operand->variant.constant;
-        if (con_is_exact_addr_of_variable(con)) {
+        a_variable_ptr variable;
+        if (con_is_exact_addr_of_variable(con, &variable)) {
           /* The constant is the address of a variable. */
           /* See if the variable is constant-valued. */
-          a_variable_ptr variable = con->variant.address.variant.variable;
           a_constant_ptr con_var_value = var_constant_value(variable);
           if (con_var_value != NULL) {
             /* Replace a constant-valued variable by its value. */

@@ -989,14 +989,9 @@ Macros used to determine the kind of a template argument.
 #define is_template_templ_arg(arg) \
   ((arg)->kind == (a_templ_arg_kind)tak_template)
 
-/*
-Macro that returns TRUE if a constant entry is the exact address of
-a variable.
-*/
-#define con_is_exact_addr_of_variable(con)                            \
-  ((con)->kind == (a_constant_repr_kind)ck_address &&                 \
-   (con)->variant.address.kind == (an_address_base_kind)abk_variable &&\
-   (con)->variant.address.offset == 0 && !(con)->implicit_cast)
+
+extern a_boolean con_is_exact_addr_of_variable(a_constant_ptr con,
+                                               a_variable_ptr *var);
 
 /*
 Macro that returns TRUE if a constant entry is the exact address of
