@@ -4792,7 +4792,7 @@ of the function, and again overloading is a possibility.
   if (!is_error_locator(*locator)) {
     if (symbol_supplement_for_class(class_type)->is_nonreal_class) {
       /* Scan past friend functions during prototype instantiation. */
-      set_to_error_locator(*locator);
+      set_to_named_error_locator(*locator);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (func_info->declarator_ssep != NULL) {
         /* In certain configurations source sequence entries are put out for
