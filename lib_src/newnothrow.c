@@ -28,15 +28,29 @@ exception.
 */
 {
   a_boolean	done = FALSE;
+  /* The allocation failed -- call the current new handler routine.  Use
+     the routine pointed to by _new_handler.  If this value is NULL, use
+     the default new handler. */
+  STD_NAMESPACE::new_handler  new_handler;
+  new_handler = _new_handler != NULL ? _new_handler : __default_new_handler;
 #if EXCEPTION_HANDLING
   try {
-    (*_new_handler) ();
+    (*new_handler) ();
   }
   catch (STD_NAMESPACE::bad_alloc) {
     done = TRUE;
   }
 #else /* !EXCEPTION_HANDLING */
-  (*_new_handler) ();
+  (*new_handler) ();
+  /* A new handler is supposed to make more memory available, or to exit
+     via an exception or by calling abort() or exit().  In order to support
+     implementations without exception handling, the older protocol of
+     returning a NULL value is supported by the default new handler.
+     If the default new handler is being used, and exceptions are not
+     enabled, return a NULL pointer. */
+  if (new_handler == (STD_NAMESPACE::new_handler)__default_new_handler) {
+    done = TRUE;
+  }  /* if */
 #endif /* EXCEPTION_HANDLING */
   return done;
 }  /* call_new_handler */

@@ -1,5 +1,12 @@
 Version 2.42
 
+6/4/99   Bug in nothrow version of new when not using exceptions
+
+A bug in the nothrow version of new would cause it to loop if called
+when there is not enough memory available to complete the operation.
+This occurred only if the runtime was built without exception
+handling support.  This has been fixed.
+
 5/5/99   Operator delete routines missing exception specifications
 
 The operator delete routines in the runtime were missing exception
