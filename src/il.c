@@ -9355,8 +9355,8 @@ dependent on it.  The routine entry itself is dealt with later.
            "unneeded", still must be kept in the IL (e.g., because it is
            nested within a needed class). */
         rp = sp->variant.routine.ptr;
-        check_assertion_str2(!rp->source_corresp.needed || rp->is_virtual,
-                             "eliminate_bodies_of_needed_functions",
+        check_assertion_str2(rp->source_corresp.needed || rp->is_virtual,
+                             "eliminate_bodies_of_unneeded_functions",
                              "mismatch between needed and keep-in-il flags");
 #endif /* CHECKING */
       } else {
