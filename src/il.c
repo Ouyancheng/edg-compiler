@@ -11951,8 +11951,10 @@ cleared.
             fputs(" no longer befriended by ", f_debug);
             db_type_name(class_type);
             fputc('\n', f_debug);
-            fprintf(f_debug, "befriending_classes of friend class:\n");
-            db_class_list(friend_ctsp->befriending_classes);
+            if (db_flag_is_set("friendship")) {
+              fprintf(f_debug, "befriending_classes of friend class:\n");
+              db_class_list(friend_ctsp->befriending_classes);
+            }  /* if */
           }  /* if */
 #endif /* DEBUG */
           /* A match -- link around it. */
@@ -12008,8 +12010,10 @@ cleared.
             fputs(" no longer befriended by ", f_debug);
             db_type_name(class_type);
             fputc('\n', f_debug);
-            fprintf(f_debug, "befriending_classes of friend routine:\n");
-            db_class_list(friend_rout->befriending_classes);
+            if (db_flag_is_set("friendship")) {
+              fprintf(f_debug, "befriending_classes of friend routine:\n");
+              db_class_list(friend_rout->befriending_classes);
+            }  /* if */
           }  /* if */
 #endif /* DEBUG */
         if (prev_clep == NULL) {
