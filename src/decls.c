@@ -6922,7 +6922,7 @@ current scope.
             sym = sym->variant.overloaded_function.symbols;
           }  /* if */
           if (other_decl != NULL) {
-            a_symbol_ptr  fund_sym = fundamental_symbol_of(other_decl);
+            fund_sym = fundamental_symbol_of(other_decl);
             if (is_function_symbol(fund_sym) ||
                 fund_sym->kind == (a_symbol_kind)sk_function_template) {
               /* Overloading is okay. */
@@ -6948,11 +6948,13 @@ current scope.
           for (; sym != NULL; sym = is_list ? sym->next : NULL) {
             locator = locator_for_curr_id;
             clear_specific_symbol(locator);
+            fund_sym = fundamental_symbol_of(sym);
             if (overload_sym == NULL) {
               /* No overloading. */
-              new_sym = enter_namespace_projection_symbol
-                                           (sym, &locator, depth_scope_stack,
-                                            /*suppress_error=*/FALSE);
+              new_sym = enter_namespace_projection_symbol(
+                                                     fund_sym, &locator,
+                                                     depth_scope_stack,
+                                                     /*suppress_error=*/FALSE);
               /* If is_list is TRUE, there will be overloading on the next
                  iteration of this loop. */
               if (is_list) overload_sym = new_sym;
@@ -6960,9 +6962,9 @@ current scope.
               /* Don't try to add a symbol that is already pointed to by
                  overload_sym. */
               continue;
-            } else if (conflicts_with_previous_function_decl(
-                                                  fundamental_symbol_of(sym),
-                                                  overload_sym, &decl_pos)) {
+            } else if (conflicts_with_previous_function_decl(fund_sym,
+                                                             overload_sym,
+                                                             &decl_pos)) {
               /* A function introduced by a using declaration cannot have the
                  same type as a function already declared in the scope
                  (WP 7.3.3 [namespace.udecl] paragraph 12).  The diagnostic
@@ -6971,16 +6973,22 @@ current scope.
               continue;
             } else {
               /* Add a new symbol to the overload set. */
-              new_sym = make_namespace_projection_symbol(sym, &locator,
+              a_symbol_ptr  new_overload_sym;
+              new_sym = make_namespace_projection_symbol(fund_sym, &locator,
                                                          depth_scope_stack);
-              new_sym = add_symbol_to_overload_list(new_sym, overload_sym,
+              new_overload_sym =
+                        add_symbol_to_overload_list(new_sym, overload_sym,
                                                     /*use_namespace=*/FALSE,
                                                     (a_namespace_ptr)NULL);
-              overload_sym = new_sym;
+              if (new_overload_sym != overload_sym) {
+                overload_sym = new_overload_sym;
+                set_namespace_membership(overload_sym,
+                                         (a_source_correspondence *)NULL,
+                                         (a_namespace_ptr)NULL);
+              }  /* if */
             }  /* if */
             set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
                                      (a_namespace_ptr)NULL);
-            fund_sym = fundamental_symbol_of(new_sym);
 #if !RECORD_TEMPLATES_IN_IL
             if (fund_sym->kind == (a_symbol_kind)sk_class_template ||
                 fund_sym->kind == (a_symbol_kind)sk_function_template) {
