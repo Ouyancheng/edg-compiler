@@ -3807,7 +3807,7 @@ initialized.  These are addressed in the course of the processing.
         bcp = NULL;
         dip = NULL;
         if (curr_token == tok_lparen) {
-          /* Old-style base class initializer.  It is assumed to apply the
+          /* Old-style base class initializer.  It is assumed to apply to the
              the direct base class (further assuming that there is exactly
              one direct base class). */
           if (!allow_anachronisms || direct_base_class_count != 1) {
