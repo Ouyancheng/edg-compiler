@@ -6998,6 +6998,7 @@ that follows.
   a_symbol_reference_kind       srk_flags = SRK_DECLARATION;
   a_boolean                     is_definition;
   a_source_position             decl_start_pos;
+  a_boolean                     has_parenthesized_initializer;
 
   db_enter(3, "full_instantiation");
   decl_start_pos = pos_curr_token;
@@ -7032,10 +7033,13 @@ that follows.
     add_stop_token(tok_semicolon);
     clear_func_info(&func_info);
     declarator((DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED |
-                DI_OPERATOR_NAME_ALLOWED | DI_IS_SPECIALIZATION),
+                DI_OPERATOR_NAME_ALLOWED | DI_IS_SPECIALIZATION |
+                DI_PARENTHESIZED_INITIALIZER_ALLOWED),
                &do_flags, type, (a_type_ptr)NULL, &locator, &type,
                &declarator_ssep, &func_info);
-    sym = NULL; 
+    sym = NULL;
+    has_parenthesized_initializer =
+                              (do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
     if (!is_error_locator(locator)) {
       sym = locator.specific_symbol;
       if (sym == NULL) {
@@ -7102,7 +7106,8 @@ that follows.
       /* The symbol is not NULL. */
       /* See if this is a declaration or a definition. */
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-        is_definition = (curr_token == tok_assign);
+        is_definition = (curr_token == tok_assign ||
+                         has_parenthesized_initializer);
       } else {
         is_definition = (curr_token == tok_lbrace ||
                          (curr_token == tok_colon &&
@@ -7139,10 +7144,10 @@ that follows.
           sym->variant.static_data_member.variable->
                            storage_class = (a_storage_class)sc_unspecified;
           /* Advance past "=". */
-          (void)get_token();
+          if (curr_token == tok_assign) (void)get_token();
           initializer(sym, &locator.source_position,
                       (an_id_linkage_kind)idl_external,
-                      /*has_parenthesized_initializer=*/FALSE,
+                      has_parenthesized_initializer,
                       /*is_old_style_param_decl=*/FALSE,
                       &incomplete_type_error_reported);
         }  /* if */
