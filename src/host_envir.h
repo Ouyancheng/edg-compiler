@@ -809,8 +809,6 @@ extern FILE *open_source_file(char          *file_name,
                               a_boolean     *bad_name);
 /* Reopen a source file. */
 extern FILE *reopen_source_file(char *file_name);
-/* Check whether or not a file is acceptable as an output file. */
-extern a_boolean okay_as_output_file(char *file_name);
 /* Open an output file. */
 extern FILE *open_output_file(char          *file_name,
                               a_boolean     binary_file,
