@@ -3554,6 +3554,10 @@ Instantiate the body of the template function associated with tip.
   db_enter(3, "instantiate_template_function");
   rout_sym = tip->instance_sym;
   rout_ptr = rout_sym->variant.routine.ptr;
+  /* The already instantiated flag is set even if certain error conditions
+     exist (such as runaway instantiation), to prevent the compiler from
+     attempting to instantiate this function again. */
+  master_instance_of(tip)->already_instantiated = TRUE;
   if (routine_has_been_defined(rout_ptr)) {
     /* Already instantiated. */
     goto done;
@@ -3744,10 +3748,6 @@ Instantiate the body of the template function associated with tip.
      is now present. */
   establish_function_instantiation_corresp(rout_ptr);
 done:;
-  /* The already instantiated flag is set even if certain error conditions
-     exist (such as runaway instantiation), to prevent the compiler from
-     attempting to instantiate this function again. */
-  master_instance_of(tip)->already_instantiated = TRUE;
   db_exit();
 }  /* instantiate_template_function */
 
