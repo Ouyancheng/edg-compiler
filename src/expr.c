@@ -1795,6 +1795,60 @@ the same offset, NULL is returned.
   return other_field_sym;
 }  /* other_field_with_same_name */
 
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+
+static void adjust_nonstandard_anonymous_object_field_references(
+                                                        an_operand   *result,
+                                                        a_symbol_ptr field_sym)
+/*
+result is an operand for a field selection of the field field_sym.
+field_sym is a member of some kind of anonymous parent object.  If it's
+a member of a nonstandard anonymous parent (rather than a standard
+C++ anonymous union), insert the elided field selections.  This routine
+does not save and restore the position (etc.) in the operand; it assumes
+the caller will be setting those things.
+*/
+{
+  a_symbol_ptr     anon_parent_sym = field_sym;
+  a_field_ptr      parent_field;
+  an_expr_node_ptr orig_node = make_node_from_operand(result);
+  an_expr_node_ptr node = orig_node;
+
+  /* Loop for multiple levels of anonymous parent objects. */
+  for (;;) {
+    check_assertion(anon_parent_sym->kind == (a_symbol_kind)sk_field);
+    anon_parent_sym = anon_parent_sym->variant.field.anonymous_parent_object;
+    /* Stop if there's no anonymous parent, meaning we've handled all
+       the levels of anonymous parents. */
+    if (anon_parent_sym == NULL) break;
+    check_assertion(anon_parent_sym->kind == (a_symbol_kind)sk_field);
+    parent_field = anon_parent_sym->variant.field.ptr;
+    /* In C++, stop if this parent is a standard anonymous union, because
+       those don't get handled here. */
+    if (!C_mode()) {
+      /* C++.  See if this is an anonymous union case. */
+      a_type_ptr                  field_class =
+                          parent_field->source_corresp.class_of_which_a_member;
+      a_class_type_supplement_ptr ctsp =
+                            field_class->variant.class_struct_union.extra_info;
+      /* Stop if the field is from a standard anonymous union. */
+      if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field) {
+        break;
+      }  /* if */
+    }  /* if */
+    /* Rewrite the field selection to add an implied selection. */
+    adjust_anonymous_union_field_selection(node, parent_field);
+    /* Loop to see if the rewritten first operand still refers to an
+       anonymous union field (because there are several nested anonymous
+       unions), and if so, rewrite it. */
+    node = node->variant.operation.operands;
+  }  /* for */
+  /* Rebuild the operand.  It's not necessary to save and restore things
+     like the source position because the caller does it. */
+  make_expression_operand(orig_node, result->type, result);
+}  /* adjust_nonstandard_anonymous_object_field_references */
+
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 static void do_field_selection_operation(
                                an_operand        *operand_1,
@@ -1893,7 +1947,7 @@ The result is placed in *result.
            have the field selection in the IL (the constant form has only
            an offset, and loses the field name). */
         clear_operand((an_operand_kind)ok_constant, result);
-        fold_field_selection(&operand_1->variant.constant, field,
+        fold_field_selection(&operand_1->variant.constant, field_sym,
                              selection_type, &result->variant.constant);
         did_not_fold = FALSE;
       }  /* if */
@@ -1914,6 +1968,15 @@ The result is placed in *result.
         make_field_operand(field, &field_operand);
         build_binary_result_operand(operand_1, &field_operand, op,
                                     selection_type, result);
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+        /* When nonstandard anonymous unions are allowed, look for
+           fields of such anonymous parents and insert the elided field
+           selections. */
+        if (field_sym->variant.field.anonymous_parent_object != NULL) {
+          adjust_nonstandard_anonymous_object_field_references(result,
+                                                               field_sym);
+        }  /* if */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
       }  /* if */
     }  /* if */
     /* Set the operand type.  This is needed in particular if the result
