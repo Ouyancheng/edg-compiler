@@ -6228,15 +6228,15 @@ done:;
   db_exit();
 }  /* member_using_declaration */
 
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
 static a_decl_modifier merge_decl_modifiers(a_type_ptr         class_type,
                                             a_decl_modifier    decl_modifiers,
                                             a_boolean          is_definition,
                                             a_source_position  *pos)
 /*
 class_type is the type of the current class, in which the decl_modifiers
-field may have been set to indicate modifiers for the class a whole, and
+field may have been set to indicate modifiers for the class as a whole, and
 decl_modifiers represents the modifiers declared for the current member.
 Check for compatibility and return a set of decl-modifier flags based on
 the two.  is_definition is TRUE when this is called for a member function
@@ -6259,6 +6259,17 @@ definition.  pos is the error position.
                                            (int)dmt_dllexport)]);
       decl_modifiers &= ~(DM_DLLIMPORT | DM_DLLEXPORT);
     }  /* if */
+    if (microsoft_16_mode) {
+      if ((class_decl_modifiers & (DM_NEAR | DM_FAR)) != DM_NONE &&
+          (decl_modifiers & (DM_NEAR | DM_FAR)) != DM_NONE) {
+        /* near and far appear more than once. */
+        pos_st_warning(ec_decl_modifiers_invalid_for_this_decl, pos,
+                       decl_modifier_names[(decl_modifiers & DM_NEAR ?
+                                             (int)dmt_near :
+                                             (int)dmt_far)]);
+        decl_modifiers &= ~(DM_NEAR | DM_FAR);
+      }  /* if */
+    }  /* if */
     if (is_definition && (class_decl_modifiers & DM_DLLIMPORT)) {
       /* Put no dll attribute on an inline member function. */
     } else {
@@ -6267,9 +6278,9 @@ definition.  pos is the error position.
     }  /* if */
   }  /* if */
   return decl_modifiers;
-}  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* merge_decl_modifiers */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_symbol_ptr find_corresp_prototype_tag_sym(a_symbol_ptr  curr_sym)
 /*
