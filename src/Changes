@@ -1,5 +1,18 @@
 Version 3.2
 
+5/9/03   Internal error on strange specialization syntax
+
+An unusual syntax error suggesting a specialization of a static data member
+could lead to an internal error.  For example:
+
+  template<class> struct S {
+    static int i;
+    template<> int i = 1;  // Used to abort during instantiation.
+  };
+  template struct S<int>;
+
+This is now fixed.
+
 5/8/03   GNU C++ compatibility: use and redeclaration of inherited type name
 
 The g++ compiler permits an inherited type name to be used in a derived

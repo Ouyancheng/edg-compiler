@@ -15286,9 +15286,9 @@ that follows.
     if (is_error_locator(locator)) {
       /* Ignore it. */
       sym = NULL;
-    } else if (decl_state->in_prototype_instantiation &&
-               !microsoft_mode) {
-      /* A specialization in a prototype instantiation scope. */
+    } else if ((decl_state->in_prototype_instantiation && !microsoft_mode) ||
+               decl_state->decl_scope_err) {
+      /* A misplaced specialization. */
       sym = NULL;
       set_to_error_locator(locator);
     } else if (sym == NULL) {
