@@ -10810,9 +10810,13 @@ eliminated, if appropriate.
                body has been eliminated. */
             if (ctsp != NULL &&
                 ((vtbl_var = ctsp->virtual_function_table_var) == NULL ||
-                  !il_entry_prefix_of(vtbl_var).keep_in_il) &&
+                  !il_entry_prefix_of(vtbl_var).keep_in_il)
+#if ABI_CHANGES_FOR_RTTI
+                                                            &&
                 ((typeinfo_var = class_type->typeinfo_var) == NULL ||
-                  !il_entry_prefix_of(typeinfo_var).keep_in_il)) {
+                  !il_entry_prefix_of(typeinfo_var).keep_in_il)
+#endif /* ABI_CHANGES_FOR_RTTI */
+                                                               ) {
               /* Either there is no virtual function table or it's been
                  eliminated from the IL: it's okay to clear the flag, since
                  an otherwise unreferenced virtual function would be needed
