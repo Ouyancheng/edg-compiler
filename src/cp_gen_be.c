@@ -2054,7 +2054,11 @@ These follow the tag kind, e.g., "struct __single_inheritance xxx".
   a_class_type_supplement_ptr ctsp=type->variant.class_struct_union.extra_info;
 
   if (ctsp != NULL) {
-    gen_microsoft_inheritance_kind(ctsp->inheritance_kind);
+    if (ctsp->inheritance_kind_is_explicit) {
+      /* Only display the inheritance kind if it appeared explicitly on at
+         least one declaration of the current class. */
+      gen_microsoft_inheritance_kind(ctsp->inheritance_kind);
+    }  /* if */
     gen_microsoft_decl_modifiers(ctsp->decl_modifiers);
     gen_microsoft_uuid_declspec(ctsp->uuid_string);
     form_type_qualifier(ctsp->qualifiers, /*need_trailing_space=*/TRUE, &octl);

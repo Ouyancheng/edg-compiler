@@ -3093,6 +3093,11 @@ typedef a_byte an_anonymous_union_kind;
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+Enumeration describing the set of inheritance kinds that can be specified for
+a class, corresponding to different pointer-to-member representations.  The
+order is significant: single < multiple < virtual.
+*/
 enum an_inheritance_kind_tag {
   ihk_none,		/* No inheritance kind specified. */
   ihk_single,		/* Single inheritance specified. */
@@ -3101,15 +3106,32 @@ enum an_inheritance_kind_tag {
 };
 typedef a_byte an_inheritance_kind;
 
+
+/*
+Names of inheritance kinds, used for diagnostics.
+*/
+EXTERN char *inheritance_kind_names[(int)ihk_virtual+1]
+#if VAR_INITIALIZERS
+= {
+/* ihk_none */		"none",
+/* ihk_single*/		"__single_inheritance",
+/* ihk_multiple*/	"__multiple_inheritance",
+/* ihk_virtual*/	"__virtual_inheritance"
+}
+#endif /* VAR_INITIALIZERS */
+;
+
+
 EXTERN an_inheritance_kind
 		default_inheritance_kind
 #if VAR_INITIALIZERS
-                                         = (an_inheritance_kind)ihk_single
+                                         = (an_inheritance_kind)ihk_virtual
 #endif /* VAR_INITIALIZERS */
-                                                                          ;
+                                                                           ;
 			/* Default to which the inheritance_kind field for
-			   class is set in the absence of an explicit
-			   specification. */
+			   class is set, in the absence of an explicit
+			   specification, if the class is used in a
+			   pointer-to-member declaration. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
@@ -3196,6 +3218,13 @@ typedef struct a_class_type_supplement {
 			   Microsoft ABI compatibility.  An inheritance kind
 			   of ihk_none means no specific inheritance kind
 			   has been set. */
+#if BACK_END_IS_CP_GEN_BE
+  a_byte_boolean
+		inheritance_kind_is_explicit;
+			/* TRUE if the inheritance_kind field was set as the
+			   result of an explicit specification on the class
+			   declaration. */
+#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_anonymous_union_kind
 		anonymous_union_kind;

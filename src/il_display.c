@@ -3599,6 +3599,10 @@ Display the indicated class type supplement entry.
       case ihk_virtual:   (void)printf("ihk_virtual\n"); break;
       default:            (void)printf("**BAD INHERITANCE KIND**\n");
     }  /* switch */
+#if BACK_END_IS_CP_GEN_BE
+    disp_boolean("inheritance_kind_is_explicit",
+                 (a_boolean)ptr->inheritance_kind_is_explicit);
+#endif /* BACK_END_IS_CP_GEN_BE */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {

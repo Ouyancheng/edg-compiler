@@ -838,6 +838,9 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->orig_type_kind                    = (a_type_kind)tk_error;
   ctsp->qualifiers                        = TQ_NONE;
   ctsp->inheritance_kind                  = (an_inheritance_kind)ihk_none;
+#if BACK_END_IS_CP_GEN_BE
+  ctsp->inheritance_kind_is_explicit      = FALSE;
+#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
