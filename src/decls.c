@@ -2605,7 +2605,9 @@ created; the caller must set it.
         !func_info->is_main_function) {
       /* This is an extern "C" function declaration in C++.  Be sure no other
          extern "C" function has been declared in this translation unit --
-         only one is permitted with a given name, ignoring namespaces. */
+         only one is permitted with a given name, ignoring namespaces.
+         (Microsoft compilers ignore this, so in Microsoft bugs mode we
+          weaken this to a warning.) */
       a_symbol_ptr   sym = locator->symbol_header->other_symbols;
       a_routine_ptr  rp;
 
@@ -2615,10 +2617,15 @@ created; the caller must set it.
           if (rp->source_corresp.name_linkage ==
                                      (a_name_linkage_kind)nlk_external) {
             /* Illegal overloading involving two extern "C" functions with
-               the same name. */
-            pos_sy_error(ec_overloaded_function_linkage,
-                         &locator->source_position, sym);
-            err = TRUE;
+               the same name.  Microsoft compilers let this through if the
+               two declarations are in different namespaces. */
+            err = !(microsoft_bugs &&
+                    depth_scope_stack == depth_innermost_namespace_scope &&
+                    sym->parent.namespace_ptr !=
+                              scope_stack[depth_scope_stack].assoc_namespace);
+            pos_sy_diagnostic(err ? es_error : es_warning,
+                              ec_overloaded_function_linkage,
+                              &locator->source_position, sym);
             break;
           }  /* if */
         }  /* if */
@@ -3905,8 +3912,14 @@ cross-reference output describing this declaration.
        is only what is known in the current scope.  The external symbol
        keeps track of the full composite type behind the scenes.
        If we do not already have an IL entry, and the external symbol entry
-       points to one, get a pointer to it and use it. */
+       points to one, get a pointer to it and use it.
+       Note that in Microsoft compilers, an extern "C" declaration in one
+       scope does not link up with an extern "C" declaration of the same name
+       in another scope (though the linker will catch redefinitions of such
+       names). */
     a_routine_ptr  dummy_rp;
+    suppress_ext_sym_lookup = suppress_ext_sym_lookup ||
+                              (microsoft_bugs && linkage == idl_external);
     *ext_sym = 
         create_external_symbol_for_linked_entity(locator, type_ptr,
                                                  idlb.name_linkage,
@@ -4869,7 +4882,15 @@ skip_overloading:;
   }  /* if */
   *ext_sym = NULL;
   if (linkage != idl_none && !redeclaration) {
+    /* Create an external symbol for the present linkable declaration.
+       Ordinarily, this may involve some lookup to find a declaration in a
+       previous scope to which the present one is linked.  However, in
+       Microsoft compilers, an extern "C" declaration in one scope does not
+       link up with an extern "C" declaration of the same name in another
+       scope (though the linker will catch redefinitions of such names). */
     a_variable_ptr  dummy_vp;
+    suppress_ext_sym_lookup = suppress_ext_sym_lookup ||
+                              (microsoft_bugs && linkage == idl_external);
     *ext_sym = 
         create_external_symbol_for_linked_entity(locator, type_ptr,
                                                  idlb.name_linkage,

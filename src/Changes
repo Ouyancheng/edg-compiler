@@ -1,5 +1,25 @@
 Version 2.43
 
+10/6/99  Microsoft compatibility: extern "C" entities across namespaces
+
+Microsoft compilers do not treat extern "C" declarations of identical names in
+different namespaces as declarations of identical entities.  This behavior is
+now emulated in Microsoft bugs mode.  Note that this may lead the C generating
+back end to produce invalid C code without a diagnostic (though a Microsoft
+C compiler will accept the code produced).
+
+  extern "C" { void f(int); }
+  namespace N {
+    extern "C" { void f() {} }  // Warning (not error) in Microsoft bugs mode
+  }
+  int main() { f(1); }
+
+In Microsoft bugs mode, this example causes two distinct IL routine entities
+to be created, even though both have the same mangled name (a warning is
+issued).  The C generating back end emits declarations for both entities, but
+a Microsoft compiler will accept these conflicting C declarations of the same
+name with a warning.
+
 10/5/99  Configuration option to record constant expressions
 
 When the new configuration option RECORD_CONSTANT_EXPRESSIONS_IN_IL is set to
