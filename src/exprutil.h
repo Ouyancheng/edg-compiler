@@ -202,24 +202,24 @@ typedef struct an_operand {
 		state;
 			/* Whether the operand is an lvalue, rvalue, or a
 			   function designator. */
-  unsigned int	bound_function:1;
+  a_bit_field	bound_function:1;
 			/* TRUE if the operand is a bound function, i.e.,
 			   another operand is required to give the object
 			   relative to which this function is selected. */
-  unsigned int	virtual_function:1;
+  a_bit_field	virtual_function:1;
 			/* TRUE if the operand represents a virtual
 			   function. */
-  unsigned int	is_qualified_name:1;
+  a_bit_field	is_qualified_name:1;
 			/* TRUE if the operand was generated from a qualified
 			   name. */
-  unsigned int	access_control_error_reported:1;
+  a_bit_field	access_control_error_reported:1;
 			/* TRUE if an access control error was reported
 			   on the base identifier for this operand.  This
 			   remains meaningful only for operands that are
 			   essentially still just a representation for
 			   an identifier, e.g., ok_indefinite_function and
 			   ok_sym_for_member. */
-  unsigned int	is_operand_of_address_of:1;
+  a_bit_field	is_operand_of_address_of:1;
 			/* TRUE if this operand is the immediate operand
 			   of an "&" address-of operator.  This is
 			   significant in that it discriminates between

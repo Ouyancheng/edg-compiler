@@ -65,21 +65,21 @@ typedef struct an_il_entry_prefix *an_il_entry_prefix_ptr;
 typedef struct an_il_entry_prefix {
   /* Note that if you add bits here you must adjust NUM_OF_BIT_FIELDS_IN_PREFIX
      below. */
-  unsigned int	file_scope:1;
+  a_bit_field	file_scope:1;
 			/* TRUE if this IL entry is allocated in the file
 			   scope memory region. */
-  unsigned int	il_walk_flag:1;
+  a_bit_field	il_walk_flag:1;
 			/* Flipped between 0 and 1 to indicate entries that
 			   have been visited on a given walk through an IL
 			   tree. */
 #if DO_IL_LOWERING
-  unsigned int	il_lowering_flag:1;
+  a_bit_field	il_lowering_flag:1;
 			/* Flipped from 0 to 1 by IL lowering to indicate
 			   IL entries that have been visited. */
 #endif /* DO_IL_LOWERING */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #if ALTERNATE_IL_FILE_FORMAT
-  unsigned int	entry_written:1;
+  a_bit_field	entry_written:1;
 			/* TRUE once the entry has been written to the IL
 			   file.  Needed for string entries, for which
 			   multiple copies may be written. */

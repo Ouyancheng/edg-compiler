@@ -210,6 +210,17 @@ typedef char * a_void_ptr;
 typedef char * a_const_void_ptr;
 #endif /* USING_ISO_C */
 
+/*
+Type to be used for small bit fields.  Usually this is "unsigned int,"
+but on compilers that follow the Microsoft bit-field allocation convention
+that results in poor packing, so use "unsigned char".
+*/
+#if __MSC__
+typedef unsigned char a_bit_field;
+#else /* !__MSC__ */
+typedef unsigned int a_bit_field;
+#endif /* __MSC__ */
+
 #if __ANSIC__
 #include <limits.h>
 #include <stddef.h>

@@ -547,7 +547,7 @@ typedef struct a_src_seq_secondary_decl {
 			   needn't be.  It is appears on secondary declarations
 			   for typedefs, but NULL for secondary declarations
 			   of class, struct, union, and enum types. */
-  unsigned int	autonomous_tag_decl:1;
+  a_bit_field	autonomous_tag_decl:1;
 			/* If entity refers to a type entry representing a
 			   class, struct, union, or enum, this flag is TRUE if
 			   the declaration it corresponds to is not part
@@ -560,7 +560,7 @@ typedef struct a_src_seq_secondary_decl {
 			   The source sequence entries for the first and
 			   fourth of these class declarations will have the
 			   flag set. */
-  unsigned int	friend_decl:1;
+  a_bit_field	friend_decl:1;
 			/* TRUE when the declaration is a friend declaration;
 			   "entity" will refer to a routine or class. */
   bitfield_to_avoid_codecenter_warnings()
@@ -713,14 +713,14 @@ typedef struct a_source_correspondence {
                            source name, to indicate the place where the
                            entity appeared without being named. */
 #ifdef CIL
-  unsigned int /* an_access_specifier */
+  a_bit_field /* an_access_specifier */
 		access:2;
                         /* The access control specified at the point of
                            declaration.  Restricted access may be indicated
                            for class members only; all other entities are
                            "public" by default.  In C mode, always "public". */
 #endif /* ifdef CIL */
-  unsigned int  referenced:1;
+  a_bit_field	referenced:1;
                         /* TRUE if the item is referenced in the
                            intermediate language.  This is always TRUE
                            for definitions of externally-visible entities,
@@ -729,17 +729,17 @@ typedef struct a_source_correspondence {
                            that are dynamically initialized.  Also differs
                            from the flag in the symbol entry in that more
                            than one symbol can point to the same IL entry. */
-  unsigned int /* a_name_linkage_kind */
+  a_bit_field /* a_name_linkage_kind */
 		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* Kind of linkage for the name, e.g., is it
 			   externally visible. */
-  unsigned int	has_associated_pragma:1;
+  a_bit_field	has_associated_pragma:1;
 			/* TRUE if an entry of type a_pragma has been created
 			   and bound to this entity.  The pragma entry, which
 			   will contain a pointer to this entity, is found by
 			   calling find_assoc_pragma. */
 #ifdef CIL
-  unsigned int  is_local_to_function:1;
+  a_bit_field	is_local_to_function:1;
 			/* TRUE if a function scope intervenes in the scope
 			   stack between the scope to which the entity belongs
 			   and the file scope.  In general, entities declared
@@ -747,18 +747,18 @@ typedef struct a_source_correspondence {
 			   classes have the flag set to TRUE, and objects
 			   declared at file scope and within nonlocal classes
 			   have it set to FALSE. */
-  unsigned int	is_class_member:1;
+  a_bit_field	is_class_member:1;
 			/* TRUE if the entry represents a C++ class member;
 			   also TRUE for fields in C.  (Note: it is set for
 			   anonymous union members even when their names are
 			   promoted to a non-class scope.)  */
 #if NEED_NAME_MANGLING
-  unsigned int	name_has_been_mangled:1;
+  a_bit_field	name_has_been_mangled:1;
 			/* TRUE if the name of the entity has been changed
 			   to the "mangled" form of the name (C++). */
 #endif /* NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
-  unsigned int	global_qualification_needed:1;
+  a_bit_field	global_qualification_needed:1;
 			/* A leading "::" is needed when referring to this
 			   entity.  Used within the C++-generating back end. */
 #endif /* BACK_END_IS_CP_GEN_BE */
@@ -1017,7 +1017,7 @@ typedef struct a_dynamic_init {
   a_dynamic_init_kind
 		kind;	/* Kind of dynamic initialization (constant,
 			   expression, constructor, aggregate). */
-  unsigned int	follows_an_exec_statement:1;
+  a_bit_field	follows_an_exec_statement:1;
 			/* TRUE if this initialization is pointed to from
 			   an stmk_init and the stmk_init appears after
 			   some executable statements in its block (which
@@ -1025,11 +1025,11 @@ typedef struct a_dynamic_init {
 			   this belongs in the stmk_init, but putting it
 			   here makes it accessible from both the stmk_init
 			   and the variable being initialized. */
-  unsigned int	inside_conditional_expression:1;
+  a_bit_field	inside_conditional_expression:1;
 			/* This initialization (under an enk_temp_init) is
 			   inside a conditional part of an expression
 			   (e.g., under a "?" operator). */
-  unsigned int	unordered:1;
+  a_bit_field	unordered:1;
 			/* TRUE if this entry represents an automatic
 			   end-of-lifetime destruction and is unordered
 			   relative to another entry on the destructions list.
@@ -1039,17 +1039,17 @@ typedef struct a_dynamic_init {
 			   destruction list cannot predetermine which should
 			   be destroyed first; the dynamic init entries for
 			   both operands will have the flag set. */
-  unsigned int	has_temporary_lifetime:1;
+  a_bit_field	has_temporary_lifetime:1;
 			/* TRUE if the entity initialized is a temporary with
 			   the normal object lifetime for a temporary (e.g.,
 			   it's not a temporary whose lifetime has been
 			   extended by virtue of being bound to a
 			   reference). */
-  unsigned int	is_constructor_init:1;
+  a_bit_field	is_constructor_init:1;
 			/* TRUE if this entry is pointed to from a
 			   constructor_init entry in a constructor or
 			   destructor. */
-  unsigned int	is_freeing_of_storage_on_exception:1;
+  a_bit_field	is_freeing_of_storage_on_exception:1;
 			/* TRUE if this entry indicates (as a destruction)
 			   a call of a delete routine to free the storage
 			   allocated in a new if an exception is thrown before
@@ -1177,31 +1177,31 @@ typedef struct a_constant {
 			/* A ck_init_position entry also has a NULL type
 			   pointer. */
 #endif /* ifdef FIL */
-  unsigned int  implicit_cast:1;
+  a_bit_field	implicit_cast:1;
                         /* If this is TRUE, then the value indicated by
                            the representation has been cast to the type
                            indicated above and it's not a "natural" fit.
                            Used for integer constants cast to pointer types
                            and one pointer type cast to another. */
-  unsigned int  non_arithmetic:1;
+  a_bit_field	non_arithmetic:1;
                         /* This constant should not be considered to be
                            arithmetic; it's probably a bit mask of some kind.
                            Set for hexadecimal and octal constants, and
                            for results of folding constant bit operations.
                            Used to suppress some warnings on implicit type
                            changes. */
-  unsigned int	is_simple_zero:1;
+  a_bit_field	is_simple_zero:1;
 			/* TRUE if the original version of this constant
 			   was simply "0".  This is significant for the
 			   case of a virtual function pure specifier in C++. */
 #if DO_IL_LOWERING
-  unsigned int	assoc_var_assigned:1;
+  a_bit_field	assoc_var_assigned:1;
 			/* If TRUE, an associated variable has been assigned
 			   by IL lowering, and source_corresp.assoc_info
 			   points to it.  Used for pointer-to-member
 			   constants. */
 #endif /* DO_IL_LOWERING */
-  unsigned int	null_pointer_constant_ruled_out:1;
+  a_bit_field	null_pointer_constant_ruled_out:1;
 			/* If TRUE, this constant has been subjected to casts
 			   or other operations that rule it out as a null
 			   pointer constant.  This is unrelated to whether
@@ -1285,14 +1285,14 @@ typedef struct a_constant {
 			   to which the pointer-to-member has been cast.
 			   Always NULL for a NULL pointer-to-member
 			   constant. */
-      unsigned int
+      a_bit_field
 		cast_to_base:1;
 			/* If TRUE, the base class given by casting_base_class
 			   is a base class of the original class.  If FALSE,
 			   casting_base_class indicates a derived class (that
 			   is, it indicates the base class [of the derived
 			   class] that is the original class). */
-      unsigned int
+      a_bit_field
 		is_function_ptr:1;
 			/* TRUE if the pointer is to a member function,
 			   FALSE if to a data member. */
@@ -1619,7 +1619,7 @@ typedef struct a_param_type {
 			   have been removed -- see the field "qualifiers"
 			   below. */
 #ifdef CIL
-  unsigned int	passed_via_copy_constructor:1;
+  a_bit_field	passed_via_copy_constructor:1;
 			/* If TRUE, the parameter has a type that requires
 			   a copy constructor to be called.  For a parameter
 			   of type T, the actual argument will be the address
@@ -1627,20 +1627,19 @@ typedef struct a_param_type {
 			   value has been copied.  Also set for parameter
 			   types that allow by-value copy construction if
 			   the type has a destructor. */
-  unsigned int	has_default_arg:1;
+  a_bit_field	has_default_arg:1;
              		/* TRUE if a default argument has been declared for
 			   this parameter.  Because of delayed token scanning
 			   of default arguments for member functions, this
 			   flag may be set even though default_arg_expr
                            remains NULL; this a temporary state and applies to
 			   front-end processing only. */
-  unsigned int  type_involves_template_param:1;
+  a_bit_field	type_involves_template_param:1;
 			/* TRUE if the type entry associated with the
 			   parameter involves (anywhere in its type tree) a
 			   tk_template_param type entry (C++ front end
 			   only). */
-  a_type_qualifier_set
-		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
+  a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Top-level type qualifiers on the parameter type
 			   on the definition of the function.  Not updated
 			   for declarations. */
@@ -1970,14 +1969,14 @@ typedef struct a_routine_type_supplement {
                            arguments (used with intrinsic functions only). */
 #endif /* ifdef FIL */
 #else /* defined(CIL) */
-  unsigned int  has_ellipsis:1;
+  a_bit_field	has_ellipsis:1;
                         /* TRUE if there is an ellipsis ("...") at the end of
                            the prototyped parameter list, indicating a
                            variable number of arguments. */
-  unsigned int  prototyped:1;
+  a_bit_field	prototyped:1;
                         /* TRUE if the function interface is a prototyped
                            interface, FALSE if it is old-style. */
-  unsigned int  old_style_params_scanned:1;
+  a_bit_field	old_style_params_scanned:1;
 			/* For functions with old-style parameter declarations,
 			   TRUE if the parameter list has been scanned.
 			   This allows one to tell when param_type_list is
@@ -1989,32 +1988,32 @@ typedef struct a_routine_type_supplement {
 			   is used and MAKE_ALL_FUNCTIONS_UNPROTOTYPED is
 			   TRUE, there will be functions with prototyped FALSE
 			   and old_style_params_scanned also FALSE. */
-  unsigned int  lint_argsused_flag:1;
+  a_bit_field	lint_argsused_flag:1;
                         /* TRUE if this function declaration is subject
                            to a lint-style "argsused" flag, indicating that
                            warnings on unreferenced parameters should not
                            be issued. */
-  unsigned int  value_returned_by_cctor:1;
+  a_bit_field	value_returned_by_cctor:1;
 			/* If TRUE, the caller provides a place for the return
 			   value (by passing its address as a parameter), and
 			   the called routine must place its result in that
 			   location.  This is used only for functions that
 			   return C++ class types, for cases where the
 			   class type returned requires a copy constructor. */
-  unsigned int  assoc_routine_is_ctor:1;
+  a_bit_field	assoc_routine_is_ctor:1;
 			/* TRUE if associated with a constructor, even if the
 			   assoc_routine pointer has not yet been supplied. */
-  unsigned int  assoc_routine_is_dtor:1;
+  a_bit_field	assoc_routine_is_dtor:1;
 			/* TRUE if associated with a destructor, even if the
 			   assoc_routine pointer has not yet been supplied. */
-  unsigned int	suppress_diagnostic_on_incomplete_return_type:1;
+  a_bit_field	suppress_diagnostic_on_incomplete_return_type:1;
 			/* TRUE if, upon calling the function or taking its
 			   address, a diagnostic has been put out because the
 			   return type is incomplete; when this flag is set,
 			   diagnostics will not be issued on subsequent uses
 			   (though diagnostics on function definitions are not
 			   affected).  (Intended for front-end use only.) */
-  unsigned int /* a_name_linkage_kind */
+  a_bit_field /* a_name_linkage_kind */
 		routine_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* The default name linkage at the point the function
 			   type was declared.  The front end makes this
@@ -2089,12 +2088,10 @@ typedef struct a_template_arg {
      argument list for such an instance. */
   a_template_arg_ptr
                 next;   /* Next in a linked list template arguments. */
-  unsigned int
-		is_type:1;
+  a_bit_field	is_type:1;
                         /* TRUE if this argument is a type argument.  FALSE
                            if it is a constant value. */
-  unsigned int
-		is_array_bound_of_unknown_type:1;
+  a_bit_field	is_array_bound_of_unknown_type:1;
 			/* TRUE if the template argument is a deduced array
 			   bound whose type is not yet known. */
   bitfield_to_avoid_codecenter_warnings()
@@ -2252,10 +2249,10 @@ typedef struct a_base_class_derivation {
 			   virtual indirect base class, the part of the path
 			   from the derived class to that indirect base class
 			   has been elided. */
-  unsigned int	direct:1;
+  a_bit_field	direct:1;
 			/* TRUE if the associated base class is a direct
 			   base class as a result of this derivation. */
-  unsigned int	preferred:1;
+  a_bit_field	preferred:1;
 			/* TRUE if this derivation is "preferred" because it
 			   affords better access from the derived class to the
 			   base class; when two or more derivations give equal
@@ -2292,17 +2289,17 @@ typedef struct a_base_class {
 			/* For a direct base class, the source position of
 			   its declaration.  Otherwise, the source position
 			   of a direct base class derived from it. */
-  unsigned int	direct:1;
+  a_bit_field	direct:1;
 			/* TRUE if this is a direct base class of
 			   derived_class in any of its derivations. */
-  unsigned int	is_virtual:1;
+  a_bit_field	is_virtual:1;
 			/* TRUE if this is a virtual base class (whether
 			   directly or indirectly inherited). */
-  unsigned int	ambiguous:1;
+  a_bit_field	ambiguous:1;
 			/* TRUE if a direct cast from derived_class to this
 			   base class would be ambiguous because it appears
 			   more than once in the derivation. */
-  unsigned int  shares_virtual_function_info:1;
+  a_bit_field	shares_virtual_function_info:1;
 			/* TRUE if a class derived from this base class, either
 			   derived_class itself or an intermediate base class
 			   (one on the derivation path of this base class),
@@ -2313,7 +2310,7 @@ typedef struct a_base_class {
 			   a pointer in a_class_type_supplement, denotes the
 			   sharing from the opposite point of view. */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
-  unsigned int  complete_subobject:1;
+  a_bit_field	complete_subobject:1;
 			/* TRUE if direct is TRUE and the subobject is
 			   "complete" (i.e., may contain data sections for
 			   virtual base classes).  By default subobjects for
@@ -2321,7 +2318,7 @@ typedef struct a_base_class {
 			   class data sections -- this flag is needed only when
 			   strict class-layout compatibility with USL's
 			   cfront is required. */
-  unsigned int	pointer_offset_is_set:1;
+  a_bit_field	pointer_offset_is_set:1;
 			/* TRUE if the pointer_offset field has been set
 			   in the course of prior processing.  This flag is
 			   required to distinguish an initial 0 from an
@@ -2824,16 +2821,16 @@ typedef struct a_type {
                            divisible.  1 if not applicable. */
   a_type_kind   kind;
                         /* The kind of type. */
-  unsigned int	used_in_exception:1;
+  a_bit_field	used_in_exception:1;
 			/* TRUE if this type appeared as (1) the type of an
 			   exception-declaration of a handler, (2) the type
 			   of a throw expression, or (3) an
 			   exception-specification. */
-  unsigned int	declared_in_function_prototype:1;
+  a_bit_field	declared_in_function_prototype:1;
 			/* TRUE if this is a local type declared or defined
 			   within a function prototype scope (C mode only). */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-  unsigned int	use_cfront_transitional_nested_type_name_mangling:1;
+  a_bit_field	use_cfront_transitional_nested_type_name_mangling:1;
                         /* TRUE if this type should be treated as a
                            non-nested type for purposes such as name
                            mangling.  This is used for compatibility
@@ -2842,28 +2839,28 @@ typedef struct a_type {
                            used as a type name at the file scope. */
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 #if BACK_END_IS_C_GEN_BE
-  unsigned int	prototype_scope_types_if_any_promoted:1;
+  a_bit_field	prototype_scope_types_if_any_promoted:1;
 			/* On function types, TRUE if the type has been
 			   examined for prototype scopes, and the types
 			   in those scopes promoted out to the file scope. */
 #endif /* BACK_END_IS_C_GEN_BE */
 #if BACK_END_IS_CP_GEN_BE
-  unsigned int	declaration_put_out:1;
+  a_bit_field	declaration_put_out:1;
 			/* Used to record whether the declaration of a (tag)
 			   type has been put out by the C++-generating back
 			   end. */
-  unsigned int	definition_delayed:1;
+  a_bit_field	definition_delayed:1;
 			/* Used to indicate the definition of a (tag) type
 			   is required and should be put out at the first
 			   opportunity.  Used only within the C++-generating
 			   back end. */
-  unsigned int	elaborated_type_specifier_needed:1;
+  a_bit_field	elaborated_type_specifier_needed:1;
 			/* An elaborated type specifier (e.g., "class X")
 			   is needed when referring to this type.  Used only
 			   within the C++-generating back end. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  unsigned int	autonomous_primary_tag_decl:1;
+  a_bit_field	autonomous_primary_tag_decl:1;
 			/* TRUE if this type entry represents a class, struct,
 			   union, or enum and its the primary source sequence
 			   entry refers to a declaration (usually the
@@ -2903,22 +2900,22 @@ typedef struct a_type {
                         /* TRUE if this type is a LOGICAL type. */
 #endif /* ifdef FIL */
 #ifdef CIL
-      unsigned int
+      a_bit_field
                 explicitly_signed:1;
                         /* TRUE if the type specifiers for this type included
                            "signed" explicitly.  Needed for bit fields, where
                            "signed int" and "int" may not mean the same
                            thing; used for ik_short, ik_long, and ik_long_long
 			   as well as for ik_int. */
-      unsigned int
+      a_bit_field
                 enum_type:1;
                         /* TRUE if this type is an enumerated type (the type 
                            of the tag, not the constants, in C). */
-      unsigned int
+      a_bit_field
 		wchar_t_type:1;
 			/* TRUE if this type is wchar_t in C++ when wchar_t
                            is a distinct type. */
-      unsigned int
+      a_bit_field
 		bool_type:1;
 			/* TRUE if this type is bool in C++. */
       bitfield_to_avoid_codecenter_warnings()
@@ -3018,47 +3015,47 @@ typedef struct a_type {
                         /* Supplementary information, in a separate block
                            to keep down the size of a_type.  This pointer
                            is only used in C++, and will be NULL in C. */
-      unsigned int
+      a_bit_field
                 any_const_member:1;
                         /* TRUE if any member of the class, struct, or union
                            is const-qualified. */
-      unsigned int
+      a_bit_field
                 any_virtual_base_classes:1;
                         /* TRUE if the class, struct, or union is derived from
 			   one or more virtual base classes, either directly
 			   or indirectly (C++ only). */
-      unsigned int
+      a_bit_field
 		abstract:1;
 			/* If TRUE, as a result of having one or more pure
 			   virtual member functions, this is an "abstract"
 			   class and is subject to certain restrictions
 			   (C++ only, ARM 10.3). */
-      unsigned int
+      a_bit_field
 		any_virtual_functions:1;
 			/* TRUE if one or more member functions declared in
 			   the class, struct, or union is virtual (C++ only).
 			   (Inherited virtual functions that are not
 			   redeclared in the current class do not affect
 			   this flag.) */
-      unsigned int
+      a_bit_field
 		any_pure_virtual_functions:1;
 			/* TRUE if one or more member functions declared in
 			   the class, struct, or union is a pure virtual
                            function (C++ only).  Inherited pure virtual
 			   functions do not affect this flag, and so not every
 			   abstract class has this flag set TRUE. */
-      unsigned int
+      a_bit_field
 		any_virtual_functions_including_in_base_classes:1;
 			/* TRUE if one or more member functions declared in
 			   the class, struct, or union or its base classes
 			   is a virtual function (C++ only). */
-      unsigned int
+      a_bit_field
 		referenced_by_placeholder_typeref:1;
 			/* TRUE if the class is pointed to by a placeholder
 			   typeref on a class scope's types list; the type
 			   entry for the associated typeref will have
 			   is_placeholder_for_file_scope_type set to TRUE. */
-      unsigned int
+      a_bit_field
 		originally_unnamed:1;
 			/* TRUE if the class was declared without a tag; in
 			   C++ may be TRUE even when the source-corresp name
@@ -3090,12 +3087,12 @@ typedef struct a_type {
 			   to something, this points to a copy of the original
 			   type.  NULL otherwise. */
 #endif /* DO_IL_LOWERING */
-      a_type_qualifier_set
+      a_bit_field
 		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Bit set with bits set to indicate the presence
 			   of one or more type qualifiers (const, volatile,
 			   or other(s) as defined by the implementation). */
-      unsigned int
+      a_bit_field
 		is_placeholder_for_file_scope_type:1;
 			/* TRUE if the typeref appears on a class types list
 			   to indicate the declaration sequence position of
@@ -3103,7 +3100,7 @@ typedef struct a_type {
 			   file scope types list.  Used for template classes
 			   that are instantiated in the midst of a class
 			   definition. */
-      unsigned int
+      a_bit_field
 		is_placeholder_for_namespace_type:1;
 			/* TRUE if the typeref appears on the file-scope
 			   types list to indicate the declaration sequence
@@ -3358,33 +3355,33 @@ typedef struct a_variable {
   a_storage_class
                 storage_class;
                         /* Storage class. */
-  unsigned int  address_taken:1;
+  a_bit_field	address_taken:1;
                         /* TRUE if the address of this variable has been
                            taken somewhere. */
-  unsigned int  is_parameter:1;
+  a_bit_field	is_parameter:1;
 #ifdef CIL
                         /* TRUE if this is a parameter of a function. */
 #endif /* ifdef CIL */
 #ifdef FIL
                         /* TRUE if this is a dummy argument of a function,
                            subroutine, or statement function. */
-  unsigned int  by_address:1;
+  a_bit_field	by_address:1;
 			/* TRUE if is_parameter is TRUE and if the
 			   parameter is passed by address. */
 #endif /* ifdef FIL */
 #ifdef CIL
-  unsigned int	referenced_non_locally:1;
+  a_bit_field	referenced_non_locally:1;
 			/* TRUE if the variable is a local static variable
 			   that is referenced from outside of its function
 			   (e.g., from a member function of a local class).
 			   TRUE only in C++. */
-  unsigned int	modified_within_try_block:1;
+  a_bit_field	modified_within_try_block:1;
 			/* TRUE if the variable is a local variable that is
 			   modified within a try block and declared in a scope
 			   containing that try block.  This flag enables a
 			   back end to treat such variables as requiring
 			   immediate store after a modification.  C++ only. */
-  unsigned int	is_template_static_data_member:1;
+  a_bit_field	is_template_static_data_member:1;
 			/* TRUE if this is a static data member that is a
 			   member of a class generated from a template,
 			   including both the case where the static data member
@@ -3394,7 +3391,7 @@ typedef struct a_variable {
 			   including a static data member of a class that
 			   is a specialization of a template class. */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  unsigned int  can_be_instantiated:1;
+  a_bit_field	can_be_instantiated:1;
 			/* TRUE if this is a template static data member
 			   that could be instantiated by this compilation.
 			   FALSE if is_template_static_data_member is FALSE.
@@ -3404,7 +3401,7 @@ typedef struct a_variable {
 			   The flag is only set very late in the compilation
 			   process and should not be relied upon for any
 			   other purpose. */
-  unsigned int	do_not_instantiate:1;
+  a_bit_field	do_not_instantiate:1;
 			/* TRUE if a do_not_instantiate pragma was present
 			   for this template static data member.
 			   FALSE if is_template_static_data_member is FALSE.
@@ -3414,7 +3411,7 @@ typedef struct a_variable {
 			   The flag is only set very late in the compilation
 			   process and should not be relied upon for any
 			   other purpose. */
-  unsigned int	instance_required:1;
+  a_bit_field	instance_required:1;
 			/* TRUE for a static data member of a
 			   template class for which a definition (either
 			   template generated or a specific definition)
@@ -3430,32 +3427,32 @@ typedef struct a_variable {
 			   process and should not be relied upon for any
 			   other purpose. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  unsigned int  specific_def:1;
+  a_bit_field	specific_def:1;
 			/* TRUE if this instance has been explicitly
                            defined (in which case no implicit instantiation
                            will be done). */
-  unsigned int  param_value_has_been_changed:1;
+  a_bit_field	param_value_has_been_changed:1;
 			/* TRUE if is_parameter or is_handler_param is TRUE
 			   and the variable is assigned to or has had its
 			   address taken at least once within the body of the
 			   routine or handler. */
-  unsigned int  param_used_more_than_once:1;
+  a_bit_field	param_used_more_than_once:1;
 			/* TRUE if is_parameter or is_handler_param is TRUE
 			   and the variable is used more than once within
 			   the body of the routine or handler. */
-  unsigned int  is_handler_param:1;
+  a_bit_field	is_handler_param:1;
 			/* TRUE if the variable is a handler parameter (C++
 			   only). */
-  unsigned int	is_this_parameter:1;
+  a_bit_field	is_this_parameter:1;
 			/* TRUE if the variable represents a "this" parameter
 			   (C++ only). */
-  unsigned int	is_partially_initialized:1;
+  a_bit_field	is_partially_initialized:1;
 			/* TRUE if the variable or static data member is an
 			   array or class aggregate and has been initialized
 			   but only partially -- i.e., one or more array
 			   elements or fields remains uninitialized (or
 			   partially uninitialized). */
-  unsigned int	is_anonymous_parent_object:1;
+  a_bit_field	is_anonymous_parent_object:1;
 			/* TRUE if type is the type of an anonymous union --
 			   this variable is the "parent object" of which the
 			   anonymous union members are subobjects.  For
@@ -3463,30 +3460,30 @@ typedef struct a_variable {
 			     union { int i, j };
 			   the IL to represent the source construct "i" is
 			   "<anonymous-parent-object>.i". */
-  unsigned int	is_member_constant:1;
+  a_bit_field	is_member_constant:1;
 			/* TRUE if the variable represents a static data
 			   member for which an initializer was specified at
 			   its declaration within the class definition
 			   (9.5.2).  (It is referred to as a "member constant"
 			   in part because it can be used in constant
 			   expressions elsewhere in the class definition.) */
-  unsigned int	superseded_external:1;
+  a_bit_field	superseded_external:1;
 			/* TRUE (in SVR4 C mode only) if the current variable
 			   was created to represent a block extern declaration
 			   whose type is incompatible with that of another
 			   file-scope variable with the same name, where the
 			   latter is treated as the "official" variable. */
 #if DO_IL_LOWERING
-  unsigned int  initialization_rewritten_as_assignment:1;
+  a_bit_field	initialization_rewritten_as_assignment:1;
 			/* TRUE if IL lowering has rewritten some part of
 			   the initialization for this variable as assignment
 			   statements or the like. */
 #if MINIMAL_INLINING
-  unsigned int	is_temp_for_unmodified_inlined_param:1;
+  a_bit_field	is_temp_for_unmodified_inlined_param:1;
 			/* TRUE if this variable is a temporary introduced by
 			   inlining as the remapping for a parameter that
 			   was not modified in the body of the function. */
-  unsigned int	is_temp_for_constructor_this_inlined_param:1;
+  a_bit_field	is_temp_for_constructor_this_inlined_param:1;
 			/* TRUE if this variable is a temporary introduced by
 			   inlining as the remapping for the "this" parameter
 			   of a constructor. */
@@ -3586,11 +3583,11 @@ typedef struct a_field {
 			/* Size of this field (in bits).  Only non-zero for
 			   bit-fields; for the others, the size is gotten from
 			   the type. */
-  unsigned int  is_bit_field:1;
+  a_bit_field	is_bit_field:1;
 			/* TRUE if the field represents a bit field. */
-  unsigned int  bit_field_is_signed:1;
+  a_bit_field	bit_field_is_signed:1;
 			/* TRUE if the field is a signed bit field. */
-  unsigned int	is_anonymous_parent_object:1;
+  a_bit_field	is_anonymous_parent_object:1;
 			/* TRUE if type is the type of an anonymous union --
 			   this field is the "parent object" of which the
 			   anonymous union members are subobjects.  For
@@ -3598,7 +3595,7 @@ typedef struct a_field {
 			     class A { union { int i, j }; } x;
 			   the IL to represent the source construct "x.i" is
 			   "x.<anonymous-parent-object>.i". */
-  unsigned int	is_mutable:1;
+  a_bit_field	is_mutable:1;
 			/* TRUE if the "mutable" specifier appeared on the
 			   declaration of this nonstatic data member (C++
 			   only). */
@@ -3787,38 +3784,38 @@ typedef struct a_routine {
 			/* An enumerator indication the kind of operator when
 			   the special function kind is sfk_operator; onk_none
 			   otherwise. */
-  unsigned int	address_taken:1;
+  a_bit_field	address_taken:1;
 			/* TRUE if the address of this routine has been
 			   taken somewhere. */
-  unsigned int	is_virtual:1;
+  a_bit_field	is_virtual:1;
 			/* TRUE for class member functions declared with a
 			   "virtual" specifier (C++ only). */
-  unsigned int	pure_virtual:1;
+  a_bit_field	pure_virtual:1;
 			/* TRUE for virtual member functions declared with a
 			   "pure" specifier (C++ only).  TRUE only if
 			   is_virtual is also TRUE. */
-  unsigned int  is_inline:1;
+  a_bit_field	is_inline:1;
 			/* TRUE for C++ functions that were specified in the
 			   source as candidates for inlining (either by the
 			   "inline" keyword or definition within a class
 			   definition).  This flag is intended as a hint to
 			   the compiler and does not mean that inlining is
 			   required. */
-  unsigned int	compiler_generated:1;
+  a_bit_field	compiler_generated:1;
 			/* TRUE for functions that are created by the
 			   compiler, e.g., default constructors in C++. */
-  unsigned int  called:1;
+  a_bit_field	called:1;
 			/* TRUE if this routine is directly called.
 			   For virtual functions in C++, this indicates that
 			   the routine was named in a call, although maybe
 			   an overriding routine might be called instead. */
 #if ASSIGNMENT_TO_THIS_ALLOWED
-  unsigned int	assignment_to_this_done:1;
+  a_bit_field	assignment_to_this_done:1;
 			/* TRUE if an assignment to "this" (an anachronism)
 			   was done in this function.  C++ member functions
 			   only. */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-  unsigned int  is_template_function:1;
+  a_bit_field	is_template_function:1;
 			/* TRUE if this routine is a member of a class
 			   generated from a template, including both the case
 			   where the function is generated from the template
@@ -3831,7 +3828,7 @@ typedef struct a_routine {
 			   a member of a class that is a specialization of
 			   a template class. */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  unsigned int  can_be_instantiated:1;
+  a_bit_field	can_be_instantiated:1;
 			/* TRUE if this is a template function
 			   that could be instantiated by this compilation.
 			   FALSE if is_template_function is FALSE.
@@ -3841,7 +3838,7 @@ typedef struct a_routine {
 			   The flag is only set very late in the compilation
 			   process and should not be relied upon for any
 			   other purpose. */
-  unsigned int	do_not_instantiate:1;
+  a_bit_field	do_not_instantiate:1;
 			/* TRUE if a do_not_instantiate pragma was present
 			   for this template function.
 			   FALSE if is_template_function is FALSE.
@@ -3851,7 +3848,7 @@ typedef struct a_routine {
 			   The flag is only set very late in the compilation
 			   process and should not be relied upon for any
 			   other purpose. */
-  unsigned int	instance_required:1;
+  a_bit_field	instance_required:1;
 			/* TRUE for a template function or member function of
 			   a template class for which a definition (either
 			   template generated or a specific definition)
@@ -3867,33 +3864,33 @@ typedef struct a_routine {
 			   process and should not be relied upon for any
 			   other purpose. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  unsigned int  specific_def:1;
+  a_bit_field	specific_def:1;
 			/* For instances of nonmember function templates and
 			   member functions of template classes, TRUE if this
 			   instance has been explicitly defined (in which case
 			   no implicit instantiation will be done). The
 			   specific_decl flag will always be TRUE when this
 			   flag is set. */
-  unsigned int	contains_try_block:1;
+  a_bit_field	contains_try_block:1;
 			/* TRUE if the routine has a definition that contains
 			   at least one "try" block.  This may affect
 			   optimization relating to local variables of the
 			   routine. */
-  unsigned int	superseded_external:1;
+  a_bit_field	superseded_external:1;
 			/* TRUE (in SVR4 C mode only) if the current routine
 			   was created to represent a block extern declaration
 			   whose type is incompatible with that of another
 			   file-scope routine with the same name, where the
 			   latter is treated as the "official" routine. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  unsigned int	defined_in_friend_decl:1;
+  a_bit_field	defined_in_friend_decl:1;
 			/* TRUE when the routine definition appears in a
 			   friend declaration.  When this flag is set, a
 			   source sequence entry pointing to this routine
 			   will correspond to a friend declaration. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MINIMAL_INLINING
-  unsigned int	inlinable:1;
+  a_bit_field	inlinable:1;
 			/* TRUE if this routine can be inlined.  Starts out as
 			   TRUE if is_inline is TRUE, then turned off if an
 			   attempt to inline the routine discovers something
@@ -3901,7 +3898,7 @@ typedef struct a_routine {
 			   if inlining of this routine is temporarily
 			   suppressed, e.g., because it's currently being
 			   inlined. */
-  unsigned int	need_out_of_line_copy:1;
+  a_bit_field	need_out_of_line_copy:1;
 			/* TRUE if an out-of-line copy of this inline routine
 			   is needed, e.g., because its address was taken. */
 #endif /* MINIMAL_INLINING */
@@ -4017,18 +4014,18 @@ typedef struct a_label {
                         /* Pointer to the next label declared in the same
                            scope, NULL if this label is the last in the
                            scope. */
-  unsigned int	reachable_by_fall_through:1;
+  a_bit_field	reachable_by_fall_through:1;
 			/* TRUE if this label can be reached by falling
 			   through to it from the code immediately
 			   preceding. */
-  unsigned int	break_label:1;
+  a_bit_field	break_label:1;
 			/* TRUE if this is a compiler-generated label that
 			   is the target of a "break" statement. */
-  unsigned int	continue_label:1;
+  a_bit_field	continue_label:1;
 			/* TRUE if this is a compiler-generated label that
 			   is the target of a "continue" statement. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  unsigned int	leave_label:1;
+  a_bit_field	leave_label:1;
 			/* TRUE if this is a compiler-generated label that
 			   is the target of a "__leave" statement. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4611,17 +4608,17 @@ typedef struct an_expr_node {
 		kind;
                         /* Identifies what kind of node this is.  This field
                            determines which member of the union to use. */
-  unsigned int	result_is_not_used:1;
+  a_bit_field	result_is_not_used:1;
 			/* TRUE if the result of the expression is discarded,
 			   i.e., it's a void expression. */
-  unsigned int	implicit_reference_indirection:1;
+  a_bit_field	implicit_reference_indirection:1;
 			/* TRUE if the operation in this expression node
 			   (typically, an eok_indirect) is or contains an
 			   extra indirection because of a C++ reference.
 			   That is, the indirection is explicit in the IL,
 			   but it was implicit in the source code. */
 #ifdef FIL
-  unsigned int	allow_reordering:1;
+  a_bit_field	allow_reordering:1;
 			/* TRUE indicates that this expression can be subjected
 			   to execution order reordering, e.g., associative
 			   and distributive reordering.  Generally TRUE in
@@ -4630,7 +4627,7 @@ typedef struct an_expr_node {
 			/* Always FALSE in C, by language definition. */
 #endif /* ifdef CIL */
 #endif /* ifdef FIL */
-  unsigned int	is_initialization_guard:1;
+  a_bit_field	is_initialization_guard:1;
 			/* TRUE if this node is a "?" that guards a first-time
 			   test on an initialization.  When generating
 			   thread-safe code, the "?" and the first assignment
@@ -4644,7 +4641,7 @@ typedef struct an_expr_node {
       an_expr_operator_kind
                 kind;
                         /* What kind of operation it is. */
-      unsigned int
+      a_bit_field
 		returns_lvalue_instead_of_usual_rvalue:1;
 			/* TRUE if the operation is an assignment (simple or
 			   compound), prefix ++/--, or "?" or "," operator
@@ -4652,12 +4649,12 @@ typedef struct an_expr_node {
 			   would return an rvalue.  FALSE otherwise, including
 			   for other operations and for these operations when
 			   they do return rvalues.  Only TRUE in C++. */
-      unsigned int
+      a_bit_field
 		compiler_generated:1;
 			/* TRUE if the operation is compiler-generated rather
 			   than explicitly present in the source program.
 			   Used in particular for casts. */
-      unsigned int
+      a_bit_field
 		implicit_in_member_naming:1;
 			/* TRUE for a base class cast that is implicit in
 			   the name used in referring to a class member. */
@@ -4694,12 +4691,12 @@ typedef struct an_expr_node {
     /* When kind == enk_temp_init: */
     /* C++ only. */
     struct {
-      unsigned int
+      a_bit_field
 		result_is_addr:1;
 			/* If TRUE, the value of the enk_temp_init node
 			   is the address of the temporary.  If FALSE, the
 			   value is the value of the temporary. */
-      unsigned int
+      a_bit_field
 		static_temp:1;
 			/* If TRUE, the temporary must be static.  This means
 			   the storage duration of the temporary is required
@@ -5307,12 +5304,12 @@ typedef struct a_statement {
   a_statement_kind
                 kind;
                         /* The kind of statement. */
-  unsigned int	has_associated_pragma:1;
+  a_bit_field	has_associated_pragma:1;
 			/* TRUE if an entry of type a_pragma has been created
 			   and bound to this statement.  The pragma entry,
 			   which will contain a pointer to this statement, is
 			   found by calling find_assoc_pragma. */
-  unsigned int	is_initialization_guard:1;
+  a_bit_field	is_initialization_guard:1;
 			/* TRUE if this statement is an "if" that guards
 			   a first-time test on an initialization.  When
 			   generating thread-safe code, the "if" and the
@@ -5708,11 +5705,11 @@ typedef struct a_hidden_name {
 		entity;
 			/* The entity that is hidden by another use of the
 			   same name. */
-  unsigned int	global_qualification_needed:1;
+  a_bit_field	global_qualification_needed:1;
 			/* TRUE if entity is a file scope entity hidden by a
 			   local scope declaration, so that the hiding can be
 			   defeated by using global qualification. */
-  unsigned int	elaborated_type_specifier_needed:1;
+  a_bit_field	elaborated_type_specifier_needed:1;
 			/* TRUE if entity identifies a tagged type but its
 			   name redeclared by nontype declaration in the
 			   current scope, so that the hiding can be defeated

@@ -112,13 +112,13 @@ typedef struct a_pragma_kind_description {
 		preproc_immediate_processing_function;
                         /* Processing function for other pragmas. */
   } variant;
-  unsigned int	may_bind_to_decl:1;
+  a_bit_field	may_bind_to_decl:1;
 			/* For pbk_next_construct pragmas, TRUE if this
 			   pragma can bind to a declaration. */
-  unsigned int	may_bind_to_stmt:1;
+  a_bit_field	may_bind_to_stmt:1;
 			/* For pbk_next_construct pragmas, TRUE if this
 			   pragma can bind to a statement. */
-  unsigned int	global:1;
+  a_bit_field	global:1;
 			/* For pbk_other pragmas, this is TRUE if the pragma
 			   entry should be added to the file-scope pragma
 			   list;  Otherwise, the pragma is added to the
@@ -129,7 +129,7 @@ typedef struct a_pragma_kind_description {
 			   IL entry is created for a pragma by explicitly
 			   calling create_il_entry_for_pragma.  See the
 			   description below. */
-  unsigned int	automatically_include_in_il:1;
+  a_bit_field	automatically_include_in_il:1;
 			/* This flag is TRUE if the front end should
 			   automatically generate an IL entry for this
 			   pragma kind.  When this flag is TRUE, the front
@@ -146,7 +146,7 @@ typedef struct a_pragma_kind_description {
 			   the front end but can still be made part of
 			   the IL by user written code to explicitly
 			   link the pragma into the IL. */
-  unsigned int	make_text_not_tokens:1;
+  a_bit_field	make_text_not_tokens:1;
 			/* TRUE if this pragma should not scanned into a
 			   token cache but rather should be preserved as
 			   a null terminated string.  The string created
@@ -157,24 +157,24 @@ typedef struct a_pragma_kind_description {
 			   output, and may also be used for pragmas which are
 			   more easily processed through the use of a
 			   character string instead of a token cache. */
-  unsigned int	expand_macros:1;
+  a_bit_field	expand_macros:1;
                         /* Specifies whether macros should be expanded when
 			   recording the pragma.  Must be FALSE for tokens
 			   saved as text. */
-  unsigned int	processing_C_code:1;
+  a_bit_field	processing_C_code:1;
 			/* Used for pragmas that are being saved as a token
 			   cache.  Indicates that the tokens should be
 			   interpreted as C/C++ code.  Keywords should be
 			   recognized, and adjacent string literals
 			   concatenated together. */
-  unsigned int	ignore_in_back_end:1;
+  a_bit_field	ignore_in_back_end:1;
 			/* TRUE if this pragma may be ignored if it is
 			   not recognized by the back end.  This allows the
 			   back end to diagnose any pragmas that are in the
 			   IL that it does not recognize, but ignore pragmas
 			   that are in the IL but are intended to be processed
 			   by other (earlier) phases of the compilation. */
-  unsigned int  is_pseudo_pragma:1;
+  a_bit_field	is_pseudo_pragma:1;
                         /* TRUE if this pragma kind represents a pseudo
 			   pragma (something that is not specified in the
 			   source code as a pragma, but that is treated as
@@ -229,8 +229,7 @@ typedef struct a_pending_pragma {
 			   file or function scope relative to other
 			   declarations, statements, comments, etc. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  unsigned int
-		discard_cache_when_done:1;
+  a_bit_field	discard_cache_when_done:1;
 			/* TRUE if the token_cache may be discarded when the
 			   pragma entry is discarded.  This will be FALSE when
 			   a pragma entry was created by making a copy of

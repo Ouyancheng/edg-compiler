@@ -114,19 +114,19 @@ typedef struct a_control_flow_descr {
 			   blocks contained within the current block.  This
 			   counter is decremented as goto entries are
 			   removed from the list. */
-      unsigned int
+      a_bit_field
 		any_labels:1;
 			/* TRUE if the current block contains any label
 			   statements or any blocks with label statements. */
-      unsigned int
+      a_bit_field
 		is_switch_block:1;
 			/* TRUE if the current block represents the body
 			   of a switch statement. */
-      unsigned int
+      a_bit_field
 		is_switch_subblock:1;
 			/* TRUE if is_switch is TRUE for a block in which the
 			   current block is enclosed. */
-      unsigned int
+      a_bit_field
 		exposed_init_in_switch:1;
 			/* If is_switch is TRUE for this block or for a block
 			   in which the current block is enclosed, there
@@ -136,15 +136,15 @@ typedef struct a_control_flow_descr {
 			   followed by a case label before the current block is
 			   closed.  Once the block is closed or a case label
 			   appears, the flag is cleared. */
-      unsigned int
+      a_bit_field
 		is_catch_block:1;
 			/* TRUE if this is the top level block of a catch
 			   clause. */
-      unsigned int
+      a_bit_field
 		is_try_block:1;
 			/* TRUE if this is the top level block of a try
 			   statement. */
-      unsigned int
+      a_bit_field
 		is_within_catch_or_try_block:1;
 			/* TRUE if is_catch_block or is_try_block is TRUE for
 			   the current block or a block in which the current
@@ -207,34 +207,34 @@ typedef struct a_struct_stmt_stack_entry {
      current structured statement. */
   a_struct_stmt_kind
 		kind;	/* Kind of structured statement. */
-  unsigned int	in_else_of_if:1;
+  a_bit_field	in_else_of_if:1;
 			/* TRUE when kind == ssk_if and we are in the
 			   "else" clause. */
-  unsigned int  for_init:1;
+  a_bit_field	for_init:1;
 			/* TRUE if the structured statement is a for loop and
 			   the statement currently being processed is a
 			   for-init statement; FALSE otherwise. */
-  unsigned int	is_catch_clause:1;
+  a_bit_field	is_catch_clause:1;
 			/* TRUE if kind == ssk_compound and this structured
 			   statement represents the top level block of a
 			   catch clause. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  unsigned int	in_cleanup_statement_of_microsoft_try:1;
+  a_bit_field	in_cleanup_statement_of_microsoft_try:1;
 			/* TRUE if current inside the cleanup statement of
 			   a Microsoft try-finally or try-except. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  unsigned int	switch_has_default_clause:1;
+  a_bit_field	switch_has_default_clause:1;
 			/* TRUE if the structured statement is a switch and
 			   it has a default clause. */
-  unsigned int	rout_type_explicitly_specified:1;
+  a_bit_field	rout_type_explicitly_specified:1;
 			/* TRUE if the current routine was declared with an
 			   explicit return type.  This flag is set in the
 			   top level statement stack entry only. */
-  unsigned int	any_exec_statement_seen:1;
+  a_bit_field	any_exec_statement_seen:1;
 			/* Within compound statements (blocks), TRUE if any
 			   executable statement (not declaration) has been
 			   seen. */
-  unsigned int	label_invalidates_curr_block_object_lifetime:1;
+  a_bit_field	label_invalidates_curr_block_object_lifetime:1;
 			/* TRUE if kind == ssk_compound and the object
 			   lifetime pointed to by this entry has been
 			   invalidated by a label in an inner block. This
