@@ -4942,12 +4942,13 @@ equivalent pointer case).
     /* The conversion failed. */
     if (!ambiguous) {
       /* No conversion applies. */
-      if (is_incomplete_type(dest_type)) {
+      if (is_error_type(dest_type)) {
+        /* Some previous error. */
+      } else if (is_incomplete_type(dest_type)) {
         /* Conversion to an incomplete type is not possible (in this
            case, anyway).  Use a different message for clarity. */
         pos_ty_error(ec_converting_to_incomplete_class,
                      &source_operand->position, dest_type);
-        conv_to_error_operand(source_operand);
       } else {
         /* Put out the usual message (which has already been chosen to
            describe the problem). */
@@ -4964,8 +4965,8 @@ equivalent pointer case).
         diagnose_overload_ambiguity(ambiguity_list, (an_opname_kind)onk_none);
         free_candidate_function_list(ambiguity_list);
       }  /* if */
-      conv_to_error_operand(source_operand);
     }  /* if */
+    conv_to_error_operand(source_operand);
   }  /* if */
   return okay;
 }  /* user_defined_conversion_possible */
