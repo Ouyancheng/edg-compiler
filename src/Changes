@@ -273,10 +273,10 @@ routine in the front end now considers such operations to
 have side effects in the appropriate mode.
 
 When TARG_HAS_IEEE_FLOATING_POINT is TRUE, folding of constant
-floating-point operations that involve NaNs and infinities is
-now suppressed (the operation is delayed to run time) so
-that such operations can affect the floating-point status.
-Although that status can be queried only in C99 mode, the
+floating-point operations that involve NaNs, infinities, or
+division by zero is now suppressed (the operation is delayed
+to run time) so that such operations can affect the floating-point
+status.  Although that status can be queried only in C99 mode, the
 folding is suppressed in all modes and regardless of the
 setting of FENV_ACCESS.
 
