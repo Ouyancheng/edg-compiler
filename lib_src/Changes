@@ -1,5 +1,13 @@
 Version 2.46
 
+11/1/01  Changes for updated exception and stdexcept headers
+
+The exception and stdexcept headers did not match the specification
+in the standard.  In particular, the exception class was defined in
+stdexcept instead of exception.  The equivalent problem existed in the
+exception.c and stdexcept.c files of the library.  These files have
+been updated to match the updated header files.
+
 10/16/01 Throw of pointer type incorrectly caught by void**
 
 A throw of any pointer type can be caught by a void*.  The runtime was

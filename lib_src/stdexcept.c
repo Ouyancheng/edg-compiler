@@ -9,7 +9,7 @@
 ******************************************************************************/
 /*
 
-Functions that implement the "exception" class (19.1.1).
+Functions that implement the "stdexcept" classes (19.1).
 
 */
 
@@ -18,7 +18,7 @@ Functions that implement the "exception" class (19.1.1).
 
 #if EXCEPTION_HANDLING
 
-#include <exception>
+#include <stdexcept>
 
 /*
 If the runtime should be defined in the std namespace, open
@@ -27,41 +27,6 @@ the std namespace.
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 namespace std {
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
-
-
-exception::exception() THROW_NOTHING()
-/*
-Constructor for exception.
-*/
-{
-}  /* exception::exception */
-
-
-exception& exception::operator=(const exception&) THROW_NOTHING()
-/*
-Assignment operator for exception.  Currently does nothing.
-*/
-{
-  return *this;
-}  /* exception::operator= */
-
-
-exception::~exception() THROW_NOTHING()
-/*
-Destructor for exception.
-*/
-{
-}  /* exception::~exception */
-
-
-const char* exception::what() const THROW_NOTHING()
-/*
-Return a string providing information about the exception.  Currently,
-no additional information is available.
-*/
-{
-  return "";
-}  /* exception::~exception */
 
 
 /*
