@@ -1,5 +1,19 @@
 Version 2.22
 
+1/13/94  Compilation timing information
+
+A command line option (-#) has been added that causes the compiler
+to display execution time statistics.
+
+This is difficult to do in a way that is completely portable so
+host_envir.c may need to be adjusted for some systems.
+
+Systems with ANSI C compliant runtime systems that support the 
+clock() function should work properly.  If your system uses
+the UNIX times() function instead of clock(), and the values
+returned by times() are not in increments of 1/60th of a second,
+then you will need to set CLOCK_FREQUENCY to the appropriate value.
+
 1/12/94  Access declaration applied to overloaded function
 
 Under certain circumstances we failed to issue an error when an access
