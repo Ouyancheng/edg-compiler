@@ -454,7 +454,7 @@ and indentation is the indentation desired.
         a_symbol_ptr                      inst_sym;
 
         tssp = sym->variant.template.extra_info;
-        if (tssp->template_body.first_token != NULL) {
+        if (tssp->body_token_cache.first_token != NULL) {
           put_string("template body cached");
         }  /* if */
         if (sym->kind == (a_symbol_kind)sk_class_template) {
@@ -881,9 +881,10 @@ state.
           tssp->variant.class.instantiations = NULL;
           tssp->variant.class.type_kind      = (a_type_kind)tk_error;
         } else {
-          tssp->variant.function_instantiations = NULL;
+          tssp->variant.function.instantiations = NULL;
+          clear_token_cache(&tssp->variant.function.decl_token_cache);
         }  /* if */
-        clear_token_cache(&tssp->template_body);
+        clear_token_cache(&tssp->body_token_cache);
       }
       break;
 #if CHECKING
@@ -5717,6 +5718,7 @@ Allocate a new function instantiation entry and return a pointer to it.
   ptr->next    = NULL;
   ptr->routine_sym = NULL;
   ptr->template_sym = NULL;
+  ptr->arg_list = NULL;	
   ptr->instantiation_required = FALSE;
   ptr->specialization_seen = FALSE;
 

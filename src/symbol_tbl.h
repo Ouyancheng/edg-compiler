@@ -503,6 +503,15 @@ typedef struct a_function_instantiation_entry {
                            template function symbol.  For member functions
                            of template classes this points to the member
                            function symbol of the template class. */
+  a_template_arg_ptr
+                arg_list;
+                        /* Points to the template argument list -- the
+                           arguments that correspond to the template
+                           parameter list (e.g., template <class T>).
+                           This is present for both template functions and
+                           member functions of template classes.  For member
+                           functions this points to the same argument list as
+                           the argument list in the class type supplement. */
   unsigned int  instantiation_required:1;
                         /* TRUE if the routine associated with this
                            instantiation is needed by this compilation
@@ -521,10 +530,11 @@ typedef struct a_template_symbol_supplement {
                 parameters;
 			/* Symbol entries for formal parameters of the
                            template. */
-  a_token_cache template_body;
+  a_token_cache body_token_cache;
                         /* The body of the template is stored as a token
                            cache which can be rescanned later during
-                           instantiation. */
+                           instantiation.  Begins with the left brace
+                           that begins the class or function body. */
   a_scope_depth
                 innermost_instantiation_scope;
                         /* Contains the scope number of the most recent
@@ -551,11 +561,18 @@ typedef struct a_template_symbol_supplement {
 			   is instatiated types will have. */
     } class;
     /* When kind = sk_function_template. */
-    a_function_instantiation_entry_ptr
-                function_instantiations;
+    struct {
+      a_function_instantiation_entry_ptr
+                instantiations;
                         /* Pointer to a list of entries describing template
                            functions that have been instantiated from this
                            function template. */
+      a_token_cache
+                decl_token_cache;
+                        /* The cached tokens for the function declaration. 
+                           Contains the tokens that precede the left brace
+                           of the function body. */
+    } function;
   } variant;
 } a_template_symbol_supplement;
 
