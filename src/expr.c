@@ -5585,6 +5585,10 @@ specification allow a variable-sized array as the top type.
         /* The class has an assumed trivial default constructor. */
         do_const_test = TRUE;
         is_generated_ctor = TRUE;
+      } else if (is_template_dependent_context() &&
+                 unqual_base_new_type->variant.class_struct_union.
+                                                            is_nonreal_class) {
+        /* A proxy class in a prototype instantiation. */
       } else {
         /* Note that this case comes up if the class type is incomplete.
            An error was issued previously. */
