@@ -8413,13 +8413,8 @@ is used only in C++ mode.
                                            /*honor_virtual=*/TRUE,
                                           curr_expr_is_potentially_evaluated(),
                                            /*suppress_access_check=*/FALSE);
-  /* Convert the operand to the proper type to be an argument of the
-     conversion function. */
-#if CHECKING
-  if (routine_type->variant.routine.extra_info->this_class == NULL) {
-    internal_error("set_up_for_conversion_function_call: no this parameter");
-  }  /* if */
-#endif  /* CHECKING */
+  check_assertion_str(routine_type_is_nonstatic_member_function(routine_type),
+                     "set_up_for_conversion_function_call: no this parameter");
   /* Check for the cfront anachronism that allows a non-const function to be
      called for a const selector (see determine_selector_match_level). */
   if (cfront_2_1_mode &&
@@ -8429,8 +8424,8 @@ is used only in C++ mode.
       /* prep_special_selector_operand (call below) will drop the const. */
     }  /* if */
   }  /* if */
-  /* Make a pointer for the selector, and cast it to a base class
-     if necessary. */
+  /* Convert the operand to the proper type to be an argument of the
+     conversion function. */
   prep_special_selector_operand(operand, routine_type);
   /* Make an expression for the argument. */
   *arg_expr_list = make_node_from_operand(operand);
