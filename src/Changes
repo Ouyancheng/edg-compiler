@@ -1,5 +1,14 @@
 Version 2.40
 
+11/24/98  Microsoft compatibility: incompatible template parameter lists
+
+In Microsoft bugs mode, an error is not issued if a class template
+definition is followed by a redeclaration of the template with an
+incompatible template parameter list.
+
+  template <class T, class T2> struct A {};
+  template <class T> struct A;
+
 11/23/98  static_cast of void * to pointer to cv-qualified object type
 
 A permissive reading of 5.2.9/10 in the C++ standard suggests that

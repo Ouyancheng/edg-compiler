@@ -8038,8 +8038,11 @@ instantiation.
         if (!err && sym->kind == (a_symbol_kind)sk_class_template) {
           /* If this is a class template, make sure the template parameters
              match a previous declaration of the class. */
-          if (!reconcile_template_param_lists(templ_params, sym,
-                                              &locator.source_position)) {
+          if (microsoft_bugs && sym->defined) {
+            /* The Microsoft compiler does not check the parameter list
+               of a template that is redeclared after is has been defined. */
+          } else if (!reconcile_template_param_lists(
+                                templ_params, sym, &locator.source_position)) {
             err = TRUE;
           }  /* if */
         } /* if */
