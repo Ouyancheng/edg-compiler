@@ -11588,7 +11588,7 @@ given translation unit.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Initialize the conversion header list. */
   conversion_header_list = NULL;
-  decl_seq_counter = 0;
+  decl_seq_counter = FIRST_DECL_SEQUENCE_NUMBER;
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   last_ctor_or_dtor_sym = NULL;
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */

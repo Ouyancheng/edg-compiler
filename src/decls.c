@@ -10315,7 +10315,8 @@ a Microsoft bug.  attributes is a list of GNU attributes specified on this
 using-directive.
 */
 {
-  a_using_decl_ptr  udp;
+  a_using_decl_ptr		udp;
+  a_scope_stack_entry_ptr	ssep;
 
   /* Create the using-directive entry. */
   udp = alloc_using_decl();
@@ -10324,7 +10325,16 @@ using-directive.
   udp->entity.ptr = (char *)nsp;
   udp->is_using_directive = TRUE;
   udp->compiler_generated = compiler_generated;
-  udp->decl_sequence_number = ++decl_seq_counter;
+  ssep = &scope_stack[depth_scope_stack];
+  if (ssep->kind == (a_scope_kind)sck_namespace ||
+      ssep->kind == (a_scope_kind)sck_namespace_extension ||
+      ssep->kind == (a_scope_kind)sck_file) {
+    udp->decl_sequence_number = ++decl_seq_counter;
+  } else {
+    /* For local scope using-directives, assign an effective declaration
+       sequence number that makes the using-directive always visible. */
+    udp->decl_sequence_number = FIRST_DECL_SEQUENCE_NUMBER;
+  }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (attributes != NULL) {
     /* GNU attributes were specified for this using-directive.  Apply them to

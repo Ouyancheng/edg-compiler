@@ -1,5 +1,30 @@
 Version 3.6
 
+3/30/05  GNU C++ compatibility: visibility of using-directives
+
+Version 3.5 introduced a change to emulate the visibility rules used by
+g++ to determine which using-directives should be visible during template
+instantiations.  This change introduced lookup errors in g++ mode in
+certain cases involving block-scope using-directives.  Now fixed.
+
+  namespace std { typedef int string; }
+  namespace N {
+    template <class string_type> struct test { };
+    template <class test_iterator> struct tester {
+    void f() {
+      using namespace std;
+      test_iterator current;
+      current++;
+      string result;  // error: "string" is undefined
+      }
+    };
+    typedef test<const char *>* test_case_iterator;
+  }
+  int main() {
+    N::tester<N::test_case_iterator> t;
+    t.f();
+  }
+
 3/30/05  Microsoft compatibility: Calling conventions on constructors and
          destructors
 

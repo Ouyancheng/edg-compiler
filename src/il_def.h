@@ -1615,7 +1615,10 @@ typedef struct a_using_decl {
 			   is for front-end use for lookups with template
 			   instantiations.  Using-directives that appear
 			   after the definition of the template are
-			   ignored. */
+			   ignored.  This field is set only for namespace
+			   scope using-directives.  For block scope
+			   using-directives, it is set to the special value
+			   FIRST_DECL_SEQUENCE_NUMBER. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		source_sequence_entry;

@@ -95,6 +95,12 @@ The special value used to represent an unset declaration sequence number.
 #define NO_DECL_SEQUENCE_NUMBER ((a_decl_sequence_number)(0))
 
 /*
+A special value used to indicate a declaration sequence number that is always
+visible.  Also used as the starting value of decl_seq_counter.
+*/
+#define FIRST_DECL_SEQUENCE_NUMBER ((a_decl_sequence_number)(1))
+
+/*
 The definition of a_symbol_locator refers to declarations from il_def.h,
 but lexical.h requires a_symbol_locator to be defined.  So the former is
 included here, and the latter is included after a_symbol_locator is
