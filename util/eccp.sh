@@ -1518,6 +1518,12 @@ do
     status=$?
   fi
   #
+  # If the front end aborted, report that.
+  #
+  if [ $status -ge 128 ] ; then
+    echo $driver_name: $CPFE returned an exit status of $status
+  fi
+  #
   # If we are doing automatic instantiation and if the program involves
   # templates then a .ii or .ti file will exist after the compilation,
   # depending on the driver version being used.
