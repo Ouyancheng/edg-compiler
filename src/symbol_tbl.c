@@ -1375,6 +1375,37 @@ defined in that scope and name space unless suppress_error is TRUE.
 }  /* reenter_symbol */
 
 
+void relink_unnamed_class_symbol(a_symbol_ptr      sym,
+                                 a_symbol_locator  *locator)
+/*
+A name is belatedly specified for a class, and so the tag symbol originally
+created for it most be modified to bear the new name.  Unlink it from the
+symbol table, give it the name, and relink it into the symbol table under
+the new header.
+*/
+{
+  db_enter(4, "relink_unnamed_class_symbol");
+#if CHECKING
+  /* The symbol should not have been linked onto the symbol list for its
+     header. */
+  if (sym->header->symbol != NULL) {
+    internal_error("relink_unnamed_class_symbol: non-NULL header symbol list");
+  }  /* if */
+  /* The declaration scope should not be changed. */
+  if (scope_stack[decl_scope_level].number != sym->decl_scope) {
+    internal_error("relink_unnamed_class_symbol: bad scope");
+  }  /* if */
+#endif /* CHECKING */
+  /* Replace the special symbol header for unnamed class symbols with the
+     header associated with its new name. */
+  sym->header = locator->symbol_header;
+  /* Add the symbol back into the symbol table. */
+  link_symbol_into_symbol_table(sym, decl_scope_level,
+                                /*suppress_error=*/FALSE);
+  db_exit();
+}  /* relink_unnamed_class_symbol */
+
+
 a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
                                      a_symbol_locator *location,
                                      a_symbol_ptr     other_sym,
@@ -1584,11 +1615,10 @@ into the symbol table.
   }  /* if */
   sym = alloc_symbol(sym_kind, unnamed_class_symbol_header, pos);
   sym->decl_scope = scope_stack[decl_scope_level].number;
-  /* set_source_corresp will not be called, to be sure the name field is left
-     NULL and the referenced flag is left TRUE (which is how it is set in
-     set_default_source_corresp).  But do the rest of its processing. */
-  class_type->source_corresp.assoc_info = (char *)sym;
-  copy_source_position(*pos, class_type->source_corresp.decl_position);
+  /* Although the symbol header has a name of sorts, it should not appear
+     in the type, so NULL it out after the call to set_source_corresp. */
+  set_source_corresp(&(class_type->source_corresp), sym);
+  class_type->source_corresp.name = NULL;
   db_exit();
   return sym;
 }  /* make_unnamed_class_symbol */

@@ -1012,6 +1012,9 @@ extern void reenter_symbol(a_symbol_ptr     symbol_to_reenter,
                            a_scope_depth    scope_depth,
                            a_boolean        suppress_error);
 
+extern void relink_unnamed_class_symbol(a_symbol_ptr      sym,
+                                        a_symbol_locator  *locator);
+
 extern a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
                                             a_symbol_locator *location,
                                             a_symbol_ptr     old_sym_ptr,
