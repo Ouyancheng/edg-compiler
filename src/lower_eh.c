@@ -32,6 +32,7 @@ lower_eh.c -- IL lowering for exception handling constructs.
 #include "cmd_line.h"
 #include "folding.h"
 #include "mem_manage.h"
+#include "pch.h"
 
 
 static a_cleanup_region_number
@@ -2808,6 +2809,40 @@ routine).
   any_try_blocks_in_function = FALSE;
   destructor_wrapper_region_set_fixup_needed = FALSE;
 }  /* eh_function_lower_init */
+
+
+void eh_lower_one_time_init(void)
+/*
+Do one-time initialization of variables related to lowering of structures
+involved in exception handling.  (Variables that need to be reinitialized
+with each new translation unit are handled in eh_lower_init.)
+*/
+{
+  /* Save variables from lower_il.h and lower_il.c that are needed for
+     precompiled headers */
+  if (exceptions_enabled && precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(throw_alloc_routine),
+      pch_saved_var_array_elem(throw_routine),
+      pch_saved_var_array_elem(rethrow_routine),
+      pch_saved_var_array_elem(typeinfo_type),
+      pch_saved_var_array_elem(jmp_buf_type),
+      pch_saved_var_array_elem(base_class_spec_type),
+      pch_saved_var_array_elem(exception_type_spec_type),
+      pch_saved_var_array_elem(region_descr_type),
+      pch_saved_var_array_elem(array_descr_type),
+      pch_saved_var_array_elem(eh_stack_entry_type),
+      pch_saved_var_array_elem(eh_curr_region_var),
+      pch_saved_var_array_elem(curr_eh_stack_entry_var),
+      pch_saved_var_array_elem(catch_clause_number_var),
+      pch_saved_var_array_elem(caught_object_address_var),
+      pch_saved_var_array_elem(setjmp_routine),
+      pch_saved_var_array_elem(free_thrown_object_routine),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* eh_lower_one_time_init */
 
 
 void eh_lower_init(void)
