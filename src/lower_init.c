@@ -314,16 +314,7 @@ at *insert_location.
   rout_return_type = rout_type->variant.routine.return_type;
   call_node = make_operator_node(op, rout_return_type, rout_node);
   if (insert_location != NULL) {
-    /* Allocate an expression statement and put the call into it. */
-    call_stmt = alloc_expr_statement(call_node);
-    set_stmt_pos_to_code_pos_for_lowering(call_stmt);
-    /* Insert the statement at the right place. */
-    insert_statement(call_stmt, insert_location);
-#if MINIMAL_INLINING
-    /* We can optimize the inlining only if the insert location is a
-       statement insert location. */
-    if (is_expr_insert_location(insert_location)) call_stmt = NULL;
-#endif /* MINIMAL_INLINING */
+    call_stmt = insert_expr_statement_set_pos(call_node, insert_location);
   }  /* if */
 #if MINIMAL_INLINING
   if (inlining_enabled && op == (an_expr_operator_kind)eok_call) {
@@ -2175,7 +2166,6 @@ in default_version_of_routine).
 {
   a_routine_ptr    ctor_routine;
   an_expr_node_ptr call_node, num_elem_node;
-  a_statement_ptr  call_stmt;
 
 #if CHECKING
   if (dip->kind != (a_dynamic_init_kind)dik_constructor) {
@@ -2204,11 +2194,9 @@ in default_version_of_routine).
                                                        (a_routine *)NULL,
                                   (a_routine *)NULL, (a_routine *)NULL);
   }  /* if */
-  /* Make a statement containing the call. */
-  call_stmt = alloc_expr_statement(call_node);
-  set_stmt_pos_to_code_pos_for_lowering(call_stmt);
-  /* Insert the statement at the right location. */
-  insert_statement(call_stmt, insert_location);
+  /* Make a statement containing the call and insert it at the right
+     location. */
+  (void)insert_expr_statement_set_pos(call_node, insert_location);
 }  /* add_array_constructor_call */
 
 
@@ -2228,7 +2216,6 @@ because of the make_destruction_routine case.
 */
 {
   an_expr_node_ptr entity_node, call_node;
-  a_statement_ptr  call_stmt;
   an_expr_node_ptr implied_arg_node;
   a_type_ptr       this_param_type;
   a_type_ptr       entity_type = type_from_init_pos_descr(ipdp);
@@ -2257,11 +2244,9 @@ because of the make_destruction_routine case.
     call_node = make_vec_delete_call(entity_node, array_element_count,
                                      dtor_routine, (a_routine *)NULL,
                                      /*free_storage=*/FALSE);
-    /* Make a statement containing the call. */
-    call_stmt = alloc_expr_statement(call_node);
-    set_stmt_pos_to_code_pos_for_lowering(call_stmt);
-    /* Insert the statement at the right place. */
-    insert_statement(call_stmt, insert_location);
+    /* Make a statement containing the call and insert it at the right
+       location. */
+    (void)insert_expr_statement_set_pos(call_node, insert_location);
   } else {
     /* Destruction of simple entity (non-array). */
     /* Cast the entity node pointer to the right type.  It might be a pointer
@@ -3010,7 +2995,6 @@ and update *insert_location accordingly.
   a_boolean              complex_cleanup, complex_address;
   a_routine_ptr          dtor_routine;
   an_expr_node_ptr       call_node;
-  a_statement_ptr        call_stmt;
   a_type_ptr             entity_type = type_from_init_pos_descr(ipdp);
 
   /* Record the required destruction by generating a call of the runtime
@@ -3099,11 +3083,9 @@ and update *insert_location accordingly.
   call_node = make_runtime_rout_call("__record_needed_destruction",
                                      &record_needed_destruction_routine,
                                      void_type(), var_lvalue_expr(var));
-  /* Make a statement containing the call. */
-  call_stmt = alloc_expr_statement(call_node);
-  set_stmt_pos_to_code_pos_for_lowering(call_stmt);
-  /* Insert the statement at the right location. */
-  insert_statement(call_stmt, insert_location);
+  /* Make a statement containing the call and insert it at the right
+     location. */
+  (void)insert_expr_statement_set_pos(call_node, insert_location);
 }  /* record_needed_destruction */
 
 
@@ -3429,7 +3411,7 @@ in this routine must be FALSE in that case.
   a_boolean          simple_constant_init = FALSE, keep_constant;
   a_constant_ptr     simple_constant;
   a_source_position  saved_error_position, saved_code_pos;
-  a_statement_ptr    expr_stmt, block_stmt = NULL;
+  a_statement_ptr    block_stmt = NULL;
   a_type_ptr         ctor_routine_type;
   a_type_ptr         this_param_type;
   a_param_type_ptr   param;
@@ -3677,9 +3659,8 @@ in this routine must be FALSE in that case.
                                                         targ_size_t_int_kind);
           memzero_call = make_runtime_rout_call("__memzero", &memzero_routine,
                                                 void_type(), entity_node);
-          expr_stmt = insert_expr_statement(memzero_call,
-                                            eff_insert_location);
-          set_stmt_pos_to_code_pos_for_lowering(expr_stmt);
+          (void)insert_expr_statement_set_pos(memzero_call,
+                                              eff_insert_location);
         } else {
           /* Setting a scalar to zero; can be done by an assignment. */
           goto do_assignment;
@@ -3724,9 +3705,8 @@ do_assignment:;
       /* The address of the temporary being initialized is added as an
          implicit argument of the call. */
       lower_call(dip->variant.expression, ipdp, (a_statement_ptr)NULL);
-      expr_stmt = insert_expr_statement(dip->variant.expression,
-                                        eff_insert_location);
-      set_stmt_pos_to_code_pos_for_lowering(expr_stmt);
+      (void)insert_expr_statement_set_pos(dip->variant.expression,
+                                          eff_insert_location);
       break;
     case dik_constructor:
       /* Initialize the entity by calling a constructor. */
@@ -3790,7 +3770,7 @@ do_assignment:;
                the exception is considered started and use a temporary with
                its value in the actual copy constructor call. */
             an_expr_node_ptr arg_node_next = arg_node->next;
-            (void)insert_expr_statement(arg_node, eff_insert_location);
+            (void)insert_expr_statement_set_pos(arg_node, eff_insert_location);
             arg_node = assign_expr_to_temp_and_make_expr_for_reuse(arg_node);
             arg_node->next = arg_node_next;
             dip->variant.constructor.args = arg_node;

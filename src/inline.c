@@ -809,7 +809,6 @@ If not, *failed is set.
     if (stmt_expr != NULL) stmt_expr = copy_expr_tree_for_inlining(stmt_expr);
     switch (statement->kind) {
       case stmk_expr:
-        set_expr_result_not_used(stmt_expr);
         if (is_expr_insert_location(insert_location)) {
           /* An expression statement is copied as an expression. */
           insert_expr(stmt_expr, insert_location);
@@ -817,6 +816,7 @@ If not, *failed is set.
           /* An expression statement is copied as an expression statement. */
           new_statement = copy_inlined_statement(statement, insert_location);
           new_statement->expr = stmt_expr;
+          set_expr_result_not_used(stmt_expr);
         }  /* if */
         break;
       case stmk_goto:
@@ -961,7 +961,6 @@ If not, *failed is set.
                                         stmt_expr);
               expr->is_initialization_guard=statement->is_initialization_guard;
             }  /* if */
-            set_expr_result_not_used(expr);
             insert_expr(expr, insert_location);
           }  /* if */
         } else {
@@ -1076,7 +1075,6 @@ If not, *failed is set.
           expr = make_operator_node(lowered_assignment_operator(var->type),
                                     f_skip_typerefs(var->type),
                                     var_expr);
-          set_expr_result_not_used(expr);
           (void)insert_expr_statement(expr, insert_location);
         }
         break;

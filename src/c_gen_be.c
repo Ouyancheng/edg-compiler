@@ -2915,6 +2915,41 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                           op == (an_expr_operator_kind)eok_question ||
                           op == (an_expr_operator_kind)eok_comma,
                           "dump_expr: lvalue-returning operation");
+#if CHECKING
+      /* Check the correctness of the result_is_not_used flags on the
+         operands. */
+      {  an_expr_node_ptr op_node;
+         for (op_node = operand_1; op_node != NULL; op_node = op_node->next) {
+           if (op_node->result_is_not_used) {
+             /* Usually, it's a bad thing if the value of an operand is
+                not used by the operation, but check for special cases. */
+             if (op == (an_expr_operator_kind)eok_comma &&
+                 (op_node == operand_1 || expr->result_is_not_used)) {
+               /* Okay, this is an operand of a comma operation, and the flag
+                  is set correctly. */
+             } else if (op == (an_expr_operator_kind)eok_question &&
+                        op_node != operand_1 &&
+                        expr->result_is_not_used) {
+               /* Okay, this is an operand after the first on a "?"
+                  operation, and the flag is set correctly. */
+             } else if (op == (an_expr_operator_kind)eok_cast &&
+                        expr->result_is_not_used &&
+                        is_void_type(expr->type)) {
+               /* Okay, this is a cast to void, and the flag is set
+                  correctly. */
+             } else {
+               /* The flag is set incorrectly. */
+#if DEBUG
+               db_expression(expr);
+               db_expression(op_node);
+#endif /* DEBUG */              
+               internal_error(
+                         "dump_expr: result_is_not_used set wrong on operand");
+             }  /* if */
+           }  /* if */
+         }  /* for */
+       }
+#endif /* CHECKING */
       switch (op) {
         /* One-operand operators. */
         case eok_indirect:

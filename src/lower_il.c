@@ -2520,7 +2520,8 @@ a_statement_ptr insert_expr_statement(an_expr_node_ptr       node,
 Make a statement from expression expr.  Insert the statement at
 *insert_location and update *insert_location.  Return a pointer to the
 statement, or NULL if no statement was created (in an expression insert
-context).  The result of the expression is marked as not used.
+context).  The result of the expression is marked as not used if a statement
+is created.
 */
 {
   a_statement_ptr stmt;
@@ -2537,6 +2538,26 @@ context).  The result of the expression is marked as not used.
   }  /* if */
   return stmt;
 }  /* insert_expr_statement */
+
+
+a_statement_ptr insert_expr_statement_set_pos(
+                                      an_expr_node_ptr       node,
+                                      an_insert_location_ptr insert_location)
+/*
+Make a statement from expression expr.  Insert the statement at
+*insert_location and update *insert_location.  Return a pointer to the
+statement, or NULL if no statement was created (in an expression insert
+context).  The result of the expression is marked as not used if a statement
+is created.  The current lowering source position is recorded in the
+statement.
+*/
+{
+  a_statement_ptr stmt;
+
+  stmt = insert_expr_statement(node, insert_location);
+  if (stmt != NULL) set_stmt_pos_to_code_pos_for_lowering(stmt);
+  return stmt;
+}  /* insert_expr_statement_set_pos */
 
 
 a_statement_ptr insert_assignment_statement(

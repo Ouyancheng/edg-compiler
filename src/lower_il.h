@@ -553,6 +553,10 @@ extern a_statement_ptr insert_expr_statement(
                                        an_expr_node_ptr       node,
                                        an_insert_location_ptr insert_location);
 
+extern a_statement_ptr insert_expr_statement_set_pos(
+                                       an_expr_node_ptr       node,
+                                       an_insert_location_ptr insert_location);
+
 extern a_statement_ptr insert_assignment_statement(
                                        an_expr_node_ptr       lvalue_expr,
                                        an_expr_operator_kind  op,
