@@ -3662,7 +3662,7 @@ an_expr_node_ptr field_lvalue_selection_expr(an_expr_node_ptr node,
                                              a_field_ptr      field)
 /*
 Make an expression for an lvalue reference to field "field" of "node" and
-return a  pointer to it.
+return a pointer to it.
 */
 {
   an_expr_operator_kind op;
@@ -3688,24 +3688,14 @@ an_expr_node_ptr field_rvalue_selection_expr(an_expr_node_ptr node,
                                              a_field_ptr      field)
 /*
 Make an expression for an rvalue reference to field "field" of "node" and
-return a  pointer to it.
+return a pointer to it.
 */
 {
-  an_expr_operator_kind op;
-  an_expr_node_ptr      field_node;
-
-  /* Make the expression node for the field. */
-  field_node = alloc_expr_node((an_expr_node_kind)enk_field);
-  field_node->type = field->type;
-  field_node->variant.field = field;
-  node->next = field_node;
-  /* Use a different operator for bit field references. */
-  op = (field->bit_size != 0) ? (an_expr_operator_kind)eok_value_bit_field :
-                                (an_expr_operator_kind)eok_value_field;
-  /* Make the field selection node.  Note that no special processing is
-     done for type qualifiers on the node pointer type.  They're probably
-     not needed. */
-  node = make_operator_node(op, field->type, node);
+  /* Make the expression node for an lvalue reference. */
+  node = field_lvalue_selection_expr(node, field);
+  /* Add an indirection to turn the lvalue into an rvalue. */
+  node = make_operator_node((an_expr_operator_kind)eok_indirect,
+                            field->type, node);
   return node;
 }  /* field_rvalue_selection_expr */
 
