@@ -5417,32 +5417,6 @@ a projection symbol pointing to that sk_overloaded_function symbol.
 }  /* overload_check_ambiguity_and_verify_access */
 
 
-a_boolean uniform_access_of_overloaded_function(a_symbol_ptr  sym)
-/*
-Given overloaded function symbol sym, return TRUE if all the functions have
-the same access, FALSE otherwise.
-*/
-{
-  an_access_specifier  access;
-  a_boolean            all_have_same_access = TRUE;
-
-#if CHECKING
-  if (sym->kind != (a_symbol_kind)sk_overloaded_function) {
-    internal_error("max_access_of_overloaded_functions: bad symbol kind");
-  }  /* if */
-#endif /* CHECKING */
-  sym = sym->variant.overloaded_function.symbols;
-  access = access_for_symbol(sym);
-  while ((sym = sym->next) != NULL) {
-    if (access != access_for_symbol(sym)) {
-      all_have_same_access = FALSE;
-      break;
-    }  /* if */
-  }  /* while */
-  return all_have_same_access;
-}  /* uniform_access_of_overloaded_function */
-
-
 static an_access_specifier max_access_of_overloaded_function(a_symbol_ptr  sym)
 /*
 Given overloaded function symbol sym, return in *max_access the access control

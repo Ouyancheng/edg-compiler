@@ -2596,8 +2596,6 @@ Throw away any deferred access entries.
   }  /* if */								\
 }
 
-extern a_boolean uniform_access_of_overloaded_function(a_symbol_ptr  sym);
-
 extern void f_check_protected_member_access(a_symbol_ptr      sym,
 				            a_source_position *err_pos,
                                             a_type_ptr        access_class);
