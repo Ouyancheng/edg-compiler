@@ -5131,7 +5131,7 @@ Allocate an access error description entry.  Reuse a freed entry if possible.
 void do_not_issue_qualifier_access_errors(an_access_error_descr_ptr *aedp_ptr)
 /*
 Free the access error description entries pointed to by aedp_ptr and
-clear the pointer in aepd.  Put the freed entries on the available
+clear the pointer in aedp.  Put the freed entries on the available
 list to be reused.
 */
 {
