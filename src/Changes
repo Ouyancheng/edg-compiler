@@ -6,7 +6,7 @@ Version 2.35
 If the first reference to a template entity is from a virtual destructor
 generated after instantiation wrapup has completed, the template entity
 will not be instantiated when using -tused or -tall mode (it will still
-be instantiated when using automatic instantiation).
+be instantiated when using automatic instantiation).  This has been fixed.
 
 2/13/97 When reading in binary mode, control-Z is not EOF on Windows NT
 
