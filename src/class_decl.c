@@ -3908,24 +3908,8 @@ assignment operator.
   a_boolean            is_overloaded_function;
   a_type_ptr           arg_type;
 
-  /* Look up the symbol in the portion of the symbol table containing
-     operator function symbols.  The lookup is done not by name but by
-     operator. */
-  sym_hdr = opname_symbol_table[onk_assign];
-  /* Search the inactive list first, then the active list if necessary. */
-  for (sym = sym_hdr->inactive_symbols; sym != NULL; sym = sym->next) {
-    if (sym->class_of_which_a_member == class_type) break;
-  }  /* for */
-  if (sym == NULL) {
-    for (sym = sym_hdr->symbol; sym != NULL; sym = sym->next) {
-      if (sym->class_of_which_a_member == class_type) break;
-    }  /* for */
-  }  /* if */
-#if CHECKING
-  if (sym == NULL) {
-    internal_error("select_assignment_operator: sym is NULL");
-  }  /* if */
-#endif /* CHECKING */
+  db_enter(4, "select_assignment_operator");
+  sym = symbol_supplement_for_class(class_type)->assignment_operator;
   /* If sym is an overloaded function symbol we need to go through the whole
      list. */
   if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
@@ -3934,8 +3918,12 @@ assignment operator.
   } else {
     is_overloaded_function = FALSE;
   }  /* if */
-  /* We need to find an assignment operator whose argument is ref-class or
+  /* Find an assignment operator whose argument is ref-class or
      ref-const-class. */
+#if 0
+  /* The discrimination based on "const" is not yet implemented.  The logic in
+     select_copy_constructor should be adapted for assignment operators. */
+#endif /* if 0 */
   for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
     arg_type = sym->variant.routine->type->
                       variant.routine.extra_info->param_type_list->type;
@@ -3950,13 +3938,22 @@ assignment operator.
     internal_error("select_assignment_operator: can't copy ref-class");
   }  /* if */
 #endif /* CHECKING */
-  reference_to_special_member_function(sym);
+  /* Check the routine's accessibility, mark it referenced, and (for a
+     compiler-generated routine that hasn't been defined yet) create the
+     routine body. */
+  reference_to_implicitly_invoked_function(sym);
+
+  db_exit();
   return sym->variant.routine;
 }  /* select_assignment_operator */
 
 
 static void make_default_assignment_body(a_scope_ptr  scope)
 /*
+Create the body for a default assignment operator.  Typically it will
+entail a series of member-wise and base-class-wise assignment operations:
+based on the properties of the subobject, it will either call an assignment
+operator routine or do bitwise assignment.
 */
 {
   a_type_ptr                     class_type, tp, array_type;
@@ -3982,7 +3979,7 @@ static void make_default_assignment_body(a_scope_ptr  scope)
   /* "head_of_statement_list" is a local statement variable whose only
       interesting property is its "next" field, from which a linked list of
       allocated statement entries will be hung.  That list will eventually be
-      transferred to the block statement that is returned to the caller. */
+      transferred to the block statement that is created. */
   head_of_statement_list.next = NULL;
   sp = &head_of_statement_list;
   /* See if a bitwise copy is all that is called for. */
@@ -4011,36 +4008,54 @@ static void make_default_assignment_body(a_scope_ptr  scope)
              the assignment function of some other base class. */
           continue;
         }  /* if */
+        /* The destination is always the implicit "this" parameter cast to
+           the appropriate base class. */
         dest_expr = base_class_selection_expr(this_param_value_expr(), bcp);
+        /* The source is the first parameter cast to the same base class. */
         source_expr = base_class_selection_expr(var_rvalue_expr(source_var),
                                                 bcp);
         if (symbol_supplement_for_class(bcp->type)->
                          assignment_by_bitwise_copy_allowed) {
+          /* A bitwise copy may be performed.   Even though the assignment
+             operator is not actually invoked, it must be accessible. */
           check_access_on_assignment_operator();
+          /* Dereference the pointer-to-base-class. */
           source_expr = make_operator_node((an_expr_operator_kind)eok_indirect,
                                            make_pointer_type(bcp->type),
                                            source_expr);
+          /* Create the assignment statement.  The appropriate operator
+             will be selected by the function. */
           sp = sp->next = make_assignment_statement(dest_expr, source_expr);
         } else {
+          /* A bitwise copy may not be done.  Find the default assignment
+             operator and put out a call to it. */
           rp = select_assignment_operator(bcp->type);
           sp = sp->next = make_call_assignment_statement(rp, dest_expr,
                                                          source_expr);
         }  /* if */
       }  /* if */
-    }  /* if */
+      /* Advance to the next base class. */
+    }  /* for */
+    /* Now go through all the fields, copying them one at a time.  Use the
+       symbol list rather than the field list to be sure we adhere to
+       declaration order and to be sure only user defined fields are
+       copied. */
     sym = ((a_symbol_ptr)class_type->source_corresp.assoc_info)->
                            variant.class_struct_union.extra_info->symbols;
     for (; sym != NULL; sym = sym->next_in_scope) {
       if (sym->kind == (a_symbol_kind)sk_field) {
+        /* A field. */
         fp = sym->variant.field;
         tp = fp->type;
 #if 0
+        /* Do error checking -- ARM 12.8. */
         if (is_reference_type(tp)) {
           error();
           continue;
         }  /* if */
         if (is_const_qualified_or_has_const_element_or_has_const_member) error;
 #endif /* if 0 */
+        /* If this is an array, we need the element type. */
         array_type = NULL;
         tp = skip_typerefs(tp);
         if (is_array_type(tp)) {
@@ -4050,15 +4065,27 @@ static void make_default_assignment_body(a_scope_ptr  scope)
           } while(is_array_type(tp));
           tp = skip_typerefs(tp);
         }  /* if */
+        /* The destination is the appriate field (lvalue) of the "this"
+           parameter. */
         dest_expr = field_lvalue_selection_expr(this_param_value_expr(), fp);
+        /* The source will be the appropriate field of the first argument,
+           but we don't know yet whether it's an lvalue or an rvalue. */
         source_expr = var_rvalue_expr(source_var);
         if (is_class_struct_union_type(tp)) {
-          check_access_on_assignment_operator();
+          /* It's a class type, so we may have to call an assignment operator
+             function. */
           if (symbol_supplement_for_class(tp)->
                            assignment_by_bitwise_copy_allowed) {
+            /* A bitwise copy may be performed.   Even though the assignment
+               operator is not actually invoked, it must be accessible. */
+            check_access_on_assignment_operator();
+            /* Source is an rvalue field reference. */
             source_expr = field_rvalue_selection_expr(source_expr, fp);
+            /* Create the assignment. */
             sp = sp->next = make_assignment_statement(dest_expr, source_expr);
           } else if (array_type == NULL) {
+            /* A bitwise copy may not be done.  Find the default assignment
+               operator and put out a call to it. */
             rp = select_assignment_operator(tp);
             source_expr = field_lvalue_selection_expr(source_expr, fp);
             sp = sp->next = make_call_assignment_statement(rp, dest_expr,
@@ -4072,6 +4099,8 @@ static void make_default_assignment_body(a_scope_ptr  scope)
 #endif /* if 0 */
           }  /* if */
         } else {
+          /* Not a class type.  Just do a bitwise copy.  The appropriate IL
+             operator will be selected by make_assignment_statement. */
           source_expr = field_rvalue_selection_expr(source_expr, fp);
           sp = sp->next = make_assignment_statement(dest_expr, source_expr);
         }  /* if */
@@ -4088,6 +4117,7 @@ static void make_default_assignment_body(a_scope_ptr  scope)
      it. */
   scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
   scope->assoc_block->variant.block.statements = head_of_statement_list.next;
+
   db_exit();
   return;
 }  /* make_default_assignment_body */
