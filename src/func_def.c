@@ -632,7 +632,7 @@ on a prior declaration.
     }  /* if */
     sym->variant.routine.ptr->is_inline = TRUE;
   }  /* if */
-  if (curr_deferred_access_scope != NO_SCOPE_DEPTH) {
+  if (any_deferred_access_checks()) {
     /* Now that we know which function has been declared, recheck any
        access errors that occurred while scanning the declaration. */
     check_assertion(rp != NULL);

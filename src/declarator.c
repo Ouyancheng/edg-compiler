@@ -1955,7 +1955,10 @@ otherwise it is NULL.  The syntax is:
                    deactivated once the entire declarator has been scanned. */
                 push_class_reactivation_scope(member_parent_type);
                 class_scope_deactivation_required = TRUE;
-                if (curr_deferred_access_scope != NO_SCOPE_DEPTH) {
+                if (any_deferred_access_checks()) {
+                  /* Discard any access errors that occurred while scanning
+		     the name of the thing being defined. */
+                  discard_declarator_access_errors();
                   /* Recheck any access errors that occurred while scanning
                      the specifiers or the beginning of the declarator
                      now that we know the class of the thing being declared. */

@@ -99,22 +99,6 @@ declared.
 #endif /* ifndef IL_TO_STR_H */
 
 
-/* Contains a description of an access error that has been detected
-   for which an error may need to be issued later. */
-typedef struct an_access_error_descr *an_access_error_descr_ptr;
-typedef struct an_access_error_descr {
-  an_access_error_descr_ptr
-		next;	/* Pointer to the next error description record. */
-  struct a_symbol	
-		*sym;
-			/* Symbol that the program was trying to access
-			   that should be included in the error message. */
-  a_source_position
-		position;
-			/* Position to be used when the error is issued. */
-} an_access_error_descr;
-
-
 typedef struct a_symbol_locator {
   /* Data structure used to store information about an identifier token.
      Can be used to look up the identifier or enter it into the symbol
@@ -1545,6 +1529,26 @@ typedef struct an_extern_type_fixup {
 } an_extern_type_fixup;
 
 
+/* Contains a description of an access error that has been detected
+   for which an error may need to be issued later. */
+typedef struct an_access_error_descr *an_access_error_descr_ptr;
+typedef struct an_access_error_descr {
+  an_access_error_descr_ptr
+		next;	/* Pointer to the next error description record. */
+  struct a_symbol	
+		*sym;
+			/* Symbol that the program was trying to access
+			   that should be included in the error message. */
+  a_source_position
+		position;
+			/* Position to be used when the error is issued. */
+  a_token_sequence_number
+		token_sequence_number;
+			/* Token sequence number of the current token when the
+			   access error was first detected. */
+} an_access_error_descr;
+
+
 /* Scope stack, containing an entry for each currently-active scope. */
 typedef struct a_scope_stack_entry *a_scope_stack_entry_ptr;
 typedef struct a_scope_stack_entry {
@@ -2135,6 +2139,8 @@ extern void perform_deferred_access_checks(void);
 extern void perform_deferred_access_checks_for_function(a_routine_ptr rp);
 
 extern void f_discard_deferred_access_checks(void);
+
+extern void discard_declarator_access_errors(void);
 
 extern void overload_check_ambiguity_and_verify_access(
                                            a_symbol_locator *locator,

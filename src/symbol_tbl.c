@@ -4363,6 +4363,7 @@ Allocate an access error description entry.  Reuse a freed entry if possible.
   aedp->next = NULL;
   aedp->sym = NULL;
   aedp->position = pos_curr_token;
+  aedp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   return aedp;
 }  /* alloc_access_error_descr */
 	
@@ -4424,6 +4425,7 @@ the error is issued immediately.
       aedp = alloc_access_error_descr();
       aedp->sym = sym;
       aedp->position = locator->source_position;
+      aedp->token_sequence_number = curr_token_sequence_number;
       if (ssep->deferred_access_checks == NULL) {
         ssep->deferred_access_checks = aedp;
       }  /* if */
@@ -4462,6 +4464,7 @@ access.
     if (aedp != NULL) {
       for (; aedp != NULL; aedp = next_aedp) {
         next_aedp = aedp->next;
+        aedp->next = NULL;
         if (!have_access_to_symbol(aedp->sym)) {
           /* The access check still failed. */
           if (ssep->defer_access_checks) {
@@ -4505,11 +4508,15 @@ routine entry of the function that was declared.
   ssep->defer_access_checks = FALSE;
   if (ssep->deferred_access_checks != NULL) {
     if (ssep->deferred_access_checks != NULL) {
+      a_type_ptr	cowam_type;
+      cowam_type = rp->source_corresp.class_of_which_a_member;
+      if (cowam_type != NULL) push_class_reactivation_scope(cowam_type);
       (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
                        (a_type_ptr)NULL, rp, (a_symbol_ptr)NULL,
                        (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
       perform_deferred_access_checks();
       pop_scope();
+      if (cowam_type != NULL) pop_class_reactivation_scope();
     }  /* if */
   }  /* if */
 }  /* perform_deferred_access_checks_for_function */
@@ -4536,6 +4543,47 @@ the list pointers.
     ssep->last_deferred_access_check = NULL;
   }  /* if */
 }  /* f_discard_deferred_access_checks */
+
+
+void discard_declarator_access_errors(void)
+/*
+Discard any deferred access checks that were recorded while scanning the
+declarator name.  The current token must be the coalesced declarator
+identifier at which point curr_token_sequence is the number of the first
+token that comprised the generalized identifier.  All tokens after
+the start of the declarator and before the next token are assumed to
+be part of the declarator name.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_token_sequence_number	next_tok_seq_number;
+
+  check_assertion(curr_deferred_access_scope != NO_SCOPE_DEPTH);
+  ssep = &scope_stack[curr_deferred_access_scope];
+  if (ssep->deferred_access_checks != NULL) {
+    an_access_error_descr_ptr	aedp = ssep->deferred_access_checks;
+    an_access_error_descr_ptr	new_head = NULL;
+    an_access_error_descr_ptr	new_tail = NULL;
+    an_access_error_descr_ptr	next_aedp;
+    /* Get the sequence number associated with the next token. */
+    (void)next_token_with_seq_number(&next_tok_seq_number);
+    for (; aedp != NULL; aedp = next_aedp) {
+      next_aedp = aedp->next;
+      aedp->next = NULL;
+      if (aedp->token_sequence_number >= curr_token_sequence_number &&
+          aedp->token_sequence_number < next_tok_seq_number) {
+        free_access_error_descr(aedp);
+      } else {
+        /* If we are keeping the entry, add it to the new list. */
+        if (new_head == NULL) new_head = aedp;
+        if (new_tail != NULL) new_tail->next = aedp;
+        new_tail = aedp;
+      }  /* if */
+    }  /* for */
+    ssep->deferred_access_checks = new_head;
+    ssep->last_deferred_access_check = new_tail;
+  }  /* if */
+}  /* discard_declarator_access_errors */
 
 
 void overload_check_ambiguity_and_verify_access(
