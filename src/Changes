@@ -7,33 +7,33 @@ standard.  Templates declared with the keyword "export" can be
 separately compiled, meaning a template can be referenced in a file
 containing only a declaration of the template (marked with "export"),
 and the definition (also marked with "export") can be placed in
-another source file.  The Front End does appropriate processing to
+another source file.  The front end does appropriate processing to
 ensure that when the complete program is linked the template will be
 instantiated.
 
-When the Front End compiles a file containing a definition of
+When the front end compiles a file containing a definition of
 an exported template, it writes a file with a .et suffix to
 record the location of the definition.  Later, when a template
-needs to be instantiated, the Front End searches the .et
+needs to be instantiated, the front end searches the .et
 files to find the location of the definition, compiles the
 definition file as a secondary translation unit, and instantiates
 the template in a synthesized context formed by merging
 information from several translation units.
 
 As part of the process of reading secondary translation units,
-the Front End checks that the declarations of entities with
+the front end checks that the declarations of entities with
 external linkage in different translation units match up, and
 issues errors if they do not.
 
 "export" is not quite the panacea that some users might hope
 for.  It does allow users to omit the definitions of templates in
 header files, but it doesn't make templates more efficient.  On the
-contrary, because the Front End has to process multiple translation
+contrary, because the front end has to process multiple translation
 units simultaneously, the cost of compilation can be large, both
 in terms of time and in terms of memory use.  Accordingly, "export"
 is off by default, and we've tried hard to make sure that with the
 feature disabled C++ programs that don't use "export" do not compile
-slower than they did with previous versions of the Front End.
+slower than they did with previous versions of the front end.
 "export" can be enabled by --export or --strict.
 
 EDG's implementation requires that the source code for the
@@ -47,11 +47,15 @@ internal documentation.
 
 "export" cannot be used with the C++-generating back end.
 
+"export" requires dependent name lookup, which means it is
+unlikely that "export" can simply be added to existing code
+if the code is not modern template code (using typename, etc.).
+
 This feature does not require any IL, back end, or ABI changes, but
 the prelinker does more work than it used to and the formats of
 some prelinker information files (.ti files, and .ii files on
 Windows) have been changed.  There are substantial changes in
-the structure of the Front End, in particular in initialization
+the structure of the front end, in particular in initialization
 and wrapup.  Note that initializations in customer modifications
 may have to be reworked (a) to do the initialization at the right
 time (per-compilation or per-translation-unit), and (b) to register
