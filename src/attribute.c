@@ -1245,8 +1245,8 @@ must make a copy if tp may already be shared.
            this context, even though it is conceptually similar. */
         /* Recall that tp is not a typeref here. */
         if (!is_pointer_type(tp) || !is_function_type(type_pointed_to(tp))) {
-          pos_ty_error(ec_attr_requires_func_type,
-                       &ap->position, tp);
+          pos_ty_warning(ec_attr_requires_func_type,
+                         &ap->position, tp);
         } else {
           a_type_ptr rout_type = tp->variant.pointer.type;
           rout_type = copy_type_and_apply_attributes((an_attribute_ptr)NULL,
