@@ -4,7 +4,7 @@ Version 2.32
 
 Whether top-level qualifiers are stripped off function parameter types is
 now controlled by global variable remove_qualifiers_from_param_types.
-It's value is configured by DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES.
+Its value is configured by DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES.
 
 5/2/96  Microsoft mode: functions returning classes considered to return
         lvalues
