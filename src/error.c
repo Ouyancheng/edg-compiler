@@ -1039,8 +1039,8 @@ error code.
     case ec_bad_data_member_initialization:
       m = "data member initializer is not allowed";
       break;
-    case ec_abstract_class_not_allowed:
-      m = "abstract class type is not allowed";
+    case ec_abstract_class_param_not_allowed:
+      m = "parameter of abstract class type is not allowed";
       break;
     case ec_function_returning_abstract_class:
       m = "function returning abstract class is not allowed";
