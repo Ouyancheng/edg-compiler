@@ -4544,7 +4544,12 @@ Returns TRUE if there is an error in the specifiers.
           if (num_specifiers != 0 && C_dialect != C_dialect_pcc) {
             /* Storage class specifier other than first is an obsolescent
                feature (see 3.9.3). */
-            warning(ec_storage_class_not_first);
+            if (*output_flags & DSO_FRIEND) {
+              /* An error is issued when a storage class appears on a friend
+                 declaration, so suppress the warning. */
+            } else {
+              warning(ec_storage_class_not_first);
+            }  /* if */
           }  /* if */
           if (is_parameter && curr_token != tok_register) {
             /* For parameters, the only allowed storage class specifier is
