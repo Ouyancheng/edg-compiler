@@ -2339,6 +2339,7 @@ user-defined conversions.
   an_arg_match_level
                     match_level;
   a_std_conv_descr  std_conversion;
+  a_boolean         ptr_to_member_case;
 
 #if CHECKING
   if (!is_an_rvalue(operand) && !is_error_operand(operand)) {
@@ -2439,21 +2440,23 @@ user-defined conversions.
             internal_error("cast_operand: bad func symbol");
           }  /* if */
 #endif /* CHECKING */
-          if (is_ptr_to_member_type(new_type)) {
-            /* Casting an overloaded member function to a pointer to
-               member function. */
-            /* Do whatever would have been done with the function if we had
-               known all along which function was intended.  Do not create
-               a function designator operand. */
-            overloaded_function_catch_up(function_symbol,
-                                         overloaded_function_symbol,
-                                         (a_boolean)operand->is_qualified_name,
-                                         &operand->position,
-                                         &operand->id_position,
-                                         /*elided_reference=*/FALSE,
-                                         /*address_taken=*/TRUE,
-                                         (an_operand *)NULL,
-                                         &access_error_reported);
+          ptr_to_member_case = is_ptr_to_member_type(new_type);
+          /* Do whatever would have been done with the function if we had
+             known all along which function was intended.  Make an operand
+             for the specific function's address, except for the
+             pointer to member case. */
+          overloaded_function_catch_up(function_symbol,
+                                       overloaded_function_symbol,
+                                       (a_boolean)operand->is_qualified_name,
+                                       &orig_operand.position,
+                                       &orig_operand.id_position,
+                                       /*elided_reference=*/FALSE,
+                                       /*address_taken=*/TRUE,
+                                       ptr_to_member_case ? (an_operand *)NULL:
+                                                            operand,
+                                       &access_error_reported);
+          if (ptr_to_member_case) {
+            /* Make an operand for the pointer-to-member case. */
             make_ptr_to_member_constant_operand(fundamental_symbol_of(
                                                               function_symbol),
                                                 overloaded_function_symbol,
@@ -2464,32 +2467,13 @@ user-defined conversions.
                                                 (a_boolean)operand->
                                                       is_operand_of_address_of,
                                                 operand);
-            /* If the pointer to member is to a related class, adjust it. */
-            copy_constant(&operand->variant.constant, &local_constant);
-            type_change_constant(&local_constant, new_type,
-                                 !access_error_reported,
-                                 curr_expr_kind_is_const(),
-                                 curr_expr_is_evaluated(),
-                               (a_boolean)expr_stack->fold_constant_addr_exprs,
-                                 /*is_reinterpret_cast=*/FALSE,
-                                 &did_not_fold, &operand->position);
-            check_assertion(!did_not_fold);
-            make_constant_operand(&local_constant, operand);
-          } else {
-            /* Casting an overloaded nonmember or static member function
-               to a pointer to function. */
-            /* Do whatever would have been done with the function if we had
-               known all along which function was intended.  Make an operand
-               for the specific function's address. */
-            overloaded_function_catch_up(function_symbol,
-                                         overloaded_function_symbol,
-                                         (a_boolean)operand->is_qualified_name,
-                                         &orig_operand.position,
-                                         &orig_operand.id_position,
-                                         /*elided_reference=*/FALSE,
-                                         /*address_taken=*/TRUE,
-                                         operand,
-                                         &access_error_reported);
+          }  /* if */
+          /* If the pointer to member is to a related class, or the pointer
+             to function differs because of a conversion (e.g., a C++ vs.
+             C linkage on the function type), adjust the operand. */
+          if (operand->type != new_type) {
+            cast_operand(new_type, operand, check_cast_access,
+                         is_implicit_cast, is_reinterpret_cast);
           }  /* if */
           break;
 #if CHECKING

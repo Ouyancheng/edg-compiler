@@ -1,5 +1,14 @@
 Version 2.42
 
+6/29/99  Routine linkage difference on function pointer as template argument
+
+When the implicit conversion between a pointer to C-linkage function
+and a pointer to C++-linkage function is allowed, the conversion
+is accepted when an overloaded function is passed as an argument to
+a template.  However, the front end failed to insert an appropriate
+generated cast on the argument, which caused deduction problems later.
+Now fixed.
+
 6/29/99  Template classes given external linkage in -tlocal mode
 
 Formerly, in -tlocal mode, template classes were given internal linkage.
