@@ -2305,10 +2305,11 @@ to be used.
 void build_seq_number_lookup_table(unsigned long	num_entries)
 /*
 This routine is used to reconstruct the sequence number lookup table.  It
-is called after the IL had been read from a file, or after memory has been
+is called after the IL has been read from a file, or after memory has been
 restored from a precompiled header file.  num_entries is the number of
-entries in the table, if known.  If it is not known, a value of zero is
-used.
+entries in the table, if known.  If it is not known, a value of zero should
+be used, in which case the routine will build the table, expanding it as
+necessary.
 */
 {
   a_seq_number_lookup_entry_ptr	snlep;
