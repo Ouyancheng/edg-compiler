@@ -14,6 +14,7 @@ Exit processing.
 */
 
 #include <stddef.h>
+#include "basics.h"
 #include "main.h"
 #include "edg_exit.h"
 
