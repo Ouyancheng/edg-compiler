@@ -1056,6 +1056,8 @@ type is legal.
              union" case, this will put the type entry on a list for later
              fixup. */
           set_type_size(temp_type);
+          /* set_type_size may have returned an error type. */
+          if (is_error_type(temp_type)) *bottom_derived_type = temp_type;
           /* Find the derived type above this one, and see if it needs to
              have its size computed.  If so, continue looping. */
           if (temp_type == *derived_type) {
@@ -2013,7 +2015,7 @@ appropriate array type.  The initial opening bracket is the current
 token.
 */
 {
-  long              num_of_elements;
+  a_targ_size_t     num_of_elements;
   a_constant        constant;
   a_boolean         err = FALSE;
   a_source_position start_pos;
@@ -2037,10 +2039,13 @@ token.
         internal_error("array_declarator: array size not int");
       }  /* if */
 #endif /* CHECKING */
-      num_of_elements = constant.variant.integer_value;
-      if (num_of_elements <= 0) {
+      /* Array size must be greater than zero. */
+      if (is_signed_integral_type(constant.type) &&
+          constant.variant.integer_value <= 0) {
         error(ec_array_size_must_be_positive);
         err = TRUE;
+      } else {
+        num_of_elements = constant.variant.integer_value;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3955,12 +3960,6 @@ a pointer to it in *symbol_ptr.
           sym->variant.type = type_ptr;
           set_source_corresp(&(type_ptr->source_corresp), sym);
           suppress_redecl_error = TRUE;
-#if CHECKING
-        } else if (is_class_struct_union_type(type_ptr)) {
-          /* A tagless class -- e.g., typedef class { ... } C -- should always
-             have a tag symbol. */
-          internal_error("decl_typedef: expected unnamed tag sym for class");
-#endif /* CHECKING */
         }  /* if */
       } else if (is_unnamed_class_symbol(sym)) {
         /* An unnamed tag symbol was created for the class and can be reused
