@@ -1194,11 +1194,11 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
 #endif /* DEBUG */
     if (is_array_type(tp)) tp = underlying_array_element_type(tp);
     tp = skip_typerefs(tp);    
-    if (is_class_struct_union_type(tp) &&
-        !symbol_supplement_for_class(tp)->any_nonstatic_data_members &&
-        curr_token == tok_lbrace) {
+    if (C_dialect == C_dialect_cplusplus &&
+        is_class_struct_union_type(tp) && curr_token == tok_lbrace &&
+        !symbol_supplement_for_class(tp)->any_nonstatic_data_members) {
       /* Attempting to initialize an empty object with an initializer list
-         is prohibited by the syntax, since initializer lists may not be
+         is prohibited by the C++ syntax, since initializer lists may not be
          empty. */
       sym_error(ec_initializer_list_for_empty_class_object,
                 (a_symbol_ptr)tp->source_corresp.assoc_info);
