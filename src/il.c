@@ -332,14 +332,21 @@ objects of their own type.
         goto print_name;
       case tk_union:
         fputs("union ", f_debug);
-        goto print_name;
+print_name:
+        db_type_name(tp);
+        break;
       case tk_integer:
         if (is_immediate_enum_type(tp)) {
           fputs("enum ", f_debug);
-print_name:
           db_type_name(tp);
+          /* Display the underlying integer kind if it's other than "int". */
+          if (tp->variant.integer.int_kind != (an_integer_kind)ik_int) {
+            fprintf(f_debug, " (%s)",
+                    int_kind_name(tp->variant.integer.int_kind));
+          }  /* if */
           break;
         }  /* if */
+        /*FALLTHROUGH*/
       default:
         db_type(tp);
         break;
@@ -1137,6 +1144,13 @@ Dump the contents of the indicated constant, for debug purposes.
 
   /* Output the constant. */
   form_constant(cp, /*need_parens=*/FALSE, &octl);
+  if (is_enum_constant(cp) && has_name(cp)) {
+    /* Display the value of the enum constant, too. */
+    fputs(" (= ", f_debug);
+    form_integer_constant(cp, /*suppress_cast=*/TRUE, /*need_parens=*/FALSE,
+                          &octl);
+    fputc(')', f_debug);
+  }  /* if */
 }  /* db_constant */
 
 
