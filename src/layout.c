@@ -1023,12 +1023,12 @@ the alignment of the class being laid out (as recorded in lob) as needed.
   if (emulate_gnu_abi_bugs && is_union_type(lob->class_type)) {
     /* In the GNU implementation of the IA-64 ABI, bit fields seem to affect
        the alignment of unions, but usually not that of classes and structs. */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
   } else if (field->bit_size != 0 && field->alignment != 0) {
     /* Nonzero-length bit fields with an explicitly specified alignment
        always affect the alignment of the enclosing type in GNU compilers
        (even if the bit field is unnamed). */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
   } else
 #endif /* IA64_ABI */
   /* Do not insert code here. */
@@ -4676,9 +4676,11 @@ for handling virtual bases and functions.
 */
 {
   a_layout_block              lob;
+#if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   a_targ_alignment            alignment;
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IA64_ABI
   a_boolean                   is_POD;
 #endif /* IA64_ABI */

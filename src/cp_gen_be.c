@@ -4325,7 +4325,9 @@ declaration following this one is such a continuation.
       write_tok_str(")) ");
     }  /* if */
     gen_microsoft_deprecated_spec(&field->source_corresp);
+#if USER_CONTROL_OF_STRUCT_PACKING
     gen_microsoft_align_declspec(field->alignment);
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (field->is_mutable) write_tok_str("mutable ");
