@@ -1805,6 +1805,10 @@ nothing.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+static a_token_kind func_name_token[] = {tok_function_name,
+                                         tok_decorated_function_name,
+                                         tok_pretty_function_name};
+
 static a_boolean is_microsoft_function_name_paste(a_macro_arg_ptr map,
                                                  char             *prev_text,
                                                  sizeof_t         prev_len,
@@ -1835,9 +1839,6 @@ position after the end of the function-name keyword.
           map->raw_text[1] == '_') {
         /* Compare the raw_text of map against the function-name tokens. */
         unsigned int i;
-        a_token_kind func_name_token[] = {tok_function_name,
-                                          tok_decorated_function_name,
-                                          tok_pretty_function_name};
         for (i = 0; i < sizeof(func_name_token)/sizeof(a_token_kind); i++) {
           char     *tok = spelling_for_function_name_token(func_name_token[i]);
           sizeof_t tok_len = strlen(tok);
@@ -1998,7 +1999,7 @@ hence its name should not be changed.
               /* This is token pasting of L##__FUNCTION__ or the like, which
                  will be replaced by __LPREFIX(__FUNCTION__).  The "L" is
                  also removed. */
-              result += strlen(token_names[tok_microsoft_lprefix])+2-1;
+              result += strlen(token_names[(int)tok_microsoft_lprefix])+2-1;
             }  /* if */
           }
           prev_text = map->raw_text;
@@ -2885,7 +2886,7 @@ end_arg_expansion:;
                    is replaced by __LPREFIX(__FUNCTION__).  Note that
                    length_of_replacement_text has to do the right length
                    computation for this. */
-                char     *tok = token_names[tok_microsoft_lprefix];
+                char     *tok = token_names[(int)tok_microsoft_lprefix];
                 sizeof_t tok_len = strlen(tok);
                 sizeof_t fnk_len;
                 src_loc--;  /* Back up to remove the "L". */
