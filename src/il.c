@@ -4378,7 +4378,12 @@ nonidentical.
         break;
       case ck_ptr_to_member:
         if (cp1->variant.ptr_to_member.is_function_ptr ==
-                                  cp2->variant.ptr_to_member.is_function_ptr) {
+                                  cp2->variant.ptr_to_member.is_function_ptr
+#if RECORD_FORM_OF_NAME_REFERENCE
+            && cp1->variant.ptr_to_member.name_reference ==
+                                  cp2->variant.ptr_to_member.name_reference
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+                                                                           ) {
           if (cp1->variant.ptr_to_member.is_function_ptr) {
             eq = corresponding_routines(
                                   cp1->variant.ptr_to_member.variant.routine,
