@@ -1217,7 +1217,7 @@ process_option()
 #     Options that require additional processing
       case $arg in
         -m | --c | --c99 | --no_c99 | -K | --old_c | --svr4 | --no_svr4 | \
-	--gcc | --no_gcc | --upc | --no_upc | --embedded_c)
+	--gcc | --no_gcc | --upc | --no_upc)
           c_mode=1
           if [ $arg = "--c99" -a \
                "$EDG_C_TO_OBJ_C99_OPTIONS" != "" ] ; then
@@ -1232,6 +1232,7 @@ process_option()
           ;;
         --embedded_c)
           # Link in the fixed-point runtime library, if any.
+	  c_mode=1
           if [ "$EDG_FIXED_POINT_LIB" != "" ] ; then
             EDG_STD_LIBS="$EDG_STD_LIBS:$EDG_FIXED_POINT_LIB"
           fi
