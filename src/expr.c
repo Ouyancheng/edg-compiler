@@ -10025,6 +10025,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         result_type = operation_type = operand_1->type;
       } else if (save_token == tok_minus && is_pointer_type(operand_2.type)) {
         /* Pointer - pointer. */
+        a_boolean   same_types = FALSE;
+        a_boolean   nonstd_case = FALSE;
         a_type_ptr  type_1 = type_pointed_to(operand_1->type),
                     type_2 = type_pointed_to(operand_2.type);
 
@@ -10034,6 +10036,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
            (ISO C 6.3.6, ISO C++ 5.7).  The result has type ptrdiff_t. */
         if (types_are_compatible_ignoring_qualifiers(type_1, type_2)) {
           operation_type = skip_typerefs(operand_1->type);
+          same_types = TRUE;
         } else if (check_compatibility_of_pointer_operands(
                           operand_1, &operand_2, &operator_position,
                           /*pointer_normalization_standard_in_C=*/FALSE,
@@ -10043,13 +10046,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                           &operation_type)) {
           /* Traditionally (ARM C++), certain differences in the types pointed
              to have been accepted. */
-          if (!(any_cfront_mode() || microsoft_mode)) {
-            pos_ty2_diagnostic(strict_ansi_mode ? strict_ansi_error_severity
-                                                : es_warning,
-                               ec_nonstandard_ptr_minus_ptr,
-                               &operator_position,
-                               operand_1->type, operand_2.type);
-          }  /* if */
+          nonstd_case = TRUE;
         } else {
           err = TRUE;
         }  /* if */
@@ -10057,24 +10054,42 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
            C mode: void and function types are acceptable). */
         if (err) {
           /* An error message was already issued. */
-        } else if (gcc_mode &&
+        } else if (gcc_mode && same_types &&
                    (is_void_type(type_pointed_to(operand_1->type)) ||
                     is_function_type(type_pointed_to(operand_1->type)))) {
           /* Some versions of GNU C allows arithmetic on pointers to void and
              pointers to functions. */
           pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
-          result_type = integer_type(targ_ptrdiff_t_int_kind);
-        } else if (check_object_pointer_operand(
-                                operand_1, ec_expr_not_pointer_to_object) &
-                   check_object_pointer_operand(
-                                &operand_2, ec_expr_not_pointer_to_object)) {
-          /* Note use of "&" rather than "&&" to ensure that both tests
-             are done even if the first detects an error. */
-          result_type = integer_type(targ_ptrdiff_t_int_kind);
-        } else {
-          /* An error message was already issued. */
+        } else if (!check_object_pointer_operand(
+                                   operand_1, ec_expr_not_pointer_to_object)) {
+          /* The first operand is not a pointer to an object type. */
           err = TRUE;
+        } else if (microsoft_mode &&
+                   is_void_type(type_pointed_to(operand_2.type))) {
+          /* Microsoft (both C and C++, as of 7.1) allows "void *" as the
+             second (but not the first) operand. */
+          pos_ty2_diagnostic(es_warning,
+                             ec_nonstandard_ptr_minus_ptr,
+                             &operator_position,
+                             operand_1->type, operand_2.type);
+        } else if (!check_object_pointer_operand(
+                                  &operand_2, ec_expr_not_pointer_to_object)) {
+          /* The second operand is not a pointer to an object type. */
+          err = TRUE;
+        } else {
+          /* Okay. */
+          /* Issue a diagnostic for one of the nonstandard cases where
+             a conversion is allowed between the operands. */
+          if (nonstd_case &&
+              !(any_cfront_mode() || microsoft_mode)) {
+            pos_ty2_diagnostic(strict_ansi_mode ? strict_ansi_error_severity
+                                                : es_warning,
+                               ec_nonstandard_ptr_minus_ptr,
+                               &operator_position,
+                               operand_1->type, operand_2.type);
+          }  /* if */
         }  /* if */
+        result_type = integer_type(targ_ptrdiff_t_int_kind);
       } else {
         /* Pointer +- non-integral.  Error. */
         error_in_operand(enum_type_is_integral ?

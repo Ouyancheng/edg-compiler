@@ -1,5 +1,16 @@
 Version 3.1
 
+12/23/02 Microsoft mode: pointer minus void *
+
+In Microsoft mode (C and C++), a pointer minus a void * is
+now allowed.  A warning is issued.
+
+  int  * ptr1;
+  void * ptr2;
+  void foo() {
+    int x = ptr1 - ptr2;
+  }
+
 12/19/02 Nontype template arguments in dependent contexts
 
 If a nontype template argument is used in a context in which the
