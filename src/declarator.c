@@ -345,7 +345,8 @@ type is legal.
             array_of_incomp_struct_or_union = TRUE;
             if (strict_ansi_mode) {
               diagnostic(strict_ansi_error_severity,
-                         ec_bad_array_element_type);
+                         ec_array_of_incomplete_type);
+              if (strict_ansi_error_severity == es_error) err = TRUE;
             }  /* if */
           } else if (is_abstract_class_type(temp_type)) {
             error(ec_array_of_abstract_class);

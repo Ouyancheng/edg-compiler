@@ -778,6 +778,7 @@ ec_bad_name_in_using_decl;;"invalid name in using declaration"
 ec_namespace_name_not_allowed;;"a namespace name is not allowed"
 ec_bad_combination_of_dll_attributes;;"invalid combination of DLL attributes"
 ec_sym_not_a_class_template;;"%n is not a class template"
+ec_array_of_incomplete_type;;"array of incomplete type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
