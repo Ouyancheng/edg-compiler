@@ -2761,7 +2761,13 @@ or struct definition.  The syntax is
       /* Indicate whether an operator new or operate delete is inherited into
          the current derived class. */
       if (bcp_cssp->has_operator_new) cssp->has_operator_new = TRUE;
+      if (bcp_cssp->has_operator_array_new) {
+        cssp->has_operator_array_new = TRUE;
+      }  /* if */
       if (bcp_cssp->has_operator_delete) cssp->has_operator_delete = TRUE;
+      if (bcp_cssp->has_operator_array_delete) {
+        cssp->has_operator_array_delete = TRUE;
+      }  /* if */
       /* The current derived class cannot be copy-constructed or assigned by
          bitwise copying if the base class does not allow it or is a virtual
          base class. */
@@ -3774,8 +3780,12 @@ special function kind (e.g., constructor, destructor), if any.
         }  /* if */
       } else if (rtn->opname_kind == (an_opname_kind)onk_new) {
         cssp->has_operator_new = TRUE;
+      } else if (rtn->opname_kind == (an_opname_kind)onk_array_new) {
+        cssp->has_operator_array_new = TRUE;
       } else if (rtn->opname_kind == (an_opname_kind)onk_delete) {
         cssp->has_operator_delete = TRUE;
+      } else if (rtn->opname_kind == (an_opname_kind)onk_array_delete) {
+        cssp->has_operator_array_delete = TRUE;
       } else if (rtn->opname_kind == (an_opname_kind)onk_arrow) {
         /* For operator->() do a special check on the return type.  It must
            be something that can be used as a pointer -- either a pointer
@@ -7403,10 +7413,16 @@ next_declaration:
       /* Issue a warning on a class with an operator new() but no operator
          delete() or vice versa. */
       if (cssp->has_operator_new != cssp->has_operator_delete) {
-        sym_remark(cssp->has_operator_new ?
-                     ec_class_with_op_new_but_no_op_delete :
-                     ec_class_with_op_delete_but_no_op_new,
-                   tag_sym);
+        pos_stsy_remark(cssp->has_operator_new ?
+                           ec_class_with_op_new_but_no_op_delete :
+                           ec_class_with_op_delete_but_no_op_new,
+                        &error_position, "", tag_sym);
+      }  /* if */
+      if (cssp->has_operator_array_new != cssp->has_operator_array_delete) {
+        pos_stsy_remark(cssp->has_operator_array_new ?
+                           ec_class_with_op_new_but_no_op_delete :
+                           ec_class_with_op_delete_but_no_op_new,
+                        &error_position, "[]", tag_sym);
       }  /* if */
       /* Issue a warning on a class with all private constructors and no
          friend functions. */
