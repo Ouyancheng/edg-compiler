@@ -1733,8 +1733,10 @@ or enum.  This is a reference as part of a type specifier list, and in some
 cases the definition of the type is generated (rather than just a reference).
 */
 {
-  if (!type->definition_put_out) {
-    /* Put out the definition on the first reference if it has not yet been
+  /* The size != 0 check is to avoid problems with structs for which there
+     is no definition. */
+  if (!type->definition_put_out && type->size != 0) {
+    /* Put out the definition on the first use if it has not yet been
        put out.  This happens inside function prototypes that aren't
        simply part of function declarations, e.g.,
          typedef int (*f)(struct A {int i;} p);
