@@ -2466,11 +2466,9 @@ default values.
   tblock->terminate = FALSE;
   tblock->suppress_subtree_walk = FALSE;
   tblock->result = FALSE;
+  tblock->process_non_dynamic_constants = FALSE;
 }  /* clear_expr_or_stmt_traversal_block */
 
-
-static void traverse_dynamic_init(a_dynamic_init_ptr                  dip,
-                                  an_expr_or_stmt_traversal_block_ptr tblock);
 
 static void traverse_constant(a_constant_ptr                      constant,
                               an_expr_or_stmt_traversal_block_ptr tblock);
@@ -2529,8 +2527,8 @@ end_of_routine:;
 }  /* traverse_constant */
 
 
-static void traverse_dynamic_init(a_dynamic_init_ptr                  dip,
-                                  an_expr_or_stmt_traversal_block_ptr tblock)
+void traverse_dynamic_init(a_dynamic_init_ptr                  dip,
+                           an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 Walk the tree of the given dynamic initialization.  Call user-provided
 routines as specified in the control block.
@@ -2552,7 +2550,9 @@ routines as specified in the control block.
     case dik_zero:
       break;
     case dik_constant:
-      traverse_constant(dip->variant.constant, tblock);
+      if (tblock->process_non_dynamic_constants) {
+        traverse_constant(dip->variant.constant, tblock);
+      }  /* if */
       break;
     case dik_expression:
     case dik_call_returning_class_via_cctor:
@@ -2615,7 +2615,9 @@ as specified in the control block.
       traverse_expr_list(expr->variant.operation.operands, tblock);
       break;
     case enk_constant:
-      traverse_constant(expr->variant.constant, tblock);
+      if (tblock->process_non_dynamic_constants) {
+        traverse_constant(expr->variant.constant, tblock);
+      }  /* if */
       break;
     case enk_variable:
     case enk_variable_address:
@@ -2803,8 +2805,10 @@ as specified in the control block.
         for (scp = statement->variant.switch_stmt.clause_list;
              scp != NULL;
              scp = scp->next) {
-          traverse_constant_list(scp->constant_list, tblock);
-          if (tblock->terminate) goto end_of_routine;
+          if (tblock->process_non_dynamic_constants) {
+            traverse_constant_list(scp->constant_list, tblock);
+            if (tblock->terminate) goto end_of_routine;
+          }  /* if */
           traverse_statement_list(scp->statements, tblock);
           if (tblock->terminate) goto end_of_routine;
         }  /* for */

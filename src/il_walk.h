@@ -251,10 +251,20 @@ typedef struct an_expr_or_stmt_traversal_block {
   a_boolean	result;
 			/* A place for called routines to store a boolean
 			   result for the overall walk. */
+  a_boolean	process_non_dynamic_constants;
+			/* If TRUE, constants that are not dynamic (i.e.,
+			   that do not potentially include executable code/
+			   expressions) are also walked.  Ordinarily, they
+			   are not walked because we are primarily looking for
+			   expressions and statements. */
 } an_expr_or_stmt_traversal_block;
 
 extern void clear_expr_or_stmt_traversal_block(
                                    an_expr_or_stmt_traversal_block_ptr tblock);
+
+extern void traverse_dynamic_init(a_dynamic_init_ptr                  dip,
+                                  an_expr_or_stmt_traversal_block_ptr tblock);
+
 
 extern void traverse_expr(an_expr_node_ptr                    expr,
                           an_expr_or_stmt_traversal_block_ptr tblock);
