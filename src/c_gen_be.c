@@ -4429,11 +4429,7 @@ p is a pointer to the start of a null-terminated string.
     end_output_line();
     *eol = '\n';
   }  /* for */
-  if (*p) {
-    write_str(p);
-  } else {
-    end_output_line_if_begun();
-  }  /* if */
+  write_str(p);
   write_tok_ch('}');
 }  /* dump_asm_function_body */
 
