@@ -1264,6 +1264,7 @@ ec_field_uses_tail_padding;;"field uses tail padding of its base class"
 ec_gnu_may_use_bit_padding;;"GNU C++ compilers may use bit field padding"
 ec_deprecated_entity;;"use of %nd is deprecated"
 ec_field_with_asm_name_not_allowed;;"an asm name is not allowed on a nonstatic member declaration"
+ec_unrecognized_format_function_type;;"unrecognized format function type %sq ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
