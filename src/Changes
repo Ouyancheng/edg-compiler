@@ -1,5 +1,12 @@
 Version 2.39
 
+4/10/98   Error recovery on missing right brace in aggregate initializer
+
+Error recovery has been improved on a missing right brace in an aggregate
+initializer:
+
+  int i[] = {1;  // Error recovery was bad on this case, now improved
+
 4/10/98   Storage class on a condition declaration
 
 In strict mode a diagnostic is now issued if "auto" or "register" is
