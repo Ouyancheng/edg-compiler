@@ -20,7 +20,8 @@ written using the new "template<>" syntax.
 
 5/5/96  IL CHANGE: field in a_src_seq_end_of_construct has been renamed
 
-In a_src_seq_end_of_construct "source_position" is now "position".
+In a_src_seq_end_of_construct "source_position" is now "position"
+(relevant only if GENERATE_SOURCE_SEQUENCE_LISTS is configured to TRUE).
 
 5/3/96  Template parameters in elaborated type specifiers
 
@@ -106,8 +107,9 @@ specialized using the template<> syntax, and suppress_instantiation
 replaces the flag specific_def, which has been removed.
 
 In a related change, is_specialization has been added to
-a_src_seq_secondary_decl; it enables the C++-generating back end to
-distinguish between specializations and guiding declarations:
+a_src_seq_secondary_decl (which is used if GENERATE_SOURCE_SEQUENCE_LISTS
+is set to TRUE); this enables the C++-generating back end to distinguish
+between specializations and guiding declarations:
 
   template <class T> void f(T);
   void f(int);                    // guiding declaration
