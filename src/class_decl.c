@@ -4132,11 +4132,15 @@ specified by decl_scope_level.
       ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_variable;
     }  /* if */
   }  /* if */
-  /* The symbols list for the anonymous union will be eliminated.  Its
-     field symbols are promoted to the scope of the containing class. */
+  /* Get the list of symbols that are to be either promoted (i.e., reused
+     in the new scope) or cloned. */
   cssp = symbol_supplement_for_class(assoc_object_type);
   sym = cssp->symbols;
-  cssp->symbols = NULL;
+  if (reuse_symbol) {
+    /* The symbols list for the anonymous union will be eliminated.  Its
+       field symbols are promoted to the scope of the containing class. */
+    cssp->symbols = NULL;
+  }  /* if */
   /* Go through each of the symbols on the list. */
   check_assertion(decl_scope_level == depth_scope_stack || C_mode());
   for (; sym != NULL; sym = next_sym) {
@@ -4174,6 +4178,11 @@ specified by decl_scope_level.
           remove_anonymous_union_member_from_inactive_symbols_list(sym);
           reenter_symbol(sym, depth_scope_stack, /*suppress_error=*/FALSE);
         } else {
+          /* The symbol has to be kept bound to the type, since the latter
+             may be used again.  Therefore, we have to clone the symbol,
+             making a copy of it in the new class scope.  Note that there may
+             turn out to be a many-to-one mapping between member symbols and
+             field-of-assoc-object-type. */
           a_field_ptr      fp = sym->variant.field.ptr;
           a_symbol_locator loc;
           make_locator_for_symbol(sym, &loc);
