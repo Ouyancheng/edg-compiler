@@ -651,10 +651,10 @@ requires cleanup.
     flags = ehrdp->flags;
     if (flags & RDF_CONDITIONAL_FLAG) {
       /* This cleanup action is conditional.  The next region entry
-         contains a handle that points to the flag.  Check the flag any
+         contains a handle that points to the flag.  Check the flag and
          only process this entry if it is TRUE. */
       /* The object information is pointed to directly by the region entry. */
-      flag_addr = (a_conditional_flag*)*(obj_addr_array + ehrdp->handle + 1);
+      flag_addr = (a_conditional_flag*)*(obj_addr_array + (ehrdp + 1)->handle);
       /* Skip processing of this entry if the flag is not set. */
       if (!*flag_addr) continue;
     }  /* if */
