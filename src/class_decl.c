@@ -4325,12 +4325,9 @@ special function kind (e.g., constructor, destructor), if any.
 
       /* Check the target type of the conversion -- which is the return type
          of rout_type. */
-      tp = skip_typerefs(rtn->type);
-      tp = skip_typerefs(tp->variant.routine.return_type);
-      if (is_reference_type(tp)) {
-        tp = skip_typerefs(type_pointed_to(tp));
-      }  /* if */
-      if (tp == class_type) {
+      tp = return_type_of(rtn->type);
+      if (skip_typerefs(tp) == class_type) {
+        /* Converting to same type (possibly qualified) is not done. */
         is_usable = FALSE;
       } else if (is_class_struct_union_type(tp)) {
         if (!cfront_2_1_mode && find_base_class_of(class_type, tp) != NULL) {
@@ -7489,7 +7486,7 @@ static void check_complete_member_type(a_type_ptr         *type,
                                        a_storage_class    storage_class,
                                        a_source_position  *decl_start_pos,
                                        a_boolean          *return_type_def_err,
-                                       a_boolean          defines_something,
+                                       a_decl_flag_set    dso_flags,
                                        a_boolean          is_nonreal_class)
 /*
 This routine is called after declarator to perform some checks on the type
@@ -7498,9 +7495,9 @@ is the complete type.  storage_class is the storage class that was specified.
 locator points to the symbol locator for the member.  *decl_start_pos indicates
 the source position of the start of the declaration.  *return_type_def_error
 is set once a definition-in-return-type error has been issued (so it won't
-be put out more than once).  defines_something is TRUE when decl_specifiers
-has scanned a class or enum definition.  is_nonreal is TRUE when the class
-is a non-real instantiation.
+be put out more than once).  dso_flags is the bit set of flags returned by
+decl_specifiers.  is_nonreal is TRUE when the class is a non-real
+instantiation.
 */
 {
   if (storage_class != (a_storage_class)sc_typedef) {
@@ -7527,7 +7524,7 @@ is a non-real instantiation.
       *type = error_type();
     }  /* if */
   }  /* if */
-  if (defines_something) {
+  if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* A class or enum definition was scanned as part of this declaration.
        However, it is explicitly prohibited to define a type in a function
        return type.  This is taken to apply to pointer-to-function type
@@ -7823,6 +7820,740 @@ member.  Determine whether a diagnostic is actually required and put it out.
   }  /* if */
 }  /* report_missing_constructor */
 
+/*
+A class-definition-status block, which tracks properties of the class as its
+definition proceeds.
+*/
+typedef struct a_class_def_status* a_class_def_status_ptr;
+typedef struct a_class_def_status {
+  a_bit_field	is_first_field:1;
+			/* TRUE until the first nonstatic data member of the
+			   class has been seen. */
+  a_bit_field	class_aggregate_ruled_out:1;
+			/* TRUE if a property of the class (e.g., the
+			   declaration of a virtual function) disqualifies it
+			   as an "aggregate". */
+  a_bit_field	any_named_fields:1;
+			/* TRUE if any named fields are declared. */
+  a_bit_field	any_nonpublic_members:1;
+			/* TRUE if any private or protected members are
+			   declared. */
+  a_bit_field	any_friend_decls:1;
+			/* TRUE if any friend declarations are encountered. */
+  a_bit_field	any_const_or_ref_fields:1;
+			/* TRUE if any nonstatic data members have reference
+			   or const-qualified type. */
+  a_bit_field	is_nonreal_instantiation:1;
+			/* TRUE if the class is a prototype instantiation of
+			   a class template. */
+  a_bit_field	is_local_class:1;
+			/* TRUE if the class is local to a function. */
+  an_access_specifier
+		access;
+			/* The current access. */
+  an_override_registry_entry_ptr
+		override_registry;
+			/* The registry of virtual function overrides for
+			   the current class. */
+  a_field_ptr	end_of_field_list;
+			/* The last nonstatic data member declared for the
+			   current class. */
+  a_symbol_ptr	corresp_prototype_tag_sym;
+			/* If the current class is a instance of a class
+			   template, a pointer to the symbol for the
+			   prototype instantiation of that template. */
+} a_class_def_status;
+
+
+static void initialize_class_def_status(a_class_def_status_ptr status_ptr)
+/*
+Initialize fields of a class-definition-status block.
+*/
+{
+  status_ptr->is_first_field = TRUE;
+  status_ptr->class_aggregate_ruled_out = FALSE;
+  status_ptr->any_named_fields = FALSE;
+  status_ptr->any_nonpublic_members = FALSE;
+  status_ptr->any_friend_decls = FALSE;
+  status_ptr->any_const_or_ref_fields = FALSE;
+  status_ptr->is_nonreal_instantiation = FALSE;
+  status_ptr->is_local_class = FALSE;
+  status_ptr->access = (an_access_specifier)as_public;
+  status_ptr->override_registry = NULL;
+  status_ptr->end_of_field_list = NULL;
+  status_ptr->corresp_prototype_tag_sym = NULL;
+}  /* initialize_class_def_status */
+
+
+static void class_member_declaration(
+                                a_type_ptr              class_type,
+                                a_class_def_status_ptr  status_ptr,
+                                a_boolean               *skip_semicolon_check)
+/*
+Scan a member declaration appearing inside a class definition.  class_type
+is the type of the class.  status_ptr points to a block of information
+tracking general information about the class.  *skip_semicolon_check is
+returned TRUE if the caller should suppress the check for a semicolon
+following the member declaration.
+*/
+{
+  a_source_position    decl_start_pos;
+  a_decl_flag_set      dsi_flags;
+  a_decl_flag_set      dso_flags;
+  a_type_qualifier_set qualifiers;
+  a_storage_class      member_storage_class;
+  a_type_ptr           member_type;
+  a_decl_modifier      decl_modifiers;
+  a_boolean            first_declarator = TRUE;
+  a_boolean            no_decl_specifiers;
+  a_boolean            friend_specified, virtual_specified;
+  a_boolean            type_explicitly_specified, inline_specified;
+  a_boolean            is_destructor, is_constructor;
+  a_boolean            is_anonymous_union = FALSE;
+  a_boolean            is_nonstd_anonymous_union = FALSE;
+  a_boolean            mutable_specified, explicit_specified;
+  a_boolean            return_type_def_err = FALSE;
+  a_symbol_ptr         rout_sym;
+
+  db_enter(3, "class_member_declaration");
+  *skip_semicolon_check = FALSE;
+  /* Set the flags to control the calls to decl_specifiers. */
+  dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
+              DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
+  if (C_dialect == C_dialect_cplusplus) {
+    dsi_flags |= (DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
+                  DSI_IS_MEMBER_DECLARATION | DSI_INLINE_ALLOWED |
+                  DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
+                  DSI_VACUOUS_TAG_DECL_ALLOWED);
+  }  /* if */
+
+  copy_source_position(pos_curr_token, decl_start_pos);
+  /* First scan the declaration specifiers.  In C++ the specifiers may be
+     omitted, e.g., for a function member with implicit type. */
+  add_stop_token(tok_colon);
+  (void)decl_specifiers(dsi_flags, &dso_flags, &member_storage_class,
+                        &member_type, &qualifiers, &decl_modifiers);
+  if ((dso_flags & DSO_DEFINES_SOMETHING) && !is_error_type(member_type)) {
+#if CHECKING
+    if (C_dialect == C_dialect_cplusplus) {
+      /* Should be a nested class, struct, union, or enum definition.  Be
+         sure the parent class was marked correctly. */
+      a_type_ptr    tp = skip_typerefs(member_type);
+      a_symbol_ptr  sym = (a_symbol_ptr)(tp->source_corresp.assoc_info);
+      check_assertion_str2(sym->is_class_member &&
+                           sym->parent.class_type == class_type,
+                           "scan_class_definition:",
+                           "bad parent type on nested type");
+    }  /* if */
+#endif /* CHECKING */
+    if (status_ptr->access != (an_access_specifier)as_public) {
+      /* Strictly speaking, any nonpublic member prevents a class from being
+         an aggregate -- keep track. */
+      status_ptr->any_nonpublic_members = TRUE;
+    }  /* if */
+  } /* if */
+  no_decl_specifiers = (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0;
+  type_explicitly_specified =
+                         dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
+  friend_specified = dso_flags & DSO_FRIEND;
+  if (friend_specified) status_ptr->any_friend_decls = TRUE;
+  virtual_specified = (dso_flags & DSO_VIRTUAL) != 0;
+  inline_specified = (dso_flags & DSO_INLINE) != 0;
+  explicit_specified = (dso_flags & DSO_EXPLICIT) != 0;
+  is_constructor = dso_flags & DSO_CONSTRUCTOR;
+  is_destructor = dso_flags & DSO_DESTRUCTOR;
+  mutable_specified = (dso_flags & DSO_MUTABLE) != 0;
+  remove_stop_token(tok_colon);
+  if (dso_flags & DSO_DANGLING_TYPE_SPECIFIER) {
+    /* A malformed declaration was detected by decl_specifiers.  Issue
+       errors indicating that an identifier (= a declarator) is missing,
+       along with a semicolon.  Then branch to the bottom of the loop. */
+    set_err_pos_to_curr_token();
+    if (!(dso_flags & DSO_DECLARES_SOMETHING)) error(ec_exp_identifier);
+    error(ec_exp_semicolon);
+    discard_curr_construct_pragmas();
+    *skip_semicolon_check = TRUE;
+    goto next_declaration;
+  }  /* if */
+  if (explicit_specified && !is_constructor) {
+    pos_error(ec_explicit_not_allowed, &decl_start_pos);
+    explicit_specified = FALSE;
+  }  /* if */
+  if (curr_token == tok_semicolon) {
+    /* There's no declarator following the declaration specifier.  This may
+       be okay, but sometimes a diagnostic should be issued. Unless this is
+       an anonymous union declaration, skip to the next declaration. */
+    check_missing_declarator_in_member_declaration(
+                         class_type, member_type, member_storage_class,
+                         dso_flags, &decl_start_pos, &is_anonymous_union,
+                         &is_nonstd_anonymous_union);
+    if (is_anonymous_union) {
+      /* decl_nonstatic_data_member needs to be called. */
+    } else {
+      cannot_bind_to_curr_construct();
+      /* Bypass the semicolon and skip to the next declaration. */
+      (void)get_token();
+      *skip_semicolon_check = TRUE;
+      goto next_declaration;
+    }  /* if */
+  }  /* if */
+  /* A declarator list should be present.  Scan it. */
+  do {
+    a_symbol_locator   locator;
+    a_type_ptr         local_type;
+    a_boolean          unnamed_field = FALSE;
+    a_func_info_block  func_info;
+    a_source_sequence_entry_ptr
+                       declarator_ssep = NULL;
+    a_boolean          cfront_member_function_typedef = FALSE;
+    a_boolean          first_declarator_diagnostics = first_declarator;
+
+    add_stop_token(tok_comma);
+    add_stop_token(tok_colon);
+    unnamed_field = FALSE;
+    clear_func_info(&func_info);
+    if (!first_declarator &&
+        (dso_flags & DSO_CONSTRUCTOR || dso_flags & DSO_DESTRUCTOR)) {
+      /* This section of code is entered when there is a comma-list of
+         constructors and/or destructors. */
+      is_destructor = is_constructor = FALSE;
+      if (curr_token == tok_compl ||
+          (is_generalized_identifier_start(GID_NO_OPTIONS) &&
+           locator_for_curr_id.is_destructor_name)) {
+        is_destructor = TRUE;
+        member_type = unknown_type();
+      } else if (curr_token == tok_identifier &&
+                 is_constructor_decl(class_type)) {
+        is_constructor = TRUE;
+        member_type = unknown_type();
+      } else {
+        first_declarator_diagnostics = TRUE;
+        decl_start_pos = pos_curr_token;
+        member_type = integer_type((an_integer_kind)ik_int);
+      }  /* if */
+    }  /* if */
+    /* The declarator can be omitted for an unnamed bit-field. */
+    set_err_pos_to_curr_token();
+    if (curr_token == tok_colon && !no_decl_specifiers) {
+      /* Unnamed bit-field. */
+      unnamed_field = TRUE;
+      local_type = member_type;
+      set_to_error_locator(locator);
+    } else if (is_anonymous_union) {
+      /* There is no declarator. */
+      local_type = member_type;
+      set_to_error_locator(locator);
+    } else if (no_decl_specifiers && !is_constructor &&
+               !is_destructor && !is_declarator_start()) {
+      remove_stop_token(tok_comma);
+      remove_stop_token(tok_colon);
+      syntax_error(ec_exp_declaration);
+      if (curr_token == tok_semicolon) {
+        /* Advance past the semicolon. */
+        (void)get_token();
+      }  /* if */
+      discard_curr_construct_pragmas();
+      *skip_semicolon_check = TRUE;
+      goto next_declaration;
+    } else {
+      /* Named member -- we need to call declarator. */
+      a_decl_flag_set    		declarator_input_flags;
+      a_decl_flag_set    		declarator_output_flags;
+
+      if (!C_mode()) {
+        /* C++ mode */
+        if (curr_routine_fixup != NULL) {
+          /* We must be in a declarator list and this must be at least the
+             second item in the list. */
+          /* This should not be a cached function body. */
+          check_assertion(curr_routine_fixup->
+                          function_body_token_cache.first_token == NULL);
+          if (curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
+             /* The previous one must have been a routine declaration with
+                default arguments, so we have to save the routine fixup entry
+                onto the fixup list. */
+            add_to_routine_fixup_list(curr_routine_fixup);
+            /* Make a new one fixup entry for the current declarator. */
+            curr_routine_fixup = alloc_routine_fixup();
+          } else {
+            /* The other one can be reused. */
+          }  /* if */
+        } else {
+          /* Normal case.  Allocate a new routine fixup entry. */
+          curr_routine_fixup = alloc_routine_fixup();
+        }  /* if */
+        add_stop_token(tok_lbrace);
+      }  /* if */
+      /* Set the various flags for declarator processing. */
+      declarator_input_flags = DI_REAL_DECLARATOR_ALLOWED;
+      if (!type_explicitly_specified && !friend_specified) {
+        declarator_input_flags |= DI_DESTRUCTOR_SPECIFIERS;
+      }  /* if */
+      if (is_constructor) declarator_input_flags |= DI_IS_CONSTRUCTOR;
+      if (member_storage_class == (a_storage_class)sc_typedef) {
+        declarator_input_flags |= DI_IS_TYPEDEF_DECLARATION;
+      } else if (member_storage_class != (a_storage_class)sc_static) {
+        /* The storage class "static" was not specified and it is not a
+           typedef declaration.   Therefore, if this turns out to be a member
+           function declaration, it will be a nonstatic member function.
+           This is important because when the routine type is created,
+           function_declarator needs to know whether to add an implicit
+           this-param pointer to the type. */
+        declarator_input_flags |= DI_NONSTATIC_MEMBER;
+      }  /* if */
+      if (friend_specified) {
+        declarator_input_flags |= DI_IS_FRIEND_DECL |
+                                  DI_QUALIFIED_NAME_ALLOWED;
+      }  /* if */
+      declarator_input_flags |= DI_OPERATOR_NAME_ALLOWED;
+      /* Pass the class's type pointer to declarator if this might be a
+         nonstatic member function, in which case its presence will cause an
+         implicit "this" parameter type to be created. (Static member
+         functions do not have an implicit "this" pointer. The class pointer
+         will be ignored for data members.) */
+      declarator(declarator_input_flags, &declarator_output_flags, member_type,
+                 friend_specified ? (a_type_ptr)NULL : class_type,
+                 &locator, &local_type, &declarator_ssep, &func_info);
+      if (!C_mode()) {
+        remove_stop_token(tok_lbrace);
+        /* Check whether this is a non-standard typedef declaration. */
+        cfront_member_function_typedef =
+            declarator_output_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
+        check_complete_member_type(&local_type, &locator,
+                                   member_storage_class, &decl_start_pos,
+                                   &return_type_def_err, dso_flags,
+                                   status_ptr->is_nonreal_instantiation);
+      }  /* if */
+    }  /* if */
+    remove_stop_token(tok_colon);
+    if (!C_mode() && is_function_type(local_type) &&
+        member_storage_class != (a_storage_class)sc_typedef) {
+      /* Member or friend function. */
+      a_boolean                suppress_pure_specifier_error = FALSE;
+      a_boolean                function_def_present;
+      a_special_function_kind  spec_kind = (a_special_function_kind)sfk_none;
+
+      if (mutable_specified) {
+        /* "mutable" is only allowed on nonstatic data member decls. */
+        pos_error(ec_mutable_not_allowed, &decl_start_pos);
+      }  /* if */
+      function_def_present = ((curr_token == tok_lbrace) ||
+                              (is_constructor && (curr_token == tok_colon)));
+      if (function_def_present && !first_declarator) {
+        pos_error(ec_exp_semicolon, &pos_curr_token);
+      }  /* if */
+      func_info.is_definition = function_def_present;
+      func_info.is_inline = inline_specified || function_def_present;
+      if (!type_explicitly_specified) {
+        /* No type specifier. */
+        if (is_constructor || is_destructor || locator.is_conversion_name) {
+          /* Type specifier is not expected (nor permitted) on constructors,
+             destructors, and conversion functions. */
+        } else {
+          /* Type specifier is missing.  The type defaults to int, but issue
+             a diagnostic. */
+          if (first_declarator_diagnostics) {
+            if (no_decl_specifiers && !function_def_present &&
+                !any_cfront_mode()) {
+              /* WP 9.4 [class.mem] says decl-specifiers may only be omitted
+                 in declarations when the function is a constructor,
+                 destructor, and conversion function: issue a diagnostic. */
+              pos_diagnostic(es_discretionary_error,
+                             ec_missing_decl_specifiers, &decl_start_pos);
+            } else {
+              /* If no error is put out, at least issue a remark on the
+                 implicit return type "int". */
+              pos_remark(ec_missing_type_specifier, &decl_start_pos);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (local_type == member_type) {
+        /* When scanning the declarator does not change the type, we know
+           this member is a function based on the specifier type alone.
+           This is only possible with a typedef name that represents a
+           function type. */
+        func_info.function_type_from_typedef = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        func_info.declarator_ssep = declarator_ssep;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        /* Such typedef function types are shared and so are unsuited to be
+           the type of a defined function. */
+        check_typedef_function_type(&local_type, &locator.source_position,
+                                    function_def_present, class_type,
+                                    (!friend_specified &&
+                                     member_storage_class !=
+                                          (a_storage_class)sc_static));
+      }  /* if */
+      if (virtual_specified &&
+          is_invalid_use_of_virtual(&locator, class_type, friend_specified,
+                                    is_constructor, member_storage_class,
+                                    &decl_start_pos)) {
+        virtual_specified = FALSE;
+        suppress_pure_specifier_error = TRUE;
+      }  /* if */
+      if (friend_specified) {
+        /* Process a friend function declaration. */
+        if (member_storage_class != (a_storage_class)sc_unspecified) {
+          /* A storage class declaration along with "friend" is not
+             allowed. */
+          pos_error(ec_bad_friend_decl, &decl_start_pos);
+          member_storage_class = (a_storage_class)sc_unspecified;
+        }  /* if */
+        rout_sym = decl_friend_function(&locator, class_type, local_type,
+                                        &func_info, decl_modifiers);
+      } else {
+        /* Must be a member function declaration. */
+        if ((is_constructor || is_destructor) &&
+            member_storage_class == (a_storage_class)sc_static) {
+          /* Constructors and destructors may not be declared "static"
+             (ARM 12.1, 12.4). */
+          pos_error(ec_static_not_allowed, &decl_start_pos);
+          member_storage_class = (a_storage_class)sc_unspecified;
+        }  /* if */
+        if (is_constructor || virtual_specified) {
+          /* A class with a user-defined constructor or a virtual function
+             cannot be an "aggregate" (8.5.1). */
+          status_ptr->class_aggregate_ruled_out = TRUE;
+        } else if (status_ptr->access != (an_access_specifier)as_public) {
+          /* Strictly speaking, any nonpublic member prevents a class from
+             being an aggregate -- keep track. */
+          status_ptr->any_nonpublic_members = TRUE;
+        }  /* if */
+        if (is_destructor) {
+          spec_kind = (a_special_function_kind)sfk_destructor;
+        } else if (is_constructor) {
+          spec_kind = (a_special_function_kind)sfk_constructor;
+        }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* If decl-modifiers were declared for the class and/or for the
+           member, check for consistency and use the union of the two. */
+        decl_modifiers = merge_decl_modifiers(class_type, decl_modifiers,
+                                              function_def_present,
+                                              &decl_start_pos);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Create a symbol for the member function. */
+        rout_sym = decl_member_function(&locator, class_type, local_type,
+                                        &func_info, status_ptr->access,
+                                        virtual_specified,
+                                        /*compiler_generated=*/FALSE,
+                                        spec_kind,
+                                        &status_ptr->override_registry,
+                                        decl_modifiers);
+        if (status_ptr->is_nonreal_instantiation) {
+          /* During the prototype instantiation, save the token sequence
+             number associated with this declaration so that it can be used
+             for matching purposes during real instantiations. */
+          a_template_symbol_supplement_ptr  tssp;
+          tssp = rout_sym->variant.routine.instance_ptr->template_info;
+          check_assertion(tssp != NULL);
+          if (tssp->token_sequence_number == NO_TOKEN_SEQUENCE_NUMBER) {
+            /* Only set this if not already set (which could occur in error
+               cases). */
+            tssp->token_sequence_number = curr_token_sequence_number;
+          }  /* if */
+        } else if (status_ptr->corresp_prototype_tag_sym != NULL) {
+          /* The class must be the instantiation of a class template (or a
+             class nested within such an instantiation). Bind the current
+             member function symbol to the function template symbol
+             established during prototype instantiation. */
+          a_type_ptr  tp = status_ptr->corresp_prototype_tag_sym->
+                                   variant.class_struct_union.type;
+          if (tp->kind == (a_type_kind)tk_union &&
+              tp->variant.class_struct_union.
+                    extra_info->anonymous_union_kind !=
+                                   (an_anonymous_union_kind)auk_none) {
+            /* A member function of an anonymous union is an error (to be
+               issued later, in check_anonymous_union_symbols).
+               find_member_function_template should not be called, since it
+               can't handle this sort of thing. */
+          } else if (!is_error_locator(locator)) {
+            find_member_function_template(rout_sym,
+                                          status_ptr->
+                                              corresp_prototype_tag_sym);
+          }  /* if */
+        }  /* if */
+        if (explicit_specified) {
+          check_assertion(is_constructor);
+          rout_sym->variant.routine.ptr->is_explicit_constructor = TRUE;
+        }  /* if */
+      }  /* if */
+      if (!function_def_present) {
+        if (func_info.param_id_list != NULL) {
+          /* After updating xref information on each symbol, free the list
+             of parameter identifiers -- they're not needed if there's no
+             definition. */
+          a_param_id_ptr  pid = func_info.param_id_list;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+          a_src_seq_sublist_ptr  sublist = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+          for (; pid != NULL; pid = pid->next) {
+            if (pid->symbol != NULL) {
+              mark_declared(pid->symbol, &pid->symbol->decl_position);
+            }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+            if (pid->source_sequence_entry != NULL) {
+              check_assertion(ss_entry_kind(pid->source_sequence_entry) ==
+                                                (an_il_entry_kind)iek_none);
+              remove_from_source_sequence_list(pid->source_sequence_entry,
+                                               &sublist);
+              pid->source_sequence_entry = NULL;
+            }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+          }  /* for */
+        }  /* if */
+      }  /* if */
+      if (curr_routine_fixup != NULL) {
+        /* Update the symbol pointer in the fixup entry -- it's needed when
+           the default args are scanned (once the entire class has been
+           scanned). */
+        curr_routine_fixup->symbol = rout_sym;
+        curr_routine_fixup->func_info = func_info;
+      } else {
+        done_with_func_info(func_info);
+      }  /* if */
+      if (function_def_present) {
+        a_token_sequence_number	first_token_number;
+        a_token_sequence_number	last_token_number;
+        if (!friend_specified) {
+          /* The inline flag is set for friend functions in
+             decl_friend_function, which also handles cases in which it
+             should be left unset despite the presence of a function body. */
+          check_assertion(rout_sym->variant.routine.ptr->is_inline);
+        }  /* if */
+        remove_stop_token(tok_comma);
+        /* Cache the tokens comprising the function definition so that they
+           can be rescanned once the entire class definition has been
+           processed. */
+        if (prescan_function_definition(&first_token_number,
+                                        &last_token_number)) {
+          /* Advance past the terminating right brace. */
+          (void)get_token();
+        }  /* if */
+        if (curr_token == tok_semicolon) {
+          /* Advance past the optional semicolon. */
+          (void)get_token();
+        }  /* if */
+        if (!friend_specified && status_ptr->is_nonreal_instantiation) {
+          /* A member function of a nonreal class serves as a template, and
+             since this is the definition the template_info associated with
+             this member function must be updated, based on the template_info
+             of the prototype instantiation.  Note that the current class may
+             be nested within the prototype instantiation. */
+          a_template_symbol_supplement_ptr  tssp, class_tssp;
+
+          /* A member function of a template class whose body is supplied in
+             the class shares the template declaration information with the
+             enclosing class. */
+          tssp = rout_sym->variant.routine.instance_ptr->template_info;
+          class_tssp = symbol_supplement_for_class(class_type)->template_info;
+          set_template_cache_info(&tssp->cache, (a_token_cache_ptr)NULL,
+                                  class_tssp->cache.decl_info);
+          tssp->cache_segment = alloc_template_cache_segment(rout_sym, tssp);
+          tssp->cache_segment->first_token_number = first_token_number;
+          tssp->cache_segment->last_token_number = last_token_number;
+        }  /* if */
+        /* A comma-list of function definitions is not allowed. */
+        *skip_semicolon_check = TRUE;
+        goto next_declaration;
+      } else {
+        /* Not a function definition. */
+        if (curr_token == tok_assign) {
+          /* Look for a pure specifier ("= 0"), which may appear on virtual
+             functions. */
+          scan_pure_specifier(rout_sym, class_type,
+                              suppress_pure_specifier_error);
+        } else if (!friend_specified && status_ptr->is_local_class) {
+          /* A member function declared in a local class definition (which is
+             the current case) must be defined within the class definition
+             if it is used.  If this is a virtual function, issue the error
+             here; otherwise, issue the error when it is referenced. */
+          if (rout_sym->variant.routine.ptr->is_virtual) {
+            sym_error(ec_local_class_function_def_missing, rout_sym);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    } else if (friend_specified || virtual_specified || inline_specified) {
+      if (friend_specified) {
+        pos_error(ec_bad_friend_decl, &decl_start_pos);
+      }  /* if */            
+      if (virtual_specified) {
+        pos_error(ec_virtual_not_allowed, &decl_start_pos);
+      }  /* if */            
+      if (inline_specified) {
+        pos_error(ec_inline_and_nonfunction, &decl_start_pos);
+      }  /* if */            
+      remove_stop_token(tok_comma);
+      discard_curr_construct_pragmas();
+      break;
+    } else if (is_destructor) {
+      /* Error has already been issued if it wasn't processed as a
+         function. */
+      discard_curr_construct_pragmas();
+    } else if (no_decl_specifiers) {
+      /* A declaration in which the declaration specifiers are entirely
+         omitted can only be a function declaration (ARM 9.2, p. 171). */
+      pos_error(ec_missing_decl_specifiers, &decl_start_pos);
+      remove_stop_token(tok_comma);
+      discard_curr_construct_pragmas();
+      break;
+    } else if (member_storage_class == (a_storage_class)sc_typedef) {
+      a_symbol_ptr        typedef_sym_ptr;
+
+      check_assertion(C_dialect == C_dialect_cplusplus);
+      if (cfront_member_function_typedef) {
+        /* This looked like a cfront-style member function typedef.  Be sure
+           the type was a function type. */
+        if (is_function_type(local_type)) {
+          /* Issue a warning on the extension. */
+          pos_warning(ec_ptr_to_member_typedef, &locator.source_position);
+        } else {
+          /* No function type, so what looked like a qualified name really
+             was -- but they aren't allowed. */
+          pos_error(ec_qualified_name_not_allowed, &locator.source_position);
+          set_to_error_locator(locator);
+        }  /* if */
+      }  /* if */
+      if (!type_explicitly_specified) {
+        warning(ec_missing_type_specifier);
+      }  /* if */
+      /* Typedef declaration. */
+      decl_typedef(&locator, local_type, class_type, &typedef_sym_ptr,
+                   declarator_ssep);
+      /* Note: access will have been set in decl_typedef. */
+      if (status_ptr->access != (an_access_specifier)as_public) {
+        /* Strictly speaking, any nonpublic member prevents a class from being
+           an aggregate -- keep track. */
+        status_ptr->any_nonpublic_members = TRUE;
+      }  /* if */
+      if (curr_routine_fixup != NULL &&
+          curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
+        /* Update the symbol pointer in the fixup entry -- it's needed when
+           the default args are scanned (once the entire class has been
+           scanned). */
+        curr_routine_fixup->symbol = typedef_sym_ptr;
+      }  /* if */
+    } else if (mutable_specified &&
+               is_const_qualified_type(local_type)) {
+      /* "mutable" and top-level "const" are not allowed together. */
+      pos_error(ec_mutable_not_allowed, &decl_start_pos);
+    } else if (curr_token == tok_assign && !C_mode() &&
+               ((is_scalar_type(local_type) &&
+                 (get_type_qualifiers(local_type) == TQ_CONST)) ||
+                is_or_contains_template_param(local_type)) &&
+               member_storage_class == (a_storage_class)sc_unspecified) {
+      /* Provide support for the nonstandard declaration of a member constant
+         of scalar type -- e.g., "const int I = 2;". */
+      decl_nonstd_member_constant(&locator, class_type, local_type,
+                                  status_ptr->access, declarator_ssep);
+      if (status_ptr->access != (an_access_specifier)as_public) {
+        /* Strictly speaking, any nonpublic member prevents a class from
+           being an aggregate -- keep track. */
+        status_ptr->any_nonpublic_members = TRUE;
+      }  /* if */
+    } else {
+      if (C_dialect == C_dialect_cplusplus) {
+        if (!type_explicitly_specified && first_declarator_diagnostics) {
+          warning(ec_missing_type_specifier);
+        }  /* if */
+      }  /* if */
+      if (member_storage_class == (a_storage_class)sc_static) {
+        /* Static data member. */
+        if (is_void_type(local_type)) {
+          error(ec_incomplete_type_not_allowed);
+          local_type = error_type();
+        }  /* if */
+        if (status_ptr->is_local_class) {
+          /* Static data members are not allowed in local classes. */
+          pos_error(ec_static_not_allowed, &decl_start_pos);
+          /* Set the type for this invalid static member to error type.
+             This will assure "proper" (or unobtrusive) behavior later, if a
+             definition is encountered.  It also eliminates semi-spurious
+             error messages if there are references to it. */
+          local_type = error_type();
+        } else if (is_union_type(class_type)) {
+          /* Unions are not allowed to have static data members. */
+          pos_error(ec_static_not_allowed, &decl_start_pos);
+        }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* If decl-modifiers were declared for the class and/or for the
+           member, check for consistency and use the union of the two. */
+        decl_modifiers = merge_decl_modifiers(class_type, decl_modifiers,
+                                              /*is_definition=*/FALSE,
+                                              &decl_start_pos);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        decl_static_data_member(&locator, class_type, local_type,
+                                status_ptr->access,
+                                status_ptr->is_nonreal_instantiation,
+                                status_ptr->corresp_prototype_tag_sym,
+                                declarator_ssep, decl_modifiers);
+        if (status_ptr->access != (an_access_specifier)as_public) {
+          /* Strictly speaking, any nonpublic member prevents a class from
+             being an aggregate -- keep track. */
+          status_ptr->any_nonpublic_members = TRUE;
+        }  /* if */
+      } else {
+        /* Non-static data member (= field). */
+        /* The type specified must be complete. */
+        complete_type_is_needed(local_type);
+        if (C_mode() && is_function_type(local_type) &&
+          member_storage_class != (a_storage_class)sc_typedef) {
+          pos_error(ec_function_type_not_allowed, &locator.source_position);
+          local_type = error_type();
+        } else {
+          check_field_type(&locator, &local_type, status_ptr->is_first_field,
+                           unnamed_field, status_ptr->access,
+                           status_ptr->class_aggregate_ruled_out,
+                           &decl_start_pos);
+        }  /* if */
+        /* Set the flag to record that at least one named field was
+           encountered. */
+        if (!unnamed_field) status_ptr->any_named_fields = TRUE;
+        decl_nonstatic_data_member(&locator, class_type, &local_type,
+                                   status_ptr->access, unnamed_field,
+                                   is_anonymous_union,
+                                   is_nonstd_anonymous_union,
+                                   mutable_specified, declarator_ssep,
+                                   &status_ptr->end_of_field_list);
+        if (!status_ptr->class_aggregate_ruled_out) {
+          if (status_ptr->access != (an_access_specifier)as_public) {
+            if (unnamed_field) {
+              /* Unnamed bit fields are not subject to initialization (and
+                 are not even members, according to WP 9.6) so a nonpublic
+                 one (whatever that means) has no effect on aggregate
+                 status. */
+            } else {
+              /* No class with private or protected nonstatic data members
+                 is an aggregate (WP 8.5.1). */
+              status_ptr->class_aggregate_ruled_out = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        if (!status_ptr->any_const_or_ref_fields && !unnamed_field &&
+            !is_anonymous_union && (is_reference_type(local_type) ||
+                                    is_const_qualified_type(local_type))) {
+          status_ptr->any_const_or_ref_fields = TRUE;
+        }  /* if */
+        status_ptr->is_first_field = FALSE;
+      }  /* if */
+      if (C_dialect == C_dialect_cplusplus) {
+        /* Issue an error if there appears to be an attempt to initialize a
+           data member within the class definition. */
+        if (curr_token == tok_assign) {
+          set_err_pos_to_curr_token();
+          /* Issue a syntax error to flush to the comma or semicolon. */
+          syntax_error(ec_bad_data_member_initialization);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    remove_stop_token(tok_comma);
+    first_declarator = FALSE;
+    /* Loop for additional declarators. */
+  } while (loop_token(tok_comma));
+next_declaration:;
+  db_exit();
+}  /* class_member_declaration */
+
 
 a_boolean scan_class_definition(a_type_ptr       class_type,
                                 a_scope_depth    effective_decl_level,
@@ -7843,29 +8574,20 @@ completed (C++ only).
 */
 {
   a_boolean                        err = FALSE;
-  an_access_specifier              access;
-  a_symbol_ptr                     tag_sym, corresp_prototype_tag_sym = NULL;
-  a_boolean                        first_declarator;
-  a_decl_flag_set                  dsi_flags;
-  a_boolean                        is_first_field, any_named_fields;
-  a_source_position                decl_start_pos;
+  a_symbol_ptr                     tag_sym;
   a_scope_ptr                      scope_ptr;
-  a_field_ptr                      end_of_field_list = NULL;
-  a_symbol_ptr                     rout_sym;
   a_class_symbol_supplement_ptr    cssp;
-  a_boolean                        class_aggregate_ruled_out = FALSE;
-  a_boolean                        any_nonpublic_members = FALSE;
-  a_boolean                        any_friend_decls = FALSE;
   a_routine_fixup_ptr              saved_routine_fixup;
-  a_boolean                        any_const_or_ref_fields = FALSE;
   a_boolean                        is_template_instantiation;
-  a_boolean                        is_nonreal_instantiation = FALSE;
-  an_override_registry_entry_ptr   override_registry = NULL;
   a_stop_token_array               save_stop_token_array;
   a_template_symbol_supplement_ptr class_tssp;
   a_token_sequence_number	   token_number_of_closing_brace;
+  a_class_def_status               status;
+  a_boolean                        skip_semicolon_check;
 
   db_enter(3, "scan_class_definition");
+  initialize_class_def_status(&status);
+  status.is_local_class = is_local_class;
   /* Set a flag to indicate whether we scanning a class template declaration
      for the sake of producing a "prototype instantiation" of the template.
      Note that this is only set for the outermost class, not for classes
@@ -7898,7 +8620,7 @@ completed (C++ only).
          "nonreal" (i.e., based on template arguments that include the dummy
          types and constants of template parameters rather than real types and
          constants). Note that for nested classes the flag is set later. */
-      is_nonreal_instantiation = cssp->is_nonreal_class = TRUE;
+      status.is_nonreal_instantiation = cssp->is_nonreal_class = TRUE;
       if (tag_sym->is_class_member &&
           (curr_token == tok_lbrace || curr_token == tok_colon)) {
         /* This is a definition of a nested class.  See if the enclosing class
@@ -7909,15 +8631,16 @@ completed (C++ only).
     }  /* if */
     /* Find the prototype instantiation symbol associated with this
        real instantiation. */
-    corresp_prototype_tag_sym = corresp_prototype_for_class_symbol(tag_sym);
+    status.corresp_prototype_tag_sym =
+                            corresp_prototype_for_class_symbol(tag_sym);
 #if USER_CONTROL_OF_STRUCT_PACKING
-    if (corresp_prototype_tag_sym != NULL) {
+    if (status.corresp_prototype_tag_sym != NULL) {
       /* The class is an instantiation of a class template (or a class nested
          within such an instantiation).  Overwrite the alignment entered for
          this class (which was based on the instantiation context) with the
          alignment in force at the point of the template definition, as
          recorded in the type of the prototype instantiation. */
-      a_type_ptr  tp = corresp_prototype_tag_sym->
+      a_type_ptr  tp = status.corresp_prototype_tag_sym->
                                          variant.class_struct_union.type;
       class_type->variant.class_struct_union.max_member_alignment =
                          tp->variant.class_struct_union.max_member_alignment;
@@ -7936,7 +8659,7 @@ completed (C++ only).
       scan_base_specifier_list(class_type);
       remove_stop_token(tok_lbrace);
       /* A class with base classes is not an "aggregate" (ARM 8.4.1). */
-      class_aggregate_ruled_out = TRUE;
+      status.class_aggregate_ruled_out = TRUE;
       /* If there is a base specifier list and this is a class or struct
          declaration, it has to be definition, which means the next token
          should be a brace. */
@@ -7974,47 +8697,21 @@ completed (C++ only).
       saved_routine_fixup = curr_routine_fixup;
       curr_routine_fixup = NULL;
     }  /* if */
-    any_named_fields = FALSE;
     if (curr_token == tok_rbrace) {
       /* A member list is optional in C++.  In C mode, it's an error, but
          the diagnostic is issued later, when any_named_fields is checked. */
     } else {
       if (class_type->kind == (a_type_kind)tk_class) {
         /* Members of a C++ class have private access by default. */
-        access = (an_access_specifier)as_private;
+        status.access = (an_access_specifier)as_private;
       } else {
         /* Members of a C++ struct or union have public access by default,
            which is also the implicit access control for C struct and union
            fields. */
-        access = (an_access_specifier)as_public;
+        status.access = (an_access_specifier)as_public;
       }  /* if */
-      scope_stack[decl_scope_level].current_access = access;
-      /* Set the flags to control the calls to decl_specifiers. */
-      dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
-                  DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
-      if (C_dialect == C_dialect_cplusplus) {
-        dsi_flags |= (DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
-                      DSI_IS_MEMBER_DECLARATION | DSI_INLINE_ALLOWED |
-                      DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
-                      DSI_VACUOUS_TAG_DECL_ALLOWED);
-      }  /* if */
-      is_first_field = TRUE;
+      scope_stack[decl_scope_level].current_access = status.access;
       do {
-        a_decl_flag_set      dso_flags;
-        a_type_qualifier_set qualifiers;
-        a_storage_class      member_storage_class;
-        a_decl_modifier      decl_modifiers;
-        a_type_ptr           member_type;
-        a_boolean            dangling_type_specifier;
-        a_boolean            local_defines_something, local_declares_something;
-        a_boolean            local_no_decl_specifiers;
-        a_boolean            friend_specified, virtual_specified;
-        a_boolean            type_explicitly_specified, inline_specified;
-        a_boolean            is_destructor, is_constructor;
-        a_boolean            is_anonymous_union, is_nonstd_anonymous_union;
-        a_boolean            mutable_specified, explicit_specified;
-        a_boolean            return_type_def_err;
-
         add_stop_token(tok_semicolon);
         /* Move cached #pragma declarations (if any) to the current scope
            stack entry so they can be examined and acted upon in subsequent
@@ -8024,7 +8721,7 @@ completed (C++ only).
           /* An access specification may appear anywhere amid the member
              declarations.  Check for it each time through the loop, and adjust
              the value of access accordingly. */
-          if (scan_access_specification(&access)) {
+          if (scan_access_specification(&status.access)) {
             /* An access specifier was found.  This next check catches cases
                like "...public: }". */
             if (curr_token == tok_rbrace) {
@@ -8040,7 +8737,7 @@ completed (C++ only).
         /* Scan a member declaration. */
         if (curr_token == tok_semicolon && 
             (C_dialect == C_dialect_cplusplus ||
-             !(is_first_field && next_token() == tok_rbrace))) {
+             !(status.is_first_field && next_token() == tok_rbrace))) {
           /* No declaration -- just a semicolon.  Issue a warning (or error in
              strict ANSI mode).  Note: in C mode we bypass the "extra ':'"
              diagnostic when there are no fields in the struct -- i.e.,
@@ -8074,7 +8771,7 @@ completed (C++ only).
           }  /* if */
           /* Check for a using declaration. */
           if (curr_token == tok_using) {
-            member_using_declaration(class_type, access);
+            member_using_declaration(class_type, status.access);
             goto next_declaration;
           }  /* if */
           /* Check for an access adjustment declaration. */
@@ -8086,7 +8783,7 @@ completed (C++ only).
             /* This looks syntactically like an access adjustment declaration.
                Be sure the semantics are correct.  Its semantics are the same
                as a using-declaration. */
-            member_using_declaration(class_type, access);
+            member_using_declaration(class_type, status.access);
             goto next_declaration;
           }  /* if */
           /* Check for template declaration. */
@@ -8096,672 +8793,29 @@ completed (C++ only).
 	       are not permitted in a class context.  The error for an
 	       explicit instantiation in a class will be issued by
 	       template_directive_or_declaration. */
-            template_directive_or_declaration(
-              &local_defines_something, /*no_advance_past_final_token=*/FALSE);
+            a_boolean  defines_something;
+
+            template_directive_or_declaration(&defines_something,
+                                      /*no_advance_past_final_token=*/FALSE);
             goto next_declaration;
           }  /* if */
         }  /* if */
-        copy_source_position(pos_curr_token, decl_start_pos);
-        is_anonymous_union = FALSE;
-        is_nonstd_anonymous_union = FALSE;
-        /* First scan the declaration specifiers.  In C++ the specifiers may
-           be omitted, e.g., for a function member with implicit type. */
-        add_stop_token(tok_colon);
-        (void)decl_specifiers(dsi_flags, &dso_flags, &member_storage_class,
-                              &member_type, &qualifiers, &decl_modifiers);
-        dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
-        local_defines_something = dso_flags & DSO_DEFINES_SOMETHING;
-        local_declares_something = dso_flags & DSO_DECLARES_SOMETHING;
-        if (local_defines_something && !is_error_type(member_type)) {
-#if CHECKING
-          if (C_dialect == C_dialect_cplusplus) {
-            /* Should be a nested class, struct, union, or enum definition.
-               Be sure the parent class was marked correctly. */
-            a_type_ptr    tp = skip_typerefs(member_type);
-            a_symbol_ptr  sym = (a_symbol_ptr)(tp->source_corresp.assoc_info);
 
-            check_assertion_str2(sym->is_class_member &&
-                                 sym->parent.class_type == class_type,
-                                 "scan_class_definition:",
-                                 "bad parent type on nested type");
-          }  /* if */
-#endif /* CHECKING */
-          if (access != (an_access_specifier)as_public) {
-            /* Strictly speaking, any nonpublic member prevents a class from
-               being an aggregate -- keep track. */
-            any_nonpublic_members = TRUE;
-          }  /* if */
-        } /* if */
-        local_no_decl_specifiers = (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0;
-        type_explicitly_specified =
-                               dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
-        friend_specified = dso_flags & DSO_FRIEND;
-        if (friend_specified) any_friend_decls = TRUE;
-        virtual_specified = (dso_flags & DSO_VIRTUAL) != 0;
-        inline_specified = (dso_flags & DSO_INLINE) != 0;
-        explicit_specified = (dso_flags & DSO_EXPLICIT) != 0;
-        is_constructor = dso_flags & DSO_CONSTRUCTOR;
-        is_destructor = dso_flags & DSO_DESTRUCTOR;
-        mutable_specified = (dso_flags & DSO_MUTABLE) != 0;
-        remove_stop_token(tok_colon);
-        if (dangling_type_specifier) {
-          /* A malformed declaration was detected by decl_specifiers.  Issue
-             errors indicating that an identifier (= a declarator) is missing,
-             along with a semicolon.  Then branch to the bottom of the loop. */
-          set_err_pos_to_curr_token();
-          if (!local_declares_something) error(ec_exp_identifier);
-          error(ec_exp_semicolon);
-          discard_curr_construct_pragmas();
-          goto next_declaration;
-        }  /* if */
-        if (explicit_specified && !is_constructor) {
-          pos_error(ec_explicit_not_allowed, &decl_start_pos);
-          explicit_specified = FALSE;
-        }  /* if */
-        if (curr_token == tok_semicolon) {
-          /* There's no declarator following the declaration specifier.  This
-             is okay sometimes, but sometimes a diagnostic should be issued.
-             Unless this is an anonymous union declarations, skip to the next
-             declaration. */
-          check_missing_declarator_in_member_declaration(
-                               class_type, member_type, member_storage_class,
-                               dso_flags, &decl_start_pos, &is_anonymous_union,
-                               &is_nonstd_anonymous_union);
-          if (is_anonymous_union) {
-            /* Don't just skip on to the next declaration --
-               decl_nonstatic_data_member needs to be called. */
+        class_member_declaration(class_type, &status, &skip_semicolon_check);
+        if (!skip_semicolon_check) {
+          /* Check for and ignore the semicolon following the member
+             declaration.  It's optional after the last declaration (that's
+             an extension in ANSI mode). */
+          if (curr_token == tok_rbrace) {
+            /* The final semicolon is omitted. */
+            if (C_dialect != C_dialect_pcc) {
+              diagnostic(strict_ansi_mode ? strict_ansi_error_severity :
+                                            es_warning,
+                         ec_exp_semicolon);
+            }  /* if */ 
           } else {
-            cannot_bind_to_curr_construct();
-            /* Bypass the semicolon and skip to the next declaration. */
-            (void)get_token();
-            goto next_declaration;
+            (void)required_token(tok_semicolon, ec_exp_semicolon);
           }  /* if */
-        }  /* if */
-        /* A declarator list should be present.  Scan it. */
-        first_declarator = TRUE;
-        return_type_def_err = FALSE;
-        do {
-          a_symbol_locator   locator;
-          a_type_ptr         local_type;
-          a_boolean          unnamed_field = FALSE;
-          a_func_info_block  func_info;
-          a_source_sequence_entry_ptr
-                             declarator_ssep = NULL;
-          a_boolean          cfront_member_function_typedef = FALSE;
-          a_boolean          first_declarator_diagnostics = first_declarator;
-
-          add_stop_token(tok_comma);
-          add_stop_token(tok_colon);
-          unnamed_field = FALSE;
-          clear_func_info(&func_info);
-          if (!first_declarator &&
-              (dso_flags & DSO_CONSTRUCTOR || dso_flags & DSO_DESTRUCTOR)) {
-            /* This section of code is entered when there is a comma-list of
-               constructors and/or destructors. */
-            is_destructor = is_constructor = FALSE;
-            if (curr_token == tok_compl ||
-                (is_generalized_identifier_start(GID_NO_OPTIONS) &&
-                 locator_for_curr_id.is_destructor_name)) {
-              is_destructor = TRUE;
-              member_type = unknown_type();
-            } else if (curr_token == tok_identifier &&
-                       is_constructor_decl(class_type)) {
-              is_constructor = TRUE;
-              member_type = unknown_type();
-            } else {
-              first_declarator_diagnostics = TRUE;
-              decl_start_pos = pos_curr_token;
-              member_type = integer_type((an_integer_kind)ik_int);
-            }  /* if */
-          }  /* if */
-          /* The declarator can be omitted for an unnamed bit-field. */
-          set_err_pos_to_curr_token();
-          if (curr_token == tok_colon && !local_no_decl_specifiers) {
-            /* Unnamed bit-field. */
-            unnamed_field = TRUE;
-            local_type = member_type;
-            set_to_error_locator(locator);
-          } else if (is_anonymous_union) {
-            /* There is no declarator. */
-            local_type = member_type;
-            set_to_error_locator(locator);
-          } else if (local_no_decl_specifiers && !is_constructor &&
-                     !is_destructor && !is_declarator_start()) {
-            remove_stop_token(tok_comma);
-            remove_stop_token(tok_colon);
-            syntax_error(ec_exp_declaration);
-            if (curr_token == tok_semicolon) {
-              /* Advance past the semicolon. */
-              (void)get_token();
-            }  /* if */
-            discard_curr_construct_pragmas();
-            goto next_declaration;
-          } else {
-            /* Named member -- we need to call declarator. */
-            a_decl_flag_set    		declarator_input_flags;
-            a_decl_flag_set    		declarator_output_flags;
-
-            if (!C_mode()) {
-              /* C++ mode */
-              if (curr_routine_fixup != NULL) {
-                /* We must be in a declarator list and this must be at least
-                   the second item in the list. */
-                /* This should not be a cached function body. */
-                check_assertion(curr_routine_fixup->
-                                function_body_token_cache.first_token == NULL);
-                if (curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
-                   /* The previous one must have been a routine declaration
-                      with default arguments, so we have to save the routine
-                      fixup entry onto the fixup list. */
-                  add_to_routine_fixup_list(curr_routine_fixup);
-                  /* Make a new one fixup entry for the current declarator. */
-                  curr_routine_fixup = alloc_routine_fixup();
-                } else {
-                  /* The other one can be reused. */
-                }  /* if */
-              } else {
-                /* Normal case.  Allocate a new routine fixup entry. */
-                curr_routine_fixup = alloc_routine_fixup();
-              }  /* if */
-              add_stop_token(tok_lbrace);
-            }  /* if */
-            /* Set the various flags for declarator processing. */
-            declarator_input_flags = DI_REAL_DECLARATOR_ALLOWED;
-            if (!type_explicitly_specified && !friend_specified) {
-              declarator_input_flags |= DI_DESTRUCTOR_SPECIFIERS;
-            }  /* if */
-            if (is_constructor) declarator_input_flags |= DI_IS_CONSTRUCTOR;
-            if (member_storage_class == (a_storage_class)sc_typedef) {
-              declarator_input_flags |= DI_IS_TYPEDEF_DECLARATION;
-            } else if (member_storage_class != (a_storage_class)sc_static) {
-              /* The storage class "static" was not specified and it is not
-                 a typedef declaration.   Therefore, if this turns out to be
-                 a member function declaration, it will be a nonstatic member
-                 function.  This is important because when the routine type
-                 is created, function_declarator needs to know whether to
-                 add an implicit this-param pointer to the type. */
-              declarator_input_flags |= DI_NONSTATIC_MEMBER;
-            }  /* if */
-            if (friend_specified) {
-              declarator_input_flags |= DI_IS_FRIEND_DECL |
-                                        DI_QUALIFIED_NAME_ALLOWED;
-            }  /* if */
-            declarator_input_flags |= DI_OPERATOR_NAME_ALLOWED;
-            /* Pass the class's type pointer to declarator if this might
-               be a nonstatic member function, in which case its presence
-               will cause an implicit "this" parameter type to be created.
-               (Static member functions do not have an implicit "this" pointer.
-               The class pointer will be ignored for data members.) */
-            declarator(declarator_input_flags, &declarator_output_flags,
-                       member_type,
-                       friend_specified ? (a_type_ptr)NULL : class_type,
-                       &locator, &local_type, &declarator_ssep, &func_info);
-            if (!C_mode()) {
-              remove_stop_token(tok_lbrace);
-              /* Check whether this is a non-standard typedef declaration. */
-              cfront_member_function_typedef =
-                  declarator_output_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
-              check_complete_member_type(&local_type, &locator,
-                                         member_storage_class, &decl_start_pos,
-                                         &return_type_def_err,
-                                         local_defines_something,
-                                         is_nonreal_instantiation);
-            }  /* if */
-          }  /* if */
-          remove_stop_token(tok_colon);
-          if (!C_mode() && is_function_type(local_type) &&
-              member_storage_class != (a_storage_class)sc_typedef) {
-            /* Member or friend function. */
-            a_boolean      suppress_pure_specifier_error = FALSE;
-            a_boolean      function_def_present;
-            a_special_function_kind
-                           spec_kind = (a_special_function_kind)sfk_none;
-
-            if (mutable_specified) {
-              /* "mutable" is only allowed on nonstatic data member decls. */
-              pos_error(ec_mutable_not_allowed, &decl_start_pos);
-            }  /* if */
-            function_def_present =
-                             ((curr_token == tok_lbrace) ||
-                              (is_constructor && (curr_token == tok_colon)));
-            if (function_def_present && !first_declarator) {
-              pos_error(ec_exp_semicolon, &pos_curr_token);
-            }  /* if */
-            func_info.is_definition = function_def_present;
-            func_info.is_inline = inline_specified || function_def_present;
-            if (!type_explicitly_specified) {
-              /* No type specifier. */
-              if (is_constructor || is_destructor ||
-                  locator.is_conversion_name) {
-                /* Type specifier is not expected (nor permitted) on
-                   constructors, destructors, and conversion functions. */
-              } else {
-                /* Type specifier is missing.  The type defaults to int,
-                   but issue a diagnostic. */
-                if (first_declarator_diagnostics) {
-                  if (local_no_decl_specifiers && !function_def_present &&
-                      !any_cfront_mode()) {
-                    /* WP 9.4 [class.mem] says decl-specifiers may only be
-                       omitted in declarations when the function is a
-                       constructor, destructor, and conversion function:
-                       issue a diagnostic. */
-                    pos_diagnostic(es_discretionary_error,
-                                   ec_missing_decl_specifiers,
-                                   &decl_start_pos);
-                  } else {
-                    /* If no error is put out, at least issue a remark on
-                       the implicit return type "int". */
-                    pos_remark(ec_missing_type_specifier, &decl_start_pos);
-                  }  /* if */
-                }  /* if */
-              }  /* if */
-            }  /* if */
-            if (local_type == member_type) {
-              /* When scanning the declarator does not change the type,
-                 we know this member is a function based on the specifier
-                 type alone.  This is only possible with a typedef name that
-                 represents a function type. */
-              func_info.function_type_from_typedef = TRUE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-              func_info.declarator_ssep = declarator_ssep;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-              /* Such typedef function types are shared and so are unsuited
-                 to be the type of a defined function. */
-              check_typedef_function_type(&local_type,
-                                          &locator.source_position,
-                                          function_def_present, class_type,
-                                          (!friend_specified &&
-                                           member_storage_class !=
-                                                (a_storage_class)sc_static));
-            }  /* if */
-            if (virtual_specified &&
-                is_invalid_use_of_virtual(&locator, class_type,
-                                          friend_specified, is_constructor,
-                                          member_storage_class,
-                                          &decl_start_pos)) {
-              virtual_specified = FALSE;
-              suppress_pure_specifier_error = TRUE;
-            }  /* if */
-            if (friend_specified) {
-              /* Process a friend function declaration. */
-              if (member_storage_class != (a_storage_class)sc_unspecified) {
-                /* A storage class declaration along with "friend" is not
-                   allowed. */
-                pos_error(ec_bad_friend_decl, &decl_start_pos);
-                member_storage_class = (a_storage_class)sc_unspecified;
-              }  /* if */
-              rout_sym = decl_friend_function(&locator, class_type,
-                                              local_type, &func_info,
-                                              decl_modifiers);
-            } else {
-              /* Must be a member function declaration. */
-              if ((is_constructor || is_destructor) &&
-                  member_storage_class == (a_storage_class)sc_static) {
-                /* Constructors and destructors may not be declared
-                   "static" (ARM 12.1, 12.4). */
-                pos_error(ec_static_not_allowed, &decl_start_pos);
-                member_storage_class = (a_storage_class)sc_unspecified;
-              }  /* if */
-              if (is_constructor || virtual_specified) {
-                /* A class with a user-defined constructor or a virtual
-                   function cannot be an "aggregate" (8.5.1). */
-                class_aggregate_ruled_out = TRUE;
-              } else if (access != (an_access_specifier)as_public) {
-                /* Strictly speaking, any nonpublic member prevents a class
-                   from being an aggregate -- keep track. */
-                any_nonpublic_members = TRUE;
-              }  /* if */
-              if (is_destructor) {
-                spec_kind = (a_special_function_kind)sfk_destructor;
-              } else if (is_constructor) {
-                spec_kind = (a_special_function_kind)sfk_constructor;
-              }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-              /* If decl-modifiers were declared for the class and/or for the
-                 member, check for consistency and use the union of the two. */
-              decl_modifiers = merge_decl_modifiers(class_type,
-                                                    decl_modifiers,
-                                                    function_def_present,
-                                                    &decl_start_pos);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-              /* Create a symbol for the member function. */
-              rout_sym = decl_member_function(
-                                 &locator, class_type, local_type,
-                                 &func_info, access, virtual_specified,
-                                 /*compiler_generated=*/FALSE, spec_kind,
-                                 &override_registry, decl_modifiers);
-              if (cssp->is_prototype_instantiation) {
-                /* During the prototype instantiation, save the token
-                   sequence number associated with this declaration so that
-                   it can be used for matching purposes during real
-                   instantiations. */
-                a_template_symbol_supplement_ptr  tssp;
-                tssp = rout_sym->variant.routine.instance_ptr->template_info;
-                check_assertion(tssp != NULL);
-                if (tssp->token_sequence_number == NO_TOKEN_SEQUENCE_NUMBER) {
-                  /* Only set this if not already set (which could occur in
-		     error cases). */
-                  tssp->token_sequence_number = curr_token_sequence_number;
-                }  /* if */
-              } else if (corresp_prototype_tag_sym != NULL) {
-                /* The class must be the instantiation of a class template
-                   (or a class nested within such an instantiation). Bind
-                   the current member function symbol to the function
-                   template symbol established during prototype
-                   instantiation. */
-                a_type_ptr  tp = corresp_prototype_tag_sym->
-                                         variant.class_struct_union.type;
-                if (tp->kind == (a_type_kind)tk_union &&
-                    tp->variant.class_struct_union.
-                          extra_info->anonymous_union_kind !=
-                                         (an_anonymous_union_kind)auk_none) {
-                  /* A member function of an anonymous union is an error
-                     (to be issued later, in check_anonymous_union_symbols).
-                     find_member_function_template should not be called,
-                     since it can't handle this sort of thing. */
-                } else if (!is_error_locator(locator)) {
-                  find_member_function_template(rout_sym,
-                                                corresp_prototype_tag_sym);
-                }  /* if */
-              }  /* if */
-              if (explicit_specified) {
-                check_assertion(is_constructor);
-                rout_sym->variant.routine.ptr->is_explicit_constructor = TRUE;
-              }  /* if */
-            }  /* if */
-            if (!function_def_present) {
-              if (func_info.param_id_list != NULL) {
-                /* After updating xref information on each symbol, free the
-                   list of parameter identifiers -- they're not needed if
-                   there's no definition. */
-                a_param_id_ptr  pid = func_info.param_id_list;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-                a_src_seq_sublist_ptr  sublist = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-                for (; pid != NULL; pid = pid->next) {
-                  if (pid->symbol != NULL) {
-                    mark_declared(pid->symbol, &pid->symbol->decl_position);
-                  }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-                  if (pid->source_sequence_entry != NULL) {
-                    check_assertion(
-                             ss_entry_kind(pid->source_sequence_entry) ==
-                                            (an_il_entry_kind)iek_none);
-                    remove_from_source_sequence_list(
-                                     pid->source_sequence_entry, &sublist);
-                    pid->source_sequence_entry = NULL;
-                  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-                }  /* for */
-              }  /* if */
-            }  /* if */
-            if (curr_routine_fixup != NULL) {
-              /* Update the symbol pointer in the fixup entry -- it's needed
-                 when the default args are scanned (once the entire class has
-                 been scanned). */
-              curr_routine_fixup->symbol = rout_sym;
-              curr_routine_fixup->func_info = func_info;
-            } else {
-              done_with_func_info(func_info);
-            }  /* if */
-            if (function_def_present) {
-              a_token_sequence_number	first_token_number;
-              a_token_sequence_number	last_token_number;
-              if (!friend_specified) {
-                /* The inline flag is set for friend functions in
-                   decl_friend_function, which also handles cases in which
-                   it should be left unset despite the presence of a
-                   function body. */
-                check_assertion(rout_sym->variant.routine.ptr->is_inline);
-              }  /* if */
-              remove_stop_token(tok_comma);
-              /* Cache the tokens comprising the function definition
-                 so that they can be rescanned once the entire class
-                 definition has been processed. */
-              if (prescan_function_definition(&first_token_number,
-                                              &last_token_number)) {
-                /* Advance past the terminating right brace. */
-                (void)get_token();
-              }  /* if */
-              if (curr_token == tok_semicolon) {
-                /* Advance past the optional semicolon. */
-                (void)get_token();
-              }  /* if */
-              if (!friend_specified && is_nonreal_instantiation) {
-                /* A member function of a nonreal class serves as a
-                   template, and since this is the definition the
-                   template_info associated with this member function must
-                   be updated, based on the template_info of the prototype
-                   instantiation.  Note that the current class may be
-                   nested within the prototype instantiation. */
-                a_template_symbol_supplement_ptr  tssp;
-
-                /* A member function of a template class whose body is
-		   supplied in the class shares the template declaration
-		   information with the enclosing class. */
-                tssp = rout_sym->variant.routine.instance_ptr->template_info;
-                set_template_cache_info(&tssp->cache,
-                                        (a_token_cache_ptr)NULL,
-                                        class_tssp->cache.decl_info);
-                tssp->cache_segment = alloc_template_cache_segment(rout_sym,
-                                                                   tssp);
-                tssp->cache_segment->first_token_number = first_token_number;
-                tssp->cache_segment->last_token_number = last_token_number;
-              }  /* if */
-              /* A comma-list of function definitions is not allowed. */
-              goto next_declaration;
-            } else {
-              /* Not a function definition. */
-              if (curr_token == tok_assign) {
-                /* Look for a pure specifier ("= 0"), which may appear on
-                   virtual functions. */
-                scan_pure_specifier(rout_sym, class_type,
-                                    suppress_pure_specifier_error);
-              } else if (!friend_specified && is_local_class) {
-                /* A member function declared in a local class definition
-                   (which is the current case) must be defined within the
-                   class definition if it is used.  If this is a virtual
-                   function, issue the error here; otherwise, issue the
-                   error when it is referenced. */
-                if (rout_sym->variant.routine.ptr->is_virtual) {
-                  sym_error(ec_local_class_function_def_missing, rout_sym);
-                }  /* if */
-              }  /* if */
-            }  /* if */
-          } else if (friend_specified || virtual_specified ||
-                     inline_specified) {
-            if (friend_specified) {
-              pos_error(ec_bad_friend_decl, &decl_start_pos);
-            }  /* if */            
-            if (virtual_specified) {
-              pos_error(ec_virtual_not_allowed, &decl_start_pos);
-            }  /* if */            
-            if (inline_specified) {
-              pos_error(ec_inline_and_nonfunction, &decl_start_pos);
-            }  /* if */            
-            remove_stop_token(tok_comma);
-            discard_curr_construct_pragmas();
-            break;
-          } else if (is_destructor) {
-            /* Error has already been issued if it wasn't processed as a
-               function. */
-            discard_curr_construct_pragmas();
-          } else if (local_no_decl_specifiers) {
-            /* A declaration in which the declaration specifiers are
-               entirely omitted can only be a function declaration (ARM 9.2,
-               p. 171). */
-            pos_error(ec_missing_decl_specifiers, &decl_start_pos);
-            remove_stop_token(tok_comma);
-            discard_curr_construct_pragmas();
-            break;
-          } else if (member_storage_class == (a_storage_class)sc_typedef) {
-            a_symbol_ptr        typedef_sym_ptr;
-
-            check_assertion(C_dialect == C_dialect_cplusplus);
-            if (cfront_member_function_typedef) {
-              /* This looked like a cfront-style member function typedef.  Be
-                 sure the type was a function type. */
-              if (is_function_type(local_type)) {
-                /* Issue a warning on the extension. */
-                pos_warning(ec_ptr_to_member_typedef,
-                            &locator.source_position);
-              } else {
-                /* No function type, so what looked like a qualified name
-                   really was -- but they aren't allowed. */
-                pos_error(ec_qualified_name_not_allowed,
-                          &locator.source_position);
-                set_to_error_locator(locator);
-              }  /* if */
-            }  /* if */
-            if (!type_explicitly_specified) {
-              warning(ec_missing_type_specifier);
-            }  /* if */
-            /* Typedef declaration. */
-            decl_typedef(&locator, local_type, class_type, &typedef_sym_ptr,
-                         declarator_ssep);
-            /* Note: access will have been set in decl_typedef. */
-            if (access != (an_access_specifier)as_public) {
-              /* Strictly speaking, any nonpublic member prevents a class from
-                 being an aggregate -- keep track. */
-              any_nonpublic_members = TRUE;
-            }  /* if */
-            if (curr_routine_fixup != NULL &&
-                curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
-              /* Update the symbol pointer in the fixup entry -- it's needed
-                 when the default args are scanned (once the entire class has
-                 been scanned). */
-              curr_routine_fixup->symbol = typedef_sym_ptr;
-            }  /* if */
-          } else if (mutable_specified &&
-                     is_const_qualified_type(local_type)) {
-            /* "mutable" and top-level "const" are not allowed together. */
-            pos_error(ec_mutable_not_allowed, &decl_start_pos);
-          } else if (curr_token == tok_assign && !C_mode() &&
-                     ((is_scalar_type(local_type) &&
-                       (get_type_qualifiers(local_type) == TQ_CONST)) ||
-                      is_or_contains_template_param(local_type)) &&
-                     member_storage_class == (a_storage_class)sc_unspecified) {
-            /* Provide support for the nonstandard declaration of a member
-               constant of scalar type -- e.g., "const int I = 2;". */
-            decl_nonstd_member_constant(&locator, class_type, local_type,
-                                        access, declarator_ssep);
-            if (access != (an_access_specifier)as_public) {
-              /* Strictly speaking, any nonpublic member prevents a class from
-                 being an aggregate -- keep track. */
-              any_nonpublic_members = TRUE;
-            }  /* if */
-          } else {
-            if (C_dialect == C_dialect_cplusplus) {
-              if (!type_explicitly_specified && first_declarator_diagnostics) {
-                warning(ec_missing_type_specifier);
-              }  /* if */
-            }  /* if */
-            if (member_storage_class == (a_storage_class)sc_static) {
-              /* Static data member. */
-              if (is_void_type(local_type)) {
-                error(ec_incomplete_type_not_allowed);
-                local_type = error_type();
-              }  /* if */
-              if (is_local_class) {
-                /* Static data members are not allowed in local classes. */
-                pos_error(ec_static_not_allowed, &decl_start_pos);
-                /* Set the type for this invalid static member to error type.
-                   This will assure "proper" (or unobtrusive) behavior later,
-                   if a definition is encountered.  It also eliminates semi-
-                   spurious error messages if there are references to it. */
-                local_type = error_type();
-              } else if (is_union_type(class_type)) {
-                /* Unions are not allowed to have static data members. */
-                pos_error(ec_static_not_allowed, &decl_start_pos);
-              }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-              /* If decl-modifiers were declared for the class and/or for the
-                 member, check for consistency and use the union of the two. */
-              decl_modifiers = merge_decl_modifiers(class_type,
-                                                    decl_modifiers,
-                                                    /*is_definition=*/FALSE,
-                                                    &decl_start_pos);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-              decl_static_data_member(&locator, class_type, local_type,
-                                      access, is_nonreal_instantiation,
-                                      corresp_prototype_tag_sym,
-                                      declarator_ssep, decl_modifiers);
-              if (access != (an_access_specifier)as_public) {
-                /* Strictly speaking, any nonpublic member prevents a class
-                   from being an aggregate -- keep track. */
-                any_nonpublic_members = TRUE;
-              }  /* if */
-            } else {
-              /* Non-static data member (= field). */
-              /* The type specified must be complete. */
-              complete_type_is_needed(local_type);
-              if (C_mode() && is_function_type(local_type) &&
-                member_storage_class != (a_storage_class)sc_typedef) {
-                pos_error(ec_function_type_not_allowed,
-                          &locator.source_position);
-                local_type = error_type();
-              } else {
-                check_field_type(&locator, &local_type, is_first_field,
-                                 unnamed_field, access,
-                                 class_aggregate_ruled_out, &decl_start_pos);
-              }  /* if */
-              /* Set the flag to record that at least one named field was
-                 encountered. */
-              if (!unnamed_field) any_named_fields = TRUE;
-              decl_nonstatic_data_member(&locator, class_type, &local_type,
-                                         access, unnamed_field,
-                                         is_anonymous_union,
-                                         is_nonstd_anonymous_union,
-                                         mutable_specified, declarator_ssep,
-                                         &end_of_field_list);
-              if (!class_aggregate_ruled_out) {
-                if (access != (an_access_specifier)as_public) {
-                  if (unnamed_field) {
-                    /* Unnamed bit fields are not subject to initialization
-                       (and are not even members, according to WP 9.6) so a
-                       nonpublic one (whatever that means) has no effect on
-                       aggregate status. */
-                  } else {
-                    /* No class with private or protected nonstatic data
-                       members is an aggregate (WP 8.5.1). */
-                    class_aggregate_ruled_out = TRUE;
-                  }  /* if */
-                }  /* if */
-              }  /* if */
-              if (!any_const_or_ref_fields &&
-                  !unnamed_field && !is_anonymous_union &&
-                  (is_reference_type(local_type) ||
-                   is_const_qualified_type(local_type))) {
-                any_const_or_ref_fields = TRUE;
-              }  /* if */
-              is_first_field = FALSE;
-            }  /* if */
-            if (C_dialect == C_dialect_cplusplus) {
-              /* Issue an error if there appears to be an attempt to
-                 initialize a data member within the class definition. */
-              if (curr_token == tok_assign) {
-                set_err_pos_to_curr_token();
-                /* Issue a syntax error to flush to the comma or semicolon. */
-                syntax_error(ec_bad_data_member_initialization);
-              }  /* if */
-            }  /* if */
-          }  /* if */
-          remove_stop_token(tok_comma);
-          first_declarator = FALSE;
-          /* Loop for additional declarators. */
-        } while (loop_token(tok_comma));
-        /* Check for and ignore the semicolon following the member declaration.
-           It's optional after the last declaration (that's an extension in
-           ANSI mode). */
-        if (curr_token == tok_rbrace) {
-          /* The final semicolon is omitted. */
-          if (C_dialect != C_dialect_pcc) {
-            diagnostic(strict_ansi_mode ?
-                         strict_ansi_error_severity : es_warning,
-                       ec_exp_semicolon);
-          }  /* if */ 
-        } else {
-          (void)required_token(tok_semicolon, ec_exp_semicolon);
         }  /* if */
 next_declaration:
         if (curr_routine_fixup != NULL) {
@@ -8782,16 +8836,16 @@ next_declaration:
         /* Keep processing member declarations until the closing brace. */
       } while (curr_token != tok_rbrace && curr_token != tok_end_of_source);
     }  /* if */
-    if (C_mode() && curr_token == tok_rbrace && !any_named_fields) {
+    if (C_mode() && curr_token == tok_rbrace && !status.any_named_fields) {
       /* In C mode, there must be at least one named field.  This covers
          both "struct S { };" and "struct S { int:1; };", the latter producing
          undefined behavior according to the C standard.  Issue an error
          and also create a dummy field to reduce error recovery problems
          down the line. */
       error(ec_no_named_fields);
-      add_error_field(class_type, &end_of_field_list);
+      add_error_field(class_type, &status.end_of_field_list);
     }  /* if */
-    if (!is_nonreal_instantiation &&
+    if (!status.is_nonreal_instantiation &&
         may_be_added_to_types_list(class_type, effective_decl_level)) {
       /* The type will already have been added to the current scope's types
          list.  However, it should be moved to the end of the list (unless
@@ -8826,9 +8880,9 @@ next_declaration:
       /* Classes with no constructors, no private or protected members, no
          base classes, and no virtual functions are used to declare
          "aggregate" objects (ARM 8.4.1). */
-      if (!class_aggregate_ruled_out) {
+      if (!status.class_aggregate_ruled_out) {
         /* May be an aggregate. */
-        if (strict_ansi_mode && any_nonpublic_members) {
+        if (strict_ansi_mode && status.any_nonpublic_members) {
           /* In strict mode we'll take the WP literally -- an aggregate class
              may have no nonpublic members (even if they are something other
              than nonstatic data members). */
@@ -8842,13 +8896,13 @@ next_declaration:
          any, are entered.  (No diagnostic is issued on a const member that
          has a default constructor, since it will be initialized properly
          when the default constructor for the current class is generated. */
-      if (any_const_or_ref_fields && cssp->constructor == NULL) {
+      if (status.any_const_or_ref_fields && cssp->constructor == NULL) {
         /* The current class has no user-defined constructor and at least
            one const or ref nonstatic data member.  A diagnostic may be
            required. */
         report_missing_constructor(tag_sym);
       }  /* if */
-      if (!is_nonreal_instantiation) {
+      if (!status.is_nonreal_instantiation) {
         /* Check to see if a remark should be issued on direct base classes
            with nonvirtual destructors. */
         check_base_class_destructors(class_type);
@@ -8865,7 +8919,7 @@ next_declaration:
        class. */
     do_class_layout(class_type);
     if (C_dialect == C_dialect_cplusplus) {
-      if (!is_nonreal_instantiation) {
+      if (!status.is_nonreal_instantiation) {
         /* Check for inherited conversion functions.  This must be done before
            rescanning inline function definitions. */
         project_base_class_conversion_functions(class_type);
@@ -8895,7 +8949,7 @@ next_declaration:
       }  /* if */
       /* Issue a warning on a class with all private constructors and no
          friend functions. */
-      if (!any_friend_decls) {
+      if (!status.any_friend_decls) {
         a_symbol_ptr  ctor_sym = cssp->constructor;
         a_boolean     is_overloaded = FALSE;
 
@@ -8921,12 +8975,12 @@ next_declaration:
           }  /* if */
         }  /* if */
       }  /* if */
-      if (override_registry != NULL) {
+      if (status.override_registry != NULL) {
         /* Check for incomplete overriding of virtual functions, and issue
            diagnostics where appropriate. */
-        check_override_registry(override_registry, tag_sym);
+        check_override_registry(status.override_registry, tag_sym);
         /* All entries on the list have been freed, so clear the pointer. */
-        override_registry = NULL;
+        status.override_registry = NULL;
       }  /* if */
     }  /* if */
     /* Process pragmas associated with the closing brace before the current
@@ -8938,7 +8992,7 @@ next_declaration:
     add_end_of_construct_source_sequence_entry((char *)class_type,
                                                (a_byte_il_entry_kind)iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    if (delayed_nested_class_def && !is_nonreal_instantiation &&
+    if (delayed_nested_class_def && !status.is_nonreal_instantiation &&
         !is_template_class_type(class_type) && cssp->is_instance) {
       /* The class being defined is a non-template class nested within a
          template class.  This is its instantiation, so create a class
@@ -8956,7 +9010,7 @@ next_declaration:
 
       /* Restore the scope stack to its original state. */
       pop_class_reactivation_scope();
-      if (!is_nonreal_instantiation) {
+      if (!status.is_nonreal_instantiation) {
         if (class_type->variant.class_struct_union.
                    referenced_by_class_instantiation_placeholder_typeref) {
           /* A placeholder indicating that an instantiation occurred inside
