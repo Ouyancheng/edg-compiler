@@ -614,6 +614,7 @@ check_abbreviation()
 --no_extended_designators
 --no_extended_variadic_macros
 --no_extern_inline
+--no_fixed_point
 --no_friend_injection
 --no_g++
 --no_gcc
@@ -1191,6 +1192,7 @@ process_option()
 	 --upc_strict | \
 	 --short_enums | \
          --fixed_point | \
+         --no_fixed_point | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
