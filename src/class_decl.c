@@ -6308,7 +6308,6 @@ Scan the body of a class definition, including the base classes list.
                 goto next_declaration;
               } else {
                 /* Not a function definition. */
-                mark_declared(rout_sym, &locator.source_position);
                 if (curr_token == tok_assign) {
                   /* Look for a pure specifier ("= 0"), which may appear on
                      virtual functions. */
