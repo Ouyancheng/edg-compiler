@@ -613,8 +613,9 @@ variable.  vp_type has been updated as a result of initialization, i.e.,
 vp had an incomplete array type that has been completed by an initializer.
 */
 {
-  a_symbol_ptr     ext_sym;
-  a_symbol_locator locator, ext_locator;
+  a_symbol_ptr         ext_sym;
+  a_name_linkage_kind  name_linkage;
+  a_symbol_locator     locator, ext_locator;
 
   db_enter(5, "put_type_back_into_variable");
   /* See if the variable has linkage. */
@@ -627,8 +628,9 @@ vp had an incomplete array type that has been completed by an initializer.
          char a[] = "abc";  <-- Error; int [3] is incompatible with int [5].
     */
     make_locator_for_symbol(symbol_ptr, &locator);
-    ext_sym = find_external_symbol(&locator, linkage, /*rout_type=*/NULL,
-                                   &ext_locator);
+    name_linkage = symbol_ptr->variant.variable->source_corresp.name_linkage;
+    ext_sym = find_external_symbol(&locator, name_linkage,
+                                   (a_routine_ptr)NULL, &ext_locator);
 #if CHECKING
     if (ext_sym == NULL) {
       internal_error("put_type_back_into_variable: ext_sym not found");
@@ -1016,6 +1018,7 @@ the default constructor (if one exists) is called.
   a_class_symbol_supplement_ptr  cssp;
   a_dynamic_init                 local_di, *ctor_dip;
   a_routine_ptr                  rp;
+  int                            count;
 
   db_enter(3, "def_initializer");
   /* Default initialization is done only in C++ and only for variables and
@@ -1061,11 +1064,12 @@ the default constructor (if one exists) is called.
             ctor_dip =
                     alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
             *ctor_dip = local_di;
-            repeat_constructor_init(ctor_dip, &local_di,
-                                    var_type->size == 0 ? 1 :
-                                               var_type->size / tp->size);
-
-
+            if (var_type->size == 0) {
+              count = 1;
+            } else {
+              count = (int)(var_type->size / tp->size);
+            }  /* if */
+            repeat_constructor_init(ctor_dip, &local_di, count);
           }  /* if */
           gen_dynamic_initialization(var, &local_di);
           def_init_performed = TRUE;
@@ -1592,15 +1596,19 @@ scan_arg_for_scan_initialization:
       }  /* if */
       if (array_type != NULL &&
           dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        int  count;
         /* We have an array of objects with constructors.  Create a dynamic
            init entry to handle the aggregate. */
         ctor_dip = dip;
         dip =
            alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
         /* Build the looping constant entry. */
-        repeat_constructor_init(ctor_dip, dip,
-                                array_type->size == 0 ? 1 :
-                                             array_type->size / tp->size);
+        if (array_type->size == 0) {
+          count = 1;
+        } else {
+          count = (int)(array_type->size / tp->size);
+        }  /* if */
+        repeat_constructor_init(ctor_dip, dip, count);
       }  /* if */
       /* Attach the new dynamic init entry to the constructor initializer. */
       cip->initializer = dip;
@@ -1742,15 +1750,19 @@ though neither constructors nor initialization is involved here.)
           /* Check that the destructor is accessible and mark it referenced. */
           reference_to_implicitly_invoked_function(cssp->destructor);
           if (array_type != NULL) {
+            int  count;
             /* We have an array of objects with destructors.  Create a dynamic
                init entry to handle the aggregate. */
             a_dynamic_init_ptr  dtor_dip = dip;
             dip = alloc_dynamic_init(
                              (a_dynamic_init_kind)dik_nonconstant_aggregate);
             /* Build the looping constant entry. */
-            repeat_constructor_init(dtor_dip, dip,
-                                    array_type->size == 0 ? 1 :
-                                                array_type->size / tp->size);
+            if (array_type->size == 0) {
+              count = 1;
+            } else {
+              count = (int)(array_type->size / tp->size);
+            }  /* if */
+            repeat_constructor_init(dtor_dip, dip, count);
           }  /* if */
           /* Attach the new dynamic init entry to the constructor
              initializer. */
