@@ -126,8 +126,10 @@ and return *err TRUE if there is an error of some kind.
     }  /* if */
     if (*err) {
       /* There was an error of some kind. */
-      pos_ty2_error(ec_bad_initializer_type, &error_position,
-                    constant->type, *type);
+      if (!is_error_type(constant->type)) {
+        pos_ty2_error(ec_bad_initializer_type, &error_position,
+                      constant->type, *type);
+      }  /* if */
       set_error_constant(constant);  
     }  /* if */
   }  /* if */
