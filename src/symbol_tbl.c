@@ -6428,8 +6428,12 @@ which instantiations are required.
 {
   a_function_instantiation_entry_ptr fiep;
   fiep = instantiations_required_head;
+  /* Instantiate any routines for which the instantiation required flag is
+     set and for which a body has been supplied. */
   while (fiep != NULL) {
-    if (fiep->instantiation_required) {
+    if (fiep->instantiation_required &&
+        fiep->template_sym->variant.template.extra_info->
+                                       body_token_cache.first_token != NULL) {
 #if DEBUG
       if (debug_level >= 4) {
         db_symbol(fiep->routine_sym, "Instantiating:", 2);
