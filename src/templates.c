@@ -5131,21 +5131,17 @@ instantiated.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Copy the default argument expression into to corresponding param
        type entry of the declared type, if any. */
-    { a_type_ptr        declared_type = tip->declared_type;
-      a_param_type_ptr  ptp;
-
-      if (declared_type != NULL) {
-        ptp = declared_type->variant.routine.extra_info->param_type_list;
-        for (i = arg_num; i > 1; i--, ptp = ptp->next) {
-          check_assertion(ptp != NULL);
-        }  /* if */
-        if (ptp->default_arg_expr == NULL) {
-          ptp->has_default_arg = TRUE;
-          ptp->default_arg_expr =
-             duplicate_default_arg_expr(daefp->param_type->default_arg_expr);
-        }  /* if */
+    if (tip->declared_type != NULL) {
+      ptp = tip->declared_type->variant.routine.extra_info->param_type_list;
+      for (i = arg_num; i > 1; i--, ptp = ptp->next) {
+        check_assertion(ptp != NULL);
       }  /* if */
-    }
+      if (ptp->default_arg_expr == NULL) {
+        ptp->has_default_arg = TRUE;
+        ptp->default_arg_expr =
+              duplicate_default_arg_expr(daefp->param_type->default_arg_expr);
+      }  /* if */
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Pop the reactivated function prototype scope off the stack. */
     pop_scope();
