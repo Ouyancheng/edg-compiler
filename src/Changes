@@ -1,5 +1,11 @@
 Version 2.28
 
+2/27/95  Setting param_value_has_been_changed when address of parameter taken
+
+The param_value_has_been_changed flag in parameter variables is supposed
+to be set whenever the address of the parameter is taken.  It wasn't in
+a few cases where the address is taken implicitly.  Now fixed.
+
 2/26/95  Old-style parameter lists in C++
 
 When old-style function parameter lists are supported in C++ mode (i.e.,
