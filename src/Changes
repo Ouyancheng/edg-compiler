@@ -1,5 +1,16 @@
 Version 2.42
 
+6/3/99   Default template arguments on class template member declarations
+
+A default template argument can only be specified on the declaration of
+a class template, not on a member of the template.  A diagnostic is now
+issued for such cases.
+
+  template <class T> struct A {
+    void f();
+  };
+  template <class T = int> void A<T>::f(){}  // error now issued
+
 5/25/99  Standard conversion after user-defined conversion on non-direct
          reference binding
 

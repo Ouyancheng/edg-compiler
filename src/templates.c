@@ -6830,7 +6830,8 @@ done:
 static a_boolean reconcile_template_param_lists
 					(a_template_param_ptr param_list,
                                          a_symbol_ptr         class_sym,
-					 a_source_position    *error_pos)
+					 a_source_position    *error_pos,
+					 a_boolean	      default_allowed)
 /*
 Compare the template parameter list of the template declaration currently
 being scanned with the template parameter list of a previous declaration
@@ -6848,6 +6849,9 @@ except for the first one:
 	template <class T, int I> int A<T,I>::i =  ... ;
 
 Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
+
+default_allowed is TRUE if a default argument is permitted in the new argument
+list (the one specified by param_list).
 */
 {
   a_template_param_ptr	new_tpp;
@@ -6874,8 +6878,13 @@ Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
       if (old_has_default && new_has_default && !microsoft_bugs) {
         /* This parameter already has a default argument.  The
            Microsoft compiler permits this, and uses the new value. */
-        pos_error(ec_default_arg_already_defined, &
-                  new_tpp->param_symbol->decl_position);
+        pos_error(ec_default_arg_already_defined,
+                  &new_tpp->param_symbol->decl_position);
+      } else if (new_has_default && !default_allowed) {
+        /* A default argument was specified on a member of a class template.
+           This is not permitted. */
+        pos_error(ec_default_arg_on_member_decl,
+                  &new_tpp->param_symbol->decl_position);
       } else if (old_has_default || new_has_default) {
         /* One or the other has a default argument, or we are in Microsoft
            mode and both have default arguments. */
@@ -6990,7 +6999,8 @@ Otherwise, return FALSE.
       break;
     }  /* if */
     if (!reconcile_template_param_lists(decl_info->parameters,
-                                        template_sym, error_pos)) {
+                                        template_sym, error_pos,
+                                        /*default_allowed=*/FALSE)) {
       any_mismatches = TRUE;
     }  /* if */
     /* Skip out to the enclosing class type. */
@@ -8163,7 +8173,8 @@ instantiation.
             /* The Microsoft compiler does not check the parameter list
                of a template that is redeclared after it has been defined. */
           } else if (!reconcile_template_param_lists(
-                                templ_params, sym, &locator.source_position)) {
+                                templ_params, sym, &locator.source_position,
+                                /*default_allowed=*/TRUE)) {
             err = TRUE;
           }  /* if */
         } /* if */
