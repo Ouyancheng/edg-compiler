@@ -451,10 +451,11 @@ member, push the class onto the name context stack.  If the class is a
 nested class, also push the containing classes.
 */
 {
-  a_type_ptr class_type = scp->class_of_which_a_member;
+  a_type_ptr class_type;
 
-  if (il_header.source_language == sl_Cplusplus && class_type != NULL) {
+  if (il_header.source_language == sl_Cplusplus && scp->is_class_member) {
     /* The entity is a class member. */
+    class_type = scp->parent.class_type;
     /* Push the surrounding class(es) for a nested class. */
     push_class_name_context_if_member(&class_type->source_corresp);
     /* Push the class. */
@@ -471,10 +472,11 @@ member, pop the class from the name context stack.  If the class is a
 nested class, also pop the containing classes.
 */
 {
-  a_type_ptr class_type = scp->class_of_which_a_member;
+  a_type_ptr class_type;
 
-  if (il_header.source_language == sl_Cplusplus && class_type != NULL) {
+  if (il_header.source_language == sl_Cplusplus && scp->is_class_member) {
     /* The entity is a class member. */
+    class_type = scp->parent.class_type;
     pop_name_context();
     /* Pop the surrounding class(es) for a nested class. */
     pop_class_name_context_if_member(&class_type->source_corresp);
@@ -1212,16 +1214,13 @@ Generate a class qualifier (e.g., "A::B::") that identifies the indicated
 class type.
 */
 {
-  a_type_ptr parent_class;
-
   /* Ignore anonymous union levels. */
   for (; class_type->variant.class_struct_union.extra_info->
                     anonymous_union_kind == (an_anonymous_union_kind)auk_field;
-       class_type = class_type->source_corresp.class_of_which_a_member) {}
-  parent_class = class_type->source_corresp.class_of_which_a_member;
+       class_type = class_type->source_corresp.parent.class_type) {}
   /* Use recursion to handle multiple levels of nesting. */
-  if (parent_class != NULL) {
-    gen_class_qualifier(parent_class);
+  if (class_type->source_corresp.is_class_member) {
+    gen_class_qualifier(class_type->source_corresp.parent.class_type);
     /* Do the last level. */
     gen_unqualified_name(&class_type->source_corresp, iek_type);
   } else {
@@ -1242,8 +1241,8 @@ a qualified name (if required in the current name context).
 {
   /* If the name is a member of a class in C++, output the class qualifier. */
   if (il_header.source_language == sl_Cplusplus) {
-    a_type_ptr class_type = scp->class_of_which_a_member;
-    if (class_type != NULL) {
+    if (scp->is_class_member) {
+      a_type_ptr class_type = scp->parent.class_type;
       /* If the class type matches the top entry on the name context stack,
          the qualifier is not necessary. */
       if (curr_name_context_is_class(class_type)) {
@@ -1272,7 +1271,7 @@ in the current name context).
 */
 {
   /* Write the name. */
-  if (scp->class_of_which_a_member == NULL) {
+  if (!scp->is_class_member) {
     /* For a non class member, don't go through gen_name because we
        don't want a leading "::" on the name. */
     gen_unqualified_name(scp, entry_kind);
@@ -1292,7 +1291,7 @@ is unnamed, generate a name.  The entity must be a class member, and a
 qualified name is always generated.
 */
 {
-  gen_class_qualifier(scp->class_of_which_a_member);
+  gen_class_qualifier(scp->parent.class_type);
   gen_unqualified_name(scp, entry_kind);
 }  /* gen_qualified_name */
 
@@ -2037,8 +2036,8 @@ output an access specifier (e.g., "public:") if necessary to set the
 current access mode in the class.  Otherwise, do nothing.
 */
 {
-  if (curr_name_context_is_a_class() &&
-      scp->class_of_which_a_member == curr_name_context_class()) {
+  if (curr_name_context_is_a_class() && scp->is_class_member &&
+      scp->parent.class_type == curr_name_context_class()) {
     /* We're inside a class, and the entity being output is a member of that
        class. */
     gen_member_access_specifier((an_access_specifier)scp->access);
@@ -2911,8 +2910,7 @@ Generate code for a new or delete operation.
   if (is_class_type_kind(unqual_type->kind) &&
       /* Watch out for the case where the new/delete is folded into the
          constructor/destructor. */
-      routine != NULL &&
-      routine->source_corresp.class_of_which_a_member == NULL) {
+      routine != NULL && !routine->source_corresp.is_class_member) {
     /* Not a class-specific new or delete routine, so put out "::". */
     write_tok_str("::");
   }  /* if */
@@ -4534,7 +4532,7 @@ argument.)
      that. */
   if (param != NULL && is_reference_type(param->type) && param->next == NULL) {
     a_type_ptr tp = type_pointed_to(param->type);
-    if (skip_typerefs(tp) == rout->source_corresp.class_of_which_a_member) {
+    if (skip_typerefs(tp) == rout->source_corresp.parent.class_type) {
       /* It is a copy constructor. */
       is_cctor = TRUE;
     }  /* if */
@@ -4644,7 +4642,7 @@ TRUE, "()" is put out.
                      not copy constructor  T(arg1, arg2, ...)
         */
         ctor = dip->variant.constructor.ptr;
-        class_type = ctor->source_corresp.class_of_which_a_member;
+        class_type = ctor->source_corresp.parent.class_type;
         args = dip->variant.constructor.args;
         if (!parenthesized_init && rout_is_copy_constructor(ctor)) {
           /* This is the copy constructor elision case -- we don't have to
@@ -4784,7 +4782,7 @@ at the end of the declaration.
     if (is_definition) {
       /* This is the definition of the variable, so by and large the
          storage class from the IL entry applies. */
-      if (var->source_corresp.class_of_which_a_member != NULL) {
+      if (var->source_corresp.is_class_member) {
         /* A static data member definition.  Use no storage class. */
         storage_class = (a_storage_class)sc_unspecified;
       }  /* if */
@@ -5089,7 +5087,7 @@ declaration or definition.
     if (is_definition) {
       /* This is the definition of the function, so by and large the
          storage class from the IL entry applies. */
-      if (rout->source_corresp.class_of_which_a_member != NULL) {
+      if (rout->source_corresp.is_class_member) {
         /* A member function definition.  Use no storage class. */
         storage_class = (a_storage_class)sc_unspecified;
       }  /* if */
