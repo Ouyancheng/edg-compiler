@@ -1,5 +1,20 @@
 Version 2.44
 
+6/16/00  Microsoft compatibility: constructor declared with elaborated name
+
+In Microsoft mode, the front end now accepts constructor declarations starting
+with "struct", "class" or "union".  The "struct" and "class" keyword are
+interchangeable, but the "union" keyword must be used in unions.  Such
+elaborated constructor names cannot be parenthesized.  For example:
+
+  struct S {
+    struct S(int);       // Accepted in Microsoft mode
+    class S();           // Accepted in Microsoft mode
+    // union S(char);    // Not accepted (in any mode)
+    (S)(float);          // Accepted (standard C++)
+    // (struct S)(bool); // Not accepted (in any mode)
+  };
+
 6/14/00  Internal error on old-style specializations when guiding declarations
          are allowed
 

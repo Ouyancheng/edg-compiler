@@ -3228,13 +3228,28 @@ is a that of a constructor.
 {
   a_boolean          is_constructor = FALSE;
   a_symbol_ptr       tag_sym, sym;
-  a_symbol_ptr	     ctor_type_sym;
+  a_symbol_ptr       ctor_type_sym;
   a_token_cache      cache;
+  a_boolean          cache_in_use = FALSE;
   a_source_position  pos;
   a_boolean          name_match = FALSE;
-  a_boolean	     type_mismatch = FALSE;
+  a_boolean          type_mismatch = FALSE;
 
   db_enter(4, "is_constructor_decl");
+  if (microsoft_mode &&
+      (((curr_token == tok_struct || curr_token == tok_class) &&
+        (class_type->kind == (a_type_kind)tk_struct ||
+         class_type->kind == (a_type_kind)tk_class)) ||
+       (curr_token == tok_union &&
+        class_type->kind == (a_type_kind)tk_union))) {
+    /* In Microsoft mode it is possible to use an elaborated type name to
+       declare a constructor.  E.g. "struct S { struct S(); };". */
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    cache_in_use = TRUE;
+    /* Put the current token in the cache. */
+    cache_curr_token(&cache);
+    get_token();
+  }  /* if */
   /* See whether the name of the current identifier token is the same as
      that of a class being defined.  If so, this declaration is treated
      as a constructor declaration if the next two tokens are a left paren
@@ -3272,7 +3287,10 @@ is a that of a constructor.
     if (!locator_for_curr_id.is_qualified_name &&
         !locator_for_curr_id.is_conversion_name &&
         !locator_for_curr_id.is_operator_name) {
-      clear_token_cache(&cache, /*reusable=*/FALSE);
+      if (!cache_in_use) {
+        clear_token_cache(&cache, /*reusable=*/FALSE);
+        cache_in_use = TRUE;
+      }  /* if */
       /* Put the current token in the cache. */
       cache_curr_token(&cache);
       /* Skip right parentheses that may enclose the declarator---e.g.,
@@ -3299,6 +3317,7 @@ is a that of a constructor.
          was started.  So the current token should again be the name of the
          class being defined. */
       rescan_cached_tokens(&cache);
+      cache_in_use = FALSE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (!name_match && is_constructor) {
@@ -3358,6 +3377,10 @@ is a that of a constructor.
       change_class_locator_into_constructor_locator(&locator_for_curr_id,
                                                     &pos);
     }  /* if */
+  }  /* if */
+  if (cache_in_use) {
+    /* If we haven't done do yet, reset the token stream. */
+    rescan_cached_tokens(&cache);
   }  /* if */
   if (is_constructor && type_mismatch) {
     /* The type used to declare the constructor does not match the type
@@ -3981,6 +4004,33 @@ The parameter input_flags is the same value that was passed to decl_specifiers
     clear_specific_symbol(locator_for_curr_id);
   }  /* if */
 }  /* report_bad_type_name */
+
+
+static a_type_ptr  enclosing_class_type(a_decl_flag_set  input_flags)
+/*
+Called from decl_specifiers to determine the type of the class for which a
+member is being scanned.  See decl_specifier for the meaning of input_flags.
+Returns NULL in case of error.
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+  a_type_ptr               result = NULL;
+
+  if (ssep->kind == (a_scope_kind)sck_template_instantiation ||
+      (input_flags & DSI_IS_TEMPLATE_DECLARATION)) {
+    /* Either this is a member template declaration or a rescan of of a member
+       template declaration to instantiate it. */
+    --ssep;
+  }  /* if */
+  if (ssep->kind != (a_scope_kind)sck_class_struct_union &&
+      ssep->kind != (a_scope_kind)sck_class_reactivation) {
+    /* Error case of some sort. */
+  } else {
+    result = ssep->assoc_type;
+    check_assertion(result != NULL && is_class_struct_union_type(result));
+  }  /* if */
+  return result;
+}  /* enclosing_class_type */
 
 
 a_boolean decl_specifiers(a_decl_flag_set            input_flags,
@@ -4923,7 +4973,16 @@ process_class_specifier:
         } else {
           if (basic_type == bt_none) {
             if (any_decl_specifiers_seen) vacuous_decl_allowed = FALSE;
-            if (!class_specifier(
+            if (microsoft_mode && is_member_decl && !err &&
+                is_constructor_decl(enclosing_class_type(input_flags))) {
+              /* In Microsoft mode, "struct S { struct S(); }; is accepted. */
+              basic_type = bt_no_type;
+              *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
+              /* Skip "class" or "struct". */
+              get_token();
+              goto exit_loop;
+            } else {
+              if (!class_specifier(
                           vacuous_decl_allowed,
                           (decl_specifiers_seen & DS_FRIEND) != 0,
                           (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
@@ -4931,10 +4990,11 @@ process_class_specifier:
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
                           type_ptr, &declares_something,
                           &defines_something, decl_pos_block)) {
-              err = TRUE;
+                err = TRUE;
+              }  /* if */
+              basic_type = bt_struct_union;
+              is_elaborated_type_specifier = TRUE;
             }  /* if */
-            basic_type = bt_struct_union;
-            is_elaborated_type_specifier = TRUE;
           } else {
             a_boolean  dummy_flag;
             a_type_ptr dummy_type;
@@ -5056,22 +5116,9 @@ process_class_specifier:
                                          DS_FORCEINLINE)) &&
               (*storage_class == (a_storage_class)sc_unspecified ||
                *storage_class == (a_storage_class)sc_static)) {
-            a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
-            a_type_ptr               class_type;
+            a_type_ptr  class_type = enclosing_class_type(input_flags);
 
-            if (ssep->kind == (a_scope_kind)sck_template_instantiation ||
-                (input_flags & DSI_IS_TEMPLATE_DECLARATION)) {
-              /* Either this is a member template declaration or a rescan of
-                 of a member template declaration to instantiate it. */
-              --ssep;
-            }  /* if */
-            if (ssep->kind != (a_scope_kind)sck_class_struct_union &&
-                ssep->kind != (a_scope_kind)sck_class_reactivation) {
-              /* Error case of some sort. */
-            } else {
-              class_type = ssep->assoc_type;
-              check_assertion(class_type != NULL &&
-                              is_class_struct_union_type(class_type));
+            if (class_type != NULL) {
               /* The following test will not succeed if the constructor
                  declaration is parenthesized; in that case, the test is
                  repeated in scan_real_declarator_id. */
