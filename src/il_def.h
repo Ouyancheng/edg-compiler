@@ -1304,6 +1304,13 @@ typedef struct a_type {
       a_type_ptr
                 type;
                         /* Type referenced. */
+#if DO_IL_LOWERING
+      a_type_ptr
+		orig_member_type;
+			/* When this typeref represents a pointer-to-member
+			   that has been lowered, this points to the member
+			   type.  NULL otherwise. */
+#endif /* DO_IL_LOWERING */
       unsigned int
                 is_const:1;
                         /* TRUE if type is const-qualified. */
