@@ -1826,6 +1826,20 @@ system that supports chdir.
 }  /* is_directory */
 #endif /* ifndef IS_DIRECTORY_DEFINED */
 
+#if __MICROSOFT_OS__
+
+a_boolean has_drive_specification(char *file_name)
+/*
+Test whether or not a file name includes a drive specification.
+*/
+{
+  a_boolean	result;
+
+  result = isalpha((unsigned char)(file_name)[0]) && ((file_name)[1] == ':');
+  return result;
+}  /* has_drive_specification */
+
+#endif /* __MICROSOFT_OS__ */
 
 a_boolean is_absolute_file_name(char *file_name)
 /*
@@ -1834,8 +1848,8 @@ Test whether or not a file name is absolute (a full path name).
 {
 #if __MICROSOFT_OS__
   return ((file_name)[0] == DIRECTORY_SEPARATOR) ||
-         ((file_name)[0] == '\\') ||
-         (isalpha((unsigned char)(file_name)[0]) && ((file_name)[1] == ':'));
+         ((file_name)[0] == '\\') || 
+         has_drive_specification(file_name);
 #else /* !__MICROSOFT_OS__ */
   return (file_name)[0] == DIRECTORY_SEPARATOR;
 #endif /* __MICROSOFT_OS__ */
@@ -2780,49 +2794,145 @@ Extract the wide character value and return it.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-static char *normalize_dir_name(char *dir_name)
 /*
-Remove a leading "./" from the directory name.
+Macro that returns TRUE if "ch" is a directory separator character.
+*/
+#if __MICROSOFT_OS__
+#define is_dir_separator(ch)						\
+  ((ch) == DIRECTORY_SEPARATOR ||					\
+   (ch) == '\\')
+#else /* __MICROSOFT_OS__ */
+#define is_dir_separator(ch)						\
+  ((ch) == DIRECTORY_SEPARATOR)
+#endif /* __MICROSOFT_OS__ */
+
+static void append_dir_name(a_text_buffer_ptr	buf,
+			    char		*dir_name)
+/*
+Add "dir_name" to the end of the directory name specified by "buf".
 */
 {
-  while (dir_name != NULL && dir_name[0] == '.' &&
-         (dir_name[1] == '/'
+  char		*ptr = dir_name;
+  char		*dir_start;
+  int		length;
+  a_boolean	starts_with_separator;
+
+  while (*ptr != '\0') {
+    /* Skip past any delimiter characters. */
+    starts_with_separator = is_dir_separator(*ptr);
+    while (is_dir_separator(*ptr)) ptr++;
+    /* Save the position of the start of the directory name. */
+    dir_start = ptr;
+    /* Find the end of the directory. */
+    while (*ptr != '\0' && !is_dir_separator(*ptr)) ptr++;
+    length = ptr - dir_start;
+    if (length == 1 && *dir_start == '.') {
+      /* "." for the current directory.  Ignore it. */
+    } else if (length == 2 &&
+               strncmp(dir_start, "..", 2) == 0) {
+      /* ".." (parent directory).  Remove the last directory component from
+         the buffer. */
+      /* Get a pointer to the end of the buffer so far. */
+      char	*buf_ptr = &buf->buffer[buf->size - 1];
+      char	*orig_buf_ptr = buf_ptr;
+      if (buf->size == 0) {
+        /* We are already at the start of the buffer. */
+#if __MICROSOFT_OS
+      } else if (buf->size == 2 && has_drive_specification(buf->buffer)) {
+        /* On Windows, we are back to something like "C:".  Don't go any
+           further. */
+#endif /* __MICROSOFT_OS */
+      } else {
+        /* Back up the start of the previous directory component. */
+        while (!is_dir_separator(*buf_ptr)) --buf_ptr;
+        buf->size -= orig_buf_ptr - buf_ptr + 1;
+      }  /* if */
+    } else if (length > 0) {
+      /* If there was a separator, or if we already have a directory name,
+         add a separator now.  The separator needs to be suppressed at
+         the start of a Windows file name that has a drive specification. */
+      if (starts_with_separator || buf->size != 0) {
+        add_char_to_text_buffer(buf, DIRECTORY_SEPARATOR);
+      }  /* if */
+      /* Add the directory name to the buffer. */
+      add_to_text_buffer(buf, dir_start, length);
+    }  /* if */
+  }   /* while */
+}  /* append_dir_name */
+
+
+static char *normalize_dir_name(char			*dir_name,
+				a_text_buffer_ptr	buf,
+				a_boolean		is_partial_file_name)
+/*
+Convert "dir_name" into a canonical form so that it can be compared with
+other normalized directory names.
+
+For example, if the current directory is "/a/b", then a directory named
+"../c" will be normalized to "/a/c".  Note that even absolute path
+names must be normalized as "/a/b/../c" should produce the same result
+as "/a/c".
+
+buf is a text buffer that is used to construct the normalized file name.
+
+is_partial_file_name is TRUE if the file names are not known to be relative
+to the current directory.
+*/
+{
+  reset_text_buffer(buf);
+  if (!is_absolute_file_name(dir_name) && !is_partial_file_name) {
+    /* A relative file name.  Start with the current directory name. */
+    append_dir_name(buf, current_directory_name);
+  } else {
 #if __MICROSOFT_OS__
-                             || dir_name[1] == '\\'
-#endif /* __MICROSOFT_OS__ */
-                                                   )) {
-    dir_name += 2;
+    /* If the path is absolute, but lacks a drive specification, use the
+       drive from the current directory name. */
+    if (!has_drive_specification(dir_name)) {
+      check_assertion(has_drive_specification(current_directory_name));
+      add_to_text_buffer(buf, current_directory_name, 2);
+    }  /* if */
+#endif __MICROSOFT_OS__
   }  /* if */
-  return dir_name;
+  /* Add the specified directory name. */
+  append_dir_name(buf, dir_name);
+  /* Terminate the string. */
+  add_char_to_text_buffer(buf, '\0');
+  return buf->buffer;
 }  /* normalize_dir_name */
 
-#if __MICROSOFT_OS__
 
-#define CAN_COMPARE_FILE_IDENTIFIERS FALSE
+static a_text_buffer_ptr
+		dir_buffer1;
+static a_text_buffer_ptr
+		dir_buffer2;
+				/* Text buffers used to construct a
+				   normalized directory name. */
 
-#else /* !__MICROSOFT_OS__ */
 
-#define CAN_COMPARE_FILE_IDENTIFIERS TRUE
-
-static a_boolean same_file_identifiers(char	*file1,
-					  char	*file2)
+int compare_dir_names(char	*dir1,
+		      char	*dir2,
+		      a_boolean	is_partial_file_name)
 /*
-Compare the inode numbers of file1 and file2 to determine whether the
-two names name the same file.
+Compare the directory names specified by dir1 and dir2.  Return zero if
+they are the same.
+
+is_partial_file_name is TRUE if the file names are not known to be relative
+to the current directory.
 */
 {
-  struct stat	buf1;
-  struct stat	buf2;
-  a_boolean	result = FALSE;
+  int	result;
 
-  if (stat(file1, &buf1) == 0 && stat(file2, &buf2) == 0) {
-    result = buf1.st_dev == buf2.st_dev &&
-             buf1.st_ino == buf2.st_ino;
+  /* The first time this routine is called, allocate text buffers used
+     to construct the normalized directory names. */
+  if (dir_buffer1 == NULL) {
+    dir_buffer1 = alloc_text_buffer(128);
+    dir_buffer2 = alloc_text_buffer(128);
   }  /* if */
+  dir1 = normalize_dir_name(dir1, dir_buffer1, is_partial_file_name);
+  dir2 = normalize_dir_name(dir2, dir_buffer2, is_partial_file_name);
+  result = compare_file_chars(dir1, dir2);
   return result;
-}  /* same_file_identifiers */
-
-#endif /* __MICROSOFT_OS__ */
+}  /* compare_dir_names */
 
 
 int f_compare_file_names(char		*file1,
@@ -2834,8 +2944,6 @@ Return zero if file1 and file2 name the same file.  ignore_delimiters
 is TRUE if the file names are from #include directives and still have
 the '"' or '<' delimiters.  is_partial_file_name is TRUE if the
 file names are not known to be relative to the current directory.
-This suppresses the use of the "stat" function to do a file equality
-comparison.
 */
 {
   char		*start1 = file1;
@@ -2865,15 +2973,7 @@ comparison.
   file_start1 = start_of_file_name(start1);
   file_start2 = start_of_file_name(start2);
   if (compare_file_chars(file_start1, file_start2) == 0) {
-    /* Only check further if the file name components match. */
-#if CAN_COMPARE_FILE_IDENTIFIERS
-    if (!is_partial_file_name &&
-        same_file_identifiers(start1, start2)) {
-      match = TRUE;
-    }  /* if */
-#endif /* CAN_COMPARE_FILE_IDENTIFIERS */
-    /* If equality has not been determined by the code above, compare the
-       directory names now. */
+    /* Only the directory names only if the file name components match. */
     if (!match) {
       char	*dir1;
       char	*dir2;
@@ -2881,9 +2981,7 @@ comparison.
          compare equal. */
       dir1 = directory_of(start1);
       dir2 = directory_of(start2);
-      dir1 = normalize_dir_name(dir1);
-      dir2 = normalize_dir_name(dir2);
-      if (compare_file_chars(dir1, dir2) == 0) {
+      if (compare_dir_names(dir1, dir2, is_partial_file_name) == 0) {
         match = TRUE;
       }  /* if */
     }  /* if */
@@ -2896,22 +2994,6 @@ comparison.
   /* Convert the boolean result into a strcmp-like result value. */
   return match ? 0 : 1;
 }  /* f_compare_file_names */
-
-
-int compare_dir_names(char	*dir1,
-		      char	*dir2)
-/*
-Compare the directory names specified by dir1 and dir2.  Return zero if
-they are the same.
-*/
-{
-  int	result;
-
-  dir1 = normalize_dir_name(dir1);
-  dir2 = normalize_dir_name(dir2);
-  result = compare_file_chars(dir1, dir2);
-  return result;
-}  /* compare_dir_names */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 

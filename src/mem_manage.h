@@ -123,6 +123,11 @@ execution of the front end.
 */
 #define alloc_fe(size) alloc_in_region(NULL_region_number, size)
 
+/*
+Macro that allocates an entry for the specified type in the general memory.
+*/
+#define alloc_general_of_type(type) (type*)alloc_general(sizeof(type))
+
 /* Allocate a block of memory to be used for memory region storage. */
 extern a_void_ptr alloc_new_mem_block(sizeof_t size);
 /* Allocate an additional memory block for a memory region. */

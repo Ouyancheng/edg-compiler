@@ -1,5 +1,23 @@
 Version 2.45
 
+10/2/00  Improve file name comparisons
+
+The file name comparison routines have been improved so that two names
+that name the same file should now compare equal in all cases.  The
+code added in 2.44 that compares inode numbers on Unix systems has
+been removed because the new code produces the same results with improved
+efficiency.
+
+As an example of the kind of usage that now works, consider this example:
+
+  #include "x.h"
+  #include "../this_dir/x.h"
+  #include "/a/b/this_dir/x.h"
+
+If the path name of file x.h is /a/b/this_dir/x.h and /a/b/this_dir is
+the current directory, these includes would have been considered to
+include different files.  They are now known to include the same file.
+
 9/29/00  Microsoft compatibility: empty macro arguments not always ignored
 
 A Changes entry of 4/3/97 reports that MSVC++ versions 4.2 and 5.0 ignore

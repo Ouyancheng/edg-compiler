@@ -634,6 +634,26 @@ Array giving the token name for each opname kind.
 */
 EXTERN char	*opname_names[(int)onk_last];
 
+/*
+A general purpose text buffer that is automatically resized as characters
+are added.  The string may or may not be null-terminated, but if it is
+null-terminated, the null-terminator will be included in "size".
+*/
+typedef struct a_text_buffer *a_text_buffer_ptr;
+typedef struct a_text_buffer {
+  size_t	allocated_size;
+			/* The size in bytes of the memory allocated for the
+			   buffer. */
+  size_t	size;
+			/* The number of characters currently in the buffer. */
+  size_t	allocation_increment;
+			/* Initially, this is the size of the initial memory
+			   allocation for the buffer.  Each time the buffer
+			   is reallocated, this size is doubled. */
+  char		*buffer;
+			/* Pointer to the buffer containing the characters. */
+} a_text_buffer;
+
 
 /*
 Structure used to record information about files that have been included.
@@ -1782,6 +1802,49 @@ extern void pop_stop_token_stack(void);
 extern a_template_ptr scan_template_template_argument(
 				a_template_ptr		param_template,
 				a_source_position	*err_pos);
+
+extern void db_text_buffer(char		*prefix,
+			   a_text_buffer_ptr	buf);
+
+extern a_text_buffer_ptr alloc_text_buffer(sizeof_t	allocation_increment);
+
+extern void reset_text_buffer(a_text_buffer_ptr	buffer);
+
+extern void expand_text_buffer(a_text_buffer_ptr	buffer,
+			       sizeof_t			length);
+
+extern void add_to_text_buffer(a_text_buffer_ptr	buffer,
+			       char			*string,
+			       sizeof_t			length);
+
+/*
+Make sure that the specified buffer has at least "length" total bytes in it.
+If not, expand the buffer by reallocating it.
+*/
+#define ensure_unicode_buffer_space(buf, length)			\
+{ if ((length) > (buf)->allocated_size) {				\
+    expand_unicode_buffer(buf, length);					\
+  }  /* if */								\
+}  /* ensure_unicode_buffer_space */
+
+/*
+Make sure that the specified buffer has at least "length" total bytes in it.
+If not, expand the buffer by reallocating it.
+*/
+#define ensure_text_buffer_space(buf, length)			\
+{ if ((length) > (buf)->allocated_size) {				\
+    expand_text_buffer(buf, length);					\
+  }  /* if */							\
+}  /* ensure_text_buffer_space */
+
+/*
+Add the specified character to the text buffer specifier by "buf".
+*/
+#define add_char_to_text_buffer(buf, ch)				\
+{ ensure_text_buffer_space(buf, (buf)->size+1);			\
+  (buf)->buffer[(buf)->size] = (ch);					\
+  (buf)->size++;							\
+}  /* add_char_to_text_buffer */
 
 
 #if CHECKING

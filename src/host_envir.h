@@ -1783,7 +1783,8 @@ extern int f_compare_file_names(char		*file1,
 			        a_boolean	is_partial_file_name);
 
 extern int compare_dir_names(char	*dir1,
-			     char	*dir2);
+			     char	*dir2,
+                             a_boolean	is_partial_file_name);
 
 #ifndef STDLIB_H_INCLUDED
 /*

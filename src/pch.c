@@ -1634,7 +1634,8 @@ the current directory.
     /* If the current directory matches, check the directory associated
        with the primary source file. */
     result = compare_dir_names(ptr,
-                               directory_of(primary_source_file_name)) == 0;
+                               directory_of(primary_source_file_name),
+                               /*is_partial_file_name=*/FALSE) == 0;
     if (!result) {
       /* A mismatch of the primary source file is diagnosed as a command
 	 line option mismatch. */
