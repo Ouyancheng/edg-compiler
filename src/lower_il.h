@@ -491,6 +491,17 @@ extern a_cleanup_action_ptr alloc_cleanup_action(
                            a_boolean             applies_on_block_exit,
                            a_boolean             applies_on_exception_cleanup);
 
+extern void add_cleanup_action_to_context_list(
+                                        a_cleanup_action_ptr cap,
+                                        a_context_ptr        context,
+                                        an_insert_location   *insert_location);
+
+extern a_cleanup_action_ptr add_cleanup_action(
+                            a_cleanup_action_kind kind,
+                            a_boolean             applies_on_block_exit,
+                            a_boolean             applies_on_exception_cleanup,
+                            an_insert_location    *insert_location);
+
 extern void add_to_return_memo_list(a_statement_ptr return_stmt);
 
 extern void free_return_memo_list(a_return_memo_ptr rmp);
