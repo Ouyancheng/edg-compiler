@@ -681,6 +681,11 @@ built-in operators.  The start_error or equivalent has already been done.
       if (pattern[1] == '\0' || pattern[1] == ';') {
         /* Unary operator. */
         (void)sprintf(buf, "%s %s", opname, name_for_type_code(pattern[0]));
+      } else if (kind == (an_opname_kind)onk_subscript) {
+        /* Subscript -- funny because the operator surrounds the second
+           operand. */
+        (void)sprintf(buf, "%s[%s]", name_for_type_code(pattern[0]),
+                                        name_for_type_code(pattern[1]));
       } else {
         /* Binary operator. */
         (void)sprintf(buf, "%s %s %s", name_for_type_code(pattern[0]), opname,
@@ -3822,7 +3827,7 @@ static char *operand_type_pattern_for_operator(an_opname_kind kind,
 Return a string describing the argument type patterns permitted for the
 indicated operator (the unary version if unary_operator is TRUE).
 The argument string contains one or more possible patterns separated
-by semicolons, e.g., "AA;PI;IP"; each pattern has one letter (for
+by semicolons, e.g., "AA;Pi;iP"; each pattern has one letter (for
 unary operators) or two letters (for binary operators) giving the type
 code for the associated operand:
   I  Promoted integral
@@ -3835,7 +3840,7 @@ code for the associated operand:
   m  Corresponding pointer to member, when two pointer to member operands
      must match in type
 The first character of the overall string is "L" if the operator requires
-an lvalue as its first operand, e.g., "LAA;PI;IP".
+an lvalue as its first operand, e.g., "LAA;Pi;iP".
 */
 {
   char *operand_type_pattern;
@@ -3892,11 +3897,11 @@ an lvalue as its first operand, e.g., "LAA;PI;IP".
         break;
       case onk_plus:
         /* "+" takes arith+arith, pointer+int, or int+pointer. */
-        operand_type_pattern = "AA;PI;IP";
+        operand_type_pattern = "AA;Pi;iP";
         break;
       case onk_minus:
         /* "-" takes arith-arith, pointer-int, or pointer-pointer. */
-        operand_type_pattern = "AA;PI;pp";
+        operand_type_pattern = "AA;Pi;pp";
         break;
       case onk_lt:
       case onk_le:
@@ -3934,15 +3939,15 @@ an lvalue as its first operand, e.g., "LAA;PI;IP".
         break;
       case onk_plus_assign:
         /* "+=" takes arith+arith or pointer+int, the first an lvalue. */
-        operand_type_pattern = "LaA;PI";
+        operand_type_pattern = "LaA;Pi";
         break;
       case onk_minus_assign:
         /* "-=" takes arith-arith or pointer-int, the first an lvalue. */
-        operand_type_pattern = "LaA;PI";
+        operand_type_pattern = "LaA;Pi";
         break;
       case onk_subscript:
         /* "[]" takes pointer[int] or int[pointer]. */
-        operand_type_pattern = "PI;IP";
+        operand_type_pattern = "Pi;iP";
         break;
       case onk_plus_plus:
       case onk_minus_minus:
@@ -4000,12 +4005,14 @@ type_code.
 
 
 static an_arg_match_level builtin_type_operand_conversion_cost(
-                                                          char       type_code,
-                                                          an_operand *operand)
+                                                      char           type_code,
+                                                      an_opname_kind kind,
+                                                      an_operand     *operand)
 /*
 *operand is an operand for a builtin operation, whose type is constrained
-to be a type described by the indicated type code.  Return the conversion
-cost (exact match, promotion, etc.) for the operand.
+to be a type described by the indicated type code.  The operation is the
+builtin operator described by "kind".  Return the conversion cost (exact
+match, promotion, etc.) for the operand.
 */
 {
   an_arg_match_level match_level = aml_exact;
@@ -4013,6 +4020,12 @@ cost (exact match, promotion, etc.) for the operand.
   if (cfront_2_1_mode) {
     /* cfront 2.1 considers all matches like this for builtins to be standard
        conversions. */
+    match_level = aml_std_conversion;
+  } else if (cfront_3_0_mode && kind == (an_opname_kind)onk_subscript &&
+             type_code == INTEGRAL_TYPE_CODE) {
+    /* The subscript operator's integral operand is treated as a
+       standard conversion always in cfront 3.0.2.  Who knows why,
+       but this is used in jcool and tools.h++. */
     match_level = aml_std_conversion;
   } else {
     if (type_code == PROMOTED_INTEGRAL_TYPE_CODE ||
@@ -4035,6 +4048,7 @@ cost (exact match, promotion, etc.) for the operand.
 
 
 static void try_builtin_operands_match(
+                       an_opname_kind           kind,
                        char                     *operand_type_pattern,
                        an_arg_operand_ptr       arg_operand_list,
                        a_candidate_function_ptr *candidate_functions,
@@ -4045,13 +4059,14 @@ static void try_builtin_operands_match(
 Subroutine for try_conversions_for_builtin_operator.  Check to see how
 well the operand values given by arg_operand_list match the operand type
 pattern string given by operand_type_pattern.  If they match, add
-the built-in operator to the candidate_functions list.
-This is used for the case where the pattern string contains no corresponding
-pointer or pointer to member types, with pointer_type_pattern_position ==
-pointer_type == NULL, and with those set non-NULL for pattern strings
-containing corresponding pointer or pointer to member types types (they
-indicate the target pointer type to be used and, to allow a speed
-optimization, the pattern position which suggested that pointer type).
+the built-in operator to the candidate_functions list.  The operator
+being considered is described by "kind".  This is used for the case
+where the pattern string contains no corresponding pointer or pointer to
+member types, with pointer_type_pattern_position == pointer_type ==
+NULL, and with those set non-NULL for pattern strings containing
+corresponding pointer or pointer to member types types (they indicate
+the target pointer type to be used and, to allow a speed optimization,
+the pattern position which suggested that pointer type).
 ptr_to_member_case is TRUE for the pointer to member case.
 */
 {
@@ -4155,7 +4170,7 @@ ptr_to_member_case is TRUE for the pointer to member case.
           /* The type is correct.  See what the cost is (there might be
              a promotion). */
           arg_match->match_level =
-                   builtin_type_operand_conversion_cost(type_code,
+                   builtin_type_operand_conversion_cost(type_code, kind,
                                                         &arg_operand->operand);
         }  /* if */
       }  /* if */
@@ -4284,6 +4299,7 @@ if non-NULL, indicates the pointer type of a previous non-class operand.
 
 
 static void try_pointer_builtin_operands_match(
+                                an_opname_kind           kind,
                                 char                     *operand_type_pattern,
                                 an_arg_operand_ptr       arg_operand_list,
                                 a_candidate_function_ptr *candidate_functions)
@@ -4291,10 +4307,11 @@ static void try_pointer_builtin_operands_match(
 Subroutine for try_conversions_for_builtin_operator.  Check to see how
 well the operand values given by arg_operand_list match the operand type
 pattern string given by operand_type_pattern.  If they match, add
-the built-in operator to the candidate_functions list.  This is used for the
-case where the pattern string contains "pp", meaning two pointer operands
-that must have the same type, or "mm", meaning two pointer-to-member operands
-that must have the same type.
+the built-in operator to the candidate_functions list.  The operator being
+considered is described by "kind".  This is used for the case where the
+pattern string contains "pp", meaning two pointer operands that must
+have the same type, or "mm", meaning two pointer-to-member operands that
+must have the same type.
 */
 {
   an_arg_operand_ptr       arg_operand;
@@ -4357,7 +4374,7 @@ that must have the same type.
             /* Try matching the operands, with the chosen pointer type
                as the target type for operands that must be pointers. */
             any_ptr_conversion_function_this_operand = TRUE;
-            try_builtin_operands_match(operand_type_pattern,
+            try_builtin_operands_match(kind, operand_type_pattern,
                                        arg_operand_list,
                                        candidate_functions,
                                        type_pattern_position,
@@ -4390,7 +4407,7 @@ that must have the same type.
           previous_pointer_type_considered = pointer_type;
           /* Try matching the operands, with the chosen pointer type
              as the target type for operands that must be pointers. */
-          try_builtin_operands_match(operand_type_pattern,
+          try_builtin_operands_match(kind, operand_type_pattern,
                                      arg_operand_list,
                                      candidate_functions,
                                      type_pattern_position,
@@ -4427,9 +4444,8 @@ can be used, it is added to the candidate_functions list.
      are one or more semicolon-separated argument patterns, each one consisting
      of one letter (for unary operators) or two letters (for binary operators)
      indicating the allowed argument types.  As a concrete example, the
-     pattern for "-=" is "LAA;PI;pp", indicating that the operator requires
-     an lvalue and takes operands of types arith-arith, pointer-int, or
-     corresponding pointer-pointer. */
+     pattern for "-=" is "LaA;Pi", indicating that the operator requires
+     an lvalue and takes operands of types arith-arith or pointer-int. */
   operand_type_pattern = operand_type_pattern_for_operator(kind,
                                                            unary_operator);
   if (*operand_type_pattern == 'L') {
@@ -4460,12 +4476,12 @@ can be used, it is added to the candidate_functions list.
          This case is more complicated because it involves enumerating the
          pointer types that can be generated by the applicable conversion
          functions. */
-      try_pointer_builtin_operands_match(operand_type_pattern,
+      try_pointer_builtin_operands_match(kind, operand_type_pattern,
                                          arg_operand_list,
                                          candidate_functions);
     } else {
       /* There are no corresponding pointer types in the argument pattern. */
-      try_builtin_operands_match(operand_type_pattern,
+      try_builtin_operands_match(kind, operand_type_pattern,
                                  arg_operand_list,
                                  candidate_functions,
                                  (char *)NULL, (a_type_ptr)NULL,
