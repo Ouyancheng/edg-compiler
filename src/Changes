@@ -1,5 +1,14 @@
 Version 2.13
 
+1/18/93 Fixed pointer-to-member-function bug
+
+A bug has been fixed in representing the type of the implicit "this"
+parameter on the routine type entry in certain unusual cases where a type
+tree has more than one pointer-to-member type -- e.g., we now get the
+type right for pmf in the following:
+
+  void (A::* (B::* pmf))();
+
 1/15/93 Initialization of "empty" class objects
 
 A special case is made for the initialization of objects defined with the
