@@ -1,5 +1,16 @@
 Version 2.19
 
+8/10/93 Name mangling for float nontype arguments
+
+In name mangling for float nontype arguments, the names generated are
+now shorter (the trailing zero digits in the constant's representation
+have been removed from the mangled name).
+
+8/10/93 Operations allowed in nontype template arguments
+
+Casts and other operations on arbitrary arithmetic types are now allowed
+in nontype template arguments.  Pointer operations continue to be forbidden.
+
 8/10/93 TARG_HOST_STRING_CHAR_BIT
 
 We now provide limited support for configurations where the target
