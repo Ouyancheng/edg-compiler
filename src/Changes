@@ -1,5 +1,14 @@
 Version 3.5
 
+7/22/04  Embedded C: Named-register storage class on standalone class
+         definition
+
+The front end previously issued a warning if a named-register storage class
+was specified on a standalone class declaration.  Now a discretionary error
+is issued instead.  For example:
+
+  register _EDG_REG_1 struct S { int i; };  // Error.  (Previously: Warning.)
+
 7/22/04  Invalid suffixes on floating-point/fixed-point literals
 
 In modes accepting the Embedded C fixed-point literals, the front end

@@ -10717,27 +10717,30 @@ current scope.
 
 
 static a_boolean check_for_missing_declarator(
-                                    a_decl_flag_set   dso_flags,
-                                    a_type_ptr        type_ptr,
-                                    a_storage_class   storage_class,
-                                    a_boolean         is_old_style_param_decl,
-                                    a_boolean         is_linkage_spec_decl,
-                                    a_source_position *decl_start_pos,
-                                    a_boolean         decl_spec_err)
+                                  a_decl_flag_set      dso_flags,
+                                  a_type_ptr           type_ptr,
+                                  a_storage_class      storage_class,
+                                  a_named_register_id  register_id,
+                                  a_boolean            is_old_style_param_decl,
+                                  a_boolean            is_linkage_spec_decl,
+                                  a_source_position    *decl_start_pos,
+                                  a_boolean            decl_spec_err)
 /*
 The decl-specifiers have been scanned.  Check for the case in which a
 declarator is missing, in which case return TRUE after issuing appropriate
 diagnostics.  (It is not always an error -- for example, an "autonomous"
 class definition like "struct S { int i; };".)
 
-Three of the parameters relay information returned from decl_specifiers:
-dso_flags is a vector of flags, type_ptr is the type that was specified, and
-storage_class is the storage class specified.  is_old_style_param_decl is
-TRUE if a parameter declaration from a non-prototyped parameter list is
-being scanned.  is_linkage_spec_decl is TRUE if the declaration is part of a
-linkage-specification declaration.  decl_start_pos indicates the source
-position of the first token of the current declaration.  decl_spec_err is
-TRUE if an error was reported while the decl-specifiers were scanned.
+Four of the parameters relay information returned from decl_specifiers:
+dso_flags is a vector of flags, type_ptr is the type that was specified,
+storage_class is the storage class specified, and register_id is the
+named-register specified by any Embedded C named-register storage class.
+is_old_style_param_decl is TRUE if a parameter declaration from a non-
+prototyped parameter list is being scanned.  is_linkage_spec_decl is TRUE
+if the declaration is part of a linkage-specification declaration.
+decl_start_pos indicates the source position of the first token of the
+current declaration.  decl_spec_err is TRUE if an error was reported while
+the decl-specifiers were scanned.
 */
 {
   a_boolean          declarator_omitted = FALSE;
@@ -10841,10 +10844,12 @@ TRUE if an error was reported while the decl-specifiers were scanned.
           diagnostic(severity, ec_useless_decl);
         }  /* if */
         /* A storage class can only be specified for an object or a function
-           (ARM 7.1.1). */
+           (ARM 7.1.1).  For Embedded C we also issue a strict error if a
+           named-register storage class was specified. */
         if (storage_class != (a_storage_class)sc_unspecified) {
-          severity = (C_mode() || any_cfront_mode() || microsoft_mode) ?
-                       es_warning : es_discretionary_error;
+          severity = ((C_mode() && register_id == 0) ||
+                      any_cfront_mode() || microsoft_mode) ?
+                                           es_warning : es_discretionary_error;
           diagnostic(severity, ec_storage_class_requires_function_or_variable);
         }  /* if */
         /* ARM 7.1.6 implies that the absence of an object in this declaration
@@ -11463,7 +11468,7 @@ continue_with_declaration:
   /* The declaration can end at this point (";" is next). */
   if (!decl_specifiers_omitted &&
       check_for_missing_declarator(dso_flags, type_ptr, declared_storage_class,
-                                   is_old_style_param_decl,
+                                   register_id, is_old_style_param_decl,
                                    is_linkage_spec_decl,
                                    &decl_start_pos, err)) {
     if (curr_token != tok_semicolon) {
