@@ -5213,7 +5213,6 @@ Returns TRUE if there is an error in the specifiers.
   a_boolean                  microsoft_w64_seen = FALSE;
   a_source_position          microsoft_w64_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  an_ms_attribute_ptr        ms_attributes = NULL;
  
   db_enter(3, "decl_specifiers");
   *output_flags = DSO_NO_OUTPUT_FLAGS;
@@ -5230,11 +5229,6 @@ Returns TRUE if there is an error in the specifiers.
     decl_modifiers->marked_as_gnu_extension = TRUE;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && p_ms_attributes != NULL) {
-    ms_attributes = *p_ms_attributes;
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   decl_specifiers_seen = DS_NONE;
   type_specifier_allowed = (input_flags & DSI_TYPE_SPECIFIER_ALLOWED);
   vacuous_decl_allowed = (input_flags & DSI_VACUOUS_TAG_DECL_ALLOWED) != 0;
@@ -6109,7 +6103,7 @@ process_class_specifier:
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
                           marked_as_gnu_extension, decl_modifiers,
-                          &ms_attributes, type_ptr, &declares_something,
+                          p_ms_attributes, type_ptr, &declares_something,
                           &defines_something, decl_pos_block)) {
                 err = TRUE;
               }  /* if */
@@ -6148,7 +6142,7 @@ process_class_specifier:
             if (any_decl_specifiers_seen || strict_ansi_mode) {
               vacuous_decl_allowed = FALSE;
             }  /* if */
-            enum_specifier(vacuous_decl_allowed, type_ptr, &ms_attributes,
+            enum_specifier(vacuous_decl_allowed, type_ptr, p_ms_attributes,
                            &declares_something, &defines_something,
                            decl_pos_block);
             if (is_error_type(*type_ptr)) {
