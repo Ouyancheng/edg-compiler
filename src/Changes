@@ -1,5 +1,10 @@
 Version 2.29
 
+4/26/95  Discretionary nonstandard errors
+
+The errors for a nonstandard preprocessing directive and the nonstandard
+comma at the end of an enumerator list have been made discretionary errors.
+
 4/25/95  Typeinfo base class lists
 
 The base class lists on typeinfo information (used for exception handling

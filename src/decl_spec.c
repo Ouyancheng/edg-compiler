@@ -1211,7 +1211,7 @@ to indicate whether an enumeration is actually defined.
           done = TRUE;
           if (C_dialect != C_dialect_pcc) {
             an_error_severity    severity;
-            severity = strict_ansi_mode ? strict_ansi_error_severity :
+            severity = strict_ansi_mode ? strict_ansi_discretionary_severity :
                                           es_remark;
             pos_diagnostic(severity, ec_nonstd_extra_comma, &pos_comma);
           }  /* if */

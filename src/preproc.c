@@ -190,7 +190,7 @@ Issue a diagnostic for a use of a nonstandard preprocessing directive.
 */
 {
   if (strict_ansi_mode) {
-    diagnostic(strict_ansi_error_severity, ec_nonstd_pp_directive);
+    diagnostic(strict_ansi_discretionary_severity, ec_nonstd_pp_directive);
   }  /* if */
 }  /* nonstandard_pp_directive */
 
