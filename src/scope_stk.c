@@ -4412,18 +4412,21 @@ thrown away by the caller.
       clean_up_all_object_lifetimes(scope);
     }  /* if */
 #endif /* DO_IL_LOWERING */
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-    if (!will_discard_function_body) {
-      /* If a function or block scope has local types or static variables,
-         make a special entry to record those orphan lists on the il_header
-         scope_orphaned_list_headers list so they can be found when
-         processing the file scope memory region.  Note that processing
-         for block scopes is done at the end of the function scope to give
-         IL lowering a chance to add variables and types in block scopes. */
-      add_scope_orphaned_il_lists(scope);
-    }  /* if */
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   }  /* if */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  if (!will_discard_function_body) {
+    /* If a function or block scope has local types or static variables,
+       make a special entry to record those orphan lists on the il_header
+       scope_orphaned_list_headers list so they can be found when
+       processing the file scope memory region.  Note that processing
+       for block scopes is done at the end of the function scope to give
+       IL lowering a chance to add variables and types in block scopes.
+       Also note that for functions in secondary translation units
+       the list are generated anew after the function body is (lowered
+       and) moved over, rather than copying the lists. */
+    add_scope_orphaned_il_lists(scope);
+  }  /* if */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
     /* Clear out the shareable constants table for the function scope. */
     empty_func_shareable_constants_table();

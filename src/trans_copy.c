@@ -1047,25 +1047,6 @@ Do merging of the il_header of the current secondary translation unit
 into the primary translation unit il_header.
 */
 {
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  if (il_header.scope_orphaned_list_headers != NULL) {
-    /* Add the scope orphaned list headers from "scope" to the end of the
-       scope orphaned list headers list of "primary scope". */
-    a_scope_orphaned_list_header_ptr copied_solhps =
-               (a_scope_orphaned_list_header_ptr)canonical_il_entry_of(
-                                        il_header.scope_orphaned_list_headers);
-    a_scope_orphaned_list_header_ptr last_solhp =
-                            translation_units->last_scope_orphaned_list_header;
-    if (last_solhp == NULL) {
-     translation_units->il_header.scope_orphaned_list_headers = copied_solhps;
-    } else {
-      last_solhp->next = copied_solhps;
-    }  /* if */
-    last_solhp = copied_solhps;
-    while (last_solhp->next != NULL) last_solhp = last_solhp->next;
-    translation_units->last_scope_orphaned_list_header = last_solhp;
-  }  /* if */
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   if (il_header.main_routine != NULL) {
     /* "main" is defined in the secondary translation unit.  Indicate
        that it is now defined in the primary translation unit. */
