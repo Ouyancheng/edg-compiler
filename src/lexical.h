@@ -550,6 +550,13 @@ EXTERN a_constant
 		const_for_curr_token;
 			/* If the current token is a literal constant,
 			   this is its value. */
+EXTERN an_error_code
+		err_code_for_error_token;
+			/* If the current token is tok_error, this is the
+			   error code that applies to the error.  This is
+			   useful if the token was fetched with fetch_pp_tokens
+			   TRUE, since no diagnostic was put out in that
+			   case. */
 
 /*
 The stop token array: If a syntactic error occurs, flush_tokens

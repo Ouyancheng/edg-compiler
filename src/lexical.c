@@ -2944,24 +2944,24 @@ constant_accumulated:
 }  /* scan_number */
 
 
-static void accum_quoted_string(a_boolean may_have_zero_characters,
-                                a_boolean is_header_name,
-                                long      *num_chars,
-                                a_boolean *err)
+static a_token_kind accum_quoted_string(a_token_kind ctoken,
+                                        long         *num_chars,
+                                        a_boolean    *err)
 /*
-Scan a quoted construct.  The initial quote is at curr_char_loc.  Scan to
-the matching closing quote, and do not be confused by escaped characters.
-Return in *num_chars the actual number of characters (after escape
-processing) contained within the quotes.  may_have_zero_characters
-is TRUE if the entity is allowed to have zero characters between the
-quotes.  is_header_name is TRUE if the entity is a header name (file name
-specification for a #include).
-This routine is used for character constants and string literals, in
-both the "wide" and normal forms, and for header names in #include
-directives.  *err is returned TRUE if there was an error.
+Scan a quoted construct, of kind indicated by ctoken.  The initial quote
+is at curr_char_loc.  Scan to the matching closing quote, and do not be
+confused by escaped characters.  Return in *num_chars the actual number
+of characters (after escape processing) contained within the quotes.
+Return *err TRUE if there was an error.  The value of the function is
+ctoken usually, but tok_error if there was an error and fetch_pp_tokens
+is TRUE.  This routine is used for character constants and string literals,
+in both the "wide" and normal forms, and for header names in #include
+directives.
 */
 {
   register char quoting_char, ch;
+  a_boolean     may_have_zero_characters = (ctoken == tok_string_literal);
+  a_boolean     is_header_name = (ctoken == tok_header_name);
 
   *err = FALSE;
   *num_chars = 0;
@@ -3000,9 +3000,12 @@ directives.  *err is returned TRUE if there was an error.
          several adjacent preprocessing tokens when macro expansion is
          involved (see 3.8.2).  The end-of-token markers are removed when the
          file name is constructed later (see proc_include). */
-      if (!fetch_pp_tokens) {
-        /* Message is generic -- "Missing closing quote". */
-        error_at_line_pos(ec_unclosed_string, start_of_curr_token);
+      /* Message is generic -- "Missing closing quote". */
+      err_code_for_error_token = ec_unclosed_string;
+      if (fetch_pp_tokens) {
+        ctoken = tok_error;
+      } else {
+        error_at_line_pos(err_code_for_error_token, start_of_curr_token);
       }  /* if */
       *err = TRUE;
       goto return_point;
@@ -3012,13 +3015,17 @@ directives.  *err is returned TRUE if there was an error.
   curr_char_loc++;
   if (*num_chars == 0 && !may_have_zero_characters) {
     /* Error -- The string may not have zero characters. */
-    if (!fetch_pp_tokens) {
-      error_at_line_pos(ec_zero_length_string, start_of_curr_token);
+    err_code_for_error_token = ec_zero_length_string;
+    if (fetch_pp_tokens) {
+      ctoken = tok_error;
+    } else {
+      error_at_line_pos(err_code_for_error_token, start_of_curr_token);
     }  /* if */
     *err = TRUE;
   }  /* if */
 return_point:
   end_of_curr_token = curr_char_loc - 1;
+  return ctoken;
 }  /* accum_quoted_string */
 
 
@@ -3033,13 +3040,8 @@ Scan a character constant token, return the token kind or tok_error.
   an_error_code err_code;
   char          *err_pos;
 
-  accum_quoted_string(/*may_have_zero_characters=*/FALSE,
-                      /*is_header_name=*/FALSE, &num_chars, &err);
-  ctoken = tok_char_constant;
-  if (fetch_pp_tokens) {
-    /* Raw tokens wanted, constant is not converted. */
-    if (err) ctoken = tok_error;
-  } else {
+  ctoken = accum_quoted_string(tok_char_constant, &num_chars, &err);
+  if (!fetch_pp_tokens) {
     /* Convert the constant to internal form. */
     if (err) {
       set_error_constant(&const_for_curr_token);
@@ -3048,11 +3050,10 @@ Scan a character constant token, return the token kind or tok_error.
       /* Check for errors detected. */
       if (err_code != ec_no_error) {
         error_at_line_pos(err_code, err_pos);
-        err = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
-  return(ctoken);
+  return ctoken;
 }  /* scan_char_constant */
 
 
@@ -3063,18 +3064,12 @@ Scan a string literal token, return the token kind or tok_error.
 {
   a_token_kind  ctoken;
   a_boolean     err;
+  long          num_chars;
   an_error_code err_code;
   char          *err_pos;
-  long          num_chars;
 
-  accum_quoted_string(/*may_have_zero_characters=*/TRUE,
-                      /*is_header_name=*/FALSE,
-                      &num_chars, &err);
-  ctoken = tok_string_literal;
-  if (fetch_pp_tokens) {
-    /* Raw tokens wanted, constant is not converted. */
-    if (err) ctoken = tok_error;
-  } else {
+  ctoken = accum_quoted_string(tok_string_literal, &num_chars, &err);
+  if (!fetch_pp_tokens) {
     /* Convert the constant to internal form. */
     if (err) {
       set_error_constant(&const_for_curr_token);
@@ -3083,11 +3078,10 @@ Scan a string literal token, return the token kind or tok_error.
       /* Check for errors detected. */
       if (err_code != ec_no_error) {
         error_at_line_pos(err_code, err_pos);
-        err = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
-  return(ctoken);
+  return ctoken;
 }  /* scan_string_literal */
 
 
@@ -3250,6 +3244,11 @@ will be processed normally.
 If cached_token_rescan_list is non-NULL, it points to a list of cached
 tokens which are to be rescanned; the first token on that list is removed
 and returned.
+
+In the case where an invalid token is scanned, tok_error is returned
+and err_code_for_error_token is set to indicate a diagnostic that
+describes the error.  Except when fetch_pp_tokens is TRUE, the error
+will have been issued by get_token.
 
 This routine is called an enormous number of times, and therefore has
 been written to be as fast as possible.  Structure has been sacrificed
@@ -3470,13 +3469,7 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       /* One of "<<", "<<=", "<=", or "<".  If exp_header_name is
          TRUE, a header name of the form <filename>. */
       if (exp_header_name) {
-        accum_quoted_string(/*may_have_zero_characters=*/FALSE,
-                            /*is_header_name=*/TRUE, &num_chars, &err);
-        if (err) {
-          ctoken = tok_error;
-        } else {
-          ctoken = tok_header_name;
-        }  /* if */
+        ctoken = accum_quoted_string(tok_header_name, &num_chars, &err);
         goto end_of_token_scan;
       } else if ((ch = *(curr_char_loc+1)) == '<') {
         if (*(curr_char_loc+2) == '=') {
@@ -3746,13 +3739,7 @@ end_id_scan:
         /* If in a preprocessing directive, and exp_header_name is
            TRUE, the string should be scanned as a header name (file
            name on a #include). */
-        accum_quoted_string(/*may_have_zero_characters=*/FALSE,
-                            /*is_header_name=*/TRUE, &num_chars, &err);
-        if (err) {
-          ctoken = tok_error;
-        } else {
-          ctoken = tok_header_name;
-        }  /* if */
+        ctoken = accum_quoted_string(tok_header_name, &num_chars, &err);
         goto end_of_token_scan;
       } else {
         /* Scan as a string literal, not a header name.  We could still
@@ -3806,16 +3793,18 @@ end_id_scan:
       } else {
         /* "#" outside of a preprocessing directive, and not at the start of a
            line; don't know what it means. */
+        err_code_for_error_token = ec_bad_use_of_sharp;
         if (!fetch_pp_tokens) {
-          error_at_line_pos(ec_bad_use_of_sharp, start_of_curr_token);
+          error_at_line_pos(err_code_for_error_token, start_of_curr_token);
         }  /* if */
         ctoken = tok_error;
       }  /* if */
       break;
     default:
       /* Something else, an error. */
+      err_code_for_error_token = ec_bad_token;
       if (!fetch_pp_tokens) {
-        error_at_line_pos(ec_bad_token, start_of_curr_token);
+        error_at_line_pos(err_code_for_error_token, start_of_curr_token);
       }  /* if */
       ctoken = tok_error;
   }  /* switch */

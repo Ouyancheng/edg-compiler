@@ -1647,7 +1647,7 @@ end_scan_for_macro_modifs:;
             if (C_dialect != C_dialect_pcc) need_end_of_token_marker = TRUE;
             /* Generate a warning on an invalid token. */
             if (curr_token == tok_error) {
-              warning(ec_bad_token);
+              warning(err_code_for_error_token);
             }  /* if */
             (void)arg_get_token(&any_white_space_skipped);
           }  /* while */
@@ -2582,7 +2582,7 @@ Scan and process a #define directive.
              inside a string because of looking for parameter names; the
              things inside the string aren't expected to be legal tokens. */
           if (curr_token == tok_error && end_of_cpp_string == NULL) {
-            warning(ec_bad_token);
+            warning(err_code_for_error_token);
           }  /* if */
           (void)mdefn_get_token(param_list, &param_num,
                                 &any_white_space_skipped);
