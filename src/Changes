@@ -1,5 +1,16 @@
 Version 2.44
 
+7/30/00  C++-generating back end: Abort on type declaration within cast
+         in C+ mode
+
+The C++-generating back end aborted on a declaration of a type within
+a cast in C++ mode.  Now fixed.
+
+  void f() {
+    (class A*)0;
+    0;
+  }
+
 7/29/00  C++-generating back end: Abort on pointer-to-member of class
          from unnamed namespace
 

@@ -1138,7 +1138,8 @@ expression, e.g.,
   i = f();
 
 Also skip macros and other preprocessing directives that precede such
-declarations.
+declarations.  In C++, there are no implicit function declarations,
+but skip non-autonomous type declarations.
 */
 {
   a_type_ptr                   type;
@@ -1146,39 +1147,38 @@ declarations.
   a_boolean                    is_definition, found_decl, is_routine;
   a_routine_ptr                rout;
 
-  if (il_header.source_language == sl_C) {
-    for (; curr_source_sequence_entry != NULL;) {
-      a_source_sequence_scan_state saved_state;
-      save_source_sequence_scan_state(&saved_state);
-      /* Skip past macros, etc.  We come back and process these entries if
-         there's actually a declaration following them. */
-      advance_past_preprocessing_directives();
-      found_decl = is_routine = FALSE;
-      if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
-        /* An autonomous type declaration stops the scan. */
-        if (!is_autonomous_decl(type, sec_decl)) found_decl = TRUE;
-      } else if (curr_src_seq_entry_is_routine_decl(&rout, &sec_decl) &&
-                 sec_decl != NULL && sec_decl->implicit_decl) {
-        /* An implicit declaration of a function. */
-        found_decl = is_routine = TRUE;
-      }  /* if */
-      /* Go back to before any preprocessing entries skipped. */
-      restore_source_sequence_scan_state(&saved_state);
-      /* Stop looping if an embedded declaration was not found. */
-      if (!found_decl) break;
-      (void)process_preprocessing_directives();
-      if (!is_routine) {
-        /* A non-autonomous type declaration (e.g., a type declared in
-           a cast in an expression).  Skip it and mark it for later
-           processing. */
-        skip_type_and_delay_definition(type, sec_decl, is_definition);
-      } else {
-        /* An implicit declaration of a function.  Ignore the source
-           sequence entry. */
-        adv_curr_source_sequence_entry();
-      }  /* if */
-    }  /* for */
-  }  /* if */
+  for (; curr_source_sequence_entry != NULL;) {
+    a_source_sequence_scan_state saved_state;
+    save_source_sequence_scan_state(&saved_state);
+    /* Skip past macros, etc.  We come back and process these entries if
+       there's actually a declaration following them. */
+    advance_past_preprocessing_directives();
+    found_decl = is_routine = FALSE;
+    if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
+      /* An autonomous type declaration stops the scan. */
+      if (!is_autonomous_decl(type, sec_decl)) found_decl = TRUE;
+    } else if (C_mode() &&
+               curr_src_seq_entry_is_routine_decl(&rout, &sec_decl) &&
+               sec_decl != NULL && sec_decl->implicit_decl) {
+      /* An implicit declaration of a function. */
+      found_decl = is_routine = TRUE;
+    }  /* if */
+    /* Go back to before any preprocessing entries skipped. */
+    restore_source_sequence_scan_state(&saved_state);
+    /* Stop looping if an embedded declaration was not found. */
+    if (!found_decl) break;
+    (void)process_preprocessing_directives();
+    if (!is_routine) {
+      /* A non-autonomous type declaration (e.g., a type declared in
+         a cast in an expression).  Skip it and mark it for later
+         processing. */
+      skip_type_and_delay_definition(type, sec_decl, is_definition);
+    } else {
+      /* An implicit declaration of a function.  Ignore the source
+         sequence entry. */
+      adv_curr_source_sequence_entry();
+    }  /* if */
+  }  /* for */
 }  /* skip_embedded_declarations */
 
 
@@ -5993,8 +5993,7 @@ Generate code for the indicated expression, which is a full expression
 (it's not part of another expression).
 */
 {
-  /* For C, process any tags declared within the expression (e.g., in
-     casts). */
+  /* Process any tags declared within the expression (e.g., in casts). */
   skip_embedded_declarations();
   gen_expression(expr);
 }  /* gen_full_expression */
@@ -6007,8 +6006,7 @@ of a statement or short-circuit operator, and also a full expression
 (it's not part of another expression).
 */
 {
-  /* For C, process any tags declared within the expression (e.g., in
-     casts). */
+  /* Process any tags declared within the expression (e.g., in casts). */
   skip_embedded_declarations();
   gen_expression(expr);
 }  /* gen_full_boolean_controlling_expression */
@@ -7227,7 +7225,7 @@ Generate code for the indicated statement.
           } else if (statement->expr != NULL) {
             /* Return with an expression. */
             write_space();
-            /* For C, process any tags declared within the expression
+            /* Process any tags declared within the expression
                (e.g., in casts). */
             skip_embedded_declarations();
             gen_initializer_expr(statement->expr, return_type,
@@ -7479,8 +7477,7 @@ Note that the destructor, if any, is implicit and need not be put out.
       break;
     case dik_expression:
       /* Expression. */
-      /* For C, process any tags declared within the expression (e.g., in
-         casts). */
+      /* Process any tags declared within the expression (e.g., in casts). */
       skip_embedded_declarations();
       /* Parentheses are required (a) if parenthesized_init is TRUE, and
          (b) if parenthesized_init is FALSE, because of the possibility that
