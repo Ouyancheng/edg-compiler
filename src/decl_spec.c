@@ -2140,7 +2140,6 @@ Returns TRUE if there is an error in the specifiers.
         if (*qualifiers & TQ_UNALIGNED) {
           /* __unaligned may not appear more than once. */
           warning(ec_dupl_type_qualifier);
-          if (es == es_error) err = TRUE;
         } else {
           non_restrict_qualifier_pos = pos_curr_token;
           *qualifiers |= TQ_UNALIGNED;
