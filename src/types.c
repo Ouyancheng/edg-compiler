@@ -14,16 +14,18 @@ types.c -- Utility routines that check types.
 */
 
 #include "basics.h"
+#include "types.h"
 #include "il.h"
 #include "error.h"
+#if !STANDALONE_UTILITY_PROGRAM
 #include "target.h"
-#include "types.h"
 #include "symbol_tbl.h"
 #include "cmd_line.h"
 #include "mem_manage.h"
 #include "folding.h"
 #include "const_ints.h"
 #include "templates.h"
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /*
 Macros defining some basic classes of types (see 3.1.2.5).  Defined as
@@ -397,50 +399,6 @@ Return TRUE if the given type is a union type.
   return is_union(tp);
 }  /* is_union_type */
 
-
-a_boolean is_abstract_class_type(a_type_ptr  tp)
-/*
-Return TRUE if tp is a class/struct/union type for which the abstract
-flag is set to TRUE.  Also return TRUE if tp is an uninstantiated template
-class for which the flag will be set when it is instantiated.
-*/
-{
-  a_boolean  is_abstract = FALSE;
-
-  if (!C_mode()) {
-    tp = skip_typerefs(tp);
-    if (is_class_struct_union(tp)) {
-      if (tp->variant.class_struct_union.abstract) {
-        is_abstract = TRUE;
-      } else if (is_incomplete(tp) &&
-                 tp->variant.class_struct_union.extra_info->
-                                                template_arg_list != NULL) {
-        /* This is an uninstantiated template class.  If the template is
-           abstract, then so will this instance of it be. */
-        a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
-        a_symbol_ptr                   prototype_sym;
-
-        if (!cssp->is_specific_template_def) {
-          /* This is not a specific definition, so this instance will be based
-             on the template.  To get from here to the type created for the
-             prototype instantiation indirect through the template symbol to
-             its supplement to the symbol representing the prototype
-             instantiation to the type. */
-          prototype_sym = cssp->class_template->variant.template_info->
-                               variant.class_template.prototype_instantiation;
-          if (prototype_sym == NULL) {
-            /* Class template has not yet been defined. */
-          } else if (prototype_sym->variant.class_struct_union.type->
-                                        variant.class_struct_union.abstract) {
-            is_abstract = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return is_abstract;
-}  /* is_abstract_class_type */
-
       
 a_boolean is_aggregate_or_union_type(a_type_ptr tp)
 /*
@@ -575,6 +533,28 @@ pm_type is a pointer-to-member type.  Return the class type pointed to.
 }  /* pm_class_type */
 
 
+a_boolean is_immediate_type_qualifier(a_type_ptr type)
+/*
+Return TRUE if the type pointed to is a tk_typeref that indicates type
+qualification.
+*/
+{
+  a_boolean is_type_qual = FALSE;
+
+  if (type->kind == (a_type_kind)tk_typeref) {
+    /* Ignore typedefs, and typerefs that do nothing. */
+    if (type->source_corresp.name == NULL &&
+        (type->variant.typeref.is_const ||
+         type->variant.typeref.is_volatile)) {
+      /* This is a type qualifier. */
+      is_type_qual = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_type_qual;
+}  /* is_immediate_type_qualifier */
+
+#if !STANDALONE_UTILITY_PROGRAM
+
 a_boolean f_is_const_qualified_type(a_type_ptr tp,
                                     a_boolean  top_level)
 /*
@@ -666,6 +646,50 @@ should be used instead of calling this routine directly.
   }  /* for */
   return(is_qualified);
 }  /* f_is_qualified_type */
+
+
+a_boolean is_abstract_class_type(a_type_ptr  tp)
+/*
+Return TRUE if tp is a class/struct/union type for which the abstract
+flag is set to TRUE.  Also return TRUE if tp is an uninstantiated template
+class for which the flag will be set when it is instantiated.
+*/
+{
+  a_boolean  is_abstract = FALSE;
+
+  if (!C_mode()) {
+    tp = skip_typerefs(tp);
+    if (is_class_struct_union(tp)) {
+      if (tp->variant.class_struct_union.abstract) {
+        is_abstract = TRUE;
+      } else if (is_incomplete(tp) &&
+                 tp->variant.class_struct_union.extra_info->
+                                                template_arg_list != NULL) {
+        /* This is an uninstantiated template class.  If the template is
+           abstract, then so will this instance of it be. */
+        a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
+        a_symbol_ptr                   prototype_sym;
+
+        if (!cssp->is_specific_template_def) {
+          /* This is not a specific definition, so this instance will be based
+             on the template.  To get from here to the type created for the
+             prototype instantiation indirect through the template symbol to
+             its supplement to the symbol representing the prototype
+             instantiation to the type. */
+          prototype_sym = cssp->class_template->variant.template_info->
+                               variant.class_template.prototype_instantiation;
+          if (prototype_sym == NULL) {
+            /* Class template has not yet been defined. */
+          } else if (prototype_sym->variant.class_struct_union.type->
+                                        variant.class_struct_union.abstract) {
+            is_abstract = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_abstract;
+}  /* is_abstract_class_type */
 
 
 a_base_class_ptr find_base_class_of(a_type_ptr derived_class,
@@ -1182,7 +1206,6 @@ array_type.
   }  /* if */
   db_exit();
 }  /* set_array_type_size */
-
 
 
 void set_type_size(a_type_ptr type_ptr)
@@ -4521,6 +4544,9 @@ the original type.
   return traverse_and_modify_type_tree(type, tmtt_strip_local_typedef,
                                        TTT_NO_INPUT_FLAGS);
 }  /* strip_local_typedefs */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *
