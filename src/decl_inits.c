@@ -27,9 +27,9 @@ decl_inits.c -- Scanning of initializers in declarations.
 /* Additional header files. */
 #include "expr.h"
 #include "statements.h"
-#if DO_IL_LOWERING
+#if MICROSOFT_EXTENSIONS_ALLOWED && DO_IL_LOWERING
 #include "lower_init.h"
-#endif /* DO_IL_LOWERING */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && DO_IL_LOWERING */
 
 
 #define array_element_count(array_type, elem_type)                      \
