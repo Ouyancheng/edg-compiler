@@ -902,16 +902,17 @@ end_of_routine:
 
 
 static char *demangle_type_first_part(char       *ptr,
-                                      a_boolean  need_paren,
+                                      a_boolean  under_lhs_declarator,
                                       a_boolean  need_trailing_space)
 /*
 Demangle the type at ptr and output the specifier part and the part of the
 declarator that precedes the name.  Return a pointer to the character
-position following what was demangled.  If need_paren is TRUE, put a left
-parenthesis at the end of the first half of the declarator.
-If need_trailing_space is TRUE, put a space at the end of the specifiers
-part (needed if the declarator part is not empty, because it contains a
-name or a derived type).
+position following what was demangled.  If under_lhs_declarator is TRUE,
+this type is directly under a type that uses a left-side declarator,
+e.g., a pointer type.  (That's used to control use of parentheses around
+parts of the declarator.)  If need_trailing_space is TRUE, put a space
+at the end of the specifiers part (needed if the declarator part is
+not empty, because it contains a name or a derived type).
 */
 {
   char *p = ptr, *qualp = p;
@@ -922,7 +923,7 @@ name or a derived type).
   kind = *p;
   if (kind == 'P' || kind == 'R') {
     /* Pointer or reference type, e.g., "Pc" is pointer to char. */
-    p = demangle_type_first_part(p+1, /*need_paren=*/TRUE,
+    p = demangle_type_first_part(p+1, /*under_lhs_declarator=*/TRUE,
                                  /*need_trailing_space=*/TRUE);
     /* Output "*" or "&" for pointer or reference. */
     if (kind == 'R') {
@@ -932,7 +933,6 @@ name or a derived type).
     }  /* if */
     /* Output the type qualifiers on the pointer, if any. */
     (void)demangle_type_qualifiers(qualp);
-    if (need_paren) write_id_ch('(');
   } else if (kind == 'M') {
     /* Pointer-to-member type, e.g., "M1Ai" is pointer to member of A of
        type int. */
@@ -941,14 +941,13 @@ name or a derived type).
     suppress_id_output++;
     p = demangle_type_name(classp, /*base_name_only=*/FALSE);
     suppress_id_output--;
-    p = demangle_type_first_part(p, /*need_paren=*/TRUE,
+    p = demangle_type_first_part(p, /*under_lhs_declarator=*/TRUE,
                                  /*need_trailing_space=*/TRUE);
     /* Output Classname::*. */
     (void)demangle_type_name(classp, /*base_name_only=*/FALSE);
     write_id_str("::*");
     /* Output the type qualifiers on the pointer, if any. */
     (void)demangle_type_qualifiers(qualp);
-    if (need_paren) write_id_ch('(');
   } else if (kind == 'F') {
     /* Function type, e.g., "Fii_f" is function(int, int) returning float.
        The return type is not present for top-level function types. */
@@ -958,19 +957,23 @@ name or a derived type).
     suppress_id_output--;
     if (*p == '_') {
       /* The return type is present. */
-      p = demangle_type_first_part(p+1, /*need_paren=*/TRUE,
+      p = demangle_type_first_part(p+1, /*under_lhs_declarator=*/FALSE,
                                    /*need_trailing_space=*/TRUE);
     }  /* if */
-    if (need_paren) write_id_ch('(');
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) write_id_ch('(');
   } else if (kind == 'A') {
     /* Array type, e.g., "A10_i" is array[10] of int. */
     p++;
     /* Skip the array size. */
     while (isdigit(*p)) p++;
     p = advance_past_underscore(p);
-    p = demangle_type_first_part(p, /*need_paren=*/TRUE,
+    p = demangle_type_first_part(p, /*under_lhs_declarator=*/FALSE,
                                  /*need_trailing_space=*/TRUE);
-    if (need_paren) write_id_ch('(');
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) write_id_ch('(');
   } else {
     /* No declarator part to process.  Handle the specifier type. */
     p = demangle_type_specifier(qualp);
@@ -981,12 +984,13 @@ name or a derived type).
 
 
 static char *demangle_type_second_part(char       *ptr,
-                                       a_boolean  need_paren)
+                                       a_boolean  under_lhs_declarator)
 /*
 Demangle the type at ptr and output the part of the declarator that follows the
 name.  Return a pointer to the character position following what was demangled.
-If need_paren is TRUE, put a closing parenthesis out first if anything is
-generated.
+If under_lhs_declarator is TRUE, this type is directly under a type that
+uses a left-side declarator, e.g., a pointer type.  (That's used to control
+use of parentheses around parts of the declarator.)
 */
 {
   char *p = ptr, *qualp = p;
@@ -997,21 +1001,21 @@ generated.
   kind = *p;
   if (kind == 'P' || kind == 'R') {
     /* Pointer or reference type, e.g., "Pc" is pointer to char. */
-    if (need_paren) write_id_ch(')');
-    p = demangle_type_second_part(p+1, /*need_paren=*/TRUE);
+    p = demangle_type_second_part(p+1, /*under_lhs_declarator=*/TRUE);
   } else if (kind == 'M') {
     /* Pointer-to-member type, e.g., "M1Ai" is pointer to member of A of
        type int. */
-    if (need_paren) write_id_ch(')');
     /* Advance over the class name. */
     suppress_id_output++;
     p = demangle_type_name(p+1, /*base_name_only=*/FALSE);
     suppress_id_output--;
-    p = demangle_type_second_part(p, /*need_paren=*/TRUE);
+    p = demangle_type_second_part(p, /*under_lhs_declarator=*/TRUE);
   } else if (kind == 'F') {
     /* Function type, e.g., "Fii_f" is function(int, int) returning float.
        The return type is not present for top-level function types. */
-    if (need_paren) write_id_ch(')');
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) write_id_ch(')');
     /* Put out the parameter types. */
     p = demangle_function_parameters(p+1);
     /* Put out any cv-qualifiers (member functions). */
@@ -1026,11 +1030,13 @@ generated.
     }  /* if */
     if (*p == '_') {
       /* Process the return type. */
-      p = demangle_type_second_part(p+1, /*need_paren=*/TRUE);
+      p = demangle_type_second_part(p+1, /*under_lhs_declarator=*/FALSE);
     }  /* if */
   } else if (kind == 'A') {
     /* Array type, e.g., "A10_i" is array[10] of int. */
-    if (need_paren) write_id_ch(')');
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) write_id_ch(')');
     write_id_ch('[');
     p++;
     if (*p == '0' && p[1] == '_') {
@@ -1043,7 +1049,7 @@ generated.
     p = advance_past_underscore(p);
     write_id_ch(']');
     /* Process the element type. */
-    p = demangle_type_second_part(p, /*need_paren=*/TRUE);
+    p = demangle_type_second_part(p, /*under_lhs_declarator=*/FALSE);
   } else {
     /* No declarator part to process.  Skip the specifier type. */
     suppress_id_output++;
@@ -1063,10 +1069,10 @@ the character position following what was demangled.
   char *p;
 
   /* Generate the specifier part of the type. */
-  (void)demangle_type_first_part(ptr, /*need_paren=*/FALSE,
+  (void)demangle_type_first_part(ptr, /*under_lhs_declarator=*/FALSE,
                                  /*need_trailing_space=*/FALSE);
   /* Generate the declarator part of the type. */
-  p = demangle_type_second_part(ptr, /*need_paren=*/FALSE);
+  p = demangle_type_second_part(ptr, /*under_lhs_declarator=*/FALSE);
   return p;
 }  /* demangle_type */
 
@@ -1134,12 +1140,13 @@ a pointer to the character position following what was demangled.
       /* "S" here means a static member function (ignore). */
       if (*end_ptr == 'S') end_ptr++;
       /* Write the specifier part of the type. */
-      demangle_type_first_part(end_ptr, /*need_paren=*/FALSE,
+      demangle_type_first_part(end_ptr, /*under_lhs_declarator=*/FALSE,
                                /*need_trailing_space=*/TRUE);
       /* Write the name of the function. */
       (void)demangle_name(origname, (unsigned long)0, mname);
       /* Write the declarator part of the type. */
-      end_ptr = demangle_type_second_part(end_ptr, /*need_paren=*/FALSE);
+      end_ptr = demangle_type_second_part(end_ptr,
+                                          /*under_lhs_declarator=*/FALSE);
     }  /* if */
   }  /* if */
 end_of_routine:
