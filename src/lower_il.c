@@ -3941,24 +3941,12 @@ the complete virtual function table for class_type; otherwise it is a
 construction virtual function table.
 */
 {
-  a_type_ptr                  base_class_type;
-  a_class_type_supplement_ptr ctsp;
   a_virtual_table_index       index;
 
   if (is_complete && bcp != NULL && bcp->shares_virtual_function_info) {
     bcp = find_base_sharing_virtual_function_table(bcp);
   }  /* if */
-  if (bcp != NULL) {
-    base_class_type = bcp->type;
-  } else {
-    base_class_type = class_type;
-  }  /* if */
-  ctsp = base_class_type->variant.class_struct_union.extra_info;
-  if (bcp != NULL && emit_vcall_offsets_in_virtual_function_table(bcp)) {
-    index = -ctsp->next_negative_virtual_table_index - 1;
-  } else {
-    index = -ctsp->first_vcall_offset_index - 1;
-  }  /* if */
+  index = num_negative_vtable_entries(class_type, bcp);
   if (bcp != NULL && is_complete) {
     check_assertion(bcp->virtual_function_table_offset != -1);
     index += bcp->virtual_function_table_offset;
@@ -4317,18 +4305,21 @@ FALSE means either the base class does not need a virtual function table
 
 #if IA64_ABI
 
-a_boolean emit_vcall_offsets_in_virtual_function_table(a_base_class_ptr bcp)
+static a_base_class_ptr emit_vcall_offsets_in_virtual_function_table(
+                                                         a_base_class_ptr bcp)
 /*
-Return TRUE if vcall offsets should be emitted in the virtual function table
-for bcp, a base class which is known to require a virtual function table.
+If vcall offsets should be emitted in the virtual function table
+for bcp (a base class that is known to require a virtual function table),
+return a pointer to the virtual base class for which they should be
+emitted.  Return NULL if vcall offsets should not be emitted.
 */
 {
-  a_boolean        result = FALSE;
+  a_base_class_ptr result = NULL;
   a_base_class_ptr virtual_bcp, primary_bcp, disambiguator;
 
   if (bcp->is_virtual) {
     /* If bcp is a virtual base, we need vcall offsets. */
-    result = TRUE;
+    result = bcp;
   } else if (!base_class_has_vtbl(bcp)) {
     /* Non-virtual base classes that don't have their own vtables do not need
        vcall offsets.  If the virtual base does not have its own vtable, the
@@ -4358,7 +4349,7 @@ for bcp, a base class which is known to require a virtual function table.
       /* If the primary_bcp is bcp, then bcp is indeed the location where the
          vcall offsets must be emitted. */
       if (primary_bcp == bcp) {
-        result = TRUE;
+        result = virtual_bcp;
         break;
       }  /* if */
       virtual_bcp = primary_bcp;
@@ -4366,6 +4357,38 @@ for bcp, a base class which is known to require a virtual function table.
   }  /* if */
   return result;
 }  /* emit_vcall_offsets_in_virtual_function_table */
+
+
+a_virtual_table_index num_negative_vtable_entries(a_type_ptr       class_type,
+                                                  a_base_class_ptr bcp)
+/*
+Determine the number of vtable entries at negative offsets required for
+the indicated class.  If bcp is non-NULL, do the determination for the
+given base class.  vtable entries at negative offsets are used to deal
+with virtual base classes in the IA-64 ABI.
+*/
+{
+  a_virtual_table_index index;
+  a_base_class_ptr      vcall_bcp;
+
+  if (bcp != NULL) {
+    vcall_bcp = emit_vcall_offsets_in_virtual_function_table(bcp);
+    if (vcall_bcp != NULL) {
+      index = -vcall_bcp->type->variant.class_struct_union.extra_info->
+                                           next_negative_virtual_table_index
+              - 1;
+    } else {
+      index = -bcp->type->variant.class_struct_union.extra_info->
+                                                 first_vcall_offset_index 
+              - 1;
+    }  /* if */
+  } else {
+    index = -class_type->variant.class_struct_union.extra_info->
+                                                 first_vcall_offset_index 
+            - 1;
+  }  /* if */
+  return index;
+}  /* num_negative_vtable_entries */
 
 
 static void f_make_vars_for_virtual_function_tables(
@@ -4406,11 +4429,7 @@ process only those bases below bcp.
   } else if (base_class_needs_virtual_function_table(bcp, class_type) &&
              !base_class_has_vtbl(bcp)) {
     bcp->virtual_function_table_offset = *index;
-    if (emit_vcall_offsets_in_virtual_function_table(bcp)) {
-      *index += -ctsp->next_negative_virtual_table_index - 1;
-    } else {
-      *index += -ctsp->first_vcall_offset_index - 1;
-    }  /* if */
+    *index += num_negative_vtable_entries(class_type, bcp);
     if (ctsp->highest_virtual_function_number != 
         VIRTUAL_FUNCTION_NUMBER_NONE) {
       *index += ctsp->highest_virtual_function_number + 1;
@@ -5256,7 +5275,7 @@ gives the offset to the virtual base class whose vtable is being made.
 static a_boolean virtual_functions_match(a_routine_ptr r1,
                                          a_routine_ptr r2)
 /*
-There is a match between r1 and r2 if there could exist a function which
+There is a match between r1 and r2 if there could exist a function that
 overrides both of them, i.e., if they have the same signature.  This condition
 is different from checking that both routines have the same overrider; it is
 possible that they are from distinct subobjects and no single function
@@ -5400,6 +5419,7 @@ table.
   a_virtual_table_index              vcall_index;
 #if IA64_ABI
   a_routine_ptr                      second_func_to_call;
+  a_base_class_ptr                   vcall_bcp;
 #endif /* IA64_ABI */
 
   /* Determine the override list to use. */
@@ -5500,9 +5520,12 @@ table.
                         first_con, last_con, /*prepend=*/TRUE);
   }  /* for */
   /* Add virtual call offsets to the beginning of the virtual table. */
-  if (bcp != NULL && emit_vcall_offsets_in_virtual_function_table(bcp)) {
-    add_vcall_offsets(first_con, last_con, bcp, ctor_bcp,
-                      (derived_bcp != NULL) ? derived_bcp->offset : 0);
+  if (bcp != NULL) {
+    vcall_bcp = emit_vcall_offsets_in_virtual_function_table(bcp);
+    if (vcall_bcp != NULL) {
+      add_vcall_offsets(first_con, last_con, vcall_bcp, ctor_bcp,
+                        (derived_bcp != NULL) ? derived_bcp->offset : 0);
+    }  /* if */
   }  /* if */
 #endif /* IA64_ABI */
   /* Merge the list of virtual functions under class_whose_vtbl_is_being_made
@@ -5760,11 +5783,7 @@ table.
                                      + 1
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #else /* IA64_ABI */
-       + -((bcp != NULL && 
-            emit_vcall_offsets_in_virtual_function_table(bcp)) ?
-           ctsp->next_negative_virtual_table_index :
-           ctsp->first_vcall_offset_index)
-        - 1
+      + num_negative_vtable_entries(class_type, bcp)
 #endif /* IA64_ABI */
                                                                             ;
 #if !IA64_ABI

@@ -188,7 +188,6 @@ element.
   a_constant                  addr_constant;
   a_type_ptr                  ptr_element_type;
 #if IA64_ABI
-  a_class_type_supplement_ptr ctsp;
   a_virtual_table_index       vtbl_index;
 #endif /* IA64_ABI */
 
@@ -202,17 +201,8 @@ element.
 #if IA64_ABI
   /* Add the offset from the start of the variable to the actual address
      point. */
-  if (bcp != NULL) {
-    check_assertion(!bcp->shares_virtual_function_info);
-    ctsp = bcp->type->variant.class_struct_union.extra_info;
-  } else {
-    ctsp = class_type->variant.class_struct_union.extra_info;
-  }  /* if */
-  if (bcp != NULL && emit_vcall_offsets_in_virtual_function_table(bcp)) {
-    vtbl_index = -ctsp->next_negative_virtual_table_index - 1;
-  } else {
-    vtbl_index = -ctsp->first_vcall_offset_index - 1;
-  }  /* if */
+  check_assertion(bcp == NULL || !bcp->shares_virtual_function_info);
+  vtbl_index = num_negative_vtable_entries(class_type, bcp);
   if (bcp != NULL) {
     vtbl_index += bcp->virtual_function_table_offset;
   }  /* if */

@@ -684,8 +684,9 @@ extern void put_variable_into_comdat_group(a_variable_ptr variable);
 
 extern void put_routine_into_comdat_group(a_routine_ptr routine);
 
-extern a_boolean emit_vcall_offsets_in_virtual_function_table(
-                                                         a_base_class_ptr bcp);
+extern a_virtual_table_index num_negative_vtable_entries(
+                                                   a_type_ptr       class_type,
+                                                   a_base_class_ptr bcp);
 #endif /* !IA64_ABI */
 
 extern an_expr_node_ptr make_vptr_field_lvalue(an_expr_node_ptr node);
