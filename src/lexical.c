@@ -10302,13 +10302,13 @@ done:
 }  /* make_name_qualifier */
 
 
-a_name_reference_ptr make_name_reference_from_locator(
+void make_name_reference_from_locator(
 				a_symbol_locator	*locator,
 				a_name_reference_ptr	nrp)
 /*
 Create a name reference entry in the location specified by "nrp" that
 describes the name specified by "locator".  If "nrp" is NULL, a new entry
-is allocated.  A pointer to the name reference entry is returned.
+is allocated.
 */
 {
   if (nrp == NULL) {
@@ -10320,7 +10320,6 @@ is allocated.  A pointer to the name reference entry is returned.
   nrp->is_global_qualified_name = locator->is_global_qualified_name;
   nrp->is_template_id = locator->is_template_id;
   nrp->is_super_qualified = locator->is_super_qualified;
-  return nrp;
 }  /* make_name_reference_from_locator */
 
 
@@ -10381,37 +10380,13 @@ referred to by the name.  The IL entry is currently used only to look for
 a previously created entry that can be reused.
 */
 {
-  a_name_reference_ptr		nrp = NULL;
+  a_name_reference	nr;
+  a_name_reference_ptr	nrp;
 
-  if (!prototype_instantiations_in_il &&
-      is_prototype_instantiation_context()) {
-    /* Don't build name reference information for prototype instantiations
-       when prototype instantiations are not being included in the IL. */
-    goto done;
-  }  /* if */
-  /* Look for a previously created name reference that matches the
-     information in the locator. */
-  for (nrp = scp->name_references; nrp != NULL; nrp = nrp->next) {
-    if (nrp->qualifier == locator->name_qualifier &&
-        nrp->is_global_qualified_name == locator->is_global_qualified_name &&
-        nrp->is_template_id == locator->is_template_id &&
-        nrp->is_super_qualified == locator->is_super_qualified) {
-      /* A match was found. */
-      break;
-    }  /* if */
-  }  /* for */
-  if (nrp == NULL) {
-    /* No match was found -- create a new entry. */
-    nrp = make_name_reference_from_locator(locator, nrp);
-    /* Put this on the list of name references pointed to by the source
-       correspondence. */
-    nrp->next = scp->name_references;
-    scp->name_references = nrp;
-  }  /* if */
-done:
+  make_name_reference_from_locator(locator, &nr);
+  nrp = find_allocated_name_reference(scp, &nr);
   return nrp;
 }  /* make_name_reference */
-
 
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
