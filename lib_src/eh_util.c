@@ -26,7 +26,7 @@ void terminate()
 The default terminate routine.
 */
 {
-  __default_terminate_routine();
+  if (__default_terminate_routine != NULL) __default_terminate_routine();
   abort();
 }  /* terminate */
 
@@ -59,8 +59,8 @@ void unexpected()
 The default unexpected routine.  This routine calls terminate.
 */
 {
-  __default_unexpected_routine();
-  __default_terminate_routine();
+  if (__default_unexpected_routine != NULL) __default_unexpected_routine();
+  terminate();
 }  /* unexpected */
 
 
