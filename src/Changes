@@ -28,20 +28,28 @@ when ABI_COMPATIBILITY_VERSION <= 231):
   -- New flag TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT is
      configured to TRUE.
 
-When TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE, additional configuration
-changes are provided (for better compatibility with the Microsoft Visual
-C++ compiler):
+When TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE, additional changes
+have been made (for better compatibility with the Microsoft Visual C++
+compiler):
 
   -- TARG_ZERO_WIDTH_BIT_FIELD is now configured to -1 (which means to
      use the underlying type of the bit field declaration as the container
      type).
 
   -- New flag TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT is
-     configured to TRUE.
+     configured to TRUE.  Moreover, a fix as been made to assure that
+     a zero-width bit field has an effect on alignment only when it
+     follows a bit-field declaration -- e.g.,
+
+       struct S { char a,b; long :0; };  // no effect: sizeof(S) == 2
 
   -- A tweak was made in determining bit-field container compatibility:
      two different integral types are considered compatible as long as
      their sizes are the same.
+
+       // assuming sizeof(int) == sizeof(long)
+       struct S { int a:1; long b:1; }   // same container is used by both:
+                                         //   sizeof(S) == sizeof(int)
 
 4/5/96    /**/ treated as token-pasting operator ## in SVR4 C mode
 
