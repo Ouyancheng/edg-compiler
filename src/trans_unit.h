@@ -270,7 +270,7 @@ memory in the variables_block of the translation unit entry.
 #define register_trans_unit_variable_with_field(var, trans_unit_field)	\
   (f_register_trans_unit_variable(				\
                             (a_void_ptr)&var, sizeof(var),		\
-    /*lint --e(413)*/       offsetof(a_trans_unit, trans_unit_field)))
+    /*lint --e(413)*/       offsetof(a_translation_unit, trans_unit_field)))
 
 /*
 Array version of register_trans_unit_variable_with_field.
