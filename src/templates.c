@@ -2321,7 +2321,7 @@ that make up the declaration and do a prototype instantiation.
       set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
       prototype_type->source_corresp.name_linkage =
                                            (a_name_linkage_kind)nlk_internal;
-      /* Build the template argument list for the prototype instanstiation
+      /* Build the template argument list for the prototype instantiation
          of this template.  Loop through the template parameters and
          create a corresponding template argument for each. */
       append_addr = &prototype_type->

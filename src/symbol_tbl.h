@@ -217,7 +217,7 @@ Clear a symbol locator.
 {  clear_locator(&(loc), &error_position); (loc).is_error = TRUE; }
 
 /* Like set_to_error_locator, but preserving information about the
-   indentifier with which the locator is associated. */
+   identifier with which the locator is associated. */
 #define set_to_named_error_locator(loc)                               \
 {  (loc).is_error = TRUE; (loc).specific_symbol = NULL; }
 
