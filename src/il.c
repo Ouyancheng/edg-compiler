@@ -10402,7 +10402,6 @@ Add the IL template entry pointed to by tp to the indicated scope.
   }  /* if */
   pointers_block->last_template = tp;
   tp->next = NULL;
-  il_header.templates_used = TRUE;
 }  /* add_to_templates_list */
 
 #if RECORD_MACROS_IN_IL

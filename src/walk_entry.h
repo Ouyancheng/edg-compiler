@@ -782,13 +782,6 @@ the file scope, do not process it (but record an orphan in the latter case).
                 walk_list(ptr->variant.class_struct_union.field_list,
                           a_field_ptr, iek_field);
             }  /* if */
-#if NEEDED_FLAG_WALK
-            /* Record whether a template is actually being used. */
-            if (ptr->variant.class_struct_union.is_template_class &&
-                !ptr->variant.class_struct_union.is_nonreal_class) {
-              il_header.templates_used = TRUE;
-            }  /* if */
-#endif /* NEEDED_FLAG_WALK */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
             /* Handle the class type supplement inline, because we need
                to have a pointer to the class to decide whether or not to
@@ -979,11 +972,6 @@ the file scope, do not process it (but record an orphan in the latter case).
            template (and we may not be able to accurately remove unneeded
            entities). */
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
-#if NEEDED_FLAG_WALK
-        if (ptr->is_template_function && !ptr->is_prototype_instantiation) {
-          il_header.templates_used = TRUE;
-        }  /* if */
-#endif /* NEEDED_FLAG_WALK */
         /* No processing of befriending_classes for the "needed" sweep. */
 #if !NEEDED_FLAG_WALK
 #if KEEP_IN_IL_WALK
