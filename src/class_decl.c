@@ -6480,6 +6480,11 @@ Scan the body of a class definition, including the base classes list.
                 rout_sym = decl_friend_function(&locator, class_type,
                                                 local_type, &func_info);
               } else {
+                /* A class with a user-defined constructor or a virtual
+                   function cannot be an "aggregate" (8.5.1). */
+                if (is_constructor || virtual_specified) {
+                  class_aggregate_ruled_out = TRUE;
+                }  /* if */
                 if (is_destructor) {
                   spec_kind = (a_special_function_kind)sfk_destructor;
                 } else if (is_constructor) {
@@ -6904,6 +6909,10 @@ next_declaration:
        with the current token, which is the closing brace. */
     error_position = tag_sym->decl_position;
     if (C_dialect == C_dialect_cplusplus) {
+      /* Classes with no constructors, no private or protected members, no
+         base classes, and no virtual functions are used to declare
+         "aggregate" objects (ARM 8.4.1). */
+      if (!class_aggregate_ruled_out) cssp->is_class_aggregate = TRUE;
       /* Issue a diagnostic on a class with no user-defined constructor and
          with one or more members with reference or const type.  Note that
          this check is done before compiler-generated constructors, if any,
@@ -6911,7 +6920,7 @@ next_declaration:
       if (any_const_or_ref_fields && cssp->constructor == NULL) {
         a_symbol_ptr  sym;
 
-        if (class_aggregate_ruled_out) {
+        if (!cssp->is_class_aggregate) {
           /* Issue an error for a non-aggregate class, since there's no other
              way to initialize an object of the class. */
           pos_sy_start_error(ec_no_ctor_but_const_or_ref_member,
@@ -6944,12 +6953,6 @@ next_declaration:
         /* Create compiler-generated default constructor, copy constructor,
            destructor, and assignment operator, if any is needed. */
         check_special_member_functions(class_type);
-        /* Classes with no constructors, no private or protected members, no
-           base classes, and no virtual functions are used to declare
-           "aggregate" objects (ARM 8.4.1). */
-        if (!class_aggregate_ruled_out && cssp->constructor == NULL) {
-          cssp->is_class_aggregate = TRUE;
-        }  /* if */
       }  /* if */
       /* Set shares_virtual_function_info for a base class of class_type, if
          appropriate. */
