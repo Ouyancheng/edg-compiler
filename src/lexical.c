@@ -2380,7 +2380,7 @@ else.  This routine should only be called when generate_pp_output is TRUE.
   if (gen_line_info_in_pp_output) {
     /* Put out a line-identifying directive.  The form is
          #line line-number "file-name"
-       or, in pcc mode,
+       or, in pcc mode or GNU mode,
          # line-number "file-name" kind
        This is similar to, but is not, a #line directive.  The "kind"
        is not always wanted (the SUN cc generates it, but not all pcc-based
