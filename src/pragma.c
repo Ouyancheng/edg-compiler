@@ -38,6 +38,45 @@ pointer the caller may alter the list pointed to by the current pointer.
 #define curr_list_of_curr_construct_pragmas()		         	      \
   (&scope_stack[depth_scope_stack].curr_construct_pragmas)
 
+#if DEBUG
+
+void db_pragma_list(a_pragma_ptr pp)
+/*
+Display a list of pragmas for debugging purposes.
+*/
+{
+  a_source_correspondence *scp;  
+
+  for (; pp != NULL; pp = pp->next) {
+    fprintf(f_debug, "  Entity kind: %s, ",
+                     il_entry_kind_names[(int)pp->entity.kind]);
+    fprintf(f_debug, "entity ptr: %lx", (unsigned long)pp->entity.ptr);
+    if (pp->entity.ptr != NULL) {
+      scp = source_corresp_for_il_entry(pp->entity.ptr,
+                                        (an_il_entry_kind)pp->entity.kind);
+      if (scp != NULL) {
+        fprintf(f_debug, " (");
+        db_name(scp);
+        fprintf(f_debug, ")");
+      }  /* if */
+    }  /* if */
+    fprintf(f_debug, "\n");
+  }  /* for */
+}  /* db_pragma_list */
+
+
+void db_scope_pragmas(a_scope_ptr scope)
+/*
+Display the pragma list for a scope for debugging purposes.
+*/
+{
+  fprintf(f_debug, "Pragma list for ");
+  db_scope(scope);
+  fprintf(f_debug, ":\n");
+  db_pragma_list(scope->pragmas);
+}  /* db_scope_pragmas */
+
+#endif /* DEBUG */
 
 static a_pragma_kind_description_ptr add_pragma_kind_description
                       (a_pragma_kind 	     kind,

@@ -304,6 +304,11 @@ EXTERN a_pending_pragma_ptr
 
 
 #if DEBUG
+
+extern void db_pragma_list(a_pragma_ptr pp);
+
+extern void db_scope_pragmas(a_scope_ptr scope);
+
 /*
 Counts of tables allocated, to track total use of memory.  These are
 initialized and the results reported in lexical.c.

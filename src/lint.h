@@ -58,6 +58,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,db_corresp)*/
 /*lint -esym(714,db_stop_tokens)*/
 /*lint -esym(714,db_text_buffer)*/
+/*lint -esym(714,db_scope_pragmas)*/
 /*lint -esym(759,int_kind_name_full)*/
 /*lint -esym(765,int_kind_name_full)*/
 /*lint -esym(755,expect_error_str)*/
