@@ -6458,8 +6458,9 @@ return FALSE and let the caller generate the code normally.
     char                          *op_name;
     char                          *right_half;
 
-    check_assertion_str(rp->special_kind == sfk_operator,
-          "handle_operator_call: non-operator function using operator syntax");
+    check_assertion_str(rp->special_kind ==
+	                                (a_special_function_kind)sfk_operator,
+         "handle_operator_call: non-operator function using operator syntax");
 
     /* For postfix operators, there's no need to enclose the generated
        expression in parentheses because the precedence is already higher
