@@ -1247,6 +1247,9 @@ to it.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   vp->declared_type               = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  vp->allocate_segname            = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef FIL
   vp->by_address                  = FALSE;
   vp->base_var                    = NULL;

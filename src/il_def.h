@@ -4110,6 +4110,11 @@ typedef struct a_variable {
 			   in the template may involve a template
 			   parameter.) */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  char		*allocate_segname;
+			/* When __declspec(allocate(segname)) is specified for
+			   a variable, pointer to a null-terminated segname. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef FIL
   a_variable_ptr
                 base_var;

@@ -1281,6 +1281,12 @@ Display the indicated variable.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->allocate_segname != NULL) {
+    disp_string_ptr("allocate_segname", ptr->allocate_segname,
+                    iek_other_text, (sizeof_t)0);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef FFE
   if (ptr->storage_class == (a_storage_class)sc_associated ||
       ptr->storage_class == (a_storage_class)sc_pointer_based) {
