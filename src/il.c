@@ -303,11 +303,11 @@ Dump a field entry, for debug purposes.
   fputs("\", type = ", f_debug);
   db_abbreviated_type(fp->type);
   byte_offset = fp->bit_offset / TARG_CHAR_BIT;
-  bit_offset_at_byte = fp->bit_offset - byte_offset * TARG_CHAR_BIT;
+  bit_offset_at_byte = fp->bit_offset - (int)(byte_offset * TARG_CHAR_BIT);
   if (bit_offset_at_byte > 0 || fp->bit_size > 0) {
     fprintf(f_debug, ", bit offset %lu", fp->bit_offset);
     if (byte_offset > 0) {
-      fprintf(f_debug, " (%lu+%lu)", byte_offset, bit_offset_at_byte);
+      fprintf(f_debug, " (%lu+%d)", byte_offset, bit_offset_at_byte);
     }  /* if */
     if (fp->bit_size > 0) {
       fprintf(f_debug, ", bit size %d", fp->bit_size);
