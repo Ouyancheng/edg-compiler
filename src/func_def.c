@@ -33,6 +33,9 @@ func_def.c -- Processing for function definitions (both user supplied and
 #include "layout.h"
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
+/* Forward declaration: */
+static void define_special_member_function(a_routine_ptr rout_ptr);
+
 #if ASM_FUNCTION_ALLOWED
 
 #define ASM_FUNC_BODY_BUFFER_INCREMENTAL_ALLOCATION 1024
@@ -405,6 +408,108 @@ stmk_asm statement is returned to the caller.
 }  /* scan_asm_function_body */
 
 #endif /* ASM_FUNCTION_ALLOWED */
+
+static void require_definitions_of_virtual_functions_on_routine_list(
+                              a_type_ptr                         class_type,
+                              an_overriding_virtual_function_ptr override_list)
+/*
+Require definitions for the virtual functions of the indicated class.
+Do not force definitions on any functions that are indicated as overridden
+on the override_list.
+*/
+{
+  a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
+
+  if (cssp->destructor != NULL) {
+    a_routine_ptr dtor_rout = cssp->destructor->variant.routine.ptr;
+    if (dtor_rout->compiler_generated && dtor_rout->is_virtual &&
+        dtor_rout->assoc_scope == NULL_region_number) {
+      /* Force generation of a compiler-generated virtual destructor. */
+      define_special_member_function(dtor_rout);
+    }  /* if */
+  }  /* if */
+  /* If this is a template class, instantiate all the virtual member
+     functions. */
+  if (class_type->variant.class_struct_union.is_template_class &&
+      !class_type->variant.class_struct_union.is_specialized &&
+      class_type->variant.class_struct_union.any_virtual_functions) {
+    /* Look for virtual functions on the class routines list. */
+    a_routine_ptr rp = class_type->variant.class_struct_union.extra_info->
+                                                         assoc_scope->routines;
+    for (; rp != NULL; rp = rp->next) {
+      if (rp->is_virtual) {
+        an_overriding_virtual_function_ptr ovfp;
+        a_symbol_ptr                       sym;
+        a_template_instance_ptr            tip;
+
+        for (ovfp = override_list; ovfp != NULL; ovfp = ovfp->next) {
+          if (ovfp->primary_function == rp) {
+            /* This function is overridden and therefore not in the set
+               of functions that can get called for an object of the
+               most-derived class type we are considering. */
+            goto next_function;
+          }  /* if */
+        }  /* for */
+        /* The function could be called, so mark it to be instantiated. */
+        sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+        tip = sym->variant.routine.instance_ptr;
+        if (tip != NULL && !tip->instantiation_required) {
+          /* Set the instantiation_required flag for the virtual function. */
+          update_instantiation_required_flag(tip, /*value=*/TRUE,
+                                             /*defer_inline=*/TRUE);
+        }  /* if */
+      }  /* if */
+next_function:;
+    }  /* for */
+  }  /* if */
+}  /* require_definitions_of_virtual_functions_on_routine_list */
+
+
+void require_definitions_of_virtual_functions_in_class(a_type_ptr class_type)
+/*
+Require definitions for all virtual functions in class_type (including
+those from its base classes that are not overridden).  This includes
+virtual destructors and instantiatable functions.  The definitions
+are required in the overall program, not necessarily in the current
+compilation.
+*/
+{
+  a_base_class_ptr bcp;
+  a_class_type_supplement_ptr
+                   ctsp = class_type->variant.class_struct_union.extra_info;
+  if (class_type->variant.class_struct_union.
+                             any_virtual_functions_including_in_base_classes) {
+    /* Loop through the routines list and check the virtual functions. */
+    require_definitions_of_virtual_functions_on_routine_list(
+                                     class_type,
+                                     (an_overriding_virtual_function_ptr)NULL);
+    /* Do the same for base class virtual functions that are not overridden. */
+    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+      require_definitions_of_virtual_functions_on_routine_list(
+                                            bcp->type,
+                                            bcp->overriding_virtual_functions);
+    }  /* for */
+  }  /* if */
+}  /* require_definitions_of_virtual_functions_in_class */
+
+
+static void require_definitions_of_virtual_functions_due_to_definition_of(
+                                                         a_routine_ptr routine)
+/*
+The indicated routine (a member function) has just been defined.  If that
+implies that definitions of virtual functions of the routine's class are
+needed, go through and process the virtual functions accordingly.  Note that
+the definitions are required in the overall program, not necessarily in the
+current compilation.
+*/
+{
+  if (virtual_functions_needed_due_to_definition_of(routine)) {
+    a_type_ptr class_type = routine->source_corresp.parent.class_type;
+
+    require_definitions_of_virtual_functions_in_class(class_type);
+  }  /* if */
+}  /* require_definitions_of_virtual_functions_due_to_definition_of */
+
 
 a_boolean check_function_return_type(a_type_ptr         rout_type,
                                      a_source_position  *err_pos,
@@ -1060,17 +1165,10 @@ and for the instantiation of template functions.
        wrapup_control_flow_processing. */
     restore_struct_stmt_stack(&saved_sss_state);
   }  /* if */
-  if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor ||
-      rout_ptr->special_kind == (a_special_function_kind)sfk_destructor) {
-    /* Set the instantiation_required flag for each of the virtual functions
-       of the class (since they will be needed for the virtual function
-       table, which may end up being defined in this translation unit).
-       The constructor and destructor wrapper code may be expected to
-       reference the virtual function table.  This is done even if the
-       class is not itself a template, because it may have base classes
-       that are templates and define non-overridden virtual functions. */
-    check_assertion(class_type != NULL);
-    set_instantiation_required_for_virtual_functions(class_type);
+  if (class_type != NULL) {
+    /* This is a member function.  See if the fact that it is defined
+       forces definition of virtual functions of the class. */
+    require_definitions_of_virtual_functions_due_to_definition_of(rout_ptr);
   }  /* if */
   if (!is_instantiation) {
     /* For templates, the class and/or namespace scopes are pushed and
@@ -1658,7 +1756,6 @@ will return a pointer to the constructed object.
   a_routine_type_supplement_ptr  rtsp;
   a_variable_ptr                 vp;
   a_param_type_ptr               ptp;
-  a_type_ptr                     class_type;
 
   db_enter(4, "make_default_constructor_body");
   rp = scope->variant.routine.ptr;
@@ -1677,15 +1774,9 @@ will return a pointer to the constructed object.
   scope->assoc_block->variant.block.statements = sp =
           alloc_statement((a_statement_kind)stmk_return);
   sp->expr = this_param_value_expr();
-  /* Set the instantiation_required flag for each of the virtual functions
-     of the class (since they will be needed for the virtual function
-     table, which may end up being defined in this translation unit).
-     The constructor wrapper may be expected to reference the virtual
-     function table.  This is done even if the class is not itself a
-     template, because it may have base classes that are templates
-     and define non-overridden virtual functions. */
-  class_type = rp->source_corresp.parent.class_type;
-  set_instantiation_required_for_virtual_functions(class_type);
+  /* See if the fact that this constructor is defined forces definition
+     of virtual functions of the class. */
+  require_definitions_of_virtual_functions_due_to_definition_of(rp);
   db_exit();
 }  /* make_default_constructor_body */
 
@@ -1696,7 +1787,6 @@ Create the body for a default destructor.  It will return no value.
 */
 {
   a_routine_ptr rp;
-  a_type_ptr    class_type;
 
   db_enter(4, "make_default_destructor_body");
   rp = scope->variant.routine.ptr;
@@ -1707,15 +1797,9 @@ Create the body for a default destructor.  It will return no value.
   scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
   scope->assoc_block->variant.block.statements =
           alloc_statement((a_statement_kind)stmk_return);
-  /* Set the instantiation_required flag for each of the virtual functions
-     of the class (since they will be needed for the virtual function
-     table, which may end up being defined in this translation unit).
-     The destructor wrapper may be expected to reference the virtual
-     function table.  This is done even if the class is not itself a
-     template, because it may have base classes that are templates and
-     define non-overridden virtual functions. */
-  class_type = rp->source_corresp.parent.class_type;
-  set_instantiation_required_for_virtual_functions(class_type);
+  /* See if the fact that this destructor is defined forces definition
+     of virtual functions of the class. */
+  require_definitions_of_virtual_functions_due_to_definition_of(rp);
   db_exit();
 }  /* make_default_destructor_body */
 
@@ -2223,14 +2307,21 @@ whose definition has not yet been generated, force the definition now.
 }  /* force_definition_of_compiler_generated_routine */
 
 
+#if !(DO_IL_LOWERING && ABI_COMPATIBILITY_VERSION < 238)
+/* ARGSUSED */ /* <-- scope is not used in that case. */
+#endif /* !(DO_IL_LOWERING && ABI_COMPATIBILITY_VERSION < 238) */
 void generate_required_virtual_destructor_bodies(a_scope_ptr  scope)
 /*
 Go through the classes on the types list of the indicated scope and generate
 bodies for virtual destructors, as required.  Then (if it is a file or
 namespace scope) check the scopes for each namespace defined in the
-indicated scope.
+indicated scope.  This is mostly vestigial, but it's been kept as a hook
+in case it's useful.
 */
 {
+#if DO_IL_LOWERING && ABI_COMPATIBILITY_VERSION < 238
+  /* The only case left is generation of a destructor if needed because
+     a typeinfo variable points to it. */
   a_namespace_ptr                nsp;
   a_type_ptr                     tp;
   a_routine_ptr                  rp;
@@ -2254,18 +2345,10 @@ indicated scope.
           if (rp->compiler_generated && !rp->defined) {
             /* The destructor for the current class was generated
                automatically but has not yet been defined. */
-            if (rp->is_virtual &&
-                virtual_dtor_should_be_generated_for_class(tp)) {
-              /* But the body for it should be generated, e.g., because the
-                 virtual function table in which its address will appear is
-                 being generated. */
-              define_special_member_function(rp);
-#if DO_IL_LOWERING && ABI_COMPATIBILITY_VERSION < 238
-            } else if (external_typeinfo_will_be_defined_for_class(tp)) {
+            if (external_typeinfo_will_be_defined_for_class(tp)) {
               /* Generate the body of the destructor because its address
                  will be put into an external typeinfo variable. */
               define_special_member_function(rp);
-#endif /* DO_IL_LOWERING && ABI_COMPATIBILITY_VERSION < 238 */
             }  /* if */
           }  /* if */
         }  /* if */
@@ -2285,6 +2368,7 @@ indicated scope.
     }  /* for */
   }  /* if */
   db_exit();
+#endif /* DO_IL_LOWERING && ABI_COMPATIBILITY_VERSION < 238 */
 }  /* generate_required_virtual_destructor_bodies */
 
 

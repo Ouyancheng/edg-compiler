@@ -1,10 +1,22 @@
+
 Version 2.39
+
+1/16/98   Missing virtual function definitions
+
+In spite of some recent changes in this area (see 11/14/97 Changes
+entry), there were still some cases where virtual functions were
+not instantiated when needed.  The cases were ones where the file
+in which the definition of the first non-inline non-pure virtual
+function of a class appears does not also have a definition of a
+constructor or destructor for that class.  Now fixed.
 
 1/15/98   Internal error on PCH file that ends with stdarg.h
 
-An internal error would occur when stdarg.h is the last include file
-in a precompiled header file and pass_stdarg_referenced_to_generated_code
-is TRUE.  This has been fixed.
+An internal error would occur when an #include <stdarg.h> is the last
+include file in a precompiled header file and <stdarg.h> is treated as
+a built-in (i.e., pass_stdarg_referenced_to_generated_code is TRUE).
+This has been fixed.
+
 -------------------------------------------------------------------------------
 Version 2.38, January 13, 1998
 

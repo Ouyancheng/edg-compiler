@@ -682,6 +682,9 @@ extern a_boolean external_typeinfo_will_be_defined_for_class(
                                                         a_type_ptr class_type);
 #endif /* ABI_COMPATIBILITY_VERSION < 238 */
 
+extern a_boolean virtual_functions_needed_due_to_definition_of(
+                                                        a_routine_ptr routine);
+
 extern void add_to_return_memo_list(a_statement_ptr return_stmt);
 
 extern void free_return_memo_list(a_return_memo_ptr rmp);

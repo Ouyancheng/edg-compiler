@@ -3327,6 +3327,45 @@ class_type if any are needed and if they have not already been generated.
 }  /* make_vars_for_virtual_function_tables */
 
 
+static a_routine_ptr vtbl_decider_function_for_class(a_type_ptr class_type)
+/*
+Return a pointer to the routine that is the decider function for generation
+of the definition of the virtual function table for the given class.
+The routine is the first non-inline non-pure virtual function of the
+class.  Return NULL if the class does not have such a function, or does not
+have one yet.
+*/
+{
+  a_routine_ptr routine;
+  a_scope_ptr   scope =
+                class_type->variant.class_struct_union.extra_info->assoc_scope;
+
+  if (scope == NULL) {
+    /* The class is declared but not defined. */
+    routine = NULL;
+  } else {
+    /* The class is defined.  Look at the member functions. */
+    for (routine = scope->routines;
+         routine != NULL;
+         routine = routine->next) {
+      if (routine->is_virtual && !routine->pure_virtual &&
+          /* A member function of a template class is not marked as
+             inline until it is fully instantiated, so we have to call
+             a function to see whether it is really inline. */
+          (routine->is_template_function ?
+                                  !rout_is_inline_template_function(routine) :
+                                  !routine->is_inline)) {
+        /* This is the first non-inline virtual non-pure member function in
+           the class.  If it is defined in this compilation, we should put
+           out the virtual function tables here. */
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return routine;
+}  /* vtbl_decider_function_for_class */
+
+
 static a_boolean virtual_function_table_should_be_defined_here(
                                                   a_type_ptr    class_type,
                                                   a_boolean     *force_static,
@@ -3373,49 +3412,39 @@ or not to put out the definition; otherwise, it's set to NULL.
       /* The class is declared but not defined. */
       defined_here = FALSE;
     } else {
-      /* The class is defined.  Look at the member functions. */
-      for (routine = scope->routines;
-           routine != NULL;
-           routine = routine->next) {
-        if (routine->is_virtual && !routine->pure_virtual &&
-            /* A member function of a template class is not marked as
-               inline until it is fully instantiated, so we have to call
-               a function to see whether it is really inline. */
-            (routine->is_template_function ?
-                                  !rout_is_inline_template_function(routine) :
-                                  !routine->is_inline)) {
-          /* This is the first non-inline virtual non-pure member function in
-             the class.  If it is defined in this compilation, we should put
-             out the virtual function tables here. */
-          *first_virtual = routine;
-          defined_here = (routine->assoc_scope != NULL_region_number);
-          /* If the routine is local because of the -tlocal instantiation
-             mode, make the vtable local too. */
-          if (routine->source_corresp.name_linkage ==
+      /* The class is defined. */
+      /* If the decider function of the class is defined in this compilation,
+         we should put out the virtual function tables here. */
+      routine = vtbl_decider_function_for_class(class_type);
+      if (routine != NULL) {
+        *first_virtual = routine;
+        defined_here = (routine->assoc_scope != NULL_region_number);
+        /* If the routine is local because of the -tlocal instantiation
+           mode, make the vtable local too. */
+        if (routine->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal) {
-            check_assertion(instantiation_mode == tim_local);
-            *force_static = TRUE;
-          }  /* if */
-          goto have_defined_here;
+          check_assertion(instantiation_mode == tim_local);
+          *force_static = TRUE;
         }  /* if */
-      }  /* for */
-      /* There is no member function that meets the requirements, so we cannot
-         decide automatically on whether or not to define the virtual function
-         table.  See if a command-line option gives guidance. */
-      if (virtual_function_table_definition == vfd_force) {
-        defined_here = TRUE;
-      } else if (virtual_function_table_definition == vfd_suppress) {
-        defined_here = FALSE;
       } else {
-        /* No command-line option.  Put out the virtual function table, but
-           make it static, because each compilation with this same class
-           will contain an instance of the definition. */
-        defined_here = TRUE;
-        *force_static = TRUE;
+        /* There is no member function that meets the requirements, so we
+           cannot decide automatically on whether or not to define the
+           virtual function table.  See if a command-line option gives
+           guidance. */
+        if (virtual_function_table_definition == vfd_force) {
+          defined_here = TRUE;
+        } else if (virtual_function_table_definition == vfd_suppress) {
+          defined_here = FALSE;
+        } else {
+          /* No command-line option.  Put out the virtual function table, but
+             make it static, because each compilation with this same class
+             will contain an instance of the definition. */
+          defined_here = TRUE;
+          *force_static = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
-have_defined_here:;
   if (*force_static && defined_here) {
     /* If the definition is forced to be static, then it cannot be referenced
        from anywhere else.  If there aren't any (real) references in this
@@ -3452,10 +3481,10 @@ in this translation unit because of some requirement imposed by IL lowering.
 Specifically, an otherwise unreferenced inline virtual function will be
 needed if the virtual function table for the class must be defined in this
 compilation, because a pointer to it must be put in the virtual function
-table.  This routine is called for implicitly declared virtual destructors,
-to determine whether the body should be generated.  It is also called for
-issuing diagnostics on unreferenced user-declared inline virtual functions
-that are not defined in this translation unit.
+table.  This routine is called for issuing diagnostics on unreferenced
+user-declared inline virtual functions that are not defined in this
+translation unit.  This routine can be called only near the end of
+the processing of the function or file scope in which the class is defined.
 */
 {
   a_boolean     needed = FALSE, force_static;
@@ -3528,6 +3557,36 @@ in a different and better way in version 2.38.
 }  /* external_typeinfo_will_be_defined_for_class */
 
 #endif /* ABI_COMPATIBILITY_VERSION < 238 */
+
+a_boolean virtual_functions_needed_due_to_definition_of(a_routine_ptr routine)
+/*
+Return TRUE if definitions of virtual functions of the class of which the
+indicated routine is a member are needed (somewhere in the program, but
+not necessarily in the current compilation).  The definition of the
+indicated routine has just been processed.
+*/
+{
+  a_boolean  needed = FALSE;
+  a_type_ptr class_type = routine->source_corresp.parent.class_type;
+
+  if (class_type->variant.class_struct_union.
+                             any_virtual_functions_including_in_base_classes) {
+    if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
+        routine->special_kind == (a_special_function_kind)sfk_destructor) {
+      /* Constructor and destructor wrappers refer to the virtual function
+         table and therefore the virtual functions are needed. */
+      needed = TRUE;
+    } else if (vtbl_decider_function_for_class(class_type) == routine) {
+      /* This routine is the decider function for definition of the
+         virtual function table.  Since it's defined, the virtual function
+         table definition will be put out in this compilation and therefore
+         the virtual functions are needed. */
+      needed = TRUE;
+    }  /* if */
+  }  /* if */
+  return needed;
+}  /* virtual_functions_needed_due_to_definition_of */
+
 
 /*
 Pointer to routine entry for the runtime routine __pure_virtual_called,
