@@ -538,7 +538,7 @@ ref field of a class object (or an array of same) remains uninitialized.
       }  /* if */
       /* Bypass the string and the right paren, if appropriate. */
       (void)get_token();
-      if (paren_flag) required_token(tok_rparen, ec_exp_rparen);
+      if (paren_flag) (void)required_token(tok_rparen, ec_exp_rparen);
     } else {
       /* Normal case, not array of char.  Could be an array, a struct,
          or a union, or an error type.  Note that local_type has already
