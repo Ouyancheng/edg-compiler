@@ -7631,6 +7631,10 @@ the operator.
         /* Or there is no predefined meaning for this operator. */
         *processed = TRUE;
         make_error_operand(result);
+        operand_will_not_be_used_because_of_error(operand_1);
+        if (!unary_operator) {
+          operand_will_not_be_used_because_of_error(operand_2);
+        }  /* if */
       } else {
         /* The operator is not overloaded.  Return to the caller to do
            the built-in operator processing. */
