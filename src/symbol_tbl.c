@@ -351,6 +351,9 @@ and indentation is the indentation desired.
         if (cssp->assignment_by_bitwise_copy_allowed) {
           put_string("op= bitwise copy okay");
         }  /* if */
+        if (debug_level >= 4 && cssp->class_template != NULL) {
+          put_string("has class template ptr");
+        }  /* if */
       }
       break;
     case sk_field:
@@ -780,6 +783,7 @@ state.
         cssp->assignment_operator = NULL;
         cssp->conversion_list = NULL;
         cssp->routine_fixup_list = NULL;
+        cssp->class_template = NULL;
         cssp->constructor_required = FALSE;
         cssp->destructor_required = FALSE;
         cssp->has_default_constructor = FALSE;
@@ -4299,9 +4303,10 @@ when the function prototype was scanned, or is NO_SCOPE_NUMBER if it hasn't
 been chosen yet); for class reactivation scopes, scope_number_to_reuse is
 the class scope number; for the other cases, a new scope number is generated.
 assoc_type points to an associated type for the cases where that's
-meaningful (function prototype, class, and class reactivation scopes);
-it must be NULL in other cases.  assoc_routine points to a routine
-for the function scope case; it must be NULL in other cases.
+meaningful (function prototype, class, class reactivation, and template
+instantiation scopes); it must be NULL in other cases.
+assoc_routine points to a routine for the function scope case; it
+must be NULL in other cases.
 */
 {
   a_scope_stack_entry_ptr ssep;
@@ -4424,6 +4429,22 @@ for the function scope case; it must be NULL in other cases.
       if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
         inside_local_class = TRUE;
       }  /* if */
+    }  /* if */
+    /* If this is a template instantiation we must update the symbols
+       of the template parameters to represent the values of the actual
+       arguments.  This is done by updating the parameter symbols to
+       point to the types or constants that are pointed to by the
+       template argument entries.  The old values do not need to be
+       saved because they can be easily recreated by pop_scope. */
+    if (kind == (a_scope_kind)sck_template_instantiation) {
+#if CHECKING
+      if (assoc_type == NULL) {
+        internal_error("push_scope: assoc_type NULL for instantiation scope.");
+      }  /* if */
+#endif /* CHECKING */
+#if 0
+    update_template_param_symbols();
+#endif /* 0 */
     }  /* if */
   }  /* if */
   /* Maintain the depth of the innermost function scope. */
