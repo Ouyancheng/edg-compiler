@@ -1,5 +1,10 @@
 Version 3.4
 
+12/21/03 C99 allows "ll" length on "n" printf specifier
+
+The "n" specifier for printf in C99 allows a "ll" length specifier
+for long long.  The Front End now accepts such a length.
+
 12/19/03 Missing error on invalid non-class destructor call
 
 No diagnostic was issued when an explicit destructor call for a non-class
