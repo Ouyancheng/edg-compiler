@@ -1451,10 +1451,13 @@ necessary.
     } else {
       /* We cannot end the layout with a zero-sized empty base because
          otherwise we might end up conflicting with an adjacent object. */
-      if (class_type->variant.class_struct_union.any_virtual_functions) {
-        /* Since this class inherits or declares virtual functions, it will
-           contain a virtual function info block pointer whose offset can
-           be shared by the last empty base. */
+      a_class_type_supplement_ptr
+           ctsp = class_type->variant.class_struct_union.extra_info;
+      if (class_type->variant.class_struct_union.any_virtual_functions &&
+          ctsp->virtual_function_info_base_class == NULL) {
+        /* This class has its own (as opposed to inherited) virtual function
+           info block pointer, whose offset can be shared by the last empty
+           base. */
       } else {
         /* Check if there is a direct virtual base: if so, there will be a
            virtual base pointer  whose offset can be shared by the last empty
@@ -1632,14 +1635,14 @@ variables that can be redefined for various implementation strategies.  lob
 points to the layout block used to track the layout of the current class.
 */
 {
-  a_class_type_supplement_ptr  ctsp, bcp_ctsp;
   a_targ_size_t                size;
   a_targ_alignment             alignment;
   a_base_class_ptr             bcp;
 
   db_enter(4, "set_offset_for_virtual_function_info");
-  ctsp = lob->class_type->variant.class_struct_union.extra_info;
   if (lob->class_type->variant.class_struct_union.any_virtual_functions) {
+    a_class_type_supplement_ptr  ctsp, bcp_ctsp;
+    ctsp = lob->class_type->variant.class_struct_union.extra_info;
     if (ctsp->virtual_function_info_base_class == NULL) {
       size = (a_targ_size_t)targ_sizeof_virtual_function_info;
       alignment = (a_targ_alignment)targ_alignof_virtual_function_info;

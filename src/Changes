@@ -1,5 +1,18 @@
 Version 2.46
 
+1/31/02  Abort in IL lowering with empty base and virtual base
+
+In some rare situations involving a trailing nonvirtual empty base class,
+a nonvirtual base class with virtual functions and a virtual base class,
+the front end would generate a nonstandard layout for the derived class
+type on some configurations.  That layout would cause the IL lowering code
+to abort.  The following is a minimal example:
+
+  struct E {};
+  struct V {};
+  struct P: E, virtual V { virtual ~P() {} };
+  struct D: P, E {};
+
 1/30/02  Template deduction and ambiguous base class deduction
 
 Template argument deduction can deduce T in Base<T> from a derived
