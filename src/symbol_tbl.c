@@ -8237,11 +8237,13 @@ End a name scope by popping an entry off the scope stack.
     if (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_block ||
         kind == (a_scope_kind)sck_file) {
-      if (kind != sck_file) {
+      if (kind != (a_scope_kind)sck_file) {
         /* If there are any local classes, check for compiler-generated
            virtual destructors for which bodies should be put out. */
         generate_required_virtual_destructor_bodies(il_scope->types);
       }  /* if */
+      /* Issue a diagnostic on non-extern member functions that have been
+         referenced but not defined. */
       check_referenced_member_functions(il_scope,
                                         kind != (a_scope_kind)sck_file);
     }  /* if */
