@@ -4892,7 +4892,7 @@ void decl_routine(a_symbol_locator             *locator,
                   a_source_sequence_entry_ptr  declarator_ssep,
                   a_symbol_reference_kind      srk_flags,
                   a_decl_modifiers_block_ptr   decl_modifiers,
-                  an_ms_attribute_ptr          ms_attributes,
+                  an_ms_attribute_ptr          *p_ms_attributes,
                   an_attribute_ptr             attributes,
                   char                         *asm_name,
                   a_symbol_ptr                 *symbol_ptr,
@@ -6107,8 +6107,8 @@ skip_overloading:;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (ms_attributes != NULL) {
-    apply_microsoft_attributes(&ms_attributes, (char*)routine_ptr,
+  if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
+    apply_microsoft_attributes(p_ms_attributes, (char*)routine_ptr,
                                (an_il_entry_kind)iek_routine, MSAT_ROUTINE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7212,6 +7212,7 @@ void decl_typedef(a_symbol_locator             *locator,
                   a_type_ptr                   type_ptr,
                   a_type_ptr                   class_type,
                   an_attribute_ptr             attributes,
+                  an_ms_attribute_ptr          *p_ms_attributes,
                   a_decl_modifiers_block_ptr   decl_modifiers,
                   a_symbol_ptr                 *symbol_ptr,
                   a_source_sequence_entry_ptr  declarator_ssep,
@@ -7221,7 +7222,10 @@ Enter the declaration of an identifier for a typedef.  *locator gives the
 symbol locator (and thus its name and its declaration position).  type_ptr
 gives the type.  If this is a member typedef, class_type identifies the
 class of which it is a member.  Create and enter a symbol entry, and
-return a pointer to it in *symbol_ptr.
+return a pointer to it in *symbol_ptr.  attributes describes GNU attributes
+specified for this typedef declaration.  p_ms_attributes describes Microsoft
+attributes.  If p_ms_attributes is non-NULL, *p_ms_attributes is returned
+NULL.
 */
 {
   a_type_ptr               tp;
@@ -7579,6 +7583,10 @@ return a pointer to it in *symbol_ptr.
     set_declspec_align(tp, decl_modifiers->alignment,
                        &locator->source_position);
   }  /* if */
+  if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
+    apply_microsoft_attributes(p_ms_attributes, (char*)tp, iek_type,
+                               MSAT_TYPEDEF);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 return_point:
   /* Do processing required for any pragmas that are bound to the current
@@ -7681,8 +7689,8 @@ symbol has already been entered as an undefined symbol.
   decl_routine(&locator, (a_storage_class)sc_extern, rout_type, &func_info,
                (a_source_sequence_entry_ptr)NULL,
                (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers, 
-               (an_ms_attribute_ptr)NULL, (an_attribute_ptr)NULL, (char *)NULL,
-               &symbol_ptr, &linkage, &old_type, &ext_sym,
+               (an_ms_attribute_ptr*)NULL, (an_attribute_ptr)NULL,
+               (char *)NULL, &symbol_ptr, &linkage, &old_type, &ext_sym,
                (a_decl_pos_block_ptr)NULL);
   done_with_func_info(func_info);
   /* Set the referenced flag on the routine entry.  The implicit declaration
@@ -11382,12 +11390,8 @@ continue_with_declaration:
           (void)function_definition(&locator, local_type_ptr,
                                     &func_info, local_storage_class,
                                     has_explicit_type_specifier,
-                                    &decl_modifiers, ms_attributes, attributes,
-                                    &decl_pos_block);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          /* Microsoft attributes have been consumed. */
-          ms_attributes = NULL;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                    &decl_modifiers, &ms_attributes,
+                                    attributes, &decl_pos_block);
           done_with_func_info(func_info);
           if (is_function_try_block) {
             /* Checking for the closing brace will already have been done. */
@@ -11606,8 +11610,8 @@ continue_with_declaration:
       } else if (local_storage_class == (a_storage_class)sc_typedef) {
         /* A typedef declaration. */
         decl_typedef(&locator, local_type_ptr, (a_type_ptr)NULL, attributes,
-                     &decl_modifiers, &symbol_ptr, declarator_ssep,
-                     &decl_pos_block);
+                     &ms_attributes, &decl_modifiers, &symbol_ptr,
+                     declarator_ssep, &decl_pos_block);
       } else if (is_static_data_member) {
         /* A static data member definition. */
         define_static_data_member(&locator, local_storage_class,
@@ -11655,13 +11659,9 @@ continue_with_declaration:
         }  /* if */          
         decl_routine(&locator, local_storage_class, local_type_ptr,
                      &func_info, declarator_ssep, SRK_DECLARATION,
-                     &local_decl_modifiers, ms_attributes, attributes,
+                     &local_decl_modifiers, &ms_attributes, attributes,
                      asm_name, &symbol_ptr, &linkage, &old_type, &ext_sym,
                      &decl_pos_block);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        /* Microsoft attributes have been consumed. */
-        ms_attributes = NULL;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* A variable declaration. */
         a_symbol_reference_kind  srk_flags = SRK_DECLARATION;

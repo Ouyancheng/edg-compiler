@@ -6552,8 +6552,9 @@ scope, not in namespace std.
   (void)find_symbol("size_t", (sizeof_t)6, &locator);
   tp = integer_type(targ_size_t_int_kind);
   decl_typedef(&locator, tp, (a_type_ptr)NULL, (an_attribute_ptr)NULL,
-	       (a_decl_modifiers_block_ptr)NULL, &predeclared_size_t_symbol, 
-	       (a_source_sequence_entry_ptr)NULL, (a_decl_pos_block_ptr)NULL);
+               (an_ms_attribute_ptr*)NULL, (a_decl_modifiers_block_ptr)NULL,
+               &predeclared_size_t_symbol, (a_source_sequence_entry_ptr)NULL,
+               (a_decl_pos_block_ptr)NULL);
   /* Setting the defined flag to FALSE indicates there is (as yet) no explicit
      definition in the source program. */
   predeclared_size_t_symbol->defined = FALSE;
@@ -6575,8 +6576,9 @@ are recorded in the file scope.
   clear_locator(&locator, &null_source_position);
   (void)find_symbol("bool", (sizeof_t)4, &locator);
   decl_typedef(&locator, bool_type(), (a_type_ptr)NULL, (an_attribute_ptr)NULL,
-               (a_decl_modifiers_block_ptr)NULL, &sym,
-               (a_source_sequence_entry_ptr)NULL, (a_decl_pos_block_ptr)NULL);
+               (an_ms_attribute_ptr*)NULL, (a_decl_modifiers_block_ptr)NULL,
+               &sym, (a_source_sequence_entry_ptr)NULL,
+               (a_decl_pos_block_ptr)NULL);
   db_exit();
 }  /* make_predeclared_bool_symbol */
 

@@ -5866,7 +5866,7 @@ of the function, and again overloading is a possibility.
       }  /* if */
       decl_routine(locator, storage_class, function_type, func_info,
                    declarator_ssep, srk_flags, &decl_info->decl_modifiers,
-                   (an_ms_attribute_ptr)NULL, (an_attribute_ptr)NULL,
+                   (an_ms_attribute_ptr*)NULL, (an_attribute_ptr)NULL,
                    (char *)NULL, &sym, &linkage, &old_type, &ext_sym,
                    &decl_info->decl_pos_block);
       /* WP 11.4 para 5 prohibits defining a nonmember function in a local
@@ -6955,7 +6955,8 @@ static void decl_member_function(a_symbol_locator        *locator,
                                  a_member_decl_info_ptr  decl_info,
                                  a_boolean               compiler_generated,
                                  an_attribute_ptr        attributes,
-                                 char                    *asm_name)
+                                 char                    *asm_name,
+                                 an_ms_attribute_ptr     *p_ms_attributes)
 /*
 For a member function declaration: create a symbol entry and a routine entry
 for the member function, add the symbol to the symbol table, and append the
@@ -6967,7 +6968,9 @@ information about the class definition and specific information about the
 member declaration, respectively.  compiler_generated is TRUE for implicitly
 declared member functions.  attributes and asm_name describe the GNU
 attributes and GNU asm-name specified on the member declaration (if any;
-otherwise these are NULL).
+otherwise these are NULL).  p_ms_attributes describes the Microsoft attributes
+applied to this declaration.  If p_ms_attributes is non-NULL, *p_ms_attributes
+is set to NULL by this function.
 */
 {
   a_symbol_ptr                  sym, overload_sym;
@@ -7104,6 +7107,14 @@ otherwise these are NULL).
       rtn->is_virtual = TRUE;
       rtn->overridden_function = overridden_function;
     }  /* if */
+    if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
+      apply_microsoft_attributes(p_ms_attributes, (char*)rtn,
+                                 (an_il_entry_kind)iek_routine, MSAT_METHOD);
+    }  /* if */
+  } else if (p_ms_attributes != NULL) {
+    /* We indicate that the attributes have been consumed by clearing the
+       caller's attribute pointer. */
+    *p_ms_attributes = NULL;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -7887,7 +7898,8 @@ static void decl_static_data_member(a_symbol_locator        *locator,
                                     a_class_def_state_ptr   class_state,
                                     a_member_decl_info_ptr  decl_info,
                                     an_attribute_ptr        attributes,
-                                    char                    *asm_name)
+                                    char                    *asm_name,
+                                    an_ms_attribute_ptr     *p_ms_attributes)
 /*
 Do processing for a static data member, including entering it in the symbol
 table.  *locator is the symbol-locator for the current declaration, class_type
@@ -7896,7 +7908,8 @@ which the member was declared.  *class_state and *decl_info track general
 information about the class definition and specific information about the
 member declaration, respectively.  attributes and asm_name describe the GNU
 attributes and GNU asm-name specified on the member declaration (if any;
-otherwise these are NULL).
+otherwise these are NULL).  p_ms_attributes describes Microsoft attributes;
+if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
 */
 {
   a_symbol_ptr          sym, prototype_tag_sym;
@@ -8083,6 +8096,10 @@ otherwise these are NULL).
   /* Disallow data members in interface types. */
   if (microsoft_mode && class_type->variant.class_struct_union.is_interface) {
     pos_error(ec_interface_cannot_have_data_member, &locator->source_position);
+  }  /* if */
+  if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
+    apply_microsoft_attributes(p_ms_attributes, (char*)var, iek_variable,
+                               MSAT_DATA_MEMBER);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -9454,12 +9471,14 @@ respectively.
 #if !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- attributes is not used in that case. */
 #endif /* !GNU_EXTENSIONS_ALLOWED */
-static void decl_nonstatic_data_member(a_symbol_locator        *locator,
-                                       a_type_ptr              class_type,
-                                       a_type_ptr              member_type,
-                                       an_attribute_ptr        attributes,
-                                       a_class_def_state_ptr   class_state,
-                                       a_member_decl_info_ptr  decl_info)
+static void decl_nonstatic_data_member(
+                                     a_symbol_locator        *locator,
+                                     a_type_ptr              class_type,
+                                     a_type_ptr              member_type,
+                                     an_attribute_ptr        attributes,
+                                     an_ms_attribute_ptr     *p_ms_attributes,
+                                     a_class_def_state_ptr   class_state,
+                                     a_member_decl_info_ptr  decl_info)
 /*
 Scan a nonstatic data member of a class, struct, or union, create a field
 entry to represent it in the IL, and create an entry in the symbol table
@@ -9467,7 +9486,10 @@ for it if it has a name.  class_type is a pointer to the tk_class,
 tk_struct, or tk_union type entry for the entity of which the member is a
 member.  *locator is the symbol locator for the declaration.  *class_state
 and *decl_info track general information about the class definition and
-specific information about the member declaration, respectively.
+specific information about the member declaration, respectively.  attributes
+describes GNU attributes specified for this member declaration.
+p_ms_attributes describes Microsoft attributes.  If p_ms_attributes is
+non-NULL, *p_ms_attributes is returned NULL.
 */
 {
   a_field_ptr                    field;
@@ -9627,6 +9649,12 @@ specific information about the member declaration, respectively.
     *last_attribute = NULL;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
+    apply_microsoft_attributes(p_ms_attributes, (char*)field, iek_field,
+                               MSAT_DATA_MEMBER);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Add the field to the temporary list for this class/struct/union. */
   if (class_state->end_of_field_list == NULL) {
     class_type->variant.class_struct_union.field_list = field;
@@ -9894,7 +9922,8 @@ operator should be created.  No routine body is generated at this time.
      entry and add it to the routines list for the current scope. */
   decl_member_function(&locator, class_type, rout_type, &func_info,
                        class_state, decl_info, /*compiler_generated=*/TRUE,
-                       (an_attribute_ptr)NULL, /*asm_name=*/(char*)NULL);
+                       (an_attribute_ptr)NULL, /*asm_name=*/(char*)NULL,
+                       (an_ms_attribute_ptr*)NULL);
   done_with_func_info(func_info);
   /* It can be that the head of symbols list for the scope has been
      modified (it may have been changed to an sk_overloaded_function, or
@@ -11793,6 +11822,16 @@ passed via template_decl.
   /* Find the last prefix_attribute. */
   last_specifier_attribute = last_attribute_link(&specifier_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ms_attributes != NULL &&
+      (is_member_template || is_member_template_rescan)) {
+    /* Microsoft attributes cannot be specified on templates. */
+    if (is_member_template) {
+      pos_error(ec_ms_attr_not_allowed, &decl_start_pos);
+    }  /* if */
+    ms_attributes = NULL;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   decl_info.dso_flags = dso_flags;
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING) && !is_error_type(member_type)) {
@@ -12236,7 +12275,7 @@ passed via template_decl.
         decl_member_function(&locator, class_type, local_type, &func_info,
                              class_state, &decl_info,
                              /*compiler_generated=*/FALSE, attributes,
-                             asm_name);
+                             asm_name, &ms_attributes);
         rout_sym = decl_info.member_sym;
         if (class_state->is_nonreal_instantiation) {
           /* During the prototype instantiation, save the token sequence
@@ -12477,8 +12516,9 @@ passed via template_decl.
       }  /* if */
       /* Typedef declaration. */
       decl_typedef(&locator, local_type, class_type, attributes,
-                   &decl_info.decl_modifiers, &decl_info.member_sym,
-                   decl_info.declarator_ssep, &decl_info.decl_pos_block);
+                   &ms_attributes, &decl_info.decl_modifiers,
+                   &decl_info.member_sym, decl_info.declarator_ssep,
+                   &decl_info.decl_pos_block);
       /* Note: access will have been set in decl_typedef. */
       if (curr_routine_fixup != NULL &&
           curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
@@ -12528,11 +12568,13 @@ passed via template_decl.
       if (decl_info.storage_class == (a_storage_class)sc_static) {
         /* Static data member. */
         decl_static_data_member(&locator, class_type, local_type,
-                                class_state, &decl_info, attributes, asm_name);
+                                class_state, &decl_info, attributes, asm_name,
+                                &ms_attributes);
       } else {
         /* Non-static data member (= field). */
         decl_nonstatic_data_member(&locator, class_type, local_type,
-                                   attributes, class_state, &decl_info);
+                                   attributes, &ms_attributes, class_state,
+                                   &decl_info);
 #if GNU_EXTENSIONS_ALLOWED
         if (asm_name != NULL) {
           pos_error(ec_field_with_asm_name_not_allowed, &asm_name_pos);
@@ -12556,14 +12598,12 @@ passed via template_decl.
     if (!is_nonstatic_data_member) {
       any_decl_other_than_nonstatic_data_member = TRUE;
     }  /* if */
-#if 0 /* FIXME: Restore code when consumers are coded. */
-    if (ms_attributes != NULL) {
+    if (ms_attributes != NULL && !is_error_locator(locator)) {
       pos_error(ec_ms_attr_not_allowed, &decl_start_pos);
       /* The attributes are not applied to entities associated with
          subsequent declarators. */
       ms_attributes = NULL;
     }  /* if */
-#endif /* FIXME */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     remove_stop_token(tok_comma);
     decl_info.is_first_in_declarator_list = FALSE;
@@ -12588,13 +12628,11 @@ next_declaration:;
     /* Restore the default name linkage if a linkage specification appeared
        among the decl-specifiers. */
     if (dso_flags & DSO_LINKAGE_SPEC_DECL) pop_name_linkage();
-#if 0 /* FIXME: Restore code when consumers are coded. */
     if (ms_attributes != NULL) {
       /* Attributes were specified on a declaration without a declarator,
          but the attributes were not consumed. */
       pos_error(ec_ms_attr_not_allowed, &decl_start_pos);
     }  /* if */
-#endif /* FIXME */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED

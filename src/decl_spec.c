@@ -1804,7 +1804,7 @@ static a_boolean class_specifier(
                         a_boolean                   is_template_specialization,
                         a_boolean                   marked_as_gnu_extension,
                         a_decl_modifiers_block_ptr  prefix_decl_modifiers,
-                        an_ms_attribute_ptr         ms_attributes,
+                        an_ms_attribute_ptr         *p_ms_attributes,
                         a_type_ptr                  *type_ptr,
                         a_boolean                   *declares_something,
                         a_boolean                   *defines_something,
@@ -1864,8 +1864,8 @@ of the form "class A<int>" to not be considered a specific declaration of
 the template.  is_typedef is TRUE if the class specifier is being typedefed.
 is_ref_within_new_expr indicates that the specifier is parsed as part of a
 new expression and should therefore not be treated as a declaration.
-ms_attributes points to a linked list of Microsoft attributes preceding the
-class specifier (if any).
+p_ms_attributes describes Microsoft attributes preceding the class specifier
+(if any).
 */
 {
   a_symbol_kind           tag_kind;
@@ -2759,10 +2759,14 @@ class specifier (if any).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
   /* Now that we have a type, we can apply any attributes attached to it. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (ms_attributes != NULL) {
-    apply_microsoft_attributes(&ms_attributes, (char*)class_type,
-                               (an_il_entry_kind)iek_type,
-                               is_interface ? MSAT_INTERFACE : MSAT_CLASS);
+  if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
+    an_ms_attribute_target  attr_target =
+                      is_interface                          ? MSAT_INTERFACE :
+                      (type_kind == (a_type_kind)tk_struct) ? MSAT_STRUCT :
+                      (type_kind == (a_type_kind)tk_class)  ? MSAT_CLASS :
+                                                              MSAT_UNION;
+    apply_microsoft_attributes(p_ms_attributes, (char*)class_type,
+                               (an_il_entry_kind)iek_type, attr_target);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -2941,11 +2945,12 @@ static an_integer_kind
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void enum_specifier(a_boolean         vacuous_decl_allowed,
-                           a_type_ptr        *type_ptr,
-                           a_boolean         *declares_something,
-                           a_boolean         *defines_something,
-                           a_decl_pos_block  *decl_pos_block)
+static void enum_specifier(a_boolean            vacuous_decl_allowed,
+                           a_type_ptr           *type_ptr,
+                           an_ms_attribute_ptr  *p_ms_attributes,
+                           a_boolean            *declares_something,
+                           a_boolean            *defines_something,
+                           a_decl_pos_block     *decl_pos_block)
 /*
 Scan an enumeration specifier (3.5.2.2).  The syntax is
 
@@ -2967,7 +2972,8 @@ An enumeration-constant is an identifier.
 
 The type is returned in *type_ptr.  *declares_something is set to indicate
 whether or not this specifier declares something, and *defines_something
-to indicate whether an enumeration is actually defined.
+to indicate whether an enumeration is actually defined.  p_ms_attributes
+describes Microsoft attributes preceding the enum specifier (if any).
 */
 {
   a_symbol_locator             locator;
@@ -3592,6 +3598,12 @@ to indicate whether an enumeration is actually defined.
       free_attribute_list(attributes);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (p_ms_attributes != NULL && *p_ms_attributes != NULL) {
+    apply_microsoft_attributes(p_ms_attributes, (char*)enum_type,
+                               (an_il_entry_kind)iek_type, MSAT_ENUM);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry marking the end of the enum definition. */
     add_end_of_construct_source_sequence_entry((char *)enum_type,
@@ -6097,17 +6109,10 @@ process_class_specifier:
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
                           marked_as_gnu_extension, decl_modifiers,
-                          ms_attributes, type_ptr, &declares_something,
+                          &ms_attributes, type_ptr, &declares_something,
                           &defines_something, decl_pos_block)) {
                 err = TRUE;
               }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-              if (p_ms_attributes != NULL) {
-                /* The Microsoft attributes have been consumed.  Do not pass
-                   them back to the caller. */
-                *p_ms_attributes = ms_attributes = NULL;
-              }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               basic_type = bt_struct_union;
               is_elaborated_type_specifier = TRUE;
             }  /* if */
@@ -6126,7 +6131,7 @@ process_class_specifier:
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
                           marked_as_gnu_extension, decl_modifiers,
-                          /*ms_attributes=*/NULL, &dummy_type, &dummy_flag,
+                          (an_ms_attribute_ptr*)NULL, &dummy_type, &dummy_flag,
                           &dummy_flag, decl_pos_block);
           }  /* if */
           decl_specifiers_seen |= DS_TYPE;
@@ -6143,7 +6148,7 @@ process_class_specifier:
             if (any_decl_specifiers_seen || strict_ansi_mode) {
               vacuous_decl_allowed = FALSE;
             }  /* if */
-            enum_specifier(vacuous_decl_allowed, type_ptr,
+            enum_specifier(vacuous_decl_allowed, type_ptr, &ms_attributes,
                            &declares_something, &defines_something,
                            decl_pos_block);
             if (is_error_type(*type_ptr)) {
@@ -6162,9 +6167,9 @@ process_class_specifier:
             bad_combination_of_type_specifiers = TRUE;
             error(ec_bad_combination_of_type_specifiers);
             /* Scan the specifier anyway, but throw it away. */
-            enum_specifier(/*vacuous_decl_allowed=*/FALSE,
-                           &dummy_type, &dummy_flag, &dummy_flag,
-                           decl_pos_block);
+            enum_specifier(/*vacuous_decl_allowed=*/FALSE, &dummy_type,
+                           (an_ms_attribute_ptr*)NULL, &dummy_flag,
+                           &dummy_flag, decl_pos_block);
           }  /* if */
           decl_specifiers_seen |= DS_TYPE;
           goto no_get_token;

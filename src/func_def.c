@@ -1449,7 +1449,7 @@ a_symbol_ptr function_definition(
                         a_storage_class            storage_class,
                         a_boolean                  has_explicit_type_specifier,
                         a_decl_modifiers_block_ptr decl_modifiers,
-                        an_ms_attribute_ptr        ms_attributes,
+                        an_ms_attribute_ptr        *p_ms_attributes,
                         an_attribute_ptr           attributes,
                         a_decl_pos_block_ptr       decl_pos_block)
 /*
@@ -1464,7 +1464,9 @@ the function type came from the declarator; when it is TRUE an error is
 reported); storage_class is the storage class from the specifiers list; and
 has_explicit_type_specifier is TRUE if the type of the function was explicitly
 specified (rather than defaulted to "int").  A pointer to the symbol pointer
-associated with the function is returned.
+associated with the function is returned.  attributes describes GNU attributes
+specified for this function declaration.  p_ms_attributes describes Microsoft
+attributes.  If p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
 This function is also called in the case of a nondefining out-of-class
 member declaration (allowed in Microsoft mode only).
 */
@@ -1673,7 +1675,7 @@ member declaration (allowed in Microsoft mode only).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     decl_routine(locator, storage_class, rout_type, func_info,
                  declarator_ssep, (SRK_DECLARATION | SRK_DEFINITION),
-                 decl_modifiers, ms_attributes, attributes, (char *)NULL,
+                 decl_modifiers, p_ms_attributes, attributes, (char *)NULL,
                  &symbol_ptr, &linkage, &old_type, &ext_sym, decl_pos_block);
   }  /* if */
   /* Now scan the function body, except if we're dealing with the special
