@@ -272,8 +272,8 @@ pragma warning is issued and the pragma is discarded.
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 #define INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL TRUE
 #else /* !(BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) */
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 #define INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL FALSE
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 #endif /* !defined(INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL) */
 
 #endif /* ifndef LANG_FEAT_H */
