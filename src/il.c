@@ -5346,7 +5346,6 @@ fields to default values.
   sp->expr = NULL;
   switch (stmt_kind) {
     case stmk_expr:
-    case stmk_return:
       /* No variant fields. */
       break;
     case stmk_if:
@@ -5364,6 +5363,9 @@ fields to default values.
     case stmk_goto:
     case stmk_label:
       sp->variant.label = NULL;
+      break;
+    case stmk_return:
+      sp->variant.return_dynamic_init = NULL;
       break;
     case stmk_block:
       sp->variant.block.statements = NULL;

@@ -2032,6 +2032,10 @@ Display the indicated statement.
     case stmk_return:
       (void)printf("stmk_return\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
+      if (ptr->variant.return_dynamic_init != NULL) {
+        disp_ptr("return_dynamic_init",
+                 (char *)ptr->variant.return_dynamic_init, iek_dynamic_init);
+      }  /* if */
       break;
     case stmk_if:
       (void)printf("stmk_if\n");

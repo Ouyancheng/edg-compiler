@@ -642,7 +642,6 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
         switch (ptr->kind) {
           case stmk_expr:
-          case stmk_return:
 #ifdef FFE
           case stmk_alt_return:
 #endif /* ifdef FFE */
@@ -664,6 +663,10 @@ the file scope, do not process it (but record an orphan in the latter case).
           case stmk_goto:
           case stmk_label:
             remap_ptr(ptr->variant.label, a_label_ptr, iek_label);
+            break;
+          case stmk_return:
+            walk_ptr(ptr->variant.return_dynamic_init, a_dynamic_init_ptr,
+                     iek_dynamic_init);
             break;
           case stmk_block:
             /* Do extra_info before statements to get declarations out

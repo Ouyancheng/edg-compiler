@@ -3078,7 +3078,7 @@ typedef struct a_statement {
                              The selector expression for stmk_alt_return. */
 #endif /* ifdef FIL */
   union {
-    /* When kind == stmk_expr or stmk_return, no variant fields. */
+    /* When kind == stmk_expr, no variant fields. */
 #ifdef FIL
     /* Likewise when kind == stmk_alt_return. */
 #endif /* ifdef FIL */
@@ -3125,6 +3125,14 @@ typedef struct a_statement {
 #endif /* ifdef CIL */
     /* When kind == stmk_goto or stmk_label: */
     a_label_ptr label;
+    /* When kind == stmk_return: */
+    a_dynamic_init_ptr
+		return_dynamic_init;
+			/* For a routine that returns a value by calling
+			   a copy constructor (C++ only), this points to a
+			   dynamic initialization entry that initializes the
+			   return value.  NULL otherwise.  When this is
+			   non-NULL, expr is NULL. */
     /* When kind == stmk_block: */
     struct {
       a_statement_ptr
@@ -3459,8 +3467,8 @@ typedef struct a_scope {
 			   that provides a pointer to the location to which
 			   the return value of this function must be copied
 			   on return.  This is only used when the return type
-			   is a C++ class type, and is necessary (e.g.) when a
-			   copy constructor must be called. */
+			   is a C++ class type that is returned via a copy
+			   constructor. */
 #endif /* ifdef CIL */
 #ifdef FIL
       a_variable_ptr
