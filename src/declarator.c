@@ -1009,8 +1009,7 @@ specification is handled later (see check_exception_specification).
     }  /* if */
   } while (loop_token(tok_comma));
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && microsoft_version >= 1300 &&
-      esp != NULL && estp != 0) {
+  if (microsoft_mode && microsoft_version >= 1300 && esp != NULL) {
     /* Some versions of Microsoft C++ treat any non-empty exception
        specification as "throw (...)". */
     esp->exception_specification_type_list = NULL;
