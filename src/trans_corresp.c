@@ -1859,11 +1859,18 @@ symbols are listed under the same header).
          prototype instantiation. */
       a_symbol_ptr  sym1 = (a_symbol_ptr)scp1->assoc_info;
       a_symbol_ptr  sym2 = (a_symbol_ptr)scp2->assoc_info;
-      check_assertion(sym1->is_class_member ||
-                      sym1->kind == (a_symbol_kind)sk_member_function ||
-                      (sym1->kind == (a_symbol_kind)sk_routine &&
-                       sym1->variant.routine.ptr
-                           ->befriending_classes != NULL));
+#if CHECKING
+      if (!(sym1->is_class_member ||
+            sym1->kind == (a_symbol_kind)sk_member_function ||
+            (sym1->kind == (a_symbol_kind)sk_routine &&
+             sym1->variant.routine.ptr->befriending_classes != NULL))) {
+#if DEBUG
+        db_sym(sym1);
+        db_sym(sym2);
+#endif /* DEBUG */
+        unexpected_condition_str("Expected a class member");
+      }  /* if */
+#endif /* CHECKING */
       if (sym1->is_class_member &&
           sym1->kind == (a_symbol_kind)sk_member_function &&
           sym1->variant.routine.ptr->is_prototype_instantiation) {
