@@ -3386,13 +3386,14 @@ because the feature is used to implement offsetof, a standard feature.
 
 static a_dynamic_init_ptr add_array_nonconstant_aggregate_init(
                                          a_dynamic_init_ptr element_dip,
+                                         a_type_ptr         elem_type,
                                          a_targ_size_t      number_of_elements)
 /*
 Change the indicated dynamic initialization into a dynamic initialization
-for each member of an array of classes.  number_of_elements is the number
-of elements in the array, or 0 if the number of elements is variable (and
-known only at runtime).  Return a pointer to the dynamic init entry for
-the entire array.
+for each member of an array of classes.  elem_type is the type of the array
+elements.  number_of_elements is the number of elements in the array, or 0
+if the number of elements is variable (and known only at runtime).  Return
+a pointer to the dynamic init entry for the entire array.
 */
 {
   a_dynamic_init_ptr  array_dip;
@@ -3406,7 +3407,8 @@ the entire array.
   */
   array_dip =
           alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
-  repeat_nonconstant_init(element_dip, array_dip, (int)number_of_elements);
+  repeat_nonconstant_init(element_dip, elem_type, array_dip,
+                          number_of_elements);
   return array_dip;
 }  /* add_array_nonconstant_aggregate_init */
 
@@ -3748,7 +3750,7 @@ specification allow a variable-sized array as the top type.
         /* The entity is an array whose elements have a class type that
            has a default constructor.  Use a dik_nonconstant_aggregate
            initialization. */
-        dip = add_array_nonconstant_aggregate_init(dip,
+        dip = add_array_nonconstant_aggregate_init(dip, base_new_type,
                                                    effective_num_of_elements);
       }  /* if */
     } else {
@@ -3890,7 +3892,8 @@ As an anachronism, allow an expression inside the [ ].
           if (array_delete) {
             /* For a delete of an array of classes, generate a dynamic init
                that replicates the destructor call for the whole array. */
-            dip = add_array_nonconstant_aggregate_init(dip, (a_targ_size_t)0);
+            dip = add_array_nonconstant_aggregate_init(dip, base_delete_type,
+                                                       (a_targ_size_t)0);
           }  /* if */
           init_node->variant.init.dynamic_init = dip;
           ptr_node = init_node;
