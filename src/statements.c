@@ -2544,25 +2544,53 @@ break_handled:;
 }  /* break_statement */
 
 
-static void check_void_return_okay(void)
+static void check_void_return_okay(a_boolean         is_implicit_return,
+				   an_expr_node_ptr  *return_expr)
 /*
 Check that a void return (one with no value) is okay as a way of exiting
-the current routine.
+the current routine.  If is_implicit_return is TRUE then the return
+was generated as a consequence of falling off of the end of a function;
+otherwise the program contained an explicit return statement that
+contained no return value expression.
+
+If the return is from the main routine, generate an implicit return
+expression if possible.  If main() returns an integral type then an
+implicit return from main is treated as a "return 0".  This is the defined
+behavior in C++ when control reaches the end of the main routine.  This
+behavior is also used in C where the language says that this
+is undefined.  Note that this is also done in C++ when main contains
+a "return;" (i.e., a return with no expression).  In C++ such a return
+also results in undefined behavior.
+
+A diagnostic is generated for any cases in which the behavior is undefined.
+
+If an implicit return value can be created, the expression pointer passed
+by the caller is updated to point to a zero of the appropriate type.
 */
 {
   a_routine_ptr   rout;
   a_type_ptr      tp;
   a_symbol_ptr    function_name_symbol;
-  a_boolean       issue_no_value_returned_diag;
+  a_boolean       issue_no_value_returned_diag = FALSE;
   an_error_severity
 		  no_returned_value_severity;
+  a_boolean	  implicit_return_from_main = FALSE;
 
 
   /* Get a pointer to the current routine entry, and get its return
      type. */
   rout = current_routine_entry();
   tp = rout->type->variant.routine.return_type;
-  issue_no_value_returned_diag = FALSE;
+  /* Check for a return from main.  If possible generate an implicit
+     return value. */
+  if (rout == il_header.main_routine) {
+    if (is_integral_type(tp)) {
+      a_constant zero;
+      make_zero_of_proper_type(tp, &zero);
+      *return_expr = alloc_node_for_constant(&zero);
+      implicit_return_from_main = TRUE;
+    }  /* if */
+  }  /* if */
   if (!is_void_type(tp) && !is_error_type(tp)) {
     if (C_dialect != C_dialect_cplusplus) {
       /* If a return with no expression appears in a function with a
@@ -2571,31 +2599,42 @@ the current routine.
          have an explicit type specifier (omitting the specifier implies
          "int", but may have been intended to mean "void" in old-style C). */
       if (!struct_stmt_stack->rout_type_explicitly_specified) {
-        /* No diagnostic if the routine's type was not explicitly specified. */
-      } else if (rout == il_header.main_routine) {
-        /* No diagnostic for "main". */
+        /* A remark if the routine's type was not explicitly specified. */
+        issue_no_value_returned_diag = TRUE;
+        no_returned_value_severity = es_remark;
+      } else if (rout == il_header.main_routine && is_implicit_return) {
+        /* Returning from main() by falling off of the end of the function.
+           Issue a remark. */
+        issue_no_value_returned_diag = TRUE;
+        no_returned_value_severity = es_remark;
       } else {
+        /* A function other than main, or an explicit return from main that
+           omitted the return value. */
         issue_no_value_returned_diag = TRUE;
         no_returned_value_severity = es_warning;
       }  /* if */
     } else {
       /* C++:  Issue a diagnostic unless we are returning from a constructor.
 	 The diagnostic is either a warning or a strict ANSI diagnostic.
-	 While the ARM (6.6.3) does not appear to special case "main"
-	 it seems inappropriate to issue an error for a program that may
-	 exit from "main" using the "exit" function;  So only a warning
-	 is given for main.  There is no special case for cases in which
+         C++ defines falling off the end of main as an implicit "return 0".
+         No special case is made for an explicit return from main that
+         omits the return value.  There is no special case for cases in which
 	 the return type is not explicit. */
       if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
         /* Constructors will not have a return expression since at the source
            level they have no return type; however, in the IL they are
            represented as returning the "this" parameter. */
       } else {
-        issue_no_value_returned_diag = TRUE;
-	if (strict_ansi_mode && rout != il_header.main_routine) {
-          no_returned_value_severity = strict_ansi_error_severity;
+        if (implicit_return_from_main && is_implicit_return) {
+          /* Something like "main(){}" but not "main() { return; }.  This
+             is defined and no diagnostic is needed. */
         } else {
-          no_returned_value_severity = es_warning;
+          issue_no_value_returned_diag = TRUE;
+          if (strict_ansi_mode) {
+            no_returned_value_severity = strict_ansi_error_severity;
+          } else {
+            no_returned_value_severity = es_warning;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -2655,7 +2694,7 @@ See also 3.6.6.4.
   /* See if the optional expression is present. */
   if (curr_token == tok_semicolon) {
     /* The expression is missing. */
-    check_void_return_okay();
+    check_void_return_okay(/*is_implicit_return=*/FALSE, &return_expr);
     if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
       /* In a constructor the user may not specify a return value.  However,
          the IL contains code to return the "this" variable. */
@@ -3312,7 +3351,7 @@ branching into it is disallowed).
       }  /* if */
     }  /* if */
   }  /* while */
-
+	
   /* If a lint-style "notreached" comment was detected, suppress the
      warning on unreachable code. */
   check_lint_notreached_flag();
@@ -3327,31 +3366,21 @@ branching into it is disallowed).
        a return with no expression. */
     if (at_function_level && curr_reachability.reachable) {
       a_statement_ptr sp;
-      a_type_ptr        return_type = rout->type->variant.routine.return_type;
-      a_boolean	        implicit_return_from_main = FALSE;
-      an_expr_node_ptr	implicit_return_expr;
-      if (C_dialect == C_dialect_cplusplus && rout == il_header.main_routine) {
-         /* We are falling off the end of main.  In C++ when main is returning
-            an integral value this is treated as a return of zero. */
-        if (is_integral_type(return_type)) {
-          a_constant zero;
-          make_zero_of_proper_type(return_type, &zero);
-          implicit_return_expr = alloc_node_for_constant(&zero);
-          implicit_return_from_main = TRUE;
-        }  /* if */
-      }  /* if */
+      an_expr_node_ptr	return_expr = NULL;
       /* Suppress the warning if the user told us this code is not
          reachable. */
-      if (!implicit_return_from_main &&
-          curr_reachability.reachable_considering_hints) {
-        check_void_return_okay();
+      if (curr_reachability.reachable_considering_hints) {
+        /* Falling off the end of a function in reachable code.  Make sure
+           that a void return is acceptable here.  If this is the main
+           routine, generate an implicit return value, if possible. */
+        check_void_return_okay(/*is_implicit_return=*/TRUE, &return_expr);
       }  /* if */
       /* The statement is not allocated earlier because we don't want it to
          affect the reachability information. */
       sp = add_statement((a_statement_kind)stmk_return);
-      if (implicit_return_from_main) {
-        /* An implicit "return 0" caused by falling off the end of main. */
-        sp->expr = implicit_return_expr;
+      if (return_expr != NULL) {
+        /* return_expr will be set for an implicit return from main. */
+        sp->expr = return_expr;
       } else if (rout->special_kind ==
                              (a_special_function_kind)sfk_constructor) {
         /* By default constructors return the "this" variable. */

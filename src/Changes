@@ -18,6 +18,10 @@ In C++, if control reaches the end of the main() routine, and main() has
 an integral return type, it is treated as if a "return 0;" statement were
 executed.  This was approved by X3J16/WG21 at the 11/93 meeting.
 
+This behavior has been extended to all main() routines with integral
+return types.  Except for the case explicitly sanctioned by the C++
+working paper, a diagnostic message is issued.
+
 1/20/94  Default file suffixes under MS-DOS
 
 The default object file suffix for MS-DOS has been changed from .o to .obj.
