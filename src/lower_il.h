@@ -647,7 +647,7 @@ an orphan, so member types are not recorded as orphans.
 */
 #define lower_os_type(type)                                           \
 { if (!lowering_file_scope) {                                         \
-    if (type->source_corresp.class_of_which_a_member == NULL) {       \
+    if (!type->source_corresp.is_class_member) {                      \
       add_orphaned_file_scope_il_entry((char *)(type),                \
                                        (an_il_entry_kind)iek_type);   \
     }  /* if */                                                       \

@@ -383,9 +383,9 @@ used to encode constants as part of the mangled names of template classes.
            This is compatible with cfront 3.0.1. */
         if (abkind == (an_address_base_kind)abk_variable) {
           variable = con->variant.address.variant.variable;
-          class_type = variable->source_corresp.class_of_which_a_member;
-          if (class_type != NULL) {
+          if (variable->source_corresp.is_class_member) {
             /* Static data member. */
+            class_type = variable->source_corresp.parent.class_type;
             str_length = mangled_static_data_member_name(variable,
                                                          (char *)NULL);
           } else {
@@ -752,7 +752,7 @@ the name.
        and the number is probably different. */
     /* Don't do this for nested classes. */
     if (type->source_corresp.is_local_to_function &&
-        type->source_corresp.class_of_which_a_member == NULL) {
+        !type->source_corresp.is_class_member) {
       /* This is a local name. */
       a_symbol_ptr assoc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
       sizeof_t digits =
@@ -785,7 +785,6 @@ initial parts of the qualified names.
   sizeof_t   mangled_name_length, name_length;
   char       *name;
   sizeof_t   digits;
-  a_type_ptr parent_class;
 
   /* The mangled form of a type name is the type name with a length
        preceding it:
@@ -800,16 +799,16 @@ initial parts of the qualified names.
      is necessary if you allow more than 9 levels of nesting.
   */
   mangled_name_length = 0;
-  parent_class = type->source_corresp.class_of_which_a_member;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   /* If this a nested type name promoted into the file scope in
      cfront 2.1 mode, do not use the nested form. */
   if (type->use_cfront_transitional_nested_type_name_mangling) {
   } else
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-  if (parent_class != NULL) {
+  if (type->source_corresp.is_class_member) {
     /* Nested type.  Do the containing class names. */
-    name_length = r_mangled_type_name(parent_class, nesting_level+1, store_at);
+    name_length = r_mangled_type_name(type->source_corresp.parent.class_type,
+                                      nesting_level+1, store_at);
     mangled_name_length += name_length;
     if (store_at != NULL) store_at += name_length;
   } else if (!is_immediate_class_type(type)) {
@@ -890,7 +889,7 @@ like the names of base class pointers.  Place the mangled name at
 {
   sizeof_t mangled_name_length;
 
-  if (type->source_corresp.class_of_which_a_member != NULL &&
+  if (type->source_corresp.is_class_member &&
       type->source_corresp.name != NULL &&
       !type->source_corresp.name_has_been_mangled
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
@@ -1281,7 +1280,7 @@ types; just put out the base encoded name.
 {
   sizeof_t     mangled_name_length, section_length;
   char         *name;
-  a_type_ptr   class_type, conversion_type, routine_type;
+  a_type_ptr   class_type = NULL, conversion_type, routine_type;
 
   /* Most of the processing is done in mangled_encoding_for_function_type,
      but this routine handles:
@@ -1343,7 +1342,9 @@ types; just put out the base encoded name.
     if (store_at != NULL) store_at += section_length;
   }  /* if */
   /* See if the function is a member function. */
-  class_type = routine->source_corresp.class_of_which_a_member;
+  if (routine->source_corresp.is_class_member) {
+    class_type = routine->source_corresp.parent.class_type;
+  }  /* if */
   /* If we will be adding the class name or the parameter types, put out
      two underscores to separate the function name from the rest. */
   if (class_type != NULL || !suppress_param_encoding) {
@@ -1489,7 +1490,7 @@ data member variables and member constants.
     *store_at++ = '_';
   }  /* if */
   /* Output the mangled class name. */
-  section_length = mangled_type_name(scp->class_of_which_a_member, store_at);
+  section_length = mangled_type_name(scp->parent.class_type, store_at);
   mangled_name_length += section_length;
   return mangled_name_length;
 }  /* mangled_member_name */
@@ -1689,7 +1690,7 @@ thereunder.
       do_type_list_other_name_mangling(ctsp->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
     } else if (is_immediate_enum_type(type) &&
-               type->source_corresp.class_of_which_a_member != NULL) {
+               type->source_corresp.is_class_member) {
       /* Mangle the names of member enum constants. */
       a_constant_ptr enum_con;
       for (enum_con = type->variant.integer.enum_info.constant_list;
@@ -1818,7 +1819,7 @@ other name mangling that might use the name is done.
   char     *mangled_name;
 
   error_position = type->source_corresp.decl_position;
-  if (type->source_corresp.class_of_which_a_member != NULL &&
+  if (type->source_corresp.is_class_member &&
       type->source_corresp.name != NULL &&
       !type->source_corresp.name_has_been_mangled
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY

@@ -717,11 +717,11 @@ of which the underlying member is a member.
   if (constant->variant.ptr_to_member.is_function_ptr) {
     /* The underlying member is a function. */
     class_type = constant->variant.ptr_to_member.variant.routine->
-                                        source_corresp.class_of_which_a_member;
+                                        source_corresp.parent.class_type;
   } else {
     /* The underlying member is a nonstatic data member. */
     class_type = constant->variant.ptr_to_member.variant.field->
-                                        source_corresp.class_of_which_a_member;
+                                        source_corresp.parent.class_type;
   }  /* if */
   return class_type;
 }  /* pm_constant_member_class */

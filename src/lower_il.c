@@ -77,7 +77,7 @@ constant, and return information about it in *delta.
     /* If the field is a member of an anonymous union, add in the offset of
        the anonymous union.  Several may be nested inside one another. */
     for (;;) {
-      a_type_ptr field_class = field->source_corresp.class_of_which_a_member;
+      a_type_ptr field_class = field->source_corresp.parent.class_type;
       a_class_type_supplement_ptr
                  ctsp = field_class->variant.class_struct_union.extra_info;
       offset += (a_targ_ptrdiff_t)field->offset;
@@ -153,7 +153,7 @@ NULL.
     /* For a virtual function, the offset of the virtual function table
        pointer in the class of the routine is returned in *offset,
        *func == NULL. */
-    a_type_ptr class_type = routine->source_corresp.class_of_which_a_member;
+    a_type_ptr class_type = routine->source_corresp.parent.class_type;
     check_assertion_str(class_type->variant.class_struct_union.
                                                          any_virtual_functions,
    "repr_for_ptr_to_member_function_constant: class has no virtual functions");
@@ -695,7 +695,8 @@ offset for the field.  The field allocated is not a bit field.
   /* Make the field. */
   field_ptr = alloc_field();
   field_ptr->source_corresp.name = field_name;
-  field_ptr->source_corresp.class_of_which_a_member = struct_type;
+  field_ptr->source_corresp.is_class_member = TRUE;
+  field_ptr->source_corresp.parent.class_type = struct_type;
   field_ptr->type = field_type;
   field_ptr->offset = field_offset;
   /* Find the spot at which to insert the field. */
@@ -818,7 +819,7 @@ on return.
   /* Copy the whole entry, then adjust a few fields. */
   *field_ptr = *old_field_ptr;
   field_ptr->source_corresp.name = field_name;
-  field_ptr->source_corresp.class_of_which_a_member = struct_type;
+  field_ptr->source_corresp.parent.class_type = struct_type;
   field_ptr->next = NULL;
   /* Add the field to the end of the struct field list. */
   if (*last_field == NULL) {
@@ -857,7 +858,8 @@ It cannot create bit fields.  field_name may not be NULL.
   /* Make the field entry. */
   field_ptr = alloc_field();
   field_ptr->source_corresp.name = field_name;
-  field_ptr->source_corresp.class_of_which_a_member = struct_type;
+  field_ptr->source_corresp.is_class_member = TRUE;
+  field_ptr->source_corresp.parent.class_type = struct_type;
   field_ptr->type = field_type;
   /* Add the field to the end of the struct field list. */
   if (*last_field == NULL) {
@@ -1439,7 +1441,7 @@ union, adjust it to make the anonymous union reference(s) explicit.
     op2 = node->variant.operation.operands->next;
     field = op2->variant.field;
     /* See if the field is from an anonymous union. */
-    field_class = field->source_corresp.class_of_which_a_member;
+    field_class = field->source_corresp.parent.class_type;
     ctsp = field_class->variant.class_struct_union.extra_info;
     if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_field) {
       /* Stop when the field is not from an anonymous union. */
@@ -2771,7 +2773,7 @@ constants in other scopes.
        record it as a potential orphan instead.  Note that a class member
        can never be an orphan, so member constants are not recorded as
        orphans. */
-    if (constant->source_corresp.class_of_which_a_member == NULL) {
+    if (!constant->source_corresp.is_class_member) {
       add_orphaned_file_scope_il_entry((char *)constant, iek_constant);
     }  /* if */
   } else {
@@ -3685,8 +3687,8 @@ this routine to do a relatively simple copy of the all the fields.
     }  /* if */
     subobject_type->source_corresp.decl_position = 
                                       class_type->source_corresp.decl_position;
-    subobject_type->source_corresp.class_of_which_a_member =
-                            class_type->source_corresp.class_of_which_a_member;
+    subobject_type->source_corresp.parent.class_type =
+                            class_type->source_corresp.parent.class_type;
 #if 0
     /* Ideally, the referenced flag would not be set if the class type is
        not referenced.  However, the class type might not be referenced now
@@ -4317,7 +4319,7 @@ Do IL lowering of the indicated variable and everything under it.
     lower_initializer(variable->init_kind, &variable->initializer);
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (automatic_instantiation_mode &&
-        variable->source_corresp.class_of_which_a_member != NULL) {
+        variable->source_corresp.is_class_member) {
       /* Static data member. */
       if (variable->instance_required) {
         /* This variable is template-based. */
@@ -6752,7 +6754,7 @@ If insert_location == NULL, no initialization code is generated.
   if (dip->is_freeing_of_storage_on_exception) {
     a_routine_ptr delete_routine = dip->destructor;
     if (delete_routine->opname_kind == (an_opname_kind)onk_array_delete &&
-        delete_routine->source_corresp.class_of_which_a_member != NULL) {
+        delete_routine->source_corresp.is_class_member) {
       /* A class-specific "operator delete[]" is handled by calling
          __array_new, so the freeing on exception is no longer visible at
          this level. */
@@ -8672,16 +8674,18 @@ scope) along with the class members.
        function, promote the types to the end of the promoted_local_types
        list of the class. */
     a_type_ptr last_class_type;
-    a_type_ptr routine_class = routine->source_corresp.class_of_which_a_member;
-    if (routine_class != NULL) {
+    a_type_ptr routine_class = NULL;
+
+    if (routine->source_corresp.is_class_member) {
+      routine_class = routine->source_corresp.parent.class_type;
       /* Promoting out of a member function.  Get the promoted_local_types
          list. */
       /* If the class is a nested class, work out to the outermost
          enclosing class.  This is important for ordering reasons, because
          we want all these promoted local types to have access to all of
          the types in all of the surrounding classes. */
-      while (routine_class->source_corresp.class_of_which_a_member != NULL) {
-        routine_class = routine_class->source_corresp.class_of_which_a_member;
+      while (routine_class->source_corresp.is_class_member) {
+        routine_class = routine_class->source_corresp.parent.class_type;
       }  /* while */
       last_class_type = routine_class->variant.class_struct_union.extra_info->
                                                           promoted_local_types;
@@ -8848,7 +8852,7 @@ scope.
   a_routine_ptr          ctor_routine = scope->variant.routine.ptr;
 
   prev_param_var = scope->variant.routine.parameters;
-  class_type = ctor_routine->source_corresp.class_of_which_a_member;
+  class_type = ctor_routine->source_corresp.parent.class_type;
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (class_type->variant.class_struct_union.any_virtual_base_classes) {
     /* Loop through the virtual base classes of the current class. */
@@ -8902,7 +8906,7 @@ Do IL lowering of the indicated scope and everything under it.
 {
   a_context        context;
   a_routine_ptr    routine;
-  a_type_ptr       routine_class_type, routine_type, return_type;
+  a_type_ptr       routine_type, return_type;
   a_variable_ptr   param_var, var;
   a_routine_type_supplement_ptr
                    rtsp;
@@ -8999,7 +9003,7 @@ Do IL lowering of the indicated scope and everything under it.
          does not require static data members to be defined somewhere. */
       var = scope->variables;
       if (var != NULL) {
-        if (var->source_corresp.class_of_which_a_member->
+        if (var->source_corresp.parent.class_type->
             variant.class_struct_union.extra_info->template_arg_list != NULL) {
           /* Don't do this for static data members of template classes. */
         } else {
@@ -9049,11 +9053,10 @@ Do IL lowering of the indicated scope and everything under it.
        lowered during this processing; they are handled in the lowering
        of assoc_block below. */
     lower_scope_list(scope->scopes);
-    routine_class_type = routine->source_corresp.class_of_which_a_member;
-    if (routine_class_type != NULL) {
-      /* Member function. */
-      /* Make sure that the class it is a member of has been pre-lowered. */
-      prelower_class_type(routine_class_type);
+    if (routine->source_corresp.is_class_member) {
+      /* Member function.  Make sure that the class it is a member of has
+         been pre-lowered. */
+      prelower_class_type(routine->source_corresp.parent.class_type);
       /* Add implicit parameters to constructors and destructors. */
       if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
         add_constructor_params(scope);

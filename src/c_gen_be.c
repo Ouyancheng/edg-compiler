@@ -994,8 +994,7 @@ entity is unnamed, generate a name.
     } else {
       m_write_tok_str(name);
     }  /* if */
-  } else if (scp->class_of_which_a_member != NULL ||
-             !scp->is_local_to_function) {
+  } else if (scp->is_class_member || !scp->is_local_to_function) {
     /* No prefix on members of classes or things that aren't local to
        functions (e.g., file-scope typedefs). */
     m_write_tok_str(name);
@@ -2233,7 +2232,7 @@ selection operation).
                     "dump_field_from_second_operand: operand 2 not enk_field");
   field = second_operand->variant.field;
 #if CHECKING
-  { a_type_ptr field_class = field->source_corresp.class_of_which_a_member;
+  { a_type_ptr field_class = field->source_corresp.parent.class_type;
     a_type_ptr struct_class = node->variant.operation.operands->type;
     an_expr_operator_kind op;
     if (field_class == NULL) {

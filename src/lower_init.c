@@ -1039,7 +1039,7 @@ for the source parameter of the copy constructor.
 #endif /* CHECKING */
   /* Skip over any parameters added for virtual base class pointers.
      See add_constructor_params. */
-  class_type = curr_routine->source_corresp.class_of_which_a_member;
+  class_type = curr_routine->source_corresp.parent.class_type;
   if (class_type->variant.class_struct_union.any_virtual_base_classes) {
     for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
          bcp != NULL;
@@ -1175,7 +1175,7 @@ beginning and end of the list are returned in *implied_arg_list and
 
   *implied_arg_list = *end_implied_arg_list = NULL;
   /* Get the class type. */
-  class_type = ctor_routine->source_corresp.class_of_which_a_member;
+  class_type = ctor_routine->source_corresp.parent.class_type;
   prelower_class_type(class_type);
   if (class_type->variant.class_struct_union.any_virtual_base_classes) {
     /* The class has at least one virtual base class. */
@@ -1218,7 +1218,7 @@ we know we are calling the destructor for a complete object.
 
   *implied_arg_node = NULL;
   /* Get the class type. */
-  class_type = dtor_routine->source_corresp.class_of_which_a_member;
+  class_type = dtor_routine->source_corresp.parent.class_type;
   prelower_class_type(class_type);
   /* 0x2 bit means "have complete object".  0x1 bit means "free storage"
      which does not apply here. */
@@ -4447,8 +4447,7 @@ constructor, but may instead be after an assignment to "this".
      is more than one assignment to "this" in a constructor. */
   /* Get a pointer to the "this" parameter variable. */
   this_param_var = scope->variant.routine.parameters;
-  class_type =
-            scope->variant.routine.ptr->source_corresp.class_of_which_a_member;
+  class_type = scope->variant.routine.ptr->source_corresp.parent.class_type;
   /* Mark the class as referenced because, at the very least, the
      "this" parameter uses it. */
   class_type->source_corresp.referenced = TRUE;
@@ -4628,7 +4627,7 @@ constructor scope, and also lower the user code.
   a_routine_ptr      ctor_routine = scope->variant.routine.ptr;
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
   a_type_ptr         class_type =
-                          ctor_routine->source_corresp.class_of_which_a_member;
+                          ctor_routine->source_corresp.parent.class_type;
   a_class_type_supplement_ptr
                      ctsp = class_type->variant.class_struct_union.extra_info;
   a_routine_ptr      new_routine = ctsp->assoc_operator_new_routine;
@@ -5034,7 +5033,7 @@ destructor scope, and also lower the user code.
   /* Get a pointer to the "this" parameter variable. */
   this_param_var = scope->variant.routine.parameters;
   complete_obj_param_var = this_param_var->next;
-  class_type = dtor_routine->source_corresp.class_of_which_a_member;
+  class_type = dtor_routine->source_corresp.parent.class_type;
   /* Mark the class as referenced because, at the very least, the
      "this" parameter uses it.  For some cases involving generated virtual
      destructors, this is necessary. */

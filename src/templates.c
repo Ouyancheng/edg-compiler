@@ -976,12 +976,12 @@ Instantiate the body of the template function associated with tip.
   rout_ptr->declared_type = rout_ptr->type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Set the linkage and storage class. */
-  if (rout_sym->class_of_which_a_member != NULL) {
+  if (rout_sym->is_class_member) {
     /* Member functions are handled in check_class_linkage. */
 #if 0
     /* Should the reference flag be set in scan_function body? */
 #endif /* 0 */
-    rout_sym->class_of_which_a_member->source_corresp.referenced = TRUE;
+    rout_sym->parent.class_type->source_corresp.referenced = TRUE;
   } else {
     if (instantiation_mode == tim_local) {
       /* Put out template function as internally linked. */
@@ -1112,10 +1112,7 @@ and the class instantiation will detect the runaway case.
   if (tssp->token_cache.first_token != NULL) {
     a_boolean  incomplete_type_error_reported;
     a_boolean  has_parenthesized_initializer;
-    a_type_ptr tp = tip->template_sym->class_of_which_a_member;
-    while (tp->source_corresp.class_of_which_a_member != NULL) {
-      tp = tp->source_corresp.class_of_which_a_member;
-    }  /* while */
+
     /* Push a template instantiation scope.  The real values of the
        the template arguments will be associated with the template
        parameter names. */
@@ -1132,8 +1129,7 @@ and the class instantiation will detect the runaway case.
     /* Reactivate any pragmas that should be bound to the generated
        instance. */
     reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
-    push_class_reactivation_scope(static_data_member_sym->
-                                                  class_of_which_a_member);
+    push_class_reactivation_scope(static_data_member_sym->parent.class_type);
     /* Call mark_defined *after* the template instantiation scope is pushed --
        correct behavior for source sequence entry generation depends on it. */
     mark_defined(static_data_member_sym, &tip->template_sym->decl_position);
@@ -1762,6 +1758,7 @@ performed.  templ_param_list points to the template parameter list.
   a_type_ptr                     tp, ttp;
   a_param_type_ptr               ptp, tptp;
   a_template_arg_ptr             tap;
+  a_symbol_ptr                   sym, templ_sym;
 
   db_enter(5, "matches_template_type");
   if (base_class_conv_needed != NULL) *base_class_conv_needed = NULL;
@@ -1845,14 +1842,10 @@ performed.  templ_param_list points to the template parameter list.
            must match. */
         /* Skip typedefs on the real type. */
         type = skip_typedefs(type);
-        if (type->source_corresp.class_of_which_a_member != NULL) {
-          tp = type->source_corresp.class_of_which_a_member;
-          ttp = templ_type->source_corresp.class_of_which_a_member;
-          if (ttp == NULL) {
+        if (type->source_corresp.is_class_member) {
+          if (!templ_type->source_corresp.is_class_member) {
             /* No parent class -- no match. */
           } else {
-            a_symbol_ptr  sym, templ_sym;
-
             sym = (a_symbol_ptr)type->source_corresp.assoc_info;
             templ_sym = (a_symbol_ptr)templ_type->source_corresp.assoc_info;
             if (sym->header != templ_sym->header) {
@@ -1862,6 +1855,9 @@ performed.  templ_param_list points to the template parameter list.
                  parameter and call matches_template_type on the parent
                  type. */
               a_class_symbol_supplement_ptr  cssp;
+
+              tp = type->source_corresp.parent.class_type;
+              ttp = templ_type->source_corresp.parent.class_type;
               cssp = symbol_supplement_for_class(ttp);
               ttp = cssp->template_param_for_proxy_class;
               if (ttp != NULL) {
@@ -1876,7 +1872,7 @@ performed.  templ_param_list points to the template parameter list.
               }  /* if */
               if (!match) {
                 /* Attempt to match on the class of which this is a member. */
-                ttp = templ_type->source_corresp.class_of_which_a_member;
+                ttp = templ_type->source_corresp.parent.class_type;
                 if (matches_template_type(tp, ttp, templ_arg_list,
   				          templ_param_list,
                                           /*allow_conversion=*/FALSE,
@@ -1914,27 +1910,27 @@ performed.  templ_param_list points to the template parameter list.
     } else if (templ_type_kind != type_kind) {
       /* No match. */
     } else {
-      if (type->source_corresp.class_of_which_a_member != NULL) {
+      if (type->source_corresp.is_class_member) {
         /* The argument type is a class member -- a nested class or enum.  Be
            sure the parent classes match and that the members correspond (i.e.,
            have the same name). */
-        tp = type->source_corresp.class_of_which_a_member;
-        ttp = templ_type->source_corresp.class_of_which_a_member;
-        if (ttp == NULL) {
+        if (!templ_type->source_corresp.is_class_member) {
           /* No match. */
         } else {
-          a_symbol_ptr  sym, templ_sym;
-  
           sym = (a_symbol_ptr)type->source_corresp.assoc_info;
           templ_sym = (a_symbol_ptr)templ_type->source_corresp.assoc_info;
           if (sym->header != templ_sym->header) {
             /* Members have different names -- no match. */
-          } else if (matches_template_type(tp, ttp, templ_arg_list,
-                                           templ_param_list,
-                                           /*allow_conversion=*/FALSE,
-                                           (a_base_class_ptr*)NULL)) {
-            /* Members have the same names and the parent classes "match". */
-            match = TRUE;
+          } else {
+            tp = type->source_corresp.parent.class_type;
+            ttp = templ_type->source_corresp.parent.class_type;
+            if (matches_template_type(tp, ttp, templ_arg_list,
+                                      templ_param_list,
+                                      /*allow_conversion=*/FALSE,
+                                      (a_base_class_ptr*)NULL)) {
+              /* Members have the same names and the parent classes "match". */
+              match = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -3056,12 +3052,11 @@ and create a function instantiation entry to bind the two symbols together.
   /* Get the template arg list for the class and use it.  Note that if
      this is a nested class we have to climb the parent chain to find the
      template class in which the template arg list is recorded. */
-  tp = rout_sym->class_of_which_a_member;
-  while (tp->source_corresp.class_of_which_a_member != NULL) {
-    tp = tp->source_corresp.class_of_which_a_member;
+  tp = rout_sym->parent.class_type;
+  while (tp->source_corresp.is_class_member) {
+    tp = tp->source_corresp.parent.class_type;
   }  /* if */
-  tip->arg_list =
-             tp->variant.class_struct_union.extra_info->template_arg_list;
+  tip->arg_list = tp->variant.class_struct_union.extra_info->template_arg_list;
   tssp = sym->variant.routine.instance_ptr->template_info;
   if (tssp->befriending_classes != NULL) {
     update_befriending_classes_for_function(tssp,
@@ -3161,9 +3156,9 @@ Also, add the instance to the definitions list for the template.
   /* Get the template arg list for the class and use it.  Note that if
      this is a nested class we have to climb the parent chain to find the
      template class in which the template arg list is recorded. */
-  tp = static_data_member_sym->class_of_which_a_member;
-  while (tp->source_corresp.class_of_which_a_member != NULL) {
-    tp = tp->source_corresp.class_of_which_a_member;
+  tp = static_data_member_sym->parent.class_type;
+  while (tp->source_corresp.is_class_member) {
+    tp = tp->source_corresp.parent.class_type;
   }  /* if */
   tip->arg_list =
              tp->variant.class_struct_union.extra_info->template_arg_list;
@@ -3451,13 +3446,12 @@ Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
   a_symbol_ptr	class_sym;
   a_boolean	result;
   a_type_ptr    type;
-  a_type_ptr	cowam_type;
 
   /* Find the type of the class.  If this class is nested in another class
      find the type of the outermost class. */
-  type = member_sym->class_of_which_a_member;
-  while ((cowam_type = type->source_corresp.class_of_which_a_member) != NULL) {
-    type = cowam_type;
+  type = member_sym->parent.class_type;
+  while (type->source_corresp.is_class_member) {
+    type = type->source_corresp.parent.class_type;
   }  /* while */
   /* Get the symbol associated with the type.  This symbol is the
      template class symbol. */
@@ -4860,7 +4854,7 @@ declaration.
   /* Make sure that the template parameter list is compatible with
      any previous declaration (i.e., the declaration of the class
      if this is a member function. */
-  if (sym->class_of_which_a_member != NULL) {
+  if (sym->is_class_member) {
     if (!member_template_param_list_matches_class(template_param_list,
 						  sym, &error_position)) {
       err = TRUE;
@@ -4921,7 +4915,7 @@ declaration.
       }	/* if */
     } /* if */
   } /* if */
-  if (sym->class_of_which_a_member != NULL) {
+  if (sym->is_class_member) {
     /* Out-of-line definition of a member function of a class template.
        Don't impose requirements on the use of template parameters in the
        parameters. */
@@ -4977,8 +4971,8 @@ instantiation, then you don't know what X is.
   tp = prescan_and_find_declarator(token_cache);
   if (tp != NULL) {
     /* Skip out to the outermost nested class. */
-    while (tp != NULL && tp->source_corresp.class_of_which_a_member != NULL) {
-      tp = tp->source_corresp.class_of_which_a_member;
+    while (tp->source_corresp.is_class_member) {
+      tp = tp->source_corresp.parent.class_type;
     }  /* while */
     sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
     check_assertion(sym != NULL);
@@ -5550,7 +5544,7 @@ template entities.
     } else {
       a_template_symbol_supplement_ptr  tssp;
       specific_def = tip->specific_def;
-      if (tip->instance_sym->class_of_which_a_member == NULL) {
+      if (!tip->instance_sym->is_class_member) {
         /* This is an instance of a nonmember function -- template_sym
            points to an sk_function_template symbol. */
         tssp = tip->template_sym->variant.template_info;
@@ -6447,7 +6441,7 @@ symbol, otherwise we return NULL.
 
     /* Make sure the resulting symbol is a member of a class that is
        a template class and not a specific definition. */
-    cowam_sym = (a_symbol_ptr)sym->class_of_which_a_member->
+    cowam_sym = (a_symbol_ptr)sym->parent.class_type->
 						source_corresp.assoc_info;
     if (!is_template_class_and_not_specific_def_symbol(cowam_sym)) {
       /* Can't be instantiated -- not a template function. */
