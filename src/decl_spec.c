@@ -205,6 +205,7 @@ parenthesis of the property list as the current token.
   }  /* if */
 }  /* scan_declspec_property */
 
+
 static a_boolean scan_inheritance_kind(an_inheritance_kind  *inheritance_kind,
                                        a_source_position    *pos)
 /*
@@ -270,9 +271,6 @@ Scan the Microsoft __declspec specifier, which has the form
 		naked
 		dllimport
 		dllexport
-
-Added for compatibility with MSVC++ 5.0:
-
                 selectany
                 nothrow
                 novtable
