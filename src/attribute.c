@@ -1216,7 +1216,7 @@ invalid attributes.
       case ak_unused:
         /* Mark the variable as referenced in order to suppress warnings
            about it if it is unused. */
-        vp->unused = TRUE;
+        vp->has_gnu_unused_attribute = TRUE;
         break;
       case ak_mode:
       case ak_noreturn:
@@ -1359,7 +1359,7 @@ messages about any invalid attributes.
         referenced = TRUE;
         break;
       case ak_unused:
-        rp->unused = TRUE;
+        rp->has_gnu_unused_attribute = TRUE;
         break;
       case ak_pure:
         rp->is_pure = TRUE;

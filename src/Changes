@@ -1,7 +1,14 @@
 Version 3.1
 
-1/8/03  Missing instantiations of exported templates when
-        AUTOMATIC_TEMPLATE_INSTANTIATION is FALSE
+1/8/03   IL field "unused" changed to "has_gnu_unused_attribute"
+
+When GNU_EXTENSIONS_ALLOWED is TRUE, a_routine and a_variable entries
+have a flag indicating that the GNU "unused" attribute was applied to
+the entry.  This flag used to be spelled "unused," but that was causing
+confusion.  It is now called "has_gnu_unused_attribute" instead.
+
+1/8/03   Missing instantiations of exported templates when
+         AUTOMATIC_TEMPLATE_INSTANTIATION is FALSE
 
 In general, use of exported templates requires that
 AUTOMATIC_TEMPLATE_INSTANTIATION be TRUE.  However, if all of the
@@ -11,8 +18,8 @@ be possible to generate the required instantiations.  Formerly, this was
 not the case, but the front end now supports this usage of exported
 templates.
 
-1/7/03  MSVC++ 7.x compatibility: non-default operator delete[] ignored,
-        non-array operator delete used instead
+1/7/03   MSVC++ 7.x compatibility: non-default operator delete[] ignored,
+         non-array operator delete used instead
 
 MSVC++ 7.0 has a new slightly different behavior for ignoring
 inappropriate operator delete[] functions when processing a
@@ -28,8 +35,8 @@ is used instead.
     delete [] p;  // Uses non-array operator delete
   }
 
-1/6/03  String literals have same address in all copies of extern inline
-        functions
+1/6/03   String literals have same address in all copies of extern inline
+         functions
 
 IL lowering has been changed so that string literals in extern inline
 functions are now made external, so that each copy of an extern inline
@@ -37,7 +44,7 @@ function will get the same copy of each such string literal (i.e.,
 if you take the address of the string, it will be the same everywhere).
 This is as required by the C++ standard.
 
-1/6/03  GNU compatibility: Abort on attribute syntax error
+1/6/03   GNU compatibility: Abort on attribute syntax error
 
 In GNU C mode, the front end used to abort on certain syntax errors in
 attributes taking an argument.  For example:
@@ -47,7 +54,7 @@ attributes taking an argument.  For example:
 
 This is now fixed.
 
-1/2/03  GNU mode: Unrecognized registers in GNU extended asms
+1/2/03   GNU mode: Unrecognized registers in GNU extended asms
 
 A configuration flag (ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS) has been added
 to indicate that unrecognized extended asm operands should be accepted.

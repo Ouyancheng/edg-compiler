@@ -1071,7 +1071,7 @@ flag.
 #if GNU_EXTENSIONS_ALLOWED
     } else if (rout->is_initialization_routine ||
                rout->is_finalization_routine ||
-               rout->unused) {
+               rout->has_gnu_unused_attribute) {
       /* The routine definition for an initialization or finalization
          function is always needed since the function will be called
          at program start up.  Also, a routine marked as "unused" is

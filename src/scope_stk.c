@@ -3509,7 +3509,7 @@ NULL.
 #if GNU_EXTENSIONS_ALLOWED
                  !var_type->variables_are_implicitly_referenced &&
                  var_ptr->section == NULL &&
-                 !var_ptr->unused &&
+                 !var_ptr->has_gnu_unused_attribute &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
                  !(is_immediate_class_type(var_type) &&
                    (var_type->variant.class_struct_union.is_nonreal_class ||
@@ -3677,7 +3677,7 @@ NULL.
           /* No diagnostic on inline non-member functions defined in a header
              file. */
 #if GNU_EXTENSIONS_ALLOWED
-        } else if (rout_ptr->unused) {
+        } else if (rout_ptr->has_gnu_unused_attribute) {
           /* Do not diagnose an unused function that carries the "unused"
              attribute. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -4576,7 +4576,7 @@ it is an external definition).
          even though the individual entries may have had internal linkage. */
       is_needed = TRUE;
     } else if (var->storage_class == (a_storage_class)sc_static &&
-               (var->unused || var->is_weak)) {
+               (var->has_gnu_unused_attribute || var->is_weak)) {
       /* GNU C doesn't eliminate unreferenced static variables.  This front end
          may do so, but some attributes are taken as an indication that the
          entry should be kept. */
@@ -4813,7 +4813,7 @@ e.g., because it's externally defined.
        at program startup. */
     is_needed = TRUE;
   } else if (rout->storage_class == (a_storage_class)sc_static &&
-             (rout->unused || rout->is_weak)) {
+             (rout->has_gnu_unused_attribute || rout->is_weak)) {
     /* GNU C doesn't eliminate unreferenced static functions.  This front end
        may do so, but some attributes are taken as an indication that the
        entry should be kept. */

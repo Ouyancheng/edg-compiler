@@ -1567,7 +1567,7 @@ Write out attributes that apply to the indicated variable.
   if (var->is_weak) {
     write_tok_str(" __attribute__((__weak__))");
   }  /* if */
-  if (var->unused) {
+  if (var->has_gnu_unused_attribute) {
     write_tok_str(" __attribute__((__unused__))");
   }  /* if */
   if (var->is_not_common) {
@@ -1620,7 +1620,7 @@ Write out attributes that apply to the indicated routine.
   if (rout->is_weak) {
     write_tok_str(" __attribute__((__weak__))");
   }  /* if */
-  if (rout->unused) {
+  if (rout->has_gnu_unused_attribute) {
     write_tok_str(" __attribute__((__unused__))");
   }  /* if */
   if (rout->allocates_memory) {

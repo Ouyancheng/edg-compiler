@@ -1722,7 +1722,7 @@ to it.
   vp->ELF_visibility              = (an_ELF_visibility_kind)evk_unspecified;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   vp->is_weak                     = FALSE;
-  vp->unused                      = FALSE;
+  vp->has_gnu_unused_attribute    = FALSE;
   vp->is_not_common               = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
@@ -1988,7 +1988,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_finalization_routine     = FALSE;
   rp->is_pure                     = FALSE;
   rp->is_weak                     = FALSE;
-  rp->unused                      = FALSE;
+  rp->has_gnu_unused_attribute    = FALSE;
   rp->allocates_memory            = FALSE;
 #if GNU_NAKED_ATTRIBUTE_ALLOWED
   rp->is_naked                    = FALSE;

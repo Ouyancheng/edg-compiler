@@ -1960,7 +1960,7 @@ Display the indicated variable.
   if (ptr->is_weak) { 
     disp_boolean("is_weak", TRUE);
   }  /* if */
-  if (ptr->unused) { 
+  if (ptr->has_gnu_unused_attribute) { 
     disp_boolean("unused", TRUE);
   }  /* if */
   if (ptr->is_not_common) {
@@ -2609,7 +2609,7 @@ Display the indicated routine.
   if (ptr->is_weak) {
     disp_boolean("is_weak", TRUE);
   }  /* if */
-  if (ptr->unused) { 
+  if (ptr->has_gnu_unused_attribute) { 
     disp_boolean("unused", TRUE);
   }  /* if */
   if (ptr->allocates_memory) {

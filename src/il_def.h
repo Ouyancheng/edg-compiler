@@ -5632,9 +5632,9 @@ typedef struct a_variable {
   a_bit_field   is_weak:1;
 			/* TRUE if this variable was declared with the
 			   weak attribute. */
-  a_bit_field   unused:1;
+  a_bit_field   has_gnu_unused_attribute:1;
 			/* TRUE if this variable was declared with the
-			   unused attribute. */
+			   GNU "unused" attribute. */
   a_bit_field   is_not_common:1;
 			/* TRUE if this variable should not be placed in
 			   COMMON (or an equivalent) even if it is
@@ -6604,9 +6604,9 @@ typedef struct a_routine {
   a_bit_field	is_weak:1;
 			/* TRUE if this routine was declared with the 
 			   weak attribute. */
-  a_bit_field   unused:1;
+  a_bit_field   has_gnu_unused_attribute:1;
 			/* TRUE if this variable was declared with the
-			   unused attribute. */
+			   GNU "unused" attribute. */
   a_bit_field	allocates_memory:1;
 			/* TRUE if this routine was declared with the
 			   malloc attribute.  Such a routine should
