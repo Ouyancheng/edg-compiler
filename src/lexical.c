@@ -7657,6 +7657,30 @@ present.
 }  /* look_up_destructor_name */
 
 
+static a_boolean acceptable_dtor_type(a_type_ptr	field_sel_type,
+				      a_type_ptr	dtor_type)
+/*
+Determine whether dtor_type is an acceptable type to be used in an
+explicit destructor call for an object of field_sel_type.
+
+Normally the types must be identical, but if field_sel_type is a proxy
+class, we should accept any type.
+*/
+{
+  a_class_symbol_supplement_ptr	cssp;
+  a_boolean			result = FALSE;
+
+  check_assertion(is_immediate_class_type(field_sel_type));
+  cssp = symbol_supplement_for_class(field_sel_type);
+  if (cssp->template_param_for_proxy_class != NULL) {
+    result = TRUE;
+  } else {
+    result = identical_types(field_sel_type, dtor_type);
+  }  /* if */
+  return result;
+}  /* acceptable_dtor_type */
+
+
 static void get_destructor_name(a_type_ptr	field_sel_type,
 				a_boolean	is_file_scope_qualified_name,
 				a_symbol_ptr	qualifier_sym)
@@ -7744,8 +7768,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
            field selection class or a base class thereof. */
         a_type_ptr	qualifier_type;
         qualifier_type = type_symbol_type(qualifier_sym);
-        if (!type_matches_type_or_proxy_class(field_sel_type,
-                                              qualifier_type) &&
+        if (!acceptable_dtor_type(field_sel_type, qualifier_type) &&
             find_base_class_of(field_sel_type, qualifier_type) == NULL) {
           pos_ty2_error(ec_destructor_qualifier_type_mismatch,
                        &locator_for_curr_id.source_position,
@@ -7772,10 +7795,10 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
            flag). */
         normal_locator = locator_for_curr_id;
         normal_sym = normal_id_lookup(&normal_locator, IDL_MUST_BE_CLASS);
-        if (normal_sym != NULL && is_class_symbol(normal_sym)) {
+        if (normal_sym != NULL && is_class_or_class_proxy_symbol(normal_sym)) {
           normal_tp = type_symbol_type(normal_sym);
           normal_tp = skip_typerefs(normal_tp);
-          if (type_matches_type_or_proxy_class(field_sel_type, normal_tp)) {
+          if (acceptable_dtor_type(field_sel_type, normal_tp)) {
             type_sym = normal_sym;
             destructor_okay = TRUE;
             locator_for_curr_id = normal_locator;
@@ -7803,7 +7826,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
           }  /* if */
           if (other_sym != NULL && is_class_symbol(other_sym)) {
             other_tp = skip_typerefs(other_sym->variant.type.ptr);
-            if (type_matches_type_or_proxy_class(field_sel_type, other_tp)) {
+            if (acceptable_dtor_type(field_sel_type, other_tp)) {
               type_sym = other_sym;
               destructor_okay = TRUE;
               locator_for_curr_id = other_locator;

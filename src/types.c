@@ -2027,26 +2027,6 @@ Return TRUE if the two array types have identical bounds.
 }  /* identical_array_type_level */
 
 
-a_boolean type_matches_type_or_proxy_class(
-					a_type_ptr	type_1,
-					a_type_ptr	type_2)
-/*
-Compare type_1 and type_2 to see if they are identical.  If type_1
-is a class type and type_2 is a template parameter, use the proxy
-class for type_2 for the comparison.
-*/
-{
-  a_boolean	result;
-
-  if (is_immediate_class_type(type_1) &&
-      type_2->kind == (a_type_kind)tk_template_param) {
-    type_2 = proxy_class_for_template_param(type_2);
-  }  /* if */
-  result = identical_types(type_1, type_2);
-  return result;
-}  /* type_matches_type_or_proxy_class */
-
-
 static a_boolean equiv_nonreal_templates(a_type_ptr	type_1,
 				         a_symbol_ptr	sym_1,
 					 a_type_ptr	type_2,

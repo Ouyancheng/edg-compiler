@@ -340,10 +340,6 @@ extern a_boolean f_identical_types(a_type_ptr      type_1,
                                    a_type_ptr      type_2,
                                    an_itf_flag_set flags);
 
-extern a_boolean type_matches_type_or_proxy_class(
-					a_type_ptr	type_1,
-					a_type_ptr	type_2);
-
 extern a_boolean integral_types_the_same_except_for_signedness(
                                                             a_type_ptr type_1,
                                                             a_type_ptr type_2);
