@@ -3571,7 +3571,7 @@ The syntax is:
       check_assertion(member_parent_type != NULL);
     } else if (member_parent_type == NULL && locator != NULL) {
       /* In certain error cases (involving parenthesized declarators) the
-         declaration can me marked as a constructor or destructor but
+         declaration can be marked as a constructor or destructor but
          member_parent_type will be NULL.  In other cases of parenthesized
          declarators member_parent_type must be updated from the locator. */
       if (is_error_locator(*locator) && (*is_constructor || *is_destructor)) {
