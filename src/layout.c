@@ -229,6 +229,9 @@ Return the field alignment for the given type.
     case tk_typeref:
       result = field_alignment_for(skip_typerefs(type));
       break;
+    case tk_array:
+      result = field_alignment_for(underlying_array_element_type(type));
+      break;
     default:
       result = type->alignment;
   }  /* switch */
