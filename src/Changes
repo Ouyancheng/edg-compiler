@@ -84,8 +84,7 @@ following:
 
 A diagnostic is now issued on the following:
 
-  void f(const &);   // remark in C mode, warning in C++ mode, error in
-                     //   strict ANSI C++ mode
+  void f(const *);    // error in strict ANSI C++ mode, warning otherwise
 
 12/5/96  Microsoft compatibility: implicit int on function declarations
 
