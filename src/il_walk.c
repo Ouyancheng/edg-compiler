@@ -970,6 +970,7 @@ routine modifies some entry that might be earlier on the list, set
       an_il_entry_kind               entry_kind;
       a_src_seq_secondary_decl_ptr   sec_decl = NULL;
       a_src_seq_end_of_construct_ptr ecp = NULL;
+      an_instantiation_directive_ptr idp = NULL;
       a_boolean                      keep_in_il;
 
       if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
@@ -982,6 +983,11 @@ routine modifies some entry that might be earlier on the list, set
         ecp = ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
         entry_ptr = ecp->entity.ptr;
         entry_kind = (an_il_entry_kind)ecp->entity.kind;
+      } else if (ss_entry_kind(ssep) == iek_instantiation_directive) {
+        /* This is an instantiation directive. */
+        idp = ss_entry_ptr(ssep, an_instantiation_directive_ptr);
+        entry_ptr = idp->entity.ptr;
+        entry_kind = (an_il_entry_kind)idp->entity.kind;
       } else {
         /* This is a primary declaration. */
         entry_ptr = ssep->entity.ptr;
@@ -1003,6 +1009,8 @@ routine modifies some entry that might be earlier on the list, set
         il_entry_prefix_of(ssep).keep_in_il = TRUE;
         if (ecp != NULL) {
           il_entry_prefix_of(ecp).keep_in_il = TRUE;
+        } else if (idp != NULL) {
+          il_entry_prefix_of(idp).keep_in_il = TRUE;
         } else if (sec_decl != NULL) {
           a_type_ptr decl_type = sec_decl->declared_type;
           il_entry_prefix_of(sec_decl).keep_in_il = TRUE;
