@@ -135,7 +135,7 @@ Macro used by clear_il_entry_prefix to clear the keep-in-IL flag in
 an IL entry prefix only if it exists.
 */
 #if MAINTAIN_NEEDED_FLAGS
-#define clear_keep_in_il_flag(epp) (epp->keep_in_il_flag = FALSE)
+#define clear_keep_in_il_flag(epp) (epp->keep_in_il = FALSE)
 #else /* !MAINTAIN_NEEDED_FLAGS */
 #define clear_keep_in_il_flag(epp) /* Nothing */
 #endif /* MAINTAIN_NEEDED_FLAGS */
