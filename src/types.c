@@ -2697,9 +2697,13 @@ checking instead of equivalence checking).
     /* We are being called after fe_wrapup was called.  Proxy classes are
        not a consideration.  The field source_corresp.assoc_info points
        into freed memory. */
-  } else {
+  } else if ((type_1->variant.class_struct_union.is_nonreal_class &&
+              type_2->variant.class_struct_union.is_nonreal_class) ||
+             error_matches_anything) {
     /* The pointers aren't the same, so the classes probably aren't
-       equivalent, but do some special checking. */
+       equivalent, but do some special checking to see if they are equivalent
+       nonreal classes based on the same template or equivalent template
+       template parameters. */
     /* Go to the class symbol supplements for the types. */
     /* Watch out for types created by IL lowering, which do not have the
        assoc_info pointer. */
@@ -2716,7 +2720,7 @@ checking instead of equivalence checking).
           equiv = TRUE;
         }  /* if */
       } else if (cssp_1->class_template != NULL &&
-                cssp_2->class_template != NULL) {
+                 cssp_2->class_template != NULL) {
         if (identical_templates_given_symbol(cssp_1->class_template,
                                              cssp_2->class_template) ||
             identical_templates_given_symbol(
@@ -2727,9 +2731,7 @@ checking instead of equivalence checking).
             equiv_template_template_params(cssp_1->class_template,
                                            cssp_2->class_template)) {
           /* Both types are template classes, and they are based on the same
-             class template, or equivalent nonreal templates.  Check further
-             if (a) they are both nonreal template classes, or (b) error
-             arguments are to be considered equivalent to anything. */
+             class template, or equivalent nonreal templates. */
           if ((type_1->variant.class_struct_union.is_nonreal_class &&
                type_2->variant.class_struct_union.is_nonreal_class) ||
               error_matches_anything) {
