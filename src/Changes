@@ -1,5 +1,18 @@
 Version 3.3
 
+7/11/03  Abort on GNU min/max operators
+
+For certain uses of the g++ min/max operators ("<?" and ">?") where
+the operands are lvalues for variables of the same type and having
+static storage duration, the front end aborted in scan_gnu_min_max_operator.
+Now fixed.
+
+  int j = 1;
+  int main() {
+    int a = j >? j;
+    return 0;
+  }
+
 7/10/03  Abort in C++-generating back end on Microsoft in-class specialization
 
 In configurations with CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS

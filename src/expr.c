@@ -10676,9 +10676,12 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
       }  /* if */
     }  /* if */
     op = which_binary_operator(save_token, result_type);
-    do_binary_operation(op, operand_1, &operand_2,
-                        result_type, result, &operator_position);
-    if (result_is_lvalue) {
+    if (!result_is_lvalue) {
+      do_binary_operation(op, operand_1, &operand_2,
+                          result_type, result, &operator_position);
+    } else {
+      build_binary_result_operand(operand_1, &operand_2, op,
+                                  result_type, result);
       result->state = (an_operand_state)os_lvalue;
       result->variant.expression->type = make_pointer_type(result_type);
       result->variant.expression
