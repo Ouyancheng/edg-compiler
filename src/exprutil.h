@@ -55,34 +55,6 @@ kinds are at the beginning of the list.
 #define is_const_expr_kind(kind) ((int)(kind) <= (int)ek_init_constant)
 
 
-/* Flag byte used to indicate scanning options that apply to one level
-   of expression scanning.  These are localized options that indicate
-   special handling for an expression because of the context.
-   Each bit indicates an option. */
-typedef a_byte a_local_expr_options_set;
-#define EOS_NO_LOCAL_OPTIONS 0x0
-#define EOS_DISALLOW_COMMA_OPERATOR 0x1
-			/* The comma operator should not be allowed at the top
-			   level.  Certain contexts suppress the comma because
-			   it has another meaning there (e.g., argument
-			   lists). */
-#define EOS_SUPPRESS_ROUTINE_TO_POINTER_CONVERSION 0x2
-			/* Functions should not be converted implicitly to
-			   pointer-to-function. */
-#define EOS_SUPPRESS_ARRAY_TO_POINTER_CONVERSION 0x4
-			/* Arrays should not be converted implicitly to
-			   pointer-to-first-element-of-the-array. */
-#define EOS_OPERAND_OF_CAST 0x8
-			/* This expression is the immediate operand of a cast.
-			   Floating constants are allowed in integral constant
-			   expressions when they are the immediate operand
-			   of a cast. */
-#define EOS_TRAPPED_LEFT_PAREN 0x10
-			/* The caller of scan_expr scanned over a left
-			   parenthesis which it turned out should have begun
-			   an expression.  scan_expr pretends that there is
-			   a left parenthesis preceding the current token. */
-
 /*
 Information used when creating cross-reference information.  This is
 done only when f_xref_info != NULL.
@@ -111,19 +83,24 @@ typedef struct an_xref_entry {
 			   that apply to one operand, NULL if last. */
 } an_xref_entry;
 
-/* Define the kinds of operands there are. */
+/* Kinds of operands: */
 enum an_operand_kind_tag {
   ok_error,		/* Error. */
   ok_expression,	/* An expression tree. */
   ok_constant,		/* A constant value. */
-  ok_undefined_symbol	/* This is a temporary type of operand.  It exists only
-			   long enough to enter a default function symbol into
-			   the symbol table or detect an error. */
+  ok_indefinite_function,
+			/* A function name that's not fully discriminated yet,
+			   i.e., a C++ overloaded function.  Has very limited
+			   lifetime. */
+  ok_undefined_symbol	/* An undefined symbol encountered while scanning an
+			   expression.  Could be an implicit function
+			   declaration or a genuine undefined symbol.
+			   Has very limited lifetime. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_operand_kind;
 
-/* Define the addressing states the operand can be in. */
+/* Operand states (lvalue versus rvalue, etc.): */
 enum an_operand_state_tag {
   os_none,
   os_lvalue,
@@ -133,10 +110,12 @@ enum an_operand_state_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_operand_state;
 
-/* Define a local container for passing around expressions or constants. */
+/* Data structure used to represent an expression within the expression
+   routines: */
 typedef struct an_operand {
   a_type_ptr    type;
-			/* Type of this operand. */
+			/* Type of this operand.  NULL for ok_undefined_symbol
+			   and ok_indefinite_function. */
   an_operand_kind
 		kind;
 			/* The kind of operand. */
@@ -144,9 +123,14 @@ typedef struct an_operand {
 		state;
 			/* Whether the operand is an lvalue, rvalue, or a
 			   function designator. */
+  a_byte_boolean
+		bound_function;
+			/* TRUE if the operand is a bound function, i.e.,
+			   another operand is required to give the object
+			   relative to which this function is selected. */
   a_source_position
 		position;
-			/* The source position for a given operand. */
+			/* The source position for the operand. */
   an_xref_entry_ptr
 		xref_entries_list;
 			/* A list of cross-reference entries that are
@@ -162,20 +146,22 @@ typedef struct an_operand {
 		expression;
     /* When kind == ok_constant: */
     a_constant	constant;
-    /* When kind == ok_undefined_symbol: */
+    /* When kind == ok_indefinite_function or ok_undefined_symbol: */
     a_symbol_ptr
 		symbol;
+			/* Pointer to the symbol. */
   } variant;
 } an_operand;
 
 #define copy_operand(from, to) (*(to) = *(from))
 
 /*
-Macro that is TRUE if the operand is an error operand.
+Macro that is TRUE if the operand is an error operand.  Note that
+some operands have type == NULL, so be careful about testing that.
 */
 #define is_error_operand(operand)					\
 	(((operand)->kind == (an_operand_kind)ok_error) ||		\
-	 (is_error_type((operand)->type)))
+	 ((operand)->type != NULL && is_error_type((operand)->type)))
 
 /*
 Macro that is TRUE if the operand is an expression operand.
@@ -194,6 +180,12 @@ Macro that is TRUE if the operand is an undefined symbol operand.
 */
 #define is_undefined_symbol_operand(operand)				\
 	((operand)->kind == (an_operand_kind)ok_undefined_symbol)
+
+/*
+Macro that is TRUE if the operand is an indefinite function operand.
+*/
+#define is_indefinite_function_operand(operand)				\
+	((operand)->kind == (an_operand_kind)ok_indefinite_function)
 
 /*
 Macro that is TRUE if the operand is an lvalue.  Note that this isn't
@@ -331,6 +323,9 @@ extern a_boolean check_pointer_operand(an_operand    *operand,
 extern void make_expression_operand(an_expr_node_ptr node,
                                     a_type_ptr       type,
 			            an_operand       *operand);
+
+extern void make_indefinite_function_operand(a_symbol_ptr routine_sym,
+                                             an_operand   *operand);
 
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 
