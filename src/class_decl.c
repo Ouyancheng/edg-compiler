@@ -2686,7 +2686,7 @@ the current class (class_type).
   a_class_type_supplement_ptr ctsp;
 
   if (class_type == friend_class_type) {
-    /* Diagnostic on excessively narcissism. */
+    /* Diagnostic on excessive narcissism. */
     diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
                ec_self_friendship);
   } else {
@@ -5811,19 +5811,23 @@ Scan the body of a class definition, including the base classes list.
     if (!is_template_instantiation &&
         scope_stack[decl_scope_level].kind ==
                                 (a_scope_kind)sck_class_struct_union) {
-      a_class_symbol_supplement_ptr tag_cssp;
-      class_type->source_corresp.class_of_which_a_member =
-            tag_sym->class_of_which_a_member =
-                              scope_stack[decl_scope_level].assoc_type;
+      a_class_symbol_supplement_ptr  parent_cssp;
+      check_assertion((class_type->source_corresp.class_of_which_a_member ==
+                              scope_stack[decl_scope_level].assoc_type) &&
+                      (tag_sym->class_of_which_a_member ==
+                              scope_stack[decl_scope_level].assoc_type));
       class_type->source_corresp.access =
                               scope_stack[decl_scope_level].current_access;
-      tag_cssp = symbol_supplement_for_class(tag_sym->class_of_which_a_member);
+      parent_cssp =
+               symbol_supplement_for_class(tag_sym->class_of_which_a_member);
       /* A class nested within a nonreal class is itself nonreal and a
          class nested within a prototype instantiation is itself a prototype
          instantiation. */
-      is_nonreal_instantiation = tag_cssp->is_nonreal_class;
-      cssp->is_nonreal_class = is_nonreal_instantiation;
-      cssp->is_prototype_instantiation = tag_cssp->is_prototype_instantiation;
+      if (parent_cssp->is_nonreal_class) {
+        cssp->is_nonreal_class = is_nonreal_instantiation = TRUE;
+        cssp->is_prototype_instantiation =
+                                      parent_cssp->is_prototype_instantiation;
+      }  /* if */
     }  /* if */
     /* Advance past the left brace. */
     (void)get_token();
@@ -7171,9 +7175,9 @@ to indicate whether the class/struct/union is actually defined.
     /* It seems that appearance of a tag name is a declaration of the
        tag, even if it just repeats a previous name.  At least, there's
        a Plum Hall test that implies that. */
-    check_assertion(!vacuous_decl_allowed || !is_friend_decl);
     tag_position = pos_curr_token;
     *declares_something = TRUE;
+    check_assertion(!vacuous_decl_allowed || !is_friend_decl);
     tag_sym = scan_tag_name(tag_kind, &locator, vacuous_decl_allowed,
                             is_ref_within_new_expr, &effective_decl_level,
                             &tag_resolution);
@@ -7217,6 +7221,8 @@ to indicate whether the class/struct/union is actually defined.
   } else {
     /* No tag identifier present. */
     tag_sym = NULL;
+    /* Don't leave tag_position undefined. */
+    tag_position = decl_start_pos;
     set_to_error_locator(locator);
     if (is_ref_within_new_expr) {
       /* We are within a new expression and no class name is given following
@@ -7248,6 +7254,13 @@ skip_tag_scan:
   is_class_definition = curr_token == tok_lbrace ||
                         (C_dialect == C_dialect_cplusplus &&
                          curr_token == tok_colon && !is_ref_within_new_expr);
+  if (is_class_definition && is_friend_decl) {
+    /* This is an error.  Defer the diagnostic until we have a tag_sym
+       to use for the fill-in.  If tag_sym is already non-NULL, we'll create
+       another one. */
+    set_to_named_error_locator(locator);
+    tag_sym = NULL;
+  }  /* if */
   if (tag_sym != NULL && C_dialect == C_dialect_cplusplus) {
     if (tag_sym->kind == (a_symbol_kind)sk_type) {
       if (is_class_definition) {
@@ -7334,6 +7347,11 @@ skip_tag_scan:
       class_type->source_corresp.name = NULL;
     }  /* if */
     tag_sym->variant.class_struct_union.type = class_type;
+    if (is_class_definition && is_friend_decl) {
+      /* Issuing the diagnostic was deferred till now. */
+      pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
+      err = TRUE;
+    }  /* if */
     if (C_dialect == C_dialect_cplusplus) {
       /* In C classes have no linkage.  In C++ most classes have either
          internal linkage or, for classes declared at file scope and with
@@ -7347,6 +7365,20 @@ skip_tag_scan:
         /* Nonlocal class. */
         class_type->source_corresp.name_linkage =
                                          (a_name_linkage_kind)nlk_internal;
+      }  /* if */
+      /* If this is the declaration of a nested class, set the parent class
+         pointer in the tag symbol. */
+      if (scope_stack[decl_scope_level].kind ==
+                                (a_scope_kind)sck_class_struct_union) {
+        /* A new class name is being declared within a class scope. */
+        if (is_class_definition ||
+            (vacuous_decl_allowed && curr_token == tok_semicolon)) {
+          /* Either a definition or a vacuous declaration -- the latter
+             introduces a name into the current scope. */
+          class_type->source_corresp.class_of_which_a_member =
+            tag_sym->class_of_which_a_member =
+                              scope_stack[decl_scope_level].assoc_type;
+        }  /* if */
       }  /* if */
     }  /* if */
     srk_flags = SRK_DECLARATION;
