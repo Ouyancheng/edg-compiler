@@ -701,10 +701,12 @@ entry is returned in etsp_found.
                *(etsp->typeinfo->unique_id) != BCS_NO_FLAGS) {
       /* A base class of the class that was thrown. */
       match = TRUE;
-      if (object_ptr != NULL) {
+      if (object_ptr != NULL && *object_ptr != NULL) {
         /* Convert the pointer from a pointer to the derived class to a pointer
            to the base class.  Object_ptr will be NULL when this routine is
-           call to check throw specifications and no object is involved. */
+           call to check throw specifications and no object is involved.
+	   Don't attempt the conversion of the pointer passed by the caller
+           is NULL. */
         void* orig_ptr = *object_ptr;
         derived_to_base_conversion(object_ptr, typeinfo, etsp->typeinfo);
 #if DEBUG
