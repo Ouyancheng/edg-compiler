@@ -6583,6 +6583,25 @@ clause is to be attached.  catch_pos is the source position of "catch".
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           mark_variable_value_set(sym);
         }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        {
+        /* Record additional source-range information in the variable entry
+           for the handler parameter. */
+        a_decl_position_supplement_ptr  dpsp;
+
+        if (sym == NULL) {
+          /* Since set_source_corresp is not called for unnamed entities,
+             create the associated decl-pos supplement directly. */
+          dpsp = alloc_decl_position_supplement(/*at_file_scope=*/FALSE);
+          handler->parameter->source_corresp.decl_pos_info = dpsp;
+        } else {
+          dpsp = handler->parameter->source_corresp.decl_pos_info;
+        }  /* if */
+        dpsp->identifier_range = decl_pos_block.identifier_range;
+        dpsp->specifiers_range = decl_pos_block.specifiers_range;
+        dpsp->declarator_range = decl_pos_block.declarator_range;
+        }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         /* Set the is_local_to_function flag after returning from
            set_source_corresp. */
         handler->parameter->source_corresp.is_local_to_function = TRUE;
