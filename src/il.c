@@ -2140,6 +2140,9 @@ to it.
   bcp->pointer_offset                  = 0;
   bcp->derivation                      = NULL;
   bcp->overriding_virtual_functions    = NULL;
+#if DO_IL_LOWERING
+  bcp->virtual_function_table_var      = NULL;
+#endif /* DO_IL_LOWERING */
 
   return bcp;
 }  /* alloc_base_class */
@@ -2211,6 +2214,10 @@ a pointer to it.
   ctsp->access_adjustments                     = NULL;
   ctsp->befriending_classes                    = NULL;
   ctsp->assoc_scope                            = NULL;
+#if DO_IL_LOWERING
+  ctsp->virtual_function_table_var             = NULL;
+#endif /* DO_IL_LOWERING */
+
   return ctsp;
 }  /* alloc_class_type_supplement */
 

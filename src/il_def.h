@@ -920,6 +920,14 @@ typedef struct a_base_class {
                            current base class.  These entries are sorted by
 			   virtual function number of the routine pointed
 			   to by the primary_function field. */
+#if DO_IL_LOWERING
+  a_variable_ptr
+		virtual_function_table_var;
+			/* When IL lowering is done, this points to the
+			   variable that contains the virtual function table
+			   for this base class/derived class combination.
+			   NULL until allocated and NULL if not needed. */
+#endif /* DO_IL_LOWERING */
 } a_base_class;
 
 
@@ -995,6 +1003,14 @@ typedef struct a_class_type_supplement {
 			   within the scope of the class, including nested
 			   classes.  This pointer is NULL when the class
 			   has been declared but not defined. */
+#if DO_IL_LOWERING
+  a_variable_ptr
+		virtual_function_table_var;
+			/* When IL lowering is done, this points to the
+			   variable that contains the virtual function table
+			   for this class when it is the most derived class.
+			   NULL until allocated and NULL if not needed. */
+#endif /* DO_IL_LOWERING */
 } a_class_type_supplement;
 
 #endif /* ifdef CIL */
