@@ -77,6 +77,7 @@ typedef struct a_statement   *a_statement_ptr;
 typedef struct a_handler     *a_handler_ptr;
 typedef struct a_try_supplement *a_try_supplement_ptr;
 typedef struct an_object_lifetime *an_object_lifetime_ptr;
+typedef struct a_namespace   *a_namespace_ptr;
 typedef struct a_scope       *a_scope_ptr;
 
 
@@ -287,6 +288,7 @@ typedef enum /*an_il_entry_kind*/ {
   iek_entry_description,/* an_entry_description */
 #endif /* ifdef FIL */
 #ifdef CIL
+  iek_namespace,	/* a_namespace */
   iek_dynamic_init,	/* a_dynamic_init */
   iek_local_static_variable_init,
 			/* a_local_static_variable_init */
@@ -407,6 +409,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_entry_description */		"entry-description",
 #endif /* ifdef FIL */
 #ifdef CIL
+/* iek_namespace */			"namespace",
 /* iek_dynamic_init */			"dynamic-init",
 /* iek_local_static_variable_init */	"local-static-variable-init",
 /* iek_access_adjustment */		"access-adjustment",
@@ -645,6 +648,31 @@ typedef struct a_comment {
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 
+#ifdef CIL
+typedef union a_parent_class_or_namespace {
+  /* This structure is used to indicate class or namespace membership and
+     is incorporated into a_source_correspondence, a_symbol, and
+     a_symbol_locator, each of which has an is_class_member flag.  When
+     is_class_member is TRUE, the class_type pointer may be assumed to be
+     non-NULL.  When it is FALSE, the entity may or may not be a direct
+     namespace member, depending on whether namespace_ptr is non-NULL. */
+  /* When is_class_member is TRUE: */
+  a_type_ptr	class_type;
+			/* Pointer to the class of which this entry is a
+			   member; in C a pointer to the struct/union in
+			   which the field was defined. */
+  /* When is_class_member is FALSE. */
+  a_namespace_ptr
+		namespace_ptr;
+			/* If the entry is an immediate member of a namespace,
+			   a pointer to the latter (C++ only); otherwise,
+			   NULL. */
+} a_parent_class_or_namespace;
+
+
+#endif /* ifdef CIL */
+
+
 typedef struct a_source_correspondence {
   /* Structure placed within several IL constructs to tie the IL construct
      instance back to a corresponding source construct instance. */
@@ -665,26 +693,14 @@ typedef struct a_source_correspondence {
                         /* Pointer to null-terminated name, or NULL if
                            there is no corresponding source entity. */
 #ifdef CIL
-  /* The parent substructure is used to indicate class or namespace
-     membership.  When is_class_member is TRUE, the class_type pointer may
-     be assumed to be non-NULL.  When it is FALSE, the entity may or may
-     not be a direct namespace member, depending on whether namespace_ptr
-     is non-NULL. */
-  union {
-    /* When is_class_member is TRUE: */
-    a_type_ptr	class_type;
-			/* Pointer to the class of which this entry is a
-			   member; in C a pointer to the struct/union in
-			   which the field was defined. */
-#if 0
-    /* When is_class_member is FALSE. */
-    a_namespace_ptr
-		namespace_ptr;
-			/* If the entry is an immediate member of a namespace,
-			   a pointer to the latter (C++ only); otherwise,
-			   NULL. */
-#endif /* if 0 */
-  } parent;
+  a_parent_class_or_namespace
+		parent;
+			/* When is_class_member is TRUE, parent.class_type
+			   points to the class of which the current entity is
+			   a member; it may be assumed to be non-NULL.  When
+			   is_class_member is FALSE and the current entity
+			   was declared to be a namespace member (C++ only),
+			   parent.namespace_ptr points to the namespace. */
 #endif /* ifdef CIL */
   a_source_position
                 decl_position;
@@ -840,6 +856,26 @@ typedef struct an_internal_complex_value {
 #endif /* ifdef FIL */
 
 #ifdef CIL
+/*
+Data structure describing an explicitly declared namespace.  An unnamed
+namespace is one in which the source_corresp.name field is a NULL pointer.
+*/
+typedef struct a_namespace {
+  /* The source_corresp field must be first. */
+  a_source_correspondence
+		source_corresp;
+			/* Information on the source entity that corresponds
+			   to this entity. */
+  a_namespace_ptr
+		next;
+			/* Next in a linked list of namespace declarations;
+			   NULL for the last on the list. */
+  a_scope_ptr	assoc_scope;
+			/* Pointer to the scope entry corresponding to this
+			   namespace; should never be NULL. */
+} a_namespace;
+
+
 /*
 Data structure a_dynamic_init describes a dynamic initialization of a simple
 (non-aggregate) variable, an aggregate variable (class or array), or a
@@ -5829,6 +5865,13 @@ enum a_scope_kind_tag {
 			   that point whether or not a body will follow). */
   sck_block,		/* Block scope, for blocks other than the topmost
 			   in a function. */
+  sck_namespace,	/* In C++, a scope representing an explicitly
+			   declared namespace. */
+  sck_namespace_reactivation,
+			/* In C++, a scope representing the reactivation of a
+			   namespace scope, making the namespace members
+			   visible without qualification.  Only used in the
+			   front end. */
   sck_class_struct_union,
 			/* In C, pseudo-scope for fields of a struct or
 			   union (and only used in the front end); in C++,
@@ -5918,6 +5961,11 @@ typedef struct a_scope {
 			/* Pointer to the associated if, switch, while, or
 			   for statement in which the condition declaration
 			   appears. */
+    /* When kind == sck_namespace (C++ only): */
+    a_namespace_ptr
+		assoc_namespace;
+			/* Pointer to the namespace entry associated with this
+			   scope. */
 #endif /* ifdef CIL */
     /* When kind == sck_function: */
     struct {
@@ -6044,6 +6092,11 @@ typedef struct a_scope {
 			   block scopes will appear on the scopes list
 			   for those block scopes, not at the function scope
 			   level.  Condition scopes can also appear. */
+  a_namespace_ptr
+		namespaces;
+			/* List of namespaces defined within the current
+			   scope (C++ only); non-NULL only when the current
+			   scope's kind is sck_file or sck_namespace. */
   a_dynamic_init_ptr
 		dynamic_inits;
 			/* List of dynamic initializations to be done in the
