@@ -2725,9 +2725,15 @@ are tied to a particular source occurrence.
   sc->is_class_member   = FALSE;
   sc->parent.class_type = NULL;
   sc->access            = (an_access_specifier)as_public;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  sc->source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   sc->decl_pos_info     = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if ONE_INSTANTIATION_PER_OBJECT
+  sc->per_instantiation_needed_flags = NULL;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 }  /* break_source_corresp */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
