@@ -68,6 +68,11 @@ instead of K&R C.
             LOWER_LVALUE_RETURNING_OPERATIONS TRUE
 #endif /* !LOWER_LVALUE_RETURNING_OPERATIONS */
 
+#if !SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+??=error -- The C-generating back end requires \
+            SCOPE_ORPHANED_LIST_PROCESSING_NEEDED TRUE
+#endif /* !SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+
 
 /*
 See if the target is the Sun cc compiler, which has some bugs we know
@@ -209,6 +214,18 @@ static a_scope_ptr
 		curr_function_scope;
 			/* When processing a function, this points to the
 			   associated function scope.  NULL otherwise. */
+#if CHECKING
+static a_boolean
+		processing_declaration_of_defined_function;
+			/* TRUE while processing the declaration of a function
+			   that will be defined later.  This is used to check
+			   that processing of prototype scope types was done
+			   correctly. */
+static unsigned long
+		processing_prototyped_func_declarator;
+			/* != 0 while processing a prototyped function
+			   declarator. */
+#endif /* CHECKING */
 
 /*
 Static variables that control dump_initializer output:
@@ -347,6 +364,8 @@ Return TRUE if the indicated type is an aggregate or union.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /* Declarations needed because of forward references: */
+static void dump_enum_definition(a_type_ptr type);
+static void dump_struct_union_definition(a_type_ptr type);
 static void dump_cast(a_type_ptr type);
 static void dump_declaration_using_type(a_type_ptr              type,
                                         a_source_correspondence *scp);
@@ -1684,10 +1703,10 @@ Return a string that describes the tag kind for the indicated type, i.e.,
   char *str;
 
   switch (kind) {
-    case tk_integer: str = "enum";   break;
-    case tk_struct:  str = "struct"; break;
-    case tk_union:   str = "union";  break;
-    default:         unexpected_condition_str("tag_kind: bad type kind");
+    case tk_enum:   str = "enum";   break;
+    case tk_struct: str = "struct"; break;
+    case tk_union:  str = "union";  break;
+    default:        unexpected_condition_str("tag_kind: bad type kind");
   }  /* switch */
   return str;
 }  /* tag_kind */
@@ -1696,7 +1715,7 @@ Return a string that describes the tag kind for the indicated type, i.e.,
 static void dump_tag_reference(a_type_ptr type)
 /*
 Generate a reference to the indicated type, which is a class, struct, union,
-or enum.
+or enum.  This is always a reference/declaration, never a definition.
 */
 {
   /* Put out a reference to the tag by name.  Note that unnamed tags will
@@ -1705,6 +1724,37 @@ or enum.
   write_space();
   dump_type_name(type);
 }  /* dump_tag_reference */
+
+
+static void dump_tag_use(a_type_ptr type)
+/*
+Generate a reference to the indicated type, which is a class, struct, union,
+or enum.  This is a reference as part of a type specifier list, and in some
+cases the definition of the type is generated (rather than just a reference).
+*/
+{
+  if (!type->definition_put_out) {
+    /* Put out the definition on the first reference if it has not yet been
+       put out.  This happens inside function prototypes that aren't
+       simply part of function declarations, e.g.,
+         typedef int (*f)(struct A {int i;} p);
+    */
+    check_assertion_str(processing_prototyped_func_declarator,
+                        "dump_tag_use: tag type used before definition");
+    /* Types inside function prototypes attached to function definitions
+       are supposed to get put out outside the function declaration. */
+    check_assertion_str(!processing_declaration_of_defined_function,
+                        "dump_tag_use: prototype scope type not caught");
+    if (type->kind == (a_type_kind)tk_enum) {
+      dump_enum_definition(type);
+    } else {
+      dump_struct_union_definition(type);
+    }  /* if */
+  } else {
+    /* Generate a reference to or declaration of the tag name. */
+    dump_tag_reference(type);
+  }  /* if */
+}  /* dump_tag_use */
 
 
 /*
@@ -1737,7 +1787,7 @@ Output a type specifier.
           /* Empty enums (valid in C++ but not C) are put out as integers. */
           type->variant.integer.enum_info.constant_list != NULL) {
         /* Enum type. */
-        dump_tag_reference(type);
+        dump_tag_use(type);
       } else
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
       {
@@ -1756,7 +1806,7 @@ Output a type specifier.
     case tk_class:
     case tk_struct:
     case tk_union:
-      dump_tag_reference(type);
+      dump_tag_use(type);
       break;
     case tk_typeref:
       if (is_immediate_type_qualifier(type)) {
@@ -1917,6 +1967,7 @@ is non-NULL, in which case that is the function scope.
     }  /* if */
   } else {
     /* Prototyped list. */
+    processing_prototyped_func_declarator++;
 #if !C_GEN_BE_GENERATES_ANSI_C
     /* This is not the definition of the function.  If we're not writing
        annotations, there's nothing to put out.  If we are, everything
@@ -1975,6 +2026,7 @@ is non-NULL, in which case that is the function scope.
       end_comment();
     }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
+    processing_prototyped_func_declarator--;
   }  /* if */
   write_tok_ch(')');
 }  /* dump_function_declarator */
@@ -2107,6 +2159,7 @@ static void dump_typedef_decl(a_type_ptr type)
 Print a typedef declaration.
 */
 {
+  type->definition_put_out = TRUE;
   if (start_unreferenced_bracket(&type->source_corresp)) {
     set_output_position(&type->source_corresp.decl_position);
     write_tok_str("typedef ");
@@ -2126,21 +2179,22 @@ Output the definition of the indicated enum type.
   a_constant_ptr enum_con;
   a_constant     next_enum_value;
 
-  check_assertion_str(type->kind == (a_type_kind)tk_integer &&
+  check_assertion_str(type->kind == (a_type_kind)tk_enum &&
                       type->variant.integer.enum_type,
                       "dump_enum_definition: not an enum type");
+  type->definition_put_out = TRUE;
   enum_con = type->variant.integer.enum_info.constant_list;
-#if C_GEN_BE_GENERATES_ANSI_C
-  /* Empty enumerations are legal in C++ but not in C.  If one shows up,
-     output it as the corresponding integral type. */
-  if (enum_con == NULL) goto done;
-#else /* !C_GEN_BE_GENERATES_ANSI_C */
+  /* Empty enumerations are legal in C++ but not in C.  They are supposed
+     to be output as the corresponding integral type, but higher up; they
+     shouldn't get here. */
+  check_assertion_str(enum_con != NULL, "dump_enum_definition: empty enum");
+#if !C_GEN_BE_GENERATES_ANSI_C
   /* Enum types are rendered as integers in K&R C, so this definition is
      not needed when generating K&R C, except as an annotation. */
   if (!annotate) goto done;
   /* As an annotation, put out the enum inside a #if 0. */
   write_if_0_directive();
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
   set_output_position(&type->source_corresp.decl_position);
   /* Generate "enum <name>". */
   write_tok_str("enum ");
@@ -2148,36 +2202,34 @@ Output the definition of the indicated enum type.
      necessary in C mode to allow the necessary casts of enumerator
      constants, and it's not a bad thing in general.) */
   dump_type_name(type);
-  if (enum_con != NULL) {
-    write_tok_str(" {");
-    /* Output the enumeration constants. */
-    /* Start with an expected value of 0 next. */
-    next_enum_value = *enum_con;
-    set_integer_value(&next_enum_value.variant.integer_value, 0L);
-    for (;;) {
-      set_output_position(&enum_con->source_corresp.decl_position);
-      /* Output the constant's name. */
-      dump_constant_name(enum_con);
-      /* Output the value if it's not the next value in sequence. */
-      if (cmp_integer_constants(enum_con, &next_enum_value) != 0) {
-        write_tok_str(" = ");
-        write_tok_str(str_for_integer_constant(enum_con));
-        next_enum_value = *enum_con;
-      }  /* if */
-      enum_con = enum_con->next;
-      /* Stop if at the end of the list of constants. */
-      if (enum_con == NULL) break;
-      /* Not the end of the list, so output a separator and keep looping. */
-      write_tok_ch(',');
-      incr_integer_value(&next_enum_value.variant.integer_value);
-    }  /* for */
-    write_tok_str("};");
-  }  /* if */
+  write_tok_str(" {");
+  /* Output the enumeration constants. */
+  /* Start with an expected value of 0 next. */
+  next_enum_value = *enum_con;
+  set_integer_value(&next_enum_value.variant.integer_value, 0L);
+  for (;;) {
+    set_output_position(&enum_con->source_corresp.decl_position);
+    /* Output the constant's name. */
+    dump_constant_name(enum_con);
+    /* Output the value if it's not the next value in sequence. */
+    if (cmp_integer_constants(enum_con, &next_enum_value) != 0) {
+      write_tok_str(" = ");
+      write_tok_str(str_for_integer_constant(enum_con));
+      next_enum_value = *enum_con;
+    }  /* if */
+    enum_con = enum_con->next;
+    /* Stop if at the end of the list of constants. */
+    if (enum_con == NULL) break;
+    /* Not the end of the list, so output a separator and keep looping. */
+    write_tok_ch(',');
+    incr_integer_value(&next_enum_value.variant.integer_value);
+  }  /* for */
+  write_tok_str("};");
 #if !C_GEN_BE_GENERATES_ANSI_C
   /* Close the #if 0 started above. */
   write_endif_0_directive();
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
 done:;
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
 }  /* dump_enum_definition */
 
 
@@ -2188,6 +2240,7 @@ Output the definition of the indicated struct or union type.
 {
   a_field_ptr field;
 
+  type->definition_put_out = TRUE;
   if (start_unreferenced_bracket(&type->source_corresp)) {
     set_output_position(&type->source_corresp.decl_position);
     write_tok_str(tag_kind(type->kind));
@@ -2315,10 +2368,13 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
 */
 {
   switch (type->kind) {
-    case tk_integer:
-      /* Only enumerations are done here. */
+    case tk_enum:
+      /* Enumeration. */
       check_assertion_str(type->variant.integer.enum_type,
                           "dump_type_decl: non-enum integer type");
+      /* Empty enums (valid in C++ but not in C) are put out as integral
+         types, so nothing need be put out here. */
+      if (type->variant.integer.enum_info.constant_list == NULL) break;
       /* Output enums only on the first pass. */
       if (pass == 1) dump_enum_definition(type);
       break;
@@ -2351,14 +2407,46 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
 }  /* dump_type_decl */
 
 
+static void dump_prototype_scope_types(a_scope_ptr proto_scope,
+                                       int         pass,
+                                       a_boolean   *any_found)
+/*
+If the indicated prototype scope contains any types, output them.
+pass is 1 or 2 (declarations are output on the first pass, full definitions
+on the second pass, to avoid ordering problems).  *any_found is set to
+TRUE if any prototype scope types are found.  This routine is only called
+when the source language is C.
+*/
+{
+  a_type_ptr  type;
+  a_scope_ptr sub_scope;
+
+  for (type = proto_scope->types; type != NULL; type = type->next) {
+    *any_found = TRUE;
+    dump_type_decl(type, pass);
+  }  /* for */
+  /* Process any nested prototype scopes. */
+  for (sub_scope = proto_scope->scopes;
+       sub_scope != NULL;
+       sub_scope = sub_scope->next) {
+    dump_prototype_scope_types(sub_scope, pass, any_found);
+  }  /* for */
+}  /* dump_prototype_scope_types */
+
+
 static void dump_scope_types(a_scope_ptr scope)
 /*
 Dump all types declared within one scope.
 */
 {
-  a_type_ptr type;
-  int        pass;
+  a_type_ptr                       type;
+  int                              pass;
+  a_boolean                        suppress_prototype_scope_pass = FALSE;
+  a_scope_orphaned_list_header_ptr solhp;
 
+  /* As this routine is used now, the scope must be the file scope. */
+  check_assertion_str(scope == il_header.primary_scope,
+                      "dump_scope_types: scope not file scope");
   /* Do two iterations.  The first outputs declarations for only those types
      that can be declared before they are defined (structs, unions, and enums).
      Enums are output with definitions, since it's nonstandard to put them
@@ -2372,6 +2460,55 @@ Dump all types declared within one scope.
   for (pass = 1; pass <= 2; pass++) {
     for (type = scope->types; type != NULL; type = type->next) {
       dump_type_decl(type, pass);
+    }  /* for */
+    /* Examine functions with definitions and generate any
+       prototype scope types as file-scope types so that they will be
+       the same for the declaration and definition of the function.
+       This effectively promotes those prototype scope types out of the
+       prototype scope. */
+#if 0
+    /* These prototype scope types should really be merged with the types
+       from the top level of the function, since there can be references
+       from one to the other.  That's hard to do, though, because
+       the IL entry source position information is incomplete when
+       entries come from macro expansions.  Also, the current orphan
+       lists do not identify the associated function. */
+#endif /* 0 */
+    /* Types can't be declared/defined in a prototype scope in C++, so don't
+       bother with this processing if the source was C++. */
+    /* Also suppress the second pass if no prototype scope types were
+       found on the first pass. */
+    if (il_header.source_language == sl_C && !suppress_prototype_scope_pass) {
+      a_boolean     any_found = FALSE;
+      a_routine_ptr rout;
+      for (rout = scope->routines; rout != NULL; rout = rout->next) {
+        if (rout->assoc_scope != NULL_region_number) {
+          /* This function has a definition. */
+          a_routine_type_supplement_ptr rtsp =
+                                        rout->type->variant.routine.extra_info;
+          a_scope_ptr                   proto_scope = rtsp->prototype_scope;
+          if (proto_scope != NULL) {
+            /* This function has a prototype scope.  Output any types
+               declared therein. */
+            dump_prototype_scope_types(proto_scope, pass, &any_found);
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      /* If no types were found in prototype scopes on the first pass,
+         there's no need for the second pass. */
+      if (!any_found) suppress_prototype_scope_pass = TRUE;
+    }  /* if */
+    /* Put out local types from functions.  This is done to avoid problems
+       with extern declarations from inside functions (they are on the
+       file-scope lists, but they can reference local types). */
+    for (solhp = il_header.scope_orphaned_list_headers;
+         solhp != NULL;
+         solhp = solhp->next) {
+      for (type = solhp->orphaned_types;
+           type != NULL;
+           type = type->next) {
+        dump_type_decl(type, pass);
+      }  /* for */
     }  /* for */
   }  /* for */
 }  /* dump_scope_types */
@@ -4336,7 +4473,7 @@ Dump out the declarations (if any) for a block.
        need not be dumped. */
     /* Subscopes are processed when the associated block statement is
        encountered. */
-    dump_scope_types(scope);
+    /* Local types are dumped out as part of the file scope. */
     dump_scope_variables(scope,
                          /*interleave_asm_decls=*/FALSE,
                          /*dump_vars_without_initializers=*/TRUE,
@@ -4983,11 +5120,12 @@ interface.  If dump_defn is TRUE, dump the interface and definition, but only
 if this routine has a body (dump nothing if it has no body).
 */
 {
+  a_boolean       has_defn = (rout->assoc_scope != NULL_region_number);
   a_boolean       is_definition;
   a_storage_class storage_class;
 
-  if (rout->assoc_scope == NULL_region_number && dump_defn) {
-    /* The routine has no scope (i.e., no definition), and we're supposed
+  if (!has_defn && dump_defn) {
+    /* The routine has no body (i.e., no definition), and we're supposed
        to dump it only if it has a definition, so do nothing. */
 #if SGIC
   } else if (strncmp(rout->source_corresp.name, "__builtin_", 10) == 0) {
@@ -4997,16 +5135,7 @@ if this routine has a body (dump nothing if it has no body).
   } else if (!start_unreferenced_bracket(&rout->source_corresp)) {
     /* Unreferenced routine. */
   } else {
-    is_definition = (rout->assoc_scope != NULL_region_number && dump_defn);
-    if (!is_definition) {
-      a_routine_type_supplement_ptr rtsp =
-                         skip_typerefs(rout->type)->variant.routine.extra_info;
-      if (rtsp->prototype_scope != NULL) {
-        /* If there are types declared in the prototype scope, dump them out
-           as file-scope types before the routine declaration. */
-        dump_scope_types(rtsp->prototype_scope);
-      }  /* if */
-    }  /* if */
+    is_definition = (has_defn && dump_defn);
 #if SGIC
     /* The SGI compiler uses a pragma to indicate "inline". */
     { unsigned long saved_indent = indent;
@@ -5040,7 +5169,17 @@ if this routine has a body (dump nothing if it has no body).
 #endif /* GCC_IS_C_GEN_BE_TARGET */
     if (!is_definition) {
       /* A declaration of the routine. */
+#if CHECKING
+      /* If the routine has a definition, set a flag to allow checking that
+         all prototype scope types were dumped out ahead of time. */
+      if (has_defn) {
+        processing_declaration_of_defined_function = TRUE;
+      }  /* if */
+#endif /* CHECKING */
       dump_declaration_using_type(rout->type, &rout->source_corresp);
+#if CHECKING
+      processing_declaration_of_defined_function = FALSE;
+#endif /* CHECKING */
       write_tok_ch(';');
     } else {
       /* The definition of the routine. */
@@ -5342,6 +5481,10 @@ Initialize for the C-generating back end.
   f_rout_dynamic_inits = NULL;
   output_initializer_code_directly = FALSE;
   curr_function_scope = NULL;
+#if CHECKING
+  processing_declaration_of_defined_function = FALSE;
+  processing_prototyped_func_declarator = 0;
+#endif /* CHECKING */
 }  /* init_c_gen_be */
 
 
