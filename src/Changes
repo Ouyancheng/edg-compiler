@@ -57,7 +57,8 @@ In that case, the default value of the command-line switch is determined by
 the new configuration option DEFAULT_GCC_COMPATIBILITY.
 
 The set of extensions enabled with the --gcc option initially includes:
-variable length arrays, extended designated initializers, compound literals,
+variable length arrays, extended designated initializers, compound literals
+([9/20/01] extended over C99 to allow more kinds of initializations),
 extended variadic macros, identifiers with dollar signs, C++-style comments,
 digraphs, long long (and related extensions provided by C99), hexadecimal
 floating-point constants, nonconstant aggregate initializers for automatic
