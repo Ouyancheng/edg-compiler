@@ -305,6 +305,9 @@ extern void terminate_param_source_sequence_sublist(
                                      a_func_info_block_ptr        func_info,
                                      a_source_sequence_entry_ptr  prev);
 
+extern void set_routine_declared_type(a_routine_ptr  routine_ptr,
+                                      a_type_ptr     declared_type);
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 extern void decl_routine(a_symbol_locator             *locator,

@@ -936,6 +936,9 @@ typedef struct a_func_info_block {
 		declarator_ssep;
 			/* Source sequence entry for the function
 			   declarator. */
+  a_type_ptr	declared_type;
+			/* The routine type as it actually appears in the
+			   current declaration. */
   a_source_sequence_entry_ptr
 		prototype_scope_ss_entry_start;
 			/* Pointer to a file-scope source sequence entry that

@@ -1498,9 +1498,8 @@ on a prior declaration.
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                               &locator->source_position,
                               func_info->declarator_ssep);
-    /* The type as it actually appeared in the current declaration may
-       already have been set in reconcile_routine_types. */
-    if (rp->declared_type == NULL) rp->declared_type = type_ptr;
+    /* Set the declared-type in the routine entry. */
+    set_routine_declared_type(rp, func_info->declared_type);
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
     mark_defined(sym, &locator->source_position);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

@@ -2635,7 +2635,8 @@ Instantiate the body of the template function associated with tip.
     rout_ptr->type = copy_routine_type_with_param_types(rout_ptr->type);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  rout_ptr->declared_type = rout_ptr->type;
+  set_routine_declared_type(rout_ptr,
+                            form_declared_type(rout_ptr->type, func_info_ptr));
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Set the linkage and storage class. */
   if (instantiation_mode == tim_local) {
@@ -5571,6 +5572,9 @@ type based on the template argument list and the template parameter list
   a_decl_flag_set		    dso_flags;
   a_boolean			    is_member_decl;
   a_type_ptr	      		    parent_class;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_type_ptr                        declared_type = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(4, "make_template_function");
 #if CHECKING
@@ -5667,6 +5671,11 @@ type based on the template argument list and the template parameter list
                                 &decl_pos_block);
       /* Save the prototype scope symbols in the instance pointer. */
       tip->prototype_scope_symbols = func_info.prototype_scope_symbols;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Set the declared type immediately, before the func_info block is
+         discarded. */
+      declared_type = form_declared_type(rout_type, &func_info);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       done_with_func_info(func_info);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       locator_position = locator.source_position;
@@ -5700,6 +5709,13 @@ type based on the template argument list and the template parameter list
     rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
     rp->source_corresp.access = templ_rout->source_corresp.access;
     rp->template_arg_list = templ_arg_list;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (declared_type == NULL) {
+      declared_type = form_declared_type(rout_type,
+                                         func_info_for_template(tssp));
+    }  /* if */
+    set_routine_declared_type(rp, declared_type);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DECL_MODIFIERS_IN_USE
     {
     a_decl_modifiers_block  decl_modifiers;
@@ -10881,13 +10897,20 @@ that follows.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Do fixup on the source sequence entry that was just created to
            represent the current declaration. */
-        if (!is_definition) {
-          (void)set_src_seq_secondary_decl_type((char *)rp, type,
-                                                /*new_style_spec=*/TRUE);
-        } else {
-          /* The defining declaration of the routine.  Record the type.  */
-          if (rp->declared_type == NULL) rp->declared_type = type;
-        }  /* if */
+        { a_type_ptr  declared_type;
+
+          declared_type = form_declared_type(type, &func_info);
+          if (is_definition) {
+            /* The defining declaration of the routine.  Record the type.
+               Clear the declared-type pointer in case it was already set by
+               find_template_function. */
+            rp->declared_type = NULL;
+            set_routine_declared_type(rp, declared_type);
+          } else {
+            (void)set_src_seq_secondary_decl_type((char *)rp, declared_type,
+                                                  /*new_style_spec=*/TRUE);
+          }  /* if */
+        }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         rp->is_specialized = TRUE;
         rp->is_inline = func_info.is_inline;

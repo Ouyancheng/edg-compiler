@@ -857,9 +857,11 @@ Process the default argument expressions for the indicated class.
           continue;
         }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         {
+        a_boolean  do_declared_type_fixup = is_function_symbol(sym);
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         a_boolean  ss_list_insert_point_adjusted = FALSE;
+
         if (rfp->func_info.is_movable_member_or_friend_def) {
           /* The source-sequence representation for the associated function
              definition is being moved outside the class definition, and the
@@ -887,6 +889,9 @@ Process the default argument expressions for the indicated class.
              function. */
           if (sym->variant.routine.instance_ptr == NULL) {
             /* Some sort of error condition. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+            do_declared_type_fixup = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           } else {
             /* Get the template symbol from the instance pointer. */
             tssp = sym->variant.routine.instance_ptr->template_sym->
@@ -931,10 +936,36 @@ Process the default argument expressions for the indicated class.
           pop_scope();
         }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+        /* The default arguments on the routine type have been fixed up.
+           If the declared type refers to a different type entry, copy the
+           the default argument expressions to the declared type. */
+        if (do_declared_type_fixup) {
+          a_type_ptr        rout_type = routine_symbol_type(sym);
+          a_param_type_ptr  ptp1, ptp2;
+
+          check_assertion(rfp->func_info.declared_type != NULL);
+          if (rout_type != rfp->func_info.declared_type) {
+            ptp1 = skip_typerefs(rout_type)->
+                              variant.routine.extra_info->param_type_list;
+            ptp2 = skip_typerefs(rfp->func_info.declared_type)->
+                              variant.routine.extra_info->param_type_list;
+            for (;;) {
+              check_assertion((ptp1 == NULL) == (ptp2 == NULL));
+              if (ptp1 == NULL) break;
+              if (ptp2->has_default_arg) {
+                check_assertion(ptp1->default_arg_expr != NULL);
+                ptp2->default_arg_expr =
+                       duplicate_default_arg_expr(ptp1->default_arg_expr);
+              }  /* if */
+              ptp1 = ptp1->next;
+              ptp2 = ptp2->next;
+            }  /* for */
+          }  /* if */
+        }  /* if */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         if (ss_list_insert_point_adjusted) pop_ss_insert_stack();
-        }
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+        }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
     }  /* for */
@@ -5570,8 +5601,12 @@ declared member functions.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (func_info->is_definition) {
       /* For a definition enter the function type as the "declared_type" in
-         the routine entry itself. */
-      rtn->declared_type = member_type;
+         the routine entry itself. Avoid adding a redundant type to the IL
+         if possible. */
+      set_routine_declared_type(rtn, func_info->declared_type);
+      /* For default arg processing later on, save the type that's used as
+         the declared type. */
+      func_info->declared_type = rtn->declared_type;
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       /* Unless this is a member of a local class, this inline member
          function definition will be represented in the source-sequence
@@ -5588,12 +5623,10 @@ declared member functions.
     }  /* if */
     if (!func_info->is_definition ||
         func_info->is_movable_member_or_friend_def) {
-      /* Since this is a non-defining entry, it is represented by a
-         secondary-decl entry in the source sequence list.  Enter the
-         current function type. */
+      /* A non-defining entry is represented by a
+         secondary-decl entry in the source sequence list. */
       a_src_seq_secondary_decl_ptr  sssdp;
 
-      tp = member_type;
       if (func_info->is_movable_member_or_friend_def) {
         /* A given default argument expression cannot appear both on a
            secondary source-sequence entry and on the primary declaration. */
@@ -5613,6 +5646,7 @@ declared member functions.
              };
              void A::f(int) { }
         */
+        tp = rtn->declared_type;
         rtn->declared_type = routine_type_without_default_args(tp);
         /* Note: The aforementioned transformation is often better than
            associating the default argument with the out-of-class definition
@@ -5629,7 +5663,35 @@ declared member functions.
            source-sequence entry:
              tp = routine_type_without_default_args(tp);
         */
+      } else {
+        /* Normal declaration.  If necessary, update the declared type,
+           which was saved during function declarator processing, to make
+           it consistent with the routine type. */
+        a_routine_type_supplement_ptr  rtsp1, rtsp2;
+
+        tp = func_info->declared_type;
+        rtsp1 = skip_typerefs(member_type)->variant.routine.extra_info;
+        rtsp2 = skip_typerefs(tp)->variant.routine.extra_info;
+        if (rtsp1->implicit_this_param_type !=
+                                        rtsp2->implicit_this_param_type ||
+            rtsp1->routine_name_linkage != rtsp2->routine_name_linkage) {
+          /* The implicit-this-param-type and/or name-linkage may need to be
+             set in the declared type. */
+          if (tp->kind == (a_type_kind)tk_typeref) {
+            /* The typedef is potentially shared, so don't modify the
+               the type it points to without copying it first. */
+            tp = copy_routine_type_with_param_types(skip_typerefs(tp));
+            rtsp2 = tp->variant.routine.extra_info;
+            /* For default arg processing later on, save the type that will
+               be used as the declared type in the secondary declaration
+               entry. */
+            func_info->declared_type = tp;
+          }  /* if */
+          rtsp2->implicit_this_param_type = rtsp1->implicit_this_param_type;
+          rtsp2->routine_name_linkage = rtsp1->routine_name_linkage;
+        }  /* if */
       }  /* if */          
+      /* Create the secondary-declaration entry. */
       sssdp = set_src_seq_secondary_decl_type((char *)rtn, tp,
                                               /*is_specialization=*/FALSE);
       /* A member function declaration within a class definition is always
@@ -6309,6 +6371,7 @@ member declaration, respectively.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   { a_src_seq_secondary_decl_ptr  sssdp;
+
     sssdp = set_src_seq_secondary_decl_type((char *)var, member_type,
                                             /*is_specialization=*/FALSE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -9608,8 +9671,13 @@ to be returned to the caller.
              for which the type returned by decl_specifiers an
              unknown_type(). */
           if (!decl_info.is_first_in_declarator_list) {
-            local_type->variant.routine.return_type =
-                                integer_type((an_integer_kind)ik_int);
+            a_type_ptr  tp = integer_type((an_integer_kind)ik_int);
+
+            local_type->variant.routine.return_type = tp;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+            skip_typerefs(func_info.declared_type)->
+                                     variant.routine.return_type = tp;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           }  /* if */
         }  /* if */
       }  /* if */

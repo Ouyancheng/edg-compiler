@@ -9752,20 +9752,16 @@ return TRUE and set *sym to point to the associated sk_class_template symbol.
 
 #endif /* RECORD_TEMPLATES_IN_IL */
 
-static void db_ss_list_for_prototype_instantiation(a_symbol_ptr  sym,
-                                                   int           indent)
+static void db_ss_list_for_prototype_instantiation(
+                                     a_source_sequence_entry_ptr  ssep,
+                                     int           indent)
 /*
-Display the list of source sequence entries associated with the class
-template referred to by sym.  Indent each source-sequence entry by "indent"
-spaces.
+Display the indicated list of source sequence entries, indenting each
+source-sequence entry by "indent" spaces.
 */
 {
-  a_source_sequence_entry_ptr  ssep;
   int                          i;
 
-  check_assertion(sym != NULL && is_class_template_symbol(sym));
-  ssep = sym->variant.template_info->
-                        variant.class_template.source_sequence_list;
   for (; ssep != NULL; ssep = ssep->next) {
     for (i = 0; i < indent; i++) fputc(' ', f_debug);
     db_source_sequence_entry(ssep);
@@ -9773,9 +9769,14 @@ spaces.
     /* If ssep represents a class template definition, put out the
        associated source sequence entries at this point. */
     if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_template) {
-      a_symbol_ptr  sym;
+      a_source_sequence_entry_ptr  list;
+      a_symbol_ptr                 sym;
+
       if (is_ss_entry_for_class_template_definition(ssep, &sym)) {
-        db_ss_list_for_prototype_instantiation(sym, indent+2);
+        check_assertion(sym != NULL && is_class_template_symbol(sym));
+        list = sym->variant.template_info->
+                        variant.class_template.source_sequence_list;
+        db_ss_list_for_prototype_instantiation(list, indent+2);
       }  /* if */
     }  /* if */
 #endif /* RECORD_TEMPLATES_IN_IL */
@@ -9804,9 +9805,14 @@ purposes.
     /* If ssep represents a class template definition, put out the
        associated source sequence entries at this point. */
     if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_template) {
-      a_symbol_ptr  sym;
+      a_source_sequence_entry_ptr  list;
+      a_symbol_ptr                 sym;
+
       if (is_ss_entry_for_class_template_definition(ssep, &sym)) {
-        db_ss_list_for_prototype_instantiation(sym, 4);
+        check_assertion(sym != NULL && is_class_template_symbol(sym));
+        list = sym->variant.template_info->
+                        variant.class_template.source_sequence_list;
+        db_ss_list_for_prototype_instantiation(list, 4);
       }  /* if */
     }  /* if */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -10489,11 +10495,11 @@ sequence list.
           tssp->variant.class_template.source_sequence_list = ss_list;
 #if DEBUG
           if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+            a_symbol_ptr  sym;
             fputs("ss-list for prototype instantiation of ", f_debug);
             db_type_name(tp);
             fputs(":\n", f_debug);
-            db_ss_list_for_prototype_instantiation(
-                        symbol_supplement_for_class(tp)->class_template, 2);
+            db_ss_list_for_prototype_instantiation(ss_list, 2);
           }  /* if */
 #endif /* DEBUG */
         }  /* if */
@@ -10528,14 +10534,15 @@ partial instantiation of the entity specified by the indicated entity.
     sssdp->entity.kind = (a_byte_il_entry_kind)kind;
     switch (kind) {
       case iek_routine:
-        sssdp->declared_type = ((a_routine_ptr)ptr)->type;
+        sssdp->declared_type = routine_type_without_default_args(
+                                   ((a_routine_ptr)ptr)->declared_type);
         break;
       case iek_type:
         sssdp->declared_type = (a_type_ptr)ptr;
         sssdp->autonomous_tag_decl = TRUE;
         break;
       case iek_variable:
-        sssdp->declared_type = ((a_variable_ptr)ptr)->type;
+        sssdp->declared_type = ((a_variable_ptr)ptr)->declared_type;
         break;
 #if CHECKING
       default:
@@ -11858,7 +11865,7 @@ dependent on it.  The routine entry itself is dealt with later.
             ssep->entity.kind =
                           (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
             sssdp->decl_position = rp->source_corresp.decl_position;
-            sssdp->declared_type = rp->type;
+            sssdp->declared_type = rp->declared_type;
             sssdp->friend_decl = rp->defined_in_friend_decl;
             if (!C_mode() && sp->src_seq_sublist_list != NULL) {
               /* If any tags were introduced in the parameter declarations for

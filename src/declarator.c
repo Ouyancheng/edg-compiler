@@ -249,7 +249,94 @@ derived type to remove the restrict qualifier.
 }  /* check_for_restrict_qualifier_on_derived_type */
 
 #endif /* RESTRICT_ALLOWED */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 
+a_type_ptr form_declared_type(a_type_ptr             type_ptr,
+                              a_func_info_block_ptr  func_info)
+/*
+If type_ptr is a function type, return a copy of type_ptr that incorporates
+the parameter types as actually declared in the source program; that is,
+preserve the parameter type before any adjustments is done (e.g.,
+array-to-pointer decay).
+*/
+{
+  a_type_ptr        declared_type;
+  a_param_id_ptr    param_id;
+  a_param_type_ptr  ptp;
+  a_boolean         fixup_needed;
+
+  db_enter(4, "form_declared_type");
+  if (type_ptr->kind == (a_type_kind)tk_typeref &&
+      !typeref_is_qualified(type_ptr)) {
+    /* Leave the declared type the same as the routine type. */
+    declared_type = type_ptr;
+  } else {
+    /* Make a copy of the type.  Note that default arg expressions, if any,
+       will be copied, too. */
+    declared_type = copy_routine_type_with_param_types(type_ptr);
+    fixup_needed = FALSE;
+    param_id = func_info->param_id_list;
+    ptp = declared_type->variant.routine.extra_info->param_type_list;
+    if (param_id != NULL && ptp != NULL) {
+      /* There is no need to create a new routine type entry if none of the
+         parameter types underwent adjustment. */
+      for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
+        check_assertion(param_id->declared_type != NULL);
+        if (!identical_types(ptp->type, param_id->declared_type)) {
+          /* Some adjustment must have been done. */
+          fixup_needed = TRUE;
+          break;
+        }  /* if */
+        check_assertion((param_id->next == NULL) == (ptp->next == NULL));
+      }  /* for */
+      if (fixup_needed) {
+        /* It's necessary to create a new type. */
+        ptp = declared_type->variant.routine.extra_info->param_type_list;
+        param_id = func_info->param_id_list;
+        for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
+          a_type_ptr  tp = param_id->declared_type;
+
+          check_assertion(tp != NULL);
+          if (!C_mode() && is_or_contains_template_param(tp)) {
+            if (is_function_type(tp) && !is_function_type(ptp->type)) {
+              /* Undo the change of a function type to pointer-to-function
+                 type. */
+              check_assertion(is_pointer_type(tp) &&
+                              is_function_type(type_pointed_to(tp)));
+              ptp->type = type_pointed_to(ptp->type);
+            } else if (is_array_type(tp) && !is_array_type(ptp->type)) {
+              /* Undo array-to-pointer decay. */
+              a_type_ptr  new_type;
+
+              check_assertion(is_pointer_type(ptp->type));
+              new_type = alloc_type((a_type_kind)tk_array);
+              new_type->variant.array.element_type =
+                                             type_pointed_to(ptp->type);
+              ptp->type = new_type;
+            } else if (is_qualified_type(tp)) {
+              ptp->type = make_identically_qualified_type(ptp->type, tp);
+            }  /* if */
+          } else {
+            ptp->type = tp;
+          }  /* if */
+          ptp->qualifiers = TQ_NONE;
+          check_assertion((param_id->next == NULL) == (ptp->next == NULL));
+        }  /* for */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 3) {
+    fputs("declared type: ", f_debug);
+    db_type(declared_type);
+    fputc('\n', f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return declared_type;
+}  /* form_declared_type */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 void add_to_derived_type_list(a_type_ptr new_type_ptr,
                               a_type_ptr *derived_type,
@@ -3184,25 +3271,25 @@ The syntax is:
 
 */
 {
-  a_type_ptr      complete_type;
-  a_type_ptr      derived_type;
-  a_type_ptr      bottom_derived_type;
-  a_type_ptr      new_type_ptr;
-  a_source_position
-                  declarator_pos;
-  a_boolean       real_declarator_allowed;
-  a_boolean       abstract_declarator_allowed;
-  a_boolean       is_name_start;
-  a_boolean       is_nonstatic_member_function = FALSE;
-  a_boolean       nonconstant_dimension_allowed;
-  a_boolean       vla_allowed;
-  a_boolean       vla_asterisk_allowed;
-  a_boolean       parenthesized_initializer_allowed;
-  a_call_conv_descr
-                  left_call_conv, inner_left_call_conv, unbound_call_conv;
-  a_type_qualifier_set
-                  left_qualifiers, inner_left_qualifiers, unbound_qualifiers;
-  a_boolean       disallow_default_args, disallow_exception_spec;
+  a_type_ptr            complete_type;
+  a_type_ptr            derived_type;
+  a_type_ptr            bottom_derived_type;
+  a_type_ptr            new_type_ptr;
+  a_source_position     declarator_pos;
+  a_boolean             real_declarator_allowed;
+  a_boolean             abstract_declarator_allowed;
+  a_boolean             is_name_start;
+  a_boolean             is_nonstatic_member_function = FALSE;
+  a_boolean             nonconstant_dimension_allowed;
+  a_boolean             vla_allowed;
+  a_boolean             vla_asterisk_allowed;
+  a_boolean             parenthesized_initializer_allowed;
+  a_call_conv_descr     left_call_conv, inner_left_call_conv;
+  a_call_conv_descr     unbound_call_conv;
+  a_type_qualifier_set  left_qualifiers, inner_left_qualifiers;
+  a_type_qualifier_set  unbound_qualifiers;
+  a_boolean             disallow_default_args, disallow_exception_spec;
+  a_func_info_block     *local_func_info;
 
   db_enter(3, "r_declarator");
   set_err_pos_to_curr_token();
@@ -3463,6 +3550,7 @@ The syntax is:
 function_lparen:
       /* For function types as the top type, fetch the extra function info
          as well.  For non-top types, do not. */
+      local_func_info = func_info;
       if (C_dialect == C_dialect_cplusplus) {
         if (derived_type != NULL) {
           /* If the function is pointed to by a pointer-to-member type, we need
@@ -3475,7 +3563,7 @@ function_lparen:
           } else {
             member_parent_type = NULL;
           }  /* if */
-          func_info = NULL;
+          local_func_info = NULL;
           *is_constructor = *is_destructor = FALSE;
         } else if (*output_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
           check_assertion(func_info == NULL);
@@ -3502,7 +3590,7 @@ function_lparen:
       } else {
         /* Normal C case.  If the derived type is nonnull this is not the
            top-most type, so we don't want to fetch the extra function info. */
-        if (derived_type != NULL) func_info = NULL;
+        if (derived_type != NULL) local_func_info = NULL;
       }  /* if */
       /* Pass in a flag to indicate whether default arguments are allowed at
          all.  They should be disallowed on top-level function declarations
@@ -3515,7 +3603,7 @@ function_lparen:
          declarations. */
       disallow_default_args = C_mode() ||
                               (input_flags & DI_IS_TEMPLATE_PARAM_DECL) ||
-                              (func_info != NULL &&
+                              (local_func_info != NULL &&
                                (input_flags & (DI_IS_SPECIALIZATION |
                                                DI_IS_EXPLICIT_INSTANTIATION)));
       /* Pass in a flag to indicate whether exception specifications are
@@ -3549,7 +3637,7 @@ function_lparen:
           disallow_exception_spec = (pm_member_type(derived_type) != NULL);
         }  /* if */
       }  /* if */
-      function_declarator(&new_type_ptr, func_info, locator,
+      function_declarator(&new_type_ptr, local_func_info, locator,
                           member_parent_type, is_nonstatic_member_function,
                           *is_constructor, *is_destructor,
                           disallow_default_args, disallow_exception_spec,
@@ -3789,13 +3877,21 @@ function_lparen:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (specifiers_type != NULL) {
     /* This is a top-level call to declarator. */
-    if (locator != NULL &&
-        (locator->is_operator_name || locator->is_conversion_name) &&
-        !is_function_type(complete_type)) {
-      /* A declaration of an operator must have a function type. */
-      pos_error(ec_function_type_required, &locator->source_position);
-      set_to_error_locator(*locator);
-      complete_type = bottom_derived_type = error_type();
+    if (!is_function_type(complete_type)) {
+      if (locator != NULL &&
+          (locator->is_operator_name || locator->is_conversion_name)) {
+        /* A declaration of an operator must have a function type. */
+        pos_error(ec_function_type_required, &locator->source_position);
+        set_to_error_locator(*locator);
+        complete_type = bottom_derived_type = error_type();
+      }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    } else if (func_info != NULL) {
+      /* Set the declared type in the func_info block.  Note that further
+         fixup may be required for member functions, since default argument
+         expressions will not have been scanned yet. */
+      func_info->declared_type = form_declared_type(complete_type, func_info);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   }  /* if */
   if (*output_flags & DO_SCOPE_DEACTIVATION_REQUIRED) {

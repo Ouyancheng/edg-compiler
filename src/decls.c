@@ -2869,19 +2869,6 @@ not be TRUE.
       } else {
         /* type_ptr must be preserved. */
         comp_type = composite_type(type_ptr, rout_type);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        /* This must be the defining declaration of the function, so record
-           the type as it appears in the current declaration -- i.e., before
-           it is merged with comp_type if comp_type is different. */
-        check_assertion_str2(routine_ptr->declared_type == NULL,
-                             "reconcile_routine_types: declared type already",
-                             "set in definition");
-        if (comp_type != type_ptr) {
-          /* type_ptr will be modified, so copy it first. */
-          routine_ptr->declared_type =
-                                  copy_routine_type_with_param_types(type_ptr);
-        }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         routine_ptr->type = rout_type = type_ptr;
       }  /* if */
       /* If rout_type is not what was returned, copy the composite
@@ -3807,6 +3794,73 @@ cross-reference output describing this declaration.
 }  /* decl_variable */
 
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+void set_routine_declared_type(a_routine_ptr  routine_ptr,
+                               a_type_ptr     declared_type)
+/*
+Set the declared_type field in the indicated routine entry, using its own
+type entry if appropriate, otherwise using the indicated declared_type.
+*/
+{
+  a_type_ptr                     rout_type = routine_ptr->type;
+  a_boolean                      use_routine_type;
+  a_routine_type_supplement_ptr  rtsp1, rtsp2;
+  a_param_type_ptr               ptp1, ptp2;
+
+  if (routine_ptr->declared_type != NULL) {
+    check_assertion_str(routine_ptr->is_template_function,
+                        "decl_routine: declared type already set");
+    declared_type = routine_ptr->declared_type;
+    routine_ptr->declared_type = NULL;
+  }  /* if */
+  /* Make the declared type consistent with the routine type. */
+  rtsp1 = skip_typerefs(rout_type)->variant.routine.extra_info;
+  rtsp2 = skip_typerefs(declared_type)->variant.routine.extra_info;
+  if (rtsp1->implicit_this_param_type != rtsp2->implicit_this_param_type ||
+      rtsp1->routine_name_linkage != rtsp2->routine_name_linkage) {
+    if (declared_type->kind == (a_type_kind)tk_typeref) {
+      declared_type =
+           copy_routine_type_with_param_types(skip_typerefs(declared_type));
+      rtsp2 = declared_type->variant.routine.extra_info;
+    }  /* if */
+    rtsp2->implicit_this_param_type = rtsp1->implicit_this_param_type;
+    rtsp2->routine_name_linkage = rtsp1->routine_name_linkage;
+  }  /* if */
+  if (!identical_types(declared_type, rout_type)) {
+    /* The types are not identical, so the routine's type cannot also be
+       be used as the declared type. */
+    use_routine_type = FALSE;
+  } else if ((rtsp1->exception_specification == NULL) !=
+             (rtsp2->exception_specification == NULL)) {
+    /* Exception specification mismatch (usually involves predeclared
+       functions like new and delete). */
+    use_routine_type = FALSE;
+  } else {
+    /* Loop through the param-type entries to see if there are any default
+       arguments -- if so, just use the copy of the routine type instead of
+       the routine type itself. */
+    use_routine_type = TRUE;
+    for (ptp1 = rtsp1->param_type_list, ptp2 = rtsp2->param_type_list;
+         ptp1 != NULL;
+         ptp1 = ptp1->next, ptp2 = ptp2->next) {
+      if (ptp1->has_default_arg || ptp2->has_default_arg) {
+        use_routine_type = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  /* Set the declared_type pointer in the routine entry. */
+  if (use_routine_type) {
+    routine_ptr->declared_type = rout_type;
+  } else {
+    /* There was some difference, so use a separate declared type. */
+    routine_ptr->declared_type = declared_type;
+  }  /* if */
+}  /* set_routine_declared_type */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
 #if !DECL_MODIFIERS_IN_USE
 /* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE */
@@ -3869,7 +3923,6 @@ on for use in generating cross-reference output describing this declaration.
   a_boolean                is_friend_decl = (srk_flags & SRK_FRIEND) != 0;
   a_boolean                namespace_reactivated = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_type_ptr               declared_type = type_ptr;
   a_boolean                first_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
@@ -3884,14 +3937,6 @@ on for use in generating cross-reference output describing this declaration.
     is_function_def = TRUE;
     check_assertion_str(srk_flags & SRK_DEFINITION,
                         "decl_routine: missing SRK_DEFINITION");
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (vla_enabled) {
-      /* type_ptr may be modified when the function body is scanned to strip
-         away the associated VLA dimensions.  Preserve the original type in
-         declared_type. */
-      declared_type = copy_routine_type_with_param_types(type_ptr);
-    }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   effective_decl_level = compute_effective_decl_level(/*is_function=*/TRUE,
                                                       storage_class,
@@ -4587,12 +4632,9 @@ skip_overloading:;
      used, since it may have been replaced (e.g., when a file scope entity
      is declared in a local scope and a sublist is generated). */
   if (is_function_def) {
-    /* The defining declaration of the function.  The type as it actually
-       appeared in the current declaration may already have been set in
-       reconcile_routine_types. */
-    if (routine_ptr->declared_type == NULL) {
-      routine_ptr->declared_type = declared_type;
-    }  /* if */
+    /* The defining declaration of the function.  Set a pointer to the
+       declared type. */
+    set_routine_declared_type(routine_ptr, func_info->declared_type);
     if (qualifier_namespace_ptr(*locator) != NULL) {
       check_assertion(!is_friend_decl);
       routine_ptr->defined_outside_of_parent = TRUE;
@@ -4606,12 +4648,18 @@ skip_overloading:;
        the primary source sequence entry is put out after the class definition
        is complete. */
     a_src_seq_secondary_decl_ptr  sssdp;
+    a_type_ptr                    declared_type;
+
     if (func_info->is_movable_member_or_friend_def) {
       /* Remove default arguments, if any, from the type associated with
          the secondary source-sequence entry; they will appear on the
          source-sequence entry for the definition instead.  (If they were
          repeated the C++-generating back end would put out invalid code.) */
-      declared_type = routine_type_without_default_args(declared_type);
+      declared_type =
+             routine_type_without_default_args(routine_ptr->declared_type);
+    } else {
+      /* Normal case. */
+      declared_type = func_info->declared_type;
     }  /* if */
     sssdp = set_src_seq_secondary_decl_type((char *)routine_ptr, declared_type,
                                             /*is_specialization=*/FALSE);
@@ -5671,6 +5719,9 @@ symbol has already been entered as an undefined symbol.
   /* Declare the function identifier. */
   clear_func_info(&func_info);
   func_info.is_implicit_declaration = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  func_info.declared_type = form_declared_type(rout_type, &func_info);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (exceptions_enabled) func_info.throw_position = locator.source_position;
   clear_decl_modifiers_block(&decl_modifiers);
   decl_routine(&locator, (a_storage_class)sc_extern, rout_type, &func_info,

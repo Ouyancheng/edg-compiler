@@ -1,5 +1,14 @@
 Version 2.39
 
+6/23/98   Improved management of the declared_type fields
+
+The declared_type field in routine entries (see also entry for 6/16/98)
+and secondary-decl source sequence entries now reflects more accurately
+the declaration as it appears in the source program.  In particular, it is
+the type before parameter type adjustments are made (e.g., array-type to
+pointer and function-type to pointer-to-function transformations), and
+indicates the default arguments accurately.
+
 6/22/98   IL lowering: keep cv-qualifiers on enk_field node types
 
 IL lowering no longer removes cv-qualifiers from the types of enk_field
