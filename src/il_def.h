@@ -3952,9 +3952,11 @@ typedef struct a_base_class {
 			   involves visiting a base class more than once.) */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   a_bit_field   is_optimized_empty_base:1;
-			/* TRUE if and only if this is a direct empty base
-			   that has been optimized (i.e., allocated at the
-			   same offset as another subobject). */
+			/* For the classic EDG ABI, TRUE if and only if this
+			   is a direct empty base that has been optimized
+			   (i.e., allocated at the same offset as another
+			   subobject).  For the IA-64 ABI, TRUE for every
+			   direct empty base. */
 #if IA64_ABI
   a_bit_field   offset_is_set:1;
                         /* TRUE for a base after its offset has been set. */
