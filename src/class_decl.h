@@ -52,6 +52,8 @@ extern a_boolean is_copy_constructor(a_routine_ptr  ctor_rout,
                                      a_boolean      *const_object_okay,
                                      a_boolean      *volatile_object_okay);
 
+extern a_boolean is_default_constructor(a_routine_ptr  ctor_rout);
+
 extern void reference_to_special_member_function(a_symbol_ptr  sym);
 
 extern a_symbol_ptr member_function_redecl_sym(a_symbol_ptr  sym,
