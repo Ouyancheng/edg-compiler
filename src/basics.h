@@ -221,15 +221,18 @@ EXTERN_C int bzero(char *, int);
    as size_t except on systems where that is too small, e.g., it's 16 bits.
    size_t_arg is used to pass standard library arguments that used to be
    int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
+/* Note that size_t_arg may evaluate its argument more than once. */
 #if !__MSC__
 typedef size_t	sizeof_t;
 #define size_t_arg(arg) ((size_t)(arg))
 #else /* __MSC__ */
 /* Microsoft C has a 16-bit size_t, so use unsigned long. */
 typedef unsigned long sizeof_t;
-/* size_t_arg uses a function so it can check for truncation. */
-#define size_t_arg(arg) (f_size_t_arg((sizeof_t)(arg)))
-#define NEED_F_SIZE_T_ARG 1
+/* size_t_arg checks for truncation. */
+#define size_t_arg(arg) \
+  ((sizeof_t)((sizeof_t)(arg) > UINT_MAX ? size_t_arg_error() : (arg)))
+#define NEED_SIZE_T_ARG_ERROR 1
+extern int size_t_arg_error(void);
 #endif /* !__MSC__ */
 /* Use a_ptrdiff for ptrdiff_t because ptrdiff_t appears in <sys/types.h> on
    some UNIX systems. */
@@ -270,6 +273,7 @@ typedef ptrdiff_t a_ptrdiff;
    as size_t except on systems where that is too small, e.g., it's 16 bits.
    size_t_arg is used to pass standard library arguments that used to be
    int and are now (in ANSI C) size_t, e.g., the length on fwrite. */
+/* Note that size_t_arg may evaluate its argument more than once. */
 typedef unsigned int
 		sizeof_t;
 #define size_t_arg(arg) ((int)(arg))
