@@ -3118,7 +3118,9 @@ to be on top of the type.
   cv_quals |= local_cv_quals;
   unqualp = p;
   kind = *p;
-  if (kind == 'S') {
+  if (kind == 'S' &&
+      /* "St" for "std::" is the beginning of a name, not a type. */
+      p[1] != 't') {
     /* A substitution. */
     p = demangle_substitution(p, 1, cv_quals,
                               under_lhs_declarator,
@@ -3254,7 +3256,9 @@ to be on top of the type.
   p = get_cv_qualifiers(p, &local_cv_quals);
   cv_quals |= local_cv_quals;
   kind = *p;
-  if (kind == 'S') {
+  if (kind == 'S' &&
+      /* "St" for "std::" is the beginning of a name, not a type. */
+      p[1] != 't') {
     /* A substitution. */
     p = demangle_substitution(p, 2, cv_quals,
                               under_lhs_declarator,
