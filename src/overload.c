@@ -263,7 +263,9 @@ param_type.
        function template. */
     /* can_be_arg = FALSE;  -- already set. */
   } else {
+    a_template_symbol_supplement_ptr	tssp;
     check_assertion(sym->kind == (a_symbol_kind)sk_overloaded_function);
+    tssp = template_supplement_for_symbol(templ_sym);
     for (sym = sym->variant.overloaded_function.symbols;
          sym != NULL;
          sym = sym->next) {
@@ -276,7 +278,7 @@ param_type.
       }  /* if */
       if (member_of_overload_set_matches_template_type(ptr_routine_type,
                                                        param_type,
-                                                       templ_sym)) {
+                                                       tssp->parameters)) {
         /* This function matches.  Only one is allowed to match, so if
            a previous one matched, the overall match fails. */ 
         if (can_be_arg) {
@@ -1966,9 +1968,12 @@ evaluated (but not checked to see if the match is good enough).
                      arg_match;
   a_boolean          param_is_reference, type_qualifiers_added;
   a_boolean          class_copy_case, pointer_case;
+  a_template_symbol_supplement_ptr
+		     tssp;
 
   db_enter(4, "function_template_matches_operand_list");
   templ_sym = cfp->function_symbol;
+  tssp = template_supplement_for_symbol(templ_sym);
 #if CHECKING
   if (templ_sym->kind != (a_symbol_kind)sk_function_template) {
     internal_error("function_template_matches_operand_list: bad symbol");
@@ -2084,7 +2089,7 @@ evaluated (but not checked to see if the match is good enough).
          This conversion was not allowed by the ARM but has been blessed
          by the standards committee. */
       if (!matches_template_type(arg_type, param_type, &templ_arg_list,
-                                 templ_sym,
+                                 tssp->parameters,
                                  /*allow_conversion=*/TRUE,
                                  &base_class_conv_needed)) {
         /* Mismatch. */

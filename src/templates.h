@@ -42,15 +42,15 @@ extern
 a_boolean matches_template_type(a_type_ptr           type,
                                 a_type_ptr           templ_type,
                                 a_template_arg_ptr   *templ_arg_list,
-				a_symbol_ptr         rout_templ_sym,
+                                a_template_param_ptr templ_param_list,
 				a_boolean            allow_conversion,
                                 a_base_class_ptr     *base_class_conv_needed);
 
 extern
 a_boolean member_of_overload_set_matches_template_type(
-			       a_type_ptr       type,
-		  	       a_type_ptr       templ_type,
-                               a_symbol_ptr     rout_templ_sym);
+			       a_type_ptr           type,
+		  	       a_type_ptr           templ_type,
+                               a_template_param_ptr templ_param_list);
 
 extern a_boolean verify_function_template_nontype_args(
                                         a_template_arg_ptr templ_arg_list,
@@ -66,8 +66,10 @@ extern a_symbol_ptr matching_template_function
                                    a_type_ptr          curr_type,
                                    a_source_position   *source_pos);
 
-extern void record_predeclared_template_function(a_symbol_ptr  templ_sym,
-                                                 a_symbol_ptr  rout_sym);
+extern void record_predeclared_template_function(
+                                        a_symbol_ptr         templ_sym,
+                                        a_symbol_ptr         rout_sym,
+                                        a_template_param_ptr templ_param_list);
 
 extern void find_member_function_template(
                                     a_symbol_ptr  rout_sym,

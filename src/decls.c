@@ -3393,12 +3393,13 @@ skip_overloading:;
 #if !DECL_MODIFIERS_IN_USE
 /* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE */
-void decl_function_template(a_symbol_locator    *locator,
-                            a_type_ptr          type_ptr,
-                            a_func_info_block   *func_info,
-                            a_symbol_ptr        *symbol_ptr,
-                            a_storage_class     storage_class,
-                            a_decl_modifier	decl_modifiers)
+void decl_function_template(a_symbol_locator     *locator,
+                            a_type_ptr           type_ptr,
+                            a_func_info_block    *func_info,
+                            a_symbol_ptr         *symbol_ptr,
+                            a_storage_class      storage_class,
+                            a_decl_modifier	 decl_modifiers,
+                            a_template_param_ptr templ_param_list)
 /*
 Roughly speaking, this routine does for function templates what
 decl_var_or_routine does for ordinary functions.  Lookup and reuse or else
@@ -3610,7 +3611,7 @@ class template.
       if (rout_sym->kind == (a_symbol_kind)sk_routine) {
         /* Determine whether rout_sym is a specialization of the function
            template represented by sym. */
-        record_predeclared_template_function(sym, rout_sym);
+        record_predeclared_template_function(sym, rout_sym, templ_param_list);
       }  /* if */
     }  /* for */
   } else if (changed_to_inline) {
