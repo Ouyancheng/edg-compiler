@@ -246,8 +246,7 @@ declaration processing will continue as though "overload" had not been seen.
         } while (loop_token(tok_comma));
         remove_stop_token(tok_semicolon);
       }  /* if */
-      /* Check for final semicolon. */
-      (void)required_token(tok_semicolon, ec_exp_semicolon);
+      /* The check for the final semicolon is done by the caller. */
       /* Tell the caller to do no more processing. */
       discard_declaration = TRUE;
     } else {
@@ -3893,6 +3892,7 @@ is present when a "=" is not there.
 
 static void linkage_specification(a_boolean      function_definition_allowed,
                                   a_boolean      is_old_style_param_decl,
+                                  a_boolean      is_top_level_declaration,
                                   a_param_id_ptr param_id_list)
 /*
 The caller has determined that we are at the start of a C++ linkage
@@ -3957,18 +3957,21 @@ specifier is restored.
     /* Go through the declarations. */
     while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
       declaration(function_definition_allowed, /*extern_implied=*/FALSE,
-                  is_old_style_param_decl, param_id_list);
-      /* Since declaration does not advance beyond the final token of the
-         declaration (which should be a ';' or '}') do it now. */
-      if (curr_token == tok_semicolon || curr_token == tok_rbrace) {
-        (void)get_token();
-      }  /* if */
+                  is_old_style_param_decl, /*is_top_level_declaration=*/FALSE,
+                  param_id_list);
     }  /* while */
     /* Check for the final right brace of the the linkage specification block,
        but don't advance past it -- that is handled in translation_unit. */
     remove_stop_token(tok_rbrace);
     if (curr_token != tok_rbrace) {
       pos_error(ec_exp_rbrace, &pos_curr_token);
+    } else {
+      /* Advance past rbrace.  If the current declaration is a top-level
+         declaration, set a global flag to enable checking for a header
+         stop. */
+      if (is_top_level_declaration) next_token_is_top_level_decl_start = TRUE;
+      (void)get_token();
+      next_token_is_top_level_decl_start = FALSE;
     }  /* if */
   } else {
     /* Just one declaration is governed by this linkage specifier.  If no
@@ -3978,7 +3981,8 @@ specifier is restored.
        and not just declared," and of the example following it, where without
        the braces the variable is not defined. */
     declaration(function_definition_allowed, /*extern_implied=*/TRUE,
-                is_old_style_param_decl, param_id_list);
+                is_old_style_param_decl, /*is_top_level_declaration=*/FALSE,
+                param_id_list);
   }  /* if */
   /* Restore the default linkage to the value it had before the declaration
      (or declaration list) was processed. */
@@ -4324,6 +4328,7 @@ error cases.
 void declaration(a_boolean      function_definition_allowed,
                  a_boolean      extern_implied,
                  a_boolean      is_old_style_param_decl,
+                 a_boolean      is_top_level_declaration,
                  a_param_id_ptr param_id_list)
 /*
 Scan a declaration (standard, 3.5).  If function_definition_allowed is TRUE,
@@ -4419,20 +4424,24 @@ of local variables (and types, etc.) of functions and in blocks.
       /* This looks like a C++ linkage specification, which is "extern"
          followed by a string literal (e.g., "C++" or "C"). */
       linkage_specification(function_definition_allowed,
-                            is_old_style_param_decl, param_id_list);
+                            is_old_style_param_decl,
+                            is_top_level_declaration, param_id_list);
       goto return_point;
     } else if (curr_token == tok_template) {
-      /* Do the processing required for a template declaration.  */
-      symbol_ptr = template_declaration(&defines_something);
-      if (symbol_ptr != NULL && defines_something &&
-          (symbol_ptr->kind == (a_symbol_kind)sk_function_template ||
-           symbol_ptr->kind == (a_symbol_kind)sk_member_function)) {
-        /* No trailing semicolon expected for a function template. */
+      /* Do the processing required for a template declaration.  If this is
+         a top level declaration, the subroutine should not advance past the
+         final token of the declaration. */
+      (void)template_declaration(&defines_something,
+                                 is_top_level_declaration);
+      if (is_top_level_declaration) {
+         /* Advance past the final declaration, doing special processing
+            if required. */
+        goto advance_past_final_token;
       } else {
-        /* This should be a class template -- check for final semicolon. */
-        (void)required_token(tok_semicolon, ec_exp_semicolon);
+        /* The declaration did not appeare at the top level, so we will
+           already have advanced past the final token. */ 
+        goto return_point;
       }  /* if */
-      goto return_point;
     }  /* if */
   }  /* if */
   add_stop_token(tok_semicolon);
@@ -4460,7 +4469,7 @@ of local variables (and types, etc.) of functions and in blocks.
       /* Issue diagnostics on pragmas that are trying to bind to an overload
          declaration. */
       cannot_bind_to_curr_construct();
-      goto return_point;
+      goto check_for_semicolon;
     }  /* if */
   }  /* if */
   /* Set the flags for calling decl_specifiers. */
@@ -4500,25 +4509,22 @@ of local variables (and types, etc.) of functions and in blocks.
         } else {
           remark(ec_extra_semicolon);
         }  /* if */
-      } else {
-        if (curr_token == tok_lbrace) {
-          /* Special error recovery on encountering an open brace: it
-             may be the start of a routine. */
-          error(ec_exp_declaration);
-          flush_until_matching_token();
-          if (curr_token == tok_rbrace) (void)get_token();
-          if (is_decl_start(/*expr_context=*/FALSE,
-                            /*real_declarator_allowed=*/TRUE)) {
-            goto continue_with_declaration;
-          }  /* if */
-        } else {
-          syntax_error(ec_exp_declaration);
+      } else if (curr_token == tok_lbrace) {
+        /* Special error recovery on encountering an open brace: it
+           may be the start of a routine. */
+        error(ec_exp_declaration);
+        flush_until_matching_token();
+        if (curr_token == tok_rbrace) (void)get_token();
+        if (is_decl_start(/*expr_context=*/FALSE,
+                          /*real_declarator_allowed=*/TRUE)) {
+          goto continue_with_declaration;
         }  /* if */
+      } else {
+        syntax_error(ec_exp_declaration);
       }  /* if */
       /* Give up on scanning a declaration (assume we're at the end of one). */
-      if (curr_token == tok_semicolon) (void)get_token();
       discard_curr_construct_pragmas();
-      goto return_point;
+      goto advance_past_final_token;
     }  /* if */
   }  /* if */
 continue_with_declaration:
@@ -4665,7 +4671,9 @@ continue_with_declaration:
     set_err_pos_to_curr_token();
     warning(ec_decl_of_void_ignored);
     discard_curr_construct_pragmas();
+    /* Advance past "void" to the semicolon. */
     (void)get_token();
+    goto advance_past_final_token;
   } else {
     /* Set the various flags for declarator processing. */
     di_flags = DI_REAL_DECLARATOR_ALLOWED;
@@ -4953,7 +4961,10 @@ continue_with_declaration:
         function_definition(&locator, local_type_ptr, &func_info,
                             local_storage_class, has_explicit_type_specifier);
         done_with_func_info(func_info);
-        goto return_point;
+        /* The presence of a final '}' will already have been checked for. */
+        check_assertion(curr_token == tok_rbrace ||
+                        curr_token == tok_end_of_source);
+        goto advance_past_final_token;
       }  /* if */
       /* Not a function definition, must be a declaration. */
       /* After a declaration has been scanned, it is no longer possible
@@ -5326,15 +5337,20 @@ continue_with_declaration:
       /* Keep scanning the list of declarators. */
     } while (loop_token(tok_comma));
   }  /* if */
-  /* Check for final semicolon -- but don't advance past it.  That is
-     handled by the caller. */
-  if (curr_token != tok_semicolon) {
-    add_stop_token(tok_semicolon);
-    set_err_pos_to_curr_token();
-    syntax_error(ec_exp_semicolon);
-    remove_stop_token(tok_semicolon);
+check_for_semicolon:
+  /* Check for a final semicolon. */
+  if (required_token_no_advance(tok_semicolon, ec_exp_semicolon)) {
+advance_past_final_token:
+    if (curr_token == tok_semicolon || curr_token == tok_rbrace) {
+      /* Advance past the final token of the declaration (which should be a
+         ';' or '}').  However, if the current declaration is a top-level
+         declaration, set a global flag to enable checking for a header
+         stop. */
+      if (is_top_level_declaration) next_token_is_top_level_decl_start = TRUE;
+      (void)get_token();
+      next_token_is_top_level_decl_start = FALSE;
+    }  /* if */
   }  /* if */
-
 return_point:
   /* Do necessary remove_stop_tokens.  Even when there is no error, this
      does the remove_stop_token for tok_semicolon. */
@@ -5351,10 +5367,7 @@ Scan a block-level declaration.
 {
   declaration(/*function_definition_allowed=*/FALSE,
               /*extern_implied=*/FALSE, /*is_old_style_param_decl=*/FALSE,
-              (a_param_id_ptr)NULL);
-  if (curr_token == tok_semicolon || curr_token == tok_rbrace) {
-    (void)get_token();
-  }  /* if */
+              /*is_top_level_declaration=*/FALSE, (a_param_id_ptr)NULL);
 }  /* local_declaration */
 
 
@@ -5374,6 +5387,7 @@ In C++, however, the declaration list is optional (3.4):
                                opt
 */
 {
+  /* Set the global flag to enable the check for a header stop. */
   next_token_is_top_level_decl_start = TRUE;
   (void)get_token();
   next_token_is_top_level_decl_start = FALSE;
@@ -5429,12 +5443,7 @@ In C++, however, the declaration list is optional (3.4):
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       declaration(/*function_definition_allowed=*/TRUE,
                   /*extern_implied=*/FALSE, /*is_old_style_param_decl=*/FALSE,
-                  (a_param_id_ptr)NULL);
-      if (curr_token == tok_semicolon || curr_token == tok_rbrace) {
-        next_token_is_top_level_decl_start = TRUE;
-        (void)get_token();
-        next_token_is_top_level_decl_start = FALSE;
-      }  /* if */
+                  /*is_top_level_declaration=*/TRUE, (a_param_id_ptr)NULL);
     } /* for */
   }  /* if */
   check_assertion_str2(!header_stop_position_pending, "translation_unit:",
@@ -5460,7 +5469,7 @@ scanning a translation-unit, except there's no diagnostic on the empty file.
   while (curr_token != tok_end_of_source) {
     declaration(/*function_definition_allowed=*/TRUE,
                 /*extern_implied=*/FALSE, /*is_old_style_param_decl=*/FALSE,
-                (a_param_id_ptr)NULL);
+                /*is_top_level_declaration=*/FALSE, (a_param_id_ptr)NULL);
   }  /* if */
 }  /* scan_implicitly_included_template_definition_file */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
