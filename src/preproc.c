@@ -1349,65 +1349,44 @@ the entire string.  The tokens are scanned as preprocessing tokens.
 }  /* convert_pp_directive_to_string */
 
 
-static void convert_pragma_to_string(a_pending_pragma_ptr          ppp,
-				     a_pragma_kind_description_ptr pkdp)
+static void convert_pragma_to_string(a_pending_pragma_ptr          ppp)
 /*
-Scans the tokens that make up a pragma directive and converts them
-into a single null terminated character string.  Once the entire
-pragma has been scanned, a buffer of the appropriate size is allocated
+A token cache has been created to store the tokens for the pragma.
+Convert the token cache into a string representation of the pragma.
+The string is constructed into the temp_text_buffer.  Once the entire
+string has been created, a buffer of the appropriate size is allocated
 in the file scope IL memory region and the pragma string is copied
 there.
 */
 {
-  a_boolean	save_expand_macros;
-  a_boolean	save_do_string_literal_concatenation;
-  a_boolean	save_fetch_pp_tokens;
-  char		*il_string;
-
   db_enter(4, "convert_pragma_to_string");
-  /* Save the current value of the lexical scanning mode flags. */
-  save_expand_macros = expand_macros;
-  save_do_string_literal_concatenation = do_string_literal_concatenation;
-  save_fetch_pp_tokens = fetch_pp_tokens;
-  /* Set the new values. */
-  expand_macros = pkdp->expand_macros;
-  do_string_literal_concatenation = FALSE;
-  fetch_pp_tokens = TRUE;
-  /* We expect caching_pragma_tokens to be FALSE when building a string
-     representation of the pragma. */
-  check_assertion_str2(!caching_pragma_tokens,
-		       "convert_pp_directive_to_string:",
-		       "invalid token scanning mode");
-  convert_pp_directive_to_string();
-  /* Allocate a block of file scope IL memory into which the string may
-     be copied. */
-  il_string = (char *)alloc_primary_file_scope_il(
-                                               pp_directive_string_length + 1);
-  (void)memcpy(il_string, pp_dir_string_buffer,
-               size_t_arg(pp_directive_string_length));
-  /* Add a null terminator. */
-  il_string[pp_directive_string_length] = '\0';
-  ppp->pragma_text = il_string;
+  /* Initialize the token string.  Use the pragma ID position as the start
+     position associated with the token string. */
+  init_token_string(&ppp->id_position);
+  add_token_cache_to_string(&ppp->token_cache);
+  /* Copy the string to IL memory. */
+  ppp->pragma_text = make_copy_of_token_string();
+  /* Free the cached tokens and reset the cache in the pragma entry. */
+  discard_token_cache(&ppp->token_cache);
 #if DEBUG
-  if (debug_level >= 5) {
-    fprintf(f_debug, "Saved pragma string: '%s'\n", il_string);
+  if (debug_level >= 5 || db_flag_is_set("pragma_string")) {
+    fprintf(f_debug, "Saved pragma string: '%s'\n", ppp->pragma_text);
   }  /* if */
 #endif /* DEBUG */
-  /* Restore the previous values. */
-  expand_macros = save_expand_macros;
-  do_string_literal_concatenation = save_do_string_literal_concatenation;
-  fetch_pp_tokens = save_fetch_pp_tokens;
   db_exit();
 }  /* convert_pragma_to_string */
 
 
-static void cache_pragma_tokens(a_pending_pragma_ptr          ppp,
-				a_pragma_kind_description_ptr pkdp)
+static void cache_pragma_tokens(
+		a_pending_pragma_ptr		ppp,
+		a_pragma_kind_description_ptr	pkdp,
+		a_boolean			is_microsoft_pragma_operator)
 /*
 Cache the tokens that make up a pragma directive.  The global variables
 that determine the current lexical scanning mode are saved and reset
 based on the information specified in the pragma description entry.
-*/
+is_microsoft_pragma_operator is TRUE when the pragma being scanned is a
+Microsoft __pragma operator.*/
 {
   a_boolean	save_expand_macros;
   a_boolean	save_caching_pragma_tokens;
@@ -1416,6 +1395,8 @@ based on the information specified in the pragma description entry.
   a_boolean     save_recognize_keywords_in_pragma;
   a_boolean	save_in_preprocessing_directive;
 
+  /* Cache the pragma identifier. */
+  cache_curr_token(&ppp->token_cache);
   /* Save the current value of the lexical scanning mode flags. */
   save_expand_macros = expand_macros;
   save_caching_pragma_tokens = caching_pragma_tokens;
@@ -1434,12 +1415,25 @@ based on the information specified in the pragma description entry.
   fetch_pp_tokens = FALSE;
   /* Bypass the identifier that indicates the pragma kind. */
   (void)get_token();
-  /* Cache the tokens until an end-of-line is found. */
-  for (;;) {
-    if (curr_token == tok_newline || curr_token == tok_end_of_source) break;
-    cache_curr_token(&ppp->token_cache);
-    (void)get_token();
-  }  /* for */
+  if (is_microsoft_pragma_operator) {
+    /* A Microsoft __pragma operator.  Cache the tokens until a right
+       parenthesis is found. */
+    a_token_set_array  stop_tokens;
+    /* Initialize a local stop token set. */
+    clear_token_set_array(stop_tokens);
+    incr_token_set_array_element(stop_tokens, tok_newline);
+    incr_token_set_array_element(stop_tokens, tok_end_of_source);
+    incr_token_set_array_element(stop_tokens, tok_rparen);
+    cache_token_stream(&ppp->token_cache, stop_tokens);
+  } else {
+    /* A normal #pragma or C99 _Pragma.  Cache the tokens until an end-of-line
+      is found. */
+    for (;;) {
+      if (curr_token == tok_newline || curr_token == tok_end_of_source) break;
+      cache_curr_token(&ppp->token_cache);
+      (void)get_token();
+    }  /* for */
+  }  /* if */
   /* Terminate the token cache. */
   terminate_token_cache(&ppp->token_cache);
   /* Restore the previous values. */
@@ -1452,15 +1446,18 @@ based on the information specified in the pragma description entry.
 }  /* cache_pragma_tokens */
 
 
-static void enter_pending_pragma(a_pragma_kind_description_ptr  pkdp,
-                                 a_source_position              *directive_pos,
-                                 a_source_position              *id_pos)
+static void enter_pending_pragma(
+		a_pragma_kind_description_ptr	pkdp,
+		a_source_position		*directive_pos,
+		a_source_position		*id_pos,
+		a_boolean			is_microsoft_pragma_operator)
 /*
 Scan the current pragma directive, which has already been determined to be
 of a kind associated with the entry pointed to pkdp.  It may be recorded as
 either a token cache or as a character string.  *directive_pos is the source
 position of the start of the directive; *id_pos is the source position of
-the pragma identifier.
+the pragma identifier.  is_microsoft_pragma_operator is TRUE when the pragma
+being scanned is a Microsoft __pragma operator.
 */
 {
   a_pending_pragma_ptr	ppp;
@@ -1468,15 +1465,21 @@ the pragma identifier.
   ppp = alloc_pending_pragma(pkdp);
   ppp->id_position = *id_pos;
   ppp->pragma_position = *directive_pos;
+  /* Cache the tokens that make up the pragma directive. */
+  cache_pragma_tokens(ppp, pkdp, is_microsoft_pragma_operator);
   if (pkdp->make_text_not_tokens) {
     /*  The character string representation is usually used for pragmas that
         are to be passed to the C or C++ generating back end, but may be
         used for other pragmas in which a character string is simpler to
         manipulate. */
-    convert_pragma_to_string(ppp, pkdp);
+    convert_pragma_to_string(ppp);
   } else {
-    /* Cache the tokens that make up the pragma directive. */
-    cache_pragma_tokens(ppp, pkdp);
+    /* Remove the initial token from the token cache.  For historical reasons,
+       the cache does not include the pragma identifier, but it must be
+       cached initially so that it can be included in the pragma string when
+       making text, not tokens. */
+    remove_token_from_cache(ppp->token_cache.first_token,
+                            &ppp->token_cache.first_token, &ppp->token_cache);
   }  /* if */
   /* Add this pragma to the list of pragmas associated with the
      current token. */
@@ -1554,13 +1557,16 @@ expansion of macros if necessary for this kind of pragma.
 }  /* pass_pragma_to_output */
 
 
-void record_pragma(a_pragma_kind_description_ptr	pkdp,
-		   a_source_position			*start_of_dir_position,
-		   a_source_position			*id_position)
+void record_pragma(a_pragma_kind_description_ptr pkdp,
+		   a_source_position		 *start_of_dir_position,
+		   a_source_position		 *id_position,
+		   a_boolean			 is_microsoft_pragma_operator)
 /*
 Record the pragma whose kind is specified by pkdp (which may be NULL).
 start_of_dir_position is the position of the first character of the
 pragma directive.  id_position is the position of the pragma identifier.
+is_microsoft_pragma_operator is TRUE when the pragma being scanned is
+a Microsoft __pragma operator.
 */
 {
   a_boolean processed = FALSE;
@@ -1575,7 +1581,8 @@ pragma directive.  id_position is the position of the pragma identifier.
     } else {
       /* Scan the pragma directive, recording it as either a token cache
          or as a character string. */
-      enter_pending_pragma(pkdp, start_of_dir_position, id_position);
+      enter_pending_pragma(pkdp, start_of_dir_position, id_position,
+                           is_microsoft_pragma_operator);
     }  /* if */
     processed = TRUE;
   }  /* if */
@@ -1583,7 +1590,11 @@ pragma directive.  id_position is the position of the pragma identifier.
     /* Unrecognized pragma, just ignore (this is required by the
        standard). */
     pos_warning(ec_unrecognized_pragma, id_position);
-    flush_to_newline();
+    if (is_microsoft_pragma_operator) {
+      flush_to_closing_paren();
+    } else {
+      flush_to_newline();
+    }  /* if */
   }  /* if */
 }  /* record_pragma */
 
@@ -1662,7 +1673,8 @@ Scan and process a #pragma directive.
   } else {
     /* Compiling.  Record the pragma for later processing, or for
        processing now in the case of immediate pragmas. */
-    record_pragma(pkdp, start_of_dir_position, &id_position);
+    record_pragma(pkdp, start_of_dir_position, &id_position,
+                  /*is_microsoft_pragma_operator=*/FALSE);
     if (generate_pp_output) {
       /* If we are generating preprocessed output, but we are also
          doing real compilation (i.e., do_preprocessing_only is FALSE),
@@ -1688,7 +1700,8 @@ Scan and process a #ident directive.
     /* #ident "xxx" is treated as another spelling of #pragma ident "xxx",
        so put out a pending-pragma entry for it. */
     enter_pending_pragma(pragma_description_for_pragma_kind[(int)pk_ident],
-                         directive_pos, &pos_curr_token);
+                         directive_pos, &pos_curr_token,
+                         /*is_microsoft_pragma_operator=*/FALSE);
   }  /* if */
 }  /* proc_ident */
 

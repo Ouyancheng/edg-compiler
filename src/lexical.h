@@ -1628,6 +1628,12 @@ extern
 void cache_token_stream_coalesce_identifiers(a_token_cache_ptr  cache,
                                              a_token_set_array  stop_tokens,
                                              a_token_cache_ptr	src_cache);
+
+extern
+void remove_token_from_cache(a_cached_token_ptr	ctp,
+			     a_cached_token_ptr	*prev_ptr,
+			     a_token_cache_ptr	cache);
+
 extern a_token_kind get_token_to_be_cached(void);
 extern
 void cache_rest_of_declaration(a_token_cache_ptr	cache,
@@ -1950,6 +1956,7 @@ extern void flush_until_matching_token(void);
 extern void flush_tokens_with_stop_tokens_and_warning_flag(
 				a_token_set_array	stop_tokens,
 				a_boolean		suppress_warning);
+extern void flush_to_closing_paren(void);
 extern void flush_tokens(void);
 extern void flush_to_end_of_arg_list(void);
 
@@ -1992,22 +1999,11 @@ extern void lexical_init(void);
     (void)get_token();						\
   }
 
-/*
-Flag that is TRUE if the routines that convert a token cache into a
-string are needed.  These routines are used for creating template strings
-and for converting token caches for Microsoft-style asm blocks into strings.
-*/
-#if RECORD_TEMPLATE_STRINGS || MICROSOFT_EXTENSIONS_ALLOWED
-#define TOKENS_TO_STRING_NEEDED TRUE
-#else /* !(RECORD_TEMPLATE_STRINGS || MICROSOFT_EXTENSIONS_ALLOWED) */
-#define TOKENS_TO_STRING_NEEDED FALSE
-#endif /* RECORD_TEMPLATE_STRINGS || MICROSOFT_EXTENSIONS_ALLOWED */
-
-#if TOKENS_TO_STRING_NEEDED
 extern void add_token_cache_to_string(a_token_cache_ptr	cache);
 
 extern void init_token_string(a_source_position *pos);
-#endif /* TOKENS_TO_STRING_NEEDED */
+
+extern char *make_copy_of_token_string(void);
 
 extern a_preinclude_file_ptr alloc_preinclude_file(void);
 

@@ -682,7 +682,6 @@ the "text" field of *template_ptr to point to it.
 */
 {
   a_token_cache         *cache;
-  char                  *il_string;
 
   db_enter(3, "make_template_string");
   /* Initialize the buffer that will be used to build the token string.  Use
@@ -721,17 +720,12 @@ the "text" field of *template_ptr to point to it.
   }  /* if */
   /* Allocate a block of file scope IL memory into which the string may
      be copied. */
-  il_string = (char *)alloc_il((sizeof_t)(pos_in_temp_text_buffer + 1));
-  (void)memcpy(il_string, temp_text_buffer,
-               size_t_arg(pos_in_temp_text_buffer));
-  /* Add a null terminator. */
-  il_string[pos_in_temp_text_buffer] = '\0';
-  template_ptr->text = il_string;
+  template_ptr->text = make_copy_of_token_string();
 #if DEBUG
   if (debug_level >= 3 ||
       (db_active && db_flag_is_set("dump_template_strings"))) {
     /* This won't work if the string contains nulls -- is it worth fixing? */
-    fprintf(f_debug, "Saved template string:\n%s\n", il_string);
+    fprintf(f_debug, "Saved template string:\n%s\n", template_ptr->text);
   }  /* if */
 #endif /* DEBUG */
   

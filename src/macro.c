@@ -76,6 +76,12 @@ static a_symbol_ptr
 			/* Pointer to the symbol entry for the special
 			   macro "_Pragma", which is used in C99 mode. */
 
+static a_symbol_ptr
+		microsoft_pragma_macro_symbol;
+			/* Pointer to the symbol entry for the special
+			   macro "__pragma", which is used in Microsoft
+			   mode. */
+
 /*
 Maximum nesting depth of calls of a single macro in pcc mode.  Used to
 catch recursion, but crudely, because a general recursion check is
@@ -777,9 +783,11 @@ so that "defined" will not be found as a defined macro.
   assoc_symbol = find_macro_symbol(sym_hdr);
   /* If the macro found is the pseudo-macro "defined" (which is used as
      an operator in #if statements), or "_Pragma" (which is used for the
-     C99 _Pragma operator) pretend it was not found. */
+     C99 _Pragma operator), or "__pragma" (which is used for the Microsoft
+     __pragma operator) pretend it was not found. */
   if (assoc_symbol == defined_macro_symbol ||
-      assoc_symbol == Pragma_macro_symbol) {
+      assoc_symbol == Pragma_macro_symbol ||
+      assoc_symbol == microsoft_pragma_macro_symbol) {
     assoc_symbol = NULL;
   }  /* if */
   return (assoc_symbol);
@@ -1104,7 +1112,8 @@ is the source position of the _Pragma token.
       pos_error(ec_invalid_pragma_operator, &id_position);
       flush_to_newline();
     }  /* if */
-    record_pragma(pkdp, start_of_dir_position, &id_position);
+    record_pragma(pkdp, start_of_dir_position, &id_position,
+                  /*is_microsoft_pragma_operator=*/FALSE);
   }
   rem_source_line_modif(slmp);
   /* Restore the saved lexical state variables. */
@@ -1152,7 +1161,7 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
     map = copy_pragma_string();
     /* Scan the tokens from the pragma string. */
     scan_pragma_string(map, &start_of_dir_position);
-    /* Bypass the scanned string and check for the closing parenthesis.. */
+    /* Bypass the scanned string and check for the closing parenthesis. */
     (void)get_token();
     if (curr_token == tok_rparen) {
       found_end_of_operator = TRUE;
@@ -1174,6 +1183,84 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
     if (curr_token != tok_end_of_source) curr_token = tok_error;
   }  /* if */
 }  /* scan_pragma_operator */
+
+
+static void process_microsoft_pragma_operator(
+			       a_source_position	*start_of_dir_position)
+/*
+The current token is the pragma identifier of a Microsoft __pragma operator.
+Call record_pragma to scan the pragma body and create the pragma entry.
+*/
+{
+  a_pragma_kind_description_ptr	pkdp = NULL;
+  a_source_position			id_position;
+  /* Get the pragma identifier. */
+  pkdp = look_up_pragma_id(&id_position);
+  if (pkdp != NULL &&
+      pkdp->binding_kind == pbk_preproc_immediate) {
+    /* Preprocessing pragmas cannot be used in _Pragma operators. */
+    pos_error(ec_invalid_microsoft_pragma_operator, &id_position);
+    flush_to_closing_paren();
+  } else {
+    record_pragma(pkdp, start_of_dir_position, &id_position,
+                 /*is_microsoft_pragma_operator=*/TRUE);
+  }  /* if */
+}  /* process_microsoft_pragma_operator */
+
+
+static void scan_microsoft_pragma_operator(
+				a_boolean *got_proper_closing_token)
+/*
+Process a C99 Microsoft __pragma operator.  The current token is the
+__pragma identifier token.  The form of a _pragma invocation is:
+
+	__pragma(tokens)
+
+The first component of "tokens" is the pragma identifier, which may be
+followed by pragma arguments.
+
+If the pragma operator is badly formed and we don't successfully find its
+end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
+*/
+{
+  a_boolean		save_fetch_pp_tokens = fetch_pp_tokens;
+  a_boolean		save_expand_macros = expand_macros;
+  a_source_position	start_of_dir_position;
+  a_boolean		found_end_of_operator = FALSE;
+
+  /* The inside of the _Pragma directive should be processed as pp-tokens. */
+  fetch_pp_tokens = TRUE;
+  expand_macros = FALSE;
+  /* Record the position of the start of the pragma. */
+  start_of_dir_position = pos_curr_token;
+  /* Bypass the __pragma token. */
+  (void)get_token();
+  if (curr_token != tok_lparen) {
+    error(ec_exp_lparen);
+  } else {
+    /* Scan the tokens of the pragma and create the pragma entry. */
+    process_microsoft_pragma_operator(&start_of_dir_position);
+    /* Check for the closing parenthesis. */
+    if (curr_token == tok_rparen) {
+      found_end_of_operator = TRUE;
+    } else {
+      error(ec_exp_rparen);
+    }  /* if */
+  }  /* if */
+  /* Restore the previous state for fetching pp-tokens, and expanding
+     macros. */
+  fetch_pp_tokens = save_fetch_pp_tokens;
+  expand_macros = save_expand_macros;
+  /* If we didn't find the end of the operator, clear the flag passed
+     by the caller. */
+  if (!found_end_of_operator) {
+    *got_proper_closing_token = FALSE;
+    /* The main purpose of the following is to insure that we don't return
+       a tok_identifier when we might have an invalid locator (e.g., the
+       symbol header could be unset). */
+    if (curr_token != tok_end_of_source) curr_token = tok_error;
+  }  /* if */
+}  /* scan_microsoft_pragma_operator */
 
 
 /*
@@ -2132,6 +2219,17 @@ end_scan_for_macro_modifs:;
         scan_pragma_operator(&got_proper_closing_token); 
         repl_text = "";
         repl_text_len = 0;
+        special_repl_text = FALSE;
+      } else if (macro_symbol == microsoft_pragma_macro_symbol) {
+        /* The Microsoft __pragma operator.  This is invoked as
+               __pragma(pragma-name pragma-operands(opt))
+           Call a routine to translate the string into a pending pragma
+           entry. */
+        is_macro_call = FALSE;
+        scan_microsoft_pragma_operator(&got_proper_closing_token); 
+        repl_text = "";
+        repl_text_len = 0;
+        special_repl_text = FALSE;
 #if CHECKING
       } else {
         internal_error("macro_invocation: unknown special predefined macro");
@@ -4854,6 +4952,15 @@ command line -D options.
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
+  if (microsoft_mode) {
+    /* __pragma is like the C99 _Pragma operator except the argument is a
+       series of tokens, not a string literal.  Like _Pragma, it receives
+       special treatment during replacement. */
+    microsoft_pragma_macro_symbol = enter_predef_macro(
+                                            (char *)NULL, "__pragma",
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
   /* Enter system specific macros and assertions. */
   enter_system_specific_predefined_macros_and_assertions();
   /* Now process command-line defines of symbols (-D). */  
@@ -4975,6 +5082,7 @@ Do one-time initialization of variables related to macro processing.
       pch_saved_var_array_elem(file_macro_symbol),
       pch_saved_var_array_elem(defined_macro_symbol),
       pch_saved_var_array_elem(Pragma_macro_symbol),
+      pch_saved_var_array_elem(microsoft_pragma_macro_symbol),
       pch_saved_var_array_elem(date_macro_symbol),
       pch_saved_var_array_elem(time_macro_symbol),
       pch_saved_var_array_elem(base_file_macro_symbol),
@@ -4997,6 +5105,7 @@ Do one-time initialization of variables related to macro processing.
   register_trans_unit_variable(file_macro_symbol);
   register_trans_unit_variable(defined_macro_symbol);
   register_trans_unit_variable(Pragma_macro_symbol);
+  register_trans_unit_variable(microsoft_pragma_macro_symbol);
   register_trans_unit_variable(date_macro_symbol);
   register_trans_unit_variable(time_macro_symbol);
   register_trans_unit_variable(base_file_macro_symbol);
@@ -5025,6 +5134,7 @@ after this function.
   file_macro_symbol = NULL;
   defined_macro_symbol = NULL;
   Pragma_macro_symbol = NULL;
+  microsoft_pragma_macro_symbol = NULL;
   date_macro_symbol = NULL;
   time_macro_symbol = NULL;
   base_file_macro_symbol = NULL;

@@ -254,9 +254,10 @@ extern a_pragma_kind_description_ptr look_up_pragma_id(
 					a_source_position	*id_position);
 
 extern
-void record_pragma(a_pragma_kind_description_ptr	pkdp,
-		   a_source_position			*start_of_dir_position,
-		   a_source_position			*id_position);
+void record_pragma(a_pragma_kind_description_ptr pkdp,
+		   a_source_position		 *start_of_dir_position,
+		   a_source_position		 *id_position,
+		   a_boolean			 is_microsoft_pragma_operator);
 
 extern void stdc_pragma(a_pending_pragma_ptr	ppp);
 

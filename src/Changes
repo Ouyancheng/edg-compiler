@@ -1,5 +1,9 @@
 Version 3.3
 
+6/5/03   Microsoft compatibility: __pragma operator
+
+The Microsoft __pragma operator is now supported in Microsoft mode.
+
 6/5/03   Expressions in g++ mode asm not lowered
 
 Expressions used as operands in GNU C++ mode asm statements

@@ -1297,6 +1297,7 @@ ec_microsoft_interface_cannot_have_friend;;"interface types cannot contain frien
 ec_microsoft_interface_cannot_have_nested_class;;"interface types cannot have nested classes"
 ec_microsoft_interface_cannot_have_member_templates;;"interface types cannot have member templates"
 ec_microsoft_interface_cannot_have_static_members;;"interface types cannot have static member functions"
+ec_invalid_microsoft_pragma_operator;;"this pragma cannot be used in a __pragma operator (a #pragma directive must be used)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -791,6 +791,16 @@ When debugging code is not being generated the macro expands to nothing.
 #define incr_tokens_in_cache(cache)  /* */
 #endif /* DEBUG */
 
+#if DEBUG
+#define decr_tokens_in_cache(cache)					\
+  if (cache->is_reusable) {						\
+    num_cached_tokens_in_reusable_caches--;				\
+  }  /* if */								\
+  cache->token_count--;
+#else /* !DEBUG */
+#define decr_tokens_in_cache(cache)  /* */
+#endif /* DEBUG */
+
 /*
 Add the cached token pointed to by ctp to the end of the token cache
 pointed to by cache.  
@@ -897,6 +907,28 @@ bodies of class templates.
 #endif /* DEBUG */
   free_cached_token(ctp);
 }  /* free_cached_token_from_reusable_cache */
+
+
+void remove_token_from_cache(a_cached_token_ptr	ctp,
+			     a_cached_token_ptr	*prev_ptr,
+			     a_token_cache_ptr	cache)
+/*
+Remove "ctp" from the token cache "cache".  Update "prev_ptr" to point
+to the correct next token.
+*/
+{
+  /* Unlink the entry. */
+  *prev_ptr = ctp->next;
+  /* Update the counts in the cache. */
+  decr_tokens_in_cache(cache);
+  /* Free the token cache entry. */
+  if (cache->is_reusable) {
+    free_cached_token_from_reusable_cache(cache, ctp,
+                                         /*keep_pragma_tokens=*/FALSE);
+  } else {
+    free_cached_token(ctp);
+  }  /* if */
+} /* remove_token_from_cache */
 
 
 void free_tokens_from_reusable_cache(a_cached_token_ptr	ctp,
@@ -8483,6 +8515,24 @@ stop_token_array.
 }  /* flush_tokens */
 
 
+void flush_to_closing_paren(void)
+/*
+Flush tokens until we reach an unmatched right parenthesis.
+*/
+{
+  a_token_set_array  stop_tokens;
+
+  /* Initialize a local stop token set.  Also stop on newline and end
+     of source for error cases. */
+  clear_token_set_array(stop_tokens);
+  incr_token_set_array_element(stop_tokens, tok_newline);
+  incr_token_set_array_element(stop_tokens, tok_end_of_source);
+  incr_token_set_array_element(stop_tokens, tok_rbrace);
+  incr_token_set_array_element(stop_tokens, tok_rparen);
+  flush_tokens_with_stop_tokens(stop_tokens);
+}  /* flush_to_closing_paren */
+
+
 a_boolean required_token(a_token_kind  token,
 			 an_error_code error_code)
 /*
@@ -13075,7 +13125,6 @@ is actived is popped here.
 }  /* wrapup_rescan_of_pragma_tokens */
 
 
-#if TOKENS_TO_STRING_NEEDED
 /*
 Static variables and routines that are used to build up a string representation
 of a token cache.  Characters are added to the temp_text_buffer, which is
@@ -13366,7 +13415,23 @@ position specified by pos.
   curr_seq = pos->seq;
   pos_in_temp_text_buffer = 0;
 }  /* init_token_string */
-#endif /* TOKENS_TO_STRING_NEEDED */
+
+
+char *make_copy_of_token_string(void)
+/*
+Make a copy of the string generated from token caches and return a pointer
+to it.  The copy is make in IL memory.
+*/
+{
+  char	*il_string;
+
+  il_string = (char *)alloc_il((sizeof_t)(pos_in_temp_text_buffer + 1));
+  (void)memcpy(il_string, temp_text_buffer,
+               size_t_arg(pos_in_temp_text_buffer));
+  /* Add a null terminator. */
+  il_string[pos_in_temp_text_buffer] = '\0';
+  return il_string;
+}  /* make_copy_of_token_string */
 
 
 #if DEBUG
@@ -13844,12 +13909,10 @@ of the front end.
   token_insertion_position = null_source_position;
   ucn_buffer = NULL;
   caching_tokens = FALSE;
-#if TOKENS_TO_STRING_NEEDED
   /* Initialize the output control block for the il-to-str routines. */
   clear_il_to_str_output_control_block(&octl);
   octl.output_str = put_str_to_temp_text_buffer;
   octl.gen_compilable_code = TRUE;
-#endif /* TOKENS_TO_STRING_NEEDED */
   next_preinclude_file = NULL;
   processing_macro_preincludes = FALSE;
 #if DEBUG
