@@ -5366,6 +5366,10 @@ otherwise it is NULL.  The syntax is:
   if (!real_declarator_allowed) {
     func_info = NULL;
     locator = NULL;
+  } else if (input_flags & DI_IS_TYPEDEF_DECLARATION) {
+    /* Avoid confusing a typedef declaration of a function type with a
+       function declaration. */
+    func_info = NULL;
   }  /* if */
   if (func_info != NULL) clear_func_info(func_info);
   /* Set the locator to indicate there is no identifier. */
@@ -9494,9 +9498,7 @@ continue_with_declaration:
       }  /* if */
       declarator(di_flags, &do_flags, type_ptr, 
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
-                 &local_type_ptr, &bottom_derived_type,
-                 storage_class == (a_storage_class)sc_typedef ?
-                              (a_func_info_block *)NULL : &func_info);
+                 &local_type_ptr, &bottom_derived_type, &func_info);
       is_function = (storage_class != (a_storage_class)sc_typedef &&
                      is_function_type(local_type_ptr));
       is_main_function = FALSE;
