@@ -2147,21 +2147,7 @@ list.  This function performs that task.
   a_src_seq_sublist_ptr  sublist = scope->src_seq_sublist_list;
   for (; sublist != NULL; sublist = sublist->next) {
     a_source_sequence_entry_ptr  start = sublist->source_sequence_list,
-                                 end = start;
-    /* Find the end of this sublist, and filter out items that are neither
-       macros nor pragmas: */
-    for (; end->next != NULL; end = end->next) {
-      if (end->entity.kind != iek_macro && end->entity.kind != iek_pragma) {
-        if (end == start) {
-          start = end->next;
-        } else {
-          end->prev->next = end->next;
-        }  /* if */
-        if (end->next != NULL) {
-          end->next->prev = end->prev;
-        }  /* if */
-      }  /* if */
-    }  /* for */
+                                 end = sublist->last_source_sequence_entry;
     /* Insert the sublist just after *file_ssep: */
     end->next = file_ssep->next;
     if (file_ssep->next != NULL) {
@@ -2169,9 +2155,21 @@ list.  This function performs that task.
     }  /* if */
     start->prev = file_ssep;
     file_ssep->next = start;
-    /* If there are any more sublists, we'll insert them after the current
-       one: */
-    file_ssep = end;
+    /* From those items that we inserted, filter those that are neither
+       macros nor pragmas (and hence irrelevant in the global scope). */
+    end = end->next;
+    while (start != end) {
+      if (start->entity.kind != iek_macro &&
+          start->entity.kind != iek_pragma) {
+        drop_from_fs_src_seq_list(start);
+        start = file_ssep;
+      } else {
+        file_ssep = start;
+      }  /* end */
+      start = start->next;
+    }  /* while */
+    /* file_ssep should now point to the last remaining inserted item, or to
+       the original item pointed to if all inserted items were removed. */
   }  /* for */
 }  /* merge_function_sublists_into_file_scope_src_seq_list */
 
