@@ -4746,6 +4746,7 @@ defer_inline is TRUE.
          the function. */
     add_to_list = FALSE;
   } else if (value) {
+    a_boolean	flag_already_set = tip->instantiation_required;
     tip->instantiation_required = TRUE;
     /* Set the instantiation required flag in the routine or variable
        entry. */
@@ -4767,7 +4768,7 @@ defer_inline is TRUE.
       if (!tip->already_instantiated) {
         instantiate_template_function(tip);
       }  /* if */
-    } else if (value == (a_boolean)tip->instantiation_required) {
+    } else if (flag_already_set) {
       /* The instantiation required flag is already set to the desired
          value.  This test is used to ensure that an entry that is already
          on the instantiation required list won't be instantiated until
