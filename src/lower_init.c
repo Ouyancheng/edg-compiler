@@ -9471,6 +9471,7 @@ for the destructor.
       /* Add one more if there is a conditional flag (e.g., for a virtual
          base class). */
       if (next_dedp->conditional_flag_var != NULL) region_number++;
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
       /* And another if there is a construction vtable address to be
          passed to a subobject destructor. */
       if (next_dip->is_constructor_init) {
@@ -9501,6 +9502,7 @@ for the destructor.
           if (needs_vtbl) region_number++;
         }  /* if */
       }  /* if */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
     } else {
       region_number = 0;  /* That is, the first region number. */
     }  /* if */

@@ -3385,6 +3385,7 @@ The region table variable is created if necessary.
   a_handle                        subobject_vtable_handle;
   a_cleanup_region_number         next_region_number;
   an_init_pos_descr               ipd;
+  a_boolean                       has_subobject_vtable = FALSE;
 
   check_assertion(dedp != NULL);
   /* Make a handle that describes the address of the conditional flag if
@@ -3397,11 +3398,13 @@ The region table variable is created if necessary.
     make_handle_for_entity(&ipd, &conditional_flag_handle, insert_location);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   }  /* if */
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
   /* Make a handle that describes the address of the subobject vtable
      if any. */
   if (dedp->needs_subobject_construction_vtbl) {
     an_expr_node_ptr vtt_addr_node;
     a_variable_ptr   temp_var;
+    has_subobject_vtable = TRUE;
     /* Make an expression that computes the address of the VTT to use. */
 #if IA64_ABI
     build_construction_vtbls_pointer(dedp,
@@ -3429,6 +3432,7 @@ The region table variable is created if necessary.
     dip->destructor = make_subobject_destruction_routine(dip);
 #endif /* IA64_ABI */
   }  /* if */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
   dedp->next_in_region_table = next_dip;
   next_region_number = cleanup_region_number(
                          dedp->cleanup_state_to_set_when_starting_destruction);
@@ -3441,7 +3445,7 @@ The region table variable is created if necessary.
                                         is_guard_var_for_local_static_var_init,
                                      (dedp->conditional_flag_var != NULL),
                                      &conditional_flag_handle,
-                                     dedp->needs_subobject_construction_vtbl,
+                                     has_subobject_vtable,
                                      &subobject_vtable_handle,
                                      next_region_number,
                                      &dedp->region_number,
