@@ -120,6 +120,19 @@ processed later.
 */
 static a_symbol_list_entry_ptr  instantiations_to_process;
 
+static void add_pending_instantiation(a_symbol_ptr  inst)
+/*
+Add the given instance symbol to the list of instantiations whose
+correspondences must be determined at a later time.
+*/
+{
+  a_symbol_list_entry_ptr  slep = alloc_symbol_list_entry();
+
+  slep->next = instantiations_to_process;
+  instantiations_to_process = slep;
+  slep->symbol = inst;
+}  /* add_pending_instantiation */
+
 
 /* Forward declarations. */
 static void clear_scope_correspondence(a_scope_ptr  scope,
@@ -3774,7 +3787,16 @@ template.
   } else if (tssp->il_template_entry == NULL) {
     /* This can happen with "placeholder templates" that are not linked into
        the IL (such as prototype instantiations of friend templates).
-       These do not have correspondences. */
+       These do not have correspondences.
+       It can also happen with guiding declarations declared prior to
+       the declaration of the template.  Those will have their
+       tssp->il_template_entry set later on. */
+    if (is_function_symbol(inst)) {
+      if (inst->variant.routine.instance_ptr != NULL &&
+          inst->variant.routine.instance_ptr->is_guiding_decl) {
+        add_pending_instantiation(inst);
+      }  /* if */
+    }  /* if */
     goto done;
   }  /* if */
   if (is_primary_translation_unit) {
@@ -3900,10 +3922,7 @@ be templ itself and therefore unusable).
     for (; inst != NULL; inst = next_instance_sym(inst)) {
       /* Record the instantiations for later processing to avoid infinite
          recursion. */
-      a_symbol_list_entry_ptr slep = alloc_symbol_list_entry();
-      slep->next = instantiations_to_process;
-      instantiations_to_process = slep;
-      slep->symbol = inst;
+      add_pending_instantiation(inst);
     }  /* for */
     /* Also process the prototype instantiation. */
     if (tssp->variant.class_template.prototype_instantiation != NULL) {
@@ -3931,10 +3950,7 @@ be templ itself and therefore unusable).
     for (; inst != NULL; inst = inst->next) {
       /* Record the instantiations for later processing to avoid infinite
          recursion. */
-      a_symbol_list_entry_ptr slep = alloc_symbol_list_entry();
-      slep->next = instantiations_to_process;
-      instantiations_to_process = slep;
-      slep->symbol = inst->instance_sym;
+      add_pending_instantiation(inst->instance_sym);
     }  /* for */
     /* Also process prototype instantiation. */
     if (corresp_templ->canonical_template != templ->canonical_template) {
