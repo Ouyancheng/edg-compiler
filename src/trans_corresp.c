@@ -1370,7 +1370,7 @@ given enum type.
 }  /* establish_trans_unit_correspondences_for_enum */
 
 
-static void establish_trans_unit_correspondences_for_class(a_type_ptr  type)
+void establish_trans_unit_correspondences_for_class(a_type_ptr  type)
 /*
 Set the correspondence pointers in the members of a type.  The members' types
 are not checked.
@@ -2421,9 +2421,8 @@ by tup and refers to an IL entry whose canonical entry is canonical_entry.
 }  /* is_corresponding_sym_in_trans_unit */
 
 
-static a_symbol_ptr find_corresponding_class_instance_in_trans_unit(
+a_symbol_ptr find_corresponding_class_instance_in_trans_unit(
 				a_symbol_ptr		sym_to_find,
-				char			*canonical_entry,
 				a_translation_unit_ptr	tup)
 /*
 sym_to_find is a template class instance.  Find the corresponding
@@ -2435,7 +2434,13 @@ corresponding instance, or NULL if no corresponding instance is found.
   a_symbol_ptr				template_sym;
   a_template_symbol_supplement_ptr	tssp;
   a_symbol_ptr				candidate_sym;
+  char					*canonical_entry;
+  an_il_entry_kind			il_kind;
 
+  /* Get the canonical IL entry associated with sym_to_find. */
+  canonical_entry = il_entry_for_symbol(sym_to_find, &il_kind);
+  canonical_entry = canonical_il_entry_of(canonical_entry);
+  check_assertion(canonical_entry != NULL);
   /* Get the corresponding template in the specified translation unit. */
   template_sym = template_symbol_for_class_symbol(sym_to_find);
   template_sym = find_corresponding_symbol_in_trans_unit(template_sym, tup);
@@ -2467,11 +2472,27 @@ corresponding instance, or NULL if no corresponding instance is found.
            inst_sym != NULL; inst_sym = inst_sym->next) {
         if (is_corresponding_sym_in_trans_unit(canonical_entry,
                                                inst_sym, tup)) {
-          result_sym = candidate_sym;
+          result_sym = inst_sym;
           break;
         }  /* if */
       }  /* for */
     }  /* if */
+  }  /* if */
+  if (result_sym == NULL) {
+    /* No symbol was found.  Instantiate the class in the other translation
+       unit. */
+    a_template_arg_ptr	templ_arg_list;
+    a_type_ptr		class_type;
+    class_type = sym_to_find->variant.class_struct_union.type;
+    /* This routine cannot create a new prototype instantiation in the other
+       translation unit. */
+    check_assertion(!class_type->
+                        variant.class_struct_union.is_prototype_instantiation);
+    templ_arg_list = copy_template_arg_list(
+                                         templ_arg_list_for_class(class_type));
+    result_sym = find_template_class(template_sym, &templ_arg_list,
+                                     /*any_prototype_allowed=*/FALSE,
+                                     (a_symbol_ptr)NULL);
   }  /* if */
   return result_sym;
 }  /* find_corresponding_class_instance_in_trans_unit */
@@ -2479,7 +2500,6 @@ corresponding instance, or NULL if no corresponding instance is found.
 
 static a_symbol_ptr find_corresponding_inactive_symbol_in_trans_unit(
 				a_symbol_ptr		sym_to_find,
-				char			*canonical_entry,
 				a_translation_unit_ptr	tup)
 /*
 Look through the inactive symbols of the symbol header of sym_to_find
@@ -2494,10 +2514,16 @@ Return a pointer to the symbol found, or NULL if none is found.
   a_symbol_ptr		parent_sym;
   a_type_ptr		parent_class = NULL;
   a_namespace_ptr	parent_namespace = NULL;
+  char			*canonical_entry;
+  an_il_entry_kind	il_kind;
 
   /* When searching for a routine symbol, we may have to inspect overload
      sets. */
   is_routine = is_function_or_template_symbol(sym_to_find);
+  /* Get the canonical IL entry associated with sym_to_find. */
+  canonical_entry = il_entry_for_symbol(sym_to_find, &il_kind);
+  canonical_entry = canonical_il_entry_of(canonical_entry);
+  check_assertion(canonical_entry != NULL);
   /* If this is a class or namespace member, get the corresponding parent. */
   if (sym_to_find->is_class_member) {
     /* Find the corresponding parent class. */
@@ -2567,24 +2593,17 @@ that is refers to an entity that corresponds to sym_to_find.
 */
 {
   a_symbol_ptr		result_sym = NULL;
-  char			*canonical_entry;
-  an_il_entry_kind	il_kind;
 
-  /* Get the canonical IL entry associated with sym_to_find. */
-  canonical_entry = il_entry_for_symbol(sym_to_find, &il_kind);
-  canonical_entry = canonical_il_entry_of(canonical_entry);
-  check_assertion(canonical_entry != NULL);
   if (is_template_class_symbol(sym_to_find)) {
     /* For a class instance, we need to look through the instantiations
        list. */
     result_sym = find_corresponding_class_instance_in_trans_unit(
-                                            sym_to_find, canonical_entry, tup);
+                                            sym_to_find, tup);
   } else {
     /* The normal case -- look for the corresponding symbol on the inactive
        list. */
     result_sym = find_corresponding_inactive_symbol_in_trans_unit(
-                                             sym_to_find,
-                                             canonical_entry, tup);
+                                             sym_to_find, tup);
   }  /* if */
   check_assertion_str2(result_sym != NULL,
                        "find_corresponding_symbol_in_trans_unit:",

@@ -58,6 +58,37 @@ typedef struct a_variable_registration {
 } a_variable_registration;
 
 
+/*
+Entry used to maintain a stack of translation units.  This is not used
+when initially scanning the translation units, but is used when the
+translation units are reactivated for the purpose of generating the
+instantiations of exported templates.
+*/
+typedef struct a_translation_unit_stack_entry
+                                           *a_translation_unit_stack_entry_ptr;
+typedef struct a_translation_unit_stack_entry {
+  a_translation_unit_stack_entry_ptr
+		next;
+			/* Pointer to the previous stack entry (e.g., the
+			   entry that should become the current entry when
+			   this one is popped off of the stack. */
+  a_translation_unit_ptr
+		translation_unit;
+			/* Pointer to the translation unit that should be the
+			   current translation unit when this entry is at the
+			   top of the stack.*/
+} a_translation_unit_stack_entry;
+
+
+static a_translation_unit_stack_entry_ptr
+		curr_translation_unit_stack_entry;
+			/* Pointer to the top of the translation unit stack. */
+
+static a_translation_unit_stack_entry_ptr
+		avail_translation_unit_stack_entries;
+			/* List of translation unit stack entries that have
+			   been freed and are available for reuse. */
+
 static a_variable_registration_ptr
 		trans_unit_variables;
 			/* Pointer to a list of variable registrations for
@@ -86,6 +117,39 @@ static a_boolean
 			   are not permitted after this point. */
 #endif /* CHECKING */
 
+#if DEBUG
+static unsigned long
+		num_translation_unit_stack_entries_allocated,
+		num_translation_units_allocated,
+		num_variable_registrations_allocated;
+#endif /* DEBUG */
+
+
+static
+a_translation_unit_stack_entry_ptr alloc_translation_unit_stack_entry(void)
+/*
+Allocate a translation unit stack entry, initialize its fields, and return
+a pointer to the entry created.
+*/
+{
+  a_translation_unit_stack_entry_ptr	tusep;
+
+  if (avail_translation_unit_stack_entries != NULL) {
+    /* Reuse an existing entry. */
+    tusep = avail_translation_unit_stack_entries;
+    avail_translation_unit_stack_entries = tusep->next;
+  } else {
+    /* Allocate a new entry. */
+    tusep = alloc_general_of_type(a_translation_unit_stack_entry);
+#if DEBUG
+    num_translation_unit_stack_entries_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  tusep->next = NULL;
+  tusep->translation_unit = NULL;  
+  return tusep;
+}  /* alloc_translation_unit_stack_entry */
+
 
 static a_variable_registration_ptr alloc_variable_registration(void)
 /*
@@ -96,6 +160,9 @@ a pointer to the entry created.
   a_variable_registration_ptr	vrp;
 
   vrp = alloc_general_of_type(a_variable_registration);
+#if DEBUG
+  num_variable_registrations_allocated++;
+#endif /* DEBUG */
   vrp->next = NULL;
   vrp->ptr = NULL;
   vrp->size = 0;
@@ -222,6 +289,47 @@ Make the translation unit specified by "tup" the current translation unit.
 }  /* switch_translation_unit */
 
 
+void push_translation_unit_stack(a_translation_unit_ptr	tup)
+/*
+Add an entry for "tup" to the top of the translation unit stack, and make
+it the current translation unit.
+*/
+{
+  a_translation_unit_stack_entry_ptr	tusep;
+
+  tusep = alloc_translation_unit_stack_entry();
+  tusep->next = curr_translation_unit_stack_entry;
+  tusep->translation_unit = tup;
+  if (curr_translation_unit_stack_entry != NULL) {
+    /* Make the new translation unit the currently active one.  This should
+       not be done when pushing the primary translation unit. */
+    switch_translation_unit(tup);
+  }  /* if */
+  curr_translation_unit_stack_entry = tusep;
+}  /* push_translation_unit_stack */
+
+
+void pop_translation_unit_stack(void)
+/*
+Remove the top entry from the translation unit stack and make the
+new top entry the current translation unit.
+*/
+{
+  a_translation_unit_stack_entry_ptr	tusep;
+
+  tusep = curr_translation_unit_stack_entry;
+  /* Unlink this entry from the stack. */
+  curr_translation_unit_stack_entry = tusep->next;
+  /* Add the old entry to the list of available stack entries. */
+  tusep->next = avail_translation_unit_stack_entries;
+  avail_translation_unit_stack_entries = tusep;
+  check_assertion(curr_translation_unit_stack_entry != NULL);
+  /* Make the translation unit specified by the top of the stack into the
+     active translation unit. */
+  switch_translation_unit(curr_translation_unit_stack_entry->translation_unit);
+}  /* push_translation_unit_stack */
+
+
 static a_translation_unit_ptr alloc_translation_unit(void)
 /*
 Allocate a translation unit entry, initialize its fields, and return
@@ -234,6 +342,9 @@ a pointer to the entry created.
   any_translation_units_allocated = TRUE;
 #endif /* CHECKING */
   tup = alloc_fe_of_type(a_translation_unit);
+#if DEBUG
+  num_translation_units_allocated++;
+#endif /* DEBUG */
   tup->next = NULL;
   /* Allocate the variable block for this translation unit. */
   tup->variables_block = alloc_fe(trans_unit_var_block_size);
@@ -291,6 +402,10 @@ treated as separate translation units of a single compilation.
     /* The primary translation unit must be first. */
     check_assertion(is_primary_translation_unit);
   }  /* if */
+  if (is_primary) {
+    /* Push this translation unit onto the translation unit stack. */
+    push_translation_unit_stack(trans_unit);
+  }  /* if */
   if (translation_units_tail != NULL) {
     translation_units_tail->next = trans_unit;
   }  /* if */
@@ -313,10 +428,40 @@ treated as separate translation units of a single compilation.
   }  /* if */
   translation_unit_wrapup();
 #if COMPILE_MULTIPLE_TRANSLATION_UNITS
-  /* Process any secondary translation units specified on the command line. */
-  proc_secondary_translation_units();
+  if (!is_primary) {
+    /* Process any secondary translation units specified on the
+       command line. */
+    proc_secondary_translation_units();
+  }  /* if */
 #endif /* COMPILE_MULTIPLE_TRANSLATION_UNITS */
 }  /* process_translation_unit */
+
+#if DEBUG
+
+unsigned long db_show_trans_unit_space_used(unsigned long grand_total)
+/*
+Show space used by the trans_unit routines.  This is called by
+the symbol table space used routine.  The space used by the trans_unit
+routines is reported as part of the symbol table memory used.
+*/
+{
+  unsigned long	num;
+  unsigned long	size;
+  unsigned long	total;
+
+  db_space_used_general("translation units",
+                        num_translation_units_allocated,
+                        a_translation_unit);
+  db_space_used_general("trans. unit stack entry",
+                        num_translation_unit_stack_entries_allocated,
+                        a_translation_unit_stack_entry);
+  db_space_used_general("variable registration",
+                        num_variable_registrations_allocated,
+                        a_variable_registration);
+  return grand_total;
+}  /* db_show_trans_unit_space_used */
+
+#endif /* DEBUG */
 
 
 void trans_unit_one_time_init(void)
@@ -351,6 +496,7 @@ translation unit processing.
   translation_units = NULL;
   translation_units_tail = NULL;
   translation_unit_needed_only_for_exported_templates = FALSE;
+  curr_translation_unit_stack_entry = NULL;
 }  /* trans_unit_init */
 
 
@@ -366,6 +512,12 @@ of the front end are called.
   trans_unit_var_block_size = 0;
   is_primary_translation_unit = FALSE;
   trans_unit_file_name = NULL;
+  avail_translation_unit_stack_entries = NULL;
+#if DEBUG
+  num_translation_unit_stack_entries_allocated = 0;
+  num_translation_units_allocated = 0;
+  num_variable_registrations_allocated = 0;
+#endif /* DEBUG */
 #if CHECKING
   any_translation_units_allocated = FALSE;
 #endif /* CHECKING */

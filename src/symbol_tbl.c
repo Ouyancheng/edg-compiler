@@ -10062,6 +10062,7 @@ for space tracking purposes.
   grand_total = db_show_class_fixups_used(grand_total);
   grand_total = db_show_def_arg_expr_fixups_used(grand_total);
   grand_total = db_show_based_type_fixups_used(grand_total);
+  grand_total = db_show_trans_unit_space_used(grand_total);
 
   db_space_used_total();
 

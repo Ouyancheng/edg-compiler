@@ -111,6 +111,10 @@ EXTERN a_translation_unit_ptr
 			   entry on the list is the primary translation
 			   unit. */
 
+extern void push_translation_unit_stack(a_translation_unit_ptr	tup);
+
+extern void pop_translation_unit_stack(void);
+
 extern void f_register_trans_unit_variable(a_void_ptr	var,
 					   sizeof_t	size);
 
@@ -131,6 +135,9 @@ switching between translation units.
 #define register_trans_unit_array(var)				\
   (f_register_trans_unit_variable((a_void_ptr)var, sizeof(var)))
 
+#if DEBUG
+unsigned long db_show_trans_unit_space_used(unsigned long grand_total);
+#endif /* DEBUG */
 
 #endif /* ifndef TRANS_UNIT_H */
 

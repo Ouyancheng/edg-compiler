@@ -2198,6 +2198,11 @@ might not be able to if the template itself has not yet been defined.
          class template. */
       cssp->instantiation_in_progress = FALSE;
       --(tssp->pending_instantiations);
+      /* Call a routine that manages the correspondence of entities between
+         translation units to notify it that the class type is complete.
+         This causes the correspondence of the class members to be
+         established. */
+      establish_trans_unit_correspondences_for_class(class_type);
     }  /* if */
   }  /* if */
   db_exit();
@@ -14653,8 +14658,21 @@ caller.
   template_sym = find_corresponding_symbol_in_trans_unit(tip->template_sym,
                                                          templ_tup);
   if (template_sym->is_class_member) {
-    unexpected_condition_str2("find_corresponding_instance:",
-                              "members not supported yet");
+    /* If the parent is a template class instance, find the corresponding
+       parent class in the translation unit containing the template. */
+    a_type_ptr		parent_class;
+    check_assertion(tip->instance_sym->is_class_member);
+    parent_class = tip->instance_sym->parent.class_type;
+    if (parent_class->variant.class_struct_union.is_template_class) {
+      /* The parent class is a template instance. */
+      a_symbol_ptr	old_parent_sym;
+      a_symbol_ptr	new_parent_sym;
+      old_parent_sym = (a_symbol_ptr)parent_class->source_corresp.assoc_info;
+      new_parent_sym = find_corresponding_class_instance_in_trans_unit(
+                                                    old_parent_sym, templ_tup);
+      complete_class_type_is_needed(new_parent_sym->
+                                              variant.class_struct_union.type);
+    }  /* if */
   }  /* if */
   if (template_sym->kind == (a_symbol_kind)sk_function_template) {
     /* Find (and create if necessary) the desired instance of the template
@@ -14673,6 +14691,21 @@ caller.
                                     rout_ptr->expl_template_arg_list_used,
                                     &null_source_position);
     result_tip = instance_sym->variant.routine.instance_ptr;
+  } else {
+    /* A member function of a class template or a static data member of a class
+       template. */
+    a_symbol_ptr	instance_sym;
+    /* Find the member symbol in the translation unit containing the template
+       definition.  We make sure that the parent class has been instantiated
+       there in the code above. */
+    instance_sym = find_corresponding_symbol_in_trans_unit(tip->instance_sym,
+                                                           templ_tup);
+    if (instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+      result_tip = instance_sym->variant.static_data_member.instance_ptr;
+    } else {
+      check_assertion(instance_sym->kind == (a_symbol_kind)sk_member_function);
+      result_tip = instance_sym->variant.routine.instance_ptr;
+    }  /* if */
   }  /* if */
   return result_tip;
 }  /* find_corresponding_instance */
@@ -14701,6 +14734,9 @@ data member specified by tip.
     /* If the template was defined in an exported template file, make sure
        that file is loaded as a translation unit. */
     ensure_exported_template_file_is_loaded(tip);
+    /* Push the translation unit containing the template definition onto the
+       stack.  This will make it the current translation unit. */
+    push_translation_unit_stack(tip->exported_template_file->translation_unit);
     /* Find the corresponding template instance in the translation unit
        containing the template definition. */
     tip = find_corresponding_instance(tip);
@@ -14720,6 +14756,8 @@ data member specified by tip.
       num_total_pending_instantiations--;
     }  /* if */
   }  /* if */
+  /* Restore the previously active translation unit. */
+  pop_translation_unit_stack();
   error_position = saved_error_position;
   pos_curr_token = saved_pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL

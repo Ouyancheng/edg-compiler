@@ -4495,7 +4495,8 @@ End a name scope by popping an entry off the scope stack.
   old_memory_region_number = ssep->il_memory_region;
   /* Don't finish the file scope at this point.  That is deferred until
      the compilation unit (not translation unit) is completed. */
-  old_region_still_needed = ssep->kind == (a_scope_kind)sck_file;
+  old_region_still_needed = old_memory_region_number ==
+                                                      file_scope_region_number;
   if (!old_region_still_needed) {
     /* If the old memory region number does not appear anywhere in the
        remaining stack, the region is no longer needed by the front end. */
