@@ -27,9 +27,11 @@ and Cfront modes set it to TRUE.)
 
 6/18/04  Predefined __cplusplus macro can be redefined
 
-The __cplusplus macro can now be redefined.  This is desirable in
-environments where header files expect a different value for the macro
-than the one supplied by the front end.
+The __cplusplus macro can now be redefined (except in Microsoft mode).  This
+is desirable in environments where header files expect a different value for
+the macro than the one supplied by the front end.  In Microsoft mode the
+behavior is unchanged; an attempted redefinition results in a warning, but
+the macro value is not changed.
 
 6/18/04  VLA-related flag not set in parameter variable entries
 

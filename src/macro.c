@@ -5290,13 +5290,15 @@ command line -D options.
 #endif /* UPC_EXTENSIONS_ALLOWED */
   }  /* if */
   /* __cplusplus is defined as 199711L if we are compiling C++, left undefined
-     otherwise.  __cplusplus can be redefined as this is needed in some
-     environments.  For compatibility, c_plusplus is also defined. */
+     otherwise.  In most modes, __cplusplus can be redefined as this is
+     needed in some environments.  In Microsoft mode it can't be redefined
+     because the Microsoft compiler actually ignores attempts to redefine
+     it.  For compatibility, c_plusplus is also defined. */
   if (C_dialect == C_dialect_cplusplus) {
     (void)enter_predef_macro((char *)((microsoft_mode || gpp_mode ||
                                        any_cfront_mode()) ? "1" : "199711L"),
 			     "__cplusplus",
-			     /*cannot_be_redefined=*/FALSE,
+			     /*cannot_be_redefined=*/microsoft_mode,
                              /*ref_suppresses_pch_file=*/FALSE);
     if (!strict_ansi_mode && !microsoft_mode) {
       (void)enter_predef_macro("1", "c_plusplus",
