@@ -8376,6 +8376,29 @@ check_label_decl_seq:
 }  /* record_symbol_reference */
 
 
+void record_access_adjustment(an_access_adjustment_ptr  aap,
+                              a_symbol_ptr              sym,
+                              a_source_position         *pos)
+/*
+aap is points to an access-adjustment entry created to represent the an
+access adjustment declaration of the inherited member sym.  If appropriate,
+update the cross reference and source sequence output.
+*/
+{
+  /* Update the cross reference file if it exists. */
+  if (f_xref_info != NULL) {
+    /* If writing cross-reference information, write an entry for this
+       declaration. */
+    write_xref_entry(SRK_DECLARATION, sym, pos);
+  }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  f_update_source_sequence_list((char *)aap,
+                                (an_il_entry_kind)iek_access_adjustment,
+                                pos, (a_source_sequence_entry_ptr)NULL);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+}  /* record_access_adjustment */
+
+
 an_extern_type_fixup_ptr alloc_etype_fixup(void)
 /*
 Allocate an_extern_type_fixup entry and return a pointer to it.  A list

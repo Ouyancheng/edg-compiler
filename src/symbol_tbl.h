@@ -2263,6 +2263,10 @@ extern void record_symbol_reference(a_symbol_reference_kind  kind,
   record_symbol_reference(SRK_REFERENCE, (sym), (err_pos),              \
                           /*update_il_entry=*/TRUE)
 
+extern void record_access_adjustment(an_access_adjustment_ptr  aap,
+                                     a_symbol_ptr              sym,
+                                     a_source_position         *pos);
+
 extern void mark_variable_value_set(a_symbol_ptr  sym);
 
 extern void set_source_corresp(a_source_correspondence *sc,

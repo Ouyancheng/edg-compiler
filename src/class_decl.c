@@ -5552,7 +5552,7 @@ and "class_type" indicates the class in which the declaration occurs.
       aap->next = ctsp->access_adjustments;
       ctsp->access_adjustments = aap;
       /* Update cross-reference and source sequence info, if required. */
-      mark_declared(sym, &locator_for_curr_id.source_position);
+      record_access_adjustment(aap, sym, &locator_for_curr_id.source_position);
     }  /* for */
   }  /* if */
 
