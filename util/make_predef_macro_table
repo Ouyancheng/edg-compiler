@@ -8,7 +8,10 @@
 #
 # This script is used to create a file that is used by the EDG C++ front end
 # to specify the macros that should be predefined.  The script should be run
-# from the $EDG_BASE/lib directory.
+# from the $EDG_BASE/lib directory.  The script invokes the gcc and g++
+# compilers and captures the macros that are predefined.  The list of
+# macro definitions produced by each of the compilers is translated into
+# the format described below.
 #
 # The format of the entries in the file is:
 # 
