@@ -1257,22 +1257,12 @@ handle_non_autonomous_tag:
 #if NEEDED_FLAG_WALK
         /* Do not walk the types and variables lists to set the "needed"
            flag; a variable or type is not needed simply because it's
-           declared.  However, in a function mark everything as needed (we
-           won't be removing anything, and it has to be possible for a back
-           end that ignores the "needed" flag to generate code for a
-           function, including unneeded variables). */
-        if (kind == (a_scope_kind)sck_function ||
-            kind == (a_scope_kind)sck_block) {
-          walk_list(ptr->types, a_type_ptr, iek_type);
-          walk_list(ptr->variables, a_variable_ptr, iek_variable);
-          walk_list(ptr->nonstatic_variables, a_variable_ptr, iek_variable);
-        }  /* if */
+           declared. */
 #else /* !NEEDED_FLAG_WALK */
         if (kind != (a_scope_kind)sck_function &&
             kind != (a_scope_kind)sck_block) {
           walk_needed_on_list(ptr->types, a_type_ptr, iek_type);
           walk_needed_on_list(ptr->variables, a_variable_ptr, iek_variable);
-          /* ptr->nonstatic_variables is NULL . */
         } else {
           /* The local "types" and static "variables" at function scope or
              block scope within a function are in the file scope memory region.
@@ -1281,15 +1271,15 @@ handle_non_autonomous_tag:
              would have been created. */
           remap_ptr(ptr->types, a_type_ptr, iek_type);
           remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
-          walk_list(ptr->nonstatic_variables, a_variable_ptr, iek_variable);
         }  /* if */
 #endif /* NEEDED_FLAG_WALK */
 #else /* !DO_SUBTREE_WALK */
         /* Not walking subtrees.  Just remap the pointers. */
         remap_ptr(ptr->types, a_type_ptr, iek_type);
         remap_ptr(ptr->variables, a_variable_ptr, iek_variable);
-        remap_ptr(ptr->nonstatic_variables, a_variable_ptr, iek_variable);
 #endif /* DO_SUBTREE_WALK */
+        walk_list_not_needed(ptr->nonstatic_variables, a_variable_ptr,
+                             iek_variable);
 #else /* ifndef CFE */
         /* Not the C/C++ front end. */
         walk_list(ptr->types, a_type_ptr, iek_type);
