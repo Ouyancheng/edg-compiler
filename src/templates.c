@@ -10571,7 +10571,7 @@ that follows.
       id_pos = locator.source_position;
       sym = locator.specific_symbol;
       if (sym == NULL) {
-        sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
+        sym = normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
       }  /* if */
     }  /* if */
     check_for_declaration_errors(dso_flags, type, &locator, &decl_start_pos);
@@ -13060,7 +13060,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
      been looked up. */
   sym = locator.specific_symbol;
   if (sym == NULL) {
-    sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
+    sym = normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
   }  /* if */
   check_for_declaration_errors(dso_flags, type, &locator, start_pos);
   if (sym == NULL) {

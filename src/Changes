@@ -1,5 +1,19 @@
 Version 2.39
 
+2/26/98   Spurious error on explicit specializations and explicit
+          specializations in the presence of using-directives 
+
+A spurious error would result when an explicit instantiation or
+explicit specialization references an overload set that includes
+names made visible by a using-directive.  This has been fixed.
+
+  namespace N {
+    template <class T> void f(T){}
+  }
+  template <class T> void f(T){}
+  using namespace N;
+  template void f(int);
+
 2/26/98   One instantiation per object mode: virtual function tables and
           typeinfo variables
 
