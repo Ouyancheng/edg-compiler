@@ -1265,6 +1265,8 @@ remove it later, as this routine takes care of that.
   an_arg_operand_ptr  arg_operand_list;
   an_expression_kind  expression_kind = (an_expression_kind)ek_normal;
   an_expr_stack_entry expr_stack_entry;
+  an_arg_match_summary_ptr
+                      arg_match_list;
 
   db_enter(4, "scan_ctor_arguments");
   *conversion_routine = NULL;
@@ -1295,18 +1297,27 @@ remove it later, as this routine takes care of that.
     /* The constructors are overloaded.  Select the proper one. */
     /* Note that a special case allows passing have_selector == TRUE and
        NULL for the selector operand when dealing with constructors. */
-    constructor_sym = select_and_prepare_to_call_overloaded_function(
-                                                 constructor_sym,
+    constructor_sym = select_overloaded_function(constructor_sym,
                                                  /*have_selector=*/TRUE,
                                                  (an_operand *)NULL,
                                                  arg_operand_list,
-                                                 /*is_qualified_name=*/FALSE,
-                                                 expression_kind,
                                                  ec_no_matching_constructor,
                                                  ec_ambiguous_constructor,
                                                  &start_position,
-                                                 (an_operand *)NULL,
-                                                 arg_expr_list);
+                                                 &arg_match_list);
+    /* Build an expression-form argument list.  Convert the arguments on
+       the argument list to the right types.  The call is done even
+       when constructor_sym is NULL because it also frees arg_operand_list
+       and arg_match_list. */
+    /* Again, note that a special case allows passing have_selector == TRUE and
+       NULL for the selector operand when dealing with constructors. */
+    adjust_overloaded_function_call_arguments(constructor_sym,
+                                              /*have_selector=*/TRUE,
+                                              (an_operand *)NULL,
+                                              arg_operand_list,
+                                              arg_match_list,
+                                              expression_kind,
+                                              arg_expr_list);
   }  /* if */
   if (constructor_sym != NULL) {
     /* Check that the constructor is accessible and mark it referenced. */

@@ -438,6 +438,25 @@ extern a_symbol_ptr select_overloaded_function(
                            a_source_position        *call_position,
                            an_arg_match_summary_ptr *arg_match_list);
 
+extern void make_resolved_overloaded_function_operand(
+                                 a_symbol_ptr       function_symbol,
+                                 a_symbol_ptr       overloaded_function_symbol,
+                                 a_boolean          have_selector,
+                                 an_operand         *bound_function_selector,
+                                 a_boolean          is_qualified_name,
+                                 an_expression_kind expression_kind,
+                                 a_source_position  *call_position,
+                                 an_operand         *function_operand);
+
+extern void adjust_overloaded_function_call_arguments(
+                             a_symbol_ptr             function_symbol,
+                             a_boolean                have_selector,
+                             an_operand               *bound_function_selector,
+                             an_arg_operand_ptr       arg_operand_list,
+                             an_arg_match_summary_ptr arg_match_list,
+                             an_expression_kind       expression_kind,
+                             an_expr_node_ptr         *arg_expr_list);
+
 extern a_symbol_ptr select_and_prepare_to_call_overloaded_function(
                            a_symbol_ptr             overloaded_function_symbol,
                            a_boolean                have_selector,
