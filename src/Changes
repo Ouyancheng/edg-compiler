@@ -1,5 +1,12 @@
 Version 2.19
 
+8/2/93   IL_CHANGE: Added stmk_for statement
+
+A new statement kind, stmk_for, and an associated data structure,
+a_for_loop, have been added to the IL to represent for statements.  The
+for-init statement and increment expression are no longer put out
+independently -- they are part of the new statement.
+
 7/31/93  IL CHANGE: Widening of bit field extractions now more explicit
 
 On the eok_value_bit_field and eok_extract_bit_field operators, the
