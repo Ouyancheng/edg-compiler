@@ -3316,17 +3316,16 @@ otherwise, set *ext_sym to NULL.
       if (storage_class == (a_storage_class)sc_unspecified) {
         variable_ptr->storage_class = (a_storage_class)sc_unspecified;
       }  /* if */
-      /* If the IL entry was previously referenced, and this is a definition
-         of the variable, the symbol should be considered to have been
-         referenced as well. */
-      if (is_variable_definition &&
+      /* If the IL entry was previously referenced, the symbol should be
+         marked as referenced too.  We may have a case like this:
+           void f() { extern int i; i = 0; }
+           int i;
+         The IL entity associated with i is referenced in the function scope
+         but the symbol at file scope is created later -- it should have its
+         "referenced" flag set to prevent unwanted "defined but not referenced"
+         warnings from being put out. */
+      if (storage_class != (a_storage_class)sc_extern &&
           variable_ptr->source_corresp.referenced) {
-        /* We may have a case like this:
-             void f() { extern int i; i = 0; }
-             int i;
-           The IL entity associated with i is referenced in the function
-           scope and is subsequently defined in the file scope.  Retroactively
-           mark its symbol as referenced, in case it's new. */
         sym->referenced = TRUE;
       }  /* if */
     }  /* if */
