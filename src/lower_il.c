@@ -909,24 +909,23 @@ field_type gives the type for the field.  field_offset gives the byte
 offset for the field.
 */
 {
-  sizeof_t name_length, prefix_length, alloc_length;
-  char     *name_ptr;
+  sizeof_t prefix_length, alloc_length;
+  char     *temp_name, *name_ptr;
 
   /* Build the name for the field.  This is done by combining the
      field_prefix and the (possibly mangled) base class name. */
   prefix_length = strlen(field_prefix);
-  /* Determine how long the base class name is. */
+  /* Develop the (possibly mangled) name. */
   /* Note: it *is* necessary to include nested class information on these
      names. */
-  name_length = mangled_class_name(base_class_type, (char *)NULL);
+  temp_name = mangled_class_name(base_class_type);
   /* Allocate space for the whole name. */
-  alloc_length = prefix_length + name_length + 1;
+  alloc_length = prefix_length + strlen(temp_name) + 1;
   name_ptr = alloc_lowered_name_string(alloc_length);
   /* Copy in the prefix. */
-  (void)memcpy(name_ptr, field_prefix, size_t_arg(prefix_length));
+  (void)strcpy(name_ptr, field_prefix);
   /* Store the base class name. */
-  (void)mangled_class_name(base_class_type, name_ptr+prefix_length);
-  name_ptr[prefix_length+name_length] = '\0';
+  (void)strcpy(name_ptr+prefix_length, temp_name);
   /* Create the field. */
   add_field(name_ptr, field_type, field_offset, struct_type);
 }  /* add_base_class_dummy_field */
@@ -3298,8 +3297,7 @@ definition.
 {
   a_type_ptr     array_type;
   a_variable_ptr vtbl_var;
-  char           *mangled_name;
-  sizeof_t       mangled_name_length, alloc_length;
+  char           *temp_name;
 
 #if ABI_CHANGES_FOR_RTTI
   a_boolean      type_info_case = FALSE;
@@ -3324,18 +3322,11 @@ definition.
   array_type->variant.array.element_type = make_mptr_type();
   set_type_size(array_type);
   /* Make the variable. */
-  /* Determine the length of the mangled name, which looks like
+  /* Develop the mangled name, which looks like
        __vtbl__<mangled-base-class-name>__<mangled-class-name> or
        __vtbl__<mangled-class-name>
   */
-  mangled_name_length = mangled_vtbl_name(class_type, bcp, ctor_bcp,
-                                          (char *)NULL);
-  /* Allocate space for the mangled name, including the final null. */
-  alloc_length = mangled_name_length + 1;
-  mangled_name = alloc_lowered_name_string(alloc_length);
-  /* Build the mangled name. */
-  (void)mangled_vtbl_name(class_type, bcp, ctor_bcp, mangled_name);
-  mangled_name[mangled_name_length] = '\0';
+  temp_name = mangled_vtbl_name(class_type, bcp, ctor_bcp);
   /* Note that the variable is made with extern storage class; it might
      be changed to internal linkage later, but the name linkage in the
      class at this time is not necessarily its final value, so we can't
@@ -3343,7 +3334,7 @@ definition.
      cases where the definition is not put out, and if the definition
      is put out (and it always is for internally-linked classes) the
      storage class is adjusted at that point. */
-  vtbl_var = make_lowered_variable(mangled_name, /*already_il_name=*/TRUE,
+  vtbl_var = make_lowered_variable(temp_name, /*already_il_name=*/FALSE,
                                    array_type, (a_storage_class)sc_extern);
   /* make_lowered_variable creates a variable with referenced set TRUE, but the
      variable is not necessarily going to be referenced, so clear the
@@ -4821,8 +4812,8 @@ this routine to do a relatively simple copy of the all the fields.
   a_field_ptr                 old_field, last_field;
   a_type_ptr                  subobject_type;
   a_class_type_supplement_ptr ctsp, subobject_ctsp;
-  sizeof_t                    name_length, alloc_length;
-  char                        *name_ptr, *new_name_ptr;
+  sizeof_t                    alloc_length;
+  char                        *temp_name, *name_ptr, *new_name_ptr;
   a_scope_depth               scope_depth;
 
   ctsp = class_type->variant.class_struct_union.extra_info;
@@ -4843,14 +4834,11 @@ this routine to do a relatively simple copy of the all the fields.
     name_ptr = class_type->source_corresp.name;
     if (name_ptr != NULL) {
 #define SUB_PREFIX "__SO__"
-      name_length = mangled_class_name(class_type, (char *)NULL) +
-                    sizeof(SUB_PREFIX) - 1;
-      alloc_length = name_length + 1;
+      temp_name = mangled_class_name(class_type);
+      alloc_length = sizeof(SUB_PREFIX) + strlen(temp_name);
       new_name_ptr = alloc_lowered_name_string(alloc_length);
-      (void)memcpy(new_name_ptr, SUB_PREFIX, size_t_arg(sizeof(SUB_PREFIX)-1));
-      (void)mangled_class_name(class_type,
-                               new_name_ptr + (sizeof(SUB_PREFIX)-1));
-      new_name_ptr[name_length] = '\0';
+      (void)strcpy(new_name_ptr, SUB_PREFIX);
+      (void)strcpy(new_name_ptr+sizeof(SUB_PREFIX)-1, temp_name);
       subobject_type->source_corresp.name = new_name_ptr;
 #undef SUB_PREFIX
     }  /* if */

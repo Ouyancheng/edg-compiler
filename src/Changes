@@ -1,5 +1,13 @@
 Version 2.41
 
+1/29/99   lower_name.c reworked
+
+The name-mangling code in lower_name.c has been reworked to make it
+simpler.  The mangled name is built up in a temporary text buffer and
+then copied elsewhere.  This makes it possible to do processing
+that looks at the complete mangled name at the end of the process
+and does some transformation.
+
 1/28/99   Missing access error on inherited name used in qualifier
 
 The front end failed to issue an error when an inaccessible inherited

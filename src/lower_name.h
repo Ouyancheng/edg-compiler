@@ -32,19 +32,16 @@ extern char *get_mangled_function_name(a_routine_ptr routine);
 extern char *get_mangled_static_data_member_name(a_variable_ptr variable);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
-extern sizeof_t mangled_class_name(a_type_ptr type,
-                                   char       *store_at);
+extern char *mangled_vtbl_name(a_type_ptr       class_type,
+                               a_base_class_ptr bcp,
+                               a_base_class_ptr ctor_bcp);
 
-extern sizeof_t mangled_vtbl_name(a_type_ptr       class_type,
-                                  a_base_class_ptr bcp,
-                                  a_base_class_ptr ctor_bcp,
-                                  char             *store_at);
+extern char *mangled_class_name(a_type_ptr type);
 
-extern sizeof_t mangled_typeinfo_name(a_type_ptr type,
-                                      char       *store_at);
+extern char *mangled_typeinfo_name(a_type_ptr type);
 
-extern sizeof_t mangled_id_object_name(a_type_ptr type,
-                                       char       *store_at);
+extern char *mangled_id_object_name(a_type_ptr type);
+
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
 extern void mangle_promoted_entity_name(a_source_correspondence *scp,
                                         a_routine_ptr           routine,

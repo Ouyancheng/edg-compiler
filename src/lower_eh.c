@@ -383,24 +383,17 @@ all denote the same type.
 */
 {
   a_variable_ptr  id_object_var;
-  char            *mangled_name;
-  sizeof_t        mangled_name_length, alloc_length;
+  char            *temp_name;
 
-  /* Determine the length of the mangled name. */
-  mangled_name_length = mangled_id_object_name(type, (char *)NULL);
-  /* Allocate space for the mangled name, including the final null. */
-  alloc_length = mangled_name_length + 1;
-  mangled_name = alloc_lowered_name_string(alloc_length);
-  /* Build the mangled name. */
-  (void)mangled_id_object_name(type, mangled_name);
-  mangled_name[mangled_name_length] = '\0';
+  /* Develop the mangled name. */
+  temp_name = mangled_id_object_name(type);
   /* Find and reuse an existing id object for (a different copy of) the
      same type if there is one. */
-  id_object_var = find_existing_id_object_var(mangled_name);
+  id_object_var = find_existing_id_object_var(temp_name);
   if (id_object_var == NULL) {
     /* Make the variable. */
-    id_object_var = make_lowered_variable(mangled_name,
-                                          /*already_il_name=*/TRUE,
+    id_object_var = make_lowered_variable(temp_name,
+                                          /*already_il_name=*/FALSE,
                                         integer_type((an_integer_kind)ik_char),
                                           (a_storage_class)sc_unspecified);
     id_object_var->source_corresp.name_has_been_mangled = TRUE;
@@ -1027,17 +1020,16 @@ indicated type, and return a pointer to the string.  The string is
 allocated in the file-scope IL memory region.
 */
 {
-  char     *mangled_name;
-  sizeof_t mangled_name_length, alloc_length;
+  char     *temp_name, *mangled_name;
+  sizeof_t alloc_length;
 
-  /* Determine the length of the mangled name. */
-  mangled_name_length = mangled_typeinfo_name(type, (char *)NULL);
+  /* Develop the mangled name. */
+  temp_name = mangled_typeinfo_name(type);
   /* Allocate space for the mangled name, including the final null. */
-  alloc_length = mangled_name_length + 1;
+  alloc_length = strlen(temp_name) + 1;
   mangled_name = alloc_lowered_name_string(alloc_length);
-  /* Build the mangled name. */
-  (void)mangled_typeinfo_name(type, mangled_name);
-  mangled_name[mangled_name_length] = '\0';
+  /* Copy the name. */
+  (void)strcpy(mangled_name, temp_name);
   return mangled_name;
 }  /* alloc_mangled_typeinfo_name */
 

@@ -30,102 +30,158 @@ lower_name.c -- Do name mangling for IL lowering.
 /* Only include this code if it is needed: */
 #if NEED_NAME_MANGLING
 
+/*
+Control block for mangling.
+*/
+typedef struct a_mangling_control_block *a_mangling_control_block_ptr;
+typedef struct a_mangling_control_block {
+  sizeof_t	length;
+			/* Current length of the mangled name. */
+  a_boolean	suppress_output;
+			/* If TRUE, do not output characters to
+			   the mangled name. */
+  sizeof_t	slength;
+			/* Number of characters output while the output
+			   was suppressed. */
+} a_mangling_control_block;
 
-static sizeof_t mangled_encoding_for_type(a_type_ptr type,
-                                          char       *store_at);
-static sizeof_t mangled_function_name(a_routine_ptr routine,
-                                      a_boolean     suppress_param_encoding,
-                                      char          *store_at);
-static sizeof_t mangled_member_variable_name(a_variable_ptr variable,
-                                             char           *store_at);
+
+static void mangled_encoding_for_type(a_type_ptr               type,
+                                      a_mangling_control_block *mctl);
+static void mangled_function_name(
+                              a_routine_ptr            routine,
+                              a_boolean                suppress_param_encoding,
+                              a_mangling_control_block *mctl);
+static void mangled_member_variable_name(a_variable_ptr           variable,
+                                         a_mangling_control_block *mctl);
 static char *mangled_expr_operator_name(an_expr_operator_kind op);
-static sizeof_t mangled_encoding_for_expression(an_expr_node_ptr expr,
-                                                char             *store_at);
-static sizeof_t mangled_member_name(a_source_correspondence *scp,
-                                    a_boolean               is_specialization,
-                                    char                    *store_at);
-static sizeof_t mangled_encoding_for_constant(a_constant_ptr con,
-                                              a_boolean      old_form,
-                                              char           *store_at);
+static void mangled_encoding_for_expression(an_expr_node_ptr         expr,
+                                            a_mangling_control_block *mctl);
+static void mangled_member_name(a_source_correspondence  *scp,
+                                a_boolean                is_specialization,
+                                a_mangling_control_block *mctl);
+static void mangled_encoding_for_constant(a_constant_ptr           con,
+                                          a_boolean                old_form,
+                                          a_mangling_control_block *mctl);
 
 
-static sizeof_t digits_to_represent(unsigned long value)
+static void clear_mangling_control_block(a_mangling_control_block_ptr mctl)
 /*
-Return the number of digits needed for the decimal representation of value,
-e.g., 1297 --> 4.
+Set the fields of the indicated mangling control block to default values.
 */
 {
-  sizeof_t ndigits = 1;
-
-  while (value > 9) {
-    value /= 10;
-    ndigits++;
-  }  /* while */
-  return ndigits;
-}  /* digits_to_represent */
+  mctl->length = 0;
+  mctl->suppress_output = FALSE;
+  mctl->slength = 0;
+}  /* clear_mangling_control_block */
 
 
-static sizeof_t digits_to_represent_with_underscore(unsigned long value,
-                                                    a_boolean     old_form)
+static void start_mangling(a_mangling_control_block_ptr mctl)
 /*
-Like digits_to_represent, returns the number of digits needed to represent
-the value.  However, this is used for cases where the distinction between
-single-digit and multi-digit cases needs to be indicated.  With old_form
-TRUE, the representation will be simply "d" for single-digit cases, and
-"dd_" for multi-digit cases (which has some ambiguity problems in contexts
-where an underscore could be next).  With old_form FALSE, the representation
-is "_dd_" regardless of the length.
+Do initialization for mangling one name.  This includes clearing
+temp_text_buffer and mctl.
 */
 {
-  sizeof_t ndigits = digits_to_represent(value);
+  clear_mangling_control_block(mctl);
+  pos_in_temp_text_buffer = 0;
+}  /* start_mangling */
 
-  if (old_form) {
-    /* "d" or "dd_". */
-    if (ndigits > 1) ndigits++;
+
+static void set_control_block_for_supression(a_mangling_control_block_ptr sctl,
+                                             a_mangling_control_block_ptr mctl)
+/*
+Copy the mangling control block mctl to sctl, then set sctl to indicate
+that output is suppressed.  The caller will then use sctl to do a
+provisional mangling, e.g., to determine the length of an encoding.
+*/
+{
+  *sctl = *mctl;
+  sctl->suppress_output = TRUE;
+  sctl->slength = 0;
+}  /* set_control_block_for_supression */
+
+
+static void add_to_mangled_name(char                         ch,
+                                a_mangling_control_block_ptr mctl)
+/*
+Add the indicated character to the mangled name.
+*/
+{
+  /* Count characters. */
+  mctl->length++;
+  if (mctl->suppress_output) {
+    /* Output is suppressed.  Count suppressed characters. */
+    mctl->slength++;
   } else {
-    /* "_dd_". */
-    ndigits += 2;
+    put_ch_to_temp_text_buffer(ch);
+    check_assertion(mctl->length == pos_in_temp_text_buffer);
   }  /* if */
-  return ndigits;
-}  /* digits_to_represent_with_underscore */
+}  /* add_to_mangled_name */
 
 
-static sizeof_t mangled_encoding_for_type_qualifiers(
-                                               a_type_qualifier_set qualifiers,
-                                               char                 *store_at)
+static void add_str_to_mangled_name(char                         *str,
+                                    a_mangling_control_block_ptr mctl)
 /*
-Determine the mangled encoding for the type qualifiers (if any) in the
-set "qualifiers".  Place the encoded form at *store_at if store_at != NULL,
-and (always) return the length of the encoding.
+Add the indicated null-terminated string to the mangled name.
 */
 {
-  sizeof_t mangled_name_length = 0;
+  sizeof_t len = strlen(str);
 
+  /* Count characters. */
+  mctl->length += len;
+  if (mctl->suppress_output) {
+    /* Output is suppressed.  Count suppressed characters. */
+    mctl->slength += len;
+  } else {
+    put_str_to_temp_text_buffer(str);
+    check_assertion(mctl->length == pos_in_temp_text_buffer);
+  }  /* if */
+}  /* add_str_to_mangled_name */
+
+
+static void add_number_to_mangled_name(unsigned long            value,
+                                       a_mangling_control_block *mctl)
+/*
+Add the decimal representation of value to the mangled name.  This is
+simple output -- just the digits of the value, with no additional
+encoding.
+*/
+{
+  char buffer[50];
+
+  (void)sprintf(buffer, "%lu", value);
+  add_str_to_mangled_name(buffer, mctl);
+}  /* add_number_to_mangled_name */
+
+
+static void mangled_encoding_for_type_qualifiers(
+                                           a_type_qualifier_set     qualifiers,
+                                           a_mangling_control_block *mctl)
+/*
+Add to the mangled name the encoding for the type qualifiers (if any)
+in the set "qualifiers".
+*/
+{
   if (qualifiers & TQ_CONST) {
-    mangled_name_length++;
-    if (store_at != NULL) *store_at++ = 'C';
+    add_to_mangled_name('C', mctl);
   }  /* if */
   if (qualifiers & TQ_VOLATILE) {
-    mangled_name_length++;
-    if (store_at != NULL) *store_at++ = 'V';
+    add_to_mangled_name('V', mctl);
   }  /* if */
-  return mangled_name_length;
 }  /* mangled_encoding_for_type_qualifiers */
 
 
-static sizeof_t mangled_encoding_for_parameter_types(a_type_ptr type,
-                                                     char       *store_at)
+static void mangled_encoding_for_parameter_types(
+                                                a_type_ptr               type,
+                                                a_mangling_control_block *mctl)
 /*
-Determine the mangled encoding for the parameters of function type "type".
-Place the encoded form at *store_at if store_at != NULL, and (always) return
-the length of the encoding.  See ARM 7.2.1c for name encoding.
+Add to the mangled name the encoding for the parameters of function
+type "type".
 */
 {
-  sizeof_t                      mangled_name_length, section_length;
   a_routine_type_supplement_ptr rtsp;
   a_param_type_ptr              param, existing_param;
   unsigned long                 existing_param_num, num_matching_types;
-  sizeof_t                      digits;
 
   /* The encoding for parameter types is as follows:
        (1)  For each parameter, the encoding for the type.  If a parameter
@@ -139,13 +195,11 @@ the length of the encoding.  See ARM 7.2.1c for name encoding.
             If the parameter list is empty, "v" for "void".
        (2)  If the parameter list ends with an ellipsis, "e".
   */
-  mangled_name_length = 0;
   rtsp = type->variant.routine.extra_info;
   param = rtsp->param_type_list;
   if (param == NULL) {
     /* Void parameter list. */
-    mangled_name_length++;
-    if (store_at != NULL) *store_at++ = 'v';
+    add_to_mangled_name('v', mctl);
   } else {
     /* Output the parameter types. */
     for (; param != NULL; param = param->next) {
@@ -173,101 +227,73 @@ the length of the encoding.  See ARM 7.2.1c for name encoding.
                num_matching_types++, param = param->next) {}
           if (num_matching_types == 1) {
             /* Only one match, so use the "Tn" form. */
-            mangled_name_length++;
-            if (store_at != NULL) *store_at++ = 'T';
+            add_to_mangled_name('T', mctl);
           } else {
             /* More than one match, so use the "Nmn" form. */
-            mangled_name_length++;
-            if (store_at != NULL) *store_at++ = 'N';
+            add_to_mangled_name('N', mctl);
             /* Output the "m" (repetition count). */
-            digits = 1;  /* digits_to_represent(num_matching_types) */
-            mangled_name_length += digits;
-            if (store_at != NULL) {
-              (void)sprintf(store_at, "%lu", num_matching_types);
-              store_at += digits;
-            }  /* if */
+            add_number_to_mangled_name(num_matching_types, mctl);
           }  /* if */
           /* Output the "n" (existing parameter number). */
-          digits = digits_to_represent(existing_param_num);
-          mangled_name_length += digits;
-          if (store_at != NULL) {
-            (void)sprintf(store_at, "%lu", existing_param_num);
-            store_at += digits;
-          }  /* if */
+          add_number_to_mangled_name(existing_param_num, mctl);
           goto arg_done;
         }  /* if */
       }  /* for */
       /* The parameter type does not match any of the previous parameter
          types, so just put it out. */
-      section_length = mangled_encoding_for_type(param->type, store_at);
-      mangled_name_length += section_length;
-      if (store_at != NULL) store_at += section_length;
+      mangled_encoding_for_type(param->type, mctl);
 arg_done:;
     }  /* for */
   }  /* if */
   /* Output the final "e" for an ellipsis. */
   if (rtsp->has_ellipsis) {
-    mangled_name_length++;
-    if (store_at != NULL) *store_at++ = 'e';
+    add_to_mangled_name('e', mctl);
   }  /* if */
-  return mangled_name_length;
 }  /* mangled_encoding_for_parameter_types */
 
 
-static sizeof_t mangled_encoding_for_function_type(a_type_ptr type,
-                                                   a_boolean  do_return_type,
-                                                   char       *store_at)
+static void mangled_encoding_for_function_type(
+                                       a_type_ptr               type,
+                                       a_boolean                do_return_type,
+                                       a_mangling_control_block *mctl)
 /*
-Determine the mangled encoding for the function type "type".  Place the
-encoded form at *store_at if store_at != NULL, and (always) return the
-length of the encoding.  See ARM 7.2.1c for name encoding.  The return type
-of the function is encoded if do_return_type is TRUE.
+Add to the mangled name the encoding for the function type "type".
+The return type of the function is encoded if do_return_type is TRUE.
 */
 {
-  sizeof_t mangled_name_length, section_length;
-
   check_assertion(type->kind == (a_type_kind)tk_routine);
   /* The encoding for a function type is "F" followed by the encoding
      for the parameter types.  mangled_function_name takes care of putting
      out additional information preceding the "F" if the function is a
      member function. */
   /* Start with the "F" indicating a function type. */
-  mangled_name_length = 1;
-  if (store_at != NULL) *store_at++ = 'F';
+  add_to_mangled_name('F', mctl);
   if (c_and_cpp_function_types_are_distinct &&
       type->variant.routine.extra_info->routine_name_linkage ==
                                            (a_name_linkage_kind)nlk_external) {
     /* The function type is marked as extern "C", and the distinction between
        extern "C" and extern "C++" is significant.  Put out a "K" to mark
        the function type as a C function. */
-    mangled_name_length++;
-    if (store_at != NULL) *store_at++ = 'K';
+    add_to_mangled_name('K', mctl);
   }  /* if */
   /* Add the parameter types. */
-  section_length = mangled_encoding_for_parameter_types(type, store_at);
-  mangled_name_length += section_length;
-  if (store_at != NULL) store_at += section_length;
+  mangled_encoding_for_parameter_types(type, mctl);
   if (do_return_type) {
     /* Add the return type at the end, as "_" followed by the type. */
-    mangled_name_length++;
-    if (store_at != NULL) *store_at++ = '_';
-    mangled_name_length +=
-                  mangled_encoding_for_type(type->variant.routine.return_type,
-                                            store_at);
+    add_to_mangled_name('_', mctl);
+    mangled_encoding_for_type(type->variant.routine.return_type, mctl);
   }  /* if */
-  return mangled_name_length;
 }  /* mangled_encoding_for_function_type */
 
 
-static sizeof_t mangled_encoding_for_function_qualifiers(a_type_ptr type,
-                                                         char       *store_at)
+static void mangled_encoding_for_function_qualifiers(
+                                                a_type_ptr               type,
+                                                a_mangling_control_block *mctl)
 /*
-Determine the mangled encoding for the type qualifiers (if any) on the
-member function type "type".  Place the encoded form at *store_at if
-store_at != NULL, and (always) return the length of the encoding.
+Add to the mangled name the encoding for the type qualifiers (if any)
+on the member function type "type".
 */
 {
-  sizeof_t              mangled_name_length = 0, section_length;
   a_type_ptr            this_param_type;
   a_type_qualifier_set  qualifiers;
 
@@ -280,53 +306,45 @@ store_at != NULL, and (always) return the length of the encoding.
        pointed to by the "this" parameter). */
     qualifiers = get_top_level_type_qualifiers(this_param_type);
     if (qualifiers != 0) {
-      section_length = mangled_encoding_for_type_qualifiers(qualifiers,
-                                                            store_at);
-      mangled_name_length += section_length;
-      if (store_at != NULL) store_at += section_length;
+      mangled_encoding_for_type_qualifiers(qualifiers, mctl);
     }  /* if */
   } else {
     /* Static member function. */
-    mangled_name_length++;
-    if (store_at != NULL) *store_at++ = 'S';
+    add_to_mangled_name('S', mctl);
   }  /* if */
-  return mangled_name_length;
 }  /* mangled_encoding_for_function_qualifiers */
 
 
-static void store_digits_and_underscore(unsigned long value,
-                                        sizeof_t      digits,
-                                        a_boolean     old_form,
-                                        char          *store_at)
+static void store_digits_and_underscore(unsigned long            value,
+                                        a_boolean                old_form,
+                                        a_mangling_control_block *mctl)
 /*
-Store the decimal representation of value at *store_at.  This is used for
-cases where the distinction between single-digit and multi-digit cases needs
-to be indicated.  With old_form TRUE, the representation will be simply "d"
-for single-digit cases, and "dd_" for multi-digit cases.  With old_form
-FALSE, the representation is "_dd_" regardless of the length.
-digits indicates the size of the output including any underscores, as
-determined by digits_to_represent_with_underscore.
+Add the decimal representation of value to the mangled name.  This is
+used for cases where the distinction between single-digit and multi-digit
+cases needs to be indicated.  With old_form TRUE, the representation will
+be simply "d" for single-digit cases, and "dd_" for multi-digit cases.
+With old_form FALSE, the representation is "_dd_" regardless of the length.
 */
 {
   if (old_form) {
-    (void)sprintf(store_at, "%lu%s", value, (digits > 1) ? "_" : "");
+    add_number_to_mangled_name(value, mctl);
+    if (value > 9) add_to_mangled_name('_', mctl);
   } else {
-    (void)sprintf(store_at, "_%lu_", value);
+    add_to_mangled_name('_', mctl);
+    add_number_to_mangled_name(value, mctl);
+    add_to_mangled_name('_', mctl);
   }  /* if */
 }  /* store_digits_and_underscore */
 
 
-static size_t mangled_encoding_for_template_parameter(
+static void mangled_encoding_for_template_parameter(
                                        a_template_param_coordinate *coordinate,
-                                       char                        *store_at)
+                                       a_mangling_control_block    *mctl)
 /*
-Place the encoding for a template parameter with the given coordinates at
-*store_at if store_at != NULL, and (always) return the length of the
-encoding.
+Add to the mangled name the encoding for a template parameter with the
+given coordinates.
 */
 {
-  sizeof_t mangled_name_length, digits;
-
   check_assertion(distinct_template_signatures);
   /* The encoding is "ZnZ" for a first-level parameter, and "Zn_mZ" for
      a non-first-level parameter, with "n" the parameter number, and
@@ -334,41 +352,26 @@ encoding.
      when this construct is followed by something that begins with a
      number, e.g., when a template parameter in a function parameter
      list is followed by a class name. */
-  mangled_name_length = 1;
-  if (store_at != NULL) *store_at++ = 'Z';
+  add_to_mangled_name('Z', mctl);
   /* Put out the parameter position number. */
-  digits = digits_to_represent((unsigned long)coordinate->position);
-  mangled_name_length += digits;
-  if (store_at != NULL) {
-    (void)sprintf(store_at, "%lu", (unsigned long)coordinate->position);
-    store_at += digits;
-  }  /* if */
+  add_number_to_mangled_name((unsigned long)coordinate->position, mctl);
   if (coordinate->depth != 1) {
     /* Put out "_depth". */
-    digits = digits_to_represent((unsigned long)coordinate->depth);
-    mangled_name_length += digits + 1;
-    if (store_at != NULL) {
-      (void)sprintf(store_at, "_%lu", (unsigned long)coordinate->depth);
-      store_at += digits + 1;
-    }  /* if */
+    add_number_to_mangled_name((unsigned long)coordinate->depth, mctl);
   }  /* if */
   /* Put out the final "Z". */
-  mangled_name_length++;
-  if (store_at != NULL) *store_at++ = 'Z';
-  return mangled_name_length;
+  add_to_mangled_name('Z', mctl);
 }  /* mangled_encoding_for_template_parameter */
 
 
-static sizeof_t mangled_encoding_for_constant_cast(a_type_ptr     type,
-                                                   a_constant_ptr con,
-                                                   char           *store_at)
+static void mangled_encoding_for_constant_cast(a_type_ptr               type,
+                                               a_constant_ptr           con,
+                                               a_mangling_control_block *mctl)
 /*
-Place a mangled representation of the constant "con" cast to the type "type"
-at *store_at if store_at != NULL, and (always) return the length of the
-mangled form.
+Add to the mangled name the mangled encoding for the constant "con" cast
+to the type "type".
 */
 {
-  sizeof_t mangled_expr_length = 0, section_length;
   a_boolean cast_to_unknown =
              (type->kind == (a_type_kind)tk_template_param &&
               type->variant.template_param.kind ==
@@ -388,49 +391,31 @@ mangled form.
   /* If the cast is to an unknown type, omit the cast and just put out the
      underlying constant. */
   if (!cast_to_unknown) {
-    /* Put out the initial "O". */
-    mangled_expr_length++;
-    if (store_at != NULL) *store_at++ = 'O';
-    /* Put out the operator name "cs". */
-    mangled_expr_length += 2;
-    if (store_at != NULL) {
-      (void)strcpy(store_at, "cs");
-      store_at += 2;
-    }  /* if */
+    /* Put out the initial "O" followed by the operator name "cs". */
+    add_str_to_mangled_name("Ocs", mctl);
     /* The operator name "cs" is followed by the encoding for the
        type cast to. */
-    section_length = mangled_encoding_for_type(type, store_at);
-    mangled_expr_length += section_length;
-    if (store_at != NULL) store_at += section_length;
+    mangled_encoding_for_type(type, mctl);
     /* Put out the count of operands. */
-    mangled_expr_length++;
-    if (store_at != NULL) *store_at++ = '1';
+    add_to_mangled_name('1', mctl);
   }  /* if */
   /* Put out the operand. */
-  section_length = mangled_encoding_for_constant(con, /*old_form=*/FALSE,
-                                                 store_at);
-  mangled_expr_length += section_length;
-  if (store_at != NULL) store_at += section_length;
+  mangled_encoding_for_constant(con, /*old_form=*/FALSE, mctl);
   if (!cast_to_unknown) {
     /* Put out the final "O". */
-    mangled_expr_length++;
-    if (store_at != NULL) *store_at++ = 'O';
+    add_to_mangled_name('O', mctl);
   }  /* if */
-  return mangled_expr_length;
 }  /* mangled_encoding_for_constant_cast */
 
 
-static sizeof_t mangled_encoding_for_sizeof(a_type_ptr type,
-                                            a_boolean  is_alignof,
-                                            char       *store_at)
+static void mangled_encoding_for_sizeof(a_type_ptr               type,
+                                        a_boolean                is_alignof,
+                                        a_mangling_control_block *mctl)
 /*
-Place a mangled representation of sizeof(type) (or __ALIGNOF__(type), if
-is_alignof is TRUE) at *store_at if store_at != NULL, and (always) return
-the length of the mangled form.
+Add to the mangled name the encoding of sizeof(type) (or __ALIGNOF__(type),
+if is_alignof is TRUE).
 */
 {
-  sizeof_t mangled_expr_length, section_length;
-
   /* Output has the form
        OszZ1Z0O <-- "sizeof(Z1)", Z1 indicating a template parameter.
               ^---- "O" to end the operation encoding.
@@ -442,41 +427,30 @@ the length of the mangled form.
      if you change this be sure to change that as well.
   */
   /* Put out the initial "O". */
-  mangled_expr_length = 1;
-  if (store_at != NULL) *store_at++ = 'O';
+  add_to_mangled_name('O', mctl);
   /* Put out the operator name "sz" or "af". */
-  mangled_expr_length += 2;
-  if (store_at != NULL) {
-    (void)strcpy(store_at, is_alignof ? "af" : "sz");
-    store_at += 2;
-  }  /* if */
+  add_str_to_mangled_name(is_alignof ? "af" : "sz", mctl);
   /* The operator name is followed by the encoding for the type. */
-  section_length = mangled_encoding_for_type(type, store_at);
-  mangled_expr_length += section_length;
-  if (store_at != NULL) store_at += section_length;
+  mangled_encoding_for_type(type, mctl);
   /* Put out the count of operands. */
-  mangled_expr_length++;
-  if (store_at != NULL) *store_at++ = '0';
+  add_to_mangled_name('0', mctl);
   /* Put out the final "O". */
-  mangled_expr_length++;
-  if (store_at != NULL) *store_at++ = 'O';
-  return mangled_expr_length;
+  add_to_mangled_name('O', mctl);
 }  /* mangled_encoding_for_sizeof */
 
 
-static sizeof_t mangled_encoding_for_float_constant(a_constant_ptr con,
-                                                    a_boolean      old_form,
-                                                    char           *store_at)
+static void mangled_encoding_for_float_constant(
+                                             a_constant_ptr           con,
+                                             a_boolean                old_form,
+                                             a_mangling_control_block *mctl)
 /*
-Place the literal form of the ck_float constant con at *store_at
-if store_at != NULL, and (always) return the length of the literal
-representation.  This is used to encode floating-point constants as
-part of the mangled names of template classes.  If old_form is TRUE,
-use the old form of length specification in the mangling for lengths of
-literals.
+Add to the mangled name the encoding for the ck_float constant con.
+This is used to encode floating-point constants as part of the
+mangled names of template classes.  If old_form is TRUE, use the old form
+of length specification in the mangling for lengths of literals.
 */
 {
-  sizeof_t literal_length, str_length, digits;
+  sizeof_t str_length;
   char     *str;
 
   /* Float: the encoding is like
@@ -508,54 +482,47 @@ literals.
       }  /* while */
     }  /* if */
   }
-  digits = digits_to_represent_with_underscore((unsigned long)str_length,
-                                               old_form);
-  literal_length = 1 + digits + str_length;
-  if (store_at != NULL) {
-    *store_at++ = 'L';
-    store_digits_and_underscore((unsigned long)str_length, digits,
-                                old_form, store_at);
-    store_at += digits;
-    while (str_length > 0) {
-      /* Move the string and recode non-alphanumeric characters. */
-      char c = *str++;
-      if (c == ' ') {
-        /* A blank is an insignificant digit removed above. */
-      } else {
-        if (c == '-') {
-          /* Use "n" to represent a minus sign. */
-          c = 'n';
-        } else if (c == '.') {
-          /* Use "d" to represent a decimal point. */
-          c = 'd';
-        } else if (c == '+') {
-          /* Use "p" to represent a plus sign. */
-          c = 'p';
-        }  /* if */
-        *store_at++ = c;
-        str_length--;
+  add_to_mangled_name('L', mctl);
+  store_digits_and_underscore((unsigned long)str_length, old_form, mctl);
+  while (str_length > 0) {
+    /* Move the string and recode non-alphanumeric characters. */
+    char c = *str++;
+    if (c == ' ') {
+      /* A blank is an insignificant digit removed above. */
+    } else {
+      if (c == '-') {
+        /* Use "n" to represent a minus sign. */
+        c = 'n';
+      } else if (c == '.') {
+        /* Use "d" to represent a decimal point. */
+        c = 'd';
+      } else if (c == '+') {
+        /* Use "p" to represent a plus sign. */
+        c = 'p';
       }  /* if */
-    }  /* while */
-  }  /* if */
-  return literal_length;
+      add_to_mangled_name(c, mctl);
+      str_length--;
+    }  /* if */
+  }  /* while */
 }  /* mangled_encoding_for_float_constant */
 
 
-static sizeof_t mangled_encoding_for_address_constant(a_constant_ptr con,
-                                                      char           *store_at)
+static void mangled_encoding_for_address_constant(
+                                                a_constant_ptr           con,
+                                                a_mangling_control_block *mctl)
 /*
-Place the literal form of the ck_address constant con at *store_at if
-store_at != NULL, and (always) return the length of the literal
-representation.  This is used to encode address constants as part of
-the mangled names of template classes.
+Add to the mangled name the encoding for the ck_address constant con.
+This is used to encode address constants as part of the mangled names of
+template classes.
 */
 {
-  sizeof_t             literal_length, str_length, digits;
-  char                 *str;
-  a_variable_ptr       variable;
-  a_boolean            is_member = FALSE;
-  a_routine_ptr        routine;
-  an_address_base_kind abkind;
+  sizeof_t                 str_length;
+  char                     *str;
+  a_variable_ptr           variable;
+  a_boolean                is_member = FALSE;
+  a_routine_ptr            routine;
+  an_address_base_kind     abkind;
+  a_mangling_control_block sctl;
 
   /* The offset can be non-zero in cases where a pointer to class was
      cast to a related class.  That's ignored in the output. */
@@ -574,7 +541,9 @@ the mangled names of template classes.
         variable->source_corresp.parent.namespace_ptr != NULL) {
       /* Static data member or namespace member variable. */
       is_member = TRUE;
-      str_length = mangled_member_variable_name(variable, (char *)NULL);
+      set_control_block_for_supression(&sctl, mctl);
+      mangled_member_variable_name(variable, &sctl);
+      str_length = sctl.slength;
     } else {
       /* Normal variable. */
       str = variable->source_corresp.name;
@@ -584,10 +553,11 @@ the mangled names of template classes.
     }  /* if */
   } else if (abkind == (an_address_base_kind)abk_routine) {
     /* Routine. */
+    /* Do the mangling once to get the length, then again for real. */
+    set_control_block_for_supression(&sctl, mctl);
     routine = con->variant.address.variant.routine;
-    str_length = mangled_function_name(routine,
-                                       /*suppress_param_encoding=*/TRUE,
-                                       (char *)NULL);
+    mangled_function_name(routine, /*suppress_param_encoding=*/TRUE, &sctl);
+    str_length = sctl.slength;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (abkind == (an_address_base_kind)abk_uuidof) {
     /* Microsoft __uuidof. */
@@ -605,68 +575,55 @@ the mangled names of template classes.
     unexpected_condition_str(
                           "mangled_encoding_for_address_constant: bad abkind");
   }  /* if */
-  digits = digits_to_represent((unsigned long)str_length);
-  literal_length = digits + str_length;
-  if (store_at != NULL) {
-    (void)sprintf(store_at, "%lu", (unsigned long)str_length);
-    store_at += digits;
-    if (abkind == (an_address_base_kind)abk_variable) {
-      if (is_member) {
-        /* Static data member or namespace member variable. */
-        (void)mangled_member_variable_name(variable, store_at);
-      } else {
-        /* Normal variable. */
-        (void)memcpy(store_at, str, size_t_arg(str_length));
-      }  /* if */
-      store_at += str_length;
-    } else if (abkind == (an_address_base_kind)abk_routine) {
-      (void)mangled_function_name(routine,
-                                  /*suppress_param_encoding=*/TRUE,
-                                  store_at);
-      store_at += str_length;
+  add_number_to_mangled_name((unsigned long)str_length, mctl);
+  if (abkind == (an_address_base_kind)abk_variable) {
+    if (is_member) {
+      /* Static data member or namespace member variable. */
+      mangled_member_variable_name(variable, mctl);
+    } else {
+      /* Normal variable. */
+      add_str_to_mangled_name(str, mctl);
+    }  /* if */
+  } else if (abkind == (an_address_base_kind)abk_routine) {
+    mangled_function_name(routine, /*suppress_param_encoding=*/TRUE, mctl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (abkind == (an_address_base_kind)abk_uuidof) {
-      a_type_ptr uuid_type;
-      char       *uuid_str;
+  } else if (abkind == (an_address_base_kind)abk_uuidof) {
+    a_type_ptr uuid_type;
+    char       *uuid_str;
 
-      /* Microsoft __uuidof. */
-      uuid_type = con->variant.address.variant.type;
-      (void)strcpy(store_at, UUID_STR);
-      store_at += sizeof(UUID_STR)-1;
-      if (uuid_type == NULL) {
-        /* Null GUID case. */
-        uuid_str = "00000000-0000-0000-000000000000";
-      } else {
-        uuid_str=uuid_type->variant.class_struct_union.extra_info->uuid_string;
-      }  /* if */
-      for (; *uuid_str != '\0'; uuid_str++) {
-        if (*uuid_str != '-') *store_at++ = *uuid_str;
-      }  /* for */
+    /* Microsoft __uuidof. */
+    uuid_type = con->variant.address.variant.type;
+    add_str_to_mangled_name(UUID_STR, mctl);
+    if (uuid_type == NULL) {
+      /* Null GUID case. */
+      uuid_str = "00000000-0000-0000-000000000000";
+    } else {
+      uuid_str = uuid_type->variant.class_struct_union.extra_info->uuid_string;
+    }  /* if */
+    for (; *uuid_str != '\0'; uuid_str++) {
+      if (*uuid_str != '-') add_to_mangled_name(*uuid_str, mctl);
+    }  /* for */
 #undef UUID_STR
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else {
-      unexpected_condition_str(
+  } else {
+    unexpected_condition_str(
                           "mangled_encoding_for_address_constant: bad abkind");
-    }  /* if */
   }  /* if */
-  return literal_length;
 }  /* mangled_encoding_for_address_constant */
 
 
-static sizeof_t mangled_encoding_for_ptr_to_member_constant(
-                                                      a_constant_ptr con,
-                                                      a_boolean      old_form,
-                                                      char           *store_at)
+static void mangled_encoding_for_ptr_to_member_constant(
+                                             a_constant_ptr           con,
+                                             a_boolean                old_form,
+                                             a_mangling_control_block *mctl)
 /*
-Place the literal form of the ck_ptr_to_member constant con at *store_at
-if store_at != NULL, and (always) return the length of the literal
-representation.  This is used to encode pointer-to-member constants as
-part of the mangled names of template classes.  If old_form is TRUE,
-use the old form of length specification in the mangling for lengths of
-literals.
+Add to the mangled name the encoding for the ck_ptr_to_member constant con.
+This is used to encode pointer-to-member constants as part of the mangled
+names of template classes.  If old_form is TRUE, use the old form of length
+specification in the mangling for lengths of literals.
 */
 {
-  sizeof_t literal_length, str_length, digits;
+  sizeof_t str_length;
   char     *str;
   char     buffer[50];
 
@@ -695,20 +652,12 @@ literals.
     repr_for_ptr_to_data_member_constant(con, &delta);
     (void)sprintf(buffer, "%ld", (long)delta);
     str = buffer;
+    /* Use "n" to represent a minus sign. */
+    if (str[0] == '-') str[0] = 'n';
     str_length = strlen(str);  /* Includes "-" sign if any. */
-    digits = digits_to_represent_with_underscore((unsigned long)str_length,
-                                                 old_form);
-    literal_length = 1 + digits + str_length;
-    if (store_at != NULL) {
-      *store_at++ = 'L';
-      store_digits_and_underscore((unsigned long)str_length, digits,
-                                  old_form, store_at);
-      store_at += digits;
-      (void)memcpy(store_at, str, size_t_arg(str_length));
-      /* Use "n" to represent a minus sign. */
-      if (*store_at == '-') *store_at = 'n';
-      store_at += str_length;
-    }  /* if */
+    add_to_mangled_name('L', mctl);
+    store_digits_and_underscore((unsigned long)str_length, old_form, mctl);
+    add_str_to_mangled_name(str, mctl);
   } else {
     /* Pointer to member function. */
     a_targ_ptrdiff_t delta, index, offset;
@@ -716,41 +665,24 @@ literals.
 
     repr_for_ptr_to_member_function_constant(con, &delta, &index, &func,
                                              &offset);
-    literal_length = 2;  /* "LM" */
-    if (store_at != NULL) {
-      *store_at++ = 'L';
-      *store_at++ = 'M';
-    }  /* if */
+    add_str_to_mangled_name("LM", mctl);
     /* Delta value. */
     (void)sprintf(buffer, "%ld", (long)delta);
     str = buffer;
+    /* Use "n" to represent a minus sign. */
+    if (str[0] == '-') str[0] = 'n';
     str_length = strlen(str);  /* Includes "-" sign if any. */
-    literal_length += str_length;
-    if (store_at != NULL) {
-      (void)memcpy(store_at, str, size_t_arg(str_length));
-      /* Use "n" to represent a minus sign. */
-      if (*store_at == '-') *store_at = 'n';
-      store_at += str_length;
-    }  /* if */
+    add_str_to_mangled_name(str, mctl);
     /* Index value. */
     (void)sprintf(buffer, "%ld", (long)index);
     str = buffer;
+    /* Use "n" to represent a minus sign. */
+    if (str[0] == '-') str[0] = 'n';
     str_length = strlen(str);  /* Includes "-" sign if any. */
-    digits = digits_to_represent_with_underscore((unsigned long)str_length,
-                                                 old_form);
-    literal_length += 2 + digits + str_length + 1;
-    if (store_at != NULL) {
-      *store_at++ = '_';
-      *store_at++ = 'L';
-      store_digits_and_underscore((unsigned long)str_length, digits,
-                                  old_form, store_at);
-      store_at += digits;
-      (void)memcpy(store_at, str, size_t_arg(str_length));
-      /* Use "n" to represent a minus sign. */
-      if (*store_at == '-') *store_at = 'n';
-      store_at += str_length;
-      *store_at++ = '_';
-    }  /* if */
+    add_str_to_mangled_name("_L", mctl);
+    store_digits_and_underscore((unsigned long)str_length, old_form, mctl);
+    add_str_to_mangled_name(str, mctl);
+    add_to_mangled_name('_', mctl);
     if (func != NULL) {
       /* Name of function. */
       /* The newer version of this includes parent information, but that's
@@ -767,9 +699,11 @@ literals.
 #endif /* ABI_COMPATIBILITY_VERSION < 235 */
       if (include_parent_info) {
         /* Include class and namespace information in the name. */
-        str_length = mangled_function_name(func,
-                                           /*suppress_param_encoding=*/TRUE,
-                                           (char *)NULL);
+        a_mangling_control_block sctl;
+        /* Do the mangling once to get the length, then again for real. */
+        set_control_block_for_supression(&sctl, mctl);
+        mangled_function_name(func, /*suppress_param_encoding=*/TRUE, &sctl);
+        str_length = sctl.slength;
       } else {
         /* Use a simple name (no class or namespace information). */
         str = func->source_corresp.name;
@@ -779,49 +713,37 @@ literals.
                (str[str_length] != '_' || str[str_length+1] != '_');
              str_length++) {}
       }  /* if */
-      digits = digits_to_represent((unsigned long)str_length);
-      literal_length += digits + str_length;
-      if (store_at != NULL) {
-        (void)sprintf(store_at, "%lu", (unsigned long)str_length);
-        store_at += digits;
-        if (include_parent_info) {
-          (void)mangled_function_name(func,
-                                      /*suppress_param_encoding=*/TRUE,
-                                      store_at);
-        } else {
-          (void)memcpy(store_at, str, size_t_arg(str_length));
-        }  /* if */
-        store_at += str_length;
+      add_number_to_mangled_name((unsigned long)str_length, mctl);
+      if (include_parent_info) {
+        mangled_function_name(func, /*suppress_param_encoding=*/TRUE, mctl);
+      } else {
+        add_str_to_mangled_name(str, mctl);
       }  /* if */
     } else {
       /* Offset, always coded as "0". */
-      literal_length++;
-      if (store_at != NULL) *store_at++ = '0';
+      add_to_mangled_name('0', mctl);
     }  /* if */
   }  /* if */
-  return literal_length;
 }  /* mangled_encoding_for_ptr_to_member_constant */
 
 
-static sizeof_t literal_representation(a_constant_ptr con,
-                                       a_boolean      old_form,
-                                       char           *store_at)
+static void literal_representation(a_constant_ptr           con,
+                                   a_boolean                old_form,
+                                   a_mangling_control_block *mctl)
 /*
-Place the literal form of the constant con at *store_at if store_at != NULL,
-and (always) return the length of the literal representation.  This is
-used to encode constants as part of the mangled names of template classes.
-If old_form is TRUE, use the old form of length specification in the
-mangling for lengths of literals.
+Add to the mangled name the encoding for the constant con.
+This is used to encode constants as part of the mangled names of
+template classes.  If old_form is TRUE, use the old form of length
+specification in the mangling for lengths of literals.
 */
 {
-  sizeof_t literal_length, str_length, digits;
+  sizeof_t str_length;
   char     *str;
 
   switch (con->kind) {
     case ck_error:
       /* This might come up in mangling names for template instantiations. */
-      literal_length = 1;
-      if (store_at != NULL) *store_at++ = '?';
+      add_to_mangled_name('?', mctl);
       break;
     case ck_integer:
       /* Integer: the encoding is like
@@ -832,35 +754,24 @@ mangling for lengths of literals.
            ^--------- "L" indicates a number.
          This is compatible with cfront 3.0.1. */
       str = str_for_integer_constant(con);
+      /* Use "n" to represent a minus sign. */
+      if (str[0] == '-') str[0] = 'n';
       str_length = strlen(str);  /* Includes "-" sign if any. */
-      digits = digits_to_represent_with_underscore((unsigned long)str_length,
-                                                   old_form);
-      literal_length = 1 + digits + str_length;
-      if (store_at != NULL) {
-        *store_at++ = 'L';
-        store_digits_and_underscore((unsigned long)str_length, digits,
-                                    old_form, store_at);
-        store_at += digits;
-        (void)memcpy(store_at, str, size_t_arg(str_length));
-        /* Use "n" to represent a minus sign. */
-        if (*store_at == '-') *store_at = 'n';
-        store_at += str_length;
-      }  /* if */
+      add_to_mangled_name('L', mctl);
+      store_digits_and_underscore((unsigned long)str_length, old_form, mctl);
+      add_str_to_mangled_name(str, mctl);
       break;
     case ck_float:
       /* Float constant. */
-      literal_length = mangled_encoding_for_float_constant(con, old_form,
-                                                           store_at);
+      mangled_encoding_for_float_constant(con, old_form, mctl);
       break;
     case ck_address:
       /* Address.  Put out the name of the entity whose address is involved. */
-      literal_length = mangled_encoding_for_address_constant(con, store_at);
+      mangled_encoding_for_address_constant(con, mctl);
       break;
     case ck_ptr_to_member:
       /* Pointer to member. */
-      literal_length = mangled_encoding_for_ptr_to_member_constant(con,
-                                                                   old_form,
-                                                                   store_at);
+      mangled_encoding_for_ptr_to_member_constant(con, old_form, mctl);
       break;
     case ck_template_param:
       /* This comes up when mangling the names for template entities using
@@ -868,50 +779,43 @@ mangling for lengths of literals.
       switch (con->variant.template_param.kind) {
         case tpck_param:
           /* A simple reference to a template parameter. */
-          literal_length = mangled_encoding_for_template_parameter(
+          mangled_encoding_for_template_parameter(
                               &con->variant.template_param.variant.coordinates,
-                              store_at);
-          if (store_at != NULL) store_at += literal_length;
+                              mctl);
           break;
         case tpck_expression:
           /* An expression involving template parameters. */
-          literal_length = mangled_encoding_for_expression(
+          mangled_encoding_for_expression(
                                       con->variant.template_param.variant.expr,
-                                      store_at);
-          if (store_at != NULL) store_at += literal_length;
+                                      mctl);
           break;
         case tpck_member:
           /* A member of a template parameter type, e.g., T::x. */
-          str_length = mangled_member_name(&con->source_corresp,
-                                           /*is_specialization=*/FALSE,
-                                           (char *)NULL);
-          digits = digits_to_represent((unsigned long)str_length);
-          literal_length = digits + str_length;
-          if (store_at != NULL) {
-            (void)sprintf(store_at, "%lu", (unsigned long)str_length);
-            store_at += digits;
-            (void)mangled_member_name(&con->source_corresp,
-                                      /*is_specialization=*/FALSE,
-                                      store_at);
-            store_at += str_length;
-          }  /* if */
+          { a_mangling_control_block sctl;
+            /* Do the mangling once to get the length, then again for real. */
+            set_control_block_for_supression(&sctl, mctl);
+            mangled_member_name(&con->source_corresp,
+                                /*is_specialization=*/FALSE,
+                                &sctl);
+            add_number_to_mangled_name((unsigned long)sctl.slength, mctl);
+          }
+          mangled_member_name(&con->source_corresp,
+                              /*is_specialization=*/FALSE,
+                              mctl);
           break;
         case tpck_cast:
-          literal_length = mangled_encoding_for_constant_cast(
+          mangled_encoding_for_constant_cast(
                                   con->type,
                                   con->variant.template_param.variant.constant,
-                                  store_at);
-          if (store_at != NULL) store_at += literal_length;
+                                  mctl);
           break;
         case tpck_sizeof:
         case tpck_alignof:
-          literal_length = mangled_encoding_for_sizeof(
-                                      con->variant.template_param.variant.type,
+          mangled_encoding_for_sizeof(con->variant.template_param.variant.type,
                                       /*is_alignof=*/
                                             con->variant.template_param.kind ==
                                   (a_template_param_constant_kind)tpck_alignof,
-                                      store_at);
-          if (store_at != NULL) store_at += literal_length;
+                                      mctl);
           break;
         default:
           unexpected_condition_str(
@@ -925,22 +829,18 @@ mangling for lengths of literals.
       internal_error("literal_representation: bad constant kind");
 #endif /* CHECKING */
   }  /* switch */
-  return literal_length;
 }  /* literal_representation */
 
 
-static sizeof_t mangled_encoding_for_constant(a_constant_ptr con,
-                                              a_boolean      old_form,
-                                              char           *store_at)
+static void mangled_encoding_for_constant(a_constant_ptr           con,
+                                          a_boolean                old_form,
+                                          a_mangling_control_block *mctl)
 /*
-Put out the mangled encoding for a constant at *store_at if store_at != NULL,
-and (always) return the length of the mangled form.   If old_form is TRUE,
-use the old form of length specification in the mangling for lengths of
-literals.
+Add to the mangled name the encoding for the constant con.
+If old_form is TRUE, use the old form of length specification in the
+mangling for lengths of literals.
 */
 {
-  sizeof_t mangled_form_length = 0, section_length;
-
   /* Representation is something like
        CiL15   <-- integer constant 5
            ^-- Literal constant representation.
@@ -951,41 +851,32 @@ literals.
      If the constant is a template parameter constant, skip the "C" and
      the type. */
   if (con->kind != (a_constant_repr_kind)ck_template_param) {
-    mangled_form_length++;
-    if (store_at != NULL) *store_at++ = 'C';
+    add_to_mangled_name('C', mctl);
     /* Put out the constant type. */
-    section_length = mangled_encoding_for_type(con->type, store_at);
-    mangled_form_length += section_length;
-    if (store_at != NULL) store_at += section_length;
+    mangled_encoding_for_type(con->type, mctl);
   }  /* if */
   /* Put out the literal representation for the constant. */
-  section_length = literal_representation(con, old_form, store_at);
-  mangled_form_length += section_length;
-  if (store_at != NULL) store_at += section_length;
-  return mangled_form_length;
+  literal_representation(con, old_form, mctl);
 }  /* mangled_encoding_for_constant */
 
 
-static sizeof_t mangled_encoding_for_expression(an_expr_node_ptr expr,
-                                                char             *store_at)
+static void mangled_encoding_for_expression(an_expr_node_ptr         expr,
+                                            a_mangling_control_block *mctl)
 /*
-Place a mangled representation of the expression pointed to by expr at
-*store_at if store_at != NULL, and (always) return the length of the mangled
-form.  These expressions come up in ck_template_param expressions as
-template arguments, and as dimensions of arrays in template signatures.
+Add to the mangled name the encoding for the expression pointed to by expr.
+These expressions come up in ck_template_param expressions as template
+arguments, and as dimensions of arrays in template signatures.
 */
 {
-  sizeof_t         mangled_expr_length, section_length;
   char             *operation_name;
   an_expr_node_ptr operand;
   unsigned long    num_operands;
 
   switch (expr->kind) {
     case enk_constant:
-      mangled_expr_length = mangled_encoding_for_constant(
-                                                        expr->variant.constant,
-                                                        /*old_form=*/FALSE,
-                                                        store_at);
+      mangled_encoding_for_constant(expr->variant.constant,
+                                    /*old_form=*/FALSE,
+                                    mctl);
       break;
     case enk_operation:
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -1006,49 +897,32 @@ template arguments, and as dimensions of arrays in template signatures.
          so if you change this be sure to change that as well.
       */
       /* Put out the initial "O". */
-      mangled_expr_length = 1;
-      if (store_at != NULL) *store_at++ = 'O';
+      add_to_mangled_name('O', mctl);
       /* Get the operator name and put it out. */
       operation_name= mangled_expr_operator_name(expr->variant.operation.kind);
-      section_length = strlen(operation_name);
-      mangled_expr_length += section_length;
-      if (store_at != NULL) {
-        (void)strcpy(store_at, operation_name);
-        store_at += section_length;
-      }  /* if */
+      add_str_to_mangled_name(operation_name, mctl);
       /* For a cast, put out the type cast to. */
       if (operation_name[0] == 'c' && operation_name[1] == 's') {
-        section_length = mangled_encoding_for_type(expr->type, store_at);
-        mangled_expr_length += section_length;
-        if (store_at != NULL) store_at += section_length;
+        mangled_encoding_for_type(expr->type, mctl);
       }  /* if */
       /* Put out the count of operands. */
       for (num_operands = 0, operand = expr->variant.operation.operands;
            operand != NULL;
            num_operands++, operand = operand->next) {}
       check_assertion(num_operands <= 9);
-      section_length = 1;  /* digits_to_represent(num_operands) */
-      mangled_expr_length += section_length;
-      if (store_at != NULL) {
-        (void)sprintf(store_at, "%lu", (unsigned long)num_operands);
-        store_at += section_length;
-      }  /* if */
+      add_number_to_mangled_name(num_operands, mctl);
       /* Put out the operands. */
       for (operand = expr->variant.operation.operands;
            operand != NULL;
            operand = operand->next) {
-        section_length = mangled_encoding_for_expression(operand, store_at);
-        mangled_expr_length += section_length;
-        if (store_at != NULL) store_at += section_length;
+        mangled_encoding_for_expression(operand, mctl);
       }  /* for */
       /* Put out the final "O". */
-      mangled_expr_length++;
-      if (store_at != NULL) *store_at++ = 'O';
+      add_to_mangled_name('O', mctl);
       break;
     default:
       unexpected_condition_str("mangled_encoding_for_expression: bad kind");
   }  /* switch */
-  return mangled_expr_length;
 }  /* mangled_encoding_for_expression */
 
 
@@ -1066,6 +940,7 @@ If the indicated class type is unnamed, give it a name.
 {
   char     *name;
   sizeof_t name_len;
+  char     buffer[50];
 
   /* Note that we may be changing a type that is not being lowered yet, but
      that's okay -- the name in the IL entry is not used by the front end. */
@@ -1075,9 +950,10 @@ If the indicated class type is unnamed, give it a name.
        class.  This is not from the ARM.  cfront uses the __Cn form, but
        the number is different. */
     unnamed_class_name_seed++;
-    name_len = digits_to_represent(unnamed_class_name_seed) + 4; /*"__C"+null*/
+    (void)sprintf(buffer, "__C%lu", (unsigned long)unnamed_class_name_seed);
+    name_len = strlen(buffer) + 1;
     name = alloc_lowered_name_string(name_len);
-    (void)sprintf(name, "__C%lu", (unsigned long)unnamed_class_name_seed);
+    (void)strcpy(name, buffer);
     type->source_corresp.name = name;
     type->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
@@ -1098,6 +974,7 @@ If the indicated namespace is unnamed, give it a name.
 {
   char     *name;
   sizeof_t name_len;
+  char     buffer[50];
 
   /* Note that we may be changing a namespace that is not being lowered yet,
      but that's okay -- the name in the IL entry is not used by the front
@@ -1107,10 +984,11 @@ If the indicated namespace is unnamed, give it a name.
     /* The name is __Nnn, where nn is a unique number for the
        namespace.  This is not from the ARM or cfront. */
     unnamed_namespace_name_seed++;
-    name_len = digits_to_represent(unnamed_namespace_name_seed) + 4;
-                                                                 /*"__N"+null*/
+    (void)sprintf(buffer, "__N%lu",
+                  (unsigned long)unnamed_namespace_name_seed);
+    name_len = strlen(buffer) + 1;
     name = alloc_lowered_name_string(name_len);
-    (void)sprintf(name, "__N%lu", (unsigned long)unnamed_namespace_name_seed);
+    (void)strcpy(name, buffer);
     nsp->source_corresp.name = name;
     nsp->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
@@ -1131,6 +1009,7 @@ If the indicated enum type is unnamed, give it a name.
 {
   char     *name;
   sizeof_t name_len;
+  char     buffer[50];
 
   /* Note that we may be changing a type that is not being lowered yet, but
      that's okay -- the name in the IL entry is not used by the front end. */
@@ -1140,9 +1019,10 @@ If the indicated enum type is unnamed, give it a name.
        enum.  This is not from the ARM.  cfront uses the __En form, but
        the number is different. */
     unnamed_enum_name_seed++;
-    name_len = digits_to_represent(unnamed_enum_name_seed) + 4; /*"__E"+null*/
+    (void)sprintf(buffer, "__E%lu", (unsigned long)unnamed_enum_name_seed);
+    name_len = strlen(buffer) + 1;
     name = alloc_lowered_name_string(name_len);
-    (void)sprintf(name, "__E%lu", (unsigned long)unnamed_enum_name_seed);
+    (void)strcpy(name, buffer);
     type->source_corresp.name = name;
     type->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
@@ -1163,42 +1043,43 @@ If the indicated member variable is unnamed, give it a name.
 {
   char     *name;
   sizeof_t name_len;
+  char     buffer[50];
 
   if (var->source_corresp.name == NULL) {
     /* The member variable is unnamed, so make up a name. */
     /* The name is __Vnn, where nn is a unique number for the
        member variable.  This is not from the ARM or cfront. */
     unnamed_member_variable_name_seed++;
-    name_len = digits_to_represent(unnamed_member_variable_name_seed) + 4;
-                                                                 /*"__V"+null*/
-    name = alloc_lowered_name_string(name_len);
-    (void)sprintf(name, "__V%lu",
+    (void)sprintf(buffer, "__V%lu",
                   (unsigned long)unnamed_member_variable_name_seed);
+    name_len = strlen(buffer) + 1;
+    name = alloc_lowered_name_string(name_len);
+    (void)strcpy(name, buffer);
     var->source_corresp.name = name;
     var->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* give_unnamed_member_variable_a_name */
 
 
-static sizeof_t mangled_template_arguments(
-                                          a_template_arg_ptr template_arg_list,
-                                          a_boolean          partial_spec,
-                                          a_boolean          old_form,
-                                          char               *store_at)
+static void mangled_template_arguments(
+                                    a_template_arg_ptr       template_arg_list,
+                                    a_boolean                partial_spec,
+                                    a_boolean                old_form,
+                                    a_mangling_control_block *mctl)
 /*
-Determine the mangled form of the template arguments given by
-template_arg_list.  Place the output at *store_at if store_at != NULL,
-and (always) return the length of the output.  If partial_spec is TRUE,
-this argument list is the first one on a partial specialization.
-If old_form is TRUE, use the old form of length specification in the
-mangling for lengths of literals.
+Add to the mangled name the encoding for the template arguments given
+by template_arg_list.  If partial_spec is TRUE, this argument list is
+the first one on a partial specialization.  If old_form is TRUE, use
+the old form of length specification in the mangling for lengths of
+literals.
 */
 {
-  sizeof_t           mangled_name_length, digits, arg_length, total_arg_length;
-  sizeof_t           con_length, type_length;
   char               *str;
   a_template_arg_ptr tap;
   int                pass;
+  a_mangling_control_block
+                     sctl, *eff_ctl;
+
 
   /* The mangled form of template arguments is something like
        __tm__3_ii
@@ -1217,107 +1098,76 @@ mangling for lengths of literals.
   } else {
     str = "__tm__";
   }  /* if */
-  mangled_name_length = strlen(str);
-  if (store_at != NULL) {
-    (void)strcpy(store_at, str);
-    store_at += mangled_name_length;
-  }  /* if */
+  add_str_to_mangled_name(str, mctl);
   /* Run through the template argument list, determining the representation
      for each argument.  The first time through, determine the size;
      the second, put out the string. */
+  set_control_block_for_supression(&sctl, mctl);
+  eff_ctl = &sctl;
   for (pass = 1; ; pass++) {
-    total_arg_length = 0;
     for (tap = template_arg_list; tap != NULL; tap = tap->next) {
       if (tap->is_type) {
         /* Type argument. */
-        if (pass == 1) {
-          arg_length = mangled_encoding_for_type(tap->variant.type,
-                                                 (char *)NULL);
-        } else {
-          type_length = mangled_encoding_for_type(tap->variant.type,
-                                                  store_at);
-          mangled_name_length += type_length;
-          store_at += type_length;
-        }  /* if */
+        mangled_encoding_for_type(tap->variant.type, eff_ctl);
       } else {
         check_assertion_str2(!tap->is_array_bound_of_unknown_type,
                              "mangled_template_arguments:",
                              "is_array_bound_of_unknown_type set");
         /* Constant argument.  The encoding for the constant begins with
            an "X". */
-        if (pass == 1) {
-          arg_length = mangled_encoding_for_constant(tap->variant.constant,
-                                                     old_form,
-                                                     (char *)NULL) + 1;
-        } else {
-          mangled_name_length++;
-          if (store_at != NULL) *store_at++ = 'X';
-          con_length = mangled_encoding_for_constant(tap->variant.constant,
-                                                     old_form,
-                                                     store_at);
-          mangled_name_length += con_length;
-          store_at += con_length;
-        }  /* if */
+        add_to_mangled_name('X', eff_ctl);
+        mangled_encoding_for_constant(tap->variant.constant,
+                                      old_form,
+                                      eff_ctl);
       }  /* if */
-      if (pass == 1) total_arg_length += arg_length;
     }  /* for */
     /* After the second pass, quit the loop. */
     if (pass == 2) break;
-    /* First pass: */
+    /* End of first pass, preparation for second: */
     /* Put out the length of the entire argument section, and the "_". */
-    total_arg_length++;  /* "_" */
-    digits = digits_to_represent((unsigned long)total_arg_length);
-    mangled_name_length += 1 + digits;
-    if (store_at != NULL) {
-      (void)sprintf(store_at, "%lu_", (unsigned long)total_arg_length);
-      store_at += digits + 1;
-    }  /* if */
-    if (store_at == NULL) {
-      /* If we are not storing, we do not need to do the second pass. */
-      mangled_name_length += total_arg_length - 1;
+    add_number_to_mangled_name((unsigned long)sctl.slength+1, mctl);
+    add_to_mangled_name('_', mctl);
+    eff_ctl = mctl;
+    if (mctl->suppress_output) {
+      /* If we are not storing, we do not need to do the second pass.
+         We can just increment the slength in mctl to indicate the number
+         of characters we would have put in on the second pass. */
+      mctl->slength += sctl.slength;
       break;
     }  /* if */
   }  /* for */
-  return mangled_name_length;
 }  /* mangled_template_arguments */
 
 
-static sizeof_t mangled_specialization_indication(char *store_at)
+static void mangled_specialization_indication(a_mangling_control_block *mctl)
 /*
-Add a qualifier that indicates specialization.  Place it at *store_at if
-store_at != NULL, and (always) return its length.
+Add to the mangled name the encoding qualifier that indicates specialization.
 */
 {
-#define SPEC_INDIC "__S"
-  if (store_at != NULL) (void)strcpy(store_at, SPEC_INDIC);
-  return sizeof(SPEC_INDIC) - 1;
-#undef SPEC_INDIC
+  add_str_to_mangled_name("__S", mctl);
 }  /* mangled_specialization_indication */
 
 
-static sizeof_t mangled_full_class_name(
-                                       a_type_ptr type,
-                                       a_boolean  show_template_specialization,
-                                       a_boolean  show_specialization,
-                                       char       *store_at)
+static void mangled_full_class_name(
+                         a_type_ptr               type,
+                         a_boolean                show_template_specialization,
+                         a_boolean                show_specialization,
+                         a_mangling_control_block *mctl)
 /*
-Determine the mangled form of the name of the class "type".  This is
-not the version that contains a leading count of the number of characters
-in the name; here, the name is usually just the original name, but is
-different if the class is a template class or is unnamed.  Also, this
-routine does not do anything special with nested types.  Place the mangled
-name at *store_at if store_at != NULL, and (always) return the length of
-the name.  show_template_specialization is TRUE if the class is generated
-from a specialization of a template and an indication of that fact should be
+Add to the mangled name the encoding for the name of the class "type".
+This is not the version that contains a leading count of the number
+of characters in the name; here, the name is usually just the original
+name, but is different if the class is a template class or is unnamed.
+Also, this routine does not do anything special with nested types.
+show_template_specialization is TRUE if the class is generated from a
+specialization of a template and an indication of that fact should be
 put out.  show_specialization is TRUE if the class is itself a specialization
 and an indication of that fact should be put out.
 */
 {
-  sizeof_t           mangled_name_length, section_length;
-  char               *name;
-  a_class_type_supplement_ptr
-                     ctsp;
-  a_boolean          previously_mangled_version_used = FALSE;
+  char                        *name;
+  a_class_type_supplement_ptr ctsp;
+  a_boolean                   previously_mangled_version_used = FALSE;
 
   check_assertion(is_immediate_class_type(type));
   ctsp = type->variant.class_struct_union.extra_info;
@@ -1342,11 +1192,7 @@ and an indication of that fact should be put out.
       name = type->source_corresp.unmangled_name;
     }  /* if */
   }  /* if */
-  mangled_name_length = strlen(name);
-  if (store_at != NULL) {
-    (void)memcpy(store_at, name, size_t_arg(mangled_name_length));
-    store_at += mangled_name_length;
-  }  /* if */
+  add_str_to_mangled_name(name, mctl);
   if (!previously_mangled_version_used) {
     /* See if template arguments are needed.  For partial specializations,
        there are two argument lists. */
@@ -1369,13 +1215,10 @@ and an indication of that fact should be put out.
         a_type_ptr   proto_type = proto_sym->variant.class_struct_union.type;
         proto_ctsp = proto_type->variant.class_struct_union.extra_info;
       }  /* if */
-      section_length = mangled_template_arguments(proto_ctsp->
-                                                             template_arg_list,
-                                                  /*partial_spec=*/TRUE,
-                                                  /*old_form=*/FALSE,
-                                                  store_at);
-      mangled_name_length += section_length;
-      if (store_at != NULL) store_at += section_length;
+      mangled_template_arguments(proto_ctsp->template_arg_list,
+                                 /*partial_spec=*/TRUE,
+                                 /*old_form=*/FALSE,
+                                 mctl);
       /* The second argument list is the deduced argument values for the
          template parameter list of the partial specialization. */
       template_args = ctsp->partial_spec_template_arg_list;
@@ -1383,9 +1226,7 @@ and an indication of that fact should be put out.
     if (show_template_specialization) {
       /* Put out an indication of the fact the template from which this
          class is generated is specialized. */
-      section_length = mangled_specialization_indication(store_at);
-      mangled_name_length += section_length;
-      if (store_at != NULL) store_at += section_length;
+      mangled_specialization_indication(mctl);
     }  /* if */
     if (template_args != NULL) {
       /* A template class.  Add information on template arguments. */
@@ -1396,18 +1237,14 @@ and an indication of that fact should be put out.
 #if ABI_COMPATIBILITY_VERSION < 235
       old_form = TRUE;
 #endif /* ABI_COMPATIBILITY_VERSION < 235 */
-      section_length = mangled_template_arguments(template_args,
-                                                  /*partial_spec=*/FALSE,
-                                                  old_form,
-                                                  store_at);
-      mangled_name_length += section_length;
-      if (store_at != NULL) store_at += section_length;
+      mangled_template_arguments(template_args,
+                                 /*partial_spec=*/FALSE,
+                                 old_form,
+                                 mctl);
     }  /* if */
     if (show_specialization) {
       /* Put out an indication of the fact that this class is specialized. */
-      section_length = mangled_specialization_indication(store_at);
-      mangled_name_length += section_length;
-      if (store_at != NULL) store_at += section_length;
+      mangled_specialization_indication(mctl);
     }  /* if */
     /* If the class is a local class, put out "__Lnn" using the declaration
        scope number for "nn".  This is not from the ARM.  cfront uses a
@@ -1418,17 +1255,10 @@ and an indication of that fact should be put out.
         !type->source_corresp.is_class_member) {
       /* This is a local name. */
       a_symbol_ptr assoc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-      sizeof_t digits =
-                     digits_to_represent((unsigned long)assoc_sym->decl_scope);
-      mangled_name_length += digits + 3;  /* "__L" */
-      if (store_at != NULL) {
-        (void)sprintf(store_at, "__L%lu",
-                      (unsigned long)assoc_sym->decl_scope);
-        store_at += digits + 3;
-      }  /* if */
+      add_str_to_mangled_name("__L", mctl);
+      add_number_to_mangled_name((unsigned long)assoc_sym->decl_scope, mctl);
     }  /* if */
   }  /* if */
-  return mangled_name_length;
 }  /* mangled_full_class_name */
 
 
@@ -1437,51 +1267,40 @@ Interface to mangled_full_class_name for the case where
 show_template_specialization and show_specialization are FALSE (meaning no
 information about those things should be put out).
 */
-#define mangled_basic_class_name(type, store_at)                      \
-  mangled_full_class_name((type), FALSE, FALSE, (store_at))
+#define mangled_basic_class_name(type, mctl)                          \
+  mangled_full_class_name((type), FALSE, FALSE, (mctl))
 
 
-static sizeof_t mangled_name_with_length(char *name,
-                                         char *store_at)
+static void mangled_name_with_length(char                     *name,
+                                     a_mangling_control_block *mctl)
 /*
-Put out a name with a prefix that indicates the length, e.g., "3abc" for the
-name "abc".  name is null-terminated.  Place the mangled name at *store_at if
-store_at != NULL, and (always) return the length of the mangled name.
+Add to the mangled name the encoding for a name, with a prefix that
+indicates the length, e.g., "3abc" for the name "abc".  name is
+null-terminated.
 */
 {
-  sizeof_t mangled_name_length, name_length, digits;
-
-  name_length = strlen(name);
-  digits = digits_to_represent((unsigned long)name_length);
-  mangled_name_length = name_length + digits;
-  if (store_at != NULL) {
-    (void)sprintf(store_at, "%lu", (unsigned long)name_length);
-    store_at += digits;
-    (void)memcpy(store_at, name, size_t_arg(name_length));
-    store_at += name_length;
-  }  /* if */
-  return mangled_name_length;
+  add_number_to_mangled_name((unsigned long)strlen(name), mctl);
+  add_str_to_mangled_name(name, mctl);
 }  /* mangled_name_with_length */
 
 
-static sizeof_t mangled_class_encoding(a_type_ptr type,
-                                       a_boolean  show_template_specialization,
-                                       a_boolean  show_specialization,
-                                       char       *store_at)
+static void mangled_class_encoding(
+                         a_type_ptr               type,
+                         a_boolean                show_template_specialization,
+                         a_boolean                show_specialization,
+                         a_mangling_control_block *mctl)
 /*
-Determine the mangled form of the name of the class "type".  This is
-the version that contains a leading count of the number of characters
-in the name, but not information on parents.  If the class is a proxy class
-for a template parameter, the encoding for the template parameter is put
-out (without a length).  Place the mangled name at *store_at if
-store_at != NULL, and (always) return the length of the name.
-show_template_specialization is TRUE if the class is generated from
-a specialization of a template and an indication of that fact should be
-put out.  show_specialization is TRUE if the class is itself a
-specialization and an indication of that fact should be put out.
+Add to the mangled name the encoding for the name of the class "type".
+This is the version that contains a leading count of the number of
+characters in the name, but not information on parents.  If the class
+is a proxy class for a template parameter, the encoding for the template
+parameter is put out (without a length).  show_template_specialization is
+TRUE if the class is generated from a specialization of a template and
+an indication of that fact should be put out.  show_specialization is TRUE
+if the class is itself a specialization and an indication of that fact
+should be put out.
 */
 {
-  sizeof_t   mangled_name_length, name_length, digits;
   a_type_ptr template_param = NULL;
   char       *name;
 
@@ -1498,10 +1317,9 @@ specialization and an indication of that fact should be put out.
     check_assertion(template_param->kind == (a_type_kind)tk_template_param);
     switch (template_param->variant.template_param.kind) {
       case tptk_param:
-        mangled_name_length = mangled_encoding_for_template_parameter(
+        mangled_encoding_for_template_parameter(
                &template_param->variant.template_param.extra_info->coordinates,
-               store_at);
-        if (store_at != NULL) store_at += mangled_name_length;
+               mctl);
         break;
       case tptk_member:
         /* For something like T::x, where T is a template parameter, just
@@ -1509,8 +1327,7 @@ specialization and an indication of that fact should be put out.
         name = type->source_corresp.name;
         check_assertion_str(name != NULL,
                             "mangled_class_encoding: tptk_member has no name");
-        mangled_name_length = mangled_name_with_length(name, store_at);
-        if (store_at != NULL) store_at += mangled_name_length;
+        mangled_name_with_length(name, mctl);
         break;
       default:
         unexpected_condition_str(
@@ -1519,44 +1336,36 @@ specialization and an indication of that fact should be put out.
   } else {
     /* Not a proxy for a template parameter.  Put out the class name preceded
        by its length. */
-    name_length = mangled_full_class_name(type,
-                                          show_template_specialization,
-                                          show_specialization,
-                                          (char *)NULL);
-    digits = digits_to_represent((unsigned long)name_length);
-    mangled_name_length = name_length + digits;
-    if (store_at != NULL) {
-      /* Actually store the name. */
-      (void)sprintf(store_at, "%lu", (unsigned long)name_length);
-      store_at += digits;
-      store_at += mangled_full_class_name(type,
-                                          show_template_specialization,
-                                          show_specialization,
-                                          store_at);
-    }  /* if */
+    a_mangling_control_block sctl;
+    /* Do the mangling once to get the length, then again for real. */
+    set_control_block_for_supression(&sctl, mctl);
+    mangled_full_class_name(type,
+                            show_template_specialization,
+                            show_specialization,
+                            &sctl);
+    add_number_to_mangled_name((unsigned long)sctl.slength, mctl);
+    mangled_full_class_name(type,
+                            show_template_specialization,
+                            show_specialization,
+                            mctl);
   }  /* if */
-  return mangled_name_length;
 }  /* mangled_class_encoding */
 
 
-static sizeof_t r_mangled_parent_qualifier(
-                                         a_source_correspondence *scp,
-                                         unsigned long           nesting_level,
-                                         char                    *store_at)
+static void r_mangled_parent_qualifier(a_source_correspondence  *scp,
+                                       unsigned long            nesting_level,
+                                       a_mangling_control_block *mctl)
 /*
-Determine the parent qualifier needed in the mangled name for a member of
-a class or namespace whose source correspondence is pointed to by scp.
-Place it at *store_at if store_at != NULL, and (always) return the length
-of the parent qualifier.  nesting_level is used to track recursive calls
-of this routine to deal with multiple levels of parents.  nesting_level == 1
-refers to the innermost qualifier of a type, nesting_level == 2 is the
-next level out, etc.  See the macro mangled_parent_qualifier, which supplies
-the usual nesting_level == 1.
+Add to the mangled name the encoding for the parent qualifier needed in
+the mangled name for a member of a class or namespace whose source
+correspondence is pointed to by scp.  nesting_level is used to track
+recursive calls of this routine to deal with multiple levels of parents.
+nesting_level == 1 refers to the innermost qualifier of a type,
+nesting_level == 2 is the next level out, etc.  See the macro
+mangled_parent_qualifier, which supplies the usual nesting_level == 1.
 */
 {
   a_source_correspondence *parent_scp;
-  sizeof_t                mangled_name_length = 0, section_length;
-  sizeof_t                digits;
   a_boolean               more_levels;
 
   /* See if the present level is nested inside some other class or
@@ -1581,10 +1390,7 @@ the usual nesting_level == 1.
   if (more_levels) {
     /* This level is nested inside something else.  Do a recursive call to
        deal with all of the parents. */
-    section_length = r_mangled_parent_qualifier(parent_scp, nesting_level + 1,
-                                                store_at);
-    mangled_name_length = section_length;
-    if (store_at != NULL) store_at += section_length;
+    r_mangled_parent_qualifier(parent_scp, nesting_level + 1, mctl);
   } else {
     /* This is the topmost qualifier. */
     if (nesting_level > 1) {
@@ -1596,13 +1402,9 @@ the usual nesting_level == 1.
          Note that the ARM description does not include the underscore, which
          is necessary if you allow more than 9 levels of nesting.
          The same scheme is used for namespace names. */
-      digits = digits_to_represent(nesting_level);
-      mangled_name_length = 2 + digits;
-      if (store_at != NULL) {
-        /* Actually store the "Qn_". */
-        (void)sprintf(store_at, "Q%lu_", nesting_level);
-        store_at += 2 + digits;
-      }  /* if */
+      add_to_mangled_name('Q', mctl);
+      add_number_to_mangled_name(nesting_level, mctl);
+      add_to_mangled_name('_', mctl);
     }  /* if */
   }  /* if */
   /* Put the class or namespace name at this level into the mangled name. */
@@ -1634,12 +1436,10 @@ the usual nesting_level == 1.
         is_specialization = TRUE;
       }  /* if */
     }  /* if */
-    section_length = mangled_class_encoding(type,
-                                            is_template_specialization,
-                                            is_specialization,
-                                            store_at);
-    mangled_name_length += section_length;
-    if (store_at != NULL) store_at += section_length;
+    mangled_class_encoding(type,
+                           is_template_specialization,
+                           is_specialization,
+                           mctl);
   } else {
     /* Namespace name. */
     a_namespace_ptr nsp = scp->parent.namespace_ptr;
@@ -1651,19 +1451,16 @@ the usual nesting_level == 1.
     }  /* if */
     /* Put out the namespace name preceded by the length of the name, e.g.,
        "NNN" --> "3NNN". */
-    section_length = mangled_name_with_length(name, store_at);
-    mangled_name_length += section_length;
-    if (store_at != NULL) store_at += section_length;
+    mangled_name_with_length(name, mctl);
   }  /* if */
-  return mangled_name_length;
 }  /* r_mangled_parent_qualifier */
 
 
 /*
 Interface to r_mangled_parent_qualifier, to provide nesting_level == 1.
 */
-#define mangled_parent_qualifier(parent, store_at)                    \
-  r_mangled_parent_qualifier((parent), (unsigned long)1, (store_at))
+#define mangled_parent_qualifier(parent, mctl)                        \
+  r_mangled_parent_qualifier((parent), (unsigned long)1, (mctl))
 
 
 /* Return TRUE if the indicated type needs a parent (class or namespace)
@@ -1687,18 +1484,15 @@ the name placed in the nested type itself.
 #define PREFIX_ON_NESTED_TYPE_NAME "__"
 
 
-static sizeof_t mangled_type_name(a_type_ptr type,
-                                  char       *store_at)
+static void mangled_type_name(a_type_ptr               type,
+                              a_mangling_control_block *mctl)
 /*
-Determine the mangled form of the name of the type "type".  Place the
-mangled name at *store_at if store_at != NULL, and (always) return the
-length of the name.  See ARM 7.2.1c for name encoding.  This routine is
-used for named types (classes, enums, and typedefs) and for unnamed
-classes and enums.  Nested types are encoded as such.
+Add to the mangled name the encoding for the name of the type "type".
+This routine is used for named types (classes, enums, and typedefs)
+and for unnamed classes and enums.  Nested types are encoded as such.
 */
 {
-  sizeof_t mangled_name_length = 0, section_length;
-  char     *name;
+  char *name;
 
   if (type->source_corresp.nested_type_mangling_has_been_done) {
     /* The parent information has already been mangled into the type name,
@@ -1706,20 +1500,15 @@ classes and enums.  Nested types are encoded as such.
        the prefix. */
     char *mangled_name = type->source_corresp.name +
                          sizeof(PREFIX_ON_NESTED_TYPE_NAME) - 1;
-    mangled_name_length = strlen(mangled_name);
-    if (store_at != NULL) {
-      (void)strcpy(store_at, mangled_name);
-      store_at += mangled_name_length;
-    }  /* if */
+    add_str_to_mangled_name(mangled_name, mctl);
   } else {
     if (type_needs_parent_qualifier(type)) {
       /* The type is a member of a class or namespace, so put out a qualifier.
          Note that the count starts at 2 because the type name itself is level
          1. */
-      mangled_name_length = r_mangled_parent_qualifier(&type->source_corresp,
-                                                       (unsigned long)2,
-                                                       store_at);
-      if (store_at != NULL) store_at += mangled_name_length;
+      r_mangled_parent_qualifier(&type->source_corresp,
+                                 (unsigned long)2,
+                                 mctl);
     }  /* if */
     /* Put out the type name itself. */
     /* The mangled form of a type name is the type name with a length
@@ -1729,12 +1518,10 @@ classes and enums.  Nested types are encoded as such.
     */
     if (is_immediate_class_type(type)) {
       /* Class name. */
-      section_length = mangled_class_encoding(type,
-                                         /*show_template_specialization*/FALSE,
-                                              /*show_specialization=*/FALSE,
-                                              store_at);
-      mangled_name_length += section_length;
-      if (store_at != NULL) store_at += section_length;
+      mangled_class_encoding(type,
+                             /*show_template_specialization*/FALSE,
+                             /*show_specialization=*/FALSE,
+                             mctl);
     } else {
       /* Not a class name (typedef or enum). */
       name = type->source_corresp.name;
@@ -1744,57 +1531,48 @@ classes and enums.  Nested types are encoded as such.
         give_unnamed_enum_a_name(type);
         name = type->source_corresp.name;
       }  /* if */
-      section_length = mangled_name_with_length(name, store_at);
-      mangled_name_length += section_length;
-      if (store_at != NULL) store_at += section_length;
+      mangled_name_with_length(name, mctl);
     }  /* if */
   }  /* if */
-  return mangled_name_length;
 }  /* mangled_type_name */
 
 
-sizeof_t mangled_class_name(a_type_ptr type,
-                            char       *store_at)
+static void mangled_class_name_internal(a_type_ptr               type,
+                                        a_mangling_control_block *mctl)
 /*
-Determine the mangled form of the name of the class "type".  This is
-the encoding used for the name of the class as opposed to the encoding
-for the class as a type (for example, it has no length preceding a
-simple class name).  Place the mangled name at *store_at if
-store_at != NULL, and (always) return the length of the name.
+Add to the mangled name the encoding for the name of the class "type".
+This is the encoding used for the name of the class as opposed to
+the encoding for the class as a type (for example, it has no length
+preceding a simple class name).  This routine has the name "_internal"
+because it's intended to be called from inside a name mangling
+operation; compare mangled_class_name (no "_internal").
 */
 {
-  sizeof_t mangled_name_length;
-
   if (type_needs_parent_qualifier(type)) {
     /* For a nested class, use the nested type encoding for the class. */
-    mangled_name_length = mangled_type_name(type, store_at);
+    mangled_type_name(type, mctl);
   } else {
     /* For a non-nested class, use the simple form of the name (with
        no preceding length). */
-    mangled_name_length = mangled_basic_class_name(type, store_at);
+    mangled_basic_class_name(type, mctl);
   }  /* if */
-  return mangled_name_length;
-}  /* mangled_class_name */
+}  /* mangled_class_name_internal */
 
 
-static sizeof_t mangled_encoding_for_type(a_type_ptr type,
-                                          char       *store_at)
+static void mangled_encoding_for_type(a_type_ptr               type,
+                                      a_mangling_control_block *mctl)
 /*
-Determine the mangled encoding for the type "type".  Place the encoding at
-*store_at if store_at != NULL, and (always) return the length of the name.
-See ARM 7.2.1c for name encoding.
+Add to the mangled name the encoding for the type "type".
 */
 {
   a_type_ptr named_type, pm_base_type;
 #if ABI_COMPATIBILITY_VERSION < 230
   a_type_ptr named_typedef = NULL;
 #endif /* ABI_COMPATIBILITY_VERSION < 230 */
-  sizeof_t   mangled_name_length, section_length;
   char       *s;
   a_type_qualifier_set
              qualifiers;
 
-  mangled_name_length = 0;
   /* Walk through any typerefs above the type.  Remember type qualifiers
      and skip down to the "real" underlying type. */
   qualifiers = 0;
@@ -1809,9 +1587,7 @@ See ARM 7.2.1c for name encoding.
   }  /* for */
   /* Put out type qualifiers, if any. */
   if (qualifiers != 0) {
-    section_length= mangled_encoding_for_type_qualifiers(qualifiers, store_at);
-    mangled_name_length += section_length;
-    if (store_at != NULL) store_at += section_length;
+    mangled_encoding_for_type_qualifiers(qualifiers, mctl);
   }  /* if */
   /* See if the type is a named class or enum. */
   named_type = NULL;
@@ -1832,9 +1608,7 @@ See ARM 7.2.1c for name encoding.
   /* If the type is named, use the name. */
   if (named_type != NULL) {
     /* Put out the mangled form of the name, e.g., "2AB" for "AB". */
-    section_length = mangled_type_name(named_type, store_at);
-    mangled_name_length += section_length;
-    if (store_at != NULL) store_at += section_length;
+    mangled_type_name(named_type, mctl);
   } else {
     /* The type is not named, so develop a description string. */
     switch (type->kind) {
@@ -1848,7 +1622,7 @@ See ARM 7.2.1c for name encoding.
       case tk_integer:
         if (type->variant.integer.enum_type) {
           /* Unnamed enum.  mangled_type_name will make up a name. */
-          mangled_name_length += mangled_type_name(type, store_at);
+          mangled_type_name(type, mctl);
           goto have_whole_mangled_name;
         }  /* if */
         if (type->variant.integer.wchar_t_type) {
@@ -1911,32 +1685,28 @@ See ARM 7.2.1c for name encoding.
         break;
       case tk_routine:
         /* Function.  Put out "F" and the argument types. */
-        section_length = mangled_encoding_for_function_type(type,
-                                                       /*do_return_type=*/TRUE,
-                                                            store_at);
-        mangled_name_length += section_length;
-        if (store_at != NULL) store_at += section_length;
+        mangled_encoding_for_function_type(type,
+                                           /*do_return_type=*/TRUE,
+                                           mctl);
         goto have_whole_mangled_name;
       case tk_class:
       case tk_struct:
       case tk_union:
         /* Unnamed classes.  mangled_type_name will make up a name. */
-        mangled_name_length += mangled_type_name(type, store_at);
+        mangled_type_name(type, mctl);
         goto have_whole_mangled_name;
       case tk_template_param:
         /* This comes up when mangling the names for template entities using
            the modern mangling approach. */
         switch (type->variant.template_param.kind) {
           case tptk_param:
-            mangled_name_length += mangled_encoding_for_template_parameter(
+            mangled_encoding_for_template_parameter(
                          &type->variant.template_param.extra_info->coordinates,
-                         store_at);
+                         mctl);
             break;
           case tptk_member:
             /* Type selected from a template parameter type, e.g., T::x. */
-            section_length = mangled_type_name(type, store_at);
-            mangled_name_length += section_length;
-            if (store_at != NULL) store_at += section_length;
+            mangled_type_name(type, mctl);
             break;
           default:
             unexpected_condition_str(
@@ -1949,41 +1719,27 @@ See ARM 7.2.1c for name encoding.
 #endif /* CHECKING */
     }  /* switch */
     /* s is now set to a type description string to be output. */
-    section_length = strlen(s);
-    mangled_name_length += section_length;
-    if (store_at != NULL) {
-      (void)memcpy(store_at, s, size_t_arg(section_length));
-      store_at += section_length;
-    }  /* if */
+    add_str_to_mangled_name(s, mctl);
     /* Do any processing needed after the description letter. */
     switch (type->kind) {
       case tk_pointer:
         /* Put out the type pointed to. */
-        mangled_name_length +=
-                          mangled_encoding_for_type(type->variant.pointer.type,
-                                                    store_at);
+        mangled_encoding_for_type(type->variant.pointer.type, mctl);
         break;
       case tk_ptr_to_member:
         /* Put out the mangled name of the class for which this is a member
            pointer. */
-        section_length = mangled_encoding_for_type(type->variant.ptr_to_member.
+        mangled_encoding_for_type(type->variant.ptr_to_member.
                                                        class_of_which_a_member,
-                                                   store_at);
-        mangled_name_length += section_length;
-        if (store_at != NULL) store_at += section_length;
+                                  mctl);
         pm_base_type = type->variant.ptr_to_member.type;
         if (is_function_type(pm_base_type)) {
           /* This is a pointer to member function.  Put out the type qualifiers
              (if any) on the member function type. */
-          section_length = mangled_encoding_for_function_qualifiers(
-                                                                  pm_base_type,
-                                                                  store_at);
-          mangled_name_length += section_length;
-          if (store_at != NULL) store_at += section_length;
+          mangled_encoding_for_function_qualifiers(pm_base_type, mctl);
         }  /* if */
         /* Put out the type pointed to. */
-        mangled_name_length += mangled_encoding_for_type(pm_base_type,
-                                                         store_at);
+        mangled_encoding_for_type(pm_base_type, mctl);
         break;
       case tk_array:
         /* Put out the array size, an underscore, and then the element type,
@@ -1992,40 +1748,26 @@ See ARM 7.2.1c for name encoding.
           /* Variable size arrays are possible when putting out function
              prototypes.  For that case the prefix is "A_". */
           check_assertion(distinct_template_signatures);
-          mangled_name_length++;
-          if (store_at != NULL) *store_at++ = '_';
+          add_to_mangled_name('_', mctl);
           /* Put out an encoding for the expression. */
-          section_length = mangled_encoding_for_expression(
+          mangled_encoding_for_expression(
                                 type->variant.array.variant.element_count_expr,
-                                store_at);
-          mangled_name_length += section_length;
-          if (store_at != NULL) store_at += section_length;
+                                mctl);
         } else {
           /* Put out the (constant) number of elements. */
-          section_length =
-             digits_to_represent((unsigned long)type->variant.array.
-                                                   variant.number_of_elements);
-          mangled_name_length += section_length;
-          if (store_at != NULL) {
-            (void)sprintf(store_at, "%lu",
-                          (unsigned long)type->
-                                     variant.array.variant.number_of_elements);
-            store_at += section_length;
-          }  /* if */
+          add_number_to_mangled_name((unsigned long)type->variant.array.
+                                                    variant.number_of_elements,
+                                     mctl);
         }  /* if */
-        mangled_name_length++;
-        if (store_at != NULL) *store_at++ = '_';
+        add_to_mangled_name('_', mctl);
         /* Put out the element type. */
-        mangled_name_length +=
-            mangled_encoding_for_type(type->variant.array.element_type,
-                                      store_at);
+        mangled_encoding_for_type(type->variant.array.element_type, mctl);
         break;
       default:;
         /* Many cases don't require any handling. */
     }  /* switch */
   }  /* if */
-have_whole_mangled_name:      
-  return mangled_name_length;
+have_whole_mangled_name:;
 }  /* mangled_encoding_for_type */
 
 
@@ -2283,18 +2025,16 @@ expressions on nontype template parameters in function signatures.
 }  /* mangled_expr_operator_name */
 
 
-static sizeof_t mangled_function_name(a_routine_ptr routine,
-                                      a_boolean     suppress_param_encoding,
-                                      char          *store_at)
+static void mangled_function_name(
+                              a_routine_ptr            routine,
+                              a_boolean                suppress_param_encoding,
+                              a_mangling_control_block *mctl)
 /*
-Determine the mangled form of the name of the function "routine".  Place the
-mangled name at *store_at if store_at != NULL, and (always) return the
-length of the name.  See ARM 7.2.1c for name encoding.
+Add to the mangled name the encoding for the name of the function "routine".
 If suppress_param_encoding is TRUE, suppress the information on parameter
 types; just put out the base encoded name.
 */
 {
-  sizeof_t   mangled_name_length, section_length;
   char       *name;
   a_type_ptr conversion_type, routine_type;
   a_boolean  is_member, mangle_as_template, add_leading_underscores = FALSE;
@@ -2349,7 +2089,6 @@ types; just put out the base encoded name.
     }  /* if */
   }  /* if */
   /* Put out the name of the function. */
-  mangled_name_length = 0;
   if (routine->special_kind == (a_special_function_kind)sfk_none) {
     /* Normal name. */
     name = unmangled_name_of(&routine->source_corresp);
@@ -2381,48 +2120,33 @@ types; just put out the base encoded name.
 #endif /* CHECKING */
     }  /* switch */
   }  /* if */
-  /* Copy the name. */
-  section_length = strlen(name);
-  mangled_name_length += section_length;
-  if (add_leading_underscores) mangled_name_length += 2;  
-  if (store_at != NULL) {
-    if (add_leading_underscores) {
-      *store_at++ = '_';
-      *store_at++ = '_';
-    }  /* if */
-    (void)memcpy(store_at, name, size_t_arg(section_length));
-    store_at += section_length;
+  if (add_leading_underscores) {
+    add_str_to_mangled_name("__", mctl);
   }  /* if */
+  /* Copy the name. */
+  add_str_to_mangled_name(name, mctl);
   /* For a conversion function, add the type signature. */
   if (routine->special_kind == (a_special_function_kind)sfk_conversion) {
     conversion_type = routine_type->variant.routine.return_type;
-    section_length = mangled_encoding_for_type(conversion_type, store_at);
-    mangled_name_length += section_length;
-    if (store_at != NULL) store_at += section_length;
+    mangled_encoding_for_type(conversion_type, mctl);
   }  /* if */
   if (mangle_as_template) {
     if (is_template_specialization) {
       /* Put out an indication of the fact the template from which this
          function is generated is specialized. */
-      section_length = mangled_specialization_indication(store_at);
-      mangled_name_length += section_length;
-      if (store_at != NULL) store_at += section_length;
+      mangled_specialization_indication(mctl);
     }  /* if */
     if (routine->template_arg_list != NULL) {
       /* Put out the template arguments. */
-      section_length = mangled_template_arguments(routine->template_arg_list,
-                                                  /*partial_spec=*/FALSE,
-                                                  /*old_form=*/FALSE,
-                                                  store_at);
-      mangled_name_length += section_length;
-      if (store_at != NULL) store_at += section_length;
+      mangled_template_arguments(routine->template_arg_list,
+                                 /*partial_spec=*/FALSE,
+                                 /*old_form=*/FALSE,
+                                 mctl);
     }  /* if */
     if (is_specialization) {
       /* Put out an indication of the fact that this function is
          specialized. */
-      section_length = mangled_specialization_indication(store_at);
-      mangled_name_length += section_length;
-      if (store_at != NULL) store_at += section_length;
+      mangled_specialization_indication(mctl);
     }  /* if */
   }  /* if */
   /* See if the function is a class member function or a member of a
@@ -2433,29 +2157,19 @@ types; just put out the base encoded name.
      put out two underscores to separate the function name from the rest. */
   if (is_member || !suppress_param_encoding) {
     /* Add two underscores after the name. */
-    mangled_name_length += 2;
-    if (store_at != NULL) {
-      *store_at++ = '_';
-      *store_at++ = '_';
-    }  /* if */
+    add_str_to_mangled_name("__", mctl);
   }  /* if */
   if (is_member) {
     /* Put out the name of the class or namespace of which this function
        is a member. */
-    section_length = mangled_parent_qualifier(&routine->source_corresp,
-                                              store_at);
-    mangled_name_length += section_length;
-    if (store_at != NULL) store_at += section_length;
+    mangled_parent_qualifier(&routine->source_corresp, mctl);
   }  /* if */
   if (!suppress_param_encoding) {
     a_boolean do_return_type;
     if (routine->source_corresp.is_class_member) {
       /* Class member function.  Put out the qualifiers on the member function
          type. */
-      section_length = mangled_encoding_for_function_qualifiers(routine_type,
-                                                                store_at);
-      mangled_name_length += section_length;
-      if (store_at != NULL) store_at += section_length;
+      mangled_encoding_for_function_qualifiers(routine_type, mctl);
     }  /* if */
     /* Templates have their return types included. */
     do_return_type = mangle_as_template;
@@ -2465,13 +2179,8 @@ types; just put out the base encoded name.
       do_return_type = FALSE;
     }  /* if */
     /* Output the function type, including the parameter types. */
-    section_length = mangled_encoding_for_function_type(routine_type,
-                                                        do_return_type,
-                                                        store_at);
-    mangled_name_length += section_length;
-    if (store_at != NULL) store_at += section_length;
+    mangled_encoding_for_function_type(routine_type, do_return_type, mctl);
   }  /* if */
-  return mangled_name_length;
 }  /* mangled_function_name */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION || DO_IL_LOWERING
@@ -2515,13 +2224,13 @@ char *get_mangled_function_name(a_routine_ptr routine)
 /*
 Get the mangled name for the indicated routine, and return a pointer
 to it.  If the routine name has not been mangled yet, create a copy
-of the mangled name in temp_text_buffer but do not change the
+of the mangled name in a temporary buffer but do not change the
 name in the routine entry.
 */
 {
-  a_boolean suppress_param_encoding;
-  sizeof_t  mangled_name_length, alloc_length;
-  char      *mangled_name;
+  a_mangling_control_block mctl;
+  a_boolean                suppress_param_encoding;
+  char                     *mangled_name;
 
   /* The routine should not be unnamed. */
   mangled_name = routine->source_corresp.name;
@@ -2532,40 +2241,31 @@ name in the routine entry.
        mangled, so just return it. */
   } else {
     /* Generate the mangled name in a buffer. */
-    /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_function_name(routine,
-                                                suppress_param_encoding,
-                                                (char *)NULL);
-    /* Make sure we have enough space in temp_text_buffer. */
-    alloc_length = mangled_name_length + 1;
-    ensure_temp_text_buffer_space(alloc_length);
-    mangled_name = temp_text_buffer;
+    start_mangling(&mctl);
     /* Create the name. */
-    (void)mangled_function_name(routine, suppress_param_encoding,
-                                mangled_name);
-    /* Store the final null. */
-    mangled_name[mangled_name_length] = '\0';
+    mangled_function_name(routine, suppress_param_encoding, &mctl);
+    /* Add the final null. */
+    add_to_mangled_name('\0', &mctl);
+    mangled_name = temp_text_buffer;
   }  /* if */
   return mangled_name;
 }  /* get_mangled_function_name */
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
-static sizeof_t mangled_member_name(a_source_correspondence *scp,
-                                    a_boolean               is_specialization,
-                                    char                    *store_at)
+static void mangled_member_name(a_source_correspondence  *scp,
+                                a_boolean                is_specialization,
+                                a_mangling_control_block *mctl)
 /*
-Determine the mangled form of the name of the class or namespace member
-whose source correspondence is given by scp.  Place the mangled name
-at *store_at if store_at != NULL, and (always) return the length of the
-name.  See ARM 7.2.1c for name encoding.  This routine must be called
-only for static data member variables, namespace member variables, and
-class and namespace member constants.  is_specialization is TRUE if the
-variable is a template static data member specialization.
+Add to the mangled name the encoding for the name of the class or
+namespace member whose source correspondence is given by scp.
+This routine must be called only for static data member variables,
+namespace member variables, and class and namespace member constants.
+is_specialization is TRUE if the variable is a template static data
+member specialization.
 */
 {
-  sizeof_t mangled_name_length, section_length;
-  char     *name;
+  char *name;
 
   /* The mangled name of a static data member or member constant is the
      original name followed by two underscores followed by the mangled
@@ -2573,45 +2273,28 @@ variable is a template static data member specialization.
        AB::xy --> xy__2AB
      The same encoding is used for members of namespaces.
   */
-  mangled_name_length = 0;
   name = unmangled_name_of(scp);
   /* For an unnamed member, use the mangled name. */
   if (name == NULL) name = scp->name;
   /* Copy the name. */
-  section_length = strlen(name);
-  mangled_name_length += section_length;
-  if (store_at != NULL) {
-    (void)memcpy(store_at, name, size_t_arg(section_length));
-    store_at += section_length;
-  }  /* if */
+  add_str_to_mangled_name(name, mctl);
   if (distinct_template_signatures && is_specialization) {
     /* Put out an indication of the fact that a static data member is
        specialized. */
-    section_length = mangled_specialization_indication(store_at);
-    mangled_name_length += section_length;
-    if (store_at != NULL) store_at += section_length;
+    mangled_specialization_indication(mctl);
   }  /* if */
   /* Add two underscores after the name. */
-  mangled_name_length += 2;
-  if (store_at != NULL) {
-    *store_at++ = '_';
-    *store_at++ = '_';
-  }  /* if */
+  add_str_to_mangled_name("__", mctl);
   /* Output the mangled parent name. */
-  section_length = mangled_parent_qualifier(scp, store_at);
-  mangled_name_length += section_length;
-  if (store_at != NULL) store_at += section_length;
-  return mangled_name_length;
+  mangled_parent_qualifier(scp, mctl);
 }  /* mangled_member_name */
 
 
-static sizeof_t mangled_member_variable_name(a_variable_ptr variable,
-                                             char           *store_at)
+static void mangled_member_variable_name(a_variable_ptr           variable,
+                                         a_mangling_control_block *mctl)
 /*
-Determine the mangled form of the name of the member variable "variable"
-(a static data member or namespace member variable).  Place the mangled name
-at *store_at if store_at != NULL, and (always) return the length of the name.
-See ARM 7.2.1c for name encoding.
+Add to the mangled name the encoding for the name of the member variable
+"variable" (a static data member or namespace member variable).
 */
 {
   a_boolean is_specialization;
@@ -2628,8 +2311,7 @@ See ARM 7.2.1c for name encoding.
   }  /* if */
   is_specialization = (variable->is_specialized &&
                        !variable->specialized_with_old_syntax);
-  return mangled_member_name(&variable->source_corresp, is_specialization,
-                             store_at);
+  mangled_member_name(&variable->source_corresp, is_specialization, mctl);
 }  /* mangled_member_variable_name */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -2638,12 +2320,12 @@ char *get_mangled_static_data_member_name(a_variable_ptr variable)
 /*
 Get the mangled name for the indicated static data member, and return
 a pointer to it.  If the variable name has not been mangled yet, create a
-copy of the mangled name in temp_text_buffer but do not change the
+copy of the mangled name in a temporary buffer but do not change the
 name in the variable entry.
 */
 {
-  sizeof_t   mangled_name_length, alloc_length;
-  char       *mangled_name;
+  a_mangling_control_block mctl;
+  char                     *mangled_name;
 
   /* The variable should not be unnamed. */
   mangled_name = variable->source_corresp.name;
@@ -2652,17 +2334,11 @@ name in the variable entry.
     /* The name has already been mangled, so just return it. */
   } else {
     /* Generate the mangled name in a buffer. */
-    /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_member_variable_name(variable,
-                                                       (char *)NULL);
-    /* Make sure we have enough space in temp_text_buffer. */
-    alloc_length = mangled_name_length + 1;
-    ensure_temp_text_buffer_space(alloc_length);
+    start_mangling(&mctl);
+    mangled_member_variable_name(variable, &mctl);
+    /* Add the final null. */
+    add_to_mangled_name('\0', &mctl);
     mangled_name = temp_text_buffer;
-    /* Create the name. */
-    (void)mangled_member_variable_name(variable, mangled_name);
-    /* Store the final null. */
-    mangled_name[mangled_name_length] = '\0';
   }  /* if */
   return mangled_name;
 }  /* get_mangled_static_data_member_name */
@@ -2681,23 +2357,22 @@ static void mangle_class_name(a_type_ptr class_type)
 Mangle the name of the indicated class, if necessary.
 */
 {
-  sizeof_t mangled_name_length, alloc_length;
-  char     *mangled_name;
+  a_mangling_control_block mctl;
+  char                     *mangled_name;
 
   error_position = class_type->source_corresp.decl_position;
+  /* Template class names must be mangled because otherwise all instances
+     of the same class template have the same name. */
   if (class_type->variant.class_struct_union.extra_info->
                                                    template_arg_list != NULL &&
       !class_type->source_corresp.name_has_been_mangled) {
-    /* Template class names must be mangled because otherwise all instances
-       of the same class template have the same name. */
-    /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_basic_class_name(class_type, (char *)NULL);
-    /* Allocate space for the mangled name and build it.  The old name is
-       just thrown away. */
-    alloc_length = mangled_name_length + 1;
-    mangled_name = alloc_lowered_name_string(alloc_length);
-    (void)mangled_basic_class_name(class_type, mangled_name);
-    mangled_name[mangled_name_length] = '\0';
+    start_mangling(&mctl);
+    mangled_basic_class_name(class_type, &mctl);
+    /* Add the final null. */
+    add_to_mangled_name('\0', &mctl);
+    /* Allocate space for the mangled name and copy it. */
+    mangled_name = alloc_lowered_name_string(mctl.length);
+    (void)strcpy(mangled_name, temp_text_buffer);
     /* Note that the mangled name is not put into the type until after it has
        been completely built, because the old name is used in building the
        mangled form. */
@@ -2743,6 +2418,7 @@ static void do_scope_class_name_mangling(a_scope_ptr scope)
 /*
 Do name mangling for class names in the indicated scope (the file scope
 or a namespace scope) and all subscopes in the file-scope memory region.
+Note that this does not include special processing for nested class names.
 */
 {
   a_namespace_ptr nsp;
@@ -2785,23 +2461,20 @@ is either an enumerator constant, a namespace member constant, or (as an
 extension) a declared class member constant.
 */
 {
-  sizeof_t mangled_name_length, alloc_length;
-  char     *mangled_name;
+  a_mangling_control_block mctl;
+  char                     *mangled_name;
 
+  error_position = con->source_corresp.decl_position;
   if (!con->source_corresp.name_has_been_mangled) {
-    error_position = con->source_corresp.decl_position;
+    start_mangling(&mctl);
     /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_member_name(&con->source_corresp,
-                                              /*is_specialization=*/FALSE,
-                                              (char *)NULL);
-    /* Allocate space for the mangled name and build it.  The old name is
-       just thrown away. */
-    alloc_length = mangled_name_length + 1;
-    mangled_name = alloc_lowered_name_string(alloc_length);
-    (void)mangled_member_name(&con->source_corresp,
-                              /*is_specialization=*/FALSE, mangled_name);
-    /* Store the final null. */
-    mangled_name[mangled_name_length] = '\0';
+    mangled_member_name(&con->source_corresp,
+                        /*is_specialization=*/FALSE, &mctl);
+    /* Add the final null. */
+    add_to_mangled_name('\0', &mctl);
+    /* Allocate space for the mangled name and copy it. */
+    mangled_name = alloc_lowered_name_string(mctl.length);
+    (void)strcpy(mangled_name, temp_text_buffer);
     con->source_corresp.unmangled_name = con->source_corresp.name;
     con->source_corresp.name = mangled_name;
     con->source_corresp.name_has_been_mangled = TRUE;
@@ -2857,9 +2530,9 @@ static void mangle_function_name(a_routine_ptr routine)
 Mangle the name of the indicated function, if necessary.
 */
 {
-  a_boolean suppress_param_encoding;
-  sizeof_t  mangled_name_length, alloc_length;
-  char      *mangled_name;
+  a_boolean                suppress_param_encoding;
+  a_mangling_control_block mctl;
+  char                     *mangled_name;
 
   error_position = routine->source_corresp.decl_position;
   /* Compiler-generated routines have no name, and they are left alone. */
@@ -2867,18 +2540,13 @@ Mangle the name of the indicated function, if necessary.
       !routine->source_corresp.name_has_been_mangled) {
     if (function_name_mangling_needed(routine, &suppress_param_encoding)) {
       /* Mangle the function name. */
-      /* Determine how long the mangled name is. */
-      mangled_name_length = mangled_function_name(routine,
-                                                  suppress_param_encoding,
-                                                  (char *)NULL);
-      /* Allocate space for the mangled name and build it.  The old name is
-         just thrown away. */
-      alloc_length = mangled_name_length + 1;
-      mangled_name = alloc_lowered_name_string(alloc_length);
-      (void)mangled_function_name(routine, suppress_param_encoding,
-                                  mangled_name);
-      /* Store the final null. */
-      mangled_name[mangled_name_length] = '\0';
+      start_mangling(&mctl);
+      mangled_function_name(routine, suppress_param_encoding, &mctl);
+      /* Add the final null. */
+      add_to_mangled_name('\0', &mctl);
+      /* Allocate space for the mangled name and copy it. */
+      mangled_name = alloc_lowered_name_string(mctl.length);
+      (void)strcpy(mangled_name, temp_text_buffer);
       routine->source_corresp.unmangled_name = routine->source_corresp.name;
       routine->source_corresp.name = mangled_name;
       routine->source_corresp.name_has_been_mangled = TRUE;
@@ -2893,23 +2561,21 @@ Mangle the name of the indicated static data member or namespace member
 variable.
 */
 {
-  sizeof_t mangled_name_length, alloc_length;
-  char     *mangled_name;
+  a_mangling_control_block mctl;
+  char                     *mangled_name;
 
+  error_position = variable->source_corresp.decl_position;
   if (!variable->source_corresp.name_has_been_mangled &&
       /* Do not mangle namespace members with extern "C" linkage. */
       is_name_linkage_kind_subject_to_name_mangling(
                                       variable->source_corresp.name_linkage)) {
-    error_position = variable->source_corresp.decl_position;
-    /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_member_variable_name(variable, (char *)NULL);
-    /* Allocate space for the mangled name and build it.  The old name is
-       just thrown away. */
-    alloc_length = mangled_name_length + 1;
-    mangled_name = alloc_lowered_name_string(alloc_length);
-    (void)mangled_member_variable_name(variable, mangled_name);
-    /* Store the final null. */
-    mangled_name[mangled_name_length] = '\0';
+    start_mangling(&mctl);
+    mangled_member_variable_name(variable, &mctl);
+    /* Add the final null. */
+    add_to_mangled_name('\0', &mctl);
+    /* Allocate space for the mangled name and copy it. */
+    mangled_name = alloc_lowered_name_string(mctl.length);
+    (void)strcpy(mangled_name, temp_text_buffer);
     variable->source_corresp.unmangled_name = variable->source_corresp.name;
     variable->source_corresp.name = mangled_name;
     variable->source_corresp.name_has_been_mangled = TRUE;
@@ -2989,8 +2655,8 @@ processing for nested type names that must be delayed until all of the
 other name mangling that might use the name is done.
 */
 {
-  sizeof_t mangled_name_length, alloc_length;
-  char     *mangled_name;
+  a_mangling_control_block mctl;
+  char                     *mangled_name;
 
   error_position = type->source_corresp.decl_position;
   if (type_needs_parent_qualifier(type) && has_name(type) &&
@@ -3003,23 +2669,16 @@ other name mangling that might use the name is done.
        name, and the prefix makes it unique (i.e., makes it distinct
        from all user identifiers).  Similar mangling is used for members
        of namespaces (a different kind of "nested" type). */
-    /* Determine how long the mangled name is. */
-    mangled_name_length = mangled_type_name(type, (char *)NULL) +
-                          sizeof(PREFIX_ON_NESTED_TYPE_NAME) - 1;
-    /* Allocate space for the mangled name and build it.  The old name is
-       just thrown away. */
-    alloc_length = mangled_name_length + 1;
-    mangled_name = alloc_lowered_name_string(alloc_length);
-    (void)strcpy(mangled_name, PREFIX_ON_NESTED_TYPE_NAME);
-    (void)mangled_type_name(type,
-                            mangled_name+sizeof(PREFIX_ON_NESTED_TYPE_NAME)-1);
-    mangled_name[mangled_name_length] = '\0';
-    /* Note that the mangled name is not put into the type until after it has
-       been completely built, because the old name is used in building the
-       mangled form. */
-    if (!type->source_corresp.name_has_been_mangled) {
-      type->source_corresp.unmangled_name = type->source_corresp.name;
-    }  /* if */
+    start_mangling(&mctl);
+    add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
+    mangled_type_name(type, &mctl);
+    /* Add the final null. */
+    add_to_mangled_name('\0', &mctl);
+    /* Allocate space for the mangled name and copy it. */
+    mangled_name = alloc_lowered_name_string(mctl.length);
+    (void)strcpy(mangled_name, temp_text_buffer);
+    check_assertion(!type->source_corresp.name_has_been_mangled);
+    type->source_corresp.unmangled_name = type->source_corresp.name;
     type->source_corresp.name = mangled_name;
     type->source_corresp.name_has_been_mangled = TRUE;
     type->source_corresp.nested_type_mangling_has_been_done = TRUE;
@@ -3154,30 +2813,22 @@ necessarily "same type."
 
 #endif /* ABI_COMPATIBILITY_VERSION >= 230 && ... */
 
-static sizeof_t mangled_derivation_name(a_derivation_step_ptr dsp,
-                                        char                  *store_at)
+static void mangled_derivation_name(a_derivation_step_ptr    dsp,
+                                    a_mangling_control_block *mctl)
 /*
-Determine the mangled form of the name of the indicated derivation.
-This is used for the base class part of virtual function table names.
-Place the mangled name at *store_at if store_at != NULL, and (always)
-return the length of the name.
+Add to the mangled name the encoding for the name of the indicated
+derivation.  This is used for the base class part of virtual function
+table names.
 */
 {
-  sizeof_t   mangled_name_length, name_length;
   a_type_ptr class_type;
 
-  mangled_name_length = 0;
   /* The name must be put out backwards, so use recursion to get to the
      bottom of the list. */
   if (dsp->next != NULL) {
-    mangled_name_length = mangled_derivation_name(dsp->next, store_at);
-    if (store_at != NULL) store_at += mangled_name_length;
+    mangled_derivation_name(dsp->next, mctl);
     /* Add two underscores to separate names. */
-    mangled_name_length += 2;
-    if (store_at != NULL) {
-      *store_at++ = '_';
-      *store_at++ = '_';
-    }  /* if */
+    add_str_to_mangled_name("__", mctl);
   }  /* if */
   /* Put out the name on the first derivation step. */
   class_type = dsp->base_class->type;
@@ -3190,19 +2841,16 @@ return the length of the name.
      cfront-compatible mangling only if there is no other base class
      with the same name. */
   if (!base_class_of_same_name_exists(dsp->base_class)) {
-    name_length = mangled_basic_class_name(class_type, store_at);
+    mangled_basic_class_name(class_type, mctl);
   } else
 #endif /* ABI_COMPATIBILITY_VERSION >= 230  && ... */
   /* Do not insert code here -- this is the "else" of an "if". */
   {
-    /* Note the use of mangled_class_name instead of mangled_vtbl_class_name
-       because we do not want two lengths on the front of nested class
-       names. */
-    name_length = mangled_class_name(class_type, store_at);
+    /* Note the use of mangled_class_name_internal instead of
+       mangled_vtbl_class_name because we do not want two lengths on
+       the front of nested class names. */
+    mangled_class_name_internal(class_type, mctl);
   }
-  mangled_name_length += name_length;
-  if (store_at != NULL) store_at += name_length;
-  return mangled_name_length;
 }  /* mangled_derivation_name */
 
 
@@ -3229,18 +2877,17 @@ base class) is a part there is also a virtual base class of the same name.
 }  /* virtual_base_class_of_same_name_exists */
 
 
-static sizeof_t mangled_vtbl_base_class_name(a_base_class_ptr bcp,
-                                             char             *store_at)
+static void mangled_vtbl_base_class_name(a_base_class_ptr         bcp,
+                                         a_mangling_control_block *mctl)
 /*
-Determine the mangled form of the name of a base class in a virtual
-function table.  The name describes the base class given by bcp.  Place
-the mangled name at *store_at if store_at != NULL, and (always) return
-the length of the name.
+Add to the mangled name the encoding for the name of a base class in
+a virtual function table.  The name describes the base class given by bcp.
 */
 {
-  sizeof_t              mangled_name_length, name_length, digits;
-  a_derivation_step_ptr dsp;
-  a_boolean             ambiguous_direct_base_class = FALSE;
+  sizeof_t                 name_length;
+  a_derivation_step_ptr    dsp;
+  a_boolean                ambiguous_direct_base_class = FALSE;
+  a_mangling_control_block sctl;
 
   /* The form of the name is like
        4abcd
@@ -3251,9 +2898,9 @@ the length of the name.
   */
   dsp = cast_derivation_path_of(bcp);
   /* Determine the length. */
-  name_length = mangled_derivation_name(dsp, (char *)NULL);
-  digits = digits_to_represent((unsigned long)name_length);
-  mangled_name_length = digits + name_length;
+  set_control_block_for_supression(&sctl, mctl);
+  mangled_derivation_name(dsp, &sctl);
+  name_length = sctl.slength;
   if (bcp->ambiguous && bcp->direct && !bcp->is_virtual &&
       virtual_base_class_of_same_name_exists(bcp)) {
     /* This base class is a direct nonvirtual base class and there is
@@ -3264,83 +2911,69 @@ the length of the name.
        function table instance too). */
     ambiguous_direct_base_class = TRUE;
 #define AMB_SUFFIX "__A"
-    mangled_name_length += sizeof(AMB_SUFFIX)-1;
+    name_length += sizeof(AMB_SUFFIX)-1;
   }  /* if */
-  if (store_at != NULL) {
-    /* Put out the name length and the name. */
-    (void)sprintf(store_at, "%lu", (unsigned long)name_length);
-    store_at += digits;
-    (void)mangled_derivation_name(dsp, store_at);
-    store_at += name_length;
-    if (ambiguous_direct_base_class) {
-      (void)strcpy(store_at, AMB_SUFFIX);
-      store_at += sizeof(AMB_SUFFIX)-1;
-    }  /* if */
+  /* Put out the name length and the name. */
+  add_number_to_mangled_name((unsigned long)name_length, mctl);
+  mangled_derivation_name(dsp, mctl);
+  if (ambiguous_direct_base_class) {
+    add_str_to_mangled_name(AMB_SUFFIX, mctl);
+  }  /* if */
 #undef AMB_SUFFIX
-  }  /* if */
-  return mangled_name_length;
 }  /* mangled_vtbl_base_class_name */
 
 
-static sizeof_t mangled_vtbl_class_name(a_type_ptr type,
-                                        char       *store_at)
+static void mangled_vtbl_class_name(a_type_ptr               type,
+                                    a_mangling_control_block *mctl)
 /*
-Determine the mangled form of the name of the class "type" for use in
-a virtual function table name.  Place the mangled name at *store_at if
-store_at != NULL, and (always) return the length of the name.
+Add to the mangled name the encoding for the name of the class "type"
+for use in a virtual function table name.
 */
 {
-  sizeof_t mangled_name_length;
 #if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
-  sizeof_t name_length, digits;
-
   /* cfront mode. */
   if (type_needs_parent_qualifier(type)) {
     /* The type is a nested type.  Add a length in front of the mangled
        form (e.g., "7Q2_1A1B" instead of "Q2_1A1B"). */
-    name_length = mangled_type_name(type, (char *)NULL);
-    digits = digits_to_represent((unsigned long)name_length);
-    mangled_name_length = name_length + digits;
-    if (store_at != NULL) {
-      /* Actually store the name. */
-      (void)sprintf(store_at, "%lu", (unsigned long)name_length);
-      store_at += digits;
-      store_at += mangled_type_name(type, store_at);
-    }  /* if */
+    a_mangling_control_block sctl;
+    /* Do the mangling once to get the length, then again for real. */
+    set_control_block_for_supression(&sctl, mctl);
+    mangled_type_name(type, &sctl);
+    add_number_to_mangled_name((unsigned long)sctl.slength, mctl);
+    mangled_type_name(type, mctl);
   } else {
     /* Not a nested type name; just put out the type encoding. */
-    mangled_name_length = mangled_type_name(type, store_at);
+    mangled_type_name(type, mctl);
   }  /* if */
 #else /* ABI_COMPATIBILITY_VERSION < 230 || ... */
   /* In non-cfront mode, or in old ABI versions, just pass through to
      mangled_type_name. */
-  mangled_name_length = mangled_type_name(type, store_at);
+  mangled_type_name(type, mctl);
 #endif /* ABI_COMPATIBILITY_VERSION >= 230 && ... */
-  return mangled_name_length;
 }  /* mangled_vtbl_class_name */
 
 
 #if !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 /*ARGSUSED*/ /* <-- ctor_bcp is not used in that case. */
 #endif /* !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
-sizeof_t mangled_vtbl_name(a_type_ptr       class_type,
-                           a_base_class_ptr bcp,
-                           a_base_class_ptr ctor_bcp,
-                           char             *store_at)
+char *mangled_vtbl_name(a_type_ptr               class_type,
+                        a_base_class_ptr         bcp,
+                        a_base_class_ptr         ctor_bcp)
 /*
-Determine the mangled form of the name of the virtual function table for
-base class bcp of class class_type.  If bcp == NULL, the virtual
-function table is for class_type itself.  If ctor_bcp is non-NULL, it
-is the base class for class_type as a subobject of some larger class
-type that is the actual complete object type (used in determining
-layout); class_type in that case is the type considered to be the
-complete object type for purposes of overriding (this is used during
-constructors and destructors).  Place the mangled name at *store_at
-if store_at != NULL, and (always) return the length of the name.
+Return the mangled name for the virtual function table for base class
+bcp of class class_type.  If bcp == NULL, the virtual function table is
+for class_type itself.  If ctor_bcp is non-NULL, it is the base class
+for class_type as a subobject of some larger class type that is the
+actual complete object type (used in determining layout); class_type
+in that case is the type considered to be the complete object type
+for purposes of overriding (this is used during constructors and
+destructors).  The name returned is in a temporary buffer and must
+be copied elsewhere.
 */
 {
-  sizeof_t mangled_name_length, section_length;
+  a_mangling_control_block mctl;
 
+  start_mangling(&mctl);
   /* Determine the mangled name.  It is
        __vtbl__<mangled-base-class-name>__<mangled-class-name> or
        __vtbl__<mangled-class-name>
@@ -3349,23 +2982,12 @@ if store_at != NULL, and (always) return the length of the name.
      For example, __vtbl__5X__X1__1B for base class X inside X1 inside
      a whole object of type B.
   */
-#define VTBL_STR "__vtbl__"
-  mangled_name_length = sizeof(VTBL_STR) - 1;
-  if (store_at != NULL) {
-    (void)memcpy(store_at, VTBL_STR, size_t_arg(mangled_name_length));
-    store_at += mangled_name_length;
-  }  /* if */
+  add_str_to_mangled_name("__vtbl__", &mctl);
   if (bcp != NULL) {
     /* Add the base class name. */
-    section_length = mangled_vtbl_base_class_name(bcp, store_at);
-    mangled_name_length += section_length;
-    if (store_at != NULL) store_at += section_length;
+    mangled_vtbl_base_class_name(bcp, &mctl);
     /* Add two underscores after the name. */
-    mangled_name_length += 2;
-    if (store_at != NULL) {
-      *store_at++ = '_';
-      *store_at++ = '_';
-    }  /* if */
+    add_str_to_mangled_name("__", &mctl);
   }  /* if */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
   if (ctor_bcp != NULL) {
@@ -3374,82 +2996,85 @@ if store_at != NULL, and (always) return the length of the name.
                                         __<mangled-complete-class-name>
     */
     /* Add the second base class name. */
-    section_length = mangled_vtbl_base_class_name(ctor_bcp, store_at);
-    mangled_name_length += section_length;
-    if (store_at != NULL) store_at += section_length;
+    mangled_vtbl_base_class_name(ctor_bcp, &mctl);
     /* Add two underscores after the name. */
-    mangled_name_length += 2;
-    if (store_at != NULL) {
-      *store_at++ = '_';
-      *store_at++ = '_';
-    }  /* if */
+    add_str_to_mangled_name("__", &mctl);
     class_type = ctor_bcp->derived_class;
   }  /* if */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
   /* Add the derived class name. */
-  section_length = mangled_vtbl_class_name(class_type, store_at);
-  mangled_name_length += section_length;
-  if (store_at != NULL) store_at += section_length;
-  return mangled_name_length;
-#undef VTBL_STR
+  mangled_vtbl_class_name(class_type, &mctl);
+  /* Add the final null. */
+  add_to_mangled_name('\0', &mctl);
+  return temp_text_buffer;
 }  /* mangled_vtbl_name */
 
 
-static sizeof_t mangled_prefixed_type_encoding(char       *prefix,
-                                               a_type_ptr type,
-                                               char       *store_at)
+char *mangled_class_name(a_type_ptr type)
 /*
-Make a mangled name consisting of the indicated prefix followed by
-the mangled encoding for the indicated type.  Place the mangled name
-at *store_at if store_at != NULL, and (always) return the length of the name.
+Return the mangled name of the class "type".  This is the encoding used
+for the name of the class as opposed to the encoding for the class as
+a type (for example, it has no length preceding a simple class name).
+The name returned is in a temporary buffer and must be copied elsewhere.
 */
 {
-  sizeof_t mangled_name_length, section_length;
+  a_mangling_control_block mctl;
 
-  /* Determine the length of the mangled name. */
-  mangled_name_length = strlen(prefix);
-  if (store_at != NULL) {
-    (void)strcpy(store_at, prefix);
-    store_at += mangled_name_length;
-  }  /* if */
+  start_mangling(&mctl);
+  mangled_class_name_internal(type, &mctl);
+  /* Add the final null. */
+  add_to_mangled_name('\0', &mctl);
+  return temp_text_buffer;
+}  /* mangled_class_name */
+
+
+static char *mangled_prefixed_type_encoding(char       *prefix,
+                                            a_type_ptr type)
+/*
+Return a mangled name that is the indicated prefix followed by the encoding
+for the indicated type.  The name returned is in a temporary buffer and must
+be copied elsewhere.
+*/
+{
+  a_mangling_control_block mctl;
+
+  start_mangling(&mctl);
+  /* Start with the prefix. */
+  add_str_to_mangled_name(prefix, &mctl);
   /* Add the mangled name of the type. */
-  section_length = mangled_encoding_for_type(type, store_at);
-  mangled_name_length += section_length;
-  if (store_at != NULL) store_at += section_length;
-  return mangled_name_length;
+  mangled_encoding_for_type(type, &mctl);
+  /* Add the final null. */
+  add_to_mangled_name('\0', &mctl);
+  return temp_text_buffer;
 }  /* mangled_prefixed_type_encoding */
 
 
-sizeof_t mangled_typeinfo_name(a_type_ptr type,
-                               char       *store_at)
+char *mangled_typeinfo_name(a_type_ptr type)
 /*
-Determine the mangled form of the name of the typeinfo variable for
-type "type".  Place the mangled name at *store_at if store_at != NULL,
-and (always) return the length of the name.  A typeinfo variable is
-used to describe runtime type information.
+Return the mangled name for the typeinfo variable for type "type".
+A typeinfo variable is used to describe runtime type information.
+The name returned is in a temporary buffer and must be copied elsewhere.
 */
 {
   /* The mangled name looks like
        __T_<mangled-type-name>
   */
-  return mangled_prefixed_type_encoding("__T_", type, store_at);
+  return mangled_prefixed_type_encoding("__T_", type);
 }  /* mangled_typeinfo_name */
 
 
-sizeof_t mangled_id_object_name(a_type_ptr type,
-                                char       *store_at)
+char *mangled_id_object_name(a_type_ptr type)
 /*
-Determine the mangled form of the name of the id object variable for
-type "type".  Place the mangled name at *store_at if store_at != NULL,
-and (always) return the length of the name.  The id object variable
-is pointed to by the typeinfo variable used to provide runtime type
-information.
+Return the mangled name for the id object variable for type "type".
+The id object variable is pointed to by the typeinfo variable used
+to provide runtime type information.  The name returned is in
+a temporary buffer and must be copied elsewhere.
 */
 {
   /* The mangled name looks like
        __TID_<mangled-type-name>
   */
-  return mangled_prefixed_type_encoding("__TID_", type, store_at);
+  return mangled_prefixed_type_encoding("__TID_", type);
 }  /* mangled_id_object_name */
 
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
@@ -3495,14 +3120,13 @@ name if necessary.  This routine is called only once for each entity,
 and that is after normal name mangling has been done.
 */
 {
-  sizeof_t mangled_name_length, alloc_length, name_length, routine_name_length;
-  sizeof_t scope_num_length;
-  char     *mangled_name, *store_at;
-  unsigned long
-           scope_number;
+  a_mangling_control_block mctl;
+  char                     *mangled_name;
+  unsigned long            scope_number;
 
   /* Leave the name alone if the entity is unnamed. */
   if (scp->name != NULL) {
+    start_mangling(&mctl);
     /* Name mangling is needed. */
     /* The encoding is the original name, followed by "__Lnn", where "nn"
        is the scope number within the function, followed by two underscores,
@@ -3510,17 +3134,6 @@ and that is after normal name mangling has been done.
        name has not been mangled yet, but the entity's name has been (if
        it needs mangling). */
     check_assertion(!routine->source_corresp.name_has_been_mangled);
-    name_length = strlen(scp->name);
-    if (routine->source_corresp.name != NULL) {
-      routine_name_length =
-                       mangled_function_name(routine,
-                                             /*suppress_param_encoding=*/FALSE,
-                                             (char *)NULL);
-    } else {
-      /* Unnamed routine. */
-      routine_name_length = 0;
-    }  /* if */
-    /* Determine the length of "__Lnn". */
     /* Develop a scope number for the scope in which the entity appears.
        This number must be relative to the function rather than to the
        whole compilation so that if a given function (e.g., an extern inline
@@ -3534,26 +3147,19 @@ and that is after normal name mangling has been done.
       check_assertion_str(found,
                           "mangle_promoted_entity_name: scope not found");
     }
-    scope_num_length = digits_to_represent(scope_number) + 3;
-    mangled_name_length = name_length + 2 + routine_name_length +
-                          scope_num_length;
-    /* Allocate space for the mangled name and build it.  The old name is
-       just thrown away. */
-    alloc_length = mangled_name_length + 1;
-    mangled_name = alloc_lowered_name_string(alloc_length);
-    (void)strcpy(mangled_name, scp->name);
-    store_at = mangled_name + name_length;
-    (void)sprintf(store_at, "__L%lu", scope_number);
-    store_at += scope_num_length;
-    *store_at++ = '_';
-    *store_at++ = '_';
-    if (routine_name_length > 0) {
-      (void)mangled_function_name(routine, /*suppress_param_encoding=*/FALSE,
-                                  store_at);
-      store_at += routine_name_length;
+    add_str_to_mangled_name(scp->name, &mctl);
+    add_str_to_mangled_name("__L", &mctl);
+    add_number_to_mangled_name((unsigned long)scope_number, &mctl);
+    add_str_to_mangled_name("__", &mctl);
+    if (routine->source_corresp.name != NULL) {
+      mangled_function_name(routine, /*suppress_param_encoding=*/FALSE, &mctl);
     }  /* if */
-    /* Store the final null. */
-    *store_at = '\0';
+    /* Add the final null. */
+    add_to_mangled_name('\0', &mctl);
+    /* Allocate space for the mangled name and copy it.  The old name is
+       saved as unmangled_name. */
+    mangled_name = alloc_lowered_name_string(mctl.length);
+    (void)strcpy(mangled_name, temp_text_buffer);
     scp->unmangled_name = scp->name;
     scp->name = mangled_name;
     scp->name_has_been_mangled = TRUE;
@@ -3576,46 +3182,31 @@ function in overridden_class.  Put the appropriate mangled name into
 entry_routine (it has no name on entry).
 */
 {
-  sizeof_t mangled_name_length, alloc_length;
-  sizeof_t prefix_length, class_name_length, routine_name_length;
-  char     *store_at, *mangled_name;
+  a_mangling_control_block mctl;
+  char                     *mangled_name;
 
+  start_mangling(&mctl);
   /* The mangled name has the form
        __VFE__<overridden_class>__<prim_routine>
      where <overridden_class> and <prim_routine> are the mangled names for
      those entities. */
-#define COVARIANT_ENTRY_PREFIX "__VFE__"
-  /* Determine the length of the mangled name. */
-  prefix_length = sizeof(COVARIANT_ENTRY_PREFIX) - 1;
-  class_name_length = mangled_type_name(overridden_class, (char *)NULL);
-  check_assertion(!prim_routine->source_corresp.name_has_been_mangled);
-  routine_name_length = mangled_function_name(prim_routine,
-                                             /*suppress_param_encoding=*/FALSE,
-                                              (char *)NULL);
-  mangled_name_length = prefix_length + class_name_length + 2 +
-                        routine_name_length;
-  /* Allocate space for the mangled name and build it. */
-  alloc_length = mangled_name_length + 1;
-  mangled_name = alloc_lowered_name_string(alloc_length);
-  store_at = mangled_name;
-  (void)strcpy(store_at, COVARIANT_ENTRY_PREFIX);
-  store_at += prefix_length;
+  add_str_to_mangled_name("__VFE__", &mctl);
   /* Add the class name. */
-  (void)mangled_type_name(overridden_class, store_at);
-  store_at += class_name_length;
+  mangled_type_name(overridden_class, &mctl);
   /* Add two underscores after the class name. */
-  *store_at++ = '_';
-  *store_at++ = '_';
+  add_str_to_mangled_name("__", &mctl);
   /* Add the routine name. */
-  (void)mangled_function_name(prim_routine,
-                              /*suppress_param_encoding=*/FALSE,
-                              store_at);
-  store_at += routine_name_length;
-  /* Store the final null. */
-  *store_at = '\0';
+  check_assertion(!prim_routine->source_corresp.name_has_been_mangled);
+  mangled_function_name(prim_routine,
+                        /*suppress_param_encoding=*/FALSE,
+                        &mctl);
+  /* Add the final null. */
+  add_to_mangled_name('\0', &mctl);
+  /* Allocate space for the mangled name and copy it. */
+  mangled_name = alloc_lowered_name_string(mctl.length);
+  (void)strcpy(mangled_name, temp_text_buffer);
   entry_routine->source_corresp.name = mangled_name;
   entry_routine->source_corresp.name_has_been_mangled = TRUE;
-#undef COVARIANT_ENTRY_PREFIX
 }  /* mangle_covariant_return_type_entry_name */
 
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
