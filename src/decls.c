@@ -7493,6 +7493,10 @@ Returns TRUE if there is an error in the specifiers.
                    curr_token != tok_extern && curr_token != tok_static) {
           error(ec_bad_storage_class_on_template_decl);
           err = TRUE;
+        } else if (C_mode() && depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+                   (curr_token == tok_auto || curr_token == tok_register)) {
+          error(ec_bad_file_scope_storage_class);
+          err = TRUE;
         } else {
           if (C_dialect != C_dialect_pcc && !err) {
             if (num_specifiers > ((*output_flags & DSO_FRIEND) ? 1 : 0) +
@@ -10729,7 +10733,7 @@ continue_with_declaration:
         if (decl_scope_level == DEPTH_OF_FILE_SCOPE &&
             (local_storage_class == (a_storage_class)sc_auto ||
              local_storage_class == (a_storage_class)sc_register)) {
-          error(ec_bad_file_scope_storage_class);
+          pos_error(ec_bad_file_scope_storage_class, &decl_start_pos);
           local_storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
         if (is_function) {
