@@ -667,6 +667,7 @@ are used in resolving calls to overloaded functions.
   cfp->template_arg_list = NULL;
   cfp->operand_type_pattern = NULL;
   cfp->surrogate_function_conv_sym = NULL;
+  cfp->uses_microsoft_explicit_anachronism = FALSE;
   cfp->is_user_conversion = FALSE;
   clear_conv_descr(&cfp->conversion);
   cfp->specific_type = NULL;
@@ -2298,7 +2299,8 @@ static a_boolean candidate_function_is_visible(
                                       a_boolean    is_template_id,
                                       a_boolean    effects_copy_initialization,
                                       a_boolean    from_arg_dep_lookup,
-                                      a_boolean    dependent_call)
+                                      a_boolean    dependent_call,
+                                      a_boolean    *invisible_because_explicit)
 /*
 Return TRUE if the indicated candidate function (possibly a projection
 symbol, but not an overloaded function) is visible.  That is, return
@@ -2310,13 +2312,16 @@ TRUE if this call is the user-defined conversion in a copy-initialization
 (constructors marked "explicit" are considered invisible).
 from_arg_dep_lookup is TRUE if the function was found by argument-dependent
 lookup.  dependent_call is TRUE if the call is a template-dependent
-call.
+call.  If invisible_because_explicit is non-NULL, it is returned TRUE
+if the routine is invisible because it is an explicit constructor,
+FALSE otherwise.
 */
 {
   a_boolean              visible = TRUE, function_template_case;
   a_routine_ptr          routine;
   a_decl_sequence_number effective_decl_seq;
 
+  if (invisible_because_explicit != NULL) *invisible_because_explicit = FALSE;
   /* Ignore friend functions that aren't visible.  Note that this
      test is done on the projection symbol, if any, and not on the
      underlying fundamental symbol. */
@@ -2365,6 +2370,7 @@ call.
   if (effects_copy_initialization && routine->is_explicit_constructor) {
     /* Constructors marked "explicit" are to be ignored. */
     visible = FALSE;
+    if (invisible_because_explicit != NULL) *invisible_because_explicit = TRUE;
     goto end_of_function;
   }  /* if */
 end_of_function:
@@ -2446,17 +2452,28 @@ is known to be visible and the visibility check should be suppressed.
   an_arg_match_summary_ptr end_arg_match_list = NULL;
   a_boolean                function_template_case = FALSE;
   a_template_arg_ptr       local_template_arg_list = NULL;
+  a_boolean                microsoft_explicit_constructor_case = FALSE;
 
   if (proj_function_symbol != NULL) {
     /* Normal case: a known function. */
+    a_boolean invisible_because_explicit;
     if (!known_to_be_visible &&
         !candidate_function_is_visible(proj_function_symbol,
                                        is_template_id,
                                        effects_copy_initialization,
                                        from_arg_dep_lookup,
-                                       dependent_call)) {
-      /* The function is not visible, so ignore it. */
-      goto reject_function;
+                                       dependent_call,
+                                       &invisible_because_explicit)) {
+      /* The function is not visible. */
+      if (microsoft_bugs && microsoft_version == 1200 &&
+          invisible_because_explicit) {
+        /* MSVC++ 6.0 sees invisible explicit constructors, but considers
+           them worse than others. */
+        microsoft_explicit_constructor_case = TRUE;
+      } else {
+        /* The function is not visible, so ignore it. */
+        goto reject_function;
+      }  /* if */
     }  /* if */
     function_symbol = fundamental_symbol_of(proj_function_symbol);
     function_template_case = (function_symbol->kind ==
@@ -2741,6 +2758,9 @@ accept_function:
     add_function_to_candidate_functions_list(proj_function_symbol,
                                              arg_match_list,
                                              candidate_functions);
+    if (microsoft_explicit_constructor_case) {
+      (*candidate_functions)->uses_microsoft_explicit_anachronism = TRUE;
+    }  /* if */
   }  /* if */
   if (ctor_conversion_case) {
     /* If we are analyzing a constructor to resolve an implicit or
@@ -3851,6 +3871,17 @@ other.  Return
     /* MSVC++ favors copy constructors over other functions, as a way
        of making their funny "copy-initialization is direct-initialization"
        rules work. */
+  } else if (cfp1->uses_microsoft_explicit_anachronism !=
+             cfp2->uses_microsoft_explicit_anachronism) {
+    /* One of the functions is an explicit constructor let by as an
+       anachronism, and the other isn't. */
+    if (cfp1->uses_microsoft_explicit_anachronism) {
+      /* cfp1 uses the anachronism and cfp2 doesn't, so cfp2 is better. */
+      cmp = -1;
+    } else {
+      /* cfp2 uses the anachronism and cfp1 doesn't, so cfp1 is better. */
+      cmp = 1;
+    }  /* if */
   } else if (cfp1->is_function_template != cfp2->is_function_template) {
     /* The fact that one function is a function template and the other
        is not can serve as a tie-breaker. */
@@ -4648,7 +4679,8 @@ in_instantiation:
                                            is_template_id,
                                          /*effects_copy_initialization=*/FALSE,
                                            /*from_arg_dep_lookup=*/FALSE,
-                                           dependent_call))) {
+                                           dependent_call,
+                                           (a_boolean *)NULL))) {
           *single_function = TRUE;
           function_symbol = overloaded_function_symbol;
           goto have_function;
@@ -4709,7 +4741,8 @@ in_instantiation:
                                           /*from_arg_dep_lookup=*/
                                                (symbol_list->symbol !=
                                                 normal_lookup_function_symbol),
-                                          dependent_call)) {
+                                          dependent_call,
+                                          (a_boolean *)NULL)) {
           /* This must be either the only entry on the list, or all other
              entries on the list must be the same symbol. */
           for (slep = symbol_list->next; slep != NULL; slep = slep->next) {

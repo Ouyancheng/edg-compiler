@@ -282,6 +282,11 @@ typedef struct a_candidate_function {
 			   yield a pointer to the surrogate function to be
 			   called. */
   a_byte_boolean
+		uses_microsoft_explicit_anachronism;
+			/* If TRUE, this function is an explicit constructor
+			   that should not have been seen but was considered
+			   viable because of a Microsoft bug. */
+  a_byte_boolean
 		is_user_conversion;
 			/* TRUE if this function is a user-defined conversion
 			   being examined to resolve an implicit conversion.
