@@ -1774,6 +1774,26 @@ should be set to TRUE.
   db_exit();
 }  /* add_statement_list */
 
+#if UPC_EXTENSIONS_ALLOWED
+
+static void check_for_return_in_upc_forall(void)
+/*
+We're about to create a return statement.  Issue a warning if it is a reachable
+statement within a upc_forall construct.  (The UPC specification indicates that
+this leads to undefined behavior when executed.)
+*/
+{
+  if (upc_mode && curr_reachability.reachable_considering_hints &&
+      innermost_forall_loop != NULL) {
+    warning(ec_exit_forall);
+  }  /* if */
+}  /* check_for_return_in_upc_forall */
+
+#else /* !UPC_EXTENSIONS_ALLOWED */
+
+#define check_for_return_in_upc_forall()  /* Nothing */
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
                                           a_source_position  *stmt_pos)
@@ -1789,8 +1809,8 @@ the current statement sequence.
   /* Maintain the code reachable flag.  Labels are always reachable. */
   if (kind == (a_statement_kind)stmk_label) {
     set_reachable(curr_reachability);
-#if GNU_EXTENSIONS_ALLOWED
   } else if (kind == (a_statement_kind)stmk_return) {
+#if GNU_EXTENSIONS_ALLOWED
     a_routine_ptr  rp = current_routine_entry();
     a_type_ptr     rtp = skip_typerefs(rp->type);
     if (rtp->variant.routine.extra_info->does_not_return &&
@@ -1802,8 +1822,9 @@ the current statement sequence.
                   stmt_pos->seq != 0 ? stmt_pos
                                      : &pos_curr_token);
       rtp->variant.routine.extra_info->does_not_return = FALSE;
-    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      check_for_return_in_upc_forall();
+    }  /* if */
   }  /* if */
 
   /* Allocate the statement entry. */
@@ -5408,26 +5429,6 @@ in which such a return is undefined.
   }  /* if */
 }  /* check_void_return_okay */
 
-#if UPC_EXTENSIONS_ALLOWED
-
-static void check_for_return_in_upc_forall(void)
-/*
-We're about to parse a return statement.  Issue a warning if it is a reachable
-statement within a upc_forall construct.  (The UPC specification indicates that
-this leads to undefined behavior when executed.)
-*/
-{
-  if (upc_mode && curr_reachability.reachable_considering_hints &&
-      innermost_forall_loop != NULL) {
-    warning(ec_exit_forall);
-  }  /* if */
-}  /* check_for_return_in_upc_forall */
-
-#else /* !UPC_EXTENSIONS_ALLOWED */
-
-#define check_for_return_in_upc_forall()  /* Nothing */
-
-#endif /* UPC_EXTENSIONS_ALLOWED */
 
 static void return_statement(void)
 /*
@@ -5597,7 +5598,6 @@ See also 3.6.6.4.
     stmt_update_source_sequence_entry(sp, src_seq_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
-  check_for_return_in_upc_forall();
   if (sp != NULL) {
     /* Do processing required for any pragmas that are bound to the current
        statement. */
