@@ -1940,8 +1940,6 @@ extern void add_to_param_id_list(a_symbol_locator      *locator,
 extern a_param_id_ptr param_id_on_list(a_symbol_locator *locator,
                                        a_param_id_ptr    param_id_list);
 
-extern void check_jump_over_initialization(a_statement_ptr  sp);
-
 /* Examine the list of symbols with a given name, looking for an instance
    with a particular kind. */
 #define get_symbol_of_kind(des_kind, ptr)			      \
