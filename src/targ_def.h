@@ -390,13 +390,18 @@ match the target machine behavior on integer operations in C.
 #endif /* BYTE_MAX < TARG_MAX_BIT_FIELD_SIZE */
 
 /* If this flag is TRUE, bit-field allocation follows the conventions of
-   Microsoft C/C++.  The setting of TARG_BIT_FIELD_CONTAINER_SIZE is required
-   to be -1 and there is a two-stage allocation: first, a bit-field container
-   based on the bit-field type is allocated (as though it were a field in its
-   own right), and then bit fields are allocated within it. When the bit-field
-   type changes or the container fills up, a new container is allocated. */
+   Microsoft C/C++.  Note that TARG_MICROSOFT_BIT_FIELD_ALLOCATION is set
+   independently of MICROSOFT_EXTENSIONS_ALLOWED -- the former has more to
+   do with ABI compatibility, the latter with language features that are
+   accepted. */
+/* When TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE, the setting of
+   TARG_BIT_FIELD_CONTAINER_SIZE is required to be -1 and there is a
+   two-stage allocation: first, a bit-field container based on the bit-field
+   type is allocated (as though it were a field in its own right), and then
+   bit fields are allocated within it. When the bit-field type changes or
+   the container fills up, a new container is allocated. */
 #ifndef TARG_MICROSOFT_BIT_FIELD_ALLOCATION
-#define TARG_MICROSOFT_BIT_FIELD_ALLOCATION MICROSOFT_EXTENSIONS_ALLOWED
+#define TARG_MICROSOFT_BIT_FIELD_ALLOCATION FALSE
 			/* Default value, used to initialize global variable
 			   targ_microsoft_bit_field_allocation. */
 #endif /* ifndef TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
@@ -410,7 +415,11 @@ match the target machine behavior on integer operations in C.
 #if TARG_MICROSOFT_BIT_FIELD_ALLOCATION
 #define TARG_BIT_FIELD_CONTAINER_SIZE -1
 #else /* !TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+#define TARG_BIT_FIELD_CONTAINER_SIZE TARG_SIZEOF_INT
+#else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
 #define TARG_BIT_FIELD_CONTAINER_SIZE 0
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #endif /* TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
 			/* Default value, used to initialize global variable
 			   targ_bit_field_container_size. */
@@ -444,6 +453,9 @@ match the target machine behavior on integer operations in C.
    alignment", which is single-byte alignment.  Any value less than zero
    means "use the alignment of the base type given in the declaration". */
 #ifndef TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT
+#if TARG_MICROSOFT_BIT_FIELD_ALLOCATION
+#define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT -1
+#else /* !TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
 /* This feature CAN be changed when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
    but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
@@ -451,9 +463,24 @@ match the target machine behavior on integer operations in C.
 #else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT 0
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+#endif /* TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
 			/* Default value, used to initialize global variable
 			   targ_zero_width_bit_field_alignment. */
 #endif /* ifndef TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT */
+
+/* TRUE when an unnamed bit field, typically used to control the alignment
+   of the next field, thereby also affects how the alignment of the struct
+   as a whole is determined.  Should be TRUE for cfront and Microsoft ABI
+   compatibility. */
+#ifndef TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT
+#if CFRONT_OBJECT_CODE_COMPATIBILITY || TARG_MICROSOFT_BIT_FIELD_ALLOCATION
+#define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT TRUE
+#else /* !CFRONT_OBJECT_CODE_COMPATIBILITY... */
+#define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT FALSE
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY... */
+			/* Default value, used to initialize global variable
+			 targ_zero_width_bit_field_affects_struct_alignment. */
+#endif /* ifndef TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT */
 
 /*
 Wide character constant type (wchar_t, see stddef.h and stdlib.h).
