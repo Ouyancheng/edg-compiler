@@ -604,7 +604,7 @@ and for the instantiation of template functions.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_scope_ptr                    scope_ptr;
   a_struct_stmt_stack_state      saved_sss_state;
-  a_boolean                      is_instantiation;
+  a_boolean                      is_instantiation, is_real_instantiation;
   a_param_type_ptr               ptp;
   a_namespace_ptr                nsp = NULL;
   a_boolean                      is_function_try_block = FALSE;
@@ -629,6 +629,8 @@ and for the instantiation of template functions.
   rout_type = skip_typerefs(rout_ptr->type);
   rtsp = rout_type->variant.routine.extra_info;
   is_instantiation = (flags & SFB_IS_INSTANTIATION) != 0;
+  is_real_instantiation = is_instantiation &&
+                   !scope_stack[depth_scope_stack].in_prototype_instantiation;
   if (instantiate_extern_inline && rout_ptr->is_inline &&
       rout_ptr->storage_class == (a_storage_class)sc_unspecified) {
     /* When inline functions are instantiated like templates, add the function
@@ -814,7 +816,7 @@ and for the instantiation of template functions.
     param_id = func_info->param_id_list;
     ptp = rtsp->param_type_list;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (is_instantiation && param_id != NULL) {
+    if (is_real_instantiation && param_id != NULL) {
       /* When source sequence list generation is enabled, we save the param-id
          list of the instantiation.  This allows a meaningful record of the
          declared_type information later on.  If that record is unneeded, the
