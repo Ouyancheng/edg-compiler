@@ -700,8 +700,7 @@ a template parameter (type or constant).
     template_param_found = type_involves_template_param(tap->variant.type);
   } else {
     template_param_found = (tap->variant.constant->kind ==
-                                 (a_constant_repr_kind)ck_template_param ||
-                            is_error_constant(tap->variant.constant));
+                                 (a_constant_repr_kind)ck_template_param);
   }  /* if */
   return template_param_found;
 }  /* template_arg_involves_template_param */
