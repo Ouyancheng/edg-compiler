@@ -19,8 +19,10 @@ func_def.c -- Processing for function definitions (both user supplied and
 /* Header files used by files involved in declaration processing. */
 #include "decl_hdrs.h"
 
+#if HDRSTOP_RECOGNIZED
 /* Insert a marker in case headers are saved and restored. */
 #pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
 
 /* Additional header files. */
 #include "exprutil.h"

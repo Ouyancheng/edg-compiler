@@ -415,6 +415,13 @@ type of "volatile void" as meaning that a function does not return.
 #define DOES_NOT_RETURN void
 #endif /* ifdef __GNUC__ */
 
+/*
+Switch to control whether "#pragma hdrstop" is inserted in #include
+sequences to manage creation of precompiled headers.
+*/
+#ifndef HDRSTOP_RECOGNIZED
+#define HDRSTOP_RECOGNIZED FALSE
+#endif /* ifdef HDRSTOP_RECOGNIZED */
 
 /*
 Data declarations pertaining to positions within source files.

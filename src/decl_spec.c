@@ -18,8 +18,10 @@ decl_spec.c -- Scanning of declaration specifiers.
 /* Header files used by files involved in declaration processing. */
 #include "decl_hdrs.h"
 
+#if HDRSTOP_RECOGNIZED
 /* Insert a marker in case headers are saved and restored. */
 #pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
 
 /* Additional header files. */
 #include "folding.h"
