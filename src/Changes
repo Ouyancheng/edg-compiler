@@ -1,5 +1,21 @@
 Version 3.6
 
+1/5/05   Field selection on member field in constant expression
+
+In Microsoft and GNU C++ modes, a field selection that selects a
+constant-valued member from a nonstatic member of the current class
+is now allowed in a constant expression context.
+
+  struct A {
+    enum E { e1 = 1 };
+  };
+  struct B {
+    A a;
+    void f() {
+      int b[a.e1];  // a.e1 accepted as a constant in some modes.
+    }
+  };
+
 1/3/05   Carriage returns ignored as white space
 
 When IGNORE_CARRIAGE_RETURN_IN_SOURCE is TRUE (which is the default),

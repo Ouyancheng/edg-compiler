@@ -42,7 +42,6 @@ static void prep_conversion_operand(
 static a_boolean type_matches_type_code(a_type_ptr type,
                                         char       type_code);
 static a_boolean microsoft_can_bind_ref_to_rvalue(an_operand *operand);
-static a_boolean variable_this_exists(a_variable_ptr *this_var);
 
 #if DEBUG
 static unsigned long
@@ -5850,7 +5849,7 @@ source position of the member name reference.
 }  /* cast_pointer_for_field_selection */
 
 
-static a_boolean variable_this_exists(a_variable_ptr *this_var)
+a_boolean variable_this_exists(a_variable_ptr *this_var)
 /*
 Return TRUE if there is a currently-visible "this" variable.  If there is,
 also set *this_var to point to the variable entry for it.  This routine

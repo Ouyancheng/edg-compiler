@@ -557,6 +557,8 @@ extern void cast_pointer_for_field_selection(
                                a_boolean         do_protected_member_check,
                                a_source_position *member_pos);
 
+extern a_boolean variable_this_exists(a_variable_ptr *this_var);
+
 extern void make_this_variable_operand(a_variable_ptr this_var,
                                        a_boolean      is_implicit,
                                        an_operand     *result);

@@ -13755,6 +13755,59 @@ the sk_variable symbol.  Otherwise, return NULL.
 }  /* anonymous_parent_variable_of */
 
 
+static a_boolean current_mode_allows_field_selection_folding(void)
+/*
+Return TRUE if the current context is a constant expression in a
+compilation mode that allows nonstandard folding of field selections
+to constants.  For example,
+
+   struct A {
+     enum E { e1 = 1 };
+   } a;
+   int b[a.e1];  // a.e1 accepted as a constant in some modes.
+
+*/
+{
+  a_boolean allows_folding = FALSE;
+
+  if ((any_cfront_mode() ||
+       (microsoft_mode && !C_mode()) ||
+       gpp_mode) &&
+      (curr_expr_kind_is(ek_integral_constant) ||
+       curr_expr_kind_is(ek_template_arg) ||
+       (gpp_mode && curr_expr_kind_is(ek_init_constant)))) {
+    allows_folding = TRUE;
+  }  /* if */
+  return allows_folding;
+}  /* current_mode_allows_field_selection_folding */
+
+
+static a_boolean is_field_selection_of_type_foldable(a_type_ptr type)
+/*
+We are current in a constant expression in a mode that allows the
+nonstandard folding of field selections to constants.  type is the
+type of a variable or field, which is the current token.  If it is
+followed by a field selection, return TRUE.
+*/
+{
+  a_boolean foldable = FALSE;
+
+  if ((is_class_struct_union_type(type) ||
+       (is_reference_type(type) &&
+        is_class_struct_union_type(type_pointed_to(type)))) &&
+       next_token() == tok_period) {
+    /* a.b where a is a class or a reference to class. */
+    foldable = TRUE;
+  } else if (is_pointer_type(type) &&
+             is_class_struct_union_type(type_pointed_to(type)) &&
+             next_token() == tok_arrow) {
+    /* a->b where a is a pointer to class. */
+    foldable = TRUE;
+  }  /* if */
+  return foldable;
+}  /* is_field_selection_of_type_foldable */
+
+
 static a_boolean is_field_selection_on_var_foldable(a_variable_ptr var)
 /*
 var indicates a variable referenced in an expression.  If the variable
@@ -13772,30 +13825,68 @@ in fact turn out to be a constant.
 */
 {
   a_boolean foldable = FALSE;
-  if ((any_cfront_mode() ||
-       (microsoft_mode && !C_mode()) ||
-       gpp_mode) &&
-      (curr_expr_kind_is(ek_integral_constant) ||
-       curr_expr_kind_is(ek_template_arg) ||
-       (gpp_mode && curr_expr_kind_is(ek_init_constant)))) {
+
+  if (current_mode_allows_field_selection_folding()) {
     /* We're in a constant expression and in a dialect that accepts
        this construct. */
-    a_type_ptr var_type = var->type;
-    if ((is_class_struct_union_type(var_type) ||
-         (is_reference_type(var_type) &&
-          is_class_struct_union_type(type_pointed_to(var_type)))) &&
-         next_token() == tok_period) {
-      /* a.b where a is a class or a reference to class. */
-      foldable = TRUE;
-    } else if (is_pointer_type(var_type) &&
-               is_class_struct_union_type(type_pointed_to(var_type)) &&
-               next_token() == tok_arrow) {
-      /* a->b where a is a pointer to class. */
+    if (is_field_selection_of_type_foldable(var->type)) {
+      /* The variable has an appropriate type and is followed by a field
+         selection operator. */
       foldable = TRUE;
     }  /* if */
   }  /* if */
   return foldable;
 }  /* is_field_selection_on_var_foldable */
+
+
+static a_boolean is_field_selection_on_field_foldable(a_field_ptr field)
+/*
+field indicates a field referenced in an expression.  If the field is
+a member that can be referenced via an implicit "this->", and it
+is followed by a field selection operator (e.g., ".") and we're
+in a constant expression and a dialect such that the field selection
+might be foldable to a constant, return TRUE.  For example,
+
+   struct A {
+     enum E { e1 = 1 };
+   };
+   struct B {
+     A a;
+     void f() {
+       int b[a.e1];  // a.e1 accepted as a constant in some modes.
+     }
+   };
+
+Note that there will still be a check later that the expression did
+in fact turn out to be a constant.
+*/
+{
+  a_boolean foldable = FALSE;
+
+  if (current_mode_allows_field_selection_folding()) {
+    /* We're in a constant expression and in a dialect that accepts
+       this construct. */
+    if (is_field_selection_of_type_foldable(field->type)) {
+      /* The field has an appropriate type and is followed by a field
+         selection operator. */
+      a_variable_ptr this_var;
+      if (!C_mode() &&
+          variable_this_exists(&this_var) &&
+          is_pointer_type(this_var->type)) {
+        /* There is a "this" pointer here.  See if it can be used to
+           refer to this member.  Extra tests are to be safe for errors. */
+        a_type_ptr this_class = type_pointed_to(this_var->type);
+        this_class = skip_typerefs(this_class);
+        if (is_class_struct_union_type(this_class) &&
+            is_same_class_or_base_class_thereof(this_class,
+                                    field->source_corresp.parent.class_type)) {
+          foldable = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return foldable;
+}  /* is_field_selection_on_field_foldable */
 
 
 static void scan_identifier(an_operand               *result,
@@ -13810,16 +13901,18 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
 (which might be a projection symbol), or to NULL if there is an error.
 */
 {
-  a_symbol_ptr      sym_ptr, projection_sym_ptr = NULL, anon_var_sym;
-  a_variable_ptr    var_ptr;
-  a_routine_ptr     routine_ptr;
-  a_source_position start_position;
-  a_ref_entry_ptr   rep;
-  an_operand        this_pointer_operand;
-  a_type_ptr        qual_class_type;
-  a_boolean         err = FALSE, is_operand_of_address_of;
-  a_boolean         force_indefinite_function = FALSE;
-  a_boolean         okay_for_integral_const_expr = FALSE;
+  a_symbol_ptr       sym_ptr, projection_sym_ptr = NULL, anon_var_sym;
+  a_variable_ptr     var_ptr;
+  a_routine_ptr      routine_ptr;
+  a_source_position  start_position;
+  a_ref_entry_ptr    rep;
+  an_operand         this_pointer_operand;
+  a_type_ptr         qual_class_type;
+  a_boolean          err = FALSE, is_operand_of_address_of;
+  a_boolean          force_indefinite_function = FALSE;
+  a_boolean          okay_for_integral_const_expr = FALSE;
+  a_boolean          nonstd_field_folding_case;
+  an_expression_kind saved_expr_kind;
 
   db_enter(4, "scan_identifier");
 
@@ -14010,7 +14103,7 @@ variable:
                  of a constant expression. */
               /* Change the expression kind temporarily to avoid errors
                  when the left operand is a reference. */
-              an_expression_kind saved_expr_kind = expr_stack->expression_kind;
+              saved_expr_kind = expr_stack->expression_kind;
               expr_stack->expression_kind = (an_expression_kind)ek_normal;
               /* Make an lvalue operand for the variable. */
               make_lvalue_variable_operand(var_ptr, result, rep,
@@ -14096,6 +14189,17 @@ normal_function:
              member (field) is the same as "this->field".  Or, a field
              could be a member of an unnamed union at file scope or in
              a block. */
+          /* See whether nonstandard folding of a constant field selection
+             is allowed. */
+          nonstd_field_folding_case = FALSE;
+          if (curr_expr_kind_is_const() &&
+              is_field_selection_on_field_foldable(
+                                                 sym_ptr->variant.field.ptr)) {
+            nonstd_field_folding_case = TRUE;
+            /* Change the expression kind temporarily to avoid errors. */
+            saved_expr_kind = expr_stack->expression_kind;
+            expr_stack->expression_kind = (an_expression_kind)ek_normal;
+          }  /* if */
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* Not allowed in integral constant expressions. */
             error_and_make_error_operand(ec_expr_not_constant, result);
@@ -14169,6 +14273,10 @@ normal_function:
                 make_error_operand(result);
               }  /* if */
             }  /* if */
+          }  /* if */
+          if (nonstd_field_folding_case) {
+            /* Restore the expression kind. */
+            expr_stack->expression_kind = saved_expr_kind;
           }  /* if */
           break;
         case sk_member_function:
