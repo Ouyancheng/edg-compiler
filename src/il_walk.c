@@ -208,8 +208,8 @@ of each kind.
                                         iek_overriding_virtual_function);
   walk_orphan_entry_list_for_entry_kind(a_derivation_step_ptr,
                                         iek_derivation_step);
-  walk_orphan_entry_list_for_entry_kind(a_virtual_derivation_ptr,
-                                        iek_virtual_derivation);
+  walk_orphan_entry_list_for_entry_kind(a_base_class_derivation_ptr,
+                                        iek_base_class_derivation);
   walk_orphan_entry_list_for_entry_kind(a_base_class_ptr, iek_base_class);
   walk_orphan_entry_list_for_entry_kind(a_class_list_entry_ptr,
                                         iek_class_list_entry);
@@ -415,7 +415,7 @@ running them through walk_remap_func.
   remap_orphan_entry_first(iek_access_adjustment);
   remap_orphan_entry_first(iek_overriding_virtual_function);
   remap_orphan_entry_first(iek_derivation_step);
-  remap_orphan_entry_first(iek_virtual_derivation);
+  remap_orphan_entry_first(iek_base_class_derivation);
   remap_orphan_entry_first(iek_base_class);
   remap_orphan_entry_first(iek_class_list_entry);
   remap_orphan_entry_first(iek_routine_list_entry);
@@ -491,7 +491,7 @@ running them through walk_remap_func.
   remap_orphan_entry_last(iek_access_adjustment);
   remap_orphan_entry_last(iek_overriding_virtual_function);
   remap_orphan_entry_last(iek_derivation_step);
-  remap_orphan_entry_last(iek_virtual_derivation);
+  remap_orphan_entry_last(iek_base_class_derivation);
   remap_orphan_entry_last(iek_base_class);
   remap_orphan_entry_last(iek_class_list_entry);
   remap_orphan_entry_last(iek_routine_list_entry);
