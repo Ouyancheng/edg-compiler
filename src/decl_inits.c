@@ -1013,6 +1013,7 @@ In C99 mode, the processing is similar to that in C++.
   a_boolean                      is_whole_object_init; /* result */
   a_boolean                      top_level = (context->prev_context == NULL);
   a_boolean                      err = FALSE, is_constant = FALSE;
+  a_boolean                      string_literal = FALSE;
   a_constant                     constant;
   unsigned long                  levels_down;
   a_class_symbol_supplement_ptr  cssp;
@@ -1032,7 +1033,7 @@ In C99 mode, the processing is similar to that in C++.
     is_whole_object_init = TRUE;
     if (!is_array_type(context->type)) {
       cssp = symbol_supplement_for_class(context->type);
-      check_assertion_str(c99_mode ||
+      check_assertion_str(c99_mode || gcc_mode ||
                           cssp->has_copy_constructor ||
                           cssp->construction_by_bitwise_copy_allowed ||
                           skip_typerefs(context->type)->
@@ -1060,6 +1061,15 @@ In C99 mode, the processing is similar to that in C++.
       if (is_constant) {
         /* A constant initializer was found. */
         *init_constant = alloc_unshared_constant(&constant);
+        if (constant.kind == (a_constant_repr_kind)ck_string) {
+          /* The initializer is a string literal: this is a special case
+             that should be handled by process_string_constant_initializer.
+             Set string_literal to TRUE to indicate that this is not a
+             whole object initializer and that the constant should be
+             remembered for later processing. */
+          check_assertion(gcc_mode);
+          string_literal = TRUE;
+        }  /* if */
       } else {
         /* A dynamic initialization. */
         check_assertion(dip != NULL);
@@ -1068,7 +1078,7 @@ In C99 mode, the processing is similar to that in C++.
       }  /* if */
     }  /* if */
     if (!err) {
-      if (levels_down == 0) {
+      if (levels_down == 0 && !string_literal) {
         /* The initialization applies at the current level. */
         (*init_constant)->type = rvalue_type(context->type);
         if (!is_constant) {
