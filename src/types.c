@@ -1863,7 +1863,12 @@ See conversion_possible.
              arithmetic non-enum type to an enum. */
           if (C_dialect == C_dialect_cplusplus) {
             /* In C++, the conversion is not allowed. */
+#if 0
             okay = FALSE;
+#else
+            /* cfront allows this.  Allow it for now, with a warning. */
+            *warning_suggested = ec_mixed_enum_type;
+#endif
           } else {
             /* In C, give a warning. */
             *warning_suggested = ec_mixed_enum_type;
