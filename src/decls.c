@@ -5137,10 +5137,22 @@ is_function_def is TRUE if the redeclaration is a definition.
        a nondefining prototyped declaration, GNU C ignores the
        prototype. */
     *old_type = rp->type;
-    if (!old_decl_has_body && !is_function_def &&
-        new_type->kind == (a_type_kind)tk_routine) {
-      pos_sy_warning(ec_prototype_lost, diag_pos, linked_sym);
-      rp->type = new_type;
+    if (new_type->kind == (a_type_kind)tk_routine) {
+      /* The later declaration was not through a typedef. */
+      if (!old_decl_has_body && !is_function_def) {
+        /* Neither declaration was a definition. */
+        pos_sy_warning(ec_prototype_lost, diag_pos, linked_sym);
+        rp->type = new_type;
+      } else if (new_type->variant.routine.extra_info
+                         ->old_style_params_scanned) {
+        /* The later declaration was an old-style definition.  Record the fact
+           that old-style parameters were scanned (even though we will retain
+           the prototype type).  Among other things, this may indicate that
+           source sequence entries were recorded for the old-style
+           parameters. */
+        skip_typerefs(*old_type)->variant.routine.extra_info
+                                ->old_style_params_scanned = TRUE;
+      }  /* if */
     }  /* if */
   } else if (SVR4_C_mode &&
              incompatible_types_are_SVR4_compatible(new_type, rp->type)) {

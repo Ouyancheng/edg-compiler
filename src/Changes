@@ -1,5 +1,19 @@
 Version 3.5
 
+7/27/04  C++-generating back end: Abort on GNU C function definition
+
+In GNU C mode, an unprototyped function definition can follow a prototyped
+declaration (see Changes entry of 3/18/04).  When this happened, the front
+end unintentionally lost the "old_style_params_scanned" flag setting in the
+associated routine type, which in turn caused the C++-generating back to
+abort with an internal error.
+
+  void f(int, int);
+  void f(i, j) int i; int j; {}  /* Triggered an internal error in the
+                                    C++-generating back end (GNU C mode). */
+
+This is now fixed.
+
 7/27/04  C mode: Diagnostic on unnamed parameter in function definition
 
 The error issued in C mode on an unnamed parameters in a function definition
