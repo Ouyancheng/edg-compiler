@@ -133,48 +133,74 @@ a copy is made and modified.
 }  /* set_initialized_array_size */
 
 
-static void check_string_constant_initializer(a_constant *constant,
-                                              a_type_ptr *type,
-                                              a_boolean  *err)
+static a_boolean check_for_string_constant_initializer(
+                                                a_type_ptr      *type_ptr,
+                                                a_constant_ptr  *init_con)
 /*
-Check that the given string constant is acceptable as an initial value
-for the string type *type.  Change the constant's type, or remove the
-final null from a string literal, if necessary.  If *type is an incomplete
-type, change it to reflect the actual size of the string literal.
-(Note the extra level of indirection that allows that.)  Issue an error
-and return *err TRUE if there is an error of some kind.
+If the variable type (given in *type_ptr) is a character array and the
+initializer is a string literal, return TRUE and update *init_con to indicate
+the initialization that is specified. The given string constant must be
+acceptable as an initial value for the string type *type.  Change the
+constant's type, or remove the final null from a string literal, if necessary.
+If *type_ptr is an incomplete type, change it to reflect the actual size of
+the string literal. (Note the extra level of indirection that allows that.)
+If there is an error, issue an error and return an error constant.
 */
 {
-  a_type_ptr    array_type;
-  a_targ_size_t string_length, num_elems;
-  a_targ_size_t array_length;
-  a_boolean     is_wide_string = FALSE;
+  a_boolean  is_string_init = FALSE;
+  a_boolean  paren_flag = FALSE;
 
-  *err = FALSE;
-  if (is_string_type(*type)) {
+  if (is_string_type(*type_ptr)) {
+    if (curr_token == tok_string_literal) {
+      is_string_init = TRUE;
+    } else if (curr_token == tok_lparen) {
+      if ((any_cfront_mode() || C_dialect == C_dialect_pcc) &&
+          next_token() == tok_string_literal) {
+        /* This is a special case that's accepted in K&R mode and by cfront:
+             char a[] = ("hello");
+           (Note: we only recognize this sort of case when there is a single
+           set of parentheses surrounding the string -- both pcc and cfront
+           do allow multiple parens.) */
+        is_string_init = TRUE;
+        paren_flag = TRUE;
+        /* Bypass the left paren. */
+        (void)get_token();
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (is_string_init) {
+    /* The object being initialized has type array of char or wchar_t, and
+       is being initialized with a string.  Handle this case specially. */
+    a_type_ptr     local_type = *type_ptr;
+    a_type_ptr     array_type;
+    a_targ_size_t  string_length, num_elems;
+    a_targ_size_t  array_length;
+    a_boolean      is_wide_string = FALSE;
+    a_boolean      err = FALSE;
+
     /* The object to be initialized is an array (possibly incomplete) of
        char or wchar_t -- i.e., a string or wide string. */
-    is_wide_string = !is_char_array_type(*type);
-    if (constant->kind != (a_constant_repr_kind)ck_string) {
+    is_wide_string = !is_char_array_type(local_type);
+    if (const_for_curr_token.kind != (a_constant_repr_kind)ck_string) {
       /* The constant is not a string. */
-      *err = TRUE;
+      err = TRUE;
     } else if (is_wide_string ?
-                 (is_wchar_t_array_type(*type) ==
-                                       is_wchar_t_array_type(constant->type)) :
-                 is_char_array_type(constant->type)) {
+                 (is_wchar_t_array_type(local_type) ==
+                           is_wchar_t_array_type(const_for_curr_token.type)) :
+                 is_char_array_type(const_for_curr_token.type)) {
       /* The constant is a string with characters that are compatible with
          the array element type.  (Note that an array of characters of any
          signedness can be initialized with a string literal: ANSI C 3.5.7.) */
-      num_elems = string_length = constant->variant.string.length;
+      num_elems = string_length = const_for_curr_token.variant.string.length;
       if (is_wide_string) {
         /* Adjust the wide string number of elements. */
         num_elems /= targ_sizeof_wchar_t;
       }  /* if */
-      array_type = skip_typerefs(*type);
+      array_type = skip_typerefs(local_type);
       if (is_incomplete_type(array_type)) {
         /* The array type is incomplete, and therefore the array size
            is set from the string length. */
-        set_initialized_array_size(type, num_elems);
+        set_initialized_array_size(&local_type, num_elems);
       } else {
         /* The object being initialized is an array that has a definite
            size.  See if the string will fit in the array. */
@@ -192,16 +218,16 @@ and return *err TRUE if there is an error of some kind.
             num_elems--;
             if (!is_wide_string) {
               string_length--;
-              constant->type = string_type(num_elems);
+              const_for_curr_token.type = string_type(num_elems);
             } else {
               string_length -= targ_sizeof_wchar_t;
-              constant->type = wide_string_type(num_elems);
+              const_for_curr_token.type = wide_string_type(num_elems);
             }  /* if */
-            constant->variant.string.length = string_length;
+            const_for_curr_token.variant.string.length = string_length;
           } else {
             /* The initializer string is too long for the array being
                initialized. */
-            *err = TRUE;
+            err = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -210,18 +236,28 @@ and return *err TRUE if there is an error of some kind.
          element type; it must be that one is a wide string and the other
          a normal string.  Note that there is no mismatch in that case if
          wchar_t is char. */
-      *err = TRUE;
+      err = TRUE;
     }  /* if */
-    if (*err) {
+    if (err) {
       /* There was an error of some kind. */
-      if (!is_error_type(constant->type)) {
+      if (!is_error_type(const_for_curr_token.type)) {
         pos_ty2_error(ec_bad_initializer_type, &error_position,
-                      constant->type, *type);
+                      const_for_curr_token.type, local_type);
       }  /* if */
-      set_error_constant(constant);  
+      *init_con = alloc_error_constant();
+    } else {
+      /* Allocate the string constant. */
+      *init_con = alloc_unshared_constant(&const_for_curr_token);
+      /* Pass the type back to the caller; the array size is now
+         known if it was incomplete. */
+      *type_ptr = local_type;
     }  /* if */
+    /* Bypass the string and the right paren, if appropriate. */
+    (void)get_token();
+    if (paren_flag) (void)required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
-}  /* check_string_constant_initializer */
+  return is_string_init;
+}  /* check_for_string_constant_initializer */
 
 
 static void check_for_opening_brace(a_boolean *flag)
@@ -672,7 +708,11 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
   a_boolean        is_constant;
   a_constant       constant, *cp = NULL;
 
-  if (nonconst_allowed) {
+  if (check_for_string_constant_initializer(&type, &cp)) {
+    /* The object being initialized has type array of char or wchar_t, and
+       is being initialized with a string. */
+    is_constant = TRUE;
+  } else if (nonconst_allowed) {
     /* Scan a potentially non-constant initializer expression.  The result
        of the scan is a constant if the expression is constant, and an
        expression node if not. */
@@ -687,7 +727,7 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
   /* See if the scanned expression was constant or not. */
   if (is_constant) {
     /* Constant. */
-    cp = alloc_unshared_constant(&constant);
+    if (cp == NULL) cp = alloc_unshared_constant(&constant);
     if (*dip_ptr == NULL) {
       /* If the caller has not preallocated a dynamic init entry, it signals
          that a constant should be returned. */
@@ -736,7 +776,6 @@ class.
 */
 {
   a_constant_ptr                 init_con = NULL;
-  a_boolean                      err = FALSE;
   a_boolean                      is_incomplete_array;
   a_type_ptr                     local_type, member_type;
   a_boolean                      brace_flag;
@@ -755,7 +794,6 @@ class.
   a_boolean                      top_level = (prev_init_context == NULL);
 
   db_enter(4, "get_initializer");
-  err = FALSE;
   *nothing_taken = FALSE;
   initialize_init_context(&init_context, prev_init_context);
   local_type = skip_typerefs(*type);
@@ -822,7 +860,6 @@ class.
     if (!scan_class_initializer_expression(local_type, /*fill_in_dtor=*/FALSE,
                                            &dip)) {
       /* No constructor was found.  Abort the initialization. */
-      err = TRUE;
     } else {
       init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       init_con->type = local_type;
@@ -843,36 +880,9 @@ class.
        array of char is initialized by a string.  The initial
        values can either appear inside a brace-enclosed list, or at
        the current level. */
-    a_boolean  paren_flag = FALSE;
-
-    if (is_string_type(local_type) &&
-        (curr_token == tok_string_literal ||
-         ((paren_flag = (curr_token == tok_lparen)) &&
-          (any_cfront_mode() || C_dialect == C_dialect_pcc) &&
-          next_token() == tok_string_literal))) {
-      if (paren_flag) {
-        /* This is a special case that's accepted in K&R mode and by cfront:
-             char a[] = ("hello");
-           (Note: we only recognize this sort of case when there is a single
-           set of parentheses surrounding the string -- both pcc and cfront
-           do allow multiple parens.) */
-        /* Bypass the left paren. */
-        (void)get_token();
-      }  /* if */
+    if (check_for_string_constant_initializer(type, &init_con)) {
       /* The object being initialized has type array of char or wchar_t, and
-         is being initialized with a string.  Handle this case specially. */
-      check_string_constant_initializer(&const_for_curr_token, &local_type,
-                                        &err);
-      if (!err) {
-        /* Allocate the string constant. */
-        init_con = alloc_unshared_constant(&const_for_curr_token);
-        /* Pass the type back to the caller; the array size is now
-           known if it was incomplete. */
-        *type = local_type;
-      }  /* if */
-      /* Bypass the string and the right paren, if appropriate. */
-      (void)get_token();
-      if (paren_flag) (void)required_token(tok_rparen, ec_exp_rparen);
+         is being initialized with a string. */
     } else {
       /* Normal case, not array of char.  Could be an array, a struct,
          or a union, or an error type.  Note that local_type has already
