@@ -1157,11 +1157,6 @@ to indicate whether an enumeration is actually defined.
           (void)get_token();
           /* Scan the constant expression. */
           scan_integral_constant_expression(&constant);
-          if (constant.source_corresp.is_class_member) {
-            /* Clear the membership fields. */
-            constant.source_corresp.is_class_member = FALSE;
-            constant.source_corresp.parent.class_type = NULL;
-          }  /* if */
           if (is_error_constant(&constant)) {
             err = TRUE;
           } else if (constant.kind ==
@@ -1244,11 +1239,10 @@ to indicate whether an enumeration is actually defined.
         }  /* if */
         /* Assign the value to the enumeration constant. */
         switch_to_file_scope_region(&region_to_switch_back_to);
-        enum_con = alloc_constant((a_constant_repr_kind)ck_integer);
+        enum_con = alloc_unshared_constant(&constant);
         /* Switch back from the file scope memory region to whatever region
            was current upon entry. */
         switch_back_to_original_region(region_to_switch_back_to);
-        copy_constant(&constant, enum_con);
         set_source_corresp(&(enum_con->source_corresp), enum_sym);
         enum_sym->variant.constant = enum_con;
         enum_con->type = enum_con_type;
