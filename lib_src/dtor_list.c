@@ -194,9 +194,11 @@ int ABI_NAMESPACE::__cxa_atexit(a_destructor_ptr destruction_routine,
 /* 
 Register an action to be taken at program termination (or DSO unload) time.
 The action is the calling of destruction_routine with the object parameter.
-If dso_handle is not NULL, the action will be taken only when __cxa_finalize
-is called with a matching parameter; if it is non-NULL, it will be taken only
-when __cxa_finalize is called with a matching dso_handle parameter.
+If dso_handle is non-NULL, the action will be taken when __cxa_finalize
+is called for the specific dso_handle value, or when __cxa_finalize
+is called to process all objects (i.e., the __cxa_finally dso_handle has
+a NULL value).  If dso_handle is NULL, the action will be taken only when
+__cxa_finalize is called to process all objects.
 */
 {
   int                      success = TRUE;
