@@ -1,5 +1,19 @@
 Version 3.5
 
+10/11/04 Spurious correspondence error on duplicate weak definitions
+
+The front end previously issued an error on duplicate definitions even when
+one of those definitions was marked as "weak" (currently a feature only
+available in GNU modes).  For example:
+
+  // File 1:
+  __attribute__((weak)) void f() {}
+
+  // File 2:
+  void f() {}  // Should displace definition in File 1; not an error.
+
+This is now fixed.
+
 10/11/04 Microsoft compatibility: Default WinMain calling convention
 
 In Microsoft mode, the default calling convention is normally "__cdecl".

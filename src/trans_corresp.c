@@ -401,6 +401,7 @@ importance):
    (c) Does the entity have an explicit initializer? (variables only)
    (d) Is the entity a template specialization?
    (e) Is the entity a definition?
+   (f) Is the entity a non-weak definition?
 The entity with the highest ranking in a correspondence set should be the
 canonical entry.  (See also corresp_ranking in trans_copy.c for a reduced
 version of this function.)
@@ -442,6 +443,12 @@ The given entity should have a source correspondence.
             (routine->is_prototype_instantiation &&
              assoc_sym_defined(routine->assoc_template))) {
           rank += 16;
+#if GNU_EXTENSIONS_ALLOWED
+          if (!routine->is_weak) {
+            /* A non-weak definition should displace a weak definition. */
+            rank += 32;
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         }  /* if */
       }
       if (((a_routine_ptr)entity)->is_specialized) {
@@ -471,6 +478,12 @@ The given entity should have a source correspondence.
             rank += 4;
           }  /* if */
           rank += 16;
+#if GNU_EXTENSIONS_ALLOWED
+          if (!var->is_weak) {
+            /* A non-weak definition should displace a weak definition. */
+            rank += 32;
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         }  /* if */
         if (var->is_specialized) {
           rank += 8;
@@ -2305,6 +2318,9 @@ is in fact valid.
     if (match && !trans_unit_test_mode && !routine->is_inline &&
         (!routine->is_prototype_instantiation ||
          routine->assoc_template->is_exported) &&
+#if GNU_EXTENSIONS_ALLOWED
+        !(routine->is_weak || corresp_routine->is_weak) &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
         routine->defined && corresp_routine->defined) {
       /* Multiple definition. */
       report_multiple_definitions(routine);
@@ -2397,6 +2413,9 @@ is in fact valid.
     if (match && !trans_unit_test_mode &&
         var->storage_class == (a_storage_class)sc_unspecified &&
         corresp_var->storage_class == (a_storage_class)sc_unspecified &&
+#if GNU_EXTENSIONS_ALLOWED
+        !(var->is_weak || corresp_var->is_weak) &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         !((var->decl_modifiers & (a_decl_modifier)DM_SELECTANY) &&
           (corresp_var->decl_modifiers & (a_decl_modifier)DM_SELECTANY)) &&
