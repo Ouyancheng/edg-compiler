@@ -428,7 +428,7 @@ new fields are set properly.
   an_opname_kind                 opname;
   int                            param_count;
   a_param_type_ptr               ptp;
-  a_boolean                      any_class_type_params = FALSE;
+  a_boolean                      any_class_or_enum_type_params = FALSE;
   a_boolean                      any_template_param_type_params = FALSE;
   a_type_ptr                     tp;
   a_boolean                      is_nonstatic_member_function;
@@ -485,8 +485,11 @@ new fields are set properly.
       param_count++;
       tp = ptp->type;
       if (is_reference_type(tp)) tp = type_pointed_to(tp);
-      if (is_class_struct_union_type(tp)) any_class_type_params = TRUE;
-      if (is_template_param_type(tp)) any_template_param_type_params = TRUE;
+      if (is_class_struct_union_type(tp) || is_enum_type(tp)) {
+        any_class_or_enum_type_params = TRUE;
+      } else if (is_template_param_type(tp)) {
+        any_template_param_type_params = TRUE;
+      }  /* if */
     }  /* if */
     if (is_new_operator(opname) ||
         is_delete_operator(opname) ||
@@ -645,9 +648,10 @@ new fields are set properly.
       }  /* if */
     } else {
       /* If operator function is not a nonstatic member and does not have
-         operands of class type or reference-to-class type, issue an error.
-         This restriction does not apply to new and delete, however. */
-      if (!is_nonstatic_member_function && !any_class_type_params &&
+         operands of class or enum type (or reference to class or enum type),
+         issue an error.  This restriction does not apply to new and delete,
+         however. */
+      if (!is_nonstatic_member_function && !any_class_or_enum_type_params &&
           !any_template_param_type_params) {
         pos_error(ec_no_args_with_class_type, &locator->source_position);
         err = TRUE;

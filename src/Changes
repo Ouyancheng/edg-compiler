@@ -1,5 +1,11 @@
 Version 2.36
 
+6/4/97    Overloading operators on enum operands
+
+Operator functions can now be overloaded on enum types.  Specifically,
+it's now valid to declare an overloaded operator function that has
+one or more enum-typed parameters and no class-typed parameters.
+
 6/2/97    Variable length arrays
 
 Support for variable length arrays, as proposed for the new C standard and

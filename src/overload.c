@@ -5786,8 +5786,8 @@ TRUE.  Also return *processed TRUE if the operation is an ambiguous
 overloaded function call.  Otherwise, return *processed FALSE, which means
 the caller should try the built-in meaning of the operator.  In that case,
 conversion functions will have been applied to the operands if that's
-appropriate.  In cases where none of the operands has a class type, the
-operands are returned unchanged.  Note that this routine is called for
+appropriate.  In cases where none of the operands has a class or enum type,
+the operands are returned unchanged.  Note that this routine is called for
 operator "?", with unary_operator FALSE; the two operands are the second
 and third operands of the "?" ("?" cannot be overloaded, but conversion
 functions could still apply).
@@ -5830,12 +5830,13 @@ functions could still apply).
            the built-in operator processing. */
       }  /* if */
     } else {
-      /* At least one operand must have a class type.  An error operand for
-         the second operand counts as a class operand. */
+      /* At least one operand must have a class type or enum type.
+         An error operand for the second operand counts as a class operand. */
       operand_1_is_class = is_class_struct_union_type(operand_1->type);
-      if (operand_1_is_class ||
+      if (operand_1_is_class || is_enum_type(operand_1->type) ||
           (!unary_operator &&
            (is_class_struct_union_type(operand_2->type) ||
+            is_enum_type(operand_2->type) ||
             is_error_operand(operand_2)))) {
         /* Operator overloading may apply.  That is, the operation may be a
            call of an overloaded operator function or the operands may be
