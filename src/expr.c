@@ -11693,6 +11693,8 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
   an_operand        this_pointer_operand;
   a_type_ptr        qual_class_type;
   a_boolean         err = FALSE, is_operand_of_address_of;
+  a_boolean         force_indefinite_routine_due_to_arg_dependent_lookup =
+                                                                         FALSE;
 
   db_enter(4, "scan_identifier");
 
@@ -11767,6 +11769,15 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
     /* Don't do this if the symbol is an overloaded function (we don't
        yet know which function is being called). */
     if (sym_ptr->kind == (a_symbol_kind)sk_overloaded_function) {
+      rep = NULL;
+    } else if (sym_ptr->kind == (a_symbol_kind)sk_routine &&
+               !C_mode() && arg_dependent_lookup_enabled &&
+               next_token() == tok_lparen) {
+      /* When argument-dependent lookup is enabled, even if the symbol
+         is a simple routine name it might not be the routine that is
+         called, so go to overload resolution and handle the reference
+         there. */
+      force_indefinite_routine_due_to_arg_dependent_lookup = TRUE;
       rep = NULL;
     } else {
       rep = ref_entry(sym_ptr, &locator_for_curr_id.source_position);
@@ -11901,9 +11912,7 @@ variable:
           }  /* if */
           break;
         case sk_routine:
-          if (!C_mode() &&
-              arg_dependent_lookup_enabled &&
-              next_token() == tok_lparen) {
+          if (force_indefinite_routine_due_to_arg_dependent_lookup) {
             /* In C++, the name in a function call is subject to
                argument-dependent lookup, so treat this function as
                if it is an overloaded function. */

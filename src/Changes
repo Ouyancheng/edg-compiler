@@ -1,5 +1,17 @@
 Version 2.46
 
+4/25/01  Extra cross-reference lines when argument-dependent lookup enabled
+
+When argument-dependent lookup is enabled, a call of a non-overloaded
+function is forced through overload resolution.  The process ended
+up producing extra calls to record_symbol_reference and extra
+lines in the cross-reference output file.  Now fixed.
+
+  void f(int);
+  int main () {
+    f(1);  // Two references to "f" were put out
+  }
+
 4/19/01  Internal error in default argument processing when doing nonclass
          prototype instantiations
 
