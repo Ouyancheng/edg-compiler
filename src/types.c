@@ -4212,14 +4212,14 @@ See conversion_possible.
     } else if (!C_mode() && is_enum(dest_type)) {
       /* Conversion to an enum type in C++.  We already know this is not
          a conversion of an enum type to itself, so this is an error case:
-         you can't convert other types to enum implicitly (except in
-         Microsoft mode). */
+         you can't convert other types to enum implicitly. */
       if ((cfront_2_1_mode || microsoft_mode) &&
           is_integral_or_enum(source_type)) {
         /* cfront 2.1 allows conversion of integral or other enum types to
            an enum, with a warning.  (It also allows floating point types
            to be converted to an enum, but it doesn't seem necessary to
-           duplicate that behavior.) */
+           duplicate that behavior.)  Microsoft compilers also exhibit this
+           behavior. */
         okay = TRUE;
         std_conv->warning_suggested = ec_mixed_enum_type;
       }  /* if */
