@@ -169,7 +169,7 @@ considered an object declaration when emulating the Microsoft bug.
     int i(int());
   }
 
-2/5/03   C++-generating back end: Invalid rendering of inline members
+2/5/03   Invalid form of name reference for moved inline members
 
 When FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS and
 RECORD_FORM_OF_NAME_REFERENCE are TRUE, the front end combined with
@@ -183,7 +183,9 @@ as:
   void f() {}  // Missing qualifier!
 
 I.e.,  it mistakenly omitted class qualifiers on definitions that were
-moved outside the class.  This is now fixed.
+moved outside the class.  This problem was caused by incorrectly
+recording the form of name reference for the moved definition.
+This is now fixed.
 
 2/5/03   Microsoft compatibility: argument-dependent lookup
 

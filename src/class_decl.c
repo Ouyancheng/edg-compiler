@@ -1499,13 +1499,31 @@ nested class.
                definition.  The primary source sequence entry was deferred
                till now, when the class definition is complete. */
             a_source_sequence_entry_ptr  ssep;
-#if CHECKING
+#if CHECKING || RECORD_FORM_OF_NAME_REFERENCE
             if (!sym->is_error) {
               ssep = rp->source_corresp.source_sequence_entry;
               check_assertion(ss_entry_kind(ssep) ==
                                 (an_il_entry_kind)iek_src_seq_secondary_decl);
+#if RECORD_FORM_OF_NAME_REFERENCE
+              /* Since the definition is being moved out of the class, the
+                 associated "name reference" is not longer "primary".
+                 Instead, it should be associated with the secondary source
+                 sequence entry. */
+              if (rp->source_corresp.name_references != NULL) {
+                a_name_reference_ptr          name_ref =
+                                           rp->source_corresp.name_references;
+                for (; name_ref != NULL; name_ref = name_ref->next) {
+                  if (name_ref->used_in_primary_declarator) {
+                    a_src_seq_secondary_decl_ptr  sec_decl =
+                             ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+                    name_ref->used_in_primary_declarator = FALSE;
+                    sec_decl->name_reference = name_ref;
+                  }  /* if */
+                }  /* for */
+              }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
             }  /* if */
-#endif /* CHECKING */
+#endif /* CHECKING || RECORD_FORM_OF_NAME_REFERENCE */
             /* Now put out the source sequence entry for the routine, after
                clearing the source-sequence pointer to be sure it will be
                reset. */
