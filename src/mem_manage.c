@@ -1035,7 +1035,7 @@ in general memory will be allocated.
   a_memory_allocation_ptr	map;
 
   if (next_memory_allocation_table_entry < SIZE_MEMORY_ALLOCATION_TABLE) {
-    map = &memory_allocation_table[++next_memory_allocation_table_entry];
+    map = &memory_allocation_table[next_memory_allocation_table_entry++];
   } else {
     map = (a_memory_allocation_ptr)malloc_with_check(
                                                   sizeof(a_memory_allocation));
@@ -1782,7 +1782,7 @@ Free the general memory specified by *list.
     next_map = map->next;
     free((a_void_ptr)map->buffer);
     if (map < &memory_allocation_table[0] &&
-        map > &memory_allocation_table[SIZE_MEMORY_ALLOCATION_TABLE]) {
+        map >= &memory_allocation_table[SIZE_MEMORY_ALLOCATION_TABLE]) {
       /* This memory allocation entry is not part of the static memory
          allocation table.  Free it now. */
       free((a_void_ptr)map);
