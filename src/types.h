@@ -147,11 +147,17 @@ extern a_boolean interchangeable_types(a_type_ptr type_1,
 extern a_boolean this_param_types_correspond(a_type_ptr type_1,
                                              a_type_ptr type_2);
 extern a_boolean param_types_are_compatible(a_type_ptr  rout_type1,
-                                            a_type_ptr  rout_type2);
+                                            a_type_ptr  rout_type2,
+                                            a_boolean   allow_error_type);
 #define types_are_compatible(t1, t2) \
-	 ((t1) == (t2) || f_types_are_compatible((t1), (t2)))
+	 ((t1) == (t2) ||            \
+          f_types_are_compatible((t1), (t2), /*allow_error_type=*/TRUE))
+#define types_are_strictly_compatible(t1, t2)                             \
+         ((t1) == (t2) ? !is_error_type(t1) :                             \
+            f_types_are_compatible((t1), (t2), /*allow_error_type=*/FALSE))
 extern a_boolean f_types_are_compatible(a_type_ptr type_1,
-                                        a_type_ptr type_2);
+                                        a_type_ptr type_2,
+                                        a_boolean  allow_error_type);
 extern a_boolean impl_pointer_conversion(
                                 a_type_ptr    source_type,
                                 a_boolean     source_is_constant,
