@@ -4744,12 +4744,14 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
            do it for explicit destructor calls (in any mode). */
         /* Force the use of a qualified name for these cases. */
         force_qualified_name = TRUE;
+      } else if (rout->is_virtual &&
+                 rout->source_corresp.qualification_needed &&
+                 !suppress_virtual) {
+        /* Don't suppress "this->" on a virtual function call if a
+           qualified name would be needed to refer to the function without
+           "this->" (that would suppress virtual-ness). */
       } else {
-        /* Suppress "this->", unless we're dealing with a virtual call and
-           the name of the virtual function would be invisible without
-           "this->" qualification. */
-        suppress_this = !rout->source_corresp.qualification_needed ||
-                        (suppress_virtual && rout->is_virtual);
+        suppress_this = TRUE;
       }  /* if */
     }  /* if */
     if (!suppress_this) {
