@@ -266,7 +266,7 @@ is TRUE when the entry should be allocated in the file scope memory region.
     dpsp = NULL;
   }  /* if */
   return dpsp;
-}  /* make_decl_position_supplement */
+}  /* make_decl_pos_supplement */
 
 
 void update_decl_pos_info(a_source_correspondence  *scp,
