@@ -1,5 +1,11 @@
 Version 3.1
 
+6/18/02  Macro to determine whether long long is enabled not set in C mode
+
+The front end can be configured to define a macro when long long is not
+enabled (__NO_LONG_LONG, by default).  This macro should have been defined
+in C mode, but was not.  This has been fixed.
+
 6/18/02  GNU C compatibility: Redefinition of extern __inline__ function
 
 In GNU C mode, a "extern __inline__" function definition can be followed

@@ -4727,20 +4727,6 @@ command line -D options.
     }  /* if */
 #endif /* DEFINE_MACRO_WHEN_PLACEMENT_DELETE_ENABLED */
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
-#if DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED
-    { a_boolean	long_long_is_disabled = !LONG_LONG_ALLOWED;
-      if (strict_ansi_mode && !long_long_is_standard) {
-        long_long_is_disabled = TRUE;
-      }  /* if */
-      if (long_long_is_disabled) {
-        /* Enter a predefined macro that can be used to determine that
-           long long is not enabled. */
-        (void)enter_predef_macro("1", MACRO_DEFINED_WHEN_LONG_LONG_IS_DISABLED,
-                                 /*cannot_be_redefined=*/TRUE,
-                                 /*ref_suppresses_pch_file=*/FALSE);
-      }  /* if */
-    }
-#endif /* DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED */
 #if RUNTIME_USES_NAMESPACES
     /* Enter a predefined macro that can be used to determine that
        the runtime uses namespaces.  This is also used by the
@@ -4756,6 +4742,20 @@ command line -D options.
     }  /* if */
 #endif /* RUNTIME_USES_NAMESPACES */
   }  /* if */
+#if DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED
+  { a_boolean	long_long_is_disabled = !LONG_LONG_ALLOWED;
+    if (strict_ansi_mode && !long_long_is_standard) {
+      long_long_is_disabled = TRUE;
+    }  /* if */
+    if (long_long_is_disabled) {
+      /* Enter a predefined macro that can be used to determine that
+         long long is not enabled. */
+      (void)enter_predef_macro("1", MACRO_DEFINED_WHEN_LONG_LONG_IS_DISABLED,
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
+  }
+#endif /* DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED */
   if (microsoft_mode) {
     /* Define the _MSC_VER variable that indicates the version of the
        Microsoft compiler that is being emulated. */
