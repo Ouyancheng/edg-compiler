@@ -4460,6 +4460,11 @@ otherwise it is NULL.  The syntax is:
     if (!real_declarator_allowed ||
         (abstract_declarator_allowed && !is_name_start)) {
       /* Identifier is omitted in an abstract declarator. */
+#if CHECKING
+      if (specifiers_type != NULL && is_unknown_type(specifiers_type)) {
+        internal_error("declarator: did not expect tk_unknown");
+      }  /* if */
+#endif /* CHECKING */
     } else {
       /* Real (non-abstract) declarator. */
       declarator_pos = pos_curr_token;
@@ -4493,6 +4498,11 @@ otherwise it is NULL.  The syntax is:
               is_member_function_def = TRUE;
               parenthesized_initializer_allowed = FALSE;
               member_parent_type = sym->class_of_which_a_member;
+              if (is_constructor_symbol(sym)) {
+                is_constructor = TRUE;
+              } else if (is_destructor_symbol(sym)) {
+                is_destructor = TRUE;
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
@@ -4523,7 +4533,7 @@ otherwise it is NULL.  The syntax is:
             if (class_symbol_header != class_sym->header) {
               /* The name on the destructor is not the name of the class. */
               error(ec_bad_destructor_decl);
-            } else if (!is_void_type(specifiers_type) ||
+            } else if (!is_unknown_type(specifiers_type) ||
                        !(input_flags & DI_DESTRUCTOR_SPECIFIERS)) {
               /* The specifiers, including possibly the type specifier,
                  are not consistent with a destructor declaration (e.g., a
@@ -4588,6 +4598,10 @@ otherwise it is NULL.  The syntax is:
         }  /* if */
         if (required_token(tok_lparen, ec_exp_lparen)) goto function_lparen;
       } else if (locator->is_conversion_name) {
+        if (!is_unknown_type(complete_type)) {
+          pos_error(ec_type_specifier_not_allowed, &declarator_pos);
+        }  /* if */
+        complete_type = locator->variant.conversion_result_type;
         /* A conversion function must be a nonstatic member function. */
         if (member_parent_type == NULL ||
             (locator->specific_symbol == NULL &&
@@ -4596,6 +4610,20 @@ otherwise it is NULL.  The syntax is:
                     &locator->source_position);
           set_to_error_locator(*locator);
         }  /* if */
+      } else if (is_constructor) {
+#if CHECKING
+        if (!is_unknown_type(complete_type)) {
+          internal_error("declarator:  expected tk_unknown");
+        }  /* if */
+#endif /* CHECKING */
+        complete_type = make_reference_type(member_parent_type);
+      } else if (is_destructor) {
+#if CHECKING
+        if (!is_unknown_type(complete_type)) {
+          internal_error("declarator:  expected tk_unknown");
+        }  /* if */
+#endif /* CHECKING */
+        complete_type = void_type();
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5993,7 +6021,6 @@ process_class_specifier:
                 a_symbol_ptr  tag_sym =
                                    (a_symbol_ptr)tp->source_corresp.assoc_info;
                 basic_type = bt_no_type;
-                *type_ptr = make_reference_type(tp);
                 *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
                 /* Turn the current locator from a "specific symbol" locator
                    into a constructor locator. */
@@ -6216,7 +6243,6 @@ process_class_specifier:
               if (is_constructor_symbol(sym)) {
                 *output_flags |= DSO_CONSTRUCTOR;
                 basic_type = bt_no_type;
-                *type_ptr = make_reference_type(sym->class_of_which_a_member);
               } else if (is_destructor_symbol(sym)) {
                 *output_flags |= DSO_DESTRUCTOR;
                 basic_type = bt_no_type;
@@ -6231,13 +6257,19 @@ process_class_specifier:
         (void)get_opname();
 operator_or_conversion_name:
         if (locator_for_curr_id.is_conversion_name) {
+#if 0
           if (basic_type != bt_none || sign != sign_none ||
               size != size_none) {
             error(ec_type_specifier_not_allowed);
             err = TRUE;
           }  /* if */
-          basic_type = bt_typedef;
-          *type_ptr = locator_for_curr_id.variant.conversion_result_type;
+          basic_type = bt_no_type;
+#else
+          if (basic_type == bt_none && sign == sign_none &&
+              size == size_none) {
+            basic_type = bt_no_type;
+          }  /* if */
+#endif /* if 0 */
         } else if (locator_for_curr_id.is_operator_name &&
                    is_member_decl && !is_friend_decl) {
           an_opname_kind  opname = locator_for_curr_id.variant.opname;
@@ -6381,7 +6413,7 @@ exit_loop:
     if (basic_type == bt_none) {
       basic_type = bt_int;
     } else if (basic_type == bt_no_type) {
-      if (*output_flags & DSO_DESTRUCTOR) basic_type = bt_void;
+      *type_ptr = unknown_type();
     }  /* if */
     if (C_dialect == C_dialect_pcc && basic_type == bt_typedef &&
         (sign != sign_none || size != size_none)) {
@@ -6564,21 +6596,8 @@ exit_loop:
                size == size_none) {
       /* typedef. */
     } else if (basic_type == bt_no_type) {
-      /* Constructor return type (*type_ptr is already set) or class
-         template (*type_ptr is not used). */
-#if CHECKING
-      if (*output_flags & DSO_CLASS_TEMPLATE) {
-        /* Okay.  Type will be ignored by the caller. */
-      } else if (*output_flags & DSO_CONSTRUCTOR) {
-        /* Okay, but check the type. */
-        if (*type_ptr == NULL || !is_reference_type(*type_ptr) ||
-            !is_class_struct_union_type(type_pointed_to(*type_ptr))) {
-          internal_error("decl_specifiers: bad type pointer for constructor");
-        }  /* if */
-      } else {
-        internal_error("decl_specifiers: expected a constructor");
-      }  /* if */
-#endif /* CHECKING */
+      /* No specifiers type declared (constructor, destructor, or conversion
+         operator). */
     } else {
       /* Error, not an acceptable combination. */
       bad_combination_of_type_specifiers = TRUE;
