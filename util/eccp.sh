@@ -501,7 +501,7 @@ do
   using_ii_file=0
   ii_option=
   if [ $cmode -eq 0 -a $automatic_instantiation -eq 1 -a\
-       $preprocess_only -eq 0] ; then
+       $preprocess_only -eq 0 ] ; then
     #
     # See if the .ii file exists.  If it does, extract the instantiation
     # list to a temporary file.
