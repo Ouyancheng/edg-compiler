@@ -1,5 +1,25 @@
 Version 2.29
 
+3/20/95  --nonconst_ref_anachronism
+
+Binding a reference to nonconst class to a class rvalue of the right
+type or a derived type thereof, allowed up until version 2.28, and
+now an anachronism, can now be allowed through the command-line option
+--nonconst_ref_anachronism or disallowed through
+--no_nonconst_ref_anachronism disables it.  The configuration
+flag DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM specifies the default
+(TRUE in the release).
+
+  struct A {
+    A(int);
+    A operator=(A&);
+    A operator+(const A&);
+  };
+  main () {
+    A b(1);
+    b = A(1) + A(2);   // Allowed as anachronism
+  }
+
 3/20/95  Checking callability of elided copy constructor
 
 When a copy constructor call is elided, the WP requires that the

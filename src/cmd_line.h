@@ -116,6 +116,7 @@ typedef enum /*an_option_kind*/ {
 #endif /* MINIMAL_INLINING */
   optk_SVR4_C_mode,
   optk_brief_diagnostics,
+  optk_nonconst_ref_anachronism,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -518,6 +519,15 @@ EXTERN a_boolean
                         /* TRUE if the C++ operator keywords (such as
 			   "and", "or", "not", etc.) and digraphs should
 			   be allowed. */
+
+EXTERN a_boolean
+                allow_nonconst_ref_anachronism
+#if VAR_INITIALIZERS
+                            = DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM
+#endif /* VAR_INITIALIZERS */
+                                               ;
+                        /* TRUE if a reference to nonconst can be bound to
+			   a class rvalue. */
 
 
 /* Process the command line arguments. */

@@ -426,6 +426,14 @@ Initialize the option information table.
 			 "no_brief_diagnostics",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_none);
+  add_option_description(optk_nonconst_ref_anachronism,
+                         "nonconst_ref_anachronism",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_nonconst_ref_anachronism,
+                         "no_nonconst_ref_anachronism",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_none);
 }  /* initialize_option_descriptions */
 
 
@@ -1280,6 +1288,10 @@ Process the arguments on the command line that invoked the compiler.
 	   the error message text. */
 	brief_diagnostics = opt_value;
         break;
+      case optk_nonconst_ref_anachronism:
+        /* A reference to nonconst is allowed to bind to a class rvalue. */
+        allow_nonconst_ref_anachronism = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1373,6 +1385,17 @@ Process the arguments on the command line that invoked the compiler.
         allow_anachronisms = FALSE;
       }  /* if */
     }  /* if */
+    if (allow_nonconst_ref_anachronism) {
+      if (option_kind_used[(int)optk_nonconst_ref_anachronism]) {
+        /* The nonconst ref anachronism was enabled by a command line
+           option. */
+        command_line_error(ec_cl_strict_ansi_incompatible_with_anachronisms);
+      } else {
+        /* The nonconst ref anachronism was enabled by default.
+           Silently disable it in strict mode. */
+        allow_nonconst_ref_anachronism = FALSE;
+      }  /* if */
+    }  /* if */
     if (SVR4_C_mode) {
       if (option_kind_used[(int)optk_SVR4_C_mode]) {
         command_line_error(ec_cl_strict_ansi_incompatible_with_SVR4);
@@ -1402,6 +1425,11 @@ Process the arguments on the command line that invoked the compiler.
   /* Determine the appropriate error level for anachronism messages based
      on whether anachronisms are to be allowed. */
   anachronism_error_severity = allow_anachronisms ? es_warning : es_error;
+  if (allow_anachronisms) {
+    /* Enable the nonconst ref anachronism if anachronisms in general are
+       enabled. */
+    allow_nonconst_ref_anachronism = TRUE;
+  }  /* if */
   /* Choose the style of preprocessing. */
   pcc_preprocessing_mode = (C_dialect == C_dialect_pcc);
 #if OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE

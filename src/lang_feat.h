@@ -75,6 +75,15 @@ a command line option.
 #endif /* ifndef DEFAULT_ALLOW_ANACHRONISMS */
 
 /*
+Flag that is the default value for allow_nonconst_ref_anachronism,
+which controls the anachronism of allowing a reference to nonconst to bind
+to a class rvalue of the right type.
+*/
+#ifndef DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM
+#define DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM TRUE
+#endif /* ifndef DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM */
+
+/*
 Flag that is TRUE if integer arguments to prototyped functions are passed
 the same way as integer arguments to unprototyped functions, i.e., they are
 widened to something like "int", for example by being passed in a register.
