@@ -4699,7 +4699,8 @@ the expression have already been lowered.
   this_temp_assign_node = make_operator_node(
                                             (an_expr_operator_kind)eok_passign,
                                             object_type, this_temp_node);
-  if (!class_type->variant.class_struct_union.
+  if (class_type->variant.class_struct_union.extra_info->assoc_scope != NULL &&
+      !class_type->variant.class_struct_union.
                              any_virtual_functions_including_in_base_classes) {
     /* No virtual functions, so use the simpler form. */
     /* Make "pmf.f". */
