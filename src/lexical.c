@@ -5778,6 +5778,9 @@ Issue a diagnostic if it is not.
        "$" (0x24), "@" (0x40), and "`" (0x60).  Note that the dollar
        sign may be prohibited by the test above. */
     err_code = ec_UCN_names_basic_char;
+  } else if (ucn >= 0xd800 && ucn <= 0xdfff) {
+    /* A UCN cannot name a character in the range of 0xd800-0xdfff. */
+    err_code = ec_invalid_UCN;
   } else if (is_identifier) {
     /* Check whether this is a valid identifier character. */
     err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
