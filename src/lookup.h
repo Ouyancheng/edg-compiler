@@ -126,6 +126,11 @@ represented as a bit set:
 				   For member using-declarations this
 				   suppresses the special conversion template
 				   lookup. */
+#define IDL_HIDDEN_NAME_LOOKUP	0x40000
+				/* Indicates that the name is being looked
+				   up as part of the hidden name table
+				   processing.  This suppresses the creation
+				   of projection symbols. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*

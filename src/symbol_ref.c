@@ -577,7 +577,8 @@ hiding.
            }
          An elaborated type specifier can be used to "defeat" the hiding. */
       /* Find the innermost tag declaration with the same name. */
-      old_sym_ptr = normal_id_lookup(&locator, IDL_MUST_BE_TAG);
+      old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
+                                               IDL_MUST_BE_TAG);
       if (old_sym_ptr != NULL) {
         /* old_sym_ptr is a tag with the same name as sym_ptr and in the
            same or a containing scope. */
@@ -619,7 +620,7 @@ hiding.
            x = 1;
            class x;                 // class x is hidden at file scope
          Again, hiding can be defeated by using "class x" instead of "x". */
-      old_sym_ptr = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+      old_sym_ptr = curr_scope_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
       if (old_sym_ptr == NULL) {
         /* Nothing to do. */
       } else if (is_class_template_symbol(old_sym_ptr) &&
@@ -646,13 +647,13 @@ hiding.
                       sym_ptr->parent.class_type !=
                          scope_stack[depth_scope_stack].assoc_type);
       clear_specific_symbol(locator);
-      old_sym_ptr = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+      old_sym_ptr = curr_scope_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
       if (old_sym_ptr != NULL) {
         /* Hidden by another declaration in the current scope. */
         hidden_class_or_namespace_member = TRUE;
       } else {
         hidden_class_or_namespace_member = FALSE;
-        old_sym_ptr = normal_id_lookup(&locator, IDL_NO_OPTIONS);
+        old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
         if (old_sym_ptr != NULL) {
           if (old_sym_ptr == sym_ptr ||
               (old_sym_ptr->kind == (a_symbol_kind)sk_overloaded_function ?
@@ -685,7 +686,8 @@ hiding.
          resolved by using a name qualifier. */
       if (sym_ptr->decl_scope != FILE_SCOPE_NUMBER) {
         clear_specific_symbol(locator);
-        old_sym_ptr = normal_id_lookup(&locator, IDL_SKIP_CURR_SCOPE);
+        old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
+                                                 IDL_SKIP_CURR_SCOPE);
         if (old_sym_ptr != NULL) {
           an_il_entry_kind  il_kind;
           if (old_sym_ptr == sym_ptr) {
@@ -709,8 +711,9 @@ hiding.
           /* Do a similar check for tag names in containing scopes. */
           if (!is_tag_symbol(old_sym_ptr)) {
             clear_specific_symbol(locator);
-            old_sym_ptr = normal_id_lookup(&locator, (IDL_MUST_BE_TAG |
-                                                      IDL_SKIP_CURR_SCOPE));
+            old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
+                                                     IDL_MUST_BE_TAG |
+                                                     IDL_SKIP_CURR_SCOPE);
             if (old_sym_ptr == sym_ptr) {
               /* This can happen when the scope to which sym_ptr belongs is
                  an unnamed namespace. */
@@ -747,13 +750,13 @@ hiding.
           if (sym_ptr->is_class_member) {
             (void)class_qualified_id_lookup(&locator,
                                             sym_ptr->parent.class_type,
-                                            IDL_NO_OPTIONS);
+                                            IDL_HIDDEN_NAME_LOOKUP);
           } else if (sym_ptr->parent.namespace_ptr != NULL) {
             (void)namespace_qualified_id_lookup(&locator,
                                                 sym_ptr->parent.namespace_ptr,
-                                                IDL_NO_OPTIONS);
+                                                IDL_HIDDEN_NAME_LOOKUP);
           } else {
-            (void)file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+            (void)file_scope_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
           }  /* if */
           check_assertion(locator.specific_symbol != NULL);
           tag_hidden_by_nontag = locator.specific_symbol != sym_ptr;
@@ -795,7 +798,8 @@ hiding.
                 a_symbol_ptr  sym;
                 tp = tp->source_corresp.parent.class_type;
                 clear_specific_symbol(locator);
-                sym = class_qualified_id_lookup(&locator, tp, IDL_NO_OPTIONS);
+                sym = class_qualified_id_lookup(&locator, tp,
+                                                IDL_HIDDEN_NAME_LOOKUP);
                 if (sym != NULL) {
                   if (sym == sym_ptr) {
                     /* No intervening declaration. */
@@ -843,7 +847,7 @@ hiding.
                   a_symbol_ptr  sym;
                   clear_specific_symbol(locator);
                   sym = namespace_qualified_id_lookup(&locator, nsp,
-                                                      IDL_NO_OPTIONS);
+                                                      IDL_HIDDEN_NAME_LOOKUP);
                   if (sym != NULL) {
                     if (sym == sym_ptr) {
                       hidden_class_or_namespace_member = TRUE;

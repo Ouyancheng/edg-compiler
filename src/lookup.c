@@ -228,7 +228,8 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
     (projection_allowed || sym->kind != (a_symbol_kind)sk_projection))
 
   check_assertion_str2((options & ~(IDL_MUST_BE_TAG |
-                                    IDL_PROJ_SYMBOL_ALLOWED)) == 0,
+                                    IDL_PROJ_SYMBOL_ALLOWED |
+                                    IDL_HIDDEN_NAME_LOOKUP)) == 0,
                        "curr_scope_id_lookup:", "invalid_option");
   /* In C mode, a "must be tag" lookup only considers symbols in the tag
      name space kind. */
@@ -1170,6 +1171,9 @@ typedef struct a_lookup_state {
   a_boolean	is_friend_lookup;
 			/* TRUE if the IDL_FRIEND_LOOKUP option
 			   was specified for this lookup. */
+  a_boolean	hidden_name_lookup;
+			/* TRUE if the IDL_HIDDEN_NAME_LOOKUP option was
+			   specified for this lookup. */
   a_boolean	terminate_lookup;
 			/* TRUE if a condition occurred that should cause
 			   the lookup to terminate even is a symbol was
@@ -1250,6 +1254,7 @@ value.
   cleared_lookup_state.tentative_template_lookup     = FALSE;
   cleared_lookup_state.is_linkage_lookup             = FALSE;
   cleared_lookup_state.is_friend_lookup              = FALSE;
+  cleared_lookup_state.hidden_name_lookup            = FALSE;
   cleared_lookup_state.terminate_lookup              = FALSE;
   cleared_lookup_state.skip_curr_scope               = FALSE;
   cleared_lookup_state.skip_class_scopes             = FALSE;
@@ -1615,6 +1620,7 @@ that do normal id lookup processing.
                             lookup_state->options,
                             lookup_state->tentative_type_lookup,
                             lookup_state->tentative_template_lookup,
+                            lookup_state->hidden_name_lookup,
                             lookup_state->add_to_active_list,
                             lookup_state->insert_sym, &sym,
                             /*can_create_nonreal=*/FALSE)) {
@@ -1627,8 +1633,9 @@ that do normal id lookup processing.
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
       lookup_state->terminate_lookup = TRUE;
     } else {
-      /* A projection symbol was created.  It must still satisfy the
-         constraints for this lookup. */
+      /* A projection symbol was created (or the fundamental symbol was
+         returned, in the case of a hidden name lookup).  It must still
+         satisfy the constraints for this lookup. */
       a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
       if (!is_acceptable_symbol(sym, fund_sym, *lookup_state)) sym = NULL;
     }  /* if */
@@ -2124,6 +2131,7 @@ C and C++.
                                 (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) != 0;
     lookup_state.is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP) != 0;
     lookup_state.is_friend_lookup = (options & IDL_FRIEND_LOOKUP) != 0;
+    lookup_state.hidden_name_lookup = (options & IDL_HIDDEN_NAME_LOOKUP) != 0;
     lookup_state.skip_curr_scope = (options & IDL_SKIP_CURR_SCOPE) != 0;
     lookup_state.skip_class_scopes = (options & IDL_SKIP_CLASS_SCOPES) != 0;
     /* If any instantiation scopes are active we will need to check for
@@ -2645,6 +2653,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
         (void)find_projected_symbol(class_type, locator, options,
                                     /*tentative_type_lookup=*/FALSE,
                                     /*tentative_template_lookup=*/FALSE,
+                                    (options & IDL_HIDDEN_NAME_LOOKUP) != 0,
                                     add_to_active_list, insert_sym, &sym,
                                     !(options &
                                              IDL_DO_NOT_ADD_TO_NONREAL_CLASS));
