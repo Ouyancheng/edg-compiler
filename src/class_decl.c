@@ -7394,9 +7394,14 @@ skip_tag_scan:
       *declares_something = FALSE;
     }  /* if */
   }  /* if */
-  /* Do processing required for any pragmas that are bound to the current
-     declaration. */
-  process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
+  if (!(*declares_something) && !is_class_definition) {
+    /* A pragma will not bind to a class reference in an elaborated type
+       specifier. */
+  } else {
+    /* Do processing required for any pragmas that are bound to the current
+       declaration. */
+    process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
+  }  /* if */
   if (is_class_definition) {
     if (scan_class_definition(class_type, effective_decl_level,
                               is_local_class)) {
