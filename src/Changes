@@ -1,4 +1,4 @@
-Version 2.13, December 1, 1992
+Version 2.12, December 1, 1992
 
 12/1/92  Redeclaration of typedef in derived class bug fixed
 
@@ -108,8 +108,6 @@ Formerly, variables with dynamic initialization side-effects (e.g.,
 with constructors or destructors) did not cause a diagnostic to be
 issued if a variable was declared but never referenced.  A remark
 is now issued.
-
-Version 2.12
 
 11/21/92 Abort in overload resolution fixed
 
