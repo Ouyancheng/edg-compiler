@@ -4878,7 +4878,6 @@ initialized for each compilation.
   param_name_string_space       = 0;
   macro_definition_space        = 0;
 #endif /* DEBUG */
-  macro_trans_unit_init();
 }  /* macro_init */
 
 

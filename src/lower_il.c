@@ -12916,7 +12916,6 @@ for each compilation.
   /* Do inline.c initialization. */
   if (inlining_enabled) inline_init();
 #endif /* MINIMAL_INLINING */
-  il_lower_trans_unit_init();
 }  /* il_lower_init */
 
 #endif /* DO_IL_LOWERING */

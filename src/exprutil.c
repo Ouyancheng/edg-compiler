@@ -8336,7 +8336,6 @@ for each compilation.
   num_ref_entries_allocated              = 0;
   num_dynamic_init_dtor_fixups_allocated = 0;
 #endif /* DEBUG */
-  expr_trans_unit_init();
 
   /* Do initialization for overload.c: */
   overload_init();

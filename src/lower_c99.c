@@ -1753,7 +1753,6 @@ Initialize static variables related to C99 IL lowering that must be
 initialized for each compilation.
 */
 {
-  lower_c99_trans_unit_init();
 }  /* lower_c99_init */
 
 #endif /* DO_C99_IL_LOWERING */
