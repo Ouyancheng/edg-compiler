@@ -1947,7 +1947,7 @@ See comment above.
 #endif /* __WIN32__ */
 
 
-char *get_curr_dir_name(void)
+static char *get_curr_dir_name(void)
 /*
 Get the current directory name and return it in the temporary string
 buffer.

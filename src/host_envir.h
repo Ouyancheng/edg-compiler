@@ -1045,8 +1045,6 @@ EXTERN void display_time_used(char		*message,
 			      a_timer_ptr	end_time);
 
 
-extern char *get_curr_dir_name(void);
-
 #if STANDALONE_UTILITY_PROGRAM
 extern DOES_NOT_RETURN normal_termination(void);
 #endif /* STANDALONE_UTILITY_PROGRAM */
