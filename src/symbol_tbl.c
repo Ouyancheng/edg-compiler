@@ -887,7 +887,7 @@ do_variable:
 }  /* db_symbol */
 
 
-static int db_scope_kind(a_scope_kind sck)
+int db_scope_kind(a_scope_kind sck)
 /*
 Put out a scope kind name (for debugging).
 */
@@ -968,6 +968,7 @@ Dump the entire scope stack (for debugging).
     --ssep;
   } while (!done);
 }  /* db_scope_stack */
+
 #endif /* DEBUG */
 
 
@@ -3043,7 +3044,8 @@ the compiler-generated flag should be cleared.
      is given a storage class of sc_extern since there is no definition
      in the current translation unit. */
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
-                      &func_info, /*is_variable_def=*/FALSE, &sym, &linkage,
+                      &func_info, (a_source_sequence_entry_ptr)NULL,
+                      /*is_variable_def=*/FALSE, &sym, &linkage,
                       &old_type, &ext_sym);
   sym->variant.routine.ptr->compiler_generated = TRUE;
   db_exit();
@@ -6510,6 +6512,15 @@ of the template.
        its official associated memory region. */
     ssep->il_memory_region = (ssep-1)->il_memory_region;
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (kind == (a_scope_kind)sck_file ||
+      (!C_mode() && kind == (a_scope_kind)sck_class_struct_union)) {
+    depth_innermost_ss_list_scope = depth_scope_stack;
+    depth_innermost_file_scope_region_ss_list_scope = depth_scope_stack;
+  } else if (kind == (a_scope_kind)sck_function) {
+    depth_innermost_ss_list_scope = depth_scope_stack;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Fill in the fields of the scope entry. */
   ssep->kind                     = kind;
   ssep->current_access           = (an_access_specifier)as_public;
@@ -6540,6 +6551,10 @@ of the template.
   ssep->last_dynamic_init        = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   ssep->last_source_sequence_entry = NULL;
+  ssep->source_sequence_avail_list = NULL;
+  ssep->depth_innermost_ss_list_scope = depth_innermost_ss_list_scope;
+  ssep->depth_innermost_file_scope_region_ss_list_scope =
+                      depth_innermost_file_scope_region_ss_list_scope;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   ssep->depth_innermost_instantiation_scope =
                                        depth_innermost_instantiation_scope;
@@ -7357,8 +7372,7 @@ End a name scope by popping an entry off the scope stack.
   if (debug_level >= 3) {
     /* Display source sequence lists for debug purposes. */
     if (il_scope != NULL && il_scope->source_sequence_list != NULL) {
-      fprintf(f_debug, "source sequence list:\n");
-      db_source_sequence_list(il_scope->source_sequence_list);
+      db_ss_list_for_scope(il_scope);
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
@@ -7489,6 +7503,13 @@ End a name scope by popping an entry off the scope stack.
     inside_local_class = scope_stack[depth_scope_stack].inside_local_class;
     depth_innermost_function_scope = scope_stack[depth_scope_stack].
                                             depth_innermost_function_scope;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    depth_innermost_ss_list_scope =
+                scope_stack[depth_scope_stack].depth_innermost_ss_list_scope;
+    depth_innermost_file_scope_region_ss_list_scope =
+                scope_stack[depth_scope_stack].
+                             depth_innermost_file_scope_region_ss_list_scope;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     /* Keep track of the number of current classes and class reactivations.
@@ -7709,7 +7730,7 @@ Set the "value_has_been_set" flag of the variable symbol pointed to by sym.
 static void sym_update_source_sequence_list(a_symbol_ptr       sym,
                                             a_source_position  *pos,
                                             a_boolean          is_primary_decl,
-                                            a_decl_seq_info    *decl_seq_info)
+                                            a_source_sequence_entry_ptr old_ssep)
 /*
 Allocate a source sequence entry for the IL entry to which sym refers and
 add it to the list for the appropriate scope.  If is_primary_decl is TRUE
@@ -7726,88 +7747,90 @@ secondary status.
   a_boolean                     force_alloc_in_filescope;
   a_memory_region_number        region_to_switch_back_to;
 
-  if ((il_entry_ptr = il_entry_for_symbol(sym, &kind)) != NULL) {
-    if (pos->seq == 0 ||
-        (kind == iek_routine &&
-         ((a_routine_ptr)il_entry_ptr)->compiler_generated)) {
-      /* Don't put out source sequence information on compiler generated
-         functions. */
-    } else {
-      /* If this is a definition that follows a previous declaration, the
-         latter should be recorded as a secondary. */
-      if (is_primary_decl) {
-        /* See if the IL entry already points to a source sequence entry. */
-        scp = &((a_constant_ptr)il_entry_ptr)->source_corresp;
-        ssep = scp->source_sequence_entry;
-        if (ssep != NULL) {
-          /* A source sequence entry has been located. */
-          /* An IL entry's source-sequence pointer should never point to
-             a secondary declaration entry or to an entry that in turn points
-             to another source sequence entry. */
-          check_assertion(ssep->entity.kind !=
-                            (a_byte_il_entry_kind)iek_source_sequence_entry &&
-                          ssep->entity.kind !=
-                            (a_byte_il_entry_kind)iek_src_seq_secondary_decl);
-          /* Create a "secondary declaration" entry for the previous
-             declaration and point the existing source sequence entry to it.
+  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
+    if ((il_entry_ptr = il_entry_for_symbol(sym, &kind)) != NULL) {
+      if (pos->seq == 0 ||
+          (kind == iek_routine &&
+           ((a_routine_ptr)il_entry_ptr)->compiler_generated)) {
+        /* Don't put out source sequence information on compiler generated
+           functions. */
+      } else {
+        /* If this is a definition that follows a previous declaration, the
+           latter should be recorded as a secondary. */
+        if (is_primary_decl) {
+          /* See if the IL entry already points to a source sequence entry. */
+          scp = &((a_constant_ptr)il_entry_ptr)->source_corresp;
+          ssep = scp->source_sequence_entry;
+          if (ssep != NULL) {
+            /* A source sequence entry has been located. */
+            /* An IL entry's source-sequence pointer should never point to
+               a secondary declaration entry or to an entry that in turn points
+               to another source sequence entry. */
+            check_assertion(ssep->entity.kind !=
+                             (a_byte_il_entry_kind)iek_source_sequence_entry &&
+                            ssep->entity.kind !=
+                             (a_byte_il_entry_kind)iek_src_seq_secondary_decl);
+            /* Create a "secondary declaration" entry for the previous
+               declaration and point the existing source sequence entry to it.
 
-               Current:               Change to:
+                 Current:               Change to:
 
-                 entity                       entity
-                    ^                           ^
-                    |                           |
-                    |         ==>       src-seq-secondary-decl
-                    |                           ^
-                    v                           |
-               src-seq-entry             src-seq-entry
+                   entity                       entity
+                      ^                           ^
+                      |                           |
+                      |         ==>       src-seq-secondary-decl
+                      |                           ^
+                      v                           |
+                 src-seq-entry             src-seq-entry
 
-             which eventually will look like this:
+               which eventually will look like this:
 
-                                    entity
-                                     ^   ^
-                                     |   |
-                  src-seq-secondary-decl |
-                          ^              |
-                          |              v
-                 src-seq-entry ... src-seq-entry
+                                      entity
+                                       ^   ^
+                                       |   |
+                    src-seq-secondary-decl |
+                            ^              |
+                            |              v
+                   src-seq-entry ... src-seq-entry
 
-             where the second source-sequence-entry in the new construct
-             (the one at which the entity will point back) has not yet been
-             created at this point in the processing. */
-          if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
-              in_file_scope(ssep)) {
-            force_alloc_in_filescope = TRUE;
-            switch_to_file_scope_region(&region_to_switch_back_to);
-          } else {
-            force_alloc_in_filescope = FALSE;
+               where the second source-sequence-entry in the new construct
+               (the one at which the entity will point back) has not yet been
+               created at this point in the processing. */
+            if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
+                in_file_scope(ssep)) {
+              force_alloc_in_filescope = TRUE;
+              switch_to_file_scope_region(&region_to_switch_back_to);
+            } else {
+              force_alloc_in_filescope = FALSE;
+            }  /* if */
+            sssdp = alloc_src_seq_secondary_decl();
+            if (force_alloc_in_filescope) {
+              switch_back_to_original_region(region_to_switch_back_to);
+            }  /* if */
+            sssdp->decl_position = scp->decl_position;
+            sssdp->entity = ssep->entity;
+            /* Update the tagged-pointer of the current source sequence entry
+               to refer to the secondary-decl entry. */
+            ssep->entity.kind =
+                            (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+            ssep->entity.ptr = (char *)sssdp;
+            /* Note that there is no back pointer from the entity to the
+               secondary-decl entry.   When the new source sequence entry is
+               created, the back pointer will refer to it. */
+            scp->source_sequence_entry = NULL;
           }  /* if */
-          sssdp = alloc_src_seq_secondary_decl();
-          if (force_alloc_in_filescope) {
-            switch_back_to_original_region(region_to_switch_back_to);
-          }  /* if */
-          sssdp->decl_position = scp->decl_position;
-          sssdp->entity = ssep->entity;
-          /* Update the tagged-pointer of the current source sequence entry
-             to refer to the secondary-decl entry. */
-          ssep->entity.kind =
-                          (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
-          ssep->entity.ptr = (char *)sssdp;
-          /* Note that there is no back pointer from the entity to the
-             secondary-decl entry.   When the new source sequence entry is
-             created, the back pointer will refer to it. */
-          scp->source_sequence_entry = NULL;
         }  /* if */
+        update_source_sequence_list(il_entry_ptr, kind, pos, old_ssep);
       }  /* if */
-      update_source_sequence_list(il_entry_ptr, kind, pos, decl_seq_info);
     }  /* if */
   }  /* if */
 }  /* sym_update_source_sequence_list */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-void mark_defined(a_symbol_ptr         sym_ptr,
-                  a_source_position    *source_position,
-                  a_decl_seq_info_ptr  decl_seq_info)
+void f_mark_defined(a_symbol_ptr                 sym_ptr,
+                    a_source_position            *source_position,
+                    a_source_sequence_entry_ptr  ssep)
 /*
 Indicate that the given symbol is defined.  The source position will be
 recorded in the symbol as its "decl_position" (overwriting what's there
@@ -7827,8 +7850,10 @@ the IL entry.  A cross-reference entry for a definition will be put out.
        associated with this declaration (again, unconditionally, since this is
        the definition). */
     sym_ptr->decl_position = *source_position;
-    if (decl_seq_info != NULL && decl_seq_info->decl_seq > 0) {
-      sym_ptr->decl_seq = decl_seq_info->decl_seq;
+    if (sym_ptr->kind == (a_symbol_kind)sk_variable &&
+        sym_ptr->variant.variable.ptr->is_parameter &&
+        sym_ptr->decl_seq > 0) {
+      /* Leave it set as when the parameter symbol was created. */
     } else {
       set_decl_sequence_number(sym_ptr);
     }  /* if */
@@ -7848,7 +7873,7 @@ the IL entry.  A cross-reference entry for a definition will be put out.
        recorded as a secondary declaration. */
     sym_update_source_sequence_list(sym_ptr, source_position,
                                     /*is_primary_decl=*/!sym_ptr->defined,
-                                    decl_seq_info);
+                                    ssep);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   if (!sym_ptr->defined) {
@@ -7861,12 +7886,12 @@ the IL entry.  A cross-reference entry for a definition will be put out.
     /* Similarly, the defined flag is also set late. */
     sym_ptr->defined = TRUE;
   }  /* if */
-}  /* mark_defined */
+}  /* f_mark_defined */
 
 
-void mark_declared(a_symbol_ptr         sym_ptr,
-                   a_source_position    *source_position,
-                   a_decl_seq_info_ptr  decl_seq_info)
+void f_mark_declared(a_symbol_ptr                 sym_ptr,
+                     a_source_position            *source_position,
+                     a_source_sequence_entry_ptr  ssep)
 /*
 Indicate that the given symbol is declared at the given position.
 */
@@ -7879,17 +7904,13 @@ Indicate that the given symbol is declared at the given position.
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     sym_update_source_sequence_list(sym_ptr, source_position,
-                                    /*is_primary_decl=*/FALSE, decl_seq_info);
+                                    /*is_primary_decl=*/FALSE, ssep);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   if (sym_ptr->decl_seq == 0) {
-    if (decl_seq_info != NULL && decl_seq_info->decl_seq > 0) {
-      sym_ptr->decl_seq = decl_seq_info->decl_seq;
-    } else {
-      set_decl_sequence_number(sym_ptr);
-    }  /* if */
+    set_decl_sequence_number(sym_ptr);
   }  /* if */
-}  /* mark_declared */
+}  /* f_mark_declared */
 
 
 void reference_to_symbol(a_symbol_reference_kind kind,
@@ -8113,9 +8134,8 @@ locator_for_curr_id.
   pip->type_pos.column = SP_COL_UNKNOWN;
   pip->storage_class = (a_storage_class)sc_unspecified;
   pip->implicitly_declared = FALSE;
-  pip->decl_seq_info.decl_seq = 0;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  pip->decl_seq_info.source_sequence_entry = NULL;
+  pip->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
   return(pip);
@@ -8176,12 +8196,13 @@ return NULL.
 }  /* param_id_on_list */
 
 
-void add_to_param_id_list(a_symbol_locator      *locator,
-                          a_type_ptr            type_ptr,
-                          a_source_position     *type_pos,
-                          a_storage_class       storage_class,
-                          a_func_info_block_ptr func_info,
-                          a_param_id_ptr        *last_param_id)
+void add_to_param_id_list(a_symbol_locator            *locator,
+                          a_type_ptr                  type_ptr,
+                          a_source_position           *type_pos,
+                          a_storage_class             storage_class,
+                          a_func_info_block_ptr       func_info,
+                          a_source_sequence_entry_ptr param_ssep,
+                          a_param_id_ptr              *last_param_id)
 /*
 Create a new param_id entry and an sk_parameter symbol to go with it,
 and add the former to the parameter id list pointed to by func_info;
@@ -8243,6 +8264,7 @@ storage_class are the type and storage class for the parameter.
       sym->variant.param_id = new_param_id;
       set_decl_sequence_number(sym);
     }  /* if */
+    new_param_id->source_sequence_entry = param_ssep;
     /* Put this entry on the end of the list of param ids. */
     if (func_info->param_id_list == NULL) {
       func_info->param_id_list = new_param_id;
@@ -8271,9 +8293,11 @@ Clear the fields of a function information block to default values.
   func_info->is_main_function            = FALSE;
   func_info->is_implicit_declaration     = FALSE;
   func_info->function_type_from_typedef  = FALSE;
-  func_info->decl_seq_info.decl_seq      = 0;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  func_info->decl_seq_info.source_sequence_entry = NULL;
+  func_info->declarator_ssep                = NULL;
+  func_info->prototype_scope_ss_entry_start = NULL;
+  func_info->prototype_scope_ss_entry_end   = NULL;
+  func_info->class_in_which_defined_inline  = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* clear_func_info */
 
@@ -8475,6 +8499,10 @@ to avoid an 8-character external name clash with symbol_table.)
   decl_scope_level = NO_SCOPE_DEPTH;
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
   depth_innermost_instantiation_scope = NO_SCOPE_DEPTH;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  depth_innermost_ss_list_scope = NO_SCOPE_DEPTH;
+  depth_innermost_file_scope_region_ss_list_scope = NO_SCOPE_DEPTH;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   inside_local_class = FALSE;
   next_scope_number = FILE_SCOPE_NUMBER;
 
