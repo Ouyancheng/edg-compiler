@@ -6243,7 +6243,9 @@ fields to default values.
       clear_stmt_source_position(bp->final_position);
       bp->assoc_scope      = NULL;
       bp->parent_block     = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
       bp->final_source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       bp->end_of_block_reachable = TRUE;
       bp->any_initializing_decls_in_parent_block = FALSE;
 #if CHECKING

@@ -2415,6 +2415,7 @@ scope is that of a class definition.
     if (local_func_info_block.param_id_list != NULL) {
       /* Free the list of parameter identifiers -- they're not needed
          if there's no definition. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
       a_param_id_ptr  pip = local_func_info_block.param_id_list;
       for (; pip != NULL; pip = pip->next) {
         if (pip->source_sequence_entry != NULL) {
@@ -2422,6 +2423,7 @@ scope is that of a class definition.
                                            (a_type_ptr)NULL);
         }  /* if */
       }  /* for */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       free_param_id_list(&(local_func_info_block.param_id_list));
     }  /* if */
   }  /* if */
@@ -4773,7 +4775,11 @@ on a prior declaration.
       sym->variant.routine.instance_ptr->instantiation_required = FALSE;
     }  /* if */
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   f_mark_defined(sym, &locator->source_position, func_info->declarator_ssep);
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+  mark_defined(sym, &locator->source_position);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (func_info->is_inline) {
     if (!sym->variant.routine.ptr->is_inline &&
         sym->variant.routine.ptr->called) {
@@ -4967,7 +4973,11 @@ a new symbol is created and entered in the symbol table.
     }  /* if */
     sym->variant.variable.ptr = vp;
     set_source_corresp(&(vp->source_corresp), sym);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     f_mark_defined(sym, &sym->decl_position, param_id->source_sequence_entry);
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+    mark_defined(sym, &sym->decl_position);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     mark_variable_value_set(sym);
 #if DEBUG
     if (debug_level >= 3) {
@@ -8664,20 +8674,19 @@ has_explicit_type_specifier is TRUE if the type of the function was explicitly
 specified (rather than defaulted to "int").
 */
 {
-  a_symbol_ptr       symbol_ptr, ext_sym;
-  a_routine_ptr      routine_ptr;
-  a_param_id_ptr     param_id;
-  an_id_linkage_kind linkage;
-  a_type_ptr         old_type, unqualified_rout_type;
-  a_routine_type_supplement_ptr
-                     extra_info;
-  a_boolean          prototyped;
-  a_boolean	     is_member_function_def = FALSE;
-  a_param_type_ptr   ptp;
-  a_decl_flag_set    flags;
+  a_symbol_ptr                   symbol_ptr, ext_sym;
+  a_routine_ptr                  routine_ptr;
+  a_param_id_ptr                 param_id;
+  an_id_linkage_kind             linkage;
+  a_type_ptr                     old_type, unqualified_rout_type;
+  a_routine_type_supplement_ptr  extra_info;
+  a_boolean                      prototyped;
+  a_boolean	                 is_member_function_def = FALSE;
+  a_param_type_ptr               ptp;
+  a_decl_flag_set                flags;
+  a_source_sequence_entry_ptr    declarator_ssep;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr
-                     ss_entry_start_prev;
+  a_source_sequence_entry_ptr    ss_entry_start_prev;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "function_definition");
@@ -8800,8 +8809,13 @@ specified (rather than defaulted to "int").
       pop_scope();
     }  /* if */
     /* Create the symbol entry and routine entry for the routine. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    declarator_ssep = func_info->declarator_ssep;
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+    declarator_ssep = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     decl_var_or_routine(locator, storage_class, rout_type, func_info,
-                        func_info->declarator_ssep, /*is_variable_def=*/FALSE,
+                        declarator_ssep, /*is_variable_def=*/FALSE,
                         &symbol_ptr, &linkage, &old_type, &ext_sym);
   }  /* if */
   routine_ptr = symbol_ptr->variant.routine.ptr;
@@ -9789,7 +9803,9 @@ continue_with_declaration:
                to the function scope. */
             reenter_symbol(param_id->symbol, decl_scope_level,
                            /*suppress_error=*/FALSE);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
             param_id->source_sequence_entry = declarator_ssep;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           }  /* if */
           adjust_parameter_type(&local_type_ptr);
           is_function = top_declarator_type_is_function = FALSE;
@@ -9955,10 +9971,12 @@ continue_with_declaration:
             if (pid->symbol != NULL) {
               mark_declared(pid->symbol, &pid->symbol->decl_position);
             }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
             if (pid->source_sequence_entry != NULL) {
               remove_from_source_sequence_list(&pid->source_sequence_entry,
                                                (a_type_ptr)NULL);
             }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           }  /* for */
           free_param_id_list(&(func_info.param_id_list));
         }  /* if */

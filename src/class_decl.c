@@ -3213,6 +3213,7 @@ special function kind (e.g., constructor, destructor), if any.
   a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
   a_boolean                     const_object_okay, dummy_flag;
   a_type_ptr                    tp;
+  a_source_sequence_entry_ptr   declarator_ssep;
 
   db_enter(3, "decl_member_function");
   /* If this is a user-defined conversion or an overloaded operator,
@@ -3233,6 +3234,11 @@ special function kind (e.g., constructor, destructor), if any.
   /* Look for a prior declaration or function overloading. */
   sym = symbol_for_member_function(locator, member_type, &overload_sym);
   rtn = sym->variant.routine.ptr;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  declarator_ssep = func_info->declarator_ssep;
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+  declarator_ssep = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (rtn != NULL) {
     /* symbol_for_member_function has returned a symbol that has already been
        declared.  It is an error to redeclare a member function, but we try
@@ -3242,8 +3248,7 @@ special function kind (e.g., constructor, destructor), if any.
                            &locator->source_position);
 
     update_source_sequence_list((char *)rtn, (an_il_entry_kind)iek_routine,
-                                &locator->source_position,
-                                func_info->declarator_ssep);
+                                &locator->source_position, declarator_ssep);
   } else {
     sym->class_of_which_a_member = class_type;
     /* Create the routine entry for the member function. */
@@ -3268,11 +3273,9 @@ special function kind (e.g., constructor, destructor), if any.
       rtn->compiler_generated = TRUE;
     } else {
       if (func_info->is_definition) {
-        f_mark_defined(sym, &locator->source_position,
-                       func_info->declarator_ssep);
+        f_mark_defined(sym, &locator->source_position, declarator_ssep);
       } else {
-        f_mark_declared(sym, &locator->source_position,
-                        func_info->declarator_ssep);
+        f_mark_declared(sym, &locator->source_position, declarator_ssep);
       }  /* if */
     }  /* if */
     add_throw_specification(func_info, rtn);
@@ -6309,11 +6312,13 @@ Scan the body of a class definition, including the base classes list.
                     if (pid->symbol != NULL) {
                       mark_declared(pid->symbol, &pid->symbol->decl_position);
                     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
                     if (pid->source_sequence_entry != NULL) {
                       remove_from_source_sequence_list(
                                                   &pid->source_sequence_entry,
                                                   (a_type_ptr)NULL);
                     }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
                   }  /* for */
                   /* Free the list of parameter identifiers -- they're not
                      needed if there's no definition. */
