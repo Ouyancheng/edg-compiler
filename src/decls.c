@@ -8246,6 +8246,22 @@ Process a handler declaration:
                                /*suppress_redecl_error=*/FALSE);
           }  /* if */
         }  /* if */
+        if (!is_error_type(type_ptr)) {
+          /* Force instantiation of template class. */
+          check_for_uninstantiated_template_class(type_ptr);
+          if (is_incomplete_type(type_ptr)) {
+            /* Incomplete type is not allowed. */
+            pos_error(ec_incomplete_type_not_allowed, &decl_pos);
+            type_ptr = error_type();
+          } else if (is_or_contains_local_type(type_ptr)) {
+            /* Since exception types must be externally visible, they cannot
+               be local types. */
+            pos_error(ec_local_type_not_allowed, &decl_pos);
+            type_ptr = error_type();
+          } else {
+            type_ptr->used_in_exception = TRUE;
+          }  /* if */
+        }  /* if */
         handler->parameter = make_handler_parameter(type_ptr);
         if (sym != NULL) {
           sym->variant.variable.ptr = handler->parameter;
@@ -8265,6 +8281,9 @@ Process a handler declaration:
         if (masked) {
           /* One "masking" diagnostic has already been issued -- there's no
              point in putting out another. */
+        } else if (type_ptr == error_type() ||
+                   prev_handler->parameter->type == error_type()) {
+          /* No need to check for masking in this case. */
         } else if (prev_handler->parameter == NULL) {
           /* Anything following a default handler is masked by it. */
           pos_error(ec_masked_by_default_handler, &decl_pos);
