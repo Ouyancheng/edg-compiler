@@ -2025,7 +2025,7 @@ Set module_id to the string.
 */
 {
   char			*file_name = il_header.primary_source_file->file_name;
-  sizeof_t		file_name_len = strlen(file_name);
+  sizeof_t		file_name_len;
   a_scope_ptr		scope = il_header.primary_scope;
   a_variable_ptr	variable;
   a_routine_ptr		routine;
@@ -2104,6 +2104,12 @@ Set module_id to the string.
         str2 = NULL;
         len2 = 0;
       }  /* if */
+      /* Exclude the directory portion of the file name. */
+      { char	*end_of_dir;
+        end_of_dir = end_of_directory_name(file_name);
+        if (end_of_dir != NULL) file_name = end_of_dir+1;
+      }
+      file_name_len = strlen(file_name);
       module_id = alloc_general(file_name_len + 1 +
                                 len1 + len2 + (len2 != 0) + 1);
       (void)strcpy(module_id, file_name);
