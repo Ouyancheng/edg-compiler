@@ -2020,7 +2020,7 @@ error code.
       m = "use of a local type to declare a function";
       break;
     case ec_jumping_over_init:
-      m = "jumping over initializing declaration:";
+      m = "transfer of control bypasses initialization of:";
       break;
     case ec_name_at_decl_position:
       m = "%nd";
@@ -2571,7 +2571,8 @@ Add the first of possibly two parts of a type reference.
     local_type = unqualified_type->variant.pointer.type;
     /* Recursive call to print out any lower indirections. */
     form_type_first_part(local_type,
-                         /*need_parens=*/!is_pointer_type(local_type),
+                         /*need_parens=*/
+                                  !is_pointer_or_reference_type(local_type),
                          seg_ptr);
     /* Print out the star for this indirection. */
     if (unqualified_type->variant.pointer.is_reference) {
@@ -5535,6 +5536,19 @@ and then terminate the compilation.
 
 /* The following routines are used to construct multiple message
    diagnostics with various fill-ins. */
+void pos_start_diagnostic(an_error_severity  error_severity,
+                          an_error_code      error_code,
+                          a_source_position  *error_pos)
+/*
+Begin a multiple message diagnostic with the specified severity, error code,
+and source position.
+*/
+{
+  init_error_params();
+  diag_message(error_code, error_pos, error_severity, dck_primary);
+}  /* pos_start_diagnostic */
+
+
 void pos_start_error(an_error_code     error_code,
                      a_source_position *error_pos)
 /*
