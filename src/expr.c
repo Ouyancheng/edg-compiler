@@ -1225,6 +1225,11 @@ __builtin_constant_p and __builtin_classify_type are processed here.
                            result_type->variant.integer.int_kind);
       break;
     case bfk_classify_type:
+#if FIXED_POINT_ALLOWED
+      if (fixed_point_enabled && is_fixed_point_type(arg.type)) {
+        pos_error(ec_no_classification_for_fixed_point_type, &arg.position);
+      }  /* if */
+#endif /* FIXED_POINT_ALLOWED */
       set_integer_constant(&result,
                            (a_host_large_integer)
                                             gnu_type_class_for_type(arg.type),
