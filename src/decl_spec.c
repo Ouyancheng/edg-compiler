@@ -1409,7 +1409,7 @@ to indicate whether an enumeration is actually defined.
                                    /*suppress_redecl_error=*/FALSE);
       *declares_something = TRUE;
       set_source_corresp(&(enum_type->source_corresp), tag_sym);
-      tag_sym->variant.type = enum_type;
+      tag_sym->variant.enumeration.type = enum_type;
       if (curr_token == tok_lbrace) {
         mark_defined(tag_sym, &locator.source_position);
       } else {
@@ -1421,7 +1421,7 @@ to indicate whether an enumeration is actually defined.
                                         &pos_curr_token);
       set_source_corresp(&(enum_type->source_corresp), tag_sym);
       enum_type->source_corresp.name = NULL;
-      tag_sym->variant.type = enum_type;
+      tag_sym->variant.enumeration.type = enum_type;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (curr_token == tok_lbrace) {
         /* An unnamed enum type.  mark_defined can't be called to put out a
@@ -1465,7 +1465,7 @@ to indicate whether an enumeration is actually defined.
        IL list in the right order. */
   } else {
     /* Using an existing type.  Fetch the enumerated type pointer from it. */
-    enum_type = tag_sym->variant.type;
+    enum_type = tag_sym->variant.enumeration.type;
     is_redeclaration = TRUE;
     /* Record cross-reference information. */
     if (curr_token == tok_lbrace) {
@@ -1735,6 +1735,10 @@ to indicate whether an enumeration is actually defined.
     }  /* if */
     /* Set the type size (based on the integral type it is mapped onto). */
     set_type_size(enum_type);
+    /* If entities dependent on this enum type were declared before it was
+       defined, they will have been recorded on a fixup list.  Go through
+       the fixup list and complete the declarations. */
+    check_dependent_type_fixup_list(tag_sym);
   }  /* if */
   /* Add the type to the types list for the current scope.  This is done
      after the closing brace, if any, to get the IL types list in the right
