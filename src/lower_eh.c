@@ -29,7 +29,18 @@ lower_eh.c -- IL lowering for exception handling constructs.
 #include "types.h"
 #include "const_ints.h"
 #include "cmd_line.h"
+#include "folding.h"
 
+
+static unsigned long
+		next_region_number;
+			/* Next available destructible object region number
+			   within the current function. */
+
+static unsigned long
+		max_region_number;
+			/* NULL_EH_REGION_NUMBER (all 1 bits) truncated to fit
+			   in a TARG_REGION_NUMBER_INT_KIND integer. */
 
 static unsigned long
 		num_of_pending_class_typeinfo_vars;
@@ -88,7 +99,7 @@ static a_variable_ptr make_typeinfo_var(a_type_ptr type)
 /*
 Make a typeinfo variable for the indicated type (if it does not exist
 already) and return a pointer to it.  The variable points to runtime
-type information.
+type information.  Typerefs on the type are stripped off.
 */
 {
   a_variable_ptr  typeinfo_var;
@@ -96,6 +107,7 @@ type information.
   sizeof_t        mangled_name_length, alloc_length;
   a_storage_class storage_class;
 
+  type = skip_typerefs(type);
   /* No need to create the variable if it exists already. */
   typeinfo_var = type->typeinfo_var;
   if (typeinfo_var == NULL) {
@@ -128,6 +140,16 @@ type information.
     typeinfo_var->source_corresp.name_has_been_mangled = TRUE;
     /* Remember the variable in the type. */
     type->typeinfo_var = typeinfo_var;
+    /* If the type is a class, we also need typeinfo variables for its
+       base classes. */
+    if (is_immediate_class_type(type)) {
+      a_base_class_ptr bcp;
+      for (bcp = type->variant.class_struct_union.extra_info->base_classes;
+           bcp != NULL;
+           bcp = bcp->next) {
+        (void)make_typeinfo_var(bcp->type);
+      }  /* if */
+    }  /* if */
   }  /* if */
   return typeinfo_var;
 }  /* make_typeinfo_var */
@@ -164,6 +186,105 @@ all denote the same type.  type must be an externally-linked class type.
 }  /* make_id_object_var */
 
 
+static a_variable_ptr make_unnamed_local_static_array_var(a_type_ptr elem_type)
+/*
+Create an unnamed local static variable whose type is an array of elem_type,
+and return a pointer to the variable.  The array size is begun as [0] and
+will be adjusted as elements are added.  finish_unnamed_local_static_array_var
+must be called sometime later to set the size on the type.
+*/
+{
+  a_variable_ptr var;
+  a_type_ptr     array_type;
+
+  /* The current region is already the file scope memory region when
+     this routine is called. */
+  check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
+  /* Make a type that is an array of elem_type. */
+  array_type = alloc_type((a_type_kind)tk_array);
+  array_type->variant.array.variant.number_of_elements = 0; /* Initially. */
+  array_type->variant.array.element_type = elem_type;
+  /* set_type_size is not called yet. */
+  /* Make the variable.  It is unnamed and static. */
+  var = make_unnamed_local_static_variable(array_type);
+  return var;
+}  /* make_unnamed_local_static_array_var */
+
+
+static a_variable_ptr make_init_unnamed_local_static_array_var(
+                                                          a_type_ptr elem_type)
+/*
+Create an unnamed local static variable whose type is an array of elem_type,
+and return a pointer to the variable.  The array size is begun as [0] and
+will be adjusted as elements are added.  finish_unnamed_local_static_array_var
+must be called sometime later to set the size on the type.  The variable
+will be initialized; to start the process, an aggregate constant is attached
+to the variable.  Initial values must be added under the aggregate.
+*/
+{
+  a_variable_ptr var;
+  a_constant_ptr aggr_con;
+
+  /* The current region is already the file scope memory region when
+     this routine is called. */
+  /* Make the variable with an array type. */
+  var = make_unnamed_local_static_array_var(elem_type);
+  /* The initial value is an aggregate constant pointing to a list of
+     aggregate constants. */
+  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  /* Attach the aggregate constant as the initial value of the variable. */
+  var->init_kind = (an_init_kind)initk_static;
+  var->initializer.constant = aggr_con;
+  return var;
+}  /* make_init_unnamed_local_static_array_var */
+
+
+static a_targ_size_t incr_nelems_or_array_var(a_variable_ptr var)
+/*
+Increment the number of elements of the array variable pointed to by var.
+Return the pre-incremented value (which is right as a subscript).
+*/
+{
+  /* Add one to the array size.  set_type_size is called later. */
+  return var->type->variant.array.variant.number_of_elements++;
+}  /* incr_nelems_or_array_var */
+
+
+static a_targ_size_t add_elem_to_array_var(a_variable_ptr var,
+                                           a_constant_ptr con)
+/*
+Add the indicated constant as an initializer of an element of the array
+variable pointed to by var.  Increment the number of elements of the
+array.  Return the pre-incremented size (which is right as a subscript).
+*/
+{
+  a_constant_ptr aggr_con = var->initializer.constant;
+
+  /* Add the constant to the aggregate initializer list. */
+  if (aggr_con->variant.aggregate.first_constant == NULL) {
+    aggr_con->variant.aggregate.first_constant = con;
+  } else {
+    aggr_con->variant.aggregate.last_constant->next = con;
+  }  /* if */
+  aggr_con->variant.aggregate.last_constant = con;
+  /* Increment the number of elements in the array. */
+  return incr_nelems_or_array_var(var);
+}  /* add_elem_to_array_var */
+
+
+static void finish_array_var(a_variable_ptr var)
+/*
+var is an array variable (for example, one created by
+make_unnamed_local_static_array_var).  The building of the variable is now
+completed, so finish it off.  In particular, the array size is now known,
+so call set_type_size on the type.
+*/
+{
+  /* Finish off the array type by setting its size. */
+  set_type_size(var->type);
+}  /* finish_array_var */
+
+
 static a_variable_ptr make_base_class_array_var(a_type_ptr type)
 /*
 type is a class type that has base classes.  Make a variable initialized
@@ -171,24 +292,37 @@ with an array of typeinfo pointers for the base classes of the type.
 This is used as part of the typeinfo information.
 */
 {
-  a_base_class_ptr bcp;
-  unsigned long    base_class_count;
   a_type_ptr       array_type;
+  a_base_class_ptr bcp;
   a_constant_ptr   aggr_con, con;
   a_variable_ptr   typeinfo_var, bc_var;
 
   /* The current region is already the file scope memory region when
      this routine is called. */
+  /* Make an initialized static variable that is an array of typeinfo
+     structures. */
+  /* make_init_unnamed_local_static_array_var cannot be used because we
+     want the variable always to be in the file scope. */
+  /* Make a type that is an array of typeinfo pointers. */
+  array_type = alloc_type((a_type_kind)tk_array);
+  array_type->variant.array.variant.number_of_elements = 0; /* Initially. */
+  array_type->variant.array.element_type = make_pointer_type(typeinfo_type);
+  /* set_type_size is not called yet. */
+  /* Make the variable.  It is unnamed and static and in the file scope. */
+  bc_var = make_file_scope_temporary(array_type);
+  /* The initial value is an aggregate constant pointing to a list of
+     aggregate constants. */
+  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  /* Attach the aggregate constant as the initial value of the variable. */
+  bc_var->init_kind = (an_init_kind)initk_static;
+  bc_var->initializer.constant = aggr_con;
   /* The initial value is an aggregate constant pointing to a list of
      constants that are pointers to typeinfo variables. */
-  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-  base_class_count = 0;
   for (bcp = type->variant.class_struct_union.extra_info->base_classes;
        bcp != NULL;
        bcp = bcp->next) {
     /* Include information only on direct base classes. */
     if (bcp->direct) {
-      base_class_count++;
       /* Make an address constant for a pointer to the base class typeinfo
          variable. */
       con = alloc_constant((a_constant_repr_kind)ck_address);
@@ -196,33 +330,16 @@ This is used as part of the typeinfo information.
       check_assertion_str(typeinfo_var != NULL,
                           "make_base_class_array_var: NULL typeinfo var");
       set_variable_address_constant(typeinfo_var, con);
-      /* Add the constant to the aggregate list. */
-      if (aggr_con->variant.aggregate.first_constant == NULL) {
-        aggr_con->variant.aggregate.first_constant = con;
-      } else {
-        aggr_con->variant.aggregate.last_constant->next = con;
-      }  /* if */
-      aggr_con->variant.aggregate.last_constant = con;
+      /* Add the constant to the aggregate initializer list. */
+      (void)add_elem_to_array_var(bc_var, con);
     }  /* if */
   }  /* for */
-  check_assertion_str(base_class_count != 0,
-                      "make_base_class_array_var: no base classes");
   /* Add a zero entry to indicate the end of the list. */
   con = alloc_constant((a_constant_repr_kind)ck_address);
   make_zero_of_proper_type(make_pointer_type(typeinfo_type), con);
-  aggr_con->variant.aggregate.last_constant->next = con;
-  aggr_con->variant.aggregate.last_constant = con;
-  /* Make a type that is an array of pointers to typeinfo entries.
-     Leave room for the zero entry at the end. */
-  array_type = alloc_type((a_type_kind)tk_array);
-  array_type->variant.array.variant.number_of_elements = base_class_count+1;
-  array_type->variant.array.element_type = make_pointer_type(typeinfo_type);
-  set_type_size(array_type);
-  /* Make the variable.  It is unnamed and static. */
-  bc_var = make_unnamed_local_static_variable(array_type);
-  /* Attach the aggregate constant as the initial value of the variable. */
-  bc_var->init_kind = (an_init_kind)initk_static;
-  bc_var->initializer.constant = aggr_con;
+  (void)add_elem_to_array_var(bc_var, con);
+  /* Finish off the variable. */
+  finish_array_var(bc_var);
   return bc_var;
 }  /* make_base_class_array_var */
 
@@ -299,6 +416,7 @@ is TRUE, change the typeinfo variable to static.
     /* The class has a destructor.  Make a pointer to the routine. */
     a_routine_ptr dtor_routine = dtor_sym->variant.routine.ptr;
     set_routine_address_constant(dtor_routine, dtor_con);
+    implicit_cast(dtor_con, curr_field_type);
   }  /* if */
   /* Base class array pointer. */
   curr_field = curr_field->next;
@@ -313,6 +431,8 @@ is TRUE, change the typeinfo variable to static.
        and use its address here. */
     a_variable_ptr bc_var = make_base_class_array_var(type);
     set_variable_address_constant(bc_var, bc_con);
+    /* Make the type pointer-to-element instead of pointer-to-array. */
+    implicit_cast(bc_con, curr_field_type);
   }  /* if */
   /* Make the aggregate constant and attach it to the variable as its initial
      value. */
@@ -391,15 +511,15 @@ been generated already.
 
 
 /*
-Pointer to the exception_type_specification struct type (used to represent
-a type for exception throw and catch specifications).  NULL until created.
+Pointer to the exception_type_spec struct type (used to represent a type
+for exception throw and catch specifications).  NULL until created.
 */
 static a_type_ptr
-		exception_type_specification_type;
+		exception_type_spec_type;
 
 /*
-Bit set values for the flags byte of exception_type_specification.
-These must match the runtime's definition of these values.
+Bit set values for the flags byte of exception_type_spec.  These must
+match the runtime's definition.
 */
 #define ETS_IS_POINTER		0x01
 			/* A pointer to an object of the type specified
@@ -414,13 +534,13 @@ These must match the runtime's definition of these values.
 			   the array. */
 
 
-static a_type_ptr make_exception_type_specification_type(void)
+static a_type_ptr make_exception_type_spec_type(void)
 /*
-Make the exception_type_specification struct type (used to represent
-a type for exception throw and catch specifications) if it is not made
-already, and return a pointer to it.  Its definition is
+Make the exception_type_spec struct type (used to represent a type
+for exception throw and catch specifications) if it is not made already,
+and return a pointer to it.  Its definition is
 
-  struct exception_type_specification {
+  struct exception_type_spec {
     typeinfo      *tinfo;
     unsigned char flags;
   };
@@ -430,25 +550,23 @@ already, and return a pointer to it.  Its definition is
   a_targ_size_t byte_offset;
   a_field_ptr   last_field;
 
-  if (exception_type_specification_type == NULL) {
+  if (exception_type_spec_type == NULL) {
     /* Make the struct type. */
-    exception_type_specification_type = alloc_type((a_type_kind)tk_struct);
-    add_to_front_of_file_scope_types_list(exception_type_specification_type);
+    exception_type_spec_type = alloc_type((a_type_kind)tk_struct);
+    add_to_front_of_file_scope_types_list(exception_type_spec_type);
     byte_offset = 0;
     last_field = NULL;
     /* field: typeinfo *tinfo */
     make_lowered_field("tinfo", make_pointer_type(make_typeinfo_type()),
-                       &byte_offset, exception_type_specification_type,
-                       &last_field);
+                       &byte_offset, exception_type_spec_type, &last_field);
     /* field: unsigned char flags */
     make_lowered_field("flags",
                        integer_type((an_integer_kind)ik_unsigned_char),
-                       &byte_offset, exception_type_specification_type,
-                       &last_field);
-    finish_class_type(exception_type_specification_type, &byte_offset);
+                       &byte_offset, exception_type_spec_type, &last_field);
+    finish_class_type(exception_type_spec_type, &byte_offset);
   }  /* if */
-  return exception_type_specification_type;
-}  /* make_exception_type_specification_type */
+  return exception_type_spec_type;
+}  /* make_exception_type_spec_type */
 
 
 static a_variable_ptr typeinfo_var_for_type(a_type_ptr type,
@@ -463,7 +581,6 @@ set *flags_value to indicate a pointer or reference.
   a_variable_ptr typeinfo_var;
   a_type_ptr     typeinfo_type;
 
-  type = skip_typerefs(type);
   typeinfo_type = type;
   *flags_value = 0;
   if (is_ptr_or_ref_type(type)) {
@@ -471,7 +588,7 @@ set *flags_value to indicate a pointer or reference.
        class. */
     a_type_ptr base_type = type_pointed_to(type);
     if (is_class_struct_union_type(base_type)) {
-      typeinfo_type = f_skip_typerefs(base_type);
+      typeinfo_type = base_type;
       *flags_value = is_pointer_type(type) ? ETS_IS_POINTER : ETS_IS_REFERENCE;
     }  /* if */
   }  /* if */
@@ -481,19 +598,43 @@ set *flags_value to indicate a pointer or reference.
 
 
 /*
-Pointer to the eh_region_descr struct type (used to represent a cleanup
+Pointer to the region_descr struct type (used to represent a cleanup
 region for exception processing).  NULL until created.
 */
 static a_type_ptr
-		eh_region_descr_type;
+		region_descr_type;
 
-static a_type_ptr make_eh_region_descr_type(void)
+
 /*
-Make the eh_region_descr struct type (used to represent the cleanup required
+Bit flags for the flags field of a region description.  These must match
+the runtime's definition.
+*/
+#define RDF_INDIRECT		0x01
+			/* TRUE if the address provided by the handle field
+			   is a pointer to the object. */
+#define RDF_CONDITIONAL_FLAG	0x02
+			/* TRUE if the object has an associated flag that
+			   indicates whether the construction has occurred.
+			   The region entry following this one gives the
+			   location of the flag. */
+#define RDF_NEW_ALLOCATION	0x04
+			/* TRUE if the object was allocated by new and
+			   is to be freed in the event of a throw. */
+#define RDF_ARRAY		0x08
+			/* TRUE if the object is an array (or requires
+			   information normally provided only for arrays). */
+#define RDF_BASED_ON_THIS	0x10
+			/* TRUE if the object is part of the object pointed
+			   to by the "this" parameter. */
+
+
+static a_type_ptr make_region_descr_type(void)
+/*
+Make the region_descr struct type (used to represent the cleanup required
 in a particular region for exception processing) if it is not made already,
 and return a pointer to it.  Its definition is
 
-  struct eh_region_descr {
+  struct region_descr {
     __vptp         dtor;    // Destructor or delete routine pointer
     unsigned short handle;  // Index of object in object address table
     unsigned short prev;    // Previous cleanup region
@@ -505,31 +646,80 @@ and return a pointer to it.  Its definition is
   a_targ_size_t byte_offset;
   a_field_ptr   last_field;
 
-  if (eh_region_descr_type == NULL) {
+  if (region_descr_type == NULL) {
     /* Make the struct type. */
-    eh_region_descr_type = alloc_type((a_type_kind)tk_struct);
-    add_to_front_of_file_scope_types_list(eh_region_descr_type);
+    region_descr_type = alloc_type((a_type_kind)tk_struct);
+    add_to_front_of_file_scope_types_list(region_descr_type);
     byte_offset = 0;
     last_field = NULL;
     /* field: __vptp dtor */
     make_lowered_field("dtor", make_vptp_type(), &byte_offset,
-                       eh_region_descr_type, &last_field);
+                       region_descr_type, &last_field);
     /* field: unsigned short handle */
     make_lowered_field("handle",
                        integer_type(TARG_VAR_HANDLE_INT_KIND),
-                       &byte_offset, eh_region_descr_type, &last_field);
+                       &byte_offset, region_descr_type, &last_field);
     /* field: unsigned short prev */
     make_lowered_field("prev",
                        integer_type(TARG_REGION_NUMBER_INT_KIND),
-                       &byte_offset, eh_region_descr_type, &last_field);
+                       &byte_offset, region_descr_type, &last_field);
     /* field: unsigned char flags */
     make_lowered_field("flags",
                        integer_type((an_integer_kind)ik_unsigned_char),
-                       &byte_offset, eh_region_descr_type, &last_field);
-    finish_class_type(eh_region_descr_type, &byte_offset);
+                       &byte_offset, region_descr_type, &last_field);
+    finish_class_type(region_descr_type, &byte_offset);
   }  /* if */
-  return eh_region_descr_type;
-}  /* make_eh_region_descr_type */
+  return region_descr_type;
+}  /* make_region_descr_type */
+
+
+/*
+Pointer to the array_descr struct type (used as a supplement to
+the region description entry to represent an array object for exception
+processing).  NULL until created.
+*/
+static a_type_ptr
+		array_descr_type;
+
+static a_type_ptr make_array_descr_type(void)
+/*
+Make the array_descr struct type (used as a supplement to the region
+description entry to represent an array object for exception processing)
+if it is not made already, and return a pointer to it.  Its definition is
+
+  struct array_descr {
+    unsigned short handle;     // Index of object in object address table
+    size_t         elem_size;  // Array element size
+    long           elem_count; // Element count
+  };
+
+*/
+{
+  a_targ_size_t byte_offset;
+  a_field_ptr   last_field;
+
+  if (array_descr_type == NULL) {
+    /* Make the struct type. */
+    array_descr_type = alloc_type((a_type_kind)tk_struct);
+    add_to_front_of_file_scope_types_list(array_descr_type);
+    byte_offset = 0;
+    last_field = NULL;
+    /* field: unsigned short handle */
+    make_lowered_field("handle",
+                       integer_type(TARG_VAR_HANDLE_INT_KIND),
+                       &byte_offset, array_descr_type, &last_field);
+    /* field: size_t elem_size */
+    make_lowered_field("elem_size",
+                       integer_type(TARG_SIZE_T_INT_KIND),
+                       &byte_offset, array_descr_type, &last_field);
+    /* field: long elem_count */
+    make_lowered_field("elem_count",
+                       integer_type((an_integer_kind)ik_long),
+                       &byte_offset, array_descr_type, &last_field);
+    finish_class_type(array_descr_type, &byte_offset);
+  }  /* if */
+  return array_descr_type;
+}  /* make_array_descr_type */
 
 
 /*
@@ -578,6 +768,7 @@ static a_field_ptr
 		ehse_function_field,
 		ehse_function_regions_field,
 		ehse_function_obj_table_field,
+		ehse_function_array_table_field,
 		ehse_function_saved_region_number_field,
 		ehse_throw_spec_field;
 
@@ -604,14 +795,15 @@ Its definition is
     union {
       struct {
         jmp_buf  setjmp_buffer; // Buffer for setjmp
-        exception_type_specification *catch_entries;  // Catch list
+        exception_type_spec *catch_entries;  // Catch list
       } try_block;
       struct {
-        eh_region_descr *regions;  // Cleanup regions
-        void     **obj_table;      // Object address table
+        region_descr   *regions;            // Cleanup regions
+        void           **obj_table;         // Object address table
+        array_descr    *array_table;        // Array table
         unsigned short saved_region_number; // Saved __eh_curr_region
       } function;
-      exception_type_specification *throw_spec; // Throw spec list
+      exception_type_spec *throw_spec; // Throw spec list
     } variant;
   };
 
@@ -620,7 +812,7 @@ Its definition is
   a_targ_size_t byte_offset;
   a_field_ptr   last_field;
   a_type_ptr    try_block_struct_type, function_struct_type;
-  a_type_ptr    variant_union_type, ptr_exception_type_specification;
+  a_type_ptr    variant_union_type, ptr_exception_type_spec;
 
   if (eh_stack_entry_type == NULL) {
     /* Make the class types (without defining them) to get them on the
@@ -641,10 +833,10 @@ Its definition is
     make_lowered_field("setjmp_buffer", make_jmp_buf_type(),
                        &byte_offset, try_block_struct_type, &last_field);
     ehse_try_setjmp_buffer_field = last_field;
-    /* field: exception_type_specification *catch_entries */
-    ptr_exception_type_specification =
-                   make_pointer_type(make_exception_type_specification_type());
-    make_lowered_field("catch_entries", ptr_exception_type_specification,
+    /* field: exception_type_spec *catch_entries */
+    ptr_exception_type_spec =
+                            make_pointer_type(make_exception_type_spec_type());
+    make_lowered_field("catch_entries", ptr_exception_type_spec,
                        &byte_offset, try_block_struct_type, &last_field);
     ehse_try_catch_entries_field = last_field;
     finish_class_type(try_block_struct_type, &byte_offset);
@@ -653,9 +845,9 @@ Its definition is
     add_to_front_of_file_scope_types_list(function_struct_type);
     byte_offset = 0;
     last_field = NULL;
-    /* field: eh_region_descr *regions */
+    /* field: region_descr *regions */
     make_lowered_field("regions",
-                       make_pointer_type(make_eh_region_descr_type()),
+                       make_pointer_type(make_region_descr_type()),
                        &byte_offset, function_struct_type, &last_field);
     ehse_function_regions_field = last_field;
     /* field: void **obj_table */
@@ -663,6 +855,11 @@ Its definition is
                        make_pointer_type(void_star_type()),
                        &byte_offset, function_struct_type, &last_field);
     ehse_function_obj_table_field = last_field;
+    /* field: array_descr *array_table */
+    make_lowered_field("array_table",
+                       make_pointer_type(make_array_descr_type()),
+                       &byte_offset, function_struct_type, &last_field);
+    ehse_function_array_table_field = last_field;
     /* field: unsigned short saved_region_number */
     make_lowered_field("saved_region_number",
                        integer_type(TARG_REGION_NUMBER_INT_KIND),
@@ -680,8 +877,8 @@ Its definition is
     make_lowered_field("function", function_struct_type,
                        &byte_offset, variant_union_type, &last_field);
     ehse_function_field = last_field;
-    /* field: exception_type_specification *throw_spec */
-    make_lowered_field("throw_spec", ptr_exception_type_specification,
+    /* field: exception_type_spec *throw_spec */
+    make_lowered_field("throw_spec", ptr_exception_type_spec,
                        &byte_offset, variant_union_type, &last_field);
     ehse_throw_spec_field = last_field;
     finish_class_type(variant_union_type, &byte_offset);
@@ -713,29 +910,11 @@ The indicated type is used in an exception context.  Put out any necessary
 information on it.
 */
 {
-  if (is_ptr_or_ref_type(type)) {
-    /* For a pointer or reference to a class, remove the pointer or reference
-       level of the type. */
-    a_type_ptr base_type = type_pointed_to(type);
-    if (is_class_struct_union_type(base_type)) type = base_type;
-  }  /* if */
-  /* Typedefs and qualifiers should be ignored. */
-  type = f_skip_typerefs(type);
+  long flags;
+
   /* We need a typeinfo variable for the underlying type.  Make it if it
      does not exist already. */
-  if (type->typeinfo_var == NULL) {
-    (void)make_typeinfo_var(type);
-    /* If the type is a class, we also need typeinfo variables for its
-       base classes. */
-    if (is_immediate_class_type(type)) {
-      a_base_class_ptr bcp;
-      for (bcp = type->variant.class_struct_union.extra_info->base_classes;
-           bcp != NULL;
-           bcp = bcp->next) {
-        (void)make_typeinfo_var(bcp->type);
-      }  /* if */
-    }  /* if */
-  }  /* if */
+  (void)typeinfo_var_for_type(type, &flags);
 }  /* type_is_used_in_exception */
 
 
@@ -840,6 +1019,145 @@ Lower an enk_throw expression node.
 
 
 /*
+Pointer to the variable entry for the object address array table of
+a function.  NULL until allocated.
+*/
+static a_variable_ptr
+		object_addr_table_var;
+
+static a_targ_size_t object_addr_table_entry(
+                                        an_init_pos_descr_ptr ipdp,
+                                        an_insert_location    *insert_location)
+/*
+Add an entry to the object address table array (creating the table and its
+associated variable if necessary) for the object identified by ipdp.
+Return the index number into the object address table.  Also insert
+(at *insert_location) an assignment statement to set the entry of the
+object address array to the address of the object.
+*/
+{
+  an_expr_node_ptr object_addr_table_node, subsc_node;
+  a_targ_size_t    entry_number;
+
+  /* Note that the current memory region must not have been forced to the
+     file scope memory region at this point. */
+  /* Make the variable if it has not yet been made. */
+  if (object_addr_table_var == NULL) {
+    /* Switch to the file scope memory region so the variable will
+       be allocated there. */
+    a_memory_region_number region_to_switch_back_to;
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    /* The variable is an array whose elements have type "void *". */
+    object_addr_table_var =
+                         make_unnamed_local_static_array_var(void_star_type());
+    /* Return to the memory region that was current when this routine was
+       entered. */
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
+  /* Add an element to the object address table array. */
+  entry_number = incr_nelems_or_array_var(object_addr_table_var);
+  /* Insert code to initialize the element of the table to the address of the
+     object, i.e.,
+       object_addr_table[n] = ipdp-address;
+  */
+  object_addr_table_node = array_var_lvalue_expr(object_addr_table_var);
+  object_addr_table_node->next = node_for_integer_constant((long)entry_number,
+                                                         TARG_SIZE_T_INT_KIND);
+  subsc_node = make_operator_node((an_expr_operator_kind)eok_padd_subsc,
+                                  object_addr_table_node->type,
+                                  object_addr_table_node);
+  (void)insert_assignment_statement(subsc_node,
+                                    (an_expr_operator_kind)eok_passign,
+                                    make_init_entity_node(ipdp),
+                                    insert_location);
+  return entry_number;
+}  /* object_addr_table_entry */
+
+
+/*
+Pointer to the variable entry for the array table of a function.  NULL
+until allocated.
+*/
+static a_variable_ptr
+		array_table_var;
+
+static a_targ_size_t array_table_entry(
+                               a_required_destructor_call_ptr rdcp,
+                               an_insert_location             *insert_location)
+/*
+Add an entry to the array table (creating the table and its associated
+variable if necessary) for the object described in rdcp.  Return the
+index number into the array table.  Also insert (at *insert_location)
+initialization code for the proper entry in the object address table.
+This routine can also be called for non-arrays in cases where an array
+table entry is needed to provide information not include in the region
+description entry (for example, for a new-allocation record in a case
+where the delete routine requires a second parameter giving the size;
+the size is not available in the region description entry).
+*/
+{
+  a_targ_size_t    object_addr_index, entry_number;
+  long             elem_count;
+  a_memory_region_number
+                   region_to_switch_back_to;
+  a_constant_ptr   index_con, elem_size_con, size_con, aggr_con;
+  a_type_ptr       elem_type;
+
+  /* Note that the current memory region must not have been forced to the
+     file scope memory region at this point. */
+  /* Allocate the proper entry in the object address table. */
+  object_addr_index = object_addr_table_entry(&rdcp->init_pos_descr,
+                                              insert_location);
+  /* Switch to the file scope memory region so the variable and initialization
+     constants will be allocated there. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  /* Make the variable if it has not yet been made. */
+  if (array_table_var == NULL) {
+    /* The variable is an array whose elements have type array_descr. */
+    array_table_var =
+             make_init_unnamed_local_static_array_var(make_array_descr_type());
+  }  /* if */
+  /* Make the aggregate constant for the entry in the array table.  It consists
+     of the index in the object address table, the size of each element, and
+     the number of elements. */
+  index_con = alloc_constant((a_constant_repr_kind)ck_integer);
+  set_unsigned_integer_constant_with_overflow_check(index_con,
+                                                    object_addr_index,
+                                                    TARG_VAR_HANDLE_INT_KIND);
+  /* For the element size: note that the init_pos_descr has the type of an
+     element, not of the whole array.  For non-arrays, the type is of
+     course as expected. */
+  elem_type = type_from_init_pos_descr(&rdcp->init_pos_descr);
+  elem_type = skip_typerefs(elem_type);
+  elem_size_con = alloc_constant((a_constant_repr_kind)ck_integer);
+  set_unsigned_integer_constant(elem_size_con, (unsigned long)elem_type->size,
+                                TARG_SIZE_T_INT_KIND);
+  size_con = alloc_constant((a_constant_repr_kind)ck_integer);
+  if (rdcp->init_pos_descr.whole_array) {
+    /* The entity really is an array.  Get the element count.  -1 indicates
+       that the runtime should look up the number of elements in the array. */
+    elem_count = rdcp->init_pos_descr.array_element_count;
+  } else {
+    /* Not an array (see header comment above).  Use an element count of 0. */
+    elem_count = 0;
+  }  /* if */
+  set_integer_constant(size_con, elem_count, (an_integer_kind)ik_long);
+  /* Link the constants together and make an aggregate constant. */
+  index_con->next = elem_size_con;
+  elem_size_con->next = size_con;
+  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  aggr_con->variant.aggregate.first_constant = index_con;
+  aggr_con->variant.aggregate.last_constant = size_con;
+  /* Add the aggregate as an element of the object address table array. */
+  entry_number = add_elem_to_array_var(array_table_var, aggr_con);
+  /* Return to the memory region that was current when this routine was
+     entered. */
+  switch_back_to_original_region(region_to_switch_back_to);
+  return entry_number;
+}  /* array_table_entry */
+
+
+/*
 Variable entries for __eh_curr_region and __curr_eh_stack_entry,
 global variables used for exception processing.  NULL until created.
 */
@@ -881,38 +1199,199 @@ if it has not already been made.  Return a pointer to it.
 }  /* make_curr_eh_stack_entry_var */
 
 
-static a_variable_ptr make_exception_type_specification_array_var(void)
+/*
+Pointer to the variable entry for the region table of a function (which
+contains information about destructible objects).  NULL until allocated.
+*/
+static a_variable_ptr
+		region_table_var;
+
+void make_region_table_entry(a_required_destructor_call_ptr rdcp,
+                             an_insert_location             *insert_location)
+/*
+Add an entry to the region table (which describes destructible objects)
+for the object described in rdcp.  Create the region table variable if
+necessary.  Also insert (at *insert_location) initialization code for
+the proper entry in the object address table and code to set
+eh_curr_region to the region number for the region created.  rdcp must
+already be linked on the list of required destructors so its "next"
+pointer can be examined.
+*/
+{
+  a_targ_size_t    handle_number;
+  a_memory_region_number
+                   region_to_switch_back_to;
+  a_constant_ptr   dtor_con, handle_con, prev_con, flags_con, aggr_con;
+  a_type_ptr       ptr_func_type;
+  unsigned long    flags = 0, prev_region_number;
+  a_routine_ptr    dtor_routine;
+  a_required_destructor_call_ptr
+                   next_rdcp;
+
+  /* Note that the current memory region must not have been forced to the
+     file scope memory region at this point. */
+  if (rdcp->init_pos_descr.whole_array) {
+    /* For arrays, we need an entry in the array table. */
+    handle_number = array_table_entry(rdcp, insert_location);
+    /* Set the flag that indicates this object is an array. */
+    flags |= RDF_ARRAY;
+  } else {
+    /* Non-array. */
+    /* Allocate the proper entry in the object address table. */
+    handle_number = object_addr_table_entry(&rdcp->init_pos_descr,
+                                            insert_location);
+  }  /* if */
+  /* Assign a region number to this entry. */
+  rdcp->region_number = next_region_number++;
+  /* Insert an assignment statement that sets the global variable
+     eh_curr_region to the region number for this entry. */
+  (void)insert_var_assignment_statement(
+                                  make_eh_curr_region_var(),
+                                  (an_expr_operator_kind)eok_iassign,
+                                  node_for_integer_constant(
+                                                  (long)rdcp->region_number,
+                                                  TARG_REGION_NUMBER_INT_KIND),
+                                  insert_location);
+  /* Switch to the file scope memory region so the variable and initialization
+     constants will be allocated there. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  /* Make the variable if it has not yet been made. */
+  if (region_table_var == NULL) {
+    /* The variable is an array whose elements have type array_descr. */
+    region_table_var =
+            make_init_unnamed_local_static_array_var(make_region_descr_type());
+  }  /* if */
+  /* Make the aggregate constant for the entry in the region description
+     table.  It has a structure as follows:
+       struct region_descr {
+         __vptp         dtor;    // Destructor or delete routine pointer
+         unsigned short handle;  // Index of object in object address table
+         unsigned short prev;    // Previous cleanup region
+         unsigned char  flags;   // Bit flags
+       };
+  */
+  /* Make the destructor pointer. */
+#if 0
+  /* This needs to deal with delete routines too. */
+#endif
+  dtor_con = alloc_constant((a_constant_repr_kind)ck_address);
+  dtor_routine = rdcp->dynamic_init.destructor;
+  /* Create the generic function pointer type if it does not exist already. */
+  ptr_func_type = make_vptp_type();
+  if (dtor_routine == NULL) {
+    /* The object has no destructor; use a NULL pointer. */
+    make_zero_of_proper_type(ptr_func_type, dtor_con);
+  } else {
+    /* The class has a destructor.  Make a pointer to the routine. */
+    set_routine_address_constant(dtor_routine, dtor_con);
+    implicit_cast(dtor_con, ptr_func_type);
+  }  /* if */
+  /* Make the handle. */
+  handle_con = alloc_constant((a_constant_repr_kind)ck_integer);
+  set_unsigned_integer_constant_with_overflow_check(handle_con,
+                                                    handle_number,
+                                                    TARG_VAR_HANDLE_INT_KIND);
+  /* Make the previous region index number. */
+  /* Find the previous region by going backwards on the required destructor
+     call list. */
+  next_rdcp = rdcp->next;
+  while (next_rdcp != NULL &&
+         next_rdcp->region_number == NULL_EH_REGION_NUMBER) {
+    /* Ignore entries with no associated region number. */
+    next_rdcp = next_rdcp->next;
+  }  /* while */
+  if (next_rdcp != NULL) {
+    /* There is a previous entry. */
+    prev_region_number = next_rdcp->region_number;
+    if (prev_region_number >= max_region_number) {
+      /* The region number is too big. */
+      error(ec_integer_truncated);
+      prev_region_number = 0;
+    }  /* if */
+  } else {
+    /* There is no previous region.  Use a code (all 1 bits) that indicates
+       that. */
+    prev_region_number = max_region_number;
+  }  /* if */
+  prev_con = alloc_constant((a_constant_repr_kind)ck_integer);
+  set_unsigned_integer_constant(prev_con, prev_region_number,
+                                TARG_REGION_NUMBER_INT_KIND);
+  /* Make the flags constant. */
+  flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
+  set_unsigned_integer_constant(flags_con, flags,
+                                (an_integer_kind)ik_unsigned_char);
+  /* Link the constants together and make an aggregate constant. */
+  dtor_con->next = handle_con;
+  handle_con->next = prev_con;
+  prev_con->next = flags_con;
+  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  aggr_con->variant.aggregate.first_constant = dtor_con;
+  aggr_con->variant.aggregate.last_constant = flags_con;
+  /* Add the aggregate as an element of the region table array. */
+  (void)add_elem_to_array_var(region_table_var, aggr_con);
+  /* Return to the memory region that was current when this routine was
+     entered. */
+  switch_back_to_original_region(region_to_switch_back_to);
+}  /* region_table_entry */
+
+
+void set_eh_curr_region(a_context_ptr      context,
+                        an_insert_location *insert_location)
+/*
+Generate code at *insert_location to set the global variable eh_curr_region
+to indicate the destruction region that applies to the last required
+destructor call on the list attached to the indicated context.  If there
+are no required destructor calls in that context, set eh_curr_region to
+NULL_EH_REGION_NUMBER.
+*/
+{
+  a_required_destructor_call_ptr rdcp;
+  long                           region_number;
+
+  /* See if there is a required destructor entry. */
+  rdcp = context->required_destructor_calls;
+  while (rdcp != NULL && rdcp->region_number == NULL_EH_REGION_NUMBER) {
+    /* Ignore entries that are not regions. */
+    rdcp = rdcp->next;
+  }  /* while */
+  /* Determine the region number to be used. */
+  if (rdcp != NULL) {
+    region_number = (long)rdcp->region_number;
+  } else {
+    /* Use the maximum region number (all 1 bits) to indicate no region. */
+    region_number = (long)max_region_number;
+  }  /* if */
+  /* Generate an assignment statement to set curr_eh_region. */
+  (void)insert_var_assignment_statement(
+                                  make_eh_curr_region_var(),
+                                  (an_expr_operator_kind)eok_iassign,
+                                  node_for_integer_constant(
+                                                  region_number,
+                                                  TARG_REGION_NUMBER_INT_KIND),
+                                  insert_location);
+}  /* set_eh_curr_region */
+
+
+static a_variable_ptr make_exception_type_spec_array_var(void)
 /*
 Create a variable whose initial value will be an array of exception type
 specification entries, and return a pointer to the variable.
 */
 {
   a_variable_ptr var;
-  a_type_ptr     array_type;
-  a_constant_ptr aggr_con;
 
   /* The current region is already the file scope memory region when
      this routine is called. */
-  /* The initial value is an aggregate constant pointing to a list of
-     aggregate constants. */
-  aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-  /* Make a type that is an array of exception_type_specification entries. */
-  array_type = alloc_type((a_type_kind)tk_array);
-  array_type->variant.array.variant.number_of_elements = 0; /* Initially. */
-  array_type->variant.array.element_type =
-                                      make_exception_type_specification_type();
-  /* set_type_size is not called yet. */
-  /* Make the variable.  It is unnamed and static. */
-  var = make_unnamed_local_static_variable(array_type);
-  /* Attach the aggregate constant as the initial value of the variable. */
-  var->init_kind = (an_init_kind)initk_static;
-  var->initializer.constant = aggr_con;
+  /* Make a variable that is an array of exception type specification
+     entries. */
+  var = make_init_unnamed_local_static_array_var(
+                                              make_exception_type_spec_type());
   return var;
-}  /* make_exception_type_specification_array_var */
+}  /* make_exception_type_spec_array_var */
 
 
-static void add_exception_type_specification_array_entry(a_type_ptr     type,
-                                                         a_variable_ptr var)
+static void add_exception_type_spec_array_entry(a_type_ptr     type,
+                                                a_variable_ptr var)
 /*
 Add an entry that describes the type "type" to the array of exception type
 specifications being built up as the initializer of the variable "var".
@@ -921,11 +1400,11 @@ If type is NULL, add an ellipsis entry.
 {
   a_variable_ptr typeinfo_var;
   long           flags_value;                
-  a_constant_ptr typeinfo_con, flags_con, aggr_con, array_aggr_con;
+  a_constant_ptr typeinfo_con, flags_con, aggr_con;
 
   /* The current region is already the file scope memory region when
      this routine is called. */
-  /* Each element of the array is an exception_type_specification struct
+  /* Each element of the array is an exception_type_spec struct
      containing a pointer to the typeinfo information and a flags byte.
      The flags byte indicates the cases where the type indicated is a
      reference or pointer to the typeinfo type. */
@@ -950,20 +1429,11 @@ If type is NULL, add an ellipsis entry.
   aggr_con->variant.aggregate.last_constant = flags_con;
   /* Add this aggregate constant to the list of constants under the aggregate
      constant for the array. */
-  array_aggr_con = var->initializer.constant;
-  if (array_aggr_con->variant.aggregate.first_constant == NULL) {
-    /* This is the first element of the array. */
-    array_aggr_con->variant.aggregate.first_constant = aggr_con;
-  } else {
-    array_aggr_con->variant.aggregate.last_constant->next = aggr_con;
-  }  /* if */
-  array_aggr_con->variant.aggregate.last_constant = aggr_con;
-  /* Add one to the array size.  set_type_size is called later. */
-  var->type->variant.array.variant.number_of_elements++;
-}  /* add_exception_type_specification_array_entry */
+  (void)add_elem_to_array_var(var, aggr_con);
+}  /* add_exception_type_spec_array_entry */
 
 
-static void finish_exception_type_specification_array(a_variable_ptr var)
+static void finish_exception_type_spec_array(a_variable_ptr var)
 /*
 Finish the definition of a variable whose value is an array of exception
 type specification entries.
@@ -973,8 +1443,6 @@ type specification entries.
   long           flags_value;
   a_boolean      ovflo;
 
-  /* Finish off the array type by setting its size. */
-  set_type_size(var->type);
   /* Put the ETS_LAST bit on in the last entry. */
   array_aggr_con = var->initializer.constant;
   aggr_con = array_aggr_con->variant.aggregate.last_constant;
@@ -982,7 +1450,9 @@ type specification entries.
   flags_value = value_of_integer_constant(flags_con, &ovflo);
   flags_value |= ETS_LAST;
   set_integer_value(&flags_con->variant.integer_value, flags_value);
-}  /* finish_exception_type_specification_array */
+  /* Finish off the variable. */
+  finish_array_var(var);
+}  /* finish_exception_type_spec_array */
 
 
 static void push_eh_stack_frame(an_eh_stack_entry_kind kind,
@@ -1051,7 +1521,7 @@ stack frame.  The code is inserted at *insert_location.
   /* Add code as follows:
        __curr_eh_stack_entry = local_frame.next;
   */
-  local_frame_next = field_lvalue_selection_expr(
+  local_frame_next = field_rvalue_selection_expr(
                                               var_lvalue_expr(stack_frame_var),
                                               ehse_next_field);
   (void)insert_var_assignment_statement(curr_eh_stack_entry_var,
@@ -1084,15 +1554,15 @@ throw specification indicates that no types may be thrown.
        be allocated there. */
     switch_to_file_scope_region(&region_to_switch_back_to);
     /* Make the variable. */
-    var = make_exception_type_specification_array_var();
+    var = make_exception_type_spec_array_var();
     /* Fill the array with entries for the types that can be thrown. */
     for (;
          throw_spec_type != NULL;
          throw_spec_type = throw_spec_type->next) {
-      add_exception_type_specification_array_entry(throw_spec_type->type, var);
+      add_exception_type_spec_array_entry(throw_spec_type->type, var);
     }  /* for */
     /* Finish off the array. */
-    finish_exception_type_specification_array(var);
+    finish_exception_type_spec_array(var);
     /* Return to the memory region that was current when this routine was
        entered. */
     switch_back_to_original_region(region_to_switch_back_to);
@@ -1104,74 +1574,177 @@ throw specification indicates that no types may be thrown.
 void add_eh_function_prologue(a_scope_ptr scope)
 /*
 Add any prologue needed for exception handling to the function whose scope
-is given by "scope".
+is given by "scope".  Called only if exceptions are enabled.
 */
 {
   a_routine_ptr             routine;
   a_type_ptr                routine_type, spec_array_ptr;
   a_throw_specification_ptr throw_spec;
-  a_variable_ptr            local_frame, spec_array_var;
-  an_expr_node_ptr          spec_array_node, local_frame_variant_throw_spec;
+  a_variable_ptr            throw_frame, func_frame, spec_array_var;
+  an_expr_node_ptr          spec_array_node, throw_frame_throw_spec;
+  an_expr_node_ptr          func_frame_function_regions;
+  an_expr_node_ptr          func_frame_function_obj_table;
+  an_expr_node_ptr          func_frame_function_array_table;
+  an_expr_node_ptr          func_frame_function_saved_region_number;
   an_insert_location        insert_location;
   a_boolean                 need_throw_epilogue = FALSE;
+  a_boolean                 need_function_epilogue = FALSE;
   a_return_memo_ptr         rmp;
 
-  /* Only add the code if exceptions are enabled. */
-  if (exceptions_enabled) {
-    /* See if the routine has a throw specification. */
-    routine = scope->variant.routine.ptr;
-    routine_type = routine->type;
-    routine_type = skip_typerefs(routine_type);
-    throw_spec = routine_type->variant.routine.extra_info->throw_specification;
-    if (throw_spec != NULL) {
-      /* The routine has a throw specification.  (A null pointer means
-         the function can throw anything.) */
-      /* Generate code to push an entry on the EH stack. */
-      push_eh_stack_frame(ehsek_throw_spec, &local_frame, &insert_location);
-      need_throw_epilogue = TRUE;
-      /* Build an array of the throw types. */
-      spec_array_var = exception_type_spec_array_from_throw_spec(throw_spec);
-      /* Generate code to set the throw_spec field of the stack entry to
-         point to the array (or NULL if no types can be thrown). */
-      spec_array_ptr = make_pointer_type(
-                                     make_exception_type_specification_type());
-      if (spec_array_var == NULL) {
-        /* No types can be thrown, so use a NULL pointer. */
-        a_constant null_constant;
-        make_zero_of_proper_type(spec_array_ptr,
-                                 &null_constant);
-        spec_array_node = alloc_node_for_constant(&null_constant);
-      } else {
-        /* Use the address of the first element of the array. */
-        spec_array_node = var_lvalue_expr(spec_array_var);
-        spec_array_node = add_cast(spec_array_node, spec_array_ptr);
-      }  /* if */
-      /* Make an expression for local_frame.variant.throw_spec */
-      local_frame_variant_throw_spec = 
+  /* Note that we process the function stack entry first even though we
+     want the code for it following the throw specification stack entry
+     if there is one.  This is because push_eh_stack_frame always inserts
+     the code at the very beginning of the routine. */
+  if (region_table_var != NULL) {
+    /* The function contains destructible objects, so we need to push a
+       stack entry for the function itself. */
+    /* Generate code to push an entry on the EH stack. */
+    push_eh_stack_frame(ehsek_function, &func_frame, &insert_location);
+    need_function_epilogue = TRUE;
+    /* Finish off the various arrays and put pointers to them into the
+       stack. */
+    finish_array_var(region_table_var);
+    /* Make an expression for throw_frame.variant.function.regions */
+    func_frame_function_regions = 
+                 field_lvalue_selection_expr(
                    field_lvalue_selection_expr(
-                      field_lvalue_selection_expr(var_lvalue_expr(local_frame),
+                      field_lvalue_selection_expr(var_lvalue_expr(func_frame),
                                                   ehse_variant_field),
-                      ehse_throw_spec_field);
-      /* Assign the array address to local_frame.variant.throw_spec */
-      (void)insert_assignment_statement(local_frame_variant_throw_spec,
+                      ehse_function_field),
+                   ehse_function_regions_field);
+    /* Assign the region table address to
+       func_frame.variant.function.regions */
+    (void)insert_assignment_statement(func_frame_function_regions,
+                                      (an_expr_operator_kind)eok_passign,
+                                      array_var_lvalue_expr(region_table_var),
+                                      &insert_location);
+    if (object_addr_table_var != NULL) {
+      finish_array_var(object_addr_table_var);
+      /* Make an expression for throw_frame.variant.function.obj_table */
+      func_frame_function_obj_table = 
+                 field_lvalue_selection_expr(
+                   field_lvalue_selection_expr(
+                      field_lvalue_selection_expr(var_lvalue_expr(func_frame),
+                                                  ehse_variant_field),
+                      ehse_function_field),
+                   ehse_function_obj_table_field);
+      /* Assign the object address table address to
+         func_frame.variant.function.obj_table */
+      (void)insert_assignment_statement(func_frame_function_obj_table,
                                         (an_expr_operator_kind)eok_passign,
-                                        spec_array_node,
+                                        array_var_lvalue_expr(
+                                                        object_addr_table_var),
                                         &insert_location);
     }  /* if */
-    if (need_throw_epilogue) {
-      /* Need to add epilogue code at each return in the routine. */
-      for (rmp = return_memo_list; rmp != NULL; rmp = rmp->next) {
-        /* Turn the return into a block. */
-        turn_branch_into_block(rmp->stmt, &insert_location, &rmp->stmt);
-        if (need_throw_epilogue) {
-          /* Insert code to pop the prologue pushed for the throw
-             specification. */
-          pop_eh_stack_frame(local_frame, &insert_location);
-        }  /* if */
-      }  /* for */
+    if (array_table_var != NULL) {
+      finish_array_var(array_table_var);
+      /* Make an expression for throw_frame.variant.function.array_table */
+      func_frame_function_array_table = 
+                 field_lvalue_selection_expr(
+                   field_lvalue_selection_expr(
+                      field_lvalue_selection_expr(var_lvalue_expr(func_frame),
+                                                  ehse_variant_field),
+                      ehse_function_field),
+                   ehse_function_array_table_field);
+      /* Assign the object address table address to
+         func_frame.variant.function.array_table */
+      (void)insert_assignment_statement(func_frame_function_array_table,
+                                        (an_expr_operator_kind)eok_passign,
+                                        array_var_lvalue_expr(array_table_var),
+                                        &insert_location);
     }  /* if */
+    /* Generate an assignment to save eh_curr_region in the stack. */
+    /* Make an expression for
+       throw_frame.variant.function.saved_region_number */
+    func_frame_function_saved_region_number = 
+                 field_lvalue_selection_expr(
+                   field_lvalue_selection_expr(
+                      field_lvalue_selection_expr(var_lvalue_expr(func_frame),
+                                                  ehse_variant_field),
+                      ehse_function_field),
+                   ehse_function_saved_region_number_field);
+    /* Copy the global variable eh_curr_region into
+       func_frame.variant.function.saved_region_number */
+    (void)insert_assignment_statement(func_frame_function_saved_region_number,
+                                      (an_expr_operator_kind)eok_iassign,
+                                      var_rvalue_expr(
+                                                    make_eh_curr_region_var()),
+                                      &insert_location);
+    /* Reset eh_curr_region_var to max_region_number (all 1 bits). */
+    (void)insert_var_assignment_statement(eh_curr_region_var,
+                                          (an_expr_operator_kind)eok_iassign,
+                                          node_for_integer_constant(
+                                                 (long)max_region_number,
+                                                 TARG_REGION_NUMBER_INT_KIND),
+                                          &insert_location);
+  }  /* if */
+  /* See if the routine has a throw specification. */
+  routine = scope->variant.routine.ptr;
+  routine_type = routine->type;
+  routine_type = skip_typerefs(routine_type);
+  throw_spec = routine_type->variant.routine.extra_info->throw_specification;
+  if (throw_spec != NULL) {
+    /* The routine has a throw specification.  (A null pointer means
+       the function can throw anything.) */
+    /* Generate code to push an entry on the EH stack. */
+    push_eh_stack_frame(ehsek_throw_spec, &throw_frame, &insert_location);
+    need_throw_epilogue = TRUE;
+    /* Build an array of the throw types. */
+    spec_array_var = exception_type_spec_array_from_throw_spec(throw_spec);
+    /* Generate code to set the throw_spec field of the stack entry to
+       point to the array (or NULL if no types can be thrown). */
+    spec_array_ptr = make_pointer_type(make_exception_type_spec_type());
+    if (spec_array_var == NULL) {
+      /* No types can be thrown, so use a NULL pointer. */
+      a_constant null_constant;
+      make_zero_of_proper_type(spec_array_ptr, &null_constant);
+      spec_array_node = alloc_node_for_constant(&null_constant);
+    } else {
+      /* Use the address of the first element of the array. */
+      spec_array_node = array_var_lvalue_expr(spec_array_var);
+    }  /* if */
+    /* Make an expression for throw_frame.variant.throw_spec */
+    throw_frame_throw_spec = 
+                   field_lvalue_selection_expr(
+                      field_lvalue_selection_expr(var_lvalue_expr(throw_frame),
+                                                  ehse_variant_field),
+                      ehse_throw_spec_field);
+    /* Assign the array address to throw_frame.variant.throw_spec */
+    (void)insert_assignment_statement(throw_frame_throw_spec,
+                                      (an_expr_operator_kind)eok_passign,
+                                      spec_array_node,
+                                      &insert_location);
+  }  /* if */
+  if (need_throw_epilogue || need_function_epilogue) {
+    /* Need to add epilogue code at each return in the routine. */
+    for (rmp = return_memo_list; rmp != NULL; rmp = rmp->next) {
+      /* Turn the return into a block. */
+      turn_branch_into_block(rmp->stmt, &insert_location, &rmp->stmt);
+      if (need_function_epilogue) {
+        /* Insert code to pop the prologue pushed for the function. */
+        pop_eh_stack_frame(func_frame, &insert_location);
+      }  /* if */
+      if (need_throw_epilogue) {
+        /* Insert code to pop the prologue pushed for the throw
+           specification. */
+        pop_eh_stack_frame(throw_frame, &insert_location);
+      }  /* if */
+    }  /* for */
   }  /* if */
 }  /* add_eh_function_prologue */
+
+
+void eh_function_lower_init(void)
+/*
+Initialize static variables needed on a per-function basis for
+IL lowering for exceptions.
+*/
+{
+  object_addr_table_var = NULL;
+  array_table_var = NULL;
+  region_table_var = NULL;
+  next_region_number = 0;
+}  /* eh_function_lower_init */
 
 
 void eh_lower_init(void)
@@ -1189,11 +1762,26 @@ invocation of the front end.
   typeinfo_type = NULL;
   num_of_pending_class_typeinfo_vars = 0;
   jmp_buf_type = NULL;
-  exception_type_specification_type = NULL;
-  eh_region_descr_type = NULL;
+  exception_type_spec_type = NULL;
+  region_descr_type = NULL;
+  array_descr_type = NULL;
   eh_stack_entry_type = NULL;
   eh_curr_region_var = NULL;
   curr_eh_stack_entry_var = NULL;
+  /* Make a constant for the maximum region number, also used for the
+     null region number.  */
+  { a_targ_size_t    size;
+    a_targ_alignment align;
+    /* Find out how big a field is used for region numbers. */
+    get_integer_size_and_alignment(TARG_REGION_NUMBER_INT_KIND, &size, &align);
+    size *= TARG_CHAR_BIT;
+    /* Make a bit mask "size" bits long. */
+    if (size >= sizeof(unsigned long)*CHAR_BIT) {
+      max_region_number = ~0;
+    } else {
+      max_region_number = ((unsigned long)1 << size) - 1;
+    }  /* if */
+  }
 }  /* eh_lower_init */
 
 #endif /* DO_IL_LOWERING */
