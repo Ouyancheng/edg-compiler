@@ -474,6 +474,8 @@ property fields).
               err = TRUE;
             }  /* if */
           }  /* if */
+        } else if (is_pointer_type(temp_type)) {
+          /* Partial pointer type: Okay. */
         } else if (temp_type->kind == (a_type_kind)tk_array &&
                    (has_unknown_specified_bound(temp_type) ||
                     temp_type->
