@@ -2661,8 +2661,8 @@ part of a template-dependent expression.
 #endif /* IA64_ABI */
     case enk_reuse_value:  /* Not expected generally, but can come up
                               in Microsoft property expansions. */
-     add_mangling_for_placeholder_expression(mctl);
-     break;
+      add_mangling_for_placeholder_expression(mctl);
+      break;
     default:
       /* Unexpected expression kind.  These are allowed in some cases for
          expressions under sizeof in the IA-64 ABI. */
