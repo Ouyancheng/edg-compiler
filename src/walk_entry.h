@@ -1117,12 +1117,16 @@ the file scope, do not process it (but record an orphan in the latter case).
            the file scope and function scopes. */
         walk_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
 #endif /* !NEEDED_FLAG_WALK */
+#if !NEEDED_FLAG_WALK
         walk_list(ptr->constants, a_constant_ptr, iek_constant);
+#endif /* !NEEDED_FLAG_WALK */
 #ifdef CFE
 #if DO_SUBTREE_WALK
 #if NEEDED_FLAG_WALK
-        walk_list(ptr->types, a_type_ptr, iek_type);
-        walk_list(ptr->variables, a_variable_ptr, iek_variable);
+        /* Note that we don't walk the types or variables lists.  Types
+           aren't needed unless they are referenced, and variables aren't
+           needed unless they are referenced or they are external; the
+           external part is handled elsewhere. */
 #else /* !NEEDED_FLAG_WALK */
         if (walking_file_scope) {
           walk_list(ptr->types, a_type_ptr, iek_type);
@@ -1153,8 +1157,10 @@ the file scope, do not process it (but record an orphan in the latter case).
 #ifdef CFE
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
         walk_list(ptr->namespaces, a_namespace_ptr, iek_namespace);
+#if !NEEDED_FLAG_WALK
         walk_list(ptr->using_directives, a_using_directive_ptr,
                   iek_using_directive);
+#endif /* !NEEDED_FLAG_WALK */
         walk_list(ptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);
         walk_list(ptr->dynamic_inits, a_dynamic_init_ptr, iek_dynamic_init);
         walk_list(ptr->local_static_variable_inits,
@@ -1363,6 +1369,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         }  /* if */
       }
       break;
+#if !NEEDED_FLAG_WALK
     case iek_using_directive:
       {
         a_using_directive_ptr ptr = (a_using_directive_ptr)entry_ptr;
@@ -1374,6 +1381,7 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
       }
       break;
+#endif /* !NEEDED_FLAG_WALK */
     case iek_dynamic_init:
       {
         a_dynamic_init_ptr ptr = (a_dynamic_init_ptr)entry_ptr;
