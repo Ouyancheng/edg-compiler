@@ -898,10 +898,9 @@ static sizeof_t	pp_directive_string_length;
 			/* Size of the string in the pp_directive buffer,
                            not including any null terminator. */
 
-#define PP_DIR_STRING_BUFFER_INITIAL_ALLOCATION 300
 #define PP_DIR_STRING_BUFFER_INCREMENTAL_ALLOCATION 300
-			/* Initial and incremental allocation sizes for
-			   pp_dir_string_buffer.  The initial allocation
+			/* Incremental (and also initial) allocation size for
+                           pp_dir_string_buffer.  The initial allocation
 			   should be such that almost all cases can be
 			   accepted (so that the realloc is hardly ever
 			   needed). */
