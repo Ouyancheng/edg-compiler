@@ -165,45 +165,59 @@ Return the fixed-point descriptor pointer for the specified constant.
 }  /* fxp_descr_for_constant */
 
 
-static void set_mantissa_to_saturated_value(
-				a_mantissa_ptr			mp,
+static void set_fixed_point_to_saturated_value(
+				a_fixed_point_value		*value,
+				int				value_bits,
 				a_boolean			is_negative,
 				a_fixed_point_type_descr	*fxp_descr)
 /*
-Set the mantissa to the value used to represent a saturated fixed-point
+Set value to the representation used for a saturated fixed-point
 value.  is_negative is TRUE if the value should be the saturated negative
 value.  The positive value is all 1 bits, except for the sign bit.  The
-negative value has just the sign bit set.
+negative value has just the sign bit set.  value_bits is the number of bits
+used to represent an fxp_descr value.  Note that it does not include the
+sign bit.
 */
 {
-  int			i;
-  an_fp_value_part	part_value;
-  a_boolean		result_is_negative;
+  int	shift_count;
 
-  /* Set all of the parts to either zero or one bits, depending on the
-     sign of the result.  Ignore the is_negative flag if the result is
-     unsigned. */
-  result_is_negative = is_negative && !fxp_descr->is_unsigned;  
-  part_value = result_is_negative ? 0 : 0xffffffff;
-  for (i = 0; i < MANTISSA_PARTS; i++) mp->parts[i] = part_value;
-  /* For signed values, set the sign bit to the appropriate value. */
+  /* Set all of the bits. */
+  set_integer_value(value, (a_host_large_integer)-1);
   if (!fxp_descr->is_unsigned) {
-    mp->parts[0] = result_is_negative ? 0x80000000 : 0x7fffffff;
+    /* Clear the sign bit. */
+    shift_right_integer_value(value, 1,
+                             /*is_signed=*/FALSE, /*sign_extend=*/FALSE);
+    /* For a negative value, only the sign bit should be set. */
+    if (is_negative) complement_integer_value(value);
+    /* Update value_bits to reflect the bit used for the sign. */
+    value_bits++;
   }  /* if */
-}  /* set_mantissa_to_saturated_value */
+  /* Shift the saturated value to just fill the portion of the integer
+     value actually used to the representation. */
+  shift_count = BITS_IN_AN_INTEGER_VALUE - value_bits;
+  if (shift_count > 0) {
+    shift_right_integer_value(value, shift_count,
+                              /*is_signed=*/!fxp_descr->is_unsigned,
+                              /*sign_extend=*/TRUE);
+  }  /* if */
+}  /* set_fixed_point_to_saturated_value */
 
 
-void fxp_negate(a_fixed_point_value	*op_1,
-	        a_boolean		*err)
+void negate_fixed_point_value(a_fixed_point_value	*op_1,
+			      a_boolean			*err)
 /*
 Negate a fixed-point value.  The result is returned in the first operand
 (op_1 = -op_1).  err is TRUE if an overflow occurred.
 
-This routine requires that a_fixed_point_value be an_integer_value.
+This routine requires that a_fixed_point_value be an_integer_value.  Note
+that this routine only checks for error cases that cannot be represented
+by an_integer_value.  Range checking for specific fixed-point types must
+be done by the caller.  fxp_negate is a more general version of this
+routine.
 */
 {
   negate_integer_value(op_1, err);
-}  /* fxp_negate */
+}  /* negate_fixed_point_value */
 
 
 /*
@@ -218,8 +232,7 @@ This macro requires that a_fixed_point_value be an_integer_value.
 static void store_hex_fxp_value(
 				a_mantissa_ptr			mp,
 				a_fixed_point_type_descr	*fxp_descr,
-				a_fixed_point_value		*value,
-				a_boolean			is_negative)
+				a_fixed_point_value		*value)
 /*
 Store the value represented by mp in the fixed-point value "value".
 fxp_descr describes the format of the value being stored.
@@ -229,9 +242,9 @@ fxp_descr describes the format of the value being stored.
   int			source_size;
   int			part_offset;
 
-  /* Set the memory so that all of the space occupied by "value"
-     is set to represent a sign-extended value. */
-  memset((char *)value, is_negative ? 0xff : 0, sizeof(a_fixed_point_value));
+  /* Zero the memory so that all of the space occupied by "value"
+     is cleared, even if we are not storing all of the bytes of the value. */
+  memzero((char *)value, sizeof(a_fixed_point_value));
   source_size = sizeof_fixed_point(fxp_descr);
   parts_to_copy = (source_size + sizeof(an_fp_value_part) - 1) /
                    sizeof(an_fp_value_part);
@@ -301,7 +314,7 @@ Create mantissa (mp), exponent, and is_negative from a_fixed_point_value
   if (*is_negative) {
     a_boolean	local_err;
     local_value = *value;
-    fxp_negate(&local_value, &local_err);
+    negate_fixed_point_value(&local_value, &local_err);
     /* An error should only occur on negating the smallest integer.  In
        that case, just use the original value. */
     if (!local_err) value = &local_value;
@@ -471,19 +484,20 @@ the value is already known to be too large.  Set *err on overflow.  Set
       /* Except for the case above, set the error flag on overflow. */
       *err = TRUE;
     }  /* if */
-    set_mantissa_to_saturated_value(mp, is_negative, fxp_descr);
-  }  /* if */
-  /* Store the result in the appropriate form. */
-  store_hex_fxp_value(mp, fxp_descr, value,
-                      is_negative && !fxp_descr->is_unsigned);
-  /* Negate the value, if necessary.  If the source is negative and the
-     destination is unsigned, a diagnostic will be issued by the caller.
-     On overflow, the saturated value will have already been created with
-     the appropriate sign. */
-  if (!overflow && is_negative && !fxp_descr->is_unsigned) {
-    a_boolean	negate_err;
-    fxp_negate(value, &negate_err);
-    if (negate_err) *err = TRUE;
+    set_fixed_point_to_saturated_value(value, value_bits,
+                                       is_negative, fxp_descr);
+  } else {
+    /* No overflow.  Store the result in the appropriate form. */
+    store_hex_fxp_value(mp, fxp_descr, value);
+    /* Negate the value, if necessary.  If the source is negative and the
+       destination is unsigned, a diagnostic will be issued by the caller.
+       On overflow, the saturated value will have already been created with
+       the appropriate sign above. */
+    if (is_negative && !fxp_descr->is_unsigned) {
+      a_boolean	negate_err;
+      negate_fixed_point_value(value, &negate_err);
+      if (negate_err) *err = TRUE;
+    }  /* if */
   }  /* if */
   /* If an underflow occurred, set the flag that indicates that the resulting
      value is not an exact representation of the specified value. */
@@ -776,11 +790,44 @@ the value cannot be converted to the destination type.
   a_boolean	is_negative;
   a_boolean	inexact;
 
+  *err = FALSE;
   load_hex_fp_value(fp_value, (a_float_kind)fk_long_double, &mantissa,
                     &exponent, &is_negative, /*restore_implicit_bit=*/TRUE);
   conv_mantissa_to_fixed_point(&mantissa, exponent, is_negative, fxp_descr,
                                /*overflow=*/FALSE, fxp_value, err, &inexact);
+#if TARG_HAS_IEEE_FLOATING_POINT
+  if (fp_is_nan_or_infinity(fp_value, fk_long_double)) {
+    /* Not-a-number or infinity.  Treat this as an error. */
+    *err = TRUE;
+  }  /* if */
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 }  /* conv_long_double_to_fixed_point */
+
+
+void fxp_negate(a_fixed_point_value      *value,
+                a_fixed_point_type_descr *fxp_descr,
+                a_fixed_point_value      *result,
+                a_fixed_point_type_descr *fxp_descr_result,
+                a_boolean                *err)
+/*
+Negate the fixed-point value and to store the value in result.  fxp_descr
+and fxp_descr_result describe the format of the fixed-point values of value,
+and result.  If an error occurs (e.g., overflow), err is set to TRUE.
+*/
+{
+  an_internal_float_value	fp;
+  an_internal_float_value	fp_result;
+  a_boolean			depends_on_fp_mode;
+  a_boolean			conv_err;
+
+  *err = FALSE;
+  conv_fixed_point_to_long_double(value, fxp_descr, &fp);
+  fp_negate((a_float_kind)fk_long_double, &fp, &fp_result, err,
+           &depends_on_fp_mode);
+  conv_long_double_to_fixed_point(&fp_result, result, fxp_descr_result,
+                                  &conv_err);
+  if (conv_err) *err = TRUE;
+}  /* fxp_negate */
 
 
 void fxp_add(a_fixed_point_value      *value_1,
@@ -901,8 +948,11 @@ If an error occurs (e.g., overflow), err is set to TRUE.
   conv_fixed_point_to_long_double(value_2, fxp_descr_2, &fp_2);
   fp_divide((a_float_kind)fk_long_double, &fp_1, &fp_2, &fp_result, err,
               &depends_on_fp_mode);
-  conv_long_double_to_fixed_point(&fp_result, result, fxp_descr_result,
-                                  &conv_err);
+  /* Don't store the result if an error (e.g., divide by zero) occurred. */
+  if (!*err) {
+    conv_long_double_to_fixed_point(&fp_result, result, fxp_descr_result,
+                                    &conv_err);
+  }  /* if */
   if (conv_err) *err = TRUE;
 }  /* fxp_divide */
 

@@ -81,8 +81,11 @@ void fxp_multiply(a_fixed_point_value      *value_1,
 	          a_boolean                *err);
 
 extern
-void fxp_negate(a_fixed_point_value	*op_1,
-	        a_boolean		*err);
+void fxp_negate(a_fixed_point_value      *value,
+                a_fixed_point_type_descr *fxp_descr,
+                a_fixed_point_value      *result,
+                a_fixed_point_type_descr *fxp_descr_result,
+                a_boolean                *err);
 
 extern
 void fxp_divide(a_fixed_point_value      *value_1,
