@@ -651,7 +651,7 @@ error code.
       m = "an array may not have elements of this type";
       break;
     case ec_decl_should_be_of_param:
-      m = "a declaration here may only declare a parameter";
+      m = "a declaration here must declare a parameter";
       break;
     case ec_dupl_param_name:
       m = "duplicate parameter name";
