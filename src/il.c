@@ -2221,7 +2221,7 @@ Allocate and initialize a derivation step entry and return a pointer to it.
 
   db_enter(5, "alloc_derivation_step");
 
-  dsp = (a_derivation_step_ptr)alloc_cil(sizeof(a_derivation_step));
+  dsp = (a_derivation_step_ptr)alloc_il(sizeof(a_derivation_step));
 #if DEBUG
   num_derivation_steps_allocated++;
 #endif /* DEBUG */
@@ -2263,7 +2263,7 @@ to it.
 {
   a_base_class_ptr bcp;
 
-  bcp = (a_base_class_ptr)alloc_cil(sizeof(a_base_class));
+  bcp = (a_base_class_ptr)alloc_il(sizeof(a_base_class));
 
 #if DEBUG
   num_base_classes_allocated++;
