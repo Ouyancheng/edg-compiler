@@ -11384,15 +11384,21 @@ files can reference it.
   sizeof_t name_len, prefix_len, module_id_len;
   char     *prefix = (is_variable ? "__STV__" : "__STF__");
   char     *module_id = make_module_id();
-  char     *new_name, *ptr;
+  char     *name, *new_name, *ptr;
+  char     buffer[50];
 
-  scp->name_linkage = (a_name_linkage_kind)nlk_external;
-  check_assertion(scp->name_has_been_mangled || is_variable);
+  name = scp->name;
+  check_assertion(scp->name_has_been_mangled || is_variable || name == NULL);
   /* The generated name has the form
        __STV__name__module_id  (variable)
        __STF__name__module_id  (function)
   */
-  name_len = strlen(scp->name);
+  if (name == NULL) {
+    /* Entity has no name, e.g., a generated routine.  Generate one. */
+    (void)sprintf(buffer, "%lu", unique_id_for_il_pointer(scp));
+    name = buffer;
+  }  /* if */
+  name_len = strlen(name);
   prefix_len = strlen(prefix);
   module_id_len = strlen(module_id);
   new_name = alloc_lowered_name_string(prefix_len + name_len + module_id_len +
@@ -11400,12 +11406,13 @@ files can reference it.
   ptr = new_name;
   (void)strcpy(ptr, prefix);
   ptr += prefix_len;
-  (void)strcpy(ptr, scp->name);
+  (void)strcpy(ptr, name);
   ptr += name_len;
   (void)strcpy(ptr, "__");
   ptr += 2;
   (void)strcpy(ptr, module_id);
   scp->name = new_name;
+  scp->name_linkage = (a_name_linkage_kind)nlk_external;
 }  /* externalize_source_correspondence */
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */

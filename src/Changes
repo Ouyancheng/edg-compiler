@@ -1,5 +1,15 @@
 Version 2.39
 
+1/23/98   Internal error on static generated function in one-instantiation-
+          per-object mode
+
+In one-instantiation-per-object mode, static variables and functions
+are sometimes made external so instantiation objects can refer to them.
+They are given mangled names beginning with __STV__ or __STF__.
+An abort occurred when this processing was applied to a generated
+routine (which has no name).  Now, an appropriate mangled name is
+generated.
+
 1/20/98   Internal error in type deduction when a function template
           declaration includes nontype member of a dependent class
 
