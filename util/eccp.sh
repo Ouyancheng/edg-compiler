@@ -1613,8 +1613,10 @@ do
     # No file name was specified -- construct the default name.
     ii_file_name=$basefile.ii
     ti_file_name=$basefile.ti
-  else
-    # A name was specified -- pass it to the front end.
+  fi
+  if [ $ii_file_specified -eq 1 -o $compile_as_secondary -ne 0 ] ; then
+    # A name was specified -- pass it to the front end.  Also do this when
+    # using --compile_as_secondary mode.
     ii_file_option="--ii_file=$ii_file_name"
     if [ $driver_version -ge 237 ] ; then
       ti_file_option="--template_info_file=$ti_file_name"
