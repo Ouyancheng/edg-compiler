@@ -220,7 +220,7 @@ keyword.
       cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       if (curr_token == tok_rparen) {
-        /* A right parenthesis.  Break out of this is a zero level
+        /* A right parenthesis.  Break out if this is a zero level
            parenthesis. */
         if (paren_count == 0) break;
         paren_count--;
