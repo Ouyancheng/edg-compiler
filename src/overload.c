@@ -2472,7 +2472,8 @@ evaluated (but not checked to see if the match is good enough).
   }  /* if */
   /* Make sure that the types of nontype template parameters that depend
      on other template parameters agree with the types of the deduced
-     values. */
+     values.  Also check for the case where not all template parameters
+     have been deduced. */
   if (!verify_function_template_nontype_args(templ_arg_list, templ_sym,
                                              (a_template_param_ptr)NULL)) {
     goto done;
