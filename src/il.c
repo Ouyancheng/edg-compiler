@@ -37,8 +37,7 @@ il.c -- Construction of intermediate language trees.
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
 #if !STANDALONE_UTILITY_PROGRAM
-#include "class_decl.h"
-#include "decls.h"
+#include "func_def.h"
 #include "templates.h"
 
 /*
@@ -703,7 +702,8 @@ Dump information on an access adjustment entry, for debug purposes.
     fputs("<bad access adjustment kind>", f_debug);
   } else {
     db_access_control(aap->access);
-    sc = source_corresp_for_il_entry(aap->entity.ptr, aap->entity.kind);
+    sc = source_corresp_for_il_entry(aap->entity.ptr,
+                                     (an_il_entry_kind)aap->entity.kind);
     check_assertion(sc != NULL);
     fprintf(f_debug, " \"%s\" = %s ", sc->name, str);
     db_name(sc);
@@ -7125,14 +7125,16 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       } else {
         if (kind == (an_il_entry_kind)iek_src_seq_secondary_decl) {
           sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
-          scp = source_corresp_for_il_entry(sssdp->entity.ptr,
-                                            sssdp->entity.kind);
+          scp = source_corresp_for_il_entry(
+                                  sssdp->entity.ptr,
+                                  (an_il_entry_kind)sssdp->entity.kind);
           check_assertion(scp != NULL);
           pos = &sssdp->decl_position;
           if (sssdp->autonomous_tag_decl) autonomous = TRUE;
         } else {
-          scp = source_corresp_for_il_entry(ssep->entity.ptr,
-                                            ssep->entity.kind);
+          scp = source_corresp_for_il_entry(
+                                         ssep->entity.ptr,
+                                         (an_il_entry_kind)ssep->entity.kind);
           check_assertion(scp != NULL);
           pos = &scp->decl_position;
           if (kind == (an_il_entry_kind)iek_type) {
@@ -7173,7 +7175,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           /* Secondary declaration. */
           declared_type = sssdp->declared_type;
           if (declared_type == NULL &&
-              sssdp->entity.kind == (an_il_entry_kind)iek_type) {
+              sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
             /* Don't report a NULL declared type on the secondary declaration
                of a type entry -- that's what's expected. */
           } else {
