@@ -168,6 +168,11 @@ Dump the name from a source correspondence (if any).
 */
 {
   if (sc->name != NULL) {
+    a_symbol_ptr sym = (a_symbol_ptr)sc->assoc_info;
+    if (sym != NULL && sym->class_of_which_a_member != NULL) {
+      db_name(&sym->class_of_which_a_member->source_corresp);
+      fputs("::", f_debug);
+    }  /* if */
     fputs(sc->name, f_debug);
   } else {
     fputs("(null)", f_debug);
