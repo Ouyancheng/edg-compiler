@@ -4149,7 +4149,7 @@ entry is pushed on the scope stack.
           break;
         default:
           /* There must have been an error.  Do the check because we don't
-             want an incomlete IL entry to be handed to the back end. */
+             want an incomplete IL entry to be handed to the back end. */
           check_assertion(total_errors > 0);
           goto skip_template_string;
       }  /* switch */
