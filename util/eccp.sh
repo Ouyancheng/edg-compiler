@@ -540,7 +540,7 @@ do
   # If a .ii file exists that means that the compilation used templates in
   # some way.  Generate a new .ii file using the current command line.
   #
-  if [ $automatic_instantiation -ne 0 ] ; then
+  if [ $automatic_instantiation -ne 0 -a $preprocessor_only -eq 0 ] ; then
     ii_file_name=$basefile.ii
     if [ -f $ii_file_name ] ; then
       # An instantiation file exists which means the compilation involves

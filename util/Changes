@@ -1,5 +1,11 @@
 Version 2.21
 
+12/14/93 Command line information in .ii file in preprocessing mode
+
+The eccp script no longer updates the command line information in the .ii
+file when invoked with options that cause the compiler to be
+executed in preprocessing mode (i.e., -P, -E, -H, -M).
+
 11/15/93 Prelinker problem with eliminated instantiation sites
 
 Under some conditions the prelinker failed to reassign an instantiation
