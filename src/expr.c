@@ -263,6 +263,8 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
   }  /* switch */
 
   if (!has_side_effects && !C_mode() &&
+      /* No test of is_template_dependent_context here on purpose, because
+         this function is used outside of the front end proper. */
       is_or_contains_template_param(node->type)) {
     /* A node with a template parameter type is considered to have
        side effects.  This is because it's possible that when the type
@@ -6190,17 +6192,10 @@ be set to the source position of the type.
   /* Check the type to see if it's permissible. */
   if (is_error_type(type_cast_to)) {
     err = TRUE;
-  } else if (!C_mode() && is_template_dependent_context() &&
-             is_or_contains_template_param(type_cast_to)) {
+  } else if (is_template_param_type(type_cast_to)) {
     /* We are in a prototype instantiation of a template.  The type is
        a template parameter type, i.e., we don't know what it is.  Assume
        it's okay and go on. */
-    if (curr_expr_kind_is_const() &&
-        is_class_struct_union_type(type_cast_to)) {
-      /* Do not allow a cast to a class type in a constant expression. */
-      error(ec_expr_not_constant);
-      err = TRUE;
-    }  /* if */
   } else if (is_incomplete_type(type_cast_to) && !is_void_type(type_cast_to)) {
     /* This check catches incomplete enum types. */
     error(ec_incomplete_type_not_allowed);
@@ -6334,9 +6329,8 @@ this routine is called.
   a_boolean  err = FALSE;
   a_type_ptr source_type = operand->type;
 
-  if (!C_mode() && is_template_dependent_context() &&
-      (is_or_contains_template_param(dest_type) ||
-       is_or_contains_template_param(source_type))) {
+  if (is_template_param_type(dest_type) ||
+      is_template_param_type(source_type)) {
     /* Casting to or from a template parameter (unknown) type.  Assume okay. */
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Only casts from arithmetic to integral or enum types are permitted in
@@ -7108,13 +7102,14 @@ Syntax:
     } else if (is_ptr_to_member_type(cast_type)) {
       underlying_cast_type = pm_member_type(cast_type);
       if (!is_function_type(underlying_cast_type)) {
-        /* Casting to a pointer or reference to an object type. */
+        /* Casting to a pointer to member of an object type. */
         cast_type_okay = TRUE;
       }  /* if */
-    } else if (is_template_dependent_context() &&
-               is_or_contains_template_param(cast_type)) {
+    } else if (is_template_param_type(cast_type)) {
       /* A cast to a template parameter type is assumed to be okay. */
+      template_param_case = TRUE;
       cast_type_okay = TRUE;
+      underlying_cast_type = type_of_unknown_templ_param_nontype;
     } else {
       /* cast_type is not a pointer, reference, or pointer to member type;
          error. */
@@ -7128,9 +7123,19 @@ Syntax:
       }  /* if */
     } else {
       /* The type cast to is okay. */
-      operand_type = operand.type;
+      /* The operation type for the cast is the type specified, except that
+         for a cast to a reference type it is the corresponding pointer
+         type. */
       operation_type = cast_type;
       if (reference_case) {
+        operation_type = make_pointer_type(underlying_cast_type);
+      }  /* if */
+      operand_type = operand.type;
+      if (is_template_dependent_context() &&
+          is_or_contains_template_param(operand_type)) {
+        /* An operand of unknown type, in a prototype instantiation. */
+        template_param_case = TRUE;
+      } else if (reference_case) {
         /* Cast to reference type. */
         /* The source operand must be an lvalue. */
         if (!is_an_lvalue(&operand)) {
@@ -7143,26 +7148,17 @@ Syntax:
              pointer. */
           take_address_of_lvalue(&operand);
           operand_type = operand.type;
-          operation_type = make_pointer_type(underlying_cast_type);
         }  /* if */
       }  /* if */
-      if (!err) {
+      if (!err && !template_param_case) {
         /* Check that the cast just changes qualifiers (or makes no change). */
         /* Note that this comparison considers error types equal to any
            other types. */
         if (!same_type_with_added_qualifiers(operand_type, operation_type,
                                              /*ignore_qualifiers=*/TRUE,
                                              (a_boolean *)NULL)) {
-          if (is_template_dependent_context() &&
-              (is_or_contains_template_param(operand_type) ||
-               is_or_contains_template_param(operation_type))) {
-            /* With template parameters, we can't tell whether these would
-               have matched.  Assume okay. */
-            template_param_case = TRUE;
-          } else {
-            err = TRUE;
-            pos_error(ec_bad_const_cast, &operand.position);
-          }  /* if */
+          err = TRUE;
+          pos_error(ec_bad_const_cast, &operand.position);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -7170,24 +7166,22 @@ Syntax:
   if (err) {
     /* Some error, previously issued. */
     make_error_operand(result);
+  } else if (template_param_case) {
+    /* Put out a generic operator for a case involving template parameter
+       types. */
+    generic_cast_operand(&operand, operation_type, 
+                         (an_expr_operator_kind)eok_const_cast,
+                         /*is_implicit_cast=*/FALSE);
+    copy_operand(&operand, result);
   } else {
-    if (template_param_case) {
-      /* Put out a generic operator for a case involving template parameter
-         types. */
-      generic_cast_operand(&operand, operation_type, 
-                           (an_expr_operator_kind)eok_const_cast,
-                           /*is_implicit_cast=*/FALSE);
-      copy_operand(&operand, result);
-    } else {
-      /* The types are already the same except for qualifiers.  The result
-         is just the source cast to the destination type. */
-      /* Note that the cast has been turned into pointer form if it was a
-         reference cast. */
-      cast_operand(operation_type, &operand, /*check_cast_access=*/FALSE,
-                   /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE,
-                   /*reinterpret_semantics=*/FALSE);
-      copy_operand(&operand, result);
-    }  /* if */
+    /* The types are already the same except for qualifiers.  The result
+       is just the source cast to the destination type. */
+    /* Note that the cast has been turned into pointer form if it was a
+       reference cast. */
+    cast_operand(operation_type, &operand, /*check_cast_access=*/FALSE,
+                 /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE,
+                 /*reinterpret_semantics=*/FALSE);
+    copy_operand(&operand, result);
     /* For a cast to a reference type, the result is an lvalue. */
     if (reference_case) {
       conv_object_pointer_to_lvalue(result);
