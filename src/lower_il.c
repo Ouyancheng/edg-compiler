@@ -3914,11 +3914,7 @@ variable's mangled name.
 {
   check_assertion(variable->source_corresp.name_has_been_mangled &&
                   variable->storage_class == (a_storage_class)sc_unspecified);
-  /* Use the name of the variable as the name of the comdat group.
-     A copy is made because the IL-walking routines cannot handle
-     shared strings.  */
-  variable->comdat_group = alloc_lowered_name_string(
-                                    strlen(variable->source_corresp.name) + 1);
+  variable->comdat_group = variable->source_corresp.name;
   (void)strcpy(variable->comdat_group, variable->source_corresp.name);
 } /* put_variable_into_comdat_group */
 
