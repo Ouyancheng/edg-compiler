@@ -1,5 +1,10 @@
 Version 2.08
 
+7/17/92  Correct type output for member function types.
+
+The type formatting in error.c was corrected to display "const" or
+"volatile" if a member function was so declared.
+
 7/15/92  Correct check for suppression of IL lowering.
 
 All checks for suppresion of IL lowering should not be conditioned

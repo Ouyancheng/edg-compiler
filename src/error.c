@@ -2029,6 +2029,7 @@ Add the parameter list of a function to the type string being formatted.
 */
 {
   a_param_type_ptr	param_ptr;
+  a_type_ptr		type;
   a_boolean		has_ellipsis;
 
   add_string_to_segment("(", seg_ptr);
@@ -2048,6 +2049,22 @@ Add the parameter list of a function to the type string being formatted.
     }  /* if */
   }  /* if */
   add_string_to_segment(")", seg_ptr);
+#ifdef CFE
+  /* Check if this is a "const" or "volatile" member function by looking at
+     the type of the implicit "this" parameter. */
+  if ((type = suppl_ptr->implicit_this_param_type) != NULL) {
+    type = skip_typerefs(type);
+    if (type->kind == (a_type_kind)tk_pointer &&
+        (type = type->variant.pointer.type)->kind == (a_type_kind)tk_typeref) {
+      if (type->variant.typeref.is_const) {
+        add_string_to_segment(" const", seg_ptr);
+      }  /* if */
+      if (type->variant.typeref.is_volatile) {
+        add_string_to_segment(" volatile", seg_ptr);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* ifdef CFE */
 }  /* form_param_list */
 
 
