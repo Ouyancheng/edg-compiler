@@ -797,6 +797,7 @@ ec_mem_attrib_may_not_precede_nested_declarator;;"memory attribute may not be fo
 ec_dupl_mem_attrib;;"memory attribute specified more than once"
 ec_dupl_calling_convention;;"calling convention specified more than once"
 ec_type_qualifier_not_allowed;;"a type qualifier is not allowed"
+ec_template_instance_already_used;;"%npd1 was used before its template was declared"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
