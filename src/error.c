@@ -3518,7 +3518,8 @@ used to reset the value in the current table.
                             compare_tag_info);
   if (etep_found != NULL) {
     error_code = etep_found->code;
-    set_severity_for_error_number((int)error_code, severity, from_cmd_line);
+    (void)set_severity_for_error_number((int)error_code,
+                                        severity, from_cmd_line);
   }  /* if */
   /* Return TRUE if the tag could not be found. */
   return etep_found == NULL;
@@ -4611,7 +4612,7 @@ where "arg" is either an error number or an error tag.
       pos_warning(ec_exp_error_argument, &pos_curr_token);
     }  /* if */
     /* Bypass the token just processed. */
-    get_token();
+    (void)get_token();
     if (curr_token != tok_comma && curr_token != tok_end_of_source) {
       pos_warning(ec_exp_comma, &pos_curr_token);
       error_in_pragma = TRUE;
