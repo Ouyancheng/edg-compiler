@@ -1893,8 +1893,11 @@ end_sizeof:;
         walk_string_ptr(ptr->param_name, iek_other_text, 0);
         switch (ptr->kind) {
           case msaak_string:
+            walk_ptr(ptr->variant.string_constant, a_constant_ptr,
+                     iek_constant);
+            break;
           case msaak_other:
-            walk_string_ptr(ptr->variant.string, iek_other_text, 0);
+            walk_string_ptr(ptr->variant.other_string, iek_other_text, 0);
             break;
           case msaak_uuid:
             walk_string_ptr(ptr->variant.uuid_string, iek_other_text, 0);

@@ -4127,7 +4127,7 @@ Display the indicated Microsoft attribute entry.
     sprintf(buffer, "  argument %d (", arg_number++);
     (void)strncat(buffer, arg->param_name,
                   ATTR_BUFFER_SIZE - strlen(buffer) - 3);
-    (void)strcat(buffer, "): ");
+    (void)strcat(buffer, ")");
     switch (arg->kind) {
       case msaak_integer:
         disp_host_large_integer(
@@ -4136,9 +4136,11 @@ Display the indicated Microsoft attribute entry.
       case msaak_boolean:
         disp_boolean(buffer, (a_boolean)arg->variant.bool_value);
         break;
-      case msaak_other:
       case msaak_string:
-        disp_string_ptr(buffer, arg->variant.string, iek_other_text,
+        disp_ptr(buffer, (char *)arg->variant.string_constant, iek_constant);
+        break;
+      case msaak_other:
+        disp_string_ptr(buffer, arg->variant.other_string, iek_other_text,
                        (sizeof_t)0);
         break;
       case msaak_uuid:

@@ -9798,12 +9798,18 @@ typedef struct an_ms_attribute_arg {
     /* When kind is msaak_boolean. */
     a_boolean	bool_value;
 			/* The boolean value specified. */
-    /* When kind is msaak_string or msaak_other. */
-    char	*string;
-			/* The null-terminated string value.  Can contain any
-			   string that can be expressed as a string literal.
-			   Any characters after an embedded NULL character are
-			   ignored. */
+    /* When kind is msaak_other. */
+    char	*other_string;
+			/* A null-terminated string representing the tokens
+			   of the argument. */
+    /* When kind is msaak_string. */
+    a_constant_ptr
+		string_constant;
+			/* A constant containing the string value.  This can
+			   be a normal or wide character constant.  The
+			   constant can contain any string that can be
+			   expressed as a string literal (including embedded
+			   null characters). */
     /* When kind is msaak_uuid. */
     char	*uuid_string;
 			/* String representation of the uuid value. */

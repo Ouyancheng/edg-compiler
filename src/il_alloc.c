@@ -3651,8 +3651,10 @@ values, and return a pointer to it.
       msaap->variant.bool_value = 0;
       break;
     case msaak_string:
+      msaap->variant.string_constant = NULL;
+      break;
     case msaak_other:
-      msaap->variant.string = NULL;
+      msaap->variant.other_string = NULL;
       break;
     case msaak_uuid:
       msaap->variant.uuid_string = NULL;
