@@ -1821,6 +1821,8 @@ the caller will be setting those things.
     /* Stop if there's no anonymous parent, meaning we've handled all
        the levels of anonymous parents. */
     if (anon_parent_sym == NULL) break;
+    /* Stop if we've worked up to a top-level (variable) anonymous union. */
+    if (anon_parent_sym->kind == (a_symbol_kind)sk_variable) break;
     check_assertion(anon_parent_sym->kind == (a_symbol_kind)sk_field);
     parent_field = anon_parent_sym->variant.field.ptr;
     /* In C++, skip a standard anonymous union, because those don't get
@@ -7392,26 +7394,26 @@ EOPT_DISALLOW_COMMA_OPERATOR).
 
 static void make_anonymous_union_field_operand(
                                             a_symbol_ptr      sym_ptr,
+                                            a_symbol_ptr      union_sym,
                                             a_source_position *source_position,
                                             a_ref_entry_ptr   rep,
                                             an_operand        *result)
 /*
 Make an operand for a field that is a member of a top-level anonymous union.
 (That is, an anonymous union that is not inside a struct or union.)
-sym_ptr is the field; source_position indicates the field identifier
-source position; and rep points to a reference entry, or is NULL if
-none is needed.  The operand is built in *operand.  It's an lvalue for
-the field.
+sym_ptr is the field; union_sym is the symbol for the anonymous union;
+source_position indicates the field identifier source position; and rep
+points to a reference entry, or is NULL if none is needed.  The operand
+is built in *operand.  It's an lvalue for the field.
 */
 {
-  a_symbol_ptr   union_sym = sym_ptr->variant.field.anonymous_parent_object;
   a_variable_ptr union_var;
   an_operand     operand_1;
 
   check_assertion(union_sym != NULL &&
                   union_sym->kind == (a_symbol_kind)sk_variable);
-  union_var = union_sym->variant.variable.ptr;
   /* Start with an operand for the base anonymous union variable. */
+  union_var = union_sym->variant.variable.ptr;
   make_lvalue_variable_operand(union_var, &operand_1, (a_ref_entry_ptr)NULL);
   /* Add a field selection to get to the field. */
   do_field_selection_operation(&operand_1, union_var->type,
@@ -7432,13 +7434,17 @@ Return TRUE if the reference is invalid because either
 (2)  we are inside a default argument expression, and the variable is a
      local variable of an enclosing function (ARM 8.2.6).
 
-The symbol may be a member of an anonymous union.
+The symbol may be a top-level anonymous union (references to field symbols
+within that anonymous union result in the present routine being called
+with the sk_variable symbol for the union).
 */
 {
   a_boolean      bad_ref = FALSE;
   a_scope_depth  sd;
   a_variable_ptr var;
 
+  check_assertion_str(sym_ptr->kind == (a_symbol_kind)sk_variable,
+                      "bad_nested_function_variable_ref: bad sym kind");
   /* This sort of bad reference is only possible when we are inside a local
      class (the class itself or one of its member functions) or a
      default argument expression. */
@@ -7449,18 +7455,7 @@ The symbol may be a member of an anonymous union.
       /* A reference to a class member is okay. */
     } else {
       /* Get the variable for the symbol. */
-      if (sym_ptr->kind == (a_symbol_kind)sk_variable) {
-        var = sym_ptr->variant.variable.ptr;
-      } else {
-        a_symbol_ptr union_sym;
-        check_assertion_str(sym_ptr->kind == (a_symbol_kind)sk_field,
-                            "bad_nested_function_variable_ref: bad sym kind");
-        union_sym = sym_ptr->variant.field.anonymous_parent_object;
-        check_assertion_str(union_sym != NULL &&
-                            union_sym->kind == (a_symbol_kind)sk_variable,
-                           "bad_nested_function_variable_ref: bad anon union");
-        var = union_sym->variant.variable.ptr;
-      }  /* if */
+      var = sym_ptr->variant.variable.ptr;
       /* Find the scope of the variable in the scope stack. */
       for (sd = depth_scope_stack; ; sd--) {
         a_scope_kind skind;
@@ -7503,6 +7498,26 @@ The symbol may be a member of an anonymous union.
 }  /* bad_nested_function_variable_ref */
 
 
+static a_symbol_ptr anonymous_parent_variable_of(a_symbol_ptr field_sym)
+/*
+field_sym is an sk_field symbol with anonymous_parent_object non-NULL.
+Find the ultimate anonymous parent, and if it is a variable (i.e., if the
+field is a member of a top-level anonymous union) return a pointer to
+the sk_variable symbol.  Otherwise, return NULL.
+*/
+{
+  a_symbol_ptr parent_sym;
+
+  for (parent_sym = field_sym;
+       parent_sym != NULL && parent_sym->kind == (a_symbol_kind)sk_field;
+       parent_sym = parent_sym->variant.field.anonymous_parent_object) {}
+  check_assertion_str(parent_sym == NULL ||
+                      parent_sym->kind == (a_symbol_kind)sk_variable,
+                      "anonymous_parent_variable_of: bad symbol kind on list");
+  return parent_sym;
+}  /* anonymous_parent_variable_of */
+
+
 static void scan_identifier(an_operand               *result,
                             an_operand               *bound_function_selector,
                             a_local_expr_options_set local_options)
@@ -7513,7 +7528,7 @@ If the identifier refers to a nonstatic member function, also set
 bound_function_selector to the associated "this" pointer.
 */
 {
-  a_symbol_ptr      sym_ptr, projection_sym_ptr;
+  a_symbol_ptr      sym_ptr, projection_sym_ptr, anon_var_sym;
   a_variable_ptr    var_ptr;
   a_routine_ptr     routine_ptr;
   a_source_position start_position;
@@ -7726,15 +7741,16 @@ normal_function:
             /* Not allowed in integral constant expressions. */
             error_and_make_error_operand(ec_expr_not_constant, result);
           } else if (sym_ptr->variant.field.anonymous_parent_object != NULL &&
-                     sym_ptr->variant.field.anonymous_parent_object->kind ==
-                                                  (a_symbol_kind)sk_variable) {
-            /* This field is a member of a top-level anonymous union. */
+                     (anon_var_sym = anonymous_parent_variable_of(sym_ptr)) !=
+                                                                        NULL) {
+            /* This field is a member of a top-level (variable) anonymous
+               union. */
             /* If we're inside a local class, we are not allowed to reference
                non-static variables of the containing function.  If we're
                inside a default argument expression, we're not allowed to
                reference local variables of any containing function.
                Check for those. */
-            if (bad_nested_function_variable_ref(sym_ptr)) {
+            if (bad_nested_function_variable_ref(anon_var_sym)) {
               error_and_make_error_operand(ec_ref_to_nested_function_var,
                                            result);
               /* Avoid further diagnostics by making this an error
@@ -7742,7 +7758,7 @@ normal_function:
               change_refs_to_error(rep);
               rep = NULL;
             } else {
-              make_anonymous_union_field_operand(sym_ptr,
+              make_anonymous_union_field_operand(sym_ptr, anon_var_sym,
                                                  &locator_for_curr_id.
                                                                source_position,
                                                  rep, result);
