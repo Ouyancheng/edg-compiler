@@ -1160,6 +1160,7 @@ to the declaration information for the template declaration scope being pushed.
     } else if (kind == (a_scope_kind)sck_template_declaration ||
                kind == (a_scope_kind)sck_func_prototype ||
                kind == (a_scope_kind)sck_function_access ||
+               kind == (a_scope_kind)sck_namespace_reactivation ||
                kind == (a_scope_kind)sck_class_reactivation) {
       /* The current deferred access scope is left unchanged. */
     } else {

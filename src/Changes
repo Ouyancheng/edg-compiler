@@ -1,5 +1,18 @@
 Version 2.33
 
+7/16/96 Internal error during deferred access checks of namespace members
+
+An internal error would occur when an inaccessible class member of a class
+defined in a namespace was defined outside of the namespace.  This has
+been fixed.
+
+  namespace X {
+    class A {
+      class B { B(); };
+    };
+  }
+  X::A::B::B() {}  // Internal error on this declaration
+
 7/15/96 Missing #ifs for when PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE is FALSE
 
 lower_init.c was missing some #ifs, with the consequence that the file did
