@@ -1474,7 +1474,9 @@ hence its name should not be changed.  *length is the value to be adjusted.
       if (kind == rt_text) {
         char *back = rtp-1;
         while (*back == ' ' || *back == '\t') { --back; }
-        while (*back != ' ' && *back != '\t') { --back; }
+        while (*back != ' ' && *back != '\t' && rtp-back <= *length) {
+          --back;
+        }  /* while */
         *length -= (rtp-back)-1;
       } else {
         *length = 0;

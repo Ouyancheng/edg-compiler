@@ -1,5 +1,17 @@
 Version 2.43
 
+10/27/99 Abort while expanding extended variadic macro
+
+The special treatment of the token pasting operator followed by an empty
+variadic macro (as enabled with --extended_variadic_macros) could abort with
+an internal error when the token pasting operator was preceded by replacement
+text without embedded whitespace.
+
+  #define M(a, b...) a, ## b  // Requires --extended_variadic_macros option
+  int M(x);  // Used to abort
+
+This is now fixed.
+
 10/18/99 Configuration option to record constant-expressions in IL
 
 Ordinarily, the front folds constant-expressions into simple a_constant nodes
