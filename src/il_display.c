@@ -1740,7 +1740,9 @@ Display the indicated new/delete supplement to an expression node.
   disp_ptr("routine", (char *)ndsp->routine, iek_routine);
   disp_ptr("arg", (char *)ndsp->arg, iek_expr_node);
   disp_ptr("dynamic_init", (char *)ndsp->dynamic_init, iek_dynamic_init);
-  disp_ptr("delete_routine", (char *)ndsp->delete_routine, iek_routine);
+  disp_ptr("freeing_of_storage_on_exception",
+           (char *)ndsp->freeing_of_storage_on_exception,
+           iek_dynamic_init);
 }  /* disp_new_delete_supplement */
 
 
@@ -2703,6 +2705,9 @@ Display the indicated dynamic_init structure.
   }  /* if */
   if (ptr->is_constructor_init) {
     disp_boolean("is_constructor_init", TRUE);
+  }  /* if */
+  if (ptr->is_freeing_of_storage_on_exception) {
+    disp_boolean("is_freeing_of_storage_on_exception", TRUE);
   }  /* if */
   disp_name("kind");
   switch (ptr->kind) {

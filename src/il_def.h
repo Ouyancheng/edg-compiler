@@ -850,9 +850,10 @@ typedef struct a_dynamic_init {
   a_routine_ptr destructor;
 			/* If non-NULL, the destructor routine to be invoked
 			   when this object ceases to exist; if NULL, no
-			   destructor call is required.  (Note that it is
-			   possible, if unusual, for a destructor to exist for
-			   an object even though there is no constructor.) */
+			   destructor call is required.  Also used, when
+			   is_freeing_of_storage_on_exception is TRUE, to
+			   point to a delete routine to free storage for a
+			   new-allocation cleanup. */
   an_object_lifetime_ptr
 		lifetime;
 			/* The object lifetime associated with the object
@@ -912,10 +913,15 @@ typedef struct a_dynamic_init {
   unsigned int	is_expr_temp_init:1;
 			/* TRUE if this entry represents the initialization of
 			   an expression temporary. */
-  unsigned int	is_constructor_init;
+  unsigned int	is_constructor_init:1;
 			/* TRUE if this entry is pointed to from a
 			   constructor_init entry in a constructor or
 			   destructor. */
+  unsigned int	is_freeing_of_storage_on_exception:1;
+			/* TRUE if this entry indicates (as a destruction)
+			   a call of a delete routine to free the storage
+			   allocated in a new if an exception is thrown before
+			   the storage is initialized. */
   bitfield_to_avoid_codecenter_warnings();
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */
@@ -4105,11 +4111,14 @@ typedef struct a_new_delete_supplement {
 			/* If non-NULL, points to a dynamic initialization
 			   entry that indicates the initialization (new) or
 			   destruction (delete) to be done. */
-  a_routine_ptr	delete_routine;
-			/* For a "new" when exceptions are enabled, points
-			   to the delete routine to be used to undo the
-			   allocation if an exception is thrown.  NULL if
-			   no deletion is needed, as on a placement new. */
+  a_dynamic_init_ptr
+		freeing_of_storage_on_exception;
+			/* If non-NULL (for a "new" when exceptions are
+			   enabled), points to a dynamic initialization entry
+			   that describes the delete call to be done to free
+			   the storage if an exception is thrown before the
+			   storage is initialized.  NULL if no deletion is
+			   needed, as on a placement new. */
 } a_new_delete_supplement;
 
 

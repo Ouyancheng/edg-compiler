@@ -5094,6 +5094,7 @@ Initialize a dynamic_init entry of the kind specified.
   dip->unordered                     = FALSE;
   dip->is_expr_temp_init             = FALSE;
   dip->is_constructor_init           = FALSE;
+  dip->is_freeing_of_storage_on_exception = FALSE;
 #if CHECKING
   dip->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
@@ -5964,7 +5965,7 @@ fields to default values.
       ndsp->routine      = NULL;
       ndsp->arg          = NULL;
       ndsp->dynamic_init = NULL;
-      ndsp->delete_routine = NULL;
+      ndsp->freeing_of_storage_on_exception = NULL;
       break;
     case enk_throw:
       /* Allocate the supplement for a throw. */
