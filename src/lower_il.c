@@ -4215,6 +4215,9 @@ constructor.  Change it to add an indirection to the type.
 }  /* add_indirection_to_cctor_param_type */
 
 
+#if !NEW_CAN_BE_FOLDED_INTO_CTOR && !ASSIGNMENT_TO_THIS_ALLOWED
+/*ARGSUSED*/  /* <-- routine is not used in those cases. */
+#endif /* !NEW_CAN_BE_FOLDED_INTO_CTOR && !ASSIGNMENT_TO_THIS_ALLOWED */
 static a_boolean should_drop_const_on_this_param_variable(
                                                          a_routine_ptr routine)
 /*
@@ -4245,10 +4248,8 @@ void lower_type(a_type_ptr type)
 Do IL lowering of the indicated type and everything under it.
 */
 {
-  a_type_ptr	ptr_return_type, new_type, type_next, member_type;
-  a_type_ptr	copy_of_pm_type;
-  a_based_type_list_member_ptr
-		btlmp;
+  a_type_ptr ptr_return_type, new_type, type_next, member_type;
+  a_type_ptr copy_of_pm_type;
 
   /* Note that within this routine "lower_os_type" need not be used.
      The fact that we are lowering a type means we are lowering the
@@ -4257,11 +4258,7 @@ Do IL lowering of the indicated type and everything under it.
   if (!visited_yet(type)) {
     mark_as_visited(type);
     lower_source_correspondence(&type->source_corresp);
-    /* Lower the based types list (it points to types based on the present
-       type, e.g., pointer-to the present type). */
-    for (btlmp = type->based_types; btlmp != NULL; btlmp = btlmp->next) {
-      lower_type(btlmp->based_type);
-    }  /* for */
+    /* The based types list is not lowered on purpose. */
 #if GENERATE_EH_TABLES
     if (type->used_in_exception) {
       /* If the type was used in an exception context, generate typeinfo
