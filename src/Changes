@@ -1,11 +1,18 @@
 Version 2.22
 
-1/3/93   Integral promotion of bit fields
+1/4/94   Mangled name for virtual function table for ambiguous base class
+
+The mangled name for the virtual function table for a direct nonvirtual
+base class having the same name as a nondirect virtual base class now
+contains an extra "__A" so that the two virtual function tables will
+not have the same name.
+
+1/3/94   Integral promotion of bit fields
 
 Integral promotion of bit fields now uses the bit_field_is_signed flag
 from the field entry instead of the signedness of the bit field's base type.
 
-1/3/93   Instantiation pragma error messages
+1/3/94   Instantiation pragma error messages
 
 When an instantiation pragma references an entity for which a specialization
 has already been provided a more descriptive error message is now issued.

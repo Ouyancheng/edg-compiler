@@ -1760,6 +1760,29 @@ the length of the name.
 }  /* mangled_derivation_name */
 
 
+static a_boolean virtual_base_class_of_same_name_exists(
+                                                      a_base_class_ptr dir_bcp)
+/*
+Return TRUE if in the base class list of which dir_bcp (a direct, nonvirtual
+base class) is a part there is also a virtual base class of the same name.
+*/
+{
+  a_boolean        same_name_exists = FALSE;
+  a_base_class_ptr bcp;
+
+  for (bcp = dir_bcp->derived_class->variant.class_struct_union.extra_info->
+                                                                  base_classes;
+       bcp != NULL;
+       bcp = bcp->next) {
+    if (bcp->is_virtual && bcp->type == dir_bcp->type) {
+      same_name_exists = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return same_name_exists;
+}  /* virtual_base_class_of_same_name_exists */
+
+
 static sizeof_t mangled_vtbl_base_class_name(a_base_class_ptr bcp,
                                              char             *store_at)
 /*
@@ -1771,6 +1794,7 @@ the length of the name.
 {
   sizeof_t              mangled_name_length, name_length, digits;
   a_derivation_step_ptr dsp;
+  a_boolean             ambiguous_direct_base_class = FALSE;
 
   /* The form of the name is like
        4abcd
@@ -1784,12 +1808,29 @@ the length of the name.
   name_length = mangled_derivation_name(dsp, (char *)NULL);
   digits = digits_to_represent((unsigned long)name_length);
   mangled_name_length = digits + name_length;
+  if (bcp->ambiguous && bcp->direct && !bcp->is_virtual &&
+      virtual_base_class_of_same_name_exists(bcp)) {
+    /* This base class is a direct nonvirtual base class and there is
+       a virtual base class with the same name, so put a suffix on the name
+       to distinguish it from the virtual base class.  We change the name of
+       the direct nonvirtual base class rather than the other one because
+       cfront eliminates the direct base class (and therefore its virtual
+       function table instance too). */
+    ambiguous_direct_base_class = TRUE;
+#define AMB_SUFFIX "__A"
+    mangled_name_length += sizeof(AMB_SUFFIX)-1;
+  }  /* if */
   if (store_at != NULL) {
     /* Put out the name length and the name. */
     (void)sprintf(store_at, "%lu", (unsigned long)name_length);
     store_at += digits;
     (void)mangled_derivation_name(dsp, store_at);
     store_at += name_length;
+    if (ambiguous_direct_base_class) {
+      (void)strcpy(store_at, AMB_SUFFIX);
+      store_at += sizeof(AMB_SUFFIX)-1;
+    }  /* if */
+#undef AMB_SUFFIX
   }  /* if */
   return mangled_name_length;
 }  /* mangled_vtbl_base_class_name */
