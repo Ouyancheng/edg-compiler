@@ -2220,6 +2220,8 @@ or struct definition.  The syntax is
       if (is_virtual || !first_direct_nonvirtual_base_class) {
         new_direct_bcp->complete_subobject = TRUE;
         complete_subobj_bcp = new_direct_bcp;
+      } else {
+        complete_subobj_bcp = NULL;
       }  /* if */
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
       new_direct_bcp->direct = TRUE;
