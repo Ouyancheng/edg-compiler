@@ -55,7 +55,7 @@ B.  Layout options
 
   The normal layout is as follows:
 
-    1. Nonvirtual direct base classes data sections, in declaration order.
+    1. Nonvirtual direct base class data sections, in declaration order.
        (Such base class data sections are referred to as "incomplete
        subobjects" because the space reserved for them does not include
        space for their own virtual base classes.  All virtual base classes,
@@ -1548,28 +1548,13 @@ setting the offset field in the latter.
       if (!bcp->is_virtual) {
         /* Nonvirtual base class. */
         bcp->offset = proximate_derivation->offset + ref_bcp->offset;
-      } else {
-        /* Virtual base class. */
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-        if (bcp->data_section_base_class == proximate_derivation) {
-          /* bcp is a virtual base class whose data section is embedded in
-             the data section of another base class data section.  Update
-             the offset. */
-          bcp->offset = ref_bcp->offset + proximate_derivation->offset;
-        } else {
-          continue;
-        }  /* if */
-#else 
-        bcp->pointer_offset =
-                      proximate_derivation->offset + ref_bcp->pointer_offset;
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-      }  /* if */
 #if DEBUG
-      if (debug_level >= 4) {
-        fputs("new offset for ", f_debug);
-        db_base_class(bcp, /*show_offset=*/TRUE);
-      }  /* if */
+        if (debug_level >= 4) {
+          fputs("new offset for ", f_debug);
+          db_base_class(bcp, /*show_offset=*/TRUE);
+        }  /* if */
 #endif /* DEBUG */
+      }  /* if */
       /* Make a recursive call to apply this processing to the next level of
          base classes. */
       set_base_class_offsets(bcp);
@@ -1689,15 +1674,6 @@ virtual base class pointer is shared with some other base class.
        virtual_base_class != NULL;
        virtual_base_class = virtual_base_class->next) {
     if (virtual_base_class->is_virtual) {
-#if !CFRONT_OBJECT_CODE_COMPATIBILITY
-      if (!virtual_base_class->direct) {
-        /* Pointer base class is defined only for direct virtual base classes,
-           but it may have been set tentatively before we knew it was not a
-           direct base class. */
-        virtual_base_class->pointer_base_class = NULL;
-        continue;
-      }  /* if */
-#endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
       /* If the pointer_base_class field is non-NULL, the virtual base class
          pointer for the derived class is the same as the pointer to the
          corresponding virtual base class for pointer_base_class. */
