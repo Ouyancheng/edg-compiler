@@ -6423,7 +6423,8 @@ structure.
     tssp = templ_sym->variant.template_info;
   }  /* if */
   /* Check for invalid type arguments.  Local types may not be used as
-     arguments nor may unnamed types.  Issue an error if any are found. */
+     arguments nor may unnamed types.  Issue an error if any are found.
+     Unnamed types are permitted as template arguments in Microsoft mode. */
   while (tap != NULL) {
     if (tap->is_type) {
       a_type_ptr	type = tap->variant.type;
@@ -6432,7 +6433,7 @@ structure.
       if (is_or_contains_unnamed_or_local_type(type, &is_unnamed, &is_local)) {
         if (is_local) {
           pos_error(ec_local_type_in_template_arg, source_pos);
-        } else if (is_unnamed) {
+        } else if (is_unnamed && !microsoft_mode) {
           pos_error(ec_unnamed_type_in_template_arg, source_pos);
         }  /* if */
       }  /* if */

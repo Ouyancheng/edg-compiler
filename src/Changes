@@ -1,5 +1,18 @@
 Version 2.39
 
+1/19/98   Microsoft compatibility: unnamed enumerations as template parameters
+
+The Microsoft compiler permits unnamed template parameters to be used
+as deduced template parameters of function templates.  We now support
+this in Microsoft mode.
+
+  template <class T1, class T2> void f(T1, T2);
+  enum { e = 0 };
+  int main() {
+    int i = 0;
+    f(i, e);
+  }
+
 1/18/97   Microsoft compatibility: return and "="-form declaration
           initialization is direct-initialization
 
