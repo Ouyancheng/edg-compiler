@@ -2449,6 +2449,9 @@ from decl_specifiers only.
     }  /* if */
 #endif /* RESTRICT_ALLOWED */
     if (*qualifiers != TQ_NONE) {
+      if (is_unknown_type(*type_ptr)) {
+        *type_ptr = integer_type((an_integer_kind)ik_int);
+      }  /* if */
       /* Add the qualifiers if necessary.  make_qualified_type understands
          the strange array case too. */
       *type_ptr = make_qualified_type(*type_ptr, *qualifiers);
