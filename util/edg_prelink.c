@@ -1706,6 +1706,7 @@ or defined in that object file.
        be recorded. */
     if (type != 'B' &&
         type != 'D' &&
+        type != 'R' &&
         type != 'T' &&
         type != 'U' &&
         type != 'C') {
@@ -1718,6 +1719,7 @@ or defined in that object file.
       switch (type) {
         case 'B':  /* BSS symbol */
         case 'D':  /* data symbol */
+        case 'R':  /* read-only data symbol */
         case 'T':  /* text symbol */
           psp->defined = TRUE;
           break;
