@@ -4371,6 +4371,22 @@ on for use in generating cross-reference output describing this declaration.
           goto skip_overloading;
         }  /* if */
       }  /* if */
+      if (idlb.is_local_class_friend_decl &&
+          idlb.prior_decl_in_enclosing_scope != NULL) {
+        a_symbol_ptr  prior_decl = idlb.prior_decl_in_enclosing_scope;
+        if (prior_decl != NULL &&
+            !is_function_symbol(fundamental_symbol_of(prior_decl))) {
+          /* Issue an error for a case like this:
+               void f() {
+                 int x;
+                 struct S { friend x(); }    // Incompatible decl
+               }
+          */
+          pos_sy_error(ec_decl_incompatible_with_previous_use,
+                       &locator->source_position, prior_decl);
+          redecl_error_already_issued = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (template_function_specific_decl && !inside_local_class &&
         depth_innermost_function_scope == NO_SCOPE_DEPTH) {
