@@ -2053,6 +2053,7 @@ termination.
     init_con2 = alloc_constant((a_constant_repr_kind)ck_address);
     if (file_scope_init_routine != NULL) {
       set_routine_address_constant(file_scope_init_routine, init_con2);
+      file_scope_init_routine->address_taken = TRUE;
       implicit_cast(init_con2, ptr_func_type);
     } else {
       /* No init routine.  Use NULL. */
@@ -2062,6 +2063,7 @@ termination.
     init_con3 = alloc_constant((a_constant_repr_kind)ck_address);
     if (file_scope_term_routine != NULL) {
       set_routine_address_constant(file_scope_term_routine, init_con3);
+      file_scope_term_routine->address_taken = TRUE;
       implicit_cast(init_con3, ptr_func_type);
     } else {
       /* No init routine.  Use NULL. */
