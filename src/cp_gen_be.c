@@ -2945,6 +2945,17 @@ Write out attributes that apply to the indicated variable.
 }  /* write_variable_attributes */
 
 
+static void write_field_attributes(a_field_ptr field)
+/*
+Write out attributes that apply to the indicated field.
+*/
+{
+  if (field->alignment != 0) {
+    write_alignment_attribute(field->alignment);
+  }  /* if */
+}  /* write_field_attributes */
+
+
 static void write_routine_attributes(a_routine_ptr rout)
 /*
 Write out attributes that apply to the indicated routine.
@@ -3681,6 +3692,9 @@ declaration following this one is such a continuation.
                                      TQ_NONE,
                                      suppress_specifiers,
                                      GDO_NO_OPTIONS);
+#if GNU_EXTENSIONS_ALLOWED
+  write_field_attributes(field);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (field->is_bit_field) {
     /* A bit field.  Put out the size. */
     write_tok_ch(':');
