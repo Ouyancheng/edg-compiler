@@ -2531,6 +2531,7 @@ do_assignment:;
        C IL. */
     dip->destructor = NULL;
     cap->variant.object.is_expr_temporary = is_expr_temporary;
+    if (ctor_init != NULL) cap->constructor_wrapper_cleanup = TRUE;
     if (conditional_flag_var != NULL) {
       /* Destruction of local static variables must happen at the end of
          the file scope if the initialization has been done (i.e., if the
@@ -2684,7 +2685,7 @@ are inserted at *insert_location and *insert_location is updated.
          we start the destruction it's the destructor's job to deal with
          partial destruction. */
       a_cleanup_region_number region_number =
-                        context_cleanup_region_number(curr_context, cap->next);
+                            cleanup_region_number(cap->next_exception_cleanup);
       assign_region_number_to_eh_curr_region(region_number, insert_location);
     }  /* if */
   }  /* if */
@@ -4159,6 +4160,7 @@ constructor scope, and also lower the user code.
                                         cak_new_allocation,
                                         /*applies_on_block_exit=*/FALSE,
                                         /*applies_on_exception_cleanup=*/TRUE);
+        new_allocation_cap->constructor_wrapper_cleanup = TRUE;
         set_var_indirect_init_pos_descr(this_param_var,
                            &new_allocation_cap->variant.object.init_pos_descr);
         /* The deletion is only done if the indicator variable is set. */
