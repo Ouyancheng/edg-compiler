@@ -440,13 +440,16 @@ scope, or the lifetime from the parent context, will be used.
   context->lifetime = lifetime;
   context->new_lifetime = new_lifetime;
   /* If this context begins a new object lifetime, set curr_object_lifetime.
-     Also save the old value for restoration by pop_context. */
+     Also save the old value for restoration by pop_context.  Likewise for
+     curr_cleanup_region_number. */
   if (new_lifetime) {
     if (parent_context != NULL) {
       parent_context->lifetime = curr_object_lifetime;
+      parent_context->curr_cleanup_region_number = curr_cleanup_region_number;
     }  /* if */
     curr_object_lifetime = lifetime;
   }  /* if */
+  context->curr_cleanup_region_number = null_eh_region_number; /* Arbitrary. */
   /* The destructions list starts at NULL for a new object lifetime, or is
      inherited from the parent if there is no new object lifetime. */
   context->destructions = NULL;
@@ -467,11 +470,14 @@ Pop an entry off the context stack.
 
   if (curr_context->new_lifetime) {
     /* This context has its own object lifetime, so curr_object_lifetime
-       is reset on returning to the parent. */
+       is reset on returning to the parent.  Likewise
+       curr_cleanup_region_number. */
     if (parent_context != NULL) {
       curr_object_lifetime = parent_context->lifetime;
+      curr_cleanup_region_number = parent_context->curr_cleanup_region_number;
     } else {
       curr_object_lifetime = NULL;
+      curr_cleanup_region_number = null_eh_region_number; /* Arbitrary. */
     }  /* if */
   } else {
     /* This context does not have its own object lifetime, so the

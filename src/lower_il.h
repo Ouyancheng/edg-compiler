@@ -289,6 +289,11 @@ typedef struct a_context {
 			/* The current position in the destructions list
 			   of the lifetime, i.e., the latest encountered
 			   dynamic initialization requiring destruction. */
+  a_cleanup_region_number
+		curr_cleanup_region_number;
+			/* Used to save/restore the global variable
+			   curr_cleanup_region_number over push_context/
+			   pop_context. */
   an_object_lifetime_ptr
 		successor_lifetime_at_statement;
 			/* If the object lifetime has a successor that begins
