@@ -28,6 +28,7 @@ expr.c -- Expression scanning routines.
 #include "decls.h"
 #include "decl_inits.h"
 #include "target.h"
+#include "lang_feat.h"
 
 /*
 The operators and their precedences are:
@@ -805,13 +806,12 @@ format string (they are updated on return).
 }  /* check_printf_scanf_arg */
 
 
-static void scan_call_arguments(
-                              a_type_ptr              function_type,
-                              an_expression_kind      expression_kind,
-                              a_boolean               already_after_left_paren,
-                              an_expr_node_ptr        *p_argument_list,
-                              a_boolean               overloaded_function_case,
-                              an_argument_summary_ptr *arg_summary_list)
+static void scan_call_arguments(a_type_ptr         function_type,
+                                an_expression_kind expression_kind,
+                                a_boolean          already_after_left_paren,
+                                an_expr_node_ptr   *p_argument_list,
+                                a_boolean          overloaded_function_case,
+                                an_arg_operand_ptr *arg_operand_list)
 /*
 Scan the arguments of a function call and return a list of argument
 expressions in *p_argument_list.  The type of the function being called is
@@ -822,8 +822,8 @@ already_after_left_paren is TRUE, in which case it is the token following the
 left parenthesis (but the add_stop_token call has not been done).
 On return, the current token is the token following the closing ")".
 If overloaded_function_case is TRUE, this call is scanning the arguments
-for a call of an overloaded function, so build an argument summary list
-and return a pointer to it in *arg_summary_list.
+for a call of an overloaded function, so build an argument operand list
+and return a pointer to it in *arg_operand_list.
 */
 {
   a_param_type_ptr    curr_param_type;
@@ -843,13 +843,13 @@ and return a pointer to it in *arg_summary_list.
   a_constant_ptr      con_ptr;
   char                *fmt_string = NULL;
   a_printf_scan_state pss;
-  an_argument_summary_ptr
-                      end_arg_summary_list, arg_summary;
+  an_arg_operand_ptr  end_arg_operand_list, arg_operand;
 
   db_enter(4, "scan_call_arguments");
   if (overloaded_function_case) {
-    *arg_summary_list = NULL;
-    end_arg_summary_list = NULL;
+    /* Start with an empty list of argument operands. */
+    *arg_operand_list = NULL;
+    end_arg_operand_list = NULL;
   }  /* if */
   if (function_type != NULL) {
     a_routine_type_supplement_ptr extra_info;
@@ -946,15 +946,15 @@ and return a pointer to it in *arg_summary_list.
            parameter type is, so save it as is.  The lvalue to rvalue
            and prototyped parameter conversions will be done once the
            specific function is identified (see select_overloaded_function). */
-        /* Add an entry to the arg summary list. */
-        arg_summary = alloc_argument_summary();
-        copy_operand(&argument_operand, &arg_summary->operand);
-        if (*arg_summary_list == NULL) {
-          *arg_summary_list = arg_summary;
+        /* Add an entry to the argument operand list. */
+        arg_operand = alloc_arg_operand();
+        copy_operand(&argument_operand, &arg_operand->operand);
+        if (*arg_operand_list == NULL) {
+          *arg_operand_list = arg_operand;
         } else {
-          end_arg_summary_list->next = arg_summary;
+          end_arg_operand_list->next = arg_operand;
         }  /* if */
-        end_arg_summary_list = arg_summary;
+        end_arg_operand_list = arg_operand;
       } else {
         /* Do the argument conversion or promotion. */
         if (do_default_promotion) {
@@ -1176,13 +1176,11 @@ The caller need not add the right parenthesis to the stop tokens set, or
 remove it later, as this routine takes care of that.
 */
 {
-  a_boolean         overloaded_function_case = FALSE;
-  a_type_ptr        routine_type;
-  a_source_position start_position;
-  an_argument_summary_ptr
-                    arg_summary_list;
-  an_expression_kind
-                    expression_kind = (an_expression_kind)ek_normal;
+  a_boolean          overloaded_function_case = FALSE;
+  a_type_ptr         routine_type;
+  a_source_position  start_position;
+  an_arg_operand_ptr arg_operand_list;
+  an_expression_kind expression_kind = (an_expression_kind)ek_normal;
 
   db_enter(4, "scan_ctor_arguments");
   *conversion_routine = NULL;
@@ -1207,14 +1205,16 @@ remove it later, as this routine takes care of that.
   /* Scan the arguments. */
   scan_call_arguments(routine_type, expression_kind,
                       /*already_after_left_paren=*/TRUE, arg_expr_list,
-                      overloaded_function_case, &arg_summary_list);
+                      overloaded_function_case, &arg_operand_list);
   if (overloaded_function_case) {
     /* The constructors are overloaded.  Select the proper one. */
+    /* Note that a special case allows passing have_selector == TRUE and
+       NULL for the selector operand when dealing with constructors. */
     constructor_sym = select_overloaded_function(constructor_sym,
                                                  /*have_selector=*/TRUE,
                                                  (an_operand *)NULL,
+                                                 arg_operand_list,
                                                  /*is_qualified_name=*/FALSE,
-                                                 arg_summary_list,
                                                  expression_kind,
                                                  ec_no_matching_constructor,
                                                  ec_ambiguous_constructor,
@@ -1393,10 +1393,10 @@ Syntax:
   a_symbol_ptr      function_symbol, member_function_symbol;
   a_boolean         overloaded_function_case = FALSE;
   a_source_position call_position;
-  an_argument_summary
+  an_arg_match_summary
                     this_match_summary;
-  an_argument_summary_ptr
-                    arg_summary_list;
+  an_arg_operand_ptr
+                    arg_operand_list;
 
   db_enter(4, "scan_function_call");
 
@@ -1481,7 +1481,7 @@ Syntax:
   /* Scan the arguments of the call. */
   scan_call_arguments(routine_type, expression_kind,
                       /*already_after_left_paren=*/FALSE, &argument_list,
-                      overloaded_function_case, &arg_summary_list);
+                      overloaded_function_case, &arg_operand_list);
 
   if (overloaded_function_case) {
     /* Choose the proper function out of a set of overloaded functions based
@@ -1490,8 +1490,8 @@ Syntax:
                                             overloaded_function_symbol,
                                             (a_boolean)operand->bound_function,
                                             bound_function_selector,
+                                            arg_operand_list,
                                          (a_boolean)operand->is_qualified_name,
-                                            arg_summary_list,
                                             expression_kind,
                                             ec_no_matching_function,
                                             ec_ambiguous_overloaded_function,
@@ -1527,7 +1527,9 @@ Syntax:
            difference. */
         /* Issue any needed warning (e.g., anachronism of calling a non-const
            function with a const selector). */
-        issue_warning_from_argument_summary(&this_match_summary);
+        issue_warning_from_arg_match_summary(&this_match_summary,
+                                             &bound_function_selector->
+                                                                     position);
       } else {
         /* Some mismatch (more qualifiers on selector than on "this" parameter
            type). */
@@ -3266,8 +3268,8 @@ specification allow a variable-sized array as the top type.
   an_expr_node_ptr  arg_expr_list;
   an_expr_node_ptr  init_node, init_val_node;
   a_constant        sizeof_constant;
-  an_argument_summary_ptr
-                    arg_summary_list, sizeof_arg_summary;
+  an_arg_operand_ptr
+                    arg_operand_list, sizeof_arg_operand;
   an_expr_node_ptr  dummy;
   a_boolean         array_new;
   a_targ_size_t     effective_num_of_elements;
@@ -3298,7 +3300,7 @@ specification allow a variable-sized array as the top type.
   /* Check for the presence of the "placement" term, which provides extra
      arguments for the operator new function.  It is a list of expressions
      in parentheses. */
-  arg_summary_list = NULL;
+  arg_operand_list = NULL;
   copy_source_position(pos_curr_token, placement_position);
   trapped_left_paren = FALSE;
   if (curr_token == tok_lparen) {
@@ -3321,11 +3323,11 @@ specification allow a variable-sized array as the top type.
       } else {
         /* Scan the expression list as an argument list for which we do not yet
            know the function.  The argument values are returned in a list
-           headed by arg_summary_list. */
+           headed by arg_operand_list. */
         scan_call_arguments((a_type_ptr)NULL, expression_kind,
                             /*already_after_left_paren=*/TRUE,
                             &dummy, /*overloaded_function_case=*/TRUE,
-                            &arg_summary_list);
+                            &arg_operand_list);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3394,13 +3396,13 @@ specification allow a variable-sized array as the top type.
                            (an_integer_kind)TARG_SIZE_T_INT_KIND);
       make_constant_operand(&sizeof_constant, &sizeof_operand);
     }  /* if */
-    /* Add the sizeof operand, in argument summary form, to the front of the
+    /* Add the sizeof operand, in argument operand form, to the front of the
        list of expressions (if any) from the "placement" option.  This gives
        the full set of arguments for the "new" function call. */
-    sizeof_arg_summary = alloc_argument_summary();
-    copy_operand(&sizeof_operand, &sizeof_arg_summary->operand);
-    sizeof_arg_summary->next = arg_summary_list;
-    arg_summary_list = sizeof_arg_summary;
+    sizeof_arg_operand = alloc_arg_operand();
+    copy_operand(&sizeof_operand, &sizeof_arg_operand->operand);
+    sizeof_arg_operand->next = arg_operand_list;
+    arg_operand_list = sizeof_arg_operand;
     /* Select the proper "new" routine.  If the type is a class type and
        the class has a "new" operator, use it.  However, if "::" preceded
        the keyword "new", always use the global ::new.  Also note that
@@ -3422,8 +3424,8 @@ specification allow a variable-sized array as the top type.
                                               operator_new_symbol,
                                               /*have_selector=*/FALSE,
                                               (an_operand *)NULL,
+                                              arg_operand_list,
                                               /*is_qualified_name=*/FALSE,
-                                              arg_summary_list,
                                               expression_kind,
                                               ec_no_matching_new_function,
                                               ec_ambiguous_overloaded_function,

@@ -175,33 +175,24 @@ typedef struct an_operand {
   } variant;
 } an_operand;
 
+
 /*
-Entry describing a function that is a candidate instance of an overloaded
-function.  This entry is used in resolving overloaded function calls.
+Entry describing an actual argument to a function call.  This is basically
+an_operand that can be dynamically allocated and linked into a list.
 */
-typedef struct a_candidate_function *a_candidate_function_ptr;
-typedef struct a_candidate_function {
-  a_candidate_function_ptr
-		next;	/* Next entry on the list of candidates, or NULL
-			   if this is the last entry. */
-  a_symbol_ptr	function_symbol;
-			/* Pointer to the symbol for the function.  NULL if
-			   the "function" is a built-in operator. */
-  char		*operand_type_pattern;
-			/* For a built-in operator, the operand type pattern
-			   string (see operand_type_pattern_for_operator).
-			   Specifically, the appropriate one- or two-character
-			   segment of the operand pattern string.  NULL
-			   if not a built-in operator. */
-  a_type_ptr	pointer_type;
-			/* For a built-in operator with an operand pattern
-			   including pointers, this indicates the pointer
-			   type. */
-} a_candidate_function;
+typedef struct an_arg_operand *an_arg_operand_ptr;
+typedef struct an_arg_operand {
+  an_arg_operand_ptr
+		next;	/* Pointer to the next argument, or NULL if this is the
+			   last argument. */
+  an_operand	operand;
+			/* The argument value. */
+} an_arg_operand;
+
 /*
 Argument match levels for overloaded function call resolution; See ARM 13.2.
 */
-typedef enum /*an_argument_match_level*/ {
+typedef enum /*an_arg_match_level*/ {
   aml_exact,		/* Exact match or trivial conversions. */
   aml_exact_qualified,	/* Trivial conversions including removal of a type
 			   qualifier from the base type of a reference or
@@ -214,20 +205,18 @@ typedef enum /*an_argument_match_level*/ {
 			   actual argument (anachronism). */
   aml_error,		/* Match with error type (not in ARM). */
   aml_none		/* No match.  Must be last (highest value). */
-} an_argument_match_level;
+} an_arg_match_level;
+
 /*
-Entry describing an actual argument to an overloaded function call,
-including a quantification of how well the argument matches the corresponding
-formal parameter.
+Entry describing how well an actual argument to a function call matches
+the corresponding formal parameter.
 */
-typedef struct an_argument_summary *an_argument_summary_ptr;
-typedef struct an_argument_summary {
-  an_argument_summary_ptr
+typedef struct an_arg_match_summary *an_arg_match_summary_ptr;
+typedef struct an_arg_match_summary {
+  an_arg_match_summary_ptr
 		next;	/* Pointer to entry for following argument, or NULL
-			   if this is the last argument.  Also used to link
-			   entries on the avail_argument_match_summries
-			   list. */
-  an_argument_match_level
+			   if this is the last argument. */
+  an_arg_match_level
 		match_level;
 			/* Match level -- see ARM 13.2.  Primary key. */
   a_derivation_step_ptr
@@ -244,9 +233,7 @@ typedef struct an_argument_summary {
   an_error_code	warning_suggested;
 			/* If not ec_no_error, the code for a warning to be
 			   issued if this match is chosen. */
-  an_operand	operand;
-			/* The argument value. */
-} an_argument_summary;
+} an_arg_match_summary;
 
 
 /*
@@ -353,30 +340,31 @@ extern an_xref_entry_ptr xref_entry(a_symbol_ptr            sym_ptr,
 extern void change_xref_kinds(an_xref_entry_ptr       xref_list,
                               a_symbol_reference_kind kind);
 
-extern an_argument_summary_ptr alloc_argument_summary(void);
+extern an_arg_operand_ptr alloc_arg_operand(void);
 
-extern void issue_warning_from_argument_summary(
-                                          an_argument_summary_ptr arg_summary);
+extern void issue_warning_from_arg_match_summary(
+                                            an_arg_match_summary_ptr amsp,
+                                            a_source_position        *err_pos);
 
 extern void selector_match_with_this_param(
-                                an_operand          *bound_function_selector,
-                                a_boolean           selector_is_object_pointer,
-                                a_boolean           conversion_function_case,
-                                a_type_ptr          routine_type,
-                                an_argument_summary *arg_summary);
+                               an_operand           *bound_function_selector,
+                               a_boolean            selector_is_object_pointer,
+                               a_boolean            conversion_function_case,
+                               a_type_ptr           routine_type,
+                               an_arg_match_summary *arg_summary);
 
 extern a_symbol_ptr select_overloaded_function(
-                            a_symbol_ptr            overloaded_function_symbol,
-                            a_boolean               have_selector,
-                            an_operand              *bound_function_selector,
-                            a_boolean               virtual_allowed,
-                            an_argument_summary_ptr arg_list,
-                            an_expression_kind      expression_kind,
-                            an_error_code           err_none_applies,
-                            an_error_code           err_ambiguous,
-                            a_source_position       *call_position,
-                            an_operand              *function_operand,
-                            an_expr_node_ptr        *arg_expr_list);
+                           a_symbol_ptr             overloaded_function_symbol,
+                           a_boolean                have_selector,
+                           an_operand               *bound_function_selector,
+                           an_arg_operand_ptr       arg_operand_list,
+                           a_boolean                is_qualified_name,
+                           an_expression_kind       expression_kind,
+                           an_error_code            err_none_applies,
+                           an_error_code            err_ambiguous,
+                           a_source_position        *call_position,
+                           an_operand               *function_operand,
+                           an_expr_node_ptr         *arg_expr_list);
 
 extern void try_to_convert_class_operand_to_builtin_type(
                                        an_operand         *operand,
