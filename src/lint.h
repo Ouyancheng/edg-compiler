@@ -89,9 +89,11 @@ Included from basic_hdrs.h in every compilation.
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 /*lint -esym(769,ec_different_return_type_on_virtual_function_override)*/
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 #if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
 /*lint -esym(769,ec_bad_multibyte_char_locale)*/
 #endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 #if !BACK_END_IS_C_GEN_BE
 /*lint -esym(759,form_char)*/
 /*lint -esym(765,form_char)*/
