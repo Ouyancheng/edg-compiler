@@ -1,5 +1,13 @@
 Version 2.39
 
+2/24/98   C++-generating back end: output of 64-bit constants in Microsoft
+          mode
+
+In Microsoft mode, the C++-generating back end now puts out 64-bit
+integer constants in a form like 1i64 (or 1ui64 for the unsigned version).
+Formerly, it put them out with a form like 1LL (or 1ULL), which the
+Microsoft compiler does not accept.
+
 2/23/98   Spurious error on specialization of static data member
 
 A spurious "incomplete type not allowed" error would occur if a static

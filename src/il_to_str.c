@@ -1422,7 +1422,11 @@ precedence confusion.  Do the output in the way described by octl.
 #if LONG_LONG_ALLOWED
    } else if (ikind == (an_integer_kind)ik_long_long ||
               ikind == (an_integer_kind)ik_unsigned_long_long) {
-      output_partial_token_str("LL", octl);
+      if (microsoft_mode) {
+        output_partial_token_str("i64", octl);
+      } else {
+        output_partial_token_str("LL", octl);
+      }  /* if */
 #endif /* LONG_LONG_ALLOWED */
     }  /* if */
   }  /* if */
