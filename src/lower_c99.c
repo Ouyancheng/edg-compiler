@@ -2144,22 +2144,15 @@ storage for the given VLA variable.
 static void lower_vla_decl(a_statement_ptr  stmt)
 /*
 Lower the given stmk_vla_decl statement.  If this is a VLA variable, allocate
-memory for it.  Prior to this, update the temporary variables created by
-lower_set_vla_size to count the total number of elements for multidimensional
-arrays (e.g., for "char [n][n]" update the value of the variable from n to
-n*n).
+memory for it.
 */
 {
-  a_type_ptr      vla_based_type;
   a_variable_ptr  vla_var;
 
   if (stmt->variant.vla.is_typedef_decl) {
     vla_var = NULL;
-    vla_based_type = stmt->variant.vla.variant.typedef_type
-                         ->variant.typeref.type;
   } else {
     vla_var = stmt->variant.vla.variant.variable;
-    vla_based_type = vla_var->type;
   }  /* if */
   set_statement_kind(stmt, (a_statement_kind)stmk_expr);
   /* If necessary, allocate storage for the variable. */
