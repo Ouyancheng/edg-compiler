@@ -1895,23 +1895,23 @@ should be added.
   size = curr_size + incremental_size;
   /* The file must be large enough to contain the mapped area. */
   if (fseek(file, (long)size, SEEK_SET) == 0) {
-    /* Write a character at the last allocated position. */
-    putc(0, file);
-    /* Make sure the write to the file is actually done. */
-    fflush(file);
-    /* An extra byte is added to the size to stop CodeCenter from complaining
-       about the after_end_of_block comparison in mem_manage.c. */
-    addr = (a_void_ptr)mmap((char*)0, incremental_size + 1,
-                            PROT_WRITE | PROT_READ, MAP_PRIVATE,
-                            fd, (off_t)curr_size);
+    /* Write a character at the last allocated position and
+       make sure the write to the file is actually done. */
+    if (fputc(0, file) != EOF && fflush(file) == 0) {
+      /* An extra byte is added to the size to stop CodeCenter from complaining
+         about the after_end_of_block comparison in mem_manage.c. */
+      addr = (a_void_ptr)mmap((char*)0, incremental_size + 1,
+                              PROT_WRITE | PROT_READ, MAP_PRIVATE,
+                              fd, (off_t)curr_size);
 #if DEBUG
-    if (debug_level >= 5) {
-      fprintf(f_debug, "Allocated %lu bytes of mmap memory at %p\n",
-              (unsigned long)incremental_size, addr);
-    }  /* if */
+      if (debug_level >= 5) {
+        fprintf(f_debug, "Allocated %lu bytes of mmap memory at %p\n",
+                (unsigned long)incremental_size, addr);
+      }  /* if */
 #endif /* DEBUG */
-    /* mmap returns (caddr_t)-1 if the operation fails. */
-    if (addr == (caddr_t)-1) addr = NULL;
+      /* mmap returns (caddr_t)-1 if the operation fails. */
+      if (addr == (caddr_t)-1) addr = NULL;
+    }  /* if */
   }  /* if */
   return addr;
 }  /* map_file_region */
