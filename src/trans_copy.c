@@ -1652,12 +1652,15 @@ of the routine in the secondary translation unit.
 }  /* wrap_up_moved_function */
 
 
-static void finish_moved_function_processing(a_scope_ptr scope)
+static void finish_moved_function_processing(a_scope_ptr scope,
+                                             a_boolean   do_inlines)
 /*
 Finish processing in the indicated scope and its subscopes for any
 functions whose bodies were moved from the secondary translation unit IL
 to the primary IL.  This includes lowering if necessary.  The scope
-passed in is from the secondary translation unit.
+passed in is from the secondary translation unit.  Inline functions
+are processed only if do_inlines is TRUE, other functions only if
+do_inlines is FALSE, thus allowing a two-pass sweep.
 */
 {
   a_routine_ptr   routine;
@@ -1666,7 +1669,7 @@ passed in is from the secondary translation unit.
 
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
     if (!nsp->is_namespace_alias) {
-      finish_moved_function_processing(nsp->variant.assoc_scope);
+      finish_moved_function_processing(nsp->variant.assoc_scope, do_inlines);
     }  /* if */
   }  /* for */
   if (!C_mode()) {
@@ -1676,13 +1679,16 @@ passed in is from the secondary translation unit.
         a_scope_ptr class_scope =
                       type->variant.class_struct_union.extra_info->assoc_scope;
         if (class_scope != NULL) {
-          finish_moved_function_processing(class_scope);
+          finish_moved_function_processing(class_scope, do_inlines);
         }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
-    wrap_up_moved_function(routine);
+    /* Process inline functions only if appropriate. */
+    if ((do_inlines != 0) == (routine->is_inline != 0)) {
+      wrap_up_moved_function(routine);
+    }  /* if */
   }  /* for */
 }  /* finish_moved_function_processing */
 
@@ -1720,7 +1726,9 @@ secondary translation unit IL and therefore will not be copied.
   /* Do final processing on moved function bodies.  This must be
      done in the context of the primary translation unit. */
   switch_translation_unit(translation_units);
-  finish_moved_function_processing(top_scope);
+  /* Do inline functions first, to allow more chances for inlining. */
+  finish_moved_function_processing(top_scope, /*do_inlines=*/TRUE);
+  finish_moved_function_processing(top_scope, /*do_inlines=*/FALSE);
   switch_translation_unit(saved_translation_unit);
   merge_il_headers();
 #if DEBUG
