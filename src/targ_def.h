@@ -1102,6 +1102,20 @@ handling but not for RTTI.
            ABI_COMPATIBILITY_VERSION <= 228
 #endif /* ABI_CHANGES_FOR_RTTI && (ABI_COMPATIBILITY_VERSION <= 228) */
 
+#if ABI_CHANGES_FOR_RTTI
+/*
+The size and alignment of the type_info type defined in the <typeinfo>
+header.  This class has a virtual destructor, so it always has at least
+a virtual function table pointer or equivalent.
+*/
+#ifndef TARG_SIZEOF_TYPE_INFO
+#define TARG_SIZEOF_TYPE_INFO TARG_SIZEOF_VIRTUAL_FUNCTION_INFO
+#endif /* ifndef TARG_SIZEOF_TYPE_INFO */
+#ifndef TARG_ALIGNOF_TYPE_INFO
+#define TARG_ALIGNOF_TYPE_INFO TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO
+#endif /* ifndef TARG_ALIGNOF_TYPE_INFO */
+#endif /* ABI_CHANGES_FOR_RTTI */
+
 /*
 This switch controls whether or not operations with
 returns_lvalue_instead_of_usual_rvalue TRUE are rewritten by IL lowering.

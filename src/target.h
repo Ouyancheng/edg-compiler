@@ -525,7 +525,22 @@ EXTERN a_boolean
                                                                            ;
 			/* If TRUE, all functions are rewritten to be
 			   unprototyped. */
-            
+
+EXTERN a_targ_size_t
+		targ_sizeof_type_info
+#if VAR_INITIALIZERS
+                                      = TARG_SIZEOF_TYPE_INFO
+#endif /* VAR_INITIALIZERS */
+                                                             ;
+EXTERN a_targ_alignment
+		targ_alignof_type_info
+#if VAR_INITIALIZERS
+                                       = TARG_ALIGNOF_TYPE_INFO
+#endif /* VAR_INITIALIZERS */
+                                                               ;
+			/* The size and alignment of the type_info type
+			   defined in the <typeinfo> header. */
+
 #if DO_FULL_PORTABLE_EH_LOWERING
 
 EXTERN unsigned int
@@ -599,8 +614,10 @@ EXTERN an_integer_kind
 #undef TARG_SIZEOF_LONG_LONG
 #undef TARG_ALIGNOF_LONG_LONG
 #endif /* LONG_LONG_ALLOWED */
+#undef TARG_MAX_CLASS_OBJECT_SIZE
 #undef TARG_MAX_BIT_FIELD_SIZE
 #undef TARG_BIT_FIELD_CONTAINER_SIZE
+#undef TARG_MICROSOFT_BIT_FIELD_ALLOCATION
 #undef TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED
 #undef TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
 #undef TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT
@@ -626,8 +643,14 @@ EXTERN an_integer_kind
 #undef TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT
 #undef TARG_RIGHT_SHIFT_IS_ARITHMETIC
 #undef TARG_MINIMUM_STRUCT_ALIGNMENT
+#undef TARG_MINIMUM_PACK_ALIGNMENT
+#undef MAKE_ALL_FUNCTIONS_UNPROTOTYPED
+#undef TARG_SIZEOF_TYPE_INFO
+#undef TARG_ALIGNOF_TYPE_INFO
 #undef TARG_JMP_BUF_NUM_ELEMENTS
+#undef TARG_JMP_BUF_ELEMENTS_ARE_FLOAT
 #undef TARG_JMP_BUF_ELEMENT_INT_KIND
+#undef TARG_JMP_BUF_ELEMENT_FLOAT_KIND
 #undef TARG_VAR_HANDLE_INT_KIND
 
 #ifndef MAKE_TARG_NAMES_REFER_TO_VARIABLES
@@ -656,8 +679,10 @@ EXTERN an_integer_kind
 #define TARG_SIZEOF_LONG_LONG targ_sizeof_long_long
 #define TARG_ALIGNOF_LONG_LONG targ_alignof_long_long
 #endif /* LONG_LONG_ALLOWED */
+#define TARG_MAX_CLASS_OBJECT_SIZE targ_max_class_object_size
 #define TARG_MAX_BIT_FIELD_SIZE targ_max_bit_field_size
 #define TARG_BIT_FIELD_CONTAINER_SIZE targ_bit_field_container_size
+#define TARG_MICROSOFT_BIT_FIELD_ALLOCATION targ_microsoft_bit_field_allocation
 #define TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED                            \
                         targ_plain_int_bit_field_is_unsigned
 #define TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED                        \
@@ -691,8 +716,14 @@ EXTERN an_integer_kind
                         targ_enum_types_can_be_smaller_than_int
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC targ_right_shift_is_arithmetic
 #define TARG_MINIMUM_STRUCT_ALIGNMENT targ_minimum_struct_alignment
+#define TARG_MINIMUM_PACK_ALIGNMENT targ_minimum_pack_alignment
+#define MAKE_ALL_FUNCTIONS_UNPROTOTYPED make_all_functions_unprototyped
+#define TARG_SIZEOF_TYPE_INFO targ_sizeof_type_info
+#define TARG_ALIGNOF_TYPE_INFO targ_alignof_type_info
 #define TARG_JMP_BUF_NUM_ELEMENTS targ_jmp_buf_num_elements
+#define TARG_JMP_BUF_ELEMENTS_ARE_FLOAT targ_jmp_buf_elements_are_float
 #define TARG_JMP_BUF_ELEMENT_INT_KIND targ_jmp_buf_element_int_kind
+#define TARG_JMP_BUF_ELEMENT_FLOAT_KIND targ_jmp_buf_element_float_kind
 #define TARG_VAR_HANDLE_INT_KIND targ_var_handle_int_kind
 #endif /* MAKE_TARG_NAMES_REFER_TO_VARIABLES */
 
