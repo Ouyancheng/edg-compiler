@@ -516,7 +516,6 @@ Detach the given IL entity from a translation unit correspondence entry.
     free_trans_unit_corresp(tcp);
     trans_unit_corresp_of_unknown_entry(entity) = NULL;
   }  /* if */
-  /* Unused. */
 }  /* f_set_unvisited_trans_unit_corresp */
 
 #define set_unvisited_trans_unit_corresp(kind, ptr)                         \
@@ -2921,11 +2920,11 @@ return FALSE.
 {
   a_boolean result;
 
-  if (has_correspondence(type_1)) {
+  result = (canonical_il_entry_of(type_1) == canonical_il_entry_of(type_2));
+  if (result || has_correspondence(type_1)) {
     /* The type is already pointing to a corresponding entry in another
        translation unit.  We only need to check if type_2 is also in the
        set of corresponding entries. */
-    result = (canonical_il_entry_of(type_1) == canonical_il_entry_of(type_2));
   } else {
     /* type_1 either hasn't been visited yet, or it was found not to have a
        correspondence.  Even in the latter case it is possible that type_2
@@ -3358,7 +3357,9 @@ symbol supplement.
       set_trans_unit_corresp(iek_routine, routine, old_ce);
     }  /* if */
 #endif /* FIXME */
-    set_trans_unit_corresp(iek_routine, routine, old_ce);
+    if (routine != old_ce) {
+      set_trans_unit_corresp(iek_routine, routine, old_ce);
+    }  /* if */
   }  /* if */
 }  /* record_function_template_instantiation */
 
@@ -3501,7 +3502,9 @@ and are handled elsewhere.
     } else {
       /* The prototype instantiation in the translation unit of the canonical
          template entry. */
-      set_no_trans_unit_corresp(iek_routine, tssp->variant.function.routine);
+      if (trans_unit_corresp_of(tssp->variant.function.routine) == NULL) {
+        set_no_trans_unit_corresp(iek_routine, tssp->variant.function.routine);
+      }  /* if */
     }  /* if */
   } else {
     unexpected_condition_str("Bad symbol");
