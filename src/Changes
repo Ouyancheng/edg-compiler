@@ -1,5 +1,31 @@
 Version 2.32
 
+4/9/96  Internal error in using-directive lookup during template instantiation
+
+A bug has been fixed that could cause an internal error to be reported
+from add_symbol_to_overload_list when doing a using-directive lookup
+in a template instantiation scope.
+
+4/9/96  Bug with qualified lookups with projection symbols pointing to tags
+
+A bug has been fixed that could cause a qualified lookup (either class
+qualified or namespace qualified) to find a projection symbol that
+points to a tag symbol when a nontag symbol from the same scope should
+be returned instead.  This has been fixed.
+
+This bug can occur with both class projection symbols and namespace
+projection symbols.  The class case is unlikely to occur in real code
+except when the hidden name table is being used (typically so that
+the C++ generating back end can be used) because the hidden name
+table processing involves additional lookup operations that would
+not normally be done.
+
+  namespace N1 { struct A {}; };
+  namespace N2 { char A[10]; };
+  namespace M {}
+  namespace M { using N2::A; using N1::A; }
+  int i = sizeof(M::A);
+
 4/9/96  Instantiation forced in dynamic_cast
 
 When the operand or destination type of a dynamic_cast is a pointer
