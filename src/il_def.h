@@ -2156,6 +2156,14 @@ typedef struct a_type {
                         /* TRUE if type is volatile-qualified (i.e.,
                            if the thing pointed to can change due to outside
                            influences). */
+      unsigned int
+		is_placeholder_for_file_scope_type:1;
+			/* TRUE if the typeref appears on a class types list
+			   to indicate the declaration sequence position of
+			   the type to which it refers, which is on the
+			   file scope types list.  Used for template classes
+			   that are instantiated in the midst of a class
+			   definition. */
       bitfield_to_avoid_codecenter_warnings();
     } typeref;
     /* When kind = tk_ptr_to_member: */

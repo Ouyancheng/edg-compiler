@@ -3552,6 +3552,7 @@ to default values.
 #endif /* DO_IL_LOWERING */
       pte->variant.typeref.is_const    = FALSE;
       pte->variant.typeref.is_volatile = FALSE;
+      pte->variant.typeref.is_placeholder_for_file_scope_type = FALSE;
 #if CHECKING
       pte->variant.typeref.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

@@ -1335,8 +1335,13 @@ do_struct_union:
       /* Do not print out ptr->variant.typeref.orig_type, which is used only
          during IL lowering. */
 #endif /* DO_IL_LOWERING */
-      disp_boolean("is_const", (a_boolean)ptr->variant.typeref.is_const);
-      disp_boolean("is_volatile", (a_boolean)ptr->variant.typeref.is_volatile);
+      if (ptr->variant.typeref.is_placeholder_for_file_scope_type) {
+        disp_boolean("is_placeholder_for_file_scope_type", TRUE);
+      } else {
+        disp_boolean("is_const", (a_boolean)ptr->variant.typeref.is_const);
+        disp_boolean("is_volatile",
+                     (a_boolean)ptr->variant.typeref.is_volatile);
+      }  /* if */
       break;
     case tk_ptr_to_member:
       (void)printf("tk_ptr_to_member\n");
