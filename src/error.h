@@ -699,11 +699,13 @@ extern DOES_NOT_RETURN assertion_failed(char *filename,
 #endif /* CHECKING */
 /* Make sure "a_symbol", "a_type" and "a_source_file" are known as struct
    tags before their uses below.  Otherwise, the declarations would be in
-   the prototype scopes. The "struct" form is used instead of the typedef
+   the prototype scopes.  The "struct" form is used instead of the typedef
    name to avoid having to include symbol_tbl.h and il_def.h in this file. */
 typedef struct a_symbol a_symbol_dummy_typedef;
 typedef struct a_type a_type_dummy_typedef;
-typedef struct a_source_file a_source_file_typedef;
+typedef struct a_source_file a_source_file_dummy_typedef;
+
+extern struct a_type *unqualified_display_type(struct a_type *type);
 
 extern char *format_type_string(struct a_type *type,
                                 sizeof_t      *len_ptr);

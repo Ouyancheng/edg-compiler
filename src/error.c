@@ -2575,6 +2575,22 @@ do_tag_name:
 }  /* form_type_specifier */
 
 
+a_type_ptr unqualified_display_type(a_type_ptr type)
+/*
+Drop type qualifiers but not typedefs from the indicated type and return
+what's left.  This is used to remove type qualifiers to get to the underlying
+type for display purposes.
+*/
+{
+  /* Drop type qualifiers but stop on a typedef. */
+  while (type->kind == (a_type_kind)tk_typeref &&
+         type->source_corresp.name == NULL) {
+    type = type->variant.typeref.type;
+  }  /* while */
+  return type;
+}  /* unqualified_display_type */
+
+
 static void form_type_first_part(a_type_ptr        type,
                                  a_boolean         need_parens,
                                  a_msg_segment_ptr seg_ptr)
@@ -2584,17 +2600,8 @@ Add the first of possibly two parts of a type reference.
 {
   a_type_ptr local_type, unqualified_type;
 
-  /* Don't use make_qualified_type or is_qualified_type here -- there are
-     problems when compiling it in standalone mode. */
-  unqualified_type = type;
-  while (unqualified_type->kind == (a_type_kind)tk_typeref &&
-         (unqualified_type->variant.typeref.is_const ||
-          unqualified_type->variant.typeref.is_volatile)) {
-    /* Keep looping. */
-    unqualified_type = unqualified_type->variant.typeref.type;
-  }  /* while */
-  /* For the pointer case, ignore any typerefs that provide qualifiers
-     on the indirection. */
+  /* Drop type qualifiers but not typedefs. */
+  unqualified_type = unqualified_display_type(type);
   if (unqualified_type->kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
     local_type = unqualified_type->variant.pointer.type;
@@ -2617,9 +2624,9 @@ Add the first of possibly two parts of a type reference.
     }  /* if */
     form_type_qualifier(type, /*postpositional=*/TRUE, seg_ptr);
     if (need_parens) add_string_to_segment("(", seg_ptr);
-  } else if (type->kind == (a_type_kind)tk_array) {
+  } else if (unqualified_type->kind == (a_type_kind)tk_array) {
     /* Array type. */
-    local_type = type->variant.array.element_type;
+    local_type = unqualified_type->variant.array.element_type;
     form_type_first_part(local_type,
                          /*need_parens=*/
                          (local_type->kind != (a_type_kind)tk_array &&
@@ -2636,9 +2643,9 @@ Add the first of possibly two parts of a type reference.
     add_string_to_segment("*", seg_ptr);
     form_type_qualifier(type, /*postpositional=*/TRUE, seg_ptr);
     if (need_parens) add_string_to_segment("(", seg_ptr);
-  } else if (type->kind == (a_type_kind)tk_routine) {
+  } else if (unqualified_type->kind == (a_type_kind)tk_routine) {
     /* Function type. */
-    local_type = type->variant.routine.return_type;
+    local_type = unqualified_type->variant.routine.return_type;
     form_type_first_part(local_type,
                          /*need_parens=*/
                          ! is_pointer_or_reference_type(local_type),
@@ -2663,28 +2670,20 @@ array, print out the dimension information.
 {
   a_type_ptr local_type;
 
-  if (is_pointer_or_reference_type(type)) {
-    /* For the pointer case, ignore any typerefs that provide qualifiers
-       on the indirection. */
-    while (type->kind == (a_type_kind)tk_typeref &&
-           (type->variant.typeref.is_const ||
-            type->variant.typeref.is_volatile)) {
-      /* Keep looping. */
-      type = type->variant.typeref.type;
-    }  /* while */
-    if (type->kind == (a_type_kind)tk_pointer) {
-      local_type = type->variant.pointer.type;
-      if (need_parens) add_string_to_segment(")", seg_ptr);
-      form_type_second_part(local_type,  /*need_parens=*/
-                            !is_pointer_or_reference_type(local_type),
-                            seg_ptr);
-    }  /* if */
+  /* Drop type qualifiers but not typedefs. */
+  type = unqualified_display_type(type);
+  if (type->kind == (a_type_kind)tk_pointer) {
+    local_type = type->variant.pointer.type;
+    if (need_parens) add_string_to_segment(")", seg_ptr);
+    form_type_second_part(local_type,  /*need_parens=*/
+                          !is_pointer_or_reference_type(local_type),
+                          seg_ptr);
   } else if (type->kind == (a_type_kind)tk_array) {
     /* Array type. */
     if (need_parens) add_string_to_segment(")", seg_ptr);
     if (type->variant.array.is_variable_size_array) {
 #if 0
-/* THIS IS TEMPORARY AND SHOULD BE IMPROVED. */
+      /* THIS IS TEMPORARY AND SHOULD BE IMPROVED. */
 #endif /* if 0 */
       add_string_to_segment("[<expr>]", seg_ptr);
     } else if (type->variant.array.variant.number_of_elements == 0) {
@@ -2708,7 +2707,7 @@ array, print out the dimension information.
     form_type_second_part(local_type,
                           /*need_parens=*/
                           (local_type->kind != (a_type_kind)tk_array &&
-                           ! is_pointer_or_reference_type(local_type)),
+                           !is_pointer_or_reference_type(local_type)),
                           seg_ptr);
   } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
     /* C++ pointer to member type. */
@@ -2722,7 +2721,7 @@ array, print out the dimension information.
     form_param_list(type->variant.routine.extra_info, seg_ptr);
     form_type_second_part(local_type,
                           /*need_parens=*/
-                          ! is_pointer_or_reference_type(local_type),
+                          !is_pointer_or_reference_type(local_type),
                           seg_ptr);
   }  /* if */
 }  /* form_type_second_part */
