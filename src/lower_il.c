@@ -1700,11 +1700,6 @@ assume that node points to a complete object.
     /* For the first step the information is already correct. */
     if (dsp != bcp->derivation) {
       step_bcp = find_direct_base_class_of(step_class_type, step_bcp->type);
-#if CHECKING
-      if (step_bcp == NULL) {
-        internal_error("make_base_class_lvalue: step base class missing");
-      }  /* if */
-#endif /* CHECKING */
     }  /* if */
     if (!step_bcp->is_virtual) {
       /* Non-virtual step. */
@@ -6813,14 +6808,6 @@ more than once.
   } else {
     bcp = find_direct_base_class_of(dest_class, source_class);
   }  /* if */
-#if CHECKING
-  if (bcp == NULL) {
-    internal_error("related_class_cast_step: base class not found");
-  }  /* if */
-  if (!bcp->direct) {
-    internal_error("related_class_cast_step: base class not direct");
-  }  /* if */
-#endif /* CHECKING */
   /* If this step is to a virtual base class, and no previous step was a
      step to a virtual base class, pass the virtual base class type down
      in the recursive processing to let the bottom-most call find out whether
@@ -7074,11 +7061,6 @@ class to the class of node in *offset.
                                (an_expr_operator_kind)eok_pm_base_class_cast) {
     /* Casting from a derived class to a base class. */
     bcp = find_direct_base_class_of(source_class, dest_class);
-#if CHECKING
-    if (bcp == NULL) {
-      internal_error("compute_pm_cast_offset: base class not found");
-    }  /* if */
-#endif /* CHECKING */
     if (bcp->is_virtual) {
       /* For a virtual base class skip, assume that we have a whole object
          and compute the offset from there.  The C++ language should probably
@@ -7086,11 +7068,6 @@ class to the class of node in *offset.
          simple offset. */
       source_class = pm_class_type((*underlying_node)->type);
       bcp = find_virtual_base_class_of(source_class, dest_class);
-#if CHECKING
-      if (bcp == NULL) {
-        internal_error("compute_pm_cast_offset: virtual base class not found");
-      }  /* if */
-#endif /* CHECKING */
       *offset = -bcp->offset;
     } else {
       /* Non-virtual base class.  Subtract the offset from the running
@@ -7101,9 +7078,6 @@ class to the class of node in *offset.
     /* Casting from a base class to a derived class. */
     bcp = find_direct_base_class_of(dest_class, source_class);
 #if CHECKING
-    if (bcp == NULL) {
-      internal_error("compute_pm_cast_offset: derived class not found");
-    }  /* if */
     if (bcp->is_virtual) {
       internal_error("compute_pm_cast_offset: derived class is virtual");
     }  /* if */
