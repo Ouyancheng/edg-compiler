@@ -236,7 +236,7 @@ length of the string).
   a_type_ptr     array_type;
   a_targ_size_t  string_length, num_elems;
   a_targ_size_t  array_length;
-  a_boolean      is_wide_string = FALSE;
+  a_boolean      is_wide_string = !is_char_array_type(string_con->type);
   a_boolean      err = FALSE;
 
   /* The object to be initialized is an array (possibly incomplete) of
@@ -244,8 +244,7 @@ length of the string).
   /* The constant and the array should have the same underlying character
      element type -- e.g., it's a mismatch if one is a wide string
      and the other a normal string. */
-  err = (is_char_array_type(*var_type) !=
-                                        is_char_array_type(string_con->type));
+  err = (is_char_array_type(*var_type) != !is_wide_string);
   if (!err) {
     /* The constant is a string with characters that are compatible with
        the array element type.  (Note that an array of characters of any
@@ -356,7 +355,6 @@ If there is an error, issue an error and return an error constant.
   if (is_string_init) {
     /* The object being initialized has type array of char or wchar_t, and
        is being initialized with a string.  Handle this case specially. */
-    a_type_ptr     local_type = *type_ptr;
     a_boolean      err = FALSE;
 
     /* The object to be initialized is an array (possibly incomplete) of
@@ -374,7 +372,7 @@ If there is an error, issue an error and return an error constant.
       /* There was an error of some kind. */
       if (!is_error_type(cp->type)) {
         pos_ty2_error(ec_bad_initializer_type, &error_position,
-                      cp->type, local_type);
+                      cp->type, *type_ptr);
       }  /* if */
       *init_con = alloc_error_constant();
     } else {
@@ -385,9 +383,6 @@ If there is an error, issue an error and return an error constant.
         /* The prescanned constant was already allocated. */
         *init_con = cp;
       }  /* if */
-      /* Pass the type back to the caller; the array size is now
-         known if it was incomplete. */
-      *type_ptr = local_type;
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_pos_curr_token;
