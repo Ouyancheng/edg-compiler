@@ -1,5 +1,13 @@
 Version 2.28
 
+1/6/94  Signal handling on old Unix systems without job control
+
+The code that initializes the signal handlers first ensures that
+the interrupt signal is not being ignored before resetting it.
+This prevents a background compilation from being terminated by
+an interrupt signal intended for a foreground process on older
+Unix systems that lack job control.
+
 1/6/94  Template instantiation bug when a template is redeclared
 
 A bug has been fixed that caused template functions to be instantiated

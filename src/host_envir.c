@@ -1490,7 +1490,13 @@ Enable any signal handlers necessary to catch signals that may come up during
 execution of the front end (for example, SIGINT).
 */
 {
-  (void)signal(SIGINT, term_on_signal);
+  if (signal(SIGINT, SIG_IGN) != SIG_IGN) {
+    /* Only reset the signal if it is not already being ignored.  This is
+       to prevent a compilation in the background from being terminated by
+       an interrupt intended for the foreground process on older Unix
+       systems that lack job control. */
+    (void)signal(SIGINT, term_on_signal);
+  }  /* if */
   (void)signal(SIGTERM, term_on_signal);
 #ifdef SIGXFSZ
   /* On SVR4 systems, ignore the signal sent when the file size limit
