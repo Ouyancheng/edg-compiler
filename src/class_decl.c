@@ -340,9 +340,9 @@ routine recursively for each nested class.
                                               sym->variant.routine.ptr, tssp);
             } else {
 #if 0
-/* Not yet implemented. */
-#endif /* if 0 */
+              /* Not yet implemented. */
               internal_error("delayed_scan_fixup_for_class: not a routine");
+#endif /* if 0 */
             }  /* if */
           }  /* if */
         } else if (is_nonreal_template_instantiation) {
@@ -356,9 +356,16 @@ routine recursively for each nested class.
           daefp_end = daefp;
           if (daefp_end != NULL) {
             while (daefp_end->next != NULL) daefp_end = daefp_end->next;
-            tssp = sym->variant.routine.instance_ptr->template_info;
-            daefp_end->next = tssp->variant.function.def_arg_expr_list;
-            tssp->variant.function.def_arg_expr_list = daefp;
+            if (sym->kind == (a_symbol_kind)sk_member_function) {
+              tssp = sym->variant.routine.instance_ptr->template_info;
+              daefp_end->next = tssp->variant.function.def_arg_expr_list;
+              tssp->variant.function.def_arg_expr_list = daefp;
+            } else {
+#if 0
+              /* Not yet implemented. */
+              internal_error("delayed_scan_fixup_for_class: not a routine");
+#endif /* if 0 */
+            }  /* if */
           }  /* if */
           /* Make sure no further processing will be done here and
              make sure that the list isn't freed. */
