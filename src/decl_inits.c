@@ -771,15 +771,15 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
       local_di.variant.constructor.args = arg_list;
     }  /* if */
     initialization_is_dynamic = TRUE;
-  } else if (cssp != NULL && cssp->constructor != NULL &&
+  } else if (cssp != NULL && !cssp->is_class_aggregate &&
              curr_token == tok_lbrace) {
     /* This is an attempt to do C-style aggregate initialization on a class
-       object for which a constructor exists.  In such cases the constructor
-       must be used. */
+       object for which there is a constructor, nonpublic members, base
+       classes, or virtual functions.  In such cases a constructor must be
+       used. */
     syntax_error(ec_brace_initialization_not_allowed);
     err = TRUE;
-  } else if (is_class_struct_union_type(vp_type) &&
-             curr_token != tok_lbrace &&
+  } else if (is_class_struct_union_type(vp_type) && curr_token != tok_lbrace &&
              (C_dialect == C_dialect_cplusplus ||
                 (vp != NULL &&
                  !has_static_storage_duration(vp->storage_class)))) {
