@@ -8735,7 +8735,7 @@ file we simply return.
 
 static void add_to_instantiations_required_list(a_template_instance_ptr  tip)
 /*
-Add a template instance entry to the end of the instantiatiations_required
+Add a template instance entry to the end of the instantiations_required
 list.
 */
 {

@@ -2834,7 +2834,7 @@ supplement.
   (is_class_struct_union_symbol(sym) &&					\
    (sym)->variant.class_struct_union.extra_info->is_prototype_instantiation)
 
-/* If a symbol represents a subordindate temlate, return a pointer to the
+/* If a symbol represents a subordinate temlate, return a pointer to the
    prototype template; otherwise return the symbol provided. */
 #define prototype_template_of(sym)					\
   ((sym)->variant.template_info->prototype_template != NULL ?		\
