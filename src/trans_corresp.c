@@ -3316,9 +3316,7 @@ symbol supplement.
     }  /* if */
 #endif /* DEBUG */
     set_no_trans_unit_corresp(iek_type, class_type);
-    if (has_correspondence(templ)) {
-      sym_entry = find_class_template_instantiation(corresp_tssp, inst);
-    }  /* if */
+    sym_entry = find_class_template_instantiation(corresp_tssp, inst);
     if (sym_entry == NULL) {
       /* The instantiation was not found on the canonical list.  Add it now. */
       /* Undo the recursion guard. */
