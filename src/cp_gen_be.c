@@ -10720,17 +10720,19 @@ TRUE if the declaration following this one is such a continuation.
       }  /* if */
     } else {
       /* A declaration of a function. */
-      /* Normally, this should not be a member function, but in Microsoft
-         mode it is possible to redeclare a member without defining it. */
+      /* Normally, this should not be a member function, but in Microsoft and
+         Some GNU C++ modes it is possible to redeclare a member without
+         defining it. */
       out_of_class_redecl = rout->source_corresp.is_class_member;
       /* The function is not defined (here), so use "extern" instead of
          no storage class.  Also use "extern" for file-scope static routines
-         declared extern inside functions.  Again, Microsoft member
+         declared extern inside functions.  Microsoft and GNU C++ member
          redeclarations are an exception (storage class should be omitted).
          Also out of line declarations of templates, when prototype
          instantiations are preserved in the IL. */
       if (out_of_class_redecl) {
-        check_assertion(microsoft_mode || rout->is_prototype_instantiation);
+        check_assertion(gpp_mode || microsoft_mode ||
+                        rout->is_prototype_instantiation);
         storage_class = (a_storage_class)sc_unspecified;
       } else if (storage_class == (a_storage_class)sc_unspecified ||
                  (storage_class == (a_storage_class)sc_static &&
