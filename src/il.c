@@ -896,7 +896,7 @@ static void db_nonconstant_aggregate(a_constant_ptr  con,
           break;
 #if CHECKING
         default:
-          fputs("**UNEXPECTED DYNAMIC INIT KIND**", f_debug);
+          fputs("**UNEXPECTED DYNAMIC INIT KIND**\n", f_debug);
 #endif /* CHECKING */
       }  /* switch */
     } else {
@@ -936,17 +936,13 @@ void db_dynamic_initializer(a_dynamic_init_ptr  dip,
     case dik_expression:
       fputs("expression:\n", f_debug);
       db_expr_node(dip->variant.expression, level);
-      if (dip->destructor != NULL) {
-        for (a = 0; a < level; a++) fputs(" ", f_debug);
-        db_destructor(dip->destructor);
-        fputc('\n', f_debug);
-      }  /* if */
-      break;
+      goto destructor_on_next_line;
     case dik_nonconstant_aggregate:
       fputs("aggregate with non-constants:\n", f_debug);
       db_nonconstant_aggregate(dip->variant.aggregate.aggr_const->
                                         variant.aggregate.first_constant,
                                level);
+destructor_on_next_line:
       if (dip->destructor != NULL) {
         for (a = 0; a < level; a++) fputs(" ", f_debug);
         db_destructor(dip->destructor);
@@ -956,8 +952,15 @@ void db_dynamic_initializer(a_dynamic_init_ptr  dip,
     case dik_constructor:
       db_constructor_initializer(dip, level);
       break;
+    case dik_member_copy:
+      fputs("<bitwise member copy>", f_debug);
+      goto destructor_on_this_line;
+    case dik_base_class_copy:
+      fputs("<bitwise base class copy>", f_debug);
+      goto destructor_on_this_line;
     case dik_none:
       fputs("<none>", f_debug);
+destructor_on_this_line:
       if (dip->destructor != NULL) {
         fputs(", ", f_debug);
         db_destructor(dip->destructor);
@@ -2886,6 +2889,8 @@ Initialize a dynamic_init entry of the kind specified.
   dip->kind       = kind;
   switch (kind) {
     case dik_none:
+    case dik_member_copy:
+    case dik_base_class_copy:
       break;
     case dik_constant:
       dip->variant.constant = NULL;
@@ -2896,6 +2901,7 @@ Initialize a dynamic_init entry of the kind specified.
     case dik_constructor:
       dip->variant.constructor.routine = NULL;
       dip->variant.constructor.args = NULL;
+      dip->variant.constructor.is_copy_constructor_for_subobject = FALSE;
       break;
     case dik_nonconstant_aggregate:
       dip->variant.aggregate.aggr_const = NULL;

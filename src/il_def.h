@@ -284,11 +284,17 @@ enum a_dynamic_init_kind_tag {
 			   expression. */
   dik_constructor,	/* Initial value of a simple object is established by
 			   a constructor call. */
-  dik_nonconstant_aggregate
+  dik_nonconstant_aggregate,
 			/* Initial value of a nonconstant aggregate object
 			   (array or class) is represented by a list of
 			   constant entries (some of which will refer to
 			   nonconstants). */
+  dik_member_copy,	/* Initial value of an field of an object initialized
+			   by a copy constructor (bitwise copy of a field
+			   lacking a copy constructor). */
+  dik_base_class_copy	/* Initial value of an entire base class of an object
+			   initialized by a copy constructor (bitwise copy of
+			   of a base class lacking a copy constructor). */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_dynamic_init_kind;
@@ -317,6 +323,10 @@ typedef struct a_dynamic_init {
 			   expression, constructor, aggregate). */
   union {
     /* When kind == dik_none: no variant fields. */
+    /* When kind == dik_member_copy and dik_base_class_copy: no variant fields.
+       The field or base class to be copied is given in the constructor init
+       entry that points to this entry.  A bitwise copy of the field or base
+       class is implied. */
     /* When kind == dik_constant: */
     a_constant_ptr
 		constant;
@@ -335,10 +345,25 @@ typedef struct a_dynamic_init {
 			   to initialize this object; if NULL, no constructor
 			   call is required. */
       an_expr_node_ptr
-		args;
-			/* The actual arguments (not including an implicit this
-			   parameter) with which the constructor should be
-			   called. */
+		args;   /* The actual arguments (not including an implicit
+			   "this" parameter) with which the constructor should
+			   be called.  For default constructors this pointer is
+			   NULL.  It will also be NULL for copy constructors
+			   that are called to initialize subobjects by copying
+			   a corresponding suboject.  (In the latter case the
+			   argument is implicit; the address of the subobject
+			   to be copied may be computed just as the address
+			   corresponding to the implicit "this" parameter is
+			   computed. */
+      a_byte_boolean
+		is_copy_constructor_for_subobject;
+			/* The constructor is a copy constructor called to
+			   initialize a subobject as part of a copy constructor
+			   operation for the object of which the subobject is
+			   a part.  A subobject is either a base class (virtual
+			   or nonvirtual) or a field (array or scalar).  The
+			   args pointer is NULL in such cases; the address of
+			   the subobject to be copied must be computed. */
     } constructor;
     /* When kind == dik_nonconstant_aggregate: */
     /* Used with C++ only. */
