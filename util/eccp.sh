@@ -38,6 +38,11 @@ MUNCH=$EDG_BASE/lib/edg_munch
 #
 EDG_PRELINK=${EDG_PRELINK_PATH-$EDG_BASE/lib/edg_prelink}
 #
+# Default options to the prelink command (no default value - use environment
+# variable if set)
+#
+# EDG_PRELINK_DEFAULT_OPTIONS=$EDG_PRELINK_DEFAULT_OPTIONS
+#
 # Flag indicating whether to use "patch" or "munch" for static initialization.
 #
 patch_mode=1
@@ -615,7 +620,8 @@ then
 #     a way to generate will cause linker errors to be issued later.
 #
       if [ $automatic_instantiation -ne 0 ] ; then
-        $EDG_PRELINK $ofiles $lfiles $instantiation_libraries
+        $EDG_PRELINK $EDG_PRELINK_DEFAULT_OPTIONS $ofiles $lfiles \
+                     $instantiation_libraries
       fi
 #     Save the link command in a variable so it can be done again in the
 #     "munch" step below.
