@@ -1,5 +1,18 @@
 Version 2.10
 
+9/21/92  Restriction on conversion functions
+
+An error is now issued on declaring a conversion function that is not a
+nonstatic member function.
+
+9/21/92  Fixed bug in handling arrays with a very large element count
+
+This declaration, for instance, is now handled correctly:
+
+  int a[(unsigned)-1];
+
+In addition, recovery from array-too-large errors has been improved.
+
 9/21/92  Error on attempt to delete a pointer to a function
 
 9/21/92  Error on strict C++ mode void return from non-void function
