@@ -1,17 +1,28 @@
 Version 2.30
 
+9/8/95   Inline template function dependencies and the ordering of source
+         sequence entries
+
+When source-sequence lists are being generated and are supposed to include
+entries representing template function instantiations (i.e., when
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE) there was
+a bug that appeared with one inline-function instantiation was triggered
+within another inline-function instantiation: the order sometimes failed to
+correspond to the dependency between the two functions.  This has now been
+fixed.
+
 9/7/95   Avoiding trigraphs in generated string and character literals
 
 The il_to_str routines have been changed to avoid accidental output
 of trigraphs in string and character literals.  This done by escaping
 each "?" character as "\?".  This is not done when generating pcc code.
 
-9/6/95   Condition, object lifetime, and continue statement
+9/7/95   Condition, object lifetime, and continue statement
 
-A bug has been fixed when a condition declared a destructible object
-and the for- or while-loop contained a continue statement: the object's
-destructor used to be called twice when the continue statement was
-executed.  Here's an example:
+A bug has been fixed when a condition declared a destructible object and the
+for- or while-loop contained a continue statement: the object's destructor
+used to be called twice when the continue statement was executed.  Here's an
+example:
 
   struct S {
     S(int);
