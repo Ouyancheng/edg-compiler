@@ -1,5 +1,10 @@
 Version 2.26
 
+10/5/94  C++-generating back end: fields of variable anonymous unions
+
+The C++-generating back end now correctly puts out references to fields 
+of file-scope anonymous unions.
+
 10/5/94  Output of qualified names involving anonymous unions
 
 The code in cp_gen_be and il_to_str that outputs qualified names has
