@@ -1,5 +1,16 @@
 Version 3.1
 
+1/8/03  Missing instantiations of exported templates when
+        AUTOMATIC_TEMPLATE_INSTANTIATION is FALSE
+
+In general, use of exported templates requires that
+AUTOMATIC_TEMPLATE_INSTANTIATION be TRUE.  However, if all of the
+source files that involve exported template are provided as multiple
+translation units in a single invocation of the front end, it should
+be possible to generate the required instantiations.  Formerly, this was
+not the case, but the front end now supports this usage of exported
+templates.
+
 1/7/03  MSVC++ 7.x compatibility: non-default operator delete[] ignored,
         non-array operator delete used instead
 
