@@ -126,6 +126,8 @@ extern void incr_integer_value(an_integer_value *intval);
 
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
+extern a_signed_integer_value divide_integers(a_signed_integer_value value_1,
+                                              a_signed_integer_value value_2);
 
 extern a_boolean int_constant_is_signed(a_constant_ptr constant);
 
