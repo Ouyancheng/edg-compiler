@@ -3924,7 +3924,10 @@ Return the template nesting depth of the specified template parameter.
 {
   a_template_nesting_depth	depth;
 
-  if (tpp->param_symbol->kind == (a_symbol_kind)sk_type) {
+  if (tpp == NULL) {
+    /* This is an error case -- use a depth of zero. */
+    depth = 0;
+  } else if (tpp->param_symbol->kind == (a_symbol_kind)sk_type) {
     depth = tpp->variant.type->variant.template_param.coordinates.depth;
   } else {
     depth = tpp->variant.constant.ptr->
@@ -4586,7 +4589,17 @@ instantiation.
     } else if (locator.is_qualified_name) {
       /* A qualified name that does not refer to a class template
          symbol.  Issue an error and set the locator to an error locator. */
-      sym_error(ec_sym_not_a_class_template, sym);
+      if (is_template_class_symbol(sym) && locator.is_template_id &&
+          !is_real_class_symbol(sym)) {
+        /* The class name was followed by a template parameter list in a
+           later definition.  This is not permitted. */
+        pos_sy_error(ec_templ_param_list_not_allowed, &locator.source_position,
+                     sym);
+      } else {
+        /* Some other kind of invalid symbol. */
+        pos_sy_error(ec_sym_not_a_class_template, &locator.source_position,
+                     sym);
+      }  /* if */
       err = TRUE;
       set_to_named_error_locator(locator);
       sym = NULL;

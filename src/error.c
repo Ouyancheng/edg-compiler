@@ -686,7 +686,8 @@ declaration position to eliminate redundant file names in a diagnostic.
     case sk_class_or_struct_tag:
     case sk_union_tag:
       if (C_dialect == C_dialect_cplusplus &&
-          fund_sym->variant.class_struct_union.extra_info->is_nonreal_class) {
+          fund_sym->variant.class_struct_union.extra_info->
+                                                is_prototype_instantiation) {
         /* This is a symbol for a prototype instantiation of a class template.
            It is preferable to display "class template X<T>" instead of
            "class X<T>", so fall through to code for sk_class_template. */
