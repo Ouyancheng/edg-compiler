@@ -3180,8 +3180,8 @@ and typedefs the second time.
        there are any, set the flag in the symbol header.  This is
        used to support the nonnested class anachronism.  We do not
        apply the anachronism to template classes. */
-    if ((do_tags && is_tag_symbol(sym)) ||
-        (do_typedefs && sym->kind == (a_symbol_kind)sk_type) &&
+    if (((do_tags && is_tag_symbol(sym)) ||
+         (do_typedefs && sym->kind == (a_symbol_kind)sk_type)) &&
          !is_injected_class_symbol(sym)) {
       sym->header->any_nested_types_on_inactive_list = TRUE;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
