@@ -113,6 +113,7 @@ typedef enum /*an_il_entry_kind*/ {
   iek_class_type_supplement,
 			/* a_class_type_supplement */
   iek_constructor_init, /* a_constructor_init */
+  iek_asm_entry,        /* an_asm_entry */
 #endif /* ifdef CIL */
 #if ORPHAN_PROCESSING_NEEDED
   iek_orphaned_il_list, /* an_orphaned_il_list */
