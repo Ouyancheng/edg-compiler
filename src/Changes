@@ -101,6 +101,23 @@ can add similar changes for those.
 Operator functions can now be overloaded on enum types.  Specifically,
 it's now valid to declare an overloaded operator function that has
 one or more enum-typed parameters and no class-typed parameters.
+This feature is enabled and disabled by the command-line options
+--[no_]enum_overloading.  DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS
+gives the default setting.
+
+There are cases like the following that worked previously and now
+give an ambiguity error.  This is in accordance with the current WP,
+but perhaps that suggests a problem with the WP.
+
+  enum E {E1};
+  class A {
+    A(E);
+    friend int operator==(const A&, E);
+  };
+  int main() {
+    E e;
+    e == E1;  // Now ambiguous
+  }
 
 6/2/97    Variable length arrays
 
