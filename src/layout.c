@@ -1808,9 +1808,12 @@ types).
           (defined(sparc) || defined(__sparc)) */
     if (field->offset < offset_limit && is_immediate_class_type(field_type)) {
       if (identical_types(field_type, eb_type) ||
-          gnu_conflict_found(field_type, ebcp,
-                             /*in_field*/FALSE,
-                             /*consider_virtual_bases=*/TRUE)) {
+          /* Whether GNU conflicts are detected in virtual bases seems to be
+             a function of the empty base that we are trying to place (ebcp).
+             Specifically, conflicts with virtual bases in the field are not
+             considered for virtual bases that aren't also direct bases. */
+          gnu_conflict_found(field_type, ebcp, /*in_field*/FALSE,
+                             ebcp->direct || !ebcp->virtual)) {
         result = TRUE;
         break;
       }  /* if */
