@@ -12357,6 +12357,9 @@ selection operator, in which case it points to the type of the left operand.
 	     being set to the type of the vacuous destructor. */
           qualifier_type = dtor_type;
           qualifier_is_type = TRUE;
+          /* In some cases, such as "p->::~T", the dtor_class_type is not
+             set yet.  In such cases, set it now. */
+          if (dtor_class_type == NULL) dtor_class_type = dtor_type;
         } else {
           if (!in_if_exists) {
             pos_st_error(ec_not_a_type_name, &tilde_position,
