@@ -461,8 +461,11 @@ and indentation is the indentation desired.
       {
         a_class_symbol_supplement_ptr  cssp;
         cssp = sym->variant.class_struct_union.extra_info;
-        if (cssp->is_POD) put_string("POD");
-        if (cssp->is_POD) put_string("aggregate");
+        if (cssp->is_POD) {
+          put_string("POD");
+        } else if (cssp->is_class_aggregate) {
+          put_string("aggregate");
+        }  /* if */
         if (cssp->constructor != NULL) put_string("has ctor");
         if (cssp->has_default_constructor) {
           put_string("has default-ctor");
