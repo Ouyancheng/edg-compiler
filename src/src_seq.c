@@ -2162,14 +2162,18 @@ associated with the indicated sck_function scope.
   rp = sp->variant.routine.ptr;
   ssep = rp->source_corresp.source_sequence_entry;
   if (ssep != NULL) {
-    a_memory_region_number region_to_switch_back_to;
+    a_source_correspondence  *scp = &rp->source_corresp;
+    a_memory_region_number   region_to_switch_back_to;
     switch_to_file_scope_region(&region_to_switch_back_to);
-    if (rp->defined_outside_of_parent) {
+    if (rp->defined_outside_of_parent &&
+        !(scp->is_class_member && rp->is_specialized &&
+          rp->template_arg_list == NULL)) {
       /* Definition of a class member outside the class definition or
          a namespace member outside the namespace definition.  Just
-         drop the source sequence entry altogether. */
-      a_source_correspondence  *scp = &rp->source_corresp;
-
+         drop the source sequence entry altogether.  This should not
+         be done for the specialization of a member of a class template,
+         because there is no secondary source sequence entry to fall
+         back on. */
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
         fputs("dropping: ", f_debug);

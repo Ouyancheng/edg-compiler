@@ -1,5 +1,16 @@
 Version 2.46
 
+9/20/01  Abort on unlowered specialization of a member of a class template
+
+The front end used to abort when attempting to eliminate the source sequence
+entries of an unused specialization of a member of a class template.
+For example:
+
+  template<typename T> struct S { void mf(); };
+  template<> inline void S<int>::mf() {}  // Unused.  Could trigger an abort.
+
+This is now fixed.
+
 9/19/01  C++-generating back end: moving of in-class definitions
 
 When TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the source
