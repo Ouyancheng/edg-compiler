@@ -644,6 +644,9 @@ Print an argument match summary for debug purposes.
   if (amsp->conversion.std.type_qualifiers_added) {
     fprintf(f_debug, " (type qualifiers added)");
   }  /* if */
+  if (amsp->conversion.std.conv_of_string_literal_to_ptr_to_nonconst) {
+    fprintf(f_debug, " (const string conv anachronism)");
+  }  /* if */
   bcp = amsp->conversion.std.cast_base_class;
   if (bcp != NULL) {
     fprintf(f_debug, ", base class ");
@@ -1750,7 +1753,6 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       /* Match with standard conversions. */
       arg_summary->match_level = aml_std_conversion;
       arg_summary->conversion.std = std_conversion;
-      arg_converted_to_rvalue = TRUE;
       if (std_conversion.promotion) {
         /* This standard conversion is a promotion. */
         arg_summary->match_level = aml_promotion;
@@ -8354,7 +8356,7 @@ the target type to be used).
   an_arg_match_summary_ptr arg_match, arg_match_list, end_arg_match_list;
   a_type_ptr               operand_type;
   a_conv_descr             conversion;
-  a_boolean                ambiguous, need_lvalue_result;
+  a_boolean                ambiguous, need_lvalue_result, operand_is_lvalue;
 #if DEBUG
   unsigned long            narg;
 #endif /* DEBUG */
@@ -8395,6 +8397,7 @@ the target type to be used).
 #endif /* DEBUG */
     /* Get the operand type. */
     operand_type = arg_operand->operand.type;
+    operand_is_lvalue = is_an_lvalue(&arg_operand->operand);
     /* Add an entry to the end of the arg_match_list to record whether or
        not this argument matches. */
     arg_match = alloc_arg_match_summary();
@@ -8460,6 +8463,7 @@ the target type to be used).
           determine_builtin_type_operand_conversion_cost(type_code, kind,
                                                          &arg_operand->operand,
                                                          arg_match);
+          arg_match->lvalue_to_rvalue_conversion_used = operand_is_lvalue;
         }  /* if */
       }  /* if */
     } else {
@@ -8629,14 +8633,9 @@ the target type to be used).
             arg_match->match_level = std_conv.nontrivial_conversion ?
                                                 aml_std_conversion : aml_exact;
           }  /* if */
-          if (microsoft_bugs) {
-            /* MSVC++ (7.1, 8.0 at least) seem to ignore the cost of the
-               deprecated conversion of a string literal to a pointer to
-               non-const char on an operand of a built-in operator. */
-            std_conv.conv_of_string_literal_to_ptr_to_nonconst = FALSE;
-          }  /* if */
           arg_match->conversion.std = std_conv;
           arg_match->param_type = eff_specific_type;
+          arg_match->lvalue_to_rvalue_conversion_used = operand_is_lvalue;
         }  /* if */
       }  /* if */
     }  /* if */
