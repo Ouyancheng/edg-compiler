@@ -1,5 +1,22 @@
 Version 2.44
 
+5/15/00  Microsoft compatibility: using-declaration of extern "C" function
+
+In Microsoft mode, declarations of synonymous extern "C" functions in
+different namespaces introduce distinct entities (Changes entry of 10/6/99).
+The front end has been modified to allow one of such entities to be made
+visible in the scope of another such entity without conflict.  Overload
+resolution can not distinguish the declarations however.
+
+  namespace N {
+    extern "C" void f();
+  }
+  extern "C" void f();
+  using N::f;  // Now also accepted in Microsoft mode
+  void g() {
+    f();  // Ambiguous call in Microsoft mode
+  }
+
 5/12/00  static_cast of bool to pointer-to-member no longer allowed
 
 A static_cast of a bool to a pointer-to-member type is no longer

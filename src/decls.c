@@ -8515,6 +8515,24 @@ processing is done for using-directives by make_using_directive.
 }  /* make_using_decl */
 
 
+static a_boolean compatible_functions_with_c_linkage(a_symbol_ptr sym1,
+                                                     a_symbol_ptr sym2)
+{
+  a_boolean  result = FALSE;
+  a_routine_ptr  rp1 = sym1->variant.routine.ptr,
+                 rp2 = sym2->variant.routine.ptr;
+
+  if (identical_types(rp1->type, rp2->type) &&
+      rp1->type->variant.routine.extra_info->routine_name_linkage ==
+                                                               nlk_external &&
+      rp2->type->variant.routine.extra_info->routine_name_linkage ==
+                                                               nlk_external) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* compatible_functions_with_c_linkage */
+
+
 static void create_nonmember_using_declaration(
                                        a_symbol_ptr     sym,
                                        a_symbol_ptr     *overload_sym_ptr,
@@ -8563,13 +8581,20 @@ currently being processed (NULL if none).
     /* Don't try to add a symbol that is already pointed to by
        overload_sym. */
     goto done;
-  } else if (conflicts_with_previous_function_decl(
+  } else if (!(microsoft_mode &&
+               compatible_functions_with_c_linkage(fund_sym, overload_sym)) &&
+             conflicts_with_previous_function_decl(
                                          fund_sym, overload_sym, &decl_pos)) {
     /* A function introduced by a using declaration cannot have the
        same type as a function already declared in the scope
        (WP 7.3.3 [namespace.udecl] paragraph 12).  The diagnostic
        will have been issued by the subroutine; don't create a
        projection symbol. */
+    /* In Microsoft mode, two distinct IL entries may have been created for
+       declarations of an extern "C" function in different namespaces.
+       Microsoft compilers allow one of these to be brought into the scope
+       of the other one with a using-declaration (though an attempt to call
+       the function will result in an overload ambiguity). */
     goto done;
   } else {
     /* Add a new symbol to the overload set. */
