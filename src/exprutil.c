@@ -4211,7 +4211,8 @@ lvalue.  If there is an error, change the operand to an error operand.
         if (converted) {
           /* Yes, an lvalue can be recovered. */
           a_type_ptr lvalue_type;
-          an_operand orig_operand = *operand;
+          an_operand orig_operand;
+          orig_operand = *operand;
           if (casts_removed) {
             pos_warning(ec_gcc_lvalue_cast_ignored, &operand->position);
           }  /* if */
@@ -8727,7 +8728,8 @@ function.  See Core Issue 115.
                       (sym->kind == (a_symbol_kind)sk_routine ||
                        sym->kind == (a_symbol_kind)sk_member_function));
       make_function_designator_operand(sym,
-                                       orig_operand.is_qualified_name,
+                                       (a_boolean)
+                                                orig_operand.is_qualified_name,
                                        &orig_operand.position,
                                        orig_operand.ref_entries_list,
                                        operand);
