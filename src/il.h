@@ -168,6 +168,8 @@ extern void add_to_types_list(a_type_ptr     type_ptr,
 extern void move_to_end_of_types_list(a_type_ptr     type_ptr,
                                       a_scope_depth  scope_level);
 
+extern void do_based_type_fixup(void);
+
 extern an_integer_kind char_int_kind_from_string_type(a_type_ptr str_type);
 
 extern a_type_ptr integer_type(an_integer_kind kind);
