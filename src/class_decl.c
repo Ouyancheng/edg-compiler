@@ -1286,7 +1286,7 @@ located.
        base_class is NULL to avoid hitting them more than once.) */
     if (bcp->type->variant.class_struct_union.abstract &&
         bcp->is_virtual ? base_class == NULL : bcp->direct) {
-      /* Recursive call.  Note that the a different error code is used for
+      /* Recursive call.  Note that a different error code is used for
          base class pure virtual functions. */
       report_pure_virtual_functions(class_type,
                                     base_class == NULL ?
