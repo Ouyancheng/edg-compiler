@@ -4587,9 +4587,15 @@ specified by decl_scope_level.
           sym->variant.field.ptr = fp;
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
         }  /* if */
-        /* Set the parent class in the symbol but not in the IL entry.  The
+        /* Set parent information in the symbol but not in the IL entry.  The
            symbol is promoted, but the type remains nested. */
-        set_class_membership(sym, (a_source_correspondence *)NULL, class_type);
+        if (class_type != NULL) {
+          set_class_membership(sym, (a_source_correspondence *)NULL,
+                               class_type);
+        } else {
+          set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                                   (a_namespace_ptr)NULL);
+        }  /* if */
         /* The members of an anonymous union within a class take on the
            access specifier of the anonymous union itself; the members
            of a variable anonymous union should be (i.e., should remain)
@@ -4656,9 +4662,15 @@ specified by decl_scope_level.
         /* Unlink the symbol from the inactive list and link it back into
            the symbol table in the current scope. */
         tp = type_symbol_type(sym);
-        /* Set the parent class in the symbol but not in the IL entry.  The
+        /* Set parent information in the symbol but not in the IL entry.  The
            symbol is promoted, but the type remains nested. */
-        set_class_membership(sym, (a_source_correspondence *)NULL, class_type);
+        if (class_type != NULL) {
+          set_class_membership(sym, (a_source_correspondence *)NULL,
+                               class_type);
+        } else {
+          set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                                   (a_namespace_ptr)NULL);
+        }  /* if */
         /* The members of an anonymous union within a class take on the
            access specifier of the anonymous union itself; the members
            of a variable anonymous union should be (i.e., should remain)
@@ -4669,9 +4681,15 @@ specified by decl_scope_level.
         break;
       case sk_constant:
         /* An enum constant. */
-        /* Set the parent class in the symbol but not in the IL entry.  The
+        /* Set parent information in the symbol but not in the IL entry.  The
            symbol is promoted, but the type remains nested. */
-        set_class_membership(sym, (a_source_correspondence *)NULL, class_type);
+        if (class_type != NULL) {
+          set_class_membership(sym, (a_source_correspondence *)NULL,
+                               class_type);
+        } else {
+          set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                                   (a_namespace_ptr)NULL);
+        }  /* if */
         sym->variant.constant->source_corresp.access = assoc_object_access;
         remove_anonymous_union_member_from_inactive_symbols_list(sym);
         reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
