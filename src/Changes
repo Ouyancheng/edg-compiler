@@ -3,6 +3,12 @@ Version 2.07
 7/1/92   Error is now issued on taking the address of a constructor
          or destructor.
 
+6/30/92  Multiple message diagnostic capability added
+
+Functionality of error.c expanded to generate multiple message diagnostics.
+New interfaces have the format xxx_start_error, pos_xxx_start_error,
+xxx_add_diag_info and end_error().
+
 6/30/92  Type compatibility
 
 A new macro has been added, types_are_strictly_compatible, and the
