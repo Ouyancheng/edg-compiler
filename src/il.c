@@ -6854,23 +6854,54 @@ Add an indirection on top of the given node (or make a change that produces
 the same effect), and return a pointer to the new expression.
 */
 {
-  if (is_variable_address_node(node)) {
-    /* Address of variable becomes value of variable. */
-    node->kind = (an_expr_node_kind)enk_variable;
-    node->type = node->variant.variable->type;
-  } else if (is_error_node(node)) {
+  if (is_error_node(node)) {
     /* Error node -- leave alone. */
   } else {
-    /* For other cases, add an indirection operator. */
-    /* Drop type qualifiers from the type, because (a) they don't apply to
-       rvalues, and (b) when a pointer is used for an lvalue, it has
-       no top-level qualifiers.  An IL shorthand allows them to be dropped
-       without a cast. */
-    a_type_ptr new_type = type_pointed_to(node->type);
-    new_type = make_unqualified_type(new_type);
-    node->next = NULL;
-    node = make_operator_node((an_expr_operator_kind)eok_indirect,
-                              new_type, node);
+    a_boolean  optimized_case = FALSE;
+    a_type_ptr new_type;
+    if (is_variable_address_node(node)) {
+      /* A variable address node.  Change to the value of the variable. */
+      optimized_case = TRUE;
+      node->kind = (an_expr_node_kind)enk_variable;
+    } else if (node->kind == (an_expr_node_kind)enk_temp_init &&
+               node->variant.init.result_is_addr) {
+      /* enk_temp_init node.  Change from "address of temporary" to "value
+         of temporary". */
+      optimized_case = TRUE;
+      node->variant.init.result_is_addr = FALSE;
+    } else if (is_operation_node(node)) {
+      /* An operation node. */
+      an_expr_operator_kind op = node->variant.operation.kind;
+      if (op == (an_expr_operator_kind)eok_padd ||
+          op == (an_expr_operator_kind)eok_padd_subsc) {
+        /* A pointer addition; change to a subscripting operation. */
+        optimized_case = TRUE;
+        node->variant.operation.kind = (an_expr_operator_kind)eok_subscript;
+      } else if (op == (an_expr_operator_kind)eok_bit_field) {
+        /* The value is the "address" of a bit-field.  Therefore, the
+           indirect version is an extract of the bit-field. */
+        optimized_case = TRUE;
+        node->variant.operation.kind =
+                                  (an_expr_operator_kind)eok_extract_bit_field;
+      }  /* if */
+    }  /* if */
+    /* The new type for the node is the type pointed to. */
+    new_type = type_pointed_to(node->type);
+    /* Drop type qualifiers because they are meaningless on rvalues.
+       Note that no cast is needed to drop the qualifiers: an IL shorthand
+       applies in this case. */
+    if (is_qualified_type(new_type)) {
+      new_type = make_unqualified_type(new_type);
+    }  /* if */
+    if (optimized_case) {
+      /* For the optimized cases, just set the node type. */
+      node->type = new_type;
+    } else {
+      /* Not an optimized case.  Add an indirection. */
+      node->next = NULL;
+      node = make_operator_node((an_expr_operator_kind)eok_indirect,
+                                new_type, node);
+    }  /* if */
   }  /* if */
   return node;
 }  /* add_indirection_to_node */

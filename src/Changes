@@ -1,5 +1,22 @@
 Version 2.29
 
+3/23/95  Slight improvement in adding indirections
+
+The routine add_indirection_to_node has been generalized by
+incorporating some of the special case coding from conv_lvalue_expr_to_rvalue.
+One effect of this change is that the following now has an
+eok_extract_bit_field instead of the (unusual) combination of an
+eok_indirection over an eok_bit_field.
+
+  struct S {
+    int n:16;
+    virtual void foo();
+  };
+  void S::foo()
+  {
+    S s = *this;
+  }
+
 3/23/95  Building the front end on SunOS using an ANSI C compiler
 
 A problem has been fixed that could cause compilation errors when

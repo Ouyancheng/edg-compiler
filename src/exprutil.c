@@ -4736,12 +4736,7 @@ updated expression tree, and return NULL.  Otherwise, if con_value is
 non-NULL return *con_value == NULL.
 */
 {
-  a_boolean             optimized_case = FALSE;
-  an_expr_operator_kind op;
-  an_expr_node_ptr      op1, op2, op3;
-  a_type_ptr            orig_type = node->type;
-  a_boolean             constant_case2, constant_case3;
-  a_constant_ptr        con_var_value = NULL;
+  a_constant_ptr con_var_value = NULL;
 
   *constant_case = FALSE;
   if (con_value != NULL) *con_value = NULL;
@@ -4752,7 +4747,6 @@ non-NULL return *con_value == NULL.
   if (con_var_value != NULL) {
     /* The lvalue address is the address of a constant-valued
        variable.  Substitute the constant value. */
-    optimized_case = TRUE;
     *constant_case = TRUE;
     if (con_value != NULL) {
       /* The caller wants the constant instead of an expression node for
@@ -4763,71 +4757,49 @@ non-NULL return *con_value == NULL.
       /* The caller wants an expression node for the constant. */
       node = alloc_node_for_constant(con_var_value);
     }  /* if */
-  } else if (is_variable_address_node(node)) {
-    /* A variable address node.  Change to the value of the variable. */
-    optimized_case = TRUE;
-    node->kind = (an_expr_node_kind)enk_variable;
-  } else if (node->kind == (an_expr_node_kind)enk_temp_init &&
-             node->variant.init.result_is_addr) {
-    /* enk_temp_init node.  Change from "address of temporary" to "value
-       of temporary". */
-    optimized_case = TRUE;
-    node->variant.init.result_is_addr = FALSE;
-  } else if (is_operation_node(node)) {
-    /* An operation node. */
-    op = node->variant.operation.kind;
-    op1 = node->variant.operation.operands;
-    if (op == (an_expr_operator_kind)eok_padd ||
-        op == (an_expr_operator_kind)eok_padd_subsc) {
-      /* A pointer addition; change to a subscripting operation. */
-      optimized_case = TRUE;
-      node->variant.operation.kind = (an_expr_operator_kind)eok_subscript;
-    } else if (op == (an_expr_operator_kind)eok_bit_field) {
-      /* The value is the "address" of a bit-field.  Therefore, the
-         indirect version is an extract of the bit-field. */
-      optimized_case = TRUE;
-      node->variant.operation.kind =
-                                  (an_expr_operator_kind)eok_extract_bit_field;
-    } else if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue){
-      /* Operation that returns an lvalue where the C case would return
-         an rvalue. */
-      if (op == (an_expr_operator_kind)eok_question) {
-        /* "?" operator.  Convert each branch to an rvalue.  This is
-           particularly useful for a case like
-             &(i ? j : k)
-           (only valid in C++). */
-        optimized_case = TRUE;
-        op2 = op1->next;
-        op3 = op2->next;
-        op1->next = op2 = conv_lvalue_expr_to_rvalue(op2, &constant_case2,
+  } else {
+    a_boolean optimized_case = FALSE;
+    /* Do the transformation on the expression node. */
+    if (is_operation_node(node)) {
+      if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+        /* Operation that returns an lvalue where the C case would return
+           an rvalue. */
+        an_expr_operator_kind op = node->variant.operation.kind;
+        an_expr_node_ptr      op1 = node->variant.operation.operands, op2, op3;
+        a_boolean             constant_case2, constant_case3;
+
+        if (op == (an_expr_operator_kind)eok_question) {
+          /* "?" operator.  Convert each branch to an rvalue.  This is
+             particularly useful for a case like
+               &(i ? j : k)
+             (only valid in C++). */
+          op2 = op1->next;
+          op3 = op2->next;
+          op1->next = op2 = conv_lvalue_expr_to_rvalue(op2, &constant_case2,
                                                      (a_constant_ptr *)NULL);
-        op2->next = conv_lvalue_expr_to_rvalue(op3, &constant_case3,
-                                               (a_constant_ptr *)NULL);
-        *constant_case = constant_case2 && constant_case3;
-      } else if (op == (an_expr_operator_kind)eok_comma) {
-        /* Comma operator.  Apply the transformation to the second operand
-           of the ",".  This is useful for a case like
-             (p = f(x), *p)
-        */
+          op2->next = conv_lvalue_expr_to_rvalue(op3, &constant_case3,
+                                                 (a_constant_ptr *)NULL);
+          *constant_case = constant_case2 && constant_case3;
+        } else if (op == (an_expr_operator_kind)eok_comma) {
+          /* Comma operator.  Apply the transformation to the second operand
+             of the ",".  This is useful for a case like
+               (p = f(x), *p)
+          */
+          op2 = op1->next;
+          op1->next = conv_lvalue_expr_to_rvalue(op2, &constant_case2,
+                                                 (a_constant_ptr *)NULL);
+          *constant_case = constant_case2;
+        } else {
+          /* The operation is an assignment or prefix ++/-- that returns an
+             lvalue.  Change it to one that returns an rvalue. */
+        }  /* if */
         optimized_case = TRUE;
-        op2 = op1->next;
-        op1->next = conv_lvalue_expr_to_rvalue(op2, &constant_case2,
-                                               (a_constant_ptr *)NULL);
-        *constant_case = constant_case2;
-      } else {
-        /* The operation is an assignment or prefix ++/-- that returns an
-           lvalue.  Change it to one that returns an rvalue. */
-        optimized_case = TRUE;
+        node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
       }  /* if */
-      node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
     }  /* if */
-  }  /* if */
-  /* If a constant is being returned instead of an updated expression tree,
-     node is NULL and nothing further should be done. */
-  if (node != NULL) {
     if (optimized_case) {
       /* For the optimized cases, set the node type to the type pointed to. */
-      node->type = type_pointed_to(orig_type);
+      node->type = type_pointed_to(node->type);
       /* Drop type qualifiers because they are meaningless on rvalues.
          Note that no cast is needed to drop the qualifiers: an IL shorthand
          applies in this case. */
