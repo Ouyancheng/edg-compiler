@@ -356,7 +356,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
      in expressions, so their presence means this is a declaration. */
   for (;;) {
     if (curr_token == tok_star || curr_token == tok_ampersand ||
-        is_microsoft_type_qualifier()) {
+        is_microsoft_calling_convention()) {
       /* Cache and bypass the "*" or "&". */
       cache_curr_token(token_cache_ptr);
       (void)get_token_and_coalesce_if_identifier();

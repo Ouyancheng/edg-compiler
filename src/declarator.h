@@ -30,7 +30,7 @@ Macro that is TRUE if the current token is the start of a declarator
   (curr_token == tok_identifier ?                                    \
      (C_mode() || !identifier_is_template_id()) :                    \
      (curr_token == tok_star || curr_token == tok_lparen ||          \
-      is_microsoft_type_qualifier() ||				     \
+      is_microsoft_calling_convention() ||				     \
       (C_dialect == C_dialect_cplusplus &&                           \
        (curr_token == tok_ampersand || curr_token == tok_operator))))
 

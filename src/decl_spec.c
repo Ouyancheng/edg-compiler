@@ -2475,7 +2475,7 @@ no_get_token:
     if (input_flags & DSI_COLLECT_TYPE_QUALIFIERS) {
       /* We are only interested in scanning type qualifiers (e.g., in a
          pointer declarator). */
-      if (!is_type_qualifier() || is_microsoft_type_qualifier()) {
+      if (!is_type_qualifier()) {
         goto exit_loop;
       }  /* if */
     } else if (defines_something &&
