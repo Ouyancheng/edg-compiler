@@ -4610,7 +4610,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_str("__assume(");
           gen_expression(operand_1);
           write_tok_str(")");
-          break;
+          goto done_with_operation;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case eok_iadd:
         case eok_fadd:

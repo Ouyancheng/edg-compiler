@@ -36,6 +36,7 @@ expr.c -- Expression scanning routines.
 /* Forward declarations. */
 static void fix_up_dynamic_init_dtors(void);
 static a_boolean cast_type_pre_check(a_type_ptr *type_cast_to);
+static void process_boolean_controlling_expression(an_operand *result);
 static void scan_expr_full(an_operand              *result,
                            an_operand              *bound_function_selector,
                            int                      prec_level,
@@ -4290,7 +4291,12 @@ the given expression is true.
   /* Check for and pass over the left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_matching_stop_token(tok_rparen);
-  expr = scan_boolean_controlling_expression();
+  /* Scan the expression. */
+  scan_expr(result, PREC_LOWEST, EOPT_NO_OPTIONS);
+  /* Check its type and normalize it. */
+  process_boolean_controlling_expression(result);
+  expr = make_node_from_operand(result);
+  expr = wrap_up_full_expression(expr);
   expr = make_operator_node((an_expr_operator_kind)eok_assume, void_type(),
                             expr);
   make_expression_operand(expr, expr->type, result);
