@@ -1,5 +1,10 @@
 Version 2.19
 
+7/29/93  C-generating back end output of gaps in structures
+
+The C-generating back end has been changed so that it outputs large
+gaps in structures as a single char array instead of many 8-bit bit fields.
+
 7/29/93  IL lowering: code generation error
 
 An optimization in the code generation for constructor calls resulted

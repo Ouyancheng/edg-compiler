@@ -1950,12 +1950,16 @@ by unnamed non-bit-fields.
         (void)fprintf(f_C_output, "unsigned int :%d;", nbits);
         curr_offset += nbits;
       }  /* if */
-      /* Fill out the right number of full bytes. */
-      while (next_field_offset - curr_offset > TARG_CHAR_BIT) {
+      if (next_field_offset - curr_offset >= TARG_CHAR_BIT) {
+        /* Fill out the right number of full bytes. */
+        a_targ_size_t num_bytes = (next_field_offset - curr_offset) /
+                                  TARG_CHAR_BIT;
         startline((a_seq_number)0);
-        (void)fprintf(f_C_output, "unsigned int :%d;", TARG_CHAR_BIT);
-        curr_offset += TARG_CHAR_BIT;
-      }  /* while */
+        (void)fprintf(f_C_output, "char __FILL_AT_%lu[%lu];",
+                      (unsigned long)(curr_offset / TARG_CHAR_BIT),
+                      (unsigned long)num_bytes);
+        curr_offset += num_bytes * TARG_CHAR_BIT;
+      }  /* if */
     }  /* if */
     if (curr_offset != next_field_offset) {
       /* Fill the final part of the gap. */
