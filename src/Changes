@@ -1,23 +1,51 @@
 Version 2.13
 
+12/9/92  Overloading involving old-style function declarations
+
+To produce behavior that is compatible with cfront in distinguishing
+redeclarations from overloading when old-style functions are involved,
+old-style parameter declarations are now scanned before the function name
+is looked up in the symbol table, and the type compatibility check has
+been modified slightly.
+
+The effect of these changes is that in C++ old-style functions are subject
+to overloading very nearly as though they were declared with function
+prototypes.  This behavior is not conditional upon cfront compatibility
+mode but is rather treated as part of the support for the anachronism of
+old-style function declarations.
+
+Note however that, to be consistent with cfront, the default argument
+promotion required by C for old-style params is not applied in C++ to do
+the type compatibility check (though it is still done in the call).  As a
+result the following is legal overloading of f:
+
+  int f(x) int x; { return x; }
+  int f(x) char x; { return x; }  // f is overloaded
+
+But another consequence is that the following legal C code, in which f is
+simply reclared, is interpreted in C++ as requiring overloading:
+
+  int f(int);
+  int f(x) char x { return x; }   // f is redeclared in C, overloaded in C++
+
 12/8/92  Special handling of "no return value" diagnostic from main
 
-Failure to return a value from main, when main is declared as a
-non-void function, is no longer considered a strict ANSI violation
-in C++ mode.  A warning is still issued.
+Failure to return a value from main, when main is declared as a non-void
+function, is no longer considered a strict ANSI violation in C++ mode.  A
+warning is still issued.
 
 12/8/92  Access checking on declarators
 
-Access errors for qualified names used in declarators are
-no longer issued.  This is necessary to allow out of line definitions
-of member functions of private classes.  Access checking is still
-done in all cases, however, the decision to issue or not issue the access
-errors is now delayed until we know how the qualified name is being used.
+Access errors for qualified names used in declarators are no longer
+issued.  This is necessary to allow out of line definitions of member
+functions of private classes.  Access checking is still done in all cases;
+however, the decision whether to issue an access error is now delayed
+until we know how the qualified name is being used.
 
 12/8/92  Relaxation of pointer-to-function type checking
 
-The comparison and assignment in the following are now allowed,
-with a warning (this turns out to be needed for the OSF source):
+The comparison and assignment in the following are now allowed, with a
+warning (this turns out to be needed for the OSF source):
 
   int (*fn1)();
   void (*fn2)();
