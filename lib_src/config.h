@@ -30,7 +30,7 @@ versions of the front end.
 
 Beginning with version 2.29, the front end defines a preprocessing symbol
 called __EDG_ABI_COMPATIBILITY_VERSION that defines the ABI level
-begin used by the front end.  This value is used, if it is defined.
+being used by the front end.  This value is used, if it is defined.
 */
 #ifndef ABI_COMPATIBILITY_VERSION
 #ifdef __EDG_ABI_COMPATIBILITY_VERSION
@@ -84,14 +84,20 @@ type identification be included.  Note that enabling ABI_CHANGES_FOR_RTTI
 alters the structure of the a_type_info_impl that is shared by
 ABI_CHANGES_FOR_RTTI and exception handling, consequently
 ABI_CHANGES_FOR_RTTI cannot be enabled when preserving ABI compatibility
-with versions up to 2.28.
+with versions up to 2.28.  When the --building_runtime option is specified,
+the front end defines __EDG_ABI_CHANGES_FOR_RTTI as 0 or 1 to indicate
+how it is configured.
 */
 #ifndef ABI_CHANGES_FOR_RTTI
+#ifdef __EDG_ABI_CHANGES_FOR_RTTI
+#define ABI_CHANGES_FOR_RTTI __EDG_ABI_CHANGES_FOR_RTTI
+#else /* !defined(__EDG_ABI_CHANGES_FOR_RTTI) */
 #if ABI_COMPATIBILITY_VERSION <= 228
 #define ABI_CHANGES_FOR_RTTI FALSE /* Versions up to 2.28. */
 #else /* ABI_COMPATIBILITY_VERSION > 228 */
 #define ABI_CHANGES_FOR_RTTI TRUE  /* Versions after 2.28. */
 #endif /* ABI_COMPATIBILITY_VERSION <= 228 */
+#endif /* ifdef __EDG_ABI_CHANGES_FOR_RTTI */
 #endif /* ifndef ABI_CHANGES_FOR_RTTI */
 #if ABI_CHANGES_FOR_RTTI && (ABI_COMPATIBILITY_VERSION <= 228)
  #error -- ABI_CHANGES_FOR_RTTI TRUE is incompatible with \
@@ -105,13 +111,20 @@ The changes are upward-compatible (you can use old object code
 with new object code and the new library).  If the switch is off,
 compatibility with versions up to 2.28 is preserved, but the
 array new and delete language features are turned off.
+When the --building_runtime option is specified, the front end
+defines __EDG_ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE as 0 or 1 to
+indicate how it is configured.
 */
 #ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
+#ifdef __EDG_ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
+#define ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE __EDG_ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
+#else /* !defined(__EDG_ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE) */
 #if ABI_COMPATIBILITY_VERSION <= 228
 #define ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE FALSE /* Versions up to 2.28. */
 #else /* ABI_COMPATIBILITY_VERSION > 228 */
 #define ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE TRUE  /* Versions after 2.28. */
 #endif /* ABI_COMPATIBILITY_VERSION <= 228 */
+#endif /* ifdef __EDG_ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 #endif /* ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 #if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE && (ABI_COMPATIBILITY_VERSION <= 228)
  #error -- ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE TRUE is incompatible with \
