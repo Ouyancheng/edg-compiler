@@ -484,9 +484,6 @@ is used for allocation of general front end memory (i.e., not IL).
 #if DEBUG
   sizeof_t               orig_size = size;
 #endif /* DEBUG */
-
-  db_enter(5, "alloc_in_region");
-
   /* Round up the size if necessary to preserve alignment.  Note that
      aside from keeping the data correctly aligned, this also keeps the
      next available address properly aligned, which is important in
@@ -495,17 +492,7 @@ is used for allocation of general front end memory (i.e., not IL).
 
   /* See if enough space remains in the current block.  If not, get
      a new block. */
-#if CHECKING
-  if (region_number > highest_used_region_number || region_number < 0) {
-    internal_error("alloc_in_region: bad region number");
-  }  /* if */
-#endif /* CHECKING */
   hdr = mem_region_table[region_number];
-#if CHECKING
-  if (hdr == NULL) {
-    internal_error("alloc_in_region: region has no blocks");
-  }  /* if */
-#endif /* CHECKING */
   if (size > (hdr->after_end_of_block - hdr->next_avail_in_block)) {
     /* Not enough space remaining in current block.  Free any unused
        space at the end of the current last block, and start a new block. */
@@ -525,8 +512,7 @@ is used for allocation of general front end memory (i.e., not IL).
      set when command line processing is done. */
   allocated_in_region[region_number] += size;
 #endif /* DEBUG */
-  db_exit();
-  return (temp_ptr);
+  return temp_ptr;
 }  /* alloc_in_region */
 
 
