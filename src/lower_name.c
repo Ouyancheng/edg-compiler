@@ -293,11 +293,12 @@ static void mangled_function_name(
                              sizeof_t                 *base_name_offset,
                              a_mangling_control_block *mctl);
 static void mangled_function_name_externalized_if_necessary(
-                              a_routine_ptr            routine,
-                              a_boolean                suppress_param_encoding,
-                              a_boolean                force_primary_name,
-                              sizeof_t                 *base_name_offset,
-                              a_mangling_control_block *mctl);
+                             a_routine_ptr            routine,
+                             a_boolean                suppress_param_encoding,
+                             a_boolean                suppress_parent_encoding,
+                             a_boolean                force_primary_name,
+                             sizeof_t                 *base_name_offset,
+                             a_mangling_control_block *mctl);
 static void mangled_member_variable_name(a_variable_ptr           variable,
                                          a_mangling_control_block *mctl);
 static char *mangled_expr_operator_name(an_expr_operator_kind op);
@@ -940,11 +941,12 @@ for a local entity, for the IA-64 ABI.
     suppress_param_encoding = TRUE;
     suppress_parent_encoding = TRUE;
   }  /* if */
-  mangled_function_name(routine,
-                        suppress_param_encoding,
-                        suppress_parent_encoding,
-                        /*force_primary_name=*/TRUE,
-                        /*base_name_offset=*/(sizeof_t *)NULL,
+  mangled_function_name_externalized_if_necessary(
+                                         routine,
+                                         suppress_param_encoding,
+                                         suppress_parent_encoding,
+                                         /*force_primary_name=*/TRUE,
+                                         /*base_name_offset=*/(sizeof_t *)NULL,
                         mctl);
   add_to_mangled_name('E', mctl);
 }  /* add_prefix_for_local_entity */
@@ -2709,6 +2711,7 @@ and "routine" is the routine to which the entity is local.
     mangled_function_name_externalized_if_necessary(
                                          routine,
                                          /*suppress_param_encoding=*/FALSE,
+                                         /*suppress_parent_encoding=*/FALSE,
                                          /*force_primary_name=*/TRUE,
                                          /*base_name_offset=*/(sizeof_t *)NULL,
                                          mctl);
@@ -4453,7 +4456,10 @@ buffer, and must be copied elsewhere promptly.
 
 #if CHECKING
   /* If the name needs to be mangled, the mangling should have been done
-     already. */
+     already.  Note that that does not mean that the entity has been
+     lowered yet: in secondary translation units statics get mangled
+     and externalized (to get the right module id) before they are copied
+     to the primary IL and lowered. */
   { a_boolean dummy;
     if (scp->name_has_been_mangled) {
       /* Okay, mangling already done. */
@@ -4520,19 +4526,22 @@ buffer, and must be copied elsewhere promptly.
 #endif /* DO_IL_LOWERING */
 
 static void mangled_function_name_externalized_if_necessary(
-                              a_routine_ptr            routine,
-                              a_boolean                suppress_param_encoding,
-                              a_boolean                force_primary_name,
-                              sizeof_t                 *base_name_offset,
-                              a_mangling_control_block *mctl)
+                             a_routine_ptr            routine,
+                             a_boolean                suppress_param_encoding,
+                             a_boolean                suppress_parent_encoding,
+                             a_boolean                force_primary_name,
+                             sizeof_t                 *base_name_offset,
+                             a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the name of the function "routine".
 If suppress_param_encoding is TRUE, suppress the information on parameter
-types; just put out the base encoded name.  If force_primary_name is TRUE,
-use the primary entry point name (instead of any alternate entry point)
-for a constructor or destructor (for the IA-64 ABI).  If base_name_offset
-is not NULL, *base_name_offset is set to the offset from the start of the
-mangling to the point where the base name appears.  If the routine will be
+types; just put out the base encoded name.  If suppress_parent_encoding
+is TRUE, suppress the parent qualifier for members of classes and
+namespaces.  If force_primary_name is TRUE, use the primary entry point
+name (instead of any alternate entry point) for a constructor or
+destructor (for the IA-64 ABI).  If base_name_offset is not NULL,
+*base_name_offset is set to the offset from the start of the mangling
+to the point where the base name appears.  If the routine will be
 externalized, use the encoding for the externalized form.
 */
 {
@@ -4555,7 +4564,7 @@ externalized, use the encoding for the externalized form.
 #endif /* DO_IL_LOWERING */
   mangled_function_name(routine,
                         suppress_param_encoding,
-                        /*suppress_parent_encoding=*/FALSE,
+                        suppress_parent_encoding,
                         force_primary_name,
                         base_name_offset,
                         mctl);
@@ -4634,11 +4643,13 @@ entry point name should be returned.
       base_name_offset = &routine->variant.ctor_dtor.base_name_offset;
     }  /* if */
 #endif /* IA64_ABI */
-    mangled_function_name_externalized_if_necessary(routine,
-                                                    suppress_param_encoding,
-                                                    force_primary_name,
-                                                    base_name_offset,
-                                                    &mctl);
+    mangled_function_name_externalized_if_necessary(
+                                            routine,
+                                            suppress_param_encoding,
+                                            /*suppress_parent_encoding=*/FALSE,
+                                            force_primary_name,
+                                            base_name_offset,
+                                            &mctl);
     mangled_name = end_mangling((a_source_correspondence *)NULL,
                                 /*final=*/TRUE, &mctl);
   }  /* if */
@@ -5932,7 +5943,7 @@ pointer, or performs the "this" adjustments.
   add_to_mangled_name('_', &mctl);
   if (entry_routine->vcall_index != 0) {
     add_signed_number_to_mangled_name((entry_routine->vcall_index *
-                                       make_vtbl_entry_type()->size), 
+                                       (long)(make_vtbl_entry_type()->size)),
                                       &mctl);
     add_to_mangled_name('_', &mctl);
   }  /* if */

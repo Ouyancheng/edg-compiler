@@ -10210,13 +10210,13 @@ to the enk_temp_init node and return TRUE.  Otherwise, return FALSE.
   *temp_init_node = NULL;
   if (is_operation_node(operand_node) &&
       operand_node->variant.operation.kind == (an_expr_operator_kind)eok_cast){
-    an_expr_node_ptr cast_operand = operand_node->variant.operation.operands;
-    if (cast_operand->kind == (an_expr_node_kind)enk_temp_init &&
-        cast_operand->variant.init.result_is_addr) {
-      if (f_skip_typerefs(type_pointed_to(cast_operand->type)) ==
+    an_expr_node_ptr init_node = operand_node->variant.operation.operands;
+    if (init_node->kind == (an_expr_node_kind)enk_temp_init &&
+        init_node->variant.init.result_is_addr) {
+      if (f_skip_typerefs(type_pointed_to(init_node->type)) ==
           f_skip_typerefs(type_pointed_to(operand_node->type))) {
         result = TRUE;
-        *temp_init_node = cast_operand;
+        *temp_init_node = init_node;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -15087,7 +15087,9 @@ files can reference it.
   new_name = alloc_lowered_name_string(name_len + 1);
   (void)strcpy(new_name, name);
   scp->name = new_name;
-  scp->name_linkage = (a_name_linkage_kind)nlk_external;
+  scp->name_linkage = visited_yet(scp) ?
+                                   (a_name_linkage_kind)nlk_external :
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
   scp->externalized = TRUE;
   /* Clear the same_name_as_external_entity_in_secondary_trans_unit flag
      because it should be set only for entities without external linkage. */
