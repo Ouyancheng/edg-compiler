@@ -1567,8 +1567,9 @@ Returns TRUE if there is an error in the specifiers.
    is probably an error.  We expect this to be changed. */
 #endif /* if 0 */
           if (input_flags & DSI_IS_NEW_TYPE_NAME && strict_ansi_mode) {
-            /* volatile may not appear in a new-type-name -- ARM 5.3.3. */
-            warning(ec_const_volatile_not_allowed);
+            /* const may not appear in a new-type-name -- ARM 5.3.3. */
+            diagnostic(strict_ansi_error_severity, 
+                       ec_const_volatile_not_allowed);
           }  /* if */
           is_const_qualified = TRUE;
           /* Set the output_flags bit, for the case where only type qualifiers
@@ -1593,7 +1594,8 @@ Returns TRUE if there is an error in the specifiers.
 #endif /* if 0 */
           if (input_flags & DSI_IS_NEW_TYPE_NAME && strict_ansi_mode) {
             /* volatile may not appear in a new-type-name -- ARM 5.3.3. */
-            warning(ec_const_volatile_not_allowed);
+            diagnostic(strict_ansi_error_severity, 
+                       ec_const_volatile_not_allowed);
           }  /* if */
           is_volatile_qualified = TRUE;
           /* Set the output_flags bit, for the case where only type qualifiers
