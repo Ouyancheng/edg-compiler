@@ -1069,14 +1069,13 @@ function scope source sequence list -- see scan_function_body.
 
 a_routine_ptr make_routine(a_type_ptr      type_ptr,
                            a_storage_class storage_class,
-                           a_boolean       at_file_or_namespace_scope,
-                           a_boolean       add_to_list)
+                           a_scope_depth   scope_depth)
 /*
 Allocate an entry for a routine with function type type_ptr and storage class
 storage_class, and return a pointer to it.  The entry is allocated at the
-file scope.  type_ptr must be in the file scope.  If add_to_list is TRUE,
-add the new routine entry to the routines list of the current scope or
-the innermost namespace scope, depending on at_file_or_namespace_scope.
+file scope.  type_ptr must be in the file scope.  Unless scope_depth is
+NO_SCOPE_DEPTH, add the new routine entry to the routines list of the
+specified scope.
 */
 {
   a_routine_ptr          rp;
@@ -1087,7 +1086,7 @@ the innermost namespace scope, depending on at_file_or_namespace_scope.
   rp = alloc_routine();
   rp->type = type_ptr;
   rp->storage_class = storage_class;
-  if (add_to_list) add_to_routines_list(rp, at_file_or_namespace_scope);
+  if (scope_depth != NO_SCOPE_DEPTH) add_to_routines_list(rp, scope_depth);
   switch_back_to_original_region(region_to_switch_back_to);
   return rp;
 }  /* make_routine */
@@ -3980,8 +3979,7 @@ skip_overloading:;
     /* There is no IL entry, so create one now, and add it to the routine
        list of the file scope. */
     routine_ptr = make_routine(type_ptr, storage_class,
-                               /*at_file_or_namespace_scope=*/TRUE,
-                               /*add_to_list=*/TRUE);
+                               depth_innermost_namespace_scope);
     if (C_dialect == C_dialect_cplusplus) {
       /* Bind the throw specification to the routine entry. */
       add_exception_specification(func_info, routine_ptr);
@@ -4050,7 +4048,7 @@ skip_overloading:;
          at the end of the routines list, so that routines appear in the
          order that their bodies appear. */
       remove_from_routines_list(routine_ptr);
-      add_to_routines_list(routine_ptr, /*at_file_or_namespace_scope=*/TRUE);
+      add_to_routines_list(routine_ptr, depth_innermost_namespace_scope);
       /* Put in the storage class for the definition (static or 
          unspecified). */
       routine_ptr->storage_class = storage_class;
