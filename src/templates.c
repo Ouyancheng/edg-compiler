@@ -20442,7 +20442,7 @@ instantiation.
        i.e., a "do not instantiate" directive. */
     kind = (a_pragma_kind)pk_do_not_instantiate;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLWOED && DECL_MODIFIERS_IN_USE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && DECL_MODIFIERS_IN_USE */
   if (is_error_type(type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(locator);
