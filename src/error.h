@@ -504,6 +504,18 @@ EXTERN unsigned long
 			   are detected. */
 
 
+EXTERN an_error_severity
+                strict_ansi_error_severity
+#if VAR_INITIALIZERS
+			                   = es_error
+#endif /* VAR_INITIALIZERS */
+                                                     ;
+                        /* Strict ANSI mode violations are reported at this
+                           error severity.  It is expected that this will
+                           either be es_error or es_warning. */
+
+
+
 /*
 Error routines.
 */
@@ -530,6 +542,15 @@ extern a_line_number update_file_index(struct a_source_file *src_file,
 extern void command_line_error(char *error_message);
 extern void str_command_line_error(char *error_message,
                                    char *fill_in_string);
+extern void pos_st_diagnostic(an_error_severity error_severity,
+                              an_error_code     error_code,
+                              a_source_position *error_pos,
+                              char              *error_string);
+extern void pos_diagnostic(an_error_severity  error_severity,
+                           an_error_code      error_code,
+                           a_source_position  *error_pos);
+extern void diagnostic(an_error_severity  error_severity,
+                       an_error_code      error_code);
 extern void pos_st_remark(an_error_code     error_code,
                           a_source_position *error_pos,
                           char              *error_string);

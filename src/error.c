@@ -3776,6 +3776,42 @@ template associated with error_code.  After constructing the segment list
 }  /* diag_message */
 
 
+void pos_st_diagnostic(an_error_severity error_severity,
+                       an_error_code     error_code,
+                       a_source_position *error_pos,
+                       char              *error_string)
+/*
+Report the indicated diagnostic message (with the indicated fill-in string)
+at the indicated position.
+*/
+{
+  init_error_params();
+  error_msg_strings[1] = error_string;
+  diag_message(error_code, error_pos, error_severity, dck_standalone);
+}  /* pos_st_diagnostic */
+
+
+void pos_diagnostic(an_error_severity  error_severity,
+                    an_error_code      error_code,
+                    a_source_position  *error_pos)
+/*
+Report the indicated diagnostic at the indicated position.
+*/
+{
+  pos_st_diagnostic(error_severity, error_code, error_pos, (char *)NULL);
+}  /* pos_diagnostic */
+
+
+void diagnostic(an_error_severity    error_severity,
+                an_error_code        error_code)
+/*
+Report the indicated diagnostic at the position indicated by error_position.
+*/
+{
+  pos_st_diagnostic(error_severity, error_code, &error_position, (char *)NULL);
+}  /* diagnostic */
+
+
 void pos_st_remark(an_error_code     error_code,
                    a_source_position *error_pos,
                    char              *error_string)
