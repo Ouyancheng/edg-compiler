@@ -1022,8 +1022,10 @@ Scan a tag identifier for a class, struct, union, enum, or interface
 declaration.  If a tag symbol already exists for the identifier, return
 a pointer to that symbol; otherwise return NULL.  If there is no
 identifier or if there is an error, return NULL; otherwise, set *locator
-to represent the identifier.  (In Microsoft mode, the symbol returned
-may represent a class template.)
+to represent the identifier.  In Microsoft mode, the symbol returned
+may represent a class template when parsing a nonstandard friend template
+declaration (a declaration of the form "friend class X;" where X is the
+name of a template).
 
 *is_friend_decl is TRUE when the declaration appears to be of the form
 "friend class X;"; if it turns out that no semicolon follows the identifier,
