@@ -1,5 +1,13 @@
 Version 3.1
 
+10/9/02  Typedef using operator name undiagnosed
+
+The front end now diagnoses attempts to diagnose a typedef name in
+namespace scope (it already issued an error when such typedefs appeared
+in class scope).  For example:
+
+  typedef void operator+();  // Now an error (previously accepted)
+
 10/9/02  Spurious correspondence error
 
 A spurious correspondence error was issued if a template class was specialized

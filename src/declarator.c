@@ -3536,17 +3536,17 @@ to FALSE if the entity being declared is not initializable.
     /* Enforce some restrictions on the declarations of overloaded
        operator functions. */
     *parenthesized_initializer_allowed = FALSE;
-    if (*p_member_parent_type != NULL) {
+    if (input_flags & DI_IS_TYPEDEF_DECLARATION) {
+      /* "typedef int operator+" is now allowed. */
+      pos_error(ec_operator_name_not_allowed,
+                &locator->source_position);
+      set_to_error_locator(*locator);
+    } else if (*p_member_parent_type != NULL) {
       if (locator->specific_symbol != NULL) {
         /* This must be a redeclaration. */
       } else if (is_in_class_specialization) {
         /* A specialization declared within the class.  Suppress the following
            test for this case.  It is a kind of redeclaration. */
-      } else if (input_flags & DI_IS_TYPEDEF_DECLARATION) {
-        /* "typedef int operator+" is now allowed. */
-        pos_error(ec_operator_name_not_allowed,
-                  &locator->source_position);
-        set_to_error_locator(*locator);
       } else if (!(input_flags & DI_NONSTATIC_MEMBER) &&
                  !is_new_operator(locator->variant.opname) &&
                  !is_delete_operator(locator->variant.opname) &&
