@@ -1514,40 +1514,22 @@ symbol is a function, an rvalue otherwise.
 }  /* make_sym_for_member_operand */
 
 
-void make_template_param_expr_constant_operand(
-                                              an_operand            *operand_1,
-                                              an_operand            *operand_2,
-                                              an_operand            *operand_3,
-                                              an_expr_operator_kind op,
-                                              a_type_ptr            type,
-                                              an_operand            *result)
+void make_template_param_expr_constant_operand(an_expr_node_ptr node,
+                                              an_operand        *result)
 /*
 Build an operand for a ck_template_param constant for the expression
-"operand_1 op operand_2"; or, if operand_2 is NULL, "op operand_1";
-or, if operand_3 is non-NULL, "operand_1 ? operand_2 : operand_3";
-or, if op is eok_error, simply operand_1.  The result type is "type".
-Return the operand in *result.
+"node".  This makes a constant of subkind tpck_expression.  Return the
+operand in *result.
 */
 {
-  an_expr_node_ptr node;
-  a_constant       con;
+  a_constant con;
 
-  node = make_node_from_operand(operand_1);
-  if (op != (an_expr_operator_kind)eok_error) {
-    if (operand_2 != NULL) {
-      node->next = make_node_from_operand(operand_2);
-      if (operand_3 != NULL) {
-        node->next->next = make_node_from_operand(operand_3);
-      }  /* if */
-    }  /* if */
-    node = make_operator_node(op, type, node);
-  }  /* if */
   /* Build the ck_template_param constant. */
   clear_constant(&con, (a_constant_repr_kind)ck_template_param);
   set_template_param_constant_kind(&con,
                               (a_template_param_constant_kind)tpck_expression);
   con.variant.template_param.variant.expr = node;
-  con.type = type;
+  con.type = node->type;
   /* Make the operand. */
   make_constant_operand(&con, result);
 }  /* make_template_param_expr_constant_operand */
@@ -3651,14 +3633,8 @@ if possible.
       }  /* if */
     }  /* if */
     if (did_not_fold) {
-      if (template_constant) {
-        /* For an expression based on a template parameter, scanned
-           during the prototype instantiation, make a ck_template_param
-           constant for the result. */
-        make_template_param_expr_constant_operand(operand_1, operand_2,
-                                                  (an_operand *)NULL,
-                                                  op, result_type, result);
-      } else if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
+      if (!template_constant && curr_expr_kind_is_const() &&
+          curr_expr_is_evaluated()) {
         /* An operation on constants could not be folded.  For example,
            a pointer comparison between pointers that aren't in the
            same object can't be represented as a constant.  In a
@@ -3677,6 +3653,13 @@ if possible.
                                        &just_past_end)) {
             pos_warning(ec_subscript_out_of_range, operator_position);
           }  /* if */
+        }  /* if */
+        if (template_constant) {
+          /* For an expression based on a template parameter, scanned
+             during the prototype instantiation, make a ck_template_param
+             constant for the result. */
+          make_template_param_expr_constant_operand(
+                                       make_node_from_operand(result), result);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5554,6 +5537,41 @@ C, and false or true in C++).
 }  /* boolean_result_type */
 
 
+static an_expr_node_ptr normalize_boolean_controlling_expr(
+                                                         an_expr_node_ptr expr)
+/*
+expr is a boolean controlling expression, and the keyword bool is disabled.
+Add a "!= 0" test on top of the given expression if necessary to normalize
+it, and return a pointer to the possibly-modified expression.
+*/
+{
+  a_boolean  add_ne_0;
+  a_constant con;
+
+  if (!is_operation_node(expr)) {
+    /* Add an appropriate "!= 0" on top of variable and variable address
+       references. */
+    add_ne_0 = TRUE;
+  } else {
+    /* If the top of the expression is not an operator that returns
+       a boolean 0/1, add a "!= 0" of the right kind on top. */
+    add_ne_0 = !is_operator_returning_bool(expr->variant.operation.kind);
+  }  /* if */
+  if (add_ne_0) {
+    /* Add a "!= 0" of the appropriate type on top of the expression
+       to standardize it. */
+    make_zero_of_proper_type(expr->type, &con);
+    expr->next = alloc_node_for_constant(&con);
+    /* Build a "!=" node of the right kind, pointing to the original
+       expression and the zero constant node. */
+    expr = make_operator_node(which_binary_operator(tok_ne, expr->type),
+                              integer_type((an_integer_kind)ik_int),
+                              expr);
+  }  /* if */
+  return expr;
+}  /* normalize_boolean_controlling_expr */
+
+
 a_boolean check_boolean_controlling_expr(an_operand *operand)
 /*
 Do some checks on a boolean controlling expression (e.g., "i != 0" in 
@@ -5566,12 +5584,10 @@ This routine does not attempt conversions from class types to built-in
 types to get a boolean expression (see process_boolean_controlling_expression).
 */
 {
-  a_boolean             okay = FALSE, add_ne_0;
-  an_expr_node_ptr      expr;
+  a_boolean             okay = FALSE;
+  an_expr_node_ptr      expr, norm_expr;
   an_expr_operator_kind op;
   an_expr_node_ptr      operand1;
-  a_constant            con;
-  an_expr_node_ptr      zero_node, new_expr;
   an_operand            orig_operand;
 
   /* Save the operand's source position. */
@@ -5635,30 +5651,11 @@ types to get a boolean expression (see process_boolean_controlling_expression).
           break;
         case ok_expression:
           expr = operand->variant.expression;
-          if (!is_operation_node(expr)) {
-            /* Add an appropriate "!= 0" on top of variable and variable
-               address references. */
-            add_ne_0 = TRUE;
-          } else {
-            /* If the top of the expression is not an operator that returns
-               a boolean 0/1, add a "!= 0" of the right kind on top. */
-            add_ne_0=!is_operator_returning_bool(expr->variant.operation.kind);
-          }  /* if */
-          if (add_ne_0) {
-            /* Add a "!= 0" of the appropriate type on top of the expression
-               to standardize it. */
-normalize_expr:
-            make_zero_of_proper_type(expr->type, &con);
-            zero_node = alloc_node_for_constant(&con);
-            /* Build a "!=" node of the right kind, pointing to the original
-               expression and the zero constant node. */
-            new_expr = make_operator_node(which_binary_operator(tok_ne,
-                                                                expr->type),
-                                         integer_type((an_integer_kind)ik_int),
-                                          expr);
-            new_expr->next = expr->next;
-            expr->next = zero_node;
-            make_expression_operand(new_expr, new_expr->type, operand);
+          /* Add a "!= 0" of the appropriate type on top of the expression
+             if necessary to normalize it. */
+          norm_expr = normalize_boolean_controlling_expr(expr);
+          if (norm_expr != expr) {
+            make_expression_operand(norm_expr, norm_expr->type, operand);
           }  /* if */
           break;
         case ok_constant:
@@ -5669,12 +5666,22 @@ normalize_expr:
             /* The value of this constant is not known until link time
                and therefore this has to be left as an expression. */
             expr = alloc_node_for_constant(&operand->variant.constant);
-            goto normalize_expr;
-          }  /* if */
-          make_integer_constant_operand(operand,
+            norm_expr = normalize_boolean_controlling_expr(expr);
+            if (operand->variant.constant.kind ==
+                                     (a_constant_repr_kind)ck_template_param) {
+              /* For a template parameter constant, make a ck_template_param
+                 expression constant as the result. */
+              make_template_param_expr_constant_operand(norm_expr, operand);
+            } else {
+              make_expression_operand(norm_expr, norm_expr->type, operand);
+            }  /* if */
+          } else {
+            /* Normal case (constant bool value is known at compile time). */
+            make_integer_constant_operand(operand,
                                        (long)(!op_is_false_constant(operand)));
-          operand->variant.constant.null_pointer_constant_ruled_out =
+            operand->variant.constant.null_pointer_constant_ruled_out =
                  orig_operand.variant.constant.null_pointer_constant_ruled_out;
+          }  /* if */
           break;
 #if CHECKING
         default:

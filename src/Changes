@@ -1,5 +1,19 @@
 Version 2.36
 
+4/5/97    Normalization of boolean controlling expressions involving
+          template parameters when --no_bool is in effect
+
+A change made in 2.35 introduced a bug in the processing to normalize
+boolean controlling expressions based on template parameters during
+the prototype instantiation of a template.  For example, the
+following got an internal error in extract_constant_from_operand,
+now fixed:
+
+  template <class T> struct A
+  {
+    enum { MIN = sizeof(T) <= 32 ? 31 : 7 } ;
+  };
+
 4/5/97    Using type-compatibility routines in "middle ends"
 
 It's sometimes useful for middle ends to be able to use some of the

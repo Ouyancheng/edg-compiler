@@ -1975,12 +1975,9 @@ The result is placed in *result.
           /* A field selection where the first operand is a template parameter
              constant.  The expression tree for the selection is placed under
              a template parameter constant. */
-          make_template_param_expr_constant_operand(result,
-                                                    (an_operand *)NULL,
-                                                    (an_operand *)NULL,
-                                              (an_expr_operator_kind)eok_error,
-                                                    result->type,
-                                                    result);
+          make_template_param_expr_constant_operand(
+                                                make_node_from_operand(result),
+                                                result);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -3640,15 +3637,8 @@ arithmetic type.  The operand of "~" must have integral type.  See section
                           &did_not_fold, &template_constant, &start_position);
         }  /* if */
         if (did_not_fold) {
-          if (template_constant) {
-            /* For an expression based on a template parameter, scanned
-               during the prototype instantiation, make a ck_template_param
-               constant for the result. */
-            make_template_param_expr_constant_operand(&operand,
-                                                      (an_operand *)NULL,
-                                                      (an_operand *)NULL,
-                                                      op, result_type, result);
-          } else if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
+          if (!template_constant && curr_expr_kind_is_const() &&
+              curr_expr_is_evaluated()) {
             /* A constant operation could not be folded in a constant
                expression. */
             pos_error(ec_expr_not_constant, &start_position);
@@ -3657,6 +3647,13 @@ arithmetic type.  The operand of "~" must have integral type.  See section
             /* The operation could not be folded to a constant, so build
                an expression node. */
             build_unary_result_operand(&operand, op, result_type, result);
+            if (template_constant) {
+              /* For an expression based on a template parameter, scanned
+                 during the prototype instantiation, make a ck_template_param
+                 constant for the result. */
+              make_template_param_expr_constant_operand(
+                                       make_node_from_operand(result), result);
+            }  /* if */
           }  /* if */
         } else {
           /* The operation was folded to a constant. */
@@ -8404,27 +8401,23 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     } else {
       operation_type = result_type;
     }  /* if */
+    /* Make an operator node with the first part of the expression. */
+    build_unary_result_operand(operand_1,
+                               (an_expr_operator_kind)eok_question,
+                               operation_type, result);
+    /* Now link the other two operands from this one. */
+    result->variant.expression->variant.operation.operands->next =
+                                            make_node_from_operand(&operand_2);
+    result->variant.expression->variant.operation.operands->next->next =
+                                            make_node_from_operand(&operand_3);
     if (is_constant_operand(operand_1) &&
         operand_1->variant.constant.kind ==
                                      (a_constant_repr_kind)ck_template_param) {
       /* For an expression based on a template parameter, scanned
          during the prototype instantiation, make a ck_template_param
          constant for the result. */
-      make_template_param_expr_constant_operand(operand_1,
-                                                &operand_2,
-                                                &operand_3,
-                                           (an_expr_operator_kind)eok_question,
-                                                result_type, result);
-    } else {
-      /* Make an operator node with the first part of the expression. */
-      build_unary_result_operand(operand_1,
-                                 (an_expr_operator_kind)eok_question,
-                                 operation_type, result);
-      /* Now link the other two operands from this one. */
-      result->variant.expression->variant.operation.operands->next =
-                                            make_node_from_operand(&operand_2);
-      result->variant.expression->variant.operation.operands->next->next =
-                                            make_node_from_operand(&operand_3);
+      make_template_param_expr_constant_operand(make_node_from_operand(result),
+                                                result);
     }  /* if */
     /* The result is an lvalue in C++ if the second and third operands are. */
     if (result_is_an_lvalue) {
