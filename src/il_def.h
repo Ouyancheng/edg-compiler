@@ -973,7 +973,7 @@ typedef struct a_base_class {
 			/* TRUE if any derivation step mentioned in the
 			   derivation list for this base class is a virtual
 			   base class. */
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
   unsigned int  complete_subobject:1;
 			/* TRUE if direct is TRUE and the subobject is
 			   "complete" (i.e., may contain data sections for
@@ -990,7 +990,7 @@ typedef struct a_base_class {
 			   layout compatibility mode because the multipass
 			   scheme used to emulate cfront's ordering algorithm
 			   involves visiting a base class more than once.) */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   an_access_specifier
                 access; /* The kind of derivation (public, protected, or
                            private) from this base class to the class directly
@@ -1001,7 +1001,7 @@ typedef struct a_base_class {
 			/* The byte offset from the start of the current
 			   derived class to the data section of this base
 			   class. */
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
   a_base_class_ptr
 		data_section_base_class;
 			/* If is_virtual is TRUE and the data section for this
@@ -1011,7 +1011,7 @@ typedef struct a_base_class {
 			   base class is reserved independently.  This field
 			   will be non-NULL only when strict class-layout
 			   compatibility with AT&T's cfront is required. */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   a_targ_size_t	pointer_offset;
 			/* If the base class is both directly inherited and
 			   virtual, the byte offset from the start of the

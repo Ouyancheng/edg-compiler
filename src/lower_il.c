@@ -1761,7 +1761,7 @@ assumed to point at a complete object.
   prelower_class_type(class_type);
   data_section_class_type = class_type;
   data_section_offset = bcp->offset;
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
   { a_base_class_ptr data_section_bcp = bcp->data_section_base_class;
     if (data_section_bcp != NULL) {
       /* The virtual base class is allocated in a base class.  Get the address
@@ -1778,7 +1778,7 @@ assumed to point at a complete object.
       data_section_offset -= data_section_bcp->offset;
     }  /* if */
   }
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   node = field_lvalue_selection_expr(node,
                                      field_at_offset(data_section_class_type,
                                                      data_section_offset));
@@ -4289,7 +4289,7 @@ virtual functions, needed in this process).
   }  /* for */
 }  /* define_scope_virtual_function_tables */
 
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
 
 static a_boolean class_has_independently_allocated_virtual_base_classes(
                                                          a_type_ptr class_type)
@@ -4318,7 +4318,7 @@ type-as-subobject that is different from its normal type.
   }  /* for */
   return has_indep_virt_base_classes;
 }  /* class_has_independently_allocated_virtual_base_classes */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
 
 static void make_subobject_class_type(a_type_ptr class_type)
@@ -4341,9 +4341,9 @@ this routine to do a relatively simple copy of the all the fields.
 
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (!class_type->variant.class_struct_union.any_virtual_base_classes
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
       || !class_has_independently_allocated_virtual_base_classes(class_type)
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
                                                                       ) {
     /* There are no virtual base classes, so the type to use as a subobject
        is the same as the class type itself. */
@@ -4450,7 +4450,7 @@ lowering process, but does not modify the class type.
         prelower_class_type(bcp->type);
         base_ctsp = bcp->type->variant.class_struct_union.extra_info;
         base_class_type = base_ctsp->type_as_subobject;
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
         /* Decide whether to use the base class's type or its
            type-as-subobject for this instance as a base class.  The
            full type includes space for any virtual base classes; the
@@ -4459,7 +4459,7 @@ lowering process, but does not modify the class type.
            type-as-subobject mechanism and can only use the complete
            object type for base classes other than the first). */
         if (bcp->complete_subobject) base_class_type = bcp->type;
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
         if (!bcp->is_virtual) {
           /* Non-virtual base class. */
           if (bcp->direct) {
@@ -4473,10 +4473,10 @@ lowering process, but does not modify the class type.
              required. */
           /* Do not put out the pointer if it is shared with a base class. */
           if (bcp->pointer_base_class == NULL
-#if !CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if !CFRONT_OBJECT_CODE_COMPATIBILITY
               /* ... or if the base class is indirect. */
               && bcp->direct
-#endif /* !CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
                                              ) {
             add_dummy_field(bcp->type->source_corresp.name, "__p_",
                             make_pointer_type(base_class_type),
@@ -4503,24 +4503,24 @@ lowering process, but does not modify the class type.
         for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
           /* Ignore non-virtual base classes. */
           if (bcp->is_virtual) {
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
             /* If the space for the virtual base class was allocated inside
                some other base class, it need not be allocated here. */
             if (bcp->data_section_base_class == NULL) {
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
               base_ctsp = bcp->type->variant.class_struct_union.extra_info;
               base_class_type = base_ctsp->type_as_subobject;
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
               /* Decide whether to use the base class's type or its
                  type-as-subobject for this instance as a base class.
                  See comment above. */
               if (bcp->complete_subobject) base_class_type = bcp->type;
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
               add_dummy_field(bcp->type->source_corresp.name, "__v_",
                               base_class_type, bcp->offset, class_type);
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
             }  /* if */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
           }  /* if */
         }  /* for */
       }  /* if */

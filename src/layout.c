@@ -49,7 +49,7 @@ B.  Layout options
   option that uses memory more efficiently than cfront's layout.  There is
   also an option that controls whether fields are put out in strict
   declaration order or grouped by accessibility.  The front end can be
-  configured as required by setting CFRONT_CLASS_LAYOUT_COMPATIBILITY and
+  configured as required by setting CFRONT_OBJECT_CODE_COMPATIBILITY and
   TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE, both of which are
   defined in target.h.
 
@@ -87,7 +87,7 @@ B.  Layout options
   in declaration order.  (This option is provided based on a suggestion
   in the commentary section of ARM 11.1.)
 
-  When CFRONT_CLASS_LAYOUT_COMPATIBILITY is TRUE, items 1, 4, and 5 of the
+  When CFRONT_OBJECT_CODE_COMPATIBILITY is TRUE, items 1, 4, and 5 of the
   normal layout are affected.
 
     1. Nonvirtual direct base classes, in declaration order.  The first is
@@ -723,7 +723,7 @@ layout block used to track the layout of the current class.
   /* Traverse the list of base classes. */
   for (bcp = base_classes_of(lob->class_type); bcp != NULL; bcp = bcp->next) {
     if (bcp->direct && !bcp->is_virtual) {
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
       /* When cfront compatibility is required, space for a complete
          subobject (i.e., including space for it virtual base classes)
          is sometimes reserved, depending on how the complete_subobject
@@ -732,7 +732,7 @@ layout block used to track the layout of the current class.
         alignment = bcp->type->alignment;
         size = bcp->type->size;
       } else {
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
         /* For a nonvirtual base classes reserve space for all the base
            class except what is required for its own virtual base classes.
            The latter will be added at the end of the storage. */
@@ -740,9 +740,9 @@ layout block used to track the layout of the current class.
                                       alignment_without_virtual_base_classes;
         size = bcp->type->variant.class_struct_union.extra_info->
                                       size_without_virtual_base_classes;
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
       }  /* if */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
       bcp->offset = set_offset_and_alignment(lob, size, alignment);
     }  /* if */
   }  /* for */
@@ -904,7 +904,7 @@ bcp.
 }  /* pointer_offset_for_virtual_base_class */
 
 
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
 /* This is a set of routines that allocate space for pointers to virtual
    base class data sections in cfront compatibility mode.  It is much more
    complicated that what is provided for normal mode because we have had
@@ -1140,7 +1140,7 @@ base classes, direct and indirect, and allocate pointers as needed for them.
     }  /* if */
   }  /* if */
 }  /* set_pointer_offsets_for_direct_virtual_base_class */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
 
 static void set_offsets_for_virtual_base_class_pointers(a_layout_block_ptr lob)
@@ -1155,7 +1155,7 @@ is not shared (i.e., where the pointer from a base class is not used).
 
   if (lob->class_type->variant.class_struct_union.any_virtual_base_classes) {
     bcp = base_classes_of(lob->class_type);
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
     /* In cfront compatibility mode we go through the base classes list
        twice.  First we look at direct virtual base classes with a NULL pointer
        base class field and for which at least one of its own base classes
@@ -1183,7 +1183,7 @@ is not shared (i.e., where the pointer from a base class is not used).
                           lob, base_classes_of(lob->class_type),
                           /*use_decl_order=*/FALSE, (a_base_class_ptr)NULL);
 
-#else /* i.e., #if !CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#else /* i.e., #if !CFRONT_OBJECT_CODE_COMPATIBILITY */
     /* In normal layout mode we traverse the base classes list only once.
        The pointers are put out (when needed -- i.e., when the pointer base
        class is NULL) in base class order. */
@@ -1200,13 +1200,13 @@ is not shared (i.e., where the pointer from a base class is not used).
         pointer_offset_for_virtual_base_class(lob, bcp);
       }  /* if */
     }  /* for */
-#endif /* !CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
   }  /* if */
   db_exit();
 }  /* set_offsets_for_virtual_base_class_pointers */
 
 
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
 static void set_offsets_for_corresponding_virtual_base_classes(
                                              a_layout_block_ptr lob,
                                              a_base_class_ptr   base_class,
@@ -1296,7 +1296,7 @@ base class of class_type, and allocate space for the latter.
   }  /* if */
   db_exit();
 }  /* cfc_set_offsets_for_virtual_base_classes */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
 
 static void set_offsets_for_virtual_base_classes(a_layout_block_ptr  lob)
@@ -1354,7 +1354,7 @@ Reserve space at the end of the class object for virtual base classes.
   /* Now see if there are any virtual base class data sections that need to
      be added to the layout for the current class. */
   if (lob->class_type->variant.class_struct_union.any_virtual_base_classes) {
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
     /* In cfront compatibility layout mode all virtual base classes that
        are not embedded in another class have space reserved for them.  The
        order in which cfront puts them out is emulated. */
@@ -1387,7 +1387,7 @@ Reserve space at the end of the class object for virtual base classes.
         }  /* if */
       }  /* for */
     }  /* if */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   }  /* if */
   db_exit();
 }  /* set_offsets_for_virtual_base_classes */
@@ -1479,11 +1479,11 @@ setting the offset field in the latter.
                pointer_offset field that needs to be updated. */
             if (!bcp->is_virtual) {
               bcp->offset = proximate_derivation->offset + ref_bcp->offset;
-#if !CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if !CFRONT_OBJECT_CODE_COMPATIBILITY
             } else {
               bcp->pointer_offset = proximate_derivation->offset +
                                     ref_bcp->pointer_offset;
-#endif /* !CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
             }  /* if */
 #if DEBUG
             if (debug_level >= 4) {
@@ -1559,7 +1559,7 @@ addressed to indirect base classes.
 }  /* set_offsets_for_indirect_base_classes */
 
 
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
 static void set_embedded_virtual_base_class_offset(a_base_class_ptr base_class,
                                                    a_type_ptr       class_type)
 /*
@@ -1599,7 +1599,7 @@ classes.
     }  /* if */
   }  /* for */
 }  /* set_embedded_virtual_base_class_offset */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
 
 static void fixup_shared_virtual_base_class_offsets(a_type_ptr  class_type)
@@ -1618,7 +1618,7 @@ virtual base class pointer is shared with some other base class.
        virtual_base_class != NULL;
        virtual_base_class = virtual_base_class->next) {
     if (virtual_base_class->is_virtual) {
-#if !CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if !CFRONT_OBJECT_CODE_COMPATIBILITY
       if (!virtual_base_class->direct) {
         /* Pointer base class is defined only for direct virtual base classes,
            but it may have been set tentatively before we knew it was not a
@@ -1626,7 +1626,7 @@ virtual base class pointer is shared with some other base class.
         virtual_base_class->pointer_base_class = NULL;
         continue;
       }  /* if */
-#endif /* !CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
       /* If the pointer_base_class field is non-NULL, the virtual base class
          pointer for the derived class is the same as the pointer to the
          corresponding virtual base class for pointer_base_class. */
@@ -1641,9 +1641,9 @@ virtual base class pointer is shared with some other base class.
         virtual_base_class->pointer_offset = bcp->pointer_offset +
                                                   pointer_base_class->offset;
       }  /* if */
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
       set_embedded_virtual_base_class_offset(virtual_base_class, class_type);
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     }  /* if */
   }  /* for */
 }  /* fixup_shared_virtual_base_class_offsets */

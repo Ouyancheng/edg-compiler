@@ -36,10 +36,10 @@ extern a_base_class_ptr corresponding_base_class(a_base_class_ptr base_class,
                                                  a_type_ptr       old_class,
                                                  a_type_ptr       new_class);
 
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
 extern void fixup_embedded_virtual_base_classes(a_base_class_ptr base_class,
                                                 a_type_ptr       class_type);
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
 extern a_boolean class_specifier(a_boolean  vacuous_decl_allowed,
                                  a_boolean  is_friend_decl,

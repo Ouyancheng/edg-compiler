@@ -264,12 +264,12 @@ supported.)
 #define TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE TRUE
 
 /*
-Flag that is TRUE if the class layout scheme used by AT&T's cfront should
-be duplicated.  The main issue is how the data sections for virtual base
-classes are put out.  The default behavior (when this flag is FALSE)
-produces a more efficient use of space.
+Flag that is TRUE if object code compatibility with AT&T's cfront is
+required.  The main issue is the class and specifically how the data
+sections for virtual base classes are put out.  The default behavior
+(when this flag is FALSE) produces a more efficient use of space.
 */
-#define CFRONT_CLASS_LAYOUT_COMPATIBILITY TRUE
+#define CFRONT_OBJECT_CODE_COMPATIBILITY TRUE
 
 #endif /* ifndef TARGET_H */
 

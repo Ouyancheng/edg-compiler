@@ -1426,12 +1426,12 @@ Dump a base class entry, for debug purposes.
   if (show_offset) {
     fprintf(f_debug, "(%ld bytes): offset = %ld",
                      bcp->type->size, bcp->offset);
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
     if (bcp->data_section_base_class != NULL) {
       fputs(", in ", f_debug);
       db_name(&bcp->data_section_base_class->type->source_corresp);
     }  /* if */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     fputs(", ", f_debug);
   }  /* if */
   fprintf(f_debug, "%sdirect, ", bcp->direct ? "" : "in");
@@ -2028,7 +2028,7 @@ the pointer_base_class for both V1 and V2 is C.
 }  /* set_pointer_base_class */
 
 
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
 static a_boolean set_data_section_base_class(a_base_class_ptr       base_class,
                                              a_derivation_step_ptr  path)
 /*
@@ -2235,7 +2235,7 @@ void fixup_embedded_virtual_base_classes(a_base_class_ptr base_class,
   }  /* for */
   db_exit();
 }  /* fixup_embedded_virtual_base_classes */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
 
 static void add_indirect_base_class(a_base_class_ptr      base_class_to_copy,
@@ -2285,7 +2285,7 @@ duplicate paths.  The copy will be a base class of new_class.
         if (bcp->pointer_base_class == NULL) {
           set_pointer_base_class(bcp, path);
         }  /* if */
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
         /* complete_subobject flag should already be TRUE since bcp is a
            virtual base class. */
         /* Specify the base class in which the data section resides, if there
@@ -2300,7 +2300,7 @@ duplicate paths.  The copy will be a base class of new_class.
           bcp->data_section_base_class = directly_derived_bcp;
         }  /* if */
 #endif /* if 0 */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
         goto done;
       }  /* if */
     }  /* for */
@@ -2323,7 +2323,7 @@ duplicate paths.  The copy will be a base class of new_class.
   if (base_class_to_copy->is_virtual) {
     new_bcp->is_virtual = TRUE;
     set_pointer_base_class(new_bcp, path);
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
     /* The data section of an indirect virtual base class is in the
        complete subobject to which it belongs. */
 #if 0
@@ -2340,7 +2340,7 @@ duplicate paths.  The copy will be a base class of new_class.
     if (base_class_to_copy->complete_subobject) {
       new_bcp->complete_subobject = TRUE;
     }  /* if */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   }  /* if */
   new_bcp->any_virtual_steps_in_derivation =
                          base_class_to_copy->any_virtual_steps_in_derivation;
@@ -2362,9 +2362,9 @@ duplicate paths.  The copy will be a base class of new_class.
     }  /* if */
   }  /* for */
 #if 0
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
   fixup_data_section_base_class_pointers(new_bcp, new_class);
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #endif /* if 0 */
   /* Add this to the end of add_list. */
   if (*p_end_of_add_list == NULL) {
@@ -2607,7 +2607,7 @@ or struct definition.  The syntax is
         new_direct_bcp->is_virtual = TRUE;
         new_direct_bcp->any_virtual_steps_in_derivation = TRUE;
       }  /* if */
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
       /* When cfront lays out a class with base classes, the subobject for the
          first direct nonvirtual base class does not include the data sections
          for its own virtual base classes (if any).  However, the subobjects
@@ -2617,7 +2617,7 @@ or struct definition.  The syntax is
       if (is_virtual || !first_direct_nonvirtual_base_class) {
         new_direct_bcp->complete_subobject = TRUE;
       }  /* if */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
       new_direct_bcp->direct = TRUE;
       new_direct_bcp->ambiguous = ambiguous;
       new_direct_bcp->derivation =
@@ -2650,9 +2650,9 @@ or struct definition.  The syntax is
       }  /* if */
       end_of_base_classes_list = new_direct_bcp;
 #if 0
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
       fixup_data_section_base_class_pointers(new_direct_bcp, type_ptr);
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #endif /* if 0 */
       if (any_base_class_with_override_list) {
         for (bcp = base_classes_of(new_direct_bcp->type);

@@ -419,9 +419,9 @@ Dump a direct base class entry, for debug purposes.
   a_type     *tp = bcp->type;
   a_field    *fp;
   int        i;
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
   a_boolean  complete_subobject = bcp->complete_subobject;
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
   fputs("\n  ", f_debug);
   for (i = depth; i > 0; --i) fputs("  ", f_debug);
@@ -439,9 +439,9 @@ Dump a direct base class entry, for debug purposes.
     }  /* if */
     fputc(')', f_debug);
   } else {
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
     if (complete_subobject) fputs(" (complete subobj)", f_debug);
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     fprintf(f_debug, " (offset = %lu)", bcp->offset);
     for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
          bcp != NULL;
@@ -464,7 +464,7 @@ Dump a direct base class entry, for debug purposes.
       }  /* if */
     }  /* for */
     db_virtual_function_info(tp, depth+1);
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
     if (complete_subobject) {
       /* Put out the virtual base class data sections. */
       for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
@@ -476,7 +476,7 @@ Dump a direct base class entry, for debug purposes.
         }  /* if */
       }  /* for */
     }  /* if */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   }  /* if */
   fputs(" ]]", f_debug);
 }  /* db_direct_base_class */
@@ -516,9 +516,9 @@ Dump a virtual base class entry, for debug purposes.
   a_type       *tp = bcp->type;
   a_field      *fp;
   int          i;
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
   a_boolean    complete_subobject = bcp->complete_subobject;
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   
   fputs("\n  ", f_debug);
   for (i = depth; i > 0; --i) fputs("  ", f_debug);
@@ -550,7 +550,7 @@ Dump a virtual base class entry, for debug purposes.
       }  /* if */
     }  /* for */
     db_virtual_function_info(tp, depth+1);
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
     if (complete_subobject) {
       /* Put out the virtual base class data sections. */
       for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
@@ -562,7 +562,7 @@ Dump a virtual base class entry, for debug purposes.
         }  /* if */
       }  /* for */
     }  /* if */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   }  /* if */
   fputs(" )]", f_debug);
 }  /* db_virtual_base_class */
@@ -690,9 +690,9 @@ class_struct_union:
           if (ctsp != NULL) bcp = ctsp->base_classes;
           for (; bcp != NULL; bcp = bcp->next) {
             if (bcp->is_virtual) {
-#if !CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if !CFRONT_OBJECT_CODE_COMPATIBILITY
               if (!bcp->direct) continue;
-#endif /* !CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
               db_virtual_base_class_ptr(bcp, 0);
             }  /* if */
           } /* for */
@@ -2705,11 +2705,11 @@ to it.
   bcp->pointer_base_class              = NULL;
   bcp->derivation                      = NULL;
   bcp->overriding_virtual_functions    = NULL;
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
   bcp->complete_subobject              = FALSE;
   bcp->pointer_offset_is_set           = FALSE;
   bcp->data_section_base_class         = NULL;
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #if DO_IL_LOWERING
   bcp->virtual_function_table_var      = NULL;
 #endif /* DO_IL_LOWERING */
