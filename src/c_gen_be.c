@@ -6457,33 +6457,29 @@ must be redone for each generated C file.
 
 #if ONE_INSTANTIATION_PER_OBJECT
 
-unsigned int crc_16(char *str)
+unsigned long crc_32(char *str)
 /*
-Determines and returns the CRC-16 value for a null-terminated string.
-CRC-16 is defined by the polynomial
-
- 16    15    2
-x   + x   + x  + 1
-
-This is not the CCITT CRC.  Also, there are plenty of more efficient ways
-of computing CRC; this straightforward approach is used only because
-in this context the CRC is needed just a small number of times.
+Determines and returns the CRC-32 value for a null-terminated string.
+This is the CRC used by ZMODEM and PKZIP.  There are plenty of more
+efficient ways of computing CRC; this straightforward approach is used
+only because in this context the CRC is needed just a small number of times.
 */
 {
-  unsigned int crc = 0;
+  unsigned long crc = 0xffffffff;
 
   while (*str != '\0') {
-    unsigned int ch = (unsigned int)*str++;
+    unsigned long ch = (unsigned long)*str++;
     int nbit;
 
     for (nbit = 0; nbit < CHAR_BIT; nbit++, ch >>= 1) {
       int low_bit = (ch^crc) & 1;
       crc >>= 1;
-      if (low_bit) crc ^= 0xa001;
+      if (low_bit) crc ^= 0xEDB88320L;
     }  /* for */
   }  /* while */
+  crc ^= 0xffffffff;
   return crc;
-}  /* crc_16 */
+}  /* crc_32 */
 
 
 static void generate_one_instantiation_C_output_file(
@@ -6495,16 +6491,17 @@ routine or variable has the given source correspondence field and
 "needed" flag bit number.
 */
 {
-#define MAX_C_OUTPUT_FILE_LEN 20
+#define MAX_C_OUTPUT_FILE_LEN 31
   char buffer[MAX_C_OUTPUT_FILE_LEN+1];
   char *C_output_file_name = buffer;
 
-  /* Determine the output file name.  Use the unmangled name (or the beginning
-     of it) plus an underscore plus the hexadecimal for the CRC-16 checksum
+  /* Determine the output file name.  Use the mangled name (or the beginning
+     of it) plus an underscore plus the hexadecimal for the CRC-32 checksum
      for the whole mangled name. */
-  (void)strncpy(buffer, scp->unmangled_name, MAX_C_OUTPUT_FILE_LEN-5);
-  buffer[MAX_C_OUTPUT_FILE_LEN-5] = '\0';
-  (void)sprintf(buffer+strlen(C_output_file_name), "_%x", crc_16(scp->name));
+  (void)strncpy(buffer, scp->name, MAX_C_OUTPUT_FILE_LEN-9);
+  buffer[MAX_C_OUTPUT_FILE_LEN-9] = '\0';
+  (void)sprintf(buffer+strlen(C_output_file_name), "_%08lx",
+                crc_32(scp->name));
 #undef MAX_C_OUTPUT_FILE_LEN
   if (f_C_file_list == NULL) {
     a_boolean cannot_open, bad_name;
@@ -6525,11 +6522,8 @@ routine or variable has the given source correspondence field and
   }  /* if */
   /* Write the generated file name to the file passed back to the driver. */
   (void)fprintf(f_C_file_list, "%s\n", C_output_file_name);
-#if 0
-  /* Need to make something shorter than just the mangled name. */
-#else /* !0 */
+  /* Add the right suffix for a generated C file. */
   C_output_file_name = derived_name(C_output_file_name, GEN_C_FILE_SUFFIX);
-#endif /* 0 */
   /* Add the directory name specified. */
   C_output_file_name = combine_dir_and_file_name(
                                               il_header.instantiation_dir_name,
