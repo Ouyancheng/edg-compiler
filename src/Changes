@@ -37,9 +37,8 @@ can be done without parsing the mangled name.
 
 Names shorter than 60 characters are not compressed, and compression
 is suppressed if the compressed form is longer than the uncompressed
-form.  Compression is controlled by the variable compress_mangled_names,
-which is set to TRUE if ABI_COMPATIBILITY_VERSION >= 241.  You can
-set it to FALSE to turn off compression.
+form.  Compression is enabled/disabled by the variable compress_mangled_names
+and the configuration macro DEFAULT_COMPRESS_MANGLED_NAMES.
 
 2/17/99   Diagnosis of invalid use of "template" keyword
 

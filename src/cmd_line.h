@@ -1134,9 +1134,9 @@ EXTERN a_boolean
 EXTERN a_boolean
 		compress_mangled_names
 #if VAR_INITIALIZERS
-                                          = (ABI_COMPATIBILITY_VERSION >= 241)
+                                       = DEFAULT_COMPRESS_MANGLED_NAMES
 #endif /* VAR_INITIALIZERS */
-                                                                              ;
+                                                                       ;
 			/* Indicates whether mangled names should be compressed
 			   to reduce their size. */
 #endif /* NEED_NAME_MANGLING */

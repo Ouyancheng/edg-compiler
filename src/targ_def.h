@@ -1595,6 +1595,20 @@ template.
 #endif /* ifndef DEFAULT_DISTINCT_TEMPLATE_SIGNATURES */
 
 /*
+Default value for compress_mangled_names, which controls whether compression
+is done on mangled names.
+*/
+#ifndef DEFAULT_COMPRESS_MANGLED_NAMES
+/* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
+   but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
+#if ABI_COMPATIBILITY_VERSION < 241 || CFRONT_OBJECT_CODE_COMPATIBILITY
+#define DEFAULT_COMPRESS_MANGLED_NAMES FALSE
+#else /* !(ABI_COMPATIBILITY_VERSION < 241 || ... ) */
+#define DEFAULT_COMPRESS_MANGLED_NAMES TRUE
+#endif /* ABI_COMPATIBILITY_VERSION < 241 || ... */
+#endif /* ifndef DEFAULT_COMPRESS_MANGLED_NAMES */
+
+/*
 This switch controls whether or not the ABI changes for runtime
 type information (RTTI) are done.  This affects element 0 of virtual
 function tables, the BCS_PUBLIC and BCS_AMBIGUOUS flags in base class
