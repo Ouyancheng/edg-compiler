@@ -777,6 +777,9 @@ error code.
     case ec_name_not_found_in_class:
       m = "name is not known in the indicated class";
       break;
+    case ec_member_ref_requires_object:
+      m = "a nonstatic member reference must be relative to a specific object";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

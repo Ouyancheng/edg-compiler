@@ -289,7 +289,8 @@ typedef enum /*an_error_code*/ {
   ec_base_class_not_allowed_for_union,
   ec_access_already_specified,
   ec_missing_class_definition,
-  ec_name_not_found_in_class
+  ec_name_not_found_in_class,
+  ec_member_ref_requires_object
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
