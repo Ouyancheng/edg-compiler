@@ -2804,6 +2804,17 @@ given enum type.
 }  /* establish_trans_unit_correspondences_for_enum */
 
 
+static a_boolean routine_has_instance_ptr(a_routine_ptr  routine)
+/*
+Return TRUE if the given routine has an associated symbol and if so if
+it has a non-NULL instance_ptr.
+*/
+{
+  a_symbol_ptr  sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
+  return sym != NULL && sym->variant.routine.instance_ptr != NULL;
+}  /* routine_has_instance_ptr */
+
+
 static void establish_trans_unit_correspondences_for_class(a_type_ptr  type)
 /*
 Set the correspondence pointers in the members of a type.  The members' types
@@ -2920,8 +2931,8 @@ are not checked.
         for (; routine != NULL && corresp_routine != NULL;
              routine = skip_generated_routine(routine->next),
              corresp_routine = skip_generated_routine(corresp_routine->next)) {
-          if (routine->compiler_generated ==
-                                         corresp_routine->compiler_generated) {
+          if (routine_has_instance_ptr(routine) ==
+                                   routine_has_instance_ptr(corresp_routine)) {
             set_trans_unit_corresp(iek_routine, routine, corresp_routine);
           } else {
             /* Do not set up a correspondence in this case because it could
