@@ -1,5 +1,24 @@
 Version 3.4
 
+
+11/26/03 Microsoft mode: Spurious class type correspondence error
+
+When simultaneously processing multiple translation units in Microsoft mode,
+the front end sometimes issued a spurious correspondence error on class types.
+The error was caused by having the "inheritance kind" set implicitly in one
+translation unit, but not in the other.  For example:
+
+  // File 1:
+  struct S { void f(); };
+  void (S::*pm)() = &S::f; // Causes the inheritance kind of "S" to be set
+
+  // File 2:
+  struct S { void f(); };  // A correspondence error was issued because the
+                           // inheritance kind of "S" is not set in this
+                           // translation unit.
+
+This is now fixed.
+
 11/26/03 C++-generating back end: Duplicate GNU attributes and specifiers
 
 When generating code for GNU compilers, the C++-generating back sometimes

@@ -2512,6 +2512,24 @@ the nonspecialized type has a definition).
   return result;
 }  /* class_specialization_conflict */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static an_inheritance_kind inheritance_kind_of(a_class_type_supplement_ptr sup)
+/*
+Return the inheritance kind for the class type associated with the given
+class type supplement, taking into account the default inheritance kind if
+none was recorded.
+*/
+{
+  an_inheritance_kind  result = sup->inheritance_kind;
+
+  if (result == (an_inheritance_kind)ihk_none) {
+    result = default_inheritance_kind;
+  }  /* if */
+  return result;
+}  /* inheritance_kind_of */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean verify_class_type_correspondence(a_type_ptr  type)
 /*
@@ -2804,7 +2822,7 @@ type is in fact valid.
                                    corresp_sup->virtual_function_info_offset ||
             sup->anonymous_union_kind != corresp_sup->anonymous_union_kind
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            || sup->inheritance_kind != corresp_sup->inheritance_kind
+            || inheritance_kind_of(sup) != inheritance_kind_of(corresp_sup)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                   )))) ||
         class_info.is_template_class != corresp_info.is_template_class ||
@@ -4590,7 +4608,7 @@ entities.
        be done either. */
   } else if (templ->canonical_template != NULL &&
              templ->canonical_template != templ) {
-    /* Templates are a somewhat unique in that there can be multiple IL
+    /* Templates are somewhat unique in that there can be multiple IL
        entries corresponding to multiple declarations of the same template.
        In those cases, all entries belong to the same correspondence set. */
     a_template_ptr  canon =
