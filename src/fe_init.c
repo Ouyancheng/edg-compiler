@@ -736,6 +736,9 @@ source file's compilation.
      target_init must have been called for correct handling of __int32 and
      __int64. */
   keyword_init();
+#if RECORD_MACROS_IN_IL
+  il_header.macros = NULL;
+#endif /* RECORD_MACROS_IN_IL */
   init_predefined_macros(curr_date_time);
   if (!C_mode()) {
     /* This is done even when RTTI is not enabled because the type_info
@@ -804,7 +807,8 @@ source file's compilation.
   il_header.default_max_member_alignment = default_max_member_alignment;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if RECORD_MACROS_IN_IL
-  il_header.macros = NULL;
+  /* il_header.macros was initialized above because it needs to be set
+     before init_predefined_macros is called. */
 #endif /* RECORD_MACROS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   il_header.microsoft_mode = microsoft_mode;

@@ -1,5 +1,12 @@
 Version 2.45
 
+11/15/00 IL macro entries for command-line macro definitions
+
+IL macro entries are now recorded for macros defined on the command
+line (e.g., -DXXX=1).  Formerly, the entries were created (since
+the change described in the 9/10/99 Changes entry) but then lost.
+IL macro entries are recorded only when RECORD_MACROS_IN_IL is TRUE.
+
 11/14/00 Warnings on unreferenced inlined functions
 
 The front end no longer warns about extern inline functions that are not
