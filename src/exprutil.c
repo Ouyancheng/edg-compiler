@@ -2431,8 +2431,16 @@ conversions.
        different. */
     need_cast = TRUE;
   } else if (!is_implicit_cast) {
-    /* Do-nothing explicit casts are preserved in some configurations. */
-    need_cast = PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL;
+    if (is_floating_type(new_type)) {
+      /* A do-nothing cast to a floating-point type can force the
+         implementation to drop down from any increased precision of
+         intermediate values to the exact precision of the type.
+         See C99 standard 6.3.1.5 and 6.3.1.8. */
+      need_cast = TRUE;
+    } else {
+      /* Do-nothing explicit casts are preserved in some configurations. */
+      need_cast = PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL;
+    }  /* if */
   } else {
     /* Do-nothing implicit casts are not needed. */
     need_cast = FALSE;
