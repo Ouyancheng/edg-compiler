@@ -4031,7 +4031,7 @@ static void check_for_leaving_statement_expr(
 /*
 A transfer of control is being made from the current position to the
 structured statement indicated by dest_sssep.  If the transfer exits a
-GNU statement expression, issue an error at pos_curr_token.  sssep
+GNU statement expression, issue an error at pos_curr_token.  dest_sssep
 is NULL to indicate a return; it's non-null for the other cases
 (break, continue, __leave).
 */
