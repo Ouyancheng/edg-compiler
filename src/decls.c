@@ -3458,20 +3458,24 @@ on for use in generating cross-reference output describing this declaration.
 
   db_enter(3, "decl_routine");
   *old_type = NULL;
-  check_assertion(func_info != NULL);
-  check_assertion(storage_class != (a_storage_class)sc_typedef);
-  check_assertion(srk_flags & SRK_DECLARATION);
+  check_assertion_str(func_info != NULL, "decl_routine: NULL func_info");
+  check_assertion_str(storage_class != (a_storage_class)sc_typedef,
+                      "decl_routine: bad storage class");
+  check_assertion_str(srk_flags & SRK_DECLARATION,
+                      "decl_routine: missing SRK_DECLARATION");
   if (func_info->is_definition) {
     is_function_def = TRUE;
-    check_assertion(srk_flags & SRK_DEFINITION);
+    check_assertion_str(srk_flags & SRK_DEFINITION,
+                        "decl_routine: missing SRK_DEFINITION");
   }  /* if */
   effective_decl_level = compute_effective_decl_level(/*is_function=*/TRUE,
                                                       storage_class,
                                                       is_friend_decl);
   if (C_dialect == C_dialect_cplusplus) {
     if (func_info->is_inline) {
-      check_assertion(storage_class == (a_storage_class)sc_unspecified ||
-                      storage_class == (a_storage_class)sc_static);
+      check_assertion_str(storage_class == (a_storage_class)sc_unspecified ||
+                          storage_class == (a_storage_class)sc_static,
+                          "decl_routine: bad storage class for inline");
       storage_class = (a_storage_class)sc_static;
     }  /* if */
     /* If this is an overloaded operator, check for errors in the
@@ -3495,7 +3499,8 @@ on for use in generating cross-reference output describing this declaration.
     }  /* if */
   }  /* if */
   if (func_info->is_implicit_declaration) {
-    check_assertion(srk_flags & SRK_IMPLICIT);
+    check_assertion_str(srk_flags & SRK_IMPLICIT,
+                        "decl_routine: missing SRK_IMPLICIT");
     if (C_dialect != C_dialect_cplusplus) {
       /* For an implicit function, the identifier would not be in the process
          of being declared implicitly as a function if there were any visible
@@ -3547,7 +3552,8 @@ on for use in generating cross-reference output describing this declaration.
          must be compatible with the old. */
       sym = linked_symbol;
       routine_ptr = linked_symbol->variant.routine.ptr;
-      check_assertion(routine_ptr != NULL);
+      check_assertion_str(routine_ptr != NULL,
+                          "decl_routine: linked symbol routine is missing");
       if (routine_ptr->assoc_scope != NULL_region_number
 #if ASM_FUNCTION_ALLOWED
           || routine_ptr->storage_class == (a_storage_class)sc_asm
@@ -3558,8 +3564,9 @@ on for use in generating cross-reference output describing this declaration.
         /* In C++ the defined flag may have been set without the body having
            been scanned and bound to the routine yet (e.g., inline friend
            function). */
-        check_assertion(scope_stack[decl_scope_level].kind ==
-                                        (a_scope_kind)sck_class_struct_union);
+        check_assertion_str(scope_stack[decl_scope_level].kind ==
+                                        (a_scope_kind)sck_class_struct_union,
+                            "decl_routine: defined flag is set wrong");
         old_decl_has_body = TRUE;
       }  /* if */
       if (is_function_def && old_decl_has_body) {
@@ -3730,7 +3737,9 @@ on for use in generating cross-reference output describing this declaration.
           } else {
             /* It must be that this function has a body as a result of a
                prior instantiation. */
-            check_assertion(routine_ptr->is_inline && routine_ptr->called);
+            check_assertion_str(routine_ptr->is_inline && routine_ptr->called,
+                                "decl_routine: template function specific"
+                                "decl -- already has a definition");
               /* An inline function template has been declared, an instance
                  of it has been referenced and therefore instantiated on
                  the fly, and now a specializing declaration appears.
@@ -3755,9 +3764,11 @@ on for use in generating cross-reference output describing this declaration.
       if (!linked_redecl_error) {
         if (!sym->variant.routine.instance_ptr->specific_decl) {
           a_boolean	use_namespace;
-          check_assertion(homonym_symbol != NULL);
-          check_assertion(sym->parent.namespace_ptr ==
-                             homonym_symbol->parent.namespace_ptr);
+          check_assertion_str(homonym_symbol != NULL,
+                              "decl_routine: expected non-null homonym sym");
+          check_assertion_str(sym->parent.namespace_ptr ==
+                                homonym_symbol->parent.namespace_ptr,
+                             "decl_routine: namespace mismatch");
           /*  Its symbol is already on the template's function instantiation
               list, but it needs to be added to the overload list as well,
               to assure that it will be found by the ordinary overload
@@ -3824,10 +3835,12 @@ skip_overloading:;
        A function instantiation entry with an associated symbol and routine
        entry already exist.  Be sure this local symbol is properly bound
        to the file-scope entities to which it corresponds. */
-    check_assertion(linked_symbol != NULL &&
-                    effective_decl_level != DEPTH_OF_FILE_SCOPE &&
-                    (routine_ptr == NULL ||
-                     routine_ptr == linked_symbol->variant.routine.ptr));
+    check_assertion_str2(linked_symbol != NULL &&
+                         effective_decl_level != DEPTH_OF_FILE_SCOPE &&
+                         (routine_ptr == NULL ||
+                          routine_ptr == linked_symbol->variant.routine.ptr),
+                         "decl_routine: unexpected conditions for template",
+                         "function specific decl at local scope");
     sym->variant.routine.instance_ptr =
                                 linked_symbol->variant.routine.instance_ptr;
     routine_ptr = linked_symbol->variant.routine.ptr;
@@ -3882,7 +3895,8 @@ skip_overloading:;
       }  /* if */
 #endif /* CHECKING */
       routine_ptr->compiler_generated = FALSE;
-      check_assertion(sym->decl_position.seq == 0);
+      check_assertion_str(sym->decl_position.seq == 0,
+                          "decl_routine: decl position already set");
       /* Record the new source position, both in the symbol and in the
          routine entry. */
       sym->decl_position = locator->source_position;
@@ -4023,7 +4037,8 @@ skip_overloading:;
        appeared in the current declaration may already have been set in
        reconcile_routine_types. */
     if (routine_ptr->declared_type == NULL) {
-      check_assertion(type_ptr == declared_type);
+      check_assertion_str(type_ptr == declared_type,
+                          "decl_routine: type and declared type don't match");
       routine_ptr->declared_type = type_ptr;
     }  /* if */
     if (is_friend_decl) routine_ptr->defined_in_friend_decl = TRUE;
