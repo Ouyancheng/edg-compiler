@@ -6923,9 +6923,13 @@ cv-qualifier).
 }  /* report_missing_type_specifier */
 
 
-void type_name(a_type_ptr *type_ptr)
+void type_name_full(a_type_ptr  *type_ptr,
+                    a_boolean   *explicit_cv_qualifiers)
 /*
-Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
+Scan a type-name (see 3.5.5) and set *type_ptr to the type.
+If explicit_cv_qualifiers is non-NULL, set *explicit_cv_qualifiers to TRUE if
+explicit cv-qualifiers were scanned.
+The syntax is:
 
 3.5.5  type-name:
 		specifier-qualifier-list abstract-declarator
@@ -6942,7 +6946,7 @@ In C++ mode an error is issued if a type definition appears in a type-name
   a_source_position            start_pos;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
 
-  db_enter(3, "type_name");
+  db_enter(3, "type_name_full");
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
@@ -6955,6 +6959,9 @@ In C++ mode an error is issued if a type definition appears in a type-name
   } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
     report_implicit_int(&start_pos);
+  }  /* if */
+  if (explicit_cv_qualifiers != NULL) {
+    *explicit_cv_qualifiers = (qualifiers != TQ_NONE);
   }  /* if */
   if (*type_ptr != NULL) {
     (skip_typerefs(*type_ptr))->source_corresp.referenced = TRUE;
@@ -6994,7 +7001,7 @@ In C++ mode an error is issued if a type definition appears in a type-name
   }  /* if */
   copy_source_position(start_pos, error_position);
   db_exit();
-}  /* type_name */
+}  /* type_name_full */
 
 
 void new_type_name(a_boolean         is_parenthesized,

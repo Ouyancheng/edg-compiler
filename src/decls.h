@@ -197,7 +197,16 @@ when all decl-specifiers are missing.
                                 /*any_decl_specifiers=*/TRUE)
 
 
-extern void type_name(a_type_ptr *type_ptr);
+extern void type_name_full(a_type_ptr  *type_ptr,
+                           a_boolean   *explicit_cv_qualifiers);
+
+/*
+Scan a type-name (see 3.5.5) and set *type_ptr to the scanned type.  This is
+a short-hand for the common case where we don't care about explicit
+cv-qualifiers.
+*/
+#define type_name(type_ptr)           \
+  type_name_full(type_ptr, (a_boolean*)NULL)
 
 extern void new_type_name(a_boolean         is_parenthesized,
                           a_type_ptr        *type_ptr);

@@ -33,7 +33,8 @@ expr.c -- Expression scanning routines.
 
 /* Forward declarations. */
 static void fix_up_dynamic_init_dtors(void);
-static a_boolean cast_type_pre_check(a_type_ptr *type_cast_to);
+static a_boolean cast_type_pre_check(a_type_ptr *type_cast_to,
+                                     a_boolean  explicit_cv_qualifiers);
 static void process_boolean_controlling_expression(an_operand *result);
 static void scan_expr_full(an_operand              *result,
                            an_operand              *bound_function_selector,
@@ -4729,7 +4730,7 @@ in *end_position.  Various error cases are checked for (e.g.,
 the type defines something); FALSE is returned if there is an error.
 */
 {
-  a_boolean err = FALSE;
+  a_boolean err = FALSE, explicit_cv_qualifiers;
 
   /* Check for and pass over the "<". */
   (void)required_token(tok_lt, ec_exp_lt);
@@ -4737,9 +4738,9 @@ the type defines something); FALSE is returned if there is an error.
   /* Scan the type.  Note that type_name does not allow definition of types
      in the type-id. */
   *type_position = pos_curr_token;
-  type_name(cast_type);
+  type_name_full(cast_type, &explicit_cv_qualifiers);
   /* Do initial checking on the type. */
-  err = cast_type_pre_check(cast_type);
+  err = cast_type_pre_check(cast_type, explicit_cv_qualifiers);
   /* Check for and pass over the ">". */
   (void)required_token(tok_gt, ec_exp_gt);
   remove_stop_token(tok_gt);
@@ -6333,12 +6334,15 @@ only done in C mode, and it's an extension.
 }  /* lvalue_cast */
 
 
-static a_boolean cast_type_pre_check(a_type_ptr *p_type_cast_to)
+static a_boolean cast_type_pre_check(a_type_ptr *p_type_cast_to,
+                                     a_boolean  explicit_cv_qualifiers)
 /*
 Do a first check on the destination type of a cast to see if it is legal.
 This is very top-level checking applicable to all casts.  Return TRUE if
 there is an error.  *p_type_cast_to is the destination type of the cast,
 which may be updated on return if the cast should be to some other type.
+If explicit_cv_qualifiers is set, warn about those qualifiers being useless
+when the type cast to is a nonclass type.
 This routine is called for C-style casts, C++ functional-notation type
 conversions, and C++ new-style casts.  The current error_position must
 be set to the source position of the type.
@@ -6395,7 +6399,7 @@ be set to the source position of the type.
   }  /* if */
   if (!err) {
     /* Casting to a qualified type, though valid, is pointless. */
-    if (is_qualified_type(type_cast_to)) {
+    if (explicit_cv_qualifiers) {
       if (!C_mode() && is_class_struct_union_type(type_cast_to)) {
         /* In C++ class rvalues can have qualifiers, so casting to a
            cv-qualified class type is okay. */
@@ -7873,9 +7877,10 @@ Also scans C9X compound literals:
                            DFS_SINGLE_TYPE_REQUIRED |
                            DFS_IS_CAST)) {
     /* This is a cast operation. */
+    a_boolean explicit_cv_qualifiers;
     /* Get the type to cast to. */
     type_position = pos_curr_token;
-    type_name(&type_cast_to);
+    type_name_full(&type_cast_to, &explicit_cv_qualifiers);
     /* The next token should be the closing rparen. */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_matching_stop_token(tok_rparen);
@@ -7891,7 +7896,7 @@ Also scans C9X compound literals:
       /* Normal cast (not a compound literal). */
       /* Check the type to see if it is valid in general terms. */
       error_position = type_position;
-      err = cast_type_pre_check(&type_cast_to);
+      err = cast_type_pre_check(&type_cast_to, explicit_cv_qualifiers);
       set_err_pos_to_curr_token();
       /* Scan the expression to be cast. */
       scan_cast_expression(type_cast_to, /*allow_comma=*/TRUE, PREC_CAST,
@@ -8005,8 +8010,10 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
 
   error_position = *start_position;
   /* Check the type to see if it is valid in general terms.  Note that
-     this does a worthwhile check even in the class case (abstract class). */
-  err = cast_type_pre_check(&type_cast_to);
+     this does a worthwhile check even in the class case (abstract class).
+     However, cv-qualifiers cannot syntactically appear in this sort of
+     explicit conversion. */
+  err = cast_type_pre_check(&type_cast_to, /*explicit_cv_qualifiers=*/FALSE);
   /* See if we have a case that is clearly a constructor call. */
   if (is_class_struct_union_type(type_cast_to)) {
     cssp = symbol_supplement_for_class(type_cast_to);

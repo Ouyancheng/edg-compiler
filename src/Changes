@@ -1,5 +1,20 @@
 Version 2.45
 
+8/21/00  Warnings on explicit conversions to qualified types
+
+The front end no longer issues a warning about useless cv-qualifiers in
+explicit conversion expressions if the cv-qualifiers didn't explicitly
+appear in the expression.  For example:
+
+  template<class T> inline
+  T f(T a) {
+    int x = (int const)a;  // Warning: "useless const"
+    return T(0)+x;         // No longer a warning, even if T is "int const"
+  }
+  int  g(int c) {
+    return f<int const>(c);
+  }
+
 8/17/00  C++-generating back end: parameter declarations
 
 The C++-generating back end was modified to generate "(void)" instead of "()"
