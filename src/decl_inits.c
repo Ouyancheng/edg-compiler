@@ -1225,7 +1225,7 @@ initialized.  These are addressed in the course of the processing.
   cip_list = end_of_cip_list = NULL;
   /* Loop through the symbol list for the class, not the field list, since
      the symbol list contains only user-defined fields whereas the field
-     list may contain compiler-generated field entries. */
+     list may also include compiler-generated field entries. */
   class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   for (sym = class_sym->variant.class_struct_union.extra_info->symbols;
        sym != NULL;
@@ -1757,7 +1757,7 @@ though neither constructors nor initialization is involved here.)
   /* Now add entries for destructors required by nonstatic data members.
      Loop through the symbol list for the class, not the field list, since
      the symbol list contains only user-defined fields whereas the field
-     list may contain compiler-generated field entries. */
+     list may also include compiler-generated field entries. */
   class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   for (sym = class_sym->variant.class_struct_union.extra_info->symbols;
        sym != NULL;
