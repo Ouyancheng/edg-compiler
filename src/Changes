@@ -1,4 +1,13 @@
-Version 2.19
+Version 2.20
+
+-------------------------------------------------------------------------------
+Version 2.19, August 19, 1993
+
+8/19/93 IL display utility display of unprintable characters
+
+Unprintable characters are now displayed correctly by the IL display
+utility on host computers with signed characters.  Formerly, they
+were put out as very large octal constants.
 
 8/18/93 Automatic Template Instantiation
 
