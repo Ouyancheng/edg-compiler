@@ -171,86 +171,6 @@ static unsigned long
 		num_return_memos_allocated;
 #endif /* DEBUG && DO_IL_LOWERING */
 
-#if 0
-#else /* 0 */
-
-static an_object_lifetime_ptr *myown_addr_of_lifetime_ptr(
-                                         an_il_entry_kind         entity_kind,
-                                         char                     *entity_ptr,
-                                         an_object_lifetime_kind  kind)
-/*
-Given an IL entry kind and a pointer to the entry, return the address of the
-field of that entry that points to an object lifetime.  Scope entries have
-two such pointers, and for that case the flag ctor_init is used to decide
-which address to return -- it is set to TRUE if lifetime_of_constructor_inits
-is required and to FALSE otherwise.
-*/
-{
-  an_object_lifetime_ptr *lifetime_addr;
-
-  switch (entity_kind) {
-    case iek_scope:
-      if (kind == (an_object_lifetime_kind)olk_constructor_init) {
-        lifetime_addr = &((a_scope_ptr)entity_ptr)->
-                              variant.routine.lifetime_of_constructor_inits;
-      } else if (kind == (an_object_lifetime_kind)olk_function_static) {
-        lifetime_addr = &((a_scope_ptr)entity_ptr)->
-                              variant.routine.lifetime_of_local_static_vars;
-      } else {
-        lifetime_addr = &((a_scope_ptr)entity_ptr)->lifetime;
-      }  /* if */
-      break;
-    case iek_expr_node:
-      check_assertion(((an_expr_node_ptr)entity_ptr)->kind ==
-                                  (an_expr_node_kind)enk_object_lifetime);
-      lifetime_addr = &((an_expr_node_ptr)entity_ptr)->
-                                              variant.object_lifetime.ptr;
-      break;      
-    case iek_label:
-      lifetime_addr = &((a_label_ptr)entity_ptr)->lifetime_following_label;
-      break;
-    case iek_block:
-      lifetime_addr = &((a_block_ptr)entity_ptr)->lifetime;
-      break;
-    case iek_try_supplement:
-      lifetime_addr = &((a_try_supplement_ptr)entity_ptr)->lifetime;
-      break;
-    case iek_new_delete_supplement:
-      lifetime_addr = &((a_new_delete_supplement_ptr)entity_ptr)->
-                                        lifetime_of_uninitialized_storage;
-      break;
-    case iek_dynamic_init:
-      lifetime_addr = &((a_dynamic_init_ptr)entity_ptr)->init_expr_lifetime;
-      break;
-#if CHECKING
-    default:
-      internal_error("addr_of_lifetime_ptr: bad il entry kind");
-#endif /* CHECKING */
-  }  /* switch */
-  return lifetime_addr;
-}  /* myown_addr_of_lifetime_ptr */
-
-
-void myown_unbind_object_lifetime(an_object_lifetime_ptr  olp)
-/*
-Undo the binding between an object lifetime entry and the IL entry to which
-it points.
-*/
-{
-  an_object_lifetime_ptr  *lifetime_addr;
-
-  /* Get the address of the appropriate field of the IL entry so that the
-     lifetime pointer can be cleared. */
-  lifetime_addr = myown_addr_of_lifetime_ptr(
-                                       (an_il_entry_kind)olp->entity.kind,
-                                       olp->entity.ptr, olp->kind);
-  *lifetime_addr = NULL;
-  /* Clear the fields in the object lifetime, too. */
-  olp->entity.kind = (a_byte_il_entry_kind)iek_none;
-  olp->entity.ptr = NULL;
-}  /* myown_unbind_object_lifetime */
-
-#endif /* 0 */
 
 char *alloc_lowered_name_string(sizeof_t size)
 /*
@@ -8166,7 +8086,7 @@ if olp is NULL.
       eliminate_object_lifetime_tree(child_olp);
     }  /* if */
     /* Unbind this object lifetime from its attached entity. */
-    myown_unbind_object_lifetime(olp);
+    unbind_object_lifetime(olp);
   }  /* if */
 }  /* eliminate_object_lifetime_tree */
 

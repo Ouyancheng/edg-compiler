@@ -2886,8 +2886,8 @@ be kept, FALSE if it should be deleted.
       insert_statement(block_stmt, insert_location);
       set_block_start_insert_location(block_stmt, &insert_location2);
       eff_insert_location = &insert_location2;
-      /* Bind the object lifetime to the block. */
-      myown_unbind_object_lifetime(lifetime);
+      /* Rebind the object lifetime to the block. */
+      unbind_object_lifetime(lifetime);
       bind_object_lifetime(lifetime, iek_block,
                            (char *)block_stmt->variant.block.extra_info);
     }  /* if */

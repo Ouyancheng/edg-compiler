@@ -51,10 +51,6 @@ EXTERN a_boolean
 			   preserved by the lowering process (so a back end
 			   can use it, e.g., for exception handling). */
 
-#if 0
-#else /* 0 */
-extern void myown_unbind_object_lifetime(an_object_lifetime_ptr  olp);
-#endif /* 0 */
 
 /*
 Access the il_lowering_flag in an IL entry.
