@@ -117,7 +117,7 @@ which meant an inappropriate warning was issued in non-strict C mode.
 
 A new structure, a_base_class_derivation, has been added to represent a
 derivation from the derived class to a given base class.  Nonvirtual base
-class point to exactly one such entry, but virtual base classes point to a
+classes point to exactly one such entry, but virtual base classes point to a
 linked list of one or more, where each identifies a different derivation
 path.
 
@@ -127,9 +127,9 @@ to fix an obscure bug in checking for "dominance" and solves some problems
 in unusual cases involving differing access to virtual base classes along
 different paths to the virtual base class.
 
-A side effect of the change is that casts of pointers to base or derived
-classes will now go directly to a virtual base class in a single step
-rather than by way of several casts through the intervening classes.
+Quite a bit of code was changed to deal with the new data structure.
+Nevertheless, the change is largely invisible to those using IL lowering,
+since operations on base classes and the like are rewritten in C.
 
 12/1/93  Name mangling for unnamed enums
 
