@@ -69,7 +69,7 @@ was declared in two different namespaces.  For example:
   extern "C" void f(int);                      // IL read-write error.
 
 This is now fixed.  The fix also ensures that the type of the routine
-definition has assoc_routine point to the associated routine entry.
+definition has assoc_routine pointing to the associated routine entry.
 
 11/25/02 Precision of output of long double constants, with 128-bit
          long doubles

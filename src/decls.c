@@ -2902,7 +2902,7 @@ created; the caller must set it.
               decl_scope_level != depth_innermost_namespace_scope) {
             /* In general we avoid modifying the routine type if it is already
                the type entry associated with the definition.  However, if
-               we're not declaring in the function in the current namespace
+               we're not declaring the function in the current namespace
                scope, the routine type may need to be temporarily changed to
                (e.g.) pick up default arguments during template instantiations.
                In those cases, a fixup entry will be created (below) to later
