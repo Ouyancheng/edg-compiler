@@ -3799,8 +3799,7 @@ return a pointer to it.
   /* Make the expression node for an lvalue reference. */
   node = field_lvalue_selection_expr(node, field);
   /* Add an indirection to turn the lvalue into an rvalue. */
-  node = make_operator_node((an_expr_operator_kind)eok_indirect,
-                            field->type, node);
+  node = add_indirection_to_node(node);
   return node;
 }  /* field_rvalue_selection_expr */
 
