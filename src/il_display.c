@@ -655,8 +655,6 @@ Display a ck_template_param constant.
       break;
     case tpck_member:
       (void)printf("tpck_member\n");
-      disp_boolean("is_address",
-                   (a_boolean)ptr->variant.template_param.variant.is_address);
       break;
     case tpck_unknown_function:
       (void)printf("tpck_unknown_function\n");
@@ -666,6 +664,12 @@ Display a ck_template_param constant.
       break;
     case tpck_cast:
       (void)printf("tpck_cast\n");
+      disp_ptr("constant",
+               (char *)ptr->variant.template_param.variant.constant,
+               iek_constant);
+      break;
+    case tpck_address:
+      (void)printf("tpck_address\n");
       disp_ptr("constant",
                (char *)ptr->variant.template_param.variant.constant,
                iek_constant);

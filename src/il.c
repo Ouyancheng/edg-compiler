@@ -3005,17 +3005,10 @@ value.  Several fields are cleared or adjusted.
 
   ucp = alloc_constant(cp->kind);
   copy_constant(cp, ucp);
-  if (cp->kind == (a_constant_repr_kind)ck_template_param &&
-      cp->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_member) {
-    /* Don't destroy parent information in tpck_member constants. */
-    cp->source_corresp.assoc_info = NULL;
-  } else {
-    /* Clear the source correspondence information.  This version of the
-       constant isn't the one directly associated with the source entity,
-       if any. */
-    break_source_corresp(&ucp->source_corresp);
-  }  /* if */
+  /* Clear the source correspondence information.  This version of the
+     constant isn't the one directly associated with the source entity,
+     if any. */
+  break_source_corresp(&ucp->source_corresp);
   return ucp;
 }  /* alloc_unshared_constant */
 
@@ -3501,9 +3494,7 @@ nonidentical.
                       (cp1->source_corresp.parent.class_type ==
                        cp2->source_corresp.parent.class_type) :
                       (cp1->source_corresp.parent.namespace_ptr ==
-                       cp2->source_corresp.parent.namespace_ptr)) &&
-                    cp1->variant.template_param.variant.is_address ==
-                    cp2->variant.template_param.variant.is_address);
+                       cp2->source_corresp.parent.namespace_ptr)));
               break;
             case tpck_unknown_function:
               check_assertion(cp1->source_corresp.assoc_info != NULL);
@@ -3512,6 +3503,7 @@ nonidentical.
                     cp2->source_corresp.assoc_info);
               break;
             case tpck_cast:
+            case tpck_address:
               eq = compare_constants(cp1->variant.template_param.variant.
                                                                       constant,
                                      cp2->variant.template_param.variant.
@@ -3737,6 +3729,7 @@ region).
           has_nfs_ref= !in_file_scope(cp->variant.template_param.variant.expr);
           break;
         case tpck_cast:
+        case tpck_address:
           has_nfs_ref =
            has_non_file_scope_ref(cp->variant.template_param.variant.constant);
           break;
@@ -7643,6 +7636,35 @@ in doing substitution on a type), set *copy_error to TRUE.
                                &did_not_fold,
                                source_pos);
           check_assertion(!did_not_fold);
+          con_copy = NULL;
+        }  /* if */
+        break;
+      case tpck_address:
+        /* The template param constant represents the address of a member. */
+        other_con = copy_template_param_con(
+                                 con->variant.template_param.variant.constant,
+                                 template_arg_list,
+                                 depth,
+                                 (a_type_ptr)NULL,
+                                 source_pos,
+                                 copy_error,
+                                 constant);
+        if (other_con == con->variant.template_param.variant.constant) {
+          /* No change in the underlying constant. */
+        } else {
+          /* Make an updated tpck_address constant. */
+          new_type = copy_type_with_substitution(con->type,
+                                                 template_arg_list,
+                                                 depth,
+                                                 source_pos,
+                                                 CTWS_NO_OPTIONS,
+                                                 copy_error);
+          if (other_con == NULL) {
+            other_con = alloc_shareable_constant(constant);
+          }  /* if */
+          *constant = *con;
+          constant->variant.template_param.variant.constant = other_con;
+          constant->type = new_type;
           con_copy = NULL;
         }  /* if */
         break;

@@ -617,6 +617,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                          a_type_ptr, iek_type);
                 break;
               case tpck_cast:
+              case tpck_address:
                 walk_ptr(ptr->variant.template_param.variant.constant,
                          a_constant_ptr, iek_constant);
                 break;

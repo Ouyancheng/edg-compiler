@@ -3057,11 +3057,6 @@ confusion.  Do the output in the way described by octl.
       check_assertion(!octl->gen_compilable_code ||
                       prototype_instantiations_in_il);
       switch (constant->variant.template_param.kind) {
-        case tpck_member:
-          if (constant->variant.template_param.variant.is_address) {
-            octl->output_str("&");
-          }  /* if */
-          goto name_cases;
         case tpck_unknown_function:
           if (constant->variant.template_param.variant.conversion_type!=NULL) {
             /* The associated function is a conversion function.  Generate
@@ -3073,6 +3068,7 @@ confusion.  Do the output in the way described by octl.
           }  /* if */
           goto name_cases;
         case tpck_param:
+        case tpck_member:
 name_cases:
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
           {
@@ -3107,6 +3103,11 @@ name_cases:
           }  /* if */
           break;
         case tpck_cast:
+          octl->output_str("&");
+          form_constant(constant->variant.template_param.variant.constant,
+                        /*need_parens=*/FALSE, octl);
+          break;
+        case tpck_address:
           form_constant(constant->variant.template_param.variant.constant,
                         /*need_parens=*/FALSE, octl);
           break;

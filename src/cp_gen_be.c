@@ -4557,15 +4557,13 @@ precedence confusion and need_parens is TRUE.
        of a member (to avoid "*" and "&" operators). */
     a_constant_ptr constant = node->variant.constant;
     if (constant->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_member &&
-        constant->variant.template_param.variant.is_address) {
+                                (a_template_param_constant_kind)tpck_address) {
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       check_assertion(constant->expr == NULL);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       /* Put out the member name without the "&". */
-      constant->variant.template_param.variant.is_address = FALSE;
-      form_constant(constant, need_parens, &octl);
-      constant->variant.template_param.variant.is_address = TRUE;
+      form_constant(constant->variant.template_param.constant, need_parens,
+                    &octl);
       processed = TRUE;
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */

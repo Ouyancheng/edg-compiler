@@ -3578,15 +3578,17 @@ the member.
     if (con->kind == (a_constant_repr_kind)ck_template_param &&
         con->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_member &&
-        !con->variant.template_param.variant.is_address &&
         /* Avoid problems with template-dependent enum constant values. */
         operand->type == type_of_unknown_templ_param_nontype) {
       /* Change the constant to one that refers to the address of the
          member. */
-      con->variant.template_param.variant.is_address = TRUE;
-      /* Clear the assoc_info pointer because this is no longer the
-         constant pointed to from the symbol. */
-      con->source_corresp.assoc_info = NULL;
+      a_constant_ptr memcon = alloc_shareable_constant(con);
+      clear_constant(con, (a_constant_repr_kind)ck_template_param);
+      set_template_param_constant_kind(
+                                 con,
+                                 (a_template_param_constant_kind)tpck_address);
+      con->variant.template_param.variant.constant = memcon;
+      con->type = type_of_unknown_templ_param_nontype;
       operand->state = (an_operand_state)os_lvalue;
     }  /* if */
   }  /* if */

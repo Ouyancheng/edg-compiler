@@ -1575,10 +1575,8 @@ enum a_template_param_constant_kind_tag {
 			     template <class T> class A {
 			       int a[T::k];
 			     };
-			   (where, during prototype instantiation, k is
-			   assumed to be a member of T and a constant).
-			   Can also be used for the address of a member
-			   (a flag indicates address versus value). */
+			   Represents the "value" of the member; see
+			   also tpck_address. */
   tpck_unknown_function,
 			/* Represents the address of an unknown function
 			   called in a template context where overload
@@ -1587,6 +1585,8 @@ enum a_template_param_constant_kind_tag {
   tpck_cast,		/* The template param constant represents some constant
 			   (ck_template_param or other) cast to a type that
 			   contains a template parameter type. */
+  tpck_address,		/* Used, pointing to a tpck_member constant, to
+			   indicate the address of the indicated member. */
   tpck_sizeof,		/* The template param constant represents the sizeof
 			   operator applied to a type that contains a template
 			   parameter type. */
@@ -1887,23 +1887,21 @@ typedef struct a_constant {
 			   a template param constant (of kind tpck_param),
 			   "I+1" is also a template param constant (of kind
 			   tpck_expression). */
-        /* When template param constant kind == tpck_member: */
-        a_byte_boolean
-		is_address;
-			/* TRUE if the constant represents the address of
-			   the member.  FALSE if it represents the value
-			   of the member. */
+        /* When template param constant kind == tpck_member, no variant
+           fields. */
         /* When template param constant kind == tpck_unknown_function: */
         a_type_ptr
 		conversion_type;
 			/* If the unknown function represents a conversion
 			   function, this is the result type; NULL
 			   otherwise. */
-        /* When template param constant kind == tpck_cast: */
+        /* When template param constant kind == tpck_cast or tpck_address: */
         a_constant_ptr
 		constant;
 			/* The constant that is cast to the type indicated in
-			   the tpck_cast constant. */
+			   the tpck_cast constant, or the member whose
+			   address is being taken by the tpck_address
+			   constant. */
         /* When template param constant kind == tpck_sizeof, tpck_alignof,
            or tpck_uuidof: */
         a_type_ptr

@@ -914,6 +914,11 @@ specification in the mangling for lengths of literals.
                                   con->variant.template_param.variant.constant,
                                   mctl);
           break;
+        case tpck_address:
+          /* For an address, just mangle the member name. */
+          literal_representation(con->variant.template_param.variant.constant,
+                                 old_form, mctl);
+          break;
         case tpck_sizeof:
         case tpck_alignof:
         case tpck_uuidof:
