@@ -87,7 +87,7 @@ able to if the template itself has not yet been defined.
       } else if (instantiation_in_progress(tp)) {
         /* This particular template class (not just some other one based on
            the same template) is currently being instantiated. */
-      } else if (tssp->pending_instantiations >= MAX_PENDING_INSTANTIATIONS) {
+      } else if (tssp->variant.class.pending_instantiations >= MAX_PENDING_INSTANTIATIONS) {
         /* This class instantiation occurs within the context of other
            instantiations of the same class template.  When the number of
            such instantantiations-in-progress exceeds a configuration
@@ -106,7 +106,7 @@ able to if the template itself has not yet been defined.
         /* Increment the count of instantiations-in-progress for the current
            class template.  It will be decremented when the instantiation is
            complete. */
-        ++(tssp->pending_instantiations);
+        ++(tssp->variant.class.pending_instantiations);
 #if DEBUG
         if (debug_level >= 3) {
           fprintf(f_debug, "instantiating: ");
@@ -136,7 +136,7 @@ able to if the template itself has not yet been defined.
         (void)get_token();
         /* Decrement the count of instantiations-in-progress for the current
            class template. */
-        --(tssp->pending_instantiations);
+        --(tssp->variant.class.pending_instantiations);
       }  /* if */
     }  /* if */
   }  /* if */
