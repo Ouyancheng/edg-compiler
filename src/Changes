@@ -1,5 +1,19 @@
 Version 2.36
 
+5/20/97   C++-generating back end: "template<>" prefix on generated instances
+
+When the C++-generating back end is used, and
+
+  NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS or
+     CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
+is TRUE, the generated code contains "specializations" for all the
+generated template instances.  These are now generated with the modern-form
+"template<>" prefix on them.  The old specialization syntax can be
+generated instead by setting
+DEFAULT_OLD_SPECIALIZATIONS_FOR_GENERATED_INSTANCES or the variable
+old_specializations_for_generated_instances to TRUE.
+
 5/20/97   Conversion of void lvalue to rvalue in C is no longer an error
 
 In C, converting an lvalue with an incomplete type to an rvalue has
