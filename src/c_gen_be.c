@@ -3110,7 +3110,21 @@ expression.  Check that its result_is_not_used flag is set correctly.
 }  /* check_result_not_used_flag */
 
 #endif /* CHECKING */
+#if !C_GEN_BE_GENERATES_ANSI_C
 
+static a_boolean expr_is_zero_constant(an_expr_node_ptr expr)
+/*
+Return TRUE if the indicated expression is a zero constant.
+*/
+{
+  a_boolean is_zero =
+           (expr->kind == (an_expr_node_kind)enk_constant &&
+            expr->variant.constant->kind == (a_constant_repr_kind)ck_integer &&
+            cmplit_integer_constant(expr->variant.constant, 0L) == 0);
+  return is_zero;
+}  /* expr_is_zero_constant */
+
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
 
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens)
@@ -3267,6 +3281,16 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "*";
           break;
         case eok_idivide:
+#if !C_GEN_BE_GENERATES_ANSI_C
+          /* If the second operand is a constant 0, put out the division as
+             "op1 / (0, 0)" to avoid an error from pcc. */
+          if (expr_is_zero_constant(operand_2)) {
+            dump_expr_with_parens(operand_1);
+            write_tok_str(" / (0,0)");
+            goto done_with_operation;
+          }  /* if */
+          /*FALLTHROUGH*/
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
         case eok_fdivide:
           opstr = "/";
           break;
@@ -3309,6 +3333,15 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "<=";
           break;
         case eok_remainder:
+#if !C_GEN_BE_GENERATES_ANSI_C
+          /* If the second operand is a constant 0, put out the operation as
+             "op1 % (0, 0)" to avoid an error from pcc. */
+          if (expr_is_zero_constant(operand_2)) {
+            dump_expr_with_parens(operand_1);
+            write_tok_str(" % (0,0)");
+            goto done_with_operation;
+          }  /* if */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
           opstr = "%";
           break;
         case eok_iassign:
