@@ -3933,8 +3933,6 @@ substitution, the name of the last component in the substitution is used.
   for (;;) {
     /* Demangle one level of the nested name. */
     a_boolean is_substitution = FALSE;
-    /* Stop if we've done enough levels. */
-    if (num_levels != 0 && level_num >= num_levels) break;
     level_num++;
     *is_no_return_name = FALSE;
     *has_templ_arg_list = FALSE;
@@ -4017,6 +4015,8 @@ substitution, the name of the last component in the substitution is used.
     }  /* if */
     /* Stop on an error. */
     if (dctl->err_in_id) break;
+    /* Stop if we've done enough levels. */
+    if (num_levels != 0 && level_num >= num_levels) break;
     /* Going around again, so the part put out so far is a qualifier and
        needs to be followed by "::". */
     write_id_str("::", dctl);
