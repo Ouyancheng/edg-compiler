@@ -1630,6 +1630,7 @@ common_cfront_mode_settings:
       alternative_tokens_allowed = FALSE;
     }  /* if */
     special_subscript_cost = FALSE;  /* Not really needed. */
+    use_nonstandard_for_init_scope = TRUE;  /* Not really needed. */
   } else {
     /* The dialect is C++. */
     /* Reset the SVR4 C compatibility flag just in case it is set by
