@@ -10132,10 +10132,14 @@ C mode.
        SVR4 C mode, and in Microsoft C mode (it also applies in Microsoft
        C++ mode, but that case doesn't get to this routine). */
     is_still_an_lvalue = TRUE;
-  } else if (gcc_mode) {
+  } else if (gcc_mode &&
+             is_integral_type(type_cast_to) &&
+             is_integral_type(type_before_cast)) {
     /* GNU C treats only a cast to the identical type as this kind
-       of lvalue cast.  Other cases are handled by
-       revert_gcc_rvalue_to_lvalue_if_possible. */
+       of lvalue cast, for integer types.  Other cases are handled by
+       revert_gcc_rvalue_to_lvalue_if_possible.  Note that this
+       lets by the integral/pointer mixed case, which is allowed by
+       gcc. */
     /* is_still_an_lvalue = FALSE; -- already set. */
   } else if (!microsoft_mode &&
              (is_floating_type(type_before_cast) ||
