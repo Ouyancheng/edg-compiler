@@ -636,7 +636,7 @@ can never be zero.
                           src_array_ptr, (a_constructor_ptr)ctor, dtor, 
                           (a_new_ptr)NULL, (a_delete_ptr)NULL,
                           /*is_two_arg=*/FALSE, /*zero_init=*/FALSE);
-}  /* __vec_ctor_eh */
+}  /* __vec_cctor_eh */
 
 
 #if ABI_COMPATIBILITY_VERSION >= 300
