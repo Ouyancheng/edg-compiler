@@ -2830,7 +2830,7 @@ typedef struct a_base_class_derivation {
 			   the last entry in the list when it is virtual. */
   a_derivation_step_ptr
 		path;
-			/* Pointer to (all or part) of the path from the
+			/* Pointer to (all or part of) the path from the
 			   derived class to the associated base class.  If
 			   direct is TRUE, the derivation consists of a single
 			   step which points to the associated base class.  If
