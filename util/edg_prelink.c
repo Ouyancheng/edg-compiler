@@ -2078,6 +2078,19 @@ the names to the symbol table.
 }  /* pl_prelink */
 
 
+static char *pl_find_suffix(char	*name)
+/*
+Find the suffix in the file name specified by "name" and return a
+pointer to the first character of the suffix.
+*/
+{
+  char	*last_dot;
+
+  last_dot = strrchr(pl_file_name_buffer, '.');
+  return last_dot;
+}  /* pl_file_suffix */
+
+
 static char *pl_derived_name(char	*name,
 			     char	*suffix)
 /*
@@ -2092,7 +2105,7 @@ is used again.
 
   /* Copy the original name to the file name buffer. */
   strcpy(pl_file_name_buffer, name);
-  last_dot = strrchr(pl_file_name_buffer, '.');
+  last_dot = pl_find_suffix(pl_file_name_buffer);
   if (last_dot == NULL) {
     /* No suffix -- set last_dot as if a suffix had followed the name. */
     last_dot = pl_file_name_buffer + strlen(pl_file_name_buffer);
@@ -2329,28 +2342,34 @@ Check for the existence of a .ti or .ii file.  The name of the .ii file
 is generated.  The name of the .ti file is generated if they are being used.
 */
 {
-  FILE			*f_test;
+  FILE			*f_test = NULL;
   char			*request_file_name;
   char			*template_info_file_name = NULL;
   char			*file_to_test;
+  char			*suffix;
 
-  request_file_name = pl_copy_string(pl_derived_name(pifp->file_name,
+  suffix = pl_find_suffix(pifp->file_name);
+  if (suffix != NULL && strcmp(suffix, OBJECT_FILE_SUFFIX) == 0) {
+    /* Only look for template information files associated with object
+       files. */
+    request_file_name = pl_copy_string(pl_derived_name(pifp->file_name,
                                                 INSTANTIATION_REQUEST_SUFFIX));
-  if (use_template_info_file) {
-    template_info_file_name = pl_copy_string(pl_derived_name(pifp->file_name,
+    if (use_template_info_file) {
+      template_info_file_name = pl_copy_string(pl_derived_name(pifp->file_name,
                                                         TEMPLATE_INFO_SUFFIX));
-    file_to_test = template_info_file_name;
-  } else {
-    file_to_test = request_file_name;
-  }  /* if */
-  f_test = fopen(file_to_test, "r");
-  if (f_test != NULL) {
-    fclose(f_test);
-    pifp->request_file_name = request_file_name;
-    pifp->template_info_file_name = template_info_file_name;
-  } else {
-    free(request_file_name);
-    if (use_template_info_file) free(template_info_file_name);
+      file_to_test = template_info_file_name;
+    } else {
+      file_to_test = request_file_name;
+    }  /* if */
+    f_test = fopen(file_to_test, "r");
+    if (f_test != NULL) {
+      fclose(f_test);
+      pifp->request_file_name = request_file_name;
+      pifp->template_info_file_name = template_info_file_name;
+    } else {
+      free(request_file_name);
+      if (use_template_info_file) free(template_info_file_name);
+    }  /* if */
   }  /* if */
   return (f_test != NULL);  
 }  /* pl_check_for_template_file */
