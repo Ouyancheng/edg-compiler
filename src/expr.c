@@ -4483,12 +4483,12 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
   } else {
     /* Scan an expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
-    if (is_indefinite_function_operand(&operand)) {
-      /* typeid(overloaded-function) is not allowed. */
-      pos_sy_error(ec_indeterminate_overloaded_function,
-                   &operand.position, operand.variant.symbol);
-      conv_to_error_operand(&operand);
-    }  /* if */
+    /* Rule out indefinite functions. */
+    do_operand_transformations(&operand,
+                               (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                                TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION |
+                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION));
     typeid_type = operand.type;
     /* *p and p[expr] yielding polymorphic class objects are special cases
        that use runtime typeid determination. */
@@ -4856,6 +4856,12 @@ The value of the operation is an lvalue of type "const struct _GUID".
     expr_stack_entry.evaluated = FALSE;
     expr_stack_entry.potentially_evaluated = FALSE;
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+    /* Rule out indefinite functions. */
+    do_operand_transformations(&operand,
+                               (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                                TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION |
+                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION));
     uuidof_type = operand.type;
     /* __uuidof(0) is a special case that yields a zero GUID. */
     if (is_constant_operand(&operand) &&
