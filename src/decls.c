@@ -4430,6 +4430,7 @@ return a pointer to it in *symbol_ptr.
         /* A class/struct/union type with no name. */
         tp = type_ptr;
       }  /* if */
+#if ABI_COMPATIBILITY_VERSION >= 230
     } else if (any_cfront_mode()) {
       /* Normally, inferring a linkage name from a typedef name is allowed
          only for unqualified class/struct/union types.  However, in
@@ -4448,6 +4449,7 @@ return a pointer to it in *symbol_ptr.
           tp = skip_typerefs(type_ptr);
         }  /* if */
       }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 230 */
     }  /* if */
     if (tp != NULL) {
       if (any_cfront_mode()) {
