@@ -4075,9 +4075,11 @@ decl_specifiers.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode && microsoft_version == 1200 &&
             size == size_int8) {
-          if (ikind == (an_integer_kind)ik_signed_char) {
+          if (ikind == (an_integer_kind)ik_unsigned_char) {
+            ikind = targ_unsigned_int8_int_kind;
+          } else {
             /* signed __int8 is the same as __int8. */
-            ikind = (an_integer_kind)ik_char;
+            ikind = targ_int8_int_kind;
           }  /* if */
           *type_ptr = microsoft_sized_integer_type((an_integer_kind)ikind);
         } else
