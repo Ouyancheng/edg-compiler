@@ -3170,9 +3170,8 @@ caller is responsible for sorting that out.)
         /* An object lifetime will have been created for this scope in
            push scope.  Now that the scope entry exists, bind the two entries
            to one another. */
-        check_assertion(curr_object_lifetime->entity.ptr == NULL);
-        bind_object_lifetime(curr_object_lifetime, (an_il_entry_kind)iek_scope,
-                             (char *)sp, /*ctor_init=*/FALSE);
+        bind_object_lifetime(ssep->curr_scope_object_lifetime,
+                             (an_il_entry_kind)iek_scope, (char *)sp);
       }  /* if */
     } else if (ssep->kind == (a_scope_kind)sck_func_prototype) {
       a_type_ptr              routine_type;
@@ -7200,7 +7199,8 @@ pragma has not yet been found for the given IL entity).
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-an_object_lifetime_ptr alloc_object_lifetime(void)
+static an_object_lifetime_ptr alloc_object_lifetime(
+                                               an_object_lifetime_kind  kind)
 /*
 Allocate an object lifetime entry, initialize its fields, and return a pointer
 to it.
@@ -7235,6 +7235,7 @@ to it.
   }  /* if */
   olp->entity.kind                = (a_byte_il_entry_kind)iek_none;
   olp->entity.ptr                 = NULL;
+  olp->kind                       = kind;
   olp->destructions               = NULL;
   olp->parent_lifetime            = NULL;
   olp->parent_destruction_sublist = NULL;
@@ -7410,9 +7411,9 @@ Return an object lifetime to the appropriate available list.
 
 
 static an_object_lifetime_ptr *addr_of_lifetime_ptr(
-                                             an_il_entry_kind  entity_kind,
-                                             char              *entity_ptr,
-                                             a_boolean         ctor_init)
+                                         an_il_entry_kind         entity_kind,
+                                         char                     *entity_ptr,
+                                         an_object_lifetime_kind  kind)
 /*
 Given an IL entry kind and a pointer to the entry, return the address of the
 field of that entry that points to an object lifetime.  Scope entries have
@@ -7423,15 +7424,14 @@ is required and to FALSE otherwise.
 {
   an_object_lifetime_ptr *lifetime_addr;
 
-  check_assertion(ctor_init == FALSE ||
-                  entity_kind == (an_il_entry_kind)iek_scope);
   switch (entity_kind) {
     case iek_scope:
-      if (ctor_init) {
-        check_assertion(((a_scope_ptr)entity_ptr)->kind ==
-                                         (a_scope_kind)sck_function);
+      if (kind == (an_object_lifetime_kind)olk_constructor_init) {
         lifetime_addr = &((a_scope_ptr)entity_ptr)->
                               variant.routine.lifetime_of_constructor_inits;
+      } else if (kind == (an_object_lifetime_kind)olk_function_static) {
+        lifetime_addr = &((a_scope_ptr)entity_ptr)->
+                              variant.routine.lifetime_of_local_static_vars;
       } else {
         lifetime_addr = &((a_scope_ptr)entity_ptr)->lifetime;
       }  /* if */
@@ -7469,8 +7469,7 @@ is required and to FALSE otherwise.
 
 void bind_object_lifetime(an_object_lifetime_ptr  olp,
                           an_il_entry_kind        entity_kind,
-                          char                    *entity_ptr,
-                          a_boolean               ctor_init)
+                          char                    *entity_ptr)
 /*
 Set the object lifetime entry pointed to by olp to point to the IL entry
 represented by entity_kind and entity_ptr, and set the IL entry to point
@@ -7479,14 +7478,69 @@ should is TRUE when it is the lifetime_of_constructor_inits field of the
 scope entry that should be updated.
 */
 {
-  an_object_lifetime_ptr  *lifetime_addr;
+  an_object_lifetime_ptr   *lifetime_addr;
 
+#if CHECKING
+  char *str = "bind_object_lifetime:";
+
+  check_assertion(olp->entity.ptr == NULL && entity_ptr != NULL);
+  /* Be sure the object lifetime kind is consistent with the kind of
+     entity with which the object lifetime is being bound. */
+  switch (olp->kind) {
+    case olk_constructor_init:
+    case olk_function_static:
+      check_assertion_str2((entity_kind == (an_il_entry_kind)iek_scope) &&
+                           (((a_scope_ptr)entity_ptr)->kind ==
+                                         (a_scope_kind)sck_function),
+                           str, "bad entity or scope kind");
+      break;
+    case olk_global_static:
+      check_assertion_str2((entity_kind == (an_il_entry_kind)iek_scope) &&
+                           (((a_scope_ptr)entity_ptr)->kind ==
+                                         (a_scope_kind)sck_file),
+                           str,
+                           "bad entity or scope kind for olk_global_static");
+      break;
+    case olk_local:
+      switch (entity_kind) {
+        case iek_scope:
+          check_assertion_str2((((a_scope_ptr)entity_ptr)->kind ==
+                                           (a_scope_kind)sck_function) ||
+                               (((a_scope_ptr)entity_ptr)->kind ==
+                                         (a_scope_kind)sck_block),
+                               str, "bad scope kind for olk_local");
+        case iek_label:
+        case iek_block:
+        case iek_try_supplement:
+          /* Okay. */
+          break;
+        default:
+          unexpected_condition_str2(str, "bad entity kind for olk_local");
+      }  /* switch */
+      break;
+    case olk_expr_temporary:
+      switch (entity_kind) {
+        case iek_expr_node:
+        case iek_block:
+        case iek_new_delete_supplement:
+        case iek_dynamic_init:
+          /* Okay. */
+          break;
+        default:
+          unexpected_condition_str2(str,
+                                    "bad entity kind for olk_expr_temporary");
+      }  /* switch */
+      break;
+    default:
+      unexpected_condition_str2(str, "bad object lifetime kind");
+  }  /* if */
+#endif /* CHECKING */
   /* Point the object lifetime at the IL entry. */
   olp->entity.kind = (a_byte_il_entry_kind)entity_kind;
   olp->entity.ptr = entity_ptr;
   /* Get the address of the appropriate field of the IL entry and point
      back to the object lifetime entry. */
-  lifetime_addr = addr_of_lifetime_ptr(entity_kind, entity_ptr, ctor_init);
+  lifetime_addr = addr_of_lifetime_ptr(entity_kind, entity_ptr, olp->kind);
   *lifetime_addr = olp;
 }  /* bind_object_lifetime */
 
@@ -7513,7 +7567,7 @@ it points.
   /* Get the address of the appropriate field of the IL entry so that the
      lifetime pointer can be cleared. */
   lifetime_addr = addr_of_lifetime_ptr((an_il_entry_kind)olp->entity.kind,
-                                       olp->entity.ptr, ctor_init);
+                                       olp->entity.ptr, olp->kind);
   check_assertion(*lifetime_addr == olp);
   *lifetime_addr = NULL;
   /* Clear the fields in the object lifetime, too. */
@@ -7522,9 +7576,9 @@ it points.
 }  /* unbind_object_lifetime */
 
       
-void push_object_lifetime(an_il_entry_kind  entity_kind,
-                          char              *entity_ptr,
-                          a_boolean         ctor_init)
+void push_object_lifetime(an_il_entry_kind         entity_kind,
+                          char                     *entity_ptr,
+                          an_object_lifetime_kind  kind)
 /*
 Create a new object lifetime entry and push it onto the object lifetime
 stack by setting its parent pointer and then changing curr_object_lifetime
@@ -7537,9 +7591,12 @@ entry is needed.)
   an_object_lifetime_ptr   olp, parent;
 
   db_enter(3, "push_object_lifetime");
-  olp = alloc_object_lifetime();
-  parent = curr_object_lifetime;
-  if (parent != NULL) {
+  olp = alloc_object_lifetime(kind);
+  if (kind == (an_object_lifetime_kind)olk_global_static ||
+      kind == (an_object_lifetime_kind)olk_function_static) {
+    /* No parent pointer. */
+  } else {
+    parent = curr_object_lifetime;
     /* Link the new entry into the object lifetime tree. */
     olp->parent_lifetime = parent;
     if (entity_kind == (a_byte_il_entry_kind)iek_scope && entity_ptr != NULL &&
@@ -7553,9 +7610,7 @@ entry is needed.)
       /* Don't add the current entry to the parent's list of children, and
          don't update the sibling pointer. */
     } else {
-#if 0
       check_assertion(in_file_scope(olp) == in_file_scope(parent));
-#endif /* if 0 */
       /* If the parent already has a list of children, add the new entry to
          the front of the list. */
       olp->next = parent->child_lifetime;
@@ -7567,7 +7622,7 @@ entry is needed.)
   }  /* if */
   /* Bind the object lifetime and the entity with which it is associated. */
   if (entity_ptr != NULL) {
-    bind_object_lifetime(olp, entity_kind, entity_ptr, ctor_init);
+    bind_object_lifetime(olp, entity_kind, entity_ptr);
   }  /* if */
   /* Now set the new entry to be the current object lifetime. */
   curr_object_lifetime = olp;
@@ -7790,6 +7845,7 @@ points to the associated routine if the kind is sck_function.
       sp->variant.routine.parameters                    = NULL;
       sp->variant.routine.constructor_inits             = NULL;
       sp->variant.routine.lifetime_of_constructor_inits = NULL;
+      sp->variant.routine.lifetime_of_local_static_vars = NULL;
       sp->variant.routine.this_param_variable           = NULL;
       sp->variant.routine.return_value_variable         = NULL;
 #ifdef FIL
