@@ -2411,23 +2411,32 @@ inserted at *insert_location.
   /* If the conditional flag is static, initialization to zero is
      implicit and requires nothing special in the IL. */
   if (cond_var->storage_class != (a_storage_class)sc_static) {
-    /* Otherwise, for an automatic variable, dynamic initialization to
-       zero must be done by an stmk_init. */
-    a_constant         zero_constant;
-    a_statement_ptr    stmk_init_stmt;
-    a_dynamic_init_ptr init_dip =
-                         alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-    init_dip->variable = cond_var;
-    init_dip->follows_an_exec_statement = TRUE;
-    /* The dynamic init entry is pointed to by the variable. */
-    cond_var->init_kind = (an_init_kind)initk_dynamic;
-    cond_var->initializer.dynamic = init_dip;
+    /* Otherwise, for an automatic variable, the variable must be explicitly
+       initialized to zero. */
+    a_constant zero_constant;
     set_integer_constant(&zero_constant, 0L, (an_integer_kind)ik_int);
-    init_dip->variant.constant = alloc_unshared_constant(&zero_constant);
-    /* The dynamic init entry is pointed to by an stmk_init statement. */
-    stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
-    stmk_init_stmt->variant.dynamic_init = init_dip;
-    insert_statement(stmk_init_stmt, insert_location);
+    if (is_expr_insert_location_kind(insert_location->kind)) {
+       /* The insert location is inside an expression, so use an stmk_expr. */
+      insert_assignment_statement(var_lvalue_expr(cond_var),
+                                  (an_expr_operator_kind)eok_iassign,
+                                  alloc_node_for_constant(&zero_constant),
+                                  insert_location);
+    } else {
+      /* Normal case: use an stmk_init. */
+      a_statement_ptr    stmk_init_stmt;
+      a_dynamic_init_ptr init_dip =
+                         alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+      init_dip->variable = cond_var;
+      init_dip->follows_an_exec_statement = TRUE;
+      /* The dynamic init entry is pointed to by the variable. */
+      cond_var->init_kind = (an_init_kind)initk_dynamic;
+      cond_var->initializer.dynamic = init_dip;
+      init_dip->variant.constant = alloc_unshared_constant(&zero_constant);
+      /* The dynamic init entry is pointed to by an stmk_init statement. */
+      stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
+      stmk_init_stmt->variant.dynamic_init = init_dip;
+      insert_statement(stmk_init_stmt, insert_location);
+    }  /* if */
   }  /* if */
 }  /* init_conditional_flag_var */
 
@@ -3563,6 +3572,17 @@ The subtree of the node has not yet been lowered.
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
       dyn_init_to_free_storage = ndsp->freeing_of_storage_on_exception;
       if (dyn_init_to_free_storage != NULL) {
+        /* The storage for this "new" is supposed to be freed if an exception
+           is thrown before the initialization is completed. */
+        if (dyn_init_to_free_storage->destructible_entity_descr == NULL) {
+          /* When lowering the file-scope initialization routine, in long
+             lifetime temporaries mode, this entry can be in the global static
+             lifetime, which was never passed through begin_object_lifetime,
+             so do the initialization on this entry now. */
+          initial_processing_on_destructible_initialization(
+                                                      dyn_init_to_free_storage,
+                                                      &insert_location);
+        }  /* if */
         /* Make a cleanup region table entry to get the storage freed if
            a throw occurs before the entity is initialized. */
         copy_init_pos_descr(&ipd,
