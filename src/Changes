@@ -1,5 +1,15 @@
 Version 2.43
 
+8/18/99  Diagnose "mutable" on anonymous unions
+
+The front end now produces a diagnostic (an error in strict ANSI C++ mode; a
+warning otherwise) when "mutable" is specified on a class-scope anonymous
+union.  For example:
+
+  struct S {
+    mutable union { int i; float f; }; // Error or warning.
+  };
+
 8/17/99  Strict error for missing typedef declarator in strict ANSI C++ mode
 
 In strict ANSI C++ mode, the front end now more consistently issues an error

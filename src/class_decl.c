@@ -7029,6 +7029,7 @@ ones are allocated in the scope specified by decl_scope_level.
   a_type_ptr                     assoc_object_type, tp;
   a_boolean                      reuse_symbol = TRUE;
   a_boolean                      suppress_reenter_symbol_call;
+  a_field_ptr                    au_field;
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   a_symbol_ptr                   new_apo_sym_list = NULL;
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
@@ -7041,9 +7042,17 @@ ones are allocated in the scope specified by decl_scope_level.
       assoc_object_access = (an_access_specifier)as_public;
       break;
     case sk_field:
-      assoc_object_type = assoc_object_sym->variant.field.ptr->type;
-      assoc_object_access = assoc_object_sym->
-                              variant.field.ptr->source_corresp.access;
+      au_field = assoc_object_sym->variant.field.ptr;
+      assoc_object_type = au_field->type;
+      assoc_object_access = au_field->source_corresp.access;
+      if (au_field->is_mutable) {
+        /* No storage class is allowed at all, but the others are diagnosed
+           elsewhere already. */
+        pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity :
+                                          es_warning,
+                       ec_no_mutable_allowed_on_anonymous_union,
+                       &assoc_object_sym->decl_position);
+      }  /* if */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
       check_assertion(is_class_struct_union_type(assoc_object_type));
       if (assoc_object_type->kind == (a_type_kind)tk_typeref ||
