@@ -1,6 +1,11 @@
 Version 2.19
 
-8/2/93  IL_CHANGE: Added stmk_for statement
+8/4/93   Promotion of unsigned char when sizeof(int)==sizeof(char)
+
+If sizeof(int)==sizeof(char), unsigned char should be promoted to
+unsigned int under ANSI integral promotion rules.  Now it is.
+
+8/2/93  IL CHANGE: Added stmk_for statement
 
 A new statement kind, stmk_for, and an associated data structure,
 a_for_loop, have been added to the IL to represent for statements.  The

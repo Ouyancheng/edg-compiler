@@ -1319,32 +1319,46 @@ bit fields.
         goto do_unsigned_char;
       case ik_unsigned_char:
 do_unsigned_char:
-	if (C_dialect == C_dialect_pcc) {
-	  /* In pcc mode, unsigned char becomes unsigned int. */
-	  promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
-	  break;
-	}  /* if */
-	/* Fall through. */
+        if (C_dialect == C_dialect_pcc) {
+          /* In pcc mode, unsigned char is promoted to unsigned int. */
+          promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
+        } else {
+          /* In ANSI mode, unsigned char is promoted to int if all values
+             of type unsigned char can be represented in an int; otherwise
+             unsigned char is promoted to unsigned int. */
+#if TARG_SIZEOF_INT > 1
+          /* All values of type unsigned char can fit in an int, so unsigned
+             char is promoted to int. */
+          promoted_type = integer_type((an_integer_kind)ik_int);
+#else /* TARG_SIZEOF_INT == 1 */
+          /* int and char are the same size, so unsigned char is promoted to
+             unsigned int. */
+          promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
+#endif /* TARG_SIZEOF_INT > 1 */
+        }  /* if */
+        break;
       case ik_signed_char:
 do_signed_char:;
       case ik_short:
-	/* Promote the expression to int. */
+	/* Signed char and signed short are promoted to int. */
 	promoted_type = integer_type((an_integer_kind)ik_int);
 	break;
       case ik_unsigned_short:
-	if (C_dialect == C_dialect_pcc) {
-	  /* In pcc mode, unsigned short becomes unsigned int. */
-	  promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
-	} else {
-	  /* Promote to int if int can contain all values, otherwise promote to
-	     unsigned int. */
+        if (C_dialect == C_dialect_pcc) {
+          /* In pcc mode, unsigned short is promoted to unsigned int. */
+          promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
+        } else {
+          /* In ANSI mode, unsigned short is promoted to int if all values
+             of type unsigned short can be represented in an int; otherwise
+             unsigned short is promoted to unsigned int. */
 #if TARG_SIZEOF_INT > TARG_SIZEOF_SHORT
-	  /* "int" can contain all values of "short"; use "int". */
-	  promoted_type = integer_type((an_integer_kind)ik_int);
-#else /* TARG_SIZEOF_INT > TARG_SIZEOF_SHORT */
-	  /* All values of "unsigned short" cannot be represented by "int"; use
-	     "unsigned int". */
-	  promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
+          /* All values of type unsigned short can fit in an int, so unsigned
+             short is promoted to int. */
+          promoted_type = integer_type((an_integer_kind)ik_int);
+#else /* TARG_SIZEOF_INT == TARG_SIZEOF_SHORT */
+          /* int and short are the same size, so unsigned short is promoted to
+             unsigned int. */
+          promoted_type = integer_type((an_integer_kind)ik_unsigned_int);
 #endif /* TARG_SIZEOF_INT > TARG_SIZEOF_SHORT */
 	}  /* if */
 	break;
