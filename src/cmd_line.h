@@ -753,7 +753,7 @@ EXTERN a_boolean
 			   effect and if a diagnostic should be issued when a
 			   name that is visible with the new rules would be
 			   hidden (by the for-init declaration itself) with
-			   the old rules.
+			   the old rules. */
 
 
 /* Process the command line arguments. */
