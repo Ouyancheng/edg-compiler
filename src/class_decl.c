@@ -9214,16 +9214,24 @@ next_declaration:
            typerefs associated with this class. */
         move_to_end_of_types_list(class_type, effective_decl_level);
       }  /* if */
-      if (!is_template_instantiation &&
-          cssp->partial_instantiation_placeholder != NULL) {
-        /* This must be a specialization of a template class that was
-           partially instantiated before the definition was seen.  Clear out
-           unneeded placeholder information. */
-        remove_from_types_list(cssp->partial_instantiation_placeholder,
-                               NO_SCOPE_DEPTH);
-        class_type->variant.class_struct_union.
-              referenced_by_class_instantiation_placeholder_typeref = FALSE;
-        cssp->partial_instantiation_placeholder = NULL;
+      if (!C_mode()) {
+        if (is_template_instantiation) {
+          /* A class template instantiation (or a nontemplate class nested
+             in a template class): if it appears inside a class definition,
+             a placeholder typeref must often be added to the types list for
+             the class; if one had already been entered, it may have to be
+             removed. */
+          add_placeholder_for_class_instantiation(class_type);
+        } else if (cssp->partial_instantiation_placeholder != NULL) {
+          /* This must be a specialization of a template class that was
+             partially instantiated before the definition was seen.  Clear out
+             unneeded placeholder information. */
+          remove_from_types_list(cssp->partial_instantiation_placeholder,
+                                 NO_SCOPE_DEPTH);
+          class_type->variant.class_struct_union.
+                referenced_by_class_instantiation_placeholder_typeref = FALSE;
+          cssp->partial_instantiation_placeholder = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
     /* Save a pointer to the list of member symbols in the tag symbol.  Note
