@@ -320,60 +320,57 @@ routine recursively for each nested class.
         sym = rfp->symbol;
         is_friend = (is_function_symbol(sym) &&
                      sym->class_of_which_a_member != class_type);
-        if ((is_real_template_instantiation && !is_friend) ||
-            (is_nonreal_template_instantiation && is_friend)) {
-          /* The token cache should be discarded for friend declarations in
-             prototype instantiations and for everything but friends in
-             real template instantiations. */
-          for (; daefp != NULL; daefp = daefp->next) {
-            discard_token_cache(&daefp->token_cache);
-          }  /* for */
-          if (is_real_template_instantiation) {
-            /* Scan the default arguments associated with the template for this
-               function. */
-            /* Get the template symbol from the instance pointer. */
-            if (sym->kind == (a_symbol_kind)sk_member_function) {
-              tssp = sym->variant.routine.instance_ptr->template_sym->
-                               variant.routine.instance_ptr->template_info;
-              delayed_scan_for_function_template_default_args(
-                                              tssp->variant.function.routine,
-                                              sym->variant.routine.ptr, tssp);
-            } else {
-#if 0
-              /* Not yet implemented. */
-              internal_error("delayed_scan_fixup_for_class: not a routine");
-#endif /* if 0 */
-            }  /* if */
-          }  /* if */
-        } else if (is_nonreal_template_instantiation) {
-          a_def_arg_expr_fixup_ptr    daefp_end;
+        if (is_nonreal_template_instantiation) {
+          /* Prototype instantiation. */
+          if (sym->kind == (a_symbol_kind)sk_member_function && !is_friend) {
+            a_def_arg_expr_fixup_ptr  daefp_end;
 
-          /* Link the default argument list from the template supplement
-             onto the end of the list of current default arguments.  The
-             list in the supplement must be for arguments that follow the
-             new list (otherwise it would be an error).  Find the end
-             of the current list and link the existing list to the end. */
-          daefp_end = daefp;
-          if (daefp_end != NULL) {
-            while (daefp_end->next != NULL) daefp_end = daefp_end->next;
-            if (sym->kind == (a_symbol_kind)sk_member_function) {
+            /* Link the default argument list from the template supplement
+               onto the end of the list of current default arguments.  The
+               list in the supplement must be for arguments that follow the
+               new list (otherwise it would be an error).  Find the end
+               of the current list and link the existing list to the end. */
+            daefp_end = daefp;
+            if (daefp_end != NULL) {
+              while (daefp_end->next != NULL) daefp_end = daefp_end->next;
               tssp = sym->variant.routine.instance_ptr->template_info;
               daefp_end->next = tssp->variant.function.def_arg_expr_list;
               tssp->variant.function.def_arg_expr_list = daefp;
-            } else {
-#if 0
-              /* Not yet implemented. */
-              internal_error("delayed_scan_fixup_for_class: not a routine");
-#endif /* if 0 */
             }  /* if */
+            /* Make sure no further processing will be done here and
+               make sure that the list isn't freed. */
+            daefp = NULL;
+            rfp->def_arg_expr_fixup_list = NULL;
+          } else {
+            /* The default arg token cache is discarded for declarations
+               that are not for member functions of the current class -- this
+               includes friend delcarations. */
+            for (; daefp != NULL; daefp = daefp->next) {
+              discard_token_cache(&daefp->token_cache);
+            }  /* for */
           }  /* if */
-          /* Make sure no further processing will be done here and
-             make sure that the list isn't freed. */
-          daefp = NULL;
-          rfp->def_arg_expr_fixup_list = NULL;
+        } else if (is_real_template_instantiation &&
+                   sym->kind == (a_symbol_kind)sk_member_function &&
+                   !is_friend) {
+          /* This is a real template instantiation and the default argument
+             list is for a member function of the class being instantiated.
+             Use the cache from the template symbol supplement instead of
+             the one that has just been created. */
+          for (; daefp != NULL; daefp = daefp->next) {
+            discard_token_cache(&daefp->token_cache);
+          }  /* for */
+          /* Scan the default arguments associated with the template for this
+             function. */
+          /* Get the template symbol from the instance pointer. */
+          tssp = sym->variant.routine.instance_ptr->template_sym->
+                               variant.routine.instance_ptr->template_info;
+          delayed_scan_for_function_template_default_args(
+                                              tssp->variant.function.routine,
+                                              sym->variant.routine.ptr, tssp);
         } else {
-          /* A friend function declaration in a real template instantiation
-             or just a normal (nontemplate) class. */
+          /* A friend (or other non-member-function) declaration in a real
+             template instantiation or any declaration in an ordinary
+             (nontemplate) class. */
           /* The function prototype scope should be reactivated and its symbols
              reentered because parameter names hide names from enclosing scopes
              and, moreover, may not be used in default argument expressions
