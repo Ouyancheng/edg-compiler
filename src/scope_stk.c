@@ -2464,37 +2464,6 @@ associated template.
 }  /* routine_defined */
 
 
-static a_boolean in_unnamed_namespace(a_source_correspondence *scp)
-/*
-Returns TRUE if and only if the given source correspondence entry *scp is
-for an entity that is a direct or indirect member of an unnamed namespace.
-Note that while parsing such an entity this can be determined more quickly
-from the scope stack, but when the scope stack has been popped this function
-may be useful.
-*/
-{
-  a_boolean result = FALSE;
-  while (scp) {
-    if (scp->is_class_member) {
-      scp = &scp->parent.class_type->source_corresp;
-    } else {
-      /* Presumably a namespace member: */
-      a_namespace *nsp = scp->parent.namespace_ptr;
-      if (nsp) {
-        scp = &nsp->source_corresp;
-        if (scp->name == NULL) {
-          result = TRUE;
-          break;
-        }  /* if */
-      } else {
-        break;
-      } /* if */
-    }  /* if */
-  }  /* while */
-  return result;
-}  /* in_unnamed_namespace */
-
-
 static void check_referenced_member_functions(a_scope_ptr scope,
                                               a_boolean   is_function_local,
                                               a_boolean   within_unnamed_class)
@@ -2831,30 +2800,17 @@ NULL.
         /* Referenced function.  We check the IL referenced flag because
            a reference in, say, a sizeof operation doesn't count. */
         if (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
-            ((storage_class == (a_storage_class)sc_static &&
-              rout_ptr->assoc_scope == NULL_region_number) ||
-             in_unnamed_namespace(&rout_ptr->source_corresp))) {
-          /* A non-external routine that is referenced was never given
-             a body (3.7, constraints).  This is checked only at the file
-             scope because there can be symbols with linkage defined in
-             inner scopes, but only the file scope declaration can have
-             a body. */
-          if (C_dialect == C_dialect_pcc) {
-            /* In pcc mode, just change the routine to extern. */
-            rout_ptr->storage_class = (a_storage_class)sc_extern;
-            rout_ptr->source_corresp.name_linkage =
-                                         (a_name_linkage_kind)nlk_external;
-          } else {
-            a_template_instance_ptr  tip = sym->variant.routine.instance_ptr;
-
-            if (tip != NULL && tip->explicit_instantiation) {
-              /* An error will already have been issued on the instantiation
-                 attempt. */
-            } else {
-              /* Routine with internal linkage was referenced but not
-                 defined. */
-              pos_sy_error(ec_never_defined, &sym->decl_position, sym);
-            }  /* if */
+            storage_class == (a_storage_class)sc_static &&
+            rout_ptr->assoc_scope == NULL_region_number) {
+          /* A routine with internal linkage (or in an unnamed namespace) was
+             never given a definition.  For nontemplate cases we check the
+             corresponding sk_extern_routine symbol; for template instances
+             there is no such symbol and hence we check it here. */
+          a_template_instance_ptr  tip = sym->variant.routine.instance_ptr;
+          /* If an attempt was made to explicitly instantiate the function
+             template, an error will have been issued already. */
+          if (tip != NULL && !tip->explicit_instantiation) {
+            pos_sy_error(ec_never_defined, &sym->decl_position, sym);
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_mode &&
@@ -2970,6 +2926,34 @@ NULL.
          compilation units. */
       if (var_ptr->storage_class == (a_storage_class)sc_unspecified) {
         var_ptr->source_corresp.referenced = TRUE;
+      }  /* if */
+      break;
+    case sk_extern_routine:
+       /* Check for a routine with internal linkage (or from an unnamed
+          namespace) that is referenced but not defined (3.7, constraints).
+          This is checked only at the file scope because there can be symbols
+          with linkage defined in inner scopes, but only the file scope
+          declaration can have a body.
+          The template instance case is handled under sk_routine because no
+          sk_extern_routine symbol is created for those.  For nontemplates the
+          sk_routine symbol might have been removed too early in the case of a
+          block-scope declaration in an unnamed namespace. */
+      rout_ptr = sym->variant.extern_symbol_descr->variant.routine.ptr;
+      if (rout_ptr->source_corresp.referenced) {
+        /* Referenced function.  We check the IL referenced flag because
+           a reference in, say, a sizeof operation doesn't count.*/
+        if (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+            rout_ptr->storage_class == (a_storage_class)sc_static &&
+            /* No definition: */rout_ptr->assoc_scope == NULL_region_number) {
+          if (C_dialect == C_dialect_pcc) {
+            /* In pcc mode, just change the routine to extern. */
+            rout_ptr->storage_class = (a_storage_class)sc_extern;
+            rout_ptr->source_corresp.name_linkage =
+                                         (a_name_linkage_kind)nlk_external;
+          } else {
+            pos_sy_error(ec_never_defined, &sym->decl_position, sym);
+          }  /* if */
+        }  /* if */
       }  /* if */
       break;
 #if CHECKING
