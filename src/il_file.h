@@ -136,6 +136,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
   sizeof(a_comment),
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+  sizeof(an_instantiation_directive),
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   sizeof(a_scope_orphaned_list_header),

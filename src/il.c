@@ -7979,7 +7979,6 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         default:
           fprintf(f_debug, "***BAD END-OF-CONSTRUCT KIND %s***",
                            il_entry_kind_names[(int)sseocp->entity.kind]);
-          
       }  /* switch */
     } else if (kind == (an_il_entry_kind)iek_class_member_using_decl) {
       a_class_member_using_decl_ptr  cmudp;
@@ -7996,6 +7995,17 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       udp = (a_using_directive_ptr)ssep->entity.ptr;
       fprintf(f_debug, " (at %lu): \"", udp->position.seq);
       db_name(&udp->assoc_namespace->source_corresp);
+      fputc('"', f_debug);
+    } else if (kind == (an_il_entry_kind)iek_instantiation_directive) {
+      an_instantiation_directive_ptr  idp;
+      idp = (an_instantiation_directive_ptr)ssep->entity.ptr;
+      fprintf(f_debug, " (at %lu): \"", idp->source_position.seq);
+      if (idp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+        db_type_name((a_type_ptr)idp->entity.ptr);
+      } else {
+        db_name(source_corresp_for_il_entry(idp->entity.ptr,
+                                         (an_il_entry_kind)idp->entity.kind));
+      }  /* if */
       fputc('"', f_debug);
     } else {
       a_source_position             *pos;

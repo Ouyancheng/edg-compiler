@@ -90,7 +90,8 @@ static unsigned long
 		num_source_sequence_entries_allocated,
 		num_src_seq_secondary_decls_allocated,
 		num_src_seq_end_of_constructs_allocated,
-		num_src_seq_sublists_allocated;
+		num_src_seq_sublists_allocated,
+		num_instantiation_directives_allocated;
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
 static unsigned long
 		num_comments_allocated;
@@ -2302,6 +2303,26 @@ Allocate a comment entry, initialize its fields, and return a pointer to it.
 }  /* alloc_comment */
 
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+
+an_instantiation_directive_ptr alloc_instantiation_directive(void)
+/*
+Allocate an instantiation-directive entry, initialize its fields, and return
+a pointer to it.
+*/
+{
+  an_instantiation_directive_ptr  idp;
+
+  idp = (an_instantiation_directive_ptr)alloc_il(
+                                          sizeof(an_instantiation_directive));
+#if DEBUG
+  num_instantiation_directives_allocated++;
+#endif /* DEBUG */
+  idp->source_position = null_source_position;
+  idp->entity.kind     = (a_byte_il_entry_kind)iek_none;
+  idp->entity.ptr      = NULL;
+
+  return idp;
+}  /* alloc_instantiation_directive */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if RECORD_HIDDEN_NAMES_IN_IL
 
@@ -2487,6 +2508,9 @@ Display and return the amount of space used for various IL tables.
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
   db_space_used("comment", num_comments_allocated, a_comment);
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+  db_space_used("instantiation_directive",
+                num_instantiation_directives_allocated,
+                an_instantiation_directive);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if RECORD_HIDDEN_NAMES_IN_IL
   db_space_used("hidden names", num_hidden_names_allocated, a_hidden_name);

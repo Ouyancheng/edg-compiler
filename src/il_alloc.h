@@ -162,6 +162,8 @@ extern a_src_seq_sublist_ptr alloc_src_seq_sublist(void);
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
 extern a_comment_ptr alloc_comment(void);
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+
+extern an_instantiation_directive_ptr alloc_instantiation_directive(void);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if RECORD_HIDDEN_NAMES_IN_IL

@@ -358,6 +358,8 @@ typedef enum /*an_il_entry_kind*/ {
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
   iek_comment,		/* a_comment */
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+  iek_instantiation_directive,
+			/* an_instantiation_directive */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   iek_scope_orphaned_list_header,
@@ -470,6 +472,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
 /* iek_comment */			"comment",
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+/* iek_instantiation_directive */	"instantiation-directive",
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 /* iek_scope_orphaned_list_header */	"scope-orphaned-list-header",
@@ -689,6 +692,22 @@ typedef struct a_comment {
 			/* Starting and ending positions of the comment. */
 } a_comment;
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+
+/*
+Entry describing a template instantiation directive.
+*/
+typedef struct an_instantiation_directive *an_instantiation_directive_ptr;
+typedef struct an_instantiation_directive {
+  a_source_position
+		source_position;
+			/* Source position of the start of the instantiation
+			   directive. */
+  a_tagged_pointer
+		entity;
+			/* Entry identifying the entity (a class, function,
+			   or static data member) specified in the template
+			   instantiation directive. */
+}  an_instantiation_directive;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 

@@ -2082,6 +2082,13 @@ after_entry_from_class:
       /* No pointers. */
       break;
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+    case iek_instantiation_directive:
+      {
+        an_instantiation_directive_ptr ptr =
+                                    (an_instantiation_directive_ptr)entry_ptr;
+        remap_ptr(ptr->entity.ptr, a_char_ptr,
+                  (an_il_entry_kind)ptr->entity.kind);
+      }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
     case iek_scope_orphaned_list_header:
       {

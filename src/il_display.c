@@ -3381,6 +3381,7 @@ Display the indicated source sequence sublist header.
 
 static void disp_comment(a_comment_ptr cp)
 /*
+Display the indicated comment entry.
 */
 {
   disp_unsigned_long("start_position.seq",
@@ -3394,6 +3395,20 @@ static void disp_comment(a_comment_ptr cp)
 }  /* disp_comment */
 
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+
+static void disp_instantiation_directive(an_instantiation_directive_ptr  idp)
+/*
+Display the indicated instantiation-directive entry.
+*/
+{
+  disp_unsigned_long("source_position.seq",
+                     (unsigned long)idp->source_position.seq);
+  disp_unsigned_long("source_position.column",
+                     (unsigned long)idp->source_position.column);
+  disp_ptr("entity", (char *)idp->entity.ptr,
+           (an_il_entry_kind)idp->entity.kind);
+}  /* disp_instantiation_directive */
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 
@@ -3612,6 +3627,10 @@ This routine is called during IL walking.
           disp_comment((a_comment_ptr)entry_ptr);
           break;
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+        case iek_instantiation_directive:
+          disp_instantiation_directive(
+                                   (an_instantiation_directive_ptr)entry_ptr);
+          break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
         case iek_scope_orphaned_list_header:
