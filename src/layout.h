@@ -30,6 +30,8 @@ typedef unsigned long an_unnormalized_bit_offset;
 #if USER_CONTROL_OF_STRUCT_PACKING
 extern a_boolean check_pack_alignment_value(long              value,
                                             a_targ_alignment  *alignment);
+
+extern void pack_pragma(a_pending_pragma_ptr ppp);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 extern void scan_bit_field_size(a_boolean         *unnamed_bit_field,
@@ -49,6 +51,10 @@ extern a_boolean set_field_size_and_offset(
                                     a_targ_alignment            *p_alignment);
 
 extern void do_class_layout(a_type_ptr  class_type);
+
+extern void layout_one_time_init(void);
+
+extern void layout_init(void);
 
 #endif /* LAYOUT_H */
 

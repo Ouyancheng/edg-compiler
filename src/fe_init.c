@@ -432,6 +432,7 @@ unit, in case multiple source files are allowed.
   error_one_time_init();
   expr_one_time_init();
   il_one_time_init();
+  layout_one_time_init();
   lexical_one_time_init();
   macro_one_time_init();
   mem_manage_one_time_init();
@@ -494,6 +495,7 @@ to replace the initial portion of this compilation.
   lexical_init();
   symbol_tbl_init();
   class_decl_init();
+  layout_init();
   def_arg_init();
   templates_init();
   expr_init();
