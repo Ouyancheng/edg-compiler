@@ -1,5 +1,14 @@
 Version 2.35
 
+2/24/97  Incorrect handling of template argument lists with operator names
+
+Template argument lists in which the last argument was an operator new were
+not being handled correctly.  This could result in spurious errors
+on such cases.  This has been fixed.
+
+  template <void * (*fp)(unsigned int)> class A {};
+  A < operator new > a;
+
 2/23/97  Internal error on error recovery -- default argument
 
 An internal error encounter in the following has been fixed:

@@ -7517,7 +7517,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
 */
 {
   a_source_position               start_position;
-  a_source_position               locator_pos;
   a_template_arg_ptr              arg_list = NULL;
   a_symbol_ptr                    new_sym = NULL;
   a_symbol_ptr			  current_instantiation_sym;
@@ -7527,15 +7526,17 @@ a routine to lookup the appropriate instance (or generate one if needed).
   a_boolean			  class_is_being_instantiated = FALSE;
   a_boolean			  arg_list_coalesced = FALSE;
   a_boolean			  arg_list_processed = FALSE;
+  a_symbol_locator		  orig_locator;
+  a_boolean			  error_locator_created = FALSE;
 
   db_enter(3, "coalesce_template_class_reference");
 
   *err = FALSE;
   next_tok = next_token();
   /* Save source position for error reporting. */
+  orig_locator = locator_for_curr_id;
   start_position = pos_curr_token;
   /* Save the current locator. */
-  locator_pos = locator_for_curr_id.source_position;
   if (template_sym == NULL ||
       template_sym->kind != (a_symbol_kind)sk_class_template) {
     /* The symbol is not a class template symbol.  If the symbol
@@ -7633,6 +7634,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
           make_specific_symbol_error_locator(&locator_for_curr_id);
           new_sym = locator_for_curr_id.specific_symbol;
           any_errors = TRUE;
+          error_locator_created = TRUE;
           goto normal_exit;
         }  /* if */
       }  /* if */
@@ -7755,6 +7757,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
     /* An error occurred while scanning the argument list so make an error
        locator and return a pointer to its specific symbol. */
     make_specific_symbol_error_locator(&locator_for_curr_id);
+    error_locator_created = TRUE;
     new_sym = locator_for_curr_id.specific_symbol;
   }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
@@ -7774,21 +7777,27 @@ normal_exit:
      have just looked up.  If the current token is an end of source marker,
      unget that token so that we don't bypass it. */
   curr_token = tok_identifier;
-  /* Update the locator to reflect the new symbol that is being returned
-     and restore the source position of the beginning of the template
-     class reference.  The symbol header is updated to point to the
-     symbol associated with the class template name.  The header will
-     have been modified by scanning the argument list.  If a template
-     argument list has been coalesced, set the do_not_clear_speecific
-     symbol field of the locator.  This is needed to ensure because the
-     argument list information is now represented by the fact that the
-     specific symbol points to a particular template class instance, and
-     this information cannot be recreated once the template reference has
-     been coalesced. */
+  /* Update the locator to reflect the new symbol that is being returned.
+     We start by restoring the locator as it was when this routine was
+     called and then update it to reflect the new symbol that was produced
+     by this process.  The symbol header should already be correct but
+     is updated just for safety.   If a template argument list has been
+     coalesced, set the do_not_clear_speecific symbol field of the locator.
+     This is needed to ensure because the argument list information is now
+     represented by the fact that the specific symbol points to a particular
+     template class instance, and this information cannot be recreated
+     once the template reference has been coalesced. */
+  if (error_locator_created) {
+    /* Don't reset the locator if we created an error locator earlier.
+       Just update the source position to reflect the position of the
+       original locator. */
+    locator_for_curr_id.source_position = orig_locator.source_position;
+  } else {
+    locator_for_curr_id = orig_locator;
+  }  /* if */
   locator_for_curr_id.specific_symbol = new_sym;
   locator_for_curr_id.do_not_clear_specific_symbol = arg_list_coalesced;
   locator_for_curr_id.symbol_header = new_sym->header;
-  locator_for_curr_id.source_position = locator_pos;
   locator_for_curr_id.is_template_id = TRUE;
   /* Set source position for error reporting. */
   error_position = start_position;
