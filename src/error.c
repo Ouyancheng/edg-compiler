@@ -1910,8 +1910,8 @@ error code.
     case ec_qualified_reference_type:
       m = "type qualifier on a reference type is meaningless";
       break;
-    case ec_incompatible_conv_operands:
-      m = "operand types are incompatible (%t2 and %t1)";
+    case ec_incompatible_assignment_operands:
+      m = "a value of type %t1 cannot be assigned to an entity of type %t2";
       break;
     case ec_unsigned_compare_with_negative:
       m = "pointless comparison of unsigned integer with a negative constant";

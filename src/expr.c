@@ -6245,7 +6245,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
                                  TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION |
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
       prep_assignment_operand(&operand_2, result_type,
-                              ec_incompatible_conv_operands,
+                              ec_incompatible_assignment_operands,
                               &operator_position);
       build_binary_result_operand(operand_1, &operand_2,
                                   which_binary_operator(tok_assign,
