@@ -1310,10 +1310,11 @@ issuing an error on an incomplete type.
       remove_stop_token(tok_rparen);
       check_closing_paren_after_expr_list();
     }  /* if */
-  } else if (curr_token == tok_lbrace || is_aggregate_or_union_type(vp_type)) {
+  } else if (is_aggregate_or_union_type(vp_type) ||
+             (is_error_type(vp_type) && curr_token == tok_lbrace)) {
     /* Either a brace enclosed list of initializers or other aggregate
        initialization. */
-    if (is_class_struct_union_type(vp_type) &&
+    if (curr_token != tok_lbrace && is_class_struct_union_type(vp_type) &&
         (C_dialect == C_dialect_cplusplus || !static_lifetime)) {
       /* Special C++ case:  a class aggregate may be initialized with an
          object of its class or a class derived from it.  E.g., if S is the
@@ -1328,7 +1329,7 @@ issuing an error on an incomplete type.
         /* No appropriate constructor was found.  Abort the initialization. */
         init_err = TRUE;
       }  /* if */
-    } else if (is_aggregate_or_union_type(vp_type) || is_error_type(vp_type)) {
+    } else {
       /* Ordinary C-style aggregate initialization, usually with a brace-
          enclosed list of values.  Except that in C++ such lists may include
          non-constants. */
@@ -1353,17 +1354,12 @@ issuing an error on an incomplete type.
           *incomplete_type_error_reported = TRUE;
         }  /* if */
       }  /* if */
-    } else {
-      /* A simple object is being intialized, but the initializer was
-         surrounded by braces -- int i = { 0 }; */        
-      check_for_opening_brace(&brace_flag);
-      goto initialize_nonaggregate_object;
     }  /* if */
   } else {
     /* A non-aggregate object is being initialized.  Braces are permitted
        but not required.  A constant or non-constant expression may be
        permitted as the initializer. */
-initialize_nonaggregate_object:
+    check_for_opening_brace(&brace_flag);
     nonconstant_allowed = (!C_mode() || !static_lifetime);
     /* Scan the initializer.  Either a constant pointer is returned or else
        a dynamic init entry representing an expression. */
