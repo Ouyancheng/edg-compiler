@@ -8764,6 +8764,8 @@ eliminated, if appropriate.
   }  /* for */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   if (scope->kind == (a_scope_kind)sck_file) {
+    /* Remove scope-orphaned-list headers that are associated with routines
+       whose bodies have been eliminated. */
     a_scope_orphaned_list_header_ptr  solhp, prev_solhp, next_solhp;
     prev_solhp = NULL;
     for (solhp = il_header.scope_orphaned_list_headers;
@@ -8772,8 +8774,13 @@ eliminated, if appropriate.
       next_solhp = solhp->next;
       rp = solhp->assoc_routine;
       if (rp->defined) {
+        /* The "defined" flag has not be reset to FALSE so the body of this
+           routine has not been eliminated. */
         prev_solhp = solhp;
       } else {
+        /* This one has.  First traverse the variables list.  If any
+           variables on the orphaned list are marked "keep_in_il", the
+           orphaned-list header itself has to be kept, too. */
         prev_vp = NULL;
         for (vp = solhp->orphaned_variables; vp != NULL; vp = next_vp) {
           next_vp = vp->next;
@@ -8796,7 +8803,8 @@ eliminated, if appropriate.
           } else {
             prev_vp = vp;
           }  /* if */
-        }  /* for */  
+        }  /* for */
+        /* Traverse the types list. */
         prev_tp = NULL;
         for (tp = solhp->orphaned_types; tp != NULL; tp = next_tp) {
           next_tp = tp->next;
@@ -8819,13 +8827,41 @@ eliminated, if appropriate.
           } else {
             prev_tp = tp;
           }  /* if */
-        }  /* for */  
-        if (solhp->orphaned_variables != NULL ||
-            solhp->orphaned_types != NULL
+        }  /* for */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-            || solhp->orphaned_src_seq_sublists != NULL
+        if (solhp->orphaned_src_seq_sublists != NULL) {
+          /* Whether or not the header itself remains in the IL, the
+             source sequence information associated with the function body
+             is unneeded.  First go through all the source sequence entries
+             and clear out pointers from IL entries back to them. */
+          a_source_sequence_entry_ptr  ssep;
+          a_src_seq_sublist_ptr        sublist;
+          a_source_correspondence      *scp;
+
+          for (sublist = solhp->orphaned_src_seq_sublists;
+               sublist != NULL;
+               sublist = sublist->next) {
+            for (ssep = sublist->source_sequence_list;
+                 ssep != NULL;
+                 ssep = ssep->next) {
+              scp = source_corresp_for_il_entry(ssep->entity.ptr,
+                                                (an_il_entry_kind)ssep->
+                                                              entity.kind);
+              if (scp != NULL) {
+                check_assertion(scp->source_sequence_entry == ssep ||
+                                scp->source_sequence_entry == NULL);
+                scp->source_sequence_entry = NULL;
+              }  /* if */
+            }  /* for */
+          }  /* for */
+          /* Now throw away the list. */
+          solhp->orphaned_src_seq_sublists = NULL;
+        }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-                                                       ) {
+        /* Only retain scope-orphaned-list header for which non-NULL lists
+           remain. */
+        if (solhp->orphaned_variables != NULL ||
+            solhp->orphaned_types != NULL) {
           prev_solhp = solhp;
           /* The scope-orphaned-list header is being retained in the IL, and
              it points to the routine, so be sure the routine entry is kept,
@@ -8833,32 +8869,8 @@ eliminated, if appropriate.
           if (!il_entry_prefix_of(rp).keep_in_il) {
             mark_to_keep_in_il((char *)rp, (an_il_entry_kind)iek_routine);
           }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-          if (solhp->orphaned_src_seq_sublists != NULL) {
-            a_source_sequence_entry_ptr  ssep;
-            a_src_seq_sublist_ptr        sublist;
-            a_source_correspondence      *scp;
-
-            for (sublist = solhp->orphaned_src_seq_sublists;
-                 sublist != NULL;
-                 sublist = sublist->next) {
-              for (ssep = sublist->source_sequence_list;
-                   ssep != NULL;
-                   ssep = ssep->next) {
-                scp = source_corresp_for_il_entry(ssep->entity.ptr,
-                                                  (an_il_entry_kind)ssep->
-                                                                entity.kind);
-                if (scp != NULL) {
-                  check_assertion(scp->source_sequence_entry == ssep ||
-                                  scp->source_sequence_entry == NULL);
-                  scp->source_sequence_entry = NULL;
-                }  /* if */
-              }  /* for */
-            }  /* for */
-            solhp->orphaned_src_seq_sublists = NULL;
-          }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         } else {
+          /* Unlink it. */
           if (prev_solhp == NULL) {
             il_header.scope_orphaned_list_headers = next_solhp;
           } else {
