@@ -147,6 +147,26 @@ extern a_boolean reconcile_external_symbol_types(
                             a_type_ptr            type_ptr,
                             a_boolean             suppress_incompatible_error);
 
+extern a_symbol_ptr curr_tag_symbol(a_symbol_kind tag_kind);
+
+extern a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
+                                       a_symbol_locator *locator,
+                                       a_boolean        at_file_scope,
+                                       a_boolean        suppress_redecl_error);
+
+extern a_boolean declaration_specifiers(a_decl_flag_set	input_flags,
+					a_decl_flag_set	*output_flags,
+					a_storage_class *storage_class,
+					a_type_ptr      *type_ptr);
+
+extern void declarator(a_boolean         real_declarator_allowed,
+                       a_boolean         abstract_declarator_allowed,
+		       a_type_ptr        specifiers_type,
+                       a_symbol_locator  *locator,
+                       a_type_ptr        *p_complete_type,
+                       a_type_ptr        *p_bottom_derived_type,
+                       a_func_info_block *func_info);
+
 #if ASM_FUNCTION_ALLOWED
 /* Routine is only needed externally when asm functions are allowed. */
 extern void decl_var_or_routine(a_symbol_locator   *locator,
@@ -206,19 +226,6 @@ typedef int a_decl_flag_set;
 #define DSO_JUST_VOID 0x80
 			/* If this bit is set the keyword "void" was found,
 			   and nothing else. */
-
-extern a_boolean declaration_specifiers(a_decl_flag_set	input_flags,
-					a_decl_flag_set	*output_flags,
-					a_storage_class *storage_class,
-					a_type_ptr      *type_ptr);
-
-extern void declarator(a_boolean         real_declarator_allowed,
-                       a_boolean         abstract_declarator_allowed,
-		       a_type_ptr        specifiers_type,
-                       a_symbol_locator  *locator,
-                       a_type_ptr        *p_complete_type,
-                       a_type_ptr        *p_bottom_derived_type,
-                       a_func_info_block *func_info);
 
 #endif /* DECLS_H */
 
