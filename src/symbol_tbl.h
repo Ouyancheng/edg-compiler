@@ -103,7 +103,7 @@ Clear a symbol locator.
    (loc1).specific_symbol == (loc2).specific_symbol)
 
 /* Set a symbol locator to a dummy value indicating an error. */
-#define set_to_error_locator(loc) clear_locator(&loc, &error_position)
+#define set_to_error_locator(loc) clear_locator(&(loc), &error_position)
 
 /* Test a locator to see if it is an error locator. */
 #define is_error_locator(loc) ((loc).symbol_header == NULL)
