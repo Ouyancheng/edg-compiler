@@ -3429,6 +3429,7 @@ Return TRUE if node1 and node2 are equivalent expression trees.
       case enk_routine_address:
         eq = (node1->variant.routine == node2->variant.routine);
         break;
+      case enk_temp_init:
       case enk_error:
         /* Nonequivalence is assumed. */
         break;
