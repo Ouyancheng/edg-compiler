@@ -4672,6 +4672,32 @@ Allocate and initialize an expression node.
 }  /* alloc_expr_node */
 
 
+void set_expr_result_not_used(an_expr_node_ptr node)
+/*
+Mark the given node to indicate that its result is not used, i.e., that
+the value of the expression is discarded.
+*/
+{
+  node->result_is_not_used = TRUE;
+  /* For some operations, subnodes get marked too. */
+  if (node->kind == (an_expr_node_kind)enk_operation) {
+    an_expr_operator_kind op = node->variant.operation.kind;
+    an_expr_node_ptr      operand_1 = node->variant.operation.operands;
+
+    if (op == (an_expr_operator_kind)eok_comma) {
+      /* Given a comma operation, the second operand is not used if the
+         entire operation is not used. */
+      set_expr_result_not_used(operand_1->next);
+    } else if (op == (an_expr_operator_kind)eok_question) {
+      /* Given a question mark operation, the second and third operands
+         are not used if the entire operation is not used. */
+      set_expr_result_not_used(operand_1->next);
+      set_expr_result_not_used(operand_1->next->next);
+    }  /* if */
+  }  /* if */
+}  /* set_expr_result_not_used */
+  
+
 void set_node_operator(an_expr_node_ptr      node,
                        an_expr_operator_kind kind,
 	   	       a_type_ptr            type,
@@ -4686,7 +4712,7 @@ Set the operator, type, and operand list in an operator expression node.
   node->variant.operation.operands = operands;
   if (kind == (an_expr_operator_kind)eok_comma) {
     /* The value of the first operand of a comma operator is not used. */
-    operands->result_is_not_used = TRUE;
+    set_expr_result_not_used(operands);
   }  /* if */
 }  /* set_node_operator */
 
@@ -4802,6 +4828,7 @@ Allocate a copy of an expression node and return a pointer to it.
   /* Copy the node. */
   *expr_copy = *expr;
   expr_copy->next = NULL;
+  expr_copy->result_is_not_used = FALSE;
   if (kind == (an_expr_node_kind)enk_new_delete) {
     /* Copy the new/delete supplement. */
     *copy_new_delete = *expr->variant.new_delete;

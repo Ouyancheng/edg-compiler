@@ -295,8 +295,6 @@ is an explicit cast-to-void node, for which a warning should not be issued.
   }  /* while */
   /* See if the node has some effect. */
   if (!*has_effect) *has_effect = node_has_side_effects(node);
-  /* Mark the node to indicate that the result is not used. */
-  node->result_is_not_used = TRUE;
   /* Put the possibly updated pointer back into *node_ptr. */
   *node_ptr = node;
 }  /* simplify_void_node */
@@ -7399,6 +7397,8 @@ This routine is not used for constant or not-evaluated expressions.
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
   simplify_void_operand(&result);
   expression = make_node_from_operand(&result);
+  /* Indicate that the value of the node is not used. */
+  set_expr_result_not_used(expression);
   pop_expr_stack();
 
 #if DEBUG

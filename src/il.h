@@ -347,6 +347,8 @@ extern void clear_expr_node(an_expr_node_ptr  node,
 
 extern an_expr_node_ptr alloc_expr_node(an_expr_node_kind node_kind);
 
+extern void set_expr_result_not_used(an_expr_node_ptr node);
+
 extern void set_node_operator(an_expr_node_ptr      node,
                               an_expr_operator_kind kind,
 	   	              a_type_ptr            type,
