@@ -39,7 +39,7 @@ class_name::constant.
 8/28/01  Typedefs and cv-qualifiers preserved in runtime sizeof type
 
 The type recorded in an enk_runtime_sizeof expression node
-now reserves any typedefs or cv-qualifiers that were in the
+now preserves any typedefs or cv-qualifiers that were in the
 source code.  enk_runtime_sizeof is typically used only in
 source-to-source versions or in prototype instantiations.
 
