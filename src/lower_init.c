@@ -5412,9 +5412,13 @@ copy nothing) but keep any side effects.
                                              targ_size_t_int_kind);
           call_node = make_runtime_rout_call("memcpy", &memcpy_routine,
                                              void_star_type(), op1);
-          if (!returns_lvalue && !expr->result_is_not_used) {
-            call_node = add_cast(call_node, make_pointer_type(expr->type));
-            call_node = add_indirection_to_node(call_node);
+          if (!expr->result_is_not_used) {
+            if (!returns_lvalue) {
+              call_node = add_cast(call_node, make_pointer_type(expr->type));
+              call_node = add_indirection_to_node(call_node);
+            } else {
+              call_node = add_cast(call_node, expr->type);
+            }  /* if */
           }  /* if */
           overwrite_node(expr, call_node);
         }  /* if */
