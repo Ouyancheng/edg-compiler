@@ -1,5 +1,30 @@
 Version 3.6
 
+2/13/05  GNU two-operand "?" operator supported in GNU C++ mode
+
+The two-operand form of the "?" operator, formerly supported only
+in GNU C mode, is now also supported in GNU C++ mode.  An expression
+like "a ?: b" means exactly the same as "a ? a : b" except that
+a is evaluated only once.  In C++, various conversions can be
+applied to the first operand to give it the bool type required
+in the first operand position, or the same type as the third
+operand in the synthesized second operand position.
+
+IL CHANGE: We eliminated the eok_binary_question operator used
+for this function previously, and instead added a new flag
+(is_gnu_two_operand_question_mark) to the normal eok_question
+operator that indicates the two-operand case.  The expression
+still has three operands, with the second one being a synthesized
+expression.  (For example, "a ?: b" in the simplest case would
+look like "a ? a : b" plus a flag saying the original form had
+two operands.)  We also added a new expression kind enk_reuse_value
+that can be used to refer again to the value of a dynamic
+initialization under an enk_temp_init in the current expression.
+This is used to refer again to the first operand value without
+evaluating it a second time.  The dynamic initialization entry
+pointed to is marked with the flag is_reused_value.  All these
+IL changes are eliminated by IL lowering.
+
 2/10/05  Performance improvement in using-directive lookups
 
 The performance of using-directive lookups has been improved, particularly
