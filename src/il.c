@@ -8754,7 +8754,7 @@ unlink it from the latter's destructions list, and clear the pointer in
 the dynamic init entry to the object lifetime.
 */
 {
-  an_object_lifetime_ptr  olp = dip->lifetime;
+  an_object_lifetime_ptr  olp = dip->lifetime, colp;
   a_dynamic_init_ptr      prev;
 
   if (olp != NULL) {
@@ -8776,6 +8776,14 @@ the dynamic init entry to the object lifetime.
         prev = prev->next_in_destruction_list;
       }  /* for */
     }  /* if */
+    /* If any child lifetime has its parent_destruction_sublist pointing
+       to the removed dynamic init, change the pointer to the next entry
+       on the destruction list. */
+    for (colp = olp->child_lifetime; colp != NULL; colp = colp->next) {
+      if (colp->parent_destruction_sublist == dip) {
+        colp->parent_destruction_sublist = dip->next_in_destruction_list;
+      }  /* if */
+    }  /* for */
     dip->next_in_destruction_list = NULL;
     /* Clear the lifetime pointer in the dynamic init entry.  Note: it should
        be set if and only if it is on the list of the entry pointed to. */

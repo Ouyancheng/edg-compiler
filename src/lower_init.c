@@ -2213,6 +2213,12 @@ in default_version_of_routine).
   /* Make a statement containing the call and insert it at the right
      location. */
   (void)insert_expr_statement_set_pos(call_node, insert_location);
+  if (dip->destructor != NULL) {
+    /* Since the destruction is managed by the runtime routine, remove
+       it from the cleanup list. */
+    check_assertion(dip->destruction_is_for_partially_constructed_aggregate);
+    remove_from_destruction_list(dip);
+  }  /* if */
 }  /* add_array_constructor_call */
 
 
@@ -3188,6 +3194,9 @@ and update *insert_location accordingly.
   /* Make a statement containing the call and insert it at the right
      location. */
   (void)insert_expr_statement_set_pos(call_node, insert_location);
+  /* Remove the dynamic initialization from the destruction list, since
+     its destruction is now handled by the static cleanup mechanism. */
+  remove_from_destruction_list(dip);
 }  /* record_needed_destruction */
 
 
