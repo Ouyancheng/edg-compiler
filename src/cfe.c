@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
     /* Get the back end starting time. */
     get_timer(&be_start_time);
     /* Display the amount of time used by the front end. */
-    display_time_used("front end time", &fe_start_time, &be_start_time);
+    display_time_used("Front end time", &fe_start_time, &be_start_time);
 
 #if BACK_END_SHOULD_BE_CALLED
     /* Run the back end if required, if there are no errors. */
@@ -96,8 +96,8 @@ int main(int argc, char *argv[])
       back_end();
       /* Get the back end starting time. */
       get_timer(&be_end_time);
-      /* Display the amount of time used by the front end. */
-      display_time_used("back end time", &be_start_time, &be_end_time);
+      /* Display the amount of time used by the back end. */
+      display_time_used("Back end time", &be_start_time, &be_end_time);
     }  /* if */
 #endif /* BACK_END_SHOULD_BE_CALLED */
 
