@@ -377,6 +377,12 @@ and indentation is the indentation desired.
     case sk_projection:
       put_access(sym->variant.projection.access);
       if (sym->variant.projection.ambiguous) put_string("ambig");
+      if (sym->variant.projection.access_adjustment_made) {
+        put_string("access decl");
+      }  /* if */
+      if (sym->variant.projection.intervening_access_adjustment) {
+        put_string("intervening access decl");
+      }  /* if */
       { a_projection_descr_ptr pdp = sym->variant.projection.extra_info;
         if (pdp->fundamental_base_class != NULL &&
             pdp->fundamental_base_class->derivation != NULL) {
@@ -874,6 +880,7 @@ state.
         sym_ptr->variant.projection.access    = (an_access_specifier)as_public;
         sym_ptr->variant.projection.ambiguous = FALSE;
         sym_ptr->variant.projection.access_adjustment_made = FALSE;
+        sym_ptr->variant.projection.intervening_access_adjustment = FALSE;
       }
       break;
     case sk_overloaded_function:
@@ -1499,8 +1506,16 @@ added to the scope symbols list and is not linked into the symbol table.
   sym->variant.projection.ambiguous = ambiguous;
   pdp = sym->variant.projection.extra_info;
   if (progenitor_sym->kind == (a_symbol_kind)sk_projection) {
+    /* The "progenitor" of this new projection symbol is itself a projection
+       symbol. */
     progenitor_pdp = progenitor_sym->variant.projection.extra_info;
     pdp->fundamental_symbol = progenitor_pdp->fundamental_symbol;
+    /* Set the flag indicating whether there are any intervening access
+       declarations in the inheritance path. */
+    if (progenitor_sym->variant.projection.access_adjustment_made ||
+        progenitor_sym->variant.projection.intervening_access_adjustment) {
+      sym->variant.projection.intervening_access_adjustment = TRUE;
+    }  /* if */
   } else {
     pdp->fundamental_symbol = progenitor_sym;
   }  /* if */
@@ -1516,7 +1531,7 @@ added to the scope symbols list and is not linked into the symbol table.
       if (bcp->type == pdp->fundamental_symbol->class_of_which_a_member) {
         pdp->fundamental_base_class = bcp;
 #if CHECKING
-        /* Confirm that the type match was in fact for sufficient.  The code
+        /* Confirm that the type match was in fact sufficient.  The code
            corresponds to the more expensive search used in the presence of
            ambiguity (see below). */
         for (tail = path; tail->next != NULL; tail = tail->next) {}

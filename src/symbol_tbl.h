@@ -617,6 +617,12 @@ typedef struct a_symbol {
 			/* If TRUE an access declaration has been made for
 			   the projection symbol, in which case it cannot
 			   be overridden by a local symbol of the same name. */
+      unsigned int
+		intervening_access_adjustment:1;
+			/* TRUE if the access of the inherited name was
+			   modified by an access declaration anywhere on the
+			   derivation path between the fundamental symbol and
+			   the current projection. */
     } projection;
     /* When kind = sk_overloaded_function: */
     struct {
