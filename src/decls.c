@@ -463,6 +463,7 @@ this is something other than a declaration; otherwise return FALSE.
 */
 {
   a_boolean  is_decl = TRUE;
+  a_boolean  may_be_constructor = FALSE;
 
   db_enter(3, "prescan_declaration");
   if (next_token() == tok_lparen &&
@@ -473,6 +474,14 @@ this is something other than a declaration; otherwise return FALSE.
         curr_token == tok_double || curr_token == tok_signed ||
         curr_token == tok_unsigned)) {
     /* Disambiguation is required. */
+    if (curr_token == tok_identifier) {
+      a_symbol_ptr sym = locator_for_curr_id.specific_symbol;
+      if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
+          sym->kind == (a_symbol_kind)sk_union_tag) {
+        /* Assume a constructor may exist for this type. */
+        may_be_constructor = TRUE;
+      }  /* if */
+    }  /* if */
     /* Cache the current token.  Then advance past the left paren and cache
        it, too. */
     cache_curr_token(token_cache_ptr);
@@ -489,6 +498,13 @@ this is something other than a declaration; otherwise return FALSE.
         /* It looks like an abstract declarator, so the whole thing is a
            declarator. */
       }  /* if */
+    } else if (may_be_constructor &&
+               (curr_token == tok_rparen ||
+                !is_decl_start() ||
+                (curr_token == tok_identifier && !curr_id_is_type_name()) ||
+                !prescan_declaration(token_cache_ptr,
+                                     /*abstract_declarator_allowed=*/FALSE))) {
+      is_decl = FALSE;
     } else {
       /* Cache all tokens up to the corresponding right paren.  (Note that
          tok_rparen is the only thing in the stop token array.) */
