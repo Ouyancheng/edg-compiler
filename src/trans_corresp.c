@@ -1020,10 +1020,9 @@ associated symbols are listed under the same header).
     if (!match) {
       /* This is possible if the associated symbol is not part of the symbol
          table (which is TRUE of template instances). */
-      match = !strncmp(sh1->identifier, sh2->identifier,
-                       (sh1->identifier_length < sh2->identifier_length) ?
-                                             (size_t)sh1->identifier_length :
-                                             (size_t)sh2->identifier_length);
+      match = (sh1->identifier_length == sh2->identifier_length) &&
+              !strncmp(sh1->identifier, sh2->identifier,
+                       (size_t)sh1->identifier_length);
     }  /* if */
   }  /* if */
   return match;
