@@ -2563,6 +2563,15 @@ special function kind (e.g., constructor, destructor), if any.
   a_conversion_list_entry_ptr    clep;
 
   db_enter(3, "decl_member_function");
+  /* The routine type should never be a typedef, but instead the base
+     type referred to in a typedef declaration. */
+#if CHECKING
+  if (is_qualified_type(member_type)) {
+    internal_error("decl_var_or_routine: qualified function type");
+  }  /* if */
+#endif /* CHECKING */
+  member_type = skip_typerefs(member_type);
+  /* Look for a prior declaration or function overloading. */
   sym = symbol_for_member_function(locator, member_type, &overload_sym);
   if (sym->variant.routine != NULL) {
     /* symbol_for_member_function has returned a symbol that has already

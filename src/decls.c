@@ -2582,6 +2582,16 @@ otherwise, set *ext_sym to NULL.
 #endif /* CHECKING */
   *old_type = NULL;
   is_function = is_function_type(type_ptr);
+  if (is_function) {
+    /* The routine type should never be a typedef, but instead the base
+       type referred to in a typedef declaration. */
+#if CHECKING
+    if (is_qualified_type(type_ptr)) {
+      internal_error("decl_var_or_routine: qualified function type");
+    }  /* if */
+#endif /* CHECKING */
+    type_ptr = skip_typerefs(type_ptr);
+  }  /* if */
   if (inline_specified) {
 #if CHECKING
     if (storage_class != (a_storage_class)sc_unspecified &&
