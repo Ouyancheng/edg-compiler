@@ -884,6 +884,7 @@ ec_ptr_or_ref_to_incomplete_type;;"pointer or reference to incomplete type is no
 ec_bad_partial_specialization;;"invalid partial specialization -- %n is already fully specialized"
 ec_incompatible_exception_specs;;"incompatible exception specifications"
 ec_returning_ref_to_local_variable;;"returning reference to local variable"
+ec_nonstd_implicit_int;;"omission of explicit type is nonstandard (\"int\" assumed)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
