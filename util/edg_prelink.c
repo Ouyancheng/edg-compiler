@@ -452,7 +452,8 @@ typedef enum /*a_pl_error_code*/ {
   pl_ec_cannot_open_obj_file_list_file,
   pl_ec_cannot_open_info_file,
   pl_ec_cannot_chdir,
-  pl_ec_no_nm_info
+  pl_ec_no_nm_info,
+  pl_ec_popen_failed
 } a_pl_error_code;
 
 
@@ -523,6 +524,9 @@ string.
     break;
   case pl_ec_no_nm_info:
     m = "no output produced by nm -- possible configuration problem";
+    break;
+  case pl_ec_popen_failed:
+    m = "unable to create process for nm command";
     break;
   default:
     pl_internal_error("invalid error code");
@@ -2753,6 +2757,7 @@ end_of_options:
 
       /* Execute the nm command. */
       f_command_output = popen(command, "r");
+      if (f_command_output == NULL) pl_error(pl_ec_popen_failed, (char *)NULL);
       /* Read the nm output. */
       pl_read_nm_output();
       pclose(f_command_output);

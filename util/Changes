@@ -1,5 +1,12 @@
 Version 2.30
 
+7/26/95  Checking return value of popen in edg_prelink
+
+edg_prelink did not check the return value of popen to determine
+whether an error occurred.  This could result in an abort if
+the nm process could not be created for some reason.  This has
+been fixed.
+
 7/26/95  Executable permissions when using "patch" with eccp
 
 eccp has been changed to respect the umask setting when changing
