@@ -7572,6 +7572,10 @@ in doing substitution on a type), set *copy_error to TRUE.
         if (new_type == con->type &&
             other_con == con->variant.template_param.variant.constant) {
           /* No change in the type or constant. */
+        } else if (is_incomplete_type(new_type) ||
+                   is_class_struct_union_type(new_type)) {
+          /* You can't cast to an incomplete type or a class type. */
+          *copy_error = TRUE;
         } else {
           if (other_con != NULL) *constant = *other_con;
           /* Do the cast again with the type and constant after
