@@ -1414,7 +1414,8 @@ parameter controls the restrictions imposed by the context.
       (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,
                             &dummy_storage_class, &dummy_type_ptr);
       if (is_reference_type(complete_type)) {
-        warning(ec_qualified_reference_type);
+        diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
+                   ec_qualified_reference_type);
       }  /* if */
       complete_type = make_qualified_type(complete_type,
                                           dso_flags & DSO_CONST_QUALIFIED,
