@@ -3409,10 +3409,18 @@ in C++ mode.  See ARM 13.
       goto distinguishable_determined;
     }  /* if */
     /* Compare the parameter types. */
-    for (old_param = old_extra_info->param_type_list,
-         new_param = new_extra_info->param_type_list;
-         old_param != NULL || new_param != NULL;
-         old_param = old_param->next, new_param = new_param->next) {
+    old_param = old_extra_info->param_type_list;
+    new_param = new_extra_info->param_type_list;
+    if ((!old_extra_info->prototyped && old_param == NULL) ||
+        (!new_extra_info->prototyped && new_param == NULL)) {
+      /* In C++ an old-style declaration can have an empty param list only
+         as the result of an error.  Assume an error is distinguishable from
+         anything else. */
+      distinguishable = TRUE;
+      goto distinguishable_determined;
+    }  /* if */
+    for (; old_param != NULL || new_param != NULL;
+           old_param = old_param->next, new_param = new_param->next) {
       if (old_param == NULL || new_param == NULL) {
         /* The parameter lists do not end at the same point, so they
            are distinguishable. */
