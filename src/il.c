@@ -11885,11 +11885,11 @@ Display a class list for debugging purposes.
     a_boolean              secondary = in_secondary_trans_unit(list);
     a_class_list_entry_ptr entry;
     for (entry = list; entry != NULL; entry = entry->next) {
-      fprintf(f_debug, "  ");
       if (secondary != in_secondary_trans_unit(entry)) {
-        (void)fprintf(f_debug, "***switch between translation units***\n");
+        (void)fprintf(f_debug, "  ***switch between translation units***\n");
         secondary = !secondary;
       }  /* if */
+      fprintf(f_debug, "  ");
       db_abbreviated_type(entry->class_type);
       fprintf(f_debug, "\n");
     }  /* for */
