@@ -827,7 +827,13 @@ the lists.
       corresp_routine->inline_instance_required |=
                                              routine->inline_instance_required;
 #endif /* INSTANTIATE_EXTERN_INLINE */
-      corresp_routine->suppress_inline_body &= routine->suppress_inline_body;
+      /* Note that suppress_inline_body is meaningful only when the routine
+         has a body, and the interesting value -- the one that sticks --
+         is FALSE. */
+      if (routine->assoc_scope != NULL_region_number &&
+          corresp_routine->assoc_scope != NULL_region_number) {
+        corresp_routine->suppress_inline_body &= routine->suppress_inline_body;
+      }  /* if */
       { a_symbol_ptr sym = (a_symbol_ptr)(routine->source_corresp.assoc_info);
         a_symbol_ptr corresp_sym =
                     (a_symbol_ptr)(corresp_routine->source_corresp.assoc_info);
@@ -1183,7 +1189,12 @@ the secondary translation unit IL).
   a_boolean saved_inline_instance_required =
                                         primary_rout->inline_instance_required;
 #endif /* INSTANTIATE_EXTERN_INLINE */
-  a_boolean saved_suppress_inline_body = primary_rout->suppress_inline_body;
+  /* suppress_inline_body is only valid on routines with bodies.  Save the
+     destination value only if the destination routine already has a
+     body. */
+  a_boolean saved_suppress_inline_body = (primary_rout->assoc_scope != NULL) ?
+                                           primary_rout->suppress_inline_body :
+                                           rout->suppress_inline_body;
   do_saves_for_overwrite(primary_rout, a_routine_ptr);
   *primary_rout = *rout;
   do_restores_for_overwrite(primary_rout, rout);
