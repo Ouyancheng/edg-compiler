@@ -1396,8 +1396,8 @@ address); FALSE otherwise.
         if (is_array_type(field_type)) {
           /* If the field has an array type, we're really only interested in
              the type of the first element of that array. */
-          field_type = skip_typerefs(
-                                    underlying_array_element_type(field_type));
+          field_type = underlying_array_element_type(field_type);
+          field_type = skip_typerefs(field_type);
         }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 300 */
         if (is_class_struct_union_type(field_type) &&
@@ -1494,7 +1494,8 @@ necessary.
       if (is_array_type(field_type)) {
         /* If the field has an array type, we are really interested in the
            type of its first element. */
-        field_type = skip_typerefs(underlying_array_element_type(field_type));
+        field_type = underlying_array_element_type(field_type);
+        field_type = skip_typerefs(field_type);
       }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 300 */
       if (is_class_struct_union_type(field_type)) {
