@@ -1,5 +1,19 @@
 Version 2.37
 
+10/15/97  Bug fix on array rvalues in C mode
+
+Array rvalues were implemented in version 2.36 (see 5/22/97 Changes
+entry).  In C mode, some obscure cases involving comma operators
+and/or indirection operators were not handled correctly, and produced
+an internal error.  Now fixed.
+
+  struct A { int a[5]; };
+  void f() {
+    int i;
+    struct A *p;
+    (i, *(struct A *)0).a[1] = 1;
+  }
+
 10/15/97  Improved interface with the prelinker
 
 The interface between the front end and prelinker has been modified to
