@@ -2412,12 +2412,12 @@ exclude the GNU modes already.  Hence those are not checked again here.)
        command line, enable them now. */
     allow_dollar_in_id_chars = TRUE;
   }  /* if */
-  if (!(option_kind_used[(int)optk_stdarg_builtin])) {
-    /* <stdarg.h> should be included as a normal header file.  Various
-       __builtin_... entities may be predefined to accommodate it (if
-       GCC_BUILTIN_VARARGS is TRUE). */
-    pass_stdarg_references_to_generated_code = FALSE;
-  }  /* if */
+  /* <stdarg.h> should always be included as a normal header file, because
+     the GNU version of <stdarg.h> contains definitions not available in our
+     builtin stdarg processing (see proc_stdarg_include).  Various
+     __builtin_... entities may be predefined to accommodate it (if
+     GCC_BUILTIN_VARARGS is TRUE). */
+  pass_stdarg_references_to_generated_code = FALSE;
   if (!(option_kind_used[(int)optk_restrict])) {
     /* Enable the use of __restrict__ in GNU mode. */
     restrict_enabled = TRUE;
