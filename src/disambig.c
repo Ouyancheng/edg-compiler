@@ -1030,10 +1030,6 @@ cache passed by the caller are flushed.
   prescan_declaration(&state,
                       DFS_REAL_DECLARATOR_ALLOWED | DFS_IS_TEMPLATE_DECL,
                      /*is_top_level=*/TRUE);
-  /* Flush and remaining tokens from the reusable cache. */
-  while (curr_token != tok_end_of_source) (void)get_token();
-  /* Skip past the tok_end_of_source. */
-  (void)get_token();
   /* Discard the cached token.  They are not needed because we were already
      scanning from a cache. */
   discard_token_cache(&state.cache);

@@ -8048,6 +8048,21 @@ instantiation, then you don't know what X is.
   ssep = &scope_stack[depth_scope_stack];
   check_assertion(ssep->kind == (a_scope_kind)sck_template_declaration);
   tp = prescan_and_find_declarator(&decl_state->decl_token_cache, &is_friend);
+  /* Flush and remaining tokens from the reusable cache. */
+  while (curr_token != tok_end_of_source) {
+    if (curr_token == tok_friend && total_errors == 0) {
+      /* Issue an error on any misplaced friend tokens in the cache.  The
+         main purpose of this is to make sure than at least one error is
+         issued on a misplaced friend keyword that could have affected the
+         prescan of a template declaration.  An error might not have been
+         issued if the friend keyword appeared in the ctor-initializer
+         section of a constructor body. */
+      pos_error(ec_bad_friend_decl, &pos_curr_token);
+    }  /* if */
+    (void)get_token();
+  }  /* while */
+  /* Skip past the tok_end_of_source. */
+  (void)get_token();
   if ((is_friend != decl_state->is_template_friend) &&
       decl_state->is_member_decl) {
     /* The initial prescan found a tok_friend, but this prescan did not
