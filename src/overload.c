@@ -5311,7 +5311,7 @@ is used only in C++ mode.
   reference_to_implicitly_invoked_function(conversion_symbol,
                                            &operand->position,
                                            operand->type,
-                                           /*honor_virtual=*/FALSE,
+                                           /*honor_virtual=*/TRUE,
                                            curr_expr_is_evaluated(),
                                            /*suppress_access_check=*/FALSE);
   /* Convert the operand to the proper type to be an argument of the
