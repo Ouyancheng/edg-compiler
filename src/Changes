@@ -1,5 +1,12 @@
 Version 3.1
 
+6/13/02  TARG_HAS_IEEE_FLOATING_POINT on non-Linux X86 Unix Systems
+
+TARG_HAS_IEEE_FLOATING point now defaults to TRUE on Unix systems
+that define the __i386 macro.  Formerly, this defaulted to TRUE on Linux
+and Windows, but not some other X86 operating systems such as Intel
+Solaris.
+
 6/11/02  Duplicate module IDs
 
 Version 3.0 introduced a problem that could cause files with the same

@@ -1058,10 +1058,12 @@ implies that the host supports IEEE floating point, because the
 default float_pt.c support uses the host floating point.
 */
 #ifndef TARG_HAS_IEEE_FLOATING_POINT
-#if defined(sparc) || defined(__linux__) || EDG_WIN32
+#if defined(sparc) || defined(__linux__) || EDG_WIN32 || defined(__i386)
 /* SPARC supports IEEE floating point. */
 /* Linux (X86, Alpha, PowerPC, SPARC) supports IEEE floating point. */
 /* Windows X86 supports IEEE floating point. */
+/* Other Unix systems on X86 architecture, which define __i386__, support
+   IEEE floating point. */
 #define TARG_HAS_IEEE_FLOATING_POINT TRUE
 #else /* defined(sparc) || ... */
 /* Include <math.h> to see if the C99 NAN macro is defined. */
