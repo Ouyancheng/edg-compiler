@@ -39,10 +39,10 @@ namespace std {
   };
 
   typedef void (*terminate_handler)();
-  extern terminate_handler set_terminate(terminate_handler);
+  extern terminate_handler set_terminate(terminate_handler) throw();
 
   typedef void (*unexpected_handler)();
-  extern unexpected_handler set_unexpected(unexpected_handler);
+  extern unexpected_handler set_unexpected(unexpected_handler) throw();
 
   /* unexpected and terminate are in the WP definition of exception.h.
      It is not clear why. */
