@@ -19,24 +19,7 @@ C++ operator new();
 #include "runtime.h"
 #include "new.h"
 
-/*
-If the runtime should be defined in the std namespace, open
-the std namespace.
-*/
-#ifdef __EDG_RUNTIME_USES_NAMESPACES
-namespace std {
-#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
-
-extern "C" __new_handler _new_handler;
-
-/*
-If the runtime should be defined in the std namespace, close
-the std namespace.
-*/
-#ifdef __EDG_RUNTIME_USES_NAMESPACES
-}  /* namespace std */
-#endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
-
+extern "C" STD_NAMESPACE::__new_handler _new_handler;
 
 /* Note that operator new is not in the std namespace. */
 
@@ -60,8 +43,8 @@ calls of operator new.
 
   if (size == 0) size = 1;
   while ((ptr = (void *)malloc(size)) == NULL) {
-    if (STD_NAMESPACE::_new_handler != NULL) {
-      (*STD_NAMESPACE::_new_handler) ();
+    if (_new_handler != NULL) {
+      (*_new_handler) ();
     } else {
       return (void *)NULL;
     }  /* if */
