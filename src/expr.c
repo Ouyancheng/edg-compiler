@@ -2259,7 +2259,8 @@ qualified_name_check:
               locator_for_curr_id.is_class_member = TRUE;
               need_member_sym_check = FALSE;
             }  /* if */
-          } else if (member_sym->kind == (a_symbol_kind)sk_class_template) {
+          } else if (member_sym != NULL &&
+                     member_sym->kind == (a_symbol_kind)sk_class_template) {
             /* For a member template, coalesce the template reference.
                This will use the specific symbol already established. */
             locator_for_curr_id.has_been_coalesced = FALSE;
