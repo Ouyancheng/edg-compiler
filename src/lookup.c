@@ -1625,7 +1625,7 @@ Macro that initializes a lookup state variable.
 /* symbol_may_precede_qualifier checks for a symbol that is a class,
    class template, namespace, or template type parameter. */
 #define is_acceptable_symbol(sym, fund_sym, lookup_state)               \
-  ((!(fund_sym->is_invisible) ||					\
+  (((!(fund_sym->is_invisible) && (!sym->is_invisible)) ||		\
     (lookup_state).is_linkage_lookup ||					\
     (lookup_state).is_friend_lookup) &&					\
    (!(lookup_state).must_be_class_or_namespace ||			\

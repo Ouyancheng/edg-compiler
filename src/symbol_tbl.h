@@ -2012,7 +2012,10 @@ typedef struct a_symbol {
 			   the initial declaration of a function or class is
 			   a friend declaration; the entity becomes visible
 			   only when it is subsequently declared in the
-			   scope to which it belongs. */
+			   scope to which it belongs.  This is also used for
+			   projection symbols to names found in base classes
+			   that are ignored during normal lookup (when doing
+			   dependent name processing. */
   a_bit_field	is_unknown_function:1;
 			/* TRUE if this symbol was created to represent an
 			   unknown function. */

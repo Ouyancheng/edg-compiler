@@ -8726,10 +8726,6 @@ created if a projected symbol cannot be found in any of the real bases.
                !symbol_is_or_contains_template(fund_progenitor_sym)) {
       /* The symbol found is not a template name symbol, so do not create a
          projection for it. */
-    } else if (found_in_dependent_base(path)) {
-      /* The symbol was found in a dependent base class.  Don't create a
-         projection symbol. */
-      new_sym = progenitor_sym;
     } else {
       /* Create a new symbol based on the symbol returned. */
       new_sym = make_projection_symbol(progenitor_sym, class_ptr,
@@ -8742,6 +8738,12 @@ created if a projected symbol cannot be found in any of the real bases.
       new_sym->variant.projection.any_intervening_using_decl = any_using_decl;
       new_sym->variant.projection.fund_sym_is_nonreal_member =
                                                    fund_sym_is_nonreal_member;
+      /* Mark projection symbols for names in dependent base classes as
+         invisible.  Such projection symbols should not be found by normal
+         lookup (because the underlying symbol would not be found). */
+      if (do_dependent_name_processing) {
+        new_sym->is_invisible = found_in_dependent_base(path);
+      }  /* if */
       if (new_sym->ambiguous) {
         new_sym->
           variant.projection.injected_class_template_name_is_unambiguous =
