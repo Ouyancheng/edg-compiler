@@ -1,4 +1,3 @@
-
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
@@ -2911,7 +2910,6 @@ in lower case.
       break;
     case es_warning:
       severity_char = 'W';
-      (void)fputc('W', f_raw_listing);
       break;
     case es_error:
       severity_char = 'E';
@@ -3754,8 +3752,8 @@ position and type fill-in.
 }  /* pos_ty_start_error */
 
 
-void typ_start_error(an_error_code error_code,
-                     struct a_type *type)
+void type_start_error(an_error_code error_code,
+                      struct a_type *type)
 /*
 Begin a multiple message error with the specified error code and type
 fill-in for the source position reflected in error_position.
@@ -3778,8 +3776,8 @@ multiple message diagnostic being processed.
 }  /* str_add_diag_info */
 
 
-void typ_add_diag_info(an_error_code error_code,
-                       struct a_type *type)
+void type_add_diag_info(an_error_code error_code,
+                        struct a_type *type)
 /*
 Add the specified diagnostic message with the type substitution to the
 multiple message diagnostic being processed.
@@ -3788,7 +3786,7 @@ multiple message diagnostic being processed.
   init_error_params();
   error_msg_types[1] = type;
   diag_message(error_code, (a_source_position *)NULL, es_none, dck_list);
-}  /* str_add_diag_info */
+}  /* type_add_diag_info */
 
 #if !STANDALONE_UTILITY_PROGRAM
 

@@ -611,12 +611,12 @@ extern void start_error(an_error_code error_code);
 extern void pos_ty_start_error(an_error_code     error_code,
                                a_source_position *error_pos,
                                struct a_type     *type);
-extern void typ_start_error(an_error_code error_code,
-                            struct a_type *type);
+extern void type_start_error(an_error_code error_code,
+                             struct a_type *type);
 extern void str_add_diag_info(an_error_code error_code,
                               char          *error_string);
-extern void typ_add_diag_info(an_error_code error_code,
-                              struct a_type *type);
+extern void type_add_diag_info(an_error_code error_code,
+                               struct a_type *type);
 #if !STANDALONE_UTILITY_PROGRAM
 extern void pos_sy_start_error(an_error_code     error_code,
                                a_source_position *error_pos,
