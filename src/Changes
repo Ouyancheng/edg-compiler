@@ -1,5 +1,18 @@
 Version 2.42
 
+6/24/99  Microsoft compatibility: multiple initializers for scalars
+
+In Microsoft bugs mode, the following is accepted and prints "f(0)123".
+
+  extern "C" int printf(char const*, ...);
+  int f(int i) { printf("f(%d)", i); }
+  int g = { 1, { 2 } };
+  int h = { f(0), { 2 } };
+  int main() {
+    int k = { 2, { 3 } };
+    printf("%d%d%d", g, h, k);
+  }
+
 6/23/99  Universal character name support
 
 Universal character names (e.g., \u0401) are now accepted in C++ mode in

@@ -2892,6 +2892,70 @@ Copy a constant entry from "from" to "to".
 }  /* copy_constant */
 
 
+a_constant_ptr combine_initializers(a_constant_ptr     first,
+                                    a_dynamic_init_ptr *first_dip_ptr,
+                                    a_constant_ptr     second,
+                                    a_dynamic_init_ptr *second_dip_ptr)
+/*
+Create the effect of sequentially applying two initializers to the same
+variable.  If an initializer representation is available as "a_constant"
+variables, they can be passed through first and second.  If either of
+these is NULL, the corresponding first_dip_ptr or second_dip_ptr should
+not be null and not point to a null pointer: instead, they should point
+to a dynamic_init_ptr representing the initializer for which (presumably)
+no constant has been created (yet).  This interface conveniently fits that
+of scan_initializer_of_simple_object.  The entities passed as parameters
+should be unshared and may be invalidated by this function.
+*/
+{
+  if (first != NULL && first->kind != (a_constant_repr_kind)ck_dynamic_init) {
+    /* The earlier constant has no side effects, so it is just replaced by
+       the new one. */
+  } else {
+    /* The earlier constant has side effects, so keep the old and new
+       initializations under a comma expression. */
+    an_expr_node_ptr   first_expr, second_expr;
+    a_dynamic_init_ptr first_dip = first != NULL? first->variant.dynamic_init
+                                                : *first_dip_ptr;
+    a_dynamic_init_ptr second_dip;
+    check_assertion(first_dip->kind == (a_dynamic_init_kind)dik_expression);
+    first_expr = first_dip->variant.expression;
+    if (second == NULL ||
+        second->kind == (a_constant_repr_kind)ck_dynamic_init) {
+      /* Both initializers are dynamic. */
+      second_dip = second != NULL? second->variant.dynamic_init
+                                 : *second_dip_ptr;
+      check_assertion(second_dip->kind == (a_dynamic_init_kind)dik_expression);
+      second_expr = second_dip->variant.expression;
+    } else {
+       /* The second initializer was not dynamic, but it must override the
+          value of the dynamic first initializer.  So create an expression
+          node for this second (constant) value to enable its combination
+          into a comma node. */
+       second_expr = alloc_node_for_allocated_constant(second);
+       second_dip = first_dip;
+       second = first;
+    }  /* if */
+    second_dip->variant.expression = make_comma_node(first_expr, second_expr);
+    if (second_dip_ptr != NULL) { *second_dip_ptr = second_dip; }
+  }  /* if */
+  return second;
+}  /* combine_initializers */
+
+
+a_constant_ptr combine_initializer_constants(a_constant_ptr first,
+                                             a_constant_ptr second)
+/*
+Return a constant that represents the effect of sequentially initializing
+the same variable with *first followed by *second.  In particular, *first
+can be discarded if it has no side-effects.  The constants passed as
+parameters should be unshared and may be invalidated by this function.
+*/
+{
+  return combine_initializers(first, NULL, second, NULL);
+}  /* combine_initializer_constants */
+
+
 a_constant_ptr alloc_unshared_constant(a_constant *cp)
 /*
 Allocate a constant in the current IL memory region, copy the value of *cp
@@ -6682,6 +6746,23 @@ an operands list to it.
 
   return node;
 }  /* make_operator_node */
+
+
+an_expr_node_ptr make_comma_node(an_expr_node_ptr expr1,
+                                 an_expr_node_ptr expr2)
+/*
+Make a comma expression node with the indicated two expressions as its
+operands, and return a pointer to it.
+*/
+{
+  an_expr_node_ptr comma_node;
+
+  expr1->next = expr2;
+  expr2->next = NULL;
+  comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
+                                  expr2->type, expr1);
+  return comma_node;
+}  /* make_comma_node */
 
 
 an_expr_node_ptr error_node(void)

@@ -620,9 +620,6 @@ extern void change_to_cast(an_expr_node_ptr node,
                            an_expr_node_ptr operand_node,
                            a_type_ptr       new_type);
 
-extern an_expr_node_ptr make_comma_node(an_expr_node_ptr expr1,
-                                        an_expr_node_ptr expr2);
-
 #if DO_FULL_PORTABLE_EH_LOWERING || ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 extern an_expr_node_ptr array_var_lvalue_expr(a_variable_ptr var);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING || ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */

@@ -1909,23 +1909,6 @@ still pointer to member and therefore doesn't look promotable.
   return expr;
 }  /* integral_promote_pm_node */
 
-
-an_expr_node_ptr make_comma_node(an_expr_node_ptr expr1,
-                                 an_expr_node_ptr expr2)
-/*
-Make a comma expression node with the indicated two expressions as its
-operands, and return a pointer to it.
-*/
-{
-  an_expr_node_ptr comma_node;
-
-  expr1->next = expr2;
-  expr2->next = NULL;
-  comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                  expr2->type, expr1);
-  return comma_node;
-}  /* make_comma_node */
-
 #if DO_FULL_PORTABLE_EH_LOWERING || ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 
 an_expr_node_ptr array_var_lvalue_expr(a_variable_ptr var)

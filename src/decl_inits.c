@@ -2340,6 +2340,78 @@ is not needed.
 }  /* pop_object_lifetime_for_local_static_init */
 
 
+static a_constant_ptr simple_initializer(a_boolean          static_lifetime,
+                                         a_type_ptr         vp_type,
+                                         a_dynamic_init_ptr *init_dip,
+                                         a_decl_pos_block_ptr  decl_pos_block)
+/*
+Scan a simple nonaggregate, nonparenthesized initializer.  static_lifetime is
+TRUE is the entity being initialized has static storage duration; vp_type is
+the type of that entity.
+*/
+{
+  a_constant_ptr constant; /* result of this function */
+  a_boolean      brace_flag, nonconstant_allowed;
+
+  check_for_opening_brace(&brace_flag);
+  nonconstant_allowed = (!C_mode() || !static_lifetime);
+  /* Scan the initializer.  Either a constant pointer is returned or else
+     a dynamic init entry representing an expression. */
+  constant =
+          scan_initializer_of_simple_object(nonconstant_allowed,
+                                            static_lifetime,
+                                            /*force_object_lifetime=*/FALSE,
+                                            /*is_copy_initialization=*/TRUE,
+                                            vp_type, init_dip);
+  if (microsoft_bugs) {
+    /* The microsoft compiler accepts things like "int x = { f(), { 3 } }"
+       and has the last value replace previous ones (though side-effects
+       take place), unless they're both constants and x is not automatic. */
+    while (curr_token == tok_comma && next_token() == tok_lbrace) {
+      /* Eat the comma, parse the next constant (recursive) and combine
+         initializer expressions: */
+      a_constant_ptr     next_constant;
+      a_dynamic_init_ptr next_dip = NULL;
+      (void)get_token();
+      next_constant = simple_initializer(static_lifetime, vp_type, &next_dip,
+                                         decl_pos_block);
+      if (static_lifetime && constant != NULL && next_constant != NULL) {
+        /* Approximately emulate the Microsoft behavior that if only true
+           constants are involved, the first value is kept for variables
+           with static lifetime.  The emulation is not perfect when more
+           nesting is involved as in "int x = { f(), { 1, { 2 }}};". */
+      } else {
+        constant = combine_initializers(constant, init_dip,
+                                        next_constant, &next_dip);
+        if (next_dip != NULL) {
+          /* Don't use the second constant (if any), because it might have
+             acquired a dynamic component that needs further processing. */
+          constant = NULL;
+          *init_dip = next_dip;
+        }  /* if */
+      }  /* if */
+    }  /* while */
+  }  /* if */
+  /* If an extra opening brace was ignored earlier, ignore the matching
+     closing brace now.  Check also for an extra comma (required in C++
+     per ARM 8.4, offered in C along with the extension that permits
+     brace-enclosed initializers on non-aggregate variables in the first
+     place). */
+  if (brace_flag && curr_token == tok_comma) (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block != NULL) {
+    if (brace_flag) {
+      decl_pos_block->var_init_range.end = pos_curr_token;
+    } else {
+      decl_pos_block->var_init_range.end = curr_construct_end_position;
+    }  /* if */
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  check_for_matching_closing_brace(brace_flag);
+  return constant;
+}  /* simple_initializer */
+
+
 void initializer(a_symbol_ptr          symbol_ptr,
                  a_source_position     *source_pos,
                  an_id_linkage_kind    linkage,
@@ -2380,7 +2452,6 @@ returned set to TRUE.
   a_type_ptr                        vp_type = NULL;
   a_boolean                         var_err, init_err;
   a_boolean                         static_lifetime;
-  a_boolean                         brace_flag = FALSE;
   a_constant                        constant;
   a_constant_ptr                    init_con = NULL;
   a_dynamic_init_ptr                init_dip = NULL;
@@ -2623,32 +2694,8 @@ returned set to TRUE.
     /* A non-aggregate object is being initialized.  Braces are permitted
        but not required.  A constant or non-constant expression may be
        permitted as the initializer. */
-    check_for_opening_brace(&brace_flag);
-    nonconstant_allowed = (!C_mode() || !static_lifetime);
-    /* Scan the initializer.  Either a constant pointer is returned or else
-       a dynamic init entry representing an expression. */
-    init_con =
-            scan_initializer_of_simple_object(nonconstant_allowed,
-                                              static_lifetime,
-                                              /*force_object_lifetime=*/FALSE,
-                                              /*is_copy_initialization=*/TRUE,
-                                              vp_type, &init_dip);
-    /* If an extra opening brace was ignored earlier, ignore the matching
-       closing brace now.  Check also for an extra comma (required in C++
-       per ARM 8.4, offered in C along with the extension that permits
-       brace-enclosed initializers on non-aggregate variables in the first
-       place). */
-    if (brace_flag && curr_token == tok_comma) (void)get_token();
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (decl_pos_block != NULL) {
-      if (brace_flag) {
-        decl_pos_block->var_init_range.end = pos_curr_token;
-      } else {
-        decl_pos_block->var_init_range.end = curr_construct_end_position;
-      }  /* if */
-    }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    check_for_matching_closing_brace(brace_flag);
+    init_con = simple_initializer(static_lifetime, vp_type, &init_dip,
+                                  decl_pos_block);
   }  /* if */
   if (!var_err) {
     /* There was no error that precludes initialization, so update the
