@@ -2168,6 +2168,12 @@ definition whose name can be used as part of the module ID.
         /* Don't use template functions.  Some implementations
            may generate these in multiple files. */
         if (routine->is_template_function) continue;
+        /* Avoid routines with an associated error symbol. */
+        if (in_front_end &&
+            ((a_symbol_ptr)routine->source_corresp.assoc_info)->is_error) {
+          check_assertion(total_errors != 0);
+          continue;
+        }  /* if */
         name = get_mangled_function_name(routine);
         check_assertion(name != NULL);
         break;
