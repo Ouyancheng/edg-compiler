@@ -1,5 +1,17 @@
 Version 2.32
 
+5/8/96  Spurious error in cfront mode on template static data member
+        definition with redundant parentheses
+
+A bug has been fixed that caused a spurious error to be issued on
+a template static data member definition that contained redundant
+parentheses around the declarator.
+
+  template <class T> struct A {
+    static int i;
+  };
+  template <class T> int (A<T>::i) = 0;
+
 5/7/96  Fixed internal error after invalid template static data member
 
 If a class template contained an invalid static data member declaration,

@@ -515,7 +515,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
     a_boolean	treat_as_expr = FALSE;
     cache_curr_token(token_cache_ptr);
     get_token_and_coalesce_if_identifier(flags);
-    if (any_cfront_mode() && is_top_level) {
+    if (any_cfront_mode() && is_top_level && !is_template_decl(flags)) {
       /* Cfront handles declarations like
              int a(int());
          as the declaration of an object with an initializer of int()
@@ -542,7 +542,11 @@ part of a declarator is found, may_be_decl is set to FALSE.
            class A { A(int); };
            A(x);
          cfront treats this as a constructor call instead of a declaration
-         of an object named x. */
+         of an object named x.
+
+         This processing is not done when prescanning template declarations
+         because we know the thing being scanned is a declaration and not
+         an expression. */
       if (curr_token == tok_identifier && next_token() == tok_rparen) {
         /* Construct like "A(x);". */
         treat_as_expr = TRUE;
