@@ -886,6 +886,7 @@ skip_tag_scan:
         if (is_class_definition ||
             (curr_token == tok_semicolon && !is_friend_decl)) {
           /* We have a specific declaration of a template class. */
+#if 0
           if (tag_sym->decl_scope != ssep->number) {
             /* Specific definitions of template classes may only occur at
                file scope. */
@@ -897,6 +898,8 @@ skip_tag_scan:
           } else {
             cssp->is_specific_template_def = TRUE;
           }  /* if */
+#endif /* if 0 */
+          cssp->is_specific_template_def = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -909,7 +912,8 @@ skip_tag_scan:
               /* Unless a class is a namespace member or nested in another
                  class, it cannot be defined other than it the scope to which
                  it belongs. */
-              sym_error(ec_bad_scope_for_definition, tag_sym);
+              pos_sy_error(ec_bad_scope_for_definition, &tag_position,
+                           tag_sym);
               tag_sym = NULL;
               set_to_error_locator(locator);
             }  /* if */
@@ -922,7 +926,8 @@ skip_tag_scan:
                  the name cannot be defined -- it is a member (directly or
                  indirectly) of a namespace that is not enclosed by the current
                  namespace scope (see WP 7.3.1.4). */
-              sym_error(ec_bad_scope_for_definition, tag_sym);
+              pos_sy_error(ec_bad_scope_for_definition, &tag_position,
+                           tag_sym);
               tag_sym = NULL;
               set_to_error_locator(locator);
             } else if (ssep->il_scope->kind != (a_scope_kind)sck_namespace ||
