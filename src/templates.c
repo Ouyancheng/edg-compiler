@@ -797,7 +797,6 @@ source sequence entry.
 #if TEMPLATE_LOOKUP_NEEDED
 /* Forward declaration. */
 static char *get_mangled_name_for_symbol(a_symbol_ptr	sym);
-#endif /* TEMPLATE_LOOKUP_NEEDED */
 
 
 static char *get_mangled_name_of_template(a_symbol_ptr	template_sym,
@@ -823,6 +822,8 @@ exist.
   }  /* if */
   return tssp->name;
 }  /* get_mangled_name_of_template */
+
+#endif /* TEMPLATE_LOOKUP_NEEDED */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 
