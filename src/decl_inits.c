@@ -2656,10 +2656,11 @@ returned set to TRUE.
     /* Use an error type to avoid additional errors. */
     vp_type = error_type();
   }  /* if */
-  if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
+  if (symbol_ptr->is_class_member) {
     /* The initializer of a static data member is scanned with the original
        class reactivated (if we're parsing a prototype instantiation, this was
-       done elsewhere). */
+       done elsewhere).  We may also end up here with an sk_variable in some
+       error cases. */
     if (!is_template_dependent_context()) {
       push_class_reactivation_scope(symbol_ptr->parent.class_type,
                                     /*extend_namespace=*/TRUE);
@@ -2950,10 +2951,11 @@ returned set to TRUE.
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
-  if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
+  if (symbol_ptr->is_class_member) {
     /* The initializer of a static data member was scanned with the original
        class reactivated (if we're parsing a prototype instantiation, this was
-       done elsewhere).  Restore the scope to what it was before. */
+       done elsewhere).  Restore the scope to what it was before.  (We may
+       also end up here with an sk_variable.) */
     /* Note that this call has to be after the select_destructor call in the
        preceding section of code. */
     if (!is_template_dependent_context()) {
