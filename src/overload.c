@@ -18,6 +18,7 @@ overload.c -- Expression processing overload resolution.
 #include "overload.h"
 #include "exprutil.h"
 #include "symbol_tbl.h"
+#include "symbol_ref.h"
 #include "il.h"
 #include "mem_manage.h"
 #include "error.h"

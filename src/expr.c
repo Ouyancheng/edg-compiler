@@ -19,6 +19,7 @@ expr.c -- Expression scanning routines.
 #include "lexical.h"
 #include "il.h"
 #include "symbol_tbl.h"
+#include "symbol_ref.h"
 #include "expr.h"
 #include "exprutil.h"
 #include "overload.h"
