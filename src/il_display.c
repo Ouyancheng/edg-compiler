@@ -1606,7 +1606,7 @@ Display the indicated variable.
       (void)printf("**BAD INITIALIZATION KIND**\n");
   }  /* switch */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  disp_ptr("declared_type", ptr->declared_type, iek_type);
+  disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #ifdef FFE
   if (ptr->storage_class == (a_storage_class)sc_associated ||
@@ -1918,7 +1918,7 @@ Display the indicated routine.
   }  /* if */
 #endif /* ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  disp_ptr("declared_type", ptr->declared_type, iek_type);
+  disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #ifdef FFE
   disp_boolean("is_fortran_entry", (a_boolean)ptr->is_fortran_entry);
@@ -3298,7 +3298,7 @@ Display the indicated source sequence secondary declaration entry.
                      (unsigned long)sssdp->decl_position.column);
   disp_ptr("entity", (char *)sssdp->entity.ptr,
            (an_il_entry_kind)sssdp->entity.kind);
-  disp_ptr("declared_type", sssdp->declared_type, iek_type);
+  disp_ptr("declared_type", (char *)sssdp->declared_type, iek_type);
   if (sssdp->autonomous_tag_decl) {
     disp_boolean("autonomous_tag_decl", TRUE);
   }  /* if */
@@ -3613,7 +3613,7 @@ Display the IL for the file scope in human-readable form.
                (a_boolean)il_header.pcc_compatibility_mode);
 #endif /* ifdef CFE */
 #if RECORD_MACROS_IN_IL
-  disp_ptr("macros", (char *)ptr->macros, iek_macro);
+  disp_ptr("macros", (char *)il_header.macros, iek_macro);
 #endif /* RECORD_MACROS_IN_IL */
 
   walk_file_scope_il(disp_entry, (a_string_entry_process_function_ptr)NULL,
