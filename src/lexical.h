@@ -271,10 +271,9 @@ The pragma binding kinds indicate the ways in which a pragma may relate
 to the surrounding constructs.
 */
 typedef enum a_pragma_binding_kind {
-  pbk_next_declaration,
-		/* Binds to the next top level declaration. */
-  pbk_next_statement,
-		/* Binds to the next statement. */
+  pbk_next_construct,
+		/* Binds to the next top level construct (declaration or
+		   statement). */
   pbk_immediate,
 		/* Processed when cleared from the curr_token pragma list. */
   pbk_other,
@@ -319,6 +318,12 @@ typedef struct a_pragma_description {
 			   do any special processing required for this
 			   pragma.  May be NULL for pbk_immediate
 			   when include_in_il is set. */
+  unsigned int	may_bind_to_decl:1;
+			/* For pbk_next_construct pragmas, TRUE if this
+			   pragma can bind to a declaration. */
+  unsigned int	may_bind_to_stmt:1;
+			/* For pbk_next_construct pragmas, TRUE if this
+			   pragma can bind to a statement. */
   unsigned int	global:1;
 			/* For pbk_other pragmas, this is TRUE if the pragma
 			   entry should be added to the file-scope pragma
@@ -340,7 +345,13 @@ typedef struct a_pragma_description {
 			   in the IL by the front end but can still be
 			   made part of the IL by user written code to
 			   explicitly link the pragma into the IL. */
-  unsigned int	fetch_pp_tokens:1;
+  unsigned int	pass_thru_only:1;
+			/* TRUE if this pragma should not scanned into a
+			   token cache but rather should be preserved as
+			   a string that can be passed to a back end.
+			   The string created for pass through pragmas
+			   begins with the identifier following the
+			   #pragma keyword. */
   unsigned int	expand_macros:1;
   unsigned int	processing_C_code_in_pragma:1;
 			/* The value of the flags to be used while scanning
@@ -350,11 +361,12 @@ typedef struct a_pragma_description {
 		error_severity;
 			/* For pbk_other pragmas, the severity of the
 			   diagnostic to be issued if the pragma is
-			   never scanned.  For pbk_next_statement and
-			   pbk_next_declaration pragmas, the severity of
-			   diagnostic to be issued if the pragma is
-			   encountered in an improper location.  May be
-			   es_none if no diagnostic is to be issued. */
+			   never scanned.  For pbk_next_construct
+			   pragmas, the severity of diagnostic
+			   to be issued if the pragma is encountered
+			   in an improper location.
+			   May be es_none if no diagnostic is to be
+                           issued. */
 } a_pragma_description;
 
 
@@ -1052,28 +1064,10 @@ EXTERN a_boolean
 #if 0
 #else
 EXTERN a_boolean
-		lint_argsused_flag;
-			/* Set to TRUE when a lint-style "argsused" comment
-			   is detected; reset at the end of each function
-			   declaration. */
-EXTERN short	lint_varargs_count;
-			/* Ordinarily, NOT_LINT_VARARGS (-1).  On detection
-			   of a lint-style "varargs" comment, set to the count
-			   of fixed arguments (the number following the
-			   keyword, or 0 if the number is omitted). */
-EXTERN a_boolean
 		lint_notreached_flag;
 			/* Set to TRUE when a lint-style "notreached" comment
 			   is detected; reset at the start of each
 			   statement. */
-
-/*
-Clear the global flags representing current lint or pragma state that have
-specific lifetimes (e.g., they persist for one statement or one declaration).
-*/
-extern void clear_decl_lint_and_pragma_globals(void);
-#define clear_stmt_lint_and_pragma_globals()                           \
-  lint_notreached_flag = FALSE
 #endif
 
 /*
@@ -1277,10 +1271,9 @@ extern void wrapup_rescan_of_pragma_tokens(void);
 
 extern void add_to_curr_token_pragma_list(a_pending_pragma_ptr ppp);
 
-extern void select_pragmas_bound_to_curr_decl_or_stmt
-				(a_boolean	decl_allowed,
-				 a_boolean	stmt_allowed,
-				 a_boolean	merge_with_existing_list);
+extern void select_pragmas_bound_to_curr_decl_or_stmt(a_boolean	is_decl);
+
+extern void wrapup_pragmas_bound_to_curr_decl_or_stmt(void);
 
 extern an_access_error_descr_ptr alloc_access_error_descr(void);
 

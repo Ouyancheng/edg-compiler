@@ -2205,6 +2205,9 @@ error code.
     case ec_pragma_must_precede_statement:
       m = "this pragma must immediately precede a statement"; 
       break;
+    case ec_pragma_must_precede_decl_or_stmt:
+      m = "this pragma must immediately precede a declaration or statement"; 
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

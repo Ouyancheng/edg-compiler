@@ -1305,18 +1305,22 @@ that determine the current lexical scanning mode are saved and reset
 based on the information specified in the pragma description entry.
 */
 {
-  a_boolean	save_fetch_pp_tokens;
   a_boolean	save_expand_macros;
   a_boolean	save_processing_C_code_in_pragma;
+  a_boolean	save_fetch_pp_tokens;
+
+#if 0
+  /* Code to handle pass thru pragmas? */
+#endif
 
   /* Save the current value of the lexical scanning mode flags. */
-  save_fetch_pp_tokens = fetch_pp_tokens;
   save_expand_macros = expand_macros;
   save_processing_C_code_in_pragma = processing_C_code_in_pragma;
+  save_fetch_pp_tokens = fetch_pp_tokens;
   /* Set the new values. */
-  fetch_pp_tokens = pdp->fetch_pp_tokens;
   expand_macros = pdp->expand_macros;
   processing_C_code_in_pragma = pdp->processing_C_code_in_pragma;
+  fetch_pp_tokens = FALSE;
   /* Bypass the identifier that indicates the pragma kind. */
   (void)get_token();
   /* Cache the tokens until an end-of-line is found. */
@@ -1328,9 +1332,9 @@ based on the information specified in the pragma description entry.
   /* Terminate the token cache. */
   terminate_token_cache(&ppp->token_cache);
   /* Restore the previous values. */
-  fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;
   processing_C_code_in_pragma = save_processing_C_code_in_pragma;
+  fetch_pp_tokens = save_fetch_pp_tokens;
 }  /* cache_pragma_tokens */
 
 

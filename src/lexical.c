@@ -284,18 +284,6 @@ static unsigned long
 #endif /* DEBUG */
 
 
-#if 0
-#else
-void clear_decl_lint_and_pragma_globals(void)
-/*
-Clear the global flags representing the lint and pragma state with declaration
-lifetimes.
-*/
-{
-}  /* clear_decl_lint_and_pragma_globals */
-#endif
-
-
 static void unimplemented_keyword_diagnostic(a_symbol_ptr  sym)
 /*
 Issue a diagnostic on unimplemented keywords.
@@ -405,12 +393,14 @@ static a_pragma_description_ptr add_pragma_description
 		       a_pragma_processing_function_ptr
 					     processing_function,
 		       a_boolean	     is_pseudo_pragma,
+		       a_boolean	     may_bind_to_decl,
+		       a_boolean	     may_bind_to_stmt,
 		       a_boolean	     global,
 		       a_boolean	     include_in_il,
-		       a_boolean	     fetch_pp_tokens,
+		       a_boolean	     pass_thru_only,
 		       a_boolean	     expand_macros,
 		       a_boolean	     processing_C_code_in_pragma,
-		       a_boolean	     error_severity)
+		       an_error_severity     error_severity)
 /*
 Allocate a pragma description entry, initialize its fields, and add it
 to a linked list of pragma descriptions.  is_pseudo_pragma is used for
@@ -423,6 +413,11 @@ but cannot be referenced by name in a pragma directive.
   /* Make sure this pragma kind is not already on the list. */
   check_assertion_str(pragma_description_for_pragma_kind[kind] == NULL,
                       "add_pragma_description: duplicate pragma kind");
+  /* A pbk_next_construct pragma must bind to a declaration and/or
+     statement. */
+  check_assertion_str(binding_kind != pbk_next_construct ||
+                      (may_bind_to_decl || may_bind_to_stmt),
+                      "add_pragma_description: bad next_construct binding");
   /* Allocate a new entry. */
   pdp = (a_pragma_description_ptr)alloc_fe(sizeof(a_pragma_description));
 #if DEBUG
@@ -431,9 +426,11 @@ but cannot be referenced by name in a pragma directive.
   pdp->kind = kind;
   pdp->binding_kind = binding_kind;
   pdp->processing_function = processing_function;
+  pdp->may_bind_to_decl = may_bind_to_decl;
+  pdp->may_bind_to_stmt = may_bind_to_stmt;
   pdp->global = global;
   pdp->include_in_il = include_in_il;
-  pdp->fetch_pp_tokens = fetch_pp_tokens;
+  pdp->pass_thru_only = pass_thru_only;
   pdp->expand_macros = expand_macros;
   pdp->processing_C_code_in_pragma = processing_C_code_in_pragma;
   pdp->error_severity = error_severity;
@@ -561,6 +558,32 @@ information can be updated, if necessary.
 }  /* add_curr_token_pseudo_pragma */
 
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+static void add_source_sequence_entry_to_curr_token_pragmas(void)
+/*
+Loop through the current token pragma list and create an empty source
+sequence entry for any pending pragma entry that does not already have
+one.  This routine is called by routines which may end up removing
+entries from the current token pragma list.  The source sequence
+entries must be created before any entries are removed to preserve
+the original source ordering information.
+
+The empty source sequence entry will be changed to an eok_pragma entry and
+completed when the corresponding IL pragma entry is created (or removed
+if it turns out that no IL pragma entry is created).
+*/
+{
+  a_pending_pragma_ptr	ppp = curr_token_pragmas;
+  while (ppp != NULL) {
+    if (ppp->source_sequence_entry == NULL) {
+      ppp->source_sequence_entry = add_empty_source_sequence_entry();
+    }  /* if */
+    ppp = ppp->next;
+  }  /* while */
+}  /* add_source_sequence_entry_to_curr_token_pragmas */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+
 static void process_curr_token_pragmas(void)
 /*
 Called by get_token to process pragmas that were found before the
@@ -581,19 +604,31 @@ pbk_immediate pragmas are processed here.
   a_pending_pragma_ptr		ppp;
   a_pragma_description_ptr	pdp;
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Create source sequence entries for any pragmas that don't yet have
+     them. */
+  add_source_sequence_entry_to_curr_token_pragmas();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   ppp = curr_token_pragmas;
   while (ppp != NULL) {
     a_pending_pragma_ptr	next_ppp = ppp->next;
     pdp = ppp->descr_ptr;
     switch (pdp->binding_kind) {
-      case pbk_next_statement:
-      case pbk_next_declaration:
+      case pbk_next_construct:
         if (pdp->error_severity != es_none) {
           an_error_code	error_code;
-          error_code = pdp->binding_kind == pbk_next_statement ? 
-                        		 ec_pragma_must_precede_statement :
-					 ec_pragma_must_precede_declaration;
-          pos_error(error_code, &ppp->id_position);
+          /* Select the appropriate error based on the kinds of constructs
+             that this pragma may bind to. */
+          if (pdp->may_bind_to_decl && pdp->may_bind_to_stmt) {
+            error_code = ec_pragma_must_precede_decl_or_stmt;
+          } else if (pdp->may_bind_to_decl) {
+            error_code = ec_pragma_must_precede_declaration;
+          } else {
+            error_code = ec_pragma_must_precede_statement;
+          }  /* if */
+          if (pdp->error_severity != es_none) {
+            pos_diagnostic(pdp->error_severity, error_code, &ppp->id_position);
+          }  /* if */
         }  /* if */
         free_pending_pragma(ppp);
         break;
@@ -606,18 +641,6 @@ pbk_immediate pragmas are processed here.
 #if 0
         /* Do include_in_il processing. */
 #endif
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        /* Add an empty entry for this pragma to the source sequence list.
-           It will be changed to an eok_pragma entry and completed when the
-           corresponding IL pragma entry is created (or removed if it turns
-           out that no IL pragma entry is created). */
-        if (ppp->source_sequence_entry == NULL) {
-          /* This entry is just being thrown away.  How should it be handled
-           in the source sequence list?  For example, should an IL entry be
-           created for it? */
-          ppp->source_sequence_entry = add_empty_source_sequence_entry();
-        }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         free_pending_pragma(ppp);
         break;
       case pbk_other:
@@ -632,22 +655,14 @@ pbk_immediate pragmas are processed here.
 }  /* process_curr_token_pragmas */
 
 
-void select_pragmas_bound_to_curr_decl_or_stmt
-				(a_boolean	decl_allowed,
-				 a_boolean	stmt_allowed,
-				 a_boolean	merge_with_existing_list)
+void select_pragmas_bound_to_curr_decl_or_stmt(a_boolean	is_decl)
 /*
-This routine scans the current token pragma list for any pbk_next_declaration
-or pbk_next_statement pragmas.  If the binding kind matches the flags
-passed by the caller, the pragma is copied to the
-pragmas_bound_to_curr_decl_or_stmt list.  If binding kind does not
-match the flags passed by the caller an error is issued.  Pragmas
-that don't bind to the next declaration/statement remain on the
-current token pragma list.
-
-Normally, any pragmas already on the pragmas_bound_to_curr_decl_or_stmt list
-are freed before the new list is processed.  If merge_with_existing_list
-is TRUE any new pragmas are added to the end of the existing list.
+This routine scans the current token pragma list for any pbk_next_construct
+pragmas.  If the binding kind matches the flags passed by the caller,
+the pragma is copied to the pragmas_bound_to_curr_decl_or_stmt list.
+If binding kind does not match the flags passed by the caller an error
+is issued.  Pragmas that don't bind to the next declaration/statement
+remain on the current token pragma list.
 */
 {
   a_scope_stack_entry_ptr	ssep;
@@ -656,21 +671,19 @@ is TRUE any new pragmas are added to the end of the existing list.
   a_pending_pragma_ptr		ppp;
   a_pending_pragma_ptr		prev_ppp;
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Create source sequence entries for any pragmas that don't yet have
+     them. */
+  add_source_sequence_entry_to_curr_token_pragmas();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   ssep = &scope_stack[depth_scope_stack];
   list_start = ssep->pragmas_bound_to_curr_decl_or_stmt;
-  if (merge_with_existing_list) {
-    /* Find the end of the current list. */
-    list_end = list_start;
-    if (list_end != NULL) {
-      while (list_end->next != NULL) {
-        list_end = list_end->next;
-      }  /* while */
-    }  /* if */
-  } else {
-    /* Free any existing list. */
-    free_pending_pragma_list(list_start);
-    list_start = NULL;
-    list_end = NULL;
+  /* Find the end of the current list. */
+  list_end = list_start;
+  if (list_end != NULL) {
+    while (list_end->next != NULL) {
+      list_end = list_end->next;
+    }  /* while */
   }  /* if */
   ppp = curr_token_pragmas;
   prev_ppp = NULL;
@@ -682,35 +695,28 @@ is TRUE any new pragmas are added to the end of the existing list.
     a_pragma_description_ptr	pdp = ppp->descr_ptr;
     a_pragma_binding_kind	binding_kind = pdp->binding_kind;
     an_error_code		error_code;
-    if (binding_kind == pbk_next_declaration) {
-      add_to_new_list = decl_allowed;
-      issue_diagnostic = !decl_allowed;
-      error_code = ec_pragma_must_precede_declaration;
+    if (binding_kind == pbk_next_construct) {
+      /* All pbk_next_construct pragmas will be removed from the list. */
       remove_from_curr_list = TRUE;
-    } else if (binding_kind == pbk_next_statement) {
-      add_to_new_list = stmt_allowed;
-      issue_diagnostic = !stmt_allowed;
-      error_code = ec_pragma_must_precede_statement;
-      remove_from_curr_list = TRUE;
+      if ((is_decl && pdp->may_bind_to_decl) ||
+          (!is_decl && pdp->may_bind_to_stmt)) {
+        /* The pragma binding matches the kind of construct being processed. */
+        add_to_new_list = TRUE;
+      } else {
+        /* The pragma binding does not match the kind of construct being
+           processed.  Issue an error. */
+        issue_diagnostic = TRUE;
+        if (pdp->may_bind_to_decl) {
+          error_code = ec_pragma_must_precede_declaration;
+        } else {
+          check_assertion(pdp->may_bind_to_stmt);
+          error_code = ec_pragma_must_precede_statement;
+        }  /* if */
+      }  /* if */
     }  /* if */
     /* An entry can't be on both lists. */
     check_assertion(!(add_to_new_list == TRUE &&
                       remove_from_curr_list == FALSE));
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Add an empty entry for this pragma to the source sequence list.
-       It will be changed to an eok_pragma entry and completed when the
-       corresponding IL pragma entry is created (or removed if it turns
-       out that no IL pragma entry is created). */
-    if (ppp->source_sequence_entry == NULL) {
-      if (remove_from_curr_list && !add_to_new_list) {
-        /* This entry is just being thrown away.  How should it be handled
-           in the source sequence list?  For example, should an IL entry be
-           created for it? */
-      } else {
-        ppp->source_sequence_entry = add_empty_source_sequence_entry();
-      }  /* if */
-    }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (remove_from_curr_list) {
       if (prev_ppp != NULL) {
         /* Make the previous entry on the list point to the entry after this
@@ -740,12 +746,31 @@ is TRUE any new pragmas are added to the end of the existing list.
       }  /* if */
     }  /* if */
     if (issue_diagnostic) {
-      pos_error(error_code, &ppp->id_position);
+      if (pdp->error_severity != es_none) {
+        pos_diagnostic(pdp->error_severity, error_code, &ppp->id_position);
+      }  /* if */
     }  /* if */
     ppp = next_ppp;
   }  /* while */
   ssep->pragmas_bound_to_curr_decl_or_stmt = list_start;
 }  /* select_pragma_bound_to_curr_decl_or_stmt */
+
+
+void wrapup_pragmas_bound_to_curr_decl_or_stmt(void)
+/*
+This routine is called at the end of processing a declaration or
+statement to remove any entries that still remain on the
+pragmas_bound_to_curr_decl_or_stmt list.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_pending_pragma_ptr		list_start;
+
+  ssep = &scope_stack[depth_scope_stack];
+  list_start = ssep->pragmas_bound_to_curr_decl_or_stmt;
+  ssep->pragmas_bound_to_curr_decl_or_stmt = NULL;
+  free_pending_pragma_list(list_start);
+}  /* wrapup_pragmas_bound_to_curr_decl_or_stmt */
 
 
 /*
@@ -7252,52 +7277,65 @@ Initialize the pragma description table.
     pragma_description_for_pragma_kind[i] = (a_pragma_description_ptr)NULL;
   }  /* for */
   (void)add_pragma_description(pk_printf_args,
-                               pbk_next_declaration,
+                               pbk_next_construct,
 			       (a_pragma_processing_function_ptr)NULL,
 			       /*is_pseudo_pragma=*/FALSE,
+			       /*may_bind_to_decl=*/TRUE,
+			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*fetch_pp_tokens=*/FALSE,
+                               /*pass_thru_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_error);
   (void)add_pragma_description(pk_scanf_args,
-                               pbk_next_declaration,
+                               pbk_next_construct,
 			       (a_pragma_processing_function_ptr)NULL,
 			       /*is_pseudo_pragma=*/FALSE,
+			       /*may_bind_to_decl=*/TRUE,
+			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*fetch_pp_tokens=*/FALSE,
+                               /*pass_thru_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_error);
+#if 0
+  /* Change lint comment error severities to es_none. */
+#endif 
   (void)add_pragma_description(pk_lint_argsused,
-                               pbk_next_declaration,
+                               pbk_next_construct,
 			       (a_pragma_processing_function_ptr)NULL,
 			       /*is_pseudo_pragma=*/TRUE,
+			       /*may_bind_to_decl=*/TRUE,
+			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*fetch_pp_tokens=*/FALSE,
+                               /*pass_thru_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_warning);
   (void)add_pragma_description(pk_lint_varargs_count,
-                               pbk_next_declaration,
+                               pbk_next_construct,
 			       (a_pragma_processing_function_ptr)NULL,
 			       /*is_pseudo_pragma=*/TRUE,
+			       /*may_bind_to_decl=*/TRUE,
+			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*fetch_pp_tokens=*/FALSE,
+                               /*pass_thru_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_warning);
   (void)add_pragma_description(pk_lint_not_reached,
-                               pbk_next_statement,
+                               pbk_next_construct,
 			       (a_pragma_processing_function_ptr)NULL,
 			       /*is_pseudo_pragma=*/TRUE,
+			       /*may_bind_to_decl=*/TRUE,
+			       /*may_bind_to_stmt=*/TRUE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*fetch_pp_tokens=*/FALSE,
+                               /*pass_thru_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_warning);
@@ -7305,9 +7343,11 @@ Initialize the pragma description table.
                                pbk_immediate,
 			       instantiation_pragma,
 			       /*is_pseudo_pragma=*/FALSE,
+			       /*may_bind_to_decl=*/FALSE,
+			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*fetch_pp_tokens=*/FALSE,
+                               /*pass_thru_only=*/FALSE,
                                /*expand_macros=*/TRUE,
                                /*processing_C_code_in_pragma=*/TRUE,
                                es_error);
@@ -7315,9 +7355,11 @@ Initialize the pragma description table.
                                pbk_immediate,
 			       instantiation_pragma,
 			       /*is_pseudo_pragma=*/FALSE,
+			       /*may_bind_to_decl=*/FALSE,
+			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*fetch_pp_tokens=*/FALSE,
+                               /*pass_thru_only=*/FALSE,
                                /*expand_macros=*/TRUE,
                                /*processing_C_code_in_pragma=*/TRUE,
                                es_error);
@@ -7325,31 +7367,37 @@ Initialize the pragma description table.
                                pbk_immediate,
 			       instantiation_pragma,
 			       /*is_pseudo_pragma=*/FALSE,
+			       /*may_bind_to_decl=*/FALSE,
+			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*fetch_pp_tokens=*/FALSE,
+                               /*pass_thru_only=*/FALSE,
                                /*expand_macros=*/TRUE,
                                /*processing_C_code_in_pragma=*/TRUE,
                                es_error);
 #if 0
 #else
   (void)add_pragma_description(pk_test_next_decl,
-                               pbk_next_declaration,
+                               pbk_next_construct,
 			       (a_pragma_processing_function_ptr)NULL,
 			       /*is_pseudo_pragma=*/FALSE,
+			       /*may_bind_to_decl=*/TRUE,
+			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*fetch_pp_tokens=*/FALSE,
+                               /*pass_thru_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_error);
   (void)add_pragma_description(pk_test_next_statement,
-                               pbk_next_statement,
+                               pbk_next_construct,
 			       (a_pragma_processing_function_ptr)NULL,
 			       /*is_pseudo_pragma=*/FALSE,
+			       /*may_bind_to_decl=*/FALSE,
+			       /*may_bind_to_stmt=*/TRUE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*fetch_pp_tokens=*/FALSE,
+                               /*pass_thru_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_error);
@@ -7357,9 +7405,11 @@ Initialize the pragma description table.
                                pbk_immediate,
 			       (a_pragma_processing_function_ptr)NULL,
 			       /*is_pseudo_pragma=*/FALSE,
+			       /*may_bind_to_decl=*/FALSE,
+			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*fetch_pp_tokens=*/FALSE,
+                               /*pass_thru_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_error);
@@ -7367,9 +7417,11 @@ Initialize the pragma description table.
                                pbk_other,
 			       (a_pragma_processing_function_ptr)NULL,
 			       /*is_pseudo_pragma=*/FALSE,
+			       /*may_bind_to_decl=*/FALSE,
+			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*fetch_pp_tokens=*/FALSE,
+                               /*pass_thru_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_error);
@@ -7461,8 +7513,6 @@ of the front end.
   curr_token_pragmas = NULL;
 #if 0
 #else
-  lint_argsused_flag = FALSE;
-  lint_varargs_count = NOT_LINT_VARARGS;
   lint_notreached_flag = FALSE;
 #endif
 
