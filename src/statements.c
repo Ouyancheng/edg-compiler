@@ -1724,44 +1724,43 @@ found:
 }  /* find_enclosing_struct_stmt */
 
 
-static void start_block_statement(a_statement_ptr *block,
-                                  a_boolean       dependent_statement)
+static a_statement_ptr start_block_statement(a_boolean dependent_statement)
 /*
 Do processing to begin a block or compound statement.  Return a pointer
-to the block statement in *block.  dependent_statement is TRUE if the
-block is being created to surround a dependent statement in C++.
+to the block statement.  dependent_statement is TRUE if the block is
+being created to surround a dependent statement in C++.
 */
 {
-  a_boolean cfront_dependent_statement = 
-                              any_cfront_mode() && dependent_statement;
-  a_struct_stmt_kind          kind = struct_stmt_stack[depth_stmt_stack].kind;
+  a_boolean          cfront_dependent_statement = 
+                                      any_cfront_mode() && dependent_statement;
+  a_struct_stmt_kind kind = struct_stmt_stack[depth_stmt_stack].kind;
+  a_statement_ptr    block_stmt = add_statement((a_statement_kind)stmk_block);
+  a_block_ptr        block = block_stmt->variant.block.extra_info;
 
-  *block = add_statement((a_statement_kind)stmk_block);
-  stmt_update_source_sequence_list(*block);
+  stmt_update_source_sequence_list(block_stmt);
   if (!dependent_statement) {
-    /* This is a block statement introduced by an lbrace (which should be
+    /* This is a block statement introduced by a left brace (which should be
        the next token).  Process any pragmas that are meant to bind to the
        the block statement as a whole. */
-    process_curr_construct_pragmas((a_symbol_ptr)NULL, *block);
+    process_curr_construct_pragmas((a_symbol_ptr)NULL, block_stmt);
   } else {
     /* This is a dependent statement with no surrounding braces.  Any pragmas
        that are current will bind to the statement (not to the block), so
        don't process them yet. */
     if (cfront_dependent_statement) {
       /* This is a dependent statement in cfront mode, which is special in
-         that no scope is created for it.  Mark the block for special
-         processing in IL lowering or a back end: anything constructed
-         within the block must also be destroyed therein.  This flag must
-         be set before push_stmt_stack is called. */
-      (*block)->dependent_statement = TRUE;
+         that no scope is created for it, but it nevertheless has an
+         associated object lifetime: anything constructed within the statement
+         must also be destroyed therein. */
+      block_stmt->dependent_statement = TRUE;
+      push_object_lifetime(iek_block, (char *)block, /*ctor_init=*/FALSE);
     }  /* if */
   }  /* if */
   /* Make the parent pointer in the block point to the nearest enclosing
      compound statement. */
-  (*block)->variant.block.extra_info->parent_block =
-                                        nearest_enclosing_compound_statement();
+  block->parent_block = nearest_enclosing_compound_statement();
   /* Push an entry on the structured statement stack. */
-  push_stmt_stack(ssk_compound, *block);
+  push_stmt_stack(ssk_compound, block_stmt);
   /* Push an associated scope.  This does not allocate the IL scope yet.
      Do not do this in cfront compatibility mode (the old rule was that no
      scope is created). */
@@ -1774,28 +1773,32 @@ block is being created to surround a dependent statement in C++.
       scope_stack[decl_scope_level].is_loop_scope = TRUE;
     }  /* if */
   }  /* if */
+  return block_stmt;
 }  /* start_block_statement */
 
 
-static void finish_block_statement(a_statement_ptr block)
+static void finish_block_statement(a_statement_ptr block_stmt)
 /*
-Do processing to finish a block or compound statement.  block points to the
-block statement.
+Do processing to finish a block or compound statement.  block_stmt points to
+the block statement.
 */
 {
   a_scope_ptr scope_ptr;
+  a_block_ptr block = block_stmt->variant.block.extra_info;
 
   /* Remember whether or not the end of the block is reachable.  This
      is helpful in IL lowering. */
-  block->variant.block.extra_info->end_of_block_reachable = 
-                                                   curr_reachability.reachable;
-  if (!block->dependent_statement) {
+  block->end_of_block_reachable = curr_reachability.reachable;
+  if (block_stmt->dependent_statement) {
+    /* cfront mode dependent statement. */
+    pop_object_lifetime();
+  } else {
     /* Store the IL scope pointer in the block.  This is NULL except for
        blocks with declarations. */
     scope_ptr = scope_stack[decl_scope_level].il_scope;
     if (scope_ptr != NULL) {
-      block->variant.block.extra_info->assoc_scope = scope_ptr;
-      scope_ptr->assoc_block = block;
+      block->assoc_scope = scope_ptr;
+      scope_ptr->assoc_block = block_stmt;
     }  /* if */
     /* Pop the name scope. */
     pop_scope();
@@ -1826,7 +1829,7 @@ statement no new scope is required.
   } else {
     /* Normal case (in C++): add a block and potential scope.
        In cfront mode, the block is added but not the scope. */
-    start_block_statement(&block, /*dependent_statement=*/TRUE);
+    block = start_block_statement(/*dependent_statement=*/TRUE);
     block_added = TRUE;
   }  /* if */
   /* Now process the dependent statement itself. */
@@ -1876,7 +1879,8 @@ See also 3.6.4.1.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   /* Scan the controlling expression, and check to see that it is scalar. */
-  sp->expr = scan_boolean_controlling_expression();
+  sp->expr = scan_boolean_controlling_expression(/*is_condition_expr=*/TRUE,
+                                                 /*repeated_in_loop=*/FALSE);
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
@@ -2020,7 +2024,8 @@ See also 3.6.5.1.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   /* Scan the controlling expression, and check to see that it is scalar. */
-  sp->expr = scan_boolean_controlling_expression();
+  sp->expr = scan_boolean_controlling_expression(/*is_condition_expr=*/TRUE,
+                                                 /*repeated_in_loop=*/TRUE);
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
@@ -2077,7 +2082,8 @@ See also 3.6.5.2.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   /* Scan the controlling expression, and check to see that it is scalar. */
-  sp->expr = scan_boolean_controlling_expression();
+  sp->expr = scan_boolean_controlling_expression(/*is_condition_expr=*/FALSE,
+                                                 /*repeated_in_loop=*/TRUE);
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
@@ -2172,7 +2178,7 @@ Scan an expression statement.
      statement. */
   process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   /* Scan the expression. */
-  expr = scan_void_expression();
+  expr = scan_void_expression(/*repeated_in_loop=*/FALSE);
   sp->expr = expr;
   /* If the expression is a throw expression, the code following is
      unreachable. */
@@ -2257,7 +2263,8 @@ either an expression statement or a declaration statement.
   /* Scan the controlling expression if it is present, and check to see
      that it is scalar. */
   if (curr_token != tok_semicolon) {
-    sp->expr = scan_boolean_controlling_expression();
+    sp->expr = scan_boolean_controlling_expression(/*is_condition_expr=*/TRUE,
+                                                   /*repeated_in_loop=*/TRUE);
   }  /* if */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
@@ -2268,7 +2275,8 @@ either an expression statement or a declaration statement.
        be set within the body of the loop.  */
     saved_flag = suppress_used_before_set_warnings;
     suppress_used_before_set_warnings = TRUE;
-    sp->variant.for_loop.extra_info->increment = scan_void_expression();
+    sp->variant.for_loop.extra_info->increment =
+                               scan_void_expression(/*repeated_in_loop=*/TRUE);
     /* Restore the global variable. */
     suppress_used_before_set_warnings = saved_flag;
   }  /* if */
@@ -3584,7 +3592,7 @@ branching into it is disallowed).
     /* Note that there is no check for unreachable code.  It's probably too
        draconian to warn about an unreachable open brace if (say) there
        is a label right afterwards. */
-    start_block_statement(&block, /*dependent_statement=*/FALSE);
+    block = start_block_statement(/*dependent_statement=*/FALSE);
     /* Clear the entry for "else" in the stop tokens set.  Without this,
        an else encountered where a statement is expected could cause an
        error recovery loop. */
