@@ -270,7 +270,7 @@ typedef int a_gen_name_options_set;
 			/* gen_name is invoked to emit the name of a member
 			   function or field.  In Microsoft mode, such a
 			   name cannot be qualified with a namespace name. */
-#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
 #define GN_DEPENDENT 0x20
 			/* The name to generate depends on a template
 			   parameter. */
@@ -291,7 +291,9 @@ static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type);
 static a_boolean process_preprocessing_directives(void);
 static void gen_pragma(void);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
 static void gen_template_header(a_template_decl_ptr);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 static void gen_template(void);
 static void gen_lvalue_full(an_expr_node_ptr node,
                             a_boolean        need_parens);
@@ -1732,7 +1734,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
            hiding was effective only if the name was used as a qualifier. */
       } else {
         /* Use a qualified name. */
-#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
         if (entry_kind == iek_type &&
             !(options & GN_QUALIFIER) && (options & GN_DEPENDENT)) {
           /* Emit a "typename" preceding a dependent qualified name (but not
@@ -1775,7 +1777,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       write_tok_str("::");
     }  /* if */
   }  /* if */
-#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
   /* Finally, emit the unqualified part of the name, with or without
      template arguments. */
   if (options & GN_NO_TEMPLATE_ARGS) {
@@ -1793,7 +1795,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 #define gen_routine_name(routine)                                     \
   gen_name(&(routine)->source_corresp, iek_routine, GN_NO_OPTIONS,    \
            (a_boolean *)NULL)
-#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
 #define gen_type_name(type)                                           \
   gen_name(&(type)->source_corresp, iek_type,                         \
            !C_mode() && is_or_contains_template_param(type) ?         \
@@ -3338,7 +3340,7 @@ is the one associated with the definition of the class.
   } else {
     /* Put out the name.  Note that a name will be generated for an
        unnamed class, which can be useful for casts. */
-#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
     gen_class_decl_name(type);
 #else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
     gen_name(&type->source_corresp, iek_type, GN_DECLARATION,
@@ -3871,7 +3873,7 @@ this one is such a continuation.
         /* Don't take this route if the type may be a prototype instantiation.
            In that case, we may have to inhibit the template argument list. */
         gen_tag_reference(type);
-#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
       } else {
         write_tok_str(tag_kind(type->kind));
         write_space()
@@ -4507,7 +4509,7 @@ precedence confusion and need_parens is TRUE.
           break;
       }  /* switch */
     }  /* if */
-#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
   } else if (kind == (an_expr_node_kind)enk_constant) {
     a_constant_ptr  constant = node->variant.constant;
     if (constant->kind == (a_constant_repr_kind)ck_address) {
@@ -6118,13 +6120,16 @@ characters in the string indicate new source lines.
   write_str(p);
 }  /* write_code_string */
 
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
 
 static void write_tok_str_if_nonnull(char *str)
+/*
+If str is NULL, do nothing.  Otherwise call write_tok_str(str).
+*/
 {
   if (str != NULL) write_tok_str(str);
 }  /* write_tok_str_if_nonnull */
 
-#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
 
 static void gen_template_header(a_template_decl_ptr tdp)
 /*
@@ -7147,7 +7152,7 @@ TRUE, "()" is put out.
               gen_type_name(ctor->source_corresp.parent.class_type);
             }  /* if */
             /* Put out the argument list in parentheses. */
-#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
             if (ctor != NULL) {
               gen_argument_list(args, ctor->type, /*skip_num=*/0);
             } else {
@@ -7548,7 +7553,7 @@ a constructor.
         case cik_direct_base_class:
           /* Initializing a base class. */
           type = ctor_init->variant.base_class->type;
-#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
           /* Don't use "gen_type_name" to avoid "typename" keywords. */
           gen_name(&type->source_corresp, iek_type,
                    GN_NO_OPTIONS, (a_boolean *)NULL);
