@@ -383,7 +383,7 @@ reporting that both entries are definitions.
   f_report_multiple_definitions(                                          \
     (char*)(entity),                                                      \
     &((a_source_correspondence_ptr)                                       \
-            checked_trans_unit_corresp_pointer_of(entity))                \
+            trans_unit_corresp_of(entity))                \
       ->decl_position)
 
 
@@ -444,7 +444,7 @@ static a_boolean known_same_parents(a_symbol_ptr  sym1,
 /*
 Return TRUE if and only if the parent (namespace or class) entities of the
 given symbols have the same canonical entry.  (This differs from 
-"same_parents"in that no attempt is made to establish a canonical entry.
+"same_parents" in that no attempt is made to establish a canonical entry.)
 */
 {
   a_boolean  result;
@@ -576,18 +576,10 @@ Otherwise, type's correspondence should be set to *record.
   if (*record == NULL) {
     *record = type;
     if (in_secondary_trans_unit(type)) {
-      trans_unit_corresp_pointer_of(type) = (char*)type;
+      set_no_trans_unit_corresp(iek_type, type);
     }  /* if */
   } else {
-    if (in_secondary_trans_unit(type)) {
-      trans_unit_corresp_pointer_of(type) = (char*)*record;
-    } else {
-      /* Sometimes we switch back to the primary translation unit (e.g.,
-         to perform IL lowering) and create there a builtin type that was
-         already created in a secondary translation unit. */
-      checked_trans_unit_corresp_pointer_of(*record) = (char*)type;
-      *record = type;
-    }  /* if */
+    set_trans_unit_corresp(iek_type, type, *record);
   }  /* if */
 }  /* set_builtin_type_corresp */
 
@@ -924,8 +916,7 @@ Clear the correspondence pointers in the substructure of a class type.
                                                                ->base_classes;
       clear_scope_correspondence(scope, visited);
       for (; base != NULL; base = base->next) {
-        checked_trans_unit_corresp_pointer_of(base) = visited ? (char*)base
-                                                              : NULL;
+        clear_trans_unit_corresp(iek_base_class, base, visited);
       }  /* for */
     }  /* if */
   }  /* if */
@@ -1074,7 +1065,7 @@ correspondence pointer have the same name (effectively, that their associated
 symbols are listed under the same header).
 */
 {
-  char       *entity2 = checked_trans_unit_corresp_pointer_of(entity1);
+  char       *entity2 = canonical_il_entry_of(entity1);
   a_boolean  match = same_name(entity1, entity2);
   if (!match) {
     /* Only class members have a correspondence pointer set without testing
@@ -1210,8 +1201,8 @@ is in fact valid.
   a_boolean      match = TRUE;
 
   if (has_correspondence(routine)) {
-    a_routine_ptr  corresp_routine = (a_routine_ptr)
-                               checked_trans_unit_corresp_pointer_of(routine);
+    a_routine_ptr  corresp_routine =
+                                (a_routine_ptr)trans_unit_corresp_of(routine);
     a_source_correspondence_ptr
                    scp = &routine->source_corresp,
                    corresp_scp = &corresp_routine->source_corresp;
@@ -1268,8 +1259,7 @@ is in fact valid.
   a_boolean       match = TRUE;
 
   if (has_correspondence(var)) {
-    a_variable_ptr  corresp_var = (a_variable_ptr)
-                                   checked_trans_unit_corresp_pointer_of(var);
+    a_variable_ptr  corresp_var = (a_variable_ptr)trans_unit_corresp_of(var);
     a_source_correspondence_ptr
                     scp = &var->source_corresp,
                     corresp_scp = &corresp_var->source_corresp;
@@ -1479,8 +1469,7 @@ type is in fact valid.
   a_boolean   match = verify_name_correspondence(type);
   a_boolean   report_error = FALSE;
   a_boolean   both_defined = TRUE;
-  a_type_ptr  corresp_type =
-                      (a_type_ptr)checked_trans_unit_corresp_pointer_of(type);
+  a_type_ptr  corresp_type = (a_type_ptr)trans_unit_corresp_of(type);
 #define class_info type->variant.class_struct_union
 #define corresp_info corresp_type->variant.class_struct_union
   a_class_type_supplement_ptr
@@ -1646,7 +1635,7 @@ type is in fact valid.
             goto done;
           }  /* if */
           /* Set source correspondence: */
-          checked_trans_unit_corresp_pointer_of(base) = (char*)corresp_base;
+          set_trans_unit_corresp(iek_base_class, base, corresp_base);
         }  /* for */
         if ((base == NULL && corresp_base != NULL) ||
             (base != NULL && corresp_base == NULL)) {
@@ -1797,8 +1786,7 @@ is in fact valid.
 {
   a_boolean     match;
   a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-  a_type_ptr    corresp_type =
-                      (a_type_ptr)checked_trans_unit_corresp_pointer_of(type);
+  a_type_ptr    corresp_type = (a_type_ptr)trans_unit_corresp_of(type);
   a_boolean     both_defined = type_has_definition(type) &&
                                type_has_definition(corresp_type);
   a_source_correspondence_ptr
@@ -1807,7 +1795,7 @@ is in fact valid.
 
   if (!has_correspondence(type)) {
     match = TRUE;
-    if (checked_trans_unit_corresp_pointer_of(type) == NULL) {
+    if (trans_unit_corresp_of(type) == NULL) {
       set_no_trans_unit_corresp(iek_type, type);
     }  /* if */
     if (is_immediate_enum_type(type)) {
@@ -2056,7 +2044,7 @@ correspondence pointer for each of them.
   for (type = skip_generated_type(scope->types);
        type != NULL;
        type = skip_generated_type(type->next)) {
-    if (checked_trans_unit_corresp_pointer_of(type) == NULL) {
+    if (trans_unit_corresp_of(type) == NULL) {
       /* Some types (e.g., certain unnamed class types that acquired a name
          thought a typedef) may not have been processed yet. */
       clear_type_correspondence(type, /*visited=*/TRUE);
@@ -2083,7 +2071,7 @@ unit correspondence pointer for each of them.
   for (routine = scope->routines;
        routine != NULL;
        routine = routine->next) {
-    if (checked_trans_unit_corresp_pointer_of(routine) != NULL &&
+    if (trans_unit_corresp_of(routine) != NULL &&
         !verify_routine_correspondence(routine)) {
       /* Some error occurred---clear the association. */
       set_no_trans_unit_corresp(iek_routine, routine);
@@ -2104,7 +2092,7 @@ unit correspondence pointer for each of them.
   for (variable = scope->variables;
        variable != NULL;
        variable = variable->next) {
-    if (checked_trans_unit_corresp_pointer_of(variable) != NULL &&
+    if (trans_unit_corresp_of(variable) != NULL &&
         !verify_variable_correspondence(variable)) {
       /* Some error occurred---clear the association. */
       set_no_trans_unit_corresp(iek_variable, variable);
@@ -2125,7 +2113,7 @@ unit correspondence pointer for each of them.
   for (templ = scope->templates;
        templ != NULL;
        templ = templ->next) {
-    if (checked_trans_unit_corresp_pointer_of(templ) != NULL &&
+    if (trans_unit_corresp_of(templ) != NULL &&
         !verify_template_correspondence(templ)) {
       /* Some error occurred---clear the association. */
       set_no_trans_unit_corresp(iek_template, templ);
@@ -2549,8 +2537,7 @@ return FALSE.
        verify it.  If verification finds that the types do not after all
        match, the type is restored to its previous state wrt. correspondence
        checking. */
-    a_boolean  visited =
-             (checked_trans_unit_corresp_pointer_of(type_1) == (char*)type_1);
+    a_boolean  visited = (trans_unit_corresp_of(type_1) != NULL);
     clear_type_correspondence(type_1, /*visited=*/FALSE);
     set_trans_unit_corresp(iek_type, type_1, type_2);
     if (is_immediate_class_type(type_1)) {
@@ -2594,7 +2581,7 @@ translation unit correspondence pointer if one is found.
   } else {
     a_symbol_ptr            sym = corresp_symbol_list(nsp_sym);
     a_translation_unit_ptr  trans_unit = trans_unit_for_symbol(nsp_sym);
-    if (checked_trans_unit_corresp_pointer_of(nsp) == NULL) {
+    if (trans_unit_corresp_of(nsp) == NULL) {
       /* Mark this namespace as visited to avoid infinite recursion. */
 #if DEBUG
       if (db_flag_is_set("trans_corresp")) {
@@ -2625,7 +2612,7 @@ translation unit correspondence pointer if one is found.
                    sym->variant.namespace_info.ptr->is_namespace_alias ==
                                                     nsp->is_namespace_alias) {
           /* Mark as unvisited. */
-          checked_trans_unit_corresp_pointer_of(nsp) = NULL;
+          trans_unit_corresp_of(nsp) = NULL;
           /* Record the correspondence. */
           set_trans_unit_corresp(iek_namespace,
                                  nsp, sym->variant.namespace_info.ptr);
@@ -2649,7 +2636,7 @@ entities.
 */
 {
   a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-  a_symbol_ptr  sym, corresp_sym = NULL;
+  a_symbol_ptr  sym;
   a_boolean     handled_later = FALSE;
 
   if (is_immediate_class_type(type) &&
@@ -2661,9 +2648,6 @@ entities.
     /* Cannot establish a correspondence without a name. */
   } else if (type_sym != NULL && may_have_correspondence(type_sym)) {
     a_boolean  corresp_found = FALSE;
-    a_boolean  first_tag_definition = type_sym->defined && 
-                   (type_sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
-                    type_sym->kind == (a_symbol_kind)sk_enum_tag);
     a_translation_unit_ptr
                trans_unit = trans_unit_for_symbol(type_sym);
     sym = corresp_symbol_list(type_sym);
@@ -2693,6 +2677,21 @@ entities.
                    (sym->kind == (a_symbol_kind)sk_class_or_struct_tag &&
                     type_sym->kind == (a_symbol_kind)sk_class_or_struct_tag &&
                     sym->defined != type_sym->defined)) {
+          a_type_ptr  corresp_type = type_symbol_type(sym);
+          set_trans_unit_corresp(iek_type, type, corresp_type);
+          if(type_has_definition(type)) {
+            if (!type_has_definition((a_type*)canonical_il_entry_of(type))) {
+              /* This new entry should be considered the canonical type. */
+              trans_unit_corresp_of(type)->canonical = (char*)type;
+            }  /* if */
+            if (is_immediate_class_type(type)) {
+              establish_trans_unit_correspondences_for_class(type);
+            } else if (is_immediate_enum_type(type)) {
+              establish_trans_unit_correspondences_for_enum(type);
+            }  /* if */
+          }  /* if */
+          corresp_found = TRUE;
+#if 0 /* FIXME */
           if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
               sym->kind == (a_symbol_kind)sk_enum_tag) {
             /* Definitions of class and enum types are preferably matched up
@@ -2721,8 +2720,8 @@ entities.
                 /* Check if the canonical definition candidate does indeed
                    point to a nondefining declaration (which should be the
                    root of the correspondence tree). */
-                a_type_ptr  next = (a_type_ptr)
-                         checked_trans_unit_corresp_pointer_of(canonical_def);
+                a_type_ptr  next =
+                             (a_type_ptr)trans_unit_corresp_of(canonical_def);
                 if (type_has_definition(next)) {
                   /* next is the canonical definition. */
                   corresp_sym = (a_symbol_ptr)next->source_corresp.assoc_info;
@@ -2758,6 +2757,7 @@ entities.
             corresp_sym = sym;
             corresp_found = TRUE;
           }  /* if */
+#endif /* FIXME */
         } else if (!type_sym->is_class_member &&
                    (!is_tag_symbol(type_sym) ||
                     (is_type_symbol(sym) ||
@@ -2772,6 +2772,7 @@ entities.
         }  /* if */
       }  /* if */
     }  /* for */
+#if 0 /* FIXME */
     if (corresp_sym != NULL) {
        /* Record the correspondence. */
       a_type_ptr  corresp_type = type_symbol_type(corresp_sym);
@@ -2797,8 +2798,9 @@ entities.
         establish_trans_unit_correspondences_for_enum(type);
       }  /* if */
     }  /* if */
+#endif /* FIXME */
   }  /* if */
-  if (!handled_later && checked_trans_unit_corresp_pointer_of(type) == NULL) {
+  if (!handled_later && trans_unit_corresp_of(type) == NULL) {
     clear_type_correspondence(type, /*visited=*/TRUE);
   }  /* if */
 }  /* find_type_correspondence */
@@ -2924,7 +2926,7 @@ symbol supplement.
   templ = tssp->il_template_entry;
   if (correspondence_checking_done &&
       templ->source_corresp.is_class_member &&
-      checked_trans_unit_corresp_pointer_of(templ) == NULL) {
+      trans_unit_corresp_of(templ) == NULL) {
     /* This is a member template whose correspondence has not been established
        yet, but we are in a phase where normal correspondence checking is
        done.  Presumably, the parent class is still in the process of being
@@ -2937,7 +2939,7 @@ symbol supplement.
   corresp_templ = canonical_template_entry_of(templ);
   /* Note that the call to canonical_template_entry_of may have resulted in a
      correspondence value being set already. */
-  if (checked_trans_unit_corresp_pointer_of(class_type) == NULL) {
+  if (trans_unit_corresp_of(class_type) == NULL) {
     a_symbol_list_entry_ptr
                     sym_entry = NULL;
     corresp_tssp = ((a_symbol_ptr)corresp_templ->source_corresp.assoc_info)
@@ -3156,7 +3158,7 @@ and are handled elsewhere.
     }  /* for */
     /* Also process the prototype instantiation. */
     proto_inst = ((a_symbol_ptr)
-                 ((a_template_ptr)checked_trans_unit_corresp_pointer_of(templ))
+                 ((a_template_ptr)trans_unit_corresp_of(templ))
                                                    ->source_corresp.assoc_info)
                    ->variant.template_info
                    ->variant.class_template.prototype_instantiation;
@@ -3348,6 +3350,7 @@ entities.
             /* No need to find a "canonical definition". */
             corresp_templ = candidate;
             break;
+#if 0 /* FIXME */
           } else {
             a_symbol_ptr  corresp_sym =
                            (a_symbol_ptr)candidate->source_corresp.assoc_info;
@@ -3372,7 +3375,7 @@ entities.
                    point to a nondefining declaration (which should be the
                    root of the correspondence tree). */
                 a_template_ptr  cand_root = (a_template_ptr)
-                             checked_trans_unit_corresp_pointer_of(candidate);
+                                             trans_unit_corresp_of(candidate);
                 a_symbol_ptr    cand_root_sym = (a_symbol_ptr)
                                          cand_root->source_corresp.assoc_info;
                 if (!cand_root_sym->defined) {
@@ -3391,6 +3394,7 @@ entities.
                  continue searching for a canonical definition. */
               corresp_templ = candidate;
             }  /* if */
+#endif /* FIXME */
           }  /* if */
         } else if (!is_class_template_symbol(templ_sym) &&
                    is_function_symbol(sym)) {
@@ -3415,12 +3419,12 @@ entities.
       set_trans_unit_corresp(iek_template, templ, corresp_templ);
       establish_instantiation_correspondences(templ);
     }  /* if */
-    if (checked_trans_unit_corresp_pointer_of(templ) == NULL) {
+    if (trans_unit_corresp_of(templ) == NULL) {
+      /* Mark this template as visited. */
+      set_no_trans_unit_corresp(iek_template, templ);
       /* Mark all instantiations as visited and record them for later lookup.
          */
       clear_instantations_correspondence(templ, /*visited=*/TRUE);
-      /* Mark this template as visited. */
-      set_no_trans_unit_corresp(iek_template, templ);
     }  /* if */
   }  /* if */
 }  /* find_template_correspondence */
@@ -3638,8 +3642,7 @@ way, determine to which other IL entry this might correspond.
   /* If we're in the process of establishing correspondences, this particular
      entry may need to be processed now.  Otherwise, it should already have
      been done or no correspondence can be expected. */
-  if (correspondence_checking_underway &&
-      checked_trans_unit_corresp_pointer_of(scp) == NULL) {
+  if (correspondence_checking_underway && trans_unit_corresp_of(scp) == NULL) {
     a_type_ptr  root = NULL;
     /* Class members usually have their correspondence set when their parent
        type is processed.  In those cases we look for the outermost parent
@@ -3656,7 +3659,7 @@ way, determine to which other IL entry this might correspond.
         root = NULL;
       } else {
         while (root->source_corresp.is_class_member &&
-               checked_trans_unit_corresp_pointer_of(root) == NULL) {
+               trans_unit_corresp_of(root) == NULL) {
           root = root->source_corresp.parent.class_type;
         }  /* while */
       }  /* if */
@@ -3703,7 +3706,7 @@ way, determine to which other IL entry this might correspond.
         default:
           unexpected_condition_str("Unexpected IL entry kind");
       }  /* switch */
-    } else if (checked_trans_unit_corresp_pointer_of(root) == NULL) {
+    } else if (trans_unit_corresp_of(root) == NULL) {
       /* A member of a class that was not yet visited. */
       if (root->variant.class_struct_union.is_template_class &&
           root->variant.class_struct_union.extra_info
@@ -3714,7 +3717,7 @@ way, determine to which other IL entry this might correspond.
         find_type_correspondence(root, /*parent_found=*/FALSE);
       }  /* if */
     }  /* if */
-    if (checked_trans_unit_corresp_pointer_of(scp) == NULL) {
+    if (trans_unit_corresp_of(scp) == NULL) {
       /* A correspondence error at an outer level prevent this entry from
          having a correspondence.  Mark it and its unvisited ancestors as
          having no correspondence. */

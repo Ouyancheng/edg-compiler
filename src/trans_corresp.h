@@ -45,7 +45,7 @@ extern void f_report_bad_trans_unit_corresp(char                   *entity1,
 #define report_bad_trans_unit_corresp(entity)                               \
   f_report_bad_trans_unit_corresp(                                          \
     (char*)(entity),                                                        \
-    &((a_source_correspondence_ptr)trans_unit_corresp_pointer_of(entity))   \
+    &((a_source_correspondence_ptr)canonical_il_entry_of(entity))           \
       ->decl_position)
 
 
