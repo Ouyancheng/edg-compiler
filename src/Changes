@@ -1,5 +1,15 @@
 Version 2.32
 
+2/4/96    C++-generating back end: more on anonymous unions
+
+Yet another bug in handling anonymous unions in the C++-generating back end
+has been corrected:
+
+  static union {
+    struct S {};
+  };
+  typedef void (S::*Smf)();
+
 2/3/96    Exception specification for implicitly declared member function
 
 When a member function (i.e., a constructor, destructor, or copy assignment
@@ -1617,7 +1627,7 @@ now correctly output by the C++-generating back end.
 10/7/95  C++-generating back end: Nonstandard anonymous unions
 
 The C++-generating back now handles nonstandard anonymous unions (a
-Microsoft extensions) properly.
+Microsoft extension) properly.
 
 10/6/95  Const-qualified variable of empty class type with no initializer
 
