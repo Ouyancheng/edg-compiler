@@ -579,6 +579,8 @@ do
          --no_namespaces | \
          --using_std | \
          --no_using_std | \
+         --restrict | \
+         --no_restrict | \
          --remove_unneeded_entities | \
          --no_remove_unneeded_entities | \
          --typename | \
