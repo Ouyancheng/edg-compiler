@@ -2166,7 +2166,7 @@ return FALSE.
   db_enter(3, "is_match_for_function_template");
 #if CHECKING
   if (!is_function_type(curr_type)) {
-    internal_error("is_match_for_template_function: expected routine type");
+    internal_error("is_match_for_function_template: expected routine type");
   }  /* if */
 #endif /* CHECKING */
   *templ_arg_list = NULL;
@@ -2264,16 +2264,11 @@ get_next_sym:;
     match = TRUE;
   }  /* if */
 done:
-  if (!match) {
-    if (*templ_arg_list != NULL) {
-      free_template_arg_list(*templ_arg_list);
-      *templ_arg_list = NULL;
-    }  /* if */
-#if CHECKING
-  } else if ((*instance_sym == NULL) == (*templ_arg_list == NULL)) {
-    internal_error(
-              "is_match_for_function_template: bad sym or templ arg list");
-#endif /* CHECKING */
+  if (!match && *templ_arg_list != NULL) {
+    /* If there was not a match but a template argument list was created, the
+       latter will not be used and may be returned for reuse. */
+    free_template_arg_list(*templ_arg_list);
+    *templ_arg_list = NULL;
   }  /* if */
   db_exit();
   return match;
