@@ -5272,7 +5272,10 @@ overrides both of them.
 
   sym1 = (a_symbol_ptr)r1->source_corresp.assoc_info;
   sym2 = (a_symbol_ptr)r2->source_corresp.assoc_info;
-  if (sym1 != NULL && sym2 != NULL && sym1->header == sym2->header &&
+  if (sym1 != NULL && sym2 != NULL && 
+      (sym1->header == sym2->header || 
+       (r1->special_kind == (a_special_function_kind)sfk_destructor &&
+        r2->special_kind == (a_special_function_kind)sfk_destructor)) &&
       param_types_are_compatible(r1->type, r2->type, TCF_NO_FLAGS) &&
       this_param_types_correspond(r1->type, r2->type,
                                   /*check_as_conversion=*/FALSE,
