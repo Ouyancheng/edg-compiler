@@ -1852,10 +1852,14 @@ after_entry_from_class:
           walk_list(ptr->base_classes, a_base_class_ptr, iek_base_class);
           switch (ptr->anonymous_union_kind) {
             case auk_none:
+              break;
             case auk_variable:
+              remap_ptr(ptr->anonymous_union_parent.variable, a_variable_ptr,
+                        iek_variable);
               break;
             case auk_field:
-              remap_ptr(ptr->anonymous_union_field, a_field_ptr, iek_field);
+              remap_ptr(ptr->anonymous_union_parent.field, a_field_ptr,
+                        iek_field);
               break;
             default:
               unexpected_condition_str(

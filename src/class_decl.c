@@ -4756,9 +4756,11 @@ specified by decl_scope_level.
     ctsp = assoc_object_type->variant.class_struct_union.extra_info;
     if (assoc_object_sym->kind == (a_symbol_kind)sk_field) {
       ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_field;
-      ctsp->anonymous_union_field = assoc_object_sym->variant.field.ptr;
+      ctsp->anonymous_union_parent.field = assoc_object_sym->variant.field.ptr;
     } else {
       ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_variable;
+      ctsp->anonymous_union_parent.variable =
+                                      assoc_object_sym->variant.variable.ptr;
     }  /* if */
   }  /* if */
   /* Get the list of symbols that are to be either promoted (i.e., reused

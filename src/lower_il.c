@@ -85,7 +85,7 @@ constant, and return information about it in *delta.
       if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_field) {
         break;
       }  /* if */
-      field = ctsp->anonymous_union_field;
+      field = ctsp->anonymous_union_parent.field;
     }  /* for */
     /* Add the offset of the field class relative to the pointer-to-member
        class and the offset of the field relative to its class.  Final
@@ -1504,7 +1504,7 @@ union, adjust it to make the anonymous union reference(s) explicit.
        Basically, we keep the field selection we have, but rewrite its
        first operand as a field selection of the proper anonymous union out
        of the original first operand. */
-    au_field = ctsp->anonymous_union_field;
+    au_field = ctsp->anonymous_union_parent.field;
     /* Change "x.y" to "x.au_field.y". */
     adjust_anonymous_union_field_selection(node, au_field);
     /* Loop to see if the rewritten first operand still refers to an
