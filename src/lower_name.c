@@ -241,28 +241,54 @@ used to encode constants as part of the mangled names of template classes.
             ^-------- Length of the literal.
            ^--------- "L" indicates a number.
          cfront 3.0.1 does not implement this, so we made it up. */
-      /* Note that the fp_to_string conversion is not compact, so this
-         makes a long name. */
       str = fp_to_string(skip_typerefs(con->type)->variant.float_kind,
                          &con->variant.float_value);
       str_length = strlen(str);  /* Includes "-" sign if any. */
+      /* Remove unnecessary trailing zeroes, e.g., change
+         "1.50000e+10" to "1.5    e+10".  The blanks are then dropped
+         in the copy below. */
+      { char *p = strchr(str, '.'), *last_signif;
+        if (p != NULL) {
+          /* There is a decimal point.  Find the last significant digit
+             following the decimal point. */
+          /* The first digit after the decimal is considered significant even
+             if it is a zero. */
+          for (last_signif = ++p; isdigit(*p); p++) {
+            if (*p != '0') last_signif = p;
+          }  /* for */
+          /* Change any insignificant zeroes to blanks. */
+          while (last_signif < --p) {
+            *p = ' ';
+            str_length--;
+          }  /* while */
+        }  /* if */
+      }
       digits = digits_to_represent((unsigned long)str_length);
       literal_length = 1 + digits + str_length;
       if (store_at != NULL) {
         *store_at++ = 'L';
         (void)sprintf(store_at, "%lu", (unsigned long)str_length);
         store_at += digits;
-        for (;str_length > 0; str_length--) {
+        while (str_length > 0) {
           /* Move the string and recode non-alphanumeric characters. */
           char c = *str++;
-          /* Use "n" to represent a minus sign. */
-          if (c == '-') c = 'n';
-          /* Use "d" to represent a decimal point. */
-          if (c == '.') c = 'd';
-          /* Use "p" to represent a plus sign. */
-          if (c == '+') c = 'p';
-          *store_at++ = c;
-        }  /* for */
+          if (c == ' ') {
+            /* A blank is an insignificant digit removed above. */
+          } else {
+            if (c == '-') {
+              /* Use "n" to represent a minus sign. */
+              c = 'n';
+            } else if (c == '.') {
+              /* Use "d" to represent a decimal point. */
+              c = 'd';
+            } else if (c == '+') {
+              /* Use "p" to represent a plus sign. */
+              c = 'p';
+            }  /* if */
+            *store_at++ = c;
+            str_length--;
+          }  /* if */
+        }  /* while */
       }  /* if */
       break;
     case ck_address:
