@@ -497,6 +497,9 @@ Dump a virtual base class entry, for debug purposes.
   a_type       *tp = bcp->type;
   a_field      *fp;
   int          i;
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+  a_boolean    complete_subobject = bcp->complete_subobject;
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
   
   fputs("\n  ", f_debug);
   for (i = depth; i > 0; --i) fputs("  ", f_debug);
@@ -528,6 +531,19 @@ Dump a virtual base class entry, for debug purposes.
       }  /* if */
     }  /* for */
     db_virtual_function_info(tp->variant.class_struct_union.extra_info, depth);
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+    if (complete_subobject) {
+      /* Put out the virtual base class data sections. */
+      for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
+           bcp != NULL;
+           bcp = bcp->next) {
+        if (bcp->direct && bcp->is_virtual &&
+            bcp->data_section_base_class == NULL) {
+          db_virtual_base_class(bcp, depth+1);
+        }  /* if */
+      }  /* for */
+    }  /* if */
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
   }  /* if */
   fputs(" )]", f_debug);
 }  /* db_virtual_base_class */
