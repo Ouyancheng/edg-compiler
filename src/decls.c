@@ -895,6 +895,22 @@ language defined in the ARM, it is support for cfront compatibility.
 }  /* is_cfront_member_function_typedef */
 
 
+static a_boolean check_pm_member_type(a_type_ptr  member_type)
+/*
+member_type is to be used in a pointer-to-member type.  Check its validity
+and return TRUE if it's okay; otherwise issue a diagnostic and return FALSE.
+*/
+{
+  a_boolean  err = FALSE;
+
+  if (is_void_type(member_type) || is_reference_type(member_type)) {
+    type_error(ec_bad_member_type_in_ptr_to_member, member_type);
+    err = TRUE;
+  }  /* if */
+  return err;
+}  /* check_pm_member_type */
+
+
 static void add_to_derived_type_list(a_type_ptr new_type_ptr,
                                      a_type_ptr *derived_type,
                                      a_type_ptr *bottom_derived_type)
@@ -1037,9 +1053,10 @@ type is legal.
         (*bottom_derived_type)->variant.pointer.type = new_type_ptr;
       } else if (is_ptr_to_member_type(*bottom_derived_type)) {
         /* Pointer-to-member type. */
-#if 0
-        /* Error checking is needed. */
-#endif /* if 0 */
+        if (!check_pm_member_type(new_type_ptr)) {
+          new_type_ptr = error_type();
+          err = TRUE;
+        }  /* if */
         (*bottom_derived_type)->variant.ptr_to_member.type = new_type_ptr;
       } else {
         /* Function type. */
@@ -3730,15 +3747,10 @@ to NULL.
 #endif /* ASM_FUNCTION_ALLOWED */
                           );
       if (is_function_def && old_decl_has_body) {
-#if 0
         /* Previous routine already has a body, and new one does (or will)
-           too.  Let processing fall into call to alloc_local_symbol, which
-           will give a redefinition error. */
-        redecl_error_already_issued = FALSE;
-#else /* if !0 */
+           too. */
         pos_sy_error(ec_already_defined, &locator->source_position, sym);
         redecl_error_already_issued = TRUE;
-#endif /* if 0 */
         linked_redecl_error = TRUE;
       } else {
         /* Check that the old and new types are compatible, and form the
@@ -3982,9 +3994,6 @@ skip_overloading:;
       routine_ptr = linked_symbol->variant.routine.ptr;
       sym->variant.routine.ptr = routine_ptr;
       *old_type = routine_ptr->type;
-#if 0
-      /* Is a call to reconcile routine types appropriate here? */
-#endif /* if 0 */
       reconcile_routine_types(routine_ptr, type_ptr,
                               /*preserve_rout_type=*/TRUE,
                               /*preserve_type_ptr=*/FALSE);
@@ -5163,6 +5172,9 @@ parameter controls the restrictions imposed by the context.
         err = TRUE;
       } else {
         /* A valid pointer-to-member declarator. */
+        if (complete_type != NULL && !check_pm_member_type(complete_type)) {
+          complete_type = error_type();
+        }  /* if */
         complete_type = ptr_to_member_type(complete_type, class_type);
       }  /* if */
     } else {
@@ -5334,10 +5346,6 @@ otherwise it is NULL.  The syntax is:
   a_boolean       nonconstant_dimension_allowed;
   a_boolean       parenthesized_initializer_allowed;
   a_boolean       is_friend_decl = FALSE;
-#if 0
-  a_type_ptr      static_data_member_type;
-  a_boolean       lparen_must_introduce_initializer;
-#endif /* if 0 */
 
   db_enter(3, "declarator");
   set_err_pos_to_curr_token();
@@ -5499,11 +5507,6 @@ otherwise it is NULL.  The syntax is:
             if (member_parent_type != NULL) {
               a_symbol_ptr sym = locator_for_curr_id.specific_symbol;
               /* See if the name is the name of a member function. */
-#if 0
-              /* The following test replaces a call to is_member_function,
-                 which however doesn't know about sk_function_template member
-                 functions yet.  Is a change to the macro appropriate? */
-#endif /* if 0 */
               if (sym->kind == (a_symbol_kind)sk_member_function ||
                   sym->kind == (a_symbol_kind)sk_overloaded_function ||
                   sym->kind == (a_symbol_kind)sk_function_template) {
@@ -6795,7 +6798,7 @@ Returns TRUE if there is an error in the specifiers.
           if (es == es_error) err = TRUE;
         } else {
 #if 0
-/* The ARM requires the following check, but its author has stated that that
+/* The ARM requires the following check, but Stroustrup has stated that that
    is probably an error.  We expect this to be changed. */
 #endif /* if 0 */
           if (input_flags & DSI_IS_NEW_TYPE_NAME && strict_ansi_mode) {
@@ -6820,7 +6823,7 @@ Returns TRUE if there is an error in the specifiers.
           if (es == es_error) err = TRUE;
         } else {
 #if 0
-/* The ARM requires the following check, but its author has stated that that
+/* The ARM requires the following check, but Stroustrup has stated that that
    is probably an error.  We expect this to be changed. */
 #endif /* if 0 */
           if (input_flags & DSI_IS_NEW_TYPE_NAME && strict_ansi_mode) {
