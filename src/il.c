@@ -6708,16 +6708,22 @@ within a function scope.
 
 void make_proxy_ptr_source_sequence_entry(a_source_sequence_entry_ptr ssep)
 /*
+ssep points to a source sequence entry on the file scope source sequence
+list.  Create another source sequence entry in the current scope, point it
+at ssep, and add it to the source sequence list for the current scope.
 */
 {
   a_source_sequence_entry_ptr  function_scope_ssep;
 
+  /* We are currently inside a function, but ssep belongs to the file scope. */
   check_assertion(curr_il_region_number != FILE_SCOPE_REGION_NUMBER);
   check_assertion(in_file_scope(ssep));
+  /* Create the entry and set its kind and its pointer. */
   function_scope_ssep = alloc_source_sequence_entry();
   function_scope_ssep->entity.kind =
                            (a_byte_il_entry_kind)iek_source_sequence_entry;
   function_scope_ssep->entity.ptr  = (char *)ssep;
+  /* Add it to the current list. */
   add_to_source_sequence_list(function_scope_ssep, /*force_to_fs=*/FALSE);
 }  /* make_proxy_ptr_source_sequence_entry */
 
@@ -6730,7 +6736,9 @@ void update_source_sequence_list(char                 *entity_ptr,
 Allocate a source sequence entry for the entity and add it to the list for
 the current scope.  pos is the source position, for use in cases where this
 call records a secondary declaration; for entities for which that
-concept does not apply, pos can be NULL.
+concept does not apply, pos can be NULL.  If decl_seq_info is non-NULL,
+then it may point to a source sequence entry that has already been created
+and linked in for this entity.
 */
 {
   a_source_sequence_entry_ptr   ssep, old_ssep = NULL;
