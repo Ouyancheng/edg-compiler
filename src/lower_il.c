@@ -5701,7 +5701,7 @@ done on exit from that statement.
       a_boolean at_end_of_source;
       conv_seq_to_file_and_line(statement->seq_number, &file_name, &full_name,
                                 &line_number, &at_end_of_source);
-      fprintf(stderr, "Dependent statement with dtors at %s line %ul\n",
+      fprintf(stderr, "Dependent statement with dtors at %s line %lu\n",
                       file_name, (unsigned long)line_number);
 #endif
       /* Some destructor calls must be emitted.  Make the statement into a
