@@ -5854,11 +5854,14 @@ Allocate a copy of an expression node and return a pointer to it.
   an_expr_node_ptr            expr_copy;
   an_expr_node_kind           kind = expr->kind;
   a_new_delete_supplement_ptr copy_new_delete;
+  a_throw_supplement_ptr      copy_throw_info;
 
   expr_copy = alloc_expr_node(kind);
-  /* Preserve the new/delete supplement pointer if there is one. */
+  /* Preserve the supplement pointer if there is one. */
   if (kind == (an_expr_node_kind)enk_new_delete) {
     copy_new_delete = expr_copy->variant.new_delete;
+  } else if (kind == (an_expr_node_kind)enk_throw) {
+    copy_throw_info = expr_copy->variant.throw_info;
   }  /* if */
   /* Copy the node. */
   *expr_copy = *expr;
@@ -5868,6 +5871,10 @@ Allocate a copy of an expression node and return a pointer to it.
     /* Copy the new/delete supplement. */
     *copy_new_delete = *expr->variant.new_delete;
     expr_copy->variant.new_delete = copy_new_delete;
+  } else if (kind == (an_expr_node_kind)enk_throw) {
+    /* Copy the throw supplement. */
+    *copy_throw_info = *expr->variant.throw_info;
+    expr_copy->variant.throw_info = copy_throw_info;
   }  /* if */
   return expr_copy;
 }  /* copy_node */
@@ -5899,35 +5906,57 @@ an_expr_node_ptr copy_expr_tree(an_expr_node_ptr expr)
 Make a copy of an expression tree and return a pointer to it.
 */
 {
-  an_expr_node_kind           kind = expr->kind;
   an_expr_node_ptr            expr_copy;
   a_new_delete_supplement_ptr ndsp, copy_ndsp;
 
   /* Copy the top node. */
   expr_copy = copy_node(expr);
-  if (kind == (an_expr_node_kind)enk_operation) {
-    /* Copy the operands of the operation. */
-    expr_copy->variant.operation.operands =
+  switch (expr->kind) {
+    case enk_error:
+    case enk_constant:
+    case enk_variable:
+    case enk_variable_address:
+    case enk_field:
+    case enk_routine_address:
+      /* Nothing more to copy. */
+      break;
+    case enk_operation:
+      /* Copy the operands of the operation. */
+      expr_copy->variant.operation.operands =
                      copy_list_of_expr_trees(expr->variant.operation.operands);
-    if (expr->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
-      /* The value of the first operand of a comma operator is not used. */
-      set_expr_result_not_used(expr_copy->variant.operation.operands);
-    }  /* if */
-  } else if (kind == (an_expr_node_kind)enk_temp_init) {
-    /* Copy the dynamic init for a dynamic initialization. */
-    expr_copy->variant.init.dynamic_init =
+      if (expr->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
+        /* The value of the first operand of a comma operator is not used. */
+        set_expr_result_not_used(expr_copy->variant.operation.operands);
+      }  /* if */
+      break;
+    case enk_temp_init:
+      /* Copy the dynamic init for a dynamic initialization. */
+      expr_copy->variant.init.dynamic_init =
                             copy_dynamic_init(expr->variant.init.dynamic_init);
-  } else if (kind == (an_expr_node_kind)enk_new_delete) {
-    /* Copy the subtree and dynamic init for a new/delete operation. */
-    /* Note that the new/delete supplement was copied by copy_node. */
-    ndsp = expr->variant.new_delete;
-    copy_ndsp = expr_copy->variant.new_delete;
-    if (ndsp->arg != NULL) {
-      copy_ndsp->arg = copy_list_of_expr_trees(ndsp->arg);
-    }  /* if */
-    if (ndsp->dynamic_init != NULL) {
-      copy_ndsp->dynamic_init = copy_dynamic_init(ndsp->dynamic_init);
-    }  /* if */
+      break;
+    case enk_new_delete:
+      /* Copy the subtree and dynamic init for a new/delete operation. */
+      /* Note that the new/delete supplement was copied by copy_node. */
+      ndsp = expr->variant.new_delete;
+      copy_ndsp = expr_copy->variant.new_delete;
+      if (ndsp->arg != NULL) {
+        copy_ndsp->arg = copy_list_of_expr_trees(ndsp->arg);
+      }  /* if */
+      if (ndsp->dynamic_init != NULL) {
+        copy_ndsp->dynamic_init = copy_dynamic_init(ndsp->dynamic_init);
+      }  /* if */
+      break;
+    case enk_throw:
+      /* Copy the dynamic init for a throw. */
+      expr_copy->variant.throw_info->dynamic_init =
+                     copy_dynamic_init(expr->variant.throw_info->dynamic_init);
+      break;
+    case enk_object_lifetime:
+      expr_copy->variant.object_lifetime.expr =
+                            copy_expr_tree(expr->variant.object_lifetime.expr);
+      break;
+    default:
+      unexpected_condition_str("copy_expr_tree: bad expr kind");
   }  /* if */
   return expr_copy;
 }  /* copy_expr_tree */
