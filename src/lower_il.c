@@ -5802,7 +5802,11 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                be rewritten, however, since it's now a cast of a struct
                type. */
             if (is_or_was_ptr_to_member_function_type(expr->type)) {
+              /* Preserve the result type because it tells us how to call
+                 the kind of routine we've selected. */
+              a_type_ptr type = expr->type;
               overwrite_node(expr, operand_node);
+              expr->type = type;
             }  /* if */
             break;
           case eok_pmassign:
