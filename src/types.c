@@ -6055,6 +6055,22 @@ is returned in *new_type.
 }  /* tmtt_strip_local_and_nonreal_typedefs */
 
 
+/*ARGSUSED*/ /* flags is not required but is part of the general interface. */
+static a_boolean tmtt_remove_assoc_vla_dimensions(
+                                    a_type_ptr                      type,
+                                    a_type_tree_traversal_flag_set  flags,
+                                    a_type_ptr                      *new_type)
+/*
+Modify type so that it no longer is or contains array types with associated
+VLA dimension entries.  The modified type (or the original type if no
+modification was done) is returned in *new_type.
+*/
+{
+  *new_type = remove_assoc_vla_dimensions(type);
+  return (type != *new_type);
+}  /* tmtt_remove_assoc_vla_dimensions */
+
+
 static a_type_ptr traverse_and_modify_type_tree(
                                          a_type_ptr                     type,
                                          a_type_modifier_function_ptr   func,
@@ -6274,6 +6290,37 @@ to the caller.  If no modification is done return the original type.
 				       tmtt_strip_local_and_nonreal_typedefs,
                                        TTT_NO_INPUT_FLAGS);
 }  /* strip_local_and_nonreal_typedefs */
+
+
+a_type_ptr remove_assoc_vla_dimensions(a_type_ptr  type)
+/*
+If type contains one or more arrays with associated VLA dimension entries,
+return a new type without such arrays.  Traverse the type tree and turn VLAs
+with associated VLA dimension entries into VLAs with unspecified bounds --
+i.e., rewrite tham as though they had been declared with [*].
+*/
+{
+  a_type_ptr  new_type;
+
+  if (is_array(type) && type->variant.array.has_assoc_vla_dimension) {
+    /* This type has an associated VLA dimension entry.  Clone the array
+       type but without the has_assoc_vla_dimension flag set.  Also apply
+       this routine recursively to its element type. */
+    new_type = alloc_type((a_type_kind)tk_array);
+    new_type->variant.array.element_type =
+            remove_assoc_vla_dimensions(type->variant.array.element_type);
+    new_type->variant.array.is_variable_size_array = TRUE;
+    new_type->variant.array.is_vla = TRUE;
+    set_type_size(new_type);
+  } else {
+    /* The type is not an array type, so traverse the type tree looking
+       for embedded array types with has_assoc_vla_dimension set to TRUE. */
+    new_type = traverse_and_modify_type_tree(type,
+                                             tmtt_remove_assoc_vla_dimensions,
+                                             TTT_NO_INPUT_FLAGS);
+  }  /* if */
+  return new_type;
+}  /* remove_assoc_vla_dimensions */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 

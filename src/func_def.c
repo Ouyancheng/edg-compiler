@@ -934,6 +934,15 @@ and for the instantiation of template functions.
           pos_error(ec_vla_with_unspecified_bound_not_allowed,
                     &param_id->type_pos);
           param_id->type = ptp->type = error_type();
+        } else if (is_variably_modified_type(ptp->type)) {
+          /* The param-type entry describes the public interface of the
+             routine, whereas the parameter variable contains its internal
+             representation.  VLA dimensions expressions, which have already
+             been recorded in the types of the parameter variables, cannot
+             be part of the public interface (like top-level const qualifiers
+             in C++), so remove them now.  This transformation has the effect
+             of replacing the dimension expression with "*". */
+          ptp->type = remove_assoc_vla_dimensions(ptp->type);
         }  /* if */
       }  /* for */
     }  /* if */
