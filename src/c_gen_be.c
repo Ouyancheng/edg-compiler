@@ -2018,6 +2018,11 @@ final semicolon if output_final_semi is TRUE.
              initialization code rewritten as executable code by IL lowering
              can assign to this member and the overall struct. */
           char *type_str;
+#if C_GEN_BE_GENERATES_ANSI_C
+          /* If the field is signed, make that explicit, so the choice is
+             not left to the underlying C compiler. */
+          if (field->bit_field_is_signed) write_tok_str("signed ");
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
 #if ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C
           /* We're not limited to the standard "int" and "unsigned int", so
              put out the underlying integer type for the bit field as
@@ -2029,37 +2034,25 @@ final semicolon if output_final_semi is TRUE.
 
             check_assertion(base_type->kind == (a_type_kind)tk_integer);
             base_ikind = base_type->variant.integer.int_kind;
-            if (base_ikind == (an_integer_kind)ik_int) {
-              /* Change plain "int" to "signed int" or "unsigned int" to
-                 take away the target compiler's choice of signedness. */
-              if (field->bit_field_is_signed) {
-                type_str = "signed int";
-              } else {
-                type_str = "unsigned int";
-              }  /* if */
-            } else if (base_ikind == (an_integer_kind)ik_char) {
-              /* Change plain "char" to "signed char" or "unsigned char" to
-                 take away the target compiler's choice of signedness. */
-              if (field->bit_field_is_signed) {
-                type_str = "signed char";
-              } else {
-                type_str = "unsigned char";
-              }  /* if */
-            } else {
-              type_str = int_kind_name(base_ikind);
+            /* If the bit field is supposed to be unsigned, but the
+               integer kind doesn't force that, make it explicit. */
+            if (base_ikind == (an_integer_kind)ik_char &&
+                !field->bit_field_is_signed) {
+              base_ikind = (an_integer_kind)ik_unsigned_char;
+            } else if (base_ikind == (an_integer_kind)ik_int &&
+                       !field->bit_field_is_signed) {
+              base_ikind = (an_integer_kind)ik_unsigned_int;
+            } else if (base_ikind == (an_integer_kind)ik_signed_char) {
+              /* Use plain "char" for "signed char".  If "signed" is
+                 appropriate, it was put out above. */
+              base_ikind = (an_integer_kind)ik_char;
             }  /* if */
+            type_str = int_kind_name(base_ikind);
           }
 #else /* !ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
-          /* Use only standard "signed int" or "unsigned int" base types. */
-          if (field->bit_field_is_signed) {
-#if C_GEN_BE_GENERATES_ANSI_C
-            type_str = "signed int";
-#else /* !C_GEN_BE_GENERATES_ANSI_C */
-            type_str = "int";
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-          } else {
-            type_str = "unsigned int";
-          }  /* if */
+          /* Use only standard "int" or "unsigned int" base types.
+             ("signed" was put out above if appropriate.) */
+          type_str = field->bit_field_is_signed ? "int" : "unsigned int";
 #endif /* ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
           write_tok_str(type_str);
           /* Write the name if the field is named. */
