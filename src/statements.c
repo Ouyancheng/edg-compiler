@@ -1603,31 +1603,31 @@ start of a sequence of declarations.
         prev_ssep = scope_stack[depth_scope_stack].end_of_source_sequence_list;
       }  /* if */
     }  /* if */
-    if (prev_ssep != NULL) {
-      /* Back up over empty source sequence entries (they may be deleted later)
-         and those that represent pragmas or macros. */
-      for(;;) {
-        an_il_entry_kind  kind = ss_entry_kind(prev_ssep);
-        if (kind == (an_il_entry_kind)iek_none ||
+    /* Back up over empty source sequence entries (they may be deleted later)
+       and those that represent pragmas or macros. */
+    while (prev_ssep != NULL) {
+      an_il_entry_kind  kind = ss_entry_kind(prev_ssep);
+      if (kind == (an_il_entry_kind)iek_none ||
 #if RECORD_MACROS_IN_IL
-            kind == (an_il_entry_kind)iek_macro ||
+          kind == (an_il_entry_kind)iek_macro ||
 #endif /* RECORD_MACROS_IN_IL */
-            kind == (an_il_entry_kind)iek_pragma) {
-          prev_ssep = prev_ssep->prev;
-        } else {
-          /* We've found a source sequence entry that can help us find the
-             source sequence entry to point to from the decl statement. */
-          break;
-        }  /* if */
-      }  /* for */
+          kind == (an_il_entry_kind)iek_pragma) {
+        prev_ssep = prev_ssep->prev;
+      } else {
+        /* We've found a source sequence entry that can help us find the
+           source sequence entry to point to from the decl statement. */
+        break;
+      }  /* if */
+    }  /* while */
 #if DEBUG
+    if (prev_ssep != NULL) {
       if (debug_level >= 4 || db_flag_is_set("dump_decl_stmt")) {
         fputs("before calling declaration, ss list starting at prev_ssep:\n",
               f_debug);
         db_ss_list(prev_ssep);
       }  /* if */
-#endif /* if DEBUG */
     }  /* if */
+#endif /* if DEBUG */
   }  /* if */
   /* Now process the declaration. */
   local_declaration();
@@ -1679,17 +1679,19 @@ start of a sequence of declarations.
       sp->source_sequence_entry = ssep;
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("dump_decl_stmt")) {
-        fputs("after calling declaration", f_debug);
-        if (prev_ssep == NULL) {
-          fputs(", prev_ssep is NULL, ss list:\n", f_debug);
-          db_ss_list_for_scope_depth(depth_scope_stack);
+        a_source_sequence_entry_ptr  ss_list;
+
+        if (prev_ssep != NULL) {
+          ss_list = prev_ssep;
         } else {
-          fputs("after calling declaration, ss list starting at prev_ssep:\n",
-                f_debug);
-          db_ss_list(prev_ssep);
+          ss_list = scope_stack[depth_scope_stack].source_sequence_list;
         }  /* if */
-        fprintf(f_debug, "decl statement points at:%s",
-                           ssep == NULL ? " NULL\n" : "\n  ");
+        fprintf(f_debug, "after calling declaration, ss list%s%s",
+                         prev_ssep == NULL ? "" : " starting at prev_ssep",
+                         ss_list == NULL ? " is empty, " : ":\n");
+        if (ss_list != NULL) db_ss_list(ss_list);
+        fprintf(f_debug, "decl statement points at%s",
+                           ssep == NULL ? " NULL\n" : ":\n  ");
         if (ssep != NULL) db_source_sequence_entry(ssep);
       }  /* if */
 #endif /* if DEBUG */
