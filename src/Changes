@@ -1,4 +1,7 @@
-Version 2.20
+Version 2.21
+
+-------------------------------------------------------------------------------
+Version 2.20, November 4, 1993
 
 11/04/93 Default arguments on a friend function in a class template
 
