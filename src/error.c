@@ -1935,7 +1935,7 @@ error code.
       m = "%n may not have a template argument list";
       break;
     case ec_missing_initializer_list:
-      m = "initializer with \"{...}\" expected for aggregate object";
+      m = "initialization with \"{...}\" expected for aggregate object";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
