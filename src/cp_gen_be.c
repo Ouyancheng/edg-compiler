@@ -5221,8 +5221,8 @@ which allows only "*" and "&", and no function or array declarators.
 static a_boolean handle_special_conversion_function_call(
                                                          an_expr_node_ptr expr)
 /*
-expr is a call expression (e.g., eok_call, eok_virtual_call).  If it is
-one of the special conversion function call cases that are optimized,
+expr is a call expression (e.g., eok_call, eok_virtual_call, eok_generic_call).
+If it is one of the special conversion function call cases that are optimized,
 put out the call and return TRUE.  Otherwise, return FALSE and the caller
 will put out the call in the normal way.
 */
@@ -5702,6 +5702,7 @@ finish_new_style_cast:
           gen_expr_with_parens(operand_2->next);
           goto done_with_operation;
         case eok_call:
+        case eok_generic_call:
           /* Call (nonvirtual). */
           args = operand_2;
           if (handle_special_conversion_function_call(expr)) {
@@ -5756,7 +5757,8 @@ finish_new_style_cast:
           }  /* if */
           /* Put out the arguments. */
           gen_argument_list(args,
-                            could_be_dependent_class_type(operand_1->type) ?
+                            (expr->variant.operation.kind ==
+                                     (an_expr_operator_kind)eok_generic_call) ?
                                       NULL : type_pointed_to(operand_1->type),
                             /*skip_num=*/0);
           goto done_with_operation;
@@ -7996,7 +7998,9 @@ flags on the classes found on an earlier call.
     an_expr_node_ptr expr = ptp->default_arg_expr;
     if (expr != NULL) {
       if (expr->kind == (an_expr_node_kind)enk_operation &&
-          expr->variant.operation.kind == (an_expr_operator_kind)eok_call) {
+          (expr->variant.operation.kind == (an_expr_operator_kind)eok_call ||
+           expr->variant.operation.kind ==
+                                    (an_expr_operator_kind)eok_generic_call)) {
         an_expr_node_ptr op1 = expr->variant.operation.operands;
         if (op1->kind == (an_expr_node_kind)enk_routine_address) {
           a_routine_ptr rout = op1->variant.routine;

@@ -5867,7 +5867,11 @@ instantiation case.
     return_type = type_of_unknown_templ_param_nontype;
   }  /* if */
   /* Determine the operator to use for the call. */
-  if (is_ptr_to_member_type(function_node->type)) {
+  if (function_type == NULL) {
+    /* Call of function whose type is not (completely) known, in a
+       prototype instantiation. */
+    op = (an_expr_operator_kind)eok_generic_call;
+  } else if (is_ptr_to_member_type(function_node->type)) {
     /* Call using a pointer-to-member-function. */
     op = (an_expr_operator_kind)eok_pm_call;
   } else if (is_virtual) {

@@ -5935,7 +5935,7 @@ enum an_expr_operator_kind_tag {
      operands is generally not known and after instantiation these operators
      may correspond to calls to overloaded operator functions.  Note that some
      of the other operators that do not have different codes for different
-     operand types can also be used with generic types (e.g., eok_call or
+     operand types can also be used with generic types (e.g., 
      eok_complement). */
   eok_negate,           /* Generic negation. */
   eok_post_incr,        /* Generic post increment. */
@@ -5966,6 +5966,8 @@ enum an_expr_operator_kind_tag {
   eok_reinterpret_cast, /* Generic reinterpret_cast from the source. */
   eok_lvalue,           /* Indicates that the operand is an lvalue. */
   eok_rvalue,           /* Indicates that the operand is an rvalue. */
+  eok_generic_call,	/* Like eok_call, but called function details are
+			   not known. */
 #endif /* ifdef CIL */
   /* Special operators: */
   eok_error,            /* This is a special operator used in the cases when
@@ -8390,13 +8392,13 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #endif /* ifdef FIL */
    "va_start", "va_arg", "va_end",
 #ifdef CIL
-   "-T",
-   "T++", "T--", "++T", "--T",
-   "T+", "T-", "T*", "T/", "T==", "T!=", "T>", "T<", "T>=", "T<=",
-   "T=", "T+=", "T-=", "T*=", "T/=",
-   "&T", "T.*", "T->*",
+   "-G",
+   "G++", "G--", "++G", "--G",
+   "G+", "G-", "G*", "G/", "G==", "G!=", "G>", "G<", "G>=", "G<=",
+   "G=", "G+=", "G-=", "G*=", "G/=",
+   "&G", "G.*", "G->*",
    "static cast", "const cast", "reinterpret cast",
-   "lvalue", "rvalue",
+   "lvalue", "rvalue", "Gcall",
 #endif /* ifdef CIL */
    "error", "last"
 }

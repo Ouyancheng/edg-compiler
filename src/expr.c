@@ -99,6 +99,16 @@ should be suppressed.
     case eok_va_start:
     case eok_va_arg:
     case eok_va_end:
+    case eok_post_incr:
+    case eok_post_decr:
+    case eok_pre_incr:
+    case eok_pre_decr:
+    case eok_assign:
+    case eok_add_assign:
+    case eok_subtract_assign:
+    case eok_multiply_assign:
+    case eok_divide_assign:
+    case eok_generic_call:
       /* These all cause side effects. */
       has_side_effects = TRUE;
       break;
