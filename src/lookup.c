@@ -127,16 +127,27 @@ locator.  In the case of an ambiguity, return NULL.
 a_scope_number scope_depth_for_synth_namespace_symbol(void)
 /*
 Determine the depth at which a synthesized namespace symbol for the
-current context should be entered or found.  This is usually the file scope,
-but for template instantiations is the nearest instantiation scope.
+current context should be entered or found.  The scope used is
+
+- the innermost scope containing a using-directive, or
+
+- if no using-directives are active, but we are in a template instantiation,
+  the innermost instantiation scope,
+
+- otherwise, the file scope.
 */
 {
   a_scope_depth	depth;
 
   depth = depth_innermost_instantiation_scope;
-  if (depth == NO_SCOPE_DEPTH) depth = DEPTH_OF_FILE_SCOPE;
+  if (depth == NO_SCOPE_DEPTH) {
+    for (depth = depth_scope_stack;
+      depth != DEPTH_OF_FILE_SCOPE; --depth) {
+      if (scope_stack[depth].active_using_directives != NULL) break;
+    }  /* for */
+  }  /* if */
   return depth;
-}  /* scope_depth_for_synth_namespace_symbo */
+}  /* scope_depth_for_synth_namespace_symbol */
 
 
 static
