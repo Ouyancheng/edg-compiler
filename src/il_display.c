@@ -3723,6 +3723,9 @@ This routine is called during IL walking.
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     case iek_eh_prologue_supplement:
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+    case iek_per_instantiation_needed_flags_entry:
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #endif /* ifdef CFE */
       break;
     default:
