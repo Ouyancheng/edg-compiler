@@ -210,24 +210,6 @@ Return TRUE if the given type is an integral type (3.1.2.5).
 }  /* is_integral_type */
 
 
-a_boolean int_kind_is_signed(an_integer_kind kind)
-/*
-Return TRUE if the given integer kind is signed.
-*/
-/*
-There are copies of this routine, under the name is_signed_int_kind, in
-il_display.c and c_gen_be.c.  If you change this routine, you should
-probably change those routines too.
-*/
-{
-  return((kind == (an_integer_kind)ik_char && targ_has_signed_chars) ||
-         kind == (an_integer_kind)ik_signed_char                     ||
-         kind == (an_integer_kind)ik_short                           ||
-         kind == (an_integer_kind)ik_int                             ||
-         kind == (an_integer_kind)ik_long);
-}  /* int_kind_is_signed */
-
-
 a_boolean is_signed_integral_type(a_type_ptr tp)
 /*
 Return TRUE if the type is a signed integral type.
