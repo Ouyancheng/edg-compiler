@@ -901,7 +901,7 @@ is_cstdarg is TRUE in C++ if the header name was "cstdarg".
     }  /* if */
   }  /* if */
   /* Declare va_list as a type of "void *".  This call may be done multiple
-     times, which is important if one include if of <stdarg.h> and the other
+     times, which is important if one include is of <stdarg.h> and the other
      is of <cstdarg>. */
   declare_builtin_va_list_type(is_cstdarg);
 }  /* proc_stdarg_include */
