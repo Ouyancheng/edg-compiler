@@ -850,7 +850,6 @@ and for the instantiation of template functions.
          from the parameter type list. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       a_type_ptr  declared_param_type = orig_param_id->declared_type;
-
       if (instantiate_param_declared_type) {
         declared_param_type = instantiate_type_for_template_function(
                                                declared_param_type, rout_ptr);
@@ -860,14 +859,17 @@ and for the instantiation of template functions.
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
       decl_parameter(param_id, ptp, is_instantiation);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      if (is_instantiation && param_id->next != NULL && ptp->next == NULL &&
-          is_or_contains_error_type(ptp->type)) {
+      if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+          param_id->next != NULL && ptp->next == NULL) {
         /* Something may have gone wrong while parsing the template.  This
            might have caused us to miscount the number of parameters (in that
-           case the last parameter type was set to an error type).  Imbue the
-           error type on all the remaining parameters. */
-        ptp->next = alloc_param_type(error_type());
-      }
+           case the last parameter type was set to an error type).  Discard
+           the extra parameter names (which were identified during the first
+           template scan without knowledge of actual template arguments). */
+        check_assertion(is_or_contains_error_type(ptp->type) ||
+                        is_or_contains_error_type(param_id->next->type));
+        param_id->next = NULL;
+      }  /* if */
       /* Be sure param-id and param-type lists are in sync. */
       check_assertion((param_id->next == NULL) == (ptp->next == NULL));
     }  /* for */
