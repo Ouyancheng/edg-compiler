@@ -346,6 +346,11 @@ typedef struct a_std_conv_descr {
 			   conversions of pointers to members to
 			   pointers to members of derived classes. */
   a_byte_boolean
+		type_qualifiers_added;
+			/* TRUE if type qualifiers were added under a pointer
+			   or reference.  Serves as a tie-breaker in
+			   overload resolution. */
+  a_byte_boolean
 		pointer_normalization_needed;
 			/* TRUE if the conversion involves converting a
 			   null pointer constant to a pointer type or a
@@ -355,11 +360,6 @@ typedef struct a_std_conv_descr {
 			/* TRUE if the conversion is, in the terms of
 			   overload resolution (ARM 13.2), more than just
 			   a sequence of trivial conversions. */
-  a_type_qualifier_set
-		type_qualifiers_added;
-			/* The set of type qualifiers added under a pointer
-			   or reference.  Serves as a tie-breaker in
-			   overload resolution.  TQ_NONE if none. */
   an_error_code	warning_suggested;
 			/* If not ec_no_error, the code for a warning to be
 			   issued if this conversion is done. */

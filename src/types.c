@@ -2403,7 +2403,7 @@ Clear a standard conversion description to default values.
 {
   std_conv->cast_base_class = NULL;
   std_conv->reversed_cast = FALSE;
-  std_conv->type_qualifiers_added = TQ_NONE;
+  std_conv->type_qualifiers_added = FALSE;
   std_conv->pointer_normalization_needed = FALSE;
   std_conv->nontrivial_conversion = FALSE;
   std_conv->warning_suggested = ec_no_error;
@@ -2476,10 +2476,9 @@ If ignore_qualifiers is TRUE, qualifiers are ignored at all levels,
 which makes this routine something like a types_are_compatible that
 ignores type qualifiers.
 
-If nonstandard_test is TRUE, this routine is used to determine
-whether a cfront compatibility conversion can be performed.  This
-conversion that adds a type qualifier somewhere other than the top
-level, e.g., int ** --> const int **.
+If nonstandard_test is TRUE, the conversion checked for is the more relaxed
+version allowed by cfront, which allows adding qualifiers at any level
+without regard for the presence of const on the previous qualifiers.
 */
 {
   a_boolean   same;
@@ -2513,6 +2512,7 @@ level, e.g., int ** --> const int **.
 	source_type = type_pointed_to(source_type);
       } else if (is_ptr_to_member_type(dest_type) &&
 		 is_ptr_to_member_type(source_type)) {
+        /* Continue at the next level for pointers to members. */
 	dest_type = pm_member_type(dest_type);
 	source_type = pm_member_type(source_type);
       } else if (is_array_type(dest_type) && is_array_type(source_type) &&
@@ -2744,6 +2744,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 		 qualification_conversion_possible(dest_type_pointed_to,
 						   source_type_pointed_to,
 						   &qualifiers_added)) {
+        /* Type qualifiers can be added at any level under the pointer. */
 	okay = TRUE;
         std_conv->type_qualifiers_added = qualifiers_added;
       } else if ((!suppress_extensions || any_cfront_mode()) &&
@@ -2805,8 +2806,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         }  /* if */
       } else {
         /* Qualifiers are being added. */
-        std_conv->type_qualifiers_added =
-                              (dest_type_qualifiers & ~source_type_qualifiers);
+        std_conv->type_qualifiers_added = TRUE;
       }  /* if */
     }  /* if */
   } else if (C_dialect == C_dialect_pcc && is_integral(source_type)) {
@@ -2955,8 +2955,7 @@ and source_type are the destination and source types of a conversion.
 
   *qualifiers_added = FALSE;
   if (!is_function_type(dest_type) || !is_function_type(source_type)) {
-    /* This is not the special function case, so the normal
-       types_are_compatible check will work. */
+    /* This is not the special function case, so the normal check will work. */
     correspond = qualification_conversion_possible(dest_type, source_type,
 						   qualifiers_added);
   } else {
