@@ -5526,12 +5526,12 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       expr = constant->expr;
     }  /* if */
   }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 #if GNU_EXTENSIONS_ALLOWED
   if (expr->marked_as_gnu_extension) {
     write_tok_str("__extension__ "); 
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   if (expr->void_expression_lvalue) {
     /* The void_expression_lvalue flag indicates that the expression
        should be treated as an lvalue. */
