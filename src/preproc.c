@@ -808,12 +808,12 @@ E.g., "    stdio   " becomes "stdio".
 */
 {
   /* Skip leading whitespace. */
-  while (**name == ' ' || **name == '\t') {
+  while (*len > 0 && **name == ' ' || **name == '\t') {
     ++(*name);
     --(*len);
   }  /* while */
   /* Trim trailing whitespace. */
-  while ((*name)[*len - 1] == ' ' || (*name)[*len - 1] == '\t') {
+  while (*len > 0 && (*name)[*len - 1] == ' ' || (*name)[*len - 1] == '\t') {
     --(*len);
   }  /* while */
 }  /* trim_leading_and_trailing_blanks_from_header_name */
@@ -852,7 +852,6 @@ Escapes in the string are processed only if process_escapes is TRUE.
       check_assertion_str(in_pos[1] == LE_NULL,
                           "copy_header_name: lexical escape in header name");
       /* Null (zero) character in header name. */
-      warning(ec_null_char_in_header_name);
       *out_pos++ = '\0';
       in_pos += LE_ESCAPE_LEN;
     } else if (process_escapes) {
