@@ -1724,7 +1724,7 @@ static void output_optional_open_paren(
                        an_il_to_str_output_control_block_ptr octl)
 /*
 Output an opening parenthesis and set *need_close_paren to indicate that
-the close parenthesis is needed later.  However, if *need_parens is
+the closing parenthesis is needed later.  However, if *need_parens is
 FALSE, the parenthesis can be optimized away: don't generate it,
 leave *need_close_paren set to FALSE, and set *need_parens to TRUE to
 prevent doing the optimization more than once.
@@ -2588,6 +2588,7 @@ precedence confusion.  Do the output in the way described by octl.
   a_type_ptr       con_type, desired_type, achieved_type;
   a_targ_ptrdiff_t offset, dummy_offset;
   a_boolean        cast_to_nonpointer = FALSE, type_decay_used;
+  a_boolean        need_ampersand_paren = FALSE;
   a_boolean        final_cast_needed = FALSE;
   a_boolean        need_final_cast_close_paren = FALSE;
   a_boolean        need_offset_addition_close_paren = FALSE;
@@ -2759,6 +2760,7 @@ precedence confusion.  Do the output in the way described by octl.
     if (type_decay_used) {
       /* Using type decay to get a pointer. */
     } else {
+      output_optional_open_paren(&need_parens, &need_ampersand_paren, octl);
       octl->output_str("&");
     }  /* if */
   }  /* if */
@@ -2770,6 +2772,9 @@ precedence confusion.  Do the output in the way described by octl.
                                    &achieved_type, &type_decay_used,
                                    &dummy_offset,
                                    &formed_useful_lvalue, octl);
+  if (need_ampersand_paren) {
+    octl->output_str(")");
+  }  /* if */
   output_optional_close_paren(need_char_star_cast_close_paren, octl);
   if (offset != 0) {
     /* Add in the (signed) offset. */
