@@ -1,3 +1,12 @@
+Version 3.6
+
+3/28/05  Minor prelinker cleanup
+
+There were a few routines in edg_prelink.c that should have been declared
+static, but were not.  In addition, pl_assertion_failed should have only
+been included when CHECKING was enabled.  These are now fixed.
+
+-------------------------------------------------------------------------------
 Version 3.5, November 8, 2004
 
 10/27/04 IA-64 name demangling: cv-qualifier on substitution

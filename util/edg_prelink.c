@@ -546,7 +546,7 @@ static a_pl_symbol_ptr	pl_symbol_table[PL_SYMBOL_TABLE_SIZE];
 #define PL_HASH_FACTOR ((unsigned int)73)
 
 
-void pl_internal_error(char*   error_string)
+static void pl_internal_error(char*   error_string)
 /*
 Prints an internal error message and exits with a catastrophic error
 exit status.
@@ -561,6 +561,7 @@ exit status.
 #endif /* EXIT_ON_INTERNAL_ERROR */
 }  /* pl_internal_error */
 
+#if CHECKING
 
 static void pl_assertion_failed(char	*filename,
 				int	line_number,
@@ -576,7 +577,6 @@ Print an error message when an assertion fails.
 }  /* pl_assertion_failed */
 
 
-#if CHECKING
 /* Macro to test an assertion and generate an internal error if
    the condition is not TRUE.  The macro expands to nothing when checking
    code is not being used. */
@@ -1055,7 +1055,7 @@ Return an input file to the available list.
 }  /* free_pl_symbol */
 
 
-a_boolean pl_read_input_line(FILE* f_input)
+static a_boolean pl_read_input_line(FILE* f_input)
 /*
 Reads a line of input from f_input.  Returns TRUE if a line of
 input is being returned.  Returns FALSE at end-of-file.  Sets "line_size"
