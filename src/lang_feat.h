@@ -567,18 +567,6 @@ is set when ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE.
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 /*
-Flag that is TRUE if the "long long" data type and the associated language
-features (e.g., suffixes for constants) are allowed.
-*/
-#ifndef LONG_LONG_ALLOWED
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#define LONG_LONG_ALLOWED TRUE  /* Default for Microsoft mode. */
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define LONG_LONG_ALLOWED FALSE
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifndef LONG_LONG_ALLOWED */
-
-/*
 Flag that is TRUE if comments appearing within the text of an asm function
 body should be preserved as part of the string representation (and passed
 on to the back end).  This also controls whether comments are preserved

@@ -168,6 +168,7 @@ C99 mode:
 -- New predefined macros
 -- Universal character names
 -- va_copy support
+-- long long is enabled by default
 
 The following features are disabled:
 

@@ -1510,6 +1510,8 @@ Set the various flags appropriate to C99 mode.
   universal_character_names_allowed = TRUE;
   /* The va_copy macro should be recognized. */
   va_copy_macro_allowed = TRUE;
+  /* The long long data type is not an extension in C99. */
+  long_long_is_standard = TRUE;
 }  /* set_c99_mode_flags */
 
 

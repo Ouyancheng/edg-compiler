@@ -1363,6 +1363,12 @@ EXTERN a_boolean
 			   meaningful when passing stdarg references in
 			   the generated code. */
 
+EXTERN a_boolean
+		long_long_is_standard /* = FALSE*/;
+			/* TRUE if the long long type is should be considered
+			   a standard data type (i.e., not an extension).
+			   This is true in C99 mode. */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES
