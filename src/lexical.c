@@ -4739,7 +4739,7 @@ will be TRUE.  This routine may only be called in C++ mode.
   *is_file_scope_qualifier = FALSE;
   *next_token_is_star = FALSE;
   /* If the current token is a class qualifier it means that we have already
-     analized the current qualifier and shouldn't try to do so again.
+     analyzed the current qualifier and shouldn't try to do so again.
      Return the status information saved from the previous call.  */
   if (curr_token == tok_class_qualifier) {
     is_qualifier = TRUE;
@@ -4764,9 +4764,8 @@ will be TRUE.  This routine may only be called in C++ mode.
      followed by "::".  Templates make it more difficult to detect this
      situation so we accept an identifier followed by either a "::" or a
      left angle bracket. */
-  next_tok = next_token();
   if (curr_token == tok_identifier &&
-      (next_tok == tok_colon_colon || next_tok == tok_lt)) {
+      ((next_tok = next_token()) == tok_colon_colon || next_tok == tok_lt)) {
     /* Look up the identifier to see if it could be a class name.  Note that
        we don't consider the normal eclipsing rules.  A class can be found
        even when hidden by something else:
@@ -4847,10 +4846,11 @@ will be TRUE.  This routine may only be called in C++ mode.
     }  /* if */
   }  /* if */
   if (is_qualifier) {
+    /* If this is a qualifier. */
     if (curr_token == tok_star) *next_token_is_star = TRUE;
-    /* If this is a qualifier, unget then token that follows the last "::"
-       so that the next token scanned by the caller will be the identifier
-       that follows the qualifier. */
+    /* Unget the token that follows the last "::" (probably an identifier
+       or a "*") so that the current token can be made a
+       tok_class_qualifier. */
     unget_token();
     /* Save the results of this qualifier scan.  These values will be returned
        if another scan is attempted of the same qualifier. */
