@@ -6232,7 +6232,10 @@ declaration following this one is such a continuation.
   }  /* if */
   /* Determine the proper storage class to display. */
   storage_class = var->storage_class;
-  if (curr_name_context_is_a_class()) {
+  if (is_specialization) {
+    /* A storage class is never allowed on a specialization. */
+    storage_class = (a_storage_class)sc_unspecified;
+  } else if (curr_name_context_is_a_class()) {
     /* We're currently inside a class definition.  The storage class doesn't
        have the usual meaning: for example, "static" means a static member.
        The only case that comes here, however, is declarations of static data
@@ -6256,11 +6259,6 @@ declaration following this one is such a continuation.
            explicit "extern". */
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
-    } else if (is_specialization) {
-      /* A specialization of a static data member is not a definition, but
-         you're not allowed to indicate a storage class ("extern" is indicated
-         in the variable). */
-      storage_class = (a_storage_class)sc_unspecified;
     } else {
       /* A declaration of a variable. */
       /* The variable is not defined (here), so use "extern" instead of no
@@ -6566,7 +6564,10 @@ TRUE if the declaration following this one is such a continuation.
   }  /* if */
   /* Determine the proper storage class to display. */
   storage_class = rout->storage_class;
-  if (curr_name_context_is_a_class()) {
+  if (is_specialization) {
+    /* A storage class is never allowed on a specialization. */
+    storage_class = (a_storage_class)sc_unspecified;
+  } else if (curr_name_context_is_a_class()) {
     /* We're currently inside a class definition.  The storage class doesn't
        have the usual meaning: "extern" is never used, and "static" means
        a static member.  Suppress the storage class (it gets set to static
@@ -6610,10 +6611,6 @@ TRUE if the declaration following this one is such a continuation.
         /* A member function definition.  Use no storage class. */
         storage_class = (a_storage_class)sc_unspecified;
       }  /* if */
-    } else if (is_specialization) {
-      /* A specialization of a function is not allowed to indicate a storage
-         class. */
-      storage_class = (a_storage_class)sc_unspecified;
     } else {
       /* A declaration of a function. */
       /* The function is not defined (here), so use "extern" instead of

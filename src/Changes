@@ -1,5 +1,13 @@
 Version 2.37
 
+9/5/97    C++-generating back end: no storage class on function specialization
+
+Specializations are not allowed to contain storage class specifications
+(e.g., "static").  The C++-generating back end suppressed the storage
+class for specializations in most cases, but not on function
+specializations that are definitions.  Now the storage class is
+suppressed for those as well.
+
 9/3/97    Source sequence entry for nonstandard friend declaration
 
 The source sequence entry generated for a nonstandard friend declaration
