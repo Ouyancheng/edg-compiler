@@ -3361,7 +3361,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
          active symbols list.  This would come up when a qualified name
          is used when the qualification is not really necessary, i.e.,
          when we're inside the class mentioned in the qualifier. */
-      a_symbol_ptr	type_tag_symbol = NULL;
+      type_tag_symbol = NULL;
       for (sym = symbol_list_from_locator(*locator);
            sym != NULL;
            sym = sym->next) {
@@ -4037,7 +4037,7 @@ namespace_qualified_id_lookup.
     /* The name was not found on the inactive symbols list.  Try the
        active symbols list.  This would be used during the initial
        definition of the namespace. */
-    a_symbol_ptr		type_tag_symbol = NULL;
+    type_tag_symbol = NULL;
     for (sym = symbol_list_from_locator(*locator);
          sym != NULL;
          sym = sym->next) {
@@ -4046,6 +4046,7 @@ namespace_qualified_id_lookup.
          to check is not from the same scope. */
       if (type_tag_symbol != NULL &&
           type_tag_symbol->decl_scope != sym->decl_scope) {
+        sym = NULL;
         break;
       }  /* if */
       if (is_acceptable_symbol(sym, fund_sym)) {
@@ -4061,6 +4062,9 @@ namespace_qualified_id_lookup.
         }  /* if */
       }  /* if */
     }  /* for */
+    /* If a type symbol was found and no other matching tag was present,
+       use the type symbol. */
+    if (sym == NULL && type_tag_symbol != NULL) sym = type_tag_symbol;
   }  /* if */
   if (sym == NULL && !is_linkage_or_friend_lookup &&
       !direct_namespace_members_only) {
@@ -4228,7 +4232,7 @@ file scope.
        that point need to consider the inactive list too. */
     if (sym == NULL) {
       a_symbol_ptr	tag_symbol = NULL;
-      a_symbol_ptr	type_tag_symbol = NULL;
+      type_tag_symbol = NULL;
       for (sym = inactive_symbol_list_from_locator(*locator);
            sym != NULL;
            sym = sym->next) {
