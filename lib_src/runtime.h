@@ -42,19 +42,19 @@ Error routines.
    code is not being used. */
 /* stdlib.h is included is to define abort(). */
 #include <stdlib.h>
-#define assert(test) \
+#define assert_msg() \
   {									\
-    if (!(test)) {							\
-      (void)fprintf(__f_debug, "Assertion failed in file \"%s\", line %d\n", \
-                    __FILE__, __LINE__);				\
-      abort();								\
-    }  /* if */								\
+    (void)fprintf(__f_debug, "Assertion failed in file \"%s\", line %d\n", \
+                  __FILE__, __LINE__);				\
+    abort();								\
   }
 
 #define check_assertion(test)						\
-  assert(test)
+  if (test) {								\
+    assert_msg()							\
+  }
 #define unexpected_condition()						\
-  assert(FALSE)
+  assert_msg()
 #else /* !CHECKING */
 #define check_assertion(test) /* Nothing */
 #define unexpected_condition()    /* Nothing */

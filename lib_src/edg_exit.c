@@ -25,7 +25,7 @@ extern "C" void exit(int);
 /* Routine in throw.c that does exit processing for exception handling.
    Declared here to prevent pulling in all of eh.h that would redeclare
    exit. */
-extern "C" __eh_exit_processing(void);
+extern "C" void __eh_exit_processing(void);
 #endif /* EXCEPTION_HANDLING */
 
 void edg_exit(int val)

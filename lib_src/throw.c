@@ -383,8 +383,8 @@ Allocate a block of memory on the EH memory stack.
   ptr = alloc_in_mem_block(alloc_size, &map);
 #if DEBUG
   if (__debug_level >= 5) {
-    fprintf(__f_debug, "Allocated %d bytes starting at %p, ending at %p\n",
-            size, (void*)ptr, (void*)(((char *)ptr)+size-1));
+    fprintf(__f_debug, "Allocated %lu bytes starting at %p, ending at %p\n",
+            (unsigned long)size, (void*)ptr, (void*)(((char *)ptr)+size-1));
   }  /* if */
 #endif /* DEBUG */
   return ptr;

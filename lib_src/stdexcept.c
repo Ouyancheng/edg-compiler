@@ -29,7 +29,7 @@ Constructor for exception.
 }  /* exception::exception */
 
 
-exception& exception::operator=(const exception& rhs) throw()
+exception& exception::operator=(const exception&) throw()
 /*
 Assignment operator for exception.  Currently does nothing.
 */

@@ -107,7 +107,7 @@ static a_link __link = {(a_link*)NULL,
                         (a_void_function_ptr)NULL,
                         (a_void_function_ptr)__process_needed_destructions};
 
-static void dummy(a_link *ptr)
+static void dummy(a_link*)
 /*
 Suppress unused warning on __link.
 */
