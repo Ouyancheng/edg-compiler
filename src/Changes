@@ -1,5 +1,19 @@
 Version 2.21
 
+11/22/93 Error recovery while processing template class static data members
+
+An internal error could occur while processing a an invalid
+static data member declaration in during the instantiation of
+a template class.  This has been corrected.
+
+struct A {
+  int x;
+};
+template <class T> struct B : public A {
+  static A::x;
+};
+B<int> b;
+
 11/18/93 Spurious errors in -tall mode
 
 When using the "all" instantiation mode the front end would

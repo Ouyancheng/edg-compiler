@@ -3667,21 +3667,23 @@ table.
   if (corresp_prototype_tag_sym != NULL || is_nonreal_class) {
     /* A nonnull instance_ptr marks this static data member as a member of
        a (real or nonreal) instantiation of a class template. */
-    a_template_instance_ptr  tip = alloc_template_instance();
-    sym->variant.static_data_member.instance_ptr = tip;
-    tip->instance_sym = sym;
-    if (is_nonreal_class) {
-      /* A member of a prototype instantiation. */
-      tip->template_sym = sym;
-      tip->template_info = alloc_template_symbol_supplement(
-                                     (a_symbol_kind)sk_static_data_member);
-    } else {
-      /* We must be in the midst of a template class instantiation.  We need
-         to bind this static data member to the static data member template
-         that was created for it in the prototype instantiation.  This will
-         enable the compiler to generate a definition if a defining template
-         is declared. */
-      find_static_data_member_template(sym, corresp_prototype_tag_sym);
+    if (!is_error_locator(*locator)) {
+      a_template_instance_ptr  tip = alloc_template_instance();
+      sym->variant.static_data_member.instance_ptr = tip;
+      tip->instance_sym = sym;
+      if (is_nonreal_class) {
+        /* A member of a prototype instantiation. */
+        tip->template_sym = sym;
+        tip->template_info = alloc_template_symbol_supplement(
+                                       (a_symbol_kind)sk_static_data_member);
+      } else {
+        /* We must be in the midst of a template class instantiation.  We need
+           to bind this static data member to the static data member template
+           that was created for it in the prototype instantiation.  This will
+           enable the compiler to generate a definition if a defining template
+           is declared. */
+        find_static_data_member_template(sym, corresp_prototype_tag_sym);
+      }  /* if */
     }  /* if */
   }  /* if */
 #if DEBUG
