@@ -1,6 +1,9 @@
 Version 2.36
 
-4/28/96   Spurious error on extra comma in initializer
+4/29/97   Microsoft compatibility: template argument list following
+          constructor name
+
+4/28/97   Spurious error on extra comma in initializer
 
 An error is no longer issued for the extra comma in the following:
 

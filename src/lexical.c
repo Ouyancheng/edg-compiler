@@ -7493,15 +7493,40 @@ a routine to lookup the appropriate instance (or generate one if needed).
   a_boolean			  arg_list_processed = FALSE;
   a_symbol_locator		  orig_locator;
   a_boolean			  error_locator_created = FALSE;
+  a_boolean			  is_constructor_reference = FALSE;
+  a_type_ptr			  orig_ctor_type;
+  a_symbol_ptr			  orig_ctor_symbol;
 
   db_enter(3, "coalesce_template_class_reference");
 
   *err = FALSE;
   next_tok = next_token();
   /* Save source position for error reporting. */
-  orig_locator = locator_for_curr_id;
   start_position = pos_curr_token;
   /* Save the current locator. */
+  orig_locator = locator_for_curr_id;
+  if (microsoft_mode && template_sym != NULL && next_tok == tok_lt &&
+      is_constructor_symbol(template_sym)) {
+    /* The symbol passed in is a constructor symbol followed by a template
+       argument list, as in A<T>::A<T>.  Replace the constructor symbol with
+       the symbol associated with the original template so that the template
+       argument list can be processed.  Later, the constructor symbol will be
+       substituted for the class instance that is created.  This is only
+       permitted in Microsoft mode. */
+    a_type_ptr	parent_class;
+    a_class_symbol_supplement_ptr	parent_cssp;
+    parent_class = template_sym->parent.class_type;
+    parent_cssp = symbol_supplement_for_class(parent_class);
+    if (parent_cssp->class_template != NULL) {
+      orig_ctor_symbol = template_sym;
+      template_sym = parent_cssp->class_template;
+      /* Get the primary template in case this instance is associated with
+         a partial specialization. */
+      template_sym = primary_template_of(template_sym);
+      is_constructor_reference = TRUE;
+      orig_ctor_type = parent_class;
+    }  /* if */
+  }  /* if */
   if (template_sym == NULL ||
       template_sym->kind != (a_symbol_kind)sk_class_template) {
     /* The symbol is not a class template symbol.  If the symbol
@@ -7716,6 +7741,26 @@ a routine to lookup the appropriate instance (or generate one if needed).
                         is_templ_member_class_sym;
     new_sym = find_template_class(template_sym, &arg_list, prototype_allowed);
     arg_list_coalesced = TRUE;
+    if (is_constructor_reference) {
+      /* If a constructor symbol was passed originally, replace the class
+         symbol that resulted from processing the template argument list with
+         its constructor symbol.  Make sure the class type is complete before
+         doing so. */
+      a_class_symbol_supplement_ptr	cssp;
+      a_type_ptr			new_type;
+      new_type = type_symbol_type(new_sym);
+      cssp = new_sym->variant.class_struct_union.extra_info;
+      complete_class_type_is_needed(new_type);
+      /* If the constructor name followed a class qualifier, make sure that
+         the constructor name matches the original class name. */
+      if (identical_types(new_type, orig_ctor_type)) {
+        new_sym = cssp->constructor;
+      } else {
+        pos_ty2_error(ec_bad_constructor_type, &error_position, new_type,
+                      orig_ctor_type);
+        new_sym = orig_ctor_symbol;
+      }  /* if */  
+    }  /* if */
   } else {
     /* Free any allocated template arguments. */
     if (arg_list != NULL) free_template_arg_list(arg_list);
@@ -7763,7 +7808,9 @@ normal_exit:
   locator_for_curr_id.specific_symbol = new_sym;
   locator_for_curr_id.do_not_clear_specific_symbol = arg_list_coalesced;
   locator_for_curr_id.symbol_header = new_sym->header;
-  locator_for_curr_id.is_template_id = TRUE;
+  /* Don't set the is_template_id field after processing a constructor
+     reference followed by a template argument list in Microsoft mode. */
+  locator_for_curr_id.is_template_id = !is_constructor_reference;
   /* Set source position for error reporting. */
   error_position = start_position;
 
