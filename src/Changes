@@ -1,5 +1,19 @@
 Version 3.5
 
+10/13/04 Embedded C: error on pointer difference with incompatible named
+         address spaces
+
+An error is now issued on a pointer difference operation on pointers
+to entities in different named address spaces if the named address
+spaces do not overlap.
+
+  void f() {
+    char* pa;
+    _EDG_NAS_C char* pb;
+    int x;
+    x = pb - pa;  // Now gets an error
+  }
+
 10/13/04 IL display of param_type default argument information
 
 The IL display program now displays the has_default_arg,

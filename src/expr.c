@@ -10679,8 +10679,29 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
            unqualified members of compatible complete object types
            (ISO C 6.3.6, ISO C++ 5.7).  The result has type ptrdiff_t. */
         if (types_are_compatible_ignoring_qualifiers(type_1, type_2)) {
-          operation_type = skip_typerefs(operand_1->type);
-          same_types = TRUE;
+#if NAMED_ADDRESS_SPACES_ALLOWED
+          if (type_qualified_with_named_address_space(type_1) ||
+              type_qualified_with_named_address_space(type_2)) {
+            /* Disallow cases where the named address spaces are not
+               compatible. */
+            if (check_compatibility_of_pointer_operands(
+                          operand_1, &operand_2, &operator_position,
+                          /*pointer_normalization_standard_in_C=*/FALSE,
+                          /*pointers_to_functions_standard_in_C=*/FALSE,
+                          /*pointers_to_incomplete_standard_in_C=*/FALSE,
+                          /*mixed_object_and_incomplete_standard_in_C=*/FALSE,
+                          &operation_type)) {
+              /* Okay. */
+            } else {
+              err = TRUE;
+            }  /* if */
+          } else
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+          /* Do not insert code here. */
+          {
+            operation_type = skip_typerefs(operand_1->type);
+            same_types = TRUE;
+          }  /* if */
         } else if (check_compatibility_of_pointer_operands(
                           operand_1, &operand_2, &operator_position,
                           /*pointer_normalization_standard_in_C=*/FALSE,
