@@ -16100,6 +16100,23 @@ Assign a master instance entry for the template instance "tip".
   tip->master_instance = mip;
 }  /* find_or_create_master_instance */
 
+#if DEBUG
+
+static void db_instance_count(a_master_instance_ptr	mip,
+			      a_boolean			increment)
+/*
+Display debugging information about the increment or decrement of the
+instance count of "mip".  "increment" is TRUE if the counter has been
+incremented.
+*/
+{
+  fprintf(f_debug, "Instance count of ");
+  db_symbol_name(mip->instance->instance_sym);
+  fprintf(f_debug, " %s to %d\n", increment ? "incremented" : "decremented",
+          (int)mip->instance_required_count);
+}  /* db_instance_count */
+
+#endif /* DEBUG */
 
 static void update_instantiation_required_flag(
 			a_template_instance_ptr			tip,
@@ -16182,7 +16199,17 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
         /* If the flag was previously set, decrement the count of
            translation units that require the instantiation. */
         mip->instance_required_count--;
+#if DEBUG
+        if (db_flag_is_set("instantiations")) {
+          db_instance_count(mip, /*increment=*/FALSE);
+        }  /* if */
+#endif /* DEBUG */
         check_assertion(mip->instance_required_count >= 0);
+        /* If the instance count has been decremented to zero, reset the
+           add to request file flag. */
+        if (mip->instance_required_count == 0) {
+          mip->add_to_request_file = FALSE;
+        }  /* if */
       }  /* if */
       tip->instantiation_required = FALSE;
     }  /* if */
@@ -16211,6 +16238,11 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
       /* If the flag was not previously set, inccrement the count of
          translation units that require the instantiation. */
       mip->instance_required_count++;
+#if DEBUG
+      if (db_flag_is_set("instantiations")) {
+        db_instance_count(mip, /*increment=*/TRUE);
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
     if (!flag_already_set) {
       /* Record the namespace from which this instantiation is first used. */
@@ -17018,6 +17050,11 @@ correspondence information established first.
        set it in the master instance too. */
     if (tip->instantiation_required) {
       tip->master_instance->instance_required_count++;
+#if DEBUG
+      if (db_flag_is_set("instantiations")) {
+        db_instance_count(tip->master_instance, /*increment=*/TRUE);
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
   }  /* for */
 }  /* set_master_instance_information */
