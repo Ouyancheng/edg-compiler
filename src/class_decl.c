@@ -6942,7 +6942,8 @@ Scan the body of a class definition, including the base classes list.
                                ec_incomplete_type_not_allowed);
                   }  /* if */
                 } else if (is_template_param_type(local_type)) {
-                  check_assertion(local_type->variant.template_param.kind ==
+                  check_assertion
+                    (skip_typerefs(local_type)->variant.template_param.kind ==
                                       (a_template_param_type_kind)tptk_member);
                   /* Okay. */
 #if 0
