@@ -2308,10 +2308,12 @@ they should be used for the outermost instantiation scope.
     /* The namespace that contains the first reference of this template
        that requires its instantiation is different than the current
        namespace.  Reactivate the namespace associated with that
-       reference. */
+       reference.  We must force a new entry to be pushed here to
+       make sure that the depth of the first context scope is accurate. */
     if (reference_nsp != NULL) {
       depth_of_first_context_scope = depth_scope_stack + 1;
-      push_namespace_extension_scope(reference_nsp);
+      f_push_namespace_extension_scope(reference_nsp,
+                                       /*force_new_entry=*/TRUE);
       check_assertion(depth_scope_stack >= depth_of_first_context_scope);
     }  /* if */
   }  /* if */
@@ -5032,13 +5034,17 @@ End a name scope by popping an entry off the scope stack.
 }  /* pop_scope */
 
 
-void push_namespace_extension_scope(a_namespace_ptr nsp)
+void f_push_namespace_extension_scope(a_namespace_ptr nsp,
+				      a_boolean	      force_new_entry)
 /*
 Push one or more scopes that will be used to extend the indicated namespace.
 This is used, for example, when scanning functions defined in the namespace.
 A namespace extension scope is pushed in contexts where members can be
 added to a namespace either directly or as a result of a name injection.
 This routine is called only in C++.
+
+If force_new_entry is TRUE, a new extension is pushed even if the
+current scope is already an extension of the requested scope.
 */
 {
   a_namespace_ptr		parent_nsp;
@@ -5052,7 +5058,7 @@ This routine is called only in C++.
   if (scope_stack[depth_scope_stack].kind ==
                                    (a_scope_kind)sck_template_instantiation) {
     check_assertion_str2(pushing_template_instantiation_scope,
-                         "push_namespace_extension_scope:",
+                         "f_push_namespace_extension_scope:",
                          "namespace extension within template instantiation");
   }  /* if */
 #endif /* CHECKING */
@@ -5064,7 +5070,7 @@ This routine is called only in C++.
       ssep->kind == (a_scope_kind)sck_namespace_extension) {
     curr_nsp = ssep->il_scope->variant.assoc_namespace;
   }  /* if */
-  if (curr_nsp == nsp) {
+  if (curr_nsp == nsp && !force_new_entry) {
     /* The scope is already on the stack. */
     ssep->num_of_extra_times_pushed++;
   } else {
@@ -5074,12 +5080,12 @@ This routine is called only in C++.
     if (parent_nsp != NULL) {
       /* A namespace nested in another namespace.  Push the parent
          namespace. */
-      push_namespace_extension_scope(parent_nsp);
+      f_push_namespace_extension_scope(parent_nsp, force_new_entry);
     }  /* if */
     /* Push an entry for the scope. */
     (void)push_namespace_scope((a_scope_kind)sck_namespace_extension, nsp);
   }  /* if */
-}  /* push_namespace_extension_scope */
+}  /* f_push_namespace_extension_scope */
 
 
 void pop_namespace_extension_scope(void)
@@ -5249,7 +5255,7 @@ current scope is already a reactivation of the requested scope.
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
-}  /* push_namespace_reactivation_scope */
+}  /* f_push_namespace_reactivation_scope */
 
 
 void pop_namespace_reactivation_scope(void)

@@ -1,5 +1,31 @@
 Version 2.46
 
+7/17/01  Incorrect instantiation context when using nested namespaces
+
+A problem in the way in which the instantiation context is established
+resulted in incorrect name lookups in certain cases involving nested
+namespaces.  This has been fixed.
+
+  // Gets a spurious error when compiled in strict mode.  
+  namespace N0 {
+    namespace N1 {
+      template <class T> struct A { };
+    }
+    using namespace N1;
+    namespace N2 {
+      template <class T, class T2> void f1(A<T>, A<T2>);
+      template <class T> void f2(T);
+    }
+    using namespace N2;
+  }
+  using namespace N0;
+  namespace N0 {
+    template <class T> void N2::f2(T)
+    {
+      f1(A<int>(), A<int>());
+    }
+  }
+
 7/17/01  "p" and "P" in pp-numbers when hex floating-point literals accepted
 
 In strict mode, when hexadecimal floating-point constants are
