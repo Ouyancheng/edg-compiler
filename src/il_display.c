@@ -2840,6 +2840,7 @@ Display the indicated base class derivation entry.
   if (ptr->direct) disp_boolean("direct", TRUE);
   if (ptr->preferred) disp_boolean("preferred", TRUE);
   disp_derivation_step_list(ptr->path);
+  disp_access("access", (an_access_specifier)ptr->access);
 }  /* disp_base_class_derivation */
 
 
