@@ -191,6 +191,10 @@ keep_int_file=0
 #
 link_using_purify=0
 #
+# Should we link using the quantify command?
+#
+link_using_quantify=0
+#
 # Flag indicating that C is being compiled instead of C++
 #
 cmode=0
@@ -355,6 +359,10 @@ do
     -purify | --purify)
 #     Link using the purify command
       link_using_purify=1
+      ;;
+    --quantify)
+#     Link using the quantify command
+      link_using_quantify=1
       ;;
     -strip_line_dirs | --strip_line_dirs)
 #     Remove #line directives from generated C
@@ -877,6 +885,9 @@ then
       link_command_suffix=" -lC$EDG_LIB_SUFFIX"
       if [ $link_using_purify -eq 1 ] ; then
         link_command="purify $link_command"
+      fi
+      if [ $link_using_quantify -eq 1 ] ; then
+        link_command="quantify $link_command"
       fi
 #
 #     Link the executable.  The linker output is saved to a file and then
