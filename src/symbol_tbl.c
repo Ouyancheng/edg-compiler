@@ -4292,8 +4292,7 @@ called.
               rp->assoc_scope == NULL_region_number) {
             /* An undefined routine with internal linkage that has been
                referenced -- issue an error. */
-            pos_sy_error(ec_routine_definition_missing,
-                         &rout_sym->decl_position, rout_sym);
+            pos_sy_error(ec_never_defined, &rout_sym->decl_position, rout_sym);
           }  /* if */
         }  /* if */
       }  /* for */
@@ -4377,7 +4376,7 @@ NULL.
 #endif /* ASM_FUNCTION_ALLOWED */
           } else {
             /* Unreferenced parameter. */
-            warning_code = ec_parameter_declared_but_not_referenced;
+            warning_code = ec_declared_but_not_referenced;
           }  /* if */
         } else {
           /* A normal variable (not a parameter). */
@@ -4386,7 +4385,7 @@ NULL.
                long-standing C tradition. */
           } else {
             /* An unreferenced variable. */
-            warning_code = ec_variable_declared_but_not_referenced;
+            warning_code = ec_declared_but_not_referenced;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -4426,7 +4425,7 @@ check_routine:
                 rout_ptr->source_corresp.name_linkage =
                                              (a_name_linkage_kind)nlk_external;
               } else {
-                pos_sy_error(ec_routine_definition_missing,
+                pos_sy_error(ec_never_defined,
                              &rout_sym->decl_position, rout_sym);
               }  /* if */
             }  /* if */
@@ -4447,7 +4446,7 @@ check_routine:
 #endif /* ASM_FUNCTION_ALLOWED */
             } else {
               /* An unreferenced routine. */
-              warning_code = ec_routine_declared_but_not_referenced;
+              warning_code = ec_declared_but_not_referenced;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -4487,10 +4486,10 @@ check_routine:
       /* Label. */
       if (sym->variant.label->variant.exec_stmt == NULL) {
         /* A label that was used but never defined. */
-        pos_sy_error(ec_label_never_defined, &sym->decl_position, sym);
+        pos_sy_error(ec_never_defined, &sym->decl_position, sym);
       } else if (!sym->referenced) {
         /* An unreferenced label. */
-        warning_code = ec_label_declared_but_not_referenced;
+        warning_code = ec_declared_but_not_referenced;
       }  /* if */
       break;
     case sk_extern_variable:
