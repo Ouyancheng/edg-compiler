@@ -1,5 +1,17 @@
 Version 3.4
 
+1/21/04  Internal error on out-of-class partial specialization
+
+An internal error could occur if an out-of-class partial specialization
+included a base-clause.  Now fixed.
+
+  struct X {};
+  template <class T> struct A {
+    template <class T2> struct B {};
+  };
+  template <class T> template <class T2> struct A<T>::B<T2*> : public X {};
+  A<int>::B<char*> ac;
+
 1/21/03  UPC mode: Extensions and improvements
 
 Various changes were made to the front end to extend and improve its support

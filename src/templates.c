@@ -1378,14 +1378,16 @@ template symbol from which the instance was generated.
 
 
 static
-void find_class_template_member(a_symbol_ptr  ct_symbol,
-                                a_type_ptr    parent_class)
+void find_class_template_member(a_symbol_ptr		ct_symbol,
+                                a_type_ptr		parent_class,
+				a_token_sequence_number	token_sequence_number)
 /*
 ct_symbol is a symbol representing a member class template of a real
 instantiation of a class template.  Find the sk_class_template symbol
 from the prototype instantiation (it serves as the template for the
 real member class template), and record it in the template symbol
-supplement already associated with ct_symbol.
+supplement already associated with ct_symbol.  token_sequence_number
+is the token sequence number to be used as the identifier for this template.
 */
 {
   a_scope_number                    corresp_prototype_decl_scope;
@@ -1425,12 +1427,12 @@ supplement already associated with ct_symbol.
          the one we are looking for.  If not, it is probably a partial
          specialization. */
       tssp = sym->variant.template_info;
-      if (tssp->token_sequence_number != curr_token_sequence_number) {
+      if (tssp->token_sequence_number != token_sequence_number) {
         /* Check each of its partial specializations. */
         for (sym = tssp->variant.class_template.partial_specializations;
              sym != NULL; sym = sym->next) {
           tssp = sym->variant.template_info;
-          if (tssp->token_sequence_number == curr_token_sequence_number) break;
+          if (tssp->token_sequence_number == token_sequence_number) break;
         }  /* for */
       }  /* if */
     }  /* if */
@@ -10901,6 +10903,8 @@ declaration of a partial specialization declared outside of its class.
   a_boolean			    is_partial_specialization = FALSE;
   a_boolean			    partial_spec_outside_of_class = FALSE;
   a_symbol_ptr			    partial_spec_nonreal_sym = sym;
+  a_token_sequence_number	    tsn_for_class_template =
+                                                    curr_token_sequence_number;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_extended_decl_info_block       extended_decl_info;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -11425,17 +11429,22 @@ declaration of a partial specialization declared outside of its class.
     /* This is a member class template declaration.  See if the enclosing
        class was also generated from a template.  If so, find the
        corresponding class template symbol from the prototype instantiation. */
-    if (decl_state->in_prototype_instantiation) {
+    if (decl_state->in_prototype_instantiation ||
+        decl_state->partial_spec_outside_of_class_template) {
       /* Save the token sequence number associated with this declaration.
          This is done here for function templates that are class members.
          This information is used later to match a template declaration in
          a real instantiation with the corresponding template from the
-         prototype instantiation. */
-      tssp->token_sequence_number = curr_token_sequence_number;
+         prototype instantiation.  Note that we don't use the current
+         token sequence number at this point because we're at what
+         might be the start of the definition, and this token is sometimes
+         removed from the cache when generating template strings. */
+      tssp->token_sequence_number = tsn_for_class_template;
     } else {
       if (decl_state->class_declared_in != NULL) {
         /* Only do this for the original declaration inside the class. */
-        find_class_template_member(sym, sym->parent.class_type);
+        find_class_template_member(sym, sym->parent.class_type,
+                                   tsn_for_class_template);
       }  /* if */
     }  /* if */
   }  /* if */
