@@ -1217,11 +1217,11 @@ Rethrow the current thrown object.
     /* No handler is currently active. */
     __call_terminate();
   }  /* if */
-  push_throw_stack(curr_throw_stack_entry->type_info,
-		   curr_throw_stack_entry->flags,
-		   curr_throw_stack_entry->access_flags,
-		   curr_throw_stack_entry->use_access_flags,
-		   curr_throw_stack_entry->object_address,
+  push_throw_stack(tsep->type_info,
+		   tsep->flags,
+		   tsep->access_flags,
+		   tsep->use_access_flags,
+		   tsep->object_address,
 		   /*is_rethrow=*/TRUE,
                    tsep);
   __throw();

@@ -1,5 +1,11 @@
 Version 2.36
 
+6/5/97   Incorrect exception rethrown during processing of nested throw
+
+A rethrow that is done by a routine called by the EH runtime (e.g., 
+to make a copy of the thrown object) results in the wrong object being
+rethrown.  This has been fixed.
+
 5/5/97   File renamed to guarantee uniqueness when truncated to 8 characters
 
 array_newno.c has been renamed to array_nonew.c.  This permits the runtime
