@@ -1611,8 +1611,7 @@ The given type should not be a class or enum type.
   /* Now that we have stored away the qualifiers, get the underlying
      type. */
   tp = skip_typerefs(tp);
-  /* Make a copy of the type.  The actions required depend on the kind
-     of type we are copying. */
+  /* Make a copy of the type. */
   copy = alloc_type(tp->kind);
   copy_type(tp, copy);
   copy->source_corresp.has_associated_pragma = FALSE;
