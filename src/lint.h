@@ -19,6 +19,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(767,fread_with_check)*/
 /*lint -esym(756,a*_dummy_typedef)*/
 /* Entities not used in certain configurations: */
+/*lint -esym(755,EXTERN_C)*/
 /*lint -esym(750,chdir_with_check)*/
 /*lint -esym(769,ec_cannot_chdir)*/
 /*lint -esym(759,change_non_id_characters)*/
