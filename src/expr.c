@@ -2302,6 +2302,7 @@ bound with the function in *bound_function_selector.
       if (member_sym == NULL && need_member_sym_check) {
         /* The identifier is not a member of the operand_1 class, struct,
            or union. */
+        err = TRUE;
         if (!operand_1_is_complete_class) {
           /* An error will be produced below because the first operand is
              not (a pointer to) a class, so do not issue an error here. */
@@ -2313,17 +2314,15 @@ bound with the function in *bound_function_selector.
                          locator_for_curr_id.symbol_header->identifier,
                          (a_symbol_ptr)class_struct_union_type->
                                                     source_corresp.assoc_info);
-        }  /* if */
-        err = TRUE;
-        /* Enter an undefined symbol and record a reference against it. */
-        if (!is_error_locator(locator_for_curr_id)) {
-          a_symbol_ptr undef_sym_ptr =
+          /* Enter an undefined symbol and record a reference against it. */
+          { a_symbol_ptr undef_sym_ptr =
                            enter_undefined_member_symbol(&locator_for_curr_id);
-          record_symbol_reference((a_symbol_reference_kind)(SRK_REFERENCE |
-                                                            SRK_ERROR),
-                                  undef_sym_ptr,
-                                  &error_position,
-                                  /*update_il_entry=*/FALSE);
+            record_symbol_reference((a_symbol_reference_kind)(SRK_REFERENCE |
+                                                              SRK_ERROR),
+                                    undef_sym_ptr,
+                                    &error_position,
+                                    /*update_il_entry=*/FALSE);
+          }
         }  /* if */
       }  /* if */
     }  /* if */
