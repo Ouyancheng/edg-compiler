@@ -1535,7 +1535,7 @@ void add_throw_specification(a_func_info_block_ptr  func_info,
   a_routine_type_supplement_ptr  rtsp;
 
   db_enter(4, "add_throw_specification");
-  if (!exceptions_disabled) {
+  if (exceptions_enabled) {
     check_assertion(rp->type->kind == (a_type_kind)tk_routine);
     rtsp = rp->type->variant.routine.extra_info;
     check_assertion(rtsp->throw_specification == NULL);
@@ -1559,7 +1559,7 @@ consistent with that of the previous declaration.
   a_symbol_ptr                   rout_sym;
 
   db_enter(4, "check_throw_specification");
-  if (!exceptions_disabled) {
+  if (exceptions_enabled) {
     rout_sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
     old_throw_spec = rp->type->variant.routine.extra_info->throw_specification;
     new_throw_spec = func_info->throw_specification;
@@ -1694,12 +1694,12 @@ specification is handled later (see check_throw_specification).
   db_enter(4, "scan_throw_specification");
   /* Update the source position for the "throw".  Even if there is no
      "throw" this is where it would appear in the source. */
-  if (!exceptions_disabled) func_info->throw_position = pos_curr_token;
+  if (exceptions_enabled) func_info->throw_position = pos_curr_token;
   if (curr_token != tok_throw) {
     /* No explicit throw specification, meaning anything may be thrown. */
     goto done;
   }  /* if */
-  if (exceptions_disabled) {
+  if (!exceptions_enabled) {
     /* Exceptions are suppressed for this compilation. */
     pos_error(ec_no_exception_support, &pos_curr_token);
   } else {
@@ -1725,7 +1725,7 @@ specification is handled later (see check_throw_specification).
     /* Syntax error -- left paren is missing.  We don't actually call
        syntax_error or required_token for this, however, since writing
        "throw int" instead of "throw (int)" might be a common mistake. */
-    if (!exceptions_disabled) error(ec_exp_lparen);
+    if (exceptions_enabled) error(ec_exp_lparen);
   }  /* if */
   /* Loop through the types. */
   do {
@@ -1735,12 +1735,12 @@ specification is handled later (see check_throw_specification).
     if (!is_decl_start(/*expr_context=*/FALSE,
                        /*real_declarator_allowed=*/FALSE)) {
       /* Error. */
-      if (!exceptions_disabled) pos_error(ec_exp_type_specifier, &type_pos);
+      if (exceptions_enabled) pos_error(ec_exp_type_specifier, &type_pos);
       tstp->type = error_type();
     } else {
       type_name(&tstp->type);
     }  /* if */
-    if (!exceptions_disabled) {
+    if (exceptions_enabled) {
       /* Add tsp to the list. */
       if (end_of_list == NULL) {
         tsp->throw_spec_type_list = tstp;
@@ -1778,7 +1778,7 @@ specification is handled later (see check_throw_specification).
   if (curr_token == tok_rparen) {
     (void)get_token();
   } else {
-    if (!exceptions_disabled) error(ec_exp_rparen);
+    if (exceptions_enabled) error(ec_exp_rparen);
   }  /* if */
 done:;
   db_exit();
@@ -4846,7 +4846,7 @@ symbol has already been entered as an undefined symbol.
   /* Declare the function identifier. */
   clear_func_info(&func_info);
   func_info.is_implicit_declaration = TRUE;
-  if (!exceptions_disabled) func_info.throw_position = locator.source_position;
+  if (exceptions_enabled) func_info.throw_position = locator.source_position;
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
                       &func_info, &symbol_ptr, &linkage, &old_type, &ext_sym);
   /* Set the referenced flag on the routine entry.  The implicit declaration
@@ -8613,7 +8613,7 @@ Process a handler declaration:
                                /*suppress_redecl_error=*/FALSE);
           }  /* if */
         }  /* if */
-        if (exceptions_disabled) {
+        if (!exceptions_enabled) {
           /* Don't bother with the semantic checks on the handler type. */
         } else if (!is_error_type(type_ptr)) {
           /* Force instantiation of template class. */
@@ -8659,7 +8659,7 @@ Process a handler declaration:
          to do error checking and locate the end of the list, where the new
          handler will be added. */
       for (;;) {
-        if (exceptions_disabled) {
+        if (!exceptions_enabled) {
           /* Don't bother with semantic checks. */
         } else if (masked) {
           /* One "masking" diagnostic has already been issued -- there's no

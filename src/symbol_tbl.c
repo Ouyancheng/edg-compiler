@@ -619,7 +619,7 @@ and indentation is the indentation desired.
 
           tsp = type->variant.routine.extra_info->throw_specification;
           if (tsp == NULL) {
-            if (!exceptions_disabled) put_string("throws any");
+            if (exceptions_enabled) put_string("throws any");
           } else if (tsp->throw_spec_type_list == NULL) {
             put_string("throws none");
           } else {

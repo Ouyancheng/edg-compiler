@@ -6652,7 +6652,7 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
   /* Save the source position of the operator. */
   start_position = pos_curr_token;
 
-  if (exceptions_disabled) {
+  if (!exceptions_enabled) {
     /* Support for exceptions is suppressed for this compilation.  Note that
        semantic errors will not be issued on this throw expression. */
     pos_error(ec_no_exception_support, &pos_curr_token);

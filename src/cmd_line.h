@@ -137,14 +137,14 @@ EXTERN a_boolean
 			   indicates that the definition should NOT be
 			   made. */
 EXTERN a_boolean
-		exceptions_disabled
+		exceptions_enabled
 #if VAR_INITIALIZERS
-                                    = DEFAULT_EXCEPTIONS_DISABLED
+                                    = DEFAULT_EXCEPTIONS_ENABLED
 #endif /* VAR_INITIALIZERS */
-                                                                 ;
+                                                                ;
 			/* TRUE if a C++ source program should be compiled
-			   without any support for exception handling (in
-			   which case, an error will be issued whenever an
+			   with support for exception handling.  If it is
+			   FALSE, an error will be issued whenever an
 			   exception construct -- a try block, a throw
 			   expression, or a throw specification on a function
 			   declaration -- is encountered.  The default is

@@ -330,7 +330,7 @@ Process the arguments on the command line that invoked the compiler.
         /* This option implies C++ dialect. */
         C_dialect = C_dialect_cplusplus;
         /* It also implies that exception support is disabled. */
-        exceptions_disabled = TRUE;
+        exceptions_enabled = FALSE;
         break;
       case 'n':
         /* Run just the front end to do syntax checking; do not run the back
@@ -458,7 +458,7 @@ Process the arguments on the command line that invoked the compiler.
       case 'x':
         /* Toggle the value (use the non-default value) of the flag that
            determines whether support for exceptions is disabled. */
-        exceptions_disabled = !DEFAULT_EXCEPTIONS_DISABLED;
+        exceptions_enabled = !DEFAULT_EXCEPTIONS_ENABLED;
         break;
       case 'I':
         /* Include file directory, add to list. */
@@ -576,7 +576,7 @@ unknown_option:
   if (C_dialect != C_dialect_cplusplus) {
     if (allow_anachronisms != DEFAULT_ALLOW_ANACHRONISMS) {
       command_line_error
-        ("anachronism option (-O) can only be used when compiling C++");
+        ("anachronism option (-O) can be used only when compiling C++");
     }  /* if */
     if (suppress_virtual_function_table_definition) {
       command_line_error(
@@ -585,27 +585,27 @@ unknown_option:
     }  /* if */
     if (instantiation_mode_string != NULL) {
       command_line_error(
-      "instantiation mode (-t) can only be used when compiling C++");
+      "instantiation mode (-t) can be used only when compiling C++");
     }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (process_instantiation_list_file) {
       command_line_error(
-      "instantiation information file (-F) can only be used when compiling C++");
+    "instantiation information file (-F) can be used only when compiling C++");
     }  /* if */
     if (automatic_instantiation_mode != DEFAULT_AUTOMATIC_INSTANTIATION_MODE) {
       command_line_error(
-      "automatic instantiation mode (-T) can only be used when compiling C++");
+      "automatic instantiation mode (-T) can be used only when compiling C++");
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
     if (implicit_template_inclusion_mode !=
                                     DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE) {
       command_line_error(
-      "implicit template inclusion mode (-B) can only be used when compiling C++");
+  "implicit template inclusion mode (-B) can be used only when compiling C++");
     }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-    if (exceptions_disabled != DEFAULT_EXCEPTIONS_DISABLED) {
-      if (exceptions_disabled) {
+    if (exceptions_enabled != DEFAULT_EXCEPTIONS_ENABLED) {
+      if (!exceptions_enabled) {
         command_line_error(
         "support for exceptions can be disabled (-x) only when compiling C++");
       } else {
@@ -653,12 +653,12 @@ unknown_option:
   if (cfront_compatibility_mode) {
     /* In cfront compatibility mode support for exceptions should be
        disabled. */
-    if (DEFAULT_EXCEPTIONS_DISABLED && !exceptions_disabled) {
+    if (!DEFAULT_EXCEPTIONS_ENABLED && exceptions_enabled) {
       /* Exception support must have been enabled by a command line option. */
       command_line_error(
                "support for exceptions cannot be enabled (-x) in cfront mode");
     }  /* if */
-    exceptions_disabled = TRUE;
+    exceptions_enabled = TRUE;
 #if OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
     /* When configured that way, use old-style preprocessing for cfront
        compatibility mode. */

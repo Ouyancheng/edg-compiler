@@ -162,14 +162,14 @@ A warning is issued.
 #endif /* ifndef ADDR_OF_BIT_FIELD_ALLOWED */
 
 /*
-Flag that is TRUE if, in C++ mode, support for exception handling is disabled
+Flag that is TRUE if, in C++ mode, support for exception handling is enabled
 by default.  (However it is set, exception handling is disabled in cfront
 compatibility mode).  This is the default value for the global flag
-exceptions_disabled, which can be modified by the "-x" command line option.
+exceptions_enabled, which can be modified by the "-x" command line option.
 */
-#ifndef DEFAULT_EXCEPTIONS_DISABLED
-#define DEFAULT_EXCEPTIONS_DISABLED TRUE
-#endif /* ifndef DEFAULT_EXCEPTIONS_DISABLED */
+#ifndef DEFAULT_EXCEPTIONS_ENABLED
+#define DEFAULT_EXCEPTIONS_ENABLED TRUE
+#endif /* ifndef DEFAULT_EXCEPTIONS_ENABLED */
 
 /*
 Flag that is TRUE to enable automatic instantiation support for templates.
