@@ -577,9 +577,10 @@ static void me_create_doc_fillin(char	**ptr_to_ptr)
               case 'o': name_only = TRUE; break;
               case 'a': template_args = TRUE; break;
               case 'd': decl_pos = TRUE; break;
+              case 'p': break;  /* Force parameter type -- ignored. */
               case '1': break;
               case '2': break;
-              default: me_error("unexpected symbol fill-in %s\n", fis_ptr);
+              default: me_error("unexpected symbol fill-in %s\n", fis_ptr-1);
             }  /* switch */
           }  /* while */
           if (!name_only) me_output_doc_string("entity-kind ", 0, fk_em);
