@@ -2689,7 +2689,6 @@ return FALSE.
   } else {
     tssp = templ_sym->variant.template_info;
   }  /* if */
-  tssp = templ_sym->variant.template_info;
   templ_rout_type = skip_typerefs(tssp->variant.function.routine->type);
   /* First be sure the number of parameters in the template function is
      equal to the number in param_type_list. */
