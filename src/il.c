@@ -8878,6 +8878,46 @@ entry, if there is one.
   }  /* if */
 }  /* set_autonomous_tag_decl_flag */
 
+a_type_ptr type_from_src_seq_declaration(a_source_sequence_entry_ptr ssep)
+/*
+ssep points to a source sequence entry.  If it points to a normal declaration
+(specifically, one that can appear in a comma list), fetch the type of the
+declared entity and return it.  Otherwise, return NULL.
+*/
+{
+  a_type_ptr                   tp;
+  a_src_seq_secondary_decl_ptr sssdp;
+
+  switch (ss_entry_kind(ssep)) {
+    case iek_variable:
+      tp = ss_entry_ptr(ssep, a_variable_ptr)->type;
+      break;
+    case iek_routine:
+      tp = ss_entry_ptr(ssep, a_routine_ptr)->type;
+      break;
+    case iek_type:
+      tp = ss_entry_ptr(ssep, a_type_ptr);
+      break;
+    case iek_field:
+      tp = ss_entry_ptr(ssep, a_field_ptr)->type;
+      break;
+    case iek_constant:
+      tp = ss_entry_ptr(ssep, a_constant_ptr)->type;
+      break;
+    case iek_src_seq_secondary_decl:
+      sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+      if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_variable ||
+          sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine ||
+          sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+        tp = sssdp->declared_type;
+        break;
+      }  /* if */
+    default:
+      tp = NULL;
+  }  /* switch */
+  return tp;
+}  /* type_from_src_seq_declaration */
+
 #if MAINTAIN_NEEDED_FLAGS
 
 static a_source_sequence_entry_ptr find_src_seq_secondary_decl_entry(
@@ -9591,7 +9631,6 @@ unneeded entities, it returns a pointer to the next in the list.
   a_source_sequence_entry_ptr     next_ssep = ssep->next;
   a_src_seq_end_of_construct_ptr  sseocp;
   a_type_ptr                      tag_type, tp;
-  a_src_seq_secondary_decl_ptr    sssdp;
 
   db_enter(4, "src_seq_check_for_non_autonomous_tag");
   check_assertion(ss_entry_kind(ssep) ==
@@ -9641,30 +9680,7 @@ unneeded entities, it returns a pointer to the next in the list.
         } else {
           /* See what kind of entity follows the tag definition; get the type
              with which it was declared. */
-          switch (ss_entry_kind(next_ssep)) {
-            case iek_variable:
-              tp = ss_entry_ptr(next_ssep, a_variable_ptr)->type;
-              break;
-            case iek_routine:
-              tp = ss_entry_ptr(next_ssep, a_routine_ptr)->type;
-              break;
-            case iek_type:
-              tp = ss_entry_ptr(next_ssep, a_type_ptr);
-              break;
-            case iek_field:
-              tp = ss_entry_ptr(next_ssep, a_field_ptr)->type;
-              break;
-            case iek_src_seq_secondary_decl:
-              sssdp = ss_entry_ptr(next_ssep, a_src_seq_secondary_decl_ptr);
-              if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_variable ||
-                  sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine ||
-                  sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
-                tp = sssdp->declared_type;
-                break;
-              }  /* if */
-            default:
-              tp = NULL;
-          }  /* switch */
+          tp = type_from_src_seq_declaration(next_ssep);
           if (tp == NULL ||
               find_bottom_of_type(tp) != tag_type) {
             /* This is not an entity that was declared with the tag; the tag
