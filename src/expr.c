@@ -5562,6 +5562,8 @@ Function names may be omitted.
     }  /* switch */
     func_arg_number *= 2;
     if (descr->is_unsigned) func_arg_number += 1;
+    /* Skip first argument, account for zero- versus one-origin. */
+    func_arg_number += 2;
   }  /* if */
   /* Scan the remaining arguments, putting the one numbered func_arg_number
      into result, and ignoring the others. */
