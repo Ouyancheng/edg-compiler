@@ -2139,6 +2139,40 @@ cases.  Return TRUE if the two types are compatible by these relaxed rules.
 }  /* incompatible_types_are_SVR4_compatible */
 
 
+static a_boolean recover_from_irreconcilable_external_symbol_types(
+                                           a_type_ptr             latest_type,
+                                           an_extern_symbol_descr *esdp,
+                                           a_boolean              *okay)
+/*
+Decide the type of an IL entity and the mode with which to proceed when the
+latest declaration of that entity conflicts with the previous (possibly
+implicit) declaration.
+In: latest_type is the type implied by the latest declaration; esdp points
+to the relevant part of the IL entity (associated with an sk_extern_routine
+or sk_extern_variable).
+Out: esdp->type is updated with the type with which to proceed, and *okay is
+set to FALSE if the subsequent processing should proceed in error mode.
+*/
+{
+  if (!is_function_type(latest_type)) {
+    /* A variable: imbue an error type for recovery. */
+    esdp->type = error_type();
+    *okay = FALSE;
+  } else if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
+    /* A routine, and the latest declaration is in file-scope: assume this
+       latest declaration has the type intended by the programmer and
+       proceed in error mode. */
+    esdp->type = latest_type;
+    *okay = FALSE;
+  } else {
+    /* The latest declaration is in block scope. Proceed in non-error mode
+       (although a diagnostic is still emitted for this conflict): this will
+       cause the type of this declaration to prevail in this scope, and that
+       of the previous declaration to be restored when this scope ends. */
+  }
+}
+
+
 a_boolean reconcile_external_symbol_types(
                              a_symbol_ptr          ext_sym,
                              a_source_position_ptr position,
@@ -2348,10 +2382,8 @@ issued a similar error).  Return FALSE if there is some error.
         }  /* if */
       }  /* if */
       severity = es_error;
-      /* Record an error type as the external symbol's type, to avoid
-         future errors. */
-      esdp->type = error_type();
-      okay = FALSE;
+      /* Decide how to proceed and which type to select for recovery: */
+      recover_from_irreconcilable_external_symbol_types(type_ptr, esdp, &okay);
 issue_diagnostic:
       /* The old and new types are incompatible.  Error. */
       if (!suppress_incompatible_error) {
