@@ -480,16 +480,16 @@ Enter the standard predeclared functions for GCC.
 			     /*is_varargs=*/TRUE);
   enter_gnu_builtin_function((a_builtin_function_kind)bfk_apply_args,
 			     void_star_type,
-			     generic_function_type,
-			     void_star_type,
-			     int_type,
+			     (a_type_ptr)NULL,
+			     (a_type_ptr)NULL,
+			     (a_type_ptr)NULL,
 			     (a_type_ptr)NULL,
 			     /*is_varargs=*/FALSE);
   enter_gnu_builtin_function((a_builtin_function_kind)bfk_apply,
 			     void_star_type,
-			     (a_type_ptr)NULL,
-			     (a_type_ptr)NULL,
-			     (a_type_ptr)NULL,
+			     void_star_type,
+			     void_star_type,
+			     int_type,
 			     (a_type_ptr)NULL,
 			     /*is_varargs=*/FALSE);
   enter_gnu_builtin_function((a_builtin_function_kind)bfk_return,
