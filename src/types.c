@@ -1690,10 +1690,10 @@ initial test for exact pointer equality.
         case tk_ptr_to_member:
           /* Pointer-to-member types are compatible if they refer to the same
              class type and their member types are compatible. */
-          compat = (pm_class_type(type_1) == pm_class_type(type_2) &&
+          compat = (f_types_are_compatible(pm_class_type(type_1),
+                                           pm_class_type(type_2), flags) &&
                     f_types_are_compatible(pm_member_type(type_1),
-                                           pm_member_type(type_2),
-                                           flags));
+                                           pm_member_type(type_2), flags));
           break;
         case tk_template_param:
           /* Template parameter types are considered to be compatible if
