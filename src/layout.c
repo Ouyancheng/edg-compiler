@@ -1951,33 +1951,28 @@ allocated at that offset.  This function returns TRUE in that case.
 static a_targ_size_t virtual_base_offset_computed_for_last_direct_base_type(
                                                        a_base_class_ptr  ebcp)
 /*
-The given base class should be an empty direct virtual base.  If this base had
-already appeared as a direct virtual base of another direct base, return the
-offset within the last direct base in which it appeared.  Otherwise return
-zero.  This is used to emulate a strange GNU IA-64 layout bug.
+The given base class should be an empty virtual base.  If this base had
+already appeared as a virtual base of a direct base, return the offset
+within the last direct base in which it appeared.  Otherwise return zero.
+This is used to emulate a strange GNU IA-64 layout bug.
 */
 {
   a_targ_size_t     result = (a_targ_size_t)0;
+  a_base_class_ptr  bcp = base_classes_of(ebcp->derived_class);
 
-  check_assertion(ebcp->is_virtual && ebcp->direct);
+  check_assertion(ebcp->is_virtual);
 
-  if (ebcp->derivation->next != NULL) {
-    /* The virtual base has more than one derivation, which means it was
-       derived from indirectly at least once. */
-    a_base_class_ptr  bcp = base_classes_of(ebcp->derived_class);
-    for (; bcp != NULL; bcp = bcp->next) {
-      if (bcp->direct && bcp != ebcp) {
-        a_base_class_ptr  sub_bcp = base_classes_of(bcp->type);
-        for (; sub_bcp != NULL; sub_bcp = sub_bcp->next) {
-          if (sub_bcp->is_virtual && sub_bcp->direct &&
-              same_entities(sub_bcp->type, ebcp->type)) {
-            result = sub_bcp->offset;
-            break;
-          }  /* if */
-        }  /* for */
-      }  /* if */
-    }  /* for */
-  }  /* if */
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct && bcp != ebcp) {
+      a_base_class_ptr  sub_bcp = base_classes_of(bcp->type);
+      for (; sub_bcp != NULL; sub_bcp = sub_bcp->next) {
+        if (sub_bcp->is_virtual && same_entities(sub_bcp->type, ebcp->type)) {
+          result = sub_bcp->offset;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* for */
   return result;
 }  /* virtual_base_offset_computed_for_last_direct_base_type */
 
@@ -2387,10 +2382,10 @@ Allocate bcp (an empty base class).
   an_unnormalized_bit_offset dummy = 0;
 
   /* Attempt to allocate the base at offset zero.  Some GNU compilers do not
-     always use offset zero for the initial attempt at placing a direct empty
+     always use offset zero for the initial attempt at placing an empty
      virtual base: Instead they may use an offset computed for the virtual
      base in one of the direct base types. */
-  if (emulate_gnu_abi_bugs && bcp->is_virtual && bcp->direct) {
+  if (emulate_gnu_abi_bugs && bcp->is_virtual) {
     offset = virtual_base_offset_computed_for_last_direct_base_type(bcp);
   }  /* if */
   if (!(base_subobject_conflict(bcp, offset) ||
