@@ -354,7 +354,7 @@ host long long.
 
 /*
 Host types used to manipulate integer values.  When
-AN_INTEGER_VALUE_IS_LARGER_THEN_HOST_LONG is FALSE, these types
+AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG is FALSE, these types
 are the same as an_integer_value and a_signed_integer_value.
 */
 typedef a_signed_integer_value a_host_large_integer;
