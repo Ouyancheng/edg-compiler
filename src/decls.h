@@ -225,7 +225,6 @@ extern void decl_var_or_routine(a_symbol_locator    *locator,
                                 a_boolean           is_implicit_function,
                                 a_boolean           is_function_def_with_body,
                                 a_boolean           inline_specified,
-                                an_extern_linkage   extern_linkage,
                                 a_symbol_ptr        *symbol_ptr,
                                 an_id_linkage_kind  *linkage_ptr,
                                 a_type_ptr          *old_type,
@@ -382,8 +381,7 @@ extern void declarator(a_decl_flag_set   input_flags,
 extern a_boolean decl_specifiers(a_decl_flag_set      input_flags,
 				 a_decl_flag_set      *output_flags,
 				 a_storage_class      *storage_class,
-				 a_type_ptr           *type_ptr,
-                                 an_extern_linkage    *linkage_specifier);
+				 a_type_ptr           *type_ptr);
 
 #endif /* DECLS_H */
 

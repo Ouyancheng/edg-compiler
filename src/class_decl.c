@@ -2250,7 +2250,6 @@ of the function, and again overloading is a possibility.
       decl_var_or_routine(locator, storage_class, function_type,
                           /*is_implicit_function=*/FALSE,
                           is_function_def_with_body, is_inline,
-                          def_external_linkage,
                           &sym, &linkage, &old_type, &ext_sym);
     } else {
       /* It's a member function.  Find the right type signature for this
@@ -5060,7 +5059,6 @@ class/struct/union is actually defined.
   a_field_ptr             end_of_field_list = NULL;
   a_symbol_ptr            rout_sym;
   a_memory_region_number  region_to_switch_back_to;
-  an_extern_linkage       dummy_linkage;
   a_class_symbol_supplement_ptr
                           cssp;
   a_scope_depth           effective_decl_level = decl_scope_level;
@@ -5428,7 +5426,7 @@ class/struct/union is actually defined.
            be omitted, e.g., for a function member with implicit type. */
         add_stop_token(tok_colon);
         (void)decl_specifiers(dsi_flags, &dso_flags, &member_storage_class,
-                              &member_type, &dummy_linkage);
+                              &member_type);
         /* Strip off any typerefs that represent function scope pointers
            to file scope types. */
         while (member_type->kind == (a_type_kind)tk_typeref &&
