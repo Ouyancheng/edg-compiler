@@ -1,5 +1,17 @@
 Version 3.1
 
+8/21/02   Missing syntax error on extraneous right parenthesis in ctor-initializer
+
+In some cases, the front end silently ignored an extraneous right parenthesis
+following a ctor-initializer.  For example:
+
+  struct S {
+    S(): x(1.0)) {}  // Used to be accepted.  Now a syntax error.
+    double x;
+  };
+
+This is now fixed.
+
 8/21/02   Microsoft compatibility: internal error on __super reference
 
 An internal error would occur on certain uses of the Microsoft __super

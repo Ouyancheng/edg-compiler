@@ -4352,20 +4352,19 @@ scan_paren:
                   new_cip->ctor_init_range.end = pos_curr_token;
                 }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-                if (!required_token(tok_rparen, ec_exp_rparen)) {
-                  /* Special code to avoid poor error recovery in cases where
-                     a comma-list appears between the parens in what is taken
-                     to be the initializer of a simple object -- e.g.,
-                         A::A(int i, int j) : x(i,j) { }
-                     If there is no constructor for x then it is interpreted
-                     as a simple object, only "i" is scanned, and an error is
-                     issued on the expected ")".  After that we want to bypass
-                     the rest of the comma-list before resuming scanning. */
-                  if (curr_token == tok_comma) flush_to_end_of_arg_list();
-                }  /* if */
+              }  /* if */
+              if (!required_token(tok_rparen, ec_exp_rparen)) {
+                /* Special code to avoid poor error recovery in cases where
+                   a comma-list appears between the parens in what is taken
+                   to be the initializer of a simple object -- e.g.,
+                       A::A(int i, int j) : x(i,j) { }
+                   If there is no constructor for x then it is interpreted
+                   as a simple object, only "i" is scanned, and an error is
+                   issued on the expected ")".  After that we want to bypass
+                   the rest of the comma-list before resuming scanning. */
+                if (curr_token == tok_comma) flush_to_end_of_arg_list();
               }  /* if */
               remove_stop_token(tok_rparen);
-              if (curr_token == tok_rparen) (void)get_token();
             }  /* if */
           }  /* if */
           check_assertion(dip != NULL);
