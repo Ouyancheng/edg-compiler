@@ -1724,7 +1724,7 @@ return types).
 {
   a_boolean  answer = FALSE;
 
-  if (loc->is_class_member) {
+  if (loc->is_class_member && loc->symbol_header != NULL) {
     a_symbol_ptr  parent = (a_symbol_ptr)loc->parent.class_type
                                                   ->source_corresp.assoc_info;
     if (loc->symbol_header->identifier != NULL &&
