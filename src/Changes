@@ -1,5 +1,13 @@
 Version 2.08
 
+7/6/92   Conversion function result is already a temporary
+
+In some cases where a value must be converted into a temporary,
+the result of calling a conversion function (already in a temporary)
+was then copied to another temporary.  This was not only unnecessary
+but could result in errors if the copy constructor required to do the
+copy was inaccessible.  The superfluous copy is no longer done.
+
 7/6/92   IL lowering bug with bit fields corrected.
 
 IL lowering no longer gives an internal error when processing a class
