@@ -3459,7 +3459,7 @@ you will need to modify or remove these tests.
   if (expected != HOST_ALIGNMENT_REQUIRED) {
     fprintf(stderr, "Expected HOST_ALIGNMENT_REQUIRED is %d\n", expected);
     internal_error(
-    "check_host_alignment...: HOST_ALIGNMENT_ALIGNMENT set incorrectly");
+    "check_host_alignment...: HOST_ALIGNMENT set incorrectly");
   }  /* if */
   expected = offsetof(struct pointer_alignment_test, ptr);  /*lint !e413*/
   if (expected != HOST_POINTER_ALIGNMENT) {
