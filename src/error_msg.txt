@@ -1013,7 +1013,9 @@ ec_type_with_no_linkage_in_function;;"use of a type with no linkage to declare a
 ec_return_type_on_constructor;;"return type may not be specified on a constructor"
 ec_return_type_on_destructor;;"return type may not be specified on a destructor"
 ec_malformed_universal_character;;"incorrectly formed universal character name"
-ec_invalid_universal_character;;"universal character name specifies an invalid character"
+ec_invalid_UCN;;"universal character name specifies an invalid character"
+ec_UCN_names_basic_char;;"a universal character name cannot designate a character in the basic character set"
+ec_invalid_identifier_UCN;;"this universal character is not allowed in an identifier"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

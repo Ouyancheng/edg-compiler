@@ -559,6 +559,7 @@ are not enabled, and thus stays zero on all calls).
         if (C_mode()) goto other_chars;
         lptr -= 2;
         targ_ch = scan_universal_character(&lptr,
+                                           /*is_identifier=*/FALSE,
                                            /*issue_diagnostics=*/TRUE);
         goto range_check;
       case 'x':
