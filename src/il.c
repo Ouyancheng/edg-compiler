@@ -972,6 +972,13 @@ Dump the contents of the indicated constant, for debug purposes.
       }  /* while */
       (void)fputc('}', f_debug);
       break;
+    case ck_template_param:
+      (void)fputc('(', f_debug);
+      db_abbreviated_type(cp->type);
+      (void)fputc(')', f_debug);
+      db_name(&cp->source_corresp);
+      fprintf(f_debug, "(=template-param#%d)", cp->variant.list_position);
+      break;
     default:
       fputs("<bad constant>", f_debug);
   }  /* switch */
@@ -2012,6 +2019,9 @@ fields to default values.
       cp->variant.init_repeat.constant = NULL;
       cp->variant.init_repeat.count = 0;
       break;
+    case ck_template_param:
+      cp->variant.list_position = 0;
+      break;
 #if CHECKING
     default:
       internal_error("set_constant_kind: bad kind");
@@ -2320,6 +2330,10 @@ Return TRUE if the two constants are identical.
           }  /* if */
         }  /* if */
         break;
+      case ck_template_param:
+        eq = (cp1->variant.list_position == cp2->variant.list_position &&
+              identical_types(cp1->type, cp2->type));
+        break;
 #if CHECKING
       default:
         internal_error("eq_constants: bad constant kind");
@@ -2384,7 +2398,9 @@ region).
       break;
 #if CHECKING
     case ck_aggregate:
-      /* Aggregates shouldn't be shared, so we don't expect them here. */
+    case ck_template_param:
+      /* Aggregates and template parameters shouldn't be shared, so we don't
+         expect them here. */
     default:
       internal_error("has_non_file_scope_ref: bad constant kind");
 #endif /* CHECKING */

@@ -249,6 +249,8 @@ enum a_constant_repr_kind_tag {
                            in an array. */
 #ifdef CIL
 			/* Used in C++, not in C. */
+  ck_template_param,	/* Nontype parameter in a class template declaration
+                           (C++ only). */
 #endif /* ifdef CIL */
 #ifdef FIL
   ck_init_position,     /* Used to specify an explicit initialization position
@@ -561,6 +563,14 @@ typedef struct a_constant {
 			   means "use the number of elements recorded along
 			   with the storage allocation". */
     } init_repeat;
+#ifdef CIL
+    /* When kind = ck_template_param: */
+    int		list_position;
+			/* Ordinal value indicating the position of the
+			   template parameter in its declaration list (1 is
+			   first param declared, 2 is second, etc.).  Used
+			   only in C++. */
+#endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == ck_init_position: */
     /* Specify the position at which the initialization for the constant
