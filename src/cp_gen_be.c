@@ -216,6 +216,11 @@ typedef struct a_name_context {
   a_hidden_name_fixup_ptr
 		fixups;	/* Hidden-name fixups to be done at the end of the
 			   name context. */
+  a_byte_boolean
+		invisible_to_cfront;
+			/* TRUE if this context is not visible to cfront
+			   (due to a bug), and should not be used to remove
+			   class qualifiers from name references. */
 } a_name_context;
 static a_name_context_ptr
 		curr_name_context;
@@ -465,6 +470,7 @@ This routine is called for both C and C++.
                                            curr_name_context->innermost_scope;
   ncp->access = (an_access_specifier)as_public;
   ncp->fixups = NULL;
+  ncp->invisible_to_cfront = FALSE;
   /* Put the entry on the stack. */
   ncp->next = curr_name_context;
   curr_name_context = ncp;
@@ -1393,7 +1399,11 @@ constants, which must have the form of a qualified name).
       a_type_ptr class_type = scp->parent.class_type;
       /* If the class type matches the top entry on the name context stack,
          the qualifier is not necessary. */
-      if (curr_name_context_is_class(class_type) && !force_qualified_name) {
+      if (curr_name_context_is_class(class_type) &&
+          /* Use a qualified name in some cases to avoid a cfront bug.  See
+             dump_initializer. */
+          !curr_name_context->invisible_to_cfront &&
+          !force_qualified_name) {
         /* Qualifier not needed. */
       } else {
         gen_class_qualifier(class_type);
@@ -5458,10 +5468,26 @@ is a condition variable if is_condition is TRUE.
   an_init_kind       init_kind;
   an_initializer_ptr initializer;
 
-  /* Push the name context for a class/namespace member. */
-  push_name_context_if_member(&var->source_corresp);
   get_variable_initializer(var, curr_name_context->innermost_scope,
                            &init_kind, &initializer);
+  /* Push the name context for a class/namespace member. */
+  push_name_context_if_member(&var->source_corresp);
+  if (var->source_corresp.is_class_member &&
+      init_kind == (an_init_kind)initk_dynamic &&
+      initializer->dynamic->kind == (a_dynamic_init_kind)dik_constructor) {
+    /* cfront has a bug in initialization of static data members that are
+       classes with constructors: it fails to activate the member names for
+       the class.  For example:
+         struct A { A(int); };
+         struct B {
+           static A a;
+           static int i;
+         };
+         A B::a = i;  // cfront gives error: "i" is not found
+       Because of this, qualified names should be used for members in such
+       an initialization. */
+    curr_name_context->invisible_to_cfront = TRUE;
+  }  /* if */
   switch (init_kind) {
     case initk_none:
       /* No initializer. */
