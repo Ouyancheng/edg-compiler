@@ -7,7 +7,7 @@ instantiations to be removed from the IL in -tall mode.  This has
 been fixed.
 
 9/5/02   Microsoft compatibility: IL write/read error on nested class in
-         MIcrosoft in-class specialization
+         Microsoft in-class specialization
 
 An IL write/read error would occur in certain cases when a Microsoft
 in-class specialization contained a nested class containing a template
