@@ -204,6 +204,8 @@ of each kind.
   walk_orphan_entry_list_for_entry_kind(a_base_class_ptr, iek_base_class);
   walk_orphan_entry_list_for_entry_kind(a_class_list_entry_ptr,
                                         iek_class_list_entry);
+  walk_orphan_entry_list_for_entry_kind(a_routine_list_entry_ptr,
+                                        iek_routine_list_entry);
   walk_orphan_entry_list_for_entry_kind(a_class_type_supplement_ptr,
                                         iek_class_type_supplement);
   walk_orphan_entry_list_for_entry_kind(a_constructor_init_ptr,
@@ -395,6 +397,7 @@ running them through walk_remap_func.
   remap_orphan_entry_first(iek_derivation_step);
   remap_orphan_entry_first(iek_base_class);
   remap_orphan_entry_first(iek_class_list_entry);
+  remap_orphan_entry_first(iek_routine_list_entry);
   remap_orphan_entry_first(iek_class_type_supplement);
   remap_orphan_entry_first(iek_constructor_init);
   remap_orphan_entry_first(iek_asm_entry);
@@ -459,6 +462,7 @@ running them through walk_remap_func.
   remap_orphan_entry_last(iek_derivation_step);
   remap_orphan_entry_last(iek_base_class);
   remap_orphan_entry_last(iek_class_list_entry);
+  remap_orphan_entry_last(iek_routine_list_entry);
   remap_orphan_entry_last(iek_class_type_supplement);
   remap_orphan_entry_last(iek_constructor_init);
   remap_orphan_entry_last(iek_asm_entry);
@@ -531,6 +535,8 @@ entry kind passed as an argument.
     case iek_base_class:    s = "base-class";              break;
     case iek_class_list_entry:
                             s = "class-list-entry";        break;
+    case iek_routine_list_entry:
+                            s = "routine-list-entry";      break;
     case iek_class_type_supplement:
 			    s = "class-type-supplement";   break;
     case iek_constructor_init:
