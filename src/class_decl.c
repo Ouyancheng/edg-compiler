@@ -5054,7 +5054,7 @@ done:
 }  /* access_adjustment_decl */
 
 
-a_boolean class_specifier(a_boolean  first_specifier,
+a_boolean class_specifier(a_boolean  vacuous_decl_allowed,
                           a_boolean  is_friend_decl,
                           a_type_ptr *type_ptr,
                           a_boolean  *declares_something,
@@ -5105,11 +5105,9 @@ union type.  The syntax is
         pure-specifier
                 = 0
 
-first_specifier is TRUE if this struct or union specifier is the first
-specifier in the list of specifiers.  The type is returned in *type_ptr.
-*declares_something is set to indicate whether or not this specifier
-declares something, and *declares_something to indicate whether the
-class/struct/union is actually defined.
+The type is returned in *type_ptr. *declares_something is set to indicate
+whether or not this specifier declares something, and *declares_something
+to indicate whether the class/struct/union is actually defined.
 */
 {
   an_access_specifier     access;
@@ -5200,9 +5198,12 @@ class/struct/union is actually defined.
        tag, even if it just repeats a previous name.  At least, there's
        a Plum Hall test that implies that. */
     *declares_something = TRUE;
-    tag_sym = scan_tag_name(tag_kind, &locator,
-                            /*check_for_vacuous_decl=*/(first_specifier &&
-                                                        !is_friend_decl),
+#if CHECKING
+    if (vacuous_decl_allowed && is_friend_decl) {
+      internal_error("class_specifier: vacuous decl not okay in friend decl");
+    }  /* if */
+#endif /* CHECKING */
+    tag_sym = scan_tag_name(tag_kind, &locator, vacuous_decl_allowed,
                             &effective_decl_level, &tag_resolution);
   } else {
     /* No tag identifier present. */
@@ -5353,7 +5354,8 @@ class/struct/union is actually defined.
       if (C_dialect == C_dialect_cplusplus) {
 	dsi_flags |= (DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
                       DSI_IS_MEMBER_DECLARATION | DSI_INLINE_ALLOWED |
-                      DSI_EMPTY_DECL_SPECIFIERS_ALLOWED);
+                      DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
+                      DSI_VACUOUS_TAG_DECL_ALLOWED);
       }  /* if */
       is_first_field = TRUE;
       do {
