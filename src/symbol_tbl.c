@@ -558,6 +558,9 @@ and indentation is the indentation desired.
         if (cssp->member_decl_scope != NO_SCOPE_NUMBER) {
           sprintf(buffer, "member_decl_scope %0d\n", cssp->member_decl_scope);
         }  /* if */
+        if (cssp->template_param_for_proxy_class != NULL) {
+          if (debug_level >= 4) put_string("has ptr for proxy");
+        }  /* if */
       }
       break;
     case sk_field:
@@ -1356,6 +1359,7 @@ state.
         cssp->routine_fixup_list = NULL;
         cssp->class_template = NULL;
         cssp->member_decl_scope = NO_SCOPE_NUMBER;
+        cssp->template_param_for_proxy_class = NULL;
         cssp->constructor_required = FALSE;
         cssp->destructor_required = FALSE;
         cssp->has_default_constructor = FALSE;
@@ -5303,7 +5307,7 @@ by find_projected_symbol to insert a projection symbol for the locator
 }  /* determine_projected_symbol_insert_location */
 
 
-static void create_template_param_class_type(a_type_ptr   templ_param_type)
+static void create_proxy_class(a_type_ptr   templ_param_type)
 /*
 Creates the proxy class pointed to by a template parameter type description
 record.  This consists of allocating and initializing the class and assigning
@@ -5342,7 +5346,8 @@ needs to be done using the template parameter as the class type.
   /* Set the scope number. */
   cssp = symbol_supplement_for_class(type);
   cssp->member_decl_scope = next_scope_number++;
-}  /* create_template_param_class_type */
+  cssp->template_param_for_proxy_class = templ_param_type;
+}  /* create_proxy_class */
 
 
 static a_symbol_ptr add_member_to_proxy_or_nonreal_class
@@ -5454,7 +5459,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     a_template_param_type_descr_ptr	tptdp;
     tptdp = class_type->variant.template_param.descr;
     if (tptdp == NULL || tptdp->class_type == NULL) {
-      create_template_param_class_type(class_type);
+      create_proxy_class(class_type);
       tptdp = class_type->variant.template_param.descr;
     }  /* if */
     /* Use the proxy class in place of the template parameter type. */
