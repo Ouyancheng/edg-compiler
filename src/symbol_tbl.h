@@ -589,6 +589,9 @@ typedef struct a_class_symbol_supplement {
   unsigned int	force_external_linkage:1;
 			/* The class was used in a way that would force
 			   external linkage (if it has linkage at all). */
+  unsigned int	any_nonreal_base_classes:1;
+			/* For a prototype instantiation this is TRUE
+			   if any of its base classes are nonreal classes. */
 } a_class_symbol_supplement;
 
 

@@ -559,6 +559,9 @@ and indentation is the indentation desired.
         if (cssp->is_specific_template_def) {
           put_string("specific template def");
         }  /* if */
+        if (cssp->any_nonreal_base_classes) {
+          put_string("has nonreal base class");
+        }  /* if */
         if (cssp->member_decl_scope != NO_SCOPE_NUMBER) {
           sprintf(buffer, "member_decl_scope %0d\n", cssp->member_decl_scope);
         }  /* if */
@@ -1412,6 +1415,7 @@ state.
         cssp->is_specific_template_def = FALSE;
         cssp->any_nonstatic_data_members = FALSE;
         cssp->force_external_linkage = FALSE;
+        cssp->any_nonreal_base_classes = FALSE;
       }
       break;
     case sk_variable:
@@ -2496,13 +2500,14 @@ template with no current instantiation or definition, we return FALSE.
             ssep->kind == (a_scope_kind)sck_class_reactivation) {
           /* Get the instance symbol pointed to by the type from the scope
              stack entry. */
-          instance_sym = (a_symbol_ptr)(ssep->assoc_type->
-                                                   source_corresp.assoc_info);
           if (is_instantiation_scope) {
-            if (ssep->template_sym == *sym) found = TRUE;
-            /* Don't look beyond the innermost instantiation scope. */
+              /* Don't look beyond the innermost instantiation scope. */
             break;
           } else {
+            check_assertion_str(ssep->assoc_type != NULL,
+				"ccsict: assoc_type is NULL");
+            instance_sym = (a_symbol_ptr)(ssep->assoc_type->
+                                                    source_corresp.assoc_info);
             /* A class/struct/union scope or reactivation scope. */
             if (instance_sym->variant.class_struct_union.
                             extra_info->class_template == *sym) {
@@ -2511,7 +2516,7 @@ template with no current instantiation or definition, we return FALSE.
             }  /* if */
           }  /* if */
         }  /* if */
-      }  /* if */
+      }  /* for */
       if (found) *sym = instance_sym;
     }  /* if */
   }  /* if */
@@ -4859,6 +4864,124 @@ member function is defined.
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
 
 
+static void create_proxy_class(a_type_ptr   templ_param_type)
+/*
+Creates the proxy class pointed to by a template parameter type description
+record.  This consists of allocating and initializing the class and assigning
+a scope number.  The class type is created the first time that a template
+parameter is used in a context in which a class qualified name lookup
+needs to be done using the template parameter as the class type.
+*/
+{
+  a_type_ptr				type;
+  a_template_param_type_descr_ptr	tptdp;
+  a_symbol_ptr				sym;
+  a_symbol_ptr				templ_param_sym;
+  a_class_symbol_supplement_ptr		cssp;
+  tptdp = templ_param_type->variant.template_param.descr;
+  if (tptdp == NULL) {
+    /* Allocate a template parameter type description entry. */
+    tptdp = alloc_template_param_type_descr();
+    templ_param_type->variant.template_param.descr = tptdp;
+  }  /* if */
+  /* Get the symbol pointer associated with the template parameter. */
+  templ_param_sym = (a_symbol_ptr)templ_param_type->source_corresp.assoc_info;
+  /* Create a symbol for the class.  The symbol will have the same name
+     as the template parameter symbol.  mark_declared is not called
+     because this symbol is not visible to the user. */
+  sym = alloc_symbol((a_symbol_kind)sk_class_or_struct_tag,
+                     templ_param_sym->header, &templ_param_sym->decl_position);
+  /* The class will be considered to be at file scope.  If this is changed
+     to be some other scope then set_source_corres_with_scope_depth may
+     need to be called because set_source_corresp requires that the
+     decl_scope of the symbol still be an active scope. */
+  sym->decl_scope = FILE_SCOPE_NUMBER;
+  /* Create the type for the class. */
+  type = alloc_type((a_type_kind)tk_class);
+  set_source_corresp(&(type->source_corresp), sym);
+  type->source_corresp.class_of_which_a_member =
+                  sym->class_of_which_a_member = 
+                     templ_param_type->source_corresp.class_of_which_a_member;
+  tptdp->class_type = type;
+  /* Set the scope number. */
+  cssp = symbol_supplement_for_class(type);
+  cssp->member_decl_scope = next_scope_number++;
+  cssp->template_param_for_proxy_class = templ_param_type;
+}  /* create_proxy_class */
+
+
+static a_symbol_ptr add_member_to_proxy_or_nonreal_class
+					(a_type_ptr	          class_type,
+					 an_id_lookup_options_set options,
+					 a_symbol_locator         *locator)
+/*
+This routine is called by class_qualified_id_lookup when the name
+being looked up is not found in the proxy class associated with a
+template parameter type or in a class that is a nonreal instantiation.
+We don't know anything about the name that is being looked up except
+whether or not it is a type (based on the is_type parameter).  If
+is_type is TRUE we create a member of class_type that is a
+tk_template_param.  If is_type is FALSE we create a member of
+class_type that is a ck_template_param.
+*/
+{
+  a_symbol_kind			kind;
+  a_class_symbol_supplement_ptr	cssp;
+  a_scope_depth			depth = NO_SCOPE_DEPTH;
+  a_symbol_ptr			sym;
+  a_boolean			is_type;
+
+  db_enter(4, "add_member_to_proxy_or_nonreal_class");
+  /* If we are doing a  "must be class", "must be tag" or "tentative type"
+     lookup then we create the symbol as a type; otherwise we create it
+     as a constant. */
+  is_type = options & IDL_MUST_BE_CLASS || options & IDL_MUST_BE_TAG ||
+            options & IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME;
+  /* Create a symbol for the member.  mark_declared is not called
+     because this symbol is not visible to the user. */
+  kind = (a_symbol_kind)(is_type ? sk_type : sk_constant);
+  sym = alloc_symbol(kind, locator->symbol_header, &locator->source_position);
+  /* Get the scope number from the symbol supplement.  The scope depth
+     will be the scope depth of the class plus one. */
+  cssp = symbol_supplement_for_class(class_type);
+  sym->decl_scope = cssp->member_decl_scope;
+#if RECORD_SCOPE_DEPTH_IN_IL
+  depth = class_type->source_corresp.scope_depth;
+#endif /* RECORD_SCOPE_DEPTH_IN_IL */
+  /* Create the type or constant. */
+  if (is_type) {
+    a_type_ptr	type = alloc_type((a_type_kind)tk_template_param);
+    type->variant.template_param.kind =
+                                    (a_template_param_type_kind)tptk_member;
+    sym->variant.type = type;
+    set_source_corresp_with_scope_depth(&type->source_corresp, sym, depth);
+    type->source_corresp.class_of_which_a_member = class_type;
+  } else {
+    /* Create a ck_template_param constant.  We don't know the type of the
+       constant so we allocate a tk_template_param to use as the type. */
+    a_constant_ptr  constant;
+    constant = fs_constant((a_constant_repr_kind)ck_template_param);
+    sym->variant.constant = constant;
+    constant->type = alloc_type((a_type_kind)tk_template_param);
+    constant->type->variant.template_param.kind = 
+                   (a_template_param_type_kind)tptk_type_of_member_constant;
+    set_source_corresp_with_scope_depth(&constant->source_corresp, sym, depth);
+    constant->source_corresp.class_of_which_a_member = class_type;
+  }  /* if */
+  /* Add the symbol to the inactive list. */
+  sym->next = sym->header->inactive_symbols;
+  sym->header->inactive_symbols = sym;
+  sym->class_of_which_a_member = class_type;
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "Adding: ");
+    db_symbol(sym, "", 0);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return sym;
+}  /* add_member_to_proxy_or_nonreal_class */
+
 
 a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                               an_id_lookup_options_set options)
@@ -4893,6 +5016,8 @@ C and C++.
   a_boolean		  projection_symbol_found = FALSE;
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
   a_boolean		  skip_first_class_reactivation_scope = FALSE;
+  a_boolean		  any_nonreal_bases = FALSE;
+  a_type_ptr		  class_with_nonreal_base;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 /* is_class_or_class_proxy_symbol checks for a symbol that is a class,
@@ -4971,6 +5096,7 @@ C and C++.
     } else {
       /* There are inactive symbols and they may be visible, so the more
          complicated search is required. */
+      a_boolean	check_for_nonreal_bases;
 #if DEBUG
       num_slow_id_lookups++;
 #endif /* DEBUG */
@@ -4984,6 +5110,10 @@ C and C++.
          from innermost scope to outermost. */
       prev_active_sym = NULL;
       active_sym = active_symbol_list;
+      /* If any instantiation scopes are active we will need to check for
+         the presence of nonreal base classes. */
+      check_for_nonreal_bases =
+                       depth_innermost_instantiation_scope != NO_SCOPE_DEPTH;
       /* Since there is a class or class reactivation on the stack, we know the
          stack has at least two entries (the file scope and the class or
          class reactivation). */
@@ -5108,6 +5238,15 @@ C and C++.
               if (is_acceptable_symbol(sym)) goto end_lookup;
               sym = NULL;
             }  /* if */
+          } else {
+            if (check_for_nonreal_bases && !any_nonreal_bases) {
+              /* No projection symbol was found.  If the class has any
+                 nonreal base classes record this information for possible
+                 later use. */
+              class_with_nonreal_base = ssep->assoc_type;
+              any_nonreal_bases = symbol_supplement_for_class(ssep->assoc_type)
+                                                    ->any_nonreal_base_classes;
+            }  /* if */
           }  /* if */
         }  /* if */
 next_scope:
@@ -5167,6 +5306,19 @@ next_scope:
           sym = NULL;
         }  /* if */
       }  /* if */
+    }  /* if */
+    if (sym == NULL && any_nonreal_bases) {
+      /* If no symbol was found and one of the classes searched has
+         a nonreal base class then consider the symbol to be a member
+         of the class with the nonreal base class.  This will occur when
+         a base class depends on a template parameter (such as A<T>)
+         or when the base class is a template parameter (such as T).
+         In these cases it is impossible to know, at the time that
+         prototype instantiation is done, which names will be in the
+         classes used in the real instantiations.  Any name is accepted
+         as a member of the class. */
+      sym = add_member_to_proxy_or_nonreal_class(class_with_nonreal_base,
+						 options, locator);
     }  /* if */
 end_lookup:
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
@@ -5344,119 +5496,6 @@ by find_projected_symbol to insert a projection symbol for the locator
 }  /* determine_projected_symbol_insert_location */
 
 
-static void create_proxy_class(a_type_ptr   templ_param_type)
-/*
-Creates the proxy class pointed to by a template parameter type description
-record.  This consists of allocating and initializing the class and assigning
-a scope number.  The class type is created the first time that a template
-parameter is used in a context in which a class qualified name lookup
-needs to be done using the template parameter as the class type.
-*/
-{
-  a_type_ptr				type;
-  a_template_param_type_descr_ptr	tptdp;
-  a_symbol_ptr				sym;
-  a_symbol_ptr				templ_param_sym;
-  a_class_symbol_supplement_ptr		cssp;
-  tptdp = templ_param_type->variant.template_param.descr;
-  if (tptdp == NULL) {
-    /* Allocate a template parameter type description entry. */
-    tptdp = alloc_template_param_type_descr();
-    templ_param_type->variant.template_param.descr = tptdp;
-  }  /* if */
-  /* Get the symbol pointer associated with the template parameter. */
-  templ_param_sym = (a_symbol_ptr)templ_param_type->source_corresp.assoc_info;
-  /* Create a symbol for the class.  The symbol will have the same name
-     as the template parameter symbol.  mark_declared is not called
-     because this symbol is not visible to the user. */
-  sym = alloc_symbol((a_symbol_kind)sk_class_or_struct_tag,
-                     templ_param_sym->header, &templ_param_sym->decl_position);
-  /* The class will be considered to be at file scope.  If this is changed
-     to be some other scope then set_source_corres_with_scope_depth may
-     need to be called because set_source_corresp requires that the
-     decl_scope of the symbol still be an active scope. */
-  sym->decl_scope = FILE_SCOPE_NUMBER;
-  /* Create the type for the class. */
-  type = alloc_type((a_type_kind)tk_class);
-  set_source_corresp(&(type->source_corresp), sym);
-  type->source_corresp.class_of_which_a_member =
-                  sym->class_of_which_a_member = 
-                     templ_param_type->source_corresp.class_of_which_a_member;
-  tptdp->class_type = type;
-  /* Set the scope number. */
-  cssp = symbol_supplement_for_class(type);
-  cssp->member_decl_scope = next_scope_number++;
-  cssp->template_param_for_proxy_class = templ_param_type;
-}  /* create_proxy_class */
-
-
-static a_symbol_ptr add_member_to_proxy_or_nonreal_class
-						(a_type_ptr	   class_type,
-						 a_boolean	   is_type,
-						 a_symbol_locator  *locator)
-/*
-This routine is called by class_qualified_id_lookup when the name
-being looked up is not found in the proxy class associated with a
-template parameter type or in a class that is a nonreal instantiation.
-We don't know anything about the name that is being looked up except
-whether or not it is a type (based on the is_type parameter).  If
-is_type is TRUE we create a member of class_type that is a
-tk_template_param.  If is_type is FALSE we create a member of
-class_type that is a ck_template_param.
-*/
-{
-  a_symbol_kind			kind;
-  a_class_symbol_supplement_ptr	cssp;
-  a_scope_depth			depth = NO_SCOPE_DEPTH;
-  a_symbol_ptr			sym;
-
-  db_enter(4, "add_member_to_proxy_or_nonreal_class");
-  /* Create a symbol for the member.  mark_declared is not called
-     because this symbol is not visible to the user. */
-  kind = (a_symbol_kind)(is_type ? sk_type : sk_constant);
-  sym = alloc_symbol(kind, locator->symbol_header, &locator->source_position);
-  /* Get the scope number from the symbol supplement.  The scope depth
-     will be the scope depth of the class plus one. */
-  cssp = symbol_supplement_for_class(class_type);
-  sym->decl_scope = cssp->member_decl_scope;
-#if RECORD_SCOPE_DEPTH_IN_IL
-  depth = class_type->source_corresp.scope_depth;
-#endif /* RECORD_SCOPE_DEPTH_IN_IL */
-  /* Create the type or constant. */
-  if (is_type) {
-    a_type_ptr	type = alloc_type((a_type_kind)tk_template_param);
-    type->variant.template_param.kind =
-                                    (a_template_param_type_kind)tptk_member;
-    sym->variant.type = type;
-    set_source_corresp_with_scope_depth(&type->source_corresp, sym, depth);
-    type->source_corresp.class_of_which_a_member = class_type;
-  } else {
-    /* Create a ck_template_param constant.  We don't know the type of the
-       constant so we allocate a tk_template_param to use as the type. */
-    a_constant_ptr  constant;
-    constant = fs_constant((a_constant_repr_kind)ck_template_param);
-    sym->variant.constant = constant;
-    constant->type = alloc_type((a_type_kind)tk_template_param);
-    constant->type->variant.template_param.kind = 
-                   (a_template_param_type_kind)tptk_type_of_member_constant;
-    set_source_corresp_with_scope_depth(&constant->source_corresp, sym, depth);
-    constant->source_corresp.class_of_which_a_member = class_type;
-  }  /* if */
-  /* Add the symbol to the inactive list. */
-  sym->next = sym->header->inactive_symbols;
-  sym->header->inactive_symbols = sym;
-  sym->class_of_which_a_member = class_type;
-#if DEBUG
-  if (debug_level >= 4) {
-    fprintf(f_debug, "Adding: ");
-    db_symbol(sym, "", 0);
-  }  /* if */
-#endif /* DEBUG */
-  db_exit();
-  return sym;
-}  /* add_member_to_proxy_or_nonreal_class */
-
-
 a_symbol_ptr class_qualified_id_lookup(a_symbol_locator         *locator,
                                        a_type_ptr               class_type,
                                        an_id_lookup_options_set options)
@@ -5551,14 +5590,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
         !(options & IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) {
       /* When looking up a name in a proxy or nonreal class, the name is
          always found.  If we did not find the name in the search
-         above then we must create a symbol now.  If we are doing a
-         "must be class", "must be tag" or "tentative type" lookup
-         then we create the symbol as a type; otherwise we create it
-         as a constant. */
-      a_boolean		is_type;
-      is_type = (must_be_class || must_be_tag ||
-                 (options & IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME));
-      sym = add_member_to_proxy_or_nonreal_class(class_type, is_type, locator);
+         above then we must create a symbol now. */
+      sym = add_member_to_proxy_or_nonreal_class(class_type, options, locator);
       goto end_lookup;
     }  /* if */
     if (C_dialect == C_dialect_cplusplus) {

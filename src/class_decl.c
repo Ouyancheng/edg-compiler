@@ -2397,7 +2397,10 @@ or struct definition.  The syntax is
         if (sym != NULL && sym->kind == (a_symbol_kind)sk_type &&
             sym->variant.type->kind == (a_type_kind)tk_template_param) {
           /* No diagnostic on template parameters, which will only show
-             up during prototype instantiations. */
+             up during prototype instantiations.  Set the flag that
+             indicates that this prototype instantiation has a nonreal
+             base class. */
+          cssp->any_nonreal_base_classes = TRUE;
         } else {
           error(ec_not_a_class_or_struct_name);
         }  /* if */
@@ -2506,6 +2509,9 @@ or struct definition.  The syntax is
       }  /* if */
       if (bcp_cssp->any_nonstatic_data_members) {
         cssp->any_nonstatic_data_members = TRUE;
+      }  /* if */
+      if (bcp_cssp->any_nonreal_base_classes || bcp_cssp->is_nonreal_class) {
+        cssp->any_nonreal_base_classes = TRUE;
       }  /* if */
       /* Update the flag indicating whether there are any virtual base
          classes. */

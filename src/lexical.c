@@ -4902,6 +4902,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   a_template_arg_ptr              arg_list = NULL;
   a_template_arg_ptr              last_arg = NULL;
   a_symbol_ptr                    new_sym = NULL;
+  a_symbol_ptr			  current_instantiation_sym;
   a_boolean                       any_errors = FALSE;
   a_memory_region_number          region_to_switch_back_to;
   a_symbol_ptr                    sym;
@@ -4910,6 +4911,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   a_constant_ptr                  constant;
   a_template_arg_ptr              arg_ptr;
   a_token_kind			  next_tok;
+  a_boolean			  class_is_being_instantiated;
 
   db_enter(3, "coalesce_template_class_reference");
 
@@ -4946,13 +4948,19 @@ a routine to lookup the appropriate instance (or generate one if needed).
       goto skip_processing;
     }  /* if */
   }  /* if */
+  /* Determine whether the class template (or a member of the class template)
+     is currently being instantiated.  This affects how references to the
+     class template name are handled. */
+  current_instantiation_sym = template_sym;
+  class_is_being_instantiated =
+            current_class_symbol_if_class_template(&current_instantiation_sym);
   if (next_tok != tok_lt) {
      /* There is no template argument list.  If we are in an instantiation of
         this class template, use the symbol associated with the innermost
         instantiation of this class, otherwise just return the class
         template symbol. */
-    new_sym = template_sym;
-    if (current_class_symbol_if_class_template(&new_sym)) {
+    new_sym = current_instantiation_sym;
+    if (class_is_being_instantiated) {
       /* We have the symbol for the current instantiation of the
          class template. */
       goto normal_exit;
@@ -5113,8 +5121,19 @@ a routine to lookup the appropriate instance (or generate one if needed).
   }  /* if */
   if (!any_errors) {
     /* Everything is OK -- find the instance that matches these arguments.
-       Create a new instance if needed. */
-    new_sym = find_template_class(template_sym, &arg_list, &start_position);
+       Create a new instance if needed.  There can be two instances
+       of a class A<T> One is the prototype instantiation which is
+       used when A<T> is referenced within the definition of class
+       template A or in the declarator of an out-of-line definition of a member
+       function or static data member.  The other is the nonreal class
+       which is used when, for example, A<T> is a member of class template
+       B.  We find the prototype instantiation unless we are currently
+       inside the instantiation of a different class. */
+    a_boolean	prototype_allowed;
+    prototype_allowed = class_is_being_instantiated ||
+                        depth_innermost_instantiation_scope == NO_SCOPE_DEPTH;
+    new_sym = find_template_class(template_sym, &arg_list, &start_position,
+                                  prototype_allowed);
   } else {
     /* Free any allocated template arguments. */
     if (arg_list != NULL) free_template_arg_list(arg_list);

@@ -695,7 +695,8 @@ a template parameter (type or constant).
 
 a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
                                  a_template_arg_ptr  *new_list,
-                                 a_source_position   *source_pos)
+                                 a_source_position   *source_pos,
+				 a_boolean	     prototype_allowed)
 /*
 Given a symbol for a class template and a template argument list (that is,
 a list of actual arguments), look for an existing class that is the
@@ -722,41 +723,65 @@ with the handling of pointers to incomplete non-template classes:
 
 Note, moreover, that even if class template X were defined there would be
 no need to actually instantiate X<int> in the example above.
+
+If prototype_allowed is TRUE then the prototype instantiation is checked
+before any of the other instantiations and is returned if the argument
+lists match.  If it is FALSE the prototype instantiation will not be
+included in the search.
 */
 {
   a_symbol_ptr                      sym, prev_sym;
+  a_symbol_ptr 			    prototype_sym;
   a_template_arg_ptr                old_list;
   a_type_ptr                        class_type;
   a_template_symbol_supplement_ptr  tssp;
   a_template_arg_ptr                tap;
 
   db_enter(3, "find_template_class");
-  /* Make a pass over the symbols representing instantiations of the class
-     template. */
   tssp = class_template_sym->variant.template_info ;
-  sym = tssp->variant.class_template.instantiations;
-  prev_sym = NULL;
-  for (; sym != NULL; sym = sym->next) {
+  sym = NULL;
+  prototype_sym = tssp->variant.class_template.prototype_instantiation;
+  if (prototype_allowed && prototype_sym != NULL) {
     /* Old list is the template argument list from a template class that has
        already been created.  See if the list passed in matches it. */
-    old_list = sym->variant.type->
+    old_list = prototype_sym->variant.type->
                      variant.class_struct_union.extra_info->template_arg_list;
     if (equiv_template_arg_lists(old_list, *new_list,
                                  /*is_func_template=*/FALSE)) {
-      /* We've found a match.  Remove the found symbol from its current
-         position in the instantiation list and add it to the front. */
-      if (prev_sym != NULL) {
-        prev_sym->next = sym->next;
-        sym->next = tssp->variant.class_template.instantiations;
-        tssp->variant.class_template.instantiations = sym;
-      }
-#if DEBUG
-      if (debug_level >= 3) db_symbol(sym, "found: ", 2);
-#endif /* DEBUG */
-      break;
+      /* A match.  Set sym which will suppress any further search. */
+      sym = prototype_sym;
     }  /* if */
-    prev_sym = sym;
-  }  /* for */
+  }  /* if */
+  if (sym == NULL) {
+    /* Make a pass over the symbols representing instantiations of the class
+       template. */
+    sym = tssp->variant.class_template.instantiations;
+    prev_sym = NULL;
+    for (; sym != NULL; prev_sym = sym, sym = sym->next) {
+      /* The prototype instantiation should not be checked.  If
+         prototype_allowed is TRUE then we would have already found it
+         in the test above. */
+      if (sym == prototype_sym) continue;
+      /* Old list is the template argument list from a template class that has
+         already been created.  See if the list passed in matches it. */
+      old_list = sym->variant.type->
+                     variant.class_struct_union.extra_info->template_arg_list;
+      if (equiv_template_arg_lists(old_list, *new_list,
+                                   /*is_func_template=*/FALSE)) {
+        /* We've found a match.  Remove the found symbol from its current
+           position in the instantiation list and add it to the front. */
+        if (prev_sym != NULL) {
+          prev_sym->next = sym->next;
+          sym->next = tssp->variant.class_template.instantiations;
+          tssp->variant.class_template.instantiations = sym;
+        }  /* if */
+#if DEBUG
+        if (debug_level >= 3) db_symbol(sym, "found: ", 2);
+#endif /* DEBUG */
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   if (sym == NULL) {
     /* No match was found on the list, so do a partial instantiation of the
        template class based on the template arguments.  First create a symbol
