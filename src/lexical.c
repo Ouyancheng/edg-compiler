@@ -5619,13 +5619,18 @@ is looked up.  Returns TRUE if identifier is a qualified name.
                                    idl_options) != NULL) {
           } else {
             /* The identifier could not be found in the file scope. */
-            /* Issue an alternate version of the error if we are looking
-	       for a tag symbol. */
-	    error_code = ilm == ilm_tag ? ec_name_not_tag_in_file_scope :
-					  ec_name_not_found_in_file_scope;
-            pos_st_error(error_code, &identifier_pos,
-                         locator_for_curr_id.symbol_header->identifier);
-            okay = FALSE;
+	    if (ilm == ilm_tentative_type) {
+	      /* It is OK for a tentative type lookup to fail. */
+	      okay = TRUE;
+	    } else {
+              /* Issue an alternate version of the error if we are looking
+	         for a tag symbol. */
+	      error_code = ilm == ilm_tag ? ec_name_not_tag_in_file_scope :
+					    ec_name_not_found_in_file_scope;
+              pos_st_error(error_code, &identifier_pos,
+                           locator_for_curr_id.symbol_header->identifier);
+              okay = FALSE;
+            }  /* if */
           }  /* if */
         } else {
           if (class_type == NULL) {
@@ -5663,15 +5668,20 @@ is looked up.  Returns TRUE if identifier is a qualified name.
                    we don't know yet what kind of reference this is. */
 	      } else {
                 /* The identifier could not be found in the class scope. */
-                /* Issue an alternate version of the error if we are looking
-		   for a tag symbol. */
-	        error_code = ilm == ilm_tag ? ec_not_a_tag_member :
-					      ec_not_a_member;
-                pos_stsy_error(error_code, &identifier_pos,
-                               locator_for_curr_id.symbol_header->identifier,
-                               (a_symbol_ptr)class_type->
-                                                  source_corresp.assoc_info);
-                okay = FALSE;
+	        if (ilm == ilm_tentative_type) {
+		  /* It is OK for a tentative type lookup to fail. */
+		  okay = TRUE;
+		} else {
+                  /* Issue an alternate version of the error if we are looking
+		     for a tag symbol. */
+	          error_code = ilm == ilm_tag ? ec_not_a_tag_member :
+					        ec_not_a_member;
+                  pos_stsy_error(error_code, &identifier_pos,
+                                 locator_for_curr_id.symbol_header->identifier,
+                                 (a_symbol_ptr)class_type->
+                                                    source_corresp.assoc_info);
+                  okay = FALSE;
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if*/
@@ -5744,12 +5754,12 @@ is TRUE (specifically, that "::new" or "::delete" is not next).
     /* The identifier is a qualified name. */
     symbol = locator_for_curr_id.specific_symbol;
 #if CHECKING
-    if (symbol == NULL) {
+    if (symbol == NULL && ilm != ilm_tentative_type) {
       internal_error
        ("coalesce_and_lookup_generalized_identifier: specific_symbol is NULL");
     }  /* if */
 #endif /* CHECKING */
-    reduce_projection_symbol_to_fundamental_symbol(symbol);
+    if (symbol != NULL) reduce_projection_symbol_to_fundamental_symbol(symbol);
   } else {
 #if CHECKING
     if (curr_token != tok_identifier) {
