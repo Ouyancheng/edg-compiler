@@ -35,9 +35,10 @@ both input and output).  For example:
 
 8/27/02  Microsoft compatibility: selectany constraints
 
-In Microsoft versions prior to 1300, variables definitions with selectany had
-to have an explicit, static initializer.  In versions 1300 and later, these
-constraint are removed.  For example:
+In Microsoft versions prior to 1300, variable definitions with selectany had
+to have an explicit, static initializer.  In versions 1300 and later (which
+correspond to Visual C++ 7/.Net and later), these constraints are removed.
+For example:
 
   int f();
   struct S {
