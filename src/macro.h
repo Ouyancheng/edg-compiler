@@ -18,6 +18,12 @@ macro.h -- Declarations relating to macro.c (having to do with macro
 #ifndef MACRO_H
 #define MACRO_H 1
 
+EXTERN unsigned long
+		macro_depth;
+			/* Current number of levels of nesting of macro
+			   invocations.  Zero if no macro calls are being
+			   processed currently. */
+
 EXTERN a_symbol_ptr
 	       	line_macro_symbol,
 		file_macro_symbol,
