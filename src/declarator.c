@@ -26,7 +26,6 @@ declarator.c -- Scanning of declarators.
 
 /* Additional header files. */
 #include "disambig.h"
-#include "exprutil.h"
 #include "statements.h"
 
 static a_boolean check_pm_member_type(a_type_ptr  member_type)
@@ -319,7 +318,6 @@ type is legal.
           /* Okay. */
         } else if (temp_type->kind == (a_type_kind)tk_array &&
                    (temp_type->variant.array.is_variable_size_array ||
-                    temp_type->variant.array.is_vla ||
                     temp_type->
                            variant.array.variant.number_of_elements != 0)) {
           /* Okay. */
@@ -1691,16 +1689,16 @@ void array_declarator(a_type_ptr *new_type_ptr,
                       a_boolean  restrict_allowed,
                       a_boolean  *restrict_seen)
 /*
-Scan an array declarator (3.5.4.2), or an array declarator in an abstract
-declarator (3.5.5).  Allocate and return in *new_type_ptr an appropriate
-array type.  The initial opening bracket is the current token.  In C++ the
-dimension may sometimes be a nonconstant expression (e.g., with a new type
-name); that case is indicated by nonconstant_dimension_allowed.  In C (when
-VLA_ENABLED is TRUE), the dimension may be a nonconstant expression when
-vla_allowed is TRUE; and when vla_asterisk_allowed is TRUE, a VLA of unknown
-size can be indicated with the "[*]" syntax in a function prototype.  When
-RESTRICT_ALLOWED is TRUE, restrict_allowed may be TRUE to indicate that this
-is a function parameter declaration for which the special restrict-array
+Scan an array declarator (ISO C 6.5.4.2), or an array declarator in an
+abstract declarator (ISO C 6.5.5).  Allocate and return in *new_type_ptr an
+appropriate array type.  The initial opening bracket is the current token.
+In C++ the dimension may sometimes be a nonconstant expression (e.g., with a
+new type name); that case is indicated by nonconstant_dimension_allowed.  In
+C (when VLA_ENABLED is TRUE), the dimension may be a nonconstant expression
+when vla_allowed is TRUE; and when vla_asterisk_allowed is TRUE, a VLA of
+unknown size can be indicated with the "[*]" syntax in a function prototype.
+When RESTRICT_ALLOWED is TRUE, restrict_allowed may be TRUE to indicate that
+this is a function parameter declaration for which the special restrict-array
 syntax is permitted.  If "restrict" is seen, set *restrict_seen to TRUE.
 top_level_field_decl is TRUE to indicate that this is the declaration of
 nonstatic data member of a class.
@@ -1753,7 +1751,7 @@ nonstatic data member of a class.
     } else {
       error(ec_vla_with_unspecified_bound_not_allowed);
       err = TRUE;
-    }
+    }  /* if */
     /* Pass over the asterisk. */
     (void)get_token();
   } else {
@@ -1826,14 +1824,6 @@ nonstatic data member of a class.
         (*new_type_ptr)->variant.array.is_vla = TRUE;
         /* A VLA dimension entry will be created to record the array
            dimension expression. */
-#if 0
-        if (expr_stack == NULL) {
-          /* No stmk_set_vla_size is generated for a VLA in an expression
-             (i.e. not in a declaration).  A VLA in this case is allowed
-             only in cast and sizeof operators and its dimension expression
-             is evaluated (implicitly) at the location of the IL operator. */
-        } else
-#endif /* if 0 */
         if (scope_stack[decl_scope_level].kind ==
                                            (a_scope_kind)sck_func_prototype) {
           /* For a VLA in a function parameter declaration, generation of the
