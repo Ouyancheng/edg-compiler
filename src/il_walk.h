@@ -100,6 +100,11 @@ extern void remap_first_ptr_of_orphaned_file_scope_entry_array(void);
 
 extern void remap_last_ptr_of_orphaned_file_scope_entry_array(void);
 
+#if MAINTAIN_NEEDED_FLAG
+extern void mark_as_needed(char             *entry_ptr,
+                           an_il_entry_kind entry_kind);
+#endif /* MAINTAIN_NEEDED_FLAG */
+
 #endif /* IL_WALK_NEEDED */
 
 #if NEED_DECLARATIVE_WALK

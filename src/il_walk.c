@@ -579,13 +579,26 @@ running them through walk_remap_func.
 #define DO_SUBTREE_WALK FALSE
 #undef WALK_ENTRY_ROUTINE_NAME
 #define WALK_ENTRY_ROUTINE_NAME remap_pointers_in_il_entry
+#define UNDEF_WALK_ENTRY_MACROS_AT_END
 #include "walk_entry.h"
 #endif /* REMAP_ONLY_ROUTINES_NEEDED */
 
-  /* Note that at this point the macros walk_ptr et al. are defined
-     in their no-subtree-walk versions.  That's not usually what is
-     wanted, so do not add code here unless you expressly want to
-     use those. */
+#undef DO_SUBTREE_WALK
+#undef WALK_ENTRY_ROUTINE_NAME
+
+
+#if MAINTAIN_NEEDED_FLAG
+
+void mark_as_needed(char             *entry_ptr,
+                    an_il_entry_kind entry_kind)
+/*
+Set the "needed" flag in the indicated entity, and also on everything it
+references.
+*/
+{
+}  /* mark_as_needed */
+
+#endif /* MAINTAIN_NEEDED_FLAG */
 
 #endif /* IL_WALK_NEEDED */
 
