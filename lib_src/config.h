@@ -62,11 +62,11 @@ as generating profiling information.
 USE_ATEXIT indicates that the atexit function should be used.
 */
 #ifndef USE_ATEXIT
-#ifndef sun
-#define USE_ATEXIT TRUE
-#else /* ifdef sun */
+#if defined(sun) && __EDG_BSD
 #define USE_ATEXIT FALSE
-#endif /* ifndef sun */
+#else /* !(defined(sun) && __EDG_BSD) */
+#define USE_ATEXIT TRUE
+#endif /* !(defined(sun) && __EDG_BSD) */
 #endif /* ifndef USE_ATEXIT */
 
 /*
