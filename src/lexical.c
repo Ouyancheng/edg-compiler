@@ -2986,7 +2986,7 @@ normal_comment:
         /* Again, a speed note:  All text inside comments goes through this
            loop, so it should be very fast. */
         while ((ch = *curr_char_loc) != '*' || *(curr_char_loc+1) != '/') {
-          if (ch == '\n') {
+          if (ch == '\n' || ch == '\0') {
             if (!comment_pos_determined) {
               /* End of the first line of the comment. */
               /* Determine the source position for the start of the comment
@@ -3017,10 +3017,10 @@ normal_comment:
                  If this comment is part of a preprocessing directive,
                  delete the newline as well so that multi-line directives
                  will become one-line directives. */
-              if (!in_preprocessing_directive) {
-                delete_to = curr_char_loc-1;
-              } else {
+              if (in_preprocessing_directive && ch == '\n') {
                 delete_to = curr_char_loc;
+              } else {
+                delete_to = curr_char_loc-1;
               }  /* if */
               if (delete_from <= delete_to) {
                 add_deletion_source_line_modif(delete_from,

@@ -1,5 +1,11 @@
 Version 2.12
 
+11/9/92 pcc mode comment fix
+
+A fix was made in skip_white_space in lexical.c to avoid an internal
+error when in pcc mode the beginning of a multi-line comment appeared
+at the end of a line containing a macro expansion.
+
 11/9/92 Subscript reference through volatile pointer causes side effect
 
 A change was made to recognize the side effect in the following:
