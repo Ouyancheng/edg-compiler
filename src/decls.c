@@ -6781,6 +6781,7 @@ return a pointer to it in *symbol_ptr.
     if (microsoft_mode &&
         ssep->kind == (a_scope_kind)sck_class_struct_union) {
       remove_any_inherited_type_synonym(locator, loc_sym);
+      sym = NULL;
     } else if (loc_sym->variant.projection.is_using_decl) {
       /* If the symbol found is from a using-declaration, ignore it.  This
          will result in an error when the new symbol is entered. */
