@@ -3546,6 +3546,9 @@ done_with_operation:
       /* Definition of object lifetime (for temporaries).  Ignored. */
       gen_expr(expr->variant.object_lifetime.expr, need_parens);
       break;
+    case enk_address_of_ellipsis:
+      write_tok_str("&...");
+      break;
     case enk_temp_init:
       /* Temporary creation/initialization. */
       /* The temporary is being used as an rvalue here, so the result of
@@ -3981,7 +3984,6 @@ is the one associated with the template.
 */
 {
   a_template_ptr tp = ss_entry_ptr(curr_source_sequence_entry, a_template_ptr);
-  char           *p, *eol;
 
   /* Advance past the source sequence entry for the template. */
   adv_curr_source_sequence_entry();
