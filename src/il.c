@@ -1531,6 +1531,23 @@ Allocate and return "size" bytes of storage in the file scope memory region.
   return ptr;
 }  /* alloc_il */
 
+static void reset_seq_cache(void)
+/*
+Clear the cached information used to convert sequence number to source
+file and line number.
+*/
+{
+  /* Reset the entry that stores the status of the last sequence number to
+     source file/line conversion. */
+  seq_cache.first_seq_number = 0;
+  seq_cache.last_seq_number = 0;
+  seq_cache.line_offset = 0;
+  seq_cache.physical_line = FALSE;
+  seq_cache.nesting_depth = 0;
+  seq_cache.source_file = NULL;
+}  /* reset_seq_cache */
+  
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 char *alloc_cil(sizeof_t size)
@@ -1645,23 +1662,6 @@ Allocate a scope entry in the new region and return a pointer to it.
   return sp;
 }  /* new_il_region */
 
-
-static void reset_seq_cache(void)
-/*
-Clear the cached information used to convert sequence number to source
-file and line number.
-*/
-{
-  /* Reset the entry that stores the status of the last sequence number to
-     source file/line conversion. */
-  seq_cache.first_seq_number = 0;
-  seq_cache.last_seq_number = 0;
-  seq_cache.line_offset = 0;
-  seq_cache.physical_line = FALSE;
-  seq_cache.nesting_depth = 0;
-  seq_cache.source_file = NULL;
-}  /* reset_seq_cache */
-  
 
 void record_start_of_source_file(a_source_file_ptr parent_file,
 			         a_seq_number      seq_number,
