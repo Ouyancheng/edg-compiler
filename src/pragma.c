@@ -1378,7 +1378,7 @@ Initialize the pragma description table.
 		 /*may_bind_to_decl=*/TRUE,
 		 /*may_bind_to_stmt=*/FALSE,
                  /*automatically_include_in_il=*/BACK_END_IS_CP_GEN_BE,
-                 /*make_text_not_tokens=*/BACK_END_IS_CP_GEN_BE,
+                 /*make_text_not_tokens=*/TRUE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
 		 /*ignore_in_back_end=*/!BACK_END_IS_CP_GEN_BE,
