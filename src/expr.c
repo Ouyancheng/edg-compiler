@@ -2000,8 +2000,9 @@ bound with the function in *bound_function_selector.
         if (member_sym == NULL && err_in_operand_1 == ec_no_error) {
           /* The identifier is not a member of the operand_1 class, struct,
              or union. */
-          str_error(ec_not_a_member,
-                    locator_for_curr_id.symbol_header->identifier);
+          pos_stty_error(ec_not_a_member, &error_position,
+                         locator_for_curr_id.symbol_header->identifier,
+                         class_struct_union_type);
           err = TRUE;
         }  /* if */
       }  /* if */

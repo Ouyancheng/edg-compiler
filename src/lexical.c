@@ -4623,9 +4623,9 @@ the error on the final identifier not being found on lookup.
 {
   a_boolean            is_qualified_name = FALSE, qualifier_err, okay;
   a_boolean            is_file_scope_qualifier, has_global_qualifier;
+  a_boolean            suppress_error;
   a_type_ptr           class_type;
   a_source_position    start_position;
-  an_error_code        err_code;
   a_symbol_header_ptr  class_symbol_header;
 
 #if CHECKING
@@ -4669,28 +4669,35 @@ the error on the final identifier not being found on lookup.
             /* The locator is set below. */
             /* syntax_error is deliberately not called. */
             error(ec_exp_identifier);
-          } else {
+          } else if (!qualifier_err) {
             /* The final identifier is present. */
-            if (!qualifier_err) {
-              if (is_file_scope_qualifier) {
-                /* Look up the id in the file scope. */
-                okay = (file_scope_id_lookup(&locator_for_curr_id, options) !=
-                                                                         NULL);
-                err_code = ec_name_not_found_in_file_scope;
+            if (is_file_scope_qualifier) {
+              suppress_error = (options &
+                                IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR);
+              /* Look up the id in the file scope. */
+              if (file_scope_id_lookup(&locator_for_curr_id,
+                                       options) != NULL) {
+                okay = TRUE;
               } else {
-                /* Look up the id in the class scope. */
-                okay = (class_qualified_id_lookup(&locator_for_curr_id,
-                                                  class_type,
-                                                  options) != NULL);
-                err_code = ec_not_a_member;
+                /* The identifier could not be found in the file scope. */
+                if (!suppress_error) {
+                  str_error(ec_name_not_found_in_file_scope,
+                            locator_for_curr_id.symbol_header->identifier);
+                }  /* if */
+              }  /* if */
+            } else {
+              /* Look up the id in the class scope. */
+              if (class_qualified_id_lookup(&locator_for_curr_id,
+                                            class_type, options) != NULL) {
+                okay = TRUE;
                 /* Ambiguity and access control checking is not done because
                    we don't know yet what kind of reference this is. */
-              }  /* if */
-              if (!okay) {
-                /* The identifier could not be found in the scope. */
-                if (!(options & IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR)) {
-                  str_error(err_code,
-                            locator_for_curr_id.symbol_header->identifier);
+              } else {
+                /* The identifier could not be found in the class scope. */
+                if (!suppress_error) {
+                  pos_stty_error(ec_not_a_member, &error_position,
+                                 locator_for_curr_id.symbol_header->identifier,
+                                 class_type);
                 }  /* if */
               }  /* if */
             }  /* if */

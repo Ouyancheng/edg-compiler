@@ -728,9 +728,9 @@ error code.
       break;
     case ec_not_a_member:
       if (C_dialect == C_dialect_cplusplus) {
-        m = "class has no member %sq";
+        m = "class %t has no member %sq";
       } else {
-        m = "struct or union has no field %sq";
+        m = "struct or union %t has no field %sq";
       }  /* if */
       break;
     case ec_expr_not_a_modifiable_lvalue:
