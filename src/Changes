@@ -10,11 +10,11 @@ is needed.
 
 9/6/97    Microsoft compatibility: mutable in a declarator
 
-In Microsoft bugs mode "mutable" is accepted and ignored when it appears in
-a declarator:
+In Microsoft compatibility mode "mutable" is accepted and ignored when it
+appears in a declarator:
 
   class A {
-    void * mutable p;    // Accepted with a warning in Microsoft bugs mode
+    void * mutable p;    // Accepted with a warning in Microsoft mode
   };
 
 9/6/97    Warning on nested class or enum declaration with type qualifier

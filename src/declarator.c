@@ -2157,11 +2157,13 @@ encountered, they are scanned and thrown away with a warning.
                                              /*is_member_decl=*/FALSE,
                                              &local_decl_modifiers,
                                              &local_qualifiers, &local_err);
-    } else if (curr_token == tok_mutable && microsoft_bugs) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode && curr_token == tok_mutable) {
       /* The Microsoft compiler appears to accept and ignore "mutable" during
          declarator processing.  Issue a warning and continue. */
       warning(ec_mutable_not_allowed);
       (void)get_token();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* Something else; exit the loop. */
       break;
