@@ -940,7 +940,8 @@ derived_class and base_class are both class types.  If base_class is a
 (direct or indirect) base class of derived_class, return the appropriate
 base class entry.  Otherwise, return NULL.  Either class is allowed to
 be incomplete (in which case NULL is returned).  In C mode, NULL is always
-returned.
+returned.  In C++ mode, the derived class will be instantiated if necessary
+so that its base classes are known.
 */
 {
   a_base_class_ptr bcp = NULL;
@@ -948,8 +949,6 @@ returned.
   /* Check for C++ mode.  This is important because the class type supplement
      is not allocated in C mode. */
   if (C_dialect == C_dialect_cplusplus) {
-    /* Check that both classes are complete, i.e., that their definitions have
-       been seen. */
     derived_class = skip_typerefs(derived_class);
     base_class = skip_typerefs(base_class);
     /* Force instantiation of the derived type if it is an uninstantiated
@@ -957,6 +956,8 @@ returned.
        classes are.  Note that this can potentially force instantiation
        of the base class as well. */
     complete_class_type_is_needed(derived_class);
+    /* Check that both classes are complete, i.e., that their definitions have
+       been seen. */
     if (derived_class->variant.class_struct_union.extra_info->
                                                          assoc_scope != NULL &&
         base_class->variant.class_struct_union.extra_info->
