@@ -4090,6 +4090,9 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
 3.5.5  type-name:
 		specifier-qualifier-list abstract-declarator
 							    opt
+
+In C++ mode an error is issued if a type definition appears in a type-name
+(for class/struct/union and enum types).
 */
 {
   a_storage_class              storage_class;
