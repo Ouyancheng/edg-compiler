@@ -304,7 +304,7 @@ and remap the pointers in the copy.
        in the copy. */
     (void)memcpy(copy, ptr, size_t_arg(sizeof_il_entry[(int)kind]));
     remap_pointers_in_entry(copy, kind);
-    scp = source_corresp_for_il_entry(ptr, kind);
+    scp = source_corresp_for_il_entry(copy, kind);
     if (scp != NULL) scp->copied_from_secondary_trans_unit = TRUE;
     if (kind == iek_routine) {
       a_routine_ptr rout = (a_routine_ptr)ptr;
@@ -684,40 +684,14 @@ the primary translation unit, respectively) that are being merged.
 }  /* merge_object_lifetimes */
 
 
-static void wrap_up_moved_function(a_routine_ptr rout)
-/*
-rout identifies a function that has been moved from a secondary translation
-unit to the primary translation unit IL.  Lower its body.
-*/
-{
-  a_translation_unit_ptr saved_translation_unit = curr_translation_unit;
-
-  if (rout->assoc_scope != NULL_region_number) {
-#if MAINTAIN_NEEDED_FLAGS
-    if (routine_needed_even_if_unreferenced(rout)) {
-      /* Mark an externally-defined routine as "needed". */
-      mark_as_needed((char *)rout, (an_il_entry_kind)iek_routine);
-    }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
-    switch_translation_unit(translation_units);
-#if DO_IL_LOWERING
-    lower_il_memory_region(rout->assoc_scope);
-#endif /* DO_IL_LOWERING */
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-    { a_scope_ptr rout_scope= il_header.region_scope_entry[rout->assoc_scope];
-      add_scope_orphaned_il_lists(rout_scope);
-    }
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-    switch_translation_unit(saved_translation_unit);
-  }  /* if */
-}  /* wrap_up_moved_function */
-
-
-static void finish_trans_unit_copy(a_scope_ptr scope)
+static void finish_trans_unit_copy(a_scope_ptr scope,
+                                   a_boolean   *any_moved_function_bodies)
 /*
 scope is a file or namespace scope from the secondary file IL.  Do
 processing required after the IL walk to copy IL entries from the
-secondary scope to the primary file IL.
+secondary scope to the primary file IL.  *any_moved_function_bodies is
+set to TRUE if any function body is moved from the secondary translation
+unit to the primary one.
 */
 {
   a_scope_ptr            primary_scope;
@@ -882,7 +856,9 @@ secondary scope to the primary file IL.
           *primary_routine = *corresp_routine;
           corresp_routine = primary_routine;
         }  /* if */
-        wrap_up_moved_function(corresp_routine);
+        if (corresp_routine->assoc_scope != NULL_region_number) {
+          *any_moved_function_bodies = TRUE;
+        }  /* if */
       }  /* for */
     }  /* if */
     if (scope->templates != NULL) {
@@ -939,7 +915,8 @@ secondary scope to the primary file IL.
           last_nsp = corresp_nsp;
         }  /* if */
         if (!nsp->is_namespace_alias) {
-          finish_trans_unit_copy(nsp->variant.assoc_scope);
+          finish_trans_unit_copy(nsp->variant.assoc_scope,
+                                 any_moved_function_bodies);
         }  /* if */
       }  /* for */
     }  /* if */
@@ -1000,6 +977,62 @@ primary translation unit IL.
 }  /* copy_from_secondary_to_primary_IL */
 
 
+static void wrap_up_moved_function(a_routine_ptr rout)
+/*
+rout identifies a function whose body has been moved from a secondary
+translation unit to the primary translation unit IL.  Do final processing,
+which includes IL lowering if appropriate.
+*/
+{
+#if MAINTAIN_NEEDED_FLAGS
+  if (routine_needed_even_if_unreferenced(rout)) {
+    /* Mark an externally-defined routine as "needed". */
+    mark_as_needed((char *)rout, (an_il_entry_kind)iek_routine);
+  }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
+#if DO_IL_LOWERING
+  lower_il_memory_region(rout->assoc_scope);
+#endif /* DO_IL_LOWERING */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  { a_scope_ptr rout_scope= il_header.region_scope_entry[rout->assoc_scope];
+    add_scope_orphaned_il_lists(rout_scope);
+  }
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+}  /* wrap_up_moved_function */
+
+
+static void finish_moved_function_processing(a_scope_ptr scope)
+/*
+Finish processing in the indicated scope and its subscopes for any
+functions whose bodies were moved from the secondary translation unit IL
+to the primary IL.  This includes lowering if necessary.
+*/
+{
+  a_routine_ptr   routine;
+  a_namespace_ptr nsp;
+
+  /* Process only scopes that were merged into their counterparts. */
+  if (entry_to_be_merged(scope)) {
+    for (routine = scope->routines;
+         routine != NULL;
+         routine = routine->next) {
+      a_routine_ptr corresp_routine =
+                         (a_routine_ptr)trans_unit_corresp_pointer_of(routine);
+      if (corresp_routine->assoc_scope != NULL_region_number &&
+          corresp_routine->source_corresp.copied_from_secondary_trans_unit) {
+        /* This routine definition was moved. */
+        wrap_up_moved_function(corresp_routine);
+      }  /* if */
+    }  /* for */
+    for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+      if (!nsp->is_namespace_alias) {
+        finish_moved_function_processing(nsp->variant.assoc_scope);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* finish_moved_function_processing */
+
+
 void copy_secondary_trans_unit_IL_to_primary(void)
 /*
 Copy IL from the current translation unit, which is a secondary translation
@@ -1008,15 +1041,24 @@ is configured in, unneeded entities have already been removed from the
 secondary translation unit IL and therefore will not be copied.
 */
 {
-  a_scope_ptr primary_scope = il_header.primary_scope;
+  a_scope_ptr top_scope = il_header.primary_scope;
+  a_boolean   any_moved_function_bodies = FALSE;
 
   db_enter(1, "copy_secondary_trans_unit_IL_to_primary");
   check_assertion(total_errors == 0 && !is_primary_translation_unit);
-  check_assertion(!il_entry_prefix_of(primary_scope).il_lowering_flag);
+  check_assertion(!il_entry_prefix_of(top_scope).il_lowering_flag);
   initial_value_for_il_lowering_flag = FALSE;
-  prepare_for_trans_unit_copy(primary_scope);
+  prepare_for_trans_unit_copy(top_scope);
   copy_from_secondary_to_primary_IL();
-  finish_trans_unit_copy(primary_scope);
+  finish_trans_unit_copy(top_scope, &any_moved_function_bodies);
+  if (any_moved_function_bodies) {
+    /* Do final processing on moved function bodies.  This must be
+       done in the context of the primary translation unit. */
+    a_translation_unit_ptr saved_translation_unit = curr_translation_unit;
+    switch_translation_unit(translation_units);
+    finish_moved_function_processing(top_scope);
+    switch_translation_unit(saved_translation_unit);
+  }  /* if */
   merge_il_headers();
   db_exit();
 }  /* copy_secondary_trans_unit_IL_to_primary */
