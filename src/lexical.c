@@ -836,8 +836,19 @@ be copies to the new cache.
         last_tsn_in_cache = ctp->token_sequence_number;
       }  /* if */
     }  /* for */
-    /* Attempt to coalesce this token in case it begins an identifier. */
-    (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL);
+    if (first_tsn >= last_tsn_in_cache) {
+      /* We are already at the end, or past the end of the source cache.
+         Don't attempt to get any more tokens.  Unget the current token so
+         that it will be made the current token by the get_token done at
+         the end of this routine. */
+      unget_token();
+      /* See get_token_and_coalesce_if_needed for more information. */
+      curr_token = tok_end_of_source;
+      curr_token_sequence_number = MAX_TOKEN_SEQUENCE_NUMBER;
+    } else {
+      /* Attempt to coalesce this token in case it begins an identifier. */
+      (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL);
+    }  /* if */
   }  /* if */
   /* Loop through the tokens, beginning with the current token and stopping
      when a token in the stop token array is found.  Whenever a '(', '[', or
@@ -861,11 +872,11 @@ be copies to the new cache.
   set_err_pos_to_curr_token();
   if (coalesce_ids) {
     /* Make a copy of the specified range of tokens from the source cache. */
+    last_tsn = curr_token_sequence_number;
     if (first_tsn > last_tsn_in_cache) {
       /* The starting token is not in the cache (possible in error cases).
          Don't try to extract them from the source cache. */
     } else {
-      last_tsn = curr_token_sequence_number;
       copy_tokens_from_cache(src_cache, first_tsn, last_tsn, cache);
     }  /* if */
     if (curr_token == tok_end_of_source && last_tsn >= last_tsn_in_cache) {

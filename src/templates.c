@@ -5324,7 +5324,10 @@ cache the expected tokens.
           error recovery is better this way. */
       if (curr_token != tok_lt) break;
       (void)get_token();
-       if (curr_token != tok_gt) is_full_specialization = FALSE;
+      if (curr_token != tok_gt) {
+        is_full_specialization = FALSE;
+        break;
+      }  /* if */
       (void)get_token();
     }  /* while */
     decl_state->is_full_specialization = is_full_specialization;
@@ -6450,6 +6453,7 @@ caller.
     last_token_number = curr_token_sequence_number;
     if (decl_state->in_prototype_instantiation) {
       if (sym->is_class_member && decl_state->class_declared_in != NULL &&
+          decl_state->defines_something &&
           sym->kind == (a_symbol_kind)sk_function_template) {
         /* This is a member template function definition.  Create a template
            cache segment entry so that the body of this template can
