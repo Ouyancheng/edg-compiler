@@ -1583,44 +1583,29 @@ This is used when the constant is already an allocated IL constant.
 }  /* make_node_for_il_constant */
 
 
-static an_expr_node_ptr make_variable_lvalue_node(a_variable_ptr var)
+static an_expr_node_ptr make_vtbl_address_node(a_variable_ptr var)
 /*
-Make an expression for the lvalue of a variable and return a pointer to it.
-Differs from var_lvalue_expr in that it turns arrays into pointers to
-their first elements.
+Make an expression for the address of a virtual function table variable and
+return a pointer to it.  The variable has an array type.  The pointer
+has type pointer to element.
 */
 {
   an_expr_node_ptr var_node;
   a_constant       addr_constant;
   a_type_ptr       ptr_element_type;
 
-  if (!is_array_type(var->type)) {
-    /* Normal case -- not an array. */
-    var_node = var_lvalue_expr(var);
-  } else {
-    /* Array. */
-    ptr_element_type = make_pointer_type(array_element_type(var->type));
-    if (has_static_storage_duration(var->storage_class)) {
-      /* Static array -- make a constant for the address of the array,
-         implicitly cast it to pointer-to-element-type, and make an expression
-         whose value is the address constant.  This gives an address with the
-         right type. */
-      clear_constant(&addr_constant, (a_constant_repr_kind)ck_address);
-      addr_constant.type = make_pointer_type(var->type);
-      addr_constant.variant.address.kind = (an_address_base_kind)abk_variable;
-      addr_constant.variant.address.variant.variable = var;
-      implicit_cast(&addr_constant, ptr_element_type);
-      var_node = alloc_node_for_constant(&addr_constant);
-    } else {
-      /* Automatic array -- make an enk_variable_address node and cast it to
-         the pointer-to-element type. */
-      var_node = var_lvalue_expr(var);
-      cast_node(&var_node, ptr_element_type, /*is_implicit_cast=*/TRUE,
-                &error_position);
-    }  /* if */
-  }  /* if */
+  ptr_element_type = make_pointer_type(array_element_type(var->type));
+  /* Make a constant for the address of the array, implicitly cast it to
+     pointer-to-element-type, and make an expression whose value is the
+     address constant.  This gives an address with the right type. */
+  clear_constant(&addr_constant, (a_constant_repr_kind)ck_address);
+  addr_constant.type = make_pointer_type(var->type);
+  addr_constant.variant.address.kind = (an_address_base_kind)abk_variable;
+  addr_constant.variant.address.variant.variable = var;
+  implicit_cast(&addr_constant, ptr_element_type);
+  var_node = alloc_node_for_constant(&addr_constant);
   return var_node;
-}  /* make_variable_lvalue_node */
+}  /* make_vtbl_address_node */
 
 
 static an_expr_node_ptr node_to_select_field_from_rvalue(
@@ -2222,7 +2207,7 @@ routine after it has discarded the troublesome lvalue cases).
     }  /* if */
 #endif /* CHECKING */
     temp = make_temporary(temp_type);
-    temp_node = make_variable_lvalue_node(temp);
+    temp_node = var_lvalue_expr(temp);
     expr_copy = copy_node(expr);
     temp_node->next = expr_copy;
     set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
@@ -2694,7 +2679,7 @@ statement was created (in an expression insert context).
   an_expr_node_ptr lvalue_expr;
 
   /* Make an expression for the lvalue address. */
-  lvalue_expr = make_variable_lvalue_node(lvalue_var);
+  lvalue_expr = var_lvalue_expr(lvalue_var);
   /* Make and insert the assignment. */
   assign_stmt = insert_assignment_statement(lvalue_expr, op, rvalue_expr,
                                             insert_location);
@@ -6255,7 +6240,13 @@ tree.
       entity_node = make_base_class_lvalue(entity_node, modifiers->curr_base);
     } else {
       /* Add an array element selection. */
+      /* Do the pointer decay from array to pointer to element. */
+      a_type_ptr ptr_elem_type = make_pointer_type(
+                                   array_element_type(
+                                     type_pointed_to(entity_node->type)));
+      entity_node = add_cast(entity_node, ptr_elem_type);
       if (modifiers->curr_elem != 0) {
+        /* Add the subscript if it's non-zero. */
         elem_num_node = node_for_integer_constant(
                                         (long)modifiers->curr_elem,
                                         (an_integer_kind)TARG_SIZE_T_INT_KIND);
@@ -6265,12 +6256,6 @@ tree.
                                          entity_node);
       }  /* if */
     }  /* if */
-    if (is_array_type(modifiers->type)) {
-      /* Do the pointer decay from array to pointer to element. */
-      a_type_ptr ptr_elem_type =
-                        make_pointer_type(array_element_type(modifiers->type));
-      entity_node = add_cast(entity_node, ptr_elem_type);
-    }  /* if */
   }  /* if */
   return entity_node;
 }  /* modify_init_entity_node */
@@ -6278,8 +6263,8 @@ tree.
 
 static an_expr_node_ptr make_init_entity_node(an_init_pos_descr_ptr ipdp)
 /*
-Make an expression for the entity described by ipdp and return a pointer
-to it.
+Make an expression for the entity described by ipdp, as an lvalue, and
+return a pointer to it.
 */
 {
   an_expr_node_ptr entity_node;
@@ -6290,7 +6275,7 @@ to it.
     entity_node = var_rvalue_expr(ipdp->variable);
   } else {
     /* Normal case, a simple variable. */
-    entity_node = make_variable_lvalue_node(ipdp->variable);
+    entity_node = var_lvalue_expr(ipdp->variable);
   }  /* if */
   /* Add the modifiers to the base address. */
   entity_node = modify_init_entity_node(entity_node, ipdp->modifiers);
@@ -8819,7 +8804,7 @@ have already been lowered.
   /* Make the vtbl_temp temporary and an lvalue for it, and assign the
      virtual function table entry address to it. */
   vtbl_temp_var = make_temporary(vtbl_entry_node->type);
-  vtbl_temp_node = make_variable_lvalue_node(vtbl_temp_var);
+  vtbl_temp_node = var_lvalue_expr(vtbl_temp_var);
   assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
                                    vtbl_entry_node->type, vtbl_temp_node);
   vtbl_temp_node->next = vtbl_entry_node;
@@ -11388,7 +11373,7 @@ constructor, but may instead be after an assignment to "this".
   if (primary_vtbl_var != NULL) {
     /* Assign the primary virtual table address to the virtual table pointer
        in the current class. */
-    vtbl_addr_node = make_variable_lvalue_node(primary_vtbl_var);
+    vtbl_addr_node = make_vtbl_address_node(primary_vtbl_var);
     primary_vtbl_var->address_taken = TRUE;
     primary_vtbl_var->source_corresp.referenced = TRUE;
     vptr_node = make_vptr_field_lvalue_from_var(this_param_var);
@@ -11406,7 +11391,7 @@ constructor, but may instead be after an assignment to "this".
       /* The base class's virtual function table pointer must be set to
          reflect the fact that it exists as a subobject inside the current
          class. */
-      vtbl_addr_node = make_variable_lvalue_node(vtbl_var);
+      vtbl_addr_node = make_vtbl_address_node(vtbl_var);
       vtbl_var->address_taken = TRUE;
       vtbl_var->source_corresp.referenced = TRUE;
       if (!bcp->is_virtual) {
@@ -11716,7 +11701,7 @@ destructor scope.
   if (primary_vtbl_var != NULL) {
     /* Assign the primary virtual table address to the virtual table pointer
        in the current class. */
-    vtbl_addr_node = make_variable_lvalue_node(primary_vtbl_var);
+    vtbl_addr_node = make_vtbl_address_node(primary_vtbl_var);
     primary_vtbl_var->address_taken = TRUE;
     primary_vtbl_var->source_corresp.referenced = TRUE;
     vptr_node = make_vptr_field_lvalue_from_var(this_param_var);
@@ -11760,7 +11745,7 @@ destructor scope.
       /* The base class virtual function table pointer must be set
          to reflect the fact that it exists as a subobject inside the
          current class. */
-      vtbl_addr_node = make_variable_lvalue_node(vtbl_var);
+      vtbl_addr_node = make_vtbl_address_node(vtbl_var);
       vtbl_var->address_taken = TRUE;
       vtbl_var->source_corresp.referenced = TRUE;
       /* Build a node to address the virtual table pointer.  Since we do not
