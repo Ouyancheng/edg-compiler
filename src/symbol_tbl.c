@@ -1471,6 +1471,7 @@ to the indicated kind (and the associated variant fields to safe values).
   sym_ptr->reentered_from_prototype_scope = FALSE;
   sym_ptr->is_error                       = FALSE;
   sym_ptr->is_template_param              = FALSE;
+  sym_ptr->template_param_not_visible     = FALSE;
   set_symbol_kind(sym_ptr, kind);
 
   db_exit();
@@ -4977,6 +4978,9 @@ C and C++.
             if (inactive_sym->decl_scope == ssep->number) {
               if (is_acceptable_symbol(inactive_sym)) {
                 /* Found a symbol. */
+                /* If this is a template parameter symbol that should not
+		   be visible then continue looking for another symbol. */
+	        if (inactive_sym->template_param_not_visible) continue;
                 /* If the symbol is a tag symbol and we're not required to find
                    a tag symbol, there's the possibility that there is a
                    non-type symbol in the same scope later in the list (because
@@ -5713,22 +5717,28 @@ values needed for the previous call.
   a_template_arg_ptr    tap = arg_list;
 
   db_enter(4, "update_template_param_symbols");
-  /* Loop through the parameters and arguments.  There must be a
-     one-to-one correspondence and the kinds must match.  This was
-     verified when the argument list was scanned.  Update the parameter
-     symbols to point the the type or constant represented in the
-     argument. */
+  /* Loop through the parameters and arguments.  There may be fewer
+     template arguments than parameters when push_scope is done while
+     scanning a the template argument list of a template class reference. */
   while (tpp != NULL) {
     register a_symbol_ptr  param_symbol = tpp->param_symbol;
-    if (tap->is_type) {
-      param_symbol->variant.type = tap->variant.type;
+    if (tap != NULL) {
+      /* A template argument exists for this parameter. */
+      if (tap->is_type) {
+        param_symbol->variant.type = tap->variant.type;
+      } else {
+        param_symbol->variant.constant = tap->variant.constant;
+      }  /* if */
+      param_symbol->template_param_not_visible = FALSE;
+      tap = tap->next;
     } else {
-      param_symbol->variant.constant = tap->variant.constant;
+      /* No template parameter exists for this parameter.  Set the "not
+         visible field in the symbol. */
+      param_symbol->template_param_not_visible = TRUE;
     }  /* if */
     tpp = tpp->next;
-    tap = tap->next;
   }  /* while */
- db_exit();
+  db_exit();
 }  /* update_template_param_symbols */
 
 
@@ -5750,6 +5760,7 @@ declaration is scanned and are used as placeholders between instantiations.
     } else {
       param_symbol->variant.constant = tpp->variant.param_constant.ptr;
     }  /* if */
+    param_symbol->template_param_not_visible = FALSE;
     tpp = tpp->next;
   }  /* while */
  db_exit();
