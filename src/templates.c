@@ -50,9 +50,11 @@ for tp is currently in progress.
 
 void f_check_for_uninstantiated_template_class(a_type_ptr  tp)
 /*
+tp is an incomplete type.  If it is a class in need of instantiation or an
+array whose underlying element type is such a class, instantiate it.
+Otherwise, do nothing.
 */
 {
-
   if (is_array_type(tp)) tp = underlying_array_element_type(tp);
   if (tp != NULL && is_class_struct_union_type(tp)) {
     instantiate_template_class(tp);
@@ -62,19 +64,19 @@ void f_check_for_uninstantiated_template_class(a_type_ptr  tp)
 
 void f_instantiate_template_class(a_type_ptr  class_type)
 /*
-If class_type is an instance of a class template, perform a full instantiation
-of it.  This entails rescanning the tokens that were cached when the template
-definition was originally encountered; the cached tokens include the base
-specifiers list, if any, and the class body (from opening left brace through
-closing right brace).  The template arguments (the real values which the
-template parameters take on) have been recorded in class_type and will be
-substituted for the template parameters when the instantiation scope is
-pushed.
+class_type is an incomplete class type.  If it is an instance of a class
+template, perform a full instantiation of it.  This entails rescanning the
+tokens that were cached when the template definition was originally
+encountered; the cached tokens include the base specifiers list, if any,
+and the class body (from opening left brace through closing right brace).
+The template arguments (the real values which the template parameters take
+on) have been recorded in class_type and will be substituted for the
+template parameters when the instantiation scope is pushed.
 
-This routine should be called from macro instantiatiate_template_class, which
-determines that class_type is an incomplete type.  If it also turns out to be
-a template type, this routine attempts to instantiate it; it might not be able
-to if the template itself has not yet been defined.
+This routine should be called from macro instantiatiate_template_class,
+which determines that class_type is an incomplete type.  If it also turns
+out to be a template type, this routine attempts to instantiate it; it
+might not be able to if the template itself has not yet been defined.
 */
 {
   a_symbol_ptr                      template_sym;
