@@ -2601,19 +2601,11 @@ should be put out.
 #if IA64_ABI
     if (template_args != NULL) {
       a_template_ptr tmpl = class_template_of(type);
-      a_boolean      is_substitution;
       check_assertion(tmpl != NULL);
       /* Create a substitution entry for the template.  */
-      is_substitution = add_substitution((char *)tmpl,
-                                         (an_il_entry_kind)iek_template,
-                                         mctl);
-      /* If there was an already an entry for this substitution, then this
-         routine should never have been called; instead, the substitution
-         should have already been performed.  This routine does not emit
-         parent qualifiers; therefore, if we reach this point with a
-         substitution available for the template, we have already re-emitted
-         the parent qualifiers, which is incorrect.  */
-      check_assertion(!is_substitution);
+      (void)add_substitution((char *)tmpl,
+                             (an_il_entry_kind)iek_template,
+                             mctl);
     }  /* if */
 #endif /* IA64_ABI */
     /* Always start with the name of the class, which applies even in the
