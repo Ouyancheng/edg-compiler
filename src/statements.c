@@ -4189,9 +4189,10 @@ See also 3.6.6.4.
   if (!return_expr_in_void_function) {
     sp->variant.dynamic_init = dip;
   } else {
-    /* The cfront and microsoft compatibility case: "return expr" in a void
-       function. The statement already put out is an expression statement.
-       Follow it now by a return statement with a null expression. */
+    /* The cfront 2.1 and Microsoft C compatibility case: "return expr" in
+       a void function.  The statement already put out is an expression
+       statement. Follow it now by a return statement with a null
+       expression. */
     set_expr_result_not_used(return_expr);
     sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return, &return_pos);
     stmt_update_source_sequence_list(sp);
