@@ -334,7 +334,7 @@ Process the arguments on the command line that invoked the compiler.
 	break; 
       case 'v':
         /* Print out compiler version. */
-        fprintf(stderr, "Edison Design Group C++ Front End, version %s\n",
+        fprintf(stderr, "Edison Design Group C/C++ Front End, version %s\n",
                          VERSION_NUMBER);
         fprintf(stderr, "Copyright 1988-1992 Edison Design Group Inc.\n");
 #ifdef DEMO_VERSION_ID
