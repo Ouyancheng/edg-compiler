@@ -3888,6 +3888,7 @@ this selection.
 */
 {
   a_type_ptr naming_class, selection_class;
+  a_boolean  need_context_pop = FALSE;
 
   if (il_header.source_language == sl_Cplusplus) {
     /* Remove unnecessary base class casts. */
@@ -3924,10 +3925,17 @@ this selection.
        is not the class indicated by the pointer. */
     selection_class = skip_typerefs(selection_class);
     if (selection_class != naming_class) {
+      /* Push a name context so that the qualifier will be properly
+         qualified. */
+      a_scope_ptr class_scope = selection_class->variant.class_struct_union.
+                                                       extra_info->assoc_scope;
+      push_name_context(class_scope);
+      need_context_pop = TRUE;
       gen_class_qualifier(naming_class, GN_NO_OPTIONS, (a_boolean *)NULL);
     }  /* if */
   }  /* if */
   gen_field_reference(field_expr);
+  if (need_context_pop) pop_name_context();
 }  /* gen_simple_field_selection */
 
 
