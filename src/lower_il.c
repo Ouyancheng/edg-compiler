@@ -7869,7 +7869,7 @@ expr_list.
   called_rout_type = skip_typerefs(called_rout_type);
   rtsp = called_rout_type->variant.routine.extra_info;
   /* Track the current parameter type as we go through the list. */
-  /* Note that we do not test rtsp->prototyped because if may have been
+  /* Note that we do not test rtsp->prototyped because it may have been
      cleared by lowering when MAKE_ALL_FUNCTIONS_UNPROTOTYPED is TRUE. */
   param = (!rtsp->old_style_params_scanned) ? rtsp->param_type_list : NULL;
   for (expr = expr_list; expr != NULL; expr = expr->next) {
