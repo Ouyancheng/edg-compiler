@@ -30,12 +30,6 @@ CPFE=${CPFE-$EDG_BASE/bin/cfe}
 #
 PATCH=${EDG_PATCH_PATH-$EDG_BASE/lib/patch}
 #
-# edg_decode (demangler) executable.  If no edg_decode is available,
-# use /bin/cat.  The script will work properly, you just won't get
-# demangled names in linker output messages.
-#
-EDG_DECODE=${EDG_DECODE_PATH-$EDG_BASE/lib/edg_decode}
-#
 # "munch" executable
 #
 MUNCH=${EDG_MUNCH_PATH-$EDG_BASE/lib/edg_munch}
@@ -57,6 +51,12 @@ EDG_DEFAULT_LIB_PATHS=${EDG_DEFAULT_LIB_PATHS-"-L/lib -L/usr/lib"}
 # variable if set)
 #
 # EDG_PRELINK_DEFAULT_OPTIONS=$EDG_PRELINK_DEFAULT_OPTIONS
+#
+# edg_decode (demangler) executable.  If no edg_decode is available,
+# use /bin/cat.  The script will work properly, you just won't get
+# demangled names in linker output messages.
+#
+EDG_DECODE=${EDG_DECODE_PATH-$EDG_BASE/lib/edg_decode}
 #
 # Flag indicating whether to use "patch" or "munch" for static initialization.
 #
