@@ -413,6 +413,8 @@ extern void lower_ptr_to_member_constant(a_constant_ptr constant);
 
 extern void lower_constant(a_constant_ptr constant);
 
+extern void lower_os_type(a_type_ptr type);
+
 extern void lower_expr_list(an_expr_node_ptr expr_list,
                             unsigned int     is_lvalue_mask,
                             a_boolean        is_conditional_operator);

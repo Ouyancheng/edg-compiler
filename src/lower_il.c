@@ -136,7 +136,6 @@ static a_variable_ptr
 /* Declarations needed because of forward references: */
 static void lower_os_constant(a_constant_ptr constant);
 static void lower_type(a_type_ptr type);
-static void lower_os_type(a_type_ptr type);
 static void lower_variable(a_variable_ptr variable);
 
 static void lower_field_list(a_field_ptr field_list);
@@ -3557,7 +3556,7 @@ Do IL lowering of the indicated type and everything under it.
 }  /* lower_type */
 
 
-static void lower_os_type(a_type_ptr type)
+void lower_os_type(a_type_ptr type)
 /*
 A "possibly other scope" version of lower_type; does nothing for
 types in other scopes.
