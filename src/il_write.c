@@ -111,9 +111,14 @@ on this routine.
 }  /* trace_entry_assignment */
 
 
-static void trace_entry(a_memory_region_number memory_region_number,
-                        an_il_entry_kind       entry_kind,
-                        an_il_entry_number     entry_number)
+void trace_entry(a_memory_region_number memory_region_number,
+                 an_il_entry_kind       entry_kind,
+                 an_il_entry_number     entry_number)
+/*
+This function is meant to be called from a debugger to set the values of
+trace_memory_region_number, trace_entry_kind and trace_entry_number with
+a single debugger command.
+*/
 {
   trace_memory_region_number = memory_region_number;
   trace_entry_kind = entry_kind;
