@@ -2372,71 +2372,6 @@ is non-NULL and points to the secondary declaration entry.
 }  /* gen_typedef_definition */
 
 
-static a_boolean is_on_friend_list_of(a_type_ptr type,
-                                      a_type_ptr friend_type)
-/*
-Return TRUE if friend_type is a friend of the class type "type".
-*/
-{
-  a_boolean              is_friend = FALSE;
-  a_class_list_entry_ptr pfriend;
-
-  for (pfriend = type->variant.class_struct_union.extra_info->friend_classes;
-       pfriend != NULL;
-       pfriend = pfriend->next) {
-    if (pfriend->class_type == friend_type) {
-      is_friend = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  return is_friend;
-}  /* is_on_friend_list_of */
-
-
-static void gen_class_friend_prefix_if_needed(a_type_ptr type)
-/*
-A declaration (not definition) of the indicated type is being put out.
-If the declaration is a friend class declaration, put out the "friend"
-prefix.  Called only in C++ mode.
-*/
-{
-  a_boolean friend_decl = FALSE;
-
-  if (curr_name_context_is_a_class()) {
-    /* This declaration is inside a class. */
-    a_type_ptr class_type = type->source_corresp.class_of_which_a_member;
-    if (curr_name_context_class() == class_type) {
-      /* This is a declaration of a nested class inside the class of
-         which it is a member.  It's probably just the declaration of
-         a nested type, but it might still be a friend declaration:
-           struct A {
-             struct B { int i; };
-             friend struct B;  // This line
-            };
-      */
-      if (is_on_friend_list_of(class_type, type)) {
-        /* Put out a vacuous declaration of the class, and then
-           start a friend declaration.  Using two declarations is
-           necessary because "friend class B;" as the first appearance
-           would put B outside of the class A, and we can't easily
-           tell if this is the first appearance of the class. */
-        gen_tag_reference(type);
-        write_tok_ch(';');
-        write_space();
-        friend_decl = TRUE;
-      }  /* if */
-    } else {
-      /* This is a declaration of a nested type outside of the class
-         of which it is a member but inside some other class, or a
-         declaration of a nonmember class inside some class.  This
-         must be a friend declaration. */
-      friend_decl = TRUE;
-    }  /* if */
-  }  /* if */
-  if (friend_decl) write_tok_str("friend ");
-}  /* gen_class_friend_prefix_if_needed */
-
-
 static void gen_type_decl(void)
 /*
 Generate a declaration or definition of the type indicated by the current
@@ -2447,14 +2382,17 @@ a member type, nonmember type, or friend.
   a_type_ptr                   type;
   a_src_seq_secondary_decl_ptr sec_decl;
   a_type_kind                  kind ;
-  a_boolean                    is_definition = FALSE;
+  a_boolean                    is_definition = FALSE, friend_decl;
 
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
     type = ss_entry_ptr(sec_decl, a_type_ptr);
+    friend_decl = sec_decl->friend_decl;
   } else {
     type = ss_entry_ptr(curr_source_sequence_entry, a_type_ptr);
     is_definition = TRUE;
+    /* A definition of a class is never a friend declaration. */
+    friend_decl = FALSE;
   }  /* if */
   kind = type->kind;
   if (!is_autonomous_decl(type, sec_decl)) {
@@ -2476,10 +2414,8 @@ a member type, nonmember type, or friend.
          that is never defined, generate a reference to the type instead
          of a definition. */
       adv_curr_source_sequence_entry();
-      if (il_header.source_language == sl_Cplusplus) {
-        /* Check for friend declarations. */
-        gen_class_friend_prefix_if_needed(type);
-      }  /* if */
+      /* For a friend, put out the "friend" prefix. */
+      if (friend_decl) write_tok_str("friend ");
       gen_tag_reference(type);
     } else if (kind == (a_type_kind)tk_enum) {
       /* An enum type definition. */
@@ -4930,9 +4866,9 @@ declaration or definition.
 */
 {
   a_routine_ptr                 rout;
-  a_type_ptr                    rout_type, unqual_rout_type, rout_class_type;
+  a_type_ptr                    rout_type, unqual_rout_type;
   a_src_seq_secondary_decl_ptr  sec_decl;
-  a_boolean                     is_definition = FALSE;
+  a_boolean                     is_definition = FALSE, friend_decl;
   a_boolean                     decl_within_class = FALSE;
   a_boolean                     class_pop_needed = FALSE;
   a_storage_class               storage_class;
@@ -4951,12 +4887,14 @@ declaration or definition.
        from the IL entry, since it might differ in small ways (e.g., using
        different typedefs, default arguments). */
     rout_type = sec_decl->declared_type;
+    friend_decl = sec_decl->friend_decl;
   } else {
     rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
     is_definition = TRUE;
     check_assertion_str(rout->assoc_scope != NULL_region_number,
                         "gen_routine_decl: missing definition");
     rout_type = rout->declared_type;
+    friend_decl = rout->defined_in_friend_decl;
   }  /* if */
   check_assertion_str(rout_type != NULL,
                       "gen_routine_decl: declared_type is NULL");
@@ -4992,7 +4930,6 @@ declaration or definition.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     scope = il_header.region_scope_entry[scope_region_number];
   }  /* if */
-  rout_class_type = rout->source_corresp.class_of_which_a_member;
   /* Determine the proper storage class to display. */
   storage_class = rout->storage_class;
   if (curr_name_context_is_a_class()) {
@@ -5003,19 +4940,18 @@ declaration or definition.
        definitions get no storage class. */
     storage_class = (a_storage_class)sc_unspecified;
     /* Check the kind of declaration within a class. */
-    if (curr_name_context_class() == rout_class_type) {
+    if (friend_decl) {
+      /* This is a friend declaration. */
+      /* Friend is used instead of a storage class. */
+      write_tok_str("friend ");
+    } else {
       /* This is a declaration or definition of a member function inside
          its own class. */
       decl_within_class = TRUE;
-      if (rout_class_type != NULL && rtsp->implicit_this_param_type == NULL) {
+      if (rtsp->implicit_this_param_type == NULL) {
         /* Static member function. */
         storage_class = (a_storage_class)sc_static;
       }  /* if */
-    } else {
-      /* This is a declaration of a nonmember or member of another class
-         inside a class: this is a friend declaration. */
-      /* Friend is used instead of a storage class. */
-      write_tok_str("friend ");
     }  /* if */
   } else {
     /* A declaration or definition outside of a class (at file scope or
@@ -5023,7 +4959,7 @@ declaration or definition.
     if (is_definition) {
       /* This is the definition of the function, so by and large the
          storage class from the IL entry applies. */
-      if (rout_class_type != NULL) {
+      if (rout->source_corresp.class_of_which_a_member != NULL) {
         /* A member function definition.  Use no storage class. */
         storage_class = (a_storage_class)sc_unspecified;
       }  /* if */
