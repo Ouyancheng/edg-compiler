@@ -41,6 +41,10 @@ typedef a_byte a_disambig_flag_set;
 			   condition is in a for statement. */
 #define DFS_IS_CAST			0x20
 			/* An old-style cast is being scanned. */
+#define DFS_IS_TEMPLATE_DECL		0x40
+			/* This is a namespace scope template declaration
+			   that is being prescanned to determine the class
+			   of the entity being declared. */
 
 /*
 Macro called in various contexts to distinguish expressions from declarations. 

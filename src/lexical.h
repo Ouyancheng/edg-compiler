@@ -322,6 +322,11 @@ typedef int an_identifier_options_set;
 				      0x200
 			/* Specifies that the name being scanned is the
 			   operand following a "." or "->" operator. */
+#define GID_USE_PROTOTYPE_NOT_NONREAL 0x400
+			/* Specifies that a template reference such as
+			   A<T> should be considered to refer to the
+			   prototype instantiation, not the nonreal
+			   instantiation of the same name. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)
