@@ -5321,13 +5321,8 @@ cv-qualifier).
         if (!any_decl_specifiers && !is_function_def) {
           /* Something like "f();". */
           error_code = ec_missing_decl_specifiers;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          if (microsoft_mode) {
-            /* Allowed in Microsoft C mode. */
-            severity = es_warning;
-          } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          severity = es_discretionary_error;
+          severity = strict_ansi_mode ?
+                         strict_ansi_discretionary_severity : es_warning;
         } else {
           /* Something like "static f();" or "f() { ... }".  The message
              indicates that "int" is implicit. */
