@@ -5757,6 +5757,7 @@ fields to default values.
       break;
     case enk_temp_init:
       node->variant.init.result_is_addr = FALSE;
+      node->variant.init.static_temp    = FALSE;
       node->variant.init.dynamic_init   = NULL;
       break;
     case enk_new_delete:
@@ -6874,6 +6875,10 @@ Copy a statement entry from "from" to "to".
   *to = *from;
   /* Preserve the pragma flag in the destination statement. */
   to->has_associated_pragma = has_associated_pragma;
+  /* If the statement is a label, bind the a_label to the copy. */
+  if (to->kind == (a_statement_kind)stmk_label) {
+    to->variant.label.ptr->variant.exec_stmt = to;
+  }  /* if */
 }  /* copy_statement */
 
 
