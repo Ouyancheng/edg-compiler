@@ -1,5 +1,13 @@
 Version 2.37
 
+8/13/97   C++-generating back end: names of conversion functions generated
+
+In the C++-generating back end, names of conversion functions are now
+generated from the result type of the conversion function instead of
+using the name stored in the IL entry.  This ensures that all the
+special-case processing done on names in the C++-generating back end
+is done also for any names referenced in conversion function result types.
+
 8/13/97   Processing of trigraphs in multibyte character mode
 
 The processing of trigraphs (and line splices) after the first trigraph
