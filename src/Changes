@@ -1,5 +1,13 @@
 Version 2.30
 
+6/7/95   bitfield_to_avoid_codecenter_warnings
+
+In 2.29 a change was made so that these bitfields would not be
+included when checking code was turned off.  The way in which
+this was done resulted in the extra semicolons after macro expansion
+when compiling without checking code.  The macro and references
+to the macro have been changed to eliminate the extra semicolons.
+
 6/6/95   Command line options without keywords
 
 The command line processing routines could abort when options without
