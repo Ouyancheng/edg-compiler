@@ -256,15 +256,18 @@ typedef a_byte a_name_linkage_kind;
    have nlk_external (extern "C") or nlk_cplusplus_external (extern "C++)
    linkage.  Linkage kinds that are added by a given implementation may or
    may not apply to routine types. */
-#ifndef is_custom_name_linkage_kind_for_rout_type
-#define is_custom_name_linkage_kind_for_rout_type(nlk) FALSE
-#endif /* ifndef is_custom_name_linkage_kind_for_rout_type */
+#ifdef is_custom_name_linkage_kind_for_rout_type
+#define or_is_custom_name_linkage_kind_for_rout_type(nlk)               \
+    || is_custom_name_linkage_kind_for_rout_type(nlk)
+#else /* ifndef is_custom_name_linkage_kind_for_rout_type */
+#define or_is_custom_name_linkage_kind_for_rout_type(nlk) /* Nothing */
+#endif /* ifdef is_custom_name_linkage_kind_for_rout_type */
 #if CHECKING
 /* This macro is used for consistency checking. */
 #define is_name_linkage_kind_for_rout_type(nlk)                         \
   (nlk == (a_name_linkage_kind)nlk_external ||                          \
-   nlk == (a_name_linkage_kind)nlk_cplusplus_external ||                \
-   is_custom_name_linkage_kind_for_rout_type(nlk))
+   nlk == (a_name_linkage_kind)nlk_cplusplus_external                   \
+   or_is_custom_name_linkage_kind_for_rout_type(nlk))
 #endif /* CHECKING */
 
 /*
