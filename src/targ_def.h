@@ -1072,7 +1072,7 @@ default float_pt.c support uses the host floating point.
 /* SPARC supports IEEE floating point. */
 /* Linux (X86, Alpha, PowerPC, SPARC) supports IEEE floating point. */
 /* Windows X86 supports IEEE floating point. */
-/* Other Unix systems on X86 architecture, which define __i386__, support
+/* Other Unix systems on X86 architecture, which define __i386, support
    IEEE floating point. */
 #define TARG_HAS_IEEE_FLOATING_POINT TRUE
 #else /* defined(sparc) || ... */
