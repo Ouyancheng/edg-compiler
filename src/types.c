@@ -5799,7 +5799,7 @@ a template parameter constant.
 }  /* is_or_contains_template_param */
 
 
-a_boolean is_or_contains_deduced_template_param(a_type_ptr  type_ptr)
+static a_boolean is_or_contains_deduced_template_param(a_type_ptr  type_ptr)
 /*
 Return TRUE if the type pointed to by type_ptr is itself a tk_template_param
 type entry or is a type tree containing such a type, or a type containing
