@@ -3090,9 +3090,9 @@ though neither constructors nor initialization is involved here.)
        sym = sym->next_in_scope) {
     if (sym->kind == (a_symbol_kind)sk_field) {
       /* sym represents a field.  Determine whether a destructor exists. */
+      tp = sym->variant.field.ptr->type;
       /* For arrays get the element type, allowing for multidimensional
          arrays. */
-      tp = sym->variant.field.ptr->type;
       if (is_array_type(tp)) tp = underlying_array_element_type(tp);
       tp = skip_typerefs(tp);
       if (is_immediate_class_type(tp)) {
