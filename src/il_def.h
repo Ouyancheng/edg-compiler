@@ -195,6 +195,198 @@ enum a_name_linkage_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_name_linkage_kind;
 
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS || ORPHAN_PROCESSING_NEEDED
+/*
+List of all IL entry kinds:
+*/
+/* If you change this, also change sizeof_il_entry in il_file.h. */
+typedef enum /*an_il_entry_kind*/ {
+  iek_none,		/* Skip zero value; it's used as a marker. */
+  iek_source_file,	/* a_source_file */
+  iek_constant,		/* a_constant */
+  iek_param_type,	/* a_param_type */
+  iek_routine_type_supplement,
+			/* a_routine_type_supplement */
+  iek_based_type_list_member,
+			/* a_based_type_list_member */
+  iek_type,		/* a_type */
+  iek_variable,		/* a_variable */
+#ifdef CIL
+  iek_field,		/* a_field */
+  iek_throw_specification,
+			/* a_throw_specification */
+  iek_throw_spec_type,	/* a_throw_spec_type */
+#endif /* ifdef CIL */
+  iek_routine,		/* a_routine */
+  iek_label,		/* a_label */
+  iek_expr_node,	/* an_expr_node */
+#ifdef CIL
+  iek_for_loop,         /* a_for_loop */
+  iek_switch_clause,	/* a_switch_clause */
+  iek_handler,          /* a_handler */
+#endif /* ifdef CIL */
+  iek_block,		/* a_block */
+  iek_statement,	/* a_statement */
+  iek_scope,		/* a_scope */
+  iek_id_name,          /* String giving the name of an identifier. */
+  iek_string_text,	/* Text of a string literal. */
+  iek_other_text,	/* Text of a file name or similar information. */
+#ifdef FIL
+  iek_internal_complex_value,
+			/* an_internal_complex_value */
+  iek_bound_info_entry,	/* a_bound_info_entry */
+  iek_do_loop,		/* a_do_loop */
+  iek_label_list_entry,	/* a_label_list_entry */
+  iek_io_specifier,	/* an_io_specifier */
+  iek_io_list_item,	/* an_io_list_item */
+  iek_namelist_group_member,
+			/* a_namelist_group_member */
+  iek_namelist_group,	/* a_namelist_group */
+  iek_input_output_description,
+			/* an_input_output_description */
+  iek_entry_param,	/* an_entry_param */
+  iek_entry_description,/* an_entry_description */
+#endif /* ifdef FIL */
+#ifdef CIL
+  iek_dynamic_init,	/* a_dynamic_init */
+  iek_access_adjustment,/* an_access_adjustment */
+  iek_overriding_virtual_function,
+			/* an_overriding_virtual_function */
+  iek_derivation_step,  /* a_derivation_step */
+  iek_base_class,	/* a_base_class */
+  iek_class_list_entry, /* a_class_list_entry */
+  iek_routine_list_entry,
+                        /* a_routine_list_entry */
+  iek_class_type_supplement,
+			/* a_class_type_supplement */
+  iek_constructor_init, /* a_constructor_init */
+  iek_asm_entry,        /* an_asm_entry */
+  iek_template_arg,     /* a_template_arg */
+  iek_new_delete_supplement,
+			/* a_new_delete_supplement */
+  iek_throw_supplement,	/* a_throw_supplement */
+#endif /* ifdef CIL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  iek_source_sequence_entry,
+			/* a_source_sequence_entry */
+  iek_comment,		/* No corresponding IL entry -- needed for
+			   a_tagged_pointer kind. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  iek_orphaned_il_list, /* an_orphaned_il_list */
+  iek_last		/* Marks the end of the list. */
+} an_il_entry_kind;
+
+/* Macro to test whether or not an entry kind is a string kind. */
+#define is_string_entry_kind(entry_kind) \
+  ((entry_kind) == iek_id_name || (entry_kind) == iek_string_text || \
+   (entry_kind) == iek_other_text)
+
+#if NEED_IL_DISPLAY || DEBUG
+EXTERN char *il_entry_kind_names[(int)iek_last + 1]
+#if VAR_INITIALIZERS
+= {
+/* iek_none */				"none",
+/* iek_source_file */			"source-file",
+/* iek_constant */			"constant",
+/* iek_param_type */			"param-type",
+/* iek_routine_type_supplement */	"routine-type-supplement",
+/* iek_based_type_list_member */	"based-type-list-member",
+/* iek_type */				"type",
+/* iek_variable */			"variable",
+#ifdef CIL
+/* iek_field */				"field",
+/* iek_throw_specification */		"throw-specification",
+/* iek_throw_spec_type */		"throw-spec-type",
+#endif /* ifdef CIL */
+/* iek_routine */			"routine",
+/* iek_label */				"label",
+/* iek_expr_node */			"expr-node",
+#ifdef CIL
+/* iek_for_loop */			"for-loop",
+/* iek_switch_clause */			"switch-clause",
+/* iek_handler */			"handler",
+#endif /* ifdef CIL */
+/* iek_block */				"block",
+/* iek_statement */			"statement",
+/* iek_scope */				"scope",
+/* iek_id_name */			"id-name",
+/* iek_string_text */			"string-text",
+/* iek_other_text */			"other-text",
+#ifdef FIL
+/* iek_internal_complex_value */	"internal-complex-value",
+/* iek_bound_info_entry */		"bound-info-entry",
+/* iek_do_loop */			"do-loop",
+/* iek_label_list_entry */		"label-list-entry",
+/* iek_io_specifier */			"io-specifier",
+/* iek_io_list_item */			"io-list-item",
+/* iek_namelist_group_member */		"namelist-group-member",
+/* iek_namelist_group */		"namelist-group",
+/* iek_input_output_description */	"input-output-description",
+/* iek_entry_param */			"entry-param",
+/* iek_entry_description */		"entry-description",
+#endif /* ifdef FIL */
+#ifdef CIL
+/* iek_dynamic_init */			"dynamic-init",
+/* iek_access_adjustment */		"access-adjustment",
+/* iek_overriding_virtual_function */ 	"overriding-virtual-function",
+/* iek_derivation_step */		"derivation-step",
+/* iek_base_class */			"base-class",
+/* iek_class_list_entry */		"class-list-entry",
+/* iek_routine_list_entry */		"routine-list-entry",
+/* iek_class_type_supplement */		"class-type-supplement",
+/* iek_constructor_init */		"constructor-init",
+/* iek_asm_entry */			"asm-entry",
+/* iek_template_arg */			"template-arg",
+/* iek_new_delete_supplement */		"new-delete-supplement",
+/* iek_throw_supplement */		"throw-supplement",
+#endif /* ifdef CIL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+/* iek_source_sequence_entry */		"source-sequence-entry",
+/* iek_comment */			"comment",
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+/* iek_orphaned_il_list */		"orphaned-il-list",
+/* iek_last */				"last"
+} /* il_entry_kind_names */
+#endif /* VAR_INITIALIZERS */
+;
+#endif /* NEED_IL_DISPLAY || DEBUG */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || ORPHAN_PROCESSING_NEEDED */
+
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+/* For storing an il entry kind more compactly. */
+typedef a_byte a_byte_il_entry_kind;
+
+typedef struct a_tagged_pointer {
+  a_byte_il_entry_kind
+		kind;
+			/* The kind of entry. */
+  char		*ptr;
+			/* Pointer to the entry.  NULL for iek_comment. */
+} a_tagged_pointer;
+
+
+typedef struct a_source_sequence_entry *a_source_sequence_entry_ptr;
+typedef struct a_source_sequence_entry {
+  a_source_sequence_entry_ptr
+		next;
+			/* Next entry in a doubly linked list; NULL for
+			   the last entry on the list. */
+  a_source_sequence_entry_ptr
+		prev;
+			/* Previous entry in a doubly linked list; NULL for
+			   the first entry on the list. */
+  a_tagged_pointer
+		entity;
+			/* Entry identifying the kind of entity (statement,
+			   variable, comment, etc.) with which this source
+			   sequence entry is associated and (when appropriate)
+			   a pointer to it. */
+} a_source_sequence_entry;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+
 typedef struct a_source_correspondence {
   /* Structure placed within several IL constructs to tie the IL construct
      instance back to a corresponding source construct instance. */
@@ -266,6 +458,15 @@ typedef struct a_source_correspondence {
   a_scope_depth	scope_depth;
 			/* Scope nesting depth of this entity. */
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		source_sequence_entry;
+			/* Pointer to source sequence entry that represents
+			   the place this entity appears within the current
+			   file, function, or class-struct-union scope
+			   relative to other declarations as well as
+			   statements, comments, etc. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_source_correspondence;
 
 /*
@@ -3597,6 +3798,14 @@ typedef struct a_statement {
                              The selector expression for stmk_assigned_goto.
                              The selector expression for stmk_alt_return. */
 #endif /* ifdef FIL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		source_sequence_entry;
+			/* Pointer to source sequence entry that represents
+			   the place this statement appears within the current
+			   function scope relative to other statements as well
+			   as declarations, comments, etc. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   union {
     /* When kind == stmk_expr, no variant fields. */
 #ifdef FIL
@@ -4096,6 +4305,16 @@ typedef struct a_scope {
                         /* List of NAMELIST groups of this scope, NULL if
                            none.  Only used at the function scope level. */
 #endif /* ifdef FIL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		source_sequence_list;
+			/* For file, function, and class-struct-union scopes,
+			   a doubly-linked list of source sequence entries
+			   representing all declarations, statements, macros,
+			   pragmas, and comments that appear within the textual
+			   extent of the scope (not counting nested function
+			   and class-struct-union scopes). */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_scope;
 
 /*
