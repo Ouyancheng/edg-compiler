@@ -1,5 +1,11 @@
 Version 3.1
 
+5/24/02  Compilation problem in IL display program with CHECKING set to FALSE
+
+The il_display.c file did not compile correctly when CHECKING is
+set to FALSE.  An internal_error call should have been a call
+of unexpected_condition_str.  Fixed.
+
 5/23/02  Static initialization on Windows
 
 The C generating back end now emits a Microsoft-specific code sequence to

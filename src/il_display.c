@@ -3681,7 +3681,7 @@ Display the indicated template parameter.
       }  /* if */
       break;
       default:
-        internal_error("unexpected template parameter kind");
+        unexpected_condition_str("unexpected template parameter kind");
   }  /* switch */
 }  /* disp_template_parameter */
 
