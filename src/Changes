@@ -1,5 +1,18 @@
 Version 2.39
 
+4/10/98   Microsoft compatibility: qualifiers are ignored on class template
+          arguments
+
+Top-level qualifiers are now ignored on class template arguments in
+Microsoft mode.
+
+  template <class T> struct A {};
+  int main() {
+    A<int> ai;
+    A<const int> aic;
+    aic = ai;  // Now accepted
+  }
+
 4/7/98    Microsoft compatibility: allow explicit specification of template
           arguments in specialization declaration
 
