@@ -710,6 +710,7 @@ call end_error.
      Special cases:
         type1 [ type2 ]
         type1 : type2     (used for "?")
+        type1 ++          (implicit second argument of "int" not displayed)
      List form used for (), -> new, new[], delete, and delete[]:
         type1, type2, ...
   */
@@ -744,6 +745,8 @@ call end_error.
         /* Binary operators go between the first and second operands. */
         put_ch_to_temp_text_buffer(' ');
         put_str_to_temp_text_buffer(opname);
+        /* On postfix ++, do not display the implicit second argument. */
+        if (kind == (an_opname_kind)onk_plus_plus) break;
         put_ch_to_temp_text_buffer(' ');
       }  /* if */
     } else if (num == 2) {
