@@ -1565,6 +1565,14 @@ NEAR_AND_FAR_ALLOWED is TRUE.
 #endif /* SUPPRESS_NEAR_AND_FAR_IN_GENERATED_CODE */
 
 /*
+Flag that is TRUE if the C++/C-generating back end should issue class member
+using-declarations instead of access declarations.
+*/
+#ifndef USING_DECLARATIONS_IN_GENERATED_CODE
+#define USING_DECLARATIONS_IN_GENERATED_CODE
+#endif /* USING_DECLARATIONS_IN_GENERATED_CODE */
+
+/*
 Flag that is TRUE if, when the C++/C-generating back end (cp_gen_be)
 is run, "specializations" for generated template instances should use
 the old syntax instead of the modern "template <>" prefix form.  This is

@@ -6701,12 +6701,12 @@ Generate code for a class member or nonmember using-declaration.
     /* Put out an access specifier if necessary to change the current
        access. */
     gen_member_access_specifier(udp->access);
-    /* Always put out an access declaration instead of a class member
-       using-declaration, for the sake of old compilers that don't accept
-       them.  If the underlying compiler accepts both, they mean the same
-       thing. If the underlying compiler accepts only access declarations,
-       then valid access declarations as input should produce valid access
-       declarations as output. */
+#if USING_DECLARATIONS_IN_GENERATED_CODE
+    /* Older compilers may not accept class member using-declarations and
+       will accept access declarations instead.  For such target compilers
+       USING_DECLARATIONS_IN_GENERATED_CODE should be set to FALSE. */
+    write_tok_str("using ");
+#endif /* USING_DECLARATIONS_IN_GENERATED_CODE */
     /* Write the access declaration, which is just a qualified name. */
     gen_class_qualifier(udp->qualifier.class_type,
                         GN_NO_OPTIONS, (a_boolean *)NULL);
