@@ -1,5 +1,27 @@
 Version 2.45
 
+8/31/00  C++-generating back end: references to overloaded functions in
+         the presence of using-declarations
+
+The C++-generating back end formerly used incorrect qualified names in
+some references to overloaded functions in the presence of using-declarations
+that adjust access.  The generated code was incorrect because it
+referred to an inaccessible base class.
+
+  class A {
+  public:
+    void f();
+    void f(int);
+  };
+  class B : private A {
+  public:
+    A::f;
+  };
+  int main() {
+    B b;
+    b.f();  // Formerly put out as b.A::f()
+  }
+
 8/30/00  Prototype instantiations in the IL
 
 (See also entry of 7/18/00.)  Previously, the front end could only record

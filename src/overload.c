@@ -4770,6 +4770,17 @@ member name reference.
                               /*implicit_in_naming=*/TRUE,
                               /*is_object_pointer=*/TRUE);
     }  /* if */
+    if (projection_member_sym != member_sym &&
+        member_sym->kind == (a_symbol_kind)sk_projection) {
+      /* This comes up with overload sets that contain using-declarations.
+         Cast from the using-declaration class to the cast of the member. */
+      bcp = member_sym->variant.projection.extra_info->fundamental_base_class;
+      base_class_cast_operand(operand_1, bcp, is_arrow_operator,
+                              /*check_cast_access=*/FALSE,
+                              /*is_implicit_cast=*/TRUE,
+                              /*implicit_in_naming=*/TRUE,
+                              /*is_object_pointer=*/TRUE);
+    }  /* if */
   }  /* if */
 }  /* cast_pointer_for_field_selection */
 
