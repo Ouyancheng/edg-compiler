@@ -1,5 +1,16 @@
 Version 2.25
 
+8/16/94  Function type from typedef in function template definition
+
+An error is now issued if the function type in a function template
+definition is a typedef name -- e.g.,
+
+  typedef void (FT)();
+  template <class T> class A {
+    FT f;
+  };
+  template <class T> FT A<T>::f { }    // Error is now issued
+
 8/16/94  Deleting a pointer to const
 
 Deleting a pointer to const is now allowed in non-strict mode.
