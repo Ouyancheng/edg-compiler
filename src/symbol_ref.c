@@ -921,9 +921,8 @@ indicated scope.
                                 &scope_stack[depth_innermost_namespace_scope];
     check_assertion(ssep->il_scope == sp);
     if (ssep->using_directives_apply) {
-      /* If a using-directive appeared in the current scope, it may rendered
-         sym_ptr ambiguous unless sym_ptr is displayed with with a
-         qualifier. */
+      /* If a using-directive appeared in the current scope, it may render
+         sym_ptr ambiguous unless sym_ptr is displayed with a qualifier. */
       resolve_using_directive_ambiguity(sym_ptr, sp);
     }  /* if */
   }  /* if */
