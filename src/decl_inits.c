@@ -248,6 +248,8 @@ for unions and aggregates at that level).
         (*end_of_di_list)->next = dip;
       }  /* if */
       *end_of_di_list = dip;
+      /* Mark the constructor as referenced. */
+      rp->source_corresp.referenced = TRUE;
     }  /* if */
   } else if (is_aggregate_or_union_type(local_type) ||
              (is_error_type(local_type) && curr_token == tok_lbrace)) {
@@ -656,6 +658,7 @@ The syntax is:
   a_boolean                      initialization_is_dynamic;
   an_expr_node_ptr               arg_list;
   a_class_symbol_supplement_ptr  cssp = NULL;
+  a_routine_ptr                  rp;
 
   db_enter(3, "initializer");
 
@@ -728,8 +731,6 @@ The syntax is:
        possibly the copy constructor, will be selected and returned.  The
        scan function returns FALSE if it finds no constructor for which the
        arguments match. */
-    a_routine_ptr  rp;
-
     if (!scan_constructor_arguments(cssp->constructor, &rp, &arg_list)) {
       err = TRUE;
     } else {
@@ -737,6 +738,8 @@ The syntax is:
       clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
       local_di.variant.constructor.routine = rp;
       local_di.variant.constructor.args = arg_list;
+      /* Mark the constructor referenced. */
+      rp->source_corresp.referenced = TRUE;
     }  /* if */
     initialization_is_dynamic = TRUE;
   } else if (cssp != NULL && cssp->constructor != NULL &&
@@ -780,8 +783,6 @@ The syntax is:
          the operation.  Accordingly, the following constructs directly into
          the object being initialized -- e.g., complex x = 1 is treated as
          complex x(1). */
-      a_routine_ptr   rp;
-
 #if CHECKING
 #if 0
       if (cssp->copy_constructor == NULL) {
@@ -813,6 +814,8 @@ The syntax is:
         clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
         local_di.variant.constructor.routine = rp;
         local_di.variant.constructor.args = expression;
+        /* Mark the constructor as referenced. */
+        rp->source_corresp.referenced = TRUE;
       }  /* if */
     }  /* if */
     initialization_is_dynamic = TRUE;
@@ -891,8 +894,8 @@ The syntax is:
         check_constant_initializer(&constant, &vp_type, &err);
         if (!err) {
           /* Set the dynamic init entry to represent constant initialization.
-             (A local dynamic init entry is used only for convenience -- dynamic
-             initialization is not presumed.) */
+             (A local dynamic init entry is used only for convenience --
+             dynamic initialization is not presumed.) */
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constant);
           local_di.variant.constant = alloc_unshared_constant(&constant);
         }  /* if */
@@ -946,7 +949,9 @@ The syntax is:
        defined a destructor but the object can be initialized without a
        constructor. */
     if (cssp != NULL && cssp->destructor != NULL) {
-      local_di.destructor = cssp->destructor->variant.routine;
+      local_di.destructor = rp = cssp->destructor->variant.routine;
+      /* Mark the destructor referenced. */
+      rp->source_corresp.referenced = TRUE;
       initialization_is_dynamic = TRUE;
     }  /* if */
     if (initialization_is_dynamic || dynamic_init_required) {
@@ -984,8 +989,8 @@ a_boolean def_initializer(a_symbol_ptr       sym,
   a_boolean                      def_init_performed = FALSE;
   a_variable_ptr                 var;
   a_type_ptr                     var_type, tp;
-  a_routine_ptr                  rp;
   a_class_symbol_supplement_ptr  cssp;
+  a_routine_ptr                  rp;
   a_dynamic_init                 local_di, *dip;
   a_constant_ptr                 cp1, cp2;
   a_boolean                      err = FALSE;
@@ -1017,10 +1022,15 @@ a_boolean def_initializer(a_symbol_ptr       sym,
           pos_error(ec_no_default_constructor, err_pos);
         } else {
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-          local_di.variant.constructor.routine = rp;
+          local_di.variant.constructor.routine = rp =
+                                   cssp->default_constructor->variant.routine;
           local_di.variant.constructor.args = NULL;
+          /* Mark the constructor referenced. */
+          rp->source_corresp.referenced = TRUE;
           if (cssp->destructor != NULL) {
-            local_di.destructor = cssp->destructor->variant.routine;
+            local_di.destructor = rp = cssp->destructor->variant.routine;
+            /* Mark the destructor referenced. */
+            rp->source_corresp.referenced = TRUE;
           }  /* if */
           if (var_type != tp) {
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
@@ -1060,7 +1070,9 @@ a_boolean def_initializer(a_symbol_ptr       sym,
            even though it is not actually initialized, so that the existence
            of the destructor can be duly recorded. */
         clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_none);
-        local_di.destructor = cssp->destructor->variant.routine;
+        local_di.destructor = rp = cssp->destructor->variant.routine;
+        /* Mark the destructor referenced. */
+        rp->source_corresp.referenced = TRUE;
         gen_dynamic_initialization(var, &local_di);
         /* Don't set def_init_performed.  A dik_none dynamic initialization
            doesn't count as initialization. */
