@@ -1,5 +1,14 @@
 Version 2.29
 
+4/12/95  C-generating back end: address of redeclared function
+
+The C-generating back end now checks, when putting out the address of
+a function for an enk_routine_address expression node, that the type
+indicated in the node matches the function type.  If it does not,
+a cast to the right pointer-to-function-type is inserted.  This is
+useful when a routine is declared several times in compatible but
+not identical ways, and called in range of several different declarations.
+
 4/12/95  Lvalue casts in Microsoft mode
 
 Lvalue casts, including those involving integral types of unequal size,
