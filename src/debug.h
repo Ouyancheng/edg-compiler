@@ -29,6 +29,8 @@ extern a_boolean proc_debug_name_option(char *debug_option);
 /* See the macro db_flag_is_set for a good way to call debug_flag_is_set. */
 extern a_boolean debug_flag_is_set(char *name);
 
+extern a_boolean f_db_sym_has_traced_name(a_symbol_ptr	sym);
+
 extern a_boolean f_db_has_traced_name(a_source_correspondence *scp,
                                       an_il_entry_kind        entry_kind);
 
@@ -39,6 +41,13 @@ Macro interface to f_db_has_traced_name.
   (db_active && \
    f_db_has_traced_name((a_source_correspondence *)(entity), (kind)))
 
+/*
+Macro interface to f_db_sym_has_traced_name.
+*/
+#define db_sym_has_traced_name(sym) \
+  (db_active && \
+   f_db_sym_has_traced_name(sym))
+
 extern a_boolean f_db_trace(char             *flag_name,
                             char             *entry,
                             an_il_entry_kind kind);
@@ -46,6 +55,10 @@ extern a_boolean f_db_trace(char             *flag_name,
 /* Macro interface to f_db_trace. */
 #define db_trace(name, entry, kind) \
   (db_active && f_db_trace((name), (char *)(entry), (kind)))
+
+/* Macro interface to f_db_sym_trace. */
+#define db_sym_trace(name, sym) \
+  (db_active && f_db_sym_trace((name), sym))
 
 /* Prints the headers for a given category of data structures (e.g.,
    "Lexical table use"). */

@@ -2411,11 +2411,11 @@ might not be able to if the template itself has not yet been defined.
          that of the primary template. */
       class_type->kind = tssp->variant.class_template.type_kind;
 #if DEBUG
-      if (debug_level >= 3 || db_flag_is_set("instantiations")) {
+      if (db_sym_trace("instantiations", instance_sym)) {
         fprintf(f_debug, "Beginning full instantiation of: ");
-        db_symbol_name(instance_sym);
+        db_symbol_name_trans_unit(instance_sym);
         fprintf(f_debug, " based on ");
-        db_symbol_name(template_sym);
+        db_symbol_name_trans_unit(template_sym);
         fprintf(f_debug, "\n");
       }  /* if */
 #endif /* DEBUG */
@@ -2946,9 +2946,9 @@ A pointer to the head of the list is returned in tcsp.
   };
 #endif /* CHECKING */
 #if DEBUG
-  if (debug_level >= 3 || db_flag_is_set("instantiations")) {
+  if (db_sym_trace("instantiations", template_sym)) {
     fprintf(f_debug, "Prototype instantiation of: ");
-    db_symbol_name(template_sym);
+    db_symbol_name_trans_unit(template_sym);
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
@@ -3570,11 +3570,11 @@ Instantiate the body of the template function associated with tip.
     goto done;
   }  /* if */
 #if DEBUG
-  if (debug_level >= 3 || db_flag_is_set("instantiations")) {
+  if (db_sym_trace("instantiations", rout_sym)) {
     fprintf(f_debug, "instantiating: ");
-    db_symbol_name(rout_sym);
+    db_symbol_name_trans_unit(rout_sym);
     fprintf(f_debug, " based on ");
-    db_symbol_name(template_sym);
+    db_symbol_name_trans_unit(template_sym);
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
@@ -4522,11 +4522,11 @@ prototype instantiation is considered as a potential match.
        translation units to notify it of the new instance. */
     record_instantiation(sym, tssp);
 #if DEBUG
-    if (debug_level >= 3 || db_flag_is_set("instantiations")) {
+    if (db_sym_trace("instantiations", sym)) {
       fprintf(f_debug, "Partial instantiation of: ");
-      db_symbol_name(sym);
+      db_symbol_name_trans_unit(sym);
       fprintf(f_debug, " based on ");
-      db_symbol_name(class_template_sym);
+      db_symbol_name_trans_unit(class_template_sym);
       fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
@@ -7643,11 +7643,11 @@ type based on the template argument list and the template parameter list
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DEBUG
-  if (debug_level >= 3 || db_flag_is_set("instantiations")) {
+  if (db_sym_trace("instantiations", sym)) {
     fprintf(f_debug, "partial instantiation: ");
-    db_symbol_name(sym);
+    db_symbol_name_trans_unit(sym);
     fprintf(f_debug, " based on ");
-    db_symbol_name(templ_sym);
+    db_symbol_name_trans_unit(templ_sym);
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
@@ -15583,7 +15583,9 @@ data member specified by tip.
 */
 {
   a_boolean			trans_unit_pushed = FALSE;
-
+#if DEBUG
+  a_boolean			output_debug_info;
+#endif /* DEBUG */
   /* The instantiation process may rescan various things and invalidate the
      current token positions as a result.  Save these positions so that they
      may be restored when we are done. */
@@ -15592,6 +15594,14 @@ data member specified by tip.
   a_source_position saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
+#if DEBUG
+  output_debug_info = db_sym_trace("instantiations", tip->instance_sym);
+  if (output_debug_info) {
+    fprintf(f_debug, "instantiate_entity: ");
+    db_symbol_name_trans_unit(tip->instance_sym);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   saved_pos_curr_token = pos_curr_token;
   saved_error_position = error_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -15629,6 +15639,12 @@ data member specified by tip.
         tip = NULL;
       }  /* if */
     }  /* if */
+#if DEBUG
+    if (tip != NULL && output_debug_info) {
+      fprintf(f_debug, "Corresponding instance is: ");
+      db_symbol_name_trans_unit(tip->instance_sym);
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
   if (tip == NULL) {
     /* This can occur when no corresponding instance could be found in the
@@ -16060,9 +16076,9 @@ instantiation request file.
       mip->add_to_request_file = TRUE;
     }  /* if */
 #if DEBUG
-    if (db_flag_is_set("instantiations")) {
+    if (db_sym_trace("instantiations", tip->instance_sym)) {
       fprintf(f_debug, "check_if_entity...: ");
-      db_symbol_name(tip->instance_sym);
+      db_symbol_name_trans_unit(tip->instance_sym);
       fprintf(f_debug, ": instantiate=%d, add_to_request_file=%d\n",
               instantiate, add_to_request_file);
     }  /* if */
@@ -16600,16 +16616,15 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
   sym = tip->instance_sym;
   tssp = template_supplement_for_symbol(tip->template_sym);
 #if DEBUG
-  if (debug_level >= 5 || db_flag_is_set("uirf") ||
-      db_flag_is_set("instantiations")) {
+  if (db_sym_trace("instantiations", sym) ||
+      db_sym_trace("uirf", sym)) {
     fprintf(f_debug,
-            "Setting instantiation_required flag to %s for (options=%d)",
+            "Setting instantiation_required flag to %s for (options=%d)\n  ",
             value ? "TRUE" : "FALSE", (int)options);
-    db_symbol(tip->instance_sym, "", 0);
-    fprintf(f_debug, "is_function_symbol=%d\n", is_function_symbol(sym));
-    fprintf(f_debug, "defined=%d\n", sym->defined);
+    db_symbol_name_trans_unit(tip->instance_sym);
+    fprintf(f_debug, "  defined=%d", sym->defined);
     if (is_function_symbol(sym)) {
-      fprintf(f_debug, "inline=%d\n", sym->variant.routine.ptr->is_inline);
+      fprintf(f_debug, ", inline=%d\n", sym->variant.routine.ptr->is_inline);
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
@@ -16657,7 +16672,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
       if (is_primary_translation_unit) {
         mip->instance_required_count = 0;
 #if DEBUG
-        if (db_flag_is_set("instantiations")) {
+        if (db_sym_trace("instantiations", sym)) {
           db_instance_count(mip, /*increment=*/FALSE);
         }  /* if */
 #endif /* DEBUG */
@@ -16696,7 +16711,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
          translation units that require the instantiation. */
       mip->instance_required_count++;
 #if DEBUG
-      if (db_flag_is_set("instantiations")) {
+      if (db_sym_trace("instantiations", sym)) {
         db_instance_count(mip, /*increment=*/TRUE);
       }  /* if */
 #endif /* DEBUG */
@@ -16801,7 +16816,7 @@ Does nothing if called in C mode.
 #if DEBUG
     if (db_flag_is_set("set_instance_required")) {
       fprintf(f_debug, "Setting instance required for ");
-      db_symbol_name(sym);
+      db_symbol_name_trans_unit(sym);
       fprintf(f_debug, " to %s\n", value ? "true" : "false");
     }  /* if */
 #endif /* DEBUG */

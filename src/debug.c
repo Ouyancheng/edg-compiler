@@ -372,6 +372,48 @@ correspondence, do nothing.
   return result;
 }  /* f_db_has_traced_name */
 
+#if !STANDALONE_UTILITY_PROGRAM
+
+a_boolean f_db_sym_has_traced_name(a_symbol_ptr	sym)
+/*
+Return TRUE if the IL entry associated with the symbol "sym" has a name
+that is to be traced.
+*/
+{
+  char			*entry;
+  an_il_entry_kind	kind;
+  a_boolean		result = FALSE;
+
+  entry = il_entry_for_symbol(sym, &kind);
+  if (entry != NULL) {
+    result = db_has_traced_name(entry, kind);
+  }  /* if */
+  return result;
+}  /* f_db_sym_has_traced_name */
+
+
+a_boolean f_db_sym_trace(char		*flag_name,
+			 a_symbol_ptr	sym)
+/*
+Return TRUE if the debug flag with the name "flag_name" is set, and
+either there are no debug name requests in the request list or
+f_db_has_traced_name is TRUE for the IL entry associated with sym.  Use
+the macro db_sym_trace to call this function.
+*/
+{
+  char			*entry;
+  an_il_entry_kind	kind;
+  a_boolean		result = FALSE;
+
+  entry = il_entry_for_symbol(sym, &kind);
+  if (entry != NULL) {
+    result = db_trace(flag_name, entry, kind);
+  }  /* if */
+  return result;
+}  /* f_db_sym_trace */
+
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean f_db_trace(char             *flag_name,
                      char             *entry,
