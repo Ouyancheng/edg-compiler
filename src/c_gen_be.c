@@ -4410,7 +4410,7 @@ Dump out the contents of a block (but not the surrounding { and }).
   curr_scope = saved_curr_scope;
 }  /* dump_block */
 
-#if ASM_FUNCTION_ALLOWED
+#if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 static void dump_asm_function_body(char *p)
 /*
@@ -4429,12 +4429,15 @@ p is a pointer to the start of a null-terminated string.
     end_output_line();
     *eol = '\n';
   }  /* for */
-  write_str(p);
-  end_output_line_if_begun();
+  if (*p) {
+    write_str(p);
+  } else {
+    end_output_line_if_begun();
+  }  /* if */
   write_tok_ch('}');
 }  /* dump_asm_function_body */
 
-#endif /* ASM_FUNCTION_ALLOWED */
+#endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void dump_switch_statement(a_statement_ptr statement)
 /*
@@ -4812,6 +4815,19 @@ Generate C for a statement.
       break;
     case stmk_asm:
       /* asm statement. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (statement->variant.asm_entry->is_asm_block) {
+        /* In Microsoft mode an asm statement may have the form
+           "__asm { ... }", with a sequence of individual asm statements
+           between the braces.  In other words, it looks just like the body
+           of an asm function. */
+        set_output_position_for_stmt(&statement->position);
+        write_tok_str("__asm");
+        dump_asm_function_body(statement->variant.asm_entry->
+                                       asm_string->variant.string.value);
+        break;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       dump_asm_entry(statement->variant.asm_entry);
       break;
 #if ASM_FUNCTION_ALLOWED
