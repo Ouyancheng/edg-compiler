@@ -8231,10 +8231,17 @@ continue_with_declaration:
          declarator was scanned. */
       top_declarator_type_is_function = (is_function &&
 				         local_type_ptr != type_ptr);
-      if (is_function && C_dialect == C_dialect_cplusplus) {
+      if (C_dialect == C_dialect_cplusplus && defines_something) {
         /* The ARM (8.2.5) explicitly prohibits defining a type in a
-           function return type. */
-        if (defines_something) {
+           function return type.  This is taken to apply to pointer-to-function
+           type declarations as well to the function declarations. */
+        a_boolean  is_function_type_decl = is_function;
+        if (!is_function) {
+          a_type_ptr  tp = local_type_ptr;
+          while (is_ptr_or_ref_type(tp)) tp = type_pointed_to(tp);
+          is_function = is_function_type(tp);
+        }  /* if */
+        if (is_function) {
           pos_error(ec_type_def_not_allowed_in_func_type_decl,
                     &decl_start_pos);
         }  /* if */
