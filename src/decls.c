@@ -6678,9 +6678,9 @@ To emulate this, we must remove projections of a type synonymous with the
 type being declared.
 */
 {
-  if (curr_scope_id_lookup(locator, IDL_PROJ_SYMBOL_ALLOWED) != NULL) {
-    a_symbol_ptr  sym = locator->specific_symbol;
+  a_symbol_ptr  sym = locator->specific_symbol;
 
+  if (sym != NULL) {
     if (sym->kind == (a_symbol_kind)sk_projection &&
         !sym->variant.projection.is_using_decl) {
       remove_symbol(sym);
@@ -6776,7 +6776,7 @@ return a pointer to it in *symbol_ptr.
 
   db_enter(3, "decl_typedef");
   sym = curr_scope_id_lookup(locator, IDL_PROJ_SYMBOL_ALLOWED);
-  if (microsoft_mode && sym == NULL &&
+  if (microsoft_mode && sym != NULL &&
       ssep->kind == (a_scope_kind)sck_class_struct_union) {
     remove_any_inherited_type_synonym(locator);
   }  /* if */
