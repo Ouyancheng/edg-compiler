@@ -1,5 +1,20 @@
 Version 2.25
 
+8/17/94  Source sequence entries for template instantiations
+
+When FUNCTION_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
+source sequence entries are put out for function template instantiations,
+and when CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE
+they are put out for class template instantiations.  Defined in
+host_envir.h, both flags require GENERATE_SOURCE_SEQUENCE_LISTS to be set.
+
+8/17/94  Diagnostic on type qualifier applied to reference type
+
+We used to issue a warning that the construct was meaningless.  In fact it
+now violates the C++ grammar, so we modified the text of the diagnostic
+and issue an error in strict ANSI mode.  Undiagnosed by cfront, it is still
+accepted with a warning in default mode.
+
 8/17/94  Diagnostic on missing initializer in a new-expression
 
 If a new-expression produces an uninitialized const object or object with
