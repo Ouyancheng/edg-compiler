@@ -1,5 +1,21 @@
 Version 3.5
 
+8/12/04  Dollar signs in text skipped by the preprocessor
+
+In versions configured to allow dollar signs in identifiers, a spurious
+error would be issued in strict mode on text that is skipped by the
+preprocessor.  Now fixed.
+
+  #if 0
+  int i$b;
+  #endif
+
+8/12/04  Accepting dollar signs in identifiers in strict mode
+
+Unlike other options, it was not possible to use the --dollar option in
+strict mode to override the strict mode default of prohibiting dollar
+signs in identifiers.  Now fixed.
+
 8/12/04  Embedded C: spurious error hex fract constant with the value "1"
 
 A spurious "out of range" error was issued for hexadecimal fract constants

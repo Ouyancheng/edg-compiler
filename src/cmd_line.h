@@ -796,10 +796,19 @@ EXTERN a_boolean
 #if VAR_INITIALIZERS
 			          = DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS
 #endif /* VAR_INITIALIZERS */
-                                                                         ;
+                                                                    ;
                         /* Specifies whether dollar signs are allowed
                            in identifiers.  The default is supplied by
                            a configuration parameter. */
+
+EXTERN a_boolean
+		issue_dollar_in_id_diagnostic
+#if VAR_INITIALIZERS
+			          = DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS
+#endif /* VAR_INITIALIZERS */
+                                                                    ;
+			/* TRUE if a diagnostic should be issued for use of
+			   a dollar sign in an identifier. */
 
 EXTERN a_boolean
                 display_compilation_time

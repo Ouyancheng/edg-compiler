@@ -2286,6 +2286,11 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
        in strict mode. */
     extended_variadic_macros_allowed = FALSE;
   }  /* if */
+  if (!option_kind_used[(int)optk_allow_dollar_in_id_chars]) {
+    /* Support for dollar signs in identifiers is turned off by default in
+       strict mode. */
+    allow_dollar_in_id_chars = FALSE;
+  }  /* if */
   if (!c99_mode) {
     /* In strict mode the final field of a struct may not be an incomplete
        array, except in strict C99 mode. */
@@ -3175,6 +3180,7 @@ Process the arguments on the command line that invoked the compiler.
       case optk_allow_dollar_in_id_chars:
         /* Determines whether dollar signs are accepted in identifiers. */
         allow_dollar_in_id_chars = opt_value;
+        issue_dollar_in_id_diagnostic = FALSE;
         break;
       case optk_display_compilation_time:
         /* Generate compilation timing information. */

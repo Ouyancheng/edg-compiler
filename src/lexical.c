@@ -8034,7 +8034,7 @@ return_end_of_source_token:
       /* The dollar sign can optionally be accepted as an ID character.
          If it is to be accepted then we go to the code responsible for
          scanning identifiers; otherwise it is an unrecognized token. */
-      if (allow_dollar_in_id_chars) {
+      if (allow_dollar_in_id_chars || issue_dollar_in_id_diagnostic) {
         goto id_scan;
       } else {
         goto bad_token;
@@ -8083,8 +8083,9 @@ id_scan:
       contains_ucn = FALSE;
       do {
         continue_scan = FALSE;
-        if (allow_dollar_in_id_chars && strict_ansi_mode &&
-            !dollar_in_id_diagnostic_issued) {
+        if (issue_dollar_in_id_diagnostic &&
+            strict_ansi_mode && !dollar_in_id_diagnostic_issued &&
+            !currently_in_pp_if_skip) {
           /* Use a special scanning loop when we must check for dollar signs
              (which are nonstandard) while accumulating the characters of the
              identifier.  The diagnostic is issued only once. */
@@ -14000,7 +14001,7 @@ are handled in lexical_init.)
                               isdigit((unsigned char)c));
   }  /* for */
   is_id_char['_' - CHAR_MIN] = TRUE;
-  if (allow_dollar_in_id_chars) {
+  if (allow_dollar_in_id_chars || issue_dollar_in_id_diagnostic) {
     is_id_char['$' - CHAR_MIN] = TRUE;
   }  /* if */
   /* Some character sets use some C special characters as letters, e.g.,
