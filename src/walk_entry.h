@@ -1856,18 +1856,7 @@ after_entry_from_class:
           /* Fields to be processed only if the definition of the class
              is to be processed: */
           walk_list(ptr->base_classes, a_base_class_ptr, iek_base_class);
-          switch (ptr->anonymous_union_kind) {
-            case auk_none:
-            case auk_variable:
-              break;
-            case auk_field:
-              remap_ptr(ptr->anonymous_union_object.field, a_field_ptr,
-                        iek_field);
-              break;
-            default:
-              unexpected_condition_str(
-                           "walk_entry_and_subtree: bad anonymous union kind");
-          }  /* switch */
+          remap_ptr(ptr->field, a_field_ptr, iek_field);
           walk_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
           remap_ptr_not_needed(ptr->virtual_function_info_base_class,
                                a_base_class_ptr, iek_base_class);

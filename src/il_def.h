@@ -2701,20 +2701,10 @@ typedef struct a_class_type_supplement {
 			/* Indication of whether this class is an anonymous
 			   union, and if so whether it is a field of some
 			   other class or a variable. */
-  union {
-    /* When anonymous_union_kind == auk_field: */
-    a_field_ptr	field;
-			/* Pointer to the unnamed field entry whose type is
-			   the anonymous union. */
-    /* When anonymous_union_kind == auk_variable: */
-    a_storage_class
-		storage_class;
-			/* The storage_class of the unnamed variable entry
-			   whose type is the anonymous union; used by the C++
-			   generating back end.  (Note: the variable itself
-			   is not pointed to because it could belong to a
-			   function memory region.) */
-  } anonymous_union_object;
+  a_field_ptr	field;
+			/* If anonymous_union_kind == auk_field, pointer to
+			   the unnamed field entry whose type is the anonymous
+			   union; otherwise NULL. */
   a_class_member_using_decl_ptr
                 class_member_using_decls;
                         /* A list of entries representing using-declarations
