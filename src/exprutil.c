@@ -5777,7 +5777,8 @@ if is_lvalue is TRUE.  Return NULL if the expression cannot be generated.
       /* Can't record a local variable in a file-scope expression.  This
          comes up in constant expressions (like array bounds) that
          reference const-valued local variables. */
-      check_assertion(curr_expr_kind_is_const());
+      check_assertion(curr_expr_kind_is_const() ||
+                      curr_expr_kind_is(ek_sizeof));
     } else {
       expr = is_lvalue ? var_lvalue_expr(variable) : var_rvalue_expr(variable);
     }  /* if */
