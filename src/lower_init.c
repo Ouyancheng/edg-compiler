@@ -2122,18 +2122,22 @@ because of the make_destruction_routine case.
   a_statement_ptr  call_stmt;
   an_expr_node_ptr implied_arg_node;
   a_type_ptr       this_param_type;
+  a_type_ptr       entity_type = type_from_init_pos_descr(ipdp);
 
   /* Make an expression for the object to be destroyed. */
   entity_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
                                       /*using_as_dest=*/FALSE);
   /* Generate code for the destructor call. */
-  if (ipdp->whole_array) {
+  if (is_array_type(entity_type)) {
     /* Destruction of whole array. */
+    a_targ_ptrdiff_t num_elems = skip_typerefs(entity_type)->variant.array.
+                                                    variant.number_of_elements;
+    check_assertion(num_elems > 0);
     /* default_version_of_routine is not called on purpose; __vec_delete
        knows about the implicit argument for destructors and generates
        it automatically. */
     /* Generate the __vec_delete call. */
-    call_node = make_vec_delete_call(entity_node, ipdp->array_element_count,
+    call_node = make_vec_delete_call(entity_node, num_elems,
                                      dtor_routine, (a_routine *)NULL,
                                      /*free_storage=*/FALSE);
     /* Make a statement containing the call. */
@@ -2823,6 +2827,7 @@ and update *insert_location accordingly.
   a_routine_ptr          dtor_routine;
   an_expr_node_ptr       call_node;
   a_statement_ptr        call_stmt;
+  a_type_ptr             entity_type = type_from_init_pos_descr(ipdp);
 
   /* Record the required destruction by generating a call of the runtime
      routine __record_needed_destruction.  A data structure passed to
@@ -2840,7 +2845,7 @@ and update *insert_location accordingly.
      to a routine generated specifically for this case and containing
      the necessary destruction code.  next is always initialized to
      NULL; the runtime routine sets it. */
-  complex_cleanup = ipdp->whole_array;
+  complex_cleanup = is_array_type(entity_type);
   /* Compute the object address (instead of doing static initialization to
      the address) if it is more than a simple variable. */
   complex_address = ipdp->indirect_through_variable ||
