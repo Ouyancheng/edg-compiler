@@ -24,7 +24,7 @@ templates.c -- Support for C++ templates.
 #include "types.h"
 
 
-a_boolean instantiate_template_class(a_type_ptr  type)
+void instantiate_template_class(a_type_ptr  type)
 /*
 This routine should be called from check_for_uninstantiated_template_class,
 which determines that type is incomplete type.  If
