@@ -314,7 +314,7 @@ functions require definitions in this translation unit.
   a_translation_unit_ptr	tup;
 
   for (tup = translation_units; tup != NULL; tup = tup->next) {
-    switch_translation_unit(tup);
+    push_translation_unit_stack(tup);
     /* Do any template instantiation that may be required.  This is called
        first because it may generate additional function bodies and class
        definitions that need to be processed by the operations that follow. */
@@ -328,9 +328,8 @@ functions require definitions in this translation unit.
          as part of this translation unit. */
       inline_function_wrapup();
     }  /* if */
+    pop_translation_unit_stack();
   }  /* for */
-  /* Switch back to the primary translation unit. */
-  switch_translation_unit(translation_units);
 }  /* template_and_inline_function_wrapup */
 
 
