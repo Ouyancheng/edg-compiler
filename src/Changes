@@ -39,7 +39,7 @@ accepted.
 
   int main () {
     int *const q = 0;
-    (int *)q = 0;  // Accept in Microsoft bugs mode.
+    (int *)q = 0;  // Accepted in Microsoft bugs mode
     return 0;
   }
 
