@@ -393,7 +393,7 @@ is nonconstant.
 {
   a_boolean is_vla = FALSE;
 
-  if (vla_enabled && is_array_type(tp)) {
+  if (is_array_type(tp)) {
     do {
       if (array_is_vla(skip_typerefs(tp))) {
         is_vla = TRUE;
