@@ -1,5 +1,11 @@
 Version 2.29
 
+3/31/95  Type qualifiers on argument to "this" parameter
+
+In some cases, the argument passed to a "this" parameter did not
+have exactly the same type as the "this" parameter (it was missing
+some type qualifiers).  A cast is now emitted.
+
 3/31/95  PCH files and compiling files in different directories
 
 When determining whether a given PCH file is a candidate for use by
