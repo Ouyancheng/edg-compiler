@@ -2798,7 +2798,7 @@ cumulative over all the parameters).
     type_2 = skip_typerefs(type_2);
   }  /* if */
   /* Now compare the types.  If any error types appear in the type tree, that
-     will be enought to distinguish the types. */
+     will be enough to distinguish the types. */
   if (!types_are_strictly_compatible(type_1, type_2)) {
     /* The two types are distinguishable. */
     distinguishable = TRUE;
