@@ -4007,7 +4007,7 @@ declaration.
   linkage = idlb.linkage;
   /* alloc_at_file_scope will be TRUE if the IL variable entry must be
      allocated in the file scope memory region.  This is always true
-     true for variables with linkage. */
+     for variables with linkage. */
   alloc_at_file_scope = (linkage != idl_none);
   if (linkage != idl_none && linked_symbol != NULL) {
     /* There is a previous identifier of this name in the same scope,
@@ -4188,6 +4188,12 @@ declaration.
     a_scope_depth  scope_depth;
     if (!alloc_at_file_scope) {
       scope_depth = decl_scope_level;
+      if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+        /* The variable will be allocated in file scope after all.
+           (This should only occur in error situations.) */
+        check_assertion(total_errors != 0);
+        alloc_at_file_scope = TRUE;
+      }  /* if */
     } else if (depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE ||
                (scope_stack[depth_scope_stack].default_name_linkage ==
                                           (a_name_linkage_kind)nlk_external &&
