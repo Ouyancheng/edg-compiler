@@ -451,7 +451,7 @@ int fp_compare(a_float_kind            kind,
                a_boolean               *unordered)
 /*
 Compare two floating-point values.  Return *unordered set to TRUE if they
-are unordered with respect to each other.  Otherwise, return strmcp-like
+are unordered with respect to each other.  Otherwise, return strcmp-like
 values:
        value_1 > value_2   1
        value_1 = value_2   0
