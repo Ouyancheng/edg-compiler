@@ -1,5 +1,13 @@
 Version 3.4
 
+10/23/03 GNU mode: Parameter attribute "unused" outside function definitions
+
+In GNU modes the front end issues an error if the attribute "unused" appeared
+on a parameter declaration that was not part of a function definition.  Now,
+such attributes are simply ignored.
+
+  void f(int __attribute__((unused)) x);  // Previously an error; now OK.
+
 10/23/03 GNU asm constraints: "q" and "Q"
 
 In GNU mode (on configurations which set GNU_X86_ASM_EXTENSIONS_ALLOWED to

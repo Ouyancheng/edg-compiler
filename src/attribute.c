@@ -2031,15 +2031,18 @@ for a parameter.
         /* These attributes apply to the type of the parameter, so
            they are OK. */
         break;
+      case ak_unused:
+        /* These attributes are ignored by GNU C when not appearing as part of
+           a function definition. */
+        break;
 #if USER_CONTROL_OF_STRUCT_PACKING
       case ak_aligned:
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-      case ak_unused:
         /* These attributes apply to the variable itself and so are
            not permitted here. */
         pos_st_error(ec_attribute_only_in_func_def, &ap->position, 
                      attribute_kind_names[(int)ap->kind]);
         break;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       default:
         /* These attributes do not apply to parameters. */
         if (sym != NULL) {
