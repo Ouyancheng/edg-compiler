@@ -1041,6 +1041,8 @@ processed further.
         case 'c':	*type = 'C'; break;
       }  /* switch */
     }  /* if */
+    /* HP/UX has multi-character types.  Skip any remaining characters. */
+    if (nm_format == nmfk_HPUX) while (*pos != ' ' && *pos != '\0') pos++;
     /* Look for blank after type. */
     if (*pos++ != ' ') pl_invalid_input();
     /* Now look for a nonblank. */
