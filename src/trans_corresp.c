@@ -2924,7 +2924,6 @@ symbol supplement.
     } else {
       /* Record the necessary correspondences. */
       a_type_ptr  corresp_type = type_symbol_type(sym_entry->symbol);
-      corresp_type = (a_type_ptr)canonical_il_entry_of(corresp_type);
       if ((!sym_entry->symbol->defined && inst->defined) ||
           parent_class_is_canonical(&class_type->source_corresp)) {
         /* If this is a definition and the canonical entry is not a definition
@@ -2937,7 +2936,7 @@ symbol supplement.
           corresp_type = new_type;
           set_no_class_type_correspondence(corresp_type);
         }  /* if */
-        if (inst->defined) {
+        if (!sym_entry->symbol->defined && inst->defined) {
           /* Prefer a definition as the representative. */
           sym_entry->symbol = inst;
         }  /* if */
