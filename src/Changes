@@ -1,5 +1,20 @@
 Version 3.2
 
+3/25/03  GNU C++ mode: injected template names
+
+When doing name lookup in a base class, g++ does not find the injected
+class name of a template class.  We now emulate this behavior in g++ mode.
+
+  namespace N {
+    template <class T> struct A {};
+  }
+  struct A {
+    int i;
+  };
+  struct B : N::A<int> {
+    B() { A x; x.i = 1; }  // g++ uses ::A, not N::A
+  };
+
 3/25/03  Microsoft compatibility: nonstandard use of specialization syntax
 
 The Microsoft compiler (prior to version 7.1) allows the definition
