@@ -3379,10 +3379,11 @@ class template.
 
 
 static void define_static_data_member(a_symbol_locator   *locator,
-                                      a_storage_class	 storage_class,
-				      a_type_ptr	 type_ptr,
+                                      a_storage_class    storage_class,
+                                      a_type_ptr         type_ptr,
+                                      a_boolean          has_initializer,
                                       a_source_sequence_entry_ptr  ssep,
-				      a_symbol_ptr       *symbol_ptr,
+                                      a_symbol_ptr       *symbol_ptr,
                                       an_id_linkage_kind *linkage_ptr)
 /*
 Enter the definition of a static data member.  *locator gives the symbol
@@ -3396,9 +3397,10 @@ static members should be changed to sc_unspecified.  Return a pointer to
 the symbol and its linkage (which is always "none").
 */
 {
-  a_variable_ptr	var;
-  a_boolean		err = FALSE;
-  a_symbol_ptr		sym;
+  a_variable_ptr           var;
+  a_boolean                err = FALSE;
+  a_symbol_ptr             sym;
+  a_symbol_reference_kind  srk_flags;
 
   db_enter(3, "define_static_data_member");
   /* This routine is called after a qualified name has been seen, but be sure
@@ -3439,8 +3441,14 @@ the symbol and its linkage (which is always "none").
         sym->variant.static_data_member.instance_ptr->specific_def = TRUE;
         sym->variant.static_data_member.variable->specific_def = TRUE;
       }  /* if */
-      record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
-                                &locator->source_position, ssep);
+      srk_flags = SRK_DECLARATION | SRK_DEFINITION;
+      if (has_initializer) {
+        srk_flags |= SRK_INITIALIZATION;
+      } else if (type_has_default_constructor(var->type)) {
+        srk_flags |= SRK_INITIALIZATION | SRK_IMPLICIT;
+      }  /* if */
+      record_symbol_declaration(srk_flags, sym, &locator->source_position,
+                                ssep);
     }  /* if */
   } else {
     /* Not a static data member (but a member of some sort, since it is a
@@ -5555,8 +5563,8 @@ continue_with_declaration:
       } else if (is_static_data_member) {
         /* A static data member definition. */
         define_static_data_member(&locator, local_storage_class,
-                                  local_type_ptr, declarator_ssep,
-                                  &symbol_ptr, &linkage);
+                                  local_type_ptr, has_initializer,
+                                  declarator_ssep, &symbol_ptr, &linkage);
         var_ptr = symbol_ptr->variant.static_data_member.variable;
         /* Fetch the type of the symbol again, since it might have been
            changed when reconciled with the original declaration. */
@@ -5590,11 +5598,16 @@ continue_with_declaration:
           /* A variable declaration involving an initializer is always
              considered to be a definition. */
           is_variable_def = TRUE;
+          srk_flags |= SRK_INITIALIZATION;
         } else if (C_dialect == C_dialect_cplusplus) {
           /* In C++ all other variable declarations are definitions, except
              those with a storage class of extern. */
-          is_variable_def =
-                       (local_storage_class != (a_storage_class)sc_extern);
+          if (local_storage_class != (a_storage_class)sc_extern) {
+            is_variable_def = TRUE;
+            if (type_has_default_constructor(local_type_ptr)) {
+              srk_flags |= SRK_INITIALIZATION | SRK_IMPLICIT;
+            }  /* if */
+          }  /* if */
         } else {
           /* C mode. */
           if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
