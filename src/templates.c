@@ -702,6 +702,7 @@ templ_sym).
   rp->opname_kind = templ_rout->opname_kind;
   rp->is_inline = templ_rout->is_inline;
   set_source_corresp(&rp->source_corresp, sym);
+  rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
   /* Add it to the file scope routines list. */
   add_to_routines_list(rp, /*at_file_scope=*/TRUE);
   /* Create the associated function instantiation entry and link it

@@ -3744,6 +3744,8 @@ void decl_function_template(a_symbol_locator    *locator,
     rout_ptr->type = type_ptr;
     rout_ptr->storage_class = (a_storage_class)sc_extern;
     set_source_corresp(&rout_ptr->source_corresp, sym);
+    rout_ptr->source_corresp.name_linkage =
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
   }  /* if */
   *symbol_ptr = sym;
 #if DEBUG
