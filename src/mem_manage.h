@@ -141,7 +141,9 @@ extern void init_memory_region(a_memory_region_number region_number,
 /* Check whether a memory region is still needed in the front end. */
 extern void check_for_done_with_memory_region(
                                        a_memory_region_number region_number);
+#if MAINTAIN_NEEDED_FLAGS
 extern void check_for_done_with_all_function_memory_regions(void);
+#endif /* MAINTAIN_NEEDED_FLAGS */
 /* Free the space in a memory region. */
 extern void free_memory_region(a_memory_region_number region_number);
 /* Free all of the memory regions. */
