@@ -2274,12 +2274,13 @@ bucket of the shareable_constants_table to use for the constant.
       break;
     case ck_ptr_to_member:
       /* Hash the name of the member in a pointer-to-member constant. */
+      hash_value = 0;
       if (cp->variant.ptr_to_member.is_function_ptr) {
-        hash_value =
-         hash_name(&cp->variant.ptr_to_member.variant.routine->source_corresp);
+        a_routine_ptr rp = cp->variant.ptr_to_member.variant.routine;
+        if (rp != NULL) hash_value = hash_name(&rp->source_corresp);
       } else {
-        hash_value =
-           hash_name(&cp->variant.ptr_to_member.variant.field->source_corresp);
+        a_field_ptr fp = cp->variant.ptr_to_member.variant.field;
+        if (fp != NULL) hash_value = hash_name(&fp->source_corresp);
       }  /* if */
       /* Work the type into the hash. */
       hash_value += hash_type(cp->type) + 250;
