@@ -2298,7 +2298,7 @@ template.
 #endif /* ifdef DEFAULT_DISTINCT_MANGLING_FOR_TEMPLATES */
 #endif /* ifndef DEFAULT_DISTINCT_TEMPLATE_SIGNATURES */
 
-#if NEED_NAME_MANGLING
+#if NEED_NAME_MANGLING && !IA64_ABI
 /*
 Default value for compress_mangled_names, which controls whether compression
 is done on mangled names.
@@ -2312,7 +2312,7 @@ is done on mangled names.
 #define DEFAULT_COMPRESS_MANGLED_NAMES TRUE
 #endif /* ABI_COMPATIBILITY_VERSION < 241 || ... */
 #endif /* ifndef DEFAULT_COMPRESS_MANGLED_NAMES */
-#endif /* NEED_NAME_MANGLING */
+#endif /* NEED_NAME_MANGLING && !IA64_ABI */
 
 #if NEED_NAME_MANGLING
 /*

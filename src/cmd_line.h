@@ -1345,7 +1345,7 @@ EXTERN a_boolean
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-#if NEED_NAME_MANGLING
+#if NEED_NAME_MANGLING && !IA64_ABI
 EXTERN a_boolean
 		compress_mangled_names
 #if VAR_INITIALIZERS
@@ -1354,7 +1354,7 @@ EXTERN a_boolean
                                                                        ;
 			/* Indicates whether mangled names should be compressed
 			   to reduce their size. */
-#endif /* NEED_NAME_MANGLING */
+#endif /* NEED_NAME_MANGLING && !IA64_ABI */
 
 #if NEED_NAME_MANGLING
 EXTERN sizeof_t
