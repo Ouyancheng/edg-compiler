@@ -2973,7 +2973,7 @@ have_vtbl_var:;
 }  /* make_var_for_virtual_function_table */
 
 
-#if !CFRONT_OBJECT_CODE_COMPATIBILITY ||ABI_CHANGES_FOR_RTTI
+#if !CFRONT_OBJECT_CODE_COMPATIBILITY || ABI_CHANGES_FOR_RTTI
 /*ARGSUSED*/  /* <-- Because class_type is not used in that case. */
 #endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY || ... */
 static a_boolean base_class_needs_virtual_function_table(
@@ -3520,6 +3520,18 @@ virtual function table.
     /* We're doing the virtual function table for class_type itself. */
     ctsp = class_type->variant.class_struct_union.extra_info;
     vtbl_var = ctsp->virtual_function_table_var;
+#if ABI_CHANGES_FOR_RTTI
+    /* If this is the virtual function table for type_info, which is shared
+       between the actual type_info (if declared) and user_type_info_type
+       (declared by IL lowering in case there is no type_info), make sure to
+       use the correct length (from the real type_info). */
+    if (vtbl_var == vtbl_for_type_info && type_of_type_info != NULL &&
+        class_type != type_of_type_info) {
+      ctsp->highest_virtual_function_number =
+                     type_of_type_info->variant.class_struct_union.extra_info->
+                                               highest_virtual_function_number;
+    }  /* if */
+#endif /* ABI_CHANGES_FOR_RTTI */
   } else {
     /* We're doing the virtual function table for bcp in class_type. */
     ctsp = bcp->type->variant.class_struct_union.extra_info;
