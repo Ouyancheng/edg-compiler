@@ -1235,6 +1235,7 @@ enum a_based_type_kind_tag {
   btk_const_volatile,		/* Const-volatile-qualified version of the
 				   type. */
   btk_reference,		/* Reference to the type. */
+  btk_ptr_to_member,		/* Pointer to member type (C++ only). */
 #endif /* ifdef CIL */
   btk_pointer			/* Pointer to the type. */
 };
