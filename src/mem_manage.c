@@ -446,9 +446,9 @@ Free the storage associated with the indicated memory block.
          test_hdr != NULL;
          test_hdr = test_hdr->next) {
       if ((test_hdr->after_end_of_block == (char *)hdr &&
-           hdr->malloc_size != 0) ||
+           hdr->malloc_size == 0) ||
           (hdr->after_end_of_block == (char *)test_hdr &&
-           test_hdr->malloc_size != 0)) {
+           test_hdr->malloc_size == 0)) {
         /* The block on the list is adjacent to the new block.  Remove
            the test_hdr block from the list and join the two blocks together
            as a bigger block pointed to by hdr.  Also back up the loop 
