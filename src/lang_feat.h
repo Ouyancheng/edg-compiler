@@ -840,14 +840,6 @@ Flag that is TRUE if support for wchar_t can be enabled.
 #endif /* ifndef WCHAR_T_ENABLING_POSSIBLE */
 
 /*
-Flag that is TRUE if support for designated initializers and extended
-designated initializers can be enabled.
-*/
-#ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
-#define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE FALSE
-#endif /* ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
-
-/*
 Flag that is TRUE to enable a special nonstandard weighting of the
 conversion for the integral operand of the [] operator in overload resolution.
 Deals with cases like

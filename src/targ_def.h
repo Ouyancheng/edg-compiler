@@ -1987,6 +1987,18 @@ whole process.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+Flag that is TRUE if support for designated initializers and extended
+designated initializers can be enabled.  Having this TRUE means the back
+end is prepared to accept designated initializers, either in the
+unlowered form or the lowered form (see LOWER_DESIGNATED_INITIALIZERS).
+The C-generating and C++-generating back ends can handle designated
+initializers.
+*/
+#ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
+#define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE FALSE
+#endif /* ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+
+/*
 This switch controls whether designated initializers (a C9X feature)
 are lowered to standard C.  Well, almost standard C: a designated
 initializer allows initialization of a member other than the first in
