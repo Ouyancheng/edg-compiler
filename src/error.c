@@ -1810,7 +1810,7 @@ error code.
     case ec_destructor_type_mismatch:
       m = "type used as destructor name does not match type %t";
       break;
-    case ec_called_member_function_redeclared_inline:
+    case ec_called_function_redeclared_inline:
       m = "%n may not be redeclared \"inline\" after being called";
       break;
     case ec_vacuous_destructor_name_mismatch:

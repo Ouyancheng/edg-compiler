@@ -518,7 +518,7 @@ typedef enum /*an_error_code*/ {
   ec_id_must_be_class_or_type_name,
   ec_destructor_name_mismatch,
   ec_destructor_type_mismatch,
-  ec_called_member_function_redeclared_inline,
+  ec_called_function_redeclared_inline,
   ec_vacuous_destructor_name_mismatch,
   ec_bad_storage_class_on_template_decl,
   ec_no_access_to_type_cfront_mode,
