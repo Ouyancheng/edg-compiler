@@ -14302,6 +14302,33 @@ end_of_routine:
   (void)get_token();
 }  /* make_function_name_operand */
 
+
+static a_boolean operand_is_string_literal(an_operand *operand)
+/*
+Return TRUE if the indicated operand is an lvalue for a string literal
+(narrow or wide).
+*/
+{
+  a_boolean is_string_literal = FALSE;
+
+  if (is_an_lvalue(operand) &&
+      is_constant_operand(operand) &&
+      is_string_type(operand->type)) {
+    a_constant_ptr string_con = &operand->variant.constant;
+    if (string_con->kind == (a_constant_repr_kind)ck_address &&
+        string_con->variant.address.kind ==
+                                          (an_address_base_kind)abk_constant &&
+        string_con->variant.address.offset == 0 &&
+        !string_con->implicit_cast) {
+      string_con = string_con->variant.address.variant.constant;
+      if (string_con->kind == (a_constant_repr_kind)ck_string) {
+        is_string_literal = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_string_literal;
+}  /* operand_is_string_literal */
+
 #if GNU_EXTENSIONS_ALLOWED
 
 static void mark_operand_as_gnu_extension(an_operand  *op)
@@ -15088,6 +15115,8 @@ bad_start_of_primary:
        Check that the expression is constant, or make it a constant. */
     if (is_constant_operand(result) && is_an_rvalue(result)) {
       /* Already a constant. */
+    } else if (operand_is_string_literal(result)) {
+      /* A string literal lvalue is another acceptable constant. */
     } else if (is_error_operand(result)) {
       /* An error, leave alone. */
     } else {
@@ -16217,7 +16246,6 @@ nonstandard class member constants.  Assumes copy-initialization
   an_expr_stack_entry expr_stack_entry;
   a_boolean           array_case = FALSE;
   a_boolean           string_literal_case = FALSE;
-  a_constant_ptr      string_con = NULL;
 
   db_enter(3, "scan_constant_initializer_expression");
 
@@ -16237,20 +16265,9 @@ nonstandard class member constants.  Assumes copy-initialization
     array_case = TRUE;
     if (is_an_lvalue(&result)) {
       /* See if the initializer expression is a string literal. */
-      if (is_string_type(result.type) &&
-          is_constant_operand(&result)) {
-        string_con = &result.variant.constant;
-        if (string_con->kind == (a_constant_repr_kind)ck_address &&
-            string_con->variant.address.kind ==
-                                          (an_address_base_kind)abk_constant &&
-            string_con->variant.address.offset == 0) {
-          string_con = string_con->variant.address.variant.constant;
-          if (string_con->kind == (a_constant_repr_kind)ck_string) {
-            string_literal_case = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      if (!string_literal_case) {
+      if (operand_is_string_literal(&result)) {
+        string_literal_case = TRUE;
+      } else {
         /* The only lvalue that is acceptable is a string literal.  If
            we have some other kind of lvalue, do the normal processing. */
         array_case = FALSE;
@@ -16263,6 +16280,10 @@ nonstandard class member constants.  Assumes copy-initialization
          an unknown-bound array, the type is updated here to the proper
          size array and then discarded.  The caller does the adjustment
          of the variable type later. */
+      a_constant_ptr string_con;
+      check_assertion(is_constant_operand(&result));
+      string_con = result.variant.constant.variant.address.variant.constant;
+      check_assertion(string_con->kind == (a_constant_repr_kind)ck_string);
       if (!is_string_type(required_type) ||
           !check_string_constant_initializer(&required_type, string_con)) {
         pos_ty2_error(ec_bad_initializer_type, &result.position,
