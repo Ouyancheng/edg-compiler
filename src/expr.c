@@ -11505,6 +11505,7 @@ See section 3.3.16 of the standard.
           } else if ((gcc_mode &&
                       /* GNU C allows arithmetic on pointers to void and
                          pointers to functions. */
+                      is_ptr_or_ref_type(operand_1->type) &&
                       (is_void_type(type_pointed_to(operand_1->type)) ||
                        is_function_type(type_pointed_to(operand_1->type)))) ||
                      check_object_pointer_operand(
