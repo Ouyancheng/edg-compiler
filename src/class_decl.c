@@ -4196,35 +4196,6 @@ of the function, and again overloading is a possibility.
 }  /* decl_friend_function */
 
 
-#if 0
-#else /* if !0 */
-/* Remove this code when support for overloaded operator delete is added. */
-static a_boolean is_operator_delete_symbol(a_symbol_ptr  sym)
-/*
-Return TRUE is sym is a symbol for an operator delete() function.
-*/
-{
-  a_routine_ptr  rp;
-  a_boolean      is_operator_delete;
-
-  if (sym->kind == (a_symbol_kind)sk_overloaded_function ||
-      sym->kind == (a_symbol_kind)sk_projection) {
-    is_operator_delete = FALSE;
-  } else {
-    if (sym->kind == (a_symbol_kind)sk_function_template) {
-      rp = sym->variant.template_info->variant.function.routine;
-    } else {
-      rp = sym->variant.routine.ptr;
-    }  /* if */
-    is_operator_delete = (rp->special_kind ==
-                                   (a_special_function_kind)sfk_operator &&
-                          is_delete_operator(rp->opname_kind));
-  }  /* if */
-  return is_operator_delete;
-}  /* is_operator_delete_symbol */
-#endif /* if 0 */
-
-
 static a_symbol_ptr find_direct_member_function(a_symbol_locator  *locator,
                                                 a_type_ptr        class_type)
 /*
@@ -4301,16 +4272,6 @@ function symbols.
          name.  The routine overload_distinguishable returns TRUE if the
          routine types are candidates for overloading; if it returns FALSE
          it also returns the error code for a diagnostic explaining why. */
-#if 0
-#else /* if !0 */
-/* Remove this code when support for overloaded operator delete is added.
-   Don't forget to mark the error code as REMOVED in error_msg.txt. */
-      if (is_operator_delete_symbol(sym)) {
-        /* Overloading is not allowed for operator delete() (ARM 12.5). */
-        pos_error(ec_delete_already_declared, &locator->source_position);
-        suppress_redecl_error = TRUE;
-      } else
-#endif /* if 0 */
       /* template_case is FALSE in the following call because although member
          functions of class templates have template types in their parameters,
          they are not called using the template overload resolution
@@ -5289,20 +5250,13 @@ in-class member function declarations.)
 
   db_enter(3, "decl_member_function_template");
   if (!is_error_locator(*locator)) {
-    if (locator->is_operator_name) {
-#if 0
-    /* Until support for placement delete is provided, check for potential
-       overloading of operator delete. */
-#endif  /* if 0 */
-      if (is_delete_operator(locator->variant.opname)) {
-        pos_error(ec_template_operator_delete, &locator->source_position);
-        set_to_named_error_locator(*locator);
-      } else if (is_default_operator_new(locator, member_type)) {
-        /* Overloading should not be allowed on the single-argument
-           version of operator new(size_t). */
-        pos_error(ec_template_operator_new, &locator->source_position);
-        set_to_named_error_locator(*locator);
-      }  /* if */
+    if (is_default_operator_new_or_delete(locator, member_type)) {
+      /* Overloading should not be allowed on the single-argument version
+         of operator new(size_t) or delete(void *). */
+      pos_error(is_new_operator(locator->variant.opname) ?
+                    ec_template_operator_new : ec_template_operator_delete,
+                &locator->source_position);
+      set_to_named_error_locator(*locator);
     }  /* if */
   }  /* if */
   check_operator_function_params(member_type, class_type, locator);
@@ -7214,7 +7168,7 @@ class and record it in the class's assoc_operator_new_routine field.
       } else {
         /* There is a class-specific operator new() (or several).  See if
            there is a default (one-argument) version. */
-        sym = extract_default_operator_new_sym(sym);
+        sym = find_default_operator_new_sym(sym);
       }  /* if */
     } else {
       /* Look for a global operator new(). */
@@ -7222,7 +7176,7 @@ class and record it in the class's assoc_operator_new_routine field.
       /* "new" can be overloaded; find the default (one-argument) version
          of the routine if so.  Since the default version always exists,
          we must find something here. */
-      sym = extract_default_operator_new_sym(sym);
+      sym = find_default_operator_new_sym(sym);
       check_assertion(sym != NULL);
     }  /* if */
     if (sym != NULL) {
@@ -7269,19 +7223,17 @@ function is potentially part of the wrapper code.
         }  /* if */
         /* Don't return an ambiguous function. */
         sym = NULL;
-      } else {
-        /* No error.  If it was inherited get the fundamental symbol. */
-        reduce_projection_symbol_to_fundamental_symbol(sym);
       }  /* if */
     } else {
       sym = opname_function_symbol((an_opname_kind)onk_delete);
       check_assertion(sym != NULL);
     }  /* if */
     if (sym != NULL) {
-      /* Since delete cannot be overloaded, the symbol should not be
-         overloaded and should not be a function template. */
-      check_assertion(is_function_symbol(sym));
-      ctsp->assoc_operator_delete_routine = sym->variant.routine.ptr;
+      /* Since delete might be overloaded, find the default version. */
+      sym = find_default_operator_delete_sym(sym);
+      if (sym != NULL) {
+        ctsp->assoc_operator_delete_routine = sym->variant.routine.ptr;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* set_class_assoc_operator_delete_routine */

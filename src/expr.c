@@ -4662,11 +4662,10 @@ specification allow a variable-sized array as the top type.
          "new" routine can be implicit if it is the default global new[]. */
       if (new_or_delete_type_requires_array_handling(base_new_type)) {
         an_opname_kind array_opname_kind = array_new_and_delete_enabled ?
-                                                (an_opname_kind)onk_array_new :
-                                                (an_opname_kind)onk_new;
-        if (function_symbol == 
-                       extract_default_operator_new_sym(
-                                  opname_function_symbol(array_opname_kind))) {
+                                             (an_opname_kind)onk_array_new :
+                                             (an_opname_kind)onk_new;
+        a_symbol_ptr   sym = opname_function_symbol(array_opname_kind);
+        if (function_symbol == find_default_operator_new_sym(sym)) {
           new_routine = NULL;
         }  /* if */
       }  /* if */
@@ -5088,8 +5087,10 @@ As an anachronism, allow an expression inside the [ ].
           an_opname_kind array_opname_kind = array_new_and_delete_enabled ?
                                              (an_opname_kind)onk_array_delete :
                                              (an_opname_kind)onk_delete;
-          if (delete_routine == opname_function_symbol(array_opname_kind)->
-                                                         variant.routine.ptr) {
+          a_symbol_ptr   sym = opname_function_symbol(array_opname_kind);
+
+          sym = find_default_operator_delete_sym(sym);
+          if (sym != NULL && delete_routine == sym->variant.routine.ptr) {
             delete_routine = NULL;
             /* Mark the destructor as referenced if it is virtual, because
                the call from the runtime routine will not be virtual (nor

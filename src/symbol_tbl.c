@@ -3962,16 +3962,18 @@ type "type" is recorded in the locator.
 }  /* make_type_conversion_locator */
 
 
-a_symbol_ptr extract_default_operator_new_sym(a_symbol_ptr sym)
+a_symbol_ptr find_default_operator_new_sym(a_symbol_ptr sym)
 /*
-Given the symbol for an operator new() (which may be overloaded),
-find the default new() and return a pointer to its symbol, or NULL if
-it is not found.  The symbol might be for a class-specific operator
-new(), and therefore might be a projection symbol.
+Given the symbol for an operator new() (which may be overloaded), find the
+default (i.e., single-argument) version and return a pointer to its symbol,
+or NULL if it is not found or there is an ambiguity resulting from default
+arguments.  The symbol might be for a class-specific operator new(), and
+therefore might be a projection symbol.
 */
 {
   a_boolean        is_overloaded;
   a_param_type_ptr ptp;
+  a_symbol_ptr     default_sym = NULL;
 
   reduce_projection_symbol_to_fundamental_symbol(sym);
   is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
@@ -3979,15 +3981,80 @@ new(), and therefore might be a projection symbol.
   for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
     /* Ignore function templates. */
     if (is_function_symbol(sym)) {
-      /* Look for a symbol for a function with just one parameter.
-         Default arguments are not allowed and need not be checked for. */
+      /* Look for a symbol for a function with just one parameter.  A default
+         argument is not allowed on the first argument and need not be checked
+         for; however, one may appear on the second argument. */
       ptp = skip_typerefs(sym->variant.routine.ptr->type)->
                                   variant.routine.extra_info->param_type_list;
-      if (ptp != NULL && ptp->next == NULL) break;
+      check_assertion(ptp != NULL);
+      if (ptp->next == NULL || ptp->next->has_default_arg) {
+        if (default_sym == NULL) {
+          /* A match.  But keep looking in case there's an ambiguity. */
+          default_sym = sym;
+        } else {
+          /* It's ambiguous, so just return NULL.  No error is issued at
+             this point. */
+          default_sym = NULL;
+          break;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* for */
-  return sym;
-}  /* extract_default_operator_new_sym */
+  return default_sym;
+}  /* find_default_operator_new_sym */
+
+
+a_symbol_ptr find_default_operator_delete_sym(a_symbol_ptr sym)
+/*
+Given the symbol for an operator delete() (which may be overloaded), find the
+default version (usually the single-argument version) and return a pointer to
+its symbol, or NULL if it is not found.  The symbol might be for a
+class-specific operator delete(), and therefore might be a projection symbol.
+*/
+{
+  a_boolean        is_overloaded;
+  a_param_type_ptr ptp;
+  a_symbol_ptr     default_sym = NULL;
+
+  reduce_projection_symbol_to_fundamental_symbol(sym);
+  is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
+  if (is_overloaded) sym = sym->variant.overloaded_function.symbols;
+  for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
+    /* Ignore function templates. */
+    if (is_function_symbol(sym)) {
+      /* Look for a symbol for a function with just one parameter.  A default
+         argument is not allowed on the first argument and need not be checked
+         for; however, one may appear on the second argument. */
+      ptp = skip_typerefs(sym->variant.routine.ptr->type)->
+                                  variant.routine.extra_info->param_type_list;
+      check_assertion(ptp != NULL);
+      if (ptp->next == NULL) {
+        /* A match: "operator delete(void *)" is always the default version. */
+        default_sym = sym;
+        break;
+      } else if (sym->is_class_member) {
+        if (ptp->next->next == NULL &&
+            skip_typerefs(ptp->next->type)->variant.integer.int_kind ==
+                                                      targ_size_t_int_kind) {
+          /* A possible match: "operator delete(void *, size_t)" is the
+             default version unless "operator delete(void *)" also appears
+             in the overload set (WP 3.7.3.2).  Keep looking. */
+          default_sym = sym;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return default_sym;
+}  /* find_default_operator_delete_sym */
+
+
+#if 0
+a_symbol_ptr find_corresponding_operator_delete_sym(a_symbol_ptr sym)
+/*
+*/
+{
+}  /* find_corresponding_operator_delete_sym */
+#endif /* if 0 */
 
 
 static a_symbol_ptr make_predeclared_function_symbol(
