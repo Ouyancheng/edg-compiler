@@ -234,13 +234,40 @@ enum a_name_linkage_kind_tag {
 			   Implies name mangling if that technique is used. */
 #endif /* ifdef CIL */
   nlk_external,		/* External linkage, as for an external routine. */
+#ifdef CUSTOM_NAME_LINKAGE_KINDS
+  /* An implementation can add additional linkage kinds by defining this
+     macro.  Note that CUSTOM_NAME_LINKAGE_KIND_NAMES should also be defined,
+     and NUM_BITS_FOR_NAME_LINKAGE may need to be adjusted.  Moreover, if
+     custom name linkage kinds can be applied to routine types, you should
+     modify the macro or_is_custom_name_linkage_kind_for_rout_type (below)
+     as well as routine_linkages_are_compatible in types.c. */
+  CUSTOM_NAME_LINKAGE_KINDS
+#endif /* ifdef CUSTOM_NAME_LINKAGE_KINDS */
   nlk_last
 };
 /* Number of bits required to hold a name linkage.  nlk_last need not be
    accounted for. */
+#ifndef NUM_BITS_FOR_NAME_LINKAGE
 #define NUM_BITS_FOR_NAME_LINKAGE 2
+#endif /* ifndef NUM_BITS_FOR_NAME_LINKAGE */
+
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_name_linkage_kind;
+
+/* Name linkage kinds are applied both to names and to routine types, yet
+   only certain of them are appropriate for routine types.  For example, the
+   name of a static function may have nlk_internal linkage, but its type would
+   have nlk_external (extern "C") or nlk_cplusplus_external (extern "C++)
+   linkage.  Linkage kinds that are added by a given implementation may or
+   may not apply to routine types. */
+#ifndef or_is_custom_name_linkage_kind_for_rout_type
+#define or_is_custom_name_linkage_kind_for_rout_type(nlk) /* Nothing */
+#endif /* ifndef or_is_custom_name_linkage_kind_for_rout_type */
+/* This macro is used for consistency checking. */
+#define is_name_linkage_kind_for_rout_type(nlk)                         \
+  (nlk == (a_name_linkage_kind)nlk_external ||                          \
+   nlk == (a_name_linkage_kind)nlk_cplusplus_external                   \
+   or_is_custom_name_linkage_kind_for_rout_type(nlk))
 
 /*
 Names of linkage kinds.  These are used to recognize the string in a
@@ -255,6 +282,10 @@ EXTERN char *name_linkage_kind_names[(int)nlk_last+1]
   "C++",		/* nlk_cplusplus_external */
 #endif /* ifdef CIL */
   "C",			/* nlk_external */
+#ifdef CUSTOM_NAME_LINKAGE_KIND_NAMES
+  /* This should be defined if CUSTOM_NAME_LINKAGE_KINDS is defined. */
+  CUSTOM_NAME_LINKAGE_KIND_NAMES
+#endif /* ifdef CUSTOM_NAME_LINKAGE_KIND_NAMES */
   "last"		/* nlk_last */
 }
 #endif /* VAR_INITIALIZERS */

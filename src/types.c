@@ -1989,10 +1989,8 @@ be customized if additional linkage kinds are added a_name_linkage_kind
 {
   a_boolean  compat;
 
-  check_assertion_str2((nlk1 == (a_name_linkage_kind)nlk_external ||
-                        nlk1 == (a_name_linkage_kind)nlk_cplusplus_external) &&
-                       (nlk2 == (a_name_linkage_kind)nlk_external ||
-                        nlk2 == (a_name_linkage_kind)nlk_cplusplus_external),
+  check_assertion_str2(is_name_linkage_kind_for_rout_type(nlk1) &&
+                       is_name_linkage_kind_for_rout_type(nlk2),
                        "routine_linkages_are_compatible:",
                        "unexpected linkage for routine type");
 #if !STANDALONE_UTILITY_PROGRAM
@@ -2036,10 +2034,8 @@ be customized if additional linkage kinds are added a_name_linkage_kind
 (defined in il_def.h).
 */
 {
-  check_assertion_str2((nlk1 == (a_name_linkage_kind)nlk_external ||
-                        nlk1 == (a_name_linkage_kind)nlk_cplusplus_external) &&
-                       (nlk2 == (a_name_linkage_kind)nlk_external ||
-                        nlk2 == (a_name_linkage_kind)nlk_cplusplus_external),
+  check_assertion_str2(is_name_linkage_kind_for_rout_type(nlk1) &&
+                       is_name_linkage_kind_for_rout_type(nlk2),
                        "routine_linkages_are_identical:",
                        "unexpected linkage for routine type");
   /* Unless c_and_cpp_function_types_are_distinct is TRUE, nlk_external and
