@@ -495,7 +495,8 @@ typedef enum /*an_error_code*/ {
   ec_return_type_on_conversion_function,
   ec_template_detected_during_header,
   ec_template_instantiation_context,
-  ec_compiler_generated_function_context
+  ec_compiler_generated_function_context,
+  ec_runaway_recursive_instantiation
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -1732,6 +1732,9 @@ error code.
     case ec_compiler_generated_function_context:
       m = "%simplicit generation of %nf %p";
       break;
+    case ec_runaway_recursive_instantiation:
+      m = "recursion halted at instantiation for %t";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
