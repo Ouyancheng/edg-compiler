@@ -5808,6 +5808,7 @@ See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
   char                *fmt_string = *fmt_string_ptr;
   a_printf_scan_state pss = *pss_ptr;
   a_boolean           l_size, L_size, h_size, add_pointer;
+  a_boolean           hh_size, j_size, z_size, t_size;
 #if LONG_LONG_ALLOWED
   a_boolean           ll_size;
 #endif /* LONG_LONG_ALLOWED */
@@ -5878,8 +5879,11 @@ after_field_width:;
     }  /* if */
 after_precision:;
     /* The optional size character is next.  l indicates long integer
-       (sometimes double), L long double, and h short integer. */
+       (sometimes double), L long double, and h short integer.
+       C99 adds hh for char, ll for long long, j for intmax_t,
+       z for size_t, and t for ptrdiff_t. */
     l_size = L_size = h_size = FALSE;
+    hh_size = j_size = z_size = t_size = FALSE;
 #if LONG_LONG_ALLOWED
     ll_size = FALSE;
 #endif /* LONG_LONG_ALLOWED */
@@ -5899,7 +5903,21 @@ after_precision:;
       L_size = TRUE;
       fmt_string++;
     } else if (*fmt_string == 'h') {
-      h_size = TRUE;
+      if (fmt_string[1] == 'h') {
+        hh_size = TRUE;
+        fmt_string += 2;
+      } else {
+        h_size = TRUE;
+        fmt_string++;
+      }  /* if */
+    } else if (*fmt_string == 'j') {
+      j_size = TRUE;
+      fmt_string++;
+    } else if (*fmt_string == 'z') {
+      z_size = TRUE;
+      fmt_string++;
+    } else if (*fmt_string == 't') {
+      t_size = TRUE;
       fmt_string++;
     }  /* if */
     /* The next character indicates the conversion type, e.g., "d" for
@@ -5910,12 +5928,16 @@ after_precision:;
       case 'd':
       case 'i':
         /* int conversion.  If "l" was specified, long conversion;
-           if "h" was specified for scanf, short conversion. */
-#if LONG_LONG_ALLOWED
-        /* If "ll" was specified, long long conversion. */
-#endif /* LONG_LONG_ALLOWED */
+           if "h" was specified, short conversion.
+           C99 adds "hh" for signed char, "ll" for long long,
+           "j" for intmax_t, "z" for the signed type corresponding to
+           size_t, and "t" for ptrdiff_t. */
         if (l_size) {
           required_type = integer_type((an_integer_kind)ik_long);
+        } else if (h_size) {
+          required_type = integer_type((an_integer_kind)ik_short);
+        } else if (hh_size) {
+          required_type = integer_type((an_integer_kind)ik_signed_char);
 #if LONG_LONG_ALLOWED
         } else if (ll_size) {
           required_type = integer_type((an_integer_kind)ik_long_long);
@@ -5923,8 +5945,17 @@ after_precision:;
             pos_warning(ec_nonstd_printf_format_string, err_pos);
           }  /* if */
 #endif /* LONG_LONG_ALLOWED */
-        } else if (h_size && is_scanf) {
-          required_type = integer_type((an_integer_kind)ik_short);
+        } else if (j_size) {
+          required_type = integer_type(targ_intmax_kind);
+        } else if (z_size) {
+          /* Use the signed integral type that's the same size as size_t. */
+          required_type = integer_type(targ_size_t_int_kind);
+          required_type = integer_type(int_kind_for_size_and_alignment(
+                                                     required_type->size,
+                                                     required_type->alignment,
+                                                     /*is_signed=*/TRUE));
+        } else if (t_size) {
+          required_type = integer_type(targ_ptrdiff_t_int_kind);
         } else {
           required_type = integer_type((an_integer_kind)ik_int);
         }  /* if */
@@ -5936,13 +5967,16 @@ after_precision:;
         /*FALLTHROUGH*/
       case 'u':
         /* Unsigned int conversion.  If "l" was specified, unsigned long
-           conversion; if "h" was specified for scanf, unsigned short 
-           conversion. */
-#if LONG_LONG_ALLOWED
-        /* If "ll" was specified, unsigned long long conversion. */
-#endif /* LONG_LONG_ALLOWED */
+           conversion; if "h" was specified, unsigned short conversion.
+           C99 adds "hh" for unsigned char, "ll" for unsigned long long,
+           "j" for uintmax_t, "z" for size_t, and "t" for the unsigned
+           type corresponding to ptrdiff_t. */
         if (l_size) {
           required_type = integer_type((an_integer_kind)ik_unsigned_long);
+        } else if (h_size) {
+          required_type = integer_type((an_integer_kind)ik_unsigned_short);
+        } else if (hh_size) {
+          required_type = integer_type((an_integer_kind)ik_unsigned_char);
 #if LONG_LONG_ALLOWED
         } else if (ll_size) {
           required_type = integer_type((an_integer_kind)ik_unsigned_long_long);
@@ -5950,8 +5984,18 @@ after_precision:;
             pos_warning(ec_nonstd_printf_format_string, err_pos);
           }  /* if */
 #endif /* LONG_LONG_ALLOWED */
-        } else if (h_size && is_scanf) {
-          required_type = integer_type((an_integer_kind)ik_unsigned_short);
+        } else if (j_size) {
+          required_type = integer_type(targ_uintmax_kind);
+        } else if (z_size) {
+          required_type = integer_type(targ_size_t_int_kind);
+        } else if (t_size) {
+          /* Use the unsigned integral type that's the same size as
+             ptrdiff_t. */
+          required_type = integer_type(targ_ptrdiff_t_int_kind);
+          required_type = integer_type(int_kind_for_size_and_alignment(
+                                                     required_type->size,
+                                                     required_type->alignment,
+                                                     /*is_signed=*/FALSE));
         } else {
           required_type = integer_type((an_integer_kind)ik_unsigned_int);
         }  /* if */
@@ -5959,7 +6003,7 @@ after_precision:;
       case 'a':  /* Added in C99. */
       case 'A':  /* Added in C99. */
       case 'F':  /* Added in C99. */
-        if (strict_ansi_mode && !c99_mode) {
+        if (strict_ansi_mode && C_mode() && !c99_mode) {
           pos_warning(ec_nonstd_printf_format_string, err_pos);
         }  /* if */
         /* FALLTHRU */
@@ -5982,13 +6026,7 @@ after_precision:;
         break;
       case 'c':
         /* Character conversion. */
-        /* int conversion for printf, string conversion for scanf. */
-        if (is_scanf) {
-          /* add_pointer is TRUE, so "char" will become "char *". */
-          required_type = integer_type((an_integer_kind)ik_char);
-        } else {
-          required_type = integer_type((an_integer_kind)ik_int);
-        }  /* if */
+        required_type = integer_type((an_integer_kind)ik_char);
         break;
       case 's':
         /* String conversion.  "pointer to" will be added to make
@@ -6012,11 +6050,16 @@ after_precision:;
       case 'n':
         /* Return number of characters read or written so far.
            Argument is "int *" for both printf and scanf, or "short *"
-           if "h" was specified, or "long *" if "l" was specified. */
+           if "h" was specified, "long *" if "l" was specified.
+           C99 adds "hh" for signed char, "ll" for long long,
+           "j" for intmax_t, "z" for the signed type corresponding
+           to size_t, and "t" for ptrdiff_t. */
         if (l_size) {
           required_type = integer_type((an_integer_kind)ik_long);
         } else if (h_size) {
           required_type = integer_type((an_integer_kind)ik_short);
+        } else if (hh_size) {
+          required_type = integer_type((an_integer_kind)ik_signed_char);
 #if LONG_LONG_ALLOWED
         } else if (ll_size) {
           required_type = integer_type((an_integer_kind)ik_long_long);
@@ -6024,6 +6067,17 @@ after_precision:;
             pos_warning(ec_nonstd_printf_format_string, err_pos);
           }  /* if */
 #endif /* LONG_LONG_ALLOWED */
+        } else if (j_size) {
+          required_type = integer_type(targ_intmax_kind);
+        } else if (z_size) {
+          /* Use the signed integral type that's the same size as size_t. */
+          required_type = integer_type(targ_size_t_int_kind);
+          required_type = integer_type(int_kind_for_size_and_alignment(
+                                                     required_type->size,
+                                                     required_type->alignment,
+                                                     /*is_signed=*/TRUE));
+        } else if (t_size) {
+          required_type = integer_type(targ_ptrdiff_t_int_kind);
         } else {
           required_type = integer_type((an_integer_kind)ik_int);
         }  /* if */
@@ -6058,6 +6112,11 @@ default_case:;
   /* If there was an assignment-suppressing character "*" in a scanf, go
      get the next specifier. */
   if (suppress_assignment) goto another_specifier;
+  if (!is_scanf && required_type != NULL) {
+    /* For printf, promote any types to the type that will actually be
+       passed. */
+    required_type = type_after_integral_promotion(required_type);
+  }  /* if */
 end_of_scan:;
   *fmt_string_ptr = fmt_string;
   *pss_ptr = pss;

@@ -1,9 +1,15 @@
 Version 3.4
 
+12/21/03 C99 printf specifiers: hh, j, z, and t
+
+C99 added several length specifiers for printf/scanf specifiers:
+"hh" for char, "j" for intmax_t, "z" for size_t, and "t" for
+ptrdiff_t.  The Front End now recognizes them.
+
 12/21/03 C99 allows "ll" length on "n" printf specifier
 
 The "n" specifier for printf in C99 allows a "ll" length specifier
-for long long.  The Front End now accepts such a length.
+for long long.  The Front End now recognizes such a length.
 
 12/19/03 Missing error on invalid non-class destructor call
 
