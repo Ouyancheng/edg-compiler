@@ -1,5 +1,18 @@
 Version 3.2
 
+5/5/03   GNU C++ mode: Abort on use of typeof in namespace scopes
+
+In GNU C++ mode, the IL lowering code (when enabled) used to abort when
+processing a typeof operator applied to a nondependent type in namespace
+scope.  For example:
+
+  namespace N {
+    int n;
+    typeof(n) m;  // Used to trigger an abort in IL lowering.
+  }
+
+This is now fixed.
+
 5/5/03   Template template parameters that depend on other template parameters
 
 Support is now provided for template template parameters that have template

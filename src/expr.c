@@ -4880,8 +4880,6 @@ The parentheses are required, unlike for sizeof.
       a_type_ptr  typeof_type = alloc_type((a_type_kind)tk_typeref);
       typeof_type->variant.typeref.type = result;
       typeof_type->variant.typeref.is_typeof = TRUE;
-      add_to_types_list(typeof_type, dependent_arg ? DEPTH_OF_FILE_SCOPE
-                                                   : decl_scope_level);
       result = typeof_type;
     }  /* if */
   }  /* if */
