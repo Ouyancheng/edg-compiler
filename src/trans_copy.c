@@ -327,6 +327,9 @@ pruned at the entry pointed to by ptr, of kind "kind".
     /* This entry is in the primary file IL, so stop and don't process
        it. */
     prune = TRUE;
+  } else if (kind == iek_based_type_list_member) {
+    /* All based type lists get removed. */
+    prune = TRUE;
   } else if (!in_file_scope(ptr)) {
     /* This entry is in a function scope memory region of a secondary
        translation unit.  Use the secondary_trans_unit flag as
@@ -445,6 +448,11 @@ and remap the pointers in the copy by calling remap_function.
     /* Copy the entry to its corresponding space and remap the pointers
        in the copy. */
     (void)memcpy(copy, ptr, size_t_arg(sizeof_il_entry[(int)kind]));
+    if (kind == iek_type) {
+      a_type_ptr type = (a_type_ptr)copy;
+      /* Based type lists don't get copied. */
+      type->based_types = NULL;
+    }  /* if */
     walk_remap_func = remap_function;
     remap_pointers_in_il_entry(copy, kind);
     walk_remap_func = saved_walk_remap_func;
@@ -2759,10 +2767,6 @@ do the termination test.
      this point -- the remap routine eliminates them. */
   check_assertion_str(!in_secondary_trans_unit(ptr),
          "rewrite_secondary_termination_test: remaining secondary IL pointer");
-  /* Note that this walk undoes the flip of il_walk_flag done in
-     mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed,
-     restoring the flag to the same value as in entries copied from
-     secondary translation units. */
   if (il_entry_prefix_of(ptr).il_walk_flag == flag_value_meaning_visited) {
     /* This entry has already been visited on this walk. */
     prune = TRUE;
