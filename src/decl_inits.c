@@ -358,9 +358,31 @@ for unions and aggregates at that level).
   err = FALSE;
   local_type = skip_typerefs(*type);
   check_for_opening_brace(&brace_flag);
+  /* There is special handling to initialize a field or array element that
+     is itself a class object.  If it is a C-style struct (an aggregate
+     class, which has no constructors -- see ARM 8.4.1) we assume the
+     initial values are to be applied on a member by member basis.  This
+     produces slightly anomalous behavior:
+        struct S { int a, b; };        // C-style struct (aggregate)
+        struct T { int a, b; T(); };   // nonaggregate due to T::T()
+        S s1 = { 1, 2 };               // okay (ARM 8.4.1)
+        S s2 = s1;                     // okay (ARM 8.4.1) even without copy
+                                       //   constructor S::S(const S&)
+        S sa1[] = { 1, 2, 1, 2 };      // equivalent to {{1,2},{1,2}}
+        S sa2[] = { s1, s2 };          // error!
+        T t1 = { 1, 2 };               // error -- must use T::T()
+        T t2 = t1;                     // okay -- uses T::T(const T&)
+        T ta = { t1, t2 };             // okay -- see ARM 12.6.1
+     The point to be noted is that if the initialization of sa1 is permitted
+     (which is required for C compatibility) the code to initialize sa2 must
+     be disallowed, despite what one might expect by looking at s2, t2, and
+     ta.  (If we wanted to support the initialization of sa2 and disallow that
+     of sa1, the check for is_class_aggregate in the following conditional
+     would have to be removed.) */
   if (!brace_flag && C_dialect == C_dialect_cplusplus &&
       is_class_struct_union_type(local_type) &&
       !(symbol_supplement_for_class(local_type)->is_class_aggregate)) {
+    /* Whole object initialization. */
 #if CHECKING
     if (top_level) {
       internal_error("get_initializer: class encountered at top level");
