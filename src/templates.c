@@ -175,7 +175,8 @@ provided by this file.  This is used to determine whether to create a
 template information file.
 */
 #define any_instantiations_required()					\
-  (instantiations_required != NULL || inline_function_list != NULL ||	\
+  (master_instantiations_list != NULL ||				\
+   inline_function_list != NULL ||					\
    exported_templates_list != NULL)
 
 
