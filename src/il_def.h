@@ -8361,7 +8361,10 @@ EXTERN struct il_header_tag {
   a_source_file_ptr
                 primary_source_file;
                         /* The description of the primary source file,
-                           and linkage to include file information. */
+                           and linkage to include file information.  In
+                           the front end, when there are secondary translation
+                           units, this is a list of the top-level files,
+                           one for each translation unit. */
   a_scope_ptr   primary_scope;
                         /* The file scope, and from there all the subscopes. */
   a_routine_ptr main_routine;
