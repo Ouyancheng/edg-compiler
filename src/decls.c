@@ -2805,6 +2805,7 @@ value reflecting the linkage of the original symbol.
   a_boolean        err = FALSE;
   a_storage_class  storage_class;
 
+  db_enter(3, "namespace_member_redecl_sym");
   if (!is_definition && !is_friend_decl) {
     /* Improper use of a qualified name in a declarator (WP 8.3). */
     error(ec_qualified_name_not_allowed);
@@ -2855,6 +2856,7 @@ value reflecting the linkage of the original symbol.
     *linkage = idl_none;
     *overload_symbol = NULL;
   }  /* if */
+  db_exit();
   return linked_symbol;
 }  /* namespace_member_redecl_sym */
 
@@ -2906,6 +2908,7 @@ cross-reference output describing this declaration.
   a_boolean                suppress_ext_sym_lookup = FALSE;
   a_boolean                is_variable_def = FALSE;
   a_symbol_ptr             homonym_symbol;
+  a_namespace_ptr          orig_nsp = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr               declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2941,6 +2944,9 @@ cross-reference output describing this declaration.
                                                 is_variable_def,
                                                 /*is_friend_decl=*/FALSE,
                                                 &linkage, &homonym_symbol);
+    /* orig_nsp is set for redeclarations of a namespace member in a
+       containing scope. */
+    if (linked_symbol != NULL) orig_nsp = linked_symbol->parent.namespace_ptr;
   } else {
     /* Determine the linkage of this symbol. */
     linkage = id_linkage(locator, &storage_class, effective_decl_level,
@@ -3143,8 +3149,13 @@ cross-reference output describing this declaration.
            or (in C mode only) a prior tentative definition that we can be
            defining a variable that has already been declared. */
         check_assertion(in_file_scope(variable_ptr));
+        /* If this is a definition of a namespace member appearing in a scope
+           other than that of the namespace to which it belongs, reactivate 
+           the original namespace scope. */
+        if (orig_nsp != NULL) push_namespace_reactivation_scope(orig_nsp);
         remove_from_variables_list(variable_ptr);
         add_to_variables_list(variable_ptr, depth_innermost_namespace_scope);
+        if (orig_nsp != NULL) pop_namespace_reactivation_scope();
       }  /* if */
     }  /* if */
   }  /* if */
