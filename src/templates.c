@@ -1784,6 +1784,12 @@ return FALSE.
        instantiations) to justify looking any further. */
     goto done;
   }  /* if */
+  if (curr_type->variant.routine.extra_info->has_ellipsis != 
+      templ_rout_type->variant.routine.extra_info->has_ellipsis) {
+    /* One routine has an ellipsis argument and the other does not.
+       This cannot be a match. */
+    goto done;
+  }  /* if */
   /* Make a pass over the entries representing instantiations of the function
      template to see if any of them match the current type signature. */
   for (tip = tssp->variant.function.instantiations;

@@ -1,5 +1,16 @@
 Version 2.16
 
+4/13/93  Ellipsis arguments in function template declarations
+
+When doing overload resolution for function templates arguments
+were incorrectly considered to match an ellipsis argument.  Also,
+a function declaration that differs from the template declaration
+only by the presence or absence of an ellipsis argument was incorrectly
+considered to be a specific declaration or definition.  These problems
+have been corrected.  The result is that an ellipsis argument can
+be declared in a function template declaration, but there is no way to
+supply an actual argument in a call to a template function.
+
 4/13/93  Parameter names in abstract declarators
 
 The handling of parameter names in abstract declarators has been made
