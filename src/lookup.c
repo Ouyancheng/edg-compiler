@@ -2690,13 +2690,13 @@ specified will result in all scopes having been considered up to
 a "common" scope at which the two lookup paths come back together.
 The two lookups could result in zero, one, or two symbols being found.
 If no symbols are found, the search resumes from the common scope.
-If one symbols is found, the search also begins with the common
+If one symbol is found, the search also begins with the common
 scope but any symbol found from the common search is used as the
 "second" symbol (i.e., the one for which no symbol was found
 in the defining/referencing searches).  If two symbols are found,
 either from the defining/referencing search or as a result of
 finding one in the defining/referencing search and one in the
-common search, the to symbols are merged and result in either
+common search, the two symbols are merged and result in either
 an overload set or an ambiguous symbol.
 
 ssep is a pointer to the scope stack entry for the template instantiation
