@@ -35,10 +35,11 @@ running with --anachronisms or in Cfront-compatibility mode.)
 
   void f(x) const int x; { ... }    // Internal error has been eliminated
 
-The problem was that the type qualifier was not being removed from the
-param-type entry for the parameter; now it is, though it remains on the
-corresponding variable entry.  This also fixes a bug in how name mangling
-is done for functions with old-style parameter lists.
+The problem was that type qualifiers were not being removed from the type
+pointed to by the param-type entry for the parameter; now it is, though it
+remains on the type for the corresponding variable entry.  This also fixes
+a bug in how name mangling is done for functions with old-style parameter
+lists.
 
 3/29/98   Indirection through a void * pointer in C++ mode
 
