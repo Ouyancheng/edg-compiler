@@ -754,6 +754,12 @@ routine.
       scp = &templ_ptr->source_corresp;
       templ_ptr->kind = (a_template_kind)templk_class;
       tssp->il_template_entry = templ_ptr;
+      if (prototype_instantiations_in_il) {
+        /* When prototype instantiations are included in the IL, add the
+           template to the IL.  We arbitrarily use the file scope as the
+           place to add it. */
+        add_to_templates_list(templ_ptr, DEPTH_OF_FILE_SCOPE);
+      }  /* if */
       break;
     }
     default:
