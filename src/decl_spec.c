@@ -4504,7 +4504,7 @@ process_class_specifier:
            However, the lookup may still have found something -- see
            locator_for_curr_id.specific_symbol. */
         if (input_flags & DSI_IS_NEW_TYPE_NAME) {
-          /* This is a an identifier in a "new" expression so it was
+          /* This is an identifier in a "new" expression so it was
              probably intended to be a type name.  Issue an error and
              pretend that's what it is. */
           error(ec_exp_type_specifier);
