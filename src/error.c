@@ -1928,6 +1928,9 @@ error code.
     case ec_unnamed_object_with_uninitialized_field:
       m = "object has an uninitialized const or reference member";
       break;
+    case ec_nonstd_pp_directive:
+      m = "nonstandard preprocessing directive";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

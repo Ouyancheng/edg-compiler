@@ -1,5 +1,15 @@
 Version 2.17
 
+5/13/93 Warning on nonstandard preprocessing directives
+
+A warning/error is now issued in -a/-A mode for #assert, #unassert,
+#ident, and #alias.
+
+5/13/93 Further size_t_arg changes
+
+Some missing calls of size_t_arg were added, and some unnecessary calls
+were removed.
+
 5/12/93 TARG_UCHAR_MAX, TARG_SCHAR_MAX, and TARG_SCHAR_MIN deleted
 
 Those constants are no longer needed are were removed from target.h

@@ -184,6 +184,17 @@ the "#" the current token (at least logically).
 } /* identify_dir_keyword */
 
 
+static void nonstandard_pp_directive(void)
+/*
+Issue a diagnostic for a use of a nonstandard preprocessing directive.
+*/
+{
+  if (strict_ansi_mode) {
+    diagnostic(strict_ansi_error_severity, ec_nonstd_pp_directive);
+  }  /* if */
+}  /* nonstandard_pp_directive */
+
+
 /*
 Flush to the newline at the end of the current preprocessing directive.
 End-of-source is also checked for because it can come up in some error
@@ -1375,18 +1386,22 @@ execute the preprocessor directive.
       proc_pragma();
       break;
     case ppd_ident:
+      nonstandard_pp_directive();
       proc_ident();
       break;
 #if ALIAS_DIRECTIVE
     case ppd_alias:
+      nonstandard_pp_directive();
       proc_alias();
       break;
 #endif /* ALIAS_DIRECTIVE */
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
     case ppd_assert:
+      nonstandard_pp_directive();
       proc_assert();
       break;
     case ppd_unassert:
+      nonstandard_pp_directive();
       proc_unassert();
       break;
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
@@ -1396,6 +1411,7 @@ execute the preprocessor directive.
     case ppd_linedef:
       /* A line-identifying directive (output from cpp); this is similar
          to a #line directive, but not exactly the same. */
+      nonstandard_pp_directive();
       proc_line(/*cpp_output_form=*/TRUE);
       break;
 #if CHECKING
