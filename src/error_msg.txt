@@ -693,6 +693,8 @@ ec_cannot_build_temp_file_name;;"cannot build temporary file name"
 ec_restrict_not_allowed;;"\"restrict\" is not allowed"
 ec_restrict_pointer_to_function;;"a pointer or reference to function type may not be qualified by \"restrict\""
 ec_bad_declspec_modifier;;"%sq is an invalid __declspec attribute"
+ec_calling_convention_not_allowed;;"a calling convention modifier may not be specified here"
+ec_conflicting_calling_conventions;;"conflicting calling convention modifiers"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
