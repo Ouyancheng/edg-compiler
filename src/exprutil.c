@@ -6225,6 +6225,7 @@ static an_expr_node_ptr func_call_expr(an_expr_node_ptr  function_node,
                                        a_boolean         is_virtual,
                                        a_boolean         virtual_suppressed,
                                        a_boolean         compiler_generated,
+                                       a_boolean         is_conversion,
                                        a_source_position *err_pos)
 /*
 Make an expression for a call of the function indicated by function_node,
@@ -6240,7 +6241,8 @@ and that has suppressed calling it as virtual; that's also reflected in
 is_virtual, but knowing that the user did it explicitly controls whether
 a diagnostic is put out in some cases.  compiler_generated is TRUE if
 this call is compiler-generated (e.g., for an implicit conversion via
-a conversion function).
+a conversion function).  is_conversion is TRUE for a call generated for
+an explicit or implicit conversion (e.g., a conversion function call).
 */
 {
   an_expr_operator_kind         op;
@@ -6297,6 +6299,7 @@ a conversion function).
   /* Make an expression for the function call. */
   call_node = make_operator_node(op, return_type, function_node);
   call_node->variant.operation.compiler_generated = compiler_generated;
+  call_node->variant.operation.is_conversion_call = is_conversion;
   rtsp = function_type->variant.routine.extra_info;
   if (rtsp->value_returned_by_cctor) {
     temp_init_node = create_expr_temporary(return_type,
@@ -6319,6 +6322,7 @@ void make_function_call(an_expr_node_ptr  function_node,
                         a_boolean         is_virtual,
                         a_boolean         virtual_suppressed,
                         a_boolean         compiler_generated,
+                        a_boolean         is_conversion,
                         a_source_position *call_pos,
                         an_operand        *result)
 /*
@@ -6329,7 +6333,9 @@ pointer-to-member-function.  The arguments of the call are already
 attached to function_node.  A skip_typerefs need not have been done
 on function_type.  compiler_generated is TRUE if this is a compiler-
 generated call (e.g., for an implicit conversion via a conversion
-function).  *call_pos gives the source position of the call.
+function).  is_conversion is TRUE for a call generated for an explicit
+or implicit conversion (e.g., a conversion function call).  *call_pos
+gives the source position of the call.
 */
 {
   an_expr_node_ptr call_node;
@@ -6338,7 +6344,8 @@ function).  *call_pos gives the source position of the call.
   function_type = skip_typerefs(function_type);
   /* Make the function call expression node. */
   call_node = func_call_expr(function_node, function_type, is_virtual,
-                             virtual_suppressed, compiler_generated, call_pos);
+                             virtual_suppressed, compiler_generated,
+                             is_conversion, call_pos);
   /* Make an operand for the overall call (etc.). */
   make_expression_operand(call_node, call_node->type, result);
   result->position = *call_pos;
@@ -6363,6 +6370,7 @@ void assemble_function_call(an_operand        *function_operand,
                             an_operand        *bound_function_selector,
                             an_expr_node_ptr  argument_list,
                             a_boolean         compiler_generated,
+                            a_boolean         is_conversion,
                             a_source_position *call_position,
                             an_operand        *result)
 /*
@@ -6371,8 +6379,10 @@ identifies the function to be called.  If a selector object is needed,
 it is provided by *bound_function_selector.  argument_list points to the
 (explicit) argument list.  compiler_generated is TRUE if this is a compiler-
 generated call (e.g., for an implicit conversion via a conversion
-function).  call_position gives the source position of the call.
-An operand for the overall call is constructed in *result.
+function).  is_conversion is TRUE for a call generated for an explicit
+or implicit conversion (e.g., a conversion function call).  call_position
+gives the source position of the call.  An operand for the overall call
+is constructed in *result.
 */
 {
   an_expr_node_ptr function_node;
@@ -6421,7 +6431,8 @@ An operand for the overall call is constructed in *result.
     make_function_call(function_node, function_type,
                        (a_boolean)function_operand->virtual_function, 
                        (a_boolean)function_operand->is_qualified_name,
-                       compiler_generated, call_position, result);
+                       compiler_generated, is_conversion,
+                       call_position, result);
   }  /* if */
   result->position = *call_position;
 }  /* assemble_function_call */
@@ -6476,7 +6487,8 @@ intended to be called from outside of the expression routines.
   node = func_call_expr(func_addr_node, rout->type,
                         rout->is_virtual && !suppress_virtual,
                         rout->is_virtual && suppress_virtual,
-                        /*compiler_generated=*/TRUE, err_pos);
+                        /*compiler_generated=*/TRUE,
+                        /*is_conversion=*/FALSE, err_pos);
   node = wrap_up_full_expression(node);
   /* Allocate the statement. */
   stmt = alloc_expr_statement(node);
@@ -7863,6 +7875,7 @@ is a "get" if put_operand is NULL.
           assemble_function_call(&function_operand, &bound_function_selector,
                                  argument_list,
                                  /*compiler_generated=*/TRUE,
+                                 /*is_conversion=*/FALSE,
                                  &operand_position, operand);
           /* Convert lvalue to rvalue, etc. */
           do_operand_transformations(operand, TOPT_NO_OPTIONS);

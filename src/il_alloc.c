@@ -1781,6 +1781,7 @@ fields to default values.
       node->variant.operation.implicit_in_member_naming = FALSE;
       node->variant.operation.implicit_step_of_explicit_cast = FALSE;
       node->variant.operation.is_reference_cast = FALSE;
+      node->variant.operation.is_conversion_call = FALSE;
 #if CHECKING
       node->variant.operation.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

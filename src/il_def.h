@@ -6344,6 +6344,11 @@ typedef struct an_expr_node {
 			   a cast to a pointer type).  At the moment, set
 			   only for generic casts in prototype
 			   instantiations. */
+      a_bit_field
+		is_conversion_call:1;
+			/* TRUE for a call that does an explicit or implicit
+			   conversion, e.g., a conversion function call
+			   generated for a cast. */
       bitfield_to_avoid_codecenter_warnings()
       an_expr_node_ptr  
                 operands;

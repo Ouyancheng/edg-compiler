@@ -5284,24 +5284,6 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
 }  /* gen_bound_function */
 
 
-static an_expr_node_ptr skip_implicit_baseward_cast(an_expr_node_ptr  expr)
-/*
-If the given expression node represents an implicit cast to a base class,
-return the underlying node.  Otherwise, return the node itself.
-*/
-{
-  an_expr_node_ptr  result = expr;
-
-  if (expr->kind == (an_expr_node_kind)enk_operation &&
-      expr->variant.operation.kind ==
-                                 (an_expr_operator_kind)eok_base_class_cast &&
-      expr->variant.operation.compiler_generated) {
-    result = expr->variant.operation.operands;
-  }  /* if */
-  return result;
-}  /* skip_implicit_baseward_cast */
-
-
 static a_boolean handle_conversion_function_call(an_expr_node_ptr expr)
 /*
 expr is a call expression (e.g., eok_call, eok_virtual_call, eok_generic_call).
@@ -5314,7 +5296,11 @@ call in the normal way.
   an_expr_node_ptr operand_1 = expr->variant.operation.operands;
   an_expr_node_ptr operand_2 = operand_1->next;
 
-  if (operand_1->kind == (an_expr_node_kind)enk_routine_address &&
+  /* The is_conversion flag is FALSE in calls of conversion functions
+     written in function call form, e.g., X.operator int().  Those should
+     be left as calls. */
+  if (expr->variant.operation.is_conversion_call &&
+      operand_1->kind == (an_expr_node_kind)enk_routine_address &&
       operand_1->variant.routine->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
     a_routine_ptr routine = operand_1->variant.routine;
@@ -5324,30 +5310,15 @@ call in the normal way.
       gen_lvalue(operand_2);
       handled = TRUE;
     } else {
-      /* We probably want to issue an old-style cast, but if the conversion
-         function appears in a base class of the type of the converted
-         expression the intended conversion might be hidden by a similar
-         conversion function in the base class. */
-      a_type_ptr       parent_class = routine
-                                           ->source_corresp.parent.class_type;
-      a_type_ptr       curr_class = skip_typerefs(
-                                      type_pointed_to(
-                                        skip_implicit_baseward_cast(operand_2)
-                                          ->type));
-      if (curr_class != parent_class) {
-        /* The conversion function is presumably inherited so that an old-
-           style cast might select a function in a more derived class. */
-      } else {
-        /* Put out the call as an old-style cast.  This is necessary in some
-           cases, e.g., when the conversion function cannot be named. */
-        a_type_ptr return_type =
+      /* Put out the call as an old-style cast.  This is necessary in some
+         cases, e.g., when the conversion function cannot be named. */
+      a_type_ptr return_type =
                      skip_typerefs(routine->type)->variant.routine.return_type;
-        write_tok_ch('(');
-        gen_cast(return_type);
-        gen_lvalue(operand_2);
-        write_tok_ch(')');
-        handled = TRUE;
-      }  /* if */
+      write_tok_ch('(');
+      gen_cast(return_type);
+      gen_lvalue(operand_2);
+      write_tok_ch(')');
+      handled = TRUE;
     }  /* if */
   }  /* if */
   return handled;

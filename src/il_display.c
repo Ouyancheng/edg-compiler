@@ -2552,6 +2552,9 @@ Display the indicated expression node.
       if (ptr->variant.operation.is_reference_cast) {
         disp_boolean("is_reference_cast", TRUE);
       }  /* if */
+      if (ptr->variant.operation.is_conversion_call) {
+        disp_boolean("is_conversion_call", TRUE);
+      }  /* if */
       disp_ptr("operands", (char *)ptr->variant.operation.operands,
                iek_expr_node);
       break;

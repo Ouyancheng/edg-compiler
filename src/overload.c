@@ -8535,6 +8535,7 @@ select_best_function:
                                      bound_function_selector,
                                      arg_expr_list,
                                      /*compiler_generated=*/TRUE,
+                                     /*is_conversion=*/FALSE,
                                      operator_position, result);
             }  /* if */
           }  /* if */
@@ -9628,7 +9629,8 @@ an explicit cast.
     make_function_call(rout_node, conversion_routine->type,
                        (a_boolean)conversion_routine->is_virtual,
                        /*virtual_suppressed=*/FALSE,
-                       !is_explicit_cast,
+                       /*compiler_generated=*/!is_explicit_cast,
+                       /*is_conversion=*/TRUE,
                        &orig_operand.position, operand);
     if (dest_type == NULL) {
       /* No specified destination type.  The result type of the conversion

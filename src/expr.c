@@ -1578,6 +1578,7 @@ Syntax:
     /* Build the call node and an operand for it. */
     assemble_function_call(operand, bound_function_selector, argument_list,
                            /*compiler_generated=*/FALSE,
+                           /*is_conversion=*/FALSE,
                            &call_position, result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
