@@ -53,6 +53,7 @@ EXTERN unsigned long
 		num_compressible_string_pos_allocated;
 #endif /* DEBUG */
 
+extern void give_unnamed_namespace_a_name(a_namespace_ptr nsp);
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION || MICROSOFT_EXTENSIONS_ALLOWED
 extern char *get_mangled_function_name(a_routine_ptr routine);

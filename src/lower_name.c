@@ -1161,7 +1161,7 @@ If the indicated class type is unnamed, give it a name.
 }  /* give_unnamed_class_a_name */
 
 
-static void give_unnamed_namespace_a_name(a_namespace_ptr nsp)
+void give_unnamed_namespace_a_name(a_namespace_ptr nsp)
 /*
 If the indicated namespace is unnamed, give it a name.
 */
