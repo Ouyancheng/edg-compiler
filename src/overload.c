@@ -80,7 +80,8 @@ source_pos is the source position of the reference.  See ARM 13.3,
 {
   a_boolean        is_ptr = FALSE, is_ptr_to_member = FALSE;
   a_boolean        sym_is_list, any_function_templates;
-  a_boolean        dest_type_has_type_qualifiers = FALSE;
+  a_type_qualifier_set
+                   dest_type_qualifiers = TQ_NONE;
   a_type_ptr       routine_type, dest_class, ptr_routine_type;
   a_type_ptr       dest_underlying_type;
   a_symbol_ptr     sym, match_sym = NULL, instance_sym;
@@ -102,7 +103,7 @@ source_pos is the source position of the reference.  See ARM 13.3,
   if (is_ptr || is_ptr_to_member) {
     /* dest_type is a pointer or pointer-to-member type, but the underlying
        type is not necessarily a function type. */
-    dest_type_has_type_qualifiers = is_qualified_type(dest_underlying_type);
+    dest_type_qualifiers = get_type_qualifiers(dest_underlying_type);
     dest_underlying_type = skip_typerefs(dest_underlying_type);
     reduce_projection_symbol_to_fundamental_symbol(ovl_sym);
     if (ovl_sym->kind == (a_symbol_kind)sk_function_template) {
@@ -219,7 +220,9 @@ source_pos is the source position of the reference.  See ARM 13.3,
   if (match_sym != NULL) {
     /* If the pointer type we converted to has extra type qualifiers,
        set the tie-breaker flag in the standard conversion description. */
-    if (dest_type_has_type_qualifiers) std_conv->type_qualifiers_added = TRUE;
+    if (dest_type_qualifiers) {
+      std_conv->type_qualifiers_added = dest_type_qualifiers;
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
@@ -371,7 +374,7 @@ Print an argument match summary for debug purposes.
       amsp->conversion.std.nontrivial_conversion) {
     fprintf(f_debug, " (plus nontrivial conversion)");
   }  /* if */
-  if (amsp->conversion.std.type_qualifiers_added) {
+  if (amsp->conversion.std.type_qualifiers_added != TQ_NONE) {
     fprintf(f_debug, " (type qualifiers added)");
   }  /* if */
   bcp = amsp->conversion.std.cast_base_class;
@@ -722,11 +725,11 @@ reference type if param_is_reference is TRUE.
         conversion_type = f_skip_typerefs(conversion_type);
       }  /* if */
     }  /* if */
-    if (any_qualifier_missing(conversion_type, param_type)) {
-      /* Some type qualifiers are being added.  Remember that for use as a
-         tie-breaker later. */
-      arg_summary->conversion.std.type_qualifiers_added = TRUE;
-    }  /* if */
+    /* If some type qualifiers are being added, remember that for use as a
+       tie-breaker later. */
+    arg_summary->conversion.std.type_qualifiers_added =
+                                       (get_type_qualifiers(param_type) &
+                                        ~get_type_qualifiers(conversion_type));
   }  /* if */
 }  /* set_arg_summary_for_user_conversion */
 
@@ -861,7 +864,9 @@ is TRUE.
   a_boolean         param_is_reference;
   a_boolean         ref_to_nonconst_bound_to_rvalue = FALSE;
   a_boolean         param_is_class_type;
-  a_boolean         ref_type_qualifiers_dropped, ref_type_qualifiers_added;
+  a_boolean         ref_type_qualifiers_dropped;
+  a_type_qualifier_set
+                    ref_type_qualifiers_added;
   a_std_conv_descr  std_conversion;
   a_boolean         ambiguous;
   a_boolean         arg_operand_is_constant;
@@ -911,7 +916,8 @@ is TRUE.
   */
   /* Remove parts of the param type that could be added by trivial
      conversions, hoping thereby to end up with the arg type. */
-  ref_type_qualifiers_dropped = ref_type_qualifiers_added = FALSE;
+  ref_type_qualifiers_dropped = FALSE;
+  ref_type_qualifiers_added = TQ_NONE;
   param_is_reference = is_reference_type(param_type);
   /* See if the array --> pointer and function --> pointer transformations
      should be done. */
@@ -967,7 +973,8 @@ is TRUE.
     } else {
       /* Some type qualifiers are being added.  That's okay, but it may
          be a tie-breaker later. */
-      ref_type_qualifiers_added = TRUE;
+      ref_type_qualifiers_added =
+                                (param_type_qualifiers & ~arg_type_qualifiers);
     }  /* if */
   } else {
     /* The parameter type is not a reference, which means the argument would
@@ -1049,8 +1056,12 @@ is TRUE.
            are okay.  Note that the case where the qualifiers are the same
            need not be checked for, since it would have been handled
            above in the normal exact-match case. */
-        if (any_qualifier_missing(param_type_pointed_to,
-                                  arg_type_pointed_to)) {
+        a_type_qualifier_set param_type_qualifiers =
+                                    get_type_qualifiers(param_type_pointed_to);
+        a_type_qualifier_set arg_type_qualifiers =
+                                    get_type_qualifiers(arg_type_pointed_to);
+        if (any_qualifier_in_set_missing(param_type_qualifiers,
+                                         arg_type_qualifiers)) {
           /* There are some qualifiers being dropped, so the pointer types
              are not compatible. */
         } else {
@@ -1058,7 +1069,8 @@ is TRUE.
              "T* --> (qualified T)*" case, which should be remembered
              as a possible tie-breaker later. */
           arg_summary->match_level = aml_exact;
-          arg_summary->conversion.std.type_qualifiers_added = TRUE;
+          arg_summary->conversion.std.type_qualifiers_added =
+                                (param_type_qualifiers & ~arg_type_qualifiers);
           goto have_level;
         }  /* if */
       }  /* if */
@@ -1192,12 +1204,13 @@ is TRUE.
   /* No match is possible. */
   arg_summary->match_level = aml_none;
 have_level:;
-  if (ref_type_qualifiers_added &&
+  if (ref_type_qualifiers_added != TQ_NONE &&
       (int)arg_summary->match_level < (int)aml_user_conversion) {
     /* Some type qualifiers were added under a reference.  This can serve as
        a tie-breaker later.  User-defined conversions and above work this out
        a different way. */
-    arg_summary->conversion.std.type_qualifiers_added = TRUE;
+    arg_summary->conversion.std.type_qualifiers_added =
+                                                     ref_type_qualifiers_added;
   }  /* if */
   if (ref_to_nonconst_bound_to_rvalue && 
       arg_summary->match_level != aml_none &&
@@ -1799,15 +1812,15 @@ entry to the next argument match.
 
 
 static void check_template_arg_type_qualifiers(
-                                             a_type_ptr *arg_type,
-                                             a_type_ptr *param_type,
-                                             a_boolean  *type_qualifiers_added)
+                                   a_type_ptr           *arg_type,
+                                   a_type_ptr           *param_type,
+                                   a_type_qualifier_set *type_qualifiers_added)
 /*
 Check and process the type qualifiers on an argument type *arg_type and a
 parameter type *param_type as part of trying to match a function template
 to an argument list.  Adjust the types to remove qualifiers that need
-not be considered further.  Set *type_qualifiers_added to TRUE if any
-type qualifiers are added in the conversion from *arg_type to *param_type
+not be considered further.  Set *type_qualifiers_added to the set of
+type qualifiers added in the conversion from *arg_type to *param_type
 (that serves as a tie-breaker in overload resolution).
 */
 {
@@ -1835,13 +1848,18 @@ type qualifiers are added in the conversion from *arg_type to *param_type
   /* The first step is to drop any qualifiers that the argument and
      parameter have in common -- case (a). */
   skip_common_type_qualifiers(arg_type, param_type);
-  if (any_qualifier_missing(*arg_type, *param_type)) {
-    /* Some type qualifiers are being added -- case (b). */
-    *type_qualifiers_added = TRUE;
-    /* All the qualifiers on the parameter type are case (b) and can be
-       removed from further consideration. */
-    *param_type = skip_typerefs(*param_type);
-  }  /* if */
+  { a_type_qualifier_set param_type_qualifiers =
+                                              get_type_qualifiers(*param_type);
+    a_type_qualifier_set arg_type_qualifiers = get_type_qualifiers(*arg_type);
+    if (any_qualifier_in_set_missing(arg_type_qualifiers,
+                                     param_type_qualifiers)) {
+      /* Some type qualifiers are being added -- case (b). */
+      *type_qualifiers_added = (param_type_qualifiers & ~arg_type_qualifiers);
+      /* All the qualifiers on the parameter type are case (b) and can be
+         removed from further consideration. */
+      *param_type = skip_typerefs(*param_type);
+    }  /* if */
+  }
 }  /* check_template_arg_type_qualifiers */
 
 
@@ -1870,7 +1888,9 @@ evaluated (but not checked to see if the match is good enough).
   a_base_class_ptr   base_class_conv_needed;
   an_arg_match_summary_ptr
                      arg_match;
-  a_boolean          param_is_reference, type_qualifiers_added;
+  a_boolean          param_is_reference;
+  a_type_qualifier_set
+                     type_qualifiers_added;
   a_boolean          class_copy_case, pointer_case;
 
   db_enter(4, "function_template_matches_operand_list");
@@ -1915,7 +1935,7 @@ evaluated (but not checked to see if the match is good enough).
       param_type = ptp->type;
       param_is_reference = is_reference_type(param_type);
       arg_type = arg_operand->operand.type;
-      type_qualifiers_added = FALSE;
+      type_qualifiers_added = TQ_NONE;
       pointer_case = FALSE;
       if (is_indefinite_function_operand(&arg_operand->operand)) {
         /* For an overloaded function, each possibility must be tried.
@@ -1995,14 +2015,14 @@ evaluated (but not checked to see if the match is good enough).
         goto done;
       }  /* if */
       /* The argument can be made to match. */
-      if (type_qualifiers_added) {
+      if (type_qualifiers_added != TQ_NONE) {
         /* The match is one that involves adding type qualifiers, which can be
            a tie-breaker later.  For example:
              template <class T> void f(T) {}
              template <class T> void f(const T&) {}
              void m() { int i; f(i); }
         */
-        arg_match->conversion.std.type_qualifiers_added = TRUE;
+        arg_match->conversion.std.type_qualifiers_added= type_qualifiers_added;
       }  /* if */
       class_copy_case = FALSE;
       if (base_class_conv_needed != NULL) {
@@ -2148,23 +2168,34 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
                                                      param_type2)) {
           /* The underlying types are the same, so tie-breaker differences
              are subsequence differences. */
-          int prev_cmp = cmp;
-          if (arg1->conversion.std.type_qualifiers_added) {
-            /* Argument 1 has added type qualifiers and argument 2 does not,
-               so arg_match2 is the better match. */
-            cmp = -1;
-          } else {
-            /* Argument 2 has added type qualifiers and argument 1 does not,
-               so arg_match1 is the better match. */
-            cmp = 1;
-          }  /* if */
-          /* This tie-breaker applies only if no other arguments contradict
-             it, so keep going and look at the rest of the arguments. */
-          if (prev_cmp != 0 && prev_cmp != cmp) {
-            /* This contradicts a previous argument, so the tie-breaker does
+          a_type_qualifier_set added_in_arg1 =
+                                 (arg1->conversion.std.type_qualifiers_added &
+                                  ~arg2->conversion.std.type_qualifiers_added);
+          a_type_qualifier_set added_in_arg2 =
+                                 (arg2->conversion.std.type_qualifiers_added &
+                                  ~arg1->conversion.std.type_qualifiers_added);
+          if (added_in_arg1 != TQ_NONE && added_in_arg2 != TQ_NONE) {
+            /* Both add qualifiers the other does not, so the tie-breaker does
                not apply. */
-            cmp = 0;
-            break;
+          } else {
+            int prev_cmp = cmp;
+            if (added_in_arg1 != TQ_NONE) {
+              /* Argument 1 adds all the type qualifiers added in argument 2
+                 and additional ones as well. */
+              cmp = -1;
+            } else {
+              /* Argument 2 adds all the type qualifiers added in argument 1
+                 and additional ones as well. */
+              cmp = 1;
+            }  /* if */
+            /* This tie-breaker applies only if no other arguments contradict
+               it, so keep going and look at the rest of the arguments. */
+            if (prev_cmp != 0 && prev_cmp != cmp) {
+              /* This contradicts a previous argument, so the tie-breaker does
+                 not apply. */
+              cmp = 0;
+              break;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -2188,7 +2219,9 @@ other.  Return
 
 */
 {
-  int cmp;
+  int                  cmp;
+  a_type_qualifier_set cfp1_qualifiers, cfp2_qualifiers;
+  a_type_qualifier_set added_in_cfp1, added_in_cfp2;
 
   /* Note that the tests here must be ordered from most significant
      to least significant. */
@@ -2210,17 +2243,19 @@ other.  Return
       cmp = 1;
     }  /* if */
   } else if (cfp1->is_user_conversion &&
-             cfp1->conversion.std.type_qualifiers_added !=
-             cfp2->conversion.std.type_qualifiers_added) {
+             (cfp1_qualifiers = cfp1->conversion.std.type_qualifiers_added,
+              cfp2_qualifiers = cfp2->conversion.std.type_qualifiers_added,
+              (cfp1_qualifiers != cfp2_qualifiers &&
+               (added_in_cfp1 = (cfp1_qualifiers & ~cfp2_qualifiers),
+                added_in_cfp2 = (cfp2_qualifiers & ~cfp1_qualifiers),
+                (added_in_cfp2 == TQ_NONE || added_in_cfp1 == TQ_NONE))))) {
     /* The fact that type qualifiers were added after a conversion
        function can serve as a tie-breaker. */
-    if (cfp1->conversion.std.type_qualifiers_added) {
-      /* Type qualifiers were added on cfp1 and not on cfp2, so cfp2 is
-         better. */
+    if (added_in_cfp1 != TQ_NONE) {
+      /* More type qualifiers were added on cfp1, so cfp2 is better. */
       cmp = -1;
     } else {
-      /* Type qualifiers were added on cfp2 and not on cfp1, so cfp1 is
-         better. */
+      /* More type qualifiers were added on cfp2, so cfp1 is better. */
       cmp = 1;
     }  /* if */
   } else if (cfp1->is_function_template != cfp2->is_function_template) {

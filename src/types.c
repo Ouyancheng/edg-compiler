@@ -2402,7 +2402,7 @@ Clear a standard conversion description to default values.
 {
   std_conv->cast_base_class = NULL;
   std_conv->reversed_cast = FALSE;
-  std_conv->type_qualifiers_added = FALSE;
+  std_conv->type_qualifiers_added = TQ_NONE;
   std_conv->pointer_normalization_needed = FALSE;
   std_conv->nontrivial_conversion = FALSE;
   std_conv->warning_suggested = ec_no_error;
@@ -2713,11 +2713,14 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
          It might have additional qualifiers.  ANSI C 3.3.16.1 (assignment);
          ARM 4.6 (pointer conversions: qualifiers cannot be dropped
          implicitly), 5.17 (assignment), 8.4 (initializers). */
-      if (type_qualifiers_match(dest_type_pointed_to,
-                                source_type_pointed_to)) {
+      a_type_qualifier_set dest_type_qualifiers =
+                                     get_type_qualifiers(dest_type_pointed_to);
+      a_type_qualifier_set source_type_qualifiers =
+                                   get_type_qualifiers(source_type_pointed_to);
+      if (dest_type_qualifiers == source_type_qualifiers) {
         /* The qualifiers are the same. */
-      } else if (any_qualifier_missing(dest_type_pointed_to,
-                                       source_type_pointed_to)) {
+      } else if (any_qualifier_in_set_missing(dest_type_qualifiers,
+                                              source_type_qualifiers)) {
         /* Qualifiers are being dropped. */
         if (cfront_2_1_mode && 
             is_void(unqual_dest_type_pointed_to) &&
@@ -2730,7 +2733,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         }  /* if */
       } else {
         /* Qualifiers are being added. */
-        std_conv->type_qualifiers_added = TRUE;
+        std_conv->type_qualifiers_added =
+                              (dest_type_qualifiers & ~source_type_qualifiers);
       }  /* if */
     }  /* if */
   } else if (C_dialect == C_dialect_pcc && is_integral(source_type)) {
@@ -2971,16 +2975,20 @@ pointers to members).
          It might have additional qualifiers.  This is not mentioned in
          the ARM, but it makes sense by analogy with pointer types
          (ARM 4.6, 5.17, 8.4). */
-      if (type_qualifiers_match(dest_type_pointed_to,
-                                source_type_pointed_to)) {
+      a_type_qualifier_set dest_type_qualifiers =
+                                     get_type_qualifiers(dest_type_pointed_to);
+      a_type_qualifier_set source_type_qualifiers =
+                                   get_type_qualifiers(source_type_pointed_to);
+      if (dest_type_qualifiers == source_type_qualifiers) {
         /* The qualifiers are the same. */
-      } else if (any_qualifier_missing(dest_type_pointed_to,
-                                       source_type_pointed_to)) {
+      } else if (any_qualifier_in_set_missing(dest_type_qualifiers,
+                                              source_type_qualifiers)) {
         /* Qualifiers are being dropped. */
         okay = FALSE;
       } else {
         /* Qualifiers are being added. */
-        std_conv->type_qualifiers_added = TRUE;
+        std_conv->type_qualifiers_added =
+                              (dest_type_qualifiers & ~source_type_qualifiers);
       }  /* if */
     }  /* if */
   } else if (source_is_constant &&
