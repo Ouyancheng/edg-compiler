@@ -38,6 +38,8 @@ typedef enum a_pragma_binding_kind {
 		/* Processed when cleared from the curr_token pragma list. */
   pbk_other,
 		/* Processed by special code added to handle a given pragma. */
+  pbk_preproc_immediate,
+                /* Processed when encountered as a preprocessing directive. */
   pbk_last
 		/* Must be last. */
 } a_pragma_binding_kind;
@@ -61,6 +63,10 @@ typedef an_immediate_pragma_function *an_immediate_pragma_function_ptr;
 
 typedef void an_other_pragma_function(a_pending_pragma_ptr ppp);
 typedef an_other_pragma_function *an_other_pragma_function_ptr;
+
+typedef void a_preproc_immediate_pragma_function(a_pragma_kind pk);
+typedef a_preproc_immediate_pragma_function
+                                    *a_preproc_immediate_pragma_function_ptr;
 
 /*
 Typedef used for a pragma processing function pointer that may point to
