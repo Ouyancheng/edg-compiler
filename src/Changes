@@ -22,9 +22,9 @@ it is now called the same way as the other one_time_init routines.
 
 4/15/05  Possible leaked file descriptor
 
-When generating makefile dependencies and using implicit inclusion
-of template definition files, a file could potentially be opened but never
-closed.  This occurs only if the template definition file found by
+When the front end is generating makefile dependencies and using implicit
+inclusion of template definition files, a file could potentially be opened
+but never closed.  This occurs only if the template definition file found by
 the search process turns out to be the same as the primary source file
 being compiled.  Now fixed.
 
