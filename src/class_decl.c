@@ -6081,6 +6081,18 @@ to indicate whether the class/struct/union is actually defined.
                   virtual_specified = FALSE;
                   suppress_pure_specifier_error = TRUE;
                 }  /* if */
+              } else if (virtual_specified && locator.is_operator_name &&
+                         (locator.variant.opname == (an_opname_kind)onk_new ||
+                          locator.variant.opname ==
+                                                 (an_opname_kind)onk_delete)) {
+                /* Operators new and delete may not be declared virtual. */
+                pos_st_error(ec_virtual_new_or_delete_not_allowed,
+                             &decl_start_pos,
+                             (locator.variant.opname ==
+                                                  (an_opname_kind)onk_new) ?
+                               "new" : "delete");
+                virtual_specified = FALSE;
+                suppress_pure_specifier_error = TRUE;
               } else if (virtual_specified &&
                          member_storage_class == (a_storage_class)sc_static) {
                 /* Only nonstatic member functions may be specified as
