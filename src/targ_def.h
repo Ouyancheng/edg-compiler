@@ -3034,11 +3034,6 @@ facilities defined by the C standardization committee's ISO/IEC TR 18037
 #ifndef FIXED_POINT_EXTENSIONS_ALLOWED
 #define FIXED_POINT_EXTENSIONS_ALLOWED FALSE
 #endif /* ifndef FIXED_POINT_EXTENSIONS_ALLOWED */
-#if !FIXED_POINT_EXTENSIONS_ALLOWED
-#if DEFAULT_FIXED_POINT_ALLOWED
- #error -- fixed-point enabling not allowed
-#endif /* DEFAULT_FIXED_POINT_ALLOWED */
-#endif /* !FIXED_POINT_EXTENSIONS_ALLOWED */
 
 /*
 Flag that is TRUE if fixed-point extensions (e.g., support for _Fract and
@@ -3048,6 +3043,9 @@ global variable fixed_point_allowed.
 #ifndef DEFAULT_FIXED_POINT_ALLOWED
 #define DEFAULT_FIXED_POINT_ALLOWED FALSE
 #endif /* DEFAULT_FIXED_POINT_ALLOWED */
+#if !FIXED_POINT_EXTENSIONS_ALLOWED && DEFAULT_FIXED_POINT_ALLOWED
+ #error -- fixed-point enabling not allowed
+#endif /* !FIXED_POINT_EXTENSIONS_ALLOWED && ... */
 
 /*
 This switch controls whether a post-pass is done after IL lowering
