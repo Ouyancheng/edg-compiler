@@ -5337,7 +5337,9 @@ no additional conversion is needed after the conversion function is called.
       conv_lvalue_to_rvalue(operand);
     }  /* if */
     /* Do any necessary standard or trivial conversion. */
-    cast_operand(dest_type, operand, /*is_implicit_cast=*/TRUE);
+    if (dest_type != NULL && is_an_rvalue(operand)) {
+      cast_operand(dest_type, operand, /*is_implicit_cast=*/TRUE);
+    }  /* if */
   } else {
 #if CHECKING
     if (conversion_routine->special_kind !=
