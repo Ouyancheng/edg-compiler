@@ -683,13 +683,14 @@ Scan and process an #undef directive.
     if (assoc_symbol == NULL) {
       /* No such macro, so #undef is ignored. */
     } else if (assoc_symbol->variant.macro_def->cannot_be_redefined &&
-               !microsoft_mode) {
+               !microsoft_mode && !gnu_mode) {
       /* The macro is predefined. */
       diagnostic(es_discretionary_error, ec_cannot_undef_predef_macro);
     } else {
-      if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
+      if (assoc_symbol->variant.macro_def->cannot_be_redefined && !gnu_mode) {
         /* The Microsoft compiler gives a warning for a case like this.
-           The warning says the #undef is ignored, but it isn't. */
+           The warning says the #undef is ignored, but it isn't.  In
+           GNU mode, silently allow the undefinition. */
         warning(ec_cannot_undef_predef_macro);
       }  /* if */
 #if RECORD_MACROS_IN_IL

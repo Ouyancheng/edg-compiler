@@ -1,5 +1,15 @@
 Version 3.5
 
+10/13/04 GNU compatibility: undefining predefined macros
+
+The GNU compilers allow a predefined macro to be undefined.  We now allow
+such undefinitions in gcc and g++ modes.
+
+  #undef __EDG__
+  #ifdef __EDG__
+  #error __EDG__ is defined
+  #endif
+
 10/13/04 Unrecognized pragmas scanned as pp-tokens
 
 When INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL is TRUE, the front end previously
