@@ -8014,7 +8014,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*effects_copy_initialization=*/FALSE,
                                          /*from_arg_dep_lookup=*/FALSE,
                                          dependent_call,
-                                         /*known_to_be_visible=*/FALSE,
+                                         /*known_to_be_visible=*/TRUE,
                                          &candidate_functions,
                                          &matched_except_for_missing_selector);
           }  /* if */

@@ -1,5 +1,23 @@
 Version 2.45
 
+9/15/00  Visibility of operator functions in template base classes in
+         strict mode
+
+Overloaded operator functions declared in template-dependent base classes
+were not found on lookup for operator uses in strict mode.  Now, they are.
+This problem was introduced in version 2.44.
+
+  struct a {
+     short operator~() const;
+  };
+  template <int I, int J> class b: public a {
+  };
+  template <int I> class c: public b<I,I> {
+  };
+  short test2(const c<3> v) {
+    return ~v;  // Formerly got error because a::operator~ was not found
+  }
+
 9/15/00  Suppressed inclusions listed by --trace_includes (-H) option
 
 The front end suppresses the inclusion of a header file that has previously
