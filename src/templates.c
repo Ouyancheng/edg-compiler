@@ -3635,45 +3635,50 @@ match is found.
   /* Get the template parameter list associated with the template. */
   sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
   templ_sym = (a_symbol_ptr)templ_templ->source_corresp.assoc_info;
-  tssp = sym->variant.template_info;
-  templ_tssp = templ_sym->variant.template_info;
-  param_list_for_templ = templ_tssp->cache.decl_info->parameters;
-  param_list = tssp->cache.decl_info->parameters;
-  if (equiv_template_param_lists(param_list_for_templ, param_list,
-                                 /*issue_errors=*/FALSE,
-                                 (a_source_position*)NULL)) {
-    /* The actual template is compatible with the template template parameter.
-       See if it is compatible with any previously deduced value. */
-    /* Get the template nesting depth as indicated by the first template
-       parameter.  Any template parameters found in templ_type must be at
-       the same level to participate in deduction. */
-    a_template_nesting_depth	depth_of_template;
-    depth_of_template = nesting_depth_of_template_param(templ_param_list);
-    if (depth_of_template ==
+  if (sym->is_error || templ_sym->is_error) {
+    /* If either symbol is an error symbol, there is no match. */
+  } else {
+    tssp = sym->variant.template_info;
+    templ_tssp = templ_sym->variant.template_info;
+    param_list_for_templ = templ_tssp->cache.decl_info->parameters;
+    param_list = tssp->cache.decl_info->parameters;
+    if (equiv_template_param_lists(param_list_for_templ, param_list,
+                                   /*issue_errors=*/FALSE,
+                                   (a_source_position*)NULL)) {
+      /* The actual template is compatible with the template template
+         parameter.  See if it is compatible with any previously deduced
+         value. */
+      /* Get the template nesting depth as indicated by the first template
+         parameter.  Any template parameters found in templ_type must be at
+         the same level to participate in deduction. */
+      a_template_nesting_depth	depth_of_template;
+      depth_of_template = nesting_depth_of_template_param(templ_param_list);
+      if (depth_of_template ==
                         templ_tssp->variant.class_template.coordinates.depth) {
-      /* The depths match. */
-      a_template_param_list_pos		list_pos;
-      a_template_ptr			templ_ptr;
-      a_template_arg_ptr		tap;
-      /* Get the template argument that corresponds with this parameter. */
-      list_pos = templ_tssp->variant.class_template.coordinates.position;
-      tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
-                                         list_pos);
-      check_assertion(tap->kind == (a_templ_arg_kind)tak_template);
-      templ_ptr = tssp->il_template_entry;
-      if (tap->variant.templ == NULL) {
-        /* No template has been bound to this template argument yet, so just
-           the current template. */
-        tap->variant.templ = templ_ptr;
-        match = TRUE;
-      } else {
-        /* A template was already bound to this template argument.  We have a
-           match if and only if the new one is the same as the old one. */
-        if (tap->variant.templ == templ_ptr) {
-          /* Okay. */
+        /* The depths match. */
+        a_template_param_list_pos		list_pos;
+        a_template_ptr			templ_ptr;
+        a_template_arg_ptr		tap;
+        /* Get the template argument that corresponds with this parameter. */
+        list_pos = templ_tssp->variant.class_template.coordinates.position;
+        tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
+                                           list_pos);
+        check_assertion(tap->kind == (a_templ_arg_kind)tak_template);
+        templ_ptr = tssp->il_template_entry;
+        if (tap->variant.templ == NULL) {
+          /* No template has been bound to this template argument yet, so just
+             the current template. */
+          tap->variant.templ = templ_ptr;
           match = TRUE;
         } else {
-          /* Not a match.  Return FALSE. */
+          /* A template was already bound to this template argument.  We have a
+             match if and only if the new one is the same as the old one. */
+          if (tap->variant.templ == templ_ptr) {
+            /* Okay. */
+            match = TRUE;
+          } else {
+            /* Not a match.  Return FALSE. */
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -7080,6 +7085,23 @@ structure.
 }  /* find_template_function */
 
 
+static a_boolean equiv_templates(a_template_symbol_supplement_ptr	tssp1,
+				 a_template_symbol_supplement_ptr	tssp2)
+/*
+Return TRUE if tssp1 and tssp2 are equivalent.  Two templates are
+equivalent if they have equivalent template parameter lists.
+*/
+{
+  a_boolean				result;
+
+  result = equiv_template_param_lists(tssp1->cache.decl_info->parameters,
+                                      tssp2->cache.decl_info->parameters,
+				      /*issue_errors=*/FALSE,
+				      (a_source_position*)NULL);
+  return result;
+}  /* equiv_templates */
+
+
 static
 a_boolean check_template_param_nesting_depths(a_template_param_ptr param_list,
                                               a_symbol_ptr	   class_sym)
@@ -7145,11 +7167,14 @@ describing any incompatibilities.
       old_tptsp = old_type->variant.template_param.extra_info;
       old_type->variant.template_param.extra_info = old_tptsp;
       new_type->variant.template_param.extra_info = old_tptsp;
-    } else {
+    } else if (old_sym->kind == (a_symbol_kind)sk_constant) {
       /* Both are constants.  Make sure the values are the same. */
-      check_assertion(old_sym->kind == (a_symbol_kind)sk_constant);
       err = !eq_constants(old_tpp->variant.constant.ptr,
                           new_tpp->variant.constant.ptr);
+    } else {
+      /* Template template parameters.  Compare the two templates. */
+      check_assertion(old_sym->kind == (a_symbol_kind)sk_class_template);
+      err = equiv_templates(old_tpp->variant.templ, new_tpp->variant.templ);
     }  /* if */
     if (err) {
       if (issue_errors) {

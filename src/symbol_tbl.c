@@ -4109,12 +4109,15 @@ Return a pointer to an error class template.
     a_template_ptr			templ_ptr;
     sym = alloc_symbol((a_symbol_kind)sk_class_template,
                        (a_symbol_header_ptr)NULL, &null_source_position);
+    sym->is_error = TRUE;
     sym->is_template_param = TRUE;
     tssp = sym->variant.template_info;
     templ_ptr = alloc_template();
     set_source_corresp(&templ_ptr->source_corresp, sym);
     templ_ptr->kind = (a_template_kind)templk_template_template_param;
-    tssp->is_nonreal_member = TRUE;
+    /* Note that this is not marked as a nonreal member.  In this way,
+       instances based on an error class template will not necessarily
+       be nonreal. */
     tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
     tssp->il_template_entry = templ_ptr;
     error_class_template_symbol = sym;
