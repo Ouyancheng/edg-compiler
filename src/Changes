@@ -2339,7 +2339,7 @@ between enums is allowed.  The Front End now allows that.
   enum E1 { ke1 };
   enum E2 { ke2 };
   int main () {
-    static_cast<E2>(ke1);   // Not w allowed
+    static_cast<E2>(ke1);   // Now allowed
   }
 
 3/5/01   Diagnostic on fields involving variable length array types
