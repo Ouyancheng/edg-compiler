@@ -1461,6 +1461,9 @@ nested class.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Go through the routine fixup entries to scan inline function bodies. */
     for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = next_rfp) {
+      a_boolean	in_class_specialization =
+                   rfp->class_type->
+                         variant.class_struct_union.is_in_class_specialization;
       next_rfp = rfp->next;
       if (rfp->function_body_token_cache.first_token != NULL ||
           (rfp->is_template && rfp->symbol->defined)) {
@@ -1483,7 +1486,8 @@ nested class.
           curr_scope_class_type = rfp->class_type;
         }  /* if */
         if ((is_real_template_instantiation &&
-             !is_friend && !rfp->is_specialization)) {
+             !is_friend && !rfp->is_specialization &&
+             !in_class_specialization)) {
           /* Discard the token cache for member functions of template
              classes -- instantiate_function_template does its thing based
              on the tokens saved during prototype instantiation. */
@@ -1530,8 +1534,7 @@ nested class.
         } else if (is_nonreal_template_instantiation &&
                    !scope_stack[depth_scope_stack].inside_local_class &&
                    !is_friend && !rfp->is_specialization &&
-                   !rfp->class_type->
-                       variant.class_struct_union.is_in_class_specialization) {
+                   !in_class_specialization) {
           /* Prototype instantiation -- copy the cache for member functions.
              (Note that member functions of local classes of a function
              prototype instantiation are nonreal, but they are not themselves

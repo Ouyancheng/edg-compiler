@@ -1,5 +1,20 @@
 Version 3.6
 
+12/13/04 Microsoft compatibility: functions defined in in-class specializations
+
+Version 3.5 introduced a problem with functions defined in Microsoft
+in-class specializations.  In some cases such function definitions were
+not emitted in the generated code, resulting in link errors.  Now fixed.
+
+  template <class T> struct A {
+    template <class T2> struct B;
+    template <> struct B<char> { void f(){} };
+  };
+  int main() {
+    A<int>::B<char> ab;
+    ab.f();
+  }
+
 12/13/04 Implicit inclusion: suppressing re-inclusion of primary source file
 
 A change made in version 3.1 could result in the primary source file being
