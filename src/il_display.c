@@ -551,10 +551,10 @@ Display the indicated source correspondence entry.
      final_name_mangling_pending, which are used only in
      the front end. */
 #endif /* NEED_NAME_MANGLING */
+#if ONE_INSTANTIATION_PER_OBJECT
   if (scp->static_used_by_instantiation) {
     disp_boolean("  static_used_by_instantiation", TRUE);
   }  /* if */
-#if ONE_INSTANTIATION_PER_OBJECT
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
   if (scp->duplicate_static_in_instantiation_slices) {
     disp_boolean("  duplicate_static_in_instantiation_slices", TRUE);

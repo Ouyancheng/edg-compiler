@@ -3531,8 +3531,8 @@ in il_alloc_init.)
   def_source_corresp.partially_hidden_by_microsoft_injected_class_name = FALSE;
   def_source_corresp.visible_as_unqualified_name = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
-  def_source_corresp.static_used_by_instantiation = FALSE;
 #if ONE_INSTANTIATION_PER_OBJECT
+  def_source_corresp.static_used_by_instantiation = FALSE;
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
   def_source_corresp.duplicate_static_in_instantiation_slices = FALSE;
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
