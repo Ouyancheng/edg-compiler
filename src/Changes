@@ -245,7 +245,9 @@ new type now notes the source position of the original declaration.
 
 Top-level qualifiers are removed from function parameter types (see changes
 of 1/16/95 and 1/20/95) only if ABI_COMPATIBILITY_VERSION is greater than
-227.  Otherwise, cfront-compatible behavior is retained.
+or equal to 229.  In earlier ABI versions, the qualifiers are retained.
+in all modes (not just cfront mode).  Note that this is a change from
+2.28, but is compatible with the behavior of versions prior to 2.28.
 
 5/11/95  Non-null test on pointer on call of user-written operator delete
 
