@@ -1006,6 +1006,8 @@ extern void make_type_conversion_locator(a_type_ptr         type,
                                          a_symbol_locator   *locator,
                                          a_source_position  *pos);
 
+extern a_symbol_ptr global_operator_new_symbol(a_source_position  *pos);
+
 extern an_access_specifier access_for_symbol(a_symbol_ptr sym_ptr);
 
 extern a_boolean have_member_access_privilege(a_type_ptr class_type);

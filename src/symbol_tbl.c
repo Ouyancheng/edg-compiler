@@ -20,6 +20,7 @@ symbol_tbl.c - Symbol table management routines.
 #include "il.h"
 #include "types.h"
 #include "cmd_line.h"
+#include "decls.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
@@ -1876,6 +1877,62 @@ in the conversion header list; if there is none, a new one is created.
   locator->variant.conversion_result_type = type;
 #undef DEFAULT_NAME_LEN
 }  /* make_type_conversion_locator */
+
+
+a_symbol_ptr global_operator_new_symbol(a_source_position  *pos)
+/*
+Look up and return a symbol for global operator new.  If no symbol exists,
+create one along with a routine entry to represent the function.
+*/
+{
+  a_symbol_header_ptr            sym_hdr;
+  a_symbol_ptr                   sym = NULL, ext_sym;
+  a_type_ptr                     rout_type, old_type;
+  a_routine_type_supplement_ptr  extra_info;
+  an_extern_linkage              external_linkage;
+  an_id_linkage_kind             linkage;
+  a_symbol_locator               locator;
+
+  db_enter(4, "global_operator_new_symbol");
+  /* If the opname symbol table has a header for operator new, look up the
+     symbol.  Ignore symbols for member functions. */
+  sym_hdr = opname_symbol_table[(an_opname_kind)onk_new];
+  if (sym_hdr != NULL) {
+    for (sym = sym_hdr->symbol; sym != NULL; sym = sym->next) {
+      if (sym->class_of_which_a_member == NULL &&
+          (sym->kind == (a_symbol_kind)sk_routine ||
+           sym->kind == (a_symbol_kind)sk_overloaded_function)) {
+         break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  /* If none was found, create one. */
+  if (sym == NULL) {
+    /* Create a routine type for global operator new. */
+    rout_type = alloc_type((a_type_kind)tk_routine);
+    rout_type->variant.routine.return_type = make_pointer_type(void_type());
+    extra_info = rout_type->variant.routine.extra_info;
+    extra_info->param_type_list =
+         alloc_param_type(integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND),
+                          /*at_file_scope=*/TRUE);
+    extra_info->prototyped = TRUE;
+    set_routine_calling_method_flag(rout_type);
+    /* Create a locator for the symbol that is to be created. */
+    make_opname_locator(tok_new, (an_opname_kind)onk_new, &locator, pos);
+    /* Create the symbol and routine entry. */
+    external_linkage.kind = (a_name_linkage_kind)nlk_cplusplus_external;
+    external_linkage.is_explicit = FALSE;
+    decl_var_or_routine(&locator, (a_storage_class)sc_unspecified,
+                        rout_type, /*is_implicit_function=*/FALSE,
+                        /*if_function_def_with_body=*/FALSE,
+                        /*is_inline=*/FALSE, external_linkage, &sym,
+                        &linkage, &old_type, &ext_sym);
+    sym->variant.routine->compiler_generated = TRUE;
+  }  /* if */
+
+  db_exit();
+  return sym;
+}  /* global_operator_new_symbol */
 
 
 static a_source_correspondence *source_corresp_entry_for_symbol(
