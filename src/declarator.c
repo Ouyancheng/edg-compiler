@@ -1243,6 +1243,7 @@ see function_declarator (below) for which this is a helper function.
 #endif /* if 0 */
   esp = scan_exception_specification(func_info, !disallow_exception_spec,
                                      top_level);
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if ((microsoft_bugs && microsoft_version <= 1200) ||
       (microsoft_mode && microsoft_version >= 1300 && esp != NULL &&
        rtsp->routine_name_linkage != (a_name_linkage_kind)nlk_external &&
@@ -1250,7 +1251,10 @@ see function_declarator (below) for which this is a helper function.
     /* Microsoft compilers used to ignore exception specifications entirely.
        Current versions have nonstandard semantics for "throw()" and (for
        extern "C" function) for "throw (...)". */
-  } else {
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
     rtsp->exception_specification = esp;
   }  /* if */
 }  /* cplusplus_function_declarator_trailer */
