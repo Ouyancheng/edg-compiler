@@ -43,6 +43,10 @@ extern char *malloc(unsigned size);
 #include "mem_manage.h"
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
+#if SABER
+extern int saber_untype (void *, unsigned int);
+#endif /* SABER */
+
 
 static FILE	*f_il_input;
 			/* Intermediate language file. */
@@ -61,7 +65,13 @@ static a_boolean
 			/* TRUE if reading IL for the file scope, FALSE if
 			   reading IL for a function scope. */
 
-
+#if CHECKING && DEBUG
+static a_byte_boolean *
+		entry_read_array[(int)iek_last];
+			/* Array of pointers, for each IL entry kind,
+			   pointing to a boolean array denoting which
+			   entries of that kind have been read. */
+#endif /* CHECKING && DEBUG */
 #else /* !ALTERNATE_IL_FILE_FORMAT */
 
 typedef struct a_block_remap_entry *a_block_remap_entry_ptr;
@@ -113,6 +123,9 @@ Interface to fread.  Read "size" bytes from f_il_input and put them at
   if (fread(ptr, (int)size, 1, f_il_input) != 1) {
     catastrophe(ec_bad_il_file);
   }  /* if */
+#if SABER
+  (void)saber_untype((void *)ptr, (unsigned int)size);
+#endif /* SABER */
 }  /* fread_with_check */
 
 
@@ -265,6 +278,12 @@ necessary to make it directly accessible in memory.
 #if CHECKING
   an_il_entry_number        count_of_entries_read[(int)iek_last];
   an_il_entry_number        trimmed_entry_number;
+#if DEBUG
+  int			    index,
+			    entry_count;
+  a_byte_boolean	    *bool_ptr;
+
+#endif /* DEBUG */
 #endif /* CHECKING */
 #else /* !ALTERNATE_IL_FILE_FORMAT */
   a_mem_block_header_ptr    old_hdr, hdr;
@@ -330,6 +349,19 @@ necessary to make it directly accessible in memory.
              alloc_in_region(region_number,
                              (sizeof_t)(entry_count_array_ptr[byte_entry_kind]*
                                         sizeof_il_entry[byte_entry_kind]));
+#if CHECKING && DEBUG
+    /* Allocate a boolean array to track reading each IL entry of this kind
+       into this region. */
+    {
+      entry_count = entry_count_array_ptr[byte_entry_kind] +1;
+      entry_read_array[byte_entry_kind] = (a_byte_boolean *)
+             alloc_in_region(region_number,
+                             (sizeof_t)(entry_count * sizeof(a_byte_boolean)));
+      for (index=0; index < entry_count; index++) {
+	entry_read_array[byte_entry_kind][index] = FALSE;
+      }  /* for */
+    }
+#endif /* CHECKING && DEBUG */
   }  /* for */
   /* Remap the entry numbers in the header to pointers, if reading the 
      file-scope IL. */
@@ -399,6 +431,16 @@ necessary to make it directly accessible in memory.
       /* Count the entries read to see if we get all of them.  String entries
          are counted by character. */
       count_of_entries_read[byte_entry_kind] += entry_length;
+#if DEBUG
+      /* Mark the string entry for the length of the string as having
+         been read. */
+      {
+        bool_ptr = entry_read_array[byte_entry_kind] + trimmed_entry_number;
+        for (index = 0; index < entry_length; index++) {
+          *(bool_ptr++) = TRUE;
+        }  /* for */
+      }
+#endif /* DEBUG */
 #endif /* CHECKING */
     } else {
       /* Non-string entry. */
@@ -406,6 +448,10 @@ necessary to make it directly accessible in memory.
 #if CHECKING
       /* Count the entries read to see if we get all of them. */
       count_of_entries_read[byte_entry_kind]++;
+#if DEBUG
+      /* Mark this entry as having been read. */
+      entry_read_array[byte_entry_kind][trimmed_entry_number] = TRUE;
+#endif /* DEBUG */
 #endif /* CHECKING */
     }  /* if */
     /* Determine the address of the entry within the array of entries of
@@ -434,10 +480,40 @@ necessary to make it directly accessible in memory.
                         (long)region_number);
         }  /* if */
         (void)fprintf(f_debug,
-                    "     entry kind =%3ld,   written =%4ld,   read =%4ld\n",
-                    (long)byte_entry_kind,
-                    (long)entry_count_array_ptr[byte_entry_kind],
-                    (long)count_of_entries_read[byte_entry_kind]);
+                      "     entry kind =%3ld,   written =%4ld,   read =%4ld\n",
+                      (long)byte_entry_kind,
+                      (long)entry_count_array_ptr[byte_entry_kind],
+                      (long)count_of_entries_read[byte_entry_kind]);
+        entry_count = entry_count_array_ptr[byte_entry_kind];
+        bool_ptr = entry_read_array[byte_entry_kind] + 1;
+        if is_string_entry_kind((an_il_entry_kind)byte_entry_kind) {
+          /* A form of string entry. */
+          index = 1;
+          while (index <= entry_count) {
+            if (*(bool_ptr++) == FALSE) {
+              /* Have found the beginning of a missing string. */
+              (void)fprintf(f_debug, "        missing entry = %ld",
+                           (long)index);
+              /* Skip over the missing bytes of the string.  Note,
+                 missing back to back strings will appear in the debug
+                 output as a single large string. */
+              for (index++;
+                   index <= entry_count && *(bool_ptr++) == FALSE;
+                   index++) {
+              }  /* for */
+              (void)fprintf(f_debug, " - %ld\n", (long)index-1);
+            }  /* if */
+            index++;
+          } /* while */
+        } else {
+          for (index = 1; index <= entry_count; index++) {
+            if (*(bool_ptr++) == FALSE) {
+              (void)fprintf(f_debug, "        missing entry = %ld\n",
+                            (long)index);
+            }  /* if */
+          }  /* for */
+        }  /* if */
+           
 #endif /* DEBUG */
         errors = TRUE;
       }  /* if */
@@ -609,7 +685,7 @@ build the in-memory version.
   if (fseek(f_il_input, index_pos, SEEK_SET) != 0) {
     catastrophe(ec_bad_il_file);
   }  /* if */
-  fread_with_check((char *)&index_for_il_file[1],
+  fread_with_check((char *)&index_for_il_file[FILE_SCOPE_REGION_NUMBER],
                    (sizeof_t)(sizeof(a_file_position)*
                               highest_used_region_number));
   /* Check that we are now at end of file. */
