@@ -2890,6 +2890,7 @@ namespace-extension scope.
   a_boolean        err = FALSE;
   a_storage_class  storage_class;
   a_namespace_ptr  nsp = qualifier_namespace_ptr(*locator);
+  a_boolean        is_function_template_decl = FALSE;
 
   db_enter(3, "qualified_name_redecl_sym");
   check_assertion(nsp != NULL || is_friend_decl);
@@ -2908,6 +2909,11 @@ namespace-extension scope.
     err = TRUE;
   } else {
     /* This is a valid location for such a declaration. */
+    if (scope_stack[decl_scope_level].kind ==
+                                 (a_scope_kind)sck_template_declaration &&
+        is_function_type(type_ptr)) {
+      is_function_template_decl = TRUE;
+    }  /* if */
     if (nsp != NULL) {
       if (is_friend_decl) {
         /* Push a namespace-reactivation scope scope for friend declarations
@@ -2930,11 +2936,10 @@ namespace-extension scope.
       }  /* if */
     }  /* if */
     /* Look up the name. */
-    linked_symbol = find_linked_symbol(locator, depth_scope_stack,
-                                       type_ptr, /*is_main=*/FALSE,
-                                       is_friend_decl,
-                                       /*is_function_template=*/FALSE,
-                                       &prior_decl, overload_symbol);
+    linked_symbol = find_linked_symbol(locator, depth_scope_stack, type_ptr,
+                                       /*is_main=*/FALSE, is_friend_decl,
+                                       is_function_template_decl, &prior_decl,
+                                       overload_symbol);
     if (linked_symbol != NULL) {
       /* A linked symbol was found -- set the storage class and and linkage
          appropriately. */
