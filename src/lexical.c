@@ -3415,12 +3415,17 @@ list, we process the normal (non-macro-only) preincludes.
   if (next_preinclude_file != NULL) {
     file_name = next_preinclude_file->file_name;
     if (put_dir_of_each_opened_source_file_on_incl_search_path &&
+        compare_dir_names(dir_name_of_primary_source_file,
+                          current_directory_name,
+                          /*is_partial_file_name=*/FALSE) != 0 &&
         !microsoft_mode) {
       /* Update the first entry of the include file search list that
          contains the directory of the primary source file to refer to
          the current directory instead.  This is not done in Microsoft
          mode, because the Microsoft compiler uses the directory of the
-         primary source file even when processing preinclude files. */
+         primary source file even when processing preinclude files.
+         This is only done if the current directory is different than
+         the directory of the primary source file. */
       change_primary_include_search_dir(current_directory_name);
     }  /* if */
     open_file_and_push_input_stack(
