@@ -2479,19 +2479,20 @@ statement no new scope is required.
 }  /* dependent_statement */
 
 
-static an_expr_node_ptr start_condition_block(a_statement_ptr  sp)
+static an_expr_node_ptr start_condition_block_and_scan_declaration(
+                                                            a_statement_ptr sp)
 /*
-Do processing required to start a condition "block".  This involves pushing
-an sck_condition scope, allocating an enk_condition expression node, and
-scanning the variable declaration.  A pointer to the expression node is
-returned.
+Start a condition block and scan the declaration for the condition.
+This involves pushing an sck_condition scope, allocating an
+enk_condition expression node, and scanning the variable declaration.
+A pointer to the expression node is returned.
 */
 {
-  an_expr_node_ptr  node;
+  an_expr_node_ptr  node, value_node;
   a_variable_ptr    vp;
   a_scope_ptr       scope;
 
-  db_enter(3, "start_condition_block");
+  db_enter(3, "start_condition_block_and_scan_declaration");
   /* Push the new scope, and bind the if, switch, for, or while statement to
      it. */
   scope = push_scope((a_scope_kind)sck_condition, NO_SCOPE_NUMBER,
@@ -2508,14 +2509,19 @@ returned.
   }  /* if */
   /* The node points to an expression that represents the value of the
      initialized variable. */
-  node->variant.condition->expr = var_rvalue_expr(vp);
+  value_node = rvalue_expr_for_variable(vp, &vp->source_corresp.decl_position);
+  if (sp->kind == (a_statement_kind)stmk_switch) {
+    /* A switch condition gets integral promotion [stmt.switch]. */
+    integral_promote_node(&value_node);
+  }  /* if */
+  node->variant.condition->expr = value_node;
   /* Copy the type of the variable expression into the condition node (since
      all expression nodes need to have a type). */
   node->type = node->variant.condition->expr->type;
   db_exit();
   /* Return the condition node. */
   return node;
-}  /* start_condition_block */
+}  /* start_condition_block_and_scan_declaration */
 
 
 static void finish_condition_block(void)
@@ -2548,10 +2554,10 @@ in C++.
     /* A condition declaration.  Start a scope for the variable declared in
        the condition and scan the declaration. */
     *is_condition_decl = TRUE;
-    sp->expr = start_condition_block(sp);
+    sp->expr = start_condition_block_and_scan_declaration(sp);
   } else if (sp->kind == (a_statement_kind)stmk_switch) {
     /* Scan the controlling expression and check to see that it is integral. */
-    sp->expr = scan_integer_expression();
+    sp->expr = scan_integer_expression(/*is_switch_expr=*/TRUE);
   } else {
     /* Scan the controlling expression and check to see that it is scalar. */
     sp->expr = scan_boolean_controlling_expression();
@@ -2677,16 +2683,6 @@ See also 3.6.4.2.
   /* Scan the "condition", which in C++ may be a condition declaration. */
   scan_condition(sp, &is_condition_decl);
   if (!is_error_node(sp->expr)) {
-    /* The expression is integral.  Promote it (to int) if necessary. */
-    if (C_dialect != C_dialect_pcc) {
-      /* ANSI: the normal integral promotions are done. */
-      integral_promote_node(&sp->expr);
-    } else {
-      /* pcc treats all switch expressions as int.  This differs from
-         ANSI in that even long is cast to int. */
-      cast_node(&sp->expr, integer_type((an_integer_kind)ik_int),
-                /*is_implicit_cast=*/TRUE, &error_position);
-    }  /* if */
     /* Issue a remark if the selector is constant. */
     if (is_constant_node(sp->expr)) {
       remark(ec_switch_selector_expr_is_constant);
@@ -2979,7 +2975,8 @@ statement.  Its form is
     (void)required_token(tok_lparen, ec_exp_lparen);
     add_stop_token(tok_rparen);
     /* Scan the expression and check to see that it is integral. */
-    sp->variant.microsoft_try->except_expr = scan_integer_expression();
+    sp->variant.microsoft_try->except_expr =
+                             scan_integer_expression(/*is_switch_expr=*/FALSE);
     /* Check for and skip the closing parenthesis. */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
