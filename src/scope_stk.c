@@ -1498,17 +1498,22 @@ to the declaration information for the template declaration scope being pushed.
         /* We are pushing the scope for a class template instantiation.
            Source sequence entries are normally disallowed for instantiations,
            but should not be disallowed for the instantiation scope pushed
-           around a template class specialization in Microsoft mode. */
+           around a template class specialization in Microsoft mode.
+           The "!is_incomplete_type" test is done to detect the reactivation of
+           a class scope.  Source sequence entries should also not be
+           disallowed for the instantiation scope pushed for the reactivation
+           of a template class. */
         source_sequence_entries_disallowed =
         !(microsoft_mode &&
-          assoc_type->variant.class_struct_union.is_specialized) &&
+          (assoc_type->variant.class_struct_union.is_specialized ||
+           !is_incomplete_type(assoc_type))) &&
         !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS; /*lint !e506*/
       } else {
         /* We are pushing the scope for a function template instantiation
            or for the definition of a template static data member. */
         source_sequence_entries_disallowed =
      !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS; /*lint !e506*/
-      }  /* if */
+    }  /* if */
     }  /* if */
     ssep->source_sequence_entries_disallowed =
                                      source_sequence_entries_disallowed;
