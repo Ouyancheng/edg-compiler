@@ -354,10 +354,8 @@ source correspondence field and has kind "kind") along with some related
 information, such as its address and translation unit.
 */
 {
-  a_source_correspondence	*scp;
-  char				*copy_addr = NULL;
-  a_trans_unit_corresp_ptr	tucp;
-  a_boolean			has_defn = FALSE, show_defn_state = FALSE;
+  char      *copy_addr = NULL;
+  a_boolean has_defn = FALSE, show_defn_state = FALSE;
 
   if (entry == NULL) {
     fprintf(f_debug, "<null pointer>\n");
@@ -402,22 +400,25 @@ information, such as its address and translation unit.
       fprintf(f_debug, ", %s definition", has_defn ? "has" : "no");
     }  /* if */
     fprintf(f_debug, "\n");
-    scp = source_corresp_for_il_entry(entry, kind);
-    tucp = scp == NULL ? NULL : scp->trans_unit_corresp;
-    if (tucp != NULL) {
-      /* Display the correspondence information. */
-      fprintf(f_debug, "corresp = %p, canonical = %p, primary = %p\n", tucp,
-              tucp->canonical, tucp->primary);
-    }  /* if */
-    if (in_secondary_trans_unit(entry) && in_file_scope(entry)) {
-      copy_addr = trans_unit_copy_address_of(entry);
-      fprintf(f_debug, "copy address = %p", copy_addr);
-      /* Check for a second level copy address. */
-      if (copy_addr != NULL && in_secondary_trans_unit(copy_addr)) {
-        copy_addr = trans_unit_copy_address_of(copy_addr);
-        fprintf(f_debug, ", %p", copy_addr);
+    if (in_front_end) {
+      a_source_correspondence  *scp = source_corresp_for_il_entry(entry, kind);
+      a_trans_unit_corresp_ptr tucp =
+                                (scp == NULL) ? NULL : scp->trans_unit_corresp;
+      if (tucp != NULL) {
+        /* Display the correspondence information. */
+        fprintf(f_debug, "corresp = %p, canonical = %p, primary = %p\n", tucp,
+                tucp->canonical, tucp->primary);
       }  /* if */
-      fprintf(f_debug, "\n");
+      if (in_secondary_trans_unit(entry) && in_file_scope(entry)) {
+        copy_addr = trans_unit_copy_address_of(entry);
+        fprintf(f_debug, "copy address = %p", copy_addr);
+        /* Check for a second level copy address. */
+        if (copy_addr != NULL && in_secondary_trans_unit(copy_addr)) {
+          copy_addr = trans_unit_copy_address_of(copy_addr);
+          fprintf(f_debug, ", %p", copy_addr);
+        }  /* if */
+        fprintf(f_debug, "\n");
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* db_entity_info */
