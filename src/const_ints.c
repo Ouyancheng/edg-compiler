@@ -403,8 +403,10 @@ Return the number of bits required to represent the indicated constant.
 */
 {
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-  int           nbits;
-  unsigned long mask, sign_mask, value;
+  int           		nbits;
+  an_unsigned_integer_value	mask;
+  an_unsigned_integer_value	sign_mask;
+  an_unsigned_integer_value	value;
 
   value = cp->variant.integer_value;
   nbits = 1;
@@ -415,11 +417,11 @@ Return the number of bits required to represent the indicated constant.
   if ((a_signed_integer_value)cp->variant.integer_value < 0 &&
       int_constant_is_signed(cp)) {
     /* Constant is negative. */
-    mask = ~(unsigned long)0;
-    sign_mask = ~(unsigned long)0;
+    mask = ~(an_unsigned_integer_value)0;
+    sign_mask = ~(an_unsigned_integer_value)0;
   } else {
     /* Constant is nonnegative or unsigned. */
-    mask = ~(unsigned long)1;
+    mask = ~(an_unsigned_integer_value)1;
     sign_mask = 0;
   }  /* if */
   /* Stop when the mask includes all the significant bits of the value. */
@@ -940,7 +942,8 @@ otherwise.
     an_integer_value	op_1 = *orig_op_1;
     an_integer_value	op_2 = *orig_op_2;
     an_integer_value	result;
-    result = (long)((unsigned long)op_1 * (unsigned long)op_2);
+    result = (an_integer_value)((an_unsigned_integer_value)op_1 *
+                                (an_unsigned_integer_value)op_2);
     *orig_op_1 = result;
     /* Check overflow possibilities. */
     /* divide_integers is not needed here, since the operation is unsigned. */

@@ -1,5 +1,12 @@
 Version 2.29
 
+4/19/95  Using "long long" for host integer operations
+
+It is now possible to use integral types larger than a host long
+as an_integer_value.  There were a few places in const_ints.c that
+assumed that an_integer_value would not be larger than a host long.
+These have been eliminated.
+
 4/14/95  Passing configuration information to the runtime
 
 The --building_runtime command line option has been added.  This causes
@@ -7,7 +14,10 @@ the front end to create additional predefined macros that represent
 target configuration information.  For example, the setjmp jmp_buf
 element kind and number of elements are now passed to the runtime
 using the predefined macros __EDG_JMP_BUF_ELEMENT_TYPE and
-__EDG_JMP_BUF_NUM_ELEMENTS.
+__EDG_JMP_BUF_NUM_ELEMENTS.  The value of ABI_COMPATIBILITY_VERSION
+is passed in the macro __EDG_ABI_COMPATIBILITY_VERSION so that the
+runtime can automatically configure itself appropriately for a given
+version of the front end.
 
 4/13/95  Off-by-one bug in using targ_max_class_object_size
 
