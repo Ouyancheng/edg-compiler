@@ -1308,7 +1308,7 @@ error code.
       m = "const or volatile qualifier on this function is not allowed";
       break;
     case ec_virtual_static_not_allowed:
-      m = "only nonstatic member functions may be declared virtual";
+      m = "only nonstatic member functions may be virtual";
       break;
     case ec_unqual_function_with_qual_object:
       m = "function may not be called for const- or volatile-qualified object";
