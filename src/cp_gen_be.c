@@ -9778,6 +9778,15 @@ declarator (or NULL if it wasn't recorded).
       /* Friend declaration.  The rules for using qualified names are
          different than for ordinary declarations. */
       gen_friend_function_decl_name(scp, is_definition);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (rout->overridden_function != NULL && decl_within_class) {
+      /* This is a selectively overriding virtual function declaration in
+         a class definition.  Such overriders are declared with the qualified 
+         name of the function being overridden (its unqualified name is
+         identical, of course). */
+      gen_decl_name(&rout->overridden_function->source_corresp,
+                    iek_routine, /*force_unqualified_name=*/FALSE);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       gen_decl_name(scp, iek_routine, force_unqualified_name);
     }  /* if */
