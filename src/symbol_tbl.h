@@ -142,6 +142,16 @@ typedef struct a_symbol_locator {
 			   no coalescing was actually performed.  This
 			   indicates that no processing is needed should
 			   is_generalized_identifier_start be called again. */
+  unsigned int  is_vacuous_destructor_reference:1;
+			/* TRUE if the identifier is a destructor name of
+			   a type that has no destructor.  Used for
+			   explicit destructor invocations of the form
+			   p->int::~int.  The type can be a non-class type
+			   or a class type with no destructor. */
+  unsigned int	is_non_class_destructor:1;
+			/* TRUE for vacuous destructor references for 
+			   non-class types such as int::~int or i::~i
+			   where "i" is a typedef name. */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
 			   specific symbol for the qualified name.  Otherwise,

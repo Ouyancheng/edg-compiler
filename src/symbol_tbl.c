@@ -2415,7 +2415,7 @@ the latter will be NULL for variables.
           if (param_types_are_compatible(
                                  rout_type,
                                  sym_ptr->variant.extern_symbol_descr->type,
-                                 /*allow_error_type=*/TRUE)) {
+                                 TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
             /* Param types are compatible, so we have a match.  */
             break;
           }  /* if */
@@ -6899,6 +6899,8 @@ to avoid an 8-character external name clash with symbol_table.)
   cleared_locator.is_destructor_name = FALSE;
   cleared_locator.is_semivisible_nested_type = FALSE;
   cleared_locator.access_control_error_reported = FALSE;
+  cleared_locator.is_vacuous_destructor_reference = FALSE;
+  cleared_locator.is_non_class_destructor = FALSE;
   cleared_locator.specific_symbol = NULL;
   cleared_locator.variant.conversion_result_type = NULL;
 
