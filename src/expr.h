@@ -61,6 +61,11 @@ extern a_routine_ptr select_default_constructor(a_type_ptr        class_type,
 
 extern a_routine_ptr select_destructor(a_type_ptr class_type);
 
+extern a_symbol_ptr find_copy_constructor(a_type_ptr class_type,
+                                          a_boolean  const_object_required,
+                                          a_boolean  volatile_object_required,
+                                          a_boolean  *ambiguous);
+
 extern a_routine_ptr select_copy_constructor(
                                     a_type_ptr        class_type,
                                     a_boolean         const_object_required,
