@@ -9054,7 +9054,8 @@ lvalue to its logical "not".
     } else {
       /* Decrement.  Build !temp. */
       result_value_node = make_operator_node((an_expr_operator_kind)eok_not,
-                                             integer_type(ik_int),
+                                             integer_type(
+                                                      (an_integer_kind)ik_int),
                                              x_rvalue_copy);
       result_value_node = add_cast(result_value_node, x_rvalue->type);
       if (!predecr_case) {
