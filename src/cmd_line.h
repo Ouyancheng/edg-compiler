@@ -115,6 +115,7 @@ typedef enum /*an_option_kind*/ {
   optk_inlining,
 #endif /* MINIMAL_INLINING */
   optk_SVR4_C_mode,
+  optk_brief_diagnostics,
   optk_last		/* Must be last. */
 } an_option_kind;
 

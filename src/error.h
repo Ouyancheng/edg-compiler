@@ -117,7 +117,11 @@ EXTERN an_error_severity
                            either be es_error or es_warning.  This can be
                            modified by a command line option. */
 
-
+EXTERN a_boolean
+                brief_diagnostics /* = FALSE */;
+                        /* TRUE if diagnostic output should omit the
+			   source line information and suppress wrapping
+			   of the error message text. */
 
 /*
 Error routines.

@@ -445,7 +445,7 @@ do
 ###############################################################################
 # Options passed to the front end that take no arguments
 ###############################################################################
-    -a |--strict_warnings | \
+    -a | --strict_warnings | \
     -b | --cfront_2.1 | \
          --cfront_3.0 | \
     -j | --no_use_before_set_warnings | \
@@ -483,6 +483,8 @@ do
          --no_inlining | \
          --svr4 | \
          --no_svr4 | \
+         --brief_diagnostics | \
+         --no_brief_diagnostics | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Check for C or C++ mode

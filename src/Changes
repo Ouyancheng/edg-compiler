@@ -1,5 +1,12 @@
 Version 2.28
 
+3/2/95   Brief diagnostics option
+
+The options --brief_diagnostics and --no_brief_diagnostics enable
+and disable a mode in which a shorter form of the diagnostic
+output is used.  When enabled, the original source line is not
+displayed and the error text is not wrapped.
+
 3/1/95   IL CHANGE: new variable flag modified_within_try_block
 
 A new flag, modified_within_try_block, has been added to a_variable.  It is

@@ -418,6 +418,14 @@ Initialize the option information table.
 			 "no_svr4",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_brief_diagnostics,
+			 "brief_diagnostics",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_brief_diagnostics,
+			 "no_brief_diagnostics",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_none);
 }  /* initialize_option_descriptions */
 
 
@@ -1265,6 +1273,12 @@ Process the arguments on the command line that invoked the compiler.
            option implies ANSI C mode. */
         SVR4_C_mode = opt_value;
         C_dialect = C_dialect_ANSI;
+        break;
+      case optk_brief_diagnostics:
+        /* Diagnostics should or should not be emitted in a form that
+	   omits the source information and suppresses wrapping of
+	   the error message text. */
+	brief_diagnostics = opt_value;
         break;
       default:
         /* It should not be possible to get here. */

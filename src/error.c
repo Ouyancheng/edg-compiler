@@ -2132,7 +2132,7 @@ additional messages in a multiple message diagnostic.
     if (diag_kind != dck_end_list && diag_kind != dck_end_context) {
       /* There is a message to be formatted and written. */
       /* Put out the error message text to stderr. */
-      write_message(stderr, &line_len, /*wrap=*/TRUE);
+      write_message(stderr, &line_len, /*wrap=*/!brief_diagnostics);
 
 #if !STANDALONE_UTILITY_PROGRAM
       /* The message is always output to stderr so that the user can see it.
@@ -2148,7 +2148,7 @@ additional messages in a multiple message diagnostic.
 
     if (diag_kind == dck_standalone || diag_kind == dck_end_list) {
 #if !STANDALONE_UTILITY_PROGRAM
-      if (source_text_needed && 
+      if (source_text_needed && !brief_diagnostics &&
           (diag_kind == dck_standalone || diag_kind == dck_end_list)) {
         /* Write the source text line, with a caret pointing to the location
            of the error. */
@@ -2163,7 +2163,8 @@ additional messages in a multiple message diagnostic.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     }  /* if */
     if ((diag_kind == dck_standalone || diag_kind == dck_end_list ||
-         diag_kind == dck_end_context) && !context_required) {
+         diag_kind == dck_end_context) &&
+	!context_required && !brief_diagnostics) {
       /* Put out an extra space line after the error, for clarity.  The
          space is suppressed if a context message is to follow since the
          space should follow the context. */
