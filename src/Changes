@@ -1,5 +1,15 @@
 Version 2.45
 
+9/27/00  Microsoft compatibility: __forceinline and __inline allowed on
+         explicit specializations and explicit instantiations
+
+The front end now accepts the Microsoft mode storage modifiers __forceinline
+and __inline of declarations that are explicit specializations or explicit
+instantiations.  For example:
+
+  template<class T> struct S { void f(); };
+  template<> __forceinline void S<int>::f() {}  // No longer an error
+
 9/27/00  Instantiation of static data member type
 
 The front end used to instantiate the element type of a static data member

@@ -4528,12 +4528,11 @@ Returns TRUE if there is an error in the specifiers.
               unexpected_condition();
           }  /* switch */
           if (!(input_flags & DSI_STORAGE_CLASS_SPECIFIER_ALLOWED) &&
-              (!is_declspec ||
-               !(input_flags & (DSI_IS_EXPLICIT_INSTANTIATION |
-                                DSI_IS_SPECIALIZATION)))) {
-            /* Unless this is "declspec" and the declaration is an explicit
-               instantiation or an explicit specialization, a diagnostic is
-               issued when DSI_STORAGE_CLASS_SPECIFIER_ALLOWED is not set. */
+              !(input_flags & (DSI_IS_EXPLICIT_INSTANTIATION |
+                               DSI_IS_SPECIALIZATION))) {
+            /* Unless the declaration is an explicit instantiation or an
+               explicit specialization, a diagnostic is issued when
+               DSI_STORAGE_CLASS_SPECIFIER_ALLOWED is not set. */
             pos_error(ec_storage_class_not_allowed, &specifier_start_pos);
             err = TRUE;
           } else if (input_flags & DSI_IS_CONDITION_DECL) {
