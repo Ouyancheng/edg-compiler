@@ -2546,19 +2546,20 @@ enum a_based_type_kind_tag {
   /* Indication of the relationship between the based type and the base
      type. */
 #ifdef CIL
-  btk_qualified,		/* A (const, volatile, const-volatile, etc.)
-				   qualified version of the type. */
-  btk_reference,		/* Reference to the type. */
-  btk_ptr_to_member,		/* Pointer to member type (C++ only). */
-  btk_unqualified_array_type,	/* The "based-type" is an array type to which
-				   a qualifier was applied -- the qualifier
-				   went to the element type, so a new
-				   array type (the base type) resulted.  E.g.,
-				   qualifying (int)[10] (the "based-type")
-				   with const creates (const int)[10] (the
-				   the base type). */
+  btk_qualified,	/* A (const, volatile, const-volatile, etc.) qualified
+			   version of the type. */
+  btk_reference,	/* Reference to the type. */
+  btk_ptr_to_member,	/* Pointer to member type (C++ only). */
+  btk_unqualified_array_type,
+			/* Means that the "based type" is an array type to
+			   which a qualifier was applied to produce the
+			   "base type".  The qualifier went to the element
+			   type, so a new array type (= the base type)
+			   resulted.  (For example, qualifying (int)[3] with
+			   const creates (const int)[3], and the original is
+			   recorded as a based type of the new type.) */
 #endif /* ifdef CIL */
-  btk_pointer			/* Pointer to the type. */
+  btk_pointer		/* Pointer to the type. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_based_type_kind;
