@@ -1209,6 +1209,7 @@ Syntax:
   a_token_sequence_number
                     opening_paren_tok_seq_number;
   a_boolean         unknown_dependent_function = FALSE;
+  a_symbol_ptr      member_func_sym = NULL;
 
   db_enter(4, "scan_function_call");
 
@@ -1301,9 +1302,9 @@ Syntax:
     if (is_sym_for_member_operand(operand) &&
         is_a_function_designator(operand) &&
         !operand->bound_function) {
-      a_symbol_ptr func_sym = operand->variant.symbol;
-      if (make_this_pointer_operand(func_sym,
-                                    func_sym,
+      member_func_sym = operand->variant.symbol;
+      if (make_this_pointer_operand(member_func_sym,
+                                    member_func_sym,
                                     &call_position,
                                     (a_boolean)operand->
                                                  access_control_error_reported,
@@ -1312,7 +1313,7 @@ Syntax:
         end_position = operand->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         /* Make an operand for the function bound to the "this" pointer. */
-        make_function_designator_operand(func_sym,
+        make_function_designator_operand(member_func_sym,
                                          (a_boolean)operand->is_qualified_name,
                                          &call_position,
                                          operand->ref_entries_list, operand);
@@ -1582,8 +1583,15 @@ Syntax:
       } else {
         /* Some mismatch (more qualifiers on selector than on "this" parameter
            type). */
-        pos_start_error(ec_unqual_function_with_qual_object,
-                        &bound_function_selector->position);
+        if (member_func_sym != NULL) {
+          /* The member function called is known. */
+          pos_sy_start_error(ec_unqual_named_function_with_qual_object,
+                             &bound_function_selector->position,
+                             member_func_sym);
+        } else {
+          pos_start_error(ec_unqual_function_with_qual_object,
+                          &bound_function_selector->position);
+        }  /* if */
         display_object_type(bound_function_selector->type);
         end_error();
         conv_to_error_operand(bound_function_selector);

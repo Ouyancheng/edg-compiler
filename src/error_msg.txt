@@ -1134,6 +1134,7 @@ ec_cl_implicit_include_incompatible_with_multiple_trans_units;;"\"implicit_inclu
 ec_corrupted_export_template_file;;"exported template file %sq is corrupted"
 ec_exported_instantiation_and_specialized;;"%n cannot be instantiated -- it has been explicitly specialized in the translation unit containing the exported definition"
 ec_object_type_add_on;INTERNAL;"object type is: %s"
+ec_unqual_named_function_with_qual_object;;"the object has type qualifiers that are not compatible with the member %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
