@@ -1596,7 +1596,9 @@ static a_routine_ptr
 		fixed_multiply_routine,
 		fixed_divide_routine,
 		fixed_shiftl_routine,
-		fixed_shiftr_routine;
+		fixed_shiftr_routine,
+		fixed_incr_routine,
+		fixed_decr_routine;
 
 
 static void lower_c99_fixed_point_operation(an_expr_node_ptr expr)
@@ -1759,27 +1761,36 @@ Lower the indicated fixed-point increment or decrement operation.
 {
   an_expr_operator_kind op = expr->variant.operation.kind, assign_op;
   an_expr_node_ptr      op1 = expr->variant.operation.operands;
-  an_expr_node_ptr      op1_for_operation, op1_for_assign, op_node, op2_node;
+  an_expr_node_ptr      op1_for_argument, op1_for_assign, op_node, op2_node;
+  an_expr_node_ptr      fxmask_expr;
   a_variable_ptr        temp_var = NULL;
-  a_boolean             is_incr, is_post_op, temp_init_used;
+  a_boolean             is_post_op, temp_init_used;
   a_type_ptr            result_type = rvalue_type(type_pointed_to(op1->type));
+  char                  *routine_name;
+  a_routine_ptr         *routine;
+  unsigned long         fxmask;
+  int                   shift_amount = 0;
 
   switch (op) {
     case eok_fxpost_incr:
       is_post_op = TRUE;
-      is_incr = TRUE;
+      routine_name = "_Fixed_incr";
+      routine = &fixed_incr_routine;
       break;
     case eok_fxpost_decr:
       is_post_op = TRUE;
-      is_incr = FALSE;
+      routine_name = "_Fixed_decr";
+      routine = &fixed_decr_routine;
       break;
     case eok_fxpre_incr:
       is_post_op = FALSE;
-      is_incr = TRUE;
+      routine_name = "_Fixed_incr";
+      routine = &fixed_incr_routine;
       break;
     case eok_fxpre_decr:
       is_post_op = FALSE;
-      is_incr = FALSE;
+      routine_name = "_Fixed_decr";
+      routine = &fixed_decr_routine;
       break;
     default:
       unexpected_condition_str(
@@ -1793,50 +1804,60 @@ Lower the indicated fixed-point increment or decrement operation.
   /* The normal rewrite of
        ++x
      is
-       x = x + 1
-     Make a copy of op1 to be used as the left operand of the underlying
-     add/subtract.  op1 itself will be used as the left operand of the
-     assignment. */ 
-  op1_for_operation = make_lvalue_reusable_copy_full(op1,
-                                                     /*vars_can_change=*/FALSE,
-                                                     &temp_init_used);
+       x = _Fixed_incr(x);
+     Make a copy of op1 to be used as the argument of the call.
+     op1 itself will be used as the left operand of the assignment. */ 
+  op1_for_argument = make_lvalue_reusable_copy_full(op1,
+                                                    /*vars_can_change=*/FALSE,
+                                                    &temp_init_used);
   op1_for_assign = op1;
   assign_op = lowered_assignment_operator(result_type);
   if (temp_init_used || is_post_op) {
-    /* op1 is complex and was assigned to a temporary.  Make sure that
+    /* op1 is complicated and was assigned to a temporary.  Make sure that
        the temporary is initialized before it is used by doing the
        overall rewrite of
          ++x;
        as
-         (temp = *(t = &x)), *t = temp + 1)
+         ((temp = *(t = &x)), *t = _Fixed_incr(temp))
        We also use the temporary if the operation is a post-increment
        or -decrement, because we want to save and return the original value. */
     temp_var = make_local_temporary(result_type);
-    op1_for_assign = op1_for_operation;
-    op1_for_operation = var_lvalue_expr(temp_var);
+    op1_for_assign = op1_for_argument;
+    op1_for_argument = var_lvalue_expr(temp_var);
     /* Make the (temp = *(t = &x)) assignment, to be inserted later. */
     op2_node = make_var_assignment_expr(temp_var,
                                         assign_op,
                                         add_indirection_to_node(op1));
   }  /* if */
-  /* Make the +1 or -1 operation. */
-  op1_for_operation = add_indirection_to_node(op1_for_operation);
-  op1_for_operation->next = node_for_integer_constant((long)1,
-                                                      (an_integer_kind)ik_int);
-  op = is_incr ? (an_expr_operator_kind)eok_fxadd :
-                 (an_expr_operator_kind)eok_fxsubtract;
-  op_node = make_operator_node(op, result_type, op1_for_operation);
-  lower_c99_operator(op_node);
+  /* Make the argument for the call. */
+  op1_for_argument = add_indirection_to_node(op1_for_argument);
+  op1_for_argument = add_cast_to_fxvalue_type(op1_for_argument);
+  /* Build up the fxmask argument describing the operand and result types. */
+  fxmask = fxcontrol_value();
+  shift_amount = FXCONTROL_SIZE;
+  fxmask |= (fxtype_value_for_type(result_type) << shift_amount);
+  fxmask_expr = node_for_integer_constant((long)fxmask, FXMASK_INT_KIND);
+  /* Make the call of the runtime cast routine. */
+  fxmask_expr->next = op1_for_argument;
+  op_node = make_prototyped_runtime_call(routine_name, routine,
+                                         fxvalue_type(),
+                                         fxvalue_type(),
+                                         (a_type_ptr)NULL,
+                                         fxmask_expr);
+  /* Cast the value returned by the runtime routine to the final
+     desired type. */
+  op_node = add_cast_if_necessary(op_node, result_type);
   /* Assign the result to op1 (or the temporary). */
   op_node = make_assignment_expr(op1_for_assign, assign_op, op_node);
   if (temp_var != NULL) {
     /* Combine the assignment to the temporary and the assignment that
-       does the add or subtract and stores it back in the original
+       does the incr/decr call and stores it back in the original
        operand. */
     op_node = make_comma_node(op2_node, op_node);
   }  /* if */
-  /* Here, op_node is "x = x +- 1" or a fancier but equivalent expression
-     if a temporary was used.  For a pre-operation, that's all we need. */
+  /* Here, op_node is "x = _Fixed_incr(x)" or a fancier but equivalent
+     expression if a temporary was used.  For a pre-operation, that's all
+     we need. */
   if (is_post_op) {
     /* A post-increment or post-decrement.  Add a comma expression to
        return the value of the temporary, which is the original value
@@ -3659,6 +3680,8 @@ Do one-time initialization of variables related to C99 IL lowering.
       pch_saved_var_array_elem(fixed_divide_routine),
       pch_saved_var_array_elem(fixed_shiftl_routine),
       pch_saved_var_array_elem(fixed_shiftr_routine),
+      pch_saved_var_array_elem(fixed_incr_routine),
+      pch_saved_var_array_elem(fixed_decr_routine),
 #endif /* LOWER_FIXED_POINT */
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
       pch_saved_var_array_elem(vla_types),
@@ -3731,6 +3754,8 @@ for each translation unit.
   fixed_divide_routine = NULL;
   fixed_shiftl_routine = NULL;
   fixed_shiftr_routine = NULL;
+  fixed_incr_routine = NULL;
+  fixed_decr_routine = NULL;
   { int k;
     for (k = 0; k < (int)fk_last; ++k) {
       float_fixed_conv_routine[k] = NULL;
