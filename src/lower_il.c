@@ -7048,6 +7048,8 @@ of the front end.
   name_lower_init();
   /* Do lower_init.c initialization. */
   init_lower_init();
+  /* Do lower_eh.c initialization. */
+  eh_lower_init();
 }  /* il_lower_init */
 
 #endif /* DO_IL_LOWERING */
