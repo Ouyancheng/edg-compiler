@@ -4803,23 +4803,28 @@ for the GNU C multiline string extension.
          more "\r" characters are permitted (some Microsoft header files
          have more than one).  The GNU compilers ignore white-space
          characters between "\" and newline (with a warning). */
-      while (allowed_after_line_splice[*(loc_in_line-1)-CHAR_MIN]) {
-        loc_in_line--;
-        /* Avoid the line splice test if the line is empty except for the
-           carriage return(s) and/or white space. */
-        if (loc_in_line == curr_source_line) {
+      while (allowed_after_line_splice[*(local_loc_in_line-1)-CHAR_MIN]) {
+        local_loc_in_line--;
+        /* Avoid the line splice test if the line is empty except for
+           carriage returns. */
+        if (local_loc_in_line == curr_source_line &&
+            !white_space_inside_splice) {
+          loc_in_line = curr_source_line;
           goto add_newline_and_line_end_and_return;
         }  /* if */
-        if (*loc_in_line != '\r') {
-          /* Save location for warning about ignored white-space characters
-             inside the splice. */
+        if (*local_loc_in_line != '\r') {
+          /* Indicate the need for a warning about ignored white-space
+             characters inside the splice. */
           white_space_inside_splice = TRUE;
         }  /* if */
       }  /* while */
       /* End of a line containing at least one character.  Check to see
          if the last character is a backslash.  If so, the current line
          should be spliced with the line following. */
-      if (*(loc_in_line-1) == '\\') goto line_splice;
+      if (*(local_loc_in_line-1) == '\\') {
+        loc_in_line = local_loc_in_line;
+        goto line_splice;
+      }  /* if */
     }  /* if */
   }  /* if */
 
