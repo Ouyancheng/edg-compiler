@@ -325,7 +325,7 @@ symbol entry is returned.
   mdp->cannot_be_redefined = cannot_be_redefined;
   mdp->param_list  = NULL;
   mdp->repl_text   = (repl_text != NULL) ?
-                          make_repl_text(repl_text, (sizeof_t)NULL) : NULL;
+                          make_repl_text(repl_text, (sizeof_t*)NULL) : NULL;
   return(sym_ptr);
 }  /* enter_predef_macro */
 
