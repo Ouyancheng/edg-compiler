@@ -128,7 +128,7 @@ declaration in which it is defined -- for example, in
 the name recorded in the enum's type entry is now "E".  (This had already
 been the behavior when CFRONT_OBJECT_CODE_COMPATIBILITY was configured to
 TRUE and ABI_COMPATIBILITY_VERSION was at least 230; it is now done this
-way unconditionally.)
+way by default.)
 
 3/21/96   Default initialization of fields in aggregate initialization
 
