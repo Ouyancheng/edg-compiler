@@ -8577,7 +8577,7 @@ current scope.
              the declaration. */
         } else {
           a_using_decl_ptr  prev_udp = NULL;
-          a_boolean         redecl_error;
+          a_boolean         redecl_error = FALSE;
           /* Create the new sk_namespace_projection symbol(s). */
           if (!is_tag_symbol(sym)) {
             /* Check if we missed a tag symbol; it should be imported too. */
