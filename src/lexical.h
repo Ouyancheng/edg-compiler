@@ -900,21 +900,29 @@ typedef struct a_reusable_cache_entry {
 } a_reusable_cache_entry;
 
 
-/*
-Contains information about the current class qualifier.  Valid only when
-the current token is tok_class_qualifier or tok_ptr_to_member.
-*/
+
+/* Contains a description of a class qualifier or pointer to member. */
 typedef struct a_class_qualifier *a_class_qualifier_ptr;
 typedef struct a_class_qualifier {
   a_type_ptr    class_type;
                         /* Points to the class type described by the class
                            qualifier.  NULL for file scope qualifiers. */
+  a_boolean     has_qualifier;
+			/* TRUE if there was a qualifier. */
   a_boolean     has_global_qualifier;
                         /* TRUE if the qualifier begins with a unary "::". */
   a_boolean     is_file_scope_qualifier;
                         /* TRUE for file scope qualifiers. */
-  a_boolean     next_token_is_star;
-                        /* TRUE if the qualifier is followed by a "*". */
+  a_boolean     is_identifier;
+			/* TRUE if the thing that follows the class qualifier
+			   is an identifier including "operator +",
+			   "operator int" and, if GID_DTOR_RECOGNIZED was
+			   specified, destructor names (i.e., ~A). */
+#if 1
+  a_boolean     is_ptr_to_member;
+			/* TRUE if the qualifier was actually a pointer
+	 		   to member (i.e., A::*). */
+#endif
   a_boolean     err;
                         /* TRUE if there was an error while scanning the
                            qualifier. */
@@ -923,6 +931,12 @@ typedef struct a_class_qualifier {
                         /* The position of the start of the qualifier. */
 } a_class_qualifier;
 
+
+/*
+Contains information about the current class qualifier.  Valid only when
+the current token is tok_class_qualifier or tok_ptr_to_member.
+*/
+EXTERN a_class_qualifier curr_class_qualifier;
 
 
 /* Initialize a token cache. */
@@ -1033,12 +1047,17 @@ extern a_boolean f_get_opname(void);
   ((curr_token == tok_operator) ? f_get_opname() : FALSE)
 /* Test for ":: new" and ":: delete". */
 extern a_boolean is_global_new_or_delete(void);
+extern a_boolean is_generalized_identifier_start
+                     (an_identifier_options_set options,
+                      a_boolean                 *err);
+#if 1
 /* Get a C++ class-qualifier, like "A::". */
 extern a_boolean get_class_qualifier(a_type_ptr    *class_type,
                                      a_boolean     *is_file_scope_qualifier,
                                      a_boolean     *has_global_qualifier,
                                      a_boolean     *is_ptr_to_member,
                                      a_boolean     *err);
+#endif
 /* Get a C++ qualified name, like "A::x". */
 /* See symbol_tbl.h for the options set definition. */
 extern a_boolean get_qualified_name(an_id_lookup_options_set options);
