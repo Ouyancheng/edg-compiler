@@ -4094,7 +4094,7 @@ Display the indicated template.
 
 static void disp_macro(a_macro_ptr  ptr)
 /*
-Display the indicated hidden-name entry.
+Display the indicated macro entry.
 */
 {
   disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
