@@ -1,5 +1,14 @@
 Version 2.35
 
+2/14/97  Exception not considered caught in catch associated with internal try
+
+The internal try block mechanism added in 2.34 did correctly handle
+cases in which the catch clause associated with the internal try block
+exited via an exception (for example, when a placement delete
+function exits via an exception).  In such cases, the original exception
+was silently abandoned in favor of the new one.  Now, __terminate()
+is called, which is the correct behavior.
+
 2/14/97 All instances of member class templates of prototype instantiations
         should be considered nonreal classes
 

@@ -1102,6 +1102,10 @@ a try block with a catch that matches the type of the object thrown.
        for the thrown object. */
     destination_ehsep->variant.try_block.catch_info =
                                                (void*)curr_throw_stack_entry;
+#if ABI_COMPATIBILITY_VERSION < 235
+    /* Starting with ABI version 2.35, __exception_caught is called by
+       __internal_rethrow at the conclusion of the catch clause associated
+       with an internal try block. */
     if (destination_ehsep->variant.try_block.catch_entries == NULL) {
       /* For an internal try block an exception is considered caught as soon
          as the handler is started (because there is no copy constructor to
@@ -1109,6 +1113,7 @@ a try block with a catch that matches the type of the object thrown.
          as caught now. */
       exception_caught = TRUE;
     }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION < 235 */
 #if ABI_COMPATIBILITY_VERSION < 233
     /* ABI versions earlier than 2.33 don't include calls to the
        __exception_caught routine.  Call it explicitly here.  This
@@ -1221,6 +1226,20 @@ Rethrow the current thrown object.
                    tsep);
   __throw();
 }  /* __rethrow */
+
+
+#if ABI_COMPATIBILITY_VERSION >= 235
+EXTERN_C void __internal_rethrow(void)
+/*
+Entry point to rethrow used by internal try blocks.  This routine simply
+calls __exception_caught to mark the throw as complete, then does a normal
+rethrow.
+*/
+{
+  __exception_caught();
+  __rethrow();
+}  /* __internal_rethrow */
+#endif /* ABI_COMPATIBILITY_VERSION >= 235 */
 
 
 EXTERN_C void* __throw_alloc(a_type_info_impl_ptr  type_info,
