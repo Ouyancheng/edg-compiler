@@ -3799,7 +3799,7 @@ of assoc_field_object and assoc_var_object is defined.
 
 static void decl_nonstatic_data_member(a_symbol_locator    *locator,
                                        a_type_ptr          class_type,
-                                       a_type_ptr          member_type,
+                                       a_type_ptr          *member_type,
                                        an_access_specifier access,
 				       a_boolean	   unnamed_field,
 				       a_boolean	   is_anonymous_union,
@@ -3813,7 +3813,7 @@ Scan a nonstatic data member of a class, struct, or union, create a field
 entry to represent it in the IL, and create an entry in the symbol table
 for it if it has a name.  class_type is a pointer to the tk_class,
 tk_struct, or tk_union type entry for the entity of which the member is a
-member.  *locator and member_type describe what is so far known about the
+member.  *locator and *member_type describe what is so far known about the
 member, and access specifies whether it is a public, protected, or private
 member.  It it is unnamed, unnamed_field will be TRUE.  The field entry
 that is created is added to the end of a list in a structure pointed to by
@@ -3839,8 +3839,8 @@ class, struct, or union.
     if (C_dialect == C_dialect_cplusplus) {
       /* An object of a class with a constructor, a destructor, or a user-
          defined assignment operator cannot be a member of a union. */
-      if (!is_valid_union_field(member_type, &locator->source_position)) {
-        member_type = error_type();
+      if (!is_valid_union_field(*member_type, &locator->source_position)) {
+        *member_type = error_type();
       }  /* if */
     }  /* if */
   } else {
@@ -3850,12 +3850,13 @@ class, struct, or union.
   /* A colon next indicates a bit-field. */
   if (curr_token == tok_colon) {
     /* Scan the bit-field size and determine the bit-field type. */
-    scan_bit_field_size(unnamed_field, &member_type, &bit_field_size);
+    scan_bit_field_size(unnamed_field, member_type, &bit_field_size);
+    
   }  /* if */
   /* Create the field entry.  For unnamed fields it will not actually become
      part of the IL. */
   field = alloc_field();
-  field->type = member_type;
+  field->type = *member_type;
   field->bit_size = bit_field_size;
   /* For an unnamed field, do not create the field symbol. */
   if (!unnamed_field) {
@@ -3933,7 +3934,7 @@ class, struct, or union.
     /* In C++ we need to keep track of whether any members have reference
        type. */
     cssp = symbol_supplement_for_class(class_type);
-    if (is_reference_type(member_type)) {
+    if (is_reference_type(*member_type)) {
       cssp->any_ref_member = TRUE;
       /* Assignment by bitwise copy is not allowed when a class has reference
          type members. */
@@ -3944,9 +3945,9 @@ class, struct, or union.
      qualified, including recursively the members of any contained
      classes, structs, or unions.  This is useful for determination of
      modifiable lvalues (see 3.2.2.1). */
-  if (type_or_element_type_is_const_qualified(member_type) ||
-      (is_class_struct_union_type(member_type) &&
-       skip_typerefs(member_type)->
+  if (type_or_element_type_is_const_qualified(*member_type) ||
+      (is_class_struct_union_type(*member_type) &&
+       skip_typerefs(*member_type)->
                             variant.class_struct_union.any_const_member)) {
     class_type->variant.class_struct_union.any_const_member = TRUE;
     if (C_dialect == C_dialect_cplusplus) {
@@ -3955,10 +3956,10 @@ class, struct, or union.
       cssp->assignment_by_bitwise_copy_allowed = FALSE;
     }  /* if */
   }  /* if */
-  if (is_aggregate_or_union_type(member_type)) {
+  if (is_aggregate_or_union_type(*member_type)) {
     /* If the member's type is class, struct, or union -- or array of class,
        struct, or union -- there is additional checking to be done. */
-    a_type_ptr  tp = skip_typerefs(member_type);
+    a_type_ptr  tp = skip_typerefs(*member_type);
     if (is_array_type(tp)) {
       tp = skip_typerefs(underlying_array_element_type(tp));
     }  /* if */
@@ -6515,7 +6516,7 @@ to indicate whether the class/struct/union is actually defined.
                   local_type = error_type();
                 }  /* if */
               }  /* if */
-              decl_nonstatic_data_member(&locator, class_type, local_type,
+              decl_nonstatic_data_member(&locator, class_type, &local_type,
                                          access, unnamed_field,
                                          is_anonymous_union, &byte_offset,
                                          &bit_offset, &alignment,
@@ -6542,6 +6543,7 @@ to indicate whether the class/struct/union is actually defined.
                 }  /* if */
               }  /* if */
               if (!any_const_or_ref_fields &&
+                  !unnamed_field && !is_anonymous_union &&
                   (is_reference_type(local_type) ||
                    type_or_element_type_is_const_qualified(local_type))) {
                 any_const_or_ref_fields = TRUE;
