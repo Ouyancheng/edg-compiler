@@ -1,5 +1,18 @@
 Version 2.46
 
+1/15/01  Missing diagnostic when overloading static and nonstatic member
+         function templates
+
+An error is now issued if two member function templates, one static, the other
+nonstatic with a function qualifier, have the same parameter types:
+
+  class A {
+    template<class T> void f(int) const;
+    template<class T> static void f(int);  // Error.
+  };
+
+(See also the Changes entry of 9/26/95.)
+
 1/15/01  Incorrect lowering of cast between real and imaginary types
 
 In C99, the conversion of a real expression to an imaginary type (or vice

@@ -6769,11 +6769,21 @@ in-class member function declarations.)
                                          templ_param_list,
                                          /*issue_errors=*/FALSE,
                                          (a_source_position*)NULL) &&
-              routine_types_are_compatible(tp, member_type, TCF_NO_FLAGS)) {
-            pos_sy_error(ec_member_function_redeclaration,
-                         &locator->source_position, other_sym);
-            set_to_named_error_locator(*locator);
-            sym = NULL;
+              param_types_are_compatible(tp, member_type, TCF_NO_FLAGS)) {
+            an_error_code  error_code = ec_no_error;
+            if (routine_type_is_nonstatic_member_function(tp) !=
+                  routine_type_is_nonstatic_member_function(member_type)) {
+              error_code = ec_static_nonstatic_with_same_param_types;
+              pos_error(error_code, &locator->source_position);
+            } else if (routine_types_are_compatible(tp, member_type,
+                                                    TCF_NO_FLAGS)) {
+              error_code = ec_member_function_redeclaration;
+              pos_sy_error(error_code, &locator->source_position, other_sym);
+            }  /* if */
+            if (error_code != ec_no_error) {
+              set_to_named_error_locator(*locator);
+              sym = NULL;
+            }  /* if */
             break;
           }  /* if */
         }  /* if */
