@@ -2574,10 +2574,9 @@ function_lparen:
   /* Combine the derived type list with the earlier complete type
      (pointer derived type list plus specifiers_list), making
      the full type.  Note that this involves error checking. */
-  if (derived_type != NULL) {
+  if (derived_type != NULL && complete_type != NULL) {
     add_to_derived_type_list(complete_type,
                              &derived_type, &bottom_derived_type);
-    complete_type = derived_type;
   } else {
     /* If there were pointer types scanned at the beginning of this routine,
        the bottom-most derived type is the bottom-most pointer type. */
@@ -2591,6 +2590,7 @@ function_lparen:
       bottom_derived_type = bottom_pointer_derived_type;
     }  /* if */
   }  /* if */
+  if (derived_type != NULL) complete_type = derived_type;
   if (specifiers_type != NULL) {
     /* This is a top-level call to declarator. */
     if (locator != NULL &&
