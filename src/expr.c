@@ -17050,11 +17050,10 @@ This routine is also called in C99 and GNU C modes.
              wide.  Don't go down to the member type. */
           string_case = TRUE;
           goto required_type_determined;
-        } else if (is_array_type(result.type) &&
+        } else if (gcc_mode && is_array_type(result.type) &&
                    types_are_compatible(result.type, required_type)) {
           /* In GNU C mode a compound literal may initialize an element of
              array type. */
-          check_assertion(gnu_mode);
           goto required_type_determined;
         } else {
           /* Normal case: initialize the first member of the array. */
