@@ -4549,6 +4549,18 @@ translation unit correspondence pointer if one is found.
 }  /* find_variable_correspondence */
 
 
+static a_boolean type_is_top_level_prototype_instantiation(a_type_ptr  type)
+/*
+*/
+{
+  return is_immediate_class_type(type) &&
+         has_name(type) &&
+         type->variant.class_struct_union.is_prototype_instantiation &&
+         type->variant.class_struct_union.extra_info
+             ->template_arg_list != NULL;
+}  /* type_is_top_level_prototype_instantiation */
+
+
 static void determine_correspondence(a_source_correspondence_ptr  scp,
                                      an_il_entry_kind             kind)
 /*
@@ -4569,20 +4581,15 @@ way, determine to which other IL entry this might correspond.
     if (scp->is_class_member) {
       root = scp->parent.class_type;
       if (kind == (an_il_entry_kind)iek_type &&
-          is_immediate_class_type((a_type_ptr)scp) &&
-          has_name((a_type_ptr)scp) &&
-          ((a_type_ptr)scp)
-                    ->variant.class_struct_union.is_prototype_instantiation &&
-          ((a_type_ptr)scp)
-                    ->variant.class_struct_union.extra_info
-                    ->template_arg_list != NULL) {
+          type_is_top_level_prototype_instantiation((a_type_ptr)scp)) {
         /* Prototype instantiations are not always recorded in the IL.
            Therefore, set root to NULL so that the symbol table will be used
            to find the named member instead. */
         root = NULL;
       } else {
         while (root->source_corresp.is_class_member &&
-               trans_unit_corresp_of(root) == NULL) {
+               trans_unit_corresp_of(root) == NULL &&
+               !type_is_top_level_prototype_instantiation(root)) {
           root = root->source_corresp.parent.class_type;
         }  /* while */
       }  /* if */
