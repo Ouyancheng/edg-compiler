@@ -9363,7 +9363,7 @@ The subtree of the node has not yet been lowered.
   an_expr_node_ptr            second_arg_node;
 
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
-  if (is_array_type(ndsp->type) &&
+  if (ndsp->array_delete &&
       new_or_delete_type_requires_array_handling(base_type)) {
     /* An array "delete". */
     lower_array_delete(expr);

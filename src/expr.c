@@ -4048,18 +4048,8 @@ As an anachronism, allow an expression inside the [ ].
       delete_node->type = void_type();
       ndsp = delete_node->variant.new_delete;
       ndsp->is_new = FALSE;
-      if (array_delete) {
-        /* For the array delete case, the type of the object being deleted
-           is an array of the type pointed to by the pointer. */
-        a_type_ptr array_type = alloc_type((a_type_kind)tk_array);
-        array_type->variant.array.number_of_elements = 0; /* [] */
-        array_type->variant.array.element_type = delete_type;
-        set_type_size(array_type);  /* Probably does nothing. */
-        ndsp->type = array_type;
-      } else {
-        /* Nonarray case. */
-        ndsp->type = delete_type;
-      }  /* if */
+      ndsp->array_delete = array_delete;
+      ndsp->type = delete_type;
       ndsp->arg = ptr_node;
       delete_type = skip_typerefs(delete_type);
       base_delete_type = delete_type;
