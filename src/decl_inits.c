@@ -642,11 +642,12 @@ ref field of a class object (or an array of same) remains uninitialized.
           if (is_incomplete_type(member_type)) {
             /* Members of unions or aggregates cannot be incomplete. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (microsoft_mode && C_mode() && is_array_type(member_type) &&
-                curr_field->next == NULL) {
+            if (microsoft_mode && C_mode() && top_level &&
+                is_array_type(member_type) && curr_field->next == NULL) {
               /* ... except that in Microsoft C mode it's okay to initialize
                  a field of incomplete array type when it's the last field in
-                 the struct. */
+                 the struct (but only when the struct is the top-level object
+                 type). */
             } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             internal_error("get_initializer: can't initialize 0-size member");
@@ -707,9 +708,10 @@ ref field of a class object (or an array of same) remains uninitialized.
           if (curr_field == NULL) {
             any_more_members = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          } else if (microsoft_mode) {
+          } else if (microsoft_mode && top_level) {
             /* In Microsoft C mode, the check for a field of incomplete array
-               type is not made -- such initializations are allowed. */
+               type is not made -- such initializations are allowed for a
+               top-level struct member. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else if (curr_field->next == NULL &&
                      is_incomplete_type(curr_field->type)) {
