@@ -4960,12 +4960,13 @@ of an error.
 {
   an_extended_decl_info_block
                      extended_decl_info;
-  a_source_position  specifier_start_pos = pos_curr_token;
+  a_source_position  specifier_start_pos;
   a_boolean          is_declspec = FALSE;
   a_boolean          is_parameter = ((input_flags & DSI_IS_PARAMETER) != 0);
   a_boolean          is_member_decl =
                            ((input_flags & DSI_IS_MEMBER_DECLARATION) != 0);
 
+  specifier_start_pos = pos_curr_token;
   clear_extended_decl_info_block(extended_decl_info);
   /* A Microsoft storage class modifier.  If this is a __declspec,
      scan the list of declaration modifiers. */
