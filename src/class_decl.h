@@ -60,6 +60,10 @@ extern a_boolean scan_class_definition(
 
 extern void process_deferred_class_fixups_and_instantiations(void);
 
+extern void report_abstract_class_object(an_error_code      error_code,
+                                         a_type_ptr         class_type,
+                                         a_source_position  *error_pos);
+
 extern void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym,
                                           a_type_ptr    class_type,
                                           a_boolean     is_nonstd);

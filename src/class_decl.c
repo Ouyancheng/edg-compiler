@@ -1214,6 +1214,108 @@ done:;
 }  /* check_abstract_class */
 
 
+static void report_pure_virtual_functions(a_type_ptr        class_type,
+                                          a_base_class_ptr  base_class,
+                                          an_error_code     error_code,
+                                          a_boolean         *found)
+/*
+Add to the list of non-overridden pure virtual functions put out with the
+diagnostic about abstract class objects.  class_type is the abstract
+most-derived-type.  base_class is on the base_classes list of class_type;
+it may be NULL.  error_code indicates what message to put out.  *found is
+updated to TRUE if one or more non-overridden pure virtual functions is
+located.
+*/
+{
+  a_type_ptr                          tp;
+  a_base_class_ptr                    bcp;
+  a_routine_ptr                       rp;
+  an_overriding_virtual_function_ptr  ovfp;
+  a_boolean                           overridden;
+
+  tp = base_class == NULL ? class_type : base_class->type;
+  if (tp->variant.class_struct_union.any_pure_virtual_functions) {
+    /* tp is a class type with pure virtual functions.  List them only if
+       they are not overridden in a more derived class. */
+    /* Traverse the routines list. */
+    rp = tp->variant.class_struct_union.extra_info->assoc_scope->routines;
+    for (; rp != NULL; rp = rp->next) {
+      if (rp->pure_virtual) {
+        /* Found a virtual function declared pure.  But is it overridden? */
+        overridden = FALSE;
+        if (base_class != NULL) {
+          /* There is a more derived class in which there may be an overriding
+             function.  This check is required only when we're looking at
+             pure virtual functions in a base class. */
+          for (ovfp = base_class->overriding_virtual_functions;
+               ovfp != NULL;
+               ovfp = ovfp->next) {
+            if (ovfp->primary_function == rp) {
+              /* An overrider was found. */
+              overridden = TRUE;
+              break;
+            } else if (ovfp->primary_function->virtual_function_number >
+                                              rp->virtual_function_number) {
+              /* Since the order on the routines list corresponds to the
+                 virtual-function-number order, the search can terminate. */
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+        if (!overridden) {
+          /* Put out the extra line of information. */
+          a_symbol_ptr  sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+          sym_add_diag_info(error_code, sym);
+          *found = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  /* The list must also include all non-overridden pure virtual functions in
+     base classes. */
+  for (bcp = base_classes_of(tp); bcp != NULL; bcp = bcp->next) {
+    if (bcp->type->variant.class_struct_union.abstract &&
+        (bcp->direct || (bcp->is_virtual && base_class == NULL))) {
+      /* Recursive call.  Note that the a different error code is used for
+         base class pure virtual functions. */
+      report_pure_virtual_functions(class_type,
+                                    corresponding_base_class(bcp, class_type,
+                                                             base_class),
+                                    ec_no_overrider_for_pure_virtual_function,
+                                    found);
+    }  /* if */
+  }  /* for */
+}  /* report_pure_virtual_functions */
+
+
+void report_abstract_class_object(an_error_code      error_code,
+                                  a_type_ptr         class_type,
+                                  a_source_position  *error_pos)
+/*
+Issue an error (using the message specified by error_code) on an incorrect
+use of an object of abstract class type, as indicated by class_type.
+*error_pos is the source position at which the error should be issued.
+The diagnostic includes a list of pure virtual functions, to assist the
+user in correcting the class declarations that produced the problem.
+*/
+{
+  a_boolean  found = FALSE;
+
+  class_type = skip_typerefs(class_type);
+  pos_ty_start_error(error_code, error_pos, class_type);
+  /* Put out the list of pure virtual functions. */
+  report_pure_virtual_functions(class_type, (a_base_class_ptr)NULL,
+                                ec_pure_virtual_function, &found);
+#if CHECKING
+  /* If class_type is marked as abstract, at least one pure virtual function
+     should have been found. */
+  check_assertion(found);
+#endif /* if */
+  /* Terminate the supplementary messages. */
+  end_error();
+}  /* report_abstract_class_object */
+
+
 static void insert_in_virtual_function_override_list(
                                 a_base_class_ptr                   base_class,
                                 an_overriding_virtual_function_ptr new_ovfp)
@@ -5521,8 +5623,8 @@ member declaration, respectively.
     member_type = error_type();
   } else if (is_abstract_class_type(member_type)) {
     /* Abstract class objects are prohibited (ARM 10.3). */
-    pos_error(ec_abstract_class_object_not_allowed,
-              &locator->source_position);
+    report_abstract_class_object(ec_abstract_class_object_not_allowed,
+                                 class_type, &locator->source_position);
   }  /* if */
   if (class_state->is_local_class) {
     /* Static data members are not allowed in local classes. */
@@ -6638,8 +6740,8 @@ respectively.
     field_type = error_type();
   } else if (is_abstract_class_type(field_type)) {
     /* Abstract class objects are prohibited (ARM 10.3). */
-    pos_error(ec_abstract_class_object_not_allowed,
-              &locator->source_position);
+    report_abstract_class_object(ec_abstract_class_object_not_allowed,
+                                 field_type, &locator->source_position);
   } else if (is_incomplete_type(field_type)) {
     /* The member type is incomplete.  This is usually an error, but as
        an extension allow an array of unknown size as the last member. */

@@ -1,5 +1,11 @@
 Version 2.35
 
+1/15/97 Improved diagnostics on invalid use of abstract class
+
+For a invalid use of an abstract class (e.g., declaring an object with
+such a class), the diagnostic now includes a supplementary list of the
+class's non-overridden pure virtual functions.
+
 1/15/97 Spurious access error on new-style specialization
 
 Examples such as the following resulted in a spurious access error on the
@@ -39,7 +45,7 @@ For example, the following partial specialization of N::A is invalid because
 such a partial specialization must initially be declared within namespace N.
 
   namespace N {
-  template <class T1, class T2, int I> class A {};
+    template <class T1, class T2, int I> class A {};
   }
   template <class T, int I> class N::A<T, T*, I> {};
 

@@ -1445,7 +1445,8 @@ array_type.
       set_type_size(elem_type);
     } else if (is_abstract_class_type(elem_type)) {
       /* error_position should already be set correctly. */
-      error(ec_array_of_abstract_class);
+      report_abstract_class_object(ec_array_of_abstract_class, elem_type,
+                                   &error_position);
     }  /* if */
 #if CHECKING
     if (elem_type->size == 0) {

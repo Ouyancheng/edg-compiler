@@ -3813,7 +3813,8 @@ diagnostic if the parameter type is an abstract class.
                  is being copied for some reason.  Issue no diagnostic in
                  such cases. */
             } else {
-              pos_error(ec_abstract_class_param_type, err_pos);
+              report_abstract_class_object(ec_abstract_class_param_type,
+                                           param_type, err_pos);
             }  /* if */
           }  /* if */
         }  /* if */
@@ -6947,7 +6948,9 @@ the case if the return type was incomplete at the point of definition.
                  is being copied for some reason.  Issue no diagnostic in
                  such cases. */
             } else {
-              pos_error(ec_function_returning_abstract_class, err_pos);
+              report_abstract_class_object(
+                                      ec_function_returning_abstract_class,
+                                      return_type, err_pos);
             }  /* if */
           }  /* if */
         }  /* if */
