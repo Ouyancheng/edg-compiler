@@ -478,12 +478,10 @@ and indentation is the indentation desired.
   col += strlen(buffer);
 
   (void)sprintf(buffer, "scope %d", sym->decl_scope);
-  put_string(buffer);
-
   if (sym->decl_seq > 0) {
-    (void)sprintf(buffer, "decl seq %lu", sym->decl_seq);
-    put_string(buffer);
+    (void)sprintf(&buffer[strlen(buffer)], " (#%lu)", sym->decl_seq);
   }  /* if */
+  put_string(buffer);
 
   if (sym->referenced) put_string("ref'd");
   if (sym->defined) put_string("def'd");
@@ -980,10 +978,8 @@ static a_scope_depth scope_depth_of(a_symbol_ptr  sym,
             scope_stack[scope_depth].inside_local_class) {
           *is_local_to_function = TRUE;
         }  /* if */
-        scope_depth = scope_depth;
         break;
       }  /* if */
-      --scope_depth;
     }  /* for */
   }  /* if */
   return scope_depth;
@@ -1504,6 +1500,7 @@ to the indicated kind (and the associated variant fields to safe values).
   sym_ptr->next                           = NULL;
   sym_ptr->next_in_scope                  = NULL;
   sym_ptr->decl_scope                     = NO_SCOPE_NUMBER;
+  sym_ptr->decl_seq                       = 0;
   sym_ptr->decl_position.seq              = 0;
   sym_ptr->decl_position.column           = SP_COL_UNKNOWN;
   sym_ptr->class_of_which_a_member        = NULL;
@@ -5974,7 +5971,8 @@ of the template.
   ssep->current_access           = (an_access_specifier)as_public;
   ssep->inactive_symbols_may_be_visible = FALSE;
   ssep->inside_local_class       = inside_local_class;
-  ssep->template_param_decl_scope = FALSE;
+  ssep->template_param_decl_scope= FALSE;
+  ssep->is_loop_scope            = FALSE;
   ssep->symbols                  = NULL;
   ssep->last_symbol              = NULL;
   ssep->il_scope                 = sp;
@@ -6004,6 +6002,7 @@ of the template.
   ssep->depth_innermost_function_scope = depth_innermost_function_scope;
   ssep->template_param_list      = NULL;
   ssep->decl_seq                 = 0;
+  ssep->last_label_decl_seq = 0;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
@@ -7154,8 +7153,6 @@ symbol "used" or "set", if appropriate.
 */
 {
   a_source_correspondence *scptr;
-  a_boolean               suppress_warning;
-
  
   if (f_xref_info != NULL) {
     /* If writing cross-reference information, write an entry for this
@@ -7199,16 +7196,69 @@ symbol "used" or "set", if appropriate.
           }  /* if */
         } else {
           /* This is the first use of the variable. */
-#if 0
-/* Suppress the warning if warranted by the state of the structured statement
-   stack. */
-#else
-          suppress_warning = FALSE;
-#endif  /* if 0 */
-          if (!sym_ptr->variant.variable.value_has_been_set &&
-              !suppress_warning) {
-            /* But its value has not been set yet.  Issue a warning. */
-            pos_sy_warning(ec_used_before_set, source_position, sym_ptr);
+          if (!sym_ptr->variant.variable.value_has_been_set) {
+            /* But its value has not been set yet.  Issue a warning, if
+               appropriate. */
+            a_boolean                suppress_warning = FALSE;
+            a_scope_stack_entry_ptr  ssep;
+
+            /* To determine whether to suppress the warning, examine the scope
+               stack for labels and uncompleted loops that might enable the
+               program to set the variable in code that has not yet been seen
+               and then to branch back to the current code.  In other words,
+               only issue a warning if we're sure the variable cannot have
+               been set. */
+            for (ssep = &scope_stack[decl_scope_level]; ; --ssep) {
+              check_assertion(ssep != &scope_stack[0]);
+              if (ssep->kind == (a_scope_kind)sck_function) {
+                /* We are at the outermost scope of the function.  Check for
+                   a label. */
+                goto check_label_decl_seq;
+              } else if (ssep->number == sym_ptr->decl_scope) {
+                /* We are at the scope in which the variable was declared.
+                   Jump out to the function scope and look for a label. */
+                ssep = &scope_stack[depth_innermost_function_scope];
+check_label_decl_seq:
+                /* If the variable was declared before the label, suppress the
+                   warning.  If it was declared after the label, the warning
+                   is appropriate.  For example:
+                     void f() {
+                       int i;
+                         :
+                     L:
+                       int j;
+                       ++i;          // No warning -- i may be set later.
+                       ++j;          // Warning -- j cannot have been set yet.
+                           :
+                     }
+                */
+                if (ssep->last_label_decl_seq > sym_ptr->decl_seq) {
+                  /* Variable was declared before the label was defined. */
+                  suppress_warning = TRUE;
+                }  /* if */
+                break;
+              } else if (ssep->is_loop_scope) {
+                /* The variable was declared in a scope outside the loop
+                   scope, so suppress the warning.  If it were declared within
+                   the loop, the warning would still be okay.  For example:
+                     void f() {
+                       int i;
+                         :
+                       for (;;) {
+                         int j;
+                         ++i;        // No warning -- i may be set later.
+                         ++j;        // Warning -- j cannot have been set yet.
+                           :
+                       }
+                     }
+                */
+                suppress_warning = TRUE;
+                break;
+              }
+            }  /* for */
+            if (!suppress_warning) {
+              pos_sy_warning(ec_used_before_set, source_position, sym_ptr);
+            }  /* if */
           }  /* if */
           sym_ptr->variant.variable.used = TRUE;
         }  /* if */
