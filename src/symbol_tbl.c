@@ -3997,13 +3997,6 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* DO_IL_LOWERING */
-#if DO_IL_LOWERING || IL_SHOULD_BE_WRITTEN_TO_FILE
-    /* Preserve the pointers to any static variables and types, if any,
-       for each function scope and block scope. */
-    if (old_memory_region_number != FILE_SCOPE_REGION_NUMBER) {
-      preserve_local_scope_entities_allocated_in_file_scope(ssep->il_scope);
-    }  /* if */
-#endif /* DO_IL_LOWERING || IL_SHOULD_BE_WRITTEN_TO_FILE */
     done_with_memory_region(old_memory_region_number);
   }  /* if */
   /* Keep track of the number of current classes and class reactivations.
