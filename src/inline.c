@@ -54,11 +54,6 @@ static a_scope_ptr
 			/* When non-NULL, a call of the routine associated
 			   with this scope is being expanded as an inline. */
 
-static an_expr_node_ptr
-		call_being_inlined;
-			/* When non-NULL, the indicated call is being
-			   inlined. */
-
 
 static a_variable_remapping_for_inlining_ptr
                       alloc_variable_remapping_for_inlining(a_variable_ptr var)
@@ -1096,7 +1091,6 @@ statement).
         currently_doing_inlining_of_function_call = TRUE;
         scope = il_header.region_scope_entry[routine->assoc_scope];
         routine_scope_being_inlined = scope;
-        call_being_inlined = expr;
         /* Set the insert location.  Use a location unattached to the IL
            tree, because we may discover we can't inline the function.
            If the inlining works, we can insert the statement or expression
@@ -1157,7 +1151,6 @@ statement).
            function can never be inlined. */
         routine->inlinable = inlinable;
         if (failed) issue_inlining_failure_diagnostic(routine);
-        call_being_inlined = NULL;
         routine_scope_being_inlined = NULL;
         currently_doing_inlining_of_function_call = FALSE;
 #if DEBUG
@@ -1275,7 +1268,6 @@ of the front end.
   /* Static variables in inline.c: */
   variable_remappings_for_inlining = NULL;
   routine_scope_being_inlined = NULL;
-  call_being_inlined = NULL;
 }  /* inline_init */
 
 #endif /* MINIMAL_INLINING */
