@@ -3,11 +3,12 @@ Version 2.21
 11/22/93 Use of a bit-vector for symbol reference information
 
 The enum a_symbol_reference_kind has been replaced with a bit vector of
-type a_symbol_reference_set, and a series of #defines have been added to
+type a_symbol_reference_set, and a series of #defines has been added to
 symbol_tbl.h to define the bits in the set.  Some kinds of symbol
 references are now represented by a combination of bits -- for example,
-the former srk_use_and_modif (used for, e.g., increment operations) is now
-represented by having both the SRK_USE and the SRK_MODIFICATION bits set.
+the former srk_use_and_modif (used, e.g., for increment operations) is now
+represented as a reference (i.e., the SRK_REFERENCE bit is set) where both
+the SRK_USE and SRK_MODIFICATION bits are also set.
 
 This change was made for implementations that need to track reference
 information in greater detail than is done by default: it should be fairly
