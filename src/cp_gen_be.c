@@ -3614,7 +3614,13 @@ precedence confusion.
              prod weak areas in compilers, and it's in fact wrong for
              cases where the original source casts a "void *" pointer
              to another pointer type and then dereferences it. */
-          a_type_ptr source_type = node->variant.operation.operands->type;
+          a_type_ptr source_type;
+          /* Incorporate any implicit steps attached to the explicit cast. */
+          while (is_operation_node(operand_1) &&
+                 operand_1->variant.operation.implicit_step_of_explicit_cast) {
+            operand_1 = operand_1->variant.operation.operands;
+          }  /* while */
+          source_type = operand_1->type;
           if (is_pointer_type(source_type) &&
               is_class_struct_union_type(type_pointed_to(source_type))) {
             a_type_ptr dest_type = node->type;
@@ -3624,6 +3630,7 @@ precedence confusion.
                  cast must have been to that type rather than the reference
                  type. */
             } else {
+              /* Generate a cast to a reference type. */
               a_type type_copy;
               dest_type = skip_typerefs(dest_type);
               check_assertion(dest_type->kind == (a_type_kind)tk_pointer);
@@ -4203,6 +4210,15 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_pm_base_class_cast:
         case eok_pm_derived_class_cast:
           /* Special casts. */
+          /* Incorporate any cast steps that were implicit in an explicit
+             cast. */
+          if (!expr->variant.operation.compiler_generated) {
+            while (is_operation_node(operand_1) &&
+                   operand_1->variant.operation.
+                                              implicit_step_of_explicit_cast) {
+              operand_1 = operand_1->variant.operation.operands;
+            }  /* while */
+          }  /* if */
           gen_cast(expr->type);
           gen_expr_with_parens(operand_1);
           goto done_with_operation;

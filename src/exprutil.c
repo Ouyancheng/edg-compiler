@@ -1607,6 +1607,9 @@ routine is only used in C++ mode.
       (*p_node)->variant.operation.compiler_generated = is_implicit_cast;
       (*p_node)->variant.operation.implicit_in_member_naming =
                                                             implicit_in_naming;
+      if (!is_implicit_cast && dsp->next != NULL) {
+        (*p_node)->variant.operation.implicit_step_of_explicit_cast = TRUE;
+      }  /* if */
     }  /* for */
   }  /* if */
 }  /* add_base_class_casts */
@@ -1627,6 +1630,10 @@ what's needed).
      we want. */
   if (dsp->next != NULL) {
     add_a_derived_class_cast(dsp->base_class->type, dsp->next, p_node);
+    check_assertion(is_operation_node(*p_node) &&
+                    (*p_node)->variant.operation.kind ==
+                                (an_expr_operator_kind)eok_derived_class_cast);
+    (*p_node)->variant.operation.implicit_step_of_explicit_cast = TRUE;
   }  /* if */
   /* Add the node to do the final cast. */
   *p_node = make_operator_node((an_expr_operator_kind)eok_derived_class_cast,
@@ -1703,6 +1710,9 @@ of base classes is not necessary.
                                                             curr_type),
                                  *p_node);
       /* No need to set compiler_generated; this cast cannot be implicit. */
+      if (dsp->next != NULL) {
+        (*p_node)->variant.operation.implicit_step_of_explicit_cast = TRUE;
+      }  /* if */
     }  /* for */
   }  /* if */
 }  /* add_pm_base_class_casts */
@@ -1729,6 +1739,12 @@ is implicit.
   if (dsp->next != NULL) {
     add_a_pm_derived_class_cast(dsp->base_class->type, dsp->next,
                                 is_implicit_cast, p_node);
+    if (!is_implicit_cast) {
+      check_assertion(is_operation_node(*p_node) &&
+                      (*p_node)->variant.operation.kind ==
+                             (an_expr_operator_kind)eok_pm_derived_class_cast);
+      (*p_node)->variant.operation.implicit_step_of_explicit_cast = TRUE;
+    }  /* if */
   }  /* if */
   /* Add the node to do the final cast. */
   *p_node = make_operator_node(

@@ -5393,6 +5393,12 @@ typedef struct an_expr_node {
 		implicit_in_member_naming:1;
 			/* TRUE for a base class cast that is implicit in
 			   the name used in referring to a class member. */
+      a_bit_field
+		implicit_step_of_explicit_cast:1;
+			/* TRUE for a cast to a base or derived class that
+			   was implicitly generated as part of realizing
+			   an explicit cast to a related class.  Used
+			   also for pointer-to-member casts. */
       bitfield_to_avoid_codecenter_warnings()
       an_expr_node_ptr  
                 operands;
