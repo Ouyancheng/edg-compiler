@@ -18,8 +18,8 @@ parameter.
 
 Names declared in an unnamed namespace scope now follow the same rules to
 determine their linkage as names declared in named namespaces.  Previously,
-such names would not have external linkage unless they also had C name
-linkage.  As a side-effect of this change, certain declarations that were
+such names would not have external linkage unless they also had extern "C"
+name linkage.  As a side-effect of this change, certain declarations that were
 previously treated as definitions are now only declarations:
 
   namespace {
