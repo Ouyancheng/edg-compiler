@@ -16,6 +16,7 @@ templates.c -- Support for C++ templates.
 #include "basics.h"
 #include "templates.h"
 #include "cmd_line.h"
+#include "decl_inits.h"
 #include "decls.h"
 #include "error.h"
 #include "il.h"
@@ -216,6 +217,9 @@ void instantiate_template_function(a_function_instantiation_entry_ptr  fiep)
 
 #endif /* if 0 */
 
+  if (rout_sym->class_of_which_a_member != NULL) {
+    push_class_reactivation_scope(rout_sym->class_of_which_a_member);
+  }  /* if */
   /* Push the name scope for the routine body. */
   scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
                      (a_type_ptr)NULL, rout_ptr,
@@ -268,12 +272,32 @@ void instantiate_template_function(a_function_instantiation_entry_ptr  fiep)
   /* Set the assoc_param_type field in each of the parameter variables. */
   fixup_parameters(scope->variant.routine.parameters, rtsp->param_type_list);
 
-#if CHECKING
-  if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor ||
-      rout_ptr->special_kind == (a_special_function_kind)sfk_destructor) {
-    internal_error("instantiate_template_function: ctor/dtor not expected");
-  }  /* if */
-#endif /* CHECKING */
+  /* Special processing for constructors and destructors. */
+  switch (rout_ptr->special_kind) {
+    case sfk_constructor:
+      /* If the current token is a ":", explicit initialization for the
+         constructor follows, but even without an explicit initializer, any
+         implicit initializers should be recorded. */
+      scope->variant.routine.constructor_inits =
+                                      ctor_initializer(rout_ptr,
+                                                       /*user_defined=*/TRUE);
+#if ASSIGNMENT_TO_THIS_ALLOWED
+      /* Determine and remember the operator new() routine for the class. */
+      set_class_assoc_operator_new_routine(
+                             rout_ptr->source_corresp.class_of_which_a_member);
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+      break;
+    case sfk_destructor:
+      /* Record the destructors that are to be called implicitly when this
+         destructor is executed. */
+      scope->variant.routine.constructor_inits = dtor_initializer(rout_ptr);
+      /* Determine and remember the operator delete() routine for the class. */
+      set_class_assoc_operator_delete_routine(
+                             rout_ptr->source_corresp.class_of_which_a_member);
+      break;
+    default:;
+      /* No action. */
+  }  /* switch */
 
 #if 0
   /* A call to new_struct_stmt_stack should not be required. */
@@ -284,6 +308,9 @@ void instantiate_template_function(a_function_instantiation_entry_ptr  fiep)
 
   /* Pop the function scope. */
   pop_scope();
+  if (rout_sym->class_of_which_a_member != NULL) {
+    pop_class_reactivation_scope();
+  }  /* if */
 
 #if 0
   /* The lint "argsused" and "varargs" flags are only applicable until
