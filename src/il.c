@@ -3527,6 +3527,7 @@ and return a pointer to it.
   num_template_param_type_descrs_allocated++;
 #endif /* DEBUG */
   tptdp->class_type = NULL;
+  tptdp->tag_kind = (a_type_kind)tk_unknown;
   return tptdp;
 }  /* alloc_template_param_type_descr */
 
@@ -3804,8 +3805,10 @@ variant fields to default values.
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   pte->use_cfront_transitional_nested_type_name_mangling = FALSE;
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-#if BACK_END_IS_CP_GEN_BE
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   pte->definition_put_out = FALSE;
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#if BACK_END_IS_CP_GEN_BE
   pte->definition_delayed = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if CHECKING

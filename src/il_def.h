@@ -1133,6 +1133,7 @@ enum a_type_kind_tag {
   tk_error,             /* Error. */
   tk_void,              /* Void -- has no type. */
   tk_integer,           /* All integral types, including enum. */
+  tk_enum = tk_integer, /* Synonym for tk_integer. */
   tk_float,             /* All float types. */
   tk_pointer,           /* Pointer type. */
 #ifdef CIL
@@ -2039,8 +2040,13 @@ typedef a_byte a_template_param_type_kind;
 typedef struct a_template_param_type_descr *a_template_param_type_descr_ptr;
 typedef struct a_template_param_type_descr {
   /* Information about a template parameter type that may be inferred from
-     how it is used -- in particular, when a template parameter is used in a
-     way requiring that it be a class.  (C++ front end only.) */
+     how it is used.  For example, when a template parameter is used in a
+     way requiring that it be a class (e.g., when it is used as the qualifier
+     in a qualified name) this structure points to a class type that provides
+     the information inferred (e.g., names of members).  When a
+     template parameter is used in an elaborated type specifier, this
+     saved the tag kind associated with the elaborated type.  (C++ front
+     end only.) */
   a_type_ptr	class_type;
 			/* The "proxy" class type associated with a given
                            template parameter.  This becomes useful in name
@@ -2059,6 +2065,14 @@ typedef struct a_template_param_type_descr {
 			   is will be entered as a member that can be
 			   found by subsequent lookups.  Pointer is NULL
 			   if no class use has been  encountered. */
+  a_type_kind	tag_kind;
+			/* If the template parameter was used in an elaborated
+			   type specifier, this field contains the kind of
+			   specifier that was used.  For "enum" tags, this
+ 			   field contains tk_enum which is really a synonym
+			   for tk_integer.  If the template parameter has not
+			   been used in an elaborated type specifier, this
+			   field will contain tk_unknown. */
 } a_template_param_type_descr;
 
 
@@ -2173,11 +2187,13 @@ typedef struct a_type {
                            to the file scope unless the name is already
                            used as a type name at the file scope. */
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-#if BACK_END_IS_CP_GEN_BE
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   unsigned int	definition_put_out:1;
 			/* Used in some cases to record whether the definition
 			   of a type has been put out by the
 			   C++/C-generating back end. */
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#if BACK_END_IS_CP_GEN_BE
   unsigned int	definition_delayed:1;
 			/* Used in some cases to indicate the definition of
 			   a type is required and should be put out at the
