@@ -15136,7 +15136,7 @@ see expr.h).
         /* Float constants are generally not allowed in integral constant
            expressions. */
         if (!float_con_allowed_in_integral_const_expr) {
-          rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
+          rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, &local_result);
         }  /* if */
       }
       (void)get_token();
