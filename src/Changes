@@ -1,5 +1,18 @@
 Version 3.2
 
+4/17/03  Unlinking from IL of destructions for non-polymorphic typeid
+
+If a source program contains a typeid applied to an expression
+that contains destructible entities but has an overall type that
+is not polymorphic, the expression is not put into the IL tree
+(it's not needed to evaluate the typeid at runtime) but the
+destructions were still linked into the object lifetime
+information.  This could potentially confuse back ends that
+would see unlowered dynamic initialization entries on object
+lifetime destruction lists.  Now fixed (the destructions are
+unlinked once it has been determined that the expression is
+not needed).
+
 4/17/03  Abort in IL lowering on aggregate-initialized array of array
 
 IL lowering aborted in lower_eh.c (in cleanup_region_number) on lowering
