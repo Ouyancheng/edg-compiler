@@ -1,5 +1,13 @@
 Version 2.08
 
+7/20/92  Dynamic initialization of local static variables
+
+Fixed a bug where the dynamic init entry for a local static variable was
+allocated in the local memory region but pointed to from the file scope
+memory region.  With this change the data structure of a_dynamic_init
+was modified when the kind is dik_nonconstant_aggregate -- there is
+no longer a dynamic_inits_list field.
+
 7/20/92  Handling of assignment-suppressing character "*" in scanf
 
 The "*" assignment-suppression character in scanf strings is now
