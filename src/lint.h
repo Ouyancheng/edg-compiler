@@ -258,6 +258,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_upc_shared_void_comparison)*/
 /*lint -esym(769,ec_cl_upc_requires_ansi_c_dialect)*/
 #endif /* !UPC_EXTENSIONS_ALLOWED */
+/*lint -esym(769,a_builtin_function_kind_tag::bfk_fsqrt)*/
 
 /******************************************************************************
 *                                                             \  ___  /       *
