@@ -2220,47 +2220,49 @@ appearance of the base class happens to have been marked preferred.
   db_enter(4, "set_preferred_base_class_derivation");
   /* Has this set of virtual derivations been checked yet?  This can be
      determined by seeing if any has the preferred flag set already. */
-  if (preferred_virtual_derivation_of(base_class) == NULL) {
-    /* Traverse the linked list of virtual derivations. */
-    for (bcdp = base_class->derivation; bcdp != NULL; bcdp = bcdp->next) {
-      if (bcdp->path->base_class->is_virtual &&
-          bcdp->path->base_class != base_class) {
-        /* If this virtual base class has a virtual base class in its
-           derivation path, the intermediate step has to be processed first. */
-        set_preferred_base_class_derivation(class_type,
-                                            bcdp->path->base_class);
-      }  /* if */
-      /* Determined the accessibility of a public member of the virtual base
-         class in the context of the the most derived class. */
-      access = access_to_end_of_path((an_access_specifier)as_public,
-                                     bcdp->path, bcdp);
-      if (bcdp == base_class->derivation) {
-        /* Prefer the first unless another turns out to have better access. */
+  for (bcdp = base_class->derivation; bcdp != NULL; bcdp = bcdp->next) {
+    /* Preferred flag has already been set for this group of derivations. */
+    if (bcdp->preferred) goto done;
+  }  /* for */
+  /* Traverse the linked list of virtual derivations. */
+  for (bcdp = base_class->derivation; bcdp != NULL; bcdp = bcdp->next) {
+    if (bcdp->path->base_class->is_virtual &&
+        bcdp->path->base_class != base_class) {
+      /* If this virtual base class has a virtual base class in its
+         derivation path, the intermediate step has to be processed first. */
+      set_preferred_base_class_derivation(class_type, bcdp->path->base_class);
+    }  /* if */
+    /* Determine the accessibility of a public member of the virtual base
+       class in the context of the the most derived class. */
+    access = access_to_end_of_path((an_access_specifier)as_public,
+                                   bcdp->path, bcdp);
+    if (bcdp == base_class->derivation) {
+      /* Prefer the first unless another turns out to have better access. */
+      preferred_bcdp = bcdp;
+      preferred_access = access;
+    } else {
+      /* Compare the two paths. */
+      if (is_more_accessible(access, preferred_access)) {
+        /* The new one is more accessible.  Use it. */
         preferred_bcdp = bcdp;
         preferred_access = access;
-      } else {
-        /* Compare the two paths. */
-        if (is_more_accessible(access, preferred_access)) {
-          /* The new one is more accessible.  Use it. */
-          preferred_bcdp = bcdp;
-          preferred_access = access;
-        } else if (access == preferred_access) {
-          /* No preference based on accessibility.  Look for other criteria. */
-          if (!preferred_bcdp->direct) {
-            if (bcdp->direct) {
-              /* Choose a direct base class over an indirect. */
-              preferred_bcdp = bcdp;
-            } else if (!bcdp->path->base_class->is_virtual &&
-                       preferred_bcdp->path->base_class->is_virtual) {
-              /* Both are indirect, but we choose a path with no virtual steps
-                 over one that a path that has virtual steps. */
-              preferred_bcdp = bcdp;
-            }  /* if */
+      } else if (access == preferred_access) {
+        /* No preference based on accessibility.  Look for other criteria. */
+        if (!preferred_bcdp->direct) {
+          if (bcdp->direct) {
+            /* Choose a direct base class over an indirect. */
+            preferred_bcdp = bcdp;
+          } else if (!bcdp->path->base_class->is_virtual &&
+                     preferred_bcdp->path->base_class->is_virtual) {
+            /* Both are indirect, but we choose a path with no virtual steps
+               over one that a path that has virtual steps. */
+            preferred_bcdp = bcdp;
           }  /* if */
         }  /* if */
       }  /* if */
-    }  /* for */
-  }  /* if */
+    }  /* if */
+  }  /* for */
+done:;
   db_exit();
 }  /* set_preferred_base_class_derivation */
 
