@@ -1154,6 +1154,7 @@ a function.  NULL until allocated.
 static a_variable_ptr
 		object_addr_table_var;
 
+
 static a_targ_size_t object_addr_table_entry(
                                         an_init_pos_descr_ptr ipdp,
                                         an_insert_location    *insert_location)
@@ -1165,7 +1166,7 @@ Return the index number into the object address table.  Also insert
 object address array to the address of the object.
 */
 {
-  an_expr_node_ptr object_addr_table_node, subsc_node;
+  an_expr_node_ptr object_addr_table_node, subsc_node, object_addr_node;
   a_targ_size_t    entry_number;
 
   /* Note that the current memory region must not have been forced to the
@@ -1188,7 +1189,7 @@ object address array to the address of the object.
   entry_number = incr_nelems_or_array_var(object_addr_table_var);
   /* Insert code to initialize the element of the table to the address of the
      object, i.e.,
-       object_addr_table[n] = ipdp-address;
+       object_addr_table[n] = (void *)ipdp-address;
   */
   object_addr_table_node = array_var_lvalue_expr(object_addr_table_var);
   object_addr_table_node->next = node_for_integer_constant((long)entry_number,
@@ -1196,10 +1197,11 @@ object address array to the address of the object.
   subsc_node = make_operator_node((an_expr_operator_kind)eok_padd_subsc,
                                   object_addr_table_node->type,
                                   object_addr_table_node);
+  object_addr_node = add_cast_if_necessary(make_init_entity_node(ipdp),
+                                           void_star_type());
   (void)insert_assignment_statement(subsc_node,
                                     (an_expr_operator_kind)eok_passign,
-                                    make_init_entity_node(ipdp),
-                                    insert_location);
+                                    object_addr_node, insert_location);
   return entry_number;
 }  /* object_addr_table_entry */
 
