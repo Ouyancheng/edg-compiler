@@ -3096,11 +3096,17 @@ this one is such a continuation.
     is_definition = TRUE;
     /* A definition of a class is never a friend declaration. */
     friend_decl = FALSE;
+    is_specialization = FALSE;
     if (is_immediate_class_type(type)) {
-      is_specialization = (type->variant.class_struct_union.is_specialized &&
-                !type->variant.class_struct_union.specialized_with_old_syntax);
-    } else {
-      is_specialization = FALSE;
+      /* See if the "template<>" specialization prefix should be put out. */
+      if (type->variant.class_struct_union.is_specialized) {
+        is_specialization =
+                 !type->variant.class_struct_union.specialized_with_old_syntax;
+      } else if (type->variant.class_struct_union.is_template_class) {
+        /* A generated instance.  Use the "template<>" prefix if
+           appropriate. */
+        is_specialization = !old_specializations_for_generated_instances;
+      }  /* if */
     }  /* if */
   }  /* if */
   kind = type->kind;
@@ -3116,12 +3122,6 @@ this one is such a continuation.
     /* If generating a member of a class within the class, set the right access
        mode for the member. */
     gen_member_access_specifier_for_decl_of(&type->source_corresp);
-    if (is_immediate_class_type(type) &&
-        type->variant.class_struct_union.is_template_class &&
-        !type->variant.class_struct_union.is_specialized) {
-      /* A generated instance.  Use the "template<>" prefix if appropriate. */
-      is_specialization = !old_specializations_for_generated_instances;
-    }  /* if */
     if (is_specialization) {
       /* For a specialization, put out "template<>" at the beginning. */
       gen_template_specialization_header(&type->source_corresp,
@@ -6012,8 +6012,14 @@ declaration following this one is such a continuation.
     var = ss_entry_ptr(curr_source_sequence_entry, a_variable_ptr);
     is_definition = TRUE;
     var_type = var->declared_type;
-    is_specialization = (var->is_specialized &&
-                         !var->specialized_with_old_syntax);
+    is_specialization = FALSE;
+    /* See if the "template<>" specialization prefix should be put out. */
+    if (var->is_specialized) {
+      is_specialization = !var->specialized_with_old_syntax;
+    } else if (var->is_template_static_data_member) {
+      /* A generated instance.  Use the "template<>" prefix if appropriate. */
+      is_specialization = !old_specializations_for_generated_instances;
+    }  /* if */
   }  /* if */
   check_assertion_str(var_type != NULL,
                       "gen_variable_decl: declared_type is NULL");
@@ -6025,10 +6031,6 @@ declaration following this one is such a continuation.
      mode for the member. */
   if (!suppress_specifiers) {
     gen_member_access_specifier_for_decl_of(&var->source_corresp);
-  }  /* if */
-  if (var->is_template_static_data_member && !var->is_specialized) {
-    /* A generated instance.  Use the "template<>" prefix if appropriate. */
-    is_specialization = !old_specializations_for_generated_instances;
   }  /* if */
   if (is_specialization) {
     /* For a specialization, put out "template<>" at the beginning. */
@@ -6325,8 +6327,14 @@ TRUE if the declaration following this one is such a continuation.
     is_definition = TRUE;
     rout_type = rout->declared_type;
     friend_decl = rout->defined_in_friend_decl;
-    is_specialization = (rout->is_specialized &&
-                         !rout->specialized_with_old_syntax);
+    is_specialization = FALSE;
+    /* See if the "template<>" specialization prefix should be put out. */
+    if (rout->is_specialized) {
+      is_specialization = !rout->specialized_with_old_syntax;
+    } else if (rout->is_template_function) {
+      /* A generated instance.  Use the "template<>" prefix if appropriate. */
+      is_specialization = !old_specializations_for_generated_instances;
+    }  /* if */
     if (rout->assoc_scope == NULL_region_number) {
       /* A member function of a template class might not be instantiated. */
       check_assertion_str(rout->is_template_function,
@@ -6370,10 +6378,6 @@ TRUE if the declaration following this one is such a continuation.
     read_memory_region(scope_region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     scope = il_header.region_scope_entry[scope_region_number];
-  }  /* if */
-  if (rout->is_template_function && !rout->is_specialized) {
-    /* A generated instance.  Use the "template<>" prefix if appropriate. */
-    is_specialization = !old_specializations_for_generated_instances;
   }  /* if */
   if (is_specialization) {
     /* For a specialization, put out "template<>" at the beginning. */
