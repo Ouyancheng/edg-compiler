@@ -20,7 +20,7 @@ mem_manage.c -- Memory management routines.
 #else
 #if __BSD__ || __VMS__
 extern char *malloc(unsigned size);
-extern free(char *); /* Implicitly int to match old-style definition. */
+extern int free(char *); /* int to match old-style definition. */
 extern char *realloc(char *ptr, unsigned size);
 #else /* __SYSV__ */
 #include <malloc.h>

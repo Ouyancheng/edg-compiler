@@ -431,7 +431,7 @@ and indentation is the indentation desired.
 }  /* db_symbol */
 
 
-static db_scope_kind(a_scope_kind sck)
+static void db_scope_kind(a_scope_kind sck)
 /*
 Put out a scope kind name (for debugging).
 */
