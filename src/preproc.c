@@ -1238,21 +1238,36 @@ Create a precompiled header prefix event for a preprocessing directive.
 This is done by converting the tokens that follow the preprocessing
 directive into a character string and calling the routine to add a
 pch event.
+
+The special "prescan" mode is also used when bypassing the initial portion
+of a file whose input is obtained from a precompiled header.  In this mode,
+we simply flush directives until we find one that matches the position
+of the last thing obtained from the PCH.  We then reset the
+building_pch_prefix flag so that normal compilation processing will
+begin.
 */
 {
-  /* Bypass the directive keyword. */
-  (void)get_token();
-  convert_pp_directive_to_string();
-  if (kind == ppd_include) {
-    /* Add a sequence point marker before and after include directives. */
-    add_pch_event(pchek_sequence_marker, ppd_not_valid, (char *)NULL,
-                  &null_source_position);
-  }  /* if */
-  add_pch_event(pchek_pp_directive, kind, pp_dir_string_buffer, pos);
-  if (kind == ppd_include) {
-    /* Add a sequence point marker before and after include directives. */
-    add_pch_event(pchek_sequence_marker, ppd_not_valid, (char *)NULL,
-                  &null_source_position);
+  if (using_a_pch_file) {
+    /* Skip to the end of this directive. */
+    while (get_token() != tok_newline);
+    if (cmp_source_positions(*pos, pos_of_last_event_from_pch) == 0) {
+      building_pch_prefix = FALSE;
+    }  /* if */
+  } else {
+    /* Bypass the directive keyword. */
+    (void)get_token();
+    convert_pp_directive_to_string();
+    if (kind == ppd_include) {
+      /* Add a sequence point marker before and after include directives. */
+      add_pch_event(pchek_sequence_marker, ppd_not_valid, (char *)NULL,
+                    &null_source_position);
+    }  /* if */
+    add_pch_event(pchek_pp_directive, kind, pp_dir_string_buffer, pos);
+    if (kind == ppd_include) {
+      /* Add a sequence point marker before and after include directives. */
+      add_pch_event(pchek_sequence_marker, ppd_not_valid, (char *)NULL,
+                    &null_source_position);
+    }  /* if */
   }  /* if */
 }  /* pch_prefix_processing_for_pp_directive */
 

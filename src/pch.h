@@ -190,6 +190,19 @@ EXTERN a_source_position
 			   processing routines to determine when they have
 			   reached the implied header stop point. */
 
+EXTERN a_boolean
+		using_a_pch_file;
+			/* TRUE if this compilation makes use of a
+			   precompiled header file. */
+
+EXTERN a_source_position
+		pos_of_last_event_from_pch;
+			/* Position of the last event in the current source
+			   file that will actually be supplied by the PCH
+			   being used.  Used to skip past the common
+			   prefix before beginning the compilation. */
+
+
 /*
 Macro used to set cannot_do_pch_processing.
 */

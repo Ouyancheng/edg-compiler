@@ -1412,6 +1412,7 @@ directory.  Return TRUE if an applicable PCH was found.
   /* Save a copy of the precompiled header file name to be used. */
   pch_input_file_name = (char *)alloc_general
                                      ((sizeof_t)strlen(file_name_buffer) + 1);
+  pos_of_last_event_from_pch = best_result_so_far;
   (void)strcpy(pch_input_file_name, file_name_buffer);
   db_exit();
 #if 0
@@ -1464,6 +1465,7 @@ may be used.
     }  /* if */
   }  /* if */
   if (can_use_pch) {
+    using_a_pch_file = TRUE;
     read_mem_alloc_history();
     read_saved_variables();
     read_memory_regions();
@@ -1539,6 +1541,8 @@ Initialize variables used by the precompiled header routines.
   pch_event_list_tail = NULL;
   building_pch_prefix = FALSE;
   header_stop_source_position = null_source_position;
+  pos_of_last_event_from_pch = null_source_position;
+  using_a_pch_file = FALSE;
 #if DEBUG
   num_pch_events_allocated = 0;
 #endif /* DEBUG */

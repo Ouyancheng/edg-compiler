@@ -628,6 +628,14 @@ compilation.
 */
 {
   open_primary_source_file();
+  if (using_a_pch_file) {
+    /* If we are using input from a precompiled header file, then we need
+       to skip over the initial portion of the primary input file that
+       corresponds to what has been obtained from the PCH.  Go into
+       the "prefix scanning" mode.  This flag will be reset when we
+       get to the last event obtained from the PCH. */
+    building_pch_prefix = TRUE;
+  }  /* if */
   /* The initial get_token call is not done yet because we may be doing
      preprocessing only, and the proper mode flags (like fetch_pp_tokens)
      are not yet set. */

@@ -5363,7 +5363,10 @@ write out the precompiled header file.
 {
 #define PCH_DECL_SEQ_THRESHOLD 0
 
-  if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
+  if (using_a_pch_file) {
+    /* We are using input obtained from a precompiled header, don't
+       try to generate a new one. */
+  } else if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
     /* Don't save the header files if we are not currently at file scope. */
   } else if (macro_depth != 0 || pp_if_stack_depth != -1) {
     /* Nor if we are in the midst of a macro definition or a #if construct. */
