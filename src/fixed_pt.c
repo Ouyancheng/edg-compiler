@@ -63,9 +63,9 @@ bits excluding the sign bit).
 {
   int	bits;
 
-  bits = targ_sizeof_fixed_point[fxp_descr->is_unsigned]
-                                [(int)fxp_descr->precision]
-                                [fxp_descr->is_fract_type] * CHAR_BIT;
+  bits = (int)targ_sizeof_fixed_point[fxp_descr->is_unsigned]
+                                     [(int)fxp_descr->precision]
+                                     [fxp_descr->is_fract_type] * CHAR_BIT;
   if (!fxp_descr->is_unsigned) bits--;
   return bits;
 }  /* value_bits_for_fixed_point */
@@ -78,9 +78,9 @@ Return the number of bytes in a fixed-point value.
 {
   int	size;
 
-  size = targ_sizeof_fixed_point[fxp_descr->is_unsigned]
-                                [(int)fxp_descr->precision]
-                                [fxp_descr->is_fract_type];
+  size = (int)targ_sizeof_fixed_point[fxp_descr->is_unsigned]
+                                     [(int)fxp_descr->precision]
+                                     [fxp_descr->is_fract_type];
   return size;
 }  /* sizeof_fixed_point */
 
@@ -98,9 +98,10 @@ The sign bit (if any) is included in the non-fractional bits.
   fract_bits = targ_fractional_bits_for_fixed_point[fxp_descr->is_unsigned]
                                                    [(int)fxp_descr->precision]
                                                    [fxp_descr->is_fract_type];
-  total_bits = targ_sizeof_fixed_point[fxp_descr->is_unsigned]
-                                      [(int)fxp_descr->precision]
-                                      [fxp_descr->is_fract_type] * CHAR_BIT;
+  total_bits = (int)targ_sizeof_fixed_point[fxp_descr->is_unsigned]
+                                           [(int)fxp_descr->precision]
+                                           [fxp_descr->is_fract_type] *
+                                                                      CHAR_BIT;
   return total_bits - fract_bits;
 }  /* non_fractional_bits_for_fixed_point */
 
