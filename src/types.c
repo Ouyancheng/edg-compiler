@@ -862,19 +862,17 @@ same type.  This is not a C concept; it's more of an IL concept.  Basically,
 two types are identical if no cast is needed to assign a value of one
 type to an entity of the other type.  This routine should never be called
 directly; it's meant to be called only by the macro identical_types, which
-does the initial test for exact pointer equality.
+does the initial test for exact pointer equality. 
 */
 {
-  register a_boolean  identical = FALSE;
-  a_param_type_ptr    list1, list2;
+  register a_boolean            identical = FALSE;
+  a_param_type_ptr              list1, list2;
+  a_routine_type_supplement_ptr extra_info1, extra_info2;
 
   db_enter(4, "f_identical_types");
 
-  if (type_1 == type_2) {
-    /* If the pointers are the same, the types are identical. */
-    identical = TRUE;
-  } if (is_const_qualified_type(type_1) != is_const_qualified_type(type_2) ||
-        is_volatile_qualified_type(type_1) !=
+  if (is_const_qualified_type(type_1) != is_const_qualified_type(type_2) ||
+      is_volatile_qualified_type(type_1) !=
                                         is_volatile_qualified_type(type_2)) {
     /* The type qualifiers do not match, so the types are not identical. */
     /* identical = FALSE;  -- Already set. */
@@ -951,18 +949,21 @@ does the initial test for exact pointer equality.
           }  /* if */
           break;
         case tk_routine:
-          /* For functions, the return types must be identical and the
-             parameter lists must be identical. */
+          /* For functions, the return types must be identical, the
+             parameter lists must be identical, and the implicit "this"
+             parameter type (if any) must be identical. */
+          extra_info1 = type_1->variant.routine.extra_info;
+          extra_info2 = type_2->variant.routine.extra_info;
           if (identical_types(type_1->variant.routine.return_type,
                               type_2->variant.routine.return_type) &&
-              type_1->variant.routine.extra_info->prototyped ==
-              type_2->variant.routine.extra_info->prototyped &&
-              type_1->variant.routine.extra_info->has_ellipsis ==
-              type_2->variant.routine.extra_info->has_ellipsis) {
-            list1 = type_1->variant.routine.extra_info->param_type_list;
-            list2 = type_2->variant.routine.extra_info->param_type_list;
+              extra_info1->prototyped == extra_info2->prototyped &&
+              extra_info1->has_ellipsis == extra_info2->has_ellipsis &&
+              identical_types(extra_info1->implicit_this_param_type,
+                              extra_info2->implicit_this_param_type)) {
             /* Compare the types of the parameters on the two lists. */
-            for (; list1 != NULL && list2 != NULL;
+            for (list1 = extra_info1->param_type_list,
+                                          list2 = extra_info2->param_type_list;
+                 list1 != NULL && list2 != NULL;
                  list1 = list1->next, list2 = list2->next) {
               if (!identical_types(list1->type, list2->type)) {
                 /* The parameter types are not identical. */
@@ -1004,11 +1005,11 @@ never be called directly; it's meant to be called only by the macro
 types_are_compatible, which does the initial test for exact pointer equality.
 */
 {
-  register a_boolean  compat = FALSE;
-  a_param_type_ptr    list1, list2;
-  a_boolean           list1_prototyped, list2_prototyped;
-  a_type_ptr          local_type_2;
-  a_type_ptr          param_2_type;
+  register a_boolean            compat = FALSE;
+  a_param_type_ptr              list1, list2;
+  a_boolean                     list1_prototyped, list2_prototyped;
+  a_routine_type_supplement_ptr extra_info1, extra_info2, local_extra_info2;
+  a_type_ptr                    param_2_type;
 
   db_enter(4, "f_types_are_compatible");
 
@@ -1091,36 +1092,44 @@ types_are_compatible, which does the initial test for exact pointer equality.
              either function has a new-style parameter list, the
              individual parameter types must be compatible.
              See 3.5.4.3. */
+          /* Both types must have an ellipsis or neither must. */
+          /* The implicit "this" parameter types (if any) must be compatible
+             too. */
+          extra_info1 = type_1->variant.routine.extra_info;
+          extra_info2 = type_2->variant.routine.extra_info;
           if (types_are_compatible(type_1->variant.routine.return_type,
-                                   type_2->variant.routine.return_type)) {
-            list1_prototyped = type_1->variant.routine.extra_info->prototyped;
-            list2_prototyped = type_2->variant.routine.extra_info->prototyped;
+                                   type_2->variant.routine.return_type) &&
+              extra_info1->has_ellipsis == extra_info2->has_ellipsis &&
+              types_are_compatible(extra_info1->implicit_this_param_type,
+                                   extra_info2->implicit_this_param_type)) {
+            list1_prototyped = extra_info1->prototyped;
+            list2_prototyped = extra_info2->prototyped;
             if (!list1_prototyped && !list2_prototyped) {
               /* Both parameter lists are old-style, so they are compatible. */
               compat = TRUE;
             } else {
               /* At least one of the function types has a prototyped
                  parameter list. */
-              list1 = type_1->variant.routine.extra_info->param_type_list;
-              list2 = type_2->variant.routine.extra_info->param_type_list;
-              local_type_2 = type_2;
+              list1 = extra_info1->param_type_list;
+              list2 = extra_info2->param_type_list;
+              local_extra_info2 = extra_info2;
               if (!list1_prototyped) {
                 /* Switch the two parameter lists, so that if there is
                    an old-style parameter list involved, it is list2. */
                 list1 = list2;
-                list2 = type_1->variant.routine.extra_info->param_type_list;
+                list2 = extra_info1->param_type_list;
                 list1_prototyped = TRUE;
                 list2_prototyped = FALSE;
-                local_type_2 = type_1;
+                local_extra_info2 = extra_info1;
               }  /* if */
               if (!list2_prototyped) {
                 /* The second parameter list is old-style.  */
-                if (local_type_2->variant.routine.extra_info->assoc_routine ==
-                                                                        NULL) {
-                  /* local_type_2 is the type for a routine without a body,
-                     so there is no parameter information.  The prototyped
-                     parameter list from the first type is used, and each type
-                     on the list will be promoted before comparison. */
+                if (local_extra_info2->assoc_routine == NULL) {
+                  /* The old-style type is the type for a routine without a
+                     body, so there is no parameter information.  The
+                     prototyped parameter list from the first type is used,
+                     and each type on the list will be promoted before
+                     comparison. */
                   list2 = list1;
                 }  /* if */
               }  /* if */
@@ -1141,11 +1150,6 @@ types_are_compatible, which does the initial test for exact pointer equality.
               /* The parameter lists are compatible if they both ended
                  together. */
               compat = (list1 == NULL && list2 == NULL);
-              /* Both types must have an ellipsis or neither must. */
-              if (type_1->variant.routine.extra_info->has_ellipsis !=
-                  type_2->variant.routine.extra_info->has_ellipsis) {
-                compat = FALSE;
-              }  /* if */
 funcs_not_compatible:;
             }  /* if */
           }  /* if */
@@ -1176,7 +1180,7 @@ a_boolean interchangeable_types(a_type_ptr type_1,
                                 a_type_ptr type_2)
 /*
 Return TRUE if the given types are "interchangeable".  This is a concept
-implied by the footnote in 3.1.2.5 in the standard: "The same representation
+implied by the footnote in 3.1.2.5 in the C standard: "The same representation
 and alignment requirements are meant to imply interchangeability as
 arguments to functions, return values, and members of unions".  
 Interchangeability is a less strict matching than compatibility:
@@ -1241,9 +1245,8 @@ and arguments of old-style calls.
                 ikind2 == (an_integer_kind)ik_long)) {
       interch = TRUE;
     }  /* if */
-  } else if (type_1->kind == (a_type_kind)tk_pointer ||
-             type_1->kind == (a_type_kind)tk_reference) {
-    /* Pointer and reference types.  Get the underlying types. */
+  } else if (type_1->kind == (a_type_kind)tk_pointer) {
+    /* Pointer types.  Get the underlying types. */
     ptr_type1 = skip_typerefs(type_1->variant.pointer_type_pointed_to);
     ptr_type2 = skip_typerefs(type_2->variant.pointer_type_pointed_to);
     if (ptr_type1 == ptr_type2 ||  /* This test for speed. */
@@ -1527,7 +1530,7 @@ is allocated, it is allocated in the file scope.
              not possible, build a new function type.  The return type,
              parameter list, and prototyped flag must match.  Note that the
              has_ellipsis flag is not checked because both types must have the
-             same value. */
+             same value, and likewise the implicit "this" parameter type. */
           if (base_type_1->variant.routine.return_type == comp_elem &&
               base_type_1->variant.routine.extra_info->param_type_list ==
                                                              comp_param_list &&
@@ -1542,14 +1545,16 @@ is allocated, it is allocated in the file scope.
             comp_type = base_type_2;
           } else {
             /* Build a new function type. */
+            a_routine_type_supplement_ptr extra_info;
             comp_type = fs_type((a_type_kind)tk_routine);
             comp_type->variant.routine.return_type = comp_elem;
-            comp_type->variant.routine.extra_info->param_type_list =
-                                                               comp_param_list;
-            comp_type->variant.routine.extra_info->prototyped =
-                                                               comp_prototyped;
-            comp_type->variant.routine.extra_info->has_ellipsis =
+            extra_info = comp_type->variant.routine.extra_info;
+            extra_info->param_type_list = comp_param_list;
+            extra_info->prototyped = comp_prototyped;
+            extra_info->has_ellipsis =
                          base_type_1->variant.routine.extra_info->has_ellipsis;
+            extra_info->implicit_this_param_type =
+             base_type_1->variant.routine.extra_info->implicit_this_param_type;
           }  /* if */
           break;
 #if CHECKING
