@@ -786,10 +786,11 @@ Walk all the declarative entities contained in the indicated scope, and
 call the given processing function for each entity.
 */
 {
-  a_type_ptr     type;
-  a_variable_ptr variable;
-  a_routine_ptr  routine;
-  a_scope_ptr    block_scope;
+  a_type_ptr      type;
+  a_variable_ptr  variable;
+  a_routine_ptr   routine;
+  a_scope_ptr     block_scope;
+  a_namespace_ptr nsp;
 
   /* Some things not visited:
        -- Parameters of routines.
@@ -840,6 +841,16 @@ call the given processing function for each entity.
        routine != NULL;
        routine = routine->next) {
     (*entry_process_function)((char *)routine, iek_routine);
+  }  /* for */
+  /* Visit all namespaces. */
+  for (nsp = scope->namespaces;
+       nsp != NULL;
+       nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      /* Note that no call is made for the namespace itself. */
+      walk_declarative_entities_in_scope(nsp->variant.assoc_scope,
+                                         entry_process_function);
+    }  /* if */
   }  /* for */
   /* Visit all block scopes (only present in function and block scopes). */
   for (block_scope = scope->scopes;
