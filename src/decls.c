@@ -4843,10 +4843,14 @@ otherwise it is NULL.  The syntax is:
                 parenthesized_initializer_allowed = FALSE;
                 if (is_constructor_symbol(sym)) {
                   is_constructor = TRUE;
+                  if (!is_unknown_type(complete_type)) {
+                    error(ec_return_type_not_allowed);
+                    complete_type = unknown_type();
+                  }  /* if */
                 } else if (is_destructor_symbol(sym)) {
                   is_destructor = TRUE;
                   if (!is_unknown_type(complete_type)) {
-                    error(ec_bad_destructor_decl);
+                    error(ec_return_type_not_allowed);
                     complete_type = unknown_type();
                   }  /* if */
                 }  /* if */
@@ -4901,15 +4905,19 @@ otherwise it is NULL.  The syntax is:
             if (!destructor_name_matches_class_name(class_sym)) {
               /* The name on the destructor is not the name of the class. */
               error(ec_bad_destructor_decl);
-            } else if (!is_unknown_type(specifiers_type) ||
-                       !(input_flags & DI_DESTRUCTOR_SPECIFIERS)) {
-              /* The specifiers, including possibly the type specifier,
-                 are not consistent with a destructor declaration (e.g., a
-                 destructor cannot be specified "static" or "void"). */
-              error(ec_bad_destructor_decl);
             } else {
-              /* Valid destructor declaration. */
-              member_parent_type = ssep->il_scope->variant.assoc_type;
+              if (!is_unknown_type(complete_type)) {
+                error(ec_return_type_not_allowed);
+                complete_type = unknown_type();
+              } else if (!(input_flags & DI_DESTRUCTOR_SPECIFIERS)) {
+                /* The specifiers, including possibly the type specifier,
+                   are not consistent with a destructor declaration (e.g., a
+                   destructor cannot be specified "static" or "void"). */
+                error(ec_bad_destructor_decl);
+              } else {
+                /* Valid destructor declaration. */
+                member_parent_type = ssep->il_scope->variant.assoc_type;
+              }  /* if */
               is_destructor = TRUE;
               parenthesized_initializer_allowed = FALSE;
               *locator = locator_for_curr_id;
