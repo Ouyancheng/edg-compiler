@@ -7556,8 +7556,6 @@ void add_to_labels_list(a_label_ptr label_ptr)
 Add the given label to the labels list for the function (not current) scope.
 */
 {
-  a_scope_stack_entry_ptr ssep;
-
   /* Get pointer to the current function scope entry. */
 #if CHECKING
   if (innermost_function_scope == NULL) {
@@ -7566,19 +7564,23 @@ Add the given label to the labels list for the function (not current) scope.
 #endif /* CHECKING */
   if (innermost_function_scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
     /* The function scope is on the scope stack. */
-    ssep = &scope_stack[innermost_function_scope->depth_in_scope_stack];
+    a_scope_stack_entry_ptr ssep =
+                  &scope_stack[innermost_function_scope->depth_in_scope_stack];
+    /* Add the label at the end of the list. */
+    if (innermost_function_scope->labels == NULL) {
+      innermost_function_scope->labels = label_ptr;
+    } else {
+      ssep->last_label->next = label_ptr;
+    }  /* if */
+    ssep->last_label = label_ptr;
+    label_ptr->next = NULL;
   } else {
     /* The function scope is not on the scope stack, as in generated routines
        in IL lowering. */
-    ssep = NULL;
-  }  /* if */
-  if (innermost_function_scope->labels == NULL) {
+    /* Add the label at the beginning of the list. */
+    label_ptr->next = innermost_function_scope->labels;
     innermost_function_scope->labels = label_ptr;
-  } else {
-    if (ssep != NULL) ssep->last_label->next = label_ptr;
   }  /* if */
-  if (ssep != NULL) ssep->last_label = label_ptr;
-  label_ptr->next = NULL;
 }  /* add_to_labels_list */
 
 
