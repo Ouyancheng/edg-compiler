@@ -2360,8 +2360,11 @@ they should be used for the outermost instantiation scope.
        context and part of the definition scope.  The normal processing
        for this assumes that the referencing context was pushed above,
        which is not the case for the file scope.  When the referencing
-       context is the file scope, the common scope is also the file scope. */
-    if (reference_nsp == NULL) {
+       context is the file scope, the common scope is also the file scope.
+       Don't try to use common scopes that may have been pushed by a
+       previous instantiation scope. */
+    if (reference_nsp == NULL ||
+        depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
       common_depth = DEPTH_OF_FILE_SCOPE;
     } else {
       common_depth = find_depth_of_common_scope(definition_nsp);

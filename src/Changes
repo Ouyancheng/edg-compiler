@@ -32,14 +32,16 @@ is dependent, which appears not to be correct with the revised
 definition in TC1.  Such calls are no longer considered to be
 dependent merely because of the selector.
 
-11/15/01 Incorrect template parameter nesting depths
+11/15/01 Incorrect scope stack state in certain nested instantiations
 
-Under certain unusual circumstances the nesting depth assigned to the
-template parameters of a member template may be incorrect.  This could
-result in various kinds of incorrect behavior.  In the (large) test
-case that demonstrated this problem, it resulted in a spurious
-ambiguity error on the call of a conversion template.  This has been
-fixed.
+Under certain unusual circumstances involving nested instantiations
+the scope stack state was not maintained correctly.  This could cause
+the nesting depth of template parameters to be assigned incorrectly,
+and could cause other problems such as spurious errors concerning
+the redeclaration of template parameters.  The incorrect nesting
+depths could, in turn, cause various kinds of incorrect behavior.  In
+one example it resulted in a spurious ambiguity on the call of a
+conversion template.  The scope stack state problem has been fixed.
 
 11/14/01 Raw listing output problem with comment inside macro call
 
