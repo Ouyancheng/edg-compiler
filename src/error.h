@@ -184,7 +184,7 @@ typedef enum /*an_error_code*/ {
   ec_bad_initializer_type,
   ec_cannot_initialize,
   ec_too_many_initializer_values,
-  ec_type_must_be_compat_with_prev_def,
+  ec_not_compatible_with_previous_decl,
   ec_already_initialized,
   ec_bad_file_scope_storage_class,
   ec_typedef_cannot_be_param_name,
