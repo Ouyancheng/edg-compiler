@@ -700,8 +700,8 @@ Initialize the option information table.
                          "instantiation_dir",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
-  add_option_description(optk_instantiation_file_list,
-                         "instantiation_file_list",
+  add_option_description(optk_template_info_file,
+                         "template_info_file",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
@@ -1802,8 +1802,8 @@ enable_microsoft_mode:
                                  instantiation_dir_name);
         }  /* if */
         break;
-      case optk_instantiation_file_list:
-        instantiation_file_list_name = opt_arg;
+      case optk_template_info_file:
+        template_info_file_name = opt_arg;
         break;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
       default:
@@ -2184,8 +2184,8 @@ enable_microsoft_mode:
        for testing purposes to simplify the process of invoking the front
        end directly. */
     if (instantiation_dir_name == NULL) instantiation_dir_name = ".";
-    if (instantiation_file_list_name == NULL) {
-      instantiation_file_list_name = "instantiations.list";
+    if (template_info_file_name == NULL) {
+      template_info_file_name = "default.ti";
     }  /* if */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */

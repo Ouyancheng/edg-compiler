@@ -7329,7 +7329,7 @@ EXTERN struct il_header_tag {
 			   microsoft_version. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if ONE_INSTANTIATION_PER_OBJECT
-  char		*instantiation_file_list_name;
+  char		*template_info_file_name;
 			/* When each instantiation is placed in its own object
 			   file, a file containing a list of the files that
 			   were created is passed back to the driver.  This

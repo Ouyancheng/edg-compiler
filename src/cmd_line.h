@@ -160,7 +160,7 @@ typedef enum /*an_option_kind*/ {
 #if ONE_INSTANTIATION_PER_OBJECT
   optk_one_instantiation_per_object,
   optk_instantiation_dir,
-  optk_instantiation_file_list,
+  optk_template_info_file,
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   optk_last		/* Must be last. */
 } an_option_kind;
@@ -949,7 +949,7 @@ EXTERN a_boolean
 			   file. */
 
 #if ONE_INSTANTIATION_PER_OBJECT
-EXTERN char	*instantiation_file_list_name /* = NULL*/;
+EXTERN char	*template_info_file_name /* = NULL*/;
 			/* The name of a file into which the front end should
 			   write a list of files that were created that contain
 			   instantiations. */

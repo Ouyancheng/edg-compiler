@@ -6511,16 +6511,16 @@ routine or variable has the given source correspondence field and
 
     /* Open a file in which the list of generated file names will be
        returned. */
-    f_C_file_list = open_output_file(il_header.instantiation_file_list_name,
+    f_C_file_list = open_output_file(il_header.template_info_file_name,
                                      /*binary_file=*/FALSE,
                                      /*update_mode=*/FALSE,
                                      &cannot_open, &bad_name);
     if (bad_name) {
       str_command_line_error(ec_cl_invalid_output_file,
-                             il_header.instantiation_file_list_name);
+                             il_header.template_info_file_name);
     } else if (cannot_open) {
       str_command_line_error(ec_cl_cannot_open_output_file,
-                             il_header.instantiation_file_list_name);
+                             il_header.template_info_file_name);
     }  /* if */
   }  /* if */
   /* Write the generated file name to the file passed back to the driver. */
@@ -6661,13 +6661,13 @@ Generate C from the intermediate language.
   }  /* if */
 
 #if ONE_INSTANTIATION_PER_OBJECT
-  if (il_header.instantiation_file_list_name != NULL) {
+  if (il_header.template_info_file_name != NULL) {
     /* Generating one C file per instantiation.  For the primary file, use
        bit number 1 in the per-instantiation "needed" bit vector. */
     needed_flag_bit_number = 1;
     /* Delete any old version of the list file. */
-    if (is_regular_file(il_header.instantiation_file_list_name)) {
-      delete_file(il_header.instantiation_file_list_name);
+    if (is_regular_file(il_header.template_info_file_name)) {
+      delete_file(il_header.template_info_file_name);
     }  /* if */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
@@ -6677,7 +6677,7 @@ Generate C from the intermediate language.
   generate_C_output_file(C_output_file_name);
 
 #if ONE_INSTANTIATION_PER_OBJECT
-  if (il_header.instantiation_file_list_name != NULL) {
+  if (il_header.template_info_file_name != NULL) {
     generate_instantiation_C_output_files();
     if (f_C_file_list != NULL) {
       /* Close the file containing the list of generated file names, checking

@@ -931,12 +931,12 @@ input file to get the instantiation list file name.
 #endif /* ifndef INSTANTIATION_FILE_SUFFIX */
 
 /*
-The number of lines of the instantiation information file that are reserved
+The number of lines of the instantiation request file that are reserved
 and do not contain instantiation list entries.
 */
-#ifndef INSTANTIATION_INFO_LINES_RESERVED
-#define INSTANTIATION_INFO_LINES_RESERVED 3
-#endif /* ifndef INSTANTIATION_INFO_LINES_RESERVED */
+#ifndef INSTANTIATION_REQUEST_LINES_RESERVED
+#define INSTANTIATION_REQUEST_LINES_RESERVED 3
+#endif /* ifndef INSTANTIATION_REQUEST_LINES_RESERVED */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
