@@ -642,6 +642,25 @@ to be kept.
 }  /* prune_keep_in_il_walk */
 
 
+/*ARGSUSED*/ /* <-- entry_kind is not used. */
+static char *remap_ptr_for_keep_in_il(char             *entry_ptr,
+                                      an_il_entry_kind entry_kind)
+/*
+"remap" function for the IL walk done to set keep_in_il.  Doesn't
+really do any remapping, as it returns the same address passed in.
+Exists to set the keep_in_il flag on entries reached only by remap_ptr
+during a normal IL walk.
+*/
+{
+  if (entry_ptr != NULL) {
+    if (!is_string_entry_kind(entry_kind)) {
+      walk_entry_and_subtree(entry_ptr, entry_kind);
+    }  /* if */
+  }  /* if */
+  return entry_ptr;
+}  /* remap_ptr_for_keep_in_il */
+
+
 void mark_to_keep_in_il(char             *entry_ptr,
                         an_il_entry_kind entry_kind)
 /*
@@ -659,9 +678,20 @@ only the entries marked as "needed" are marked to keep in the IL.
   entry_process_func = NULL;
   string_entry_process_func = NULL;
   walk_termination_test_func = prune_keep_in_il_walk;
-  walk_remap_func = NULL;
+  walk_remap_func = remap_ptr_for_keep_in_il;
   /* walking_file_scope need not be set. */
   walking_to_set_keep_in_il = TRUE;
+
+  /* Before walking the file scope, visit the orphan lists.  This is done
+     first so that any entries referenced by orphans can be marked to be
+     kept in the IL even if their needed flags are FALSE. */
+  if (entry_kind == iek_scope) {
+    a_scope_ptr scope = (a_scope_ptr)entry_ptr;
+    if (scope->kind == (a_scope_kind)sck_file) {
+      walk_orphaned_file_scope_il_entries();
+    } /* if */
+  }  /* if */
+  walk_remap_func = NULL;
 
   /* Walk the IL tree. */
   walk_entry_and_subtree(entry_ptr, entry_kind);

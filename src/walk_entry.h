@@ -191,11 +191,14 @@ is FALSE, expands to a simple walk_list.
 #if NEEDED_FLAG_WALK
 #define walk_needed_on_list(ptr, ptr_type, entry_kind) /* Nothing */
 #else /* !NEEDED_FLAG_WALK */
+/* The code here assumes that if do_only_needed_entries_on_lists is TRUE,
+   the type of walk we are doing is one to set keep_in_il. */
 #define walk_needed_on_list(ptr, ptr_type, entry_kind) \
 { if (do_only_needed_entries_on_lists) { \
     ptr_type *ptr_ptr = &(ptr); \
     for (; *ptr_ptr != NULL; ptr_ptr = &(*ptr_ptr)->next) { \
-      if ((*ptr_ptr)->source_corresp.needed) { \
+      if ((*ptr_ptr)->source_corresp.needed || \
+          il_entry_prefix_of(*ptr_ptr).keep_in_il) { \
         il_entry_prefix_of(*ptr_ptr).keep_in_il = FALSE; \
         walk_ptr(*ptr_ptr, ptr_type, (entry_kind)); \
       }  /* if */ \
