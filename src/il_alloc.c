@@ -703,10 +703,16 @@ at file scope.
   ptp->default_being_instantiated = FALSE;
   ptp->type_involves_deduced_template_param = FALSE;
   ptp->qualifiers = TQ_NONE;
+#if GNU_EXTENSIONS_ALLOWED
+  ptp->is_transparent = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if CHECKING
   ptp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
   ptp->default_arg_expr = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+  ptp->mode = (a_type_mode_kind)tmk_none;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   ptp->decl_pos_info = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -1147,6 +1153,9 @@ to default values.
       pte->variant.class_struct_union.is_empty_class = FALSE;
       pte->variant.class_struct_union.has_zero_init_component = FALSE;
       pte->variant.class_struct_union.contains_flexible_array_member = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+      pte->variant.class_struct_union.is_transparent = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if CHECKING
       pte->variant.class_struct_union.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
@@ -1502,6 +1511,9 @@ to it.
 #endif /* DECL_MODIFIERS_IN_USE */
 #if GNU_EXTENSIONS_ALLOWED
   vp->alignment                   = 0;
+  vp->is_weak                     = FALSE;
+  vp->is_not_common               = FALSE;
+  vp->is_transparent              = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   vp->address_taken               = FALSE;
   vp->is_parameter                = FALSE;
@@ -1512,6 +1524,9 @@ to it.
   vp->initializer_range           = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   vp->assoc_template              = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+  vp->section                     = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #ifdef CIL
   vp->referenced_non_locally      = FALSE;
   vp->modified_within_try_block   = FALSE;
@@ -1709,6 +1724,11 @@ to it.  The entry is allocated in the file scope memory region.
 #if GNU_EXTENSIONS_ALLOWED
   rp->is_initialization_routine   = FALSE;
   rp->is_finalization_routine     = FALSE;
+  rp->does_not_return             = FALSE;
+  rp->is_pure                     = FALSE;
+  rp->is_const                    = FALSE;
+  rp->is_weak                     = FALSE;
+  rp->allocates_memory            = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   rp->can_be_instantiated         = FALSE;
@@ -1752,6 +1772,10 @@ to it.  The entry is allocated in the file scope memory region.
   rp->befriending_classes         = NULL;
   rp->template_arg_list           = NULL;
   rp->assoc_template              = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+  rp->section                     = NULL;
+  rp->aliased_routine             = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   rp->declared_type               = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

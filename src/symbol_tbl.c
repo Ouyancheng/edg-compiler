@@ -9270,6 +9270,9 @@ locator_for_curr_id.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   pip->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+  pip->attributes = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   pip->dummy_vla_variable = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   pip->specifiers_range.start = null_source_position;
@@ -9291,6 +9294,9 @@ Free the parameter id block pointed to by *ppip, set *ppip to NULL.
 */
 {
   db_enter(5, "free_param_id");
+#if GNU_EXTENSIONS_ALLOWED
+  free_attribute_list((*ppip)->attributes);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   (*ppip)->next = avail_param_ids;
   avail_param_ids = *ppip;
   *ppip = NULL;
@@ -9340,12 +9346,14 @@ return NULL.
 
 
 #if !GENERATE_SOURCE_SEQUENCE_LISTS
-/* ARGSUSED */ /* <-- param_ssep is only used with source sequence lists. */
+/* ARGSUSED */ /* <-- param_ssep is only used with source sequence lists. 
+                      attributes is only used with GNU extensions. */
 #endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 void add_to_param_id_list(a_symbol_locator            *locator,
                           a_type_ptr                  type_ptr,
                           a_source_position           *type_pos,
                           a_storage_class             storage_class,
+                          an_attribute_ptr            attributes,
                           a_func_info_block_ptr       func_info,
                           a_source_sequence_entry_ptr param_ssep,
                           a_param_id_ptr              *last_param_id)
@@ -9354,6 +9362,8 @@ Create a new param_id entry and an sk_parameter symbol to go with it,
 and add the former to the parameter id list pointed to by func_info;
 *last_param_id points to the last entry on it.  type_ptr and
 storage_class are the type and storage class for the parameter.
+attributes indicates any attributes that should be applied to the
+parameter.
 */
 {
   a_param_id_ptr  new_param_id;
@@ -9413,6 +9423,9 @@ storage_class are the type and storage class for the parameter.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     new_param_id->source_sequence_entry = param_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+    new_param_id->attributes = attributes;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Put this entry on the end of the list of param ids. */
     if (func_info->param_id_list == NULL) {
       func_info->param_id_list = new_param_id;
@@ -9420,6 +9433,14 @@ storage_class are the type and storage class for the parameter.
       (*last_param_id)->next = new_param_id;
     }  /* if */
     (*last_param_id) = new_param_id;
+#if GNU_EXTENSIONS_ALLOWED
+  } else {
+    /* When the param-id data structure is created the attributes are
+       stored there, and are freed when the param-id is freed.  If
+       there is no param-id, then the attributes are no longer
+       needed. */
+    free_attribute_list(attributes);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* add_to_param_id_list */
 

@@ -656,6 +656,7 @@ extern a_boolean direct_reference_binding_possible(
 
 extern void prep_initializer_operand(an_operand    *source_operand,
                                      a_type_ptr    dest_type,
+                                     a_boolean     *is_transparent,
                                      a_conv_descr  *conversion,
                                      a_boolean     initializing_return_value,
                                      a_boolean     initializing_variable,

@@ -38,6 +38,7 @@ typedef struct a_template_cache *a_template_cache_ptr;
 typedef struct a_control_flow_descr a_control_flow_descr_dummy_typedef;
 typedef struct an_exception_spec_error_descr
                                           *an_exception_spec_error_descr_ptr;
+typedef struct an_attribute    an_attribute_dummy_typedef;
 
 /* The pointer to a_routine_fixup is declared here even though the struct
    itself is defined in class_decl.c.  This allows the pointer to be made
@@ -893,6 +894,11 @@ typedef struct a_param_id {
 			/* Source-sequence information saved during declarator
 			   processing. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+  struct an_attribute
+  		*attributes;
+			/* The attributes associated with this parameter. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   a_variable_ptr
 		dummy_vla_variable;
 			/* A dummy variable created for scanning a VLA
@@ -3350,6 +3356,7 @@ extern void add_to_param_id_list(a_symbol_locator            *locator,
                                  a_type_ptr                  type_ptr,
                                  a_source_position           *type_pos,
                                  a_storage_class             storage_class,
+                                 struct an_attribute         *attributes,
                                  a_func_info_block_ptr       func_info,
                                  a_source_sequence_entry_ptr param_ssep,
                                  a_param_id_ptr              *last_param_id);

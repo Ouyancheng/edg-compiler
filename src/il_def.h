@@ -2250,6 +2250,53 @@ enum a_float_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_float_kind;
 
+#if GNU_EXTENSIONS_ALLOWED
+
+/*
+Enumeration of type modes, i.e., sizes of types.  Some of these modes
+may not be available on some machines.
+*/
+enum a_type_mode_kind_tag {
+  tmk_error,          /* An erroneous mode. */
+  tmk_first,
+  tmk_QI = tmk_first, /* 1-byte integers. */
+  tmk_HI,             /* 2-byte integers. */
+  tmk_SI,             /* 4-byte integers. */
+  tmk_DI,             /* 8-byte integers. */
+  tmk_TI,             /* 16-byte integers. */
+  tmk_SF,             /* 4-byte floats. */
+  tmk_DF,             /* 8-byte floats. */
+  tmk_XF,             /* 12-byte floats. */
+  tmk_TF,             /* 16-byte floats. */
+  tmk_none,
+  tmk_last = tmk_none
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_type_mode_kind;
+
+/*
+Names of machine modes.
+*/
+EXTERN char *type_mode_kind_names[(int)tmk_last + 1]
+#if VAR_INITIALIZERS
+= {
+/* tmk_error */ "error",
+/* tmk_QI */    "QI",
+/* tmk_HI */    "HI",
+/* tmk_SI */    "SI",
+/* tmk_DI */    "DI",
+/* tmk_TI */    "TI",
+/* tmk_SF */    "SF",
+/* tmk_DF */    "DF",
+/* tmk_XF */    "XF",
+/* tmk_TF */    "TF",
+/* tmk_last */  "last" /* used to check that initialization is right. */
+}
+#endif /* VAR_INITIALIZERS */
+;
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 /*
 A bit set whose values represent the presence of one or more type qualifiers
 (const, volatile, along with others that an implementation might choose to
@@ -2363,6 +2410,11 @@ typedef struct a_param_type {
 			   param-type entry belongs is associated with a
 			   defined function, then this field reflects how
 			   the function was defined. */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	is_transparent:1;
+			/* For a parameter of union type, TRUE if the
+			   union is transparent. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   an_expr_node_ptr
 		default_arg_expr;
@@ -2373,6 +2425,14 @@ typedef struct a_param_type {
 			   be NULL if the default argument value has not
 			   yet been evaluated, or for a template default
 			   argument value whose value was never needed. */
+#if GNU_EXTENSIONS_ALLOWED
+  a_type_mode_kind
+  		mode;
+			/* If this parameter was declared with an
+			   attribute that indicates a particular mode,
+			   then the mode is stored here.  Otherwise,
+			   the value is tmk_none. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_decl_position_supplement_ptr
@@ -2801,52 +2861,6 @@ Type used to represent a set of decl modifiers.
 typedef unsigned short a_decl_modifier;
 
 #endif /* ifdef CIL */
-
-#if GNU_EXTENSIONS_ALLOWED
-
-/*
-Enumeration of type modes, i.e., sizes of types.  Some of these modes
-may not be available on some machines.
-*/
-enum a_type_mode_kind_tag {
-  tmk_error,          /* An erroneous mode. */
-  tmk_first,
-  tmk_QI = tmk_first, /* 1-byte integers. */
-  tmk_HI,             /* 2-byte integers. */
-  tmk_SI,             /* 4-byte integers. */
-  tmk_DI,             /* 8-byte integers. */
-  tmk_TI,             /* 16-byte integers. */
-  tmk_SF,             /* 4-byte floats. */
-  tmk_DF,             /* 8-byte floats. */
-  tmk_XF,             /* 12-byte floats. */
-  tmk_TF,             /* 16-byte floats. */
-  tmk_last
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_type_mode_kind;
-
-/*
-Names of machine modes.
-*/
-EXTERN char *type_mode_kind_names[(int)tmk_last + 1]
-#if VAR_INITIALIZERS
-= {
-/* tmk_error */ "error",
-/* tmk_QI */    "QI",
-/* tmk_HI */    "HI",
-/* tmk_SI */    "SI",
-/* tmk_DI */    "DI",
-/* tmk_TI */    "TI",
-/* tmk_SF */    "SF",
-/* tmk_DF */    "DF",
-/* tmk_XF */    "XF",
-/* tmk_TF */    "TF",
-/* tmk_last */  "last" /* used to check that initialization is right. */
-}
-#endif /* VAR_INITIALIZERS */
-;
-
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 /* Entry containing additional information about a routine type
 (segregated to keep down the size of a_type). */
@@ -4408,6 +4422,15 @@ typedef struct a_type {
 			/* TRUE if this is a struct and the last field is an
 			   incomplete array type or if it is a union and one
 			   of its members is a struct with such a field. */
+#if GNU_EXTENSIONS_ALLOWED
+      a_bit_field
+      		is_transparent:1;
+			/* TRUE if this is a union type that is
+			   "transparent".  If a parameter has
+			   transparent union type, then it is OK to
+			   pass an argument whose type is one of the
+			   union members. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       bitfield_to_avoid_codecenter_warnings()
 #if USER_CONTROL_OF_STRUCT_PACKING
       a_targ_alignment
@@ -4606,7 +4629,6 @@ EXTERN char     *db_storage_class_names[(int)sc_last + 1]
 ;
 #endif /* DEBUG */
 
-
 enum an_init_kind_tag {
   /* Kinds of initialization of a variable: */
   initk_none,		/* No initialization. */
@@ -4802,6 +4824,16 @@ typedef struct a_variable {
 			/* The explicit alignment specified for the
 			   variable, or zero if there was no explicit
 			   alignment. */
+  a_bit_field   is_weak:1;
+			/* TRUE if this variable was declared with the
+			   weak attribute. */
+  a_bit_field   is_not_common:1;
+			/* TRUE if this variable should not be placed in
+			   COMMON (or an equivalent) even if it is
+			   zero-initialized. */
+  a_bit_field   is_transparent:1;
+			/* TRUE if this variable is a parameter that
+			   is a transparent union. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_bit_field	address_taken:1;
                         /* TRUE if the address of this variable has been
@@ -5007,6 +5039,11 @@ typedef struct a_variable {
 			/* For instantiated entities, this points to the
 			   the template from which they were generated;
 			   otherwise, this is NULL. */
+#if GNU_EXTENSIONS_ALLOWED
+  char		*section;
+			/* If non-NULL, the section in which this
+			   variable should be placed. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
 			/* The type as it actually appears in the declaration
@@ -5655,6 +5692,23 @@ typedef struct a_routine {
   a_bit_field	is_finalization_routine:1;
 			/* TRUE if this routine was declared with the
 			   destructor attribute. */
+  a_bit_field	does_not_return:1;
+			/* TRUE if this routine was declared with the
+			   noreturn attribute. */
+  a_bit_field	is_pure:1;
+			/* TRUE if this routine was declared with the
+			   pure attribute. */
+  a_bit_field	is_const:1;
+			/* TRUE if this routine was declared with the
+			   const attribute. */
+  a_bit_field	is_weak:1;
+			/* TRUE if this routine was declared with the 
+			   weak attribute. */
+  a_bit_field	allocates_memory:1;
+			/* TRUE if this routine was declared with the
+			   malloc attribute.  Such a routine should
+			   return a pointer to newly allocated
+			   storage. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;
@@ -5832,6 +5886,15 @@ typedef struct a_routine {
 			   the template from which they were generated;
 			   otherwise, this is NULL. */
 #endif /* ifdef CIL */
+#if GNU_EXTENSIONS_ALLOWED
+  char		*section;
+			/* If non-NULL, the section in which this
+			   routine should be placed. */
+  char		*aliased_routine; 
+                        /* If non-NULL, the name of the routine for
+			   which the name of this routine is an
+			   alias. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
 			/* The type as it actually appears in the declaration

@@ -40,6 +40,15 @@ enum an_attribute_kind_tag {
   ak_unused,
   ak_constructor,
   ak_destructor,
+  ak_noreturn,
+  ak_pure,
+  ak_const,
+  ak_weak,
+  ak_section,
+  ak_alias,
+  ak_malloc,
+  ak_nocommon,
+  ak_transparent_union,
   ak_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -60,6 +69,16 @@ EXTERN char *attribute_kind_names[(int)ak_last + 1]
 /* ak_unused */	        "unused",
 /* ak_constructor */    "constructor",
 /* ak_destructor */     "destructor",
+/* ak_noreturn */       "noreturn",
+/* ak_pure */           "pure",
+/* ak_const */          "const",
+/* ak_weak */           "weak",
+/* ak_section */        "section",
+/* ak_alias */          "alias",
+/* ak_malloc */         "malloc",
+/* ak_nocommon */       "nocommon",
+/* ak_transparent_union */
+                        "transparent_union",
 /* ak_last */           "last" /* used to check that initialization is
                                   right. */
 }
@@ -91,6 +110,14 @@ typedef struct an_attribute {
 		mode;
 			/* The mode for the entity to which this
 			   attribute applies. */
+    /* When kind == ak_section. */
+    char        *section;
+			/* The section indicated for the entity to
+			   which this attribute applies. */
+    /* When kind == ak_alias. */
+    char        *alias;
+			/* The name of the entity for which this
+			   entity is an alias. */
   } variant;
   an_attribute_ptr
   		next;	/* The next attribute in the list. */
@@ -98,34 +125,42 @@ typedef struct an_attribute {
 
 extern an_attribute_ptr scan_attributes(void);
 
+extern an_attribute_ptr copy_attribute_list(an_attribute_ptr attributes);
+
 extern void free_attribute_list(an_attribute_ptr  attributes);
 
 extern a_type_ptr get_type_with_mode(a_type_ptr        type,
-				     a_type_mode_kind  mode,
-				     a_source_position *pos);
+                                     a_type_mode_kind  mode,
+                                     a_source_position *pos);
 
 extern a_type_ptr apply_attributes_to_variable_type(
                                                an_attribute_ptr  attributes,
-					       a_type_ptr        type);
+                                               a_type_ptr        type);
 
 extern void apply_attributes_to_variable(an_attribute_ptr  attributes,
-					 a_variable_ptr    vp);
+                                         a_variable_ptr    vp);
 
 extern void apply_attributes_to_field(an_attribute_ptr  attributes,
-				      a_field_ptr       fp);
+                                      a_field_ptr       fp);
 
 extern void apply_attributes_to_routine(an_attribute_ptr  attributes,
-					a_routine_ptr     rp);
+                                        a_routine_ptr     rp);
 
 extern void apply_attributes_to_type(an_attribute_ptr attributes,
-				     a_type_ptr       tp,
-				     a_boolean        is_typedef);
+                                     a_type_ptr       tp,
+                                     a_boolean        is_typedef);
 
 extern a_type_ptr apply_attributes_to_typedef(an_attribute_ptr  attributes,
-					      a_type_ptr        tp);
+                                              a_type_ptr        tp);
 
 extern void copy_class_struct_or_union_definition(a_type_ptr to,
-						  a_type_ptr from);
+                                                  a_type_ptr from);
+
+extern void check_for_invalid_param_attributes(a_symbol_ptr     sym,
+                                               an_attribute_ptr attributes);
+
+extern a_boolean check_transparent_union(a_type_ptr        tp,
+                                         a_source_position *pos);
 
 extern void attribute_one_time_init(void);
 

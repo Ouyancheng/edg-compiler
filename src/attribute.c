@@ -27,6 +27,9 @@ attribute.c -- Processing of attributes, a GCC extension.
 /* Header files used by files involved in declaration processing. */
 #include "decl_hdrs.h"
 #include "layout.h"
+#if MAINTAIN_NEEDED_FLAGS
+#include "il_walk.h"
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 /* Previously allocated attributes available for reuse. */
 static an_attribute_ptr avail_attributes;
@@ -104,6 +107,19 @@ pointed to be "pos" can be freed when this routine returns.
     case ak_unused:
     case ak_constructor:
     case ak_destructor:
+    case ak_noreturn:
+    case ak_pure:
+    case ak_const:
+    case ak_weak:
+    case ak_malloc:
+    case ak_nocommon:
+    case ak_transparent_union:
+      break;
+    case ak_section:
+      ap->variant.section = NULL;
+      break;
+    case ak_alias:
+      ap->variant.alias = NULL;
       break;
     default:
       unexpected_condition_str("alloc_attribute: bad kind");
@@ -111,6 +127,58 @@ pointed to be "pos" can be freed when this routine returns.
 
   return ap;
 }  /* alloc_attribute */
+
+
+an_attribute_ptr copy_attribute_list(an_attribute_ptr attributes)
+/* 
+Return a copy of the complete attribute list.
+*/
+{
+  an_attribute_ptr copy = NULL;
+  an_attribute_ptr *end = &copy;
+
+  while (attributes != NULL) {
+    *end = alloc_attribute(attributes->kind, &attributes->position);
+    switch (attributes->kind) {
+#if USER_CONTROL_OF_STRUCT_PACKING
+      case ak_packed:
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+      case ak_unused:
+      case ak_constructor:
+      case ak_destructor:
+      case ak_noreturn:
+      case ak_pure:
+      case ak_const:
+      case ak_weak:
+      case ak_malloc:
+      case ak_nocommon:
+      case ak_transparent_union:
+        /* No variant fields. */
+        break;
+#if USER_CONTROL_OF_STRUCT_PACKING
+      case ak_aligned:
+        (*end)->variant.alignment = attributes->variant.alignment;
+        break;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+      case ak_mode:
+        (*end)->variant.mode = attributes->variant.mode;
+        break;
+      case ak_section:
+        (*end)->variant.section = attributes->variant.section;
+        break;
+      case ak_alias:
+        (*end)->variant.alias = attributes->variant.alias;
+        break;
+      default:
+        unexpected_condition_str("copy_attribute_list: bad kind");
+        break;
+    }  /* switch */
+    attributes = attributes->next;
+    end = &(*end)->next;
+  }  /* while */
+
+  return copy;
+}  /* copy_attribute_list */
 
 
 void free_attribute_list(an_attribute_ptr  ap)
@@ -131,15 +199,18 @@ ap.  ap may be NULL.
 }  /* free_attribute_list */
 
 
-static void scan_attribute_arguments(an_attribute_ptr  attribute)
+static a_boolean scan_attribute_arguments(an_attribute_ptr  attribute)
 /*
 Scan the arguments to an attribute, and store them in the attribute
-provided.
+provided.  Returns FALSE if the arguments are so erroneous that the
+entire attribute should be discarded.  Called only for attributes
+that do take arguments.
 */
 {
   char               *name;
   int                i;
   a_source_position  pos = error_position;
+  a_boolean          result = TRUE;
 
   /* Different kinds of attributes take different kinds of 
      arguments.  */
@@ -213,6 +284,34 @@ provided.
       }  /* if */
       attribute->variant.mode = (a_type_mode_kind)i;
       break;
+    case ak_section:
+    case ak_alias:
+      /* Look for a string-literal giving the section or alias
+         name. */
+      if (curr_token != tok_string_literal) {
+        result = FALSE;
+        goto error;
+      }  /* if */
+      /* If there was an error in parsing the string, we do not need
+         to issue another error here. */
+      if (is_error_constant(&const_for_curr_token)) {
+        result = FALSE;
+        break;
+      }  /* if */
+      /* For both the section and alias attributes, GCC accepts string
+         literals with embedded NULs (like "ab\0c") but ignores
+         everything after the "\0".  So, storing the attribute
+         argument as a character pointer, without a length, gives 
+         compatibility with GCC. */
+      if (attribute->kind == (an_attribute_kind)ak_section) {
+        attribute->variant.section = const_for_curr_token.variant.string.value;
+      } else {
+        check_assertion(attribute->kind == (an_attribute_kind)ak_alias);
+        attribute->variant.alias = const_for_curr_token.variant.string.value;
+      }  /* if */
+      /* Consume the string literal. */
+      (void)get_token();
+      break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -225,8 +324,8 @@ provided.
   flush_tokens();
 
   done:
-  return;
-}  /* scan_attribute_argument */
+  return result;
+}  /* scan_attribute_arguments */
 
 
 static an_attribute_ptr *scan_attribute_list(an_attribute_ptr *next)
@@ -243,12 +342,21 @@ Specifically, these attributes take no arguments:
   constructor
   destructor
   unused
+  noreturn
+  pure
+  const
+  weak
+  malloc
+  nocommon
+  transparent_union
 
 These attributes take arguments:
 
   mode ( machine-mode )
   aligned ( expression )
-
+  section ( string-literal )
+  alias ( string-literal )
+  
 The attributes are appended at the location pointed to by next.  This
 function returns the address of the last attribute.
 */
@@ -291,16 +399,24 @@ function returns the address of the last attribute.
         attribute = alloc_attribute(attribute_kind, &pos);
       }  /* if */
       if (curr_token == tok_lparen) {
+        /* There are arguments to the attribute. */
         /* Bypass the lparen. */
         (void)get_token();
         add_stop_token(tok_rparen);
-        /* There are arguments to the attribute. */
         switch (attribute_kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
           case ak_aligned:
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
           case ak_mode:
-            scan_attribute_arguments(attribute);
+          case ak_section:
+          case ak_alias:
+            if (!scan_attribute_arguments(attribute)) {
+              /* If the arguments were erroneous, it sometimes makes
+                 sense to ignore the attribute completely so that we
+                 do not issue spurious errors later. */
+              attribute_kind = (an_attribute_kind)ak_error;
+              free_attribute_list(attribute);
+            }  /* if */
             break;
           case ak_error:
             /* Skip over the arguments. */
@@ -318,6 +434,7 @@ function returns the address of the last attribute.
         (void)required_token(tok_rparen, ec_exp_rparen);
         remove_stop_token(tok_rparen);
       } else {
+        /* No arguments are provided for this attribute. */
         switch (attribute_kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
           case ak_packed:
@@ -326,6 +443,13 @@ function returns the address of the last attribute.
           case ak_constructor:
           case ak_destructor:
           case ak_error:
+          case ak_noreturn:
+          case ak_pure:
+          case ak_const:
+          case ak_weak:
+          case ak_malloc:
+          case ak_nocommon:
+          case ak_transparent_union:
             /* These attributes do not take arguments. */
             break;
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -456,6 +580,10 @@ emitted is given by pos.
   /* If the mode was erroneous, we can just return the original type.
      Otherwise, find a type with the appropriate mode. */
   if (type_kind != (a_type_kind)tk_error) {
+    a_type_qualifier_set qualifiers;
+    /* Remember the type qualifiers so that we can create an identically
+       qualified copy. */
+    qualifiers = get_type_qualifiers(type);
     /* Check to see that the type implied by the mode matches the type
      of the variable. */
     type = skip_typerefs(type);
@@ -483,7 +611,9 @@ emitted is given by pos.
         type = float_type(fkind);
       }  /* if */
     }  /* if */
-  } /* if */
+    /* The new type should have the same qualifiers as the original. */
+    type = make_qualified_type(type, qualifiers);
+  }  /* if */
 
   return type;
 }  /* get_type_with_mode */
@@ -552,6 +682,60 @@ be emitted.
 }  /* check_alignment_attribute */
 
 
+static a_boolean check_variable_not_local(a_variable_ptr   variable,
+                                          an_attribute_ptr attribute)
+/*
+The attribute only applies to variables with static storage duration.
+If variable is not such a variable, issue an error and return FALSE.
+Otherwise, return TRUE.
+*/
+{
+  a_boolean is_not_local = TRUE;
+
+  if (!has_static_storage_duration(variable->storage_class)) {
+    pos_st_error(ec_attribute_does_not_apply_to_local_variable,
+                 &attribute->position, 
+                 attribute_kind_names[(int)attribute->kind]);
+    is_not_local = FALSE;
+  }  /* if */
+  return is_not_local;
+}  /* check_variable_not_local */
+
+
+a_boolean check_transparent_union(a_type_ptr        tp,
+                                  a_source_position *pos)
+/*
+"tp" is known to be an (immediate) union type.  Verify that it can be
+transparent.  If not, issue a diagnostic and return FALSE.
+*/
+{
+  a_field_ptr f;
+
+  check_assertion(tp->kind == (a_type_kind)tk_union);
+  /* Check to see that all members of the union have the same size
+     as the union itself.  Otherwise, GCC does not permit the union
+     to be transparent.  It seems that GCC looks at the type of the
+     field, not the actual size -- for example, the size of
+     bit fields is ignored. */
+  for (f = tp->variant.class_struct_union.field_list;
+       f != NULL;
+       f = f->next) {
+    if (skip_typerefs(f->type)->size != tp->size) {
+      a_symbol_ptr sym = (a_symbol_ptr)f->source_corresp.assoc_info;
+      if (sym != NULL && has_name(f)) {
+        pos_syty_diagnostic(es_error, ec_union_cannot_be_transparent_sym,
+                            pos, sym, tp);
+      } else {
+        pos_ty2_error(ec_union_cannot_be_transparent, pos,
+                      tp, f->type);
+      }  /* if */
+      break;
+    }  /* if */
+  }  /* for */
+  return f == NULL;
+}  /* check_transparent_union */
+
+
 void apply_attributes_to_variable(an_attribute_ptr  attributes,
                                   a_variable_ptr    vp)
 /*
@@ -563,7 +747,7 @@ invalid attributes.
   an_attribute_ptr  ap;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
-    switch (attributes->kind) {
+    switch (ap->kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
       case ak_aligned:
         alignment = attributes->variant.alignment;
@@ -581,6 +765,38 @@ invalid attributes.
         break;
       case ak_mode:
         /* This attribute was handled in apply_attributes_to_variable_type. */
+        break;
+      case ak_weak:
+        if (check_variable_not_local(vp, ap)) {
+          vp->is_weak = TRUE;
+        }  /* if */
+        break;
+      case ak_section:
+        if (check_variable_not_local(vp, ap)) {
+          vp->section = attributes->variant.section;
+        }  /* if */
+        break;
+      case ak_nocommon:
+        if (check_variable_not_local(vp, ap)) {
+          vp->is_not_common = TRUE;
+        }  /* if */
+        break;
+      case ak_transparent_union:
+        if (!vp->is_parameter) {
+          pos_error(ec_transparent_variable, &ap->position); 
+        } else if (!is_union_type(vp->type)) {
+          pos_ty_error(ec_transparent_type_is_not_union,
+                       &ap->position, vp->type);
+        } else if (is_incomplete_type(vp->type)) {
+          /* Parameters must already have complete types, and
+             there is no point in complaining twice. */
+        } else if (check_transparent_union(vp->type, &ap->position)) {
+          /* The assoc_param_type field is not yet filed in here so we
+             save the transparent bit in the variable.  When
+             fixup_parameter_types is called the bit will be copied
+             over to the param_type. */
+          vp->is_transparent = TRUE;
+        }  /* if */
         break;
       default:
         /* This attribute is not applicable to variables. */
@@ -657,6 +873,34 @@ messages about any invalid attributes.
       case ak_unused:
         referenced = TRUE;
         break;
+      case ak_noreturn:
+        rp->does_not_return = TRUE;
+        break;
+      case ak_pure:
+        rp->is_pure = TRUE;
+        break;
+      case ak_const:
+        rp->is_const = TRUE;
+        break;
+      case ak_weak:
+        rp->is_weak = TRUE;
+        break;
+      case ak_section:
+        rp->section = ap->variant.section;
+        break;
+      case ak_alias:
+        rp->aliased_routine = ap->variant.alias;
+#if MAINTAIN_NEEDED_FLAGS
+        /* This routine must be kept so that we remember the fact that
+           it aliases another routine. */
+        mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+        break;
+      case ak_malloc:
+        /* GCC does not issue any diagnostics if the routine does not
+           return a pointer type. */
+        rp->allocates_memory = TRUE;
+        break;
       default:
         /* An invalid attribute. */
         pos_sy_error(ec_attribute_does_not_apply,
@@ -714,7 +958,7 @@ must make a copy if tp may already be shared.
         } else {
           pos_ty_error(ec_attribute_does_not_apply_to_type, 
                        &ap->position, tp);
-        } /* if */
+        }  /* if */
         break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       case ak_mode:
@@ -738,6 +982,16 @@ must make a copy if tp may already be shared.
         break;
       case ak_unused:
         tp->variables_are_implicitly_referenced = TRUE;
+        break;
+      case ak_transparent_union:
+        if (tp->kind != (a_type_kind)tk_union) {
+          pos_ty_error(ec_transparent_type_is_not_union,
+                       &ap->position, tp);
+        } else if (is_typedef && is_incomplete_type(tp)) {
+          pos_warning(ec_transparent_attribute_ignored, &ap->position);
+        } else {
+          tp->variant.class_struct_union.is_transparent = TRUE;
+        }  /* if */
         break;
       default:
         /* An invalid attribute. */
@@ -789,6 +1043,13 @@ newly created type.
   }  /* if */
   /* Apply the attributes to the copy. */
   apply_attributes_to_type(attributes, copy, /*is_typedef=*/TRUE);
+  /* The transparent union attribute applies to the original type as
+     well as the typedef. */
+  if (copy->kind == (a_type_kind)tk_union &&
+      copy->variant.class_struct_union.is_transparent) {
+    check_assertion(tp->kind == (a_type_kind)tk_union);
+    tp->variant.class_struct_union.is_transparent = TRUE;
+  }  /* if */
   /* Create an appropriately qualified version of the copy. */
   copy = make_qualified_type(copy, qualifiers);
 
@@ -838,6 +1099,48 @@ Both "from" and "to" are class, struct, or union types.
     *fp = f;
   }  /* for */
 }  /* copy_class_struct_or_union_definition */
+
+
+void check_for_invalid_param_attributes(a_symbol_ptr     sym,
+                                        an_attribute_ptr attributes)
+/*
+sym is the symbol for a parameter that was present in a function
+that was declared, but not defined.  It will be NULL if the
+parameter has no name.  The attributes apply to that parameter.
+Issue error messages about any attributes that are not valid
+for a parameter.
+*/
+{
+  while (attributes != NULL) {
+    switch (attributes->kind) {
+      case ak_mode:
+        /* These attributes apply to the type of the parameter, so
+           they are OK. */
+        break;
+#if USER_CONTROL_OF_STRUCT_PACKING
+      case ak_aligned:
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+      case ak_unused:
+        /* These attributes apply to the variable itself and so are
+           not permitted here. */
+        pos_st_error(ec_attribute_only_in_func_def,
+                     &attributes->position, 
+                     attribute_kind_names[(int)attributes->kind]);
+        break;
+      default:
+        /* These attributes do not apply to parameters. */
+        if (sym) {
+          pos_sy_error(ec_attribute_does_not_apply,
+                       &attributes->position, sym);
+        } else {
+          pos_error(ec_attribute_does_not_apply_to_param,
+                    &attributes->position);
+        }  /* if */
+        break;
+    }  /* switch */
+    attributes = attributes->next;
+  }  /* while */
+}  /* check_for_invalid_param_attributes */
 
 
 void attribute_one_time_init(void)

@@ -2780,6 +2780,15 @@ for handling virtual bases and functions.
     }  /* if */
 #endif /* TARG_PAD_ALLOCATED_EMPTY_BASE */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  /* If the class is a transparent union, verify that transparency
+     is legal. */
+  if (class_type->kind == (a_type_kind)tk_union &&
+      class_type->variant.class_struct_union.is_transparent &&
+      !check_transparent_union(class_type, &error_position)) {
+    class_type->variant.class_struct_union.is_transparent = FALSE;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DEBUG
   if (debug_level >= 3) {
     if (C_dialect == C_dialect_cplusplus) db_base_class_list(class_type);

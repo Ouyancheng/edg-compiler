@@ -378,6 +378,9 @@ param type entry.
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
       ptp->name = vp->source_corresp.name;
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
+#if GNU_EXTENSIONS_ALLOWED
+      ptp->is_transparent = vp->is_transparent;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* for */
     /* Be sure there are not too many param type entries. */
     check_assertion(ptp == NULL);
@@ -504,9 +507,9 @@ pointer decay).
   /* Create the parameter variable. */
   vp = make_param_variable(tp, param_id->storage_class);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Record the type exactly as it was declared (before array-to-pointer
-       decay, etc.). */
-    vp->declared_type = declared_type;
+  /* Record the type exactly as it was declared (before array-to-pointer
+     decay, etc.). */
+  vp->declared_type = declared_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   add_to_parameters_list(vp);
   sym = param_id->symbol;
@@ -569,6 +572,9 @@ pointer decay).
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  apply_attributes_to_variable(param_id->attributes, vp);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   {
   a_decl_position_supplement_ptr  dpsp = vp->source_corresp.decl_pos_info;

@@ -1369,6 +1369,134 @@ Print the storage class of the indicated variable followed by a space.
   }  /* if */
 }  /* dump_variable_storage_class */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void write_alignment_attribute(a_targ_alignment alignment)
+/*
+Write out an alignment attribute to indicate the explicit alignment
+given to the entity just declared.
+*/
+{
+  write_tok_str(" __attribute__((__aligned__(");
+  write_unsigned_num((a_host_large_unsigned)alignment);
+  write_tok_str(")))");
+}  /* write_alignment_attribute */
+
+
+static void write_type_attributes(a_type_ptr type)
+/*
+Write out attributes that apply to the indicated type.
+*/
+{
+  if (type->alignment_set_explicitly) {
+    /* Output an attribute to indicate the explicit alignment. */
+    write_alignment_attribute(type->alignment);
+  }  /* if */
+  if (type->variables_are_implicitly_referenced) {
+    /* Output the "unused" attribute. */
+    write_tok_str(" __attribute__((__unused__))");
+  }  /* if */
+  if (type->kind == (a_type_kind)tk_integer &&
+      type->variant.integer.packed) {
+    /* Output the "packed" attribute. */
+    write_tok_str(" __attribute__((__packed__))");
+  }  /* if */
+  if (type->kind == (a_type_kind)tk_union &&
+      type->variant.class_struct_union.is_transparent) {
+    write_tok_str(" __attribute__((__transparent_union__))");
+  }  /* if */
+}  /* write_type_attributes */
+  
+
+static void write_string_argument_attribute(char *attribute_name,
+                                            char *argument)
+/*
+Write out an attribute that takes a string as an argument.  The
+attribute_name is assumed to have no characters that require escapes,
+but the argument might have characters like "\n" or "\t" that need to
+be handled specially.  */
+{
+  char *c;
+
+  write_tok_str(" __attribute__((");
+  write_tok_str(attribute_name);
+  write_str("(\"");
+  for (c = argument; *c != '\0'; c++) {
+    (void)form_char(*c, &octl);
+  }  /* for */
+  write_str("\")))");
+}  /* write_string_argument_attribute */
+
+
+static void write_section_attribute(char *section)
+/*
+Write out an attribute indicating that the entity being declared
+should be placed in the indicated section.
+*/
+{
+  write_string_argument_attribute("__section__", section);
+}  /* write_section_attribute */
+
+
+static void write_variable_attributes(a_variable_ptr var)
+/*
+Write out attributes that apply to the indicated variable.
+*/
+{
+  if (var->alignment != 0) {
+    /* Output the alignment attribute. */
+    write_alignment_attribute(var->alignment);
+  }  /* if */
+  if (var->is_weak) {
+    write_tok_str(" __attribute__((__weak__))");
+  }  /* if */
+  if (var->is_not_common) {
+    write_tok_str(" __attribute__((__nocommon__))");
+  }  /* if */
+  if (var->is_transparent) {
+    write_tok_str(" __attribute__((__transparent_union__))");
+  }  /* if */
+  if (var->section != NULL) {
+    write_section_attribute(var->section);
+  }  /* if */
+}  /* write_variable_attributes */
+
+
+static void write_routine_attributes(a_routine_ptr rout)
+/*
+Write out attributes that apply to the indicated routine.
+*/
+{
+  if (rout->is_initialization_routine) {
+    write_tok_str(" __attribute__((__constructor__))");
+  }  /* if */
+  if (rout->is_finalization_routine) {
+    write_tok_str(" __attribute__((__destructor__))");
+  }  /* if */
+  if (rout->does_not_return) {
+    write_tok_str(" __attribute__((__noreturn__))");
+  }  /* if */
+  if (rout->is_pure) {
+    write_tok_str(" __attribute__((__pure__))");
+  }  /* if */
+  if (rout->is_const) {
+    write_tok_str(" __attribute__((__const__))");
+  }  /* if */
+  if (rout->is_weak) {
+    write_tok_str(" __attribute__((__weak__))");
+  }  /* if */
+  if (rout->allocates_memory) {
+    write_tok_str(" __attribute((__malloc__))");
+  }  /* if */
+  if (rout->section != NULL) {
+    write_section_attribute(rout->section);
+  }  /* if */
+  if (rout->aliased_routine != NULL) {
+    write_string_argument_attribute("__alias__", rout->aliased_routine);
+  }  /* if */
+}  /* write_routine_attributes */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static char *tag_kind(a_type_kind kind)
 /*
@@ -1634,6 +1762,10 @@ is non-NULL, in which case that is the function scope.
                                                 param_var, NO_TEMP, NO_NAME,
                                                 TQ_NONE,
                                                 /*suppress_const=*/FALSE);
+#if GNU_EXTENSIONS_ALLOWED
+            /* Output any attributes associated with the variable. */
+            write_variable_attributes(param_var);
+#endif /* GNU_EXTENSIONS_ALLOWED */            
             param_var = param_var->next;
           } else
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
@@ -1902,70 +2034,6 @@ information is given by scp.
   }  /* if */
 }  /* dump_decl_associated_pragmas */
 
-#if GNU_EXTENSIONS_ALLOWED
-
-static void write_alignment_attribute(a_targ_alignment alignment)
-/*
-Write out an alignment attribute to indicate the explicit alignment
-given to the entity just declared.
-*/
-{
-  write_tok_str(" __attribute__((__aligned__(");
-  write_unsigned_num((a_host_large_unsigned)alignment);
-  write_tok_str(")))");
-}  /* write_alignment_attribute */
-
-
-static void write_type_attributes(a_type_ptr type)
-/*
-Write out attributes that apply to the indicated type.
-*/
-{
-  if (type->kind == (a_type_kind)tk_integer &&
-      type->variant.integer.packed) {
-    /* Output the "packed" attribute. */
-    write_tok_str(" __attribute__((__packed__))");
-  }  /* if */
-  if (type->variables_are_implicitly_referenced) {
-    /* Output the "unused" attribute. */
-    write_tok_str(" __attribute__((__unused__))");
-  }  /* if */
-  if (type->alignment_set_explicitly) {
-    /* Output an attribute to indicate the explicit alignment. */
-    write_alignment_attribute(type->alignment);
-  }  /* if */
-}  /* write_type_attributes */
-  
-
-static void write_variable_attributes(a_variable_ptr var)
-/*
-Write out attributes that apply to the indicated variable.
-*/
-{
-  if (var->alignment != 0) {
-    /* Output the alignment attribute. */
-    write_alignment_attribute(var->alignment);
-  }  /* if */
-}  /* write_variable_attributes */
-
-
-static void write_routine_attributes(a_routine_ptr rout)
-/*
-Write out attributes that apply to the indicated routine.
-*/
-{
-  /* If this is an initialization routine, arrange for it to be
-     called. */
-  if (rout->is_initialization_routine) {
-    write_tok_str(" __attribute__((__constructor__))");
-  }  /* if */
-  /* Similarly, for finalization routines. */
-  if (rout->is_finalization_routine) {
-    write_tok_str(" __attribute__((__destructor__))");
-  }  /* if */
-}  /* write_routine_attributes */
-
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void dump_typedef_decl(a_type_ptr type)
 /*
@@ -2802,6 +2870,13 @@ selection operation).
       struct_class = type_pointed_to(struct_class);
     }  /* if */
     struct_class = skip_typerefs(struct_class);
+#if GNU_EXTENSIONS_ALLOWED
+    if (struct_class->copy_with_additional_attributes) {
+      /* The two classes may not match if one is a copy that was made
+         to add additional attributes. */
+    } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    /* Do not add code here. */
     if (struct_class != field_class) {
       internal_error("dump_field_from_second_operand: wrong field class");
     }  /* if */
@@ -6584,6 +6659,9 @@ routine whose parameters are being processed.
                                         &param_var->source_corresp,
                                         param_var, NO_TEMP, NO_NAME, TQ_NONE,
                                         /*suppress_const=*/FALSE);
+#if GNU_EXTENSIONS_ALLOWED
+    write_variable_attributes(param_var);
+#endif /* GNU_EXTENSIONS_ALLOWED */
     write_tok_ch(';');
   }  /* for */
   {

@@ -1712,6 +1712,12 @@ source-sequence entries should be removed from the list.
       pid->source_sequence_entry = NULL;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+    /* GCC does not permit variable attributes to be associated with a
+       parameter in a function declaration; the function must be
+       defined.  Type attributes are permitted, though. */
+    check_for_invalid_param_attributes(pid->symbol, pid->attributes);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* for */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   for (ssep = ss_list; ssep != NULL; ssep = next_ssep) {

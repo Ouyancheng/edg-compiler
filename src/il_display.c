@@ -919,6 +919,51 @@ display_constant_value:
   }  /* switch */
 }  /* disp_constant */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void disp_type_mode(a_type_mode_kind mode)
+/*
+Display a type mode.
+*/
+{
+  switch (mode) {
+    case tmk_error:
+      printf("tmk_error\n");
+      break;
+    case tmk_QI:
+      printf("tmk_QI\n");
+      break;
+    case tmk_HI:
+      printf("tmk_HI\n");
+      break;
+    case tmk_SI:
+      printf("tmk_SI\n");
+      break;
+    case tmk_DI:
+      printf("tmk_DI\n");
+      break;
+    case tmk_SF:
+      printf("tmk_SF\n");
+      break;
+    case tmk_DF:
+      printf("tmk_DF\n");
+      break;
+    case tmk_XF:
+      printf("tmk_XF\n");
+      break;
+    case tmk_TF:
+      printf("tmk_TF\n");
+      break;
+    case tmk_none:
+      printf("tmk_none\n");
+      break;
+    default:
+      printf("**BAD TYPE MODE KIND**\n");
+      break;
+  }  /* switch */
+} /* disp_type_mode */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void disp_param_type(a_param_type_ptr ptr)
 /*
@@ -949,6 +994,15 @@ Display a_param_type entry.
                         /*need_trailing_space=*/FALSE, &octl);
     (void)printf("\n");
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->is_transparent) {
+    disp_boolean("is_transparent", TRUE);
+  }  /* if */
+  if (ptr->mode != (a_type_mode_kind)tmk_none) {
+    disp_name("mode");
+    disp_type_mode(ptr->mode);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (ptr->decl_pos_info != NULL) {
@@ -1142,10 +1196,13 @@ Display the indicated type entry.
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (ptr->alignment_set_explicitly) {
-    disp_boolean("alignment_set_explicitly", FALSE);
+    disp_boolean("alignment_set_explicitly", TRUE);
   }  /* if */
   if (ptr->variables_are_implicitly_referenced) {
-    disp_boolean("variables_are_implicitly_referenced", FALSE);
+    disp_boolean("variables_are_implicitly_referenced", TRUE);
+  }  /* if */
+  if (ptr->copy_with_additional_attributes) {
+    disp_boolean("copy_with_additional_attributes", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
@@ -1387,6 +1444,11 @@ do_struct_union:
       if (ptr->variant.class_struct_union.has_zero_init_component) {
         disp_boolean("has_zero_init_component", TRUE);
       }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+      if (ptr->variant.class_struct_union.is_transparent) {
+        disp_boolean("is_transparent", TRUE);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if USER_CONTROL_OF_STRUCT_PACKING
       if (ptr->variant.class_struct_union.max_member_alignment != 0) {
         disp_unsigned_long("max_member_alignment",
@@ -1661,6 +1723,15 @@ Display the indicated variable.
   if (ptr->alignment != 0) {
     disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
   }  /* if */
+  if (ptr->is_weak) { 
+    disp_boolean("is_weak", TRUE);
+  }  /* if */
+  if (ptr->is_not_common) {
+    disp_boolean("is_not_common", TRUE);
+  }  /* if */
+  if (ptr->is_transparent) {
+    disp_boolean("is_transparent", TRUE);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (ptr->address_taken) {
     disp_boolean("address_taken", (a_boolean)ptr->address_taken);
@@ -1672,6 +1743,11 @@ Display the indicated variable.
   if (ptr->assoc_template != NULL) {
     disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->section != NULL {
+    disp_string_ptr("section", ptr->section, iek_other_text, (sizeof_t)0);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("initializer_range", &ptr->initializer_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -2222,6 +2298,21 @@ Display the indicated routine.
   if (ptr->is_finalization_routine) {
     disp_boolean("is_finalization_routine", TRUE);
   }  /* if */
+  if (ptr->does_not_return) {
+    disp_boolean("does_not_return", TRUE);
+  }  /* if */
+  if (ptr->is_pure) {
+    disp_boolean("is_pure", TRUE);
+  }  /* if */
+  if (ptr->is_const) {
+    disp_boolean("is_const", TRUE);
+  }  /* if */
+  if (ptr->is_weak) {
+    disp_boolean("is_weak", TRUE);
+  }  /* if */
+  if (ptr->allocates_memory) {
+    disp_boolean("allocates_memory", TRUE);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {
@@ -2293,6 +2384,15 @@ Display the indicated routine.
   if (ptr->template_arg_list != NULL) {
     disp_template_arg_list("template_arg_list", ptr->template_arg_list);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->section != NULL {
+    disp_string_ptr("section", ptr->section, iek_other_text, (sizeof_t)0);
+  }  /* if */
+  if (ptr->aliased_routine != NULL {
+    disp_string_ptr("aliased_routine", ptr->aliased_routine,
+                    iek_other_text, (sizeof_t)0);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);

@@ -364,13 +364,18 @@ an error diagnostic and return TRUE.
 }  /* check_member_function_typedef */
 
 
-void adjust_parameter_type(a_type_ptr  *type_ptr)
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- attributes is not used in this case. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
+void adjust_parameter_type(a_type_ptr       *type_ptr,
+                           an_attribute_ptr attributes)
 /*
 *type_ptr points to the type of a parameter.  Modify the type if
 necessary.  See 3.7.1:  A declaration of a parameter as "array of
 type" shall be adjusted to "pointer to type", and the declaration of
 a parameter as "function returning type" shall be adjusted to
-"pointer to function returning type", as in 3.2.2.1.
+"pointer to function returning type", as in 3.2.2.1.  attributes
+points to a list of GNU C attributes, if applicable.
 */
 {
   db_enter(4, "adjust_parameter_type");
@@ -390,6 +395,9 @@ a parameter as "function returning type" shall be adjusted to
     /* Function, adjust to pointer to function. */
     *type_ptr = make_pointer_type(*type_ptr);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  *type_ptr = apply_attributes_to_variable_type(attributes, *type_ptr);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   db_exit();
 }  /* adjust_parameter_type */
 
@@ -426,10 +434,12 @@ type.  Check to see if any type qualifiers that are specified are meaningful.
 
 
 void check_and_adjust_parameter_type(a_type_ptr           *type_ptr,
-                                     a_source_position    *error_pos)
+                                     a_source_position    *error_pos,
+                                     an_attribute_ptr     attributes)
 /*
 This routine is called for all function parameter declarations.  It does
-error checking and type adjustments as required.
+error checking and type adjustments as required.  attributes points to a
+list of GNU C attributes, if applicable.
 */
 {
   if (any_cfront_mode() &&
@@ -448,7 +458,7 @@ error checking and type adjustments as required.
     }  /* if */
     /* Adjust the type if necessary (for example, "array of x" becomes
        "pointer to x"). */
-    adjust_parameter_type(type_ptr);
+    adjust_parameter_type(type_ptr, attributes);
     /* Disallow "void" as a parameter type. */
     if (is_void_type(*type_ptr)) {
       pos_error(ec_void_param_not_allowed, error_pos);
@@ -8084,7 +8094,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
           complete_type_is_needed(type_ptr);
           /* Adjust the type if necessary (for example, "array of x"
              becomes "pointer to x"). */
-          adjust_parameter_type(&type_ptr);
+          adjust_parameter_type(&type_ptr, (an_attribute_ptr)NULL);
           if (is_invalid_catch_type(type_ptr, &decl_pos)) {
             /* An appropriate error message will have been issued by
                invalid_catch_type. */
@@ -10099,6 +10109,14 @@ continue_with_declaration:
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
                  &local_type_ptr, &declarator_ssep, &func_info,
                  &decl_pos_block);
+#if GNU_EXTENSIONS_ALLOWED
+      /* Look for optional attributes. */
+      if (gcc_mode) {
+        attributes = scan_attributes();
+        /* Combine the prefix_attributes and the postfix attributes. */
+        *last_prefix_attribute = attributes;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       /* If a parenthesized constructor declarator is scanned, di_flags would
          not have DI_IS_CONSTRUCTOR set, but do_flags would have
          DO_IS_CONSTRUCTOR turned on. Similarly for destructors. Update the
@@ -10269,9 +10287,21 @@ continue_with_declaration:
             /* Set the declared_type field in the param_id entry before the
                type is adjusted (e.g., decays from array to pointer). */
             param_id->declared_type = local_type_ptr;
+#if GNU_EXTENSIONS_ALLOWED
+            /* We need a copy of the attribute list so that we can
+               apply the attributes when we create the variable
+               corresponding to this parameter. */
+            param_id->attributes = copy_attribute_list(prefix_attributes);
+#endif /* GNU_EXTENSIONS_ALLOWED */
           }  /* if */
           /* Check that the type is legal, and do required adjustments. */
-          check_and_adjust_parameter_type(&local_type_ptr, &decl_start_pos);
+          check_and_adjust_parameter_type(&local_type_ptr, &decl_start_pos,
+#if GNU_EXTENSIONS_ALLOWED
+                                          prefix_attributes
+#else /* !GNU_EXTENSIONS_ALLOWED */
+                                          (an_attribute_ptr)NULL
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                          );
           is_function = top_declarator_type_is_function = FALSE;
           /* For pcc compatibility, promote float parameters to double. */
           if (C_dialect == C_dialect_pcc) {
@@ -10560,14 +10590,6 @@ continue_with_declaration:
       /* Enter the symbol with the proper type. */
       linkage = idl_none;
       var_ptr = NULL;
-#if GNU_EXTENSIONS_ALLOWED
-      /* Look for optional attributes. */
-      if (gcc_mode) {
-	attributes = scan_attributes();
-	/* Combine the prefix_attributes and the postfix attributes. */
-	*last_prefix_attribute = attributes;
-      }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
       /* Look for optional initializer. */
       remove_stop_token(tok_assign);
       need_assign_remove_stop_token = FALSE;

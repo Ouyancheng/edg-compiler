@@ -6310,7 +6310,7 @@ make_new_type:
           if (tp != ptp->type) {
             /* The type is not the one originally pointed to.  Adjust
                the parameter type, if needed. */
-            adjust_parameter_type(&tp);
+            adjust_parameter_type(&tp, (an_attribute_ptr)NULL);
             if (remove_qualifiers_from_param_types) { /* Strip off
                  top-level type qualifiers.  They are not part of the
                  type signature of a C++ function -- see 8.3.5 para 3.
@@ -10727,7 +10727,7 @@ depends on a template parameter type, return TRUE in *template_dependent
   }  /* if */
   /* Adjust the type if necessary (for example, "array of x"
      becomes "pointer to x"). */
-  adjust_parameter_type(param_type_ptr);
+  adjust_parameter_type(param_type_ptr, (an_attribute_ptr)NULL);
   /* Check for illegal nontype parameter types.  Template parameters of
      void type, class type, and floating point type are not permitted
      by the standard.  Floating point template parameters are still

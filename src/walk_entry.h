@@ -901,6 +901,9 @@ the file scope, do not process it (but record an orphan in the latter case).
                              iek_param_type);
         walk_initializer(ptr->init_kind, ptr->initializer);
         remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
+#if GNU_EXTENSIONS_ALLOWED
+        walk_string_ptr(ptr->section, iek_other_text, 0);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -1028,6 +1031,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->overridden_function_for_covariant_return_type,
                   a_routine_ptr, iek_routine);
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if GNU_EXTENSIONS_ALLOWED
+        walk_string_ptr(ptr->section, iek_other_text, 0);
+        walk_string_ptr(ptr->aliased_routine, iek_other_text, 0);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #ifdef FFE
         walk_ptr(ptr->local_routine_scope, a_scope_ptr, iek_scope);
 #endif /* ifdef FFE */

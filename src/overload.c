@@ -29,6 +29,7 @@ overload.c -- Expression processing overload resolution.
 /* Forward declarations required because of out-of-order references. */
 static void prep_conversion_operand(an_operand        *source_operand,
                                     a_type_ptr        dest_type,
+                                    a_boolean         *is_transparent,
                                     a_conv_descr      *conversion,
                                     a_boolean         is_copy_initialization,
                                     a_boolean         nontype_template_arg,
@@ -5778,6 +5779,41 @@ or NULL otherwise (e.g., for a call through a pointer to function).
 }  /* start_call_argument_processing */
 
 
+static an_error_severity arg_okay_for_old_style_param(an_operand  *operand,
+                                                      a_type_ptr  formal_type)
+/*
+Returns a severity that indicates what kind of diagnostic (if any)
+should be issued about passing the indicated operand to an old-style
+parameter with the indicated type.
+*/
+{
+  an_error_severity severity = (an_error_severity)es_none;
+
+  if (!types_are_compatible(formal_type, operand->type)) {
+    if (interchangeable_types(formal_type, operand->type)) {
+      /* Types are interchangeable but not compatible (e.g.,
+         unsigned int vs. int). */
+      severity = (an_error_severity)es_remark;
+#if TARG_NULL_IS_ALL_BITS_ZERO
+    } else if (!strict_ansi_mode &&
+               is_pointer_type(formal_type) &&
+               is_integral_or_enum_type(operand->type) &&
+               op_is_zero_constant(operand) &&
+               skip_typerefs(formal_type)->size ==
+                                        skip_typerefs(operand->type)->size) {
+      /* An uncast zero can be passed for a pointer parameter if
+         the architecture uses all zero bits for a NULL pointer. */
+      severity = (an_error_severity)es_remark;
+#endif /* TARG_NULL_IS_ALL_BITS_ZERO */
+    } else {
+      /* Types are outright incompatible. */
+      severity = (an_error_severity)es_warning;
+    } /* if */
+  }  /* if */
+  return severity;
+}  /* arg_okay_for_old_style_param */
+
+
 void process_call_argument(an_operand         *argument_operand,
                            an_arg_check_block *arg_block)
 /*
@@ -5852,31 +5888,39 @@ describe the next parameter.
       /* Compare the type of the promoted actual with the promoted formal
          without qualifiers. */
       if (!is_error_type(arg_block->curr_param_type->type)) {
-        a_type_ptr formal_type = default_argument_promotion(
+        a_type_ptr        formal_type = default_argument_promotion(
                               skip_typerefs(arg_block->curr_param_type->type));
-        if (!types_are_compatible(formal_type, argument_operand->type)) {
-          if (interchangeable_types(formal_type, argument_operand->type)) {
-            /* Types are interchangeable but not compatible (e.g.,
-               unsigned int vs. int). */
-            pos_remark(ec_old_style_incompatible_param,
-                       &argument_operand->position);
-#if TARG_NULL_IS_ALL_BITS_ZERO
-          } else if (!strict_ansi_mode &&
-                     is_pointer_type(formal_type) &&
-                     is_integral_or_enum_type(argument_operand->type) &&
-                     op_is_zero_constant(argument_operand) &&
-                     skip_typerefs(formal_type)->size ==
-                                 skip_typerefs(argument_operand->type)->size) {
-            /* An uncast zero can be passed for a pointer parameter if
-               the architecture uses all zero bits for a NULL pointer. */
-            pos_remark(ec_old_style_incompatible_param,
-                       &argument_operand->position);
-#endif /* TARG_NULL_IS_ALL_BITS_ZERO */
-          } else {
-            /* Types are outright incompatible. */
-            pos_warning(ec_old_style_incompatible_param,
-                        &argument_operand->position);
-          }  /* if */
+        an_error_severity severity;
+        severity = arg_okay_for_old_style_param(argument_operand, formal_type);
+#if GNU_EXTENSIONS_ALLOWED
+        if (severity == (an_error_severity)es_warning &&
+            (arg_block->curr_param_type->is_transparent ||
+             (is_union_type(arg_block->curr_param_type->type) &&
+              (skip_typerefs(arg_block->curr_param_type->type)->
+               variant.class_struct_union.is_transparent)))) {
+          /* This argument might be okay if its type matches one of
+             the field types in the transparent union. */
+          a_type_ptr        union_type;
+          a_field_ptr       f;
+          an_error_severity new_severity;
+          union_type = skip_typerefs(arg_block->curr_param_type->type);
+          for (f = union_type->variant.class_struct_union.field_list;
+               f != NULL;
+               f = f->next) {
+            new_severity = arg_okay_for_old_style_param(argument_operand, 
+                                                        f->type);
+            if (new_severity < severity) {
+              severity = new_severity;
+              if (severity == (an_error_severity)es_none) {
+                break;
+              }  /* if */
+            }  /* if */
+          }  /* for */
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        if (severity != (an_error_severity)es_none) {
+          pos_diagnostic(severity, ec_old_style_incompatible_param,
+                         &argument_operand->position);
         }  /* if */
       }  /* if */
     } else if (arg_block->fmt_string != NULL) {
@@ -8208,7 +8252,8 @@ Adjust the operand type to match the type requirement.
         do_class_object_adjustment(operand, specific_type,
                                    &arg_match->conversion);
       } else {
-        prep_conversion_operand(operand, specific_type,
+        prep_conversion_operand(operand, specific_type, 
+                                (a_boolean *)NULL,
                                 &arg_match->conversion,
                                 /*is_copy_initialization=*/TRUE,
                                 /*nontype_template_arg=*/FALSE,
@@ -9455,9 +9500,41 @@ a reference type (the caller should have rewritten that case).
 }  /* user_defined_conversion_possible */
 
 
+static void issue_any_conversion_diagnostics(a_std_conv_descr_ptr std_conv,
+                                             a_conv_descr_ptr     conversion,
+                                             a_source_position    *err_pos,
+                                             a_type_ptr           source_type,
+                                             a_type_ptr           dest_type)
+/*
+Issue diagnostics indicated by the conversion std_conv from
+source_type to dest_type.
+*/
+{
+  if (std_conv->exception_spec_incompatibility) {
+    /* In assignments and initializations, exception specifications
+       under pointers-to-functions and pointers-to-member-functions
+       must obey certain rules, but they don't in this case. */
+    pos_error(ec_incompatible_exception_specs, err_pos);
+  }  /* if */
+  /* Warn on oddball conversions. */
+  if (std_conv->warning_suggested != ec_no_error) {
+    /* The "opt_ty2" routine puts in the types if the specific error
+       message has fill-ins for them, and otherwise ignores the types. */
+    pos_opt_ty2_warning(std_conv->warning_suggested, err_pos,
+                        source_type, dest_type);
+    conversion->std.warning_suggested = ec_no_error;
+  }  /* if */
+}  /* issue_any_conversion_diagnostics */
+
+
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- is_transparent is only used if GNU extensions are
+                    allowed. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static a_boolean conversion_possible(
                                    an_operand        *source_operand,
                                    a_type_ptr        dest_type,
+                                   a_boolean         *is_transparent,
                                    a_type_ptr        orig_dest_type,
                                    a_boolean         need_lvalue_result,
                                    a_boolean         is_copy_initialization,
@@ -9482,7 +9559,11 @@ when we're just wondering if it can be done, because it does operand
 transformations on source_operand and issues errors.  The destination
 type must not be a reference type (the caller should have rewritten
 that case).  orig_dest_type is the original destination type (not
-rewritten) for use in error messages.
+rewritten) for use in error messages.  If *is_transparent is TRUE
+the destination is a transparent union parameter (a GNU C extension).
+If it is non-NULL (but FALSE), then the operand is a parameter -- but
+not one that is explicitly marked transparent.  If is_transparent
+is NULL, the operand is not a parameter.
 */
 {
   a_boolean          okay = FALSE, failed = FALSE, ambiguous;
@@ -9590,21 +9671,99 @@ rewritten) for use in error messages.
       /* An implicit conversion is legal. */
       okay = TRUE;
       conversion->std = std_conv;
-      if (std_conv.exception_spec_incompatibility) {
-        /* In assignments and initializations, exception specifications
-           under pointers-to-functions and pointers-to-member-functions
-           must obey certain rules, but they don't in this case. */
-        pos_error(ec_incompatible_exception_specs, err_pos);
+      issue_any_conversion_diagnostics(&std_conv, conversion,
+                                       err_pos, source_type,
+                                       orig_dest_type);
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (!is_error_operand(source_operand) &&
+               ((is_transparent != NULL && *is_transparent) ||
+                (is_transparent != NULL && is_union_type(dest_type) &&
+                 skip_typerefs(dest_type)->variant.class_struct_union.
+                                                           is_transparent))) {
+      /* The destination is a parameter of a union type declared as
+         a transparent union (a GNU C extension).  The argument can be
+         converted to the type of any member of the union. */
+      a_type_ptr         union_type = skip_typerefs(dest_type);
+      a_field_ptr        f;
+      a_constant_ptr     aggr_con;
+      a_constant_ptr     designator_con;
+      a_constant_ptr     member_con;
+      a_dynamic_init_ptr field_init;
+      a_dynamic_init_ptr aggr_init;
+      an_expr_node_ptr   init_expr;
+      check_assertion(union_type->kind == (a_type_kind)tk_union);
+      for (f = union_type->variant.class_struct_union.field_list;
+           f != NULL; f = f->next) {
+        if (impl_conversion_possible(source_type,
+                                     source_is_constant,
+                                     (a_boolean)source_operand->
+                                                     is_simple_string_literal,
+                                     source_constant,
+                                     f->type,
+                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                     /*suppress_extensions=*/FALSE,
+                                     incompatible_err,
+                                     &std_conv)) {
+          /* The argument can be converted to the type of this
+             member. */
+          break;
+        } /* if */
+      }  /* for */
+      /* If none of the fields was satisfactory, issue an error. */
+      if (f == NULL) {
+        goto error;
       }  /* if */
-      /* Warn on oddball conversions. */
-      if (std_conv.warning_suggested != ec_no_error) {
-        /* The "opt_ty2" routine puts in the types if the specific error
-           message has fill-ins for them, and otherwise ignores the types. */
-        pos_opt_ty2_warning(std_conv.warning_suggested, err_pos,
-                            source_type, orig_dest_type);
-        conversion->std.warning_suggested = ec_no_error;
-      }  /* if */
+      /* The implicit conversion to "f" is legal. */
+      okay = TRUE;
+      conversion->std = std_conv;
+      issue_any_conversion_diagnostics(&std_conv, conversion, err_pos,
+                                       source_type, f->type);
+      /* Now, we need to convert from the type of the field to the
+         type of the union.  Build a designator indicating which field
+         should be initialized. */
+      designator_con = alloc_constant((a_constant_repr_kind)ck_designator);
+      designator_con->variant.designator.field = f;
+      /* Build a dynamic initializer indicating how the field should
+         be initialized. */
+      if (is_expression_operand(source_operand)) {
+        field_init = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+        field_init->variant.expression = source_operand->variant.expression;
+      } else if (is_constant_operand(source_operand)) {
+        field_init = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+        field_init->variant.constant 
+          = alloc_constant(source_operand->variant.constant.kind);
+        extract_constant_from_operand(source_operand, 
+                                      field_init->variant.constant);
+      } else {
+        /* There should not be any other operand kinds in C, and GCC
+           extensions are only available in C mode.  Note that we do
+           not enter this code at all if the source_operand is 
+           already erroneous. */
+        unexpected_condition();
+      } /* if */
+      member_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+      member_con->type = f->type;
+      member_con->variant.dynamic_init = field_init;
+      /* Build the entire aggregate initializer. */
+      designator_con->next = member_con;
+      aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+      aggr_con->type = dest_type;
+      aggr_con->variant.aggregate.first_constant = designator_con;
+      aggr_con->variant.aggregate.last_constant = member_con;
+      /* Build a dynamic initializer for the aggregate. */
+      aggr_init = 
+         alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
+      aggr_init->variant.constant = aggr_con;
+      /* Build an expression for the initializer. */
+      init_expr = alloc_temp_init_node(dest_type, aggr_init, 
+                                       /*result_is_addr=*/FALSE,
+                                       /*is_explicit_cast=*/FALSE);
+      make_expression_operand(init_expr, dest_type, source_operand);
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
+#if GNU_EXTENSIONS_ALLOWED
+error:
+#endif /* GNU_EXTENSIONS_ALLOWED */
       /* The conversion is not legal. */
       /* The "opt_ty2" routine puts in the types if the specific error
          message has fill-ins for them, and otherwise ignores the types. */
@@ -10012,6 +10171,7 @@ The conversion is assumed not to be due to an explicit cast.
 static a_boolean conversion_usable_or_possible(
                                    an_operand        *source_operand,
                                    a_type_ptr        dest_type,
+                                   a_boolean         *is_transparent,
                                    a_type_ptr        orig_dest_type,
                                    a_boolean         need_lvalue_result,
                                    a_boolean         is_copy_initialization,
@@ -10032,7 +10192,8 @@ TRUE, this is copy-initialization ("="-form); otherwise, it's
 direct-initialization ("()"-form).  If is_reference_binding is TRUE,
 the result will be bound to a reference, so also consider conversions
 to derived classes of dest_type.  orig_dest_type is the destination
-type before any rewriting, for use in error messages.
+type before any rewriting, for use in error messages.  See conversion_possible
+for the meaning of is_transparent.
 */
 {
   a_boolean possible;
@@ -10044,7 +10205,8 @@ type before any rewriting, for use in error messages.
     prep_for_known_possible_conversion(source_operand, *p_conversion);
   } else {
     *p_conversion = local_conversion;
-    possible = conversion_possible(source_operand, dest_type, orig_dest_type,
+    possible = conversion_possible(source_operand, dest_type, is_transparent,
+                                   orig_dest_type,
                                    need_lvalue_result,
                                    is_copy_initialization,
                                    is_reference_binding,
@@ -10057,6 +10219,7 @@ type before any rewriting, for use in error messages.
 
 static void prep_conversion_operand(an_operand        *source_operand,
                                     a_type_ptr        dest_type,
+                                    a_boolean         *is_transparent,
                                     a_conv_descr      *conversion,
                                     a_boolean         is_copy_initialization,
                                     a_boolean         nontype_template_arg,
@@ -10070,7 +10233,8 @@ is copy-initialization ("="-form); otherwise, it's direct-initialization
 argument.  source_operand may be an rvalue or an lvalue.  On return, it
 will always be an rvalue.  If conversion is non-NULL, the conversion has
 previously been found to be acceptable, and *conversion describes it.
-dest_type must not be a reference type.
+dest_type must not be a reference type.  See conversion_possible for the
+meaning of is_transparent.
 */
 {
   a_conv_descr local_conversion;
@@ -10081,8 +10245,8 @@ dest_type must not be a reference type.
   }  /* if */
 #endif /* CHECKING */
   /* See if the conversion is possible. */
-  if (conversion_usable_or_possible(source_operand, dest_type, dest_type,
-                                    /*need_lvalue_result=*/FALSE,
+  if (conversion_usable_or_possible(source_operand, dest_type, is_transparent,
+                                    dest_type, /*need_lvalue_result=*/FALSE,
                                     is_copy_initialization,
                                     /*is_reference_binding=*/FALSE,
                                     incompatible_err, err_pos,
@@ -10508,7 +10672,8 @@ the "=" semantics (copy-initialization).
   if (microsoft_mode) is_copy_initialization = FALSE;
   /* Look for a constructor to convert the expression to the required
      class type. */
-  if (conversion_possible(source_operand, dest_type, dest_type,
+  if (conversion_possible(source_operand, dest_type, 
+                          (a_boolean *)NULL, dest_type,
                           /*need_lvalue_result=*/FALSE,
                           is_copy_initialization,
                           /*is_reference_binding=*/FALSE,
@@ -10627,7 +10792,8 @@ copy-initialization.
   }  /* if */
 #endif /* CHECKING */
   /* See if the conversion is possible. */
-  if (conversion_usable_or_possible(source_operand, dest_type, orig_dest_type,
+  if (conversion_usable_or_possible(source_operand, dest_type, 
+                                    (a_boolean *)NULL, orig_dest_type,
                                     /*need_lvalue_result=*/FALSE,
                                     /*is_copy_initialization=*/TRUE,
                                     /*is_reference_binding=*/FALSE, /* sic */
@@ -11426,6 +11592,7 @@ to be acceptable, and *conversion describes it.
 
 void prep_initializer_operand(an_operand    *source_operand,
                               a_type_ptr    dest_type,
+                              a_boolean     *is_transparent,
                               a_conv_descr  *conversion,
                               a_boolean     initializing_return_value,
                               a_boolean     initializing_variable,
@@ -11450,7 +11617,8 @@ expressions, i.e., for "="-type initializations.  It is not used when
 copy constructor elision is possible; see
 prep_elision_initializer_operand.  If conversion is non-NULL, the
 initializer has previously been found to be acceptable, and
-*conversion describes it.
+*conversion describes it.  See conversion_possible for the meaning
+of is_transparent.
 */
 {
   /* Microsoft VC++ treats
@@ -11474,7 +11642,8 @@ initializer has previously been found to be acceptable, and
                                        incompatible_err);
   } else {
     /* Normal case (not initializing a reference). */
-    prep_conversion_operand(source_operand, dest_type, conversion,
+    prep_conversion_operand(source_operand, dest_type, is_transparent,
+                            conversion,
                             is_copy_initialization,
                             nontype_template_arg,
                             incompatible_err,
@@ -11504,7 +11673,7 @@ found to be acceptable, and *conversion describes it.
 
   /* See if the conversion is possible. */
   if (conversion_usable_or_possible(source_operand, param_type,
-                                    param_type,
+                                    (a_boolean *)NULL, param_type,
                                     /*need_lvalue_result=*/FALSE,
                                     /*is_copy_initialization=*/TRUE,
                                     /*is_reference_binding=*/FALSE,
@@ -11541,6 +11710,9 @@ to be acceptable (as far as overload resolution checks that), and
 */
 {
   a_type_ptr param_type = formal_param->type;
+#if GNU_EXTENSIONS_ALLOWED
+  a_boolean  is_transparent = formal_param->is_transparent;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   /* If the parameter is a template class, make sure it is instantiated so
      we know if a copy constructor should be used. */
@@ -11565,6 +11737,11 @@ to be acceptable (as far as overload resolution checks that), and
       }  /* if */
     }  /* if */
     prep_initializer_operand(source_operand, param_type,
+#if GNU_EXTENSIONS_ALLOWED
+                             &is_transparent,
+#else /* !GNU_EXTENSIONS_ALLOWED */
+                             (a_boolean *)NULL,
+#endif /* !GNU_EXTENSIONS_ALLOWED */
                              conversion,
                              /*initializing_return_value=*/FALSE,
                              /*initializing_variable=*/FALSE,
@@ -11631,8 +11808,8 @@ cases where bitwise copying applies.
     /* Nonclass assignment, and C mode struct assignment. */
     /* See if the source and destination types are compatible, and convert the
        source operand to the destination type. */
-    prep_conversion_operand(source_operand, dest_type,
-                            (a_conv_descr_ptr)NULL,
+    prep_conversion_operand(source_operand, dest_type, 
+                            (a_boolean *)NULL, (a_conv_descr_ptr)NULL,
                             /*is_copy_initialization=*/TRUE,
                             /*nontype_template_arg=*/FALSE,
                             incompatible_err, err_pos);

@@ -1012,7 +1012,8 @@ variable.
      case, a top-level comma is not allowed. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */
-  prep_initializer_operand(&result, dest_type, (a_conv_descr_ptr)NULL,
+  prep_initializer_operand(&result, dest_type, (a_boolean *)NULL,
+                           (a_conv_descr_ptr)NULL,
                            /*initializing_return_value=*/FALSE,
                            /*initializing_variable=*/FALSE,
                            /*static_lifetime=*/FALSE,
@@ -13556,7 +13557,7 @@ Return a pointer to the expression.
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
 
   /* Convert to the required type. */
-  prep_initializer_operand(&result, required_type,
+  prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
 			   (a_conv_descr_ptr)NULL,
 			   /*initializing_return_value=*/FALSE,
 			   /*initializing_variable=*/FALSE,
@@ -13881,7 +13882,8 @@ required_type will be void if the expression should have void type
       }  /* if */
     } else {
       /* Convert to the required type. */
-      prep_initializer_operand(&result, required_type,
+      prep_initializer_operand(&result, required_type, 
+                               (a_boolean *)NULL,
                                (a_conv_descr_ptr)NULL,
                                /*initializing_return_value=*/TRUE,
                                /*initializing_variable=*/FALSE,
@@ -14149,7 +14151,8 @@ for the converted result in *constant.  Do various error checks.
   } else {
     /* Convert to the required type if necessary.  Do not use user-defined
        conversions. */
-    prep_initializer_operand(operand, param_type, (a_conv_descr_ptr)NULL,
+    prep_initializer_operand(operand, param_type, (a_boolean *)NULL,
+                             (a_conv_descr_ptr)NULL,
                              /*initializing_return_value=*/FALSE,
                              /*initializing_variable=*/FALSE,
                              /*static_lifetime=*/FALSE,
@@ -14392,7 +14395,8 @@ copy-initialization ("="-form).
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */
-  prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
+  prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
+                           (a_conv_descr_ptr)NULL,
                            /*initializing_return_value=*/FALSE,
                            /*initializing_variable=*/TRUE,  /* Arbitrary. */
                            /*static_lifetime=*/FALSE,
@@ -14462,7 +14466,8 @@ nonstandard class member constants.  Assumes copy-initialization
     }  /* if */
   } else {
     /* Convert to the required type. */
-    prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
+    prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
+                             (a_conv_descr_ptr)NULL,
                              /*initializing_return_value=*/FALSE,
                              /*initializing_variable=*/TRUE,  /* Arbitrary. */
                              /*static_lifetime=*/FALSE,
@@ -14531,7 +14536,8 @@ and scan_aggregate_initializer_expression.
   process_microsoft_null_pointer_constant_bug(&result, required_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Convert to the required type. */
-  prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
+  prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
+                           (a_conv_descr_ptr)NULL,
                            /*initializing_return_value=*/FALSE,
                            /*initializing_variable=*/TRUE,
                            static_lifetime,
@@ -14815,7 +14821,8 @@ required_type_determined:
   } else {
     /* The entity being initialized has a non-class type. */
     /* Convert to the required type. */
-    prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
+    prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
+                             (a_conv_descr_ptr)NULL,
                              /*initializing_return_value=*/FALSE,
                              /*initializing_variable=*/TRUE,
                              static_lifetime,

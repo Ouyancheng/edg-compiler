@@ -1295,6 +1295,11 @@ declaration.
       do {
         a_type_qualifier_set qualifiers = TQ_NONE;
         a_decl_pos_block     local_decl_pos_block;
+        an_attribute_ptr     attributes = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+        an_attribute_ptr     *last_attribute = &attributes;
+        an_attribute_ptr     ap;
+#endif /* GNU_EXTENSIONS_ALLOWED */
         a_decl_flag_set      dsi_flags = DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
                                          DSI_TYPE_SPECIFIER_ALLOWED |
                                          DSI_IS_PARAMETER |
@@ -1310,8 +1315,8 @@ declaration.
         /* Scan a parameter-declaration. */
         (void)decl_specifiers(dsi_flags, &dso_flags, &param_storage_class,
                               &param_type_ptr, &qualifiers, 
-                              (an_attribute_ptr *)NULL,
-                              &decl_modifiers, &local_decl_pos_block);
+                              &attributes, &decl_modifiers,
+                              &local_decl_pos_block);
         dangling_type_specifier = dso_flags & DSO_DANGLING_TYPE_SPECIFIER;
         defines_something = dso_flags & DSO_DEFINES_SOMETHING;
         if (last_param_type == NULL && curr_token == tok_rparen) {
@@ -1384,11 +1389,21 @@ declaration.
           /* No declarator. */
           set_to_error_locator(param_locator);
         }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+        /* Find the end of the current attribute list. */
+        while (*last_attribute != NULL) {
+          last_attribute = &(*last_attribute)->next;
+        }  /* while */
+        /* Scan any attributes that apply to the function
+           parameter. */
+        *last_attribute = scan_attributes();
+#endif /* GNU_EXTENSIONS_ALLOWED */
         /* Save a pointer to the type as it was declared (i.e., before the
            array-to-pointer adjustment, if any). */
         declared_type = param_type_ptr;
         /* Check that the type is legal, and do required adjustments. */
-        check_and_adjust_parameter_type(&param_type_ptr, &param_type_pos);
+        check_and_adjust_parameter_type(&param_type_ptr, &param_type_pos,
+                                        attributes);
         /* Standardize the storage class: unspecified becomes auto. */
         if (param_storage_class == (a_storage_class)sc_unspecified) {
           param_storage_class = (a_storage_class)sc_auto;
@@ -1434,7 +1449,8 @@ declaration.
            the param-id list. */
         add_to_param_id_list(&param_locator, param_type_ptr,
                              &param_type_pos, param_storage_class,
-                             func_info, param_ssep, &last_param_id);
+                             attributes, func_info, param_ssep,
+                             &last_param_id);
         last_param_id->declared_type = declared_type;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         last_param_id->specifiers_range =
@@ -1444,6 +1460,14 @@ declaration.
 	last_param_id->identifier_range =
                             local_decl_pos_block.identifier_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if GNU_EXTENSIONS_ALLOWED
+        /* Attributes that apply to the parameter (as opposed to its
+           type) are only allowed on top-level declarators. */
+        if (!is_top_level_declarator) {
+          check_for_invalid_param_attributes(last_param_id->symbol,
+                                             attributes);
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         if (remove_qualifiers_from_param_types) {
           /* Strip off top-level type qualifiers.  They are not part of the
              type signature of a C++ function -- see 8.3.5 para 3.  However,
@@ -1458,6 +1482,15 @@ declaration.
            associated with the routine type. */
         ptp = make_param_type(param_type_ptr, &param_type_pos);
         ptp->declared_type = declared_type;
+#if GNU_EXTENSIONS_ALLOWED
+        /* See if there is a mode attribute.  If so, save it; it is
+           conceptually part of the declared_type. */
+        for (ap = attributes; ap != NULL; ap = ap->next) {
+          if (ap->kind == (an_attribute_kind)ak_mode) {
+            ptp->mode = ap->variant.mode;
+          }  /* if */
+        }  /* for */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
         if (!is_error_locator(param_locator)) {
           ptp->name = param_locator.symbol_header->identifier;
@@ -1821,8 +1854,9 @@ declaration.
         /* Add the identifier to the parameter id list. */
         add_to_param_id_list(&locator_for_curr_id, (a_type_ptr)NULL,
                              (a_source_position*)NULL,
-                             (a_storage_class)sc_unspecified, func_info,
-                             (a_source_sequence_entry_ptr)NULL,
+                             (a_storage_class)sc_unspecified, 
+                             (an_attribute_ptr)NULL,
+                             func_info, (a_source_sequence_entry_ptr)NULL,
                              &last_param_id);
         /* Update the param-id entry just created with the source position
            of the identifier. */

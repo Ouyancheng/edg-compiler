@@ -90,6 +90,17 @@ a "for"] would have to be rewritten.)
 #include "il_walk.h"
 #endif /* STANDALONE_CP_GEN_BE */
 
+#if !GNU_EXTENSIONS_ALLOWED
+
+/* We still have to define a_type_mode_kind because it appears in some
+   function declarations. */
+
+enum a_type_mode_kind_tag {
+  tmk_none
+};
+typedef a_byte a_type_mode_kind;
+
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 
 static FILE	*f_C_output;
 			/* File to which the output is written. */
@@ -333,6 +344,7 @@ typedef int a_gen_decl_options_set;
 			   declarator. */
 static void gen_general_declaration_using_type(
                              a_type_ptr                   type,
+                             a_type_mode_kind             mode,
                              a_source_correspondence      *scp,
                              an_il_entry_kind             entry_kind,
                              a_src_seq_secondary_decl_ptr sec_decl,
@@ -2829,6 +2841,145 @@ that a function might throw.
   write_tok_ch(')');
 }  /* gen_exception_specification */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void write_alignment_attribute(a_targ_alignment alignment)
+/*
+Write out an alignment attribute to indicate the explicit alignment
+given to the entity just declared.
+*/
+{
+  write_tok_str(" __attribute__((__aligned__(");
+  write_unsigned_num((a_host_large_unsigned)alignment);
+  write_tok_str(")))");
+}  /* write_alignment_attribute */
+
+
+static void write_type_attributes(a_type_ptr type)
+/*
+Write out attributes that apply to the indicated type.
+*/
+{
+  if (type->alignment_set_explicitly) {
+    /* Output an attribute to indicate the explicit alignment. */
+    write_alignment_attribute(type->alignment);
+  }  /* if */
+  if (type->variables_are_implicitly_referenced) {
+    /* Output the "unused" attribute. */
+    write_tok_str(" __attribute__((__unused__))");
+  }  /* if */
+  if (type->kind == (a_type_kind)tk_integer &&
+      type->variant.integer.packed) {
+    /* Output the "packed" attribute. */
+    write_tok_str(" __attribute__((__packed__))");
+  }  /* if */
+  if (type->kind == (a_type_kind)tk_union &&
+      type->variant.class_struct_union.is_transparent) {
+    write_tok_str(" __attribute__((__transparent_union__))");
+  }  /* if */
+}  /* write_type_attributes */
+  
+
+static void write_string_argument_attribute(char *attribute_name,
+                                            char *argument)
+/*
+Write out an attribute that takes a string as an argument.  The
+attribute_name is assumed to have no characters that require escapes,
+but the argument might have characters like "\n" or "\t" that need to
+be handled specially.  */
+{
+  char *c;
+
+  write_tok_str(" __attribute__((");
+  write_tok_str(attribute_name);
+  write_str("(\"");
+  for (c = argument; *c != '\0'; c++) {
+    (void)form_char(*c, &octl);
+  }  /* for */
+  write_str("\")))");
+}  /* write_string_argument_attribute */
+
+
+static void write_section_attribute(char *section)
+/*
+Write out an attribute indicating that the entity being declared
+should be placed in the indicated section.
+*/
+{
+  write_string_argument_attribute("__section__", section);
+}  /* write_section_attribute */
+
+
+static void write_mode_attribute(a_type_mode_kind mode)
+/* 
+Write out the type mode.
+*/
+{
+  write_tok_str(" __attribute__((__mode__(");
+  write_tok_str(type_mode_kind_names[(int)mode]);
+  write_tok_str(")))");
+}  /* write_mode_attribute */
+
+
+static void write_variable_attributes(a_variable_ptr var)
+/*
+Write out attributes that apply to the indicated variable.
+*/
+{
+  if (var->alignment != 0) {
+    /* Output the alignment attribute. */
+    write_alignment_attribute(var->alignment);
+  }  /* if */
+  if (var->is_weak) {
+    write_tok_str(" __attribute__((__weak__))");
+  }  /* if */
+  if (var->is_not_common) {
+    write_tok_str(" __attribute__((__nocommon__))");
+  }  /* if */
+  if (var->is_transparent) {
+    write_tok_str(" __attribute__((__transparent_union__))");
+  }  /* if */
+  if (var->section != NULL) {
+    write_section_attribute(var->section);
+  }  /* if */
+}  /* write_variable_attributes */
+
+
+static void write_routine_attributes(a_routine_ptr rout)
+/*
+Write out attributes that apply to the indicated routine.
+*/
+{
+  if (rout->is_initialization_routine) {
+    write_tok_str(" __attribute__((__constructor__))");
+  }  /* if */
+  if (rout->is_finalization_routine) {
+    write_tok_str(" __attribute__((__destructor__))");
+  }  /* if */
+  if (rout->does_not_return) {
+    write_tok_str(" __attribute__((__noreturn__))");
+  }  /* if */
+  if (rout->is_pure) {
+    write_tok_str(" __attribute__((__pure__))");
+  }  /* if */
+  if (rout->is_const) {
+    write_tok_str(" __attribute__((__const__))");
+  }  /* if */
+  if (rout->is_weak) {
+    write_tok_str(" __attribute__((__weak__))");
+  }  /* if */
+  if (rout->allocates_memory) {
+    write_tok_str(" __attribute((__malloc__))");
+  }  /* if */
+  if (rout->section != NULL) {
+    write_section_attribute(rout->section);
+  }  /* if */
+  if (rout->aliased_routine != NULL) {
+    write_string_argument_attribute("__alias__", rout->aliased_routine);
+  }  /* if */
+}  /* write_routine_attributes */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void gen_function_declarator_with_scope(a_type_ptr   type,
                                                a_scope_ptr  scope,
@@ -2918,10 +3069,19 @@ default arguments should be suppressed (needed for template specializations).
             gen_storage_class(param_var->storage_class);
           }  /* if */
           /* Watch out for unnamed parameters in C++. */
-          gen_declaration_using_type(param_var->declared_type,
-                                     has_name(param_var) ?
+          gen_general_declaration_using_type(
+                                          param_var->declared_type,
+                                          param->mode,
+                                          has_name(param_var) ?
                                              &param_var->source_corresp : NULL,
-                                     iek_variable);
+                                          iek_variable,
+                                          (a_src_seq_secondary_decl_ptr)NULL,
+                                          TQ_NONE,
+                                          /*suppress_specifiers=*/FALSE,
+                                          GDO_NO_OPTIONS);
+#if GNU_EXTENSIONS_ALLOWED
+          write_variable_attributes(param_var);
+#endif /* GNU_EXTENSIONS_ALLOWED */
           param_var = param_var->next;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (msvc_is_generated_code_target &&
@@ -2959,6 +3119,11 @@ default arguments should be suppressed (needed for template specializations).
           form_type_first_part(param_type, /*under_lhs_declarator=*/FALSE,
                                /*need_trailing_space=*/FALSE,
                                extra_qual, FTO_NO_OPTIONS, &octl);
+#if GNU_EXTENSIONS_ALLOWED
+          if (param->mode != (a_type_mode_kind)tmk_none) {
+            write_mode_attribute(param->mode);
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
           if (param->name != NULL) {
             write_space();
@@ -3044,6 +3209,7 @@ entry if sec_decl is non-NULL.
 
 static void gen_general_declaration_using_type(
                               a_type_ptr                   type,
+                              a_type_mode_kind             mode,
                               a_source_correspondence      *scp,
                               an_il_entry_kind             entry_kind,
                               a_src_seq_secondary_decl_ptr sec_decl,
@@ -3078,6 +3244,12 @@ use an unqualified name when naming the entity in the declarator.
                        suppress_specifiers ? FTO_SUPPRESS_SPECIFIERS :
                                              FTO_NO_OPTIONS,
                        &octl);
+#if GNU_EXTENSIONS_ALLOWED
+  /* If there is a mode attribute, emit it. */
+  if (mode != (a_type_mode_kind)tmk_none) {
+    write_mode_attribute(mode);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Write the name if there is one. */
   if (scp != NULL) {
     if (!(options & GDO_SUPPRESS_POSITION)) {
@@ -3115,7 +3287,8 @@ no name.  entry_kind indicates the IL entry kind (it is ignored if
 scp is NULL).
 */
 {
-  gen_general_declaration_using_type(type, scp, entry_kind,
+  gen_general_declaration_using_type(type, (a_type_mode_kind)tmk_none,
+                                     scp, entry_kind,
                                      (a_src_seq_secondary_decl_ptr)NULL,
                                      TQ_NONE,
                                      /*suppress_specifiers=*/FALSE,
@@ -3151,70 +3324,6 @@ pragmas and macros.  Return TRUE if anything was processed.
   return anything_processed;
 }  /* process_preprocessing_directives */
 
-#if GNU_EXTENSIONS_ALLOWED
-
-static void write_alignment_attribute(a_targ_alignment alignment)
-/*
-Write out an alignment attribute to indicate the explicit alignment
-given to the entity just declared.
-*/
-{
-  write_tok_str(" __attribute__((__aligned__(");
-  write_unsigned_num((a_host_large_unsigned)alignment);
-  write_tok_str(")))");
-}  /* write_alignment_attribute */
-
-
-static void write_type_attributes(a_type_ptr type)
-/*
-Write out attributes that apply to the indicated type.
-*/
-{
-  if (type->kind == (a_type_kind)tk_integer &&
-      type->variant.integer.packed) {
-    /* Output the "packed" attribute. */
-    write_tok_str(" __attribute__((__packed__))");
-  }  /* if */
-  if (type->variables_are_implicitly_referenced) {
-    /* Output the "unused" attribute. */
-    write_tok_str(" __attribute__((__unused__))");
-  }  /* if */
-  if (type->alignment_set_explicitly) {
-    /* Output an attribute to indicate the explicit alignment. */
-    write_alignment_attribute(type->alignment);
-  }  /* if */
-}  /* write_type_attributes */
-  
-
-static void write_variable_attributes(a_variable_ptr var)
-/*
-Write out attributes that apply to the indicated variable.
-*/
-{
-  if (var->alignment != 0) {
-    /* Output the alignment attribute. */
-    write_alignment_attribute(var->alignment);
-  }  /* if */
-}  /* write_variable_attributes */
-
-
-static void write_routine_attributes(a_routine_ptr rout)
-/*
-Write out attributes that apply to the indicated routine.
-*/
-{
-  /* If this is an initialization routine, arrange for it to be
-     called. */
-  if (rout->is_initialization_routine) {
-    write_tok_str(" __attribute__((__constructor__))");
-  }  /* if */
-  /* Similarly, for finalization routines. */
-  if (rout->is_finalization_routine) {
-    write_tok_str(" __attribute__((__destructor__))");
-  }  /* if */
-}  /* write_routine_attributes */
-
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void gen_enum_definition(a_type_ptr type)
 /*
@@ -3564,6 +3673,7 @@ declaration following this one is such a continuation.
   /* Generate the field type and name.  No name is displayed for unnamed
      bit fields and anonymous union fields. */
   gen_general_declaration_using_type(field->type,
+                                     (a_type_mode_kind)tmk_none,
                                      has_name(field) ? &field->source_corresp :
                                                        NULL,
                                      iek_field,
@@ -3869,7 +3979,9 @@ declaration following this one is such a continuation.
                                    &octl);
     } else {
       /* Normal typedef. */
-      gen_general_declaration_using_type(under_type, &type->source_corresp,
+      gen_general_declaration_using_type(under_type,
+                                         (a_type_mode_kind)tmk_none,
+                                         &type->source_corresp,
                                          iek_type, sec_decl, TQ_NONE,
                                          suppress_specifiers,
                                          GDO_NO_OPTIONS);
@@ -7303,6 +7415,7 @@ Generate code for an instantiation directive.
       case iek_variable:
         { a_variable_ptr var = (a_variable_ptr)idp->entity.ptr;
           gen_general_declaration_using_type(var->type,
+                                             (a_type_mode_kind)tmk_none,
                                              &var->source_corresp,
                                              kind,
                                             (a_src_seq_secondary_decl_ptr)NULL,
@@ -8366,7 +8479,7 @@ declaration following this one is such a continuation.
               var->source_corresp.parent.namespace_ptr->variant.assoc_scope));
   /* Output the variable name and its type.  Do not put out a name for
      anonymous union variables. */
-  gen_general_declaration_using_type(var_type,
+  gen_general_declaration_using_type(var_type, (a_type_mode_kind)tmk_none,
                                      has_name(var) ? &var->source_corresp :
                                                      NULL,
                                      iek_variable,
@@ -8428,6 +8541,9 @@ function.
       set_output_position(&var->source_corresp.decl_position);
       gen_declaration_using_type(var->type, &var->source_corresp,
                                  iek_variable);
+#if GNU_EXTENSIONS_ALLOWED
+      write_variable_attributes(var);
+#endif /* GNU_EXTENSIONS_ALLOWED */
       write_tok_ch(';');
     } else if (ss_entry_kind(curr_source_sequence_entry) == iek_statement) {
       /* Stop on the opening brace of the routine. */
@@ -8617,7 +8733,9 @@ list for the function definition.
     if (force_unqualified_name)  options |= GDO_FORCE_UNQUALIFIED_NAME;
     if (instantiation_directive) options |= GDO_SUPPRESS_POSITION;
     check_assertion(!is_definition);
-    gen_general_declaration_using_type(qual_rout_type, &rout->source_corresp,
+    gen_general_declaration_using_type(qual_rout_type, 
+                                       (a_type_mode_kind)tmk_none,
+                                       &rout->source_corresp,
                                        iek_routine, sec_decl, TQ_NONE,
                                        suppress_specifiers,
                                        options);
