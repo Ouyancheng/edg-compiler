@@ -1,5 +1,12 @@
 Version 2.46
 
+5/21/01  Name linkage strings and character conversions
+
+The front end now converts the strings in the array name_linkage_kind_names
+to the internal (target-dependent) representation.  This eases the adaptation
+of the front end for configurations where, e.g., the front end is compiled on
+an ASCII platform while its input is EBCDIC source.
+
 5/17/01  Abort on __based specifier with local variable
 
 The front end used to produce invalid IL when processing __based pointer types
