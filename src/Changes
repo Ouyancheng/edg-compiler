@@ -1,5 +1,22 @@
 Version 3.5
 
+7/20/04  Hidden name table refinement for class types hidden by nontags
+
+When a nontag class member was hiding a tag entity in an enclosing scope,
+the front end marked the hidden entity in the hidden name table as requiring
+both elaboration and qualification.  This caused the C++-generating back end
+to sometimes generate code that GNU C++ compilers could not parse (even though
+the generated code was correct C++).
+
+  struct S {};
+  void S(struct S*);
+  struct X {
+    void S(struct S*);  // Formerly rendered as "void S(struct ::S*);" which
+  };                    // GNU C++ compilers cannot parse.
+
+To address this problem, the hidden name table now only requires qualification
+for such a hidden class type if it is also hidden by a tag entity.
+
 7/20/04  Typedefs with missing declarators in class templates
 
 In some modes (e.g., Microsoft mode) a typedef with a missing declarator

@@ -768,8 +768,8 @@ static void check_name_hiding_of_qualifiable_name(a_symbol_ptr  sym_ptr,
                                                   a_scope_ptr   sp)
 /*
 sym_ptr is a name declared in scope sp.  Determine whether there are any
-declarations in an enclosing scope that are hidden by sym_ptr and that
-can be rendered unhidden by being qualified when put out by the
+declarations in an enclosing scope that are hidden by sym_ptr and that can
+be rendered unhidden by being qualified or elaborated when put out by the
 C++-generating back end.
 */
 {
@@ -848,7 +848,18 @@ C++-generating back end.
             /* old_sym_ptr can point to a type or a class template at this
                point. */
             tag_hidden_by_nontag = is_class_struct_union_symbol(old_sym_ptr);
-            hidden_class_or_namespace_member = TRUE;
+            if (tag_hidden_by_nontag) {
+              /* Check if elaboration is sufficient.  It may not be if the
+                 current scope contains a tag of the same name. */
+              a_symbol_ptr  local_tag;
+              clear_specific_symbol(locator);
+              local_tag = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
+                                                     IDL_MUST_BE_TAG);
+              hidden_class_or_namespace_member = (local_tag != old_sym_ptr);
+            } else {
+              /* For class templates, qualification is always required. */
+              hidden_class_or_namespace_member = TRUE;
+            }  /* if */
             record_defeatable_name_hiding(old_sym_ptr,
                                           tag_hidden_by_nontag,
                                           hidden_class_or_namespace_member,
