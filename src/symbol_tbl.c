@@ -5322,6 +5322,7 @@ an instance of the class template.
   a_template_arg_ptr     last_arg = NULL;
   a_symbol_ptr           new_sym = NULL;
   a_symbol_locator       orig_locator;
+  a_boolean              any_errors = FALSE;
 
   db_enter(3, "get_template_class");
 
@@ -5333,6 +5334,7 @@ an instance of the class template.
   (void)get_token();
   if (curr_token != tok_lt) {
     pos_sy_error(ec_missing_template_arg_list, &start_pos, template_symbol);
+    any_errors = TRUE;
     goto error_exit;
   }  /* if */
   /* Get token following opening angle bracket. */
@@ -5386,15 +5388,23 @@ an instance of the class template.
     /* There are still entries on the formal parameters list so the user
        didn't supply enough actual arguments. */
     sym_error(ec_too_few_template_args, template_symbol);
+    any_errors = TRUE;
   } else if (curr_token == tok_comma) {
     /* All of the formal parameters have been accounted for and there are
        more actuals -- too many arguments were supplied. */
     sym_error(ec_too_many_template_args, template_symbol);
-  } else if (!required_token(tok_gt, ec_exp_gt)) {
-      /* It looks like the right number of arguments have been processed.
-         but the current token is not a closing angle bracket.  The error
-         is issued by required_token. */
-  } else {
+    flush_tokens();
+    any_errors = TRUE;
+  }  /* if */
+  /* We should now be at the closing angle bracket.  Note that we don't
+     scan the token after the closing angle because we update the current
+     token below to represent the original identifier with the newly
+     found template class symbol. */
+  if (curr_token != tok_gt) {
+    syntax_error(ec_exp_gt);
+    any_errors = TRUE;
+  }  /* if */
+  if (!any_errors) {
     /* Everything is OK -- find the instance that matches these arguments.
        Create a new instance if needed. */
     new_sym = find_template_class(template_symbol, arg_list, &start_pos);
