@@ -5308,7 +5308,7 @@ standard.
   a_boolean             processed = FALSE;
   a_boolean             might_be_overloaded = FALSE;
   int                   prec_level;
-  a_boolean             operand_1_rvalue_conversion_done = FALSE;
+  a_boolean             operand_1_transformations_done = FALSE;
 
   db_enter(4, "scan_logical_operator");
 
@@ -5349,8 +5349,8 @@ standard.
          operand is not a constant. */
     } else {
       /* See if the first operand is a constant. */
-      operand_1_rvalue_conversion_done = TRUE;
-      conv_lvalue_to_rvalue(operand_1, expression_kind);
+      do_operand_transformations(operand_1, TOPT_NO_OPTIONS, expression_kind);
+      operand_1_transformations_done = TRUE;
       /* Note that pointer to member constants are tested by
          op_is_false_constant; that's why the is_scalar_type test is needed. */
       if (is_constant_operand(operand_1) && is_scalar_type(operand_1->type)) {
@@ -5393,11 +5393,9 @@ standard.
   if (!processed) {
     /* Non-operator-function cases. */
     /* Both operands must be scalar. */
-    do_operand_transformations(operand_1,
-                               operand_1_rvalue_conversion_done ?
-                                    TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION :
-                                    TOPT_NO_OPTIONS,
-                               expression_kind);
+    if (!operand_1_transformations_done) {
+      do_operand_transformations(operand_1, TOPT_NO_OPTIONS, expression_kind);
+    }  /* if */
     (void)check_boolean_controlling_expr(operand_1,
                                          /*ptr_to_member_okay=*/FALSE);
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS, expression_kind);

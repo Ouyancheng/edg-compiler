@@ -1,5 +1,15 @@
 Version 2.13
 
+12/22/92 Bug in && and || operator processing
+
+The processing of operands of && and || has been fixed to deal with
+the case where the first operand is an array:
+
+  static char xxx[] = "xxx";
+  void f() {if (xxx && *xxx) {}}
+
+Formerly, this got an internal error.
+
 12/21/92 READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
 
 A new configuration switch READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS has been
