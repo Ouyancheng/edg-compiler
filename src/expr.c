@@ -2749,6 +2749,7 @@ nonstatic_member_function:
                                                         locator_for_curr_id.
                                                              is_qualified_name,
                                                   result);
+          result->state = (an_operand_state)os_function_designator;
           combine_unneeded_selector_with_operand(operand_1, is_arrow_operator,
                                                  result);
           break;
@@ -13129,6 +13130,7 @@ overloaded_function:
                                                        locator_for_curr_id.
                                                              is_qualified_name,
                                                   result);
+          result->state = (an_operand_state)os_function_designator;
           break;
         case sk_undefined:
           /* Symbol was found in the symbol table, but it is undefined.  This
