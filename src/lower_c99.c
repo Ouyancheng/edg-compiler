@@ -1022,6 +1022,16 @@ constructs.
                                     scope_stack[DEPTH_OF_FILE_SCOPE].il_scope,
                                     /*force_static=*/FALSE);
       tmp->init_kind = (an_init_kind)initk_static;
+      if (!in_file_scope(constant)) {
+        /* The constant is local to a function (this happens, for example,
+           when RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE).  Make a copy
+           in the file scope so it can be pointed to from the file-scope
+           variable. */
+        a_memory_region_number region_to_switch_back_to;
+        switch_to_file_scope_region(&region_to_switch_back_to);
+        constant = alloc_unshared_constant(constant);
+        switch_back_to_original_region(region_to_switch_back_to);
+      }  /* if */
       tmp->initializer.constant = constant;
       lower_c99_constant(tmp->initializer.constant);
       constant->source_corresp.assoc_info = (char*)tmp;
