@@ -1507,8 +1507,9 @@ is set to TRUE; otherwise it is set to FALSE.
 {
   a_field_ptr        designated_field = *field;
   a_type_ptr         member_type;
-  a_source_position  error_pos = pos_curr_token;
-
+  a_source_position  error_pos;
+  
+  error_pos = pos_curr_token;
   if (init_info->designation_state != ds_complete_designation &&
       scan_field_init_designator(context->type, &designated_field)) {
     /* We found a valid field designator: */
