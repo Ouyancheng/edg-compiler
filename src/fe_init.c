@@ -815,6 +815,7 @@ source file's compilation.
   /* near_and_far_enabled, far_data_pointers, and far_code_pointers are
      initialized in fe_early_init and changed if necessary in cmd_line.c. */
 #endif /* NEAR_AND_FAR_ALLOWED */
+  il_header.UCN_identifiers_used = FALSE;
   if (pp_output_file_needed) {
     /* Open the preprocessing output file. */
     open_pp_output_file();

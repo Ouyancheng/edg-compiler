@@ -4192,6 +4192,8 @@ Display the IL for the file scope in human-readable form.
   disp_boolean("far_code_pointers",
                (a_boolean)il_header.far_code_pointers);
 #endif /* NEAR_AND_FAR_ALLOWED */
+  disp_boolean("UCN_identifiers_used",
+               (a_boolean)il_header.UCN_identifiers_used);
 #if ONE_INSTANTIATION_PER_OBJECT
   if (il_header.instantiation_dir_name != NULL) {
     disp_string_ptr("instantiation_dir_name",

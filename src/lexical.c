@@ -5583,6 +5583,11 @@ point to the character after the universal character name.
       diagnostic(strict_ansi_error_severity, err_code);
     }  /* if */
   }  /* if */
+  if (is_identifier) {
+    /* Record the fact that an identifier containing a UCN has been
+       encountered. */
+   il_header.UCN_identifiers_used = TRUE;
+  }  /* if */
   *start_pos = pos;
   return result;
 }  /* scan_universal_character */

@@ -7757,6 +7757,14 @@ EXTERN struct il_header_tag {
 			   are targ_sizeof_far_pointer and
 			   targ_alignof_far_pointer. */
 #endif /* NEAR_AND_FAR_ALLOWED */
+  a_byte_boolean
+		UCN_identifiers_used;
+			/* TRUE if an identifier containing a universal
+			   character name was used anywhere within the
+			   translation unit.  When such names are used,
+			   and IL lowering is being done, each name must
+			   be inspected when special processing is done
+			   for the mangling of names containing UCNs. */
 #if ONE_INSTANTIATION_PER_OBJECT
   char		*instantiation_dir_name;
 			/* When each instantiation is placed in its own object
