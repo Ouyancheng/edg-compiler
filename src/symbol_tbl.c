@@ -440,6 +440,13 @@ and indentation is the indentation desired.
       /* The result of skip_typerefs() is copied to a temporary variable to
          work around a problem with Borland C++. */
       temp_type = skip_typerefs(type);
+#if MAINTAIN_NEEDED_FLAGS
+      if (temp_type->variant.class_struct_union.definition_needed) {
+        put_string("def needed");
+      } else if (temp_type->source_corresp.needed) {
+        put_string("needed");
+      }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
       (void)str_name_linkage(buffer, &(temp_type->source_corresp));
       put_string(buffer);
       {
@@ -546,6 +553,9 @@ do_variable:
         } else {
           if (sym->variant.variable.value_has_been_set) put_string("set");
           if (sym->variant.variable.used) put_string("used");
+#if MAINTAIN_NEEDED_FLAGS
+          if (var->source_corresp.needed) put_string("needed");
+#endif /* MAINTAIN_NEEDED_FLAGS */
           if (var->is_parameter || var->is_handler_param) {
             put_string(var->is_parameter ? "is param" : "is handler param");
             if (var->param_value_has_been_changed) put_string("changed");
@@ -582,6 +592,9 @@ do_variable:
         (void)str_name_linkage(buffer, &(rp->source_corresp));
         put_string(buffer);
         if (rp->is_template_function) put_string("is instance");
+#if MAINTAIN_NEEDED_FLAGS
+        if (rp->source_corresp.needed) put_string("needed");
+#endif /* MAINTAIN_NEEDED_FLAGS */
         type = rp->type;
         if (C_dialect == C_dialect_cplusplus) {
           an_exception_specification_ptr       esp;
