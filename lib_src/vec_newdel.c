@@ -15,9 +15,9 @@ C++ runtime routines to provide vector new() and delete() functionality.
 
 #include <stdlib.h>
 #include "basics.h"
+#include "vec_newdel.h"
 #include "main.h"
 #include "config.h"
-#include "runtime.h"
 #include "eh.h"
 
 /*
@@ -55,6 +55,17 @@ extern "C" void _array_pointer_not_from_vec_new();
                                   to one of the vector handling routines. */
 
 
+extern "C" {
+        void	*__nw__FUi(size_t);	/* Mangled name for simple
+					   operator new(). */
+        void	__dl__FPv(void *);	/* Mangled name for operator delete. */
+}
+
+/*
+Increment a void* pointer by a given value.
+*/
+#define increment_ptr(ptr, incr) (ptr = ((void*)((char*)ptr + incr)))
+
 #if EXCEPTION_HANDLING
 static void add_vec_new_or_delete_eh_stack_entry
 				(an_eh_stack_entry_ptr	ehsep,
@@ -78,24 +89,12 @@ operation that is in process.
 #endif /* EXCEPTION_HANDLING */
 
 
-extern "C" {
-        void	*__nw__FUi(size_t);	/* Mangled name for simple
-					   operator new(). */
-        void	__dl__FPv(void *);	/* Mangled name for operator delete. */
-
-	char	*__vec_new(char *, int, size_t, a_constructor_ptr);
-	char	*__vec_new_eh(char *, int, size_t, a_constructor_ptr,
-                              a_destructor_ptr);
-	void 	__vec_delete(char *, int, size_t, a_destructor_ptr,
-                            int, int);
-}
-
 /*ARGSUSED*/ /* <-- "dtor" is only used when EXCEPTION_HANDLING is TRUE. */
-char *__vec_new_eh(char                         *array_ptr,
-                   int                          number_of_elements,
-                   size_t                       element_size,
-                   a_constructor_ptr		ctor,
-                   a_destructor_ptr	        dtor)
+EXTERN_C void *__vec_new_eh(void                         *array_ptr,
+                            int                          number_of_elements,
+                            size_t                       element_size,
+                            a_constructor_ptr	 	 ctor,
+                            a_destructor_ptr	         dtor)
 
 /*
 Allocate storage for an array, then call a constructor for each
@@ -123,7 +122,7 @@ elements should be used in a production runtime system.
   register vec_info_ptr info_ptr;
   size_t   array_size;
   int      i;
-  char     *arr_ptr;
+  void     *arr_ptr;
 
 #if EXCEPTION_HANDLING
   an_eh_stack_entry	ehse;
@@ -147,7 +146,7 @@ elements should be used in a production runtime system.
       info_ptr = (vec_info_ptr)malloc(sizeof(vec_info));
     }  /* if */
     array_size = number_of_elements * element_size;
-    array_ptr = (char *)__nw__FUi(array_size);
+    array_ptr = (void *)__nw__FUi(array_size);
     info_ptr->next       = _head_vec_info;
     info_ptr->array_ptr  = array_ptr;
     info_ptr->array_size = array_size;
@@ -168,7 +167,7 @@ elements should be used in a production runtime system.
   if (ctor != NULL) {
     for (i = 0, arr_ptr = array_ptr;
          i < number_of_elements;
-         i++, arr_ptr += element_size) {
+         i++, increment_ptr(arr_ptr, element_size)) {
 #if CFRONT_COMPATIBILITY_MODE
       a_cfront_constructor_ptr	cfront_ctor;
       cfront_ctor = (a_cfront_constructor_ptr)ctor;
@@ -197,10 +196,10 @@ elements should be used in a production runtime system.
 }  /* __vec_new_eh */
 
 
-char *__vec_new(char                         *array_ptr,
-                int                          number_of_elements,
-                size_t                       element_size,
-                a_constructor_ptr            ctor)
+EXTERN_C void *__vec_new(void                         *array_ptr,
+                         int                          number_of_elements,
+                         size_t                       element_size,
+                         a_constructor_ptr            ctor)
 /*
 This is an entry point used for compatibility with code generated
 before EH was supported.  This simply calls the general version of
@@ -224,12 +223,12 @@ an exception.
   a_destructor_ptr	dtor = ehsep->variant.vec_new_del.destructor;
   a_sizeof_t		number_of_elements;
   a_sizeof_t		element_size;
-  char*                 arr_ptr;
-  char*			array_ptr;
+  void*                 arr_ptr;
+  void*			array_ptr;
   a_sizeof_t		i;
   a_sizeof_t		first_element;
 
-  array_ptr = (char *)ehsep->variant.vec_new_del.array_ptr;
+  array_ptr = (void *)ehsep->variant.vec_new_del.array_ptr;
   element_size = ehsep->variant.vec_new_del.element_size;
   if (ehsep->variant.vec_new_del.is_vec_new) {
     /* Cleaning up a vec_new.  Destroy the fully constructed elements of
@@ -241,9 +240,10 @@ an exception.
                     ehsep->variant.vec_new_del.elements_processed - 1;
     number_of_elements = first_element + 1;
   }  /* if */
-  for (i = 0, arr_ptr = array_ptr + first_element * element_size;
+  for (i = 0,
+       arr_ptr = (void *)(((char *)array_ptr) + first_element * element_size);
        i < number_of_elements;
-       i++, arr_ptr -= element_size) {
+       i++, increment_ptr(arr_ptr, -element_size)) {
     /* Call the destructor with 0x2 - whole object = TRUE
                                 0x1 - delete object = FALSE. */
     (*dtor)(arr_ptr, 0x2 /*whole object = TRUE, delete = FALSE*/);
@@ -256,12 +256,12 @@ an exception.
 #endif /* EXCEPTION_HANDLING */
 
 
-void __vec_delete(char                *array_ptr,
-                  int                 number_of_elements,
-                  size_t              element_size,
-                  a_destructor_ptr    dtor,
-                  int                 delete_flag,
-                  int                 /*unused_arg*/)
+EXTERN_C void __vec_delete(void                *array_ptr,
+                           int                 number_of_elements,
+                           size_t              element_size,
+                           a_destructor_ptr    dtor,
+                           int                 delete_flag,
+                           int                 /*unused_arg*/)
 /*
 Call a destructor for each element of an array, then delete the storage
 for the array.  array_ptr points to the array, which has number_of_elements
@@ -277,7 +277,7 @@ must be -1 for that case.
   vec_info_ptr          prev_ptr;
   register vec_info_ptr info_ptr = NULL;
   int                   i;
-  char                  *arr_ptr;
+  void                  *arr_ptr;
 
   /* If the address of the array is NULL, do nothing. */
   if (array_ptr != NULL ) {
@@ -314,10 +314,11 @@ must be -1 for that case.
     /* Call the destructor, if specified, on each element in the array, in
        reverse order. */
     if (dtor != NULL) {
-      for (i = 0, arr_ptr = array_ptr +
-                                 (number_of_elements - 1) * element_size;
+      for (i = 0,
+           arr_ptr = (void*)((char*)array_ptr +
+                             (number_of_elements - 1) * element_size);
            i < number_of_elements;
-           i++, arr_ptr -= element_size) {
+           i++, increment_ptr(arr_ptr, -element_size)) {
 #if EXCEPTION_HANDLING
         /* Update the counter of the number of elements processed in the
            EH stack entry.  This is incremented before the destructor is
@@ -357,7 +358,7 @@ must be -1 for that case.
 }  /* __vec_delete */
 
 
-void _array_pointer_not_from_vec_new()
+EXTERN_C void _array_pointer_not_from_vec_new()
 /*
 This routine is used when a pointer that was not created by vec_new is
 passed to one other vector handling routines that needs to get the size
