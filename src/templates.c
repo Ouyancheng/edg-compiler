@@ -1114,21 +1114,23 @@ be NULL if the caller does not need to know whether a conversion was performed.
       a_template_param_type_descr_ptr	tptdp;
       tptdp = templ_type->variant.template_param.descr;
       if (tptdp != NULL && tptdp->tag_kind != (a_type_kind)tk_unknown) {
-        a_type_kind	actual_tag_kind = tk_unknown;
+        a_type_kind	actual_tag_kind = (a_type_kind)tk_unknown;
         /* Determine the tag kind (if any) of the actual type. */
         switch (type->kind) {
           case tk_struct:
           case tk_class:
             /* Classes and structs are both represented as tk_struct. */
-            actual_tag_kind = tk_struct;
+            actual_tag_kind = (a_type_kind)tk_struct;
             break;
           case tk_union:
-            actual_tag_kind = tk_union;
+            actual_tag_kind = (a_type_kind)tk_union;
             break;
           case tk_enum:
             /* tk_enum is actually tk_integer, make sure that this is really
                an enum type. */
-	    if (type->variant.integer.enum_type) actual_tag_kind = tk_enum;
+	    if (type->variant.integer.enum_type) {
+              actual_tag_kind = (a_type_kind)tk_enum;
+            }  /* if */
             break;
         }  /* switch */
         /* If the tag kinds are OK we can continue with the other tests. */
