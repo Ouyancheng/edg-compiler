@@ -1,5 +1,16 @@
 Version 2.23
 
+3/18/94 -L and -l options now supported by edg_prelink
+
+The -L and -l linker options are now passed from eccp to the prelinker so
+that the prelinker can include the libraries specified by the -l options
+when determining which templates need to be instantiated.
+
+3/17/94 Command line option change
+
+The -l (don't limit recursion) option has been renamed to -r.  This has
+been changed to allow the use of the -l option to specify library names.
+
 3/1/94  Changes to facilitate error message catalogs
 
 edg_prelink.c has been modified to simplify the task of using

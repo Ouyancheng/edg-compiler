@@ -311,7 +311,8 @@ typedef enum /*a_pl_error_code*/ {
   pl_ec_bad_instantiation_information_file,
   pl_ec_invalid_nm_format_option,
   pl_ec_command_line_error,
-  pl_ec_instantiation_loop
+  pl_ec_instantiation_loop,
+  pl_ec_lib_file_not_found
 } a_pl_error_code;
 
 
@@ -358,6 +359,9 @@ string.
     break;
   case pl_ec_instantiation_loop:
     m = "instantiation loop";
+    break;
+  case pl_ec_lib_file_not_found:
+    m = "library \"%s\" does not exist in the specified library directories\n";
     break;
   default:
     pl_internal_error("invalid error code");
@@ -1952,11 +1956,23 @@ int main(int argc, char *argv[])
   int		optchar;
   long		number_of_iterations = 0;
   char		*nm_command = NULL;
+  char		**L_directories;
+  char		**library_filenames;
+  int		num_of_L_directories = 0;
+  int		num_of_library_filenames = 0;
+  int		i;
 
   /* This must be done before any messages are issued. */
   message_prefix = pl_error_text(pl_ec_message_prefix);
 
-#define OPTION_LIST "ilnvuc:d:f:"
+  /* Allocate arrays to hold pointers to -L directory names and library
+     names specified by -l options.  We don't know how many of these will
+     appear on the command line so we will simply use the argument count
+     as the number of elements. */
+  L_directories = (char**)pl_malloc_with_check(argc * sizeof(char*));
+  library_filenames = (char**)pl_malloc_with_check(argc * sizeof(char*));
+
+#define OPTION_LIST "inrvuc:d:f:l:L:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
       case 'c':
@@ -1987,13 +2003,21 @@ int main(int argc, char *argv[])
         ignore_invalid_nm_output = TRUE;
         break;
       case 'l':
-        /* Don't stop after a certain number of iterations. */
-        limit_recursion = FALSE;
+        /* Library names (e.g., -lstd). */
+        library_filenames[num_of_library_filenames++] = optarg;
+        break;
+      case 'L':
+        /* Library directory names (e.g., -L/edg/cpfe/lib). */
+        L_directories[num_of_L_directories++] = optarg;
         break;
       case 'n':
         /* Update the instantiation list files but don't recompile the
            files. */
         suppress_compilation = TRUE;
+        break;
+      case 'r':
+        /* Don't stop after a certain number of iterations. */
+        limit_recursion = FALSE;
         break;
       case 'u':
         /* Specify whether names have an extra underscore that should
@@ -2032,9 +2056,52 @@ int main(int argc, char *argv[])
     /* Use the default command. */
     nm_command = default_nm_command;
   }  /* if */
-  /* Determine the length of the command line. */
+
+  /* Search for any libraries specified using the -L option. */
+  for (i = 0; i < num_of_library_filenames; ++i) {
+    /* Use pl_input_line as a buffer in which to build file names used when
+       searching for the library file name. */
+    char	*string_buffer = pl_input_line;
+    a_boolean	found = FALSE;
+    int		j;
+    for (j = 0; j < num_of_L_directories; ++j) {
+      FILE	*lib_file;
+      sprintf(string_buffer, "%s/lib%s.a", L_directories[j],
+              library_filenames[i]);
+#if DEBUG
+      if (pl_debug_level >= 3) {
+        fprintf(stderr, "Looking for %s\n", string_buffer);
+      }  /* if */
+#endif /* DEBUG */
+      if ((lib_file = fopen(string_buffer, "r")) != NULL) {
+        /* Replace the original library file name string with a pointer to
+           the complete path name. */
+        library_filenames[i] = pl_copy_string(string_buffer);
+        found = TRUE;
+        fclose(lib_file);
+        break;
+      }  /* if */
+    }  /* for */
+    /* If the library was not found then issue an error and exit. */
+    if (!found) {
+      fprintf(stderr, pl_error_text(pl_ec_lib_file_not_found),
+              library_filenames[i]);
+      pl_error(pl_ec_command_line_error);
+    }  /* if */
+  }  /* for */
+
+  /* Determine the length of the command line.  Go through the list of file
+     names in the command line and the list of library file names constructed
+     from the -l options. */
   for (arg = optind; arg < argc; arg++) {
+    /* Examine the file names from the command line. */
     int	arg_size = strlen(argv[arg]);
+    cmd_line_size += arg_size + 1;
+    if (arg_size > longest_filename) longest_filename = arg_size;
+  }  /* for */
+  for (i = 0; i < num_of_library_filenames; ++i) {
+    /* Examine the library file names constructed from the -l options. */
+    int	arg_size = strlen(library_filenames[i]);
     cmd_line_size += arg_size + 1;
     if (arg_size > longest_filename) longest_filename = arg_size;
   }  /* for */
@@ -2046,12 +2113,19 @@ int main(int argc, char *argv[])
      command line.  The extra space is provided to allow substitution
      of suffixes, etc. */
   pl_filename_buffer = (char *)pl_malloc_with_check(longest_filename + 32);
+  /* Construct the nm command. */
   strcpy(command, nm_command);
+  /* Append the file names specified on the command line. */
   for (arg = optind; arg < argc; arg++) {
     filename = argv[arg];
     strcat(command, " ");
     strcat(command, filename);
     any_ii_files |= pl_check_for_ii_file(filename);
+  }  /* for */
+  /* Append the constructed library file names. */
+  for (i = 0; i < num_of_library_filenames; ++i) {
+    strcat(command, " ");
+    strcat(command, library_filenames[i]);
   }  /* for */
   strcat(command, nm_command_suffix);
 #if DEBUG
@@ -2104,8 +2178,15 @@ int main(int argc, char *argv[])
   }  /* if */
 
 #ifdef USING_PURIFY
+  /* When using purify, free memory that would otherwise be reported as
+     leaked. */
   pl_free_all();
   free(command);
+  for (i = 0; i < num_of_library_filenames; ++i) {
+    free(library_filenames[i]);
+  }  /* for */
+  free(L_directories);
+  free(library_filenames);
 #endif /* USING_PURIFY */
 
   return (return_status);

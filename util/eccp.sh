@@ -657,7 +657,8 @@ then
 #     a way to generate will cause linker errors to be issued later.
 #
       if [ $automatic_instantiation -ne 0 ] ; then
-        $EDG_PRELINK $EDG_PRELINK_DEFAULT_OPTIONS $ofiles $lfiles \
+        $EDG_PRELINK $EDG_PRELINK_DEFAULT_OPTIONS $Loptions -L$LIBDIR \
+		     $loptions $ofiles $lfiles \
                      $instantiation_libraries
       fi
 #     Save the link command in a variable so it can be done again in the
