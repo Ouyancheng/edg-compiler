@@ -25,7 +25,7 @@ incomplete type other than "void" is zero.  (Previously, it was one.)
 For example:
 
   struct S;                  // Incomplete struct type.
-  int a1 = __alignof(X);     // a1 == 0 in Microsoft mode.
+  int a1 = __alignof(S);     // a1 == 0 in Microsoft mode.
   int a2 = __alignof(void);  // a2 == 1 (all modes).
 
 7/7/03   Incorrect size on virtual function table for local class
