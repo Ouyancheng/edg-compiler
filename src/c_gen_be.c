@@ -2554,26 +2554,36 @@ and the length.
 
 #endif /* ifdef FFE */
 
-static a_boolean optimizable_rvalue_selection(an_expr_node_ptr expr)
+static a_boolean optimizable_rvalue_selection(an_expr_node_ptr expr,
+                                              a_boolean        *comma_case)
 /*
 Return TRUE if the first operand of the given expression (an rvalue selection
-operation) has the form
+operation) has either of the forms
+  variable
   (something, variable)
-This form can be optimized by dump_rvalue_selection.
+*comma_case is returned TRUE to indicate the second case.  These forms can
+be optimized by dump_rvalue_selection.
 */
 {
   a_boolean        optimizable = FALSE;
   an_expr_node_ptr struct_expr, comma_operand_2;
 
-  /* Check that the first operand is a comma expression. */
+  *comma_case = FALSE;
   struct_expr = expr->variant.operation.operands;
-  if (struct_expr->kind == (an_expr_node_kind)enk_operation &&
-      struct_expr->variant.operation.kind ==(an_expr_operator_kind)eok_comma) {
-    /* Check that the second operand of the comma expression is the value
+  if (struct_expr->kind == (an_expr_node_kind)enk_variable) {
+    /* The field is being selected from a simple variable (IL lowering
+       generates some cases like this for pointer-to-member calls). */
+    optimizable = TRUE;
+  } else if (struct_expr->kind == (an_expr_node_kind)enk_operation &&
+             struct_expr->variant.operation.kind ==
+                                            (an_expr_operator_kind)eok_comma) {
+    /* The first operand is a comma expression. */
+    /* Check for a second operand of the comma expression that is the value
        of a variable. */
     comma_operand_2 = struct_expr->variant.operation.operands->next;
     if (comma_operand_2->kind == (an_expr_node_kind)enk_variable) {
       optimizable = TRUE;
+      *comma_case = TRUE;
     }  /* if */
   }  /* if */
   return optimizable;
@@ -2589,11 +2599,13 @@ ANSI C), copy the struct to a temp and select the field from the temp.
 */
 {
   an_expr_node_ptr struct_expr, comma_operand_1, comma_operand_2;
+  a_boolean        comma_case;
 
   /* The overall code is
        (_T123456 = expr, _T123456.field)
      The temporary has been generated on a pre-scan of this code.
-     If the struct expression already looks like
+     If the struct expression is just a variable, the field selection is added
+     directly to the variable.  If the struct expression looks like
        (expr2, variable)
      (which happens, for example, when a temporary is introduced to hold the
      return value of a function returning a struct), the transformation is
@@ -2602,14 +2614,20 @@ ANSI C), copy the struct to a temp and select the field from the temp.
   */
   struct_expr = expr->variant.operation.operands;
   (void)fprintf(f_C_output, "(");
-  if (optimizable_rvalue_selection(expr)) {
-    /* This is the optimizable case.  Add the field selection to the existing
+  if (optimizable_rvalue_selection(expr, &comma_case)) {
+    /* This is an optimizable case.  Add the field selection to the existing
        reference to a struct/union variable. */
-    comma_operand_1 = struct_expr->variant.operation.operands;
-    comma_operand_2 = comma_operand_1->next;
-    dump_expression(comma_operand_1, /*need_parens=*/TRUE);
-    (void)fprintf(f_C_output, ", ");
-    dump_expression(comma_operand_2, /*need_parens=*/TRUE);
+    if (comma_case) {
+      /* (expr2, variable).field --> (expr2, variable.field) */
+      comma_operand_1 = struct_expr->variant.operation.operands;
+      comma_operand_2 = comma_operand_1->next;
+      dump_expression(comma_operand_1, /*need_parens=*/TRUE);
+      (void)fprintf(f_C_output, ", ");
+      dump_expression(comma_operand_2, /*need_parens=*/TRUE);
+    } else {
+      /* (variable).field -> variable.field, a normal C case. */
+      dump_expression(struct_expr, /*need_parens=*/FALSE);
+    }  /* if */
   } else {
     /* Normal non-optimizable case.  Assign the struct/union value to
        a temporary and select from the temporary. */
@@ -2617,6 +2635,7 @@ ANSI C), copy the struct to a temp and select the field from the temp.
     dump_expression(struct_expr, /*need_parens=*/TRUE);
     (void)fprintf(f_C_output, ", %s", temp_name((char *)expr));
   }  /* if */
+  /* Add the field selection. */
   (void)fprintf(f_C_output, ".");
   dump_field_from_second_operand(expr);
   (void)fprintf(f_C_output, ")");
@@ -7505,7 +7524,8 @@ its subtree.
           op == (an_expr_operator_kind)eok_value_bit_field) {
         /* Selection of a field from an rvalue; need a temp for the
            struct/union. */
-        if (optimizable_rvalue_selection(node)) {
+        a_boolean comma_case;
+        if (optimizable_rvalue_selection(node, &comma_case)) {
           /* The transformation can optimized and does not need the temp.
              See dump_rvalue_selection. */
         } else {
