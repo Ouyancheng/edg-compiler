@@ -111,10 +111,33 @@ Do any processing that is required at the end of a translation unit
 }  /* translation_unit_wrapup */
 
 
+static void secondary_trans_unit_file_scope_il_wrapup(void)
+/*
+Do any processing required to complete the file scope IL of a secondary
+translation unit.  This is done when all processing (including any
+instantiations) has been completed in the secondary translation unit.
+*/
+{
+  a_scope_ptr	il_scope;
+
+  il_scope = curr_translation_unit->primary_scope;
+  /* Reactivate the file scope. */
+  push_file_scope(/*is_reactivation=*/TRUE);
+  /* Do the wrapup_scope processing on file and namespace scopes. */
+  wrapup_scope(il_scope, (a_scope_kind)sck_file,
+               &curr_translation_unit->file_scope_pointers_block,
+               /*is_namespace_wrapup=*/TRUE);
+  wrapup_namespace_scopes(il_scope);
+  /* Pop the file scope. */
+  pop_scope();
+  check_for_done_with_memory_region(file_scope_region_number);
+}  /* secondary_trans_unit_file_scope_il_wrapup */
+
+
 static void file_scope_il_wrapup(void)
 /*
 Do the processing required to complete the file scope IL.  This is done
-after any entries from secondary translation units have been moved to
+after any entries from secondary translation units have been copied to
 the primary translation unit IL.
 */
 {
@@ -219,6 +242,26 @@ the primary translation unit IL.
 }  /* file_scope_il_wrapup */
 
 
+static void wrap_up_file_scopes(void)
+/*
+Complete the file scope of each of the translation units.
+*/
+{
+  a_translation_unit_ptr	tup;
+
+  /* Process any secondary translation units. */
+  tup = translation_units->next;
+  for (; tup != NULL; tup = tup->next) {
+    switch_translation_unit(tup);
+    secondary_trans_unit_file_scope_il_wrapup();
+  }  /* for */
+  /* Switch back to the primary translation unit. */
+  switch_translation_unit(translation_units);
+  /* Process the primary translation unit. */
+  file_scope_il_wrapup();
+}  /* wrap_up_file_scopes */
+
+
 void fe_wrapup(void)
 /*
 Do any processing required at the end of execution of the front end,
@@ -230,7 +273,6 @@ and before the back end (if any) is executed.
 
   /* Switch back to the primary translation unit. */
   switch_translation_unit(translation_units);
-
   /* Make sure that we have switched back to processing the primary
      translation unit. */
   check_assertion_str2(is_primary_translation_unit,
@@ -253,7 +295,7 @@ and before the back end (if any) is executed.
   }  /* if */
 
   /* Lower the file scope, remove unneeded entities, etc. */
-  file_scope_il_wrapup();
+  wrap_up_file_scopes();
 
 #if CHECKING
   /* Ensure that unexpected situations did not occur without at least one

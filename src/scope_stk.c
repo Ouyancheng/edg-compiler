@@ -3838,7 +3838,8 @@ unit.
          be treated as semivisible types. */
       do_nested_class_anachronism_processing(pointers_block->symbols);
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-    } else if (kind == (a_scope_kind)sck_file && cfront_2_1_mode) {
+    } else if (kind == (a_scope_kind)sck_file && cfront_2_1_mode &&
+               is_namespace_wrapup) {
       /* See if any of the file scope symbols conflict with semivisible
          nested types. */
       file_scope_transitional_nested_type_processing(pointers_block->symbols);
