@@ -8727,12 +8727,11 @@ the insertion.
       (*insert_pointer)->next = type;
     }  /* if */
     *insert_pointer = type;
-    if (type->referenced_by_namespace_placeholder_typeref &&
-        promotion_scope->kind != (a_scope_kind)sck_namespace) {
+    if (type->referenced_by_namespace_placeholder_typeref) {
       /* This type has an associated namespace placeholder typeref.  However,
-         because of class instantiation placeholder typerefs, the type has
-         ended up in a non-namespace scope.  Logically delete the namespace
-         placeholder typeref by clearing the flag in this type. */
+         we have a position for the type because it gets promoted along with
+         the enclosing class, so logically delete the namespace placeholder
+         typeref by clearing the flag in this type. */
       type->referenced_by_namespace_placeholder_typeref = FALSE;
     }  /* if */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
@@ -9499,8 +9498,8 @@ have been promoted out of those classes.
         /* The referenced flag has been turned off, which is a signal that
            the placeholder is not needed any more, because the associated
            type was moved (owing to a class instantiation placeholder) to
-           a class, and from there it was promoted out into a non-namespace
-           scope. */
+           a class, and from there it was promoted out of the class at a
+           position related to the class's promoted position. */
       } else {
         check_assertion(!namespace_type->source_corresp.is_class_member);
         nsp = namespace_type->source_corresp.parent.namespace_ptr;
