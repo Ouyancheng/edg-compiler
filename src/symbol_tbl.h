@@ -1277,6 +1277,11 @@ typedef struct a_template_symbol_supplement {
 			   templates with no partial specializations or for
 			   templates that are already partial
 			   specializations. */
+      a_symbol_ptr
+		primary_template_sym;
+			/* For partial specialization, points back to the
+			   primary template of which this is a partial
+			   specialization. */
       a_bit_field
 		prototype_instantiation_complete:1;
 			/* TRUE when the prototype instantiation of the

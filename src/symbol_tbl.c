@@ -784,6 +784,15 @@ do_variable:
           col = 0;
         }  /* for */
         if (sym->kind == (a_symbol_kind)sk_class_template) {
+          /* Display any partial specializations. */
+          inst_sym = tssp->variant.class_template.partial_specializations;
+          while (inst_sym != NULL) {
+            fprintf(f_debug, "%*spartial specialization:\n", indentation, "");
+            fprintf(f_debug, "%*s", indentation + 2, "");
+            db_symbol(inst_sym, "", indentation + 4);
+            inst_sym = inst_sym->next;
+          }  /* while */
+          /* Display instantiations based on this template. */
           inst_sym = tssp->variant.class_template.instantiations;
           while (inst_sym != NULL) {
             fprintf(f_debug, "%*sinstantiation:\n", indentation, "");
@@ -1574,6 +1583,7 @@ and return a pointer to it.
       tssp->variant.class_template.type_kind = (a_type_kind)tk_error;
       tssp->variant.class_template.prototype_instantiation = NULL;
       tssp->variant.class_template.partial_specializations = NULL;
+      tssp->variant.class_template.primary_template_sym = NULL;
       tssp->variant.class_template.prototype_instantiation_complete = FALSE;
       tssp->variant.class_template.access =
                                          (an_access_specifier)as_inaccessible;
