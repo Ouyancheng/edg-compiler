@@ -1,10 +1,32 @@
 Version 2.29
 
+3/31/95  cp_gen_be handling of default argument for parameter passed via
+         copy constructor
+
+The following case, involving a default argument expression for a parameter
+passed via a copy constructor, gave an internal error in the C++-generating
+back end.  Now fixed.
+
+  struct A {
+    A(const A&);
+    A(int);
+  };
+  void f(A p = 0);
+
 3/29/95  Support for __unaligned (Microsoft extension)
 
 When MICROSOFT_EXTENSIONS_ALLOWED is TRUE __unaligned is recognized as a
 keyword and accepted as a type qualifier.  There is no special handling
 -- it's just passed through to the back end as part of the qualifier set.
+
+3/28/95  Microsoft __try/__finally, __try/__except, and __leave
+
+When MICROSOFT_EXTENSIONS_ALLOWED is TRUE, The Microsoft Structured
+Exception Handling statements are recognized.  They have the form
+
+   __try { statements } __finally { statements }
+   __try { statements } __except(expr) { statements }
+   __leave;
 
 3/28/95  Generating a preprocessed source file with implicit inclusion
 
