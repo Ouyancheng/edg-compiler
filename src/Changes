@@ -3,7 +3,7 @@ Version 2.35
 1/13/97 Internal error or abort on invalid member template constructor
 
 An internal error or abort could result when an invalid member template
-constructor was used.
+constructor was used.  This has been fixed.
 
   struct A {
     template <class T> A (T) x;
