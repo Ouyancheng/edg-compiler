@@ -1846,7 +1846,12 @@ base class casts and virtual function calls.
         /* Field selection (normal or bit-field).  The field itself is a
            complete object (recall that "complete" means "not a base class"
            rather than "not part of another object"). */
-        complete_object_type = first_operand->next->variant.field->type;
+        /* MSVC++ 5.0 doesn't do this optimization.  It allows one to
+           do a placement new of a derived class type on a subobject
+           and get the derived class behavior. */
+        if (!microsoft_mode) {
+          complete_object_type = first_operand->next->variant.field->type;
+        }  /* if */
       } else if (op == (an_expr_operator_kind)eok_base_class_cast) {
         /* Cast to a base class.  Do a recursive call on the first operand
            to find the complete object. */

@@ -1,5 +1,18 @@
 Version 2.39
 
+6/3/98    Microsoft compatibility: subobject types can be dynamic
+
+MSVC++ allows a placement new call on a member of a class to change the
+type of the subobject to a derived class.  (This is not allowed by the
+standard.)  When calls are made to virtual functions of that subobject,
+they call the functions of the derived class.  The EDG front end did
+not have the same behavior, because it has an optimization to do
+nonvirtual calls to functions when the dynamic type of the object is
+known, and a member of a class has a dynamic type the same as its
+static type.  The part of that optimization that deals with field
+selection is now disabled in Microsoft mode, to produce the same
+behavior as MSVC++.
+
 5/31/98   IL lowering of non-placement new that uses operator new with
           default argument
 
