@@ -1,5 +1,10 @@
 Version 3.2
 
+3/6/03   __cxa_vec_ctor no longer returns a value
+
+The version of __cxa_vec_ctor returned the pointer to the array being
+constructed, in violation of the IA-64 ABI.  This has been fixed.
+
 2/20/03  Demangling of non-nested type names with template arguments,
          Cfront-like ABI
 
