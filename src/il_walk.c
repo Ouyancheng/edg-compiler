@@ -1733,10 +1733,9 @@ running them through walk_remap_func.
 
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
-/* If necessary, build a routine to walk entries in isolation (i.e.,
-   not as part of a tree walk).  This is built from the walk_entry.h
-   source using special macro settings. */
-#if REMAP_ONLY_ROUTINES_NEEDED
+/* Build a routine to walk entries in isolation (i.e., not as part
+   of a tree walk).  This is built from the walk_entry.h source
+   using special macro settings. */
 #undef DO_SUBTREE_WALK
 #define DO_SUBTREE_WALK FALSE
 #undef NEEDED_FLAG_WALK
@@ -1751,7 +1750,6 @@ running them through walk_remap_func.
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
 #define UNDEF_WALK_ENTRY_MACROS_AT_END
 #include "walk_entry.h"
-#endif /* REMAP_ONLY_ROUTINES_NEEDED */
 
 #undef DO_SUBTREE_WALK
 #undef NEEDED_FLAG_WALK
