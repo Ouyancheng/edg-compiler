@@ -300,6 +300,16 @@ address taken, and if not issue an error.
       /* Turn the reference into an error reference so that the error will
          be issued only once. */
       rep->kind = (rep->kind & SRK_ALL_REFERENCES) | SRK_ERROR;
+      rep->already_recorded = FALSE;
+    } else if (var->storage_class == (a_storage_class)sc_register ||
+               var->is_parameter || var->is_handler_param) {
+      /* On register variables and parameters, taking the address of
+         the variable may mean the variable needs to be forced to
+         memory, so the address-taken reference should be recorded now
+         (it matters even if it would later get changed to some other
+         kind of reference).  This ensures that the address_taken
+         flag is set. */
+      record_reference(rep);
     }  /* if */
   }  /* if */
 }  /* f_check_address_taken_ref */
@@ -346,6 +356,7 @@ field.
       /* Set the new reference kind. Turn off all old bits, then turn on
          new bits.  SRK_REFERENCE remains set in all cases. */
       rep->kind = (old_kind & ~SRK_ALL_REFERENCES) | new_kind;
+      rep->already_recorded = FALSE;
       /* If the reference kinds include address-taken, check for errors
          related to that. */
       check_address_taken_ref(rep);
@@ -412,6 +423,7 @@ The list is linked by the next_operand_ref field.
       if ((rep->kind & SRK_ALL_REFERENCES) == 0) {
         /* Yes.  Change the reference kind. */
         rep->kind |= new_kind;
+        rep->already_recorded = FALSE;
         changed = TRUE;
       }  /* if */
     } else if ((rep->kind & old_kind) != 0) {
@@ -419,6 +431,7 @@ The list is linked by the next_operand_ref field.
          Turn off the old bits, then turn on the new bits.
          SRK_REFERENCE will stay set. */
       rep->kind = (rep->kind & ~SRK_ALL_REFERENCES) | new_kind;
+      rep->already_recorded = FALSE;
       changed = TRUE;
     }  /* if */
     /* If the reference kinds include address-taken, check for errors
