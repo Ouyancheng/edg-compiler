@@ -6602,11 +6602,15 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           fputs("block", f_debug);
           break;
         case iek_type:
-          if (is_function_type((a_type_ptr)sseocp->entity.ptr)) {
-            fputs("func-prototype", f_debug);
-          } else {
-            fputc('"', f_debug);
-            db_type_name((a_type_ptr)sseocp->entity.ptr);
+          fputc('"', f_debug);
+          db_type_name((a_type_ptr)sseocp->entity.ptr);
+          fputc('"', f_debug);
+          break;
+        case iek_routine:
+          fputs("func-prototype", f_debug);
+          if (sseocp->entity.ptr != NULL) {
+            fputs(" for \"", f_debug);
+            db_name(&((a_routine_ptr)sseocp->entity.ptr)->source_corresp);
             fputc('"', f_debug);
           }  /* if */
           break;
@@ -7362,7 +7366,7 @@ sequence list.
       depth_template_declaration_scope == NO_SCOPE_DEPTH) {
     if (kind == iek_type &&
         curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
-      /* Local type or function declaration. */
+      /* Local type. */
       check_assertion(in_file_scope(ptr));
       force_alloc_in_filescope = TRUE;
       switch_to_file_scope_region(&region_to_switch_back_to);
@@ -7382,12 +7386,6 @@ sequence list.
     add_to_source_sequence_list(ssep);
     if (force_alloc_in_filescope) {
       switch_back_to_original_region(region_to_switch_back_to);
-    }  /* if */
-    if (kind == iek_type &&
-        is_function_type((a_type_ptr)ptr)) {
-      /* Record the function type as an orphan, in case it's not pointed to
-         anywhere else. */
-      add_orphaned_file_scope_il_entry(ptr, (an_il_entry_kind)kind);
     }  /* if */
   }  /* if */
 }  /* add_end_of_construct_source_sequence_entry */
