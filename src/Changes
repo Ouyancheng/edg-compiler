@@ -1,5 +1,11 @@
 Version 2.09
 
+9/14/92  Name mangling on extern "C" functions with C++ names
+
+IL lowering now does partial name mangling on C++ special functions
+(operator functions, etc.) that have extern "C" linkage.  Without
+this mangling, the names are not valid C names.
+
 9/14/92  Added subsequence checking in overload resolution
 
 Overload resolution now takes into account conversion sequences that
