@@ -3112,6 +3112,11 @@ create_final_list:
                                                 &candidates->template_arg_list,
                                                 source_pos);
     candidates->is_function_template = FALSE;
+    if (candidates->is_user_conversion) {
+      candidates->conversion.routine =
+                              candidates->function_symbol->variant.routine.ptr;
+      candidates->conversion.routine_symbol = candidates->function_symbol;
+    } /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
@@ -4315,8 +4320,9 @@ is only used in C++ mode.
                                                       candidate_functions);
           candidate = *candidate_functions;
           candidate->is_user_conversion = TRUE;
-          candidate->conversion.routine = conversion_routine;
-          candidate->conversion.routine_symbol = conversion_symbol;
+          /* candidate->conversion.routine and
+             candidate->conversion.routine_symbol are not set now.
+             They are set later if the function is instantiated. */
           candidate->conversion.result_is_an_lvalue = result_is_an_lvalue;
         }  /* if */
       }  /* if */
