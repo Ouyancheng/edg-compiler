@@ -5545,8 +5545,8 @@ only.
 static void add_to_based_type_fixup_list(a_type_ptr              base_type,
                                          a_translation_unit_ptr  trans_unit)
 /*
-Look for an entry on the based-type fixup list that points to base_type.
-If none is found, create one and add it to the list.
+Look for an entry on the based-type fixup list (of the given translation unit)
+that points to base_type.  If none is found, create one and add it to the list.
 */
 {
   a_based_type_fixup_ptr  btfp, prev_btfp;
