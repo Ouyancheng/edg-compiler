@@ -813,6 +813,8 @@ entry is returned in etsp_found.
     }  /* if */
     if (match) {
       /* We already found a match -- doesn't check further. */
+    } else if (ets_is_ptr != is_ptr) {
+      /* One is a pointer and the other is not.  This can't be a match. */
     } else if (!qualifiers_acceptable(etsp->flags, flags)) {
       /* A pointer is being thrown to a catch without appropriate qualifiers.
          This is not a match.  This check only tests the lowest bottom level
@@ -833,7 +835,8 @@ entry is returned in etsp_found.
          being thrown is some kind of pointer.  This is a match. */
       match = TRUE;
 #endif /* !ABI_CHANGES_FOR_RTTI */
-    } else if ((!is_ptr || is_single_level_pointer(flags)) &&
+    } else if ((!is_ptr ||
+               (is_single_ptr && ets_is_single_ptr)) &&
 	       type_info->base_class_entries != NULL &&
 	       __derived_to_base_conversion(object_ptr, &new_ptr, type_info,
 					    etsp->type_info,
