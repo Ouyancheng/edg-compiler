@@ -1,5 +1,16 @@
 Version 2.46
 
+8/2/01   C++-generating back end: inline specifier on friend declarations
+
+The C++-generating back end no longer emits the inline keyword on friend
+function declarations if the function is a class member or if it has explicit
+template arguments.  For example:
+
+  struct A { inline void f() {} };
+  struct B {
+    friend void A::f();  // Used to be rendered with "inline"
+  };
+
 8/2/01   Sun and Microsoft compatibility: abort when redeclaring a function
          made visible with a using-declaration
 
