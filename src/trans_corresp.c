@@ -1011,6 +1011,10 @@ is in fact valid.
 {
   a_boolean     match;
   a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+  a_type_ptr    corresp_type = (a_type_ptr)canonical_il_entry_of(type);
+  a_source_correspondence_ptr
+                scp = &type->source_corresp,
+                corresp_scp = &corresp_type->source_corresp;
 
   if (!has_correspondence(type)) {
     match = TRUE;
@@ -1024,25 +1028,8 @@ is in fact valid.
                 type->variant.typeref.is_placeholder_for_nested_class_def));
     set_no_trans_unit_corresp(type);
   } else {
-    a_type_ptr  corresp_type = (a_type_ptr)canonical_il_entry_of(type);
-    a_source_correspondence_ptr
-                scp = &type->source_corresp,
-                corresp_scp = &corresp_type->source_corresp;
     if (!verify_name_correspondence(type)) {
       match = FALSE;
-    } else if (type->kind != corresp_type->kind ||
-               type->size != corresp_type->size ||
-               type->alignment != corresp_type->alignment ||
-#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-               type->use_cfront_transitional_nested_type_name_mangling !=
-                      corresp_type
-                         ->use_cfront_transitional_nested_type_name_mangling ||
-#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-               type->is_builtin_va_list != corresp_type->is_builtin_va_list ||
-               scp->access != corresp_scp->access ||
-               scp->name_linkage != corresp_scp->name_linkage) {
-      match = FALSE;
-      process_bad_trans_unit_corresp(type);
     } else if (is_immediate_class_type(type)) {
       /* corresp_type is also a class type since the type kinds are
          identical. */
@@ -1054,6 +1041,20 @@ is in fact valid.
       match = identical_types(type, corresp_type);
     }  /* if */
   }  /* if */
+  if (match &&
+      (type->kind != corresp_type->kind ||
+       type->size != corresp_type->size ||
+       type->alignment != corresp_type->alignment ||
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+       type->use_cfront_transitional_nested_type_name_mangling !=
+             corresp_type->use_cfront_transitional_nested_type_name_mangling ||
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+       type->is_builtin_va_list != corresp_type->is_builtin_va_list ||
+       scp->access != corresp_scp->access ||
+       scp->name_linkage != corresp_scp->name_linkage)) {
+    match = FALSE;
+    process_bad_trans_unit_corresp(type);
+  }
   return match;
 }  /* verify_type_correspondence */
 
