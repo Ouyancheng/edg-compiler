@@ -79,7 +79,8 @@ it is just an identifier (or a comma-list of identifiers).
   (curr_token == tok_overload && f_check_for_overload_anachronism())
 
 extern a_boolean f_is_decl_not_expr(a_boolean  abstract_declarator_allowed,
-                                    a_boolean  real_declarator_allowed);
+                                    a_boolean  real_declarator_allowed,
+                                    a_boolean  single_type_required);
 
 /*
 Macro called in various contexts to distinguish expressions from declarations. 
@@ -87,10 +88,11 @@ In C this is straightforward -- is_decl_start() provides all the information
 needed.  But added complexity of disambiguation in C++ requires calling a
 routine to do lookahead, etc.
 */
-#define is_decl_not_expr(abstract_decl_allowed, real_decl_allowed)    \
+#define is_decl_not_expr(abstract_decl_allowed, real_decl_allowed, single_type_required) \
   ((C_dialect == C_dialect_cplusplus) ?                               \
     (is_decl_start(/*expr_context=*/TRUE, real_decl_allowed) ?        \
-      f_is_decl_not_expr(abstract_decl_allowed, real_decl_allowed) :  \
+      f_is_decl_not_expr(abstract_decl_allowed, real_decl_allowed,    \
+                         single_type_required) :                      \
       curr_token == tok_overload) :                                   \
     is_decl_start(/*expr_context=*/TRUE, real_decl_allowed))
 

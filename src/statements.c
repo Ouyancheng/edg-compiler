@@ -2058,7 +2058,8 @@ Scan the initializing expression or, in C++, declaration of a for statement.
   sssep->for_init = TRUE;
   if (C_dialect == C_dialect_cplusplus &&
       is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
-                       /*real_declarator_allowed=*/TRUE)) {
+                       /*real_declarator_allowed=*/TRUE,
+                       /*single_type_required=*/FALSE)) {
     /* Scan a declaration (C++ only). */
     decl_statement();
     /* Immediately deactivate the decl-statement. */
@@ -3320,7 +3321,8 @@ expr_statement:
         }  /* if */
       } else if (C_dialect == C_dialect_cplusplus &&
                  is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
-                                  /*real_declarator_allowed=*/TRUE)) {
+                                  /*real_declarator_allowed=*/TRUE,
+                                  /*single_type_required=*/FALSE)) {
         /* Scan a declaration (C++ only). */
         is_declaration = TRUE;
         decl_statement();

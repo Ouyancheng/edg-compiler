@@ -174,7 +174,8 @@ is not done.
          because we may actually be scanning something that is not a type
          (e.g., a declarator). */
       assoc_symbol = coalesce_and_lookup_generalized_identifier
-                         (GID_DTOR_RECOGNIZED | options,
+                         (GID_DTOR_RECOGNIZED |
+                          GID_TEMPLATE_ARGS_OPTIONAL | options,
                           ilm_tentative_type, &err);
       if (assoc_symbol != NULL && !is_type_symbol(assoc_symbol)) {
         /* Symbol was found, but it is not a type name symbol.  Return NULL. */
@@ -299,35 +300,275 @@ optimization is suppressed.
 }  /* is_decl_start */
 
 
-/* Forward declaration because of indirect recursion involving
-   prescan_declarator and prescan_declaration. */
+static void cache_tokens_until(a_token_cache	*token_cache_ptr,
+			       a_token_kind	stop_token)
+/*
+Wrapper for cache_token_stream that saves and restores the stop tokens
+array.  Cache tokens until the specified token is found.
+*/
+{
+  a_stop_token_array  save_stop_token_array;
+  /* Save the current stop token state, and reinitialize it. */
+  copy_stop_tokens(stop_token_array, save_stop_token_array);
+  clear_stop_tokens();
+  add_stop_token(stop_token);
+  cache_token_stream(token_cache_ptr);
+  remove_stop_token(stop_token);
+  /* Restore the stop token state. */
+  copy_stop_tokens(save_stop_token_array, stop_token_array);
+}  /* cache_tokens_until */
+
+
+static void prescan_default_argument(a_token_cache	*token_cache_ptr)
+/*
+Cache the tokens that comprise a default argument expression.
+*/
+{
+  a_stop_token_array        save_stop_token_array;
+
+  /* Save the current stop token state, and reinitialize it. */
+  copy_stop_tokens(stop_token_array, save_stop_token_array);
+  clear_stop_tokens();
+  /* In the normal case we will scan an expression and encounter a comma
+     or right parenthesis.  If both of these are omitted, terminate the token
+     stream when some likely delimiter is reached. */
+  add_stop_token(tok_comma);
+  add_stop_token(tok_rparen);
+  add_stop_token(tok_semicolon);
+  add_stop_token(tok_lbrace);
+  add_stop_token(tok_rbrace);
+  cache_token_stream(token_cache_ptr);
+  /* Note that the terminating token (comma, rparen, etc.) is not added to
+     the cache. */
+  /* Restore the original stop token state. */
+  copy_stop_tokens(save_stop_token_array, stop_token_array);
+}  /* prescan_default_argument */
+
+
+static void get_token_and_coalesce_if_identifier(void)
+/*
+Get a token and, if it is a tok_identifier, call
+is_generalized_identifier_start to coalesce it in case it is the
+beginning of something like a qualified name.  This is used by the
+disambiguation routines to ensure that any identifiers that are
+scanned are coalesced prior to analysis.
+*/
+{
+  (void)get_token();
+  (void)is_generalized_identifier_start(GID_NO_OPTIONS |
+                                        GID_DEFER_ACCESS_ERRORS |
+                                        GID_TEMPLATE_ARGS_OPTIONAL);
+}  /* get_token_and_coalesce_if_identifier */
+
+
+static void prescan_decl_specifiers(a_token_cache  *token_cache_ptr,
+                                    a_boolean      *may_be_decl)
+/*
+Scan and cache the tokens that comprise a list of decl_specifiers.
+*/
+{
+  a_boolean	is_decl_specifier_token = TRUE;
+  a_boolean	any_decl_specifiers = FALSE;
+  a_boolean	type_specifier_seen = FALSE;
+  for (;;) {
+    switch (curr_token) {
+      /* Storage class specifiers. */
+      case tok_auto:
+      case tok_register:
+      case tok_static:
+      case tok_extern:
+#if 0
+      /* Mutable keyword is not yet implemented. */
+      case tok_mutable:
+#endif /* 0 */
+      /* Function specifiers. */
+      case tok_inline:
+      case tok_virtual:
+      /* Friend and typedef. */
+      case tok_friend:
+      case tok_typedef:
+        break;
+      /* Type specifier - identifier that may be a simple type name.
+         If we haven't yet seen a type specifier, then this identifier,
+         if it is a type, is the type specifier.  Otherwise, this is
+         probably the start of the declarator, so we stop scanning
+         decl-specifiers. */
+      case tok_identifier:
+        if (!type_specifier_seen && curr_id_is_type_name()) {
+          type_specifier_seen = TRUE;
+        } else {
+          is_decl_specifier_token = FALSE;
+        }  /* if */
+        /* Clear the locator field so that the lookup done by
+	   curr_id_is_type_name will not be used when the statement
+           is actually parsed later. */
+        locator_for_curr_id.specific_symbol = NULL;
+        break;
+      /* Type specifier - other simple type name tokens. */
+      case tok_char:
+#if 0
+      /* wchar_t and bool are not yet implemented. */
+      case tok_wchar_t:
+      case tok_bool:
+#endif /* 0 */
+      case tok_short:
+      case tok_int:
+      case tok_long:
+      case tok_signed:
+      case tok_unsigned:
+      case tok_float:
+      case tok_double:
+      case tok_void:
+        type_specifier_seen = TRUE;
+        break;
+      /* Type specifier - cv qualifier. */
+      case tok_const:
+      case tok_volatile:
+        break;
+      case tok_class:
+      case tok_struct:
+      case tok_union:
+      case tok_enum:
+        /* This could be an elaborated type specifier or the start of
+           a enum or class specifier.  The prescanning routines can't
+           handle enum and class specifiers, but there should be no need
+           for them to do so because types can't be defined in parameter
+           lists, and other contexts that are involved in disambiguation.
+           We assume this is an elaborated type specifier */
+        cache_curr_token(token_cache_ptr);
+        (void)get_token_and_coalesce_if_identifier();
+        if (type_specifier_seen) {
+          /* We've already seen a type specifier, this is probably an
+             error. */
+          is_decl_specifier_token = FALSE;
+        } else {
+          /* The token after the class/struct/union/enum keyword must be
+             an identifier. */
+          if (curr_token != tok_identifier) {
+            is_decl_specifier_token = FALSE;
+          } else {
+            type_specifier_seen = TRUE;
+          }  /* if */
+        }  /* if */
+        break;
+      case tok_ellipsis:
+        /* An ellipsis is not really a decl-specifier, but we allow it
+           here because the prescanning routines are sometimes used to
+           scan what may be a function parameter which could look like
+           "int ...". */
+        break;
+      default:
+        is_decl_specifier_token = FALSE;
+        break;
+    }  /* switch */
+    /* If this token is not part of a decl-specifier then exit the loop. */
+    if (!is_decl_specifier_token) break;
+    any_decl_specifiers = TRUE;
+    /* Cache this token and get the next one. */
+    cache_curr_token(token_cache_ptr);
+    (void)get_token_and_coalesce_if_identifier();
+  }  /* for */
+  if (!any_decl_specifiers) {
+    /* A declaration must have at least one decl-specifier. */
+    *may_be_decl = FALSE;
+  }  /* if */
+  return;
+}  /* prescan_decl_specifiers */
+
+
+/* Forward declaration. */
 static void prescan_declaration(a_token_cache  *token_cache_ptr,
                                 a_boolean      abstract_declarator_allowed,
                                 a_boolean      real_declarator_allowed,
-                                a_boolean      *may_be_decl,
-                                a_boolean      *may_be_expr);
+				a_boolean      single_declaration_required,
+                                a_boolean      *may_be_decl);
+
+
+static void prescan_function_declarator
+                              (a_token_cache  *token_cache_ptr,
+                               a_boolean      *may_be_decl)
+/*
+Scan and cache the tokens that comprise a function declarator.  This routine
+is used by the disambiguation routines.  If a construct that cannot be
+part of a function declarator is found, may_be_decl is set to FALSE.
+*/
+{
+  /* Scan the function argument list. */
+  while (curr_token != tok_rparen) {
+    if (curr_token == tok_ellipsis) {
+      /* Advance past the ellipsis. */
+      cache_curr_token(token_cache_ptr);
+      (void)get_token_and_coalesce_if_identifier();
+    } else {
+      /* A parameter declaration.  Scan the declaration. */
+      prescan_declaration(token_cache_ptr,
+                          /*abstract_declarator_allowed=*/TRUE,
+                          /*real_declarator_allowed=*/TRUE,
+                          /*single_declaration_required=*/FALSE,
+                          may_be_decl);
+      if (!*may_be_decl) goto done;
+    }  /* if */
+    if (curr_token == tok_comma) {
+      cache_curr_token(token_cache_ptr);
+      (void)get_token_and_coalesce_if_identifier();
+    } else if (curr_token != tok_rparen && curr_token != tok_ellipsis) {
+      /* After scanning a parameter declaration we should be at a comma,
+         the closing right parenthesis, or an ellipsis that follows an
+         argument without an intervening comma.  If not, we conclude that this
+         isn't really a declaration. */
+     *may_be_decl = FALSE;
+     goto done;
+    }  /* if */
+  }  /* while */
+  /* Cache and bypass the right parenthesis. */
+  cache_curr_token(token_cache_ptr);
+  (void)get_token_and_coalesce_if_identifier();
+  /* Skip past any cv-qualifiers associated with this function declarator. */
+  while (curr_token == tok_const || curr_token == tok_volatile) {
+    cache_curr_token(token_cache_ptr);
+    (void)get_token_and_coalesce_if_identifier();
+  }  /* while */
+  /* Cache the tokens associated with the optional throw specification.
+     Note that we don't try to disambiguate a throw expression from a
+     throw declaration. */
+  if (curr_token == tok_throw) {
+    /* Advance past the throw keyword. */
+    cache_curr_token(token_cache_ptr);
+    (void)get_token_and_coalesce_if_identifier();
+    if (curr_token != tok_lparen) {
+      /* A throw specification must follow the throw keyword in a function
+         declarator. */
+      *may_be_decl = FALSE;
+      goto done;
+    }  /* if */
+    /* Advance past the left parenthesis. */
+    cache_curr_token(token_cache_ptr);
+    (void)get_token_and_coalesce_if_identifier();
+    cache_tokens_until(token_cache_ptr, tok_rparen);
+    if (curr_token == tok_rparen) {
+      /* Cache the right parenthesis. */
+      cache_curr_token(token_cache_ptr);
+      (void)get_token_and_coalesce_if_identifier();
+    }  /* if */
+  }  /* if */
+done:
+  return;
+}  /* prescan_function_declarator */
+
 
 static void prescan_declarator(a_token_cache  *token_cache_ptr,
                                a_boolean      abstract_declarator_allowed,
                                a_boolean      real_declarator_allowed,
                                a_boolean      *may_be_decl,
-                               a_boolean      *may_be_expr)
+			       a_boolean      paren_initializer_allowed)
 /*
-We are in the midst of scanning what is assumed to be a declaration -- at
-the point where, if it is a declaration, the declarator should begin.  Both
-*may_be_decl and *may_be_expr will be TRUE upon entry, signifying that the
-ambiguity is not yet resolved.  We scan the tokens looking for evidence
-that it is in fact a declarator, and can be nothing else, (in which case
-*may_be_expr is set to FALSE) or cannot possibly be a declarator (in which
-it is *may_be_decl that is set to FALSE).  Whichever way the ambiguity is
-resolved, scanning is stopped immediately.  If the ambiguity is not resolved
-we keep scanning till the end of the declarator and return leaving both
-*may_be_decl and *may_be_expr TRUE.
+Scan and cache the tokens that comprise a declarator.  This routine
+is used by the disambiguation routines.  If a construct that cannot be
+part of a declarator is found, may_be_decl is set to FALSE.
 */
 {
-  a_boolean  pointer_operator_seen = FALSE;
-
-  db_enter(4, "prescan_declarator");
+  a_boolean       paren_initializer_seen = FALSE;
+  a_boolean	  pointer_operator_seen = FALSE;
   /* Look for one or more instances of a sequence of tokens corresponding
      to ptr-operator.  Syntax:
          * cv-qualifier-list
@@ -340,72 +581,69 @@ we keep scanning till the end of the declarator and return leaving both
       pointer_operator_seen = TRUE;
       /* Cache and bypass the "*" or "&". */
       cache_curr_token(token_cache_ptr);
-      (void)get_token();
-      if (curr_token == tok_const || curr_token == tok_volatile ||
-          curr_token == tok_rparen) {
-        /* Qualifier rules out expression.  So does an asterisk followed
-           by a right paren. */
-        *may_be_expr = FALSE;
-        goto done;
-      }  /* if */
-      /* Keep looping. */
-    } else if (is_ptr_to_member_declarator_start()) {
-      /* Pointer to member declarator rules out expression. */
-      *may_be_expr = FALSE;
-      goto done;
+      (void)get_token_and_coalesce_if_identifier();
+    } else if (curr_token == tok_const || curr_token == tok_volatile) {
+      /* Cache and bypass any cv-qualifiers. */
+      cache_curr_token(token_cache_ptr);
+      (void)get_token_and_coalesce_if_identifier();
+    } else if (curr_token == tok_ptr_to_member) {
+      /* Cache and bypass any pointer to member operators. */
+      cache_curr_token(token_cache_ptr);
+      (void)get_token_and_coalesce_if_identifier();
     } else {
       /* No more ptr-operators. */
       break;
     }  /* for */
   }  /* for */
-  /* In a declaration a "(" here would signal either a nested declarator or
-     the start of a function type's parameter declaration list. */
   if (curr_token == tok_lparen) {
-    /* Cache and bypass the "(". */
+    /* Left parenthesis indicating nested declarator.  For the abstract
+       declarator case, this might be a parenthesis indicating a function.
+       We can differentiate the two cases because in the case of a nested
+       declarator the next token must be a "*", "(", or "[", whereas in the
+       function case it is ")", "...", or a declaration specifier. */
     cache_curr_token(token_cache_ptr);
-    (void)get_token();
+    (void)get_token_and_coalesce_if_identifier();
     if (abstract_declarator_allowed) {
-      /* In an abstract declarator a ")" or type specifier following the "("
-         would indicate the presence of a param list.  But an ellipsis can
-         appear only in a declaration. */
       if (curr_token == tok_rparen ||
           is_decl_start(/*expr_context=*/FALSE,
-                        /*real_declarator_allowed=*/TRUE)) {
+                        /*real_declarator_allowed=*/TRUE) ||
+                        curr_token == tok_ellipsis) {
+        /* Function declarator rather than a nested declarator. */
         goto function_lparen;
-      } else if (curr_token == tok_ellipsis) {
-        *may_be_expr = FALSE;
-        goto done;
       }  /* if */
     }  /* if */
-    /* Determine whether the current token could be the start of a nested
-       declarator. */
+    /* Get the nested declarator. */
     prescan_declarator(token_cache_ptr, abstract_declarator_allowed,
-                       real_declarator_allowed, may_be_decl, may_be_expr);
-    /* Bail out if there was any resolution of the ambiguity. */
-    if (!*may_be_expr || !*may_be_decl) goto done;
-    if (curr_token == tok_rparen) {
-      /* Cache and bypass the ")". */
-      cache_curr_token(token_cache_ptr);
-      (void)get_token();
-    } else {
-      /* An unexpected token following what was thought to be a parenthesized
-         declarator disqualifies this as a declarator.  For instance,
-         int((a)) is a declaration but int((a+b)) is a cast. */
-      may_be_decl = FALSE;
+                       real_declarator_allowed, may_be_decl,
+                       /*paren_initializer_allowed=*/FALSE);
+    if (!*may_be_decl) goto done;
+    /* The nested declarator must be followed by a ")". */
+    if (curr_token != tok_rparen) {
+      *may_be_decl = FALSE;
       goto done;
     }  /* if */
-  } else if (curr_token == tok_lbracket) {
-    /* May be an array declarator. */
+    cache_curr_token(token_cache_ptr);
+    (void)get_token_and_coalesce_if_identifier();
   } else {
-    /* Not a nested declarator.  May be a real declarator. */
-    if (is_qualified_name_start() || curr_token == tok_operator) {
-      /* Appears to be a real declarator.  But if a real declarator is not
-         allowed in the current context, it's probably an expression. */
-      if (!real_declarator_allowed) {
-        *may_be_decl = FALSE;
-        goto done;
-      } else if (abstract_declarator_allowed && cfront_compatibility_mode &&
-                 curr_token == tok_identifier && !pointer_operator_seen) {
+    /* An identifier is expected next, but is omitted in the 
+       abstract declarator.  All tokens that could start an identifier will
+       have already been coalesced into a tok_identifier.  Destructor
+       declarators are not allowed in this context, so tildes don't need
+       to be handled. */
+    a_boolean	is_name_start;
+    /* Declarator names cannot contain global qualifiers (e.g., ::i). */
+    is_name_start = curr_token == tok_identifier &&
+                    !locator_for_curr_id.is_global_qualified_name;
+    if (!real_declarator_allowed ||
+        (abstract_declarator_allowed && !is_name_start)) {
+      /* Identifier is omitted in an abstract declarator. */
+    } else if (!is_name_start) {
+      /* Real (non-abstract) declarator.  An identifier must be found here. */
+      *may_be_decl = FALSE;
+      goto done;
+    } else {
+      if (abstract_declarator_allowed && cfront_compatibility_mode &&
+          curr_token == tok_identifier && !pointer_operator_seen) {
         /* Cfront bug.  In a context in which a parameter declaration
            must be distinguished from an argument expression, cfront seems
            always to treat "type-name ( identifier ... )" as an expression,
@@ -419,165 +657,76 @@ we keep scanning till the end of the declarator and return leaving both
            declarators are allowed.) */
         *may_be_decl = FALSE;
         goto done;
-      } else if (curr_token == tok_identifier &&
-                 locator_for_curr_id.is_global_qualified_name &&
-                 next_token() == tok_rparen) {
-        /* Looks like a cast expression -- int(::x).  Note that global
-           qualifiers are not allowed (by the syntax) to be used in
-           declarators.  Other qualifiers are allowed by the syntax but
-           are not valid in most declarations.  Only global qualifiers,
-           however, are sufficient to conclude that this cannot be a
-           declaration. */
-        *may_be_decl = FALSE;
-        goto done;
       }  /* if */
-      if (curr_token == tok_identifier) {
-        /* Cache and bypass the identifier. */
-        cache_curr_token(token_cache_ptr);
-        (void)get_token();
-      } else if (curr_token == tok_operator) {
-        /* Cache and bypass "operator". */
-        cache_curr_token(token_cache_ptr);
-        (void)get_token();
-        /* Cache and bypass the one- or two-token sequence that specifies
-           the overloaded operator. */
-        if (curr_token == tok_lparen || curr_token == tok_lbracket) {
-          cache_curr_token(token_cache_ptr);
-          (void)get_token();
-        }  /* if */
-        cache_curr_token(token_cache_ptr);
-        (void)get_token();
-        /* A left paren is required next, whether this is a declaration or a
-           call.  If it's not there, mark this as not a declaration, even
-           though it's not a legal expression, either. */
-        if (curr_token != tok_lparen) {
-          *may_be_decl = FALSE;
-          goto done;
-        }  /* if */
-      }  /* if */
-    } else if (curr_token == tok_compl) {
-      /* A "~" is always taken to specify an expression, since the syntax
-         for declaring a destructor is very restrictive. */
-      *may_be_decl = FALSE;
-      goto done;
-    } else if (curr_token == tok_rparen) {
-      if (!abstract_declarator_allowed) *may_be_decl = FALSE;
-      goto done;
-    } else {
-      /* The current token doesn't fit into the pattern for a declaration
-         (e.g., it's a constant or an operator), so it's likely to be an
-         expression. */
-      *may_be_decl = FALSE;
-      goto done;
+      cache_curr_token(token_cache_ptr);
+      (void)get_token_and_coalesce_if_identifier();
     }  /* if */
   }  /* if */
-  for (;;) {
-    /* Look for "[...]" and "(...)". */
-    if (curr_token == tok_lbracket) {
-      /* Cache and bypass the "[" and all tokens following it up to but not
-         including the matching "]".  Note that what's contained within the
-         brackets can't help resolve the ambiguity, so we can ignore it. */
-      a_stop_token_array  save_stop_token_array;
-
-      /* Bypass and cache the "[". */
+  /* The declarator can end at this point, or an array or function
+     specification (or a series of them) can follow.  The additional
+     specifications, if they appear, are parsed in their order of 
+     appearance. */
+  while (curr_token == tok_lparen || curr_token == tok_lbracket) {
+    if (curr_token == tok_lparen) {
+      /* Appears to be a function declarator.  But be sure it's not the
+         start of a parenthesized initializer. */
+      /* Advance past the left parenthesis. */
       cache_curr_token(token_cache_ptr);
-      (void)get_token();
-      /* Save the current stop token state, and reinitialize it. */
-      copy_stop_tokens(stop_token_array, save_stop_token_array);
-      clear_stop_tokens();
-      add_stop_token(tok_rbracket);
-      cache_token_stream(token_cache_ptr);
-      remove_stop_token(tok_rbracket);
-      /* Restore the stop token state. */
-      copy_stop_tokens(save_stop_token_array, stop_token_array);
+      (void)get_token_and_coalesce_if_identifier();
+      if (curr_token != tok_rparen && curr_token != tok_ellipsis) {
+        /* See if the think inside the parenthesis looks like an
+           initializer. */
+        if (paren_initializer_allowed &&
+            !is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
+                              /*real_declarator_allowed=*/TRUE,
+                              /*single_type_required=*/FALSE)) {
+          /* Function_declarator should not be called, scan the tokens that
+             comprise the parenthesized initializer and exit the loop. */
+          paren_initializer_seen = TRUE;
+          cache_tokens_until(token_cache_ptr, tok_rparen);
+          if (curr_token == tok_rparen) {
+            /* Cache the right parenthesis. */
+            cache_curr_token(token_cache_ptr);
+            (void)get_token_and_coalesce_if_identifier();
+          }  /* if */
+          break;
+        }  /* if */
+      }  /* if */
+function_lparen:
+      /* For function types as the top type, fetch the extra function info
+         as well.  For non-top types, do not. */
+      prescan_function_declarator(token_cache_ptr, may_be_decl);
+    } else {
+      /* Left bracket, indicating array declarator. */
+      check_assertion(curr_token == tok_lbracket);
+      /* Advance past the left bracket. */
+      cache_curr_token(token_cache_ptr);
+      (void)get_token_and_coalesce_if_identifier();
+      cache_tokens_until(token_cache_ptr, tok_rbracket);
       /* Bypass and cache the "]". */
       if (curr_token == tok_rbracket) {
         cache_curr_token(token_cache_ptr);
-        (void)get_token();
+        (void)get_token_and_coalesce_if_identifier();
       }  /* if */
-    } else if (curr_token == tok_lparen) {
-      /* Cache and bypass the "(". */
-      cache_curr_token(token_cache_ptr);
-      (void)get_token();
-function_lparen:
-      /* Scan each parameter declaration to be sure it is a declaration.  If
-         one turns out not to be, we take it to be an expression, which means
-         we have a function call rather than a function declaration. */
-      while (curr_token != tok_rparen) {
-        if (!is_decl_start(/*expr_context=*/FALSE,
-                           /*real_declarator_allowed=*/TRUE)) {
-          /* Not a declaration, since old-style parameter lists are not
-             allowed. */
-          *may_be_decl = FALSE;
-          goto done;
-        } else if (next_token() == tok_lparen) {
-          /* See if there is any ambiguity in the parameter declaration.
-             This could be a declaration or it could be a cast or a
-             constructor call. */
-          prescan_declaration(token_cache_ptr,
-                              /*abstract_declarator_allowed=*/TRUE,
-                              /*real_declarator_allowed=*/TRUE,
-                              may_be_decl, may_be_expr);
-          /* If the ambiguity is resolved, we can bail out. */
-          if (!*may_be_decl || !*may_be_expr) goto done;
-        } else {
-          /* Scan through the tokens comprising the parameter declaration. */
-          for (;;) {
-            cache_curr_token(token_cache_ptr);
-            (void)get_token();
-            if (curr_token == tok_rparen || curr_token == tok_comma ||
-                curr_token == tok_end_of_source) {
-              break;
-            } else if (is_declarator_start()) {
-              prescan_declarator(token_cache_ptr,
-                                 /*abstract_declarator_allowed=*/TRUE,
-                                 /*real_declarator_allowed=*/TRUE,
-                                 may_be_decl, may_be_expr);
-              /* If the ambiguity is resolved, we can bail out. */
-              if (!*may_be_decl || !*may_be_expr) goto done;
-              break;
-            }  /* if */
-          }  /* for */
-        }  /* if */
-        /* Cache and bypass the "," if there is one. */
-        if (curr_token == tok_comma) {
-          cache_curr_token(token_cache_ptr);
-          (void)get_token();
-        } else if (curr_token != tok_rparen) {
-          /* No comma, so since we are not at the closing parenthesis we may
-             take this to be an expression. */
-          *may_be_decl = FALSE;
-          goto done;
-        }  /* if */
-      }  /* while */
-      /* We have completed the parameter declarations (if any), so we should
-         be at the closing paren. */
-      if (curr_token == tok_rparen) {
-        /* Cache and bypass the ")". */
-        cache_curr_token(token_cache_ptr);
-        (void)get_token();
-        /* Look for "const" or "volatile" qualifier, which appear only on
-           declarations. */
-        if (curr_token == tok_const || curr_token == tok_volatile) {
-          *may_be_expr = FALSE;
-          goto done;
-        }  /* while */
-      }  /* if */
-    } else {
-      /* Not a "(" or a "[", so stop here and let the caller figure it out. */
-      break;
     }  /* if */
-  }  /* for */
+  }  /* while */
+  /* Look for an initialization that begins with an assignment operator. */
+  if (!paren_initializer_seen && curr_token == tok_assign) {
+    /* An initializer that begins with an equals sign.  Cache the
+       tokens that comprise the initializer and leave curr_token
+       as the token following the initializer (usually a comma or
+       a semicolon). */
+    prescan_default_argument(token_cache_ptr);
+  }  /* if */
 done:;
-  db_exit();
 }  /* prescan_declarator */
 
 
 static void prescan_declaration(a_token_cache  *token_cache_ptr,
                                 a_boolean      abstract_declarator_allowed,
                                 a_boolean      real_declarator_allowed,
-                                a_boolean      *may_be_decl,
-                                a_boolean      *may_be_expr)
+				a_boolean      single_declaration_required,
+                                a_boolean      *may_be_decl)
 /*
 Scan a sequence of tokens and cache them for rescanning later.  The purpose
 of this prescan is to help determine whether this is a declaration or an
@@ -585,136 +734,48 @@ expression.  The caller guarantees that is_decl_start is TRUE for the current
 token.
 
 Assuming that we are in the midst of a declaration, we scan ahead to find
-evidence to the contrary.  If a token sequence appears that unequivocally
-confirms this to be a declaration, set *may_be_expr to FALSE;  if it is
-*not* a declaration, *may_be_decl is FALSE and *may_be_expr is TRUE.  It
-can be that both are TRUE.
+evidence to the contrary. 
 */
 {
   db_enter(3, "prescan_declaration");
-  if (next_token() == tok_lparen &&
-      ((curr_token == tok_identifier && curr_id_is_type_name()) ||
-        curr_token == tok_void || curr_token == tok_char ||
-        curr_token == tok_short || curr_token == tok_int ||
-        curr_token == tok_long || curr_token == tok_float ||
-        curr_token == tok_double || curr_token == tok_signed ||
-        curr_token == tok_unsigned)) {
-    /* Disambiguation is required.  This could be a cast expression or a
-       constructor call. */
-    *may_be_expr = TRUE;
-    /* Cache the current token.  Then advance past the left paren and cache
-       it, too. */
-    cache_curr_token(token_cache_ptr);
-    (void)get_token();
-    cache_curr_token(token_cache_ptr);
-    /* Advance to the first token within the parentheses. */
-    (void)get_token();
-    if (curr_token == tok_rparen) {
-      *may_be_decl = FALSE;
-    } else {
+  /* Coalesce the identifier if this is a tok_identifier. */
+  (void)is_generalized_identifier_start(GID_NO_OPTIONS |
+                                        GID_DEFER_ACCESS_ERRORS |
+                                        GID_TEMPLATE_ARGS_OPTIONAL);
+  for (;;) {
+    /* Scan the decl specifiers. */
+    prescan_decl_specifiers(token_cache_ptr, may_be_decl);
+    if (!*may_be_decl) goto done;
+    for (;;) {
+      /* Parenthesized initializers are only allowed in contexts that
+         in which only real declarators are allowed. */
       prescan_declarator(token_cache_ptr, abstract_declarator_allowed,
-                         real_declarator_allowed, may_be_decl, may_be_expr);
-      if (real_declarator_allowed && abstract_declarator_allowed) {
-        /* This may be an arg list and it may be a param list.  If the
-           ambiguity was not resolved by looking at the first item (arg or
-           param) in the list, look at the next item.  Note that the recursive
-           invocation of prescan_declaration has the effect of bumping down
-           the list till it ends or until the ambiguity is resolved. */
-        if (*may_be_decl && *may_be_expr) {
-          /* Ambiguity is still unresolved. */
-          if (curr_token == tok_rparen && next_token() == tok_comma) {
-            /* Advance past the right paren. */
-            cache_curr_token(token_cache_ptr);
-            (void)get_token();
-            /* Advance past the comma. */
-            cache_curr_token(token_cache_ptr);
-            (void)get_token();
-            if (!is_decl_start(/*expr_context=*/FALSE,
-                               /*real_declarator_allowed=*/TRUE)) {
-              *may_be_decl = FALSE;
-            } else {
-              prescan_declaration(token_cache_ptr, abstract_declarator_allowed,
-                                  real_declarator_allowed, may_be_decl,
-                                  may_be_expr);
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      if (*may_be_decl && *may_be_expr) {
-        /* If this is not a rparen, can't we assume that we have an expression
-           here.  For instance, int(*p + 1). */
-        if (curr_token != tok_rparen && curr_token != tok_end_of_source) {
-          *may_be_decl = FALSE;
-        } else {
-          /* Cache and bypass the ")". */
-          cache_curr_token(token_cache_ptr);
-          (void)get_token();
-          switch (curr_token) {
-            case tok_assign:
-            case tok_lparen:
-            case tok_const:
-            case tok_volatile:
-            case tok_lbracket:
-            case tok_comma:
-            case tok_semicolon:
-              /* It's a declaration. */
-              break;
-            case tok_period:
-            case tok_arrow:
-            case tok_plus_plus:
-            case tok_minus_minus:
-            case tok_ampersand:
-            case tok_star:
-            case tok_plus:
-            case tok_minus:
-            case tok_divide:
-            case tok_remainder:
-            case tok_shift_left:
-            case tok_shift_right:
-            case tok_lt:
-            case tok_gt:
-            case tok_le:
-            case tok_ge:
-            case tok_eq:
-            case tok_ne:
-            case tok_excl_or:
-            case tok_or:
-            case tok_and_and:
-            case tok_or_or:
-            case tok_quest_mark:
-            case tok_times_assign:
-            case tok_divide_assign:
-            case tok_remainder_assign:
-            case tok_plus_assign:
-            case tok_minus_assign:
-            case tok_shift_left_assign:
-            case tok_shift_right_assign:
-            case tok_and_assign:
-            case tok_excl_or_assign:
-            case tok_or_assign:
-            case tok_period_star:
-            case tok_arrow_star:
-              /* It's an expression. */
-              *may_be_decl = FALSE;
-              break;
-            default:
-              /* What's not obviously a declaration or an expression is
-                 probably a syntax error.  Let the error be reported in
-                 declaration processing. */
-              *may_be_expr = FALSE;
-          }  /* switch */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  } else {
-    *may_be_expr = FALSE;
-  }  /* if */
+                         real_declarator_allowed, may_be_decl,
+                         /*paren_initializer_allowed=*/
+                         !abstract_declarator_allowed);
+      if (!*may_be_decl) goto done;
+      /* If we are not processing real declarators, don't look for
+         additional declarators. */
+      if (abstract_declarator_allowed || curr_token != tok_comma) break;
+      /* Advance past the comma then scan the next declarator. */
+      cache_curr_token(token_cache_ptr);
+      (void)get_token_and_coalesce_if_identifier();
+    }  /* for */
+    /* If multiple types are not allowed, then break out of the loop. */
+    if ((!real_declarator_allowed &&
+         single_declaration_required) || curr_token != tok_comma) break;
+    /* Advance past the comma then scan the next declaration. */
+    cache_curr_token(token_cache_ptr);
+    (void)get_token_and_coalesce_if_identifier();
+  }  /* for */
+done:
   db_exit();
 }  /* prescan_declaration */
 
 
 a_boolean f_is_decl_not_expr(a_boolean  abstract_declarator_allowed,
-                             a_boolean  real_declarator_allowed)
+                             a_boolean  real_declarator_allowed,
+			     a_boolean  single_type_required)
 /*
 This routine is called via the macro is_decl_not_expr (in C++ only) to
 distinguish statements and expressions from declarations -- for example:
@@ -740,23 +801,77 @@ so that they can be rescanned by the caller.
 
 The caller provides some information about the context, specifically whether,
 if it is a declaration, an abstract or real declarator is expected -- or
-either.
+either.  single_type_required is used to indicate that the construct
+scanned must be a single type and not a comma separated list.
+
+These flags are combined in the following ways to handle the various
+disambiguation contexts:
+
+Context				Abstract	Real		Single
+				allowed		allowed		decl. required
+----------------------  	--------	-------		--------------
+For-init statements		false		true		disregarded
+declaration vs. expr stmt.	false		true		disregarded
+sizeof, alignof, new, cast	true		false		true
+throw specification		true		false		true
+parenthesized initializer vs.	true		true		disregarded
+	parameter list
+
+
+In other words, when a real declarator is allowed, but an abstract declarator
+is not, the context is a normal declaration that may contain multiple
+declarators.
+
+When both real and abstract declarators are allowed, the context is a
+parameter list in which multiple declarations (i.e., not declarators)
+may be separated by commas.
+
+When abstract declarators are allowed, but real declarators are not, the
+context is one type (when single_declaration_required is TRUE) or multiple
+types separated by commas (when single_declaration_required is FALSE).
+
 */
 {
   a_token_cache       token_cache;
   a_boolean           may_be_decl = TRUE;
-  a_boolean           may_be_expr = TRUE;
 
   db_enter(3, "f_is_decl_not_expr");
-  /* Initialize the token cache. */
-  clear_token_cache(&token_cache, /*reusable=*/FALSE);
-  /* Scan forward as far as required to determine whether this is a
-     declaration.  Each token that is encountered is cached away, so that
-     that they can be restored for the actual scan. */
-  prescan_declaration(&token_cache, abstract_declarator_allowed,
-                      real_declarator_allowed, &may_be_decl, &may_be_expr);
-  /* Restore the tokens. */
-  rescan_cached_tokens(&token_cache);
+  /* The ambiguous cases all begin a type name followed by a left
+     parenthesis.   Check for this case first to quickly discard most
+     cases. */
+  if (next_token() == tok_lparen && is_type_start()) {
+    /* Initialize the token cache. */
+    clear_token_cache(&token_cache, /*reusable=*/FALSE);
+    /* Scan forward as far as required to determine whether this is a
+       declaration.  Each token that is encountered is cached away, so that
+       that they can be restored for the actual scan. */
+    prescan_declaration(&token_cache, abstract_declarator_allowed,
+                        real_declarator_allowed,
+		        single_type_required,
+                        &may_be_decl);
+    if (!may_be_decl) goto done;
+    /* We should now be at either a comma separating two declarators or at
+       the semicolon at the end of the declaration.  If not, assume that this
+       is really an expression. */
+    if (real_declarator_allowed) {
+      if (abstract_declarator_allowed) {
+        /* We are scanning a parameter list, we should be at the closing
+           right parenthesis. */
+        if (curr_token != tok_rparen) may_be_decl = FALSE;
+      } else {
+        /* We are scanning a real declaration, we should be at the end of
+           the statement now. */
+        if (curr_token != tok_semicolon) may_be_decl = FALSE;
+      }  /* if */
+    } else {
+      /* Otherwise, if we are scanning one or more types.  We should be
+         at the right parenthesis. */
+      if (curr_token != tok_rparen) may_be_decl = FALSE;
+    }  /* if */
+done:
+    /* Restore the tokens. */
+    rescan_cached_tokens(&token_cache);
+  }  /* if */
   db_exit();
   return may_be_decl;
 }  /* f_is_decl_not_expr */
@@ -1786,7 +1901,8 @@ specification is handled later (see check_throw_specification).
     if (!is_decl_start(/*expr_context=*/FALSE,
                        /*real_declarator_allowed=*/FALSE) ||
         !is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
-                          /*real_declarator_allowed=*/FALSE)) {
+                          /*real_declarator_allowed=*/FALSE,
+                          /*single_type_required=*/FALSE)) {
       /* Error. */
       if (exceptions_enabled) pos_error(ec_exp_type_specifier, &type_pos);
       /* Flush tokens to the comma or right paren. */
@@ -5934,7 +6050,8 @@ otherwise it is NULL.  The syntax is:
         if ((is_arithmetic_type(tp) || is_ptr_or_ref_type(tp) ||
              is_class_struct_union_type(tp) || is_ptr_to_member_type(tp)) &&
             !is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
-                              /*real_declarator_allowed=*/TRUE)) {
+                              /*real_declarator_allowed=*/TRUE,
+                              /*single_type_required=*/FALSE)) {
           a_boolean  is_function_decl = FALSE;
           /* This appears to be a parenthesized initializer.  However, it
              might also be a function definition with an old-style parameter

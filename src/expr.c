@@ -3375,7 +3375,8 @@ Syntax:
     copy_source_position(pos_curr_token, lparen_position);
     (void)get_token();
     if (is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
-                         /*real_declarator_allowed=*/FALSE)) {
+                         /*real_declarator_allowed=*/FALSE,
+                         /*single_type_required=*/TRUE)) {
       /* This is a type-name in parentheses. */
       parenthesized_type = TRUE;
     } else {
@@ -3493,7 +3494,8 @@ be inappropriate, because the feature is probably used to implement
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_matching_stop_token(tok_rparen);
   if (is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
-                       /*real_declarator_allowed=*/FALSE)) {
+                       /*real_declarator_allowed=*/FALSE,
+                       /*single_type_required=*/TRUE)) {
     /* Scan a type name. */
     type_name(&alignof_type);
   } else {
@@ -3782,7 +3784,8 @@ specification allow a variable-sized array as the top type.
          new (int(*  ))       // type
     */
     if (is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
-                         /*real_declarator_allowed=*/FALSE)) {
+                         /*real_declarator_allowed=*/FALSE,
+                         /*single_type_required=*/TRUE)) {
       /* This is the type name. */
       trapped_left_paren = TRUE;
     } else {
@@ -4890,7 +4893,8 @@ or
      is_decl_not_expr would never return TRUE). */
   if (!curr_expr_kind_is(ek_pp) &&
       is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
-                       /*real_declarator_allowed=*/FALSE)) {
+                       /*real_declarator_allowed=*/FALSE,
+                       /*single_type_required=*/TRUE)) {
     /* This is a cast operation. */
     /* Get the type to cast to. */
     type_name(&type_cast_to);
