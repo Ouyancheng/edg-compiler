@@ -1922,6 +1922,13 @@ Dump the definition ({...}) if body is TRUE.
       fputs(" {", f_C_output);
       field = type->variant.class_struct_union.field_list;
       indent += 2;
+      if (field == NULL) {
+        /* In the bizarre case "struct {int :0;}" the union has no component
+           fields.  This also applies to classes from C++ passed through
+           IL lowering. */
+        startline((a_seq_number)0);
+        fputs("char __dummy;", f_C_output);
+      }  /* if */
       while (field != NULL) {
         startline(field->source_corresp.decl_position.seq);
         /* Use an empty name for an unnamed bit field or unnamed field. */
