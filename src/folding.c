@@ -79,7 +79,7 @@ size in bits of the integral type.
 #if CHECKING
   if (size == 0) internal_error("get_integer_attributes: zero-sized integer");
 #endif /* CHECKING */
-  *bit_size = (int)(size * TARG_CHAR_BIT);
+  *bit_size = (int)(size * targ_char_bit);
 }  /* get_integer_attributes */
 
 
@@ -386,7 +386,7 @@ applied to an address constant that has been cast to an integral type.
     case ck_address:
       /* Address of a routine, variable, or constant, plus some offset. */
       set_integer_constant(offset, constant->variant.address.offset,
-                           (an_integer_kind)TARG_PTRDIFF_T_INT_KIND);
+                           targ_ptrdiff_t_int_kind);
       break;
     case ck_integer:
       /* Integer cast to a pointer type (probably 0/NULL). */
@@ -660,7 +660,7 @@ type.
        integral type is large enough to hold a pointer. */
 #if TARG_ALL_POINTERS_SAME_SIZE
     /* All pointers are the same size. */
-    if (skip_typerefs(new_type)->size < TARG_SIZEOF_POINTER) {
+    if (skip_typerefs(new_type)->size < targ_sizeof_pointer) {
       *err_code = ec_integer_truncated;
       *err_severity = es_error;
     }  /* if */
@@ -981,7 +981,7 @@ Convert an integer constant to a pointer constant of type as specified by
   }  /* if */
 #endif /* CHECKING */
   make_integer_value_mask(&mask,
-                          (int)skip_typerefs(new_type)->size*TARG_CHAR_BIT);
+                          (int)skip_typerefs(new_type)->size*targ_char_bit);
   and_integer_values(&new_constant->variant.integer_value, &mask);
 }  /* conv_integer_to_pointer */
 
@@ -1788,7 +1788,7 @@ if not, return *err_code set to the proper error code.
     internal_error("check_shift_count: integer type has size 0");
   }  /* if */
 #endif /* CHECKING */
-  size = operand_type->size * TARG_CHAR_BIT;
+  size = operand_type->size * targ_char_bit;
 
   if (sign_of_integer_constant(shift_count_constant) < 0) {
     /* Negative shift count. */
@@ -1834,7 +1834,7 @@ everything went fine.
       /* Shift right. */
       is_signed = int_constant_is_signed(constant_1);
       shift_right_integer_value(&result_value, value_2, is_signed,
-                               /*sign_extend=*/TARG_RIGHT_SHIFT_IS_ARITHMETIC);
+                               /*sign_extend=*/targ_right_shift_is_arithmetic);
     } else {
       /* Shift left. */
       shift_left_integer_value(&result_value, value_2, &err);
@@ -2784,7 +2784,7 @@ union(s).
 		ctsp;
 
   /* Get the field offset and convert from bits to bytes. */
-  offset = field->bit_offset / TARG_CHAR_BIT;
+  offset = field->bit_offset / targ_char_bit;
   /* See if the field is a member of an anonymous union. */
   field_class = field->source_corresp.class_of_which_a_member;
   ctsp = field_class->variant.class_struct_union.extra_info;
@@ -2823,7 +2823,7 @@ field cannot be passed as a constant.
     get_pointer_offset(constant_1, &offset);
     /* ... add the offset of the field (converting from bits to bytes), ... */
     set_unsigned_integer_value(&field_offset,
-                               field->bit_offset / TARG_CHAR_BIT);
+                               field->bit_offset / targ_char_bit);
     add_mixed_signed_integer_values(&offset.variant.integer_value,
                                     int_constant_is_signed(&offset),
                                     &field_offset,
