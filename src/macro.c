@@ -596,7 +596,8 @@ as a local pointer, and therefore may be updated if macro_buffer is
 reallocated; that's why an extra level of indirection is used.
 */
 {
-  a_source_line_modif_ptr    slmp, old_slmp, parent_slmp;
+  a_source_line_modif_ptr    slmp, old_slmp, parent_slmp,
+                             slmp_marker = map->modif_list;
   sizeof_t                   len;
   a_boolean                  need_copy;
 
@@ -644,13 +645,10 @@ reallocated; that's why an extra level of indirection is used.
       parent_slmp = NULL;
     } else {
       /* Find the prototype modification whose text is modified by this
-         location. */
-      for (slmp = map->modif_list;; slmp = slmp->next) {
-#if CHECKING
-        if (slmp == NULL) {
-          internal_error("copy_modif_list: loc not found");
-        }  /* if */
-#endif /* CHECKING */
+         location.  Starting the search from where we left off in the
+         previous iteration of the outer "for" loop speeds up things on
+         average (compared to starting the search from map->modif_list). */
+      for (slmp = slmp_marker;;) {
         /* Note that there is no "+1" after end_inserted_text in the following;
            it's not needed because a modification cannot be planted on the
            terminating LE_END_OF_INSERTION lexical escape. */
@@ -658,7 +656,16 @@ reallocated; that's why an extra level of indirection is used.
                          slmp->end_inserted_text)) {
           break;
         }  /* if */
+        slmp = slmp->next;
+        if (slmp == old_slmp) {
+          slmp = map->modif_list;
+#if CHECKING
+        } else if (slmp == slmp_marker) {
+          internal_error("copy_modif_list: loc not found");
+#endif /* CHECKING */
+        }  /* if */
       }  /* for */
+      slmp_marker = slmp;
       parent_slmp = slmp->assoc_copy_modif;
 #if CHECKING
       if (parent_slmp == NULL) {
