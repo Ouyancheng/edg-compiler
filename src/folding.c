@@ -2552,9 +2552,11 @@ and *result is set to an integer 0 or 1 for the result.
          union fields. */
       a_field_ptr field1 = constant_1->variant.ptr_to_member.variant.field;
       a_field_ptr field2 = constant_2->variant.ptr_to_member.variant.field;
-      result_value = (field1->offset == field2->offset &&
-                      field1->offset_bit_remainder ==
-                                                 field2->offset_bit_remainder);
+      result_value = (field1 == field2 ||
+                      (field1 != NULL && field2 != NULL &&
+                       field1->offset == field2->offset &&
+                       field1->offset_bit_remainder ==
+                                                field2->offset_bit_remainder));
     }  /* if */
   }  /* if */
   /* result_value is now set for the "==" case.  Complement it for the "!="
