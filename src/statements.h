@@ -26,18 +26,19 @@ statements.h -- Declarations relating to statements.c (having to do with
 Indication of whether or not code is reachable from the code immediately
 preceding.
 */
-typedef enum /*a_reachability_code*/ {
-  rc_reachable,		/* Code is reachable. */
-  rc_unreachable,	/* Code is unreachable. */
-  rc_unreachable_error_given
-			/* Code is unreachable, and a warning to that effect
-			   has already been issued, or the warning has been
-			   suppressed by a lint-style "notreached" comment.
-			   Such code is considered reachable, either from
-			   the preceding dead code, or because a "notreached"
-			   comment is wrong (we cannot, after all, allow a
-			   comment to affect the semantics of the program). */
-} a_reachability_code;
+typedef struct a_reachability_summary {
+  a_boolean	reachable;
+			/* Code is reachable, as determined by the front
+			   end. */
+  a_boolean	reachable_considering_hints;
+			/* Code is reachable, as determined by the front
+			   end and modified by user hints in the code. */
+  a_boolean	suppress_unreachable_warning;
+			/* In an unreachable code section, suppress the
+			   warning about unreachable code (because it has
+			   already been issued, or because of a lint-style
+			   comment). */
+} a_reachability_summary;
 
 /*
 Stack indicating nesting of structured statements.  There is an entry
@@ -97,16 +98,14 @@ typedef struct a_struct_stmt_stack_entry {
 			/* Within compound statements (blocks), TRUE if any
 			   executable statement (not declaration) has been
 			   seen. */
-  a_reachability_code
+  a_reachability_summary
 		start_reachable;
 			/* Indicates whether or not the start of the structured
 			   statement is reachable. */
-  a_reachability_code
+  a_reachability_summary
 		end_reachable;
 			/* Indicates whether or not the end of the structured
-			   statement is reachable.  The end is reachable
-			   if the end of any clause is reachable or if it's
-			   possible to execute none of the clauses. */
+			   statement is reachable. */
 } a_struct_stmt_stack_entry;
 EXTERN a_struct_stmt_stack_entry_ptr
 		struct_stmt_stack
@@ -135,12 +134,14 @@ extern a_statement_ptr add_statement(a_statement_kind kind);
 extern a_statement_ptr compound_statement(a_boolean at_function_level,
                                           a_boolean explicit_return_type);
 extern a_boolean curr_code_reachable(void);
-extern void new_struct_stmt_stack(int  *saved_container_pos,
-                                  int  *saved_depth_stmt_stack,
-                                  int  *saved_code_reachable);
-extern void restore_struct_stmt_stack(int  saved_container_pos,
-                                      int  saved_depth_stmt_stack,
-                                      int  saved_code_reachable);
+extern void new_struct_stmt_stack(
+                           int                     *saved_container_pos,
+                           int                     *saved_depth_stmt_stack,
+                           a_reachability_summary  *saved_code_reachability);
+extern void restore_struct_stmt_stack(
+                              int                    saved_container_pos,
+                              int                    saved_depth_stmt_stack,
+                              a_reachability_summary *saved_code_reachability);
 
 #endif /* ifndef STATEMENTS_H */
 

@@ -1,5 +1,23 @@
 Version 2.11
 
+10/19/92 Code reachability tracking reworked
+
+The tracking of code reachability in statements.c has been reworked to
+deal with the following:
+
+  int foo(int which)
+  {
+      switch(which) {
+      default:
+          return(0);
+      }
+      /* NOTREACHED */ /* TEMPORARY until cases get added */
+      return(1);
+  }
+
+Formerly, this gave a warning on the return(1) in spite of the
+NOTREACHED comment.
+
 10/17/92 Warning on conditional test of constant address
 
 When the expression tested in an if, while, or the like is a constant

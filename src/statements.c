@@ -52,13 +52,32 @@ static sizeof_t	size_struct_stmt_stack_container = 0;
 			/* The number of elements added to struct_stmt_stack
 			   each time it is reallocated; also the initial
 			   allocation. */
-static a_reachability_code
-		code_reachable;
+
+static a_reachability_summary
+		curr_reachability;
 			/* Indicates whether or not the current location in
 			   the code (following the last statement of the top
 			   structured statement on the statement stack) is
 			   reachable by flowing into it from the previous
 			   statement. */
+
+/*
+Set var to indicate that the associated code is reachable.
+*/
+#define set_reachable(var)                                            \
+{ (var).reachable = TRUE;                                             \
+  (var).reachable_considering_hints = TRUE;                           \
+  (var).suppress_unreachable_warning = FALSE;                         \
+}  /* set_reachable */
+
+/*
+Set var to indicate that the associated code is unreachable.
+*/
+#define set_unreachable(var)                                          \
+{ (var).reachable = FALSE;                                            \
+  (var).reachable_considering_hints = FALSE;                          \
+  (var).suppress_unreachable_warning = FALSE;                         \
+}  /* set_unreachable */
 
 
 /*
@@ -68,23 +87,32 @@ static void statement(void);
 
 
 /*
-Macro to check the lint-style "notreached" flag, and suppress a warning
-on unreachable code if a "notreached" comment was found.
-Note that the code_reachable variable will only be changed from
-reachable to reachable_error_given, both of which are treated as
-reachable -- i.e., the program semantics are not changed.  If the
-code is truly unreachable (from what we can tell without taking the
-programmer's word for it), the flag already says so and it is not
-changed.
+Macro to check the lint-style "notreached" flag and record information on
+it in the curr_reachability flag so as to suppress warnings that might
+otherwise be issued later.
 */
 #define check_lint_notreached_flag()                                  \
 { if (lint_notreached_flag) {                                         \
-    if (code_reachable == rc_reachable) {                             \
-      code_reachable = rc_unreachable_error_given;                    \
-    }  /* if */                                                       \
+    curr_reachability.reachable_considering_hints = FALSE;            \
+    curr_reachability.suppress_unreachable_warning = TRUE;            \
     lint_notreached_flag = FALSE;                                     \
   }  /* if */                                                         \
 }  /* check_lint_notreached_flag */
+
+
+static void merge_reachability(a_reachability_summary *reachability,
+                               a_reachability_summary *merged_reachability)
+/*
+Merge the reachability information from "reachability" into
+"merged_reachability".
+*/
+{
+  merged_reachability->reachable |= reachability->reachable;
+  merged_reachability->reachable_considering_hints |= 
+                                    reachability->reachable_considering_hints;
+  merged_reachability->suppress_unreachable_warning |=
+                                    reachability->suppress_unreachable_warning;
+}  /* merge_reachability */
 
 
 a_statement_ptr add_statement(a_statement_kind kind)
@@ -167,7 +195,7 @@ the current statement sequence.
   }  /* if */
 
   /* Maintain the code reachable flag.  Labels are always reachable. */
-  if (kind == (a_statement_kind)stmk_label) code_reachable = rc_reachable;
+  if (kind == (a_statement_kind)stmk_label) set_reachable(curr_reachability);
 
   /* Allocate the statement entry. */
   sp = alloc_statement(kind);
@@ -175,11 +203,7 @@ the current statement sequence.
   sp->seq_number = pos_curr_token.seq;
 
   /* Link it onto the end of the statement list for the current level of
-     the structured statement stack.  Even unreachable code is kept
-     (note in particular that code following a lint notreached comment
-     is probably unreachable, but by ANSI C rules it must be put out,
-     since it might in fact be reachable -- the comment might be wrong, and
-     the comment cannot affect the semantics). */
+     the structured statement stack.  Even unreachable code is kept. */
   if (*head_ptr != NULL && !statement_list_allowed) {
     /* The structured statement already has a statement attached to it,
        and it is not a statement to which a list of statements may
@@ -241,11 +265,11 @@ the current statement sequence.
   }  /* if */
   sssep->last_dep_statement = sp;
 
-  /* Turn off the code_reachable flag if the current statement is an
+  /* Turn off curr_reachability if the current statement is an
      unconditional branch. */
   if (kind == (a_statement_kind)stmk_goto   ||
       kind == (a_statement_kind)stmk_return) {
-    code_reachable = rc_unreachable;
+    set_unreachable(curr_reachability);
   }  /* if */
 
   db_exit();
@@ -258,11 +282,12 @@ static void check_for_unreachable_code(void)
 Generate a warning if the current location in the code is unreachable.
 */
 {
-  if (code_reachable == rc_unreachable) {
-    warning(ec_code_is_unreachable);
-    /* Note that once the warning has been issued, it will be issued no
-       more because of the special value rc_unreachable_error_given. */
-    code_reachable = rc_unreachable_error_given;
+  if (!curr_reachability.reachable) {
+    if (!curr_reachability.suppress_unreachable_warning) {
+      warning(ec_code_is_unreachable);
+      /* Suppress the warning once is has been issued. */
+      curr_reachability.suppress_unreachable_warning = TRUE;
+    }  /* if */
   }  /* if */
 }  /* check_for_unreachable_code */
 
@@ -275,11 +300,12 @@ check_for_unreachable_code, because the bodies of loops can be reached
 via branch from the bottom.
 */
 {
-  if (code_reachable == rc_unreachable) {
-    warning(ec_loop_not_reachable);
-    /* Note that once the warning has been issued, it will be issued no
-       more because of the special value rc_unreachable_error_given. */
-    code_reachable = rc_unreachable_error_given;
+  if (!curr_reachability.reachable) {
+    if (!curr_reachability.suppress_unreachable_warning) {
+      warning(ec_loop_not_reachable);
+      /* Suppress the warning once is has been issued. */
+      curr_reachability.suppress_unreachable_warning = TRUE;
+    }  /* if */
   }  /* if */
 }  /* check_loop_unreachable_code */
 
@@ -384,9 +410,9 @@ struct_stmt_stack_container, and struct_stmt_stack.
   }  /* if */
 
 
-void new_struct_stmt_stack(int  *saved_container_pos,
-                           int  *saved_depth_stmt_stack,
-                           int  *saved_code_reachable)
+void new_struct_stmt_stack(int                     *saved_container_pos,
+                           int                     *saved_depth_stmt_stack,
+                           a_reachability_summary  *saved_code_reachability)
 /*
 Save the state of the current structured statement stack, returning it to
 the caller, and create a new structured statement stack.  This is used to
@@ -401,13 +427,13 @@ algorithmic limit on the number of levels of nesting supported.
   *saved_depth_stmt_stack = depth_stmt_stack;
   struct_stmt_stack = &struct_stmt_stack[depth_stmt_stack+1];
   depth_stmt_stack = -1;
-  *saved_code_reachable = (int)code_reachable;
+  *saved_code_reachability = curr_reachability;
 }  /* new_struct_stmt_stack */
 
 
-void restore_struct_stmt_stack(int  saved_container_pos,
-                               int  saved_depth_stmt_stack,
-                               int  saved_code_reachable)
+void restore_struct_stmt_stack(int                    saved_container_pos,
+                               int                    saved_depth_stmt_stack,
+                               a_reachability_summary *saved_code_reachability)
 /*
 Using state values returned from new_struct_stmt_stack, restore the original
 statement stack.
@@ -426,7 +452,7 @@ statement stack.
 #endif /* CHECKING */  
   struct_stmt_stack = &struct_stmt_stack_container[saved_container_pos];
   depth_stmt_stack = saved_depth_stmt_stack;
-  code_reachable = (a_reachability_code)saved_code_reachable;
+  curr_reachability = *saved_code_reachability;
 }  /* restore_struct_stmt_stack */
 
 
@@ -459,16 +485,16 @@ the associated il statement.
                               = FALSE;
   sssep->any_exec_statement_seen
                               = FALSE;
-  sssep->start_reachable      = code_reachable;
-  sssep->end_reachable        = rc_unreachable;  /* So far. */
+  sssep->start_reachable      = curr_reachability;
+  set_unreachable(sssep->end_reachable);  /* So far. */
   if (kind == ssk_while || kind == ssk_do || kind == ssk_for) {
     /* The bodies of loops are reachable in that the bottom can branch to
        the top. */
-    code_reachable = rc_reachable;
+    set_reachable(curr_reachability);
   } else if (kind == ssk_switch) {
     /* The body of a switch is not reachable until a case or default label
        appears. */
-    code_reachable = rc_unreachable;
+    set_unreachable(curr_reachability);
   }  /* if */
   db_exit();
 }  /* push_stmt_stack */
@@ -483,29 +509,19 @@ be the topmost one).
 {
   /* The start of a clause is reachable if the start of the structured
      statement is reachable. */
-  code_reachable = sssep->start_reachable;
+  curr_reachability = sssep->start_reachable;
 }  /* start_stmt_clause */
 
 
 static void term_stmt_clause(a_struct_stmt_stack_entry_ptr sssep)
 /*
 end the current clause of a structured statement.  sssep points to the
-struct_stmt_stack entry for the structured statement (for symmetry with
-start_stmt_clause).
+struct_stmt_stack entry for the structured statement.
 */
 {
   /* If the end of the clause is reachable, then the end of the whole
      structured statement is reachable. */
-  if (code_reachable == rc_reachable) {
-    sssep->end_reachable = code_reachable;
-  } else if (code_reachable == rc_unreachable_error_given) {
-    /* This counts as a weak form of reachable, which means the end of
-       the statement is reachable.  However, don't weaken the reachability
-       that's already there. */
-    if (sssep->end_reachable == rc_unreachable) {
-      sssep->end_reachable = rc_unreachable_error_given;
-    }  /* if */
-  }  /* if */
+  merge_reachability(&curr_reachability, &sssep->end_reachable);
 }  /* term_stmt_clause */
 
 
@@ -548,48 +564,42 @@ a structured statement has ended.
   if (kind != ssk_switch || sssep->curr_switch_clause != NULL) {
     term_stmt_clause(sssep);
   }  /* if */
-  /* The code after the structured statement is reachable if the end
-     of any of the clauses is reachable, or if the opening statement
-     is reachable and the statement is of a kind that can transfer
-     directly to the end of the statement without executing a clause.
-     Such statements are: a zero-trip loop, a "switch" without a default
-     clause, and an "if" without an "else" clause. */
-  if (sssep->end_reachable == rc_reachable ||
-      (sssep->start_reachable == rc_reachable &&
-       (kind == ssk_while || kind == ssk_for ||
-        (kind == ssk_switch && !sssep->switch_has_default_clause) ||
-        (kind == ssk_if &&
-         sssep->statement->variant.if_stmt.else_statement == NULL)))) {
-    /* The code after the structured statement is reachable.  One further
-       test: if a loop is an infinite loop, the end is not reachable
-       (remember that a "break", if any, is handled separately via
-       the break_label). */
+  /* Determine whether or not the code following the statement is reachable,
+     and set curr_reachability appropriately. */
+  if (kind == ssk_while || kind == ssk_for) {
+    /* A top-test loop.  The code after the loop is reachable if and only
+       if the start is reachable and the loop is not an infinite loop. */
     if (is_infinite_loop(sssep->statement)) {
-      if (sssep->start_reachable == rc_unreachable_error_given) {
-        code_reachable = rc_unreachable_error_given;
-      } else {
-        code_reachable = rc_unreachable;
-      }  /* if */
+      set_unreachable(curr_reachability);
     } else {
-      code_reachable = rc_reachable;
+      curr_reachability = sssep->start_reachable;
+    }  /* if */
+  } else if (kind == ssk_do) {
+    /* A bottom-test loop.  The code after the loop is reachable if and only
+       if the end of the loop (i.e., the current location) is reachable and
+       the loop is not an infinite loop. */
+    if (is_infinite_loop(sssep->statement)) {
+      set_unreachable(curr_reachability);
     }  /* if */
   } else {
-    /* The code after the structured statement is not reachable.
-       If an unreachable code error has been generated either before 
-       the statement or in it, remember that fact. */
-    if (sssep->end_reachable   == rc_unreachable_error_given ||
-        sssep->start_reachable == rc_unreachable_error_given) {
-      code_reachable = rc_unreachable_error_given;
-    } else {
-      code_reachable = rc_unreachable;
+    /* Non-loop statement. */
+    if ((kind == ssk_switch && !sssep->switch_has_default_clause) ||
+        (kind == ssk_if &&
+                  sssep->statement->variant.if_stmt.else_statement == NULL)) {
+      /* Switch statement without a default, or if without an else.  If the
+         initial statement can be reached, the end can be reached. */
+      merge_reachability(&sssep->start_reachable, &sssep->end_reachable);
     }  /* if */
+    /* The code after the statement can be reached if the end of the statement
+       can be reached. */
+    curr_reachability = sssep->end_reachable;
   }  /* if */
   /* Pop the stack. */
   depth_stmt_stack--;
   /* If the break label for this statement was referenced, generate 
      its definition now.  This must be done after depth_stmt_stack is
      decremented so that the label will appear outside the structured
-     statement.  It must also be done after code_reachable has been
+     statement.  It must also be done after curr_reachability has been
      adjusted. */
   define_label(sssep->break_label);
   db_exit();
@@ -682,7 +692,7 @@ block statement.
   /* Remember whether or not the end of the block is reachable.  This
      is helpful in IL lowering. */
   block->variant.block.extra_info->end_of_block_reachable = 
-                                              (code_reachable == rc_reachable);
+                                                   curr_reachability.reachable;
   /* Store the IL scope pointer in the block.  This is NULL except for
      blocks with declarations. */
   scope_ptr = scope_stack[decl_scope_level].il_scope;
@@ -1209,7 +1219,7 @@ See also 3.6.6.3.
         sssep->curr_switch_clause = NULL;
         sssep->last_dep_statement = NULL;
         term_stmt_clause(sssep);
-        code_reachable = rc_unreachable;
+        set_unreachable(curr_reachability);
         goto break_handled;
       }  /* if */
     }  /* if */
@@ -1416,6 +1426,8 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
   a_statement_ptr     clause_stmts;
   a_label_ptr         label;
   a_statement_ptr     goto_stmt;
+  a_reachability_summary
+                      prev_reachability;
 
   db_enter(4, "add_switch_clause");
 
@@ -1559,7 +1571,7 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
       /* Normal case: the clause statements will be attached to the
          switch clause directly.  If there was a previous switch clause that
          flows into this one, generate a goto from there. */
-      if (code_reachable == rc_reachable) {
+      if (curr_reachability.reachable) {
         label = alloc_temp_label();
         goto_stmt = add_statement((a_statement_kind)stmk_goto);
         goto_stmt->variant.label = label;
@@ -1577,6 +1589,10 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
        switch clause, if any, by calling term_stmt_clause.  Only a
        break really terminates a switch clause; other cases are
        flow-ins. */
+    if (label != NULL) {
+      /* Save reachability information on the flow-in. */
+      prev_reachability = curr_reachability;
+    }  /* if */
     /* Activate the new switch clause so code will be added here (if the
        switch is the outermost structured statement). */
     sssep->curr_switch_clause = scp;
@@ -1586,7 +1602,9 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
     start_stmt_clause(sssep);
     /* If there is flow-in from the previous clause, the code here is
        reachable. */
-    if (label != NULL) code_reachable = rc_reachable;
+    if (label != NULL) {
+      merge_reachability(&prev_reachability, &curr_reachability);
+    }  /* if */
   }  /* if */
 routine_exit:
   db_exit();
@@ -1656,7 +1674,7 @@ Scan a case label definition.  The syntax is:
     }  /* if */
   } else {
     /* Make code reachable for the error case. */
-    code_reachable = rc_reachable;
+    set_reachable(curr_reachability);
   }  /* if */
   /* Check for and ignore the final colon. */
   (void)required_token(tok_colon, ec_exp_colon);
@@ -1689,7 +1707,7 @@ Scan a default case label definition.  The syntax is:
   }  else {
     /* We are not inside a switch statement. */
     error(ec_default_label_must_be_in_switch);
-    code_reachable = rc_reachable;
+    set_reachable(curr_reachability);
   }  /* if */
   /* Ignore the initial "default". */
 #if CHECKING
@@ -1791,7 +1809,7 @@ rescan_statement:
         if (label->variant.exec_stmt != NULL) {
           sym_error(ec_already_defined,
                     (a_symbol_ptr)label->source_corresp.assoc_info);
-          code_reachable = rc_reachable;
+          set_reachable(curr_reachability);
         } else {
           /* The label has not previously been declared, so put out the
              definition. */
@@ -1882,7 +1900,7 @@ come out on the closing "}".
   /* Allocate the statement block. */
   if (at_function_level) {
     /* Block for a function. */
-    code_reachable = rc_reachable;
+    set_reachable(curr_reachability);
     lint_notreached_flag = FALSE;
     block = alloc_statement((a_statement_kind)stmk_block);
     block->seq_number = pos_curr_token.seq;
@@ -1960,15 +1978,18 @@ come out on the closing "}".
     /* Function. */
     /* If the code at the end of a function runs off the end, a default
        return must be added.  See 3.6.6.4. */
-    /* Unless we're already in dead code, or there is a lint-style
-       "notreached" comment, check that a void return (one returning
-       no value) is compatible with the current function (i.e., the
-       current function should also have type void). */
-    if (code_reachable == rc_reachable) check_void_return_okay();
-    /* Add a return with no expression.  Do not add it if the current
-       code is truly unreachable. */
-    if (code_reachable != rc_unreachable) {
-      a_statement_ptr sp = add_statement((a_statement_kind)stmk_return);
+    /* Unless we're already in dead code, check that a void return
+       (one returning no value) is compatible with the current function
+       (i.e., the current function should also have type void), and add
+       a return with no expression. */
+    if (curr_reachability.reachable) {
+      a_statement_ptr sp;
+      /* Suppress the warning if the user told us this code is not
+         reachable. */
+      if (curr_reachability.reachable_considering_hints) {
+        check_void_return_okay();
+      }  /* if */
+      sp = add_statement((a_statement_kind)stmk_return);
       if (current_routine_entry()->special_kind ==
                              (a_special_function_kind)sfk_constructor) {
         /* By default constructors return the "this" variable. */
@@ -2004,7 +2025,7 @@ Return TRUE if the current code is reachable.
     internal_error("curr_code_reachable: struct_stmt_stack is empty");
   }  /* if */
 #endif /* CHECKING */
-  return(code_reachable == rc_reachable);
+  return curr_reachability.reachable;
 }  /* curr_code_reachable */
 
 
