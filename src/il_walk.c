@@ -879,6 +879,19 @@ references.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
+  if (in_secondary_trans_unit(entry_ptr)) {
+    /* For an entity in a secondary translation unit that has linkage,
+       mark the associated canonical entry as needed too, since that's the
+       one that will be copied to the primary IL. */
+    a_source_correspondence *scp =
+                            source_corresp_for_il_entry(entry_ptr, entry_kind);
+    if (scp != NULL && scp->trans_unit_corresp != NULL) {
+      char *canonical = scp->trans_unit_corresp->canonical;
+      if (canonical != entry_ptr && in_secondary_trans_unit(canonical)) {
+        mark_as_needed(canonical, entry_kind);
+      }  /* if */
+    }  /* if */
+  }  /* if */      
 }  /* mark_as_needed */
 
 
