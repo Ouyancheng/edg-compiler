@@ -477,6 +477,87 @@ Flags to be set when using the KAI inliner.
 #include "defines_macosx.h"
 
 #else /* !(defined(__APPLE__) && defined(__MACH__)) */
+#ifdef __CYGWIN32__
+#ifdef DEMO_VERSION
+/* Demo versions should support multiple translation units. */
+#define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
+#define COMPILE_MULTIPLE_SOURCE_FILES 0
+#define DEBUG 0
+#define EMBEDDED_C_ALLOWED 1
+#define INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES 1
+#define INCLUDE_EDG_TEST_NAMED_REGISTERS 1
+#endif /* ifdef DEMO_VERSION */
+
+#ifndef DEFAULT_EDG_BASE
+#define DEFAULT_EDG_BASE "/c/edg/cpfe"
+#endif /* DEFAULT_EDG_BASE */
+#define __ANSIC__ 1
+#ifndef COMPILE_MULTIPLE_SOURCE_FILES
+#define COMPILE_MULTIPLE_SOURCE_FILES 1
+#endif /* ifndef COMPILE_MULTIPLE_SOURCE_FILES */
+#define C_GEN_BE_GENERATES_ANSI_C 1
+#define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE 1
+#ifndef RUNTIME_USES_NAMESPACES
+#define RUNTIME_USES_NAMESPACES 1
+#endif /* ifndef RUNTIME_USES_NAMESPACES */
+#define BUILTIN_VA_LIST_OVERRIDE_TYPE "__gnuc_va_list"
+#define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 0
+#define IGNORE_CARRIAGE_RETURN_IN_SOURCE 1
+#define GNU_EXTENSIONS_ALLOWED 1
+#if defined(__GNUC__) && !defined(GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED)
+#define GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED 1
+#endif /* defined(__GNUC__) && !defined(GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED) */
+#define DEFAULT_GNU_COMPATIBILITY 0
+#define DEFAULT_USE_PREDEFINED_MACRO_FILE 1
+#ifndef IA64_ABI
+#define IA64_ABI 1
+#endif /* IA64_ABI */
+
+/* Settings needed in order for bit-field allocation to match gcc. */
+#define TARG_BIT_FIELD_CONTAINER_SIZE (-1)
+#define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C TRUE
+
+#define LONG_LONG_ALLOWED 1
+#define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 1
+#define TYPE_FOR_AN_INTEGER_VALUE unsigned long long
+#define TYPE_FOR_A_SIGNED_INTEGER_VALUE long long
+#define PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE   "%lld"
+#define PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE "%llu"
+#define PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE      "%llx"
+#define MAX_INTEGER_VALUE 9223372036854775807LL
+#define MIN_INTEGER_VALUE (-MAX_INTEGER_VALUE-1)
+#define MAX_UNSIGNED_INTEGER_VALUE 18446744073709551615ULL
+
+/* Configuration definitions determined by dettarg.c: */
+#define TARG_LITTLE_ENDIAN TRUE
+#define TARG_CHAR_BIT 8
+#define TARG_HAS_SIGNED_CHARS TRUE
+#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT TRUE
+#define TARG_SIZEOF_SHORT 2
+#define TARG_ALIGNOF_SHORT 2
+#define TARG_SIZEOF_INT 4
+#define TARG_ALIGNOF_INT 4
+#define TARG_SIZEOF_LONG 4
+#define TARG_ALIGNOF_LONG 4
+#define TARG_SIZEOF_POINTER 4
+#define TARG_ALIGNOF_POINTER 4
+#define TARG_SIZEOF_FLOAT 4
+#define TARG_ALIGNOF_FLOAT 4
+#define TARG_SIZEOF_DOUBLE 8
+#define TARG_ALIGNOF_DOUBLE 8
+#define TARG_SIZEOF_LONG_DOUBLE 12
+#define TARG_ALIGNOF_LONG_DOUBLE 4
+#define TARG_SIZEOF_WCHAR_T 2
+#define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_unsigned_short)
+#define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
+#define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_int)
+#define HOST_ALIGNMENT_REQUIRED 8
+#define TARG_RIGHT_SHIFT_IS_ARITHMETIC TRUE
+#define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE FALSE
+#define TARG_MINIMUM_STRUCT_ALIGNMENT 1
+#define TARG_JMP_BUF_NUM_ELEMENTS 52
+#define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
+#else /* ifndef __CYGWIN32__ */
 /* Options for UnixWare test version. */
 #define __ANSIC__ 1
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
@@ -532,6 +613,7 @@ Flags to be set when using the KAI inliner.
 #define SVR4_TRAP_NULL_POINTER_REFERENCES 1
 #endif /* ifndef SVR4_TRAP_NULL_POINTER_REFERENCES */
 
+#endif /* ifdef __CYGWIN32__ */
 #endif /* defined(__APPLE__) && defined(__MACH__) */
 #endif /* ifdef __hpux */
 #endif /* ifdef __linux__ */
