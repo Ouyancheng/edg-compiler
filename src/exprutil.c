@@ -1716,7 +1716,16 @@ The position of the current token will be used as the operand position.
     copy_constant(con_ptr, &constant);
     underlying_type = type_pointed_to(constant.type);
     constant.type = make_pointer_type(underlying_type);
-    make_constant_operand(&constant, operand);
+    if (curr_expr_kind_is_const()) {
+      make_constant_operand(&constant, operand);
+    } else {
+      /* Non-constant expression.  Make an expression node so that we
+         can set the implicit_reference_indirection flag therein (there's
+         no similar flag for constants). */
+      an_expr_node_ptr expr = alloc_node_for_constant(&constant);
+      expr->implicit_reference_indirection = TRUE;
+      make_expression_operand(expr, expr->type, operand);
+    }  /* if */
     if (is_function_type(underlying_type)) {
       operand->state = (an_operand_state)os_function_designator;
     } else {
