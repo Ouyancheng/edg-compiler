@@ -555,7 +555,7 @@ and 3.1.3.4 in the ANSI C standard).
      the like. */
   *num_elems = num_chars;
   if (add_null) (*num_elems)++;
-  *constant_size = (*num_elems)*TARG_SIZEOF_WCHAR_T;
+  *constant_size = (sizeof_t)((*num_elems)*TARG_SIZEOF_WCHAR_T);
 }  /* determine_wide_char_constant_size */
 
 
@@ -645,7 +645,7 @@ processing).
     } else {
       int_kind = (an_integer_kind)ik_int;
     }  /* if */
-    constant_size = num_chars;
+    constant_size = (sizeof_t)num_chars;
     set_char_centity_attributes();
   }  /* if */
   con_type = integer_type(int_kind);
@@ -728,7 +728,8 @@ Put the wide character ch into the string pointed to by *pstr, and increment
     *p++ = ch & UCHAR_MAX;
     ch >>= TARG_CHAR_BIT;
 #else /* !TARG_LITTLE_ENDIAN */
-    *p++ = (ch >> ((TARG_SIZEOF_WCHAR_T - i - 1) * TARG_CHAR_BIT)) & UCHAR_MAX;
+    *p++ = (char) ((ch >> ((TARG_SIZEOF_WCHAR_T - i - 1) *
+                                               TARG_CHAR_BIT)) & UCHAR_MAX);
 #endif /* TARG_LITTLE_ENDIAN */
   }  /* for */
   *pstr = p;
@@ -772,8 +773,8 @@ processing).
                                       &constant_size, &num_elems);
     set_basic_wchar_t_centity_attributes();
   } else {
-    /* Normal string literal. */
-    constant_size = num_elems = num_chars+1;  /* "+1" is space for the null. */
+    /* Normal string literal.  The "+1" is space for the null. */
+    constant_size = (sizeof_t)(num_elems = num_chars+1);
     set_basic_char_centity_attributes();
   }  /* if */
   /* Allocate enough space to hold the final string, including the null
@@ -785,7 +786,7 @@ processing).
     if (!is_wide) {
       conv_single_char(&temp_ptr, &ch, centity_mask);
       /* Put the character in the right place. */
-      *pstr++ = ch;
+      *pstr++ = (char)ch;
       chars_taken = 1;
     } else {
       conv_single_wide_char(&temp_ptr, &ch, &chars_taken, centity_mask);

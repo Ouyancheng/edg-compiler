@@ -4927,41 +4927,38 @@ Lower comparison of two pointers to members.
     op1_node = make_reusable_copy(op1_node);
     select1_node = node_to_select_field_from_rvalue(op1_node, mptr_i_field);
     select1_node->next = node_for_integer_constant(0L, TARG_DELTA_INT_KIND);
-    compare_i0_node = make_operator_node(ne_case ? 
-                                               (an_expr_operator_kind)eok_ine :
-                                               (an_expr_operator_kind)eok_ieq,
-                                      int_type, select1_node);
+    compare_i0_node = make_operator_node
+                        ((an_expr_operator_kind) (ne_case ? eok_ine : eok_ieq),
+                         int_type, select1_node);
     /* Make "op1.d == op2.d" (or "!=" for the ne_case). */
     op1_node = make_reusable_copy(op1_node);
     select1_node = node_to_select_field_from_rvalue(op1_node, mptr_d_field);
     op2_node = make_reusable_copy(op2_node);
     select2_node = node_to_select_field_from_rvalue(op2_node, mptr_d_field);
     select1_node->next = select2_node;
-    compare_d_node = make_operator_node(ne_case ? 
-                                               (an_expr_operator_kind)eok_ine :
-                                               (an_expr_operator_kind)eok_ieq,
-                                        int_type, select1_node);
+    compare_d_node = make_operator_node
+                       ((an_expr_operator_kind) (ne_case ? eok_ine : eok_ieq),
+                        int_type, select1_node);
     /* Make "op1.f == op2.f" (or "!=" for the ne_case). */
     op1_node = make_reusable_copy(op1_node);
     select1_node = node_to_select_field_from_rvalue(op1_node, mptr_f_field);
     op2_node = make_reusable_copy(op2_node);
     select2_node = node_to_select_field_from_rvalue(op2_node, mptr_f_field);
     select1_node->next = select2_node;
-    compare_f_node = make_operator_node(ne_case ? 
-                                               (an_expr_operator_kind)eok_ine :
-                                               (an_expr_operator_kind)eok_ieq,
-                                        int_type, select1_node);
+    compare_f_node = make_operator_node
+                       ((an_expr_operator_kind) (ne_case ? eok_ine : eok_ieq),
+                        int_type, select1_node);
     /* Make "(op1.d == op2.d && op1.f == op2.f)" (or "||" for the ne_case). */
     compare_d_node->next = compare_f_node;
-    and_node = make_operator_node(ne_case ? (an_expr_operator_kind)eok_lor :
-                                            (an_expr_operator_kind)eok_land,
-                                  int_type, compare_d_node);
+    and_node = make_operator_node
+                 ((an_expr_operator_kind) (ne_case ? eok_lor : eok_land),
+                  int_type, compare_d_node);
     /* Make "(op1.i == 0 || (op1.d == op2.d && op1.f == op2.f))" (or "&&"
        for the ne_case. */
     compare_i0_node->next = and_node;
-    or_node = make_operator_node(ne_case ? (an_expr_operator_kind)eok_land :
-                                           (an_expr_operator_kind)eok_lor,
-                                 int_type, compare_i0_node);
+    or_node = make_operator_node
+                ((an_expr_operator_kind) (ne_case ? eok_land : eok_lor),
+                 int_type, compare_i0_node);
     /* Overwrite the original node with the "?" operator to make the full
        expression. */
     compare_i_node->next = or_node;

@@ -313,8 +313,8 @@ If not, expand macro_buffer by reallocating it.
 */
 #define ensure_macro_buffer_space(needed)                             \
 { sizeof_t temp_needed = needed;                                      \
-  if (temp_needed > (after_end_of_macro_buffer -                      \
-                     next_avail_in_macro_buffer)) {                   \
+  if (temp_needed > (sizeof_t)(after_end_of_macro_buffer -            \
+                               next_avail_in_macro_buffer)) {         \
     expand_macro_buffer(temp_needed);                                 \
   }  /* if */                                                         \
 }  /* ensure_macro_buffer_space */
@@ -371,8 +371,8 @@ aux_buffer_for_pcc_macros by reallocating it.
 */
 #define ensure_aux_buffer_for_pcc_macros_space(needed, pos_in_aux_buffer) \
 { sizeof_t temp_needed = needed;                                      \
-  if (temp_needed > (after_end_of_aux_buffer_for_pcc_macros -         \
-                     pos_in_aux_buffer)) {                            \
+  if (temp_needed > (sizeof_t)(after_end_of_aux_buffer_for_pcc_macros -    \
+                               pos_in_aux_buffer)) {                       \
     expand_aux_buffer_for_pcc_macros(temp_needed, pos_in_aux_buffer); \
   }  /* if */                                                         \
 }  /* ensure_aux_buffer_for_pcc_macros_space */

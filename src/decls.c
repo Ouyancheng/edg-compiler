@@ -3556,10 +3556,9 @@ skip_overloading:;
   }  /* if */
   if (sym == NULL) {
     /* There is no (compatible) symbol, so enter one now. */
-    sym = enter_local_symbol(is_function ? (a_symbol_kind)sk_routine :
-                                           (a_symbol_kind)sk_variable,
-                             locator, effective_decl_level,
-                             redecl_error_already_issued);
+    sym = enter_local_symbol
+                  ((a_symbol_kind)(is_function ? sk_routine : sk_variable),
+                   locator, effective_decl_level, redecl_error_already_issued);
   } else if (is_implicit_function) {
     /* This is an implicit declaration of a function.  The symbol has
        already been entered and marked as declared. */

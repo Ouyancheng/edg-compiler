@@ -279,7 +279,7 @@ Free the storage associated with the indicated memory block.
 
   db_enter(5, "free_mem_block");
   if (hdr->malloc_size > 0 &&
-      hdr->malloc_size == (hdr->after_end_of_block - (char *)hdr)) {
+      hdr->malloc_size == (sizeof_t)(hdr->after_end_of_block - (char *)hdr)) {
     /* Blocks that are complete blocks as originally allocated by malloc
        can be freed by calling free. */
     free_complete_block(hdr);
@@ -315,7 +315,7 @@ Free the storage associated with the indicated memory block.
            leave the loop. */
         if (hdr->malloc_size > 0 &&
             hdr->malloc_size ==
-              (hdr->after_end_of_block - hdr->start_of_block)) {
+              (sizeof_t)(hdr->after_end_of_block - hdr->start_of_block)) {
           free_complete_block(hdr);
           goto freed_it;
         }  /* if */
@@ -496,7 +496,7 @@ is used for allocation of general front end memory (i.e., not IL).
   /* See if enough space remains in the current block.  If not, get
      a new block. */
   hdr = mem_region_table[region_number];
-  if (size > (hdr->after_end_of_block - hdr->next_avail_in_block)) {
+  if (size > (sizeof_t)(hdr->after_end_of_block - hdr->next_avail_in_block)) {
     /* Not enough space remaining in current block.  Free any unused
        space at the end of the current last block, and start a new block. */
     trim_mem_block(hdr);
