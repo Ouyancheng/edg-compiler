@@ -555,10 +555,15 @@ returns FALSE.
 
 
 static void cleanup(an_eh_stack_entry_ptr ehsep,
-                      a_region_number       region)
+                    a_region_number       region,
+		    a_region_number	  stop_at_region)
 /*
 Do the cleanup operations required in the function described by ehsep.
-The current region number within ehsep is designated by region.
+The current region number within ehsep is designated by region.  Cleanup
+processing stops when we reach the region designated by stop_at_region.
+Normally this is NULL_REGION_NUMBER but may have another value when
+doing a partial cleanup as is done when an object in a try block
+requires cleanup.
 */
 {
   for (;;) {
@@ -570,7 +575,7 @@ The current region number within ehsep is designated by region.
 
     /* If the region number is the NULL region then there is no
        cleanup required in this function. */
-    if (region == NULL_REGION_NUMBER) break;
+    if (region == stop_at_region) break;
     ehrdp = &ehsep->variant.function.regions[region];
     flags = ehrdp->flags;
     obj_addr_array = ehsep->variant.function.object_address_table;
@@ -769,7 +774,7 @@ a try block with a catch that matches the type of the object thrown.
                  (void *)ehsep);
        }  /* if */
 #endif /* DEBUG */
-      cleanup(ehsep, region);
+      cleanup(ehsep, region, NULL_REGION_NUMBER);
       region = ehsep->variant.function.saved_region_number;
     } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
       /* A try block that is being skipped. */
@@ -804,6 +809,23 @@ a try block with a catch that matches the type of the object thrown.
   }  /* if */
 
   if (destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block) {
+    /* A try block may have objects that must be cleaned up before
+       transferring control to one of the catch clauses.  This is determined
+       by comparing the current region number with the region number in
+       the try block.  If they are different then some objects must be
+       cleaned up.  Call the cleanup routine to cleanup objects until we
+       reach the region number indicated by the value in the try block. */
+    if (destination_ehsep->variant.try_block.region_number !=
+							 region) {
+      /* Find the function entry that contains the cleanup information. */
+      an_eh_stack_entry_ptr	function_ehsep = destination_ehsep->next;
+      while (function_ehsep->kind != (an_eh_stack_entry_kind)ehsek_function) {
+        function_ehsep = function_ehsep->next;
+      }  /* while */
+      cleanup(function_ehsep, region,
+              destination_ehsep->variant.try_block.region_number);
+      
+    }  /* if */
     __catch_clause_number = destination_catch_value;
     __caught_object_address = object_ptr;
    /* Update the pointer in the try block to point to the throw stack entry
