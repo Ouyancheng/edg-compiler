@@ -515,6 +515,8 @@ extern void add_orphaned_file_scope_il_entry(char             *entry_ptr,
 
 extern void add_orphaned_file_scope_il_list(a_type_ptr     types,
                                             a_variable_ptr variables);
+
+extern void add_scope_orphaned_il_lists(a_scope_ptr scope);
 #endif /* ORPHAN_PROCESSING_NEEDED */
 
 extern void il_init(void);

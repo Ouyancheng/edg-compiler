@@ -2006,6 +2006,27 @@ If both pointers (types and variables) are NULL, this routine does nothing.
 }  /* add_orphaned_file_scope_il_list */
 
 #endif /* ORPHAN_PROCESSING_NEEDED */
+#if ORPHAN_PROCESSING_NEEDED
+
+void add_scope_orphaned_il_lists(a_scope_ptr scope)
+/*
+If the indicated scope has local types or static variables, call
+add_orphaned_file_scope_il_list to add an orphan list in the file scope.
+Also use recursion to visit all block scopes attached to this scope and
+do the same processing.
+*/
+{
+  a_scope_ptr block_scope;
+
+  add_orphaned_file_scope_il_list(scope->types, scope->variables);
+  for (block_scope = scope->scopes;
+       block_scope != NULL;
+       block_scope = block_scope->next) {
+    add_scope_orphaned_il_lists(block_scope);
+  }  /* for */
+}  /* add_scope_orphaned_il_lists */
+
+#endif /* ORPHAN_PROCESSING_NEEDED */
 #if !STANDALONE_UTILITY_PROGRAM
 
 static void add_to_scopes_list(a_scope_ptr             scope_ptr,
