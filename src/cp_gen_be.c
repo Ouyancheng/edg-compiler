@@ -822,6 +822,8 @@ Output the indicated constant.
   a_type_ptr       con_type = NULL, orig_type;
   a_boolean        need_cast_close_paren = FALSE, need_close_paren;
   a_boolean        ptr_implicit_cast_case, scaled_offset_cast;
+  a_boolean        need_ampersand;
+  a_type_ptr       underlying_object_type;
   a_targ_ptrdiff_t offset;
   a_constant_ptr   sub_con;
 
@@ -903,6 +905,39 @@ Output the indicated constant.
       break;
     case ck_address:
       /* Address constant. */
+      /* Extract the underlying type. */
+      need_ampersand = TRUE;
+      switch (constant->variant.address.kind) {
+        case abk_routine:
+          underlying_object_type =
+                               constant->variant.address.variant.routine->type;
+          /* Exploit the implicit decay to pointer. */
+          need_ampersand = FALSE;
+          break;
+        case abk_variable:
+          underlying_object_type =
+                              constant->variant.address.variant.variable->type;
+          break;
+        case abk_constant:
+          underlying_object_type =
+                              constant->variant.address.variant.constant->type;
+          break;
+        default:
+          unexpected_condition_str("gen_constant: bad addr constant kind");
+      }  /* switch */
+      underlying_object_type = skip_typerefs(underlying_object_type);
+      if (underlying_object_type->kind == (a_type_kind)tk_array) {
+        /* For an array, exploit the implicit decay to pointer.
+           This is particularly helpful in cases where the underlying
+           variable is something like
+             struct _iobuf x[];
+           for which the array has zero size but the element size is
+           known. */
+        need_ampersand = FALSE;
+        underlying_object_type =
+                            underlying_object_type->variant.array.element_type;
+        underlying_object_type = skip_typerefs(underlying_object_type);
+      }  /* if */
       /* Look for cases where a pointer is implicitly cast to a strange type
          (e.g., "char").  The original code probably did this conversion
          as two casts, but the implicit_cast mechanism only retains information
@@ -921,31 +956,14 @@ Output the indicated constant.
       }  /* if */
       offset = constant->variant.address.offset;
       if (offset != 0) {
-        a_type_ptr underlying_object_type;
-        a_boolean  can_use_scaling = FALSE;
         /* Non-zero offset.  Deal with scaling issues. */
         write_str("(");
+        scaled_offset_cast = FALSE;
         /* See if the size of the underlying object is such that scaling
            can be done implicitly instead of playing tricks with casting
            to "char *" and back. */
-        switch (constant->variant.address.kind) {
-          case abk_variable:
-            underlying_object_type =
-                              constant->variant.address.variant.variable->type;
-            goto check_size;
-          case abk_constant:
-            underlying_object_type =
-                              constant->variant.address.variant.constant->type;
-check_size:
-            underlying_object_type = skip_typerefs(underlying_object_type);
-            if ((offset % underlying_object_type->size) == 0) {
-              can_use_scaling = TRUE;
-            }  /* if */
-            break;
-          default:;  /* Others (e.g., routines) can't use scaling. */
-        }  /* switch */
-        scaled_offset_cast = FALSE;
-        if (can_use_scaling) {
+        if (underlying_object_type->size != 0 &&
+            (offset % underlying_object_type->size) == 0) {
           /* The offset is divisible by the size of the object, so adjust
              the offset to the proper units. */
           offset /= con_type->size;
@@ -962,8 +980,9 @@ check_size:
           write_str("(char *)");
         }  /* if */
       }  /* if */
-      /* Surround the "&name" with parentheses to avoid precedence problems. */
-      write_str("(&");
+      /* If using an ampersand, surround the name with parentheses to avoid
+         precedence problems. */
+      if (need_ampersand) write_str("(&");
       switch (constant->variant.address.kind) {
         case abk_routine:
           gen_routine_name(constant->variant.address.variant.routine);
@@ -979,9 +998,9 @@ check_size:
           gen_constant(constant->variant.address.variant.constant);
           break;
         default:
-          unexpected_condition_str("gen_constant: bad address constant kind");
+          unexpected_condition_str("gen_constant: bad addr constant kind");
       }  /* switch */
-      write_str(")");
+      if (need_ampersand) write_str(")");
       if (offset != 0) {
         /* Add in the (signed) offset. */
         write_str(" + ");
@@ -1412,7 +1431,6 @@ Output the definition of the indicated class type.
     /* Restore the previous value of class_scope_source_sequence_entry. */
     class_scope_source_sequence_entry= saved_class_scope_source_sequence_entry;
     inside_struct_in_C_mode = saved_inside_struct_in_C_mode;
-    end_output_line();
     write_str("}");
   }  /* if */
 }  /* gen_class_definition */
