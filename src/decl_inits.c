@@ -240,12 +240,12 @@ member remains uninitialized.  This routine is called in C++ mode only.
           /* If there's a constructor routine create a dik_constructor
              dynamic init entry. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-          dip->variant.ctor_or_routine.ptr = ctor_rp;
+          dip->variant.constructor.ptr = ctor_rp;
           /* A user defined default constructor may have default args that
              should be incorporated into the constructor call. */
           ptp = (skip_typerefs(ctor_rp->type))->
                                    variant.routine.extra_info->param_type_list;
-          dip->variant.ctor_or_routine.args = copy_default_arg_expr_list(ptp);
+          dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
         } else {
           /* If there's no constructor routine we use a dik_none dynamic
              init entry. */
@@ -432,8 +432,8 @@ is an empty class.
            a dynamic init entry to call it. */
         init_con->variant.dynamic_init = dip =
                       alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-        dip->variant.ctor_or_routine.ptr = conversion_routine;
-        dip->variant.ctor_or_routine.args = expression;
+        dip->variant.constructor.ptr = conversion_routine;
+        dip->variant.constructor.args = expression;
       } else {
         /* Generate code for a bitwise copy. */
         init_con->variant.dynamic_init = dip =
@@ -891,12 +891,12 @@ i.e., it does something other than just return a value for the initialization.
         /* No side effects. */
         break;
       case dik_expression:
+      case dik_call_returning_class_via_cctor:
         /* An expression might have side effects.  See if it does. */
         has_side_effects = node_has_side_effects(dip->variant.expression);
         break;
       case dik_constructor:
-      case dik_routine:
-        /* A constructor or routine call causes side effects. */
+        /* A constructor call causes side effects. */
         has_side_effects = TRUE;
         break;
       case dik_nonconstant_aggregate:
@@ -1189,8 +1189,8 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
         /* Set the dynamic init entry to represent constructor
            initialization. */
         clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-        local_di.variant.ctor_or_routine.ptr = conversion_routine;
-        local_di.variant.ctor_or_routine.args = arg_list;
+        local_di.variant.constructor.ptr = conversion_routine;
+        local_di.variant.constructor.args = arg_list;
       }  /* if */
     } else {
       /* C-style class with no constructors, so initialization by bitwise
@@ -1241,8 +1241,8 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
          complex x = complex(1).  Set the dynamic init entry to represent
          constructor initialization. */
       clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-      local_di.variant.ctor_or_routine.ptr = conversion_routine;
-      local_di.variant.ctor_or_routine.args = expression;
+      local_di.variant.constructor.ptr = conversion_routine;
+      local_di.variant.constructor.args = expression;
     } else {
       /* No appropriate constructor was found.  Abort the initialization. */
       err = TRUE;
@@ -1493,11 +1493,10 @@ the default constructor (if one exists) is called.
                                    variant.routine.extra_info->param_type_list;
 
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-          local_di.variant.ctor_or_routine.ptr = rp;
+          local_di.variant.constructor.ptr = rp;
           /* A user defined default constructor may have default args that
              should be incorporated into the constructor call. */
-          local_di.variant.ctor_or_routine.args =
-                                               copy_default_arg_expr_list(ptp);
+          local_di.variant.constructor.args = copy_default_arg_expr_list(ptp);
           local_di.destructor = select_destructor(tp, tp,
                                                   /*honor_virtual=*/FALSE,
                                                   /*evaluated=*/TRUE);
@@ -2034,8 +2033,8 @@ scan_paren:
               /* Set the dynamic init entry to represent constructor
                  initialization. */
               dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-              dip->variant.ctor_or_routine.ptr = conversion_routine;
-              dip->variant.ctor_or_routine.args = arg_list;
+              dip->variant.constructor.ptr = conversion_routine;
+              dip->variant.constructor.args = arg_list;
             } else {
               /* Create a fake initializer to represent the error. */
               a_constant_ptr  cp;
@@ -2168,7 +2167,7 @@ scan_arg_for_scan_initialization:
           a_param_type_ptr  ptp = (skip_typerefs(rp->type))->
                                    variant.routine.extra_info->param_type_list;
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-          dip->variant.ctor_or_routine.ptr = rp;
+          dip->variant.constructor.ptr = rp;
           /* No expression node is created to represent the subobject.  The
              back end will compute the subobject's address based on the
              base class or field just as it will compute the address of the
@@ -2179,8 +2178,8 @@ scan_arg_for_scan_initialization:
              first param is ignored even if it is declared to have a default
              arg. */
           ptp = ptp->next;
-          dip->variant.ctor_or_routine.args = copy_default_arg_expr_list(ptp);
-          dip->variant.ctor_or_routine.is_copy_constructor_for_subobject= TRUE;
+          dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
+          dip->variant.constructor.is_copy_constructor_for_subobject = TRUE;
         }  /* if */
       } else {
         /* No copy constructor is required.  If any constructor exists, the
@@ -2231,10 +2230,10 @@ scan_arg_for_scan_initialization:
           a_param_type_ptr  ptp = (skip_typerefs(rp->type))->
                                    variant.routine.extra_info->param_type_list;
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-          dip->variant.ctor_or_routine.ptr = rp;
+          dip->variant.constructor.ptr = rp;
           /* A user defined default constructor may have default args that
              should be incorporated into the constructor call. */
-          dip->variant.ctor_or_routine.args = copy_default_arg_expr_list(ptp);
+          dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
         }  /* if */
       }  /* if */
       if (array_type != NULL &&

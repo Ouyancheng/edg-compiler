@@ -6340,10 +6340,10 @@ constructor call.  implied_arg_list is a list of implied extra virtual
 base class pointer arguments for the constructor, or NULL if this routine
 should generate them if required.  Insert the statement at *insert_location
 and update *insert_location.  The additional-arguments list given by
-dip->variant.ctor_or_routine.args has already been lowered.
+dip->variant.constructor.args has already been lowered.
 */
 {
-  a_routine_ptr    constr_routine = dip->variant.ctor_or_routine.ptr;
+  a_routine_ptr    constr_routine = dip->variant.constructor.ptr;
   an_expr_node_ptr last_node;
   a_statement_ptr  call_stmt;
 
@@ -6370,7 +6370,7 @@ dip->variant.ctor_or_routine.args has already been lowered.
     last_node->next = source_node;
     last_node = source_node;
   }  /* if */
-  last_node->next = dip->variant.ctor_or_routine.args;
+  last_node->next = dip->variant.constructor.args;
   /* Make an expression statement containing the call expression. */
   call_stmt = make_call_statement(constr_routine, entity_node);
   /* If the initialization is for a whole variable, the position is available
@@ -6773,7 +6773,7 @@ address of the array; source_node (if non-NULL) gives the address of
 the source for a copy constructor call; and array_element_count gives the
 number of elements in the array.  Insert the statements at *insert_location
 and update *insert_location.  The additional-arguments list given by
-dip->variant.ctor_or_routine.args has already been lowered.
+dip->variant.constructor.args has already been lowered.
 */
 {
   a_routine_ptr    ctor_routine;
@@ -6785,9 +6785,9 @@ dip->variant.ctor_or_routine.args has already been lowered.
     internal_error("add_array_constructor_call: not dik_constructor");
   }  /* if */
 #endif /* CHECKING */
-  ctor_routine = dip->variant.ctor_or_routine.ptr;
+  ctor_routine = dip->variant.constructor.ptr;
   ctor_routine = default_version_of_routine(ctor_routine,
-                                            dip->variant.ctor_or_routine.args);
+                                            dip->variant.constructor.args);
   if (source_node != NULL) {
     /* Copy constructor case. */
     call_node = make_vec_cctor_call(entity_node, source_node,
@@ -7551,8 +7551,8 @@ do_assignment:;
     case dik_constructor:
       /* Initialize the entity by calling a constructor. */
       /* The routine does not need to be lowered from here. */
-      lower_arg_expr_list(dip->variant.ctor_or_routine.args,
-                          dip->variant.ctor_or_routine.ptr->type);
+      lower_arg_expr_list(dip->variant.constructor.args,
+                          dip->variant.constructor.ptr->type);
       if (processing_file_scope_init_routine ||
           first_time_test_var != NULL) {
         /* When generating the file-scope initialization routine we have
@@ -7561,13 +7561,13 @@ do_assignment:;
            we have a difficult job keeping track of the nodes that are in
            the file scope and those that are in the function scope.
            Similar reasoning applies to local static variables. */
-        dip->variant.ctor_or_routine.args =
-                    copy_list_of_expr_trees(dip->variant.ctor_or_routine.args);
+        dip->variant.constructor.args =
+                        copy_list_of_expr_trees(dip->variant.constructor.args);
       }  /* if */
       /* Make a node for the entity to be initialized. */
       entity_node = make_init_entity_node(ipdp);
       source_node = NULL;
-      if (dip->variant.ctor_or_routine.is_copy_constructor_for_subobject) {
+      if (dip->variant.constructor.is_copy_constructor_for_subobject) {
         an_init_pos_descr    cctor_source_ipd;
         an_init_pos_modifier cctor_source_ipm;
         /* The constructor being called is a copy constructor.  The argument
@@ -9321,13 +9321,13 @@ arrays with class elements.
     elem_dip = elem_dynamic_init(dip);
     check_assertion(elem_dip->kind == (a_dynamic_init_kind)dik_constructor) ;
     /* Get the constructor routine to call. */
-    ctor_routine = elem_dip->variant.ctor_or_routine.ptr;
+    ctor_routine = elem_dip->variant.constructor.ptr;
     /* If the constructor has default arguments, make a routine that
        calls the constructor with the necessary default arguments. */
-    lower_arg_expr_list(elem_dip->variant.ctor_or_routine.args,
+    lower_arg_expr_list(elem_dip->variant.constructor.args,
                         ctor_routine->type);
     ctor_routine = default_version_of_routine(ctor_routine,
-                                       elem_dip->variant.ctor_or_routine.args);
+                                           elem_dip->variant.constructor.args);
   } else {
     /* There is no dynamic init entry; the storage is not initialized after
        allocation. */
@@ -9441,7 +9441,7 @@ The subtree of the node has not yet been lowered.
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
   } else if (ndsp->routine == NULL) {
     /* The "new" call has been folded into the constructor call. */
-    a_routine_ptr    ctor_routine = dip->variant.ctor_or_routine.ptr;
+    a_routine_ptr    ctor_routine = dip->variant.constructor.ptr;
     an_expr_node_ptr implied_arg_list, end_implied_arg_list;
     /* ndsp->arg is not lowered because it is thrown away. */
     /* Pass a NULL for the "this" parameter to tell the constructor to
@@ -9457,10 +9457,10 @@ The subtree of the node has not yet been lowered.
       end_implied_arg_list = null_node;
     }  /* if */
     /* Preserve any additional parameters from the constructor call. */
-    if (dip->variant.ctor_or_routine.args != NULL) {
-      lower_arg_expr_list(dip->variant.ctor_or_routine.args,
+    if (dip->variant.constructor.args != NULL) {
+      lower_arg_expr_list(dip->variant.constructor.args,
                           ctor_routine->type);
-      end_implied_arg_list->next = dip->variant.ctor_or_routine.args;
+      end_implied_arg_list->next = dip->variant.constructor.args;
     }  /* if */
     /* Make the constructor call. */
     call_node = make_call_node(ctor_routine, null_node,
@@ -10348,6 +10348,10 @@ Generate code for a stmk_init (dynamic initialization) statement.
         */
         non_C_case = TRUE;
       }  /* if */
+      break;
+    case dik_call_returning_class_via_cctor:
+      /* Initialization from class returned via copy constructor. */
+      non_C_case = TRUE;
       break;
     case dik_constructor:
       /* Initialization using a constructor. */

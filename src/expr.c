@@ -245,7 +245,7 @@ Return TRUE if the expression node has side effects.
       break;
     case enk_temp_init:
       /* At the very least, this has the side effect of initializing
-         something.  They might also call a constructor, etc. */
+         something.  It might also call a constructor, etc. */
       has_side_effects = TRUE;
       break;
     case enk_new_delete:
@@ -3747,8 +3747,8 @@ specification allow a variable-sized array as the top type.
       if (ctor_routine != NULL) {
         /* Constructor call. */
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-        dip->variant.ctor_or_routine.ptr = ctor_routine;
-        dip->variant.ctor_or_routine.args = arg_expr_list;
+        dip->variant.constructor.ptr = ctor_routine;
+        dip->variant.constructor.args = arg_expr_list;
         if (array_new) {
           /* The entity is an array whose elements have a class type that
              has a default constructor.  Use a dik_nonconstant_aggregate

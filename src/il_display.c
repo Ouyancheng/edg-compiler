@@ -2521,21 +2521,19 @@ Display the indicated dynamic_init structure.
       (void)printf("dik_expression\n");
       disp_ptr("expression", (char *)ptr->variant.expression, iek_expr_node);
       break;
+    case dik_call_returning_class_via_cctor:
+      (void)printf("dik_call_returning_class_via_cctor\n");
+      disp_ptr("call returning class via cctor",
+               (char *)ptr->variant.expression, iek_expr_node);
+      break;
     case dik_constructor:
       (void)printf("dik_constructor\n");
-      goto do_ctor_or_routine;
-    case dik_routine:
-      (void)printf("dik_routine\n");
-do_ctor_or_routine:
-      disp_ptr("routine", (char *)ptr->variant.ctor_or_routine.ptr,
+      disp_ptr("routine", (char *)ptr->variant.constructor.ptr,
                iek_routine);
-      disp_ptr("args", (char *)ptr->variant.ctor_or_routine.args,
+      disp_ptr("args", (char *)ptr->variant.constructor.args,
                iek_expr_node);
-      if (ptr->kind == (a_dynamic_init_kind)dik_constructor) {
-        disp_boolean("is_copy_constructor_for_subobject",
-                                       (a_boolean)ptr->variant.ctor_or_routine.
-                                            is_copy_constructor_for_subobject);
-      }  /* if */
+      disp_boolean("is_copy_constructor_for_subobject",
+        (a_boolean)ptr->variant.constructor.is_copy_constructor_for_subobject);
       break;
     case dik_nonconstant_aggregate:
       (void)printf("dik_nonconstant_aggregate\n");

@@ -1135,20 +1135,20 @@ entry.
 }  /* db_destructor */
 
 
-static void db_ctor_or_routine_initializer(a_dynamic_init_ptr  dip,
-                                           int                 level)
+static void db_constructor_initializer(a_dynamic_init_ptr  dip,
+                                       int                 level)
 /*
 Dump debug information on a dynamic initialization entry of type
-dik_constructor or dik_routine.
+dik_constructor.
 */
 {
   an_expr_node_ptr  arg;
   a_param_type_ptr  ptp;
 
   fputs("constructor ", f_debug);
-  db_name(&dip->variant.ctor_or_routine.ptr->source_corresp);
+  db_name(&dip->variant.constructor.ptr->source_corresp);
   (void)fputc('(', f_debug);
-  ptp = f_skip_typerefs(dip->variant.ctor_or_routine.ptr->type)->
+  ptp = f_skip_typerefs(dip->variant.constructor.ptr->type)->
                           variant.routine.extra_info->param_type_list;
   if (ptp != NULL) {
     db_abbreviated_type(ptp->type);
@@ -1158,7 +1158,7 @@ dik_constructor or dik_routine.
     }  /* for */
   }  /* if */
   (void)fputc(')', f_debug);
-  if ((arg = dip->variant.ctor_or_routine.args) == NULL) {
+  if ((arg = dip->variant.constructor.args) == NULL) {
     if (dip->destructor != NULL) {
       fputs("; ", f_debug);
       db_destructor(dip->destructor);
@@ -1176,7 +1176,7 @@ dik_constructor or dik_routine.
       (void)fputc('\n', f_debug);
     }  /* if */
   }  /* if */
-}  /* db_ctor_or_routine_initializer */
+}  /* db_constructor_initializer */
 
 
 static void db_nonconstant_aggregate(a_constant_ptr  con,
@@ -1193,6 +1193,7 @@ dik_nonconstant_aggregate.
       a_dynamic_init_ptr  dip = con->variant.dynamic_init;
       switch (dip->kind) {
         case dik_expression:
+        case dik_call_returning_class_via_cctor:
           db_expr_node(dip->variant.expression, level);
           if (dip->destructor != NULL) {
             for (a = 0; a < level; a++) fputs(" ", f_debug);
@@ -1201,9 +1202,8 @@ dik_nonconstant_aggregate.
           }  /* if */
           break;
         case dik_constructor:
-        case dik_routine:
           for (a = 0; a < level; a++) fputs(" ", f_debug);
-          db_ctor_or_routine_initializer(dip, level);
+          db_constructor_initializer(dip, level);
           break;
         case dik_none:
           for (a = 0; a < level; a++) fputs(" ", f_debug);
@@ -1260,8 +1260,12 @@ Dump a dynamic initializer entry for debug purposes.
       fputs("expression:\n", f_debug);
       db_expr_node(dip->variant.expression, level);
       goto destructor_on_next_line;
+    case dik_call_returning_class_via_cctor:
+      fputs("call returning class via cctor:\n", f_debug);
+      db_expr_node(dip->variant.expression, level);
+      goto destructor_on_next_line;
     case dik_nonconstant_aggregate:
-      fputs("aggregate with non-constants:\n", f_debug);
+      fputs("nonconstant aggregate:\n", f_debug);
       db_nonconstant_aggregate(dip->variant.constant->
                                         variant.aggregate.first_constant,
                                level);
@@ -1273,8 +1277,7 @@ destructor_on_next_line:
       }  /* if */
       break;
     case dik_constructor:
-    case dik_routine:
-      db_ctor_or_routine_initializer(dip, level);
+      db_constructor_initializer(dip, level);
       break;
     case dik_member_copy:
       fputs("<bitwise member copy>", f_debug);
@@ -4034,13 +4037,13 @@ the associated variant fields to default values.
       dip->variant.constant = NULL;
       break;
     case dik_expression:
+    case dik_call_returning_class_via_cctor:
       dip->variant.expression = NULL;
       break;
     case dik_constructor:
-    case dik_routine:
-      dip->variant.ctor_or_routine.ptr = NULL;
-      dip->variant.ctor_or_routine.args = NULL;
-      dip->variant.ctor_or_routine.is_copy_constructor_for_subobject = FALSE;
+      dip->variant.constructor.ptr = NULL;
+      dip->variant.constructor.args = NULL;
+      dip->variant.constructor.is_copy_constructor_for_subobject = FALSE;
       break;
 #if CHECKING
     default:
@@ -4279,13 +4282,13 @@ expression node.
     case dik_none:
       break;
     case dik_expression:
+    case dik_call_returning_class_via_cctor:
       new_dip->variant.expression =
                               internal_copy_expr_tree(dip->variant.expression);
       break;
     case dik_constructor:
-    case dik_routine:
-      new_dip->variant.ctor_or_routine.args =
-           internal_copy_list_of_expr_trees(dip->variant.ctor_or_routine.args);
+      new_dip->variant.constructor.args =
+               internal_copy_list_of_expr_trees(dip->variant.constructor.args);
       break;
     case dik_constant:
     case dik_nonconstant_aggregate:

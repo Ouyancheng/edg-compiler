@@ -999,13 +999,13 @@ the file scope, do not process it (but record an orphan in the latter case).
             walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
             break;
           case dik_expression:
+          case dik_call_returning_class_via_cctor:
             walk_ptr(ptr->variant.expression, an_expr_node_ptr, iek_expr_node);
             break;
           case dik_constructor:
-          case dik_routine:
-            remap_ptr(ptr->variant.ctor_or_routine.ptr, a_routine_ptr,
+            remap_ptr(ptr->variant.constructor.ptr, a_routine_ptr,
                       iek_routine);
-            walk_list(ptr->variant.ctor_or_routine.args, an_expr_node_ptr,
+            walk_list(ptr->variant.constructor.args, an_expr_node_ptr,
                       iek_expr_node);
             break;
 #if CHECKING

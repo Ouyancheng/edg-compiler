@@ -2,10 +2,9 @@ Version 2.16
 
 4/14/93  dik_routine in IL dynamic initialization entry
 
-A new kind of dynamic initialization entry (dik_routine) has been added
-to allow initialization by a routine that returns a class object via
-a copy constructor.  The existing variant "constructor" has been renamed
-"ctor_or_routine".
+A new kind of dynamic initialization entry (dik_call_returning_class_via_cctor)
+has been added to allow initialization by a routine that returns a class
+object via a copy constructor.
 
 4/13/93  IL lowering for array initializations in aggregates
 
