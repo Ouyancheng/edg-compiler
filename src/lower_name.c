@@ -1030,6 +1030,15 @@ and an indication of that fact should be put out.
   /* Always start with the name of the class, which applies even in the
      template class case. */
   name = type->source_corresp.name;
+  if (type->source_corresp.assoc_info != NULL) {
+    /* See if this class is a proxy class for a template parameter.  If so,
+       Use the template parameter name. */
+    a_type_ptr template_param =
+             symbol_supplement_for_class(type)->template_param_for_proxy_class;
+    if (template_param != NULL) {
+      name = template_param->source_corresp.name;
+    }  /* if */
+  }  /* if */
   if (name == NULL) {
     give_unnamed_class_a_name(type);
     name = type->source_corresp.name;
@@ -1520,9 +1529,22 @@ See ARM 7.2.1c for name encoding.
       case tk_template_param:
         /* This comes up when mangling the names for template entities using
            the modern mangling approach. */
-        mangled_name_length += mangled_encoding_for_template_parameter(
+        switch (type->variant.template_param.kind) {
+          case tptk_param:
+            mangled_name_length += mangled_encoding_for_template_parameter(
                          &type->variant.template_param.extra_info->coordinates,
                          store_at);
+            break;
+          case tptk_member:
+            /* Type selected from a template parameter type, e.g., T::x. */
+            section_length = mangled_type_name(type, store_at);
+            mangled_name_length += section_length;
+            if (store_at != NULL) store_at += section_length;
+            break;
+          default:
+            unexpected_condition_str(
+                      "mangled_encoding_for_type: bad tk_template_param kind");
+        }  /* if */
         goto have_whole_mangled_name;
 #if CHECKING
       default:
