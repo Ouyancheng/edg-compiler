@@ -5150,7 +5150,7 @@ of an error.
 static a_boolean gpp_type_name_matches_class_name(a_symbol_ptr	sym)
 /*
 This routine is used in g++ mode to determine whether the parent class
-the current symbol locator has the same name as "sym". In g++ mode a
+in the current symbol locator has the same name as "sym". In g++ mode a
 declaration like "A<1>::A<1>() is taken to name the constructor.  This routine
 is used to detect this case.  The current token must be the identifier of
 the prospective constructor name.  The caller is responsible for checking that
