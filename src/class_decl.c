@@ -3141,13 +3141,15 @@ if access, static-ness, and virtual-ness are unchanged.  A warning is issued.
 }  /* redecl_member_function */
 
 
-static a_symbol_ptr decl_member_function(a_symbol_locator        *locator,
-                                         a_type_ptr              class_type,
-                                         a_type_ptr              member_type,
-                                         an_access_specifier     access,
-                                         a_boolean               is_inline,
-                                         a_boolean               is_virtual,
-                                         a_special_function_kind spec_kind)
+static a_symbol_ptr decl_member_function(
+                                   a_symbol_locator        *locator,
+                                   a_type_ptr              class_type,
+                                   a_type_ptr              member_type,
+                                   an_access_specifier     access,
+                                   a_boolean               is_inline,
+                                   a_boolean               is_virtual,
+                                   a_boolean               compiler_generated,
+                                   a_special_function_kind spec_kind)
 /*
 For a member function declaration:  create a symbol entry and a routine entry
 for the member function, add the symbol to the symbol table, and append the
@@ -3206,6 +3208,7 @@ special function kind (e.g., constructor, destructor), if any.
     rtn->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
     rtn->source_corresp.access = access;
     rtn->is_inline = is_inline;
+    rtn->compiler_generated = compiler_generated;
     cssp = symbol_supplement_for_class(class_type);
     /* Do processing for special member functions, including assignment
        operators, constructors and destructors. */
@@ -3296,9 +3299,13 @@ special function kind (e.g., constructor, destructor), if any.
       if (is_copy_constructor_symbol(sym, &const_object_okay, &dummy_flag)) {
         cssp->has_copy_constructor = TRUE;
         cssp->has_copy_constructor_for_const_object |= const_object_okay;
-        /* If a copy constructor is defined for the class, construction by
-           bitwise copying is not allowed. */
-        cssp->construction_by_bitwise_copy_allowed = FALSE;
+        if (!compiler_generated) {
+          /* If a user-defined copy constructor is declared for the class,
+             construction by bitwise copying is not allowed.  (On the other
+             hand, this flag *may* be TRUE even when the compiler generates a
+             a copy constructor.) */
+          cssp->construction_by_bitwise_copy_allowed = FALSE;
+        }  /* if */
       }  /* if */
     } else if (spec_kind == (a_special_function_kind)sfk_destructor) {
       /* Set the pointer to the destructor symbol in the class symbol
@@ -3907,7 +3914,6 @@ routine body is generated at this time.
 */
 {
   a_type_ptr                rout_type;
-  a_symbol_ptr              rout_sym;
   a_routine_type_supplement *extra_info;
   a_symbol_locator          locator;
 
@@ -3951,11 +3957,10 @@ routine body is generated at this time.
   }  /* if */
   /* Create a symbol and enter it in the symbol table, and create a routine
      entry and add it to the routines list for the current scope. */
-  rout_sym = decl_member_function(&locator, class_type, rout_type,
-                                  (an_access_specifier)as_public,
-                                  /*is_inline=*/TRUE, /*is_virtual=*/FALSE,
-                                  sfkind);
-  rout_sym->variant.routine->compiler_generated = TRUE;
+  (void)decl_member_function(&locator, class_type, rout_type,
+                             (an_access_specifier)as_public,
+                             /*is_inline=*/TRUE, /*is_virtual=*/FALSE,
+                             /*compiler_generated=*/TRUE, sfkind);
   db_exit();
 }  /* generate_special_function */
 
@@ -5709,6 +5714,7 @@ to indicate whether the class/struct/union is actually defined.
                                                 local_type, access,
                                                 inline_specified,
                                                 virtual_specified,
+                                                /*compiler_generated=*/FALSE,
                                                 spec_kind);
               }  /* if */
               curr_routine_fixup->routine = rout_sym->variant.routine;
