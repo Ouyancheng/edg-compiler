@@ -5924,10 +5924,15 @@ make_new_type:
         } else if (cssp->template_param_for_proxy_class != NULL) {
           /* The proxy class for a template parameter.  Use the substituted
              template parameter type. */
-            type = cssp->template_param_for_proxy_class;
-            new_type = copy_type_with_substitution(type, templ_arg_list,
-                                                   depth, source_pos, options,
-                                                   copy_error);
+          a_type_ptr	templ_param_for_type;
+          templ_param_for_type = cssp->template_param_for_proxy_class;
+          new_type = copy_type_with_substitution(templ_param_for_type,
+                                                 templ_arg_list,
+                                                 depth, source_pos, options,
+                                                 copy_error);
+          /* If the template parameter is not substituted, retain the
+             original proxy class type. */
+          if (new_type == templ_param_for_type) new_type = type;
         } else {
           a_symbol_ptr		new_sym;
           if (cssp->class_template == NULL) {

@@ -1,5 +1,20 @@
 Version 2.46
 
+2/15/01  Deduction fails with dependent pointer to member and explicit
+         template arguments
+
+Template argument deduction would fail (resulting in an error or in
+unexpected results from overload resolution) when the function parameter
+list contains a pointer-to-member type whose member class type is
+dependent, and where the call explicitly specifies some template
+arguments.  This has been fixed.
+
+  struct A { void f() {} };
+  template <class T, class T2> void g(void (T2::*)()) {}
+  int main() {
+    g<int>(&A::f);
+  }
+
 2/14/01  Internal error when using non-alternate IL file format
 
 An internal error would occur when compiling a program that uses
