@@ -141,11 +141,19 @@ typedef struct an_arg_match_summary {
 		match_level;
 			/* Match level -- see ARM 13.2. */
   a_byte_boolean
+		anachronism_used;
+			/* TRUE if the match was possible only because an
+			   anachronism was used.  This is a tie-breaker on
+			   otherwise equal matches.  Note that this is not
+			   set for all anachronisms, just those that act
+			   as tie-breakers in cfront mode. */
+  a_byte_boolean
 		const_anachronism;
 			/* In cfront compatibility mode, TRUE to indicate
 			   that the match was possible only because of the
 			   anachronism that allows a non-const function to
-			   be called for a const object. */
+			   be called for a const object.  If this is set, the
+			   anachronism_used flag will also be set. */
   a_byte_boolean
 		is_match_for_this_param;
 			/* TRUE if this entry describes the match for the

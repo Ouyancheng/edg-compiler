@@ -337,6 +337,7 @@ values.
 {
   amsp->next                       = NULL;
   amsp->match_level                = aml_none;
+  amsp->anachronism_used           = FALSE;
   amsp->const_anachronism          = FALSE;
   amsp->is_match_for_this_param    = FALSE;
   amsp->param_type                 = NULL;
@@ -406,6 +407,8 @@ Print an argument match summary for debug purposes.
   fprintf(f_debug, "match level = %s", str);
   if (amsp->const_anachronism) {
     fprintf(f_debug, " (const anachronism)");
+  } else if (amsp->anachronism_used) {
+    fprintf(f_debug, " (anachronism used)");
   }  /* if */
   if (amsp->match_level == aml_user_conversion &&
       amsp->conversion.std.nontrivial_conversion) {
@@ -1104,6 +1107,7 @@ is TRUE.
   a_boolean         source_can_be_rvalue = TRUE;
   a_boolean         param_is_class_type, arg_is_class_type;
   a_boolean         ref_type_qualifiers_dropped, ref_type_qualifiers_added;
+  a_boolean         uses_type_qualifiers_dropped_anachronism = FALSE;
   a_std_conv_descr  std_conversion;
   a_base_class_ptr  bcp;
   a_boolean         ambiguous;
@@ -1185,7 +1189,8 @@ is TRUE.
     /* The parameter type is a reference.  Drop the reference and remember
        we have one.  This is the "T --> T&" case.  Note that we're dropping any
        qualifiers above the reference type, but that's okay; they don't really
-       mean anything ("int &const a" is meaningless). */
+       mean anything ("int &const a" is meaningless, and, in recent WPs,
+       invalid). */
     param_type = type_pointed_to(param_type);
     param_type_qualifiers = get_type_qualifiers(param_type);
     arg_type_qualifiers   = get_type_qualifiers(arg_type);
@@ -1210,6 +1215,7 @@ is TRUE.
          Note that all cases handled here are arguments. */
       if (any_cfront_mode() && !is_class_struct_union_type(param_type)) {
         /* Okay to drop qualifiers. */
+        uses_type_qualifiers_dropped_anachronism = TRUE;
       } else {
         ref_type_qualifiers_dropped = TRUE;
       }  /* if */
@@ -1464,6 +1470,10 @@ have_level:;
       /* Some type qualifiers were added under a reference.  This can serve as
          a tie-breaker later. */
       arg_summary->conversion.std.type_qualifiers_added = TRUE;
+    } else if (uses_type_qualifiers_dropped_anachronism) {
+      /* Some type qualifiers were dropped on a reference binding.  That's
+         an anachronism and can serve as a tie-breaker. */
+      arg_summary->anachronism_used = TRUE;
     }  /* if */
     if (!source_can_be_rvalue &&
         arg_operand != NULL && is_an_rvalue(arg_operand)) {
@@ -1588,6 +1598,7 @@ class or a derived class thereof (except for error cases).
       if (this_match_summary->match_level != aml_none) {
         /* Anachronism -- calling non-const function with const object. */
 	this_match_summary->const_anachronism = TRUE;
+	this_match_summary->anachronism_used = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2682,24 +2693,22 @@ other.  Return
       cmp = 1;
     }  /* if */
   } else {
-    /* Use of the const anachronism (calling a const function for a
+    /* Use of an anachronism (e.g., calling a const function for a
        non-const object) can break a tie.  This must be tested last. */
-    a_boolean const_anachr1 = FALSE, const_anachr2 = FALSE;
+    a_boolean anachr1 = FALSE, anachr2 = FALSE;
 
     if (cfp1->arg_matches != NULL) {
-      const_anachr1 = cfp1->arg_matches->const_anachronism;
+      anachr1 = cfp1->arg_matches->anachronism_used;
     }  /* if */
     if (cfp2->arg_matches != NULL) {
-      const_anachr2 = cfp2->arg_matches->const_anachronism;
+      anachr2 = cfp2->arg_matches->anachronism_used;
     }  /* if */
-    if (const_anachr1 != const_anachr2) {
-      if (const_anachr1) {
-        /* cfp1 uses the const anachronism and cfp2 does not, so cfp2
-           is better. */
+    if (anachr1 != anachr2) {
+      if (anachr1) {
+        /* cfp1 uses an anachronism and cfp2 does not, so cfp2 is better. */
         cmp = -1;
       } else {
-        /* cfp2 uses the const anachronism and cfp1 does not, so cfp1
-           is better. */
+        /* cfp2 uses an anachronism and cfp1 does not, so cfp1 is better. */
         cmp = 1;
       }  /* if */
     }  /* if */
