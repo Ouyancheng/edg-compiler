@@ -1693,27 +1693,40 @@ current scope.
   vp->type = anon_union_type;
   /* Check the storage class.  At file scope, only static is allowed. */
   if (at_file_scope) {
-    if (storage_class == (a_storage_class)sc_unspecified) {
-      /* Default to static. */
-    } else if (storage_class == (a_storage_class)sc_extern) {
-      /* Disallowed (ARM 9.5). */
-      error(ec_anon_union_storage_class);
-    } else if (storage_class != (a_storage_class)sc_static) {
-      /* Invalid for any variable at file scope. */
-      error(ec_bad_file_scope_storage_class);
-    }  /* if */
-    storage_class = (a_storage_class)sc_static;
+    switch (storage_class) {
+      case sc_static:
+        /* Okay. */
+        break;
+      case sc_extern:
+      case sc_unspecified:
+        /* Disallowed (ARM 9.5). */
+        error(ec_anon_union_storage_class);
+        storage_class = sc_static;
+        break;
+      default:
+        /* Invalid for any variable at file scope. */
+        error(ec_bad_file_scope_storage_class);
+        storage_class = sc_static;
+    }  /* switch */
   } else {
     /* Not at file scope. */
-    if (storage_class == (a_storage_class)sc_unspecified) {
-      /* Default to automatic. */
-      storage_class = (a_storage_class)sc_auto;
-    } else if (storage_class != (a_storage_class)sc_static &&
-               storage_class != (a_storage_class)sc_auto &&
-               storage_class != (a_storage_class)sc_register) {
-      error(ec_anon_union_storage_class);
-      storage_class = (a_storage_class)sc_auto;
-    }  /* if */
+    switch (storage_class) {
+      case sc_extern:
+        /* Error, then default to automatic. */
+        error(ec_anon_union_storage_class);
+      case sc_unspecified:
+        /* Default to automatic. */
+        storage_class = (a_storage_class)sc_auto;
+      case sc_static:
+      case sc_auto:
+      case sc_register:
+        /* Okay. */
+        break;
+#if CHECKING
+      default:
+        internal_error("make_anonymous_union_variable: bad storage class");
+#endif /* CHECKING */
+    }  /* switch */
   }  /* if */
   vp->storage_class = storage_class;
   /* Add the variable to the variables list for the current scope. */
