@@ -104,6 +104,10 @@ static char	*module_id, *module_init_id;
 static a_scope_ptr
 		curr_scope;
 #endif /* ifdef FFE */
+static a_boolean
+		processing_file_scope;
+			/* TRUE when generating code for the file scope
+			   memory region (rather than a function scope). */
 #ifdef CFE
 static a_boolean
 		file_scope_init_routine_called;
@@ -1236,7 +1240,8 @@ Print the first of possibly two parts of a type reference.
 
   /* Remove type qualifiers but not typedefs. */
   qual_type = type;
-  type = unqualified_display_type(type);
+  type = unqualified_display_type(type,
+                                /*drop_local_typedefs=*/processing_file_scope);
   if (type->kind == (a_type_kind)tk_pointer) {
     local_type = type_pointed_to(type);
     /* Recursive call to print out any lower indirections. */
@@ -1678,7 +1683,8 @@ function definition with a body (this controls dumping of parameters).
   a_type_ptr local_type;
 
   /* Drop type qualifiers but not typedefs. */
-  type = unqualified_display_type(type);
+  type = unqualified_display_type(type,
+                                /*drop_local_typedefs=*/processing_file_scope);
   if (type->kind == (a_type_kind)tk_pointer) {
     local_type = skip_typerefs(type);
     if (need_paren) fputc(')', f_C_output);
@@ -8706,6 +8712,7 @@ routine has a body (dump nothing if it has no body).
 #endif /* ifdef FFE */
     /* Now dump out the local declarations and the body. */
     block = scope->assoc_block;
+    processing_file_scope = FALSE;
     if (block != NULL) {
       startline(seq_number_from_stmt_source_position(block->position));
     }  /* if */
@@ -8794,6 +8801,7 @@ routine has a body (dump nothing if it has no body).
                              block->variant.block.extra_info->final_position));
     }  /* if */
     fputc('}', f_C_output);
+    processing_file_scope = TRUE;
 #ifdef FFE
     if (has_entries) {
       /* For a program unit with ENTRYs, generate the actual routines for the
@@ -8896,6 +8904,7 @@ Generate old-style (K&R/pcc) C from the intermediate language.
     purify_discard_memory(C_output_file_name);
   }  /* if */
 
+  processing_file_scope = TRUE;
   indent = 0;
   curr_file_name = NULL;
 #if INCLUDE_ANNOTATIONS
