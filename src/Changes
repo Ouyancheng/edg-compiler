@@ -1,5 +1,11 @@
 Version 2.06
 
+5/18/92  Return added to end of constructor/destructor for assignment-to-this.
+
+enclose_routine_in_if in lower_il.c was changed so that it adds a return
+statement to the end of a constructor or destructor when it encloses the
+body of the routine in an "if" in the assignment-to-this case.
+
 5/11/92  Extended standard conversions for pointers-to-members.
 
 It is now legal to convert implicitly from a "X A::*" to a "const X A::*".
