@@ -1765,6 +1765,9 @@ error code.
     case ec_static_data_member_anon_union:
       m = "static data member may not be an anonymous union";
       break;
+    case ec_function_template_named_main:
+      m = "\"main\" is not a valid name for a function template";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
