@@ -971,11 +971,11 @@ and return a pointer to it.  Its definition is
                        eh_region_descr_type, &last_field);
     /* field: unsigned short handle */
     make_lowered_field("handle",
-                       integer_type((an_integer_kind)ik_unsigned_short),
+                       integer_type(TARG_VAR_HANDLE_INT_KIND),
                        &byte_offset, eh_region_descr_type, &last_field);
     /* field: unsigned short prev */
     make_lowered_field("prev",
-                       integer_type((an_integer_kind)ik_unsigned_short),
+                       integer_type(TARG_REGION_NUMBER_INT_KIND),
                        &byte_offset, eh_region_descr_type, &last_field);
     /* field: unsigned char flags */
     make_lowered_field("flags",
@@ -1079,7 +1079,7 @@ Its definition is
     ehse_function_obj_table_field = last_field;
     /* field: unsigned short saved_region_number */
     make_lowered_field("saved_region_number",
-                       integer_type((an_integer_kind)ik_unsigned_short),
+                       integer_type(TARG_REGION_NUMBER_INT_KIND),
                        &byte_offset, function_struct_type, &last_field);
     ehse_function_saved_region_number_field = last_field;
     finish_class_type(function_struct_type, &byte_offset);
@@ -1438,6 +1438,36 @@ by the mangled name of the entity.  The variable has type char (arbitrarily).
 }  /* make_instantiation_info_var */
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
+
+/*
+Variable entries for __eh_curr_region and __curr_eh_stack_entry,
+global variables used for exception processing.  NULL until created.
+*/
+static a_variable_ptr
+		eh_curr_region_var,
+		curr_eh_stack_entry_var;
+
+static make_exception_support_global_variables(void)
+/*
+Make __eh_curr_region and __curr_eh_stack_entry, two global variables
+used for exception processing, if they have not already been made.
+*/
+{
+  if (eh_curr_region_var == NULL ) {
+    eh_curr_region_var =
+               make_lowered_variable("__eh_curr_region",
+                                     /*already_il_name=*/FALSE,
+                                     integer_type(TARG_REGION_NUMBER_INT_KIND),
+                                     (a_storage_class)sc_extern);
+    curr_eh_stack_entry_var =
+           make_lowered_variable("__curr_eh_stack_entry",
+                                 /*already_il_name=*/FALSE,
+                                 make_pointer_type(make_eh_stack_entry_type()),
+                                 (a_storage_class)sc_extern);
+  }  /* if */
+}  /* make_exception_support_global_variables */
+
 
 an_expr_node_ptr make_node_for_il_constant(a_constant_ptr constant)
 /*
@@ -7735,6 +7765,8 @@ of the front end.
   exception_type_specification_type = NULL;
   eh_region_descr_type = NULL;
   eh_stack_entry_type = NULL;
+  eh_curr_region_var = NULL;
+  curr_eh_stack_entry_var = NULL;
   type_promotion_insert_location = NULL;
   num_of_pending_class_typeinfo_vars = 0;
 #if DEBUG
