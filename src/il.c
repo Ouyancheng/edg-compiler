@@ -908,6 +908,8 @@ Dump the contents of the indicated constant, for debug purposes.
   a_routine_ptr  rp;
   a_type_ptr     con_type;
   a_float_kind   fkind;
+  a_source_correspondence
+                 *scp;
 
   con_type = cp->type;
   if (con_type != NULL) {
@@ -968,10 +970,22 @@ Dump the contents of the indicated constant, for debug purposes.
     case ck_ptr_to_member:
       /* C++ pointer-to-member. */
       fprintf(f_debug, "(&-member ");
+      scp = NULL;
       if (cp->variant.ptr_to_member.is_function_ptr) {
-        db_name(&cp->variant.ptr_to_member.variant.routine->source_corresp);
+        if (cp->variant.ptr_to_member.variant.routine != NULL) {
+          scp = &cp->variant.ptr_to_member.variant.routine->source_corresp;
+        }  /* if */
       } else {
-        db_name(&cp->variant.ptr_to_member.variant.field->source_corresp);
+        if (cp->variant.ptr_to_member.variant.field != NULL) {
+          scp = &cp->variant.ptr_to_member.variant.field->source_corresp;
+        }  /* if */
+      }  /* if */
+      if (scp == NULL) {
+        fprintf(f_debug, "<null %s>",
+                         cp->variant.ptr_to_member.is_function_ptr ?
+                                                    "function" : "field" );
+      } else {
+        db_name(scp);
       }  /* if */
       fprintf(f_debug, ")");
       break;
