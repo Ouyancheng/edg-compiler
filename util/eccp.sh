@@ -377,6 +377,12 @@ ii_file_specified=0
 #
 cmd_tmp_file=$TMPDIR/cl$$
 #
+# Define trap handlers
+#
+# Trap the "abort" signal to eliminte the shell-supplied diagnostic line
+# that frequently includes the process number.
+trap "exit 134" 6
+#
 # Function that compiles a generated C file
 #
 compile_int_c()
