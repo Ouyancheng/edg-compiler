@@ -1405,18 +1405,18 @@ typeinfo variable in a COMDAT group.
 #endif /* !IA64_ABI */
     vtbl_var = vtbls_for_type_info[(int)typeinfo_kind_for_vtbl];
     if (vtbl_var == NULL) {
-      /* Make the variable for the virtual function table for the type_info
-         type that corresponds to the typeinfo we are filling. */
+      /* We didn't generate a virtual function table for the corresponding
+         type_info type, probably because we don't have that type.
+         Generate a virtual function table for the typeinfo type. */
       char            *saved_name;
-      a_namespace_ptr saved_namespace;
       a_symbol_ptr    ns_sym = NULL;
-      a_type_ptr      type_info_type =
-                               types_of_type_info[(int)typeinfo_kind_for_vtbl];
-      check_assertion(type_info_type != NULL);
-      /* Give the type its original (unmangled) name briefly so the name can
-         be used in generating the virtual function table name. */
-      saved_name = type_info_type->source_corresp.name;
-      type_info_type->source_corresp.name =
+      a_type_ptr      tinfo_type_for_vtbl =
+                                   typeinfo_types[(int)typeinfo_kind_for_vtbl];
+      check_assertion(tinfo_type_for_vtbl != NULL);
+      /* Give the type the name of the corresponding type_info briefly so
+         the name can be used in generating the virtual function table name. */
+      saved_name = tinfo_type_for_vtbl->source_corresp.name;
+      tinfo_type_for_vtbl->source_corresp.name =
                                   type_info_names[(int)typeinfo_kind_for_vtbl];
       /* Add a parent pointer for the namespace temporarily to get the
          mangled name right. */
@@ -1429,17 +1429,20 @@ typeinfo variable in a COMDAT group.
       }  /* if */
 #endif /* !IA64_ABI */
       if (ns_sym != NULL) {
-        saved_namespace = type_info_type->source_corresp.parent.namespace_ptr;
-        type_info_type->source_corresp.parent.namespace_ptr =
+        tinfo_type_for_vtbl->source_corresp.parent.namespace_ptr =
                                             ns_sym->variant.namespace_info.ptr;
       }  /* if */
-      vtbl_var = make_var_for_virtual_function_table(type_info_type,
+      vtbl_var = make_var_for_virtual_function_table(tinfo_type_for_vtbl,
                                                      (a_base_class_ptr)NULL,
                                                      (a_base_class_ptr)NULL);
+      /* Save the virtual function table so it won't be generated again.
+         (The subroutine will not have recognized this as a type_info
+         type, because it's not -- it's the runtime typeinfo version.) */
+      vtbls_for_type_info[(int)typeinfo_kind_for_vtbl] = vtbl_var;
       /* Restore the former name and parent information. */
-      type_info_type->source_corresp.name = saved_name;
+      tinfo_type_for_vtbl->source_corresp.name = saved_name;
       if (ns_sym != NULL) {
-        type_info_type->source_corresp.parent.namespace_ptr = saved_namespace;
+        tinfo_type_for_vtbl->source_corresp.parent.namespace_ptr = NULL;
       }  /* if */
     }  /* if */
     vptr_con = alloc_constant((a_constant_repr_kind)ck_address);
