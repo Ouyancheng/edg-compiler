@@ -6770,6 +6770,7 @@ pointer to it.
       /* No special initialization is required. */
       break;
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     /* The following identify pragmas that have immediate effect in the
        front end and do not get passed to the back end; therefore, no IL
        pragma entries are created for them.  The exception is when
@@ -6783,7 +6784,6 @@ pointer to it.
     case pk_instantiate:
     case pk_do_not_instantiate:
     case pk_can_instantiate:
-#if GENERATE_SOURCE_SEQUENCE_LISTS
       break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if CHECKING
