@@ -5976,7 +5976,9 @@ Scan the body of a class definition, including the base classes list.
         if (C_dialect == C_dialect_cplusplus) {
           /* Check for and discard declarations of the form "overload f;". */
           if (check_for_overload_anachronism()) {
-            discard_curr_construct_pragmas();
+            /* Issue diagnostics on pragmas that are trying to bind to an
+               overload declaration. */
+            cannot_bind_to_curr_construct();
             goto next_declaration;
           }  /* if */
           if (is_qualified_name_start() &&
