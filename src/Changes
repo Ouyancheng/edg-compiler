@@ -1,5 +1,15 @@
 Version 2.46
 
+3/12/01  Incorrect parent pointer in static data member template entry
+
+When using PROTOTYPE_INSTANTIATIONS_IN_IL, the template entry created for
+a static data member of a template class had an incorrect parent pointer.
+This has been fixed.
+
+  template <class T> struct A {
+    static int i;
+  };
+
 3/10/01  Microsoft C mode: plain char is the same as signed char or unsigned
          char
 

@@ -7246,7 +7246,7 @@ member declaration, respectively.
         set_source_corresp(&var->assoc_template->source_corresp, sym);
         set_class_membership((a_symbol_ptr)NULL,
                              &var->assoc_template->source_corresp,
-                             class_type->source_corresp.parent.class_type);
+                             class_type);
         var->assoc_template->source_corresp.access =
                                                     var->source_corresp.access;
         add_to_templates_list(var->assoc_template, decl_scope_level);
