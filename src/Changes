@@ -19,10 +19,8 @@ The front end did not work properly when configured to have "long" be
 fixed. It did work properly if "long" was 64 bits and size_t and ptrdiff_t
 were also 64 bits. Two new configuration macros have been added:
 PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER and PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED.
-These will usually be configured properly by default, but will need to
-be explicitly specified when using simulated integers (i.e., when
-INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is FALSE) and when a_host_large_integer
-is of a type other than "long".
+The default configuration of these should always be correct (i.e., they should
+not need to be changed).
 
 The current recommendation for #defines to support long long using the
 host long long are as follows (assuming a host machine with 32-bit
