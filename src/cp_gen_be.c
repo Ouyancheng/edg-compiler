@@ -4751,6 +4751,7 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
   a_routine_ptr rout;
   a_type_ptr    naming_class, selection_class;
   a_boolean     force_qualified_name = FALSE;
+  a_boolean     suppress_this = FALSE;
 
   check_assertion(func_expr->kind == (an_expr_node_kind)enk_routine_address);
   rout = func_expr->variant.routine;
@@ -4781,10 +4782,10 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
         force_qualified_name = TRUE;
       } else {
         /* Suppress "this->". */
-        selection_class = NULL;
+        suppress_this = TRUE;
       }  /* if */
     }  /* if */
-    if (selection_class != NULL) {
+    if (!suppress_this) {
       /* Put out object pointer and "->". */
       gen_expr_with_parens(object_expr);
       write_tok_str("->");
@@ -4809,13 +4810,13 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
     /* Put out a qualifier for the name.  Push the name context associated
        with the selector so that the qualifier is put out properly qualified
        for the context.  Don't do this if there is no selector. */
-    if (selection_class != NULL) {
+    if (!suppress_this) {
       a_scope_ptr class_scope = selection_class->variant.class_struct_union.
                                                        extra_info->assoc_scope;
       push_name_context(class_scope);
     }  /* if */
     gen_class_qualifier(naming_class, GN_NO_OPTIONS, (a_boolean *)NULL);
-    if (selection_class != NULL) pop_name_context();
+    if (!suppress_this) pop_name_context();
   }  /* if */
   /* Put out the base routine name.*/
   gen_unqualified_name(&rout->source_corresp, iek_routine);
