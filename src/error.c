@@ -1178,6 +1178,9 @@ error code.
     case ec_anon_union_member_function:
       m = "invalid anonymous union -- member function not allowed";
       break;
+    case ec_anon_union_storage_class:
+      m = "invalid storage class for anonymous union";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

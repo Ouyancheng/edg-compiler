@@ -413,7 +413,8 @@ typedef enum /*an_error_code*/ {
   ec_assignment_to_this,
   ec_overload_ignored,
   ec_anon_union_member_access,
-  ec_anon_union_member_function
+  ec_anon_union_member_function,
+  ec_anon_union_storage_class
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
