@@ -86,13 +86,25 @@ EXTERN_C int stat(char *path, struct stat *buf);
 #endif /* defined(STAT_FIRST_PARAM_IS_CONST) */
 #endif /* !__cplusplus */
 
-#include <signal.h>
+/* ANSI signal handlers return void. Older UNIX signal handlers in general,
+and SVID compliant signal handlers in particular, return int. */
+#ifdef __ANSIC__
+#define SIGNAL_HANDLER_RETURNS_VOID 1
+#endif  /* __ANSIC__ */
+#ifdef sun
 /* SunOS 4.1 switched to the ANSI form of signal. */
-#if __ANSIC__ || sun || __hpux
+#define SIGNAL_HANDLER_RETURNS_VOID 1
+#endif  /* sun */
+#ifdef __hpux
+#define SIGNAL_HANDLER_RETURNS_VOID 1
+#endif  /* __hpux */
+
+#include <signal.h>
+#ifdef SIGNAL_HANDLER_RETURNS_VOID
 typedef void a_signal_handler_return_value;
-#else /* !__ANSIC__ */
+#else /* !defined(SIGNAL_HANDLER_RETURNS_VOID) */
 typedef int a_signal_handler_return_value;
-#endif /* __ANSIC__ */
+#endif /* defined(SIGNAL_HANDLER_RETURNS_VOID) */
 
 #if __ANSIC__
 /* Files that are included for functions that conform to ANSI C libraries. */
@@ -974,16 +986,17 @@ writing.  This helps avoid problems with clobbering of input files.
       /* Has suffix.  Check for ".f", ".c", and ".a" and disallow those. */
       if (strcmp(last_dot, ".a") == 0 ||
           strcmp(last_dot, ".f") == 0 ||
-          (strcmp(last_dot, ".c") == 0
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-          /* However, the generated C suffix is allowed if using c_gen_be. */
-#define PRE_SUFFIX_LEN (sizeof(GEN_C_FILE_SUFFIX)-sizeof(".c"))
-                                       &&
-           (last_dot-name_start <= PRE_SUFFIX_LEN ||
-            (strcmp(last_dot-PRE_SUFFIX_LEN, GEN_C_FILE_SUFFIX) != 0))
-#endif /* BACK_END_IS_C_GEN_BE || ... */
-                                      )) {
+          (strcmp(last_dot, ".c") == 0)) {
         okay = FALSE;
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+        /* However, the generated C suffix is allowed if using c_gen_be. */
+        { int	suffix_start = strlen(name_start) - sizeof(GEN_C_FILE_SUFFIX);
+          if (suffix_start >= 0 &&
+              strcmp(name_start + suffix_start + 1, GEN_C_FILE_SUFFIX) == 0) {
+            okay = TRUE;
+          }  /* if */
+       }
+#endif /* BACK_END_IS_C_GEN_BE || ... */
       } else {
         okay = TRUE;
       }  /* if */
