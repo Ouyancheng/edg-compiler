@@ -1756,7 +1756,7 @@ returned set to TRUE.
          again, and we have the variable from the earlier declaration). */
       pos_sy_error(ec_already_initialized, source_pos, symbol_ptr);
       var_err = TRUE;
-    } else if (is_vla_type(vp->type)) {
+    } else if (vla_enabled && is_vla_type(vp->type)) {
       /* VLAs cannot be initialized. */
       pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
       var_err = TRUE;
