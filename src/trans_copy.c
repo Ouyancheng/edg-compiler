@@ -386,6 +386,50 @@ entry that is already in the primary file IL.
   (!has_corresp(ptr) || entry_to_be_merged(ptr))
 
 
+static void prepare_class_for_trans_unit_copy(a_type_ptr class_type)
+/*
+Scan the indicated class type and its nested classes and set up for
+copying to the primary translation unit IL.
+*/
+{
+  a_scope_ptr scope = NULL;
+
+  if (class_type->variant.class_struct_union.extra_info != NULL) {
+    scope = class_type->variant.class_struct_union.extra_info->assoc_scope;
+  }  /* if */
+  if (scope != NULL) {
+    a_type_ptr type, prev_type;
+    a_boolean  keep_on_list;
+
+    prev_type = NULL;
+    for (type = scope->types; type != NULL; type = type->next) {
+      keep_on_list = TRUE;
+      if (is_immediate_class_type(type)) {
+        /* Handle a nested class. */
+        prepare_class_for_trans_unit_copy(type);
+      } else if (type->kind == (a_type_kind)tk_typeref &&
+                 type->variant.typeref.is_placeholder_for_class_instantiation){
+        /* This is a placeholder typeref indicating the point at which
+           a template class was instantiated.  Keep it only if the
+           underlying class will be copied over to the primary file IL. */
+        a_type_ptr under_type = type->variant.typeref.type;
+        keep_on_list = entry_to_be_copied(under_type);
+      }  /* if */
+      if (keep_on_list) {
+        prev_type = type;
+      } else {
+        /* Remove this entry from the list. */
+        if (prev_type == NULL) {
+          scope->types = type->next;
+        } else {
+          prev_type->next = type->next;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* prepare_class_for_trans_unit_copy */
+
+
 static void prepare_for_trans_unit_copy(
                                       a_scope_ptr scope,
                                       a_boolean   *any_removed_function_bodies)
@@ -458,6 +502,9 @@ set to TRUE if the body of a routine is eliminated.
   prev_type = NULL;
   for (type = scope->types; type != NULL; type = type->next) {
     keep_on_list = TRUE;
+    if (is_immediate_class_type(type)) {
+      prepare_class_for_trans_unit_copy(type);
+    }  /* if */
     if (has_corresp(type)) {
       /* This entry corresponds to something in the primary IL. */
       keep_on_list = FALSE;
