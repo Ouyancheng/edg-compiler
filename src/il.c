@@ -1291,6 +1291,12 @@ dik_nonconstant_aggregate.
           }  /* if */
           (void)fputc('\n', f_debug);
           break;
+        case dik_constant:
+        case dik_nonconstant_aggregate:
+        case dik_bitwise_copy:
+          for (a = 0; a < level; a++) fputs(" ", f_debug);
+          db_dynamic_initializer(dip, level + 2);
+          break;
 #if CHECKING
         default:
           fputs("<bad dynamic init kind>\n", f_debug);
