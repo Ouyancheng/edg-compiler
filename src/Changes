@@ -1,5 +1,17 @@
 Version 2.42
 
+8/10/99  Friend class declarations and using declarations
+
+When a friend declaration names a class type, it can find that class type
+declared in the nearest enclosing namespace scope, but it should not find
+using declarations in that namespace scope.
+
+  namespace N { struct S {}; }
+  using N::S;
+  class C {
+    friend struct S; // Used to find N::S; now attempts to create ::S
+  };                 // and issues a diagnostic because ::S already exists.
+
 8/9/99   Empty base class layout optimization (ABI CHANGE)
 
 The front end can now allocate a nonvirtual nonpolymorphic base with no direct
