@@ -950,6 +950,17 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
            incomplete struct/unions (which are an extension). */
       } else if (is_reference_type(vp_type)) {
         /* Reference type -- okay. */
+      } else if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member &&
+                 is_incomplete_type(vp_type)) {
+        /* A static data member is a special case since at the point of
+           definition (which this is) it must be initialized, either
+           explicitly or implicitly.  Therefore it doesn't make sense to say
+           it can't be initialized; rather we issue an incomplete type
+           error.  Moreover, the type in the variable entry must be updated
+           with an error type -- to be sure it's done, do it now. */
+        pos_error(ec_incomplete_type_not_allowed, source_pos);
+        err = TRUE;
+        vp_type = vp->type = error_type();
       } else {
         /* An object of this type cannot be initialized. */
         pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
@@ -1059,9 +1070,10 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
       err = TRUE;
     }  /* if */
     initialization_is_dynamic = TRUE;
-  } else if (is_aggregate_or_union_type(vp_type)) {
+  } else if (is_aggregate_or_union_type(vp_type) ||
+             (is_error_type(vp_type) && curr_token == tok_lbrace)) {
     /* Ordinary C-style aggregate initialization, usually with a brace-
-       enclosed list of values.  Except in C++ such lists may include
+       enclosed list of values.  Except that in C++ such lists may include
        non-constants. */
     a_constant_ptr       cp;
     a_dynamic_init_ptr   di_list = NULL, end_of_di_list = NULL;
