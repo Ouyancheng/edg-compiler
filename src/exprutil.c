@@ -4290,6 +4290,169 @@ type is an error type, return eok_error.
 }  /* which_binary_operator */
 
 
+an_expr_operator_kind generic_operator_for_opname_kind(
+                                                 an_opname_kind kind,
+                                                 a_boolean      unary_operator)
+/*
+Return the generic operator that corresponds to the indicated operator
+kind.  The operation is a unary operation if unary_operator is TRUE.
+A "generic operator" is used for template-dependent operations for
+which it's not possible to know the operand types or the result type.
+In some cases, the operator is the same as the one usually used,
+e.g., eok_complement for "~".  In others, it's a special generic untyped
+version of the operator, e.g., eok_add for "+" instead of eok_iadd or
+eok_fadd or eok_padd.
+*/
+{
+  an_expr_operator_kind op;
+
+  if (unary_operator) {
+    /* Unary operations. */
+    switch (kind) {
+      case onk_plus:
+        op = (an_expr_operator_kind)eok_unary_plus;
+        break;
+      case onk_minus:
+        op = (an_expr_operator_kind)eok_negate;
+        break;
+      case onk_star:
+        op = (an_expr_operator_kind)eok_indirect;
+        break;
+      case onk_ampersand:
+        op = (an_expr_operator_kind)eok_address;
+        break;
+      case onk_compl:
+        op = (an_expr_operator_kind)eok_complement;
+        break;
+      case onk_not:
+        op = (an_expr_operator_kind)eok_not;
+        break;
+      case onk_plus_plus:
+        /* Note that postfix ++ comes in as a non-unary operation. */
+        op = (an_expr_operator_kind)eok_pre_incr;
+        break;
+      case onk_minus_minus:
+        /* Note that postfix -- comes in as a non-unary operation. */
+        op = (an_expr_operator_kind)eok_pre_decr;
+        break;
+      default:
+        unexpected_condition_str("bad unary opname kind");
+    }  /* switch */
+  } else {
+    /* Non-unary operations. */
+    switch (kind) {
+      case onk_plus:
+        op = (an_expr_operator_kind)eok_add;
+        break;
+      case onk_minus:
+        op = (an_expr_operator_kind)eok_subtract;
+        break;
+      case onk_star:
+        op = (an_expr_operator_kind)eok_multiply;
+        break;
+      case onk_divide:
+        op = (an_expr_operator_kind)eok_divide;
+        break;
+      case onk_remainder:
+        op = (an_expr_operator_kind)eok_remainder;
+        break;
+      case onk_excl_or:
+        op = (an_expr_operator_kind)eok_xor;
+        break;
+      case onk_ampersand:
+        op = (an_expr_operator_kind)eok_and;
+        break;
+      case onk_or:
+        op = (an_expr_operator_kind)eok_or;
+        break;
+      case onk_assign:
+        op = (an_expr_operator_kind)eok_assign;
+        break;
+      case onk_lt:
+        op = (an_expr_operator_kind)eok_lt;
+        break;
+      case onk_gt:
+        op = (an_expr_operator_kind)eok_gt;
+        break;
+      case onk_plus_assign:
+        op = (an_expr_operator_kind)eok_add_assign;
+        break;
+      case onk_minus_assign:
+        op = (an_expr_operator_kind)eok_subtract_assign;
+        break;
+      case onk_times_assign:
+        op = (an_expr_operator_kind)eok_multiply_assign;
+        break;
+      case onk_divide_assign:
+        op = (an_expr_operator_kind)eok_divide_assign;
+        break;
+      case onk_remainder_assign:
+        op = (an_expr_operator_kind)eok_remainder_assign;
+        break;
+      case onk_excl_or_assign:
+        op = (an_expr_operator_kind)eok_xor_assign;
+        break;
+      case onk_and_assign:
+        op = (an_expr_operator_kind)eok_and_assign;
+        break;
+      case onk_or_assign:
+        op = (an_expr_operator_kind)eok_or_assign;
+        break;
+      case onk_shift_left:
+        op = (an_expr_operator_kind)eok_shiftl;
+        break;
+      case onk_shift_right:
+        op = (an_expr_operator_kind)eok_shiftr;
+        break;
+      case onk_shift_right_assign:
+        op = (an_expr_operator_kind)eok_shiftr_assign;
+        break;
+      case onk_shift_left_assign:
+        op = (an_expr_operator_kind)eok_shiftl_assign;
+        break;
+      case onk_eq:
+        op = (an_expr_operator_kind)eok_eq;
+        break;
+      case onk_ne:
+        op = (an_expr_operator_kind)eok_ne;
+        break;
+      case onk_le:
+        op = (an_expr_operator_kind)eok_le;
+        break;
+      case onk_ge:
+        op = (an_expr_operator_kind)eok_ge;
+        break;
+      case onk_and_and:
+        op = (an_expr_operator_kind)eok_land;
+        break;
+      case onk_or_or:
+        op = (an_expr_operator_kind)eok_lor;
+        break;
+      case onk_plus_plus:
+        /* Note that postfix ++ comes in as a non-unary operation. */
+        op = (an_expr_operator_kind)eok_post_incr;
+        break;
+      case onk_minus_minus:
+        /* Note that postfix -- comes in as a non-unary operation. */
+        op = (an_expr_operator_kind)eok_post_decr;
+        break;
+      case onk_comma:
+        op = (an_expr_operator_kind)eok_comma;
+        break;
+      case onk_arrow_star:
+        op = (an_expr_operator_kind)eok_pm_arrow_field;
+        break;
+      case onk_subscript:
+        op = (an_expr_operator_kind)eok_padd_subsc;
+        break;
+      default:
+        unexpected_condition_str("bad opname kind");
+    }  /* switch */
+  }  /* if */
+  return op;
+}  /* generic_operator_for_opname_kind */
+
+
 a_boolean operator_takes_lvalue_operand(an_expr_operator_kind op)
 /*
 Return TRUE if the given expression operator takes an lvalue as its first

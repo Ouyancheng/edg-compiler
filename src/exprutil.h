@@ -1038,6 +1038,10 @@ extern a_boolean still_an_lvalue(a_type_ptr type_before_cast,
 extern an_expr_operator_kind which_binary_operator(a_token_kind token,
 						   a_type_ptr   type);
 
+extern an_expr_operator_kind generic_operator_for_opname_kind(
+                                                an_opname_kind kind,
+                                                a_boolean      unary_operator);
+
 extern a_boolean operator_takes_lvalue_operand(an_expr_operator_kind op);
 
 extern void add_base_class_casts(a_base_class_ptr  bcp,

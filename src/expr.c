@@ -545,13 +545,17 @@ EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.
 static a_boolean is_overloadable_type_operand(an_operand *operand)
 /*
 Return TRUE if the given operand a type for which operator overloading
-should be considered.
+should be considered.  Also return TRUE for template-dependent operands
+in a prototype instantiation, because they might be overloadable (and
+we want to go to check_for_operator_overloading to handle that).
 */
 {
   a_boolean is_overloadable = is_error_operand(operand) ||
                               is_class_struct_union_type(operand->type) ||
                               (operator_overloading_on_enums_enabled &&
-                               is_enum_type(operand->type));
+                               is_enum_type(operand->type)) ||
+                              (is_template_dependent_context() &&
+                               is_template_dependent_type(operand->type));
   return is_overloadable;
 }  /* is_overloadable_type_operand */
 
@@ -607,15 +611,6 @@ Syntax:
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand_1);
     operand_will_not_be_used_because_of_error(&operand_2);
-  } else if (!C_mode() && is_template_dependent_context() &&
-             (is_template_dependent_type(operand_1->type) ||
-              is_template_dependent_type(operand_2.type))) {
-    /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression with
-       a generic operator. */
-    template_binary_operation((an_expr_operator_kind)eok_padd_subsc,
-                              operand_1, &operand_2,
-                              result, &operator_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode &&
              is_property_ref_operand(operand_1)) {
@@ -2525,8 +2520,6 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
   a_base_class_ptr  bcp;
   an_expr_node_ptr  select_node, object_node, pm_node;
   a_boolean         rvalue_selection;
-  an_expr_operator_kind
-                    op;
 
   db_enter(4, "scan_ptr_to_member_operator");
 
@@ -2559,15 +2552,15 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand_1);
     operand_will_not_be_used_because_of_error(&operand_2);
-  } else if (is_template_dependent_context() &&
+  } else if (!is_arrow_operator && is_template_dependent_context() &&
              (is_template_dependent_type(operand_1->type) ||
               is_template_dependent_type(operand_2.type))) {
     /* If either operand has a template parameter type, we cannot
        check the operand types.  Just produce an expression with
-       a generic operator. */
-    op = is_arrow_operator ? (an_expr_operator_kind)eok_pm_arrow_field :
-                             (an_expr_operator_kind)eok_pm_dot_field;
-    template_binary_operation(op, operand_1, &operand_2,
+       a generic operator.  This is for ".*" only; the "->*" case
+       is handled by check_for_operator_overloading. */
+    template_binary_operation((an_expr_operator_kind)eok_pm_dot_field,
+                              operand_1, &operand_2,
                               result, &operator_position);
     processed = TRUE;
   } else {
@@ -2872,14 +2865,6 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
     pos_error(ec_bad_constant_operator, &operator_position);
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand);
-  } else if (!C_mode() && is_template_dependent_context() &&
-             is_template_dependent_type(operand->type)) {
-    /* The operand has a template parameter type, so we cannot
-       check its type.  Just produce an expression with a generic
-       operator. */
-    op = is_increment ? (an_expr_operator_kind)eok_post_incr :
-                        (an_expr_operator_kind)eok_post_decr;
-    template_unary_operation(op, operand, result, &operator_position);
   } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     property_ref_case = is_property_ref_operand(operand);
@@ -3140,14 +3125,6 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
     /* Operator not allowed in this kind of expression. */
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(&operand);
-  } else if (!C_mode() && is_template_dependent_context() &&
-             is_template_dependent_type(operand.type)) {
-    /* The operand has a template parameter type, so we cannot
-       check its type.  Just produce an expression with a generic
-       operator. */
-    op = is_increment ? (an_expr_operator_kind)eok_pre_incr :
-                        (an_expr_operator_kind)eok_pre_decr;
-    template_unary_operation(op, &operand, result, &start_position);
   } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     property_ref_case = is_property_ref_operand(&operand);
@@ -3370,36 +3347,6 @@ operation is a pointer-to-member (see ARM 5.3).
       /* Operator is not allowed in this kind of expression. */
       make_error_operand(result);
       operand_will_not_be_used_because_of_error(&operand);
-    } else if (!C_mode() && is_template_dependent_context() &&
-               /* Avoid pointer-to-member constants. */
-               !is_sym_for_member_operand(&operand) &&
-               is_template_dependent_type(operand.type)) {
-      /* The operand has a template parameter type, so we cannot
-         check its type.  Just produce an expression with a generic
-         operator.  (Note that there is a generic "&" operator, but
-         no standard IL "&" operator.) */
-      /* If the operand is a member of a nonreal class, e.g., &T::x,
-         make an lvalue for the member instead of the previous assumption
-         that it is a constant. */
-      change_nonreal_member_constant_operand_to_lvalue(&operand);
-      if (is_sym_for_member_operand(&operand)) {
-        /* Replace something like &A::x by a pointer-to-member constant. */
-        conv_sym_for_member_operand_to_ptr_to_member(&operand);
-      }  /* if */
-      if (curr_expr_kind_is_const()) {
-        /* In a constant expression, we can check that the entity is
-           an lvalue.  (In non-constant expressions in prototype
-           instantiations, the lvalue-ness of operands is sometimes
-           unknowable.) */
-        if (!is_an_lvalue(&operand) &&
-            !is_a_function_designator(&operand) &&
-            !is_error_operand(&operand)) {
-          error_in_operand(ec_expr_not_an_lvalue_or_function_designator,
-                           &operand);
-        }  /* if */
-      }  /* if */
-      template_unary_operation((an_expr_operator_kind)eok_address,
-                               &operand, result, &start_position);
     } else {
       if (C_dialect == C_dialect_cplusplus &&
           is_overloadable_type_operand(&operand) &&
@@ -3517,13 +3464,6 @@ See section 3.3.3.2 of the standard.
     /* Operator is not allowed in this kind of expression. */
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(&operand);
-  } else if (!C_mode() && is_template_dependent_context() &&
-             is_template_dependent_type(operand.type)) {
-    /* The operand has a template parameter type, so we cannot
-       check its type.  Just produce an expression with a generic
-       operator. */
-    template_unary_operation((an_expr_operator_kind)eok_indirect,
-                             &operand, result, &start_position);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         is_overloadable_type_operand(&operand)) {
@@ -3607,6 +3547,34 @@ that is invalid within a template argument expression.
 }  /* diagnose_bad_template_arg_operation */
 
 
+static void check_for_bad_template_arg_operation(
+                                          an_operand        *operand_1,
+                                          an_operand        *operand_2,
+                                          a_source_position *operator_position,
+                                          an_operand        *result,
+                                          a_boolean         *processed)
+/*
+Check for a non-integral operation in a template argument expression.
+operand_1 and operand_2 are the operands of the operation.
+*operator_position gives the source position of the operator.  If an
+error is detected, a diagnostic is issued, *result is set to an error
+operand, and *processed is set to TRUE.
+*/
+{
+  if (is_bad_type_for_template_arg_operand(operand_1->type) ||
+      (operand_2 != NULL &&
+       is_bad_type_for_template_arg_operand(operand_2->type))) {
+    diagnose_bad_template_arg_operation(operator_position);
+    make_error_operand(result);
+    operand_will_not_be_used_because_of_error(operand_1);
+    if (operand_2 != NULL) {
+      operand_will_not_be_used_because_of_error(operand_2);
+    }  /* if */
+    *processed = TRUE;
+  }  /* if */
+}  /* check_for_bad_template_arg_operation */
+
+
 static void scan_arith_prefix_operator(an_operand *result)
 /*
 Scan the "+", "-", "~", and "!" prefix operators.  The operand of the "!"
@@ -3656,31 +3624,8 @@ arithmetic type.  The operand of "~" must have integral type.  See section
     default:
       unexpected_condition_str("scan_arith_prefix_operator: bad operator");
   }  /* switch */
-  if (!C_mode() && is_template_dependent_context() &&
-      is_template_dependent_type(operand.type)) {
-    /* The operand has a template parameter type, so we cannot
-       check its type.  Just produce an expression with a generic
-       operator. */
-    /* Switch to the generic expression operator as needed. */
-    if (save_token == (a_token_kind)tok_minus) {
-      op = (an_expr_operator_kind)eok_negate;
-    }  /* if */
-    template_unary_operation(op, &operand, result, &start_position);
-    processed = TRUE;
-  } else if (curr_expr_kind_is(ek_template_arg) &&
-             is_bad_type_for_template_arg_operand(operand.type) &&
-             /* Allow negation of a floating point constant. */
-             !(floating_point_template_parameters_allowed &&
-               save_token == tok_minus &&
-               is_floating_type(operand.type) &&
-               is_constant_operand(&operand))) {
-    /* Non-integral operations are not allowed in a template argument. */
-    diagnose_bad_template_arg_operation(&start_position);
-    make_error_operand(result);
-    operand_will_not_be_used_because_of_error(&operand);
-    processed = TRUE;
-  } else if (C_dialect == C_dialect_cplusplus &&
-             is_overloadable_type_operand(&operand)) {
+  if (C_dialect == C_dialect_cplusplus &&
+      is_overloadable_type_operand(&operand)) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/TRUE,
@@ -3691,6 +3636,20 @@ arithmetic type.  The operand of "~" must have integral type.  See section
                                    &start_position,
                                    operator_tok_seq_number,
                                    result, &processed);
+  }  /* if */
+  if (!processed && curr_expr_kind_is(ek_template_arg)) {
+    if (is_bad_type_for_template_arg_operand(operand.type) &&
+        /* Allow negation of a floating point constant. */
+        !(floating_point_template_parameters_allowed &&
+          save_token == tok_minus &&
+          is_floating_type(operand.type) &&
+          is_constant_operand(&operand))) {
+      /* Non-integral operations are not allowed in a template argument. */
+      diagnose_bad_template_arg_operation(&start_position);
+      make_error_operand(result);
+      operand_will_not_be_used_because_of_error(&operand);
+      processed = TRUE;
+    }  /* if */
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
@@ -8167,32 +8126,9 @@ be of integral type.  See section 3.3.5 of the standard.
   (void)get_token();
   scan_expr(&operand_2, PREC_MULT_DIV, EOPT_NO_OPTIONS);
 
-  if (!C_mode() && is_template_dependent_context() &&
-      (is_template_dependent_type(operand_1->type) ||
-       is_template_dependent_type(operand_2.type))) {
-    /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression with
-       a generic operator. */
-    op = (save_token == (a_token_kind)tok_star) ?
-            (an_expr_operator_kind)eok_multiply :
-            ((save_token == (a_token_kind)tok_divide) ?
-               (an_expr_operator_kind)eok_divide :
-               (an_expr_operator_kind)eok_remainder);
-    template_binary_operation(op, operand_1, &operand_2,
-                              result, &operator_position);
-    processed = TRUE;
-  } else if (curr_expr_kind_is(ek_template_arg) &&
-             (is_bad_type_for_template_arg_operand(operand_1->type) ||
-              is_bad_type_for_template_arg_operand(operand_2.type))) {
-    /* Non-integral operations are not allowed in a template argument. */
-    diagnose_bad_template_arg_operation(&operator_position);
-    make_error_operand(result);
-    operand_will_not_be_used_because_of_error(operand_1);
-    operand_will_not_be_used_because_of_error(&operand_2);
-    processed = TRUE;
-  } else if (C_dialect == C_dialect_cplusplus &&
-             (is_overloadable_type_operand(operand_1) ||
-              is_overloadable_type_operand(&operand_2))) {
+  if (C_dialect == C_dialect_cplusplus &&
+      (is_overloadable_type_operand(operand_1) ||
+       is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -8203,6 +8139,12 @@ be of integral type.  See section 3.3.5 of the standard.
                                    &operator_position,
                                    operator_tok_seq_number,
                                    result, &processed);
+  }  /* if */
+  if (!processed && curr_expr_kind_is(ek_template_arg)) {
+    /* Check for non-integral operations in a template argument expression. */
+    check_for_bad_template_arg_operation(operand_1, &operand_2,
+                                         &operator_position, result,
+                                         &processed);
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
@@ -8279,30 +8221,9 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
   (void)get_token();
   scan_expr(&operand_2, PREC_PLUS_MINUS, EOPT_NO_OPTIONS);
 
-  if (!C_mode() && is_template_dependent_context() &&
-      (is_template_dependent_type(operand_1->type) ||
-       is_template_dependent_type(operand_2.type))) {
-    /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression with
-       a generic operator. */
-    op = (save_token == (a_token_kind)tok_plus) ?
-                                           (an_expr_operator_kind)eok_add :
-                                           (an_expr_operator_kind)eok_subtract;
-    template_binary_operation(op, operand_1, &operand_2,
-                              result, &operator_position);
-    processed = TRUE;
-  } else if (curr_expr_kind_is(ek_template_arg) &&
-             (is_bad_type_for_template_arg_operand(operand_1->type) ||
-              is_bad_type_for_template_arg_operand(operand_2.type))) {
-    /* Non-integral operations are not allowed in a template argument. */
-    diagnose_bad_template_arg_operation(&operator_position);
-    make_error_operand(result);
-    operand_will_not_be_used_because_of_error(operand_1);
-    operand_will_not_be_used_because_of_error(&operand_2);
-    processed = TRUE;
-  } else if (C_dialect == C_dialect_cplusplus &&
-             (is_overloadable_type_operand(operand_1) ||
-              is_overloadable_type_operand(&operand_2))) {
+  if (C_dialect == C_dialect_cplusplus &&
+      (is_overloadable_type_operand(operand_1) ||
+       is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -8313,6 +8234,12 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                                    &operator_position,
                                    operator_tok_seq_number,
                                    result, &processed);
+  }  /* if */
+  if (!processed && curr_expr_kind_is(ek_template_arg)) {
+    /* Check for non-integral operations in a template argument expression. */
+    check_for_bad_template_arg_operation(operand_1, &operand_2,
+                                         &operator_position, result,
+                                         &processed);
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
@@ -8500,29 +8427,9 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
   (void)get_token();
   scan_expr(&operand_2, PREC_SHIFT, EOPT_NO_OPTIONS);
 
-  if (!C_mode() && is_template_dependent_context() &&
-      (is_template_dependent_type(operand_1->type) ||
-       is_template_dependent_type(operand_2.type))) {
-    /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression with
-       a generic operator. */
-    op = which_binary_operator(save_token,
-                               integer_type((an_integer_kind)ik_int));
-    template_binary_operation(op, operand_1, &operand_2,
-                              result, &operator_position);
-    processed = TRUE;
-  } else if (curr_expr_kind_is(ek_template_arg) &&
-             (is_bad_type_for_template_arg_operand(operand_1->type) ||
-              is_bad_type_for_template_arg_operand(operand_2.type))) {
-    /* Non-integral operations are not allowed in a template argument. */
-    diagnose_bad_template_arg_operation(&operator_position);
-    make_error_operand(result);
-    operand_will_not_be_used_because_of_error(operand_1);
-    operand_will_not_be_used_because_of_error(&operand_2);
-    processed = TRUE;
-  } else if (C_dialect == C_dialect_cplusplus &&
-             (is_overloadable_type_operand(operand_1) ||
-              is_overloadable_type_operand(&operand_2))) {
+  if (C_dialect == C_dialect_cplusplus &&
+      (is_overloadable_type_operand(operand_1) ||
+       is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -8533,6 +8440,12 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
                                    &operator_position,
                                    operator_tok_seq_number,
                                    result, &processed);
+  }  /* if */
+  if (!processed && curr_expr_kind_is(ek_template_arg)) {
+    /* Check for non-integral operations in a template argument expression. */
+    check_for_bad_template_arg_operation(operand_1, &operand_2,
+                                         &operator_position, result,
+                                         &processed);
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
@@ -8688,34 +8601,9 @@ standard.
   (void)get_token();
   scan_expr(&operand_2, PREC_RELATIONAL, EOPT_NO_OPTIONS);
 
-  if (!C_mode() && is_template_dependent_context() &&
-      (is_template_dependent_type(operand_1->type) ||
-       is_template_dependent_type(operand_2.type))) {
-    /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression with
-       a generic operator. */
-    switch (save_token) {
-      case tok_gt: op = (an_expr_operator_kind)eok_gt; break;
-      case tok_lt: op = (an_expr_operator_kind)eok_lt; break;
-      case tok_ge: op = (an_expr_operator_kind)eok_ge; break;
-      case tok_le: op = (an_expr_operator_kind)eok_le; break;
-      default:     unexpected_condition();
-    }  /* switch */
-    template_binary_operation(op, operand_1, &operand_2,
-                              result, &operator_position);
-    processed = TRUE;
-  } else if (curr_expr_kind_is(ek_template_arg) &&
-             (is_bad_type_for_template_arg_operand(operand_1->type) ||
-              is_bad_type_for_template_arg_operand(operand_2.type))) {
-    /* Non-integral operations are not allowed in a template argument. */
-    diagnose_bad_template_arg_operation(&operator_position);
-    make_error_operand(result);
-    operand_will_not_be_used_because_of_error(operand_1);
-    operand_will_not_be_used_because_of_error(&operand_2);
-    processed = TRUE;
-  } else if (C_dialect == C_dialect_cplusplus &&
-             (is_overloadable_type_operand(operand_1) ||
-              is_overloadable_type_operand(&operand_2))) {
+  if (C_dialect == C_dialect_cplusplus &&
+      (is_overloadable_type_operand(operand_1) ||
+       is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -8726,6 +8614,12 @@ standard.
                                    &operator_position,
                                    operator_tok_seq_number,
                                    result, &processed);
+  }  /* if */
+  if (!processed && curr_expr_kind_is(ek_template_arg)) {
+    /* Check for non-integral operations in a template argument expression. */
+    check_for_bad_template_arg_operation(operand_1, &operand_2,
+                                         &operator_position, result,
+                                         &processed);
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
@@ -8853,30 +8747,9 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   (void)get_token();
   scan_expr(&operand_2, PREC_EQ_NE, EOPT_NO_OPTIONS);
 
-  if (!C_mode() && is_template_dependent_context() &&
-      (is_template_dependent_type(operand_1->type) ||
-       is_template_dependent_type(operand_2.type))) {
-    /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression with
-       a generic operator. */
-    op = (save_token == (a_token_kind)tok_eq) ?
-            (an_expr_operator_kind)eok_eq :
-            (an_expr_operator_kind)eok_ne;
-    template_binary_operation(op, operand_1, &operand_2,
-                              result, &operator_position);
-    processed = TRUE;
-  } else if (curr_expr_kind_is(ek_template_arg) &&
-             (is_bad_type_for_template_arg_operand(operand_1->type) ||
-              is_bad_type_for_template_arg_operand(operand_2.type))) {
-    /* Non-integral operations are not allowed in a template argument. */
-    diagnose_bad_template_arg_operation(&operator_position);
-    make_error_operand(result);
-    operand_will_not_be_used_because_of_error(operand_1);
-    operand_will_not_be_used_because_of_error(&operand_2);
-    processed = TRUE;
-  } else if (C_dialect == C_dialect_cplusplus &&
-             (is_overloadable_type_operand(operand_1) ||
-              is_overloadable_type_operand(&operand_2))) {
+  if (C_dialect == C_dialect_cplusplus &&
+      (is_overloadable_type_operand(operand_1) ||
+       is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -8887,6 +8760,12 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
                                    &operator_position,
                                    operator_tok_seq_number,
                                    result, &processed);
+  }  /* if */
+  if (!processed && curr_expr_kind_is(ek_template_arg)) {
+    /* Check for non-integral operations in a template argument expression. */
+    check_for_bad_template_arg_operation(operand_1, &operand_2,
+                                         &operator_position, result,
+                                         &processed);
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
@@ -9014,29 +8893,9 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
   (void)get_token();
   scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
 
-  if (!C_mode() && is_template_dependent_context() &&
-      (is_template_dependent_type(operand_1->type) ||
-       is_template_dependent_type(operand_2.type))) {
-    /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression with
-       a generic operator. */
-    op = which_binary_operator(save_token,
-                               integer_type((an_integer_kind)ik_int));
-    template_binary_operation(op, operand_1, &operand_2,
-                              result, &operator_position);
-    processed = TRUE;
-  } else if (curr_expr_kind_is(ek_template_arg) &&
-             (is_bad_type_for_template_arg_operand(operand_1->type) ||
-              is_bad_type_for_template_arg_operand(operand_2.type))) {
-    /* Non-integral operations are not allowed in a template argument. */
-    diagnose_bad_template_arg_operation(&operator_position);
-    make_error_operand(result);
-    operand_will_not_be_used_because_of_error(operand_1);
-    operand_will_not_be_used_because_of_error(&operand_2);
-    processed = TRUE;
-  } else if (C_dialect == C_dialect_cplusplus &&
-             (is_overloadable_type_operand(operand_1) ||
-              is_overloadable_type_operand(&operand_2))) {
+  if (C_dialect == C_dialect_cplusplus &&
+      (is_overloadable_type_operand(operand_1) ||
+       is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -9047,6 +8906,12 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
                                    &operator_position,
                                    operator_tok_seq_number,
                                    result, &processed);
+  }  /* if */
+  if (!processed && curr_expr_kind_is(ek_template_arg)) {
+    /* Check for non-integral operations in a template argument expression. */
+    check_for_bad_template_arg_operation(operand_1, &operand_2,
+                                         &operator_position, result,
+                                         &processed);
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
@@ -9192,29 +9057,9 @@ standard.
   /* Restore the evaluated flag as it was on entry. */
   expr_stack->evaluated = saved_evaluated;
 
-  if (!C_mode() && is_template_dependent_context() &&
-      (is_template_dependent_type(operand_1->type) ||
-       is_template_dependent_type(operand_2.type))) {
-    /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression with
-       a generic operator. */
-    op = which_binary_operator(save_token,
-                               integer_type((an_integer_kind)ik_int));
-    template_binary_operation(op, operand_1, &operand_2,
-                              result, &operator_position);
-    processed = TRUE;
-  } else if (curr_expr_kind_is(ek_template_arg) &&
-             (is_bad_type_for_template_arg_operand(operand_1->type) ||
-              is_bad_type_for_template_arg_operand(operand_2.type))) {
-    /* Non-integral operations are not allowed in a template argument. */
-    diagnose_bad_template_arg_operation(&operator_position);
-    make_error_operand(result);
-    operand_will_not_be_used_because_of_error(operand_1);
-    operand_will_not_be_used_because_of_error(&operand_2);
-    processed = TRUE;
-  } else if (C_dialect == C_dialect_cplusplus &&
-             (is_overloadable_type_operand(operand_1) ||
-              is_overloadable_type_operand(&operand_2))) {
+  if (C_dialect == C_dialect_cplusplus &&
+      (is_overloadable_type_operand(operand_1) ||
+       is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     /* Note that we do not test might_be_overloaded here, because we want
        to go to the subroutine to look for conversions from class types
@@ -9228,6 +9073,12 @@ standard.
                                    &operator_position,
                                    operator_tok_seq_number,
                                    result, &processed);
+  }  /* if */
+  if (!processed && curr_expr_kind_is(ek_template_arg)) {
+    /* Check for non-integral operations in a template argument expression. */
+    check_for_bad_template_arg_operation(operand_1, &operand_2,
+                                         &operator_position, result,
+                                         &processed);
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
@@ -10073,15 +9924,6 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand_1);
     operand_will_not_be_used_because_of_error(&operand_2);
-  } else if (!C_mode() && is_template_dependent_context() &&
-             (is_template_dependent_type(operand_1->type) ||
-              is_template_dependent_type(operand_2.type))) {
-    /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression with
-       a generic operator. */
-    template_binary_operation((an_expr_operator_kind)eok_assign,
-                              operand_1, &operand_2,
-                              result, &operator_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (is_property_ref_operand(operand_1)) {
     /* The operand is a field selection for a field declared with the
@@ -10092,20 +9934,24 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     if (C_dialect == C_dialect_cplusplus &&
-        is_class_struct_union_type(operand_1->type)) {
+        (is_overloadable_type_operand(operand_1) ||
+         is_overloadable_type_operand(&operand_2))) {
       /* Look for C++ operator overloading cases. */
-      /* Instantiate the type if it is a template class.  This ensures that
-         the operator= function is declared. */
-      complete_type_is_needed(operand_1->type);
-      /* Defined C++ classes will always have a generated operator=.
-         For incomplete classes, assume a predefined meaning to get clearer
-         error messages. */
-      has_predef_meaning = is_incomplete_type(operand_1->type);
-      if (any_cfront_mode()) {
-        /* In cfront mode, an operator= is not generated in every case. */
-        if (symbol_supplement_for_class(operand_1->type)->
+      has_predef_meaning = TRUE;
+      if (is_class_struct_union_type(operand_1->type)) {
+        /* Instantiate the type if it is a template class.  This ensures that
+           the operator= function is declared. */
+        complete_type_is_needed(operand_1->type);
+        /* Defined C++ classes will always have a generated operator=.
+           For incomplete classes, assume a predefined meaning to get clearer
+           error messages. */
+        has_predef_meaning = is_incomplete_type(operand_1->type);
+        if (any_cfront_mode()) {
+          /* In cfront mode, an operator= is not generated in every case. */
+          if (symbol_supplement_for_class(operand_1->type)->
                                           assignment_by_bitwise_copy_allowed) {
-          has_predef_meaning = TRUE;
+            has_predef_meaning = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       check_for_operator_overloading((an_opname_kind)onk_assign,
@@ -10189,7 +10035,6 @@ See section 3.3.16 of the standard.
   an_operand            operand_1_clone;
   a_boolean             operand_1_clone_unused = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  an_expr_operator_kind op;
 
   db_enter(4, "scan_compound_assignment_operator");
 
@@ -10268,48 +10113,6 @@ See section 3.3.16 of the standard.
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand_1);
     operand_will_not_be_used_because_of_error(&operand_2);
-  } else if (!C_mode() && is_template_dependent_context() &&
-             (is_template_dependent_type(operand_1->type) ||
-              is_template_dependent_type(operand_2.type))) {
-    /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression with
-       a generic operator. */
-    switch (save_token) {
-      case tok_plus_assign:
-        op = (an_expr_operator_kind)eok_add_assign;
-        break;
-      case tok_minus_assign:
-        op = (an_expr_operator_kind)eok_subtract_assign;
-        break;
-      case tok_times_assign:
-        op = (an_expr_operator_kind)eok_multiply_assign;
-        break;
-      case tok_divide_assign:
-        op = (an_expr_operator_kind)eok_divide_assign;
-        break;
-      case tok_remainder_assign:
-        op = (an_expr_operator_kind)eok_remainder_assign;
-        break;
-      case tok_shift_left_assign:
-        op = (an_expr_operator_kind)eok_shiftl_assign;
-        break;
-      case tok_shift_right_assign:
-        op = (an_expr_operator_kind)eok_shiftr_assign;
-        break;
-      case tok_and_assign:
-        op = (an_expr_operator_kind)eok_and_assign;
-        break;
-      case tok_or_assign:
-        op = (an_expr_operator_kind)eok_or_assign;
-        break;
-      case tok_excl_or_assign:
-        op = (an_expr_operator_kind)eok_xor_assign;
-        break;
-      default:
-        unexpected_condition();
-    }  /* switch */
-    template_binary_operation(op, operand_1, &operand_2,
-                              result, &operator_position);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         (is_overloadable_type_operand(operand_1) ||
@@ -10775,14 +10578,6 @@ EOPT_DISALLOW_COMMA_OPERATOR).
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand_1);
     operand_will_not_be_used_because_of_error(&operand_2);
-  } else if (!C_mode() && is_template_dependent_context() &&
-             (is_template_dependent_type(operand_1->type) ||
-              is_template_dependent_type(operand_2.type))) {
-    /* If either operand has a template parameter type, just produce
-       an expression with a generic operator. */
-    template_binary_operation((an_expr_operator_kind)eok_comma,
-                              operand_1, &operand_2,
-                              result, &operator_position);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         (is_overloadable_type_operand(operand_1) ||

@@ -7691,6 +7691,55 @@ Adjust the operand type to match the type requirement.
 }  /* adjust_operand_for_builtin_operator */
 
 
+static void make_generic_operation_operand(
+                                          an_opname_kind    kind,
+                                          a_boolean         unary_operator,
+                                          an_operand        *operand_1,
+                                          an_operand        *operand_2,
+                                          an_operand        *result,
+                                          a_source_position *operator_position)
+/*
+Make an operand for a "generic" operation, i.e., one on template-dependent
+operands in a prototype instantiation.  kind indicates the operation,
+and unary_operator is TRUE if the operation is a unary operation.
+operand_1 and operand_2 are the operands (operand_2 is needed only
+for non-unary operations).  The result operand is returned in *result.
+*operator_position gives the source position of the operator.
+*/
+{
+  an_expr_operator_kind generic_op =
+                        generic_operator_for_opname_kind(kind, unary_operator);
+
+  if (unary_operator) {
+    if (generic_op == (an_expr_operator_kind)eok_address) {
+      /* For unary "&", do some special processing. */
+      /* If the operand is a member of a nonreal class, e.g., &T::x,
+         make an lvalue for the member instead of the previous assumption
+         that it is a constant. */
+      change_nonreal_member_constant_operand_to_lvalue(operand_1);
+      if (curr_expr_kind_is_const()) {
+        /* In a constant expression, we can check that the entity is
+           an lvalue.  (In non-constant expressions in prototype
+           instantiations, the lvalue-ness of operands is sometimes
+           unknowable.) */
+        if (!is_an_lvalue(operand_1) &&
+            !is_a_function_designator(operand_1) &&
+            !is_error_operand(operand_1)) {
+          error_in_operand(ec_expr_not_an_lvalue_or_function_designator,
+                           operand_1);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    template_unary_operation(generic_op, operand_1, result,
+                             operator_position);
+  } else {
+    /* Two-operand operation. */
+    template_binary_operation(generic_op, operand_1, operand_2,
+                              result, operator_position);
+  }  /* if */
+}  /* make_generic_operation_operand */
+
+
 void check_for_operator_overloading(
                                an_opname_kind          kind,
                                a_boolean               unary_operator,
@@ -7727,7 +7776,9 @@ operator "?", with unary_operator FALSE; the two operands are the second
 and third operands of the "?" ("?" cannot be overloaded, but conversion
 functions could still apply).  operator_position gives the operator source
 position.  operator_tok_seq_number gives the token sequence number of
-the operator.
+the operator.  This routine also checks for template-dependent operands
+in a prototype instantiation, and builds a generic expression for
+such cases (where operator overloading might apply, but we can't tell).
 */
 {
   an_arg_operand_ptr       arg_operand_list, arg_operand_list2, arg_operand;
@@ -7752,8 +7803,18 @@ the operator.
 
   db_enter(4, "check_for_operator_overloading");
   *processed = FALSE;
-  /* Operator overloading should not be tried in constant expressions. */
-  if (!curr_expr_kind_is_const()) {
+  /* Check for template-dependent operands in a prototype instantiation. */
+  if (is_template_dependent_context() &&
+      (is_template_dependent_type(operand_1->type) ||
+       (!unary_operator && is_template_dependent_type(operand_2->type)))) {
+    /* There is at least one template-dependent operand, so we cannot
+       check for operator overloading.  Just build an expression with a
+       generic operator. */
+    make_generic_operation_operand(kind, unary_operator, operand_1, operand_2,
+                                   result, operator_position);
+    *processed = TRUE;
+  } else if (!curr_expr_kind_is_const()) {
+    /* Check for operator overloading (but not in constant expressions). */
     if (is_error_operand(operand_1) || 
         (!unary_operator && is_error_operand(operand_2))) {
       /* One or both of the operands is an error operand. */
