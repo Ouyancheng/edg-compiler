@@ -3257,7 +3257,7 @@ specification allow a variable-sized array as the top type.
       pos_error(ec_type_must_be_object_type, &type_position);
     }  /* if */
     make_error_operand(result);
-    new_type = error_type();
+    base_new_type = ptr_new_type = new_type = error_type();
   } else {
     /* Valid type. */
     /* Determine the type of pointer returned from "new". */
