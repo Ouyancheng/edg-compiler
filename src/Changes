@@ -1,5 +1,22 @@
 Version 2.31
 
+11/10/95  Internal error with using-declarations
+
+The check for virtual function overriding had a bug introduced by the
+2.30 changes -- an internal error is no longer produced by the following
+program:
+
+  struct A {
+    void f();
+    void f(int);
+  };
+  struct B : public A {
+    using A::f;
+  };
+  struct C : public B {
+    void f(int,int);
+  };
+
 11/1/95   Name of constructor of an unnamed class
 
 The "name" field in the source correspondence of a routine entry for a
