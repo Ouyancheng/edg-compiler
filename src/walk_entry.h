@@ -105,7 +105,7 @@ other than "next".
 /*
 Process the source correspondence field pointed to by ptr.
 */
-/* Macro to remap scope_of_which_a_member only if it exists. */
+/* Macro to remap class or namespace parent only if it exists. */
 #undef remap_parent
 #ifdef CFE
 #define remap_parent(ptr) \
