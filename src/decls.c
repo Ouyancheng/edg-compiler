@@ -4712,7 +4712,6 @@ a pointer to it in *symbol_ptr.
   sym->variant.type = tp = alloc_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
   mark_defined(sym, &locator->source_position);
-  set_decl_sequence_number(sym);
   set_source_corresp(&(tp->source_corresp), sym);
   add_to_types_list(tp, decl_scope_level);
 
@@ -4929,8 +4928,6 @@ is_definition is TRUE if the label is being scanned as part of a label.
          was previously entered.  Labels are strange in that a reference
          can come up before a declaration. */
       mark_defined(label_sym, &pos_curr_token);
-      /* Set the declaration sequence number. */
-      set_decl_sequence_number(label_sym);
     } else {
       mark_referenced(label_sym, &pos_curr_token);
       /* Set the decl_position in case no declaration shows up, so we
@@ -9576,10 +9573,6 @@ continue_with_declaration:
           /* In C a file scope variable declaration with no storage class or
              static storage class is called a tentative definition. */
           is_tentative_definition = TRUE;
-        }  /* if */
-        if (is_definition && symbol_ptr->decl_seq == 0) {
-          /* Set the declaration sequence number. */
-          set_decl_sequence_number(symbol_ptr);
         }  /* if */
       } else if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
         /* All static data member declarations that that pass though this

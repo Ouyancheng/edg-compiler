@@ -329,9 +329,6 @@ might not be able to if the template itself has not yet been defined.
       class_type->size = 1;
     } else {
       /* We proceed with the instantiation. */
-      /* Since this is the class's definition, set the declaration sequence
-         number. */
-      set_decl_sequence_number(instance_sym);
       /* Increment the count of instantiations-in-progress for the current
          class template.  It will be decremented when the instantiation is
          complete. */
