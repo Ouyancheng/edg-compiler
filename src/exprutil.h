@@ -485,6 +485,9 @@ extern void arg_default_promote_operand(an_operand         *argument_operand,
 extern void make_constant_operand(a_constant *constant,
 			          an_operand *operand);
 
+extern void make_string_constant_operand(a_constant *constant,
+                                         an_operand *operand);
+
 extern void clear_operand(an_operand_kind kind,
 		          an_operand      *operand);
 

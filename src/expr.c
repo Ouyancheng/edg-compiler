@@ -6165,7 +6165,7 @@ and/or functions to pointers, etc. -- see expr.h).
       (void)get_token();
       break;
     case tok_string_literal:
-      make_constant_operand(&const_for_curr_token, &local_result);
+      make_string_constant_operand(&const_for_curr_token, &local_result);
       if ((expression_kind == (an_expression_kind)ek_pp) ||
 	  (expression_kind == (an_expression_kind)ek_integral_constant)) {
 	error_and_make_error_operand(ec_expr_not_integral, &local_result);
