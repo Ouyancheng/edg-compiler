@@ -214,6 +214,111 @@ Allocate a new hidden name entry and link it in the list for the given scope.
 }  /* make_new_hidden_name */
 
 
+static void record_defeatable_name_hiding_for_single_entity(
+                              a_symbol_ptr  hidden_sym,
+                              a_boolean     tag_hidden_by_nontag,
+                              a_boolean     hidden_class_or_namespace_member,
+                              a_scope_ptr   sp,
+                              a_symbol_ptr  hidden_by)
+/*
+hidden_sym is a symbol for a single entity that is hidden by another
+declaration of the same name -- but the hiding can be "defeated" by using an
+elaborated type specifier or global qualification (preceding "::") when
+referring to the hidden name.  Create the hidden-name entity to represent
+this case and add it to the list for the current scope.  If hidden_by is
+non-NULL, it points to the symbol that does the hiding.
+(This routine is meant to be called from record_defeatable_name_hiding only.)
+*/
+{
+  a_hidden_name_ptr        hnp;
+  char                     *entity;
+  an_il_entry_kind         kind;
+
+  /* First find the entity associated with the symbol. */
+  entity = il_entry_for_symbol(hidden_sym, &kind);
+  /* If there is already a hidden name entry for this entity in this
+     scope, reuse it. */
+  for (hnp = sp->hidden_names; hnp != NULL; hnp = hnp->next) {
+    if (hnp->entity.ptr == entity) break;
+  }  /* for */
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+    if (hnp == NULL ||
+        ((tag_hidden_by_nontag &&
+          !hnp->elaborated_type_specifier_needed) ||
+         (hidden_class_or_namespace_member &&
+          !hnp->qualification_needed))) {
+      a_source_correspondence  *scp =
+                             source_corresp_for_il_entry(entity, kind);
+      fputs("    in ", f_debug);
+      db_scope(sp);
+      fputs(": use", f_debug);
+      if (hidden_class_or_namespace_member) {
+        fputs(" qualifier", f_debug);
+        if (tag_hidden_by_nontag) fputs(" and", f_debug);
+      }  /* if */
+      if (tag_hidden_by_nontag) fputs(" class-key", f_debug);
+      fprintf(f_debug, " for %s\"",
+              hidden_sym->decl_scope == file_scope_number ?
+                                               "global " : "");
+      if (kind == (an_il_entry_kind)iek_type) {
+        db_abbreviated_type((a_type_ptr)entity);
+      } else {
+        if (scp != NULL) {
+          db_name_full(scp, kind);
+        } else {
+          fprintf(f_debug, "\?\?\?");
+        }  /* if */
+      }  /* if */
+      fprintf(f_debug, "\"%s", hnp == NULL ? "" : " [modif]");
+      fprintf(f_debug, "\n");
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+  if (hnp == NULL) {
+    /* No existing entry.  Allocate a new one. */
+    hnp = make_new_hidden_name(sp);
+    hnp->entity.ptr = entity;
+    hnp->entity.kind = (a_byte_il_entry_kind)kind;
+  }  /* if */
+  /* Set the appropriate flag. */
+  if (tag_hidden_by_nontag) {
+    check_assertion(kind == (an_il_entry_kind)iek_type);
+    hnp->elaborated_type_specifier_needed = TRUE;
+  }  /* if */
+  if (hidden_class_or_namespace_member) {
+    a_symbol_ptr  fund_hiding_sym = (hidden_by == NULL) ?
+                                       NULL :
+                                       fundamental_symbol_of(hidden_by),
+                  fund_hidden_sym = fundamental_symbol_of(hidden_sym);
+    if (microsoft_mode &&
+        fund_hiding_sym != NULL &&
+        fund_hiding_sym->kind == (a_symbol_kind)sk_type &&
+        fund_hiding_sym->variant.type.is_injected_class_name) {
+      /* In Microsoft compilers an injected class name is only visible
+         through qualified lookup.  Furthermore, Microsoft does not
+         accept (redundant) qualification with a class whose closing
+         brace has not yet been seen.  Setting the following flag
+         notifies consumers of this special "partial hiding" case. */
+      hnp->partially_hidden_by_microsoft_injected_class_name = TRUE;
+    }  /* if */
+    check_assertion(in_file_scope(entity));
+    if (fund_hiding_sym == NULL ||
+        !(is_type_symbol(fund_hidden_sym) &&
+          fund_hiding_sym->kind == (a_symbol_kind)sk_type &&
+          fund_hiding_sym->variant.type.is_injected_class_name) ||
+        !f_identical_types(type_symbol_type(fund_hidden_sym),
+                           type_symbol_type(fund_hiding_sym),
+                           ITF_NO_FLAGS)) {
+      /* It is possible that an injected class name hides another type
+         symbol that refers to the same IL entity.  In that case, no
+         qualification is needed. */
+      hnp->qualification_needed = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* record_defeatable_name_hiding_for_single_entity */
+
+
 static void record_defeatable_name_hiding(
                               a_symbol_ptr  hidden_sym,
                               a_boolean     tag_hidden_by_nontag,
@@ -230,9 +335,6 @@ non-NULL, it points to the symbol that does the hiding; when hidden_sym
 and hidden_by refer to the same IL entry, no hidden-name entry is produced.
 */
 {
-  a_hidden_name_ptr        hnp;
-  char                     *entity;
-  an_il_entry_kind         kind;
   a_symbol_ptr             sym;
   a_template_instance_ptr  tip;
 
@@ -301,6 +403,11 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
                                           hidden_by);
           }  /* if */
         }  /* for */
+        /* Process the template itself. */
+        record_defeatable_name_hiding_for_single_entity(
+                                             hidden_sym, tag_hidden_by_nontag,
+                                             hidden_class_or_namespace_member,
+                                             sp, hidden_by);
         break;
       case sk_function_template:
         /* Enter each instance of a function template. */
@@ -318,91 +425,17 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
                                           hidden_by);
           }  /* if */
         }  /* for */
+        /* Process the template itself. */
+        record_defeatable_name_hiding_for_single_entity(
+                                             hidden_sym, tag_hidden_by_nontag,
+                                             hidden_class_or_namespace_member,
+                                             sp, hidden_by);
         break;
       default:
-        /* The normal case.  First find the entity associated with the
-           symbol. */
-        entity = il_entry_for_symbol(hidden_sym, &kind);
-        /* If there is already a hidden name entry for this entity in this
-           scope, reuse it. */
-        for (hnp = sp->hidden_names; hnp != NULL; hnp = hnp->next) {
-          if (hnp->entity.ptr == entity) break;
-        }  /* for */
-#if DEBUG
-        if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
-          if (hnp == NULL ||
-              ((tag_hidden_by_nontag &&
-                !hnp->elaborated_type_specifier_needed) ||
-               (hidden_class_or_namespace_member &&
-                !hnp->qualification_needed))) {
-            a_source_correspondence  *scp =
-                                   source_corresp_for_il_entry(entity, kind);
-            fputs("    in ", f_debug);
-            db_scope(sp);
-            fputs(": use", f_debug);
-            if (hidden_class_or_namespace_member) {
-              fputs(" qualifier", f_debug);
-              if (tag_hidden_by_nontag) fputs(" and", f_debug);
-            }  /* if */
-            if (tag_hidden_by_nontag) fputs(" class-key", f_debug);
-            fprintf(f_debug, " for %s\"",
-                    hidden_sym->decl_scope == file_scope_number ?
-                                                     "global " : "");
-            if (kind == (an_il_entry_kind)iek_type) {
-              db_abbreviated_type((a_type_ptr)entity);
-            } else {
-              if (scp != NULL) {
-                db_name_full(scp, kind);
-              } else {
-                fprintf(f_debug, "\?\?\?");
-              }  /* if */
-            }  /* if */
-            fprintf(f_debug, "\"%s", hnp == NULL ? "" : " [modif]");
-            fprintf(f_debug, "\n");
-          }  /* if */
-        }  /* if */
-#endif /* DEBUG */
-        if (hnp == NULL) {
-          /* No existing entry.  Allocate a new one. */
-          hnp = make_new_hidden_name(sp);
-          hnp->entity.ptr = entity;
-          hnp->entity.kind = (a_byte_il_entry_kind)kind;
-        }  /* if */
-        /* Set the appropriate flag. */
-        if (tag_hidden_by_nontag) {
-          check_assertion(kind == (an_il_entry_kind)iek_type);
-          hnp->elaborated_type_specifier_needed = TRUE;
-        }  /* if */
-        if (hidden_class_or_namespace_member) {
-          a_symbol_ptr  fund_hiding_sym = (hidden_by == NULL) ?
-                                             NULL :
-                                             fundamental_symbol_of(hidden_by),
-                        fund_hidden_sym = fundamental_symbol_of(hidden_sym);
-          if (microsoft_mode &&
-              fund_hiding_sym != NULL &&
-              fund_hiding_sym->kind == (a_symbol_kind)sk_type &&
-              fund_hiding_sym->variant.type.is_injected_class_name) {
-            /* In Microsoft compilers an injected class name is only visible
-               through qualified lookup.  Furthermore, Microsoft does not
-               accept (redundant) qualification with a class whose closing
-               brace has not yet been seen.  Setting the following flag
-               notifies consumers of this special "partial hiding" case. */
-            hnp->partially_hidden_by_microsoft_injected_class_name = TRUE;
-          }  /* if */
-          check_assertion(in_file_scope(entity));
-          if (fund_hiding_sym == NULL ||
-              !(is_type_symbol(fund_hidden_sym) &&
-                fund_hiding_sym->kind == (a_symbol_kind)sk_type &&
-                fund_hiding_sym->variant.type.is_injected_class_name) ||
-              !f_identical_types(type_symbol_type(fund_hidden_sym),
-                                 type_symbol_type(fund_hiding_sym),
-                                 ITF_NO_FLAGS)) {
-            /* It is possible that an injected class name hides another type
-               symbol that refers to the same IL entity.  In that case, no
-               qualification is needed. */
-            hnp->qualification_needed = TRUE;
-          }  /* if */
-        }  /* if */
+        record_defeatable_name_hiding_for_single_entity(
+                                             hidden_sym, tag_hidden_by_nontag,
+                                             hidden_class_or_namespace_member,
+                                             sp, hidden_by);
         break;
     }  /* switch */
   }  /* if */
