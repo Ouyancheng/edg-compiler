@@ -6288,14 +6288,20 @@ A conversion from source_type (a possibly-qualified class type) is being done
 by eliding a copy constructor.  Check that the copy constructor that would
 have been referenced exists and is accessible (ARM 12.6.1) and callable
 (we assume that the thing being copied is an rvalue because it's the result
-of a constructor call).  Issue an error *err_pos if not.
+of a constructor call).  Issue an error (or a warning, depending on the
+mode) at *err_pos if not.
 */
 {
   a_type_ptr   class_type = skip_typerefs(source_type);
   a_symbol_ptr cctor_sym;
   a_boolean    ambiguous;
   a_boolean    class_bitwise_copy;
+  an_error_severity
+               severity;
 
+  /* Most diagnostics here are issued as errors only in strict mode. */
+  severity = strict_ansi_mode ? strict_ansi_discretionary_severity :
+                                es_warning;
   cctor_sym = find_copy_constructor(class_type,
                                     get_type_qualifiers(source_type),
                                     &ambiguous, &class_bitwise_copy);
@@ -6304,20 +6310,18 @@ of a constructor call).  Issue an error *err_pos if not.
   } else if (cctor_sym == NULL) {
     if (!ambiguous) {
       /* No applicable copy constructor. */
-      pos_ty_error(ec_no_suitable_copy_constructor, err_pos, class_type);
+      pos_ty_diagnostic(severity, ec_no_suitable_copy_constructor,
+                        err_pos, class_type);
     } else {
       /* More than one applicable copy constructor. */
-      pos_ty_error(ec_ambiguous_copy_constructor, err_pos, class_type);
+      pos_ty_diagnostic(severity, ec_ambiguous_copy_constructor,
+                        err_pos, class_type);
     }  /* if */
   } else {
     if (!have_access_to_symbol(cctor_sym)) {
-      if (strict_ansi_mode) {
-        pos_sy_diagnostic(strict_ansi_discretionary_severity,
-                          ec_inaccessible_elided_cctor,
-                          err_pos, cctor_sym);
-      } else {
-        pos_sy_warning(ec_inaccessible_elided_cctor, err_pos, cctor_sym);
-      }  /* if */
+      /* The copy constructor is inaccessible. */
+      pos_sy_diagnostic(severity, ec_inaccessible_elided_cctor,
+                        err_pos, cctor_sym);
     } else {
       /* The copy constructor is accessible.  Is it callable?  Specifically,
          you can't call a copy constructor with an input parameter that is
@@ -7146,6 +7150,14 @@ initializer has previously been found to be acceptable, and
          to the call of conv_operand_into_temp we would be looking
          at copy constructors, which really isn't appropriate and
          produces confusing error messages. */
+      if (!dropping_qualifiers) {
+        /* [dcl.init.ref] of the WP requires that the copy constructor be
+           callable whether or not it is actually called.  We never call
+           it, but we must check it anyway. */
+        check_access_to_elided_copy_constructor(source_operand->type,
+                                                &source_operand->position);
+      }  /* if */
+      /* Convert the operand to a pointer to the class object. */
       conv_class_operand_to_object_pointer(source_operand);
       /* Use a pointer type instead of a reference type on the
          destination. */
