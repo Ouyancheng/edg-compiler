@@ -86,13 +86,6 @@ Do any processing that is required at the end of a translation unit
                                    curr_stop_token_stack_entry->stop_tokens);
 #endif /* CHECKING */
 
-  if (is_primary_translation_unit && !do_preprocessing_only) {
-    /* Do any template instantiation that may be required.  This is called
-       first because it may generate additional function bodies and class
-       definitions that need to be processed by the operations that follow. */
-    instantiation_wrapup();
-  }  /* if */
-
   if (!do_preprocessing_only && any_cfront_mode()) {
     /* Determine whether any classes defined in this file require external
        linkage, and if so do the appropriate fixup.  No such fixup is
@@ -129,6 +122,19 @@ it needs to be executed after all templates have been instantiated.
   a_scope_ptr	il_scope;
 
   il_scope = curr_translation_unit->primary_scope;
+
+  if (is_primary_translation_unit && !do_preprocessing_only) {
+    /* Do any template instantiation that may be required.  This is called
+       first because it may generate additional function bodies and class
+       definitions that need to be processed by the operations that follow. */
+    instantiation_wrapup();
+    if (any_cfront_mode()) {
+      /* Repeat the class linkage check that was first done during translation
+         unit wrapup.  This is done again to catch any classes that may have
+         been added during the instantiation process. */
+      check_class_linkage();
+    }  /* if */
+  }  /* if */
 
   /* Do the wrapup_scope processing on file and namespace scopes. */
   wrapup_scope(il_scope, (a_scope_kind)sck_file,
@@ -185,6 +191,8 @@ secondary translation units will have already been copied over.
     }  /* if */
 #endif /* DO_IL_LOWERING */
   }  /* if */
+  /* Pop the file scope. */
+  pop_scope();
 #if MAINTAIN_NEEDED_FLAGS
   /* Set the "needed" flag in defined variables with external linkage --
      both in the file scope and in each of the namespace scopes. */
@@ -253,8 +261,6 @@ secondary translation units will have already been copied over.
       copy_secondary_trans_unit_IL_to_primary();
     }  /* if */
   }  /* if */
-  /* Pop the file scope. */
-  pop_scope();
   check_for_done_with_memory_region(file_scope_region_number);
 }  /* file_scope_il_wrapup_part_2 */
 
