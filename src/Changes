@@ -1,5 +1,7 @@
 Version 2.26
 
+10/10/94 IL version number changed to 2.18
+
 10/10/94 A(x) and (A)x mean the same thing and allow user-defined
          conversions on x
 
