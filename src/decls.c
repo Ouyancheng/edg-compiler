@@ -10142,32 +10142,15 @@ continue_with_declaration:
         }  /* if */
         set_err_pos_to_curr_token();
         diagnostic(severity, ec_missing_typedef_name);
-      } else if (!declares_something) {
-        if ((defines_something || is_class_struct_union_type(type_ptr) ||
-             is_enum_type(type_ptr)) &&
-            (storage_class != (a_storage_class)sc_unspecified ||
-             is_qualified_type(type_ptr))) {
-          /* If defines_something is TRUE and declares something is FALSE we
-             have a class, struct, union, or enum declaration without a tag
-             name and also without the name of an object but with a storage
-             class or qualifier -- e.g., "extern struct { int i; };".  Tell
-             the user an object name is missing. */
-          /* A similar case is a reference to a tag that has already been
-             declared -- e.g.,
-               class A { ... };
-               const class A;
-             The presence of the qualifier means there has to be a declarator,
-             so we complain about its being missing. */
-          set_err_pos_to_curr_token();
-          diagnostic(C_dialect == C_dialect_cplusplus ? es_error : es_warning,
-                     ec_missing_object_name);
-        } else {
+      } else {
+        if (!declares_something) {
           /* The specifiers should have declared something or this declaration
-             is pointless.  An example would be
+             is pointless.  Examples would be
                 int ;
-             An example of a useful declaration with a null declarator is
+                struct { int i; };
+             whereas, despite the missing declarator,
                 struct x {int a;};
-             since it declares something (namely x). */
+             is not useless since it declares something (namely x). */
           /* ANSI probably thinks of this as an error, but that seems a bit
              extreme, especially since pcc allows it.  Normally we issue a
              warning, unless the -A option is selected. */
@@ -10175,24 +10158,30 @@ continue_with_declaration:
                        strict_ansi_error_severity : es_warning,
                      ec_useless_decl);
         }  /* if */
-      } else {
-        /* Since declares_something is TRUE, this must be a class, struct,
-           union, or enum declaration.  A storage class or qualifier is not
-           allowed, nor is "inline". */
+        /* A storage class can only be specified for an object or a function
+           (ARM 7.1.1). */
         if (storage_class != (a_storage_class)sc_unspecified) {
           diagnostic(C_dialect == C_dialect_cplusplus && strict_ansi_mode ?
                        strict_ansi_error_severity : es_warning,
                      ec_storage_class_not_allowed);
         }  /* if */
+        /* ARM 7.1.6 implies that the absence of a object in this declaration
+           makes it ill-formed.  Is the implication strong enough to justify
+           an error here? */
         if (is_qualified_type(type_ptr)) {
-          diagnostic(C_dialect == C_dialect_cplusplus ? es_error : es_warning,
+          diagnostic(C_dialect == C_dialect_cplusplus && strict_ansi_mode ?
+                       strict_ansi_error_severity : es_warning,
                      ec_const_volatile_not_allowed);
         }  /* if */
+        /* Inline can only be specified for a function (ARM 7.1.2). */
         if (inline_specified) {
           error(ec_inline_and_nonfunction);
         }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        set_autonomous_tag_decl_flag(type_ptr, defines_something);
+        if (defines_something || declares_something) {
+          /* This is a class/struct/union or enum declaration. */
+          set_autonomous_tag_decl_flag(type_ptr, defines_something);
+        }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
     }  /* if */
