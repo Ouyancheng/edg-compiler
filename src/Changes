@@ -1,5 +1,11 @@
 Version 2.29
 
+3/28/95  MICROSOFT_KEYWORDS_ALLOWED subsumed into MICROSOFT_EXTENSIONS_ALLOWED
+
+The configuration flag MICROSOFT_KEYWORDS_ALLOWED, which controlled things
+like __cdecl, has been eliminated, and the things controlled by that
+flag are now controlled by MICROSOFT_EXTENSIONS_ALLOWED.
+
 3/25/95  Abort in strict mode after user error related to nonconst constructor
 
 An abort on the following in strict mode has been corrected:
