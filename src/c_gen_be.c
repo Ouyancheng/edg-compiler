@@ -1521,9 +1521,11 @@ static void write_field_attributes(a_field_ptr field)
 Write out attributes that apply to the indicated field.
 */
 {
+#if USER_CONTROL_OF_STRUCT_PACKING
   if (field->alignment != 0) {
     write_alignment_attribute(field->alignment);
   }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* write_field_attributes */
 
 

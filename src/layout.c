@@ -898,13 +898,13 @@ targ_microsoft_bit_field_allocation is FALSE.)
       /* Always use the base type size and alignment. */
       container_size      = base_type->size;
       container_alignment = base_type->alignment;
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
       if (field->alignment) {
         /* Honor the "packed" or "alignment" attribute, even on bit
            fields. */
         container_alignment = field->alignment;
       }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
     }  /* if */
   }  /* if */
 
@@ -947,9 +947,9 @@ targ_microsoft_bit_field_allocation is FALSE.)
       lob->curr_container_avail_bits = (container_size * targ_char_bit);
     } /* if */
   } else if (bit_size == 0 ||
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
              field->alignment != 0 ||
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
              !fits_in_container(container_size, container_alignment)) {
     /* Force alignment. */
     overflow = !do_alignment(&lob->byte_offset, &lob->bit_offset,
@@ -1032,7 +1032,14 @@ there's no overflow TRUE is returned.
     /* Check for a bit-field. */
     if (field->is_bit_field) {
       /* Do any necessary alignment for a bit-field. */
-      overflow = !align_offsets_for_bit_field(field, lob);
+#if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
+      if (field->is_packed) {
+        /* No alignment to perform. */
+      } else
+#endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
+      {
+        overflow = !align_offsets_for_bit_field(field, lob);
+      }  /* if */
     } else {
       /* Do any necessary alignment for a normal field. */
       if (targ_microsoft_bit_field_allocation &&
@@ -1047,9 +1054,9 @@ there's no overflow TRUE is returned.
 #if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED
       /* If the alignment of this field was explicitly specified,
-	 honor that. */
+         honor that. */
       if (field->alignment != 0) {
-	field_alignment = field->alignment;
+        field_alignment = field->alignment;
       } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */

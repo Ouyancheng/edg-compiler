@@ -979,15 +979,13 @@ Apply the attributes to the indicated variable.  Issue diagnostics for
 invalid attributes.
 */
 {
-  a_targ_alignment  alignment;
   an_attribute_ptr  ap;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
     switch (ap->kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
       case ak_aligned:
-        alignment = ap->variant.alignment;
-        vp->alignment = alignment;
+        vp->alignment = ap->variant.alignment;
         break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       case ak_unused:
@@ -1058,7 +1056,6 @@ messages about any invalid attributes.
 */
 {
   an_attribute_ptr  ap;
-  a_targ_alignment  alignment;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
     switch (ap->kind) {
@@ -1070,13 +1067,13 @@ messages about any invalid attributes.
       case ak_aligned:
         /* Apply the specified alignment (which may be an increase or a
            decrease). */
-        alignment = ap->variant.alignment;
-        fp->alignment = alignment;
+        fp->alignment = ap->variant.alignment;
         break;
       case ak_packed:
         /* If a field is declared to be "packed", then it is aligned on
            a character boundary. */
         fp->alignment = 1;
+        fp->is_packed = TRUE;
         break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       default:
@@ -1317,7 +1314,9 @@ must make a copy if tp may already be shared.
           tp->variant.integer.packed = TRUE;
         } else if (is_immediate_class_type(tp)) {
           /* A packed class is one where all of the members are aligned on
-             a 1-byte boundary. */
+             a 1-byte boundary.   In addition, bit fields may straddle
+             container boundaries. */
+          tp->variant.class_struct_union.is_packed = TRUE;
           tp->variant.class_struct_union.max_member_alignment = 1;
         } else {
           pos_ty_error(ec_attribute_does_not_apply_to_type, 

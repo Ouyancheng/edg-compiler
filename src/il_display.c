@@ -1471,6 +1471,11 @@ do_struct_union:
       if (ptr->variant.class_struct_union.is_transparent) {
         disp_boolean("is_transparent", TRUE);
       }  /* if */
+#if USER_CONTROL_OF_STRUCT_PACKING
+      if (ptr->variant.class_struct_union.is_packed) {
+        disp_boolean("is_packed", TRUE);
+      }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if USER_CONTROL_OF_STRUCT_PACKING
       if (ptr->variant.class_struct_union.max_member_alignment != 0) {
@@ -1982,11 +1987,14 @@ Display the indicated field.
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     disp_boolean("bit_field_is_signed", (a_boolean)ptr->bit_field_is_signed);
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
   if (ptr->alignment) {
     disp_unsigned_long("alignment", (unsigned long)ptr->alignment);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  if (ptr->is_packed) {
+    disp_boolean("is_packed", TRUE);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
   if (ptr->is_anonymous_parent_object) {
     disp_boolean("is_anonymous_parent_object", TRUE);
   }  /* if */

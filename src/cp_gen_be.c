@@ -2878,6 +2878,7 @@ that a function might throw.
 }  /* gen_exception_specification */
 
 #if GNU_EXTENSIONS_ALLOWED
+#if USER_CONTROL_OF_STRUCT_PACKING
 
 static void write_alignment_attribute(a_targ_alignment alignment)
 /*
@@ -2890,6 +2891,7 @@ given to the entity just declared.
   write_tok_str(")))");
 }  /* write_alignment_attribute */
 
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 static void write_routine_type_attributes(a_type_ptr type)
 /*
@@ -2932,10 +2934,12 @@ static void write_type_attributes(a_type_ptr type)
 Write out attributes that apply to the indicated type.
 */
 {
+#if USER_CONTROL_OF_STRUCT_PACKING
   if (type->alignment_set_explicitly) {
     /* Output an attribute to indicate the explicit alignment. */
     write_alignment_attribute(type->alignment);
   }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   if (type->variables_are_implicitly_referenced) {
     /* Output the "unused" attribute. */
     write_tok_str(" __attribute__((__unused__))");
@@ -3002,10 +3006,12 @@ static void write_variable_attributes(a_variable_ptr var)
 Write out attributes that apply to the indicated variable.
 */
 {
+#if USER_CONTROL_OF_STRUCT_PACKING
   if (var->alignment != 0) {
     /* Output the alignment attribute. */
     write_alignment_attribute(var->alignment);
   }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   if (var->is_weak) {
     write_tok_str(" __attribute__((__weak__))");
   }  /* if */
@@ -3034,9 +3040,11 @@ static void write_field_attributes(a_field_ptr field)
 Write out attributes that apply to the indicated field.
 */
 {
+#if USER_CONTROL_OF_STRUCT_PACKING
   if (field->alignment != 0) {
     write_alignment_attribute(field->alignment);
   }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* write_field_attributes */
 
 

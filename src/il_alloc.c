@@ -1234,6 +1234,9 @@ to default values.
       pte->variant.class_struct_union.contains_flexible_array_member = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
       pte->variant.class_struct_union.is_transparent = FALSE;
+#if USER_CONTROL_OF_STRUCT_PACKING
+      pte->variant.class_struct_union.is_packed = FALSE;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if CHECKING
       pte->variant.class_struct_union.avoid_codecenter_warnings = 0;
@@ -1695,9 +1698,10 @@ to it.
   fp->offset               = 0;
   fp->offset_bit_remainder = 0;
   fp->bit_size             = 0;
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
   fp->alignment            = 0;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  fp->is_packed            = 0;
+#endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
   fp->is_bit_field         = FALSE;
   fp->bit_field_is_signed  = FALSE;
   fp->is_anonymous_parent_object = FALSE;

@@ -4806,6 +4806,12 @@ typedef struct a_type {
 			   transparent union type, then it is OK to
 			   pass an argument whose type is one of the
 			   union members. */
+#if USER_CONTROL_OF_STRUCT_PACKING
+      a_bit_field
+      		is_packed:1;
+			/* TRUE if this class type was declared with the GNU C
+			   "packed" attribute. */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       bitfield_to_avoid_codecenter_warnings()
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -5524,13 +5530,16 @@ typedef struct a_field {
 			/* Size of this field (in bits).  Only non-zero for
 			   bit-fields; for the others, the size is gotten from
 			   the type. */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
   a_targ_alignment
   		alignment;
 			/* The explicit alignment specified for the
 			   field, or zero if there was no explicit
 			   alignment. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  a_bit_field	is_packed:1;
+			/* TRUE if the field was declared with the GNU "packed"
+			   attribute. */
+#endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
   a_bit_field	is_bit_field:1;
 			/* TRUE if the field represents a bit field. */
   a_bit_field	bit_field_is_signed:1;
