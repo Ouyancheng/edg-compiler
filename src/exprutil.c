@@ -290,7 +290,7 @@ address taken, and if not issue an error.
   /* The only possible error cases are variables, and only register variables
      at that.  Functions can always have their addresses taken.  Also
      static data members (they cannot be "register"). */
-  if (sym->kind == sk_variable) {
+  if (sym->kind == (a_symbol_kind)sk_variable) {
     a_variable_ptr var = sym->variant.variable.ptr;
     if (C_dialect != C_dialect_cplusplus &&
         var->storage_class == (a_storage_class)sc_register) {
