@@ -45,7 +45,8 @@ exception.
 }  /* call_new_handler */
 
 
-void *operator new(size_t size, const STD_NAMESPACE::nothrow_t&) throw()
+void *operator new(size_t size, const STD_NAMESPACE::nothrow_t&)
+THROW_NOTHING()
 /*
 Allocate the specified memory size from free store.  If the allocation fails,
 call *_new_handler() if defined (non-NULL pointer), and try the allocation

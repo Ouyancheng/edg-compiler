@@ -22,7 +22,7 @@ C++ operator new[](size_t, void*) (placement array new).
 
 #if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
 
-void *operator new[](size_t, void* ptr) throw()
+void *operator new[](size_t, void* ptr) THROW_NOTHING()
 /*
 Placement array operator new.
 */
