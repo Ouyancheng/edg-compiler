@@ -427,6 +427,7 @@ string.  Note that nothing is printed out when *pos is null_source_position.
   }  /* if */
 }  /* disp_source_position */
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
 
 static void disp_source_range(char            *str,
                               a_source_range  *range)
@@ -455,6 +456,7 @@ string.
   }  /* if */
 }  /* disp_source_range */
 
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* "is_enumerator" is only used to display extra source info. */
