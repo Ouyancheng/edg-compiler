@@ -243,11 +243,11 @@ end of the directive.
 {
   /* Check that everything up to the closing newline has been taken.
      If not, flush to the newline, with an error only if there was no
-     previous error. */
+     previous error (or a warning in Microsoft mode). */
   if (curr_token != tok_newline) {
     if (!some_error_in_curr_directive) {
-      pos_diagnostic(es_discretionary_error, ec_extra_text_in_pp_directive,
-                     &pos_curr_token);
+      pos_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
+                     ec_extra_text_in_pp_directive, &pos_curr_token);
     }  /* if */
     flush_to_newline();
   }  /* if */

@@ -1,5 +1,15 @@
 Version 2.45
 
+9/6/00   Microsoft compatibility: extra text after preprocessing directive
+         is not fatal
+
+The front end now ignores extra text following a preprocessing directive in
+Microsoft mode (with a warning).  In other modes, a discretionary error is
+issued.  For example:
+
+  #line 1 "hello.c" "this is ignored with a warning in Microsoft mode"
+  int i;
+
 9/6/00   Microsoft compatibility: "extern" and "static" ignored on parameter
          declarations
 
