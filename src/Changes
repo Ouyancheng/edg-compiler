@@ -1,5 +1,12 @@
 Version 2.46
 
+8/24/01  Enum operator overloading in Microsoft mode
+
+The overload resolution processing for enum relational and
+equality operator overloading for has been changed somewhat to
+reflect some fixes in MSVC++ 7.0 and the fact that the bugs in
+MSVC++ 6.0 were more complicated than we thought.
+
 8/21/01  Templates referenced from prototype instantiations
 
 The instantiation required was flag template functions and static data

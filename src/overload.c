@@ -6912,16 +6912,21 @@ as its first operand.
       case onk_gt:
       case onk_ge:
         /* Relational operators take arithmetic or pointer operands.
-           Also, if overloading on enums is enabled, matching enum types 
-           (as of June 1997, that's an extension over the WP, but it
-           seems necessary). */
+           Also, if overloading on enums is enabled, matching enum types. */
         if (cfront_2_1_mode) {
           /* cfront 2.1 is confused and allows pointers to members on this
              case (they get rejected if chosen). */
           operand_type_pattern = "AA;=PP;=MM";
         } else if (microsoft_bugs) {
           /* Microsoft considers only arithmetic types, not pointers. */
-          operand_type_pattern = "AA";
+          if (operator_overloading_on_enums_enabled) {
+            /* MSVC++ 6.0 does seem not to have enums in the set (MSVC++ 7.0
+               does), but it has compensating bugs that make things act mostly
+               as if the enums were in the set, so we do that. */
+            operand_type_pattern = "AA;=EE";
+          } else {
+            operand_type_pattern = "AA";
+          }  /* if */
         } else if (operator_overloading_on_enums_enabled) {
           operand_type_pattern = "AA;=PP;=EE";
         } else {
@@ -6932,9 +6937,11 @@ as its first operand.
       case onk_ne:
         /* Equality operators take arithmetic, pointer, or pointer-to-member
            operands.  Also, if overloading on enums is enabled, matching
-           enum types (as of June 1997, that's an extension over the WP,
-           but it seems necessary). */
-        if (operator_overloading_on_enums_enabled && !microsoft_mode) {
+           enum types. */
+        /* MSVC++ 6.0 does seem not to have enums in the set (MSVC++ 7.0
+           does), but it has compensating bugs that make things act mostly
+           as if the enums were in the set, so we do that. */
+        if (operator_overloading_on_enums_enabled) {
           operand_type_pattern = "AA;=PP;=MM;=EE";
         } else {
           operand_type_pattern = "AA;=PP;=MM";
