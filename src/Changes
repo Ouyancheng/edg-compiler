@@ -1,5 +1,22 @@
 Version 2.26
 
+8/31/94  typedefs ignored in determination of conversions for builtin op
+
+Typedefs weren't being ignored in one case dealing with determining
+user-defined conversions that apply on built-in pointer operations.
+That caused a false ambiguity on the following:
+
+  typedef char CHAR;
+  typedef const CHAR *PCC;
+  struct A {
+     operator PCC() const;
+  };
+  main() {
+    A x;
+    const char *p = 0;
+    p - x;  // Got false ambiguity.
+  }
+
 8/30/94  address_taken flag on lowering-generated init/term routines
 
 The address_taken flag in the routine entries for the initialization and

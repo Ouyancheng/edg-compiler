@@ -3975,7 +3975,8 @@ if non-NULL, indicates the pointer type of a previous non-class operand.
   a_boolean previously_handled;
 
   previously_handled = FALSE;
-  if (previous_pointer_type_considered == pointer_type) {
+  if (previous_pointer_type_considered != NULL &&
+      identical_types(previous_pointer_type_considered, pointer_type)) {
     /* This type was the type of a previous non-class operand;
        it's already been considered. */
     previously_handled = TRUE;
