@@ -221,7 +221,38 @@ Return TRUE if the indicated constant is an enum constant.
     is_enum = TRUE;
   }  /* if */
   return is_enum;
-}  /* is _enum_constant */
+}  /* is_enum_constant */
+
+
+/*
+Macro to extract the kind from a source sequence entry.
+*/
+#define ss_entry_kind(ssep) ((an_il_entry_kind)(ssep)->entity.kind)
+
+
+/*
+Macro to extract the pointer from a source sequence entry.  It is cast
+to the indicated type.
+*/
+#define ss_entry_ptr(ssep, type) ((type)(ssep)->entity.ptr)
+
+
+/*
+Return TRUE if the indicated source sequence entry is a proxy for
+a file-scope declaration, i.e., it has kind iek_source_sequence_entry.
+*/
+#define ss_is_proxy(ssep) (ss_entry_kind(ssep) == iek_source_sequence_entry)
+
+/*
+ssep points to a function-scope source sequence entry of type
+iek_source_sequence_entry.  Such an entry is a proxy for an entry on the
+file-scope source sequence list, i.e., it indicates the point on the
+function-scope source sequence list where the file-scope declaration occurs.
+Fetch and return a pointer to the corresponding file-scope source sequence
+entry.
+*/
+#define ss_assoc_with_proxy(ssep) \
+  ss_entry_ptr((ssep), a_source_sequence_entry_ptr)
 
 
 static void adv_to_signif_file_scope_source_sequence_entry(void)
@@ -235,7 +266,7 @@ entry is found.
 
   for (; ssep != NULL; ssep = ssep->next) {
     /* Ignore unimportant entries. */
-    switch (ssep->entity.kind) {
+    switch (ss_entry_kind(ssep)) {
       case iek_constant:  /* These show up for enum constants and manifest
                              constant macros. */
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
@@ -274,8 +305,8 @@ Also set *p_type to the class type.  Called only in C mode.
   a_boolean is_class_def = FALSE;
 
   *p_type = NULL;
-  if ((an_il_entry_kind)ssep->entity.kind == iek_type) {
-    a_type_ptr type = (a_type_ptr)ssep->entity.ptr;
+  if (ss_entry_kind(ssep) == iek_type) {
+    a_type_ptr type = ss_entry_ptr(ssep, a_type_ptr);
     if (type->kind == (a_type_kind)tk_struct ||
         type->kind == (a_type_kind)tk_union) {
       /* Since this is used in C mode, there is no class type supplement,
@@ -343,7 +374,7 @@ entry is found.
 
   for (; ssep != NULL; ssep = ssep->next) {
     /* Ignore unimportant entries. */
-    switch (ssep->entity.kind) {
+    switch (ss_entry_kind(ssep)) {
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
       case iek_comment:
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
@@ -364,8 +395,7 @@ entry is found.
         /* A proxy for a file-scope entity.  Usually significant, but not
            if the associated entity is not significant in the file scope,
            e.g., if it's an iek_field. */
-        { an_il_entry_kind kind = (an_il_entry_kind)
-                  ((a_source_sequence_entry_ptr)ssep->entity.ptr)->entity.kind;
+        { an_il_entry_kind kind = ss_entry_kind(ss_assoc_with_proxy(ssep));
           if (kind == iek_field || kind == iek_constant) {
             /* Not significant. */
             break;
@@ -398,23 +428,21 @@ entry, and return a pointer to it.  Return NULL if there are no more entries.
        We find the end of the class list in the file scope and step through
        the entries at this level to find the proxy for that last entry,
        then advance from there. */
-    if ((an_il_entry_kind)func_scope_source_sequence_entry->entity.kind ==
-                                                   iek_source_sequence_entry) {
+    if (ss_is_proxy(func_scope_source_sequence_entry)) {
       a_type_ptr                  type;
-      a_source_sequence_entry_ptr ssep = (a_source_sequence_entry_ptr)
-                                  func_scope_source_sequence_entry->entity.ptr;
+      a_source_sequence_entry_ptr ssep =
+                         ss_assoc_with_proxy(func_scope_source_sequence_entry);
       if (src_seq_entry_is_class_definition(ssep, &type)) {
         ssep = last_src_seq_of_class_definition(type);
         /* ssep is now the last source sequence entry for the class definition.
            Go through the function scope list looking for the proxy that
            points to it. */
         for (;;) {
-          check_assertion_str(
-                           (an_il_entry_kind)func_scope_source_sequence_entry->
-                                      entity.kind == iek_source_sequence_entry,
+          check_assertion_str(ss_is_proxy(func_scope_source_sequence_entry),
                    "next_func_scope_source_sequence_entry: bad skipped entry");
-          if ((a_source_sequence_entry_ptr)func_scope_source_sequence_entry->
-                                                     entity.ptr == ssep) break;
+          if (ss_assoc_with_proxy(func_scope_source_sequence_entry) == ssep) {
+            break;
+          } /* if */
           func_scope_source_sequence_entry =
                                         func_scope_source_sequence_entry->next;
         }  /* for */
@@ -469,7 +497,7 @@ a declaration.
   a_source_sequence_entry_ptr ssep = func_scope_source_sequence_entry;
 
   if (ssep != NULL) {
-    switch (ssep->entity.kind) {
+    switch (ss_entry_kind(ssep)) {
       case iek_type:
       case iek_variable:
       case iek_source_sequence_entry:  /* A proxy for a file-scope entity. */
@@ -497,7 +525,7 @@ entry is found.
 
   for (; ssep != NULL; ssep = ssep->next) {
     /* Ignore unimportant entries. */
-    switch (ssep->entity.kind) {
+    switch (ss_entry_kind(ssep)) {
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
       case iek_comment:
         /* Not significant. */
@@ -515,7 +543,7 @@ entry is found.
       case iek_constant:
         /* Ignore constants if they're enum constants, but otherwise they're
            significant. */
-        con = (a_constant_ptr)ssep->entity.ptr;
+        con = ss_entry_ptr(ssep, a_constant_ptr);
         if (is_enum_constant(con)) break;
         goto done;
       default:
@@ -544,12 +572,11 @@ entry, and return a pointer to it.  Return NULL if there are no more entries.
                                           &type)) {
       class_scope_source_sequence_entry =
                                         last_src_seq_of_class_definition(type);
-    } else if ((an_il_entry_kind)class_scope_source_sequence_entry->
-                                                    entity.kind == iek_field) {
+    } else if (ss_entry_kind(class_scope_source_sequence_entry) == iek_field) {
       /* Consider the last field of a class in C mode to be the end of the
          list of the simulated "scope" for the class. */
-      a_field_ptr field =
-                    (a_field_ptr)class_scope_source_sequence_entry->entity.ptr;
+      a_field_ptr field = ss_entry_ptr(class_scope_source_sequence_entry,
+                                       a_field_ptr);
       if (field->next == NULL) {
         /* This is the end of the list, so the pointer becomes NULL. */
         class_scope_source_sequence_entry = NULL;
@@ -1390,7 +1417,7 @@ Output the definition of the indicated class type.
       /* Advance the source sequence list for the next iteration of the
          loop. */
       (void)next_class_scope_source_sequence_entry();
-      switch (ssep->entity.kind) {
+      switch (ss_entry_kind(ssep)) {
         case iek_field:
           /* Generate the declaration for a field (nonstatic data member). */
           field = (a_field_ptr)entity_ptr;
@@ -1890,12 +1917,11 @@ is a declaration for the function.  If so, advance past the source sequence
 entry so it will not be put out as a declaration.
 */
 {
-  if ((an_il_entry_kind)func_scope_source_sequence_entry->entity.kind ==
-                                                   iek_source_sequence_entry) {
-    a_source_sequence_entry_ptr ssep = (a_source_sequence_entry_ptr)
-                                  func_scope_source_sequence_entry->entity.ptr;
-    if ((an_il_entry_kind)ssep->entity.kind == iek_routine){
-      a_routine_ptr decl_rout = (a_routine_ptr)ssep->entity.ptr;
+  if (ss_is_proxy(func_scope_source_sequence_entry)) {
+    a_source_sequence_entry_ptr ssep =
+                         ss_assoc_with_proxy(func_scope_source_sequence_entry);
+    if (ss_entry_kind(ssep) == iek_routine){
+      a_routine_ptr decl_rout = ss_entry_ptr(ssep, a_routine_ptr);
       /* Make sure the routine being called is the one being declared. */
       if (rout == decl_rout) {
         /* Advance past the declaration on both the file scope and
@@ -2380,11 +2406,11 @@ The current function source sequence entry is for that switch clause.
   /* Check for the presence of the source sequence entry for the switch
      clause. */
   check_assertion_str(func_scope_source_sequence_entry != NULL &&
-                      (an_il_entry_kind)func_scope_source_sequence_entry->
-                                              entity.kind == iek_switch_clause,
+                      ss_entry_kind(func_scope_source_sequence_entry) ==
+                                                             iek_switch_clause,
                       "gen_case_label: not iek_switch_clause");
-  check_assertion_str(
-      (a_switch_clause_ptr)func_scope_source_sequence_entry->entity.ptr == scp,
+  check_assertion_str(ss_entry_ptr(func_scope_source_sequence_entry,
+                                   a_switch_clause_ptr) == scp,
                       "gen_case_label: wrong switch clause");
   /* Advance past the source sequence entry for the switch clause. */
   (void)next_func_scope_source_sequence_entry();
@@ -2460,14 +2486,13 @@ If so, return TRUE and also set *scp to point to the switch clause.
 
   *scp = NULL;
   if (func_scope_source_sequence_entry != NULL &&
-      (an_il_entry_kind)func_scope_source_sequence_entry->entity.kind ==
-                                                           iek_switch_clause) {
+      ss_entry_kind(func_scope_source_sequence_entry) == iek_switch_clause) {
     /* This is a switch clause, but is is a switch clause for the current
        switch statement?  That matters if we're at the end of an inner
        switch statement and we are looking at a switch clause for the
        outer switch clause that is supposed to follow the end of the inner
        switch clause. */
-    *scp = (a_switch_clause_ptr)func_scope_source_sequence_entry->entity.ptr;
+    *scp = ss_entry_ptr(func_scope_source_sequence_entry, a_switch_clause_ptr);
     if (num_curr_switch_statements == 1) {
       /* No nesting of switch statements, so this switch clause must be for
          the current switch statement. */
@@ -2587,10 +2612,9 @@ on the list, or NULL if the list is empty.
            the declaration and the stmk_init be processed together in
            gen_statement. */
         if (statement->kind == (a_statement_kind)stmk_init &&
-            (an_il_entry_kind)func_scope_source_sequence_entry->entity.kind ==
-                                                                iek_variable) {
-          a_variable_ptr var =
-                  (a_variable_ptr)func_scope_source_sequence_entry->entity.ptr;
+            ss_entry_kind(func_scope_source_sequence_entry) == iek_variable) {
+          a_variable_ptr var = ss_entry_ptr(func_scope_source_sequence_entry,
+                                            a_variable_ptr);
           if (statement->variant.dynamic_init->variable == var) {
             break;
           }  /* if */
@@ -3006,8 +3030,8 @@ the parameters to be declared.
   for (ssep = func_scope_source_sequence_entry;
        ssep != NULL;
        ssep = next_func_scope_source_sequence_entry()) {
-    if ((an_il_entry_kind)ssep->entity.kind == iek_variable) {
-      a_variable_ptr var = (a_variable_ptr)ssep->entity.ptr;
+    if (ss_entry_kind(ssep) == iek_variable) {
+      a_variable_ptr var = ss_entry_ptr(ssep, a_variable_ptr);
       if (var->is_parameter) {
         /* Output the parameter declaration. */
         write_str(" ");
@@ -3158,7 +3182,7 @@ Generate the declaration and advance to the next source sequence entry.
 
   /* Advance to the next source sequence entry. */
   (void)next_func_scope_source_sequence_entry();
-  switch (ssep->entity.kind) {
+  switch (ss_entry_kind(ssep)) {
     case iek_type:
       gen_type_decl((a_type_ptr)entity_ptr,
                     (a_src_seq_secondary_decl_ptr)NULL);
@@ -3198,7 +3222,7 @@ points to the entry for the secondary declaration.
 {
   char *entity_ptr = sec_decl->entity.ptr;
 
-  switch (sec_decl->entity.kind) {
+  switch (ss_entry_kind(sec_decl)) {
     case iek_type:
       gen_type_decl((a_type_ptr)entity_ptr, sec_decl);
       break;
@@ -3225,7 +3249,7 @@ list pointer.
 
   /* Advance to the next file-scope entry. */
   (void)next_file_scope_source_sequence_entry();
-  switch (ssep->entity.kind) {
+  switch (ss_entry_kind(ssep)) {
     case iek_type:
       gen_type_decl((a_type_ptr)entity_ptr,
                     (a_src_seq_secondary_decl_ptr)NULL);
