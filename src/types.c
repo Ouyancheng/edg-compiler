@@ -360,7 +360,6 @@ Return TRUE if the given type is an array of wchar_t.
   }  /* if */
   return is_wchar_t_array;
 }  /* is_wchar_t_array_type */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
 a_boolean is_string_type(a_type_ptr tp)
@@ -374,6 +373,7 @@ an array of wchar_t.
   is_string = is_char_array_type(tp) || is_wchar_t_array_type(tp);
   return is_string;
 }  /* is_string_type */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
 a_boolean is_class_struct_union_type(a_type_ptr tp)
