@@ -8274,8 +8274,18 @@ have already had their designated initializers lowered.
        list of previous initialization constants being overwritten
        (earlier_con.ptr != NULL), preserve any part of the old initialization
        that is needed. */
-    while (con.ptr != NULL &&
-           con.ptr->kind != (a_constant_repr_kind)ck_designator) {
+    while (con.ptr != NULL) {
+      if (con.ptr->kind == (a_constant_repr_kind)ck_init_repeat) {
+        /* If the constant is a repetition of something that requires
+           special handling, split it. */
+        a_constant_ptr repeated_con = con.ptr->variant.init_repeat.constant;
+        if (repeated_con->kind == (a_constant_repr_kind)ck_designator ||
+            repeated_con->kind == (a_constant_repr_kind)ck_aggregate) {
+          split_constant_if_repeated(&con);
+        }  /* if */
+      }  /* if */
+      /* Exit the loop if we've reached a designator. */
+      if (con.ptr->kind == (a_constant_repr_kind)ck_designator) break;
       if (earlier_con.ptr != NULL) {
         /* If merging old and new values, rewrite string constants as
            aggregate initializers to allow operation at the character

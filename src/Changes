@@ -1,5 +1,13 @@
 Version 3.3
 
+6/17/03  Abort on lowering of GNU [a...b] designated initializer
+
+IL lowering aborted in lower_init.c (lower_aggregate_designated_initializers)
+while processing certain multi-level designated initializers that
+use the GNU array element range designator form [a...b].  Now fixed.
+
+  int a[][2][4] = { [2 ... 4][0 ... 1][2 ... 3] = 1, [2] = 2, [2][0][2] = 3 };
+
 6/17/03  C99 floating-point operations can have side effects
 
 In C99, the floating-point status can be queried, and therefore
