@@ -1883,12 +1883,13 @@ is set to NULL and the constant value is used for the size.
 
 a_routine_ptr make_routine(a_type_ptr      type_ptr,
                            a_storage_class storage_class,
-                           a_boolean       at_file_scope)
+                           a_boolean       at_file_scope,
+                           a_boolean       add_to_list)
 /*
-Allocate an entry for a routine with return type type_ptr
-and storage class storage_class, and return a pointer to it.
-The entry is allocated at the file scope.  type_ptr must be in
-the file scope.
+Allocate an entry for a routine with return type type_ptr and storage class
+storage_class, and return a pointer to it.  The entry is allocated at the
+file scope.  type_ptr must be in the file scope.  If add_to_list is TRUE,
+add the new routine entry to the routines list.
 */
 {
   a_routine_ptr          rp;
@@ -1899,7 +1900,7 @@ the file scope.
   rp = alloc_routine();
   rp->type = type_ptr;
   rp->storage_class = storage_class;
-  add_to_routines_list(rp, at_file_scope);
+  if (add_to_list) add_to_routines_list(rp, at_file_scope);
   switch_back_to_original_region(region_to_switch_back_to);
   return rp;
 }  /* make_routine */
@@ -3313,7 +3314,7 @@ skip_overloading:;
       /* There is no IL entry, so create one now, and add it to the routine
          list of the file scope. */
       routine_ptr = make_routine(type_ptr, storage_class,
-                                 /*at_file_scope=*/TRUE);
+                                 /*at_file_scope=*/TRUE, /*add_to_list=*/TRUE);
       if (C_dialect == C_dialect_cplusplus) {
         if (locator->is_operator_name) {
           routine_ptr->special_kind = (a_special_function_kind)sfk_operator;
@@ -3797,7 +3798,7 @@ on a prior declaration.
     sym->header = hdr;
     sym->class_of_which_a_member = class_type;
     rp = make_routine(type_ptr, (a_storage_class)sc_static,
-                      /*at_file_scope=*/TRUE);
+                      /*at_file_scope=*/TRUE, /*add_to_list=*/TRUE);
     sym->variant.routine.ptr = rp;
     set_source_corresp(&(rp->source_corresp), sym);
     rp->source_corresp.class_of_which_a_member = class_type;

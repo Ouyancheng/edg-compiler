@@ -155,7 +155,8 @@ extern a_variable_ptr make_parameter(a_type_ptr       type,
 
 extern a_routine_ptr make_routine(a_type_ptr      type_ptr,
                                   a_storage_class storage_class,
-                                  a_boolean       at_file_scope);
+                                  a_boolean       at_file_scope,
+                                  a_boolean       add_to_list);
 
 extern void fixup_parameters(a_variable_ptr    param_list,
                              a_param_type_ptr  param_type_list);
