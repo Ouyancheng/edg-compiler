@@ -2639,7 +2639,7 @@ virtual function table.
        function that was used to decide to put out the virtual function
        table, since that function forces the virtual function table to be
        put out, and not the other way around. */
-    if (func_to_call->can_be_instantiated && func_to_call != first_virtual) {
+    if (func_to_call->is_instantiation && func_to_call != first_virtual) {
       func_to_call->instance_required = TRUE;
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
@@ -2982,7 +2982,9 @@ class_type if any are needed.
          be generated somewhere in the program.  Therefore, somewhere in
          the program there needs to be an instance of first_virtual (so that
          the virtual function table will be generated at that point). */
-      first_virtual->instance_required = TRUE;
+      if (first_virtual->is_instantiation) {
+        first_virtual->instance_required = TRUE;
+      }  /* if */
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
@@ -3744,12 +3746,10 @@ Do IL lowering of the indicated variable and everything under it.
         /* This variable cannot be instantiated. */
         make_instantiation_info_var("__DNI__", &variable->source_corresp);
       }  /* if */
-#if !AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION
       if (variable->can_be_instantiated) {
         /* This variable can be instantiated. */
         make_instantiation_info_var("__CBI__", &variable->source_corresp);
       }  /* if */
-#endif /* !AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION */
     }  /* if */
 #endif /* AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION */
   }  /* if */
@@ -3900,12 +3900,10 @@ Do IL lowering of the indicated routine and everything under it.
       /* This routine cannot be instantiated. */
       make_instantiation_info_var("__DNI__", &routine->source_corresp);
     }  /* if */
-#if !AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION
     if (routine->can_be_instantiated) {
       /* This routine can be instantiated. */
       make_instantiation_info_var("__CBI__", &routine->source_corresp);
     }  /* if */
-#endif /* !AUTOMATIC_INSTANTIATION_BY_IMPLICIT_INCLUSION */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
 }  /* lower_routine */
