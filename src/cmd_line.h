@@ -1472,7 +1472,11 @@ EXTERN a_boolean
 
 #if IA64_ABI
 EXTERN a_boolean
-		emulate_gnu_abi_bugs;
+		emulate_gnu_abi_bugs
+#if VAR_INITIALIZERS
+			= DEFAULT_EMULATE_GNU_ABI_BUGS
+#endif /* VAR_INITIALIZERS */
+			                              ;
 			/* TRUE if the IA-64 ABI implementation should be
 			   modified to emulate early GNU implementations of
 			   that ABI. */

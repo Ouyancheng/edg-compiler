@@ -124,6 +124,19 @@ of 3.x versions of g++).  See www.codesourcery.com/cxx-abi/.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #endif /* ifndef IA64_ABI */
 
+/*
+The original GNU implementation of the IA-64 ABI has several bugs.  Set the
+following FLAG to TRUE if those bugs should be emulated by our implementation.
+This is the initial value of the global variable emulate_gnu_abi_bugs.
+*/
+#ifndef DEFAULT_EMULATE_GNU_ABI_BUGS
+#if IA64_ABI && GNU_EXTENSIONS_ALLOWED
+#define DEFAULT_EMULATE_GNU_ABI_BUGS TRUE
+#else /* !(IA64_ABI && GNU_EXTENSIONS_ALLOWED) */
+#define DEFAULT_EMULATE_GNU_ABI_BUGS FALSE
+#endif /* IA64_ABI && GNU_EXTENSIONS_ALLOWED */
+#endif /* ifndef DEFAULT_EMULATE_GNU_ABI_BUGS */
+
 #if CFRONT_OBJECT_CODE_COMPATIBILITY && IA64_ABI
  #error -- Cfront and IA-64 ABIs are mutually exclusive.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY && IA64_ABI */
