@@ -2572,9 +2572,6 @@ Display the indicated base class entry.
   disp_ptr("overriding_virtual_functions",
            (char *)ptr->overriding_virtual_functions,
            iek_overriding_virtual_function );
-  disp_ptr("base_class_with_same_virtual_function_info",
-           (char *)ptr->base_class_with_same_virtual_function_info,
-           iek_base_class);
 #if DO_IL_LOWERING
   /* Do not print out the IL entry members that are used only
      during IL lowering. */

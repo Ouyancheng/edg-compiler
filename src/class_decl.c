@@ -949,13 +949,11 @@ new_bcp is the base class being created in new_class.
   old_list = old_bcp->overriding_virtual_functions;
   if (old_list != NULL) {
     if (new_bcp->overriding_virtual_functions == NULL) {
-      new_bcp->base_class_with_same_virtual_function_info = old_bcp;
       check_new_list = FALSE;
     } else if (overriding_virtual_function_lists_correspond(
                        old_list, new_bcp->overriding_virtual_functions)) {
       goto done;
     } else {
-      new_bcp->base_class_with_same_virtual_function_info = NULL;
       check_new_list = TRUE;
     }  /* if */
     /* Make a pass over the existing list. */
@@ -1065,7 +1063,6 @@ entry appears on a linked list pointed to from base_class.
 #endif /* DEBUG */
     insert_in_virtual_function_override_list(base_class, ovfp);
   }  /* if */
-  base_class->base_class_with_same_virtual_function_info = NULL;
   db_exit();
 }  /* record_virtual_function_override */
 

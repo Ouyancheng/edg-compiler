@@ -1229,8 +1229,6 @@ and the entry pointer is to an entry in the file scope, just return
           walk_list(ptr->overriding_virtual_functions,
                     an_overriding_virtual_function_ptr,
                     iek_overriding_virtual_function);
-          remap_ptr(ptr->base_class_with_same_virtual_function_info,
-                    a_base_class_ptr, iek_base_class);
 #if DO_IL_LOWERING
           /* Reset the pointers used during IL lowering to NULL. */
           ptr->virtual_function_table_var = NULL;

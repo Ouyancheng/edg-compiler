@@ -2694,8 +2694,6 @@ to it.
   bcp->pointer_base_class              = NULL;
   bcp->derivation                      = NULL;
   bcp->overriding_virtual_functions    = NULL;
-  bcp->base_class_with_same_virtual_function_info
-                                       = NULL;
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
   bcp->complete_subobject              = FALSE;
   bcp->pointer_offset_is_set           = FALSE;
