@@ -2324,6 +2324,7 @@ Clear a standard conversion description to default values.
   std_conv->reversed_cast = FALSE;
   std_conv->type_qualifiers_added = FALSE;
   std_conv->pointer_normalization_needed = FALSE;
+  std_conv->nontrivial_conversion = FALSE;
   std_conv->warning_suggested = ec_no_error;
 }  /* clear_std_conv_descr */
 
@@ -2456,6 +2457,9 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
   }  /* if */
 #endif /* DEBUG */
   clear_std_conv_descr(std_conv);
+  /* Assume a nontrivial conversion; the flag will be cleared later if in
+     fact there is nothing nontrivial. */
+  std_conv->nontrivial_conversion = TRUE;
   /* If in strict mode and nonstandard constructs should be reported as
      errors, disable extensions. */
   if (strict_ansi_mode && strict_ansi_error_severity == es_error) {
@@ -2464,7 +2468,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
 #if CHECKING
-  if (!is_pointer_type(dest_type)) {
+  if (!is_pointer(dest_type)) {
     internal_error("impl_pointer_conversion: dest_type is not pointer");
   }  /* if */
 #endif /* CHECKING */
@@ -2503,6 +2507,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
          (equality operators); ANSI C 3.3.15 (?: operator); ANSI C 3.3.16.1
          (assignment: preservation of qualifiers is tested below). */
       okay = TRUE;
+      std_conv->nontrivial_conversion = FALSE;
     } else if (is_error(unqual_dest_type_pointed_to) ||
                is_error(unqual_source_type_pointed_to)) {
       /* Pointer --> pointer-to-error and pointer-to-error --> pointer are
@@ -2601,6 +2606,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
            warning is issued.  cfront allows this, so issue no warning in
            that mode. */
         okay = TRUE;
+        std_conv->nontrivial_conversion = FALSE;
         if (!any_cfront_mode()) {
           std_conv->warning_suggested = default_warning_code;
         } /* if */
@@ -2846,6 +2852,9 @@ pointers to members).
   }  /* if */
 #endif /* DEBUG */
   clear_std_conv_descr(std_conv);
+  /* Assume a nontrivial conversion; the flag will be cleared later if in
+    fact there is nothing nontrivial. */
+  std_conv->nontrivial_conversion = TRUE;
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
   if (is_ptr_to_member(source_type)) {
@@ -2865,6 +2874,7 @@ pointers to members).
       if (source_class_type == dest_class_type) {
         /* Same class, okay. */
         okay = TRUE;
+        std_conv->nontrivial_conversion = FALSE;
       } else if ((bcp = find_base_class_of(dest_class_type,
                                            source_class_type)) != NULL) {
         /* Derived class, okay. */
@@ -2984,7 +2994,10 @@ See conversion_possible.
     /* okay = FALSE; -- already set. */
   } else if (is_arithmetic(dest_type)) {
     /* Destination type is arithmetic. */
-    if (is_arithmetic(source_type)) {
+    if (identical_types(source_type, dest_type)) {
+      /* No type change. */
+      std_conv->nontrivial_conversion = FALSE;
+    } else if (is_arithmetic(source_type)) {
       /* Arithmetic --> arithmetic.  Okay. */
       okay = TRUE;
       /* Check for conversion of an arithmetic type to an enumerated type,
