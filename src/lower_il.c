@@ -11679,11 +11679,18 @@ with the outermost enclosing class, for later promotion out of the class
 
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 
-static void promote_static_variables_out_of_function(a_scope_ptr   scope,
-                                                     a_routine_ptr routine)
+#if !LOWER_EXTERN_INLINE
+/*ARGSUSED*/ /* <-- scope_with_block is only used with LOWER_EXTERN_INLINE. */
+#endif /* !LOWER_EXTERN_INLINE */
+static void promote_static_variables_out_of_function(
+                                                a_scope_ptr   scope,
+                                                a_scope_ptr   scope_with_block,
+                                                a_routine_ptr routine)
 /*
 Promote the static variables in the indicated scope (a function or block
 scope that is part of the indicated routine) to the file scope.
+scope_with_block gives the innermost scope that has an associated
+block -- scopes for "for" init blocks do not have one.
 */
 {
   a_variable_ptr variable;
@@ -11775,7 +11782,8 @@ scope that is part of the indicated routine) to the file scope.
                  to a constant.  Rewrite the initialization as executable code
                  because we want the variable to be a tentative definition
                  (and therefore it cannot be statically initialized). */
-              lower_constant_init_of_static_in_extern_inline(variable, scope);
+              lower_constant_init_of_static_in_extern_inline(variable,
+                                                             scope_with_block);
             }  /* if */
 #endif /* LOWER_EXTERN_INLINE */
             break;
@@ -11796,7 +11804,8 @@ scope that is part of the indicated routine) to the file scope.
            to a constant.  Rewrite the initialization as executable code
            because we want the variable to be a tentative definition
            (and therefore it cannot be statically initialized). */
-        lower_constant_init_of_static_in_extern_inline(variable, scope);
+        lower_constant_init_of_static_in_extern_inline(variable,
+                                                       scope_with_block);
 #endif /* LOWER_EXTERN_INLINE */
       }  /* if */
     }  /* while */
@@ -11817,12 +11826,15 @@ scope that is part of the indicated routine) to the file scope.
 #endif /* !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 static void r_promote_local_entities_to_file_scope(
                                                a_scope_ptr   scope,
+                                               a_scope_ptr   scope_with_block,
                                                a_routine_ptr routine,
                                                a_boolean     do_type_promotion)
 /*
 Promote the local types and static variables of the indicated
 scope and its subscopes to the file scope.  The scope is a function or
 block scope and is (directly or indirectly) part of the indicated routine.
+scope_with_block gives the innermost scope that has an associated
+block -- scopes for "for" init blocks do not have one.
 */
 {
   a_scope_ptr block_scope;
@@ -11837,7 +11849,7 @@ block scope and is (directly or indirectly) part of the indicated routine.
           "r_promote_local_entities_to_file_scope: do_type_promotion is TRUE");
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
   /* Promote static variables from this scope. */
-  promote_static_variables_out_of_function(scope, routine);
+  promote_static_variables_out_of_function(scope, scope_with_block, routine);
   /* Note that any pragmas associated with promoted entities are already on
      the file scope list, so they do not need to be moved. */
 #if CHECKING
@@ -11855,7 +11867,10 @@ block scope and is (directly or indirectly) part of the indicated routine.
   for (block_scope = scope->scopes;
        block_scope != NULL;
        block_scope = block_scope->next) {
-    r_promote_local_entities_to_file_scope(block_scope, routine,
+    r_promote_local_entities_to_file_scope(block_scope,
+                                           (block_scope->assoc_block != NULL) ?
+                                             block_scope : scope_with_block,
+                                           routine,
                                            do_type_promotion);
   }  /* for */
 }  /* r_promote_local_entities_to_file_scope */
@@ -11906,7 +11921,8 @@ part of the lowering of the file scope memory region.
   }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   if (do_type_promotion || do_static_promotion) {
-    r_promote_local_entities_to_file_scope(scope, routine, do_type_promotion);
+    r_promote_local_entities_to_file_scope(scope, scope, routine,
+                                           do_type_promotion);
   }  /* if */
 }  /* promote_local_entities_to_file_scope */
 

@@ -1,5 +1,16 @@
 Version 3.0
 
+3/11/02  Abort on lowering of static for-init variable in extern inline
+
+IL lowering aborted ("set_block_start_insert_location: NULL stmt")
+on processing a static variable declared in the for-init clause of
+a "for" statement in an extern inline function, in a configuration with
+LOWER_EXTERN_INLINE set to TRUE.  Now fixed.
+
+  inline void f() {
+    for (static int i = 0;;) {}
+  }
+
 3/11/02  Checking of exception specifications on function templates and on
          members of class templates
 
