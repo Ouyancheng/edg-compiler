@@ -9519,6 +9519,7 @@ happen only in C++ mode.
   } else if (conversion->unknown_dependent_conversion) {
     /* Conversion to or from an unknown template-dependent type in a
        prototype instantiation. */
+    prep_generic_operand(source_operand, /*lvalue_expected=*/FALSE);
     /* Set the dynamic init entry to represent "constructor" initialization,
        leaving the constructor pointer NULL. */
     dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
