@@ -33,7 +33,15 @@ mode turns it off.
 9/23/96 Use of typedef names in destructor calls
 
 A typedef that refers to a class may now be used in an explicit destructor
-call.  Previously, typedef names were only permitted pseudo-destructor calls.
+call.  Previously, typedef names were only permitted in pseudo-destructor
+calls.
+
+  struct A { ~A(); };
+  typedef A X;
+  int main() {
+    X* p;
+    p->~X();  // Now permitted
+  }
 
 9/22/96 c_gen_be.c did not compile with CHECKING and STANDALONE_UTILITY_PROGRAM
 
