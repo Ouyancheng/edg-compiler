@@ -992,9 +992,10 @@ dest describes the entity being initialized.
                     !dest->indirect_through_variable);
     catch_parameter = dest->variable;
     param_type = catch_parameter->type;
-    if (is_reference_type(param_type)) {
+    if (is_reference_type(param_type) || is_pointer_type(param_type)) {
       /* Initializing a reference parameter, so copy the pointer into
-         the parameter, instead of copying the object pointed to. */
+         the parameter, instead of copying the object pointed to.
+         Similarly for a pointer. */
       source_node = var_lvalue_expr(caught_object_addr);
      } else {
       /* Normal case (not a reference). */
