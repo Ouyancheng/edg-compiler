@@ -57,30 +57,37 @@ parameter types:
 Previously, the declaration of f(PCF) was treated as a redeclaration of
 f(PF).  Now, the Working Paper says they are two distinct functions.  To
 produce this behavior set DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT (in
-lang_feat.h).  This flag not only affects language issues (overloading,
+targ_def.h).  This flag not only affects language issues (overloading,
 implicit conversions), but it also has ABI implications, since it controls
 whether two function types differing only in their linkage specification
 have distinct representations in a mangled name.  In the above example the
 name mangling of "void f(PCF)" is distinct from that of "void f(PF)" when
 the flag is TRUE, but they will be the same when it is FALSE.
 
-Note that getting strict conformance to the Working Paper means that the
-possibility of full cfront compatibility is slightly compromised.  Set the
-configuration flag to FALSE if cfront compatibility is more important than
-strict conformance to the standard.  However, the cfront-compatibility
-problems can be reduced substantially by setting another configuration flag,
-DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED (in targ_def.h),
-which (except in strict mode) eases the following incompatibility:
+However, getting strict conformance to the Working Paper means that the
+possibility of full cfront compatibility is slightly compromised.  Set
+DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT to FALSE if compatibility with
+cfront is more critical than strict conformance to the standard.  On the
+hand, the cfront-compatibility problems can be reduced substantially by
+enabling an extension to allow implicit type conversion between pointer to
+extern "C" function and pointer to extern "C++" function: setting
+IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE (in lang_feat.h) eases
+the following incompatibility:
 
   extern "C" void f();              // f's type has extern "C" linkage
   void (*pf)()                      // pf points to an extern "C++" function
                = &f;                // error under the new rules
 
-When an implicit conversion between pointer to extern "C" function and
-pointer to extern "C++" function is permitted, no error is issued here.
-(Note: DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED should not
-be configured to TRUE if C and C++ functions actually do have different
-calling conventions.)
+With the extension enabled, the implicit conversion is permitted (except in
+strict mode) and no error is issued here.  It becomes the default
+behavior when DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED
+to configured to TRUE, and it can be controlled from the command line by
+--[no_]implicit_extern_c_type_conversion.
+
+Note: IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE should not be
+configured to TRUE if C and C++ functions actually do have different calling
+conventions -- and unless DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT is
+TRUE, it is pointless to do so.
 
 For implementations that support additional linkage specifications that
 apply to function types, routine_linkages_are_compatible and
