@@ -9584,6 +9584,12 @@ to an undefined state and free the associated memory region.
   if (rp->storage_class == (a_storage_class)sc_unspecified) {
     rp->storage_class = (a_storage_class)sc_extern;
   }  /* if */
+#if DO_IL_LOWERING && MINIMAL_INLINING
+  /* If IL lowering was done and these flags are set, clear them to avoid
+     problems later. */
+  rp->inlinable = FALSE;
+  rp->need_out_of_line_copy = FALSE;
+#endif /* DO_IL_LOWERING && MINIMAL_INLINING */
   /* Free the memory region. */
   free_memory_region(n);
 }  /* clear_function_body */

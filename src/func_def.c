@@ -1252,9 +1252,9 @@ and for the instantiation of template functions.
     pos_error(ec_exp_rbrace, &pos_curr_token);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* A dllimport routine is not always an error (i.e., if it's "inline"),
-     but it's body is ignored by the compiler.  Remove any trace of the
-     function definition from the IL. */
+  /* A dllimport routine does not always cause an error (i.e., if it's
+     "inline"), but its body is ignored by the compiler.  Remove any trace
+      of the function definition from the IL. */
   if (microsoft_mode && rout_ptr->decl_modifiers & DM_DLLIMPORT) {
     clear_function_body(rout_ptr);
   }  /* if */
