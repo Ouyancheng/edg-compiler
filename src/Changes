@@ -1,5 +1,23 @@
 Version 2.46
 
+1/23/02  Microsoft compatibility: __super keyword
+
+The Microsoft __super keyword is accepted in Microsoft mode.
+
+  struct A {
+    void f(int);
+  };
+  struct B {
+    void f(short);
+    void f(char);
+  };
+  struct C : A, B {
+    void f(short) {
+      __super::f(1);    // calls A::f(int)
+      __super::f('x');  // calls B::f(char)
+    }
+  };
+
 1/23/02  va_start may take the address of a given parameter
 
 Many implementations of va_start take the address of the parameter passed to
