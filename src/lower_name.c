@@ -17,7 +17,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #include "host_envir.h"
 
 /* Only include this code if it is needed: */
-#if DO_IL_LOWERING
+#if NEED_NAME_MANGLING
 
 #include "lower_name.h"
 #include "lower_il.h"
@@ -118,12 +118,12 @@ things following in the mangled name.
 }  /* digits_to_represent_with_underscore */
 
 
-static sizeof_t mangled_encoding_for_function_type(a_type_ptr type,
-                                                   char       *store_at)
+static sizeof_t mangled_encoding_for_parameter_types(a_type_ptr type,
+                                                     char       *store_at)
 /*
-Determine the mangled encoding for the function type "type".  Place the
-encoded form at *store_at if store_at != NULL, and (always) return the
-length of the encoding.  See ARM 7.2.1c for name encoding.
+Determine the mangled encoding for the parameters of function type "type".
+Place the encoded form at *store_at if store_at != NULL, and (always) return
+the length of the encoding.  See ARM 7.2.1c for name encoding.
 */
 {
   sizeof_t                      mangled_name_length, section_length;
@@ -132,9 +132,8 @@ length of the encoding.  See ARM 7.2.1c for name encoding.
   unsigned long                 existing_param_num, num_matching_types;
   sizeof_t                      digits;
 
-  /* A mangled function type encoding is made up of:
-       (1)  "F"
-       (2)  For each parameter, the encoding for the type.  If a parameter
+  /* The encoding for parameter types is as follows:
+       (1)  For each parameter, the encoding for the type.  If a parameter
             has a type that has appeared already in the parameter list,
             "Tn" is used to repeat the type of parameter "n" ("n" can be
             a multi-digit number; the first parameter is numbered 1).
@@ -143,15 +142,10 @@ length of the encoding.  See ARM 7.2.1c for name encoding.
             type of parameter "n" ("n" is as for "Tn"; "m" is a one-digit
             number, so a maximum of 9 repetitions is possible).
             If the parameter list is empty, "v" for "void".
-       (3)  If the parameter list ends with an ellipsis, "e".
-     mangled_function_name takes care of putting out additional information
-     preceding the "F" if the function is a member function.
+       (2)  If the parameter list ends with an ellipsis, "e".
   */
   mangled_name_length = 0;
   rtsp = type->variant.routine.extra_info;
-  /* Add the "F" indicating a function type. */
-  mangled_name_length++;
-  if (store_at != NULL) *store_at++ = 'F';
   param = rtsp->param_type_list;
   if (param == NULL) {
     /* Void parameter list. */
@@ -222,6 +216,24 @@ arg_done:;
     if (store_at != NULL) *store_at++ = 'e';
   }  /* if */
   return mangled_name_length;
+}  /* mangled_encoding_for_parameter_types */
+
+
+static sizeof_t mangled_encoding_for_function_type(a_type_ptr type,
+                                                   char       *store_at)
+/*
+Determine the mangled encoding for the function type "type".  Place the
+encoded form at *store_at if store_at != NULL, and (always) return the
+length of the encoding.  See ARM 7.2.1c for name encoding.
+*/
+{
+  /* The encoding for a function type is "F" followed by the encoding
+     for the parameter types.  mangled_function_name takes care of putting
+     out additional information preceding the "F" if the function is a
+     member function. */
+  /* Start with the "F" indicating a function type. */
+  if (store_at != NULL) *store_at++ = 'F';
+  return 1 + mangled_encoding_for_parameter_types(type, store_at);
 }  /* mangled_encoding_for_function_type */
 
 
@@ -620,7 +632,99 @@ If the indicated enum type is unnamed, give it a name.
     type->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* give_unnamed_enum_a_name */
-    
+
+
+static sizeof_t mangled_template_arguments(a_type_ptr type,
+                                           char       *store_at)
+/*
+Determine the mangled form of the actual parameters of the template class
+"type".  Place the mangled name at *store_at if store_at != NULL, and (always)
+return the length of the name.
+*/
+{
+  sizeof_t           mangled_name_length, digits, arg_length, total_arg_length;
+  sizeof_t           literal_length, type_length;
+  a_template_arg_ptr template_arg_list =
+                            type->variant.class_struct_union.extra_info->
+                                                             template_arg_list;
+  a_template_arg_ptr tap;
+  a_constant_ptr     con;
+  int                pass;
+
+  /* The mangled form of the parameters is something like
+       3_ii
+         ^^--- Two template arguments of type int.
+       ^------ Total length of template argument list string,
+	       including the underscore.
+  */
+  mangled_name_length = 0;
+  /* Run through the template argument list, determining the representation
+     for each argument.  The first time through, determine the size;
+     the second, put out the string. */
+  for (pass = 1; ; pass++) {
+    total_arg_length = 0;
+    for (tap = template_arg_list; tap != NULL; tap = tap->next) {
+      if (tap->is_type) {
+        /* Type argument. */
+        if (pass == 1) {
+          arg_length = mangled_encoding_for_type(tap->variant.type,
+                                                 (char *)NULL);
+        } else {
+          type_length = mangled_encoding_for_type(tap->variant.type,
+                                                  store_at);
+          mangled_name_length += type_length;
+          store_at += type_length;
+        }  /* if */
+      } else {
+        /* Constant argument.  Representation is something like
+             XCiL15   <-- integer constant 5
+                  ^-- Literal constant representation.
+                 ^--- Length of literal constant.
+                ^---- L indicates literal constant; c indicates address
+                      of variable, etc.
+              ^^----- Type of template argument, with "const" added.
+             ^------- X indicates beginning of constant argument.
+        */
+        con = tap->variant.constant;
+        if (pass == 1) {
+          arg_length = 2; /* "XC" */
+          arg_length += mangled_encoding_for_type(con->type, (char *)NULL);
+          literal_length = literal_representation(con, (char *)NULL);
+          arg_length += literal_length;
+        } else {
+          mangled_name_length += 2;
+          *store_at++ = 'X';
+          *store_at++ = 'C';
+          type_length = mangled_encoding_for_type(con->type, store_at);
+          mangled_name_length += type_length;
+          store_at += type_length;
+          literal_length = literal_representation(con, store_at);
+          mangled_name_length += literal_length;
+          store_at += literal_length;
+        }  /* if */
+      }  /* if */
+      if (pass == 1) total_arg_length += arg_length;
+    }  /* for */
+    /* After the second pass, quit the loop. */
+    if (pass == 2) break;
+    /* First pass: */
+    /* Put out the length of the entire argument section, and the "_". */
+    total_arg_length++;  /* "_" */
+    digits = digits_to_represent((unsigned long)total_arg_length);
+    mangled_name_length += 1 + digits;
+    if (store_at != NULL) {
+      (void)sprintf(store_at, "%lu_", (unsigned long)total_arg_length);
+      store_at += digits + 1;
+    }  /* if */
+    if (store_at == NULL) {
+      /* If we are not storing, we do not need to do the second pass. */
+      mangled_name_length += total_arg_length - 1;
+      break;
+    }  /* if */
+  }  /* for */
+  return mangled_name_length;
+}  /* mangled_template_arguments */
+
 
 sizeof_t mangled_basic_class_name(a_type_ptr type,
                                   char       *store_at)
@@ -633,15 +737,11 @@ name at *store_at if store_at != NULL, and (always) return the length of
 the name.
 */
 {
-  sizeof_t           mangled_name_length, digits, arg_length, total_arg_length;
-  sizeof_t           literal_length, type_length;
+  sizeof_t           mangled_name_length;
   char               *name;
   a_template_arg_ptr template_arg_list =
                             type->variant.class_struct_union.extra_info->
                                                              template_arg_list;
-  a_template_arg_ptr tap;
-  a_constant_ptr     con;
-  int                pass;
 
   /* Always start with the name of the class, which applies even in the
      template class case. */
@@ -669,70 +769,7 @@ the name.
       store_at += sizeof(PT_STR) - 1;
     }  /* if */
 #undef PT_STR
-    /* Run through the template argument list, determining the representation
-       for each argument.  The first time through, determine the size;
-       the second, put out the string. */
-    for (pass = 1; ; pass++) {
-      total_arg_length = 0;
-      for (tap = template_arg_list; tap != NULL; tap = tap->next) {
-        if (tap->is_type) {
-          /* Type argument. */
-          if (pass == 1) {
-            arg_length = mangled_encoding_for_type(tap->variant.type,
-                                                   (char *)NULL);
-          } else {
-            type_length = mangled_encoding_for_type(tap->variant.type,
-                                                    store_at);
-            mangled_name_length += type_length;
-            store_at += type_length;
-          }  /* if */
-        } else {
-          /* Constant argument.  Representation is something like
-               XCiL15   <-- integer constant 5
-                    ^-- Literal constant representation.
-                   ^--- Length of literal constant.
-                  ^---- L indicates literal constant; c indicates address
-                        of variable, etc.
-                ^^----- Type of template argument, with "const" added.
-               ^------- X indicates beginning of constant argument.
-          */
-          con = tap->variant.constant;
-          if (pass == 1) {
-            arg_length = 2; /* "XC" */
-            arg_length += mangled_encoding_for_type(con->type, (char *)NULL);
-            literal_length = literal_representation(con, (char *)NULL);
-            arg_length += literal_length;
-          } else {
-            mangled_name_length += 2;
-            *store_at++ = 'X';
-            *store_at++ = 'C';
-            type_length = mangled_encoding_for_type(con->type, store_at);
-            mangled_name_length += type_length;
-            store_at += type_length;
-            literal_length = literal_representation(con, store_at);
-            mangled_name_length += literal_length;
-            store_at += literal_length;
-          }  /* if */
-        }  /* if */
-        if (pass == 1) total_arg_length += arg_length;
-      }  /* for */
-      /* After the second pass, quit the loop. */
-      if (pass == 2) break;
-      /* First pass: */
-      /* Put out the length of the entire argument section, and the "_". */
-      total_arg_length++;  /* "_" */
-      digits = digits_to_represent((unsigned long)total_arg_length);
-      mangled_name_length += 1 + digits;
-      if (store_at != NULL) {
-        (void)sprintf(store_at, "%lu_", (unsigned long)total_arg_length);
-        store_at += digits + 1;
-      }  /* if */
-      if (store_at == NULL) {
-        /* If we are not storing, we do not need to do the second pass. */
-        mangled_name_length += total_arg_length - 1;
-        break;
-      }  /* if */
-    }  /* for */
+    mangled_name_length += mangled_template_arguments(type, store_at);
   }  /* if */
   return mangled_name_length;
 }  /* mangled_basic_class_name */
@@ -2069,7 +2106,8 @@ of the front end.
   unnamed_enum_name_seed = 0;
 }  /* name_lower_init */
 
-#endif /* DO_IL_LOWERING */
+#endif /* NEED_NAME_MANGLING */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *
