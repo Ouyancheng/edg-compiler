@@ -4147,7 +4147,7 @@ translation unit correspondence pointer if one is found.
     /* Record the correspondence. */
     a_routine_ptr  corresp_routine = corresp_sym->variant.routine.ptr;
     set_trans_unit_corresp(iek_routine, routine, corresp_routine);
-  } else {
+  } else if (trans_unit_corresp_of(routine) == NULL) {
     /* Mark this routine as visited. */
     set_no_trans_unit_corresp(iek_routine, routine);
   }  /* if */
