@@ -1670,6 +1670,10 @@ scope is that of a class definition.
                               skip_typerefs(param_type_ptr))) {
             /* X::X(X) is not allowed -- ARM 12.1. */
             pos_error(ec_bad_constructor_param, &param_type_pos);
+            /* We have to set the locator to an error locator to avoid both
+               overloading problems and an infinite loop downstream.  This
+               assures that the routine can never be used as a constructor. */
+            set_to_error_locator(*locator);
           } else if (C_dialect == C_dialect_cplusplus &&
                      is_illegal_abstract_class_type(param_type_ptr)) {
             /* Abstract class may not be used as an arg type (ARM 10.3). */
