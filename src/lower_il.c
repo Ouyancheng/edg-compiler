@@ -8018,12 +8018,12 @@ lowered, return the list after any implicit parameters added by lowering.
       /* For destructors, a control parameter is always added. */
       param = param->next;
 #else /* IA64_ABI */
-      if (dtor_needs_implied_arg_list(routine)) {
-        /* Skip the control parameter. */
+      /* Skip the control parameter. */
+      if (routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
         param = param->next;
-        /* And sometimes the VTT parameter. */
-        if (dtor_needs_vtt_argument(routine)) param = param->next;
       }  /* if */
+      /* And sometimes the VTT parameter. */
+      if (dtor_needs_vtt_argument(routine)) param = param->next;
 #endif /* IA64_ABI */
     }  /* if */
     /* If the routine returns its value via a copy constructor, an extra
