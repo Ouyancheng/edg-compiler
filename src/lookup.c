@@ -2158,7 +2158,7 @@ C and C++.
        usual instantiation context lookup (because names from the referencing
        context should not be included). */
     lookup_state.suppress_instantiation_context_lookup =
-               lookup_state.skip_curr_scope & !lookup_state.hidden_name_lookup;
+              lookup_state.skip_curr_scope && !lookup_state.hidden_name_lookup;
     /* If any instantiation scopes are active we will need to check for
        the presence of nonreal base classes. */
     lookup_state.check_for_nonreal_bases =
