@@ -12098,7 +12098,11 @@ Do IL lowering of the indicated scope and everything under it.
       lower_function_body(scope->assoc_block);
     }  /* if */
     /* Add prologue code for exceptions. */
-    if (exceptions_enabled) add_eh_function_prologue(scope);
+    if (exceptions_enabled
+#if ASM_FUNCTION_ALLOWED
+        && scope->assoc_block->kind != (a_statement_kind)stmk_asm_func_body
+#endif /* ASM_FUNCTION_ALLOWED */
+                          ) add_eh_function_prologue(scope);
     /* If the routine is the main program, insert a call of _main at its
        start.  This is done after inserting the exception handling function
        prologue, if any, so that the call to _main is always first. */
