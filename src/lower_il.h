@@ -466,6 +466,8 @@ extern void finish_class_type(a_type_ptr class_type);
 
 extern void add_to_front_of_file_scope_types_list(a_type_ptr type);
 
+extern a_type_ptr make_mptr_type(void);
+
 extern a_type_ptr underlying_type(a_type_ptr type);
 
 extern a_boolean is_or_was_ptr_to_data_member_type(a_type_ptr type);
@@ -594,6 +596,10 @@ extern void set_unsigned_integer_constant_with_overflow_check(
                                               a_constant_ptr  con,
                                               unsigned long   con_val,
                                               an_integer_kind ikind);
+
+extern a_variable_ptr make_var_for_virtual_function_table(
+                                                   a_type_ptr       class_type,
+                                                   a_base_class_ptr bcp);
 
 /* See also below -- this is defined as a macro if IL lowering is
    configured out. */
