@@ -972,6 +972,9 @@ when it is a secondary file.
   lower_c99_trans_unit_init();
 #endif /* DO_C99_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
+#if RECORD_MACROS_IN_IL
+  il_header.macros = NULL;
+#endif /* RECORD_MACROS_IN_IL */
   /* Suppress PCH processing on secondary translation units. */
   if (!is_primary_translation_unit) abandon_pch_processing();
   /* Initialize the symbol table (keywords and predefined macros).  Note that
@@ -1000,9 +1003,6 @@ when it is a secondary file.
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   il_header.scope_orphaned_list_headers = NULL;
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-#if RECORD_MACROS_IN_IL
-  il_header.macros = NULL;
-#endif /* RECORD_MACROS_IN_IL */
   il_header.nontag_types_used_in_exception_or_rtti = NULL;
   if (!C_mode()) {
     /* This is done even when RTTI is not enabled because the type_info
