@@ -4872,11 +4872,14 @@ static void adjust_operand_for_builtin_operator(
                                    an_operand               *operand,
                                    a_candidate_function_ptr candidate_function,
                                    int                      operand_num,
+                                   a_boolean                inside_conditional,
                                    an_arg_match_summary_ptr arg_match)
 /*
-operand is the operand_num-th operand of a built-in operator described by
-candidate function.  arg_match is the argument match entry for that
-argument.  Adjust the operand type to match the type requirement.
+operand is the operand_num-th operand of a built-in operator with
+operands described by candidate_function.  inside_conditional is TRUE
+if this operand is a conditional operand of the operator (e.g., the second
+operand of "&&").  arg_match is the argument match entry for the operand.
+Adjust the operand type to match the type requirement.
 */
 {
   char       type_code;
@@ -4887,6 +4890,16 @@ argument.  Adjust the operand type to match the type requirement.
     /* Non-class operands need not be adjusted here; the built-in operator
        processing will do it. */
   } else {
+    a_boolean saved_inside_conditional_expression;
+    if (inside_conditional) {
+      /* If this operand is under a conditional operator, make sure
+         inside_conditional_expression is set in the expression stack so
+         that any dynamic initializations used for conversions are marked as
+         conditional (they will need conditional flags). */
+      saved_inside_conditional_expression =
+                                     expr_stack->inside_conditional_expression;
+      expr_stack->inside_conditional_expression = TRUE;
+    }  /* if */
     /* Get the type code for this operand (see
        operand_type_pattern_for_operator). */
     type_code = candidate_function->operand_type_pattern[operand_num-1];
@@ -4923,6 +4936,11 @@ argument.  Adjust the operand type to match the type requirement.
                               /*try_user_conversions=*/TRUE,
                               ec_no_error,
                               &operand->position);
+    }  /* if */
+    if (inside_conditional) {
+      /* Restore inside_conditional_expression. */
+      expr_stack->inside_conditional_expression = 
+                                           saved_inside_conditional_expression;
     }  /* if */
   }  /* if */
 }  /* adjust_operand_for_builtin_operator */
@@ -5143,6 +5161,8 @@ functions could still apply).
           function_symbol = candidate_functions->function_symbol;
           arg_match = candidate_functions->arg_matches;
           if (function_symbol == NULL) {
+            a_boolean op_1_inside_conditional = FALSE,
+                      op_2_inside_conditional = FALSE;
             /* A built-in operator was selected. */
 #if DEBUG
             if (debug_level >= 4) {
@@ -5152,13 +5172,25 @@ functions could still apply).
 #endif /* DEBUG */
             /* *processed is left FALSE so the caller will try the built-in
                meaning. */
+            /* Determine if either operand is conditional. */
+            if (kind == (an_opname_kind)onk_and_and ||
+                kind == (an_opname_kind)onk_or_or) {
+              op_2_inside_conditional = TRUE;
+            } else if (kind == (an_opname_kind)onk_question) {
+              /* Operands 1 and 2 under a "?" here are really the second and
+                 third operands. */
+              op_1_inside_conditional = TRUE;
+              op_2_inside_conditional = TRUE;
+            }  /* if */
             /* Convert the operands to the proper types. */
             adjust_operand_for_builtin_operator(operand_1,
                                                 candidate_functions, 1,
+                                                op_1_inside_conditional,
                                                 arg_match);
             if (!unary_operator) {
               adjust_operand_for_builtin_operator(operand_2,
                                                   candidate_functions, 2,
+                                                  op_2_inside_conditional,
                                                   arg_match->next);
             }  /* if */
           } else {

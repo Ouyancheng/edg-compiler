@@ -1,5 +1,14 @@
 Version 2.30
 
+6/15/95  Conditional flag for temporary created by conversion from class
+         type in conditional operand
+
+The inside_conditional_expression flag was not being set in dynamic
+initializations generated for conversions from class types in conditional
+operands of &&, ||, and ? operators.  As a result, the temporaries created
+in those cases were being destroyed unconditionally rather than only
+when created.
+
 6/15/95  Command-line options to turn off disabled features
 
 Command-line options that turn off features are now accepted even when
@@ -54,8 +63,11 @@ to the macro have been changed to eliminate the extra semicolons.
 
 6/6/95   Command line options without keywords
 
-The command line processing routines could abort when options without
-keywords are used.  This has been fixed.
+If one defined a command-line option via a call of add_option_description,
+and specified only a single-letter form and no keyword form (i.e., a null
+pointer was passed for the keyword-form string), the command-line
+processing routines would abort when processing options defined in
+calls of add_option_description following that one.  Now fixed.
 
 6/6/95   Type conversion on constant as template parameter
 
