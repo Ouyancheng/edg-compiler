@@ -356,7 +356,7 @@ is_ambiguous:
     }  /* if */
   }  /* if */
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
     if (match_sym == NULL) {
       fprintf(f_debug, "find_addr_of_overloaded_function_match: %s\n",
               *ambiguous ? "ambiguous" : "no match");
@@ -1808,7 +1808,7 @@ have_level:;
     }  /* if */
   }  /* if */
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
     if (arg_summary->match_level == aml_none) {
       fprintf(f_debug, "determine_arg_match_level: no match\n");
     } else {
@@ -2437,7 +2437,7 @@ is known to be visible and the visibility check should be suppressed.
     if (!param->has_unevaluated_template_default &&
         param->default_arg_expr == NULL) goto reject_function;
 #if DEBUG
-    if (debug_level >= 4) {
+    if (debug_level >= 4 || db_flag_is_set("overload")) {
       fprintf(f_debug, "determine_function_viability: default arg match\n");
     }  /* if */
 #endif /* DEBUG */
@@ -2466,7 +2466,7 @@ is known to be visible and the visibility check should be suppressed.
        arg_operand = arg_operand->next) {
 #if DEBUG
     narg++;
-    if (debug_level >= 4) {
+    if (debug_level >= 4 || db_flag_is_set("overload")) {
       fprintf(f_debug, "determine_function_viability: arg %lu\n", narg);
     }  /* if */
 #endif /* DEBUG */
@@ -2490,7 +2490,7 @@ is known to be visible and the visibility check should be suppressed.
          desirability. */
       arg_match->match_level = aml_ellipsis;
 #if DEBUG
-      if (debug_level >= 4) {
+      if (debug_level >= 4 || db_flag_is_set("overload")) {
         fprintf(f_debug, "determine_function_viability: ellipsis match\n");
       }  /* if */
 #endif /* DEBUG */
@@ -2800,7 +2800,7 @@ is known to be visible and the visibility check should be suppressed.
                                                    proj_function_symbol->next :
                                                    NULL) {
 #if DEBUG
-    if (debug_level >= 4) {
+    if (debug_level >= 4 || db_flag_is_set("overload")) {
       db_symbol(proj_function_symbol,
                 "try_overloaded_function_match: considering ", 2);
     }  /* if */
@@ -2901,7 +2901,7 @@ arguments of the call (given by arg_operand_list).
     surrogate_function_conv_sym = slep->symbol;
 
 #if DEBUG
-    if (debug_level >= 4) {
+    if (debug_level >= 4 || db_flag_is_set("overload")) {
       db_symbol(surrogate_function_conv_sym,
                 "try_surrogate_function_match: considering ", 2); 
     }  /* if */
@@ -3897,7 +3897,7 @@ is set to TRUE.
 
   db_enter(4, "select_best_candidate_functions");
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
     fprintf(f_debug, "Entry to select_best_candidate_functions: ");
     db_candidate_function_list(candidates);
   }  /* if */
@@ -4178,7 +4178,7 @@ create_final_list:
     }  /* if */
   }  /* if */
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
     fprintf(f_debug, "Return from select_best_candidate_functions: ");
     db_candidate_function_list(candidates);
   }  /* if */
@@ -4615,14 +4615,14 @@ in_instantiation:
       *surrogate_function_conv_sym =
                               candidate_functions->surrogate_function_conv_sym;
 #if DEBUG
-      if (debug_level >= 4) {
+      if (debug_level >= 4 || db_flag_is_set("overload")) {
         db_symbol(*surrogate_function_conv_sym,
                   "select_overloaded_function: selected surrogate ", 2); 
       }  /* if */
 #endif /* DEBUG */
     } else {
 #if DEBUG
-      if (debug_level >= 4) {
+      if (debug_level >= 4 || db_flag_is_set("overload")) {
         db_symbol(function_symbol,
                   "select_overloaded_function: selected ", 2); 
       }  /* if */
@@ -6692,7 +6692,7 @@ This routine is only used in C++ mode.
     }  /* if */
     conversion_symbol = slep->symbol;
 #if DEBUG
-    if (debug_level >= 4) {
+    if (debug_level >= 4 || db_flag_is_set("overload")) {
       db_symbol(conversion_symbol,
                 "try_conversion_function_match: considering ", 2); 
     }  /* if */
@@ -7455,7 +7455,7 @@ the target type to be used).
   /* This routine is similar to try_overloaded_function_match (but it only
      looks at one type pattern per call). */
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
     fprintf(f_debug, "try_builtin_operands_match: considering %s\n",
                      operand_type_pattern);
   }  /* if */
@@ -7480,7 +7480,7 @@ the target type to be used).
 #endif /* CHECKING */
 #if DEBUG
     narg++;
-    if (debug_level >= 4) {
+    if (debug_level >= 4 || db_flag_is_set("overload")) {
       fprintf(f_debug, "try_builtin_operands_match: operand %lu\n", narg);
     }  /* if */
 #endif /* DEBUG */
@@ -8825,7 +8825,7 @@ select_best_function:
                       op_2_inside_conditional = FALSE;
             /* A built-in operator was selected. */
 #if DEBUG
-            if (debug_level >= 4) {
+            if (debug_level >= 4 || db_flag_is_set("overload")) {
               fprintf(f_debug, "check_for_operator_overloading: selected\n");
               db_candidate_function(candidate_functions);
             }  /* if */
@@ -8857,7 +8857,7 @@ select_best_function:
             a_boolean bitwise_assignment = FALSE;
             /* An operator function was selected. */
 #if DEBUG
-            if (debug_level >= 4) {
+            if (debug_level >= 4 || db_flag_is_set("overload")) {
               db_symbol(proj_function_symbol,
                         "check_for_operator_overloading: selected ", 2);
             }  /* if */
@@ -8885,7 +8885,7 @@ select_best_function:
               /* This function is the default bitwise copy assignment
                  operator, so generate an assignment instead of a call. */
 #if DEBUG
-              if (debug_level >= 4) {
+              if (debug_level >= 4 || db_flag_is_set("overload")) {
                 fprintf(f_debug,
                  "check_for_operator_overloading: bitwise operator=\n");
               }  /* if */
@@ -9287,7 +9287,7 @@ because of an error.  This routine is used only in C++ mode.
     clear_conv_descr(ctor_arg_conversion);
   }  /* if */
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
     fprintf(f_debug, "conversion_to_class_possible: %s\n",
                      okay ? "okay" : "not okay");
   }  /* if */
@@ -9396,7 +9396,7 @@ C++ mode.
     }  /* if */
   }  /* if */
 #if DEBUG
-  if (debug_level >= 4) {
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
     fprintf(f_debug, "conversion_from_class_possible: %s\n",
                      okay ? "okay" : "not okay");
   }  /* if */
@@ -12273,7 +12273,7 @@ used only in C++ mode.
     candidate_functions = NULL;
     for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
 #if DEBUG
-      if (debug_level >= 4) {
+      if (debug_level >= 4 || db_flag_is_set("overload")) {
         db_symbol(sym, "select_overloaded_copy_constructor: considering ", 2); 
       }  /* if */
 #endif /* DEBUG */
