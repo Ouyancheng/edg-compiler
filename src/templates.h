@@ -134,8 +134,7 @@ void delayed_scan_for_function_template_default_args(
                     a_template_symbol_supplement_ptr tssp,
                     a_boolean                        push_instantiation_scope);
 
-extern
-void template_directive_or_declaration(a_boolean  no_advance_past_final_token);
+extern void template_directive_or_declaration(a_token_kind  *final_token);
 
 extern
 void set_nested_template_class_symbol_info(a_symbol_ptr  sym,

@@ -6385,7 +6385,8 @@ name lookup.
 }  /* make_using_directive */
 
 
-static void namespace_declaration(a_boolean  extern_implied)
+static void namespace_declaration(a_boolean     extern_implied,
+                                  a_token_kind  *final_token)
 /*
 Scan a namespace declaration, which may be an original namespace definition,
 an extension namespace definition, an unnamed namespace definition, or a
@@ -6404,7 +6405,9 @@ namespace alias definition.  The syntax is:
     namespace identifier = qualified-namespace-specifier;
 
 extern_implied is TRUE when this declaration is inside a linkage specification
-block.
+block.  *final_token is set to tok_semicolon if this is a namespace alias
+definition and to tok_brace otherwise; the final token is swallowed by the
+caller.
 */
 {
   a_source_position           namespace_pos;
@@ -6504,6 +6507,8 @@ block.
       }  /* if */
     }  /* if */
   }  /* if */
+  /* The closing right brace or semicolon will be swallowed by the caller. */
+  *final_token = is_namespace_alias ? tok_semicolon : tok_rbrace;
   if (is_namespace_alias) {
     /* Bypass the "=". */
     (void)get_token();
@@ -6511,6 +6516,7 @@ block.
     if (!is_qualified_name_start()) {
       /* A namespace alias definition requires a (possibly qualified)
          namespace or class name to the right of the "=". */
+      discard_curr_construct_pragmas();
       syntax_error(ec_exp_identifier);
     } else {
       /* Look up the namespace specifier. */
@@ -6565,22 +6571,22 @@ block.
           mark_referenced(sym, &pos_curr_token);
         }  /* if */
       }  /* if */
+      if (!err && ns_sym != NULL) {
+        /* Do processing required for any pragmas bound to the current
+           declaration. */
+        process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
+      } else {
+        discard_curr_construct_pragmas();
+      }  /* if */
       /* Bypass the identifier. */
       (void)get_token();
     }  /* if */
-    if (!err && ns_sym != NULL) {
-      /* Do processing required for any pragmas bound to the current
-         declaration. */
-      process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
+    remove_stop_token(tok_semicolon);
+    if (required_token_no_advance(tok_semicolon, ec_exp_semicolon)) {
+      /* Closing semicolon was found. */
+      cannot_bind_to_curr_construct();
     } else {
       discard_curr_construct_pragmas();
-    }  /* if */
-    remove_stop_token(tok_semicolon);
-    if (curr_token == tok_semicolon) {
-      /* Closing brace -- advance past it in the caller. */
-    } else {
-      /* Error -- semicolon was not found. */
-      error(ec_exp_semicolon);
     }  /* if */
   } else if (bad_scope_for_namespace_def) {
     /* Attempting to define a namespace within something other than the
@@ -6591,6 +6597,7 @@ block.
       /* Ignore the namespace definition. */
       flush_until_matching_token();
       /* The closing right brace will be swallowed by the caller. */
+      *final_token = tok_rbrace;
     }  /* if */
   } else {
     /* Namespace definition. */
@@ -6685,13 +6692,10 @@ block.
                                         (char *)nsp,
                                         (a_byte_il_entry_kind)iek_namespace);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      if (curr_token == tok_rbrace) {
-        /* Caller will advance past the closing brace (required for
-           precompiled-header support). */
+      if (required_token_no_advance(tok_rbrace, ec_exp_rbrace)) {
+        /* Closing right brace was found. */
         cannot_bind_to_curr_construct();
       } else {
-        /* Error -- closing brace was not found. */
-        syntax_error(ec_exp_rbrace);
         discard_curr_construct_pragmas();
       }  /* if */
       remove_stop_token(tok_rbrace);
@@ -6717,6 +6721,7 @@ A using-directive entry is created and activated for the current scope.
   a_symbol_ptr                   sym;
   a_boolean                      err = FALSE;
 
+  db_enter(3, "using_directive");
   decl_start_pos = pos_curr_token;
   /* Bypass "using" and "namespace". */
   (void)get_token();
@@ -6756,16 +6761,9 @@ A using-directive entry is created and activated for the current scope.
     }  /* if */
     (void)get_token();
   }  /* if */
-  if (curr_token == tok_semicolon) {
-    /* Caller will advance past the semicolon (required for precompiled-header
-       support). */
-    cannot_bind_to_curr_construct();
-  } else {
-    /* Error. */
-    discard_curr_construct_pragmas();
-    syntax_error(ec_exp_semicolon);
-  }  /* if */
   remove_stop_token(tok_semicolon);
+  /* Check for final semicolon in the caller. */
+  db_exit();
 }  /* using_directive */
 
 
@@ -6929,16 +6927,8 @@ current scope.
     /* Bypass the identifier. */
     (void)get_token();
   }  /* if */
-  if (curr_token == tok_semicolon) {
-    /* Caller will advance past the semicolon (required for precompiled-header
-       support). */
-    cannot_bind_to_curr_construct();
-  } else {
-    /* Error. */
-    discard_curr_construct_pragmas();
-    syntax_error(ec_exp_semicolon);
-  }  /* if */
   remove_stop_token(tok_semicolon);
+  /* Check for final semicolon in the caller. */
   db_exit();
 }  /* nonmember_using_declaration */
 
@@ -7216,6 +7206,7 @@ of local variables (and types, etc.) of functions and in blocks.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean		       access_checks_deferred = FALSE;
   a_boolean                    restrict_qualified = FALSE;
+  a_token_kind                 final_token = tok_semicolon;
 
   db_enter(3, "declaration");
 
@@ -7252,19 +7243,21 @@ of local variables (and types, etc.) of functions and in blocks.
       /* Do the processing required for a template declaration.  If this is
          a top level declaration, the subroutine should not advance past the
          final token of the declaration. */
-      template_directive_or_declaration(is_top_level_declaration);
-      if (is_top_level_declaration) {
-         /* Advance past the final declaration, doing special processing
-            if required. */
-        goto advance_past_final_token;
-      } else {
-        /* The declaration did not appear at the top level, so we will
-           already have advanced past the final token. */ 
-        goto return_point;
+      template_directive_or_declaration(&final_token);
+      /* The terminating token will be either a semicolon or a right
+         brace.  The latter has already been checked for, but the former
+         has not. */
+      if (final_token == tok_semicolon) {
+        required_token_no_advance(tok_semicolon, ec_exp_semicolon);
       }  /* if */
+      /* Swallow the current token if it is the same as final_token, then
+         return. */
+      goto advance_past_final_token;
     } else if (curr_token == tok_namespace) {
       /* Process a namespace definition or a namespace alias declaration. */
-      namespace_declaration(extern_implied);
+      namespace_declaration(extern_implied, &final_token);
+      /* Swallow the current token if it is the same as final_token, then
+         return. */
       goto advance_past_final_token;
     } else if (curr_token == tok_using) {
       /* A using-directive (which has the form "using namespace N;") or a
@@ -7274,7 +7267,8 @@ of local variables (and types, etc.) of functions and in blocks.
       } else {
         nonmember_using_declaration();
       }  /* if */
-      goto advance_past_final_token;
+      cannot_bind_to_curr_construct();
+      goto check_for_semicolon;
     } else if (check_for_overload_anachronism()) {
       /* We check for and discard declarations of the form "overload f;" --
          issue diagnostics on pragmas that are trying to bind to an overload
@@ -7712,6 +7706,8 @@ continue_with_declaration:
           check_assertion(curr_token == tok_rbrace ||
                           curr_token == tok_end_of_source ||
                           total_errors != 0);
+          /* Right brace is expected. */
+          final_token = tok_rbrace;
           goto advance_past_final_token;
 #if ASM_FUNCTION_ALLOWED
         } else if (storage_class == (a_storage_class)sc_asm) {
@@ -8124,7 +8120,7 @@ advance_past_final_token:
       end_deferral_of_access_checks();
       access_checks_deferred = FALSE;
     }  /* if */
-    if (curr_token == tok_semicolon || curr_token == tok_rbrace) {
+    if (curr_token == final_token) {
       /* Advance past the final token of the declaration (which should be a
          ';' or '}').  However, if the current declaration is a top-level
          declaration, set a global flag to enable checking for a header

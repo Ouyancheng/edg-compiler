@@ -186,10 +186,6 @@ typedef struct a_tmpl_decl_state {
   a_boolean	decl_scope_err;
 			/* TRUE if the template declaration is invalid in the
 			   current scope. */
-  a_boolean	no_advance_past_final_token;
-			/* TRUE if the right brace or semicolon terminating
-			   the template declaration is left as the current
-			   token. */
   an_access_specifier
 		access;
 			/* When the declaration appears in a class scope,
@@ -200,6 +196,10 @@ typedef struct a_tmpl_decl_state {
 			   the number of enclosing template scopes.  The
 			   outermost template declaration has a nesting
 			   depth of 1. */
+  a_token_kind	*final_token_ptr;
+			/* Pointer to a token kind indicating whether the
+			   final token of the declaration is expected to be
+			   a semicolon or a right brace. */
   a_template_decl_info_ptr
 		decl_info;
 			/* Points to the template declaration information
@@ -266,9 +266,9 @@ Initialize a template declaration state block.
   tdsp->defines_something = FALSE;
   tdsp->in_prototype_instantiation = FALSE;
   tdsp->decl_scope_err = FALSE;
-  tdsp->no_advance_past_final_token = FALSE;
   tdsp->access = (an_access_specifier)as_public;
   tdsp->nesting_depth = 0;
+  tdsp->final_token_ptr = NULL;
   tdsp->decl_info = NULL;
   tdsp->number_of_template_decl_scopes = 0;
   tdsp->number_of_template_param_clauses = 0;
@@ -6528,6 +6528,11 @@ caller.
                                           tssp, decl_state->class_declared_in);
     }  /* if */
   } /* if */
+  if (decl_state->defines_something) {
+    /* A function template definition -- leave it to the caller to advance
+       past the closing right brace. */
+    *(decl_state->final_token_ptr) = tok_rbrace;
+  }  /* if */
   if (err) {
     /* Avoid spurious errors -- skip the check for template params, since
        this might have been intended to be a member function. */
@@ -7052,24 +7057,6 @@ any non-empty template parameter lists that were scanned.
       done_with_func_info(func_info);
     }  /* if */
   }  /* if */
-  /* Check and/or advance past the terminating token of the declaration. */
-  if (decl_state->defines_something && !is_class_template) {
-    /* It's a definition but not a class template definition, so it must be
-       a function template definition. */
-    if (decl_state->no_advance_past_final_token) {
-      /* Leave it to the caller to advance past the closing right brace. */
-    } else if (curr_token == tok_rbrace) {
-      (void)get_token();
-    }  /* if */
-  } else {
-    /* All template declarations except function template definitions should
-       terminate with a semicolon. */
-    if (decl_state->no_advance_past_final_token) {
-      (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
-    } else {
-      (void)required_token(tok_semicolon, ec_exp_semicolon);
-    }  /* if */
-  }  /* if */
   /* Pop all of the template declaration scopes that were pushed earlier.
      Note that this must be done before doing the prototype instantiation. */
   for (; decl_state->number_of_template_decl_scopes != 0;
@@ -7552,17 +7539,16 @@ that follows.
       /* Check for the semicolon. */
       if (curr_token == tok_lbrace) {
         /* This may have been intended to be a function definition.  Flush
-           tokens to the closing right brace. */
+           tokens to the closing right brace.  Leave it to the caller to
+           advance past the closing right brace. */
         flush_until_matching_token();
+        *(decl_state->final_token_ptr) = tok_rbrace;
       } else if (curr_token == tok_assign) {
         /* This may have been intended to be a static data member
            initialization.  Flush to a semicolon. */
         add_stop_token(tok_semicolon);
         flush_tokens();
         remove_stop_token(tok_semicolon);
-        (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
-      } else {
-        (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
       }  /* if */
     } else {
       /* The symbol is not NULL. */
@@ -7610,7 +7596,6 @@ that follows.
                       /*is_old_style_param_decl=*/FALSE,
                       &incomplete_type_error_reported);
         }  /* if */
-        (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
       } else {
         /* Issue an error if the exception specification on the instance does
            not match that of the template. */
@@ -7672,12 +7657,11 @@ that follows.
           /* Scan the function body. */
           scan_function_body(sym->variant.routine.ptr, &func_info,
                              SFB_NO_FLAGS);
+          /* Leave it to the caller to advance past the closing right brace. */
+          *(decl_state->final_token_ptr) = tok_rbrace;
         } else {
           /* Update xref info on param ids. */
           record_param_id_list_declarations(func_info.param_id_list);
-          /* No function body, so there ought to be a semicolon following the
-             declaration. */
-          (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -7740,8 +7724,7 @@ differs between function and nonfunction declarations.
 }  /* decl_level_of_template */
 
 
-static void template_or_specialization_declaration(
-                                      a_boolean  no_advance_past_final_token)
+static void template_or_specialization_declaration(a_token_kind  *final_token)
 /*
 Scan a template declaration of a template specialization declaration.
 
@@ -7772,7 +7755,7 @@ are either the specialization of a template or a template declaration.
   decl_state.start_pos = pos_curr_token;
   decl_state.in_prototype_instantiation =
                     scope_stack[depth_scope_stack].in_prototype_instantiation;
-  decl_state.no_advance_past_final_token = no_advance_past_final_token;
+  decl_state.final_token_ptr = final_token;
   /* If there are any pk_immediate pragmas associated with the current
      token, process them now, before the current token is cached, instead
      of in get_token, as is usually done. */
@@ -7830,14 +7813,7 @@ are either the specialization of a template or a template declaration.
         decl_state.decl_scope_err = TRUE;
       }  /* if */
     }  /* if */
-  }  /* if */
-  if (decl_state.is_full_specialization) {
     full_specialization(&decl_state);
-    /* Advance past the semicolon or closing rbrace if required. */
-    if (!no_advance_past_final_token && (curr_token == tok_semicolon ||
-                                         curr_token == tok_rbrace)) {
-      (void)get_token();
-    }  /* if */
   } else {
     /* The entity being declared is a template. */
     template_declaration(&decl_state);
@@ -9592,19 +9568,22 @@ access errors that were detected.
 }  /* explicit_instantiation */
 
 
-void template_directive_or_declaration(a_boolean  no_advance_past_final_token)
+void template_directive_or_declaration(a_token_kind  *final_token)
 /*
 Scan a template declaration of an explicit instantiation.  This routine
 is called to decide whether the current statement is a template
 declaration or an explicit instantiation.  It then calls the appropriate
-routine.  If no_advance_past_final_token is TRUE, the right brace or
-semicolon terminating the template declaration is left as the current token;
-otherwise, it is consumed.
+routine.  Note that the final token is not consumed -- that is left to the
+caller.  For diagnostics, the kind of token expected (semicolon or right
+brace) is returned in *final_token.
 */
 {
   an_extern_linkage   saved_linkage;
 
   db_enter(3, "template_directive_or_declaration");
+  /* Caller should have initialized *final_token; it is changed to tok_rbrace
+     if appropriate. */
+  check_assertion(*final_token == tok_semicolon);
   if (next_token() == tok_lt) {
     /* The template keyword is followed by a template parameter list.
        This is a template declaration or a specialization using the new
@@ -9621,19 +9600,13 @@ otherwise, it is consumed.
       def_external_linkage.is_explicit = FALSE;
     }  /* if */
     /* Scan the declaration. */
-    template_or_specialization_declaration(no_advance_past_final_token);
+    template_or_specialization_declaration(final_token);
     /* Restore the linkage. */
     def_external_linkage = saved_linkage;
   } else {
     /* There is no template parameter list, this must be an explicit
        instantiation. */
     explicit_instantiation();
-    /* The declaration should terminate with a semicolon. */
-    if (no_advance_past_final_token) {
-      (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
-    } else {
-      (void)required_token(tok_semicolon, ec_exp_semicolon);
-    }  /* if */
   }  /* if */
   db_exit();
 }  /* template_directive_or_declaration */

@@ -9406,8 +9406,17 @@ nested classes when their definition appears outside of the class template.
                are not permitted in a class context.  The error for an
                explicit instantiation in a class will be issued by
                template_directive_or_declaration. */
-            template_directive_or_declaration(
-                                      /*no_advance_past_final_token=*/FALSE);
+            a_token_kind  final_token = tok_semicolon;
+
+            template_directive_or_declaration(&final_token);
+            /* The terminating token will be either a semicolon or a right
+               brace.  The latter has already been checked for, but the former
+               has not. */
+            if (final_token == tok_semicolon) {
+              required_token_no_advance(tok_semicolon, ec_exp_semicolon);
+            }  /* if */
+            /* Advance past the terminating token. */
+            if (curr_token == final_token) (void)get_token();
             goto next_declaration;
           }  /* if */
         }  /* if */
