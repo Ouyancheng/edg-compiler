@@ -9,14 +9,12 @@
 ******************************************************************************/
 /*
 
-_pure_virt.C -- C++ runtime routine __pure_virtual_called() to inform the
-                user that a pure virtual function has been called and to
-                abort the program.
+C++ runtime routine __pure_virtual_called() -- called when the user
+calls a pure virtual function.  This function simply aborts the program.
 
 */
 
 #include <stdlib.h>
-#include <stdio.h>
 
 
 extern "C" {
@@ -30,7 +28,6 @@ Notify the user that a call to a pure virtual function has been made and
 abort the program.
 */
 {
-  (void)fprintf(stderr, "Call of pure virtual function: abort\n");
   abort();
 }  /* __pure_virtual */
 

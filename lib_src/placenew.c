@@ -9,7 +9,7 @@
 ******************************************************************************/
 /*
 
-_placenew.C -- C++ operator new(size_t, void*);
+C++ operator new(size_t, void*);
 
 */
 

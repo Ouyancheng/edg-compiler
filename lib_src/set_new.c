@@ -9,9 +9,8 @@
 ******************************************************************************/
 /*
 
-_handler.C -- set_new_handler routine to allow the user to affect the
-             behavior of the default operator new() when memory cannot
-             be allocated.
+set_new_handler routine to allow the user to affect the behavior of the
+default operator new() when memory cannot be allocated.
 
 */
 

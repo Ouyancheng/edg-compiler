@@ -9,8 +9,7 @@
 ******************************************************************************/
 /*
 
-_vec_cctor.C -- C++ runtime routine to execute a copy constructor
-                for each element of an array.
+C++ runtime routine to execute a copy constructor for each element of an array.
 
 */
 
