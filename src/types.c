@@ -631,6 +631,27 @@ Return TRUE if the given type is a GNU C transparent union.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
+static a_boolean class_has_field_type(a_type_ptr  class_type,
+                                      a_type_ptr  field_type)
+/*
+Return TRUE if the given class type has a field of type field_type.
+*/
+{
+  a_boolean    result = FALSE;
+  a_field_ptr  field;
+
+  class_type = skip_typerefs(class_type);
+  field = class_type->variant.class_struct_union.field_list;
+  for (; field != NULL; field = field->next) {
+    if (identical_types(field->type, field_type)) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* class_has_field_type */
+
+
 static a_boolean transparent_union_match(a_type_ptr  tp1,
                                          a_type_ptr  tp2)
 /*
@@ -641,26 +662,11 @@ the type of a field in that union.
   a_boolean  result = FALSE;
 
   if (is_transparent_union_type(tp1)) {
-    /* The first type is a transparent union: Compare the type of every field
-       of this union with the second type. */
-    a_type_ptr   union_type = skip_typerefs(tp1);
-    a_field_ptr  field = union_type->variant.class_struct_union.field_list;
-    for (; field != NULL; field = field->next) {
-      if (identical_types(field->type, tp2)) {
-        result = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
+    /* Check if tp1 has a field of type tp2. */
+    result = class_has_field_type(tp1, tp2);
   } else if (is_transparent_union_type(tp2)) {
     /* The reverse case is entirely similar. */
-    a_type_ptr   union_type = skip_typerefs(tp2);
-    a_field_ptr  field = union_type->variant.class_struct_union.field_list;
-    for (; field != NULL; field = field->next) {
-      if (identical_types(field->type, tp1)) {
-        result = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
+    result = class_has_field_type(tp2, tp1);
   }  /* if */
   return result;
 }  /* transparent_union_match */
