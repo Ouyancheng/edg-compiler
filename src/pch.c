@@ -29,6 +29,10 @@ pch.c -- Precompiled header processing.
 #include "symbol_ref.h"
 #include "macro.h"
 
+/* Declaration needed because of forward reference. */
+static void pch_one_time_init(void);
+
+
 #define PCH_ID_STRING_LENGTH 128
 			/* Maximum length of the PCH id string. */
 
@@ -2176,7 +2180,7 @@ Initialize variables used by the precompiled header routines.
 }  /* pch_init */
 
 
-void pch_one_time_init(void)
+static void pch_one_time_init(void)
 {
   pch_buffer = (char *)alloc_general(PCH_BUFFER_INITIAL_ALLOCATION);
   size_pch_buffer = PCH_BUFFER_INITIAL_ALLOCATION;
