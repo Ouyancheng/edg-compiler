@@ -1759,6 +1759,7 @@ Mangle the name of the indicated class, if necessary.
     /* Note that the mangled name is not put into the type until after it has
        been completely built, because the old name is used in building the
        mangled form. */
+    class_type->source_corresp.unmangled_name= class_type->source_corresp.name;
     class_type->source_corresp.name = mangled_name;
     class_type->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
@@ -1857,6 +1858,7 @@ extension) a declared class member constant.
     (void)mangled_member_name(&con->source_corresp, mangled_name);
     /* Store the final null. */
     mangled_name[mangled_name_length] = '\0';
+    con->source_corresp.unmangled_name = con->source_corresp.name;
     con->source_corresp.name = mangled_name;
     con->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
@@ -1933,6 +1935,7 @@ Mangle the name of the indicated function, if necessary.
                                   mangled_name);
       /* Store the final null. */
       mangled_name[mangled_name_length] = '\0';
+      routine->source_corresp.unmangled_name = routine->source_corresp.name;
       routine->source_corresp.name = mangled_name;
       routine->source_corresp.name_has_been_mangled = TRUE;
     }  /* if */
@@ -1960,6 +1963,7 @@ variable.
     (void)mangled_member_variable_name(variable, mangled_name);
     /* Store the final null. */
     mangled_name[mangled_name_length] = '\0';
+    variable->source_corresp.unmangled_name = variable->source_corresp.name;
     variable->source_corresp.name = mangled_name;
     variable->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
@@ -1989,6 +1993,16 @@ the orphan lists for function-local entities are also processed.
          solhp != NULL;
          solhp = solhp->next) {
       do_type_list_other_name_mangling(solhp->orphaned_types);
+    }  /* for */
+    /* Visit all constants.  This is generally useless, but there might be
+       constants that were promoted out of a local class into the file
+       scope. */
+    /* Look for member constants (an extension in classes) and mangle their
+       names. */
+    for (con = scope->constants; con != NULL; con = con->next) {
+      if (con->source_corresp.is_class_member) {
+        mangle_member_constant_name(con);
+      }  /* if */
     }  /* for */
   }  /* if */
   /* Visit all namespaces. */
@@ -2056,6 +2070,9 @@ other name mangling that might use the name is done.
     /* Note that the mangled name is not put into the type until after it has
        been completely built, because the old name is used in building the
        mangled form. */
+    if (!type->source_corresp.name_has_been_mangled) {
+      type->source_corresp.unmangled_name = type->source_corresp.name;
+    }  /* if */
     type->source_corresp.name = mangled_name;
     type->source_corresp.name_has_been_mangled = TRUE;
     type->source_corresp.nested_type_mangling_has_been_done = TRUE;
