@@ -608,9 +608,8 @@ been cast to an integral type, and so does not have pointer type.
 {
   a_type_ptr       new_type = new_constant->type;
   a_type_ptr       old_type = old_constant->type;
-  a_type_ptr       old_type_pointed_to, new_type_pointed_to;
+  a_boolean        related_class_cast = FALSE, downward_cast;
   a_base_class_ptr bcp;
-  a_boolean        related_class_cast = FALSE;
 
   *did_not_fold = FALSE;
   *err_code = ec_no_error;
@@ -637,32 +636,21 @@ been cast to an integral type, and so does not have pointer type.
 #else /* !TARG_ALL_POINTERS_SAME_SIZE */
 ??=error conv_pointer_to_whatever: different-sized pointers not implemented.
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
-  } else if (C_dialect == C_dialect_cplusplus &&
-             is_pointer_type(old_type) && is_pointer_type(new_type)) {
-    /* In C++, check for casting a pointer to a class to a base class or
-       derived class. */
-    old_type_pointed_to = type_pointed_to(old_type);
-    new_type_pointed_to = type_pointed_to(new_type);
-    if (is_class_struct_union_type(old_type_pointed_to) &&
-        is_class_struct_union_type(new_type_pointed_to)) {
-      /* The source and destination types are both pointers to classes.
-         See if the classes are related. */
-      if ((bcp = find_base_class_of(old_type_pointed_to,
-                                    new_type_pointed_to)) != NULL) {
-        /* Derived --> base.  Valid unless the cast is ambiguous or
-           the base class is inaccessible. */
-        related_class_cast = TRUE;
-        fold_base_class_cast(old_constant, bcp, new_constant,
-                             is_implicit_cast, did_not_fold, err_pos);
-      } else if ((bcp = find_base_class_of(new_type_pointed_to,
-                                           old_type_pointed_to)) != NULL) {
-        /* Base --> derived.  Valid unless the cast is ambiguous or the base
-           class is a virtual base of the derived class. */
-        related_class_cast = TRUE;
-        fold_derived_class_cast(old_constant, new_type_pointed_to,
-                                bcp, new_constant,
-                                did_not_fold, err_pos);
-      }  /* if */
+  } else if (related_class_pointers(old_type, new_type,
+                                    &downward_cast, &bcp)) {
+    /* In C++, a cast of a pointer to a class to a pointer to a base class
+       or derived class. */
+    related_class_cast = TRUE;
+    if (downward_cast) {
+      /* Derived --> base.  Valid unless the cast is ambiguous or
+         the base class is inaccessible. */
+      fold_base_class_cast(old_constant, bcp, new_constant,
+                           is_implicit_cast, did_not_fold, err_pos);
+    } else {
+      /* Base --> derived.  Valid unless the cast is ambiguous or the base
+         class is a virtual base of the derived class. */
+      fold_derived_class_cast(old_constant, type_pointed_to(new_type),
+                              bcp, new_constant, did_not_fold, err_pos);
     }  /* if */
   }  /* if */
   /* Do the cast (by calling implicit_cast) unless there was an error or
