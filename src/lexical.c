@@ -3098,7 +3098,7 @@ any_tokens_fetched_from_curr_input_file global variable.
      tokens, move to the fail state.  This means there were tokens before
      the opening #ifndef or after the #endif. */
   a_byte state;
-  if (curr_ise == NULL) {
+  if (curr_ise == NULL || !curr_ise->is_include_file) {
     state = IFG_STATE_FAIL;
   } else {
     if (curr_ise->ifg_state < IFG_STATE_FAIL &&
@@ -3117,7 +3117,7 @@ Update the include file guard state.  This routine resets the
 any_tokens_fetched_from_curr_input_file when appropriate.
 */
 {
-  if (curr_ise != NULL) {
+  if (curr_ise != NULL && curr_ise->is_include_file) {
     curr_ise->ifg_state = new_state;
     if (new_state == IFG_STATE_ACCEPT) {
       /* We've just seen the closing #endif, there should be no more tokens in
@@ -3298,7 +3298,7 @@ being pushed for an #include_next directive.
   char				*full_file_name;
   char				*display_name;
   FILE 				*input_file;
-  an_include_file_history_ptr	ifhp;
+  an_include_file_history_ptr	ifhp = NULL;
   a_directory_name_entry_ptr    dir_entry;
 
   db_enter(2, "open_file_and_push_input_stack");
@@ -3307,7 +3307,8 @@ being pushed for an #include_next directive.
                                    /*replace_suffix=*/FALSE, &full_file_name,
                                    &display_name, &dir_entry);
   check_assertion(input_file != NULL);
-  if (suppress_subsequent_include_of_file(full_file_name, &ifhp)) {
+  if (is_include_file &&
+      suppress_subsequent_include_of_file(full_file_name, &ifhp)) {
     /* This file contains include guard code.  An inclusion here would
        have no effect, so it should be suppressed. */
     (void)fclose(input_file);

@@ -1,5 +1,17 @@
 Version 3.1
 
+1/20/03  Precompiled headers: abort caused by include guard processing
+
+An abort would occur when using a precompiled header file associated with
+a primary source file in which the initial sequence of preprocessing
+directives preceding the #include that terminates the precompiled header
+prefix looks like include file guard code.  This has been fixed.
+
+  #ifndef __FLAG__
+  # define __FLAG__ 1
+  #endif
+  #include "t.h"
+
 1/18/03  Argument-dependent lookup and template template arguments
 
 Argument-dependent lookup failed to consider the namespaces associated with
