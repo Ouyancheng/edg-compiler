@@ -1,5 +1,17 @@
 Version 3.3
 
+5/30/03  Incorrect parsing of "<" in function explicit template argument list
+
+When scanning an explicit template argument list of a function template,
+a "<" was sometimes incorrectly considered to start a nested template
+argument list.  This has been fixed.
+
+  template <char c> static void f() {}
+  int main() {
+     const char A=1, B=2;
+     f< A < B ? A : B >();  // spurious '"A" is not a template' error
+  }
+
 5/28/03  Template template parameters with dependent default values
 
 In certain cases, a template template parameter with a default value

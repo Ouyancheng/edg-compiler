@@ -9381,7 +9381,8 @@ done using the disambiguation routines.
     add_stop_token(tok_comma);
     sym = NULL;
     /* Determine the kind of template argument. */
-    if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL)) {
+    if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
+                                        GID_IS_EXPR_CONTEXT)) {
       a_boolean	err;
       sym = coalesce_and_lookup_generalized_identifier(
                                  GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
