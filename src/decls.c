@@ -4599,7 +4599,7 @@ otherwise it is NULL.  The syntax is:
         if (required_token(tok_lparen, ec_exp_lparen)) goto function_lparen;
       } else if (locator->is_conversion_name) {
         if (!is_unknown_type(complete_type)) {
-          pos_error(ec_type_specifier_not_allowed, &declarator_pos);
+          pos_error(ec_return_type_on_conversion_function, &declarator_pos);
         }  /* if */
         complete_type = locator->variant.conversion_result_type;
         /* A conversion function must be a nonstatic member function. */
@@ -6257,19 +6257,19 @@ process_class_specifier:
         (void)get_opname();
 operator_or_conversion_name:
         if (locator_for_curr_id.is_conversion_name) {
-#if 0
-          if (basic_type != bt_none || sign != sign_none ||
-              size != size_none) {
-            error(ec_type_specifier_not_allowed);
-            err = TRUE;
-          }  /* if */
-          basic_type = bt_no_type;
-#else
           if (basic_type == bt_none && sign == sign_none &&
               size == size_none) {
             basic_type = bt_no_type;
+          } else {
+            /* A type has already been specified, but the error is issued
+               later in order to unify error processing for both of the
+               following (only the first of which is detected here):
+                 class A {
+                   char operator char();       // Error detectable here
+                   char* operator char*();     // Error not detectable here
+                 };
+               Errors for both are issued in declarator. */
           }  /* if */
-#endif /* if 0 */
         } else if (locator_for_curr_id.is_operator_name &&
                    is_member_decl && !is_friend_decl) {
           an_opname_kind  opname = locator_for_curr_id.variant.opname;
