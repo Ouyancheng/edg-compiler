@@ -1085,10 +1085,10 @@ error code.
       m = "none of the available constructors matches this argument list";
       break;
     case ec_ambiguous_copy_constructor:
-      m = "copy constructor for class %sq is ambiguous";
+      m = "copy constructor for class %t is ambiguous";
       break;
     case ec_no_default_constructor:
-      m = "no default constructor exists for class %sq";
+      m = "no default constructor exists for class %t";
       break;
     case ec_not_a_field_or_base_class:
       m = "not a nonstatic data member or base class of class %n";
@@ -1100,8 +1100,7 @@ error code.
       m = "no constructor exists for class %sq";
       break;
     case ec_bad_union_field:
-      m =
-       "invalid union member -- class %sq has a disallowed member function";
+      m = "invalid union member -- class %t has a disallowed member function";
       break;
     case ec_overloaded_function_types_too_similar:
       m = "cannot overload functions -- parameter types are too similar";
@@ -1214,17 +1213,16 @@ error code.
       m = "%nf is inaccessible";
       break;
     case ec_direct_derivation_less_accessible:
-      m =
-       "direct path to base class %sq gives less access than indirect path";
+      m = "direct path to base class %t gives less access than indirect path";
       break;
     case ec_missing_const_copy_constructor:
-      m = "class %sq has no copy constructor to copy a const object";
+      m = "class %t has no copy constructor to copy a const object";
       break;
     case ec_definition_of_implicitly_declared_function:
       m = "defining an implicitly declared member function is not allowed";
       break;
     case ec_no_suitable_copy_constructor:
-      m = "class %sq has no suitable copy constructor";
+      m = "class %t has no suitable copy constructor";
       break;
     case ec_linkage_specifier_not_allowed:
       m = "linkage specification is not allowed";
@@ -1236,11 +1234,10 @@ error code.
       m = "linkage specification is incompatible with previous declaration";
       break;
     case ec_overloaded_function_linkage:
-      m =
-      "more than one instance of overloaded function %sq has \"C\" linkage";
+      m = "more than one instance of overloaded function %n has \"C\" linkage";
       break;
     case ec_ambiguous_default_constructor:
-      m = "more than one default constructor for class %sq";
+      m = "more than one default constructor for class %t";
       break;
     case ec_temp_used_for_ref_init:
       m = "value copied to temporary, reference to temporary used";
@@ -1383,7 +1380,7 @@ error code.
       m = "operator delete() may not be overloaded";
       break;
     case ec_no_match_for_addr_of_overloaded_function:
-      m = "no instance of this overloaded function matches the required type";
+      m = "no instance of overloaded function %n matches the required type";
       break;
     case ec_delete_count_anachronism:
       m = "delete array size expression ignored (anachronism)";
@@ -1410,8 +1407,7 @@ error code.
       m = "reference to local variable of enclosing function is not allowed";
       break;
     case ec_single_arg_postfix_incr_decr_anachronism:
-      m =
-    "single-argument function used for postfix \"++\" or \"--\" (anachronism)";
+      m = "single-argument function used for postfix %sq (anachronism)";
       break;
     case ec_bad_access_adjustment_with_overloading:
       m = "access adjustment not allowed -- mixed accessibility for %n";
@@ -1420,8 +1416,7 @@ error code.
       m = "implicit generation of %nf is not allowed";
       break;
     case ec_nonstd_array_cast:
-      m =
-   "nonstandard cast to array type treated as cast to pointer to element type";
+      m = "cast to array type is nonstandard (treated as cast to %t)";
       break;
     case ec_virtual_new_or_delete_not_allowed:
       m = "operator %s() may not be declared virtual";

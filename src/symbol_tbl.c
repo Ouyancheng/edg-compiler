@@ -2108,12 +2108,10 @@ only used in C++ mode.
   ctor_routine = NULL;
   if (ctor_sym == NULL) {
     /* No default constructor. */
-    pos_st_error(ec_no_default_constructor, err_pos,
-                 class_type->source_corresp.name);
+    pos_ty_error(ec_no_default_constructor, err_pos, class_type);
   } else if (ambiguous) {
     /* More than one default constructor. */
-    pos_st_error(ec_ambiguous_default_constructor, err_pos,
-                 class_type->source_corresp.name);
+    pos_ty_error(ec_ambiguous_default_constructor, err_pos, class_type);
   } else {
     /* Exactly one default constructor. */
     /* Check that the constructor is accessible and mark it referenced. */
@@ -2281,17 +2279,14 @@ used in C++ mode.
       /* No applicable copy constructor. */
       if (const_object_required && !volatile_object_required) {
         /* The common case:  missing const copy constructor. */
-        pos_st_error(ec_missing_const_copy_constructor, err_pos,
-                     class_type->source_corresp.name);
+        pos_ty_error(ec_missing_const_copy_constructor, err_pos, class_type);
       } else {
         /* Unusual case: volatile or const-volatile expected. */
-        pos_st_error(ec_no_suitable_copy_constructor, err_pos,
-                     class_type->source_corresp.name);
+        pos_ty_error(ec_no_suitable_copy_constructor, err_pos, class_type);
       }  /* if */
     } else {
       /* More than one applicable copy constructor. */
-      pos_st_error(ec_ambiguous_copy_constructor, err_pos,
-                   class_type->source_corresp.name);
+      pos_ty_error(ec_ambiguous_copy_constructor, err_pos, class_type);
     }  /* if */
   } else {
     /* Exactly one copy constructor is best. */

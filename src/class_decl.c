@@ -1757,11 +1757,9 @@ is a base class.
          path we use (following ARM 11.7), even though it is not the
          derivation one would expect for a base class marked "direct". */
 #if 0
-      str_warning(ec_direct_derivation_less_accessible,
-                  base_class->type->source_corresp.name);
+      type_warning(ec_direct_derivation_less_accessible, base_class->type);
 #else
-      str_remark(ec_direct_derivation_less_accessible,
-                 base_class->type->source_corresp.name);
+      type_remark(ec_direct_derivation_less_accessible, base_class->type);
 #endif /* if 0 */
     } else {
       /* The direct derivation gives at least as much access as the indirect
@@ -1781,11 +1779,9 @@ is a base class.
            situation where a base class is marked "direct" but has a longer
            path. */
 #if 0
-        str_warning(ec_direct_derivation_less_accessible,
-                    base_class->type->source_corresp.name);
+        type_warning(ec_direct_derivation_less_accessible, base_class->type);
 #else
-        str_remark(ec_direct_derivation_less_accessible,
-                   base_class->type->source_corresp.name);
+        type_remark(ec_direct_derivation_less_accessible, base_class->type);
 #endif /* if 0 */
       }  /* if */
     }  /* if */
@@ -3703,7 +3699,7 @@ such member functions are present.
       }  /* if */
     }  /* if */
     if (!is_valid) {
-      pos_st_error(ec_bad_union_field, pos, tp->source_corresp.name);
+      pos_ty_error(ec_bad_union_field, pos, tp);
     }  /* if */
   }  /* if */
 

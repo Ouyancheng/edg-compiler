@@ -2366,8 +2366,8 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                        result, &processed);
         if (processed) {
           if (!is_error_operand(result)) {
-            pos_warning(ec_single_arg_postfix_incr_decr_anachronism,
-                        &operand->position);
+            pos_st_warning(ec_single_arg_postfix_incr_decr_anachronism,
+                           &operand->position, token_names[(int)curr_token]);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -3827,7 +3827,7 @@ for both C-style casts and C++ functional-notation type conversions.
          the array element type.  This is an extension to match cfront 2.1 */
       *p_type_cast_to = type_cast_to =
                            make_pointer_type(array_element_type(type_cast_to));
-      warning(ec_nonstd_array_cast);
+      type_warning(ec_nonstd_array_cast, type_cast_to);
     } else {
       /* Invalid cast. */
       error(ec_cast_not_scalar_or_void);

@@ -3443,8 +3443,8 @@ otherwise, set *ext_sym to NULL.
           if (sp != sym &&
               sp->variant.routine->source_corresp.name_linkage ==
                                          (a_name_linkage_kind)nlk_external) {
-            pos_st_error(ec_overloaded_function_linkage,
-                         &locator->source_position, source_corresp_ptr->name);
+            pos_sy_error(ec_overloaded_function_linkage,
+                         &locator->source_position, overload_symbol);
             break;
           }  /* if */
         }  /* for */
