@@ -2958,7 +2958,7 @@ The subtree of the node has not yet been lowered.
   an_insert_location          insert_location;
   an_init_pos_descr           ipd;
   a_boolean                   keep_dynamic_init;
-
+  a_cleanup_action_ptr        new_allocation_cap;
   
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
   if (is_array_type(ndsp->type) &&
@@ -3032,6 +3032,25 @@ The subtree of the node has not yet been lowered.
          top of this node. */
       init_node = var_rvalue_expr(temp_var);
       set_expr_insert_location(init_node, &insert_location);
+      if (exceptions_enabled) {
+        /* Exceptions are enabled, so make a cak_new_allocation cleanup action
+           entry to get the storage freed if a throw occurs. */
+        new_allocation_cap = alloc_cleanup_action(
+                                        cak_new_allocation,
+                                        /*applies_on_block_exit=*/FALSE,
+                                        /*applies_on_exception_cleanup=*/TRUE);
+        set_var_init_pos_descr(temp_var,
+                           &new_allocation_cap->variant.object.init_pos_descr);
+        /* If there were modifiers, we'd have to copy them, but we don't
+           expect any. */
+        check_assertion(new_allocation_cap->
+                              variant.object.init_pos_descr.modifiers == NULL);
+        /* Add information on the delete routine. */
+        new_allocation_cap->variant.object.delete_routine =
+                                                          ndsp->delete_routine;
+        add_cleanup_action_to_context_list(new_allocation_cap, curr_context,
+                                           &insert_location);
+      }  /* if */
       /* Build a description of the entity to be initialized.  Adjust the
          type so that it is an array if necessary. */
       set_var_indirect_init_pos_descr(temp_var, &ipd);
@@ -3044,6 +3063,12 @@ The subtree of the node has not yet been lowered.
                          (a_constructor_init_ptr)NULL,
                          &insert_location, &keep_dynamic_init);
       check_assertion(!keep_dynamic_init);
+      if (exceptions_enabled) {
+        /* Now that the region entry and the code to set the region number have
+           been emitted, remove the cleanup action. */
+        remove_cleanup_action(new_allocation_cap);
+        set_eh_curr_region(curr_context, &insert_location);
+      }  /* if */
       /* Build the ?: operation.  Its first argument is the comparison of
          the temp pointer against NULL; its second is the initialization code;
          and its third is another NULL constant of the right type. */
@@ -4023,6 +4048,9 @@ constructor scope, and also lower the user code.
     a_class_type_supplement_ptr
                        ctsp;
     a_routine_ptr      new_routine;
+    a_cleanup_action_ptr
+                       new_allocation_cap;
+    a_variable_ptr     indicator_var;
 
     /* Make "new-rout(size)". */
     class_type = ctor_routine->source_corresp.class_of_which_a_member;
@@ -4042,6 +4070,46 @@ constructor scope, and also lower the user code.
       this_param_node->next = call_node;
       assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
                                        call_node->type, this_param_node);
+      if (exceptions_enabled) {
+        /* Exceptions are enabled.  Record the allocation so it can
+           be freed if a throw occurs while this routine is running. */
+        /* "this = new_rout(size)" is turned into
+             (this = new_rout(size), (exception_code, this))
+        */
+        this_param_node = var_rvalue_expr(this_param_var);
+        assign_node->next = this_param_node;
+        assign_node = make_operator_node((an_expr_operator_kind)eok_comma,
+                                         this_param_node->type, assign_node);
+        set_expr_insert_location(this_param_node, &insert_location);
+        /* Make an indicator variable that is set to nonzero if the allocation
+           is done.  The variable is initialized to zero below. */
+        indicator_var = 
+                 make_lowered_temporary(integer_type((an_integer_kind)ik_int));
+        /* Set the indicator variable to nonzero. */
+        (void)insert_var_assignment_statement(indicator_var,
+                                            (an_expr_operator_kind)eok_iassign,
+                                            node_for_integer_constant(1L,
+                                                      (an_integer_kind)ik_int),
+                                            &insert_location);
+        /* Add the cleanup action. */
+        new_allocation_cap = alloc_cleanup_action(
+                                        cak_new_allocation,
+                                        /*applies_on_block_exit=*/FALSE,
+                                        /*applies_on_exception_cleanup=*/TRUE);
+        set_var_indirect_init_pos_descr(this_param_var,
+                           &new_allocation_cap->variant.object.init_pos_descr);
+        /* If there were modifiers, we'd have to copy them, but we don't
+           expect any. */
+        check_assertion(new_allocation_cap->
+                              variant.object.init_pos_descr.modifiers == NULL);
+        /* The deletion is only done if the indicator variable is set. */
+        new_allocation_cap->variant.object.first_time_test_var = indicator_var;
+        /* Add information on the delete routine. */
+        new_allocation_cap->variant.object.delete_routine =
+                                           ctsp->assoc_operator_delete_routine;
+        add_cleanup_action_to_context_list(new_allocation_cap, curr_context,
+                                           &insert_location);
+      }  /* if */
       /* Make "(this = new_rout(size)) != NULL". */
       make_zero_of_proper_type(this_param_var->type, &null_constant);
       null_constant_node = alloc_node_for_constant(&null_constant);
@@ -4061,6 +4129,27 @@ constructor scope, and also lower the user code.
                                    int_type, this_compare_node);
       /* Make "if (this != NULL || (this = new-rout(size)) != NULL)". */
       enclose_routine_in_if(scope, if_node, &block_stmt, this_param_var);
+      if (exceptions_enabled) {
+        /* Initialize the indicator variable for the allocation cleanup
+           to zero. */
+        a_dynamic_init_ptr dip =
+                         alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+        a_statement_ptr  stmk_init_stmt;
+        a_constant       zero_constant;
+
+        dip->variable = indicator_var;
+        /* The dynamic init entry is pointed to by the variable. */
+        indicator_var->init_kind = (an_init_kind)initk_dynamic;
+        indicator_var->initializer.dynamic = dip;
+        set_integer_constant(&zero_constant, 0L, (an_integer_kind)ik_int);
+        dip->variant.constant = alloc_unshared_constant(&zero_constant);
+        /* The dynamic init entry is pointed to by an stmk_init statement. */
+        stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
+        stmk_init_stmt->variant.dynamic_init = dip;
+        /* The stmk_init statement goes at the beginning of the routine. */
+        set_block_start_insert_location(scope->assoc_block, &insert_location);
+        insert_statement(stmk_init_stmt, &insert_location);
+      }  /* if */
     }  /* if */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   }  /* if */
