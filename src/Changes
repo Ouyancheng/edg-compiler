@@ -56,7 +56,7 @@ with a type that does not match the type expected by the implementation --
 e.g., "unsigned int".  (See TARG_SIZE_T_INT_KIND, defined in targ_def.h,
 and global variable targ_size_t_int_kind.)
 
-2/10/97 Microsoft compatiblilty: exception specifications are ignored
+2/10/97 Microsoft compatibility: exception specifications are ignored
 
 In Microsoft-compatibility mode exception specifications on function
 declarators are parsed but ignored (with a warning).  As a result, errors
