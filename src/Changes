@@ -51,7 +51,8 @@ following:
 
 was represented by the C++-generating back end as only a definition.
 Fixed -- the code to remove such forward declarations now only removes
-those that are compiler-generated.
+those that are compiler-generated.  (This problem was introduced by
+the reworking of source-sequence-entry generation in 2.40.)
 
 12/11/98  Independent configuration for support for near and far
 
