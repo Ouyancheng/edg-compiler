@@ -1,5 +1,14 @@
 Version 2.44
 
+6/23/00  Microsoft compatibility: allow duplicate inline specifier
+
+In Microsoft mode, the duplicate appearance of the "inline" specifier on a
+function declaration only elicits a warning; not a fatal error.
+
+  inline inline void f();  // Warning in Microsoft mode; error otherwise
+
+(See also similar 6/13/00 entry for "virtual".)
+
 6/23/00  Declaration position in diagnostic of exception specification
          mismatch for function template redeclaration
 

@@ -4749,7 +4749,7 @@ Returns TRUE if there is an error in the specifiers.
           error(ec_virtual_function_template);
           err = TRUE;
         } else if (decl_specifiers_seen & DS_VIRTUAL) {
-          /* Only one "virtual" specifier at at time. */
+          /* Only one "virtual" specifier at a time. */
           diagnostic(microsoft_mode ? es_warning : es_error,
                      ec_dupl_decl_specifier);
           if (!microsoft_mode) {
@@ -4774,9 +4774,12 @@ Returns TRUE if there is an error in the specifiers.
           error(ec_inline_not_allowed);
           err = TRUE;
 	} else if (decl_specifiers_seen & DS_INLINE) {
-	  /* Only one "inline" specifier at at time. */
-	  error(ec_dupl_decl_specifier);
-	  err = TRUE;
+	  /* Only one "inline" specifier at a time. */
+          diagnostic(microsoft_mode ? es_warning : es_error,
+                     ec_dupl_decl_specifier);
+          if (!microsoft_mode) {
+            err = TRUE;
+          }  /* if */
         } else if (input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) {
           /* The keyword "inline" was seen as a qualifier.  This is only
              possible in Microsoft mode and that qualifier is ignored. */
