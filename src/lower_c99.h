@@ -30,7 +30,7 @@ extern void lower_c99_expr(an_expr_node_ptr expr);
 
 extern void lower_c99_full_expr(an_expr_node_ptr expr);
 
-extern void lower_c99_il_memory_region(a_scope_ptr scope);
+extern void lower_c99_il_memory_region(a_memory_region_number region_number);
 
 extern void lower_c99_one_time_init(void);
 

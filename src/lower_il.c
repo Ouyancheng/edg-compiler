@@ -12851,8 +12851,7 @@ C++ to C, so that a C back end can handle it without change.
     il_lowering_underway = FALSE;
 #if DO_C99_IL_LOWERING
   } else if (c99_il_lowering_needed()) {
-    scope = il_header.region_scope_entry[region_number];
-    lower_c99_il_memory_region(scope);
+    lower_c99_il_memory_region(region_number);
 #endif /* DO_C99_IL_LOWERING */
   }  /* if */
   db_exit();

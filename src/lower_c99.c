@@ -1584,6 +1584,8 @@ Do C99 lowering for all entities in and under the given scope.
   a_vla_dimension_ptr              vla_dim;
   a_local_static_variable_init_ptr lsvip;
   a_context                        context;
+  a_scope_ptr                      saved_innermost_function_scope =
+                                                      innermost_function_scope;
 
   if (scope->kind == (a_scope_kind)sck_function) {
     /* Visit all VLA dimension expressions for parameters before pushing the
@@ -1595,7 +1597,6 @@ Do C99 lowering for all entities in and under the given scope.
       /* Entries from prototype scopes are handled above. */
       if (vla_dim->in_prototype_scope) {
         /* Temporarily indicate that we're not inside a function. */
-        a_scope_ptr saved_innermost_function_scope = innermost_function_scope;
         innermost_function_scope = NULL;
         lower_c99_vla_dimension(vla_dim);
         innermost_function_scope = saved_innermost_function_scope;
@@ -1613,6 +1614,7 @@ Do C99 lowering for all entities in and under the given scope.
       /* Nothing to lower. */
       break;
     case sck_function:
+      innermost_function_scope = scope;
       /* Lower all parameters. */
       for (variable = scope->variant.routine.parameters;
            variable != NULL;
@@ -1688,6 +1690,7 @@ Do C99 lowering for all entities in and under the given scope.
 #endif /* MINIMAL_INLINING */
   }  /* if */
   pop_context();
+  innermost_function_scope = saved_innermost_function_scope;
 }  /* lower_c99_scope */
 
 #if LOWER_COMPLEX
@@ -1777,15 +1780,20 @@ Replace the C99 _Bool type by its lowered representation.
 }  /* lower_c99_bool_type */
 
 
-void lower_c99_il_memory_region(a_scope_ptr scope)
+void lower_c99_il_memory_region(a_memory_region_number region_number)
 /*
-Do C99 lowering for a memory region.  scope is the top-level scope for
-the memory region, i.e., either the file scope or a function scope.
+Do C99 lowering for a memory region (for the file scope or a function scope).
 */
 {
-  a_context context;
+  a_scope_ptr scope = il_header.region_scope_entry[region_number];
+  a_context   context;
+  a_scope_ptr saved_innermost_function_scope = innermost_function_scope;
 
   il_lowering_underway = TRUE;
+  curr_context = NULL;
+  innermost_function_scope = NULL;
+  curr_object_lifetime = NULL;
+  switch_il_region(region_number);
   if (scope->kind == (a_scope_kind)sck_function) {
     /* Push the file scope around lowering of a function scope. */
     push_context(&context, il_header.primary_scope,
@@ -1801,6 +1809,7 @@ the memory region, i.e., either the file scope or a function scope.
   if (scope->kind == (a_scope_kind)sck_function) {
     pop_context();
   }  /* if */
+  innermost_function_scope = saved_innermost_function_scope;
   il_lowering_underway = FALSE;
 }  /* lower_c99_il_memory_region */
 
