@@ -13781,6 +13781,15 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
         update_instantiation_flags(new_sym, kind, start_pos,
                                    /*is_class_instantiation=*/FALSE,
                                    is_pragma);
+        /* If a throw specification was mentioned in the instantiation
+           directive, check that it matches up with that of the instantiated
+           routine. */
+        if (type->variant.routine.extra_info->exception_specification !=
+                                                                       NULL) {
+          check_exception_specification(type, new_sym->variant.routine.ptr,
+                                        &func_info.throw_position,
+                                        /*is_redecl=*/TRUE);
+        }  /* if */
 #if DECL_MODIFIERS_IN_USE
         /* In Microsoft mode __declspec(...) modifiers are accepted -- e.g.,
            dllimport on an "extern template" declaration. */

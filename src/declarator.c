@@ -3791,8 +3791,7 @@ function_lparen:
          declarations are not mentioned in WP 15.4 [except.spec] as allowing
          exception specifications.) */
       disallow_exception_spec = TRUE;
-      if (!C_mode() && !(input_flags & (DI_IS_TYPEDEF_DECLARATION |
-                                        DI_IS_EXPLICIT_INSTANTIATION))) {
+      if (!C_mode() && !(input_flags & DI_IS_TYPEDEF_DECLARATION)) {
         if (derived_type == NULL) {
           /* Top level function declaration. */
           disallow_exception_spec = FALSE;
