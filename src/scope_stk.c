@@ -816,7 +816,7 @@ declaration is scanned and are used as placeholders between instantiations.
 */
 {
   db_enter(4, "restore_default_template_params");
-  /* Loop through the parameters and and set them to either the original
+  /* Loop through the parameters and set them to either the original
      template type or the original template constant (as specified by the
      type or constant field). */
   while (tpp != NULL) {
