@@ -4934,6 +4934,7 @@ declared member functions.
   a_type_ptr                    tp;
   a_source_sequence_entry_ptr   declarator_ssep = NULL;
   a_name_linkage_kind           def_name_linkage;
+  a_routine_type_supplement_ptr rtsp;
 
   db_enter(3, "decl_member_function");
   /* If this is a user-defined conversion or an overloaded operator,
@@ -4980,6 +4981,10 @@ declared member functions.
   set_source_corresp(&rtn->source_corresp, sym);
   set_class_membership(sym, &rtn->source_corresp, class_type);
   rtn->source_corresp.access = class_state->access;
+  /* The routine name linkage on the function type is also required to be
+     C++ no matter what the name linkage of the routine turns out to be. */
+  rtsp = skip_typerefs(member_type)->variant.routine.extra_info;
+  rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
   /* Member functions should have the same name linkage as the class of
      which they are members.  (In cfront mode that may mean internal
      linkage -- if and when its linkage is promoted to C++, the linkage of
@@ -5004,13 +5009,21 @@ declared member functions.
   } else {
     /* Noninline member function. */
     rtn->is_inline = FALSE;
-    rtn->source_corresp.name_linkage = def_name_linkage;
-    if (def_name_linkage != (a_name_linkage_kind)nlk_cplusplus_external) {
+    if (def_name_linkage == (a_name_linkage_kind)nlk_none ||
+        def_name_linkage == (a_name_linkage_kind)nlk_internal) {
       /* Either this is a local class (nlk_none) or a cfront-compatible
          declaration (nlk_internal). */
+      rtn->source_corresp.name_linkage = def_name_linkage;
       /* storage_class is already set to sc_static. */
     } else {
-      /* Will be changed to sc_unspecified if a definition is seen. */
+      /* Except for special cases, class member functions have C++ linkage
+         whatever the default name linkage may be.  That is, member functions
+         of a class have C++ name linkage even if the class definition is
+         wrapped in (for example) an extern "C" declaration. */
+      rtn->source_corresp.name_linkage =
+                                 (a_name_linkage_kind)nlk_cplusplus_external;
+      /* The storage class be changed to sc_unspecified if a definition is
+         seen. */
       rtn->storage_class = (a_storage_class)sc_extern;
     }  /* if */
   }  /* if */
@@ -8425,31 +8438,35 @@ the function is a nonstatic member of class_type.
 
 */
 {
-  a_type_ptr  rout_type, tp;
+  a_type_ptr                     rout_type, tp;
+  a_routine_type_supplement_ptr  rtsp;
 
   if (is_definition) {
     /* Not legal to define a function with a typedef type. */
     pos_error(ec_function_type_must_come_from_declarator, err_pos);
   }  /* if */
-  if (is_definition || is_nonstatic_member) {
-     rout_type = skip_typerefs(*member_type);
-     /* Build a copy of the routine type so as to have a
-        non-shared routine type entry. */
-     rout_type = copy_routine_type_with_param_types(rout_type);
-     if (is_nonstatic_member) {
-       /* This is a nonstatic member function declared through a typedef.
-          Be sure the implicit this-param type is filled in, since that's
-          the only way a nonstatic member function is distinguished from a
-          static member function. */
-       tp = make_pointer_type(class_type);
-       rout_type->variant.routine.extra_info->implicit_this_param_type = tp;
-     } else if (any_cfront_mode()) {
-       /* Just in case this is a copy of the weird cfront-compatibility
-          typedef, clear out the implicit this-param pointer in the copied
-          type entry. */
-       rout_type->variant.routine.extra_info->implicit_this_param_type = NULL;
-     }  /* if */
-     *member_type = rout_type;
+  rout_type = skip_typerefs(*member_type);
+  rtsp = rout_type->variant.routine.extra_info;
+  if (is_definition || is_nonstatic_member ||
+      rtsp->routine_name_linkage !=
+                      (a_name_linkage_kind)nlk_cplusplus_external) {
+    /* Build a copy of the routine type so as to have a
+       non-shared routine type entry. */
+    rout_type = copy_routine_type_with_param_types(rout_type);
+    if (is_nonstatic_member) {
+      /* This is a nonstatic member function declared through a typedef.
+         Be sure the implicit this-param type is filled in, since that's
+         the only way a nonstatic member function is distinguished from a
+         static member function. */
+      tp = make_pointer_type(class_type);
+      rout_type->variant.routine.extra_info->implicit_this_param_type = tp;
+    } else if (any_cfront_mode()) {
+      /* Just in case this is a copy of the weird cfront-compatibility
+         typedef, clear out the implicit this-param pointer in the copied
+         type entry. */
+      rout_type->variant.routine.extra_info->implicit_this_param_type = NULL;
+    }  /* if */
+    *member_type = rout_type;
   }  /* if */
 }  /* check_typedef_function_type */
 
