@@ -15334,10 +15334,8 @@ parameter type is not known.
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  /* There is no point in recording the constant expression for a nontype
-     template argument, because it can differ from one instantiation point to
-     another, and we can record only one expression. */
-  constant->expr = NULL;
+  check_assertion(constant->expr == NULL ||
+                  curr_expr_kind_is_one_in_which_const_exprs_are_recorded());
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
   switch_back_to_original_region(region_to_switch_back_to);
