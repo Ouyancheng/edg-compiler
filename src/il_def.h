@@ -916,7 +916,7 @@ typedef struct a_using_directive {
 		source_sequence_entry;
 			/* Pointer to source sequence entry that represents
 			   the place this using-directive appears within the
-			   current file, namespace, function, or class scope
+			   current file, namespace, function, or block scope
 			   relative to other declarations, statements, etc. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_using_directive;
@@ -6153,9 +6153,8 @@ typedef struct a_scope {
   a_using_directive_ptr
 		using_directives;
 			/* List of using-directives appearing within the
-			   current sck_file, sck_namespace, sck_function,
-			   sck_block, or sck_class_struct_union scope (C++
-			   only). */
+			   current sck_file, sck_namespace, sck_function, or
+			   sck_block scope (C++ only). */
   a_dynamic_init_ptr
 		dynamic_inits;
 			/* List of dynamic initializations to be done in the
