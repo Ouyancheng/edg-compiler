@@ -845,7 +845,8 @@ first line of the file.
     il_header.primary_source_file = NULL;
   }  /* if */
   open_file_and_push_input_stack(
-               strcpy(alloc_il((sizeof_t)(strlen(trans_unit_file_name)+1)),
+               strcpy(alloc_primary_file_scope_il(
+                                   (sizeof_t)(strlen(trans_unit_file_name)+1)),
                       trans_unit_file_name),
                /*use_search_path=*/FALSE,
                /*is_include_file=*/FALSE,
@@ -859,7 +860,8 @@ first line of the file.
     /* There is a preinclude file to be included at the beginning of
        the compilation. */
     open_file_and_push_input_stack(
-               strcpy(alloc_il((sizeof_t)(strlen(preinclude_file_name)+1)),
+               strcpy(alloc_primary_file_scope_il(
+                                   (sizeof_t)(strlen(preinclude_file_name)+1)),
                       preinclude_file_name),
                /*use_search_path=*/TRUE,
                /*is_include_file=*/TRUE,
