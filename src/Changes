@@ -1,5 +1,19 @@
 Version 2.46
 
+3/1/01   C-generating back end: VLA declarations in middle of blocks
+
+The C-generating back end now puts out an extra set of braces around
+variable-length array declarations in the middle of a block to avoid
+having the code rejected by C compilers that do allow VLAs but do
+not allow mixed declarations and executable statements (e.g., gcc).
+
+  void f() {
+    int n = 10;
+    int x[n][n];
+    x[5][5] = 37;
+    int y[n][n];  // Extra brace put out before this line
+  }
+
 3/1/01   Undiagnosed missing comma
 
 The front end sometimes failed to diagnose a comma that should have preceded

@@ -6171,9 +6171,29 @@ static void dump_statement_list(a_statement_ptr statement)
 Generate code for the indicated list of statements.
 */
 {
+  a_boolean     exec_stmt_put_out = FALSE;
+  unsigned long num_closing_braces_needed = 0;
+
   for (; statement != NULL; statement = statement->next) {
+    /* Put out extra braces before declarative statements that would
+       otherwise be put out after executable statements in a block. */
+    a_boolean is_exec_stmt =
+                      (
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+                       statement->kind != (a_statement_kind)stmk_decl &&
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+                       statement->kind != (a_statement_kind)stmk_vla_decl &&
+                       statement->kind != (a_statement_kind)stmk_set_vla_size);
+    if (statement->kind == (a_statement_kind)stmk_vla_decl &&
+        exec_stmt_put_out) {
+      write_tok_ch('{');
+      num_closing_braces_needed++;
+      exec_stmt_put_out = FALSE;
+    }  /* if */
     dump_statement(statement);
+    if (is_exec_stmt) exec_stmt_put_out = TRUE;
   }  /* for */
+  while (num_closing_braces_needed-- > 0) write_tok_ch('}');
 }  /* dump_statement_list */
 
 
