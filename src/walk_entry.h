@@ -2294,7 +2294,9 @@ after_entry_from_class:
       {
         a_template_param_type_supplement_ptr ptr =
                                (a_template_param_type_supplement_ptr)entry_ptr;
-        remap_ptr(ptr->class_type, a_type_ptr, iek_type);
+        /* Use walk_ptr instead of remap_ptr because proxy classes are
+           not linked into the IL. */
+        walk_ptr(ptr->class_type, a_type_ptr, iek_type);
       }
       break;
     case iek_constructor_init:
