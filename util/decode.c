@@ -82,6 +82,10 @@ typedef struct a_template_param_block {
   a_boolean	first_correspondence;
 			/* TRUE until the first template parameter/argument
 			   correspondence is put out. */
+  a_boolean	use_old_form_for_template_output;
+			/* TRUE if templates should be output in the old
+			   form that always puts actual argument values
+			   in template argument lists. */
 } a_template_param_block;
 
 
@@ -684,6 +688,7 @@ Clear the fields of the indicated template parameter block.
   tpbp->actual_template_args_until_final_specialization = FALSE;
   tpbp->output_only_correspondences = FALSE;
   tpbp->first_correspondence = FALSE;
+  tpbp->use_old_form_for_template_output = FALSE;
 }  /* clear_template_param_block */
 
 
@@ -694,7 +699,7 @@ static char *demangle_template_arguments(
 /*
 Demangle the template class arguments beginning at ptr and output the
 demangled form.  Return a pointer to the character position following what was
-demangled.  ptr points to just past the "__pt__" string.  When
+demangled.  ptr points to just past the "__pt__" or "__tm__" string.  When
 temp_par_info != NULL, it points to a block that controls output of
 extra information on template parameters.
 */
@@ -709,6 +714,7 @@ extra information on template parameters.
                ^^---- Argument types.
              ^------- Size of argument types, including the underscore.
              ^------- ptr points here.
+     For new-form mangling of templates, "__pt__" is replaced by "__tm__".
   */
   write_id_ch('<', dctl);
   /* Scan the size. */
@@ -727,6 +733,7 @@ extra information on template parameters.
     nontype = (*p == 'X');
     skipped = unskipped = FALSE;
     if (temp_par_info != NULL &&
+        !temp_par_info->use_old_form_for_template_output &&
         !temp_par_info->actual_template_args_until_final_specialization) {
       /* Doing something special: writing out the template parameter name. */
       if (temp_par_info->output_only_correspondences) {
@@ -986,7 +993,7 @@ simple case.
 */
 {
   char      *p, *end_ptr = NULL;
-  a_boolean is_special_name = FALSE;
+  a_boolean is_special_name = FALSE, is_pt;
   char      *demangled_name;
   int       mangled_length;
 
@@ -1062,12 +1069,14 @@ simple case.
       if (ch == '_' && p != ptr &&
           char_from_name(p+1) == '_' &&
           char_from_name(p+2) != '_' &&
-          /* When the length is known, stop only on "__pt" or "__S".  Double
-             underscores can appear in the middle of some names, e.g.,
+          /* When the length is known, stop only on "__pt", "__tm", or "__S".
+             Double underscores can appear in the middle of some names, e.g.,
              member names used as template arguments. */
           (nchars == 0 ||
            (char_from_name(p+2) == 'p' &&
             char_from_name(p+3) == 't') ||
+           (char_from_name(p+2) == 't' &&
+            char_from_name(p+3) == 'm') ||
            char_from_name(p+2) == 'S')) {
         break;
       }  /* if */
@@ -1087,10 +1096,15 @@ simple case.
     note_specialization(end_ptr, temp_par_info);
     end_ptr += 3;
   }  /* if */
-  /* If there's a template argument list (beginning with "__pt__"),
+  /* If there's a template argument list (beginning with "__pt__" or "__tm__"),
      process it. */
   if ((nchars == 0 || (end_ptr-ptr+6) < nchars) &&
-      start_of_id_is("__pt__", end_ptr)) {
+      ((is_pt = start_of_id_is("__pt__", end_ptr)) ||
+       start_of_id_is("__tm__", end_ptr))) {
+    /* The "__pt__ form indicates an old-style mangled template name. */
+    if (is_pt && temp_par_info != NULL ) {
+      temp_par_info->use_old_form_for_template_output = TRUE;
+    }  /* if */
     /* Write the arguments. */
     end_ptr = demangle_template_arguments(end_ptr+6, temp_par_info, dctl);
     /* If there's a(nother) specialization indication ("__S"), ignore it. */
@@ -1717,7 +1731,8 @@ a pointer to the character position following what was demangled.
                                           /*under_lhs_declarator=*/FALSE,
                                           dctl);
     }  /* if */
-    if (temp_par_info.nesting_level != 0) {
+    if (!temp_par_info.use_old_form_for_template_output &&
+        temp_par_info.nesting_level != 0) {
       /* Put out correspondences for template parameters, e.g, "T=int". */
       temp_par_info.nesting_level = 0;
       temp_par_info.first_correspondence = TRUE;

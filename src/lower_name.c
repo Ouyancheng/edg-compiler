@@ -1059,6 +1059,7 @@ the old form of length specification in the mangling for lengths of literals.
 {
   sizeof_t           mangled_name_length, digits, arg_length, total_arg_length;
   sizeof_t           con_length, type_length;
+  char               *str;
   a_template_arg_ptr tap;
   int                pass;
 
@@ -1068,14 +1069,19 @@ the old form of length specification in the mangling for lengths of literals.
              ^------ Total length of template argument list string,
                      including the underscore.
          ^^--------- Fixed string, indicates "parameterized type".
+     When distinct_mangling_for_templates is TRUE, "__tm__" is used instead
+     of "__pt__".
   */
-#define PT_STR "__pt__"
-  mangled_name_length = sizeof(PT_STR) - 1;
-  if (store_at != NULL) {
-    (void)strcpy(store_at, PT_STR);
-    store_at += sizeof(PT_STR) - 1;
+  if (distinct_mangling_for_templates) {
+    str = "__tm__";
+  } else {
+    str = "__pt__";
   }  /* if */
-#undef PT_STR
+  mangled_name_length = strlen(str);
+  if (store_at != NULL) {
+    (void)strcpy(store_at, str);
+    store_at += mangled_name_length;
+  }  /* if */
   /* Run through the template argument list, determining the representation
      for each argument.  The first time through, determine the size;
      the second, put out the string. */

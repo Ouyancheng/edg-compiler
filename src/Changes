@@ -451,6 +451,8 @@ ABI_COMPATIBILITY_VERSION to something preceding 232.
 A few new encodings have been added to the name mangling scheme to
 represent new possibilities:
 
+  -- When the new form of mangling is selected, "__tm__" is used instead
+     of "__pt__" to mark the beginning of a template argument list.
   -- "ZnZ" represents the first-level template parameter at position n
      (type or nontype).  "Zn_mZ" represents the template parameter at
      position n and nesting depth m (for member templates nested inside
