@@ -8474,9 +8474,10 @@ lowering or a back end to do the rewriting.
            scope of the function (the latter is what cfront does, and it
            helps to avoid some nasty interactions with exception handling). */
         a_type_ptr func_type = func_scope->variant.routine.ptr->type;
-        if (types_are_compatible(return_var->type,
-                                 func_type->variant.routine.return_type) &&
-            return_var->storage_class != (a_storage_class)sc_static) {
+        if (!return_var->is_parameter &&
+            return_var->storage_class != (a_storage_class)sc_static &&
+            types_are_compatible(return_var->type,
+                                 func_type->variant.routine.return_type)) {
           a_symbol_ptr sym =
                            (a_symbol_ptr)return_var->source_corresp.assoc_info;
           if (sym->decl_scope == ssep->number) {
