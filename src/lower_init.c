@@ -4314,8 +4314,11 @@ constructor scope, and also lower the user code.
 #if ASSIGNMENT_TO_THIS_ALLOWED
   /* The allocation code is not added if there is an assignment to "this"
      in the constructor. */
-  if (!ctor_routine->assignment_to_this_done) {
+  if (!ctor_routine->assignment_to_this_done)
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+  /* Do not add code here -- this is the dependent statement of the "if"
+     above. */
+  {
     a_variable_ptr     this_param_var = scope->variant.routine.parameters;
     a_type_ptr         class_type, int_type;
     an_expr_node_ptr   size_node, call_node, assign_node;
@@ -4413,9 +4416,7 @@ constructor scope, and also lower the user code.
                                   (an_insert_location *)NULL);
       }  /* if */
     }  /* if */
-#if ASSIGNMENT_TO_THIS_ALLOWED
-  }  /* if */
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+  } 
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
   /* Clear the list of constructor inits. */
   scope->variant.routine.constructor_inits = NULL;
