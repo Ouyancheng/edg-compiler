@@ -885,7 +885,7 @@ sequence entries.
       /* End of a sublist in the file scope memory region.  Return to the
          entry following the entry in the function scope memory region
          that sent us to this sublist. */
-      curr_source_sequence_entry= sublist_parent_source_sequence_entry->next;
+      curr_source_sequence_entry = sublist_parent_source_sequence_entry->next;
       sublist_parent_source_sequence_entry = NULL;
       /* Keep looping. */
     } else if (is_sublist_parent(curr_source_sequence_entry)) {
@@ -10273,6 +10273,12 @@ Process all the file scope entities, and everything under those.
      right order. */
   curr_source_sequence_entry = il_header.primary_scope->source_sequence_list;
   adv_to_signif_source_sequence_entry();
+  if (curr_source_sequence_entry == NULL && C_mode()) {
+    /* C does not allow a source file containing no declaration, so put
+       out a dummy declaration. */
+    write_tok_str("int __dummy_to_avoid_empty_file;");
+    end_output_line();
+  }  /* if */
   for (;;) {
     /* Process macros, pragmas, etc. */
     (void)process_preprocessing_directives();
