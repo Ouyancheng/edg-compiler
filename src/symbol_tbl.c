@@ -3136,7 +3136,9 @@ this is not allowed, an error will be issued by the caller.
        ordering is ignored).  Therefore, we set the is_invisible flag on the
        new symbol. */
     if (old_sym->variant.field.anonymous_parent_object != NULL ||
-        new_sym->variant.field.anonymous_parent_object != NULL) {
+        suppress_error) {
+      /* If the new symbol is an anonymous union field, the parent object will
+         not have been recorded yet, but suppress_error will be TRUE. */
       if (!new_sym->is_invisible) {
         pos_sy_warning(ec_hidden_anonymous_union_field,
                        &new_sym->decl_position,
