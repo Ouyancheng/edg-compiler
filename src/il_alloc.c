@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -3101,8 +3101,8 @@ Display and return the amount of space used for various IL tables.
 void il_alloc_one_time_init(void)
 /*
 Do one-time initialization of variables related to the IL. (Variables
-that need to be reinitialized with each new translation unit are handled
-in il_init.)
+that need to be reinitialized with each new compilation are handled
+in il_alloc_init.)
 */
 {
   /* Set the default "routine name linkage", which is the value to which the
@@ -3168,6 +3168,9 @@ in il_init.)
 #if ONE_INSTANTIATION_PER_OBJECT
   def_source_corresp.per_instantiation_needed_flags = NULL;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#ifdef TRACE_ALLOC
+  trace_alloc_ptr = NULL;
+#endif /* ifdef TRACE_ALLOC */
 
   /* Save static variables that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
@@ -3273,10 +3276,8 @@ in il_init.)
 
 void il_alloc_init(void)
 /*
-Initialize static variables related to IL allocation.  This is done as a
-subroutine (rather than relying on static initialization) so that it
-can be redone to compile more than one source file in a single invocation
-of the front end.
+Initialize static variables related to IL allocation.  These are
+initializations that are done for each compilation.
 */
 {
   /* Static variables. */
@@ -3385,6 +3386,6 @@ of the front end.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
