@@ -520,7 +520,9 @@ and indentation is the indentation desired.
   if (sym->decl_scope != NO_SCOPE_NUMBER) {
      a_translation_unit_ptr	tup;
      tup = trans_unit_for_scope[sym->decl_scope];
-     if (tup != NULL && tup != translation_units) {
+     if (tup != NULL && tup != translation_units &&
+         /* The source_file pointer is not set yet early in initialization. */
+         tup->source_file != NULL) {
        (void)sprintf(buffer, "trans unit %s",
                      tup->source_file->name_as_written);
        put_string(buffer);
