@@ -2141,7 +2141,7 @@ function numbers of the virtual functions.
 
   if (class_type->variant.class_struct_union.any_virtual_functions) {
     /* We will pass in the address of the field that tracks the highest
-       virtual function that has been assignment thus far.  (It may be nonzero
+       virtual function that has been assigned thus far.  (It may be nonzero
        at this point if the virtual function info for this class is shared
        with that of one of its base classes.) */
     number_ptr = &class_type->variant.class_struct_union.extra_info->
@@ -9411,7 +9411,7 @@ next_declaration:
       /* Go though all the functions declared for this class and set the
          virtual function number of virtual functions.  (Note: with less
          current ABIs the numbers are updated on the fly as the member
-         function declaration is processed. */
+         function declaration is processed.) */
       set_virtual_function_numbers(class_type);
 #endif /* ABI_COMPATIBILITY_VERSION >= 232 */
       /* Set shares_virtual_function_info for a base class of class_type, if
