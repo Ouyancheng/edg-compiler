@@ -24,7 +24,6 @@ target.c -- Target configuration support
 /* Header files common to all files. */
 #include "fe_common.h"
 
-#if !STANDALONE_IL_DISPLAY
 
 #if TARG_ALL_POINTERS_SAME_SIZE
 /*ARGSUSED*/ /* Because tp is not used. */
@@ -32,49 +31,17 @@ target.c -- Target configuration support
 a_targ_size_t size_of_pointer_to(a_type_ptr        tp,
                                  a_targ_alignment  *alignment)
 /*
-Set the size and alignment for a pointer type that points to the indicated
+Return the size and alignment for a pointer type that points to the indicated
 type.  This routine should be rewritten for implementations in which
 TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
 */
 {
-  a_targ_size_t  size;
+  a_targ_size_t size;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_16_mode) {
+  if (il_header.microsoft_16_mode) {
     /* Microsoft 16-bit mode.  Pointers come in "near" and "far" sizes. */
-    a_boolean            is_far;
-    a_type_qualifier_set qualifiers = get_type_qualifiers(tp);
-
-    /* Determine if this pointer is near or far. */
-    if (qualifiers & TQ_NEAR) {
-      /* Near specified explicitly. */
-      is_far = FALSE;
-    } else if (qualifiers & TQ_FAR) {
-      /* Far specified explicitly. */
-      is_far = TRUE;
-    } else {
-      /* The size of the pointer is not specified explicitly. */
-      a_class_type_supplement_ptr ctsp;
-      tp = skip_typerefs(tp);
-      if (is_immediate_class_type(tp) &&
-          (ctsp = tp->variant.class_struct_union.extra_info) != NULL &&
-          (qualifiers = ctsp->qualifiers) != TQ_NONE) {
-        /* A C++ class with a memory attribute specified for all instances of
-           the class. */
-        is_far = (qualifiers & TQ_FAR) != TQ_NONE;
-      } else if (far_code_pointers == far_data_pointers) {
-        /* Speed optimization: code and data pointers are the same size so
-           there's no need to determine which we have. */
-        is_far = far_data_pointers;
-      } else if (is_function_type(tp)) {
-        /* Pointer to code with default size. */
-        is_far = far_code_pointers;
-      } else {
-        /* Pointer to data with default size. */
-        is_far = far_data_pointers;
-      }  /* if */
-    }  /* if */
-    if (is_far) {
+    if (is_far_type(tp)) {
       size = targ_sizeof_far_pointer;
       *alignment = targ_alignof_far_pointer;
     } else {
@@ -104,8 +71,6 @@ TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return size;
 }  /* size_of_pointer_to */
-
-#endif /* !STANDALONE_IL_DISPLAY */
 
 #if CHECKING
 

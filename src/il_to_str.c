@@ -1681,17 +1681,10 @@ in the way described by octl.
        as two casts, but the implicit_cast mechanism only retains
        information on the final type.  In such cases, go by way of a
        cast to unsigned long. */
-    if (is_ptr_or_ref_type(con_type)
-#if !STANDALONE_IL_DISPLAY
-        /* size_of_pointer_to makes use of microsoft-mode flags that
-           for the time being are not represented in the IL.  Implicit
-           pointer-to-integral casts are always represented explicitly
-           as a result. */
-        || (is_integral_type(con_type) &&
-            con_type->size >= size_of_pointer_to(underlying_object_type,
-                                                 &alignment))
-#endif /* !STANDALONE_IL_DISPLAY */
-                                                             ) {
+    if (is_ptr_or_ref_type(con_type) ||
+        (is_integral_type(con_type) &&
+         con_type->size >= size_of_pointer_to(underlying_object_type,
+                                              &alignment))) {
       /* Okay. */
     } else {
       need_second_ptr_close_paren = TRUE;
