@@ -71,7 +71,9 @@ extern a_boolean scan_assert_predicate_reference(void);
 extern unsigned long show_macro_space_used(void);
 #endif /* DEBUG */
 
-extern void macro_proc_init(void);
+extern void macro_one_time_init(void);
+
+extern void macro_init(void);
 
 #endif /* MACRO_H */
 

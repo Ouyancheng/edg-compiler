@@ -29,6 +29,7 @@ macro.c -- Macro definition and expansion routines.
 #include "decls.h"
 #include "expr.h"
 #include "const_ints.h"
+#include "pch.h"
 
 /*
 Buffer used to contain the characters of a macro being defined, and the
@@ -3431,15 +3432,71 @@ Display and return the amount of space used for various macro tables.
 #endif /* DEBUG */
 
 
-void macro_proc_init(void)
+void macro_one_time_init(void)
+/*
+Do one-time initialization of variables related to macro processing.
+(Variables that need to be reinitialized with each new translation unit
+are handled in macro_init.)
+*/
+{
+  /* Do the initial allocation for macro_buffer.  (Since the space is
+     allocated in general storage, it does not need to be reallocated for
+     each source file; for the same reason, after_end_of_macro_buffer should
+     not be reset.)  The space will be reallocated (larger) if necessary,
+     but the size here should be big enough for the expected cases. */
+  /* Allocate one more byte than required, so that a pointer past the end
+     will not have the same address as a pointer to the next object in
+     memory. */
+  macro_buffer = alloc_general((sizeof_t)(MACRO_BUFFER_INITIAL_ALLOCATION+1));
+  after_end_of_macro_buffer = macro_buffer + MACRO_BUFFER_INITIAL_ALLOCATION;
+  if (pcc_preprocessing_mode) {
+    /* Allocate the auxiliary buffer for pcc mode.  It is used to construct
+       the full text of a first-level macro expansion so that the token
+       pasting can match pcc's. */
+    /* Allocate one more byte than required, so that a pointer past the end
+       will not have the same address as a pointer to the next object in
+       memory. */
+    aux_buffer_for_pcc_macros = alloc_general(
+                 (sizeof_t)(AUX_BUFFER_FOR_PCC_MACROS_INITIAL_ALLOCATION+1));
+    after_end_of_aux_buffer_for_pcc_macros = aux_buffer_for_pcc_macros +
+                                AUX_BUFFER_FOR_PCC_MACROS_INITIAL_ALLOCATION;
+  }  /* if */
+  /* Save variables from macro.h and macro.c that are needed for
+     precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(macro_buffer),
+      pch_saved_var_array_elem(after_end_of_macro_buffer),
+      pch_saved_var_array_elem(aux_buffer_for_pcc_macros),
+      pch_saved_var_array_elem(after_end_of_aux_buffer_for_pcc_macros),
+      pch_saved_var_array_elem(avail_macro_args),
+      pch_saved_var_array_elem(defined_macro_symbol),
+      pch_saved_var_array_elem(line_macro_symbol),
+      pch_saved_var_array_elem(file_macro_symbol),
+#if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(assert_predicates),
+#endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
+#if DEBUG
+      pch_saved_var_array_elem(num_macro_params_allocated),
+      pch_saved_var_array_elem(num_macro_defs_allocated),
+      pch_saved_var_array_elem(num_macro_args_allocated),
+      pch_saved_var_array_elem(macro_arg_raw_text_space),
+      pch_saved_var_array_elem(param_name_string_space),
+      pch_saved_var_array_elem(macro_definition_space),
+#endif /* DEBUG */
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* macro_one_time_init */
+
+
+void macro_init(void)
 /*
 Initialize static variables related to macro processing.  This is done
 as a subroutine (rather than relying on static initialization) so that it
 can be redone to compile more than one source file in a single invocation
 of the front end.
-The name of this routine is "macro_proc_init" rather than "macro_init"
-to avoid an 8-character external name uniqueness conflict with
-"macro_invocation".
 */
 {
   /* Variables in macro.h: */
@@ -3461,34 +3518,7 @@ to avoid an 8-character external name uniqueness conflict with
   macro_definition_space        = 0;
 #endif /* DEBUG */
   end_of_cpp_string = NULL;
-  /* Do the initial allocation for macro_buffer the first time this
-     routine is called.  Since the space is allocated in general storage,
-     it does not need to be reallocated for each source file.  For the same
-     reason, after_end_of_macro_buffer should not be reset. */
-  if (after_end_of_macro_buffer == NULL) {
-    /* First time through.  Do initial allocation for the macro buffer.
-       The space will be reallocated (larger) if necessary, but the size
-       here should be big enough for the expected cases. */
-    /* Allocate one more byte than required, so that a pointer past the end
-       will not have the same address as a pointer to the next object in
-       memory. */
-    macro_buffer = alloc_general(
-                                (sizeof_t)(MACRO_BUFFER_INITIAL_ALLOCATION+1));
-    after_end_of_macro_buffer = macro_buffer + MACRO_BUFFER_INITIAL_ALLOCATION;
-    if (pcc_preprocessing_mode) {
-      /* Allocate the auxiliary buffer for pcc mode.  It is used to construct
-         the full text of a first-level macro expansion so that the token
-         pasting can match pcc's. */
-      /* Allocate one more byte than required, so that a pointer past the end
-         will not have the same address as a pointer to the next object in
-         memory. */
-      aux_buffer_for_pcc_macros = alloc_general(
-                   (sizeof_t)(AUX_BUFFER_FOR_PCC_MACROS_INITIAL_ALLOCATION+1));
-      after_end_of_aux_buffer_for_pcc_macros = aux_buffer_for_pcc_macros +
-                                  AUX_BUFFER_FOR_PCC_MACROS_INITIAL_ALLOCATION;
-    }  /* if */
-  }  /* if */
-}  /* macro_proc_init */
+}  /* macro_init */
 
 
 /******************************************************************************
