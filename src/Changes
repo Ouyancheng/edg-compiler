@@ -1,5 +1,19 @@
 Version 2.35
 
+1/27/97 Bit-field type adjustment in K&R mode
+
+The base type of bit-fields in K&R mode is now adjusted from plain
+integral type to the explicitly unsigned version of that type (e.g., from
+"int" to "unsigned int").  For example:
+
+  struct S {
+    int i:3;
+  };
+
+In K&R mode the field entry for "i" has a type of "unsigned int".  This
+produces more accurate IL in expressions for which integral promotion is
+not performed.
+
 1/27/97 Preprocessor stringizing of wide literals: quotes escaped
 
 When the preprocessor stringizing operation is applied to a wide character
