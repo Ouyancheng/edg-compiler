@@ -15,7 +15,7 @@ specifies a base class constructor or destructor.
 6/12/97   Spurious error on local-class friend function declaration
 
 When a friend function declaration appears in a local class, a spurious
-error linkage-conflict error could occur in -A mode.  This bug, introduced
+linkage-conflict error could occur in -A mode.  This bug, introduced
 in version 2.34, is now fixed.
 
   static int f();
