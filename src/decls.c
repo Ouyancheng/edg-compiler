@@ -6434,7 +6434,7 @@ skip_overloading:;
     if (is_function_def) {
       a_boolean      saved_referenced_flag;
       a_scope_depth  scope_depth = depth_innermost_namespace_scope;
-      if (!linked_redecl_error) {
+      if (!linked_redecl_error && is_primary_translation_unit) {
         /* If this is a definition, unlink the routine entry and relink it
            at the end of the routines list, so that routines appear in the
            order that their bodies appear.  If a redeclaration error
@@ -6444,8 +6444,8 @@ skip_overloading:;
                                           (a_name_linkage_kind)nlk_external) {
           scope_depth = DEPTH_OF_FILE_SCOPE;
         }  /* if */
-        remove_from_routines_list(routine_ptr, scope_depth);
-        add_to_routines_list(routine_ptr, scope_depth);
+        schedule_move_to_current_end_of_routines_list(routine_ptr,
+                                                      scope_depth);
       }  /* if */
       /* Put in the storage class for the definition (static or 
          unspecified). */

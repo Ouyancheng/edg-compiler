@@ -9716,6 +9716,259 @@ fixed-point operations.
 }  /* expression_operation_type */
 
 
+/*
+The routines lists in file and namespace scopes is normally constructed by
+appending newly created routine entries at the end of the appropriate list.
+The one exception occurs when a previously declared routine is defined: In
+that case we must move the original entry to the end of the list.  Since
+the routine list is a singly-linked, traversing the list each time we
+encounter a definition can be prohibitively expensive in the no-so-rare
+case that thousands of library function declarations precede a smaller
+number of function declarations defined later in the translation unit.
+
+Instead, we attempt to amortize the cost of traversing the routines list by
+scheduling moves in an array of "move descriptions".  At an appropriate time
+(e.g., when a scope is popped), these "moves" are then sorted to enhance the
+likeliness that a simultaneous traversal of the routines list and the array
+of move descriptions will allow most or all scheduled moves to be performed.
+*/
+
+typedef struct a_routine_move_descr {
+  a_routine_ptr
+		routine;
+			/* A pointer to a routine that must be moved. */
+  a_routine_ptr
+		insert_after;
+			/* A pointer a routine entry after which the routine
+			   should be inserted.  Never equal to "routine". */
+  a_seq_number
+		first_pos;
+			/* The absolute line number of the first declaration
+			   of the routine to move.  This position participates
+			   in the sorting of the "move descriptions" and must
+			   be recorded when the move is scheduled because the
+			   value in the routine will be modified to reflect
+			   the position of the definition. */
+} a_routine_move_descr;
+
+static a_scope_ptr
+		scope_of_scheduled_routine_moves;
+
+static a_scope_pointers_block_ptr
+		scope_pointers_of_scheduled_routine_moves;
+
+static a_routine_move_descr
+		*scheduled_routine_moves;
+			/* A pointer to an array of routines to move. */
+
+static a_routine_ptr
+		*routine_move_placeholders;
+			/* An array of pointers to placeholder routines. */
+
+static char
+		*routine_move_placeholder_name = "<routine move placeholder>";
+			/* A dummy name for placeholders. */
+
+static sizeof_t
+		n_scheduled_routine_moves;
+
+#define MAX_N_SCHEDULED_ROUTINE_MOVES  100
+
+#if DEBUG
+
+void db_scheduled_routine_moves(void)
+/*
+Display the current list of moves to perform.
+*/
+{
+  int k;
+
+  for (k = 0; k < n_scheduled_routine_moves; ++k) {
+    a_routine_ptr  rp = scheduled_routine_moves[k].routine,
+                   after = scheduled_routine_moves[k].insert_after;
+    fprintf(f_debug, "[%3d] \"%s\" goes after \"%s\"\n", k,
+            rp == NULL ? "<NULL>" : rp->source_corresp.name,
+            after == NULL ? "<NULL>" : after->source_corresp.name);
+  }  /* for */
+}  /* db_scheduled_routine_moves */
+
+#endif /* DEBUG */
+
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+BEGIN_EXTERN_C_BLOCK
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+
+static int compare_routine_move(const void *r1,
+                                const void *r2)
+/*
+r1 and r2 point to routine move descriptions.  Return -1, 0, or 1 dependending
+on the relative positions of the initial declarations of the routines being
+moved.
+*/
+{
+  a_routine_move_descr  *x = (a_routine_move_descr *)r1;
+  a_routine_move_descr  *y = (a_routine_move_descr *)r2;
+  int                   result;
+
+  /* Move first the entry with the earliest position (by placing it later
+     in the sorting order).  Since multiple routine declarations are rarely
+     placed on the same line, we ignore the column ordering. */
+  if (x->first_pos < y->first_pos) {
+    result = 1;
+  } else if (x->first_pos > y->first_pos) {
+    result = -1;
+  } else {
+    result = 0;
+  }  /* if */
+  return result;
+}  /* compare_routine_move */
+
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+END_EXTERN_C_BLOCK
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+
+
+
+
+void perform_scheduled_routine_moves(void)
+/*
+Perform routine moves described by the array scheduled_routine_moves.  This
+function attempts to amortize the cost of traversing the routines list of a
+scope by taking advantage of the fact that routines generally appear in
+declaration order on their list.
+*/
+{
+  a_routine_move_descr        *rmdp;
+  a_routine_ptr               routine, *p_rp;
+  sizeof_t                    n;
+
+  if (n_scheduled_routine_moves == 0) {
+    /* There are no moves to be performed. */
+    goto done;
+  }  /* if */
+  /* Sort the moves in the order of the original declarations of the routines
+     (which is normally the order in which the routines appear on their
+     respective scope lists).  (We actually inverse that order.) */
+  qsort((a_void_ptr)scheduled_routine_moves,
+        (qsort_nmemb_type)n_scheduled_routine_moves,
+        (qsort_nmemb_type)sizeof(a_routine_move_descr),
+        compare_routine_move);
+  /* Traverse the ordered move schedule and find each routine-to-move on its
+     scope list. */
+  rmdp = &scheduled_routine_moves[n_scheduled_routine_moves-1];
+  routine = rmdp->routine;
+  n = n_scheduled_routine_moves;
+  for (;;) {
+    p_rp = &scope_of_scheduled_routine_moves->routines;
+    do {
+      if (routine == *p_rp) {
+        /* We found the routine: Remove it from the list and insert it after
+           its placeholder.  (We'll remove the placeholders in a separate
+           pass.) */
+        *p_rp = routine->next;
+        routine->next = rmdp->insert_after->next;
+        rmdp->insert_after->next = routine;
+        if (routine->next == NULL) {
+          /* routine moved to the last position in the list. */
+          scope_pointers_of_scheduled_routine_moves->last_routine = routine;
+        }  /* if */
+        if (--n == 0) {
+          goto remove_placeholders;
+        }  /* if */
+        --rmdp;
+        routine = rmdp->routine;
+      } else {
+        p_rp = &(*p_rp)->next;
+      }  /* if */
+    } while (*p_rp != NULL);
+  }  /* for */
+remove_placeholders:
+  p_rp = &scope_of_scheduled_routine_moves->routines;
+  while (n_scheduled_routine_moves > 0) {
+    if ((*p_rp)->source_corresp.name == routine_move_placeholder_name) {
+      *p_rp = (*p_rp)->next;
+      --n_scheduled_routine_moves;
+    } else {
+      p_rp = &(*p_rp)->next;
+    }  /* if */
+  }  /* while */
+  scope_of_scheduled_routine_moves = NULL;
+  scope_pointers_of_scheduled_routine_moves = NULL;
+done:;
+}  /* perform_scheduled_routine_moves */
+
+
+void schedule_move_to_current_end_of_routines_list(a_routine_ptr  rp,
+                                                   a_scope_depth  scope_depth)
+/*
+Record the given routine (declared in the scope associated with the given
+scope stack depth) as needing to be moved to what is currently the end of
+the routines list for that scope.  In most cases, the actual move will be
+performed later by a call to perform_scheduled_routine_moves (to amortize
+the cost of list traversals over multiple moves).
+*/
+{
+  a_routine_move_descr        *rmdp;
+  a_routine_ptr               placeholder;
+  a_scope_ptr                 sp;
+  a_scope_pointers_block_ptr  pointers_block;
+
+  /* Get the pointers block for the scope in which the routine is declared. */
+  sp = get_scope_for_list(scope_depth, &rp->source_corresp, &pointers_block);
+  check_assertion(sp != NULL && pointers_block != NULL);
+  if (rp == pointers_block->last_routine) {
+    /* The routine is already in place: Nothing to do. */
+    goto done;
+  }  /* if */
+  if (scheduled_routine_moves == NULL) {
+    /* This is the first routine that needs to be moved: Allocate the helper
+       data structures. */
+    scheduled_routine_moves = (a_routine_move_descr*)
+        alloc_general(MAX_N_SCHEDULED_ROUTINE_MOVES *
+                      sizeof(a_routine_move_descr));
+    routine_move_placeholders = (a_routine_ptr*)
+        alloc_general(MAX_N_SCHEDULED_ROUTINE_MOVES * sizeof(a_routine_ptr));
+    memzero((char *)routine_move_placeholders,
+            MAX_N_SCHEDULED_ROUTINE_MOVES * sizeof(a_routine_ptr));
+  } else if (n_scheduled_routine_moves == MAX_N_SCHEDULED_ROUTINE_MOVES) {
+    /* The routine schedule is full: Process it to make space for the new
+       move to be scheduled. */
+    perform_scheduled_routine_moves();
+  }  /* if */
+  if (scope_of_scheduled_routine_moves == NULL) {
+    scope_of_scheduled_routine_moves = sp;
+    scope_pointers_of_scheduled_routine_moves = pointers_block;
+  } else if (scope_of_scheduled_routine_moves != sp) {
+    /* This move is for a scope that is different from the scope for the moves
+       already in the schedule.  Process the schedule first, then start a new
+       schedule for the new scope. */
+    perform_scheduled_routine_moves();
+    scope_of_scheduled_routine_moves = sp;
+    scope_pointers_of_scheduled_routine_moves = pointers_block;
+  }  /* if */
+  check_assertion_str(!rp->source_corresp.is_class_member,
+                      "class member not expected");
+  /* Insert a placeholder at the end of the routines list.  This is useful to
+     record the insertion pointer for the scheduled moves. */
+  placeholder = routine_move_placeholders[n_scheduled_routine_moves];
+  if (placeholder == NULL) {
+    placeholder = routine_move_placeholders[n_scheduled_routine_moves] =
+                                                              alloc_routine();
+    placeholder->source_corresp.name = routine_move_placeholder_name;
+  }  /* if */
+  placeholder->next = NULL;
+  placeholder->type = rp->type;
+  pointers_block->last_routine->next = placeholder;
+  pointers_block->last_routine = placeholder;
+  rmdp = &scheduled_routine_moves[n_scheduled_routine_moves];
+  rmdp->routine = rp;
+  rmdp->insert_after = placeholder;
+  rmdp->first_pos = rp->source_corresp.decl_position.seq;
+  ++n_scheduled_routine_moves;
+done:;
+}  /* schedule_move_to_current_end_of_routines_list */
+
+
 void remove_from_routines_list(a_routine_ptr rout_ptr,
                                a_scope_depth scope_depth)
 /*
@@ -16880,6 +17133,11 @@ in il_init.)
   register_trans_unit_variable(curr_upc_access_method);
 #endif /* UPC_EXTENSIONS_ALLOWED */
   register_trans_unit_variable(num_invalid_placeholders_in_file_scope);
+  register_trans_unit_variable(scheduled_routine_moves);
+  register_trans_unit_variable(scope_of_scheduled_routine_moves);
+  register_trans_unit_variable(scope_pointers_of_scheduled_routine_moves);
+  register_trans_unit_variable(routine_move_placeholders);
+  register_trans_unit_variable(n_scheduled_routine_moves);
 
   il_alloc_one_time_init();
 }  /* il_one_time_init */
@@ -16962,6 +17220,11 @@ need initialization for every (primary and secondary) translation unit.
           sizeof(orphaned_file_scope_il_entries));
 #endif /* ORPHAN_PROCESSING_NEEDED */
   num_invalid_placeholders_in_file_scope = 0;
+  scheduled_routine_moves = NULL;
+  scope_of_scheduled_routine_moves = NULL;
+  scope_pointers_of_scheduled_routine_moves = NULL;
+  routine_move_placeholders = NULL;
+  n_scheduled_routine_moves = 0;
   il_reset();
   il_alloc_trans_unit_init();
 }  /* il_trans_unit_init */

@@ -788,6 +788,7 @@ by their name strings.
 {
   struct name_to_reg *x = (struct name_to_reg *)a;
   struct name_to_reg *y = (struct name_to_reg *)b;
+
   return strcmp(x->name, y->name);
 }  /* compare_n2r */
 

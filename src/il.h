@@ -882,6 +882,12 @@ extern a_type_ptr fixed_point_result_type(a_type_ptr  type_1,
 
 extern a_type_ptr expression_operation_type(an_expr_node_ptr expr);
 
+extern void perform_scheduled_routine_moves(void);
+
+extern void schedule_move_to_current_end_of_routines_list(
+                                                  a_routine_ptr  rp,
+                                                  a_scope_depth  scope_depth);
+
 extern void remove_from_routines_list(a_routine_ptr rout_ptr,
                                       a_scope_depth scope_depth);
 
