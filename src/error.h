@@ -551,7 +551,8 @@ typedef enum /*an_error_code*/ {
   ec_template_operator_delete,
   ec_class_template_same_name_as_templ_param,
   ec_bad_constructor_name,
-  ec_unnamed_type_in_template_arg
+  ec_unnamed_type_in_template_arg,
+  ec_enum_type_not_allowed
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

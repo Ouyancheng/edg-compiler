@@ -2576,6 +2576,16 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                             ec_expr_not_pointer_to_object)) {
             err = TRUE;
           }  /* if */
+        } else if (is_enum_type(operand->type)) {
+          /* Enum types are not allowed (because the enum promotes to integer
+             for the operation, and then can't get back to enum). */
+          if (allow_anachronisms) {
+            pos_diagnostic(anachronism_error_severity,
+                           ec_mixed_enum_type_anachronism, &operand->position);
+          } else {
+            error_in_operand(ec_enum_type_not_allowed, operand);
+            err = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       if (err) {
@@ -2716,6 +2726,16 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
         if (is_pointer_type(operand.type)) {
           if (!check_object_pointer_operand(&operand,
                                             ec_expr_not_pointer_to_object)) {
+            err = TRUE;
+          }  /* if */
+        } else if (is_enum_type(operand.type)) {
+          /* Enum types are not allowed (because the enum promotes to integer
+             for the operation, and then can't get back to enum). */
+          if (allow_anachronisms) {
+            pos_diagnostic(anachronism_error_severity,
+                           ec_mixed_enum_type_anachronism, &operand.position);
+          } else {
+            error_in_operand(ec_enum_type_not_allowed, &operand);
             err = TRUE;
           }  /* if */
         }  /* if */
@@ -6153,6 +6173,16 @@ See section 3.3.16 of the standard.
       /* Non-operator-function cases. */
       do_operand_transformations(operand_1,
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+      if (is_enum_type(operand_1->type)) {
+        /* Enum types are not allowed (because the enum promotes to integer
+           for the operation, and then can't get back to enum). */
+        if (allow_anachronisms) {
+          pos_diagnostic(anachronism_error_severity,
+                         ec_mixed_enum_type_anachronism, &operand_1->position);
+        } else {
+          error_in_operand(ec_enum_type_not_allowed, operand_1);
+        }  /* if */
+      }  /* if */
       if (check_modifiable_lvalue_operand(operand_1)) {
         modifying_lvalue(operand_1);
       }  /* if */

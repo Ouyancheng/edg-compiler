@@ -1901,6 +1901,9 @@ error code.
     case ec_unnamed_type_in_template_arg:
       m = "a template argument may not reference an unnamed type";
       break;
+    case ec_enum_type_not_allowed:
+      m = "enumerated type is not allowed";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

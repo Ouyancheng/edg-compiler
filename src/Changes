@@ -1,5 +1,22 @@
 Version 2.16
 
+4/20/93  Diagnostics on invalid operations on enum types
+
+Prefix and postfix increment and decrement and compound assignment
+operations applied to enum types now yield diagnostics:
+
+  enum E {a, b, c};
+  int main()
+  {
+    E e = a;
+    e++;
+    ++e;
+    e += 1;
+    e = 1;
+  }
+
+These are now only accepted as anachronisms.
+
 4/19/93  Linkage on nested classes
 
 A bug has been fixed affecting how linkage was set on members of nested
