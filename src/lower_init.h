@@ -42,8 +42,9 @@ extern a_routine_ptr make_runtime_routine(char          *name,
                                           a_routine_ptr *routine,
                                           a_type_ptr    return_type);
 
-extern a_statement_ptr make_call_statement(a_routine_ptr    routine,
-                                           an_expr_node_ptr arg_list);
+extern void make_call_statement(a_routine_ptr      routine,
+                                an_expr_node_ptr   arg_list,
+                                an_insert_location *insert_location);
 
 extern an_expr_node_ptr make_runtime_rout_call(char             *name,
                                                a_routine_ptr    *routine,

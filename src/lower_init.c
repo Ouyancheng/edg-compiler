@@ -257,19 +257,23 @@ done:;
 }  /* do_default_arg_promotions_on_node */
 
 
-static an_expr_node_ptr make_call_node(a_routine_ptr    routine,
-                                       an_expr_node_ptr arg_list,
-                                       a_boolean        honor_virtual)
+static an_expr_node_ptr make_call_node(a_routine_ptr      routine,
+                                       an_expr_node_ptr   arg_list,
+                                       a_boolean          honor_virtual,
+                                       an_insert_location *insert_location)
 /*
 Make an expression that calls routine "routine" with arguments "arg_list",
 and return a pointer to it.  arg_list is assumed to be lowered already.
 A virtual call is generated if the routine is virtual and honor_virtual
-is TRUE.  The virtual call is *not* lowered.
+is TRUE.  The virtual call is *not* lowered.  If insert_location is not
+NULL, an expression statement containing the created call node is inserted
+at *insert_location.  insert_location must be a statement insert location.
 */
 {
   an_expr_node_ptr      call_node, rout_node;
   a_type_ptr            rout_type, rout_return_type;
   an_expr_operator_kind op;
+  a_statement_ptr       call_stmt = NULL;
 
   if (make_all_functions_unprototyped) {
     /* If transforming all functions to old-style unprototyped form (for
@@ -306,30 +310,33 @@ is TRUE.  The virtual call is *not* lowered.
   rout_type = skip_typerefs(routine->type);
   rout_return_type = rout_type->variant.routine.return_type;
   call_node = make_operator_node(op, rout_return_type, rout_node);
+  if (insert_location != NULL) {
+    /* Allocate an expression statement and put the call into it. */
+    call_stmt = alloc_expr_statement(call_node);
+    set_stmt_pos_to_code_pos_for_lowering(call_stmt);
+    /* Insert the statement at the right place. */
+    check_assertion(!is_expr_insert_location(insert_location));
+    insert_statement(call_stmt, insert_location);
+  }  /* if */
 #if MINIMAL_INLINING
   if (inlining_enabled && op == (an_expr_operator_kind)eok_call) {
-    do_inlining_of_call(call_node, (a_statement_ptr)NULL);
+    do_inlining_of_call(call_node, call_stmt);
   }  /* if */
 #endif /* MINIMAL_INLINING */
   return call_node;
 }  /* make_call_node */
 
 
-a_statement_ptr make_call_statement(a_routine_ptr    routine,
-                                    an_expr_node_ptr arg_list)
+void make_call_statement(a_routine_ptr      routine,
+                         an_expr_node_ptr   arg_list,
+                         an_insert_location *insert_location)
 /*
-Make a statement that calls routine "routine" with arguments "arg_list",
-and return a pointer to it.  arg_list is assumed to be lowered already.
+Make a statement that calls routine "routine" with arguments "arg_list"
+and insert it at *insert_location.  arg_list is assumed to be lowered already.
 */
 {
-  an_expr_node_ptr call_node;
-  a_statement_ptr  call_stmt;
-
-  /* Make the call node. */
-  call_node = make_call_node(routine, arg_list, /*honor_virtual=*/FALSE);
-  /* Allocate an expression statement and put the call into it. */
-  call_stmt = alloc_expr_statement(call_node);
-  return call_stmt;
+  (void)make_call_node(routine, arg_list, /*honor_virtual=*/FALSE,
+                       insert_location);
 }  /* make_call_statement */
 
 
@@ -350,7 +357,8 @@ is assumed to be lowered already.
   /* Make the routine entry if it does not exist already. */
   (void)make_runtime_routine(name, routine, return_type);
   /* Make the call node. */
-  node = make_call_node(*routine, arg_expr_list, /*honor_virtual=*/FALSE);
+  node = make_call_node(*routine, arg_expr_list, /*honor_virtual=*/FALSE,
+                        (an_insert_location *)NULL);
   return node;
 }  /* make_runtime_rout_call */
 
@@ -1240,7 +1248,6 @@ already been lowered.
 {
   a_routine_ptr    ctor_routine = dip->variant.constructor.ptr;
   an_expr_node_ptr last_node;
-  a_statement_ptr  call_stmt;
 
 #if CHECKING
   if (dip->kind != (a_dynamic_init_kind)dik_constructor) {
@@ -1266,11 +1273,8 @@ already been lowered.
     last_node = source_node;
   }  /* if */
   last_node->next = dip->variant.constructor.args;
-  /* Make an expression statement containing the call expression. */
-  call_stmt = make_call_statement(ctor_routine, entity_node);
-  set_stmt_pos_to_code_pos_for_lowering(call_stmt);
-  /* Insert the statement at the right place. */
-  insert_statement(call_stmt, insert_location);
+  /* Make and insert an expression statement containing the call expression. */
+  make_call_statement(ctor_routine, entity_node, insert_location);
 }  /* add_constructor_call */
 
 
@@ -1632,9 +1636,10 @@ The routine must have a "this" parameter.
                    new_routine_il_region;
   a_variable_ptr   this_param_var, param_var, last_param_var;
   an_expr_node_ptr this_arg, pass_through_arg;
-  a_statement_ptr  call_stmt, return_stmt;
+  a_statement_ptr  return_stmt;
   a_generated_routine_context
                    grcontext;
+  a_boolean        insert_as_statement;
 
   /* Determine any implicit arguments required for a constructor or
      destructor. */
@@ -1747,23 +1752,21 @@ The routine must have a "this" parameter.
     /* Add the "this" parameter at the front of the argument list. */
     this_arg = var_rvalue_expr(this_param_var);
     this_arg->next = default_arg_list;
-    /* Make a call statement that calls the original routine with all
-       the implicit arguments, i.e., that passes all the extra arguments
-       to the original routine. */
-    call_node = make_call_node(routine, this_arg, /*honor_virtual=*/FALSE);
-    set_block_start_insert_location(new_routine_scope->assoc_block,
-                                    &insert_location);
     /* If the routine has a void type, insert a statement for the call
        followed by a return statement.  Otherwise, attach the call directly
        to the return. */
-    if (is_void_type(call_node->type)) {
-      /* Insert the statement at the right place. */
-      call_stmt = alloc_expr_statement(call_node);
-      insert_statement(call_stmt, &insert_location);
-      call_node = NULL;
-    }  /* if */
+    insert_as_statement =
+                       is_void_type(routine_type->variant.routine.return_type);
+    set_block_start_insert_location(new_routine_scope->assoc_block,
+                                    &insert_location);
+    /* Make a call statement that calls the original routine with all
+       the implicit arguments, i.e., that passes all the extra arguments
+       to the original routine. */
+    call_node = make_call_node(routine, this_arg, /*honor_virtual=*/FALSE,
+                               insert_as_statement ? &insert_location :
+                                                   (an_insert_location *)NULL);
     return_stmt = alloc_statement((a_statement_kind)stmk_return);
-    return_stmt->expr = call_node;
+    return_stmt->expr = insert_as_statement ? NULL : call_node;
     insert_statement(return_stmt, &insert_location);
     pop_generated_routine_context(new_routine_scope, new_routine_il_region,
                                   &grcontext);
@@ -1855,6 +1858,9 @@ because of the make_destruction_routine case.
                                    dtor_routine, /*free_storage=*/FALSE);
     /* Make a statement containing the call. */
     call_stmt = alloc_expr_statement(call_node);
+    set_stmt_pos_to_code_pos_for_lowering(call_stmt);
+    /* Insert the statement at the right place. */
+    insert_statement(call_stmt, insert_location);
   } else {
     /* Destruction of simple entity (non-array). */
     /* Cast the entity node pointer to the right type.  It might be a pointer
@@ -1867,12 +1873,10 @@ because of the make_destruction_routine case.
     make_dtor_implied_arg_list(dtor_routine, have_complete_object,
                                &implied_arg_node);
     entity_node->next = implied_arg_node;
-    /* Make an expression statement containing the call expression. */
-    call_stmt = make_call_statement(dtor_routine, entity_node);
+    /* Make and insert an expression statement containing the call
+       expression. */
+    make_call_statement(dtor_routine, entity_node, insert_location);
   }  /* if */
-  set_stmt_pos_to_code_pos_for_lowering(call_stmt);
-  /* Insert the statement at the right place. */
-  insert_statement(call_stmt, insert_location);
 }  /* add_destructor_call */
 
 
@@ -3241,7 +3245,8 @@ arrays with class elements.
     lower_arg_expr_list(ndsp->arg, ndsp->routine->type,
                         (a_param_type_ptr)NULL);
     new_node = make_call_node(ndsp->routine, ndsp->arg,
-                              /*honor_virtual=*/FALSE);
+                              /*honor_virtual=*/FALSE,
+                              (an_insert_location *)NULL);
     /* Make "temp = (type *)new-call(...)". */
     temp_var = make_lowered_temporary(ptr_elem_type);
     temp_var_node = var_lvalue_expr(temp_var);
@@ -3475,7 +3480,8 @@ The subtree of the node has not yet been lowered.
     }  /* if */
     /* Make the constructor call. */
     call_node = make_call_node(ctor_routine, null_node,
-                               /*honor_virtual=*/FALSE);
+                               /*honor_virtual=*/FALSE,
+                               (an_insert_location *)NULL);
     /* The constructor call returns a pointer to the object initialized.
        Cast the pointer to the right type if necessary. */
     call_node = add_cast_if_necessary(call_node, expr->type);
@@ -3488,7 +3494,8 @@ The subtree of the node has not yet been lowered.
     lower_arg_expr_list(ndsp->arg, ndsp->routine->type,
                         (a_param_type_ptr)NULL);
     call_node = make_call_node(ndsp->routine, ndsp->arg,
-                               /*honor_virtual=*/FALSE);
+                               /*honor_virtual=*/FALSE,
+                               (an_insert_location *)NULL);
     /* Note that the type of the "new" call might be unrelated to the type
        we are allocating, e.g., it might be "void *"; a cast is done later. */
     if (dip != NULL) {
@@ -3615,7 +3622,8 @@ it is called as a virtual function, which involves some special tricks.
   ptr_node->next = node_for_integer_constant(bit_mask,
                                              (an_integer_kind)ik_int);
   /* Make a call of the destructor. */
-  call_node = make_call_node(dtor_routine, ptr_node, /*honor_virtual=*/TRUE);
+  call_node = make_call_node(dtor_routine, ptr_node, /*honor_virtual=*/TRUE,
+                             (an_insert_location *)NULL);
   if (dtor_routine->is_virtual) {
     /* The destructor is virtual, so rewrite the call as a normal call. */
     lower_virtual_function_call(call_node);
@@ -3712,7 +3720,8 @@ The subtree of the node has not yet been lowered.
       /* Reattach the second operand to delete is there is one. */
       ptr_node->next = second_arg_node;
       call_node = make_call_node(delete_routine, ptr_node,
-                                 /*honor_virtual=*/FALSE);
+                                 /*honor_virtual=*/FALSE,
+                                 (an_insert_location *)NULL);
       if (dip != NULL) {
         /* Finish the destructor case by building the comma node. */
         dtor_call_node->next = call_node;
@@ -4519,7 +4528,8 @@ constructor scope, and also lower the user code.
       size_node = node_for_integer_constant((long)class_type->size,
                                             targ_size_t_int_kind);
       call_node = make_call_node(new_routine, size_node,
-                                 /*honor_virtual=*/FALSE);
+                                 /*honor_virtual=*/FALSE,
+                                 (an_insert_location *)NULL);
       /* Make "this = new_rout(size)". */
       call_node = add_cast_if_necessary(call_node,
                                         f_skip_typerefs(this_param_var->type));
@@ -5103,7 +5113,6 @@ destructor scope, and also lower the user code.
   */
   { an_expr_node_ptr this_param_node;
     an_expr_node_ptr and_node, two_constant_node, if_node;
-    a_statement_ptr  call_stmt;
     a_routine_ptr    delete_routine;
     a_param_type_ptr param1;
 
@@ -5162,8 +5171,7 @@ destructor scope, and also lower the user code.
                                         targ_size_t_int_kind);
     }  /* if */
     delete_routine->source_corresp.referenced = TRUE;
-    call_stmt = make_call_statement(delete_routine, this_param_node);
-    insert_statement(call_stmt, &insert_location2);
+    make_call_statement(delete_routine, this_param_node, &insert_location2);
   }
   { an_expr_node_ptr this_param_node, null_constant_node, if_node;
     a_constant       null_constant;

@@ -8290,13 +8290,11 @@ Do IL lowering of the indicated scope and everything under it.
        prologue, if any, so that the call to _main is always first. */
     if (routine == il_header.main_routine) {
       a_routine_ptr      underscore_main = NULL;
-      a_statement_ptr    call_stmt;
       an_insert_location insert_location;
       (void)make_runtime_routine("_main", &underscore_main, void_type());
-      call_stmt = make_call_statement(underscore_main,
-                                      (an_expr_node_ptr)NULL);
       set_block_start_insert_location(scope->assoc_block, &insert_location);
-      insert_statement(call_stmt, &insert_location);
+      make_call_statement(underscore_main, (an_expr_node_ptr)NULL,
+                          &insert_location);
     }  /* if */
     /* Free any return memos that were not used. */
     free_return_memo_list(return_memo_list);
