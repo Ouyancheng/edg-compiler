@@ -4,7 +4,7 @@ Version 2.23
 
 A bug has been fixed (C mode only) to properly distinguish, at the point
 at which cross-reference information and source sequence entries are
-generated, between tentative variable definitions, actual definitions, and
+generated, among tentative variable definitions, actual definitions, and
 redeclarations.  For example:
 
   /* In C mode only. */
