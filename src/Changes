@@ -11,7 +11,8 @@ Microsoft version number is larger than 1200 (e.g., --microsoft_version=1300).
 
 The IGNORE_CARRIAGE_RETURN_IN_SOURCE configuration flag is now set
 to TRUE by default to ensure that source files created on Windows systems
-can be compiled elsewhere.
+can be compiled elsewhere.  (The default was already TRUE on Windows
+systems.)
 
 9/28/00  Microsoft compatibility: Usual arithmetic conversions and sized
          types like __int32
