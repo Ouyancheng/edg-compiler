@@ -5739,7 +5739,7 @@ is TRUE if this node represents an explicit cast.
        of the temporary as an rvalue. */
     temp_init_node->type = rvalue_type(temp_type);
   }  /* if */
-  temp_init_node->variant.init.is_explicit_cast = is_explicit_cast;
+  dip->is_explicit_cast = is_explicit_cast;
   /* Make sure the IL scope that the temporary is part of exists.  Even though
      the temporary does not exist as a variable, it's still (from a language
      point of view) part of this scope.  That's important, because it has to

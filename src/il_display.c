@@ -2538,8 +2538,6 @@ do_variable:
                    (a_boolean)ptr->variant.init.result_is_addr);
       disp_boolean("static_temp",
                    (a_boolean)ptr->variant.init.static_temp);
-      disp_boolean("is_explicit_cast",
-                   (a_boolean)ptr->variant.init.is_explicit_cast);
       disp_ptr("dynamic_init", (char *)ptr->variant.init.dynamic_init,
                iek_dynamic_init);
       break;
@@ -3803,6 +3801,9 @@ Display the indicated dynamic_init structure.
   }  /* if */
   if (ptr->overlaps_temps_in_inner_lifetime) {
     disp_boolean("overlaps_temps_in_inner_lifetime", TRUE);
+  }  /* if */
+  if (ptr->is_explicit_cast) {
+    disp_boolean("is_explicit_cast", TRUE);
   }  /* if */
   disp_name("kind");
   switch (ptr->kind) {

@@ -1284,6 +1284,7 @@ Initialize a dynamic_init entry of the kind specified.
 #if ONE_INSTANTIATION_PER_OBJECT && DO_IL_LOWERING
   dip->included_in_slice = FALSE;
 #endif /* ONE_INSTANTIATION_PER_OBJECT && DO_IL_LOWERING */
+  dip->is_explicit_cast = FALSE;
 #if CHECKING
   dip->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
@@ -1772,7 +1773,6 @@ fields to default values.
     case enk_temp_init:
       node->variant.init.result_is_addr   = FALSE;
       node->variant.init.static_temp      = FALSE;
-      node->variant.init.is_explicit_cast = FALSE;
 #if CHECKING
       node->variant.init.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

@@ -4215,59 +4215,8 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
     /* In C mode, a temp-init node represents a compound literal. */
     check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant);
     gen_compound_literal(dip->variant.constant);
-  } else if (expr->variant.init.is_explicit_cast) {
-    /* This dynamic initialization comes from an explicit cast. */
-    if (has_name_before_mangling(temp_type)) {
-      /* For a class temporary requiring a constructor, use the form
-         A(arg1, arg2, ...).  dik_zero or dik_none will produce "A()". */
-      /* Note that parentheses are not put around this, because that would
-         make the expression look like a cast. */
-      gen_type(temp_type);
-      gen_dynamic_init(dip,
-                       (a_type_ptr)NULL, /* Not a reference, not needed. */
-                       /*parenthesized_init=*/TRUE,
-                       /*force_parens=*/TRUE);
-    } else {
-      an_expr_node_ptr cexpr;
-      /* A type without a name, e.g., a cv-qualified class type.
-         Use an old-style cast. */
-      write_tok_ch('(');
-      gen_cast(temp_type);
-      /* The initialization must be a constructor call. */
-      check_assertion_str(dip->kind == (a_dynamic_init_kind)dik_constructor,
-                          "gen_temp_init: bad kind for old-style cast");
-      /* If the initialization doesn't have exactly one argument, use
-         an unqualified functional-notation type conversion inside the
-         old-style cast, e.g., ((const X)X(1, 2)).  This may modify the
-         semantics of the program, because it creates an extra temporary,
-         but that's probably harmless.  This comes up on functional-notation
-         casts to template parameter types, where the deduced type is
-         cv-qualified and instantiations are put out.  The instantiation
-         has no name for the cv-qualified type, whereas the original template
-         source can use the name of the template parameter. */
-      cexpr = dip->variant.constructor.args;
-      if (cexpr == NULL ||
-          cexpr->generated_default_arg ||
-          (cexpr->next != NULL && !cexpr->next->generated_default_arg)) {
-        /* Use an inner cast. */
-        gen_type(skip_typerefs(temp_type));
-      }  /* if */
-      /* Put out the argument list, in parentheses. */
-      gen_dynamic_init(dip,
-                       (a_type_ptr)NULL, /* Not a reference, not needed. */
-                       /*parenthesized_init=*/TRUE,
-                       /*force_parens=*/TRUE);
-      write_tok_ch(')');
-    }  /* if */
-  } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
-    /* Non-class initialized to zero.  Use an old-style cast operating on
-       zero, e.g., "(int)0".  This is necessary if the type cannot be
-       expressed as a simple type name, e.g., "(int *)0". */
-    write_tok_ch('(');
-    gen_cast(temp_type);
-    write_tok_str("0)");
   } else {
-    /* Other cases -- just put out the value. */
+    /* C++ mode; use gen_dynamic_init. */
     a_boolean cast_added = FALSE;
     /* For a temporary that is the address of a string constant, add
        a cast to ensure that the string is treated as the address rather
@@ -4283,9 +4232,7 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
         cast_added = TRUE;
       }  /* if */
     }  /* if */
-    gen_dynamic_init(dip,
-                     (a_type_ptr)NULL, /* Not a reference, not needed. */
-                     /*parenthesized_init=*/FALSE,
+    gen_dynamic_init(dip, temp_type, /*parenthesized_init=*/FALSE,
                      /*force_parens=*/FALSE);
     if (cast_added) write_tok_ch(')');
   }  /* if */
@@ -4737,45 +4684,58 @@ reinterpret_cast is put out when is_reinterpret_cast is TRUE.
 }  /* gen_full_cast */
 
 
-void gen_untyped_argument_list(an_expr_node_ptr args,
-                               int              skip_num)
+static void gen_argument(an_expr_node_ptr arg,
+                         a_param_type_ptr param)
 /*
-Output an argument list args for which the corresponding parameter types are
-not known (presumably because this is part of a prototype instantiation).
-If skip_num is positive, ignore the first skip_num arguments.
+Put out an expression that is an argument to a call.  param gives the
+associated parameter, or is NULL if the parameter information is not
+available.
 */
 {
-  an_expr_node_ptr arg = args;
-
-  write_tok_ch('(');
-  for (; arg != NULL && skip_num > 0; arg = arg->next, --skip_num) {}
-  check_assertion(skip_num == 0);
-  for (; arg != NULL; arg = arg->next) {
+  if (param != NULL && param->passed_via_copy_constructor) {
+    /* For an argument passed using a copy constructor, optimize out
+       the copy constructor reference. */
+    check_assertion_str(arg->kind == (an_expr_node_kind)enk_temp_init,
+                        "gen_argument: cctor arg not enk_temp_init");
+    gen_dynamic_init(arg->variant.init.dynamic_init, param->type,
+                     /*parenthesized_init=*/FALSE,
+                     /*force_parens=*/FALSE);
+  } else if (param != NULL) {
+    /* Parameter type known. */
+    gen_initializer_expr(arg, param->type, /*need_parens=*/TRUE);
+  } else {
+    /* Parameter type not known. */
     gen_expr_with_parens(arg);
-    if (arg->next != NULL) write_tok_str(", ");
-  }  /* for */
-  write_tok_ch(')');
-}  /* gen_untyped_argument_list */
+  }  /* if */
+}  /* gen_argument */
 
 
-static void gen_typed_argument_list(an_expr_node_ptr arg,
-                                    a_type_ptr       rout_type,
-                                    int              skip_num)
+static void gen_argument_list(an_expr_node_ptr arg,
+                              a_type_ptr       rout_type,
+                              int              skip_num)
 /*
-Write out an argument list with surrounding parentheses.  rout_type is the
-type of the routine being called.  If skip_num is non-zero, it indicates
-the number of leading argument expressions not to put out (they're on the
-arg list and the parameter list, and they're passed over, but nothing is
-put out for them).
+Write out an argument list with surrounding parentheses.  If rout_type
+is non-NULL, it is the type of the routine being called and that
+information is used, e.g., to handle output for reference parameters
+appropriately.  If rout_type is NULL, the argument expressions are put
+out "as is".  If skip_num is non-zero, it indicates the number of
+leading argument expressions not to put out (they're on the arg list
+and the parameter list, and they're passed over, but nothing is put
+out for them).
 */
 {
   a_param_type_ptr              param;
   a_boolean                     any_arg_put_out = FALSE;
   a_routine_type_supplement_ptr rtsp;
 
-  rout_type = skip_typerefs(rout_type);
-  rtsp = rout_type->variant.routine.extra_info;
-  param = rtsp->param_type_list;
+  if (rout_type != NULL) {
+    rout_type = skip_typerefs(rout_type);
+    rtsp = rout_type->variant.routine.extra_info;
+    param = rtsp->param_type_list;
+  } else {
+    /* Routine type is not known. */
+    param = NULL;
+  }  /* if */
   write_tok_ch('(');
   for (; arg != NULL;) {
     if (skip_num > 0) {
@@ -4792,48 +4752,12 @@ put out for them).
       /* The argument must be put out. */
       if (any_arg_put_out) write_tok_str(", ");
       any_arg_put_out = TRUE;
-      if (param != NULL && param->passed_via_copy_constructor) {
-        /* For an argument passed using a copy constructor, optimize out
-           the copy constructor reference. */
-        check_assertion_str(
-                      arg->kind == (an_expr_node_kind)enk_temp_init,
-                      "gen_typed_argument_list: cctor arg not enk_temp_init");
-        gen_dynamic_init(arg->variant.init.dynamic_init, param->type,
-                         /*parenthesized_init=*/FALSE,
-                         /*force_parens=*/FALSE);
-      } else if (param != NULL) {
-        /* Parameter type known. */
-        gen_initializer_expr(arg, param->type, /*need_parens=*/TRUE);
-      } else {
-        /* Parameter type not known. */
-        gen_expr_with_parens(arg);
-      }  /* if */
+      gen_argument(arg, param);
     }  /* if */
     arg = arg->next;
     if (param != NULL) param = param->next;
   }  /* for */
   write_tok_ch(')');
-}  /* gen_typed_argument_list */
-
-
-static void gen_argument_list(an_expr_node_ptr arg,
-                              a_type_ptr       rout_type,
-                              int              skip_num)
-/*
-Write out an argument list with surrounding parentheses.  If rout_type is non-
-NULL, it is the type of the routine being called and that information is used
-e.g. to elide constructor calls.  If rout_type is NULL, the argument
-expressions are put out "as is".  If skip_num is non-zero, it indicates the
-number of leading argument expressions not to put out (they're on the arg list
-and the parameter list, and they're passed over, but nothing is put out for
-them).
-*/
-{
-  if (rout_type != NULL) {
-    gen_typed_argument_list(arg, rout_type, skip_num);
-  } else {
-    gen_untyped_argument_list(arg, skip_num);
-  }  /* if */
 }  /* gen_argument_list */
 
 
@@ -7019,17 +6943,17 @@ Generate code for the indicated statement.
           /* Simple return omitted. */
           suppress_trailing_space = TRUE;
         } else {
+          a_routine_ptr curr_routine =
+                                 innermost_function_scope->variant.routine.ptr;
+          a_type_ptr curr_routine_type = skip_typerefs(curr_routine->type);
+          a_type_ptr return_type =
+                                curr_routine_type->variant.routine.return_type;
           /* Put out the return statement. */
           write_tok_str("return");
           if (simple_return) {
             /* Nothing more needed for a simple return. */
           } else if (statement->expr != NULL) {
             /* Return with an expression. */
-            a_routine_ptr curr_routine =
-                                 innermost_function_scope->variant.routine.ptr;
-            a_type_ptr curr_routine_type = skip_typerefs(curr_routine->type);
-            a_type_ptr return_type =
-                                curr_routine_type->variant.routine.return_type;
             write_space();
             /* For C, process any tags declared within the expression
                (e.g., in casts). */
@@ -7041,8 +6965,7 @@ Generate code for the indicated statement.
             check_assertion(statement->variant.return_dynamic_init != NULL);
             write_space();
             gen_dynamic_init(statement->variant.return_dynamic_init,
-                             (a_type_ptr)NULL, /* Not reference, not needed. */
-                             /*parenthesized_init=*/FALSE,
+                             return_type, /*parenthesized_init=*/FALSE,
                              /*force_parens=*/FALSE);
           }  /* if */
           write_tok_ch(';');
@@ -7170,66 +7093,69 @@ array.
 }  /* default_class_array_initialization */
 
 
-static a_boolean rout_is_copy_constructor(a_routine_ptr rout)
-/*
-Return TRUE if the indicated routine (a constructor) is a copy constructor.
-(More specifically, if it is a copy constructor that takes exactly one
-argument.)
-*/
-{
-  a_type_ptr                    rout_type = skip_typerefs(rout->type);
-  a_routine_type_supplement_ptr rtsp = rout_type->variant.routine.extra_info;
-  a_param_type_ptr              param = rtsp->param_type_list;
-  a_boolean                     is_cctor = FALSE;
-
-  /* A constructor is deemed a copy constructor if (1) the type of the first
-     parameter is reference-to-class or reference-to-qualified-class where
-     "class" is the class of which it is a member function, and (2) where
-     the function can be called with only one argument.  Here, we test
-     for exactly one argument, because we only want to handle cases like
-     that. */
-  if (param != NULL && is_reference_type(param->type) && param->next == NULL) {
-    a_type_ptr tp = type_pointed_to(param->type);
-    if (skip_typerefs(tp) == rout->source_corresp.parent.class_type) {
-      /* It is a copy constructor. */
-      is_cctor = TRUE;
-    }  /* if */
-  }  /* if */
-  return is_cctor;
-}  /* rout_is_copy_constructor */
-
-
 static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_type_ptr         init_entity_type,
                              a_boolean          parenthesized_init,
                              a_boolean          force_parens)
 /*
 Output the dynamic initialization described by dip.  init_entity_type
-indicates the type of entity being initialized, or is NULL if the type
-is fully implied by the dynamic initialization entry (it is needed only
-when the thing being initialized is a reference).  If parenthesized_init
-is TRUE, put parentheses around the initializer; this is the
-parenthesized form of initialization, e.g.,
+indicates the type of entity being initialized.
+
+If parenthesized_init is TRUE, put parentheses around the initializer;
+this is the parenthesized form of initialization, e.g., "(y)" in
 
   A x(y);
 
 If parenthesized_init is FALSE, this is an initialization with "="
 semantics (but the "=" is put out by the caller, if at all); put nothing
-around the initializer, and do copy constructor elision if possible
-(e.g., put out "j" instead of "A(j)"; the current context must be one
-where the type of thing being initialized is clear).  If no initialization
-is indicated, or if the initialization is with a default constructor,
-nothing is put out (in either mode), except that if force_parens is
-TRUE, "()" is put out.
+around the initializer.
+
+If no initialization is indicated, or if the initialization is with
+a default constructor, nothing is put out (in either mode), except that,
+if force_parens is TRUE, "()" is put out.
+
+Note that the destructor, if any, is implicit and need not be put out.
 */
 {
   a_constant_ptr con;
+  a_boolean      using_old_style_cast = FALSE;
 
-  /* Note that the destructor, if any, is implicit and need not be put out. */
-  /* If the variable is known, and the type is not, fetch the type from
-     the variable. */
-  if (init_entity_type == NULL && dip->variable != NULL) {
-    init_entity_type = dip->variable->type;
+  if (dip->is_explicit_cast && !parenthesized_init) {
+    /* An explicit cast.  Put out the name of the type, and then continue
+       processing the initialization as a parenthesized_init.  That is,
+       for "A(x, y)", put out the "A" here, and fall into the main code
+       below to put out the "(x, y)". */
+    /* Note that parentheses are not put around this, because that would
+       make the expression look like a cast. */
+    parenthesized_init = TRUE;
+    force_parens = TRUE;
+    if (has_name_before_mangling(init_entity_type)) {
+      gen_type(init_entity_type);
+    } else {
+      /* A type without a name, e.g., a cv-qualified class type.
+         Use an old-style cast. */
+      write_tok_ch('(');
+      using_old_style_cast = TRUE;
+      gen_cast(init_entity_type);
+      if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        /* If the initialization doesn't have exactly one argument, use
+           an unqualified functional-notation type conversion inside the
+           old-style cast, e.g., ((const X)X(1, 2)).  This may modify the
+           semantics of the program, because it creates an extra temporary,
+           but that's probably harmless.  This comes up on functional-notation
+           casts to template parameter types, where the deduced type is
+           cv-qualified and instantiations are put out.  The instantiation
+           has no name for the cv-qualified type, whereas the original template
+           source can use the name of the template parameter. */
+        an_expr_node_ptr cexpr = dip->variant.constructor.args;
+        if (cexpr == NULL ||
+            cexpr->generated_default_arg ||
+            (cexpr->next != NULL && !cexpr->next->generated_default_arg)) {
+          /* Use an inner cast. */
+          gen_type(skip_typerefs(init_entity_type));
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
   switch (dip->kind) {
     case dik_none:
@@ -7240,7 +7166,9 @@ TRUE, "()" is put out.
       /* Zero initialization, as in "A()" when A has no constructor. */
       check_assertion_str(parenthesized_init,
                           "gen_dynamic_init: zero init not parenthesized");
-      write_tok_str("()");
+      write_tok_str("(");
+      if (using_old_style_cast) write_tok_str("0");
+      write_tok_str(")");
       break;
     case dik_constant:
       /* Constant (simple or aggregate). */
@@ -7294,48 +7222,52 @@ TRUE, "()" is put out.
       if (parenthesized_init) write_tok_ch(')');
       break;
     case dik_constructor:
-      { a_routine_ptr    ctor;
-        an_expr_node_ptr args;
+      { a_routine_ptr    ctor = dip->variant.constructor.ptr;
+        an_expr_node_ptr args = dip->variant.constructor.args;
+        a_boolean        default_init;
 
-        /* Initialization by constructor.  The forms are as follows:
-             parenthesized_init
-               TRUE                        (arg1, arg2, ...)
-               FALSE copy constructor      arg1          <-- cctor elision case
-                     not copy constructor  T(arg1, arg2, ...)
-        */
-        ctor = dip->variant.constructor.ptr;
-        args = dip->variant.constructor.args;
-        if (!parenthesized_init &&
-            (ctor == NULL || rout_is_copy_constructor(ctor))) {
-          /* This is the copy constructor elision case -- we don't have to
-             write the copy constructor because it's implied.  Just write the
-             source argument. */
+        /* See whether this is default-initialization. */
+        default_init = (args == NULL || args->generated_default_arg);
+        if (default_init && !parenthesized_init) {
+          /* A default initialization that's implicit and not parenthesized
+             has to be put out as X(); you can't put out nothing. */
+          gen_type(init_entity_type);
+          parenthesized_init = TRUE;
+          force_parens = TRUE;
+        }  /* if */
+        if (!parenthesized_init) {
+          /* A conversion that was implicit in the source (explicit cases
+             were processed above, and parenthesized_init was set to TRUE).
+             Put out the operand instead of the constructor call. */
+          a_param_type_ptr param = NULL;
+
+          check_assertion(args != NULL &&
+                          (args->next == NULL ||
+                           args->next->generated_default_arg));
+          /* Get the type of the first parameter of the constructor so
+             we can put out the operand in the right way. */
+          if (ctor != NULL) {
+            param = skip_typerefs(ctor->type)->variant.routine.extra_info->
+                                                               param_type_list;
+          }  /* if */
+          gen_argument(args, param);
+        } else if (default_init && !force_parens) {
+          /* Default initialization and parentheses are not required.  Put
+             out nothing. */
+        } else {
+          /* Parenthesized initialization by constructor.  Put out
+               (arg1, arg2, ...)
+          */
           gen_argument_list(args, (ctor == NULL) ? NULL : ctor->type,
                             /*skip_num=*/0);
-        } else {
-          /* This is the non-elision case. */
-          if (parenthesized_init &&
-              (args == NULL || args->generated_default_arg)) {
-            /* This is a default constructor, so do not list the
-               initialization except when specifically asked to. */
-            if (force_parens) write_tok_str("()");
-          } else {
-            if (!parenthesized_init) {
-              /* For the non-parenthesized case, start with the name of the
-                 class as the constructor name. */
-              check_assertion(ctor != NULL);
-              gen_type_name(ctor->source_corresp.parent.class_type);
-            }  /* if */
-            /* Put out the argument list in parentheses. */
-            gen_argument_list(args, (ctor == NULL) ? NULL : ctor->type,
-                              /*skip_num=*/0);
-          }  /* if */
         }  /* if */
       }
       break;
     default:
       unexpected_condition_str("gen_dynamic_init: bad kind");
   }  /* switch */
+  /* Generate a closing parenthesis if needed for an old-style cast. */
+  if (using_old_style_cast) write_tok_ch(')');
 }  /* gen_dynamic_init */
 
 
