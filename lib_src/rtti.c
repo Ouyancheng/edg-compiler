@@ -452,7 +452,7 @@ Display debugging information about type information.
     do_indent();
     fprintf(stderr, "  base classes:\n");
     for (bcsp = tiip->base_class_entries;; bcsp++) {
-      char	*name = bcsp->type_info->name;
+      const char	*name = bcsp->type_info->name;
       do_indent();
       fprintf(stderr, "    name=%s\n", name == NULL ? "<NULL>" : name);
       do_indent();

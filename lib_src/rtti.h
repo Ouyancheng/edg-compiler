@@ -97,7 +97,7 @@ typedef struct a_type_info_impl {
 			   a reference to which is returned by the
 			   typeid runtime routine.  The runtime assumes
 			   that this is the first field in a_type_info_impl. */
-  char
+  const char
                 *name;
                        /* Pointer to a null-terminated character string
 			  containing the name of the type. */

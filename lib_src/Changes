@@ -1,5 +1,12 @@
 Version 2.42
 
+3/17/99  name field in typeinfo now const
+
+The "name" field in the type_info_impl data structure now has "const
+char *" type.  The "const" has been added to make the field match the
+type of string literals, which are now const in some modes (see the
+front end Changes entry of 1/21/99).
+
 3/11/99  Derived object caught by handler for base pointer
 
 2.41 introduced a bug in which a throw of a derived object could be
