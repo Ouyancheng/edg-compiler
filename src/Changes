@@ -409,23 +409,30 @@ helpful in suppressing certain optimizations relating to local variables
 which would interact badly with the setjmp/longjmp used to implement
 exception throws.
 
-1/27/94  address_taken flag on parameters and register variables
+1/27/94  address_taken flag restored to pre-2.21 meaning
 
-One side effect of the changes for the address_taken flag in version 2.21
-is that if the address of a parameter or register variable is taken and
-then used in such a way that the address does not escape and get stored
-in a pointer, the address_taken flag in the variable does not get set.
-That's okay if one believes that the address_taken flag means "might be
-aliased."  Another use of that flag, however, is deciding whether things
-that naturally live in registers (e.g., parameters) need to be stored
-in memory, and for that use the new code does not work well.  For example:
+In version 2.21, the address_taken flag for variables was changed so
+that it is set only if the address of the variable is taken AND the
+address "escapes," i.e., it can get out of the immediate context where
+it is used and get stored into a pointer or the like.  This turned out
+to be unfortunate for several reasons: (1) for things that naturally
+live in registers (e.g., parameters), the new meaning doesn't tell
+you whether the item needs a "home" in memory; (2) when you cast the
+address of a variable to a pointer to a different type as a way to
+access the bits of the variable in a different way, the generated
+code probably wants to take the address of the variable, but the
+address_taken flag doesn't get set because the address didn't escape.
+The following example illustrates both cases:
 
   float foo(int k)
   {
     return *(float *) (&k);
   }
 
-The address_taken flag was not set for this case.  It is now.
+The second problem could be solved by refining the processing for
+casts, but it seems most people have a preference for the simpler
+meaning of address_taken, so it's been changed back to the way
+it was.
 
 1/25/94  Abort when using preprocessed source and implicit inclusion
 
