@@ -2479,7 +2479,7 @@ this is a dik_expression dynamic init entry.
       if (dip->kind == (a_dynamic_init_kind)dik_expression &&
           dip->variant.expression->kind ==
                              (an_expr_node_kind)enk_object_lifetime) {
-        /* An enk_object_lifetime node will always be the top-most node if
+        /* An enk_object_lifetime node will always be the top-most node
            if a lifetime was pushed for the full-expression. */
         olp = dip->variant.expression->variant.object_lifetime.ptr;
       }  /* if */
