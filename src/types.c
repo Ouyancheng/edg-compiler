@@ -397,6 +397,45 @@ Return TRUE if the given type is a union type.
 }  /* is_union_type */
 
 
+a_boolean is_abstract_class_type(a_type_ptr  tp)
+/*
+*/
+{
+  a_boolean  is_abstract = FALSE;
+
+  if (!C_mode()) {
+    tp = skip_typerefs(tp);
+    if (is_class_struct_union(tp) && tp->variant.class_struct_union.abstract) {
+      is_abstract = TRUE;
+    } else if (is_incomplete(tp) &&
+               tp->variant.class_struct_union.extra_info->
+                                                template_arg_list != NULL) {
+      /* This is an uninstantiated template class.  If the template is
+         abstract, then so will this instance of it be. */
+      a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
+      a_symbol_ptr                   prototype_sym;
+
+      if (!cssp->is_specific_template_def) {
+        /* This is not a specific definition, so this instance will be based
+           on the template.  To get from here to the type created for the
+           prototype instantiation indirect through the template symbol to its
+           supplement to the symbol representing the prototype instantiation
+           to the type. */
+        prototype_sym = cssp->class_template->variant.template_info->
+                               variant.class_template.prototype_instantiation;
+        if (prototype_sym == NULL) {
+          /* Class template has not yet been defined. */
+        } else if (prototype_sym->variant.class_struct_union.type->
+                                        variant.class_struct_union.abstract) {
+          is_abstract = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_abstract;
+}  /* is_abstract_class_type */
+
+      
 a_boolean is_illegal_abstract_class_type(a_type_ptr  tp)
 /*
 There are certain restrictions on the use of an abstract class type.
@@ -1134,7 +1173,7 @@ array_type.
        defined.  (Note that an array of incomplete struct is an extension in
        C, but it's standard in C++.) */
     add_to_dependent_type_fixup_list(underlying_elem_type, array_type,
-                                     (a_param_type_ptr)NULL);
+                                     (a_param_type_ptr)NULL, &error_position);
   } else {
     /* Get the number of elements.  Note that this is zero for an incomplete
        type like int a[]. */
@@ -1155,7 +1194,14 @@ array_type.
     }  /* if */
 #endif /* CHECKING */
     elem_type = skip_typerefs(elem_type);
-    if (is_array_type(elem_type)) set_type_size(elem_type);
+    if (is_array_type(elem_type)) {
+      set_type_size(elem_type);
+    } else if (is_immediate_class_type(elem_type)) {
+      if (elem_type->variant.class_struct_union.abstract) {
+        /* error_position should already be set correctly. */
+        error(ec_abstract_class_object_not_allowed);
+      }  /* if */
+    }  /* if */
 #if CHECKING
     if (elem_type->size == 0) {
       internal_error("set_array_type_size: bad element type");
@@ -3375,6 +3421,13 @@ is allocated, it is allocated in the file scope.
 
               */
               a_param_type_ptr param1_on_which_first_loop_failed = param1;
+              a_source_position dummy_decl_pos;
+
+              /* Pass a NULL source position to make_param_type to avoid
+                 inapproriate diagnostics on a type that doesn't correspond
+                 directly to a source construct. */
+              dummy_decl_pos.seq = 0;
+              dummy_decl_pos.column = SP_COL_UNKNOWN;
               comp_param_list = end_comp_param_list = NULL;
               for (param1 = list1,  param2 = list2;
                    param1 != NULL;
@@ -3395,7 +3448,7 @@ is allocated, it is allocated in the file scope.
                      called yet for those parameters. */
                   param_type = composite_type(param1->type, param2->type);
                 }  /* if */
-                comp_param = alloc_param_type(param_type);
+                comp_param = make_param_type(param_type, &dummy_decl_pos);
                 /* Form the composite of the C++ default argument expressions;
                    it's guaranteed that at most one of the parameter lists
                    has a default argument expression. */
@@ -4287,6 +4340,7 @@ a new tree is to contain it is built.
   a_type_ptr              first_new_type_for_param_types_list;
   unsigned long           reusable_param_types;
   a_memory_region_number  region_to_switch_back_to;
+  a_source_position       dummy_decl_pos;
 
   /* Traverse the tree. */
   switch (type->kind) {
@@ -4361,6 +4415,11 @@ make_new_type:
       new_type->variant.routine.extra_info->assoc_routine = NULL;
       new_type->variant.routine.extra_info->implicit_this_param_type =
                                                      new_this_param_type;
+      /* Pass a NULL source position to make_param_type and to
+         set_routine_calling_method to avoid inapproriate diagnostics on
+         a type that doesn't correspond directly to a source construct. */
+      dummy_decl_pos.seq = 0;
+      dummy_decl_pos.column = SP_COL_UNKNOWN;
       /* Make copies of the entries on type's param types list, making the
          appropriate modifications. */
       prev_ptp = NULL;
@@ -4383,7 +4442,7 @@ make_new_type:
           (void)func(ptp->type, flags, &tp);
         }  /* if */
         /* Allocate the param type entry and copy default arg info. */
-        new_ptp = alloc_param_type(tp);
+        new_ptp = make_param_type(tp, &dummy_decl_pos);
         if (ptp->has_default_arg) {
           new_ptp->has_default_arg = TRUE;
           if (!ptp->type_involves_template_param) {
@@ -4402,7 +4461,7 @@ make_new_type:
         }  /* if */
         prev_ptp = new_ptp;
       }  /* if */
-      set_routine_calling_method_flag(new_type);
+      set_routine_calling_method_flag(new_type, &dummy_decl_pos);
       break;
     case tk_array:
       /* Make an array type based on "type", making modifications as
