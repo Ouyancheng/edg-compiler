@@ -1969,7 +1969,7 @@ bound with the function in *bound_function_selector.
   /* Scan the second operand. */
   (void)get_token();
   /* See if an identifier (or equivalent) is next. */
-  gid_flags = GID_DTOR_RECOGNIZED;
+  gid_flags = GID_DTOR_RECOGNIZED | GID_IS_FIELD_SELECTION_OPERAND;
   if (C_dialect == C_dialect_cplusplus) {
     /* In C++, explicit calls of destructors are allowed for simple types
        and classes without destructors.  For example, p->int::~int(). */

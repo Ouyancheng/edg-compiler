@@ -212,6 +212,10 @@ typedef int an_identifier_options_set;
 			   for an unexpected template argument list to be
 			   suppressed because a new type name may be followed
 			   by a less than sign. */
+#define GID_IS_FIELD_SELECTION_OPERAND \
+				      0x800
+			/* Specifies that the name being scanned is the
+			   operand following a "." or "->" operator. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)

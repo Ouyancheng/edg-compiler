@@ -5450,7 +5450,8 @@ This routine may only be called in C++ mode.
     next_tok = next_two_tokens(tok_colon_colon, &next_tok_2);
     if (next_tok == tok_colon_colon || next_tok == tok_lt) {
       might_be_qualifier = TRUE;
-    } else if (cfront_compatibility_mode && next_tok == tok_period) {
+    } else if (cfront_compatibility_mode && next_tok == tok_period &&
+               !(options & GID_IS_FIELD_SELECTION_OPERAND)) {
       /* Check for the anachronism of allowing a "." as a qualifier separator
          where a "::" should be used.  This is only done in cfront mode
          because this is something that cfront labels as an anachronism but
@@ -5462,7 +5463,8 @@ This routine may only be called in C++ mode.
          is a qualified name or simply a normal field reference.  We'll
          assume this is a qualifier for now and make a final decision after
          we try to look up the identifier.  A warning will be issued,
-         if appropriate, after the lookup is done. */
+         if appropriate, after the lookup is done.  The "." may not
+         be used as a qualifier separator in a field selection operator. */
       next_tok = next_two_tokens(tok_period, &next_tok_2);
       might_be_qualifier = TRUE;
       qualifier_separator = tok_period;
