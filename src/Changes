@@ -1,5 +1,23 @@
 Version 2.16
 
+4/5/93  Template parameter list error diagnosis
+
+Errors are now issued when a template parameter list is inconsistent
+with a previous declaration.  For example,
+
+  template <class T> class A;
+  template <int I> class A {};  // Error
+
+4/5/93  Merging default values from template parameter lists
+
+It is now possible to supply additional default values for template
+parameters on subsequent declarations.  For example,
+
+  template <int J, int K, int L> class A;
+  template <int J, int K, int L = 1> class A { ... };
+  template <int J, int K = 2, int L> void A<J,K,L>::f() {}
+  template <int J = 3, int K, int L> int A<J,K,L>::i = 1;
+
 4/4/93  IL lowering problem with pointer-to-member-function constants
 
 Formerly, when IL lowering processed pointer-to-member-function constants

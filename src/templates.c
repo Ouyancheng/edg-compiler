@@ -2191,6 +2191,198 @@ structure.
 }  /* find_template_function */
 
 
+static a_boolean reconcile_template_param_lists
+					(a_template_param_ptr param_list,
+                                         a_symbol_ptr         class_sym,
+					 a_source_position    *error_pos)
+/*
+Compare the template parameter list of the template declaration currently
+being scanned with the template parameter list of a previous declaration
+of the same class.  Make sure that the parameter lists match and
+merge the default argument information from the two lists.  The default
+argument information is updated into both lists because we don't know
+which version will be used as the "primary" argument list.  This routine
+is called for each redeclaration of a template argument list for a class.
+For example, this routine will be called for all of these declarations
+except for the first one:
+
+	template <class T, int I> class A;
+	template <class T, int I> class A { ... };
+	template <class T, int I> void A<T,I>::f() { ... };
+	template <class T, int I> int A<T,I>::i =  ... ;
+
+Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
+*/
+{
+  a_template_param_ptr	new_tpp;
+  a_template_param_ptr	old_tpp;
+  a_template_param_ptr	prev_new_tpp = NULL;
+  a_boolean		any_errors = FALSE;
+
+  new_tpp = param_list;
+  old_tpp = class_sym->variant.template_info->parameters;
+  while (new_tpp != NULL && old_tpp != NULL) {
+    a_symbol_ptr	old_sym = old_tpp->param_symbol;
+    a_symbol_ptr	new_sym = new_tpp->param_symbol;
+    a_boolean		err = FALSE;
+    if (old_sym->kind != new_sym->kind) {
+      /* One argument is a type and the other is a constant -- this is an
+         error. */
+      err = TRUE;
+    } else if (old_sym->kind == (a_symbol_kind)sk_type) {
+      /* Both are types.  Make sure the types match. */
+      err = !identical_types(old_tpp->variant.param_type,
+                             new_tpp->variant.param_type);
+    } else {
+      /* Both are constants.  Make sure the values are the same. */
+      check_assertion(old_sym->kind == (a_symbol_kind)sk_constant);
+      err = !eq_constants(old_tpp->variant.param_constant.ptr,
+                          new_tpp->variant.param_constant.ptr);
+    }  /* if */
+    if (err) {
+      pos_sy_error(ec_not_compatible_with_previous_decl,
+                   &new_sym->decl_position, old_sym);
+      any_errors = TRUE;
+    }  /* if */
+    old_tpp = old_tpp->next;
+    prev_new_tpp = new_tpp;
+    new_tpp = new_tpp->next;
+  }  /* while */
+  if (old_tpp != NULL || new_tpp != NULL) {
+    /* The number of template parameters does not match the previous
+       declaration. */
+    an_error_code	error_code;
+    a_source_position	*pos;
+    if (old_tpp == NULL) {
+      /* Too many parameters.  Use the position of the first extra
+         parameter as the error position. */
+      error_code = ec_too_many_template_params;
+      pos = &new_tpp->param_symbol->decl_position;
+    } else {
+      /* Too few parameters.  Use the position of the last parameter present
+         to report the error.  If there were no parameters specified,
+         use the position supplied by the caller, which will point to
+         the thing being declared. */
+      error_code = ec_too_few_template_params;
+      pos = prev_new_tpp == NULL ? error_pos :
+                                   &prev_new_tpp->param_symbol->decl_position;
+    }  /* if */
+    pos_error(error_code, pos);
+    any_errors = TRUE;
+  }  /* if */
+  /* Merge the default argument information from the two parameter lists.
+     This is only done if there were no errors in the previous tests so
+     we know that the parameter lists match. */
+  if (!any_errors) {
+    new_tpp = param_list;
+    old_tpp = class_sym->variant.template_info->parameters;
+    while (new_tpp != NULL && old_tpp != NULL) {
+      if (new_tpp->param_symbol->kind == (a_symbol_kind)sk_constant) {
+        /* Only constant parameters have default arguments. */
+        a_boolean type_involves_template_param;
+        a_boolean old_has_default;
+        a_boolean new_has_default;
+        old_has_default = old_tpp->variant.param_constant.has_default_arg;
+        new_has_default = new_tpp->variant.param_constant.has_default_arg;
+        if (old_has_default && new_has_default) {
+          /* This parameter already has a default argument. */
+          pos_error(ec_default_arg_already_defined, &
+                    new_tpp->param_symbol->decl_position);
+        } else if (old_has_default || new_has_default) {
+          a_template_param_ptr	from_tpp;
+          a_template_param_ptr	to_tpp;
+          /* Copy the default information into the other parameter.  We
+             end up with two argument lists with complete parameter
+             information. This is done because we don't know which parameter
+             list is going to end up being the one actually used. */
+          if (old_has_default) {
+            from_tpp = old_tpp;
+            to_tpp = new_tpp;
+          } else {
+            from_tpp = new_tpp;
+            to_tpp = old_tpp;
+          }  /* if */
+          to_tpp->variant.param_constant.has_default_arg = TRUE;
+          type_involves_template_param =
+                from_tpp->variant.param_constant.type_involves_template_param;
+          to_tpp->variant.param_constant.type_involves_template_param =
+                                                 type_involves_template_param;
+          if (type_involves_template_param) {
+            to_tpp->variant.param_constant.default_arg.token_cache =
+                     from_tpp->variant.param_constant.default_arg.token_cache;
+          } else {
+            to_tpp->variant.param_constant.default_arg.constant = 
+                        from_tpp->variant.param_constant.default_arg.constant;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      old_tpp = old_tpp->next;
+      new_tpp = new_tpp->next;
+    }  /* while */
+  }  /* if */
+  return !any_errors;
+}  /* reconcile_template_param_lists */
+
+
+static a_boolean member_template_param_list_matches_class
+					(a_template_param_ptr param_list,
+                                         a_symbol_ptr         member_sym,
+					 a_source_position    *error_pos)
+/*
+This routine is called for template declarations of member functions
+static data members of class templates.  It calls
+reconcile_template_param_lists to compare the template parameters of this
+declaration with the parameter list of the class declaration.
+Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
+*/
+{
+  a_symbol_ptr	class_sym;
+  a_boolean	result;
+  a_type_ptr    type;
+  a_type_ptr	cowam_type;
+
+  /* Find the type of the class.  If this class is nested in another class
+     find the type of the outermost class. */
+  type = member_sym->class_of_which_a_member;
+  while ((cowam_type = type->source_corresp.class_of_which_a_member) != NULL) {
+    type = cowam_type;
+  }  /* while */
+  /* Get the symbol associated with the type.  This symbol is the
+     template class symbol. */
+  class_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+  /* Get a pointer to the symbol for the class template. */
+  class_sym = class_sym->variant.class_struct_union.extra_info->class_template;
+  result = reconcile_template_param_lists(param_list, class_sym, error_pos);
+  return result;
+}  /* member_template_param_list_matches_class */
+
+
+static void check_template_param_default_args(a_template_param_ptr param_list)
+/*
+Make sure that any default arguments are at the end of the parameter list.
+*/
+{
+  a_template_param_ptr	tpp;
+  a_boolean		any_defaults = FALSE;
+
+  tpp = param_list;
+  while (tpp != NULL) {
+    a_boolean has_default = FALSE;
+    /* Does this parameter have a default argument?  Only constant parameters
+       may have default arguments. */
+    if (tpp->param_symbol->kind == (a_symbol_kind)sk_constant) {
+       has_default = tpp->variant.param_constant.has_default_arg;
+       any_defaults |= has_default;
+    }  /* if */
+    /* If there have been parameters with default and this one doesn't have
+       a default then issue an error and exit the loop. */
+    if (any_defaults && !has_default) {
+      pos_error(ec_default_arg_not_at_end, &tpp->param_symbol->decl_position);
+    }  /* if */
+    tpp = tpp->next;
+  }  /* while */
+ }  /* check_template_param_default_args */
+
 
 static a_boolean class_template_declaration(
                                     a_template_param_ptr templ_params,
@@ -2306,11 +2498,22 @@ that make up the declaration and do a prototype instantiation.
           suppress_redecl_error = TRUE;
           sym = NULL;
         }  /* if */
+        if ((is_definition || is_redecl) && sym != NULL) {
+          /* Either a definition or a redeclaration.  Make sure the template
+             parameters are compatible with the previous declaration. */
+          reconcile_template_param_lists(templ_params, sym,
+                                         &locator.source_position);
+        }  /* if */
       } else {
         /* Force the call to enter symbol, which will report the name clash. */
         sym = NULL;
       }  /* if */
     }  /* if */
+    /* Make sure that the default arguments for the template parameters
+       are valid (i.e., that they are at the end of the parameter list).
+       This is done now because we have to wait until the parameter lists
+       have been merged to do the test. */
+    check_template_param_default_args(templ_params);
     if (sym == NULL) {
       /* Enter the symbol at file scope. */
       sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
@@ -2499,8 +2702,6 @@ to represent the template parameters.
   a_template_param_ptr end_of_template_param_list = NULL;
   a_type_ptr           template_param_type;
   int                  template_param_list_pos = 0;
-  a_boolean	       any_default_args = FALSE;
-  a_boolean	       default_arg_not_at_end = FALSE;
 
   db_enter(3, "scan_template_param_list");
   /* Check for an bypass the "<". */
@@ -2670,14 +2871,6 @@ to represent the template parameters.
       } else {
         template_param->
             variant.param_constant.default_arg.constant = default_arg_constant;
-      }  /* if */
-      any_default_args = TRUE;
-    } else {
-      /* If a previous argument had a default value and this one does not,
-         issue an error.  Only do this for the first instance of the error. */
-      if (any_default_args && !default_arg_not_at_end) {
-        default_arg_not_at_end = TRUE;
-        error(ec_default_arg_not_at_end);
       }  /* if */
     }  /* if */
     /* Add the template param to the end of the list. */
@@ -2894,6 +3087,11 @@ entry is pushed on the scope stack.
            symbol is defined. */
         tssp->parameters = template_param_list;
         tssp->declaration_scope = scope_stack[decl_scope_level].number;
+        /* Make sure the parameter list matches the class declaration. */
+        if (!member_template_param_list_matches_class
+                      (template_param_list, sym, &error_position)) {
+          err = TRUE;
+        }  /* if */
       }  /* if */
       /* Scan the initializer expression, if any, and cache its tokens.
          The initializer may be of the form "= ...;" or "(...);".
@@ -2926,7 +3124,21 @@ entry is pushed on the scope stack.
           err = TRUE;
         }  /* if */
         sym->defined = TRUE;
-      }
+      }  /* if */
+      if (sym->kind == (a_symbol_kind)sk_member_function) {
+        tssp = sym->variant.routine.instance_ptr->template_info;
+      } else {
+        tssp = sym->variant.template_info;
+      }  /* if */
+      /* Make sure that the template parameter list is compatible with
+         any previous declaration (i.e., the declaration of the class
+         if this is a member function. */
+      if (sym->class_of_which_a_member != NULL) {
+        if (!member_template_param_list_matches_class
+                      (template_param_list, sym, &error_position)) {
+          err = TRUE;
+        }  /* if */
+      }  /* if */
       if (err) {
         a_token_cache  local_token_cache;
         clear_token_cache(&local_token_cache, /*reusable=*/FALSE);
@@ -2935,11 +3147,6 @@ entry is pushed on the scope stack.
         discard_token_cache(&local_token_cache);
       } else {
 	a_def_arg_expr_fixup_ptr  daefp;
-        if (sym->kind == (a_symbol_kind)sk_member_function) {
-          tssp = sym->variant.routine.instance_ptr->template_info;
-        } else {
-          tssp = sym->variant.template_info;
-        }  /* if */
         tssp->variant.function.func_info = func_info;
 	/* Link the default argument list from the template supplement
 	   onto the end of the list of current default arguments.  The

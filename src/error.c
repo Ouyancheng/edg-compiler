@@ -1883,6 +1883,13 @@ error code.
     case ec_nonstd_member_function_address:
       m = "nonstandard form for taking the address of a member function";
       break;
+    case ec_too_few_template_params:
+      m = "too few template parameters -- does not match previous declaration";
+      break;
+    case ec_too_many_template_params:
+      m =
+         "too many template parameters -- does not match previous declaration";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
