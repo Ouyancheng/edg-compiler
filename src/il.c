@@ -7287,7 +7287,7 @@ lifetime (the top of the object lifetime stack) is used.
         }  /* if */
       } else {
         /* The object is a static object outside a function context -- it
-           belongs to the lifetime of the the file scope itself. */
+           belongs to the lifetime of the file scope itself. */
         olp = scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
       }  /* if */
     } else if (scope_lifetime) {
