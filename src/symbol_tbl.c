@@ -3916,6 +3916,12 @@ Declare the type va_list when <stdarg.h> is treated as a builtin.
   /* Note that the source position is zero, which is how we can
      recognize this type as the builtin one. */
   add_to_types_list(builtin_va_list_type, DEPTH_OF_FILE_SCOPE);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Put out a source sequence entry for the type. */
+  update_source_sequence_list((char *)builtin_va_list_type,
+                              (an_il_entry_kind)iek_type,
+                              (a_source_sequence_entry_ptr)NULL);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* declare_builtin_va_list_type */
 
 
