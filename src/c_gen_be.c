@@ -6371,8 +6371,8 @@ by IL lowering.
   if (f_file_scope_inits != NULL) {
     /* Generate the name of the routine. */
     char *name = alloc_il_for_c_gen_be(
-                                    sizeof(C_GEN_BE_INIT_ROUTINE_NAME_PREFIX) +
-                                    strlen(module_init_id));
+                         (sizeof_t)(sizeof(C_GEN_BE_INIT_ROUTINE_NAME_PREFIX) +
+                                    strlen(module_init_id)));
     (void)strcpy(name, C_GEN_BE_INIT_ROUTINE_NAME_PREFIX);
     (void)strcat(name, module_init_id);
     /* Generate the declaration of the routine. */

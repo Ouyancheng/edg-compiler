@@ -2638,7 +2638,7 @@ qualified_name_check:
              operand to the type of the member symbol. */
           cast_pointer_for_field_selection(operand_1, &is_arrow_operator,
                                            member_sym, projection_member_sym,
-                                           locator_for_curr_id.
+                                           (a_boolean)locator_for_curr_id.
                                                  access_control_error_reported,
                                            &member_position);
           do_field_selection_operation(operand_1, orig_class_struct_union_type,
@@ -2681,7 +2681,8 @@ nonstatic_member_function:
                                                  &is_arrow_operator,
                                                  member_sym,
                                                  projection_member_sym,
-                                                 locator_for_curr_id.
+                                                 (a_boolean)
+                                                           locator_for_curr_id.
                                                  access_control_error_reported,
                                                  &member_position);
               }  /* if */

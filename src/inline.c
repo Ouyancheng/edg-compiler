@@ -396,9 +396,9 @@ The code is inserted at *insert_location, and *insert_location is updated.
       /* Remap the local variable to a temporary. */
       vrip = alloc_variable_remapping_for_inlining(var);
       temp_var = make_remapping_temporary(
-                               vrip, expr_insert,
-                               var->is_temp_for_constructor_this_inlined_param,
-                               var->is_temp_for_unmodified_inlined_param);
+                    vrip, expr_insert,
+                    (a_boolean)var->is_temp_for_constructor_this_inlined_param,
+                    (a_boolean)var->is_temp_for_unmodified_inlined_param);
 #if DEBUG
       if (debug_level >= 4) {
         if (first) {
