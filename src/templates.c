@@ -6616,7 +6616,7 @@ declaration (following any template clauses).
     if (new_sym == NULL ||
         new_sym->kind != (a_symbol_kind)sk_function_template) {
       pos_sy_error(sym->kind == (a_symbol_kind)sk_overloaded_function
-                                 ? ec_overloaded_function_incompatible_type
+                                 ? ec_no_match_for_type_of_overloaded_function
                                  : ec_not_compatible_with_previous_decl,
                    &locator->source_position, sym);
       new_sym = NULL;
@@ -7183,6 +7183,7 @@ NULL if no instance is found.
   a_boolean     any_found = FALSE;
   a_symbol_ptr  sym_found = NULL;
   a_symbol_ptr	new_sym = NULL;
+  a_boolean	any_templates = FALSE;
 
   orig_sym = sym;
   if (sym->is_class_member) {
@@ -7209,6 +7210,7 @@ NULL if no instance is found.
       /* If this is a function template symbol, use it to find a function
          that matches the type we are looking for. */
       if (sym->kind != (a_symbol_kind)sk_function_template) continue;
+      any_templates = TRUE;
       lookup_sym = sym;
       /* Look for a match on the list of instantiations. */
       if (lookup_sym != NULL) {
@@ -7227,7 +7229,17 @@ NULL if no instance is found.
     }  /* for */
   }  /* if */
   if (!any_found) {
-    sym_error(ec_no_match_for_type_of_overloaded_function, orig_sym);
+    /* Issue an error.  One message is used for overloaded functions (which
+       includes all template cases).  Another message is used if the symbol
+       refers to a single nontemplate. */
+    an_error_code	err_code;
+    if (any_templates ||
+        orig_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      err_code = ec_no_match_for_type_of_overloaded_function;
+    } else {
+      err_code = ec_not_compatible_with_previous_decl;
+    }  /* if */
+    sym_error(err_code, orig_sym);
   }  /* if */
   return new_sym;
 }  /* find_matching_template_instance */

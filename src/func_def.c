@@ -915,7 +915,7 @@ on a prior declaration.
       } else {
         pos_sy_error(locator->specific_symbol->kind ==
                                      (a_symbol_kind)sk_overloaded_function ?
-                        ec_overloaded_function_incompatible_type :
+                        ec_no_match_for_type_of_overloaded_function :
                         ec_not_compatible_with_previous_decl,
                    &locator->source_position, locator->specific_symbol);
       }  /* if */

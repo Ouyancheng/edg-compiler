@@ -350,7 +350,7 @@ ec_indeterminate_overloaded_function;;"cannot determine which instance of %n is 
 ec_bound_function_must_be_called;;"a pointer to a bound function may only be used to call the function"
 ec_duplicate_typedef;;"typedef name has already been declared (with same type)"
 ec_function_redefinition;;"%n has already been defined"
-ec_overloaded_function_incompatible_type;;"type does not match any instance of %n"
+REMOVED;ec_overloaded_function_incompatible_type;;"type does not match any instance of %n"
 ec_no_matching_function;;"no instance of %n matches the argument list"
 ec_type_def_not_allowed_in_func_type_decl;;"type definition is not allowed in function return type declaration"
 ec_default_arg_not_at_end;;"default argument not at end of parameter list"

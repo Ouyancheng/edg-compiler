@@ -3968,7 +3968,6 @@ of the function, and again overloading is a possibility.
   a_symbol_ptr                 sym, ext_sym;
   an_id_linkage_kind           linkage;
   a_type_ptr                   old_type;
-  a_boolean                    is_overloaded_function;
   a_storage_class              storage_class;
   a_symbol_reference_kind      srk_flags;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
@@ -4071,17 +4070,12 @@ of the function, and again overloading is a possibility.
          member function name.  This could potentially be an instance of
          a member function template.  If none can be found, NULL is
          returned. */
-      is_overloaded_function =
-                          sym->kind == (a_symbol_kind)sk_overloaded_function;
       sym = find_matching_template_instance(sym, function_type);
       if (sym == NULL) {
         /* This is a member function, but one with a type that doesn't
-           match a previously declared member. */
-        sym_error(is_overloaded_function ?
-                          ec_overloaded_function_incompatible_type :
-                          ec_not_compatible_with_previous_decl,
-                  locator->specific_symbol);
-         set_to_error_locator(*locator);
+           match a previously declared member.  A diagnostic will have been
+           issued by find_matching_template_instance. */
+        set_to_error_locator(*locator);
       } else {
         /* "inline" may not be introduced by this declaration. */
         if (func_info->is_inline && !func_info->is_definition &&

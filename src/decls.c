@@ -3150,7 +3150,7 @@ namespace-extension scope.
         }  /* if */
       } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
         /* Overloaded function case. */
-        pos_sy_error(ec_overloaded_function_incompatible_type,
+        pos_sy_error(ec_no_match_for_type_of_overloaded_function,
                      &locator->source_position, sym);
       } else {
         /* Everything else. */
@@ -4378,7 +4378,7 @@ is not a template declaration scope.
            error. */
         pos_sy_error(locator->specific_symbol->kind ==
                                      (a_symbol_kind)sk_overloaded_function ?
-                        ec_overloaded_function_incompatible_type :
+                        ec_no_match_for_type_of_overloaded_function :
                         ec_not_compatible_with_previous_decl,
                    &locator->source_position, locator->specific_symbol);
         set_to_error_locator(*locator);
