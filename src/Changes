@@ -1,5 +1,12 @@
 Version 2.31
 
+10/24/94  Recursive inclusion with -M and --implicit_include options
+
+When using implicit inclusion with source code that was not structured
+with implicit inclusion in mind, it was possible to create an
+inclusion loop when doing makefile dependency processing using
+the implicit inclusion option.
+
 10/23/95  Abort in template function declaration containing elaborated type
 
 If the return type of a function template was a template class specified

@@ -2522,6 +2522,26 @@ returned.
   db_exit();
   return new_input_file;
 }  /* open_file_for_input */
+
+
+static
+int look_for_file_on_input_stack(char	*file_name)
+/*
+Look for the file specified by file_name in the input stack and return
+the number of times that the file appears there.
+*/
+{
+  int	times_name_appears;
+  int	isnum;
+
+  times_name_appears = 0;
+  for (isnum = depth_input_stack; isnum >= 0; isnum--) {
+    if (compare_file_names(input_stack[isnum].full_name, file_name) == 0) {
+      times_name_appears++;
+    }  /* if */
+  }  /* for */
+  return times_name_appears;
+}  /* look_for_file_on_input_stack */
   
 
 void push_input_stack(FILE     				*new_input_file,
@@ -2535,7 +2555,7 @@ void push_input_stack(FILE     				*new_input_file,
 Push the indicated file onto the input stack.
 */
 {
-  int                isnum, times_name_appears;
+  int                times_name_appears;
   a_source_file_ptr  parent_file;
 
   db_enter(2, "push_input_stack");
@@ -2546,19 +2566,13 @@ Push the indicated file onto the input stack.
 #endif /* DEBUG */
   /* Check for recursion of #includes.  This is done by looking through the
      stack for the file name we just opened. */
-  times_name_appears = 0;
-  for (isnum = depth_input_stack; isnum >= 0; isnum--) {
-    if (compare_file_names(input_stack[isnum].full_name,
-                           full_file_name) == 0) {
-      /* The entry in the input stack has the same file name as the
-         file we just opened.  This is okay once (it has to be), but
-         if it happens several times, it probably means recursion. */
-      times_name_appears++;
-      if (times_name_appears >= 10 /* Arbitrary, must be > 1 */) {
-        str_catastrophe(ec_include_recursion, full_file_name);
-      }  /* if */
-    }  /* if */
-  }  /* for */
+  times_name_appears = look_for_file_on_input_stack(full_file_name);
+  /* The entry in the input stack has the same file name as the
+     file we just opened.  This is okay once (it has to be), but
+     if it happens several times, it probably means recursion. */
+  if (times_name_appears >= 10 /* Arbitrary, must be > 1 */) {
+    str_catastrophe(ec_include_recursion, full_file_name);
+  }  /* if */
   /* If preprocessing output is being generated, force out the previous
      source line before the input stack information is changed. */
   if (generate_pp_output) {
@@ -2902,14 +2916,21 @@ at the next level down.
 #endif /* DEBUG */
           /* Push the new file onto the input stack and scan it.  There is
              no "name as written" so a NULL pointer is passed in. */
-	  if (suppress_subsequent_include_of_file(full_file_name, &ifhp)) {
-            /* This file contains include guard code.  An inclusion here would
-               have no effect, so it should be suppressed. */
+	  if (suppress_subsequent_include_of_file(full_file_name, &ifhp) ||
+              (implicit_template_inclusion_mode &&
+               look_for_file_on_input_stack(full_file_name) > 0)) {
+            /* This file contains include guard code or is already on the input
+               stack more than once.  An inclusion of a guarded file would
+	       have no effect and so, is suppressed.  A file that is already on
+               the stack more than once is probably an include loop caused
+	       by looking for a file that can be implicitly included in a
+	       context in which no implicit include would actually be done
+	       in a real compilation. */
 	    (void)fclose(f_source);
 #if DEBUG
 	    if (debug_level >= 3) {
 	      fprintf(f_debug,
-		      "pop_input_stack: skipping guarded include file %s\n",
+		      "pop_input_stack: skipping include file %s\n",
 		      full_file_name);
             }  /* if */
 #endif /* DEBUG */
