@@ -1,5 +1,17 @@
 Version 3.6
 
+1/12/05  Microsoft compatibility: casts like "class A(x)" and "const A(x)"
+
+In Microsoft mode, we now allow functional-notation casts in which the
+type is an elaborated type specifier or begins with a cv-qualifier.
+
+  struct A { A(int); };
+  const A bar() {
+    return (const A(0));  // Now accepted in Microsoft mode
+  }
+  struct X {};
+  const struct X &x = struct X();  // Now accepted in Microsoft mode
+
 1/12/05  GNU C++ compatibility: Location of member function definitions
 
 In GNU C++ mode, the front end now accepts a member function definition in a

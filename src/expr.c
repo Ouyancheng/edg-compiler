@@ -15935,6 +15935,17 @@ handle_trapped_left_paren:
                         local_options);
       break;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_struct:
+    case tok_class:
+    case tok_union:
+    case tok_const:
+    case tok_volatile:
+      if (!microsoft_mode) goto bad_start_of_primary;
+      /* The Microsoft compiler allows casts like "class A(x)"
+         and "const int(0)". */
+      /*FALLTHROUGH*/
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_char:
     case tok_short:
     case tok_int:
