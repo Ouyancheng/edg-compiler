@@ -869,6 +869,22 @@ type is in fact valid.
 }  /* verify_enum_type_correspondence */
 
 
+static a_boolean type_has_definition(a_type_ptr  type)
+/*
+Return TRUE if type has a definition.
+*/
+{
+  a_boolean  result;
+
+  if (is_immediate_class_type(type)) {
+    result = class_type_has_body(type);
+  } else {
+    result = !is_incomplete_type(type);
+  }  /* if */
+  return result;
+}  /* type_has_definition */
+
+
 static a_boolean verify_class_type_correspondence(a_type_ptr  type)
 /*
 Check that the recorded translation unit correspondence for the given class
@@ -1189,8 +1205,9 @@ is in fact valid.
   }  /* if */
   if (match &&
       (type->kind != corresp_type->kind ||
-       type->size != corresp_type->size ||
-       type->alignment != corresp_type->alignment ||
+       (type_has_definition(type) && type_has_definition(corresp_type) &&
+        (type->size != corresp_type->size ||
+         type->alignment != corresp_type->alignment)) ||
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
        type->use_cfront_transitional_nested_type_name_mangling !=
              corresp_type->use_cfront_transitional_nested_type_name_mangling ||
