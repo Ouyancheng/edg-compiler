@@ -41,7 +41,8 @@ enum an_expression_kind_tag {
 			   3.4).  Limited use in C++. */
   /* Non-constant expression kinds: */
   ek_normal,		/* Normal expression, no restrictions. */
-  ek_sizeof		/* The operand of sizeof. */
+  ek_sizeof		/* The operand of sizeof.  This is almost the same
+			   as a normal expression. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_expression_kind;
@@ -271,11 +272,15 @@ typedef struct an_expr_stack_entry {
 		evaluated;
 			/* Expression is evaluated, e.g., FALSE if it's the
 			   operand of a sizeof or in a "dead" part of a
-			   short-circuiting operation. */
+			   short-circuiting operation.  Always TRUE in
+			   a constant expression, even one inside a not-
+			   evaluated expression. */
   a_byte_boolean
 		potentially_evaluated;
 			/* Expression is potentially evaluated, e.g., FALSE
-			   if it's the operand of a sizeof. */
+			   if it's the operand of a sizeof.  Always TRUE in
+			   a constant expression, even one inside a not-
+			   evaluated expression. */
   a_byte_boolean
 		is_default_arg_expression;
 			/* TRUE if the expression is or is inside of a
