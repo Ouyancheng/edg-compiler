@@ -71,28 +71,21 @@ the front end now creates an implicit declaration for the copy
 assignment operator if no user-declared copy assignment operator
 exists.
 
-6/11/99  Abort on double block-scope declaration of an intrinsic function
+6/11/99  Abort on double block-scope declaration of a predeclared function
 
-The front end aborted compilation upon encountering two declarations of an
-intrinsic (non-member) function in the same block scope:
+The front end aborted compilation upon encountering two declarations of a
+predeclared (nonmember) function in the same block scope:
 
   void f() {
     extern void operator delete(void*);
     extern void operator delete(void*); // Used to abort here
   }
 
-This is now fixed.
-
-6/10/99  Repeated diagnostics for certain kinds of aggregate initialization
-
-The front-end occasionally went into a loop generating the same error
-message until the limit on the number of diagnostics was reached. The
-following example is such a case:
-
-  struct A { int i; } a; 
-  A aa[] = {{ a }}; // Too many braces
-
-This is now fixed.
+This is now fixed and the fix ensures that the "compiler_generated" flag
+in "a_routine" entries will be cleared if a declaration for the associated
+routine was seen in the source.  Hence this bit should not be used to
+determine whether a function is intrinsic since, presumably, a declaration
+of an intrinsic in the source does not make that function nonintrinsic.
 
 6/10/99   Abort on use of a template parameter in a pointer-to-member type
 
