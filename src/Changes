@@ -1,5 +1,20 @@
 Version 3.3
 
+6/13/03  Microsoft compatibility: spurious typename warning
+
+A change introduced in version 3.2 could result in a spurious "typename
+may only be used within a template" warning in Microsoft mode.  This
+has been fixed.
+
+  template<class T> struct A {
+    typedef int X;
+    static X i;
+  };
+  template <class T> typename A<T>::X A<T>::i = (typename A<T>::X)(0);
+  int main() {
+    return A<int>::i;
+  }
+
 6/13/03  C99 STDC floating-point pragmas recorded for local block scopes
 
 The C99 STDC pragmas had been incorrectly labeled as "global"

@@ -1707,6 +1707,7 @@ the scope being pushed.
   ssep->explicitly_declared_namespace_extension = FALSE;
   ssep->microsoft_specialization_instantiation_scope =
                                   (options & PS_MICROSOFT_SPECIALIZATION) != 0;
+  ssep->is_instantiation_context = FALSE;
 #if USER_CONTROL_OF_STRUCT_PACKING
   ssep->pragma_pack_is_local     = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -1901,6 +1902,12 @@ the scope being pushed.
       ssep->in_class_specialization |= (ssep-1)->in_class_specialization;
     }  /* if */
     if (kind == (a_scope_kind)sck_template_instantiation) {
+      /* is_instantiation_context is TRUE for all instantiation scopes except
+         for Microsoft specialization scopes that are not enclosed by other
+         instantiation scopes. */
+      ssep->is_instantiation_context =
+                       depth_innermost_instantiation_scope != NO_SCOPE_DEPTH ||
+                       !ssep->microsoft_specialization_instantiation_scope;
       /* Save the depth of the innermost instantiation scope. */
       depth_innermost_instantiation_scope = depth_scope_stack;
       /* Update the symbols of the template parameters to represent the

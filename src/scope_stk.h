@@ -393,6 +393,12 @@ typedef struct a_scope_stack_entry {
 			   which permits the body of a class specialization to
 			   reference template parameters of the template.  This
 			   is also used in Sun mode. */
+  a_bit_field	is_instantiation_context:1;
+			/* TRUE for an sck_template_instantiation scope that
+			   should be considered to be an instantiation context.
+			   This is true for most instantiation scopes, but not
+			   for Microsoft specialization scopes that are not
+			   enclosed by an instantiation scope. */
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_bit_field	pragma_pack_is_local:1;
 			/* TRUE for an sck_function scope of a routine in
@@ -917,9 +923,7 @@ instantiation scope pushed for specializations in Microsoft and Sun modes.
 */
 #define is_nonspecialized_instantiation_context()			\
   (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&		\
-   (!use_microsoft_specialization_scope ||				\
-    !scope_stack[depth_innermost_instantiation_scope].			\
-                                microsoft_specialization_instantiation_scope))
+   scope_stack[depth_innermost_instantiation_scope].is_instantiation_context)
 
 /*
 TRUE if we are in a template declaration scope or any kind of instantiation
