@@ -1515,7 +1515,7 @@ The lowered type is given the name indicated by "name".
     im_type->variant.typeref.type = float_type(kind);
     im_type->source_corresp.name = alloc_il(strlen(name)+1);
     strcpy(im_type->source_corresp.name, name);
-    add_to_types_list(im_type, DEPTH_OF_FILE_SCOPE);
+    add_to_front_of_file_scope_types_list(im_type);
   }  /* if */
 }  /* lower_c99_imaginary_type */
 
