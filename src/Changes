@@ -9,7 +9,7 @@ a parenthesized member declarator.  For example:
     void (__attribute__((stdcall)) *pf)();
   };
 
-12/1/02   Microsoft property fields, reference types
+12/1/02  Microsoft property fields, reference types
 
 Microsoft property fields did not work quite right when the "get"
 function returns a reference type.  The result of a reference to
@@ -20,7 +20,7 @@ caused a spurious warning about the class having no constructor
 to initialize the reference field.  That warning is no longer
 issued.
 
-12/1/02   End position on some function expressions
+12/1/02  End position on some function expressions
 
 The end positions (maintained when EXTRA_SOURCE_POSITIONS_IN_IL is
 TRUE, which is not the default) on some expression nodes relating
@@ -36,7 +36,7 @@ not set (they remained [0,0]).  They are now set.
     g().f();
   }
 
-11/27/02  Spurious error on return statement in Microsoft mode templates
+11/27/02 Spurious error on return statement in Microsoft mode templates
 
 In Microsoft C++ mode with prototype instantiations of function templates
 enabled (option --parse_templates), return statements of functions with
@@ -48,14 +48,14 @@ dependent return types elicited spurious errors.  For example:
 
 This is now fixed.
 
-11/26/02  Small optimization in IL lowering of temp-initialization
+11/26/02 Small optimization in IL lowering of temp-initialization
 
 The case of an indirection over a cast over an enk_temp_init, where
 the cast only adjusts cv-qualifiers that will be dropped anyway
 because the result is an rvalue in C, is now optimized in IL
 lowering to avoid generation of an extra copy.
 
-11/26/02  Support for instantiate-as-used template model
+11/26/02 Support for instantiate-as-used template model
 
 We've added some new configuration macros that make it easier to
 implement a template instantiation model in which all templates
@@ -68,7 +68,7 @@ is used, C compiler support.  See
   INSTANTIATE_TEMPLATES_EVERYWHERE_USED
   DEFAULT_INSTANTIATION_MODE
 
-11/26/02  IL write-read error on extern "C" redeclaration
+11/26/02 IL write-read error on extern "C" redeclaration
 
 In configurations with IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE, the front
 end sometimes aborted with an IL write-read error if an extern "C" function
@@ -96,7 +96,7 @@ the C-generating back end, but this behavior was selected to provide the
 best result for most users.  fp_to_string in float_pt.c can be modified
 if different behavior is desired.
 
-11/24/02  End position wrong on expression for "new"
+11/24/02 End position wrong on expression for "new"
 
 The end position (maintained when EXTRA_SOURCE_POSITIONS_IN_IL is
 TRUE) on a "new" expression for a class type was wrong when the
@@ -112,8 +112,8 @@ of a default argument expression.  Now fixed.
     return 0;
   }
 
-11/24/02  Microsoft compatibility: overload resolution, reference-to-
-          pointer parameter, pointer argument with different cv-qualifiers
+11/24/02 Microsoft compatibility: overload resolution, reference-to-
+         pointer parameter, pointer argument with different cv-qualifiers
 
 In Microsoft bugs mode, overload resolution now allows a non-const
 reference to a pointer type to bind to a pointer argument even when
@@ -128,7 +128,7 @@ but overload resolution was not aware of that relaxation.
     a(p);   // Now accepted in Microsoft bugs mode.
   }
 
-11/21/02  Spurious error of template friend declaration
+11/21/02 Spurious error of template friend declaration
 
 A spurious error could result when a friend declaration referred to
 a member template of a non-template class.  This has been fixed.
@@ -142,7 +142,7 @@ a member template of a non-template class.  This has been fixed.
 
   A<int> a;
 
-11/20/02  GNU compatibility: Typeof syntax ambiguities
+11/20/02 GNU compatibility: Typeof syntax ambiguities
 
 In GNU mode, expression-vs-declaration ambiguities used to lead to syntax
 errors for some uses of the GNU typeof operator.  For example:
@@ -153,7 +153,7 @@ errors for some uses of the GNU typeof operator.  For example:
 
 This is now fixed.
 
-11/20/02  GNU C++ compatibility: Type definitions allowed in cast expressions
+11/20/02 GNU C++ compatibility: Type definitions allowed in cast expressions
 
 In GNU C++ mode, the front end now allows type definitions in cast
 expressions.  For example:
@@ -162,8 +162,8 @@ expressions.  For example:
     (struct { int *p; }*)p;  // Accepted in GNU C++ mode; error in other
   }                          // C++ modes.
 
-11/19/02  GNU C++ compatibility: template argument list following
-          constructor name
+11/19/02 GNU C++ compatibility: template argument list following
+         constructor name
 
 g++ permits a template argument list to appear following a constructor name
 in a constructor definition that appears outside of the class.  This is now
