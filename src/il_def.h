@@ -2014,10 +2014,14 @@ enum a_type_kind_tag {
   tk_integer,           /* All integral types, including enum. */
   tk_enum = tk_integer, /* Synonym for tk_integer. */
   tk_float,             /* All float types. */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  tk_imaginary,         /* C99 imaginary types. */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
   tk_complex,           /* Complex (C99 and Fortran).  Must have the same
                            layout as an array of two reals of the appropriate
                            size. */
-  tk_imaginary,         /* C99 imaginary types. */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
   tk_pointer,           /* Pointer type. */
 #ifdef CIL
 			/* Also used for reference in C++. */
@@ -2039,6 +2043,7 @@ enum a_type_kind_tag {
 			   declaration (C++ front end only, except when
 			   prototype instantiations are passed to a
 			   back end). */
+#ifdef FIL
   /* Fortran-only types. */
   tk_fcharacter,        /* Fortran character. */
   tk_hollerith,         /* Hollerith constant.  Only used for actual
@@ -2054,6 +2059,7 @@ enum a_type_kind_tag {
                            or a standard type (function). */
   tk_blockdata,         /* A pseudo-routine representing a BLOCK DATA
                            subprogram. */
+#endif /* ifdef FIL */
   tk_unknown            /* Unknown. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
