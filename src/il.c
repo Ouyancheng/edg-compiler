@@ -8570,6 +8570,10 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
       drop_from_file_scope_source_sequence_list(
                                   tp->source_corresp.source_sequence_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      if (is_immediate_class_type(tp)) {
+        tp->variant.class_struct_union.field_list = NULL;
+        tp->variant.class_struct_union.extra_info = NULL;
+      }  /* if */
     } else {
       prev_tp = tp;
 #if DEBUG
@@ -8657,107 +8661,6 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if ORPHAN_PROCESSING_NEEDED
-  if (scope->kind == (a_scope_kind)sck_file) {
-    an_orphaned_il_entry_list *orphan_header;
-    /* Remove unneeded routine entries from the orphan list. */
-    orphan_header = &orphaned_file_scope_il_entries[(int)iek_routine];
-    prev_rp = NULL;
-    for (rp = (a_routine_ptr)orphan_header->first_entry;
-         rp != NULL;
-         rp = next_rp) {
-      next_rp = (a_routine_ptr)(fs_orphan_pointer_of(rp));
-      if (!rp->source_corresp.needed) {
-#if DEBUG
-        if (debug_level >= 4) {
-          fputs("Removing orphaned routine ", f_debug);
-          db_name(&rp->source_corresp);
-          fputc('\n', f_debug);
-        }  /* if */
-#endif /* DEBUG */
-        if (prev_rp == NULL) {
-          orphan_header->first_entry = (char *)next_rp;
-        } else {
-          fs_orphan_pointer_of(prev_rp) = (char *)next_rp;
-        }  /* if */
-        fs_orphan_pointer_of(rp) = NULL;
-      } else {
-        prev_rp = rp;
-#if DEBUG
-        if (debug_level >= 4) {
-          fputs("Not removing orphaned routine ", f_debug);
-          db_name(&rp->source_corresp);
-          fputc('\n', f_debug);
-        }  /* if */
-#endif /* DEBUG */
-      }  /* if */
-    }  /* for */
-    /* Remove unneeded variable entries from the orphan list. */
-    orphan_header = &orphaned_file_scope_il_entries[(int)iek_variable];
-    prev_vp = NULL;
-    for (vp = (a_variable_ptr)orphan_header->first_entry;
-         vp != NULL;
-         vp = next_vp) {
-      next_vp = (a_variable_ptr)(fs_orphan_pointer_of(vp));
-      if (!vp->source_corresp.needed) {
-#if DEBUG
-        if (debug_level >= 4) {
-          fputs("Removing orphaned variable ", f_debug);
-          db_name(&vp->source_corresp);
-          fputc('\n', f_debug);
-        }  /* if */
-#endif /* DEBUG */
-        if (prev_vp == NULL) {
-          orphan_header->first_entry = (char *)next_vp;
-        } else {
-          fs_orphan_pointer_of(prev_vp) = (char *)next_vp;
-        }  /* if */
-        fs_orphan_pointer_of(vp) = NULL;
-      } else {
-        prev_vp = vp;
-#if DEBUG
-        if (debug_level >= 4) {
-          fputs("Not removing orphaned variable ", f_debug);
-          db_name(&vp->source_corresp);
-          fputc('\n', f_debug);
-        }  /* if */
-#endif /* DEBUG */
-      }  /* if */
-    }  /* for */
-    /* Remove unneeded type entries from the orphan list. */
-    orphan_header = &orphaned_file_scope_il_entries[(int)iek_type];
-    prev_tp = NULL;
-    for (tp = (a_type_ptr)orphan_header->first_entry;
-         tp != NULL;
-         tp = next_tp) {
-      next_tp = (a_type_ptr)(fs_orphan_pointer_of(tp));
-      if (!tp->source_corresp.needed) {
-#if DEBUG
-        if (debug_level >= 4) {
-          fputs("Removing orphaned type ", f_debug);
-          db_abbreviated_type(tp);
-          fputc('\n', f_debug);
-        }  /* if */
-#endif /* DEBUG */
-        if (prev_tp == NULL) {
-          orphan_header->first_entry = (char *)next_tp;
-        } else {
-          fs_orphan_pointer_of(prev_tp) = (char *)next_tp;
-        }  /* if */
-        fs_orphan_pointer_of(tp) = NULL;
-      } else {
-        prev_tp = tp;
-#if DEBUG
-        if (debug_level >= 4) {
-          fputs("Not removing orphaned type ", f_debug);
-          db_abbreviated_type(tp);
-          fputc('\n', f_debug);
-        }  /* if */
-#endif /* DEBUG */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-#endif /* ORPHAN_PROCESSING_NEEDED */
   db_exit();
 }  /* eliminate_unneeded_il_entries */
 
