@@ -57,7 +57,7 @@ Now fixed.
 12/8/01  Abort on unreachable code at end of destructor
 
 The front end aborted in some cases on a destructor that has unreachable
-code at the end or the top-level block.  Now fixed.
+code at the end of the top-level block.  Now fixed.
 
   struct B {
     ~B() { throw 1; {} }
