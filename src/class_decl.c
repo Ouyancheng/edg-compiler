@@ -4327,8 +4327,12 @@ static a_boolean is_anonymous_union_decl(a_type_ptr       member_type,
         }  /* if */
       }  /* if */
       if (is_anonymous_union) {
-        /* Issue a diagnostic that this is an extension. */
-        warning(ec_nonstd_unnamed_field);
+        tp->variant.class_struct_union.extra_info->anonymous_union_kind ==
+                               (an_anonymous_union_kind)auk_nonstandard_field;
+        if (strict_ansi_mode) {
+          /* Issue a diagnostic that this is an extension. */
+          diagnostic(strict_ansi_error_severity, ec_nonstd_unnamed_field);
+        }  /* if */
       }  /* if */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     }  /* if */

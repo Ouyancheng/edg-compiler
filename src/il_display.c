@@ -2732,6 +2732,9 @@ Display the indicated class type supplement entry.
         (void)printf("auk_field\n");
         disp_ptr("field", (char *)ptr->anonymous_union_field, iek_field);
         break;
+      case auk_nonstandard_field:
+        (void)printf("auk_nonstandard_field\n");
+        break;
       default:
         (void)printf("**BAD ANONYMOUS UNION KIND**\n");
     }  /* switch */
