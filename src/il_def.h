@@ -3048,11 +3048,20 @@ typedef struct a_constructor_init {
 #endif /* ifdef CIL */
 #if ORPHAN_PROCESSING_NEEDED
 
+/*
+Entry used to hold pointers to lists of orphaned IL type and variable
+entries.  These are local types and variables for function and block
+scopes, which are allocated in the file scope memory region but pointed
+to from the function or block scope a_scope entry.  When the function
+scope memory region has been processed and removed from memory, the
+types and variables in the file scope memory region are "orphaned" --
+their parents have been deleted, and the orphans are not otherwise
+attached to the file scope memory region.  The list of orphaned lists
+allows one to find the orphans when processing the file scope memory
+region.
+*/
 typedef struct an_orphaned_il_list *an_orphaned_il_list_ptr;
 typedef struct an_orphaned_il_list {
-  /* IL entry which points to the beginning of the list of local types and
-     static variables for a function scope.  These type and variable IL
-     entries will have been allocated in the file scope memory region. */
   a_type_ptr	orphaned_types;
 			/* Pointer to the orphaned file scope IL type entry
 			   list for a function scope. */
@@ -3339,10 +3348,10 @@ EXTERN struct il_header {
 #if ORPHAN_PROCESSING_NEEDED
   an_orphaned_il_list_ptr
 		orphaned_il_list;
-			/* Pointer to the first, if any, orphaned file scope IL
-			   entry list (local types and local static variables
-			   lists) which will need their "next" pointers
-			   specifically updated when pointers are remapped. */
+			/* Pointer to a list of entries that point to lists
+			   of "orphaned" file scope IL entries -- entries
+			   whose parents are in a function scope memory
+			   region.  */
 #endif /* ORPHAN_PROCESSING_NEEDED */
   a_source_language
                 source_language;
