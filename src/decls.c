@@ -6052,7 +6052,7 @@ return a pointer to it in *symbol_ptr.
     /* This name already exists in the current scope.  C++ allows a
        redefinition of the typedef with the same type, and we allow that
        also in C.  See if this is a redefinition. */
-    sym = locator->specific_symbol;
+    sym = fundamental_symbol_of(locator->specific_symbol);
     if (sym->kind == (a_symbol_kind)sk_type ||
         (C_dialect == C_dialect_cplusplus && is_type_symbol(sym))) {
       /* sym is a type name symbol from the current scope.  Issue an error

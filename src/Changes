@@ -1,5 +1,16 @@
 Version 2.43
 
+10/15/99 Typedef redeclaration of a type reintroduced with a using-declaration
+
+The front end now allows a typedef redeclaration of a type name that was
+already reintroduced with a using declaration, provided the redeclaration is
+benign (i.e., it declares the same type).
+
+  typedef int I;
+  namespace N { typedef int I; }
+  using N::I;
+  typedef int I;  // No longer an error
+
 10/15/99 Microsoft compatibility: inline on block-extern declarations
 
 In Microsoft bugs mode, the front end now accepts the inline specifier on
