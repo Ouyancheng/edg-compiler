@@ -13653,7 +13653,8 @@ see expr.h).
 #if GNU_EXTENSIONS_ALLOWED
     case tok_null:
       { a_constant  null_constant;
-        make_zero_of_proper_type(integer_type(ik_int), &null_constant);
+        make_zero_of_proper_type(integer_type((an_integer_kind)ik_int),
+                                 &null_constant);
         make_constant_operand(&null_constant, &local_result);
         local_result.variant.constant.null_keyword = TRUE;
       }
