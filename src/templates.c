@@ -17998,9 +17998,11 @@ before the per-translation unit processing can be done.
 */
 {
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  /* Read the exported template files to determine the translation units
-     that can be used to define the exported templates that are used. */
-  find_exported_template_files();
+  if (export_template_allowed) {
+    /* Read the exported template files to determine the translation units
+       that can be used to define the exported templates that are used. */
+    find_exported_template_files();
+  }  /* if */
   /* Create the file name of the template information file and template
      request file.  This may be used to create the files or to remove them
      if no template entities exist. */
