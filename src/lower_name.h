@@ -37,7 +37,7 @@ extern sizeof_t mangled_class_name(a_type_ptr type,
 
 extern sizeof_t mangled_vtbl_name(a_type_ptr       class_type,
                                   a_base_class_ptr bcp,
-                                  a_type_ptr       complete_class_type,
+                                  a_base_class_ptr ctor_bcp,
                                   char             *store_at);
 
 extern sizeof_t mangled_typeinfo_name(a_type_ptr type,

@@ -3216,20 +3216,21 @@ constants in other scopes.
 }  /* lower_os_constant */
 
 
-a_variable_ptr make_var_for_virtual_function_table(
-                                          a_type_ptr       class_type,
-                                          a_base_class_ptr bcp,
-                                          a_type_ptr       complete_class_type)
+a_variable_ptr make_var_for_virtual_function_table(a_type_ptr       class_type,
+                                                   a_base_class_ptr bcp,
+                                                   a_base_class_ptr ctor_bcp)
 /*
 Create the variable to contain the virtual function table for base class bcp
 when it appears in a complete object of type class_type.  If bcp is NULL,
 create the variable for the virtual function table for the class_type itself.
-If complete_class_type is non-NULL, it is the actual complete object type
-(used to determine layout) and class_type and bcp->derived_class are the
-class type assumed during a constructor or destructor (used to determine
-overriding).  The variable is an array of structs, each of which describes
-one virtual function.  At this point, the variable is created as an extern
-variable.  It might be changed later to add a definition.
+If ctor_bcp is non-NULL, it is the base class for class_type as a subobject
+of some larger class type that is the actual complete object type (used
+in determining layout); class_type in that case is the type considered
+to be the complete object type for purposes of overriding (this is used
+during constructors and destructors).  The variable is an array of structs,
+each of which describes one virtual function.  At this point, the variable
+is created as an extern variable.  It might be changed later to add a
+definition.
 */
 {
   a_type_ptr     array_type;
@@ -3264,13 +3265,13 @@ variable.  It might be changed later to add a definition.
        __vtbl__<mangled-base-class-name>__<mangled-class-name> or
        __vtbl__<mangled-class-name>
   */
-  mangled_name_length = mangled_vtbl_name(class_type, bcp, complete_class_type,
+  mangled_name_length = mangled_vtbl_name(class_type, bcp, ctor_bcp,
                                           (char *)NULL);
   /* Allocate space for the mangled name, including the final null. */
   alloc_length = mangled_name_length + 1;
   mangled_name = alloc_lowered_name_string(alloc_length);
   /* Build the mangled name. */
-  (void)mangled_vtbl_name(class_type, bcp, complete_class_type, mangled_name);
+  (void)mangled_vtbl_name(class_type, bcp, ctor_bcp, mangled_name);
   mangled_name[mangled_name_length] = '\0';
   /* Note that the variable is made with extern storage class; it might
      be changed to internal linkage later, but the name linkage in the
@@ -3298,8 +3299,7 @@ have_vtbl_var:;
     a_class_type_supplement_ptr ctsp =
                              class_type->variant.class_struct_union.extra_info;
     ctsp->virtual_function_table_var = vtbl_var;
-  } else if (complete_class_type != NULL &&
-             complete_class_type != bcp->derived_class) {
+  } else if (ctor_bcp != NULL) {
     /* This is a special virtual function table that gets recorded elsewhere,
        not in the base class entry. */
   } else {
@@ -3557,7 +3557,7 @@ index number of the first entry, or 0 if no entries were created.
             vtbl_var =
                     make_var_for_virtual_function_table(sub_bcp->derived_class,
                                                         sub_bcp,
-                                                        bcp->derived_class);
+                                                        bcp);
 have_vtbl_var:;
           }  /* if */
           cvp->virtual_function_table_var = vtbl_var;
@@ -3651,7 +3651,7 @@ class_type if any are needed and if they have not already been generated.
            itself. */
         (void)make_var_for_virtual_function_table(class_type,
                                                   (a_base_class_ptr)NULL,
-                                                  (a_type_ptr)NULL);
+                                                  (a_base_class_ptr)NULL);
       }  /* if */
     }  /* if */
     /* Generate the virtual function table for each base class when it
@@ -3663,7 +3663,7 @@ class_type if any are needed and if they have not already been generated.
       if (base_class_needs_virtual_function_table(bcp, class_type)) {
         if (bcp->virtual_function_table_var == NULL) {
           (void)make_var_for_virtual_function_table(class_type, bcp,
-                                                    (a_type_ptr)NULL);
+                                                    (a_base_class_ptr)NULL);
         }  /* if */
       }  /* if */
     }  /* for */
@@ -4367,7 +4367,7 @@ put out the virtual function table.
 
 
 #if !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
-/*ARGSUSED*/ /* <-- complete_class_type is not used in this mode. */
+/*ARGSUSED*/ /* <-- ctor_bcp is not used in this mode. */
 #endif /* !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 static void define_one_virtual_function_table(
                                           a_type_ptr       class_type,
