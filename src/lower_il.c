@@ -411,6 +411,13 @@ static void gen_required_destructor_calls(
                                         a_scope_ptr            outer_scope,
                                         an_insert_location_ptr insert_location,
                                         a_boolean              make_block);
+static void repr_for_ptr_to_data_member_constant(a_constant_ptr   constant, 
+                                                 a_targ_ptrdiff_t *delta);
+static void repr_for_ptr_to_member_function_constant(a_constant_ptr   constant,
+                                                     a_targ_ptrdiff_t *delta,
+                                                     a_targ_ptrdiff_t *index,
+                                                     a_routine_ptr    *func,
+                                                     a_targ_ptrdiff_t *offset);
 
 
 
@@ -2584,22 +2591,13 @@ length of the encoding.  See ARM 7.2.1c for name encoding.
 {
   sizeof_t                      mangled_name_length, section_length;
   a_routine_type_supplement_ptr rtsp;
-  a_type_ptr                    this_param_type, class_type;
   a_param_type_ptr              param, existing_param;
   unsigned long                 existing_param_num, num_matching_types;
   sizeof_t                      digits;
 
   /* A mangled function type encoding is made up of:
-       (1)  If the function is a member function, the name of the
-            class pointed to, followed by
-              (a) if the function is nonstatic, "C", "V", or "CV" if there
-                  are type qualifiers on the "this" parameter type, or
-              (b) if the function is static, "S".  This second case can't
-                  actually be handled in this routine (we can't tell if
-                  something is a static member function); it's handled
-                  in mangled_function_name.
-       (2)  "F"
-       (3)  For each parameter, the encoding for the type.  If a parameter
+       (1)  "F"
+       (2)  For each parameter, the encoding for the type.  If a parameter
             has a type that has appeared already in the parameter list,
             "Tn" is used to repeat the type of parameter "n" ("n" can be
             a multi-digit number; the first parameter is numbered 1).
@@ -2608,30 +2606,12 @@ length of the encoding.  See ARM 7.2.1c for name encoding.
             type of parameter "n" ("n" is as for "Tn"; "m" is a one-digit
             number, so a maximum of 9 repetitions is possible).
             If the parameter list is empty, "v" for "void".
-       (4)  If the parameter list ends with an ellipsis, "e".
+       (3)  If the parameter list ends with an ellipsis, "e".
+     mangled_function_name takes care of putting out additional information
+     preceding the "F" if the function is a member function.
   */
   mangled_name_length = 0;
   rtsp = type->variant.routine.extra_info;
-  this_param_type = rtsp->implicit_this_param_type;
-  if (this_param_type != NULL) {
-    /* The function is a nonstatic member function. */
-    this_param_type = type_pointed_to(this_param_type);
-    class_type = skip_typerefs(this_param_type);
-    /* Start with the name of the class of which this function is a member. */
-    section_length = mangled_encoding_for_type(class_type, store_at);
-    mangled_name_length += section_length;
-    if (store_at != NULL) store_at += section_length;
-    /* Add any qualifiers on the "this" parameter type (actually, the type
-       pointed to by the "this" parameter). */
-    if (is_const_qualified_type(this_param_type)) {
-      mangled_name_length++;
-      if (store_at != NULL) *store_at++ = 'C';
-    }  /* if */
-    if (is_volatile_qualified_type(this_param_type)) {
-      mangled_name_length++;
-      if (store_at != NULL) *store_at++ = 'V';
-    }  /* if */
-  }  /* if */
   /* Add the "F" indicating a function type. */
   mangled_name_length++;
   if (store_at != NULL) *store_at++ = 'F';
@@ -2715,6 +2695,7 @@ used to encode constants as part of the mangled names of template classes.
                  abkind;
   a_targ_ptrdiff_t
                  offset;
+  char           buffer[50];
 
   switch (con->kind) {
     case ck_integer:
@@ -2865,7 +2846,6 @@ used to encode constants as part of the mangled names of template classes.
          for -12. */
       offset = con->variant.address.offset;
       if (offset != 0) {
-        char buffer[50];
         (void)sprintf(buffer, "%ld", (long)offset);
         str = buffer;
         str_length = strlen(str);  /* Includes "-" sign if any. */
@@ -2879,6 +2859,113 @@ used to encode constants as part of the mangled names of template classes.
           /* Use "n" to represent a minus sign. */
           if (*store_at == '-') *store_at = 'n';
           store_at += str_length;
+        }  /* if */
+      }  /* if */
+      break;
+    case ck_ptr_to_member:
+      /* Pointer to member:
+         For pointers to data members, the offset value encoded as
+         an integer:
+           L212  <--- encoding for an offset of "12"
+             ^^------ literal value
+            ^-------- Length of the literal.
+           ^--------- "L" indicates a number.
+         For pointers to member functions, the __mptr triplet of
+         values (delta, index, function or offset), encoded as follows:
+           LM0_L2n1_1j
+                    ^^- function name, or alternatively the offset value.
+                        (e.g., LM0_L2n1_4)
+               ^^^^---- index value, encoded as an integer
+             ^--------- delta value
+           ^^---------- "LM" indicates a pointer to member function
+         This is compatible with cfront 3.0.1.  Note that cfront always
+         seems to put out "0" for the offset value, even when another
+         value seems right. */
+      if (!con->variant.ptr_to_member.is_function_ptr) {
+        /* Pointer to data member. */
+        a_targ_ptrdiff_t delta;
+        repr_for_ptr_to_data_member_constant(con, &delta);
+        (void)sprintf(buffer, "%ld", (long)delta);
+        str = buffer;
+        str_length = strlen(str);  /* Includes "-" sign if any. */
+        digits = digits_to_represent((unsigned long)str_length);
+        literal_length = 1 + digits + str_length;
+        if (store_at != NULL) {
+          *store_at++ = 'L';
+          (void)sprintf(store_at, "%lu", (unsigned long)str_length);
+          store_at += digits;
+          (void)memcpy(store_at, str, (int)str_length);
+          /* Use "n" to represent a minus sign. */
+          if (*store_at == '-') *store_at = 'n';
+          store_at += str_length;
+        }  /* if */
+      } else {
+        /* Pointer to member function. */
+        a_targ_ptrdiff_t delta, index, offset;
+        a_routine_ptr    func;
+        repr_for_ptr_to_member_function_constant(con, &delta, &index, &func,
+                                                 &offset);
+        literal_length = 2;  /* "LM" */
+        if (store_at != NULL) {
+          *store_at++ = 'L';
+          *store_at++ = 'M';
+        }  /* if */
+        /* Delta value. */
+        (void)sprintf(buffer, "%ld", (long)delta);
+        str = buffer;
+        str_length = strlen(str);  /* Includes "-" sign if any. */
+        literal_length += str_length;
+        if (store_at != NULL) {
+          (void)memcpy(store_at, str, (int)str_length);
+          /* Use "n" to represent a minus sign. */
+          if (*store_at == '-') *store_at = 'n';
+          store_at += str_length;
+        }  /* if */
+        /* Index value. */
+        (void)sprintf(buffer, "%ld", (long)index);
+        str = buffer;
+        str_length = strlen(str);  /* Includes "-" sign if any. */
+        digits = digits_to_represent((unsigned long)str_length);
+        literal_length += 2 + digits + str_length + 1;
+        if (store_at != NULL) {
+          *store_at++ = '_';
+          *store_at++ = 'L';
+          (void)sprintf(store_at, "%lu", (unsigned long)str_length);
+          store_at += digits;
+          (void)memcpy(store_at, str, (int)str_length);
+          /* Use "n" to represent a minus sign. */
+          if (*store_at == '-') *store_at = 'n';
+          store_at += str_length;
+          *store_at++ = '_';
+        }  /* if */
+        if (func != NULL) {
+          /* Name of function.  Note that this is the unmangled name. */
+          str = func->source_corresp.name;
+          /* Determine the size of the name.  Stop on two underscores. */
+          for (str_length = 0;
+               str[str_length] != '\0' &&
+                 (str[str_length] != '_' || str[str_length+1] != '_');
+               str_length++) {}
+          digits = digits_to_represent((unsigned long)str_length);
+          literal_length += digits + str_length;
+          if (store_at != NULL) {
+            (void)sprintf(store_at, "%lu", (unsigned long)str_length);
+            store_at += digits;
+            (void)memcpy(store_at, str, (int)str_length);
+            store_at += str_length;
+          }  /* if */
+        } else {
+          /* Offset. */
+          (void)sprintf(buffer, "%ld", (long)offset);
+          str = buffer;
+          str_length = strlen(str);  /* Includes "-" sign if any. */
+          literal_length += str_length;
+          if (store_at != NULL) {
+            (void)memcpy(store_at, str, (int)str_length);
+            /* Use "n" to represent a minus sign. */
+            if (*store_at == '-') *store_at = 'n';
+            store_at += str_length;
+          }  /* if */
         }  /* if */
       }  /* if */
       break;
@@ -3474,15 +3561,18 @@ types; just put out the base encoded name.
 {
   sizeof_t     mangled_name_length, section_length;
   char         *name;
-  a_type_ptr   class_type, conversion_type, routine_type;
+  a_type_ptr   class_type, conversion_type, routine_type, this_param_type;
 
   /* Most of the processing is done in mangled_encoding_for_function_type,
      but this routine handles:
        (1)  The output of the name of the function, followed by "__".
             For special member functions, a special name is used, e.g.,
             "__ct" for constructors.
-       (2)  For static member functions, output of the class name followed
-            by "S".
+       (2)  If the function is a member function, the name of the
+            class pointed to, followed by
+              (a) if the function is nonstatic, "C", "V", or "CV" if there
+                  are type qualifiers on the "this" parameter type, or
+              (b) if the function is static, "S".
      mangled_encoding_for_function_type is then called to do the rest of the
      processing.
   */
@@ -3539,16 +3629,32 @@ types; just put out the base encoded name.
       *store_at++ = '_';
       *store_at++ = '_';
     }  /* if */
-    /* See if the function is a static member function. */
+    /* See if the function is a member function. */
     class_type = routine->source_corresp.class_of_which_a_member;
-    if (class_type != NULL &&
-        !routine_type_is_nonstatic_member_function(routine_type)) {
-      /* Output the mangled class name followed by "S". */
+    if (class_type != NULL) {
+      /* Put out the name of the class of which this function is a member. */
       section_length = mangled_encoding_for_type(class_type, store_at);
-      mangled_name_length += section_length + 1;
-      if (store_at != NULL) {
-        store_at += section_length;
-        *store_at++ = 'S';
+      mangled_name_length += section_length;
+      if (store_at != NULL) store_at += section_length;
+      this_param_type = routine_type->variant.routine.extra_info->
+                                                      implicit_this_param_type;
+      if (this_param_type != NULL) {
+        /* The function is a nonstatic member function. */
+        this_param_type = type_pointed_to(this_param_type);
+        /* Add any qualifiers on the "this" parameter type (actually, the type
+           pointed to by the "this" parameter). */
+        if (is_const_qualified_type(this_param_type)) {
+          mangled_name_length++;
+          if (store_at != NULL) *store_at++ = 'C';
+        }  /* if */
+        if (is_volatile_qualified_type(this_param_type)) {
+          mangled_name_length++;
+          if (store_at != NULL) *store_at++ = 'V';
+        }  /* if */
+      } else {
+        /* Static member function. */
+        mangled_name_length += 1;
+        if (store_at != NULL) *store_at++ = 'S';
       }  /* if */
     }  /* if */
     /* Now output the function type. */
