@@ -2403,24 +2403,6 @@ them up one level.
 }  /* remove_anonymous_union_member_from_inactive_symbols_list */
 
 
-static a_boolean overload_set_contains_function_template(a_symbol_ptr  sym)
-/*
-*/
-{
-  a_boolean  found = FALSE;
-
-  check_assertion(sym->kind == (a_symbol_kind)sk_overloaded_function);
-  sym = sym->variant.overloaded_function.symbols;
-  for (; sym != NULL; sym = sym->next) {
-    if (sym->kind == (a_symbol_kind)sk_function_template) {
-      found = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  return found;
-}  /* overload_set_contains_function_template */
-
-
 static a_boolean is_using_decl_to_same_type(a_symbol_ptr	sym1,
 					    a_symbol_ptr	sym2)
 /*
@@ -2527,7 +2509,7 @@ this is not allowed, an error will be issued by the caller.
           (is_template_symbol(fund_new_sym) ||
            is_template_symbol(fund_old_sym) ||
            (fund_old_sym->kind == (a_symbol_kind)sk_overloaded_function &&
-            overload_set_contains_function_template(fund_old_sym)))) {
+            overload_set_contains_template(fund_old_sym)))) {
         /* In strict mode a template name must be unique in its scope.  It
            can be part of an overload set, but otherwise there can be no
            declaration of the same name. */
