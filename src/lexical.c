@@ -879,7 +879,7 @@ be copies to the new cache.
 void cache_token_stream(a_token_cache      *cache,
                         a_token_set_array  stop_tokens)
 /*
-Interface to cache_token_stream_with_coalasce_flag that does not
+Interface to cache_token_stream_with_coalesce_flag that does not
 cause identifiers to be coalesced.
 */
 {
@@ -893,7 +893,7 @@ void cache_token_stream_coalesce_identifiers(a_token_cache_ptr  cache,
                                              a_token_set_array  stop_tokens,
                                              a_token_cache_ptr	src_cache)
 /*
-Interface to cache_token_stream_with_coalasce_flag that causes
+Interface to cache_token_stream_with_coalesce_flag that causes
 identifiers to be coalesced.
 */
 {
