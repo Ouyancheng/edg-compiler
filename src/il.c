@@ -162,6 +162,12 @@ static a_template_arg_ptr
 			/* List of freed template arg entries that are
 			   available for reuse. */
 
+/* Static variable and macro for quickly initializing the source_corresp
+   field of an IL entry to default values. */
+static a_source_correspondence
+		def_source_corresp;
+#define set_default_source_corresp(sc) (sc) = def_source_corresp;
+
 
 /* Forward declarations needed because of mutual recursion: */
 static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr dip);
@@ -1920,37 +1926,6 @@ to by ssep.
 }  /* add_to_scopes_list */
 
 
-static void set_default_source_corresp(a_source_correspondence *sc)
-/*
-Set the given source correspondence struct to default values.
-*/
-{
-  sc->assoc_info              = NULL;
-  sc->name                    = NULL;
-  sc->class_of_which_a_member = NULL;
-  sc->decl_position.seq       = 0;
-  sc->decl_position.column    = SP_COL_UNKNOWN;
-  /* access is set to "public" because "no access restriction" is the default
-     for everything except class members.  For the latter the field must be
-     set manually. */
-  sc->access                  = (an_access_specifier)as_public;
-  /* referenced is set TRUE because so far this is an entity not associated
-     with one in the source program.  All unassociated entities are assumed
-     to be referenced (otherwise, they wouldn't be created).  This does away
-     with the difficult job of setting the referenced flag in a lot of
-     different places for unassociated entities. set_source_corresp resets
-     the flag to FALSE for associated entities, for which the flag is then
-     set to TRUE (for an actual reference) by mark_referenced. */
-  sc->referenced              = TRUE;
-  sc->name_linkage            = (a_name_linkage_kind)nlk_none;
-  sc->is_local_to_function    = FALSE;
-  sc->name_has_been_mangled   = FALSE;
-#if RECORD_SCOPE_DEPTH_IN_IL
-  sc->scope_depth             = NO_SCOPE_DEPTH;
-#endif /* RECORD_SCOPE_DEPTH_IN_IL */
-}  /* set_default_source_corresp */
-
-
 void break_source_corresp(a_source_correspondence *sc)
 /*
 If the indicated source correspondence is attached to a source entity,
@@ -2030,7 +2005,7 @@ associated variant fields to default values.
 {
   /* When changing this routine because the structure of a_constant
      has changed, be sure to change eq_constants as well. */
-  set_default_source_corresp(&(cp->source_corresp));
+  set_default_source_corresp(cp->source_corresp);
   cp->next           = NULL;
   cp->type           = NULL;
   cp->implicit_cast  = FALSE;
@@ -3142,7 +3117,7 @@ Clear the indicated type entry, set the kind as given, and set the associated
 variant fields to default values.
 */
 {
-  set_default_source_corresp(&(pte->source_corresp));
+  set_default_source_corresp(pte->source_corresp);
   pte->next = NULL;
   pte->based_types = NULL;
   pte->size = 0;
@@ -4299,7 +4274,7 @@ to it.
 #if DEBUG
   num_variables_allocated++;
 #endif /* DEBUG */
-  set_default_source_corresp(&(vp->source_corresp));
+  set_default_source_corresp(vp->source_corresp);
   vp->next                        = NULL;
   vp->type                        = NULL;
   vp->assoc_param_type            = NULL;
@@ -4476,7 +4451,7 @@ to it.
 #if DEBUG
   num_fields_allocated++;
 #endif /* DEBUG */
-  set_default_source_corresp(&(fp->source_corresp));
+  set_default_source_corresp(fp->source_corresp);
   fp->next       = NULL;
   fp->type       = NULL;
   fp->bit_offset = 0;
@@ -4502,7 +4477,7 @@ to it.  The entry is allocated in the file scope memory region.
 #if DEBUG
   num_routines_allocated++;
 #endif /* DEBUG */
-  set_default_source_corresp(&(rp->source_corresp));
+  set_default_source_corresp(rp->source_corresp);
   rp->next                    = NULL;
   rp->type                    = NULL;
   rp->assoc_scope             = NULL_region_number;
@@ -4612,7 +4587,7 @@ to it.
 #if DEBUG
   num_asm_entries_allocated++;
 #endif /* DEBUG */
-  set_default_source_corresp(&(ap->source_corresp));
+  set_default_source_corresp(ap->source_corresp);
   ap->next = NULL;
   ap->asm_string = NULL;
 
@@ -4656,7 +4631,7 @@ to it.
 #if DEBUG
   num_labels_allocated++;
 #endif /* DEBUG */
-  set_default_source_corresp(&(lp->source_corresp));
+  set_default_source_corresp(lp->source_corresp);
   lp->next = NULL;
   lp->variant.exec_stmt = NULL;
   lp->parent_block = NULL;
@@ -5903,6 +5878,32 @@ of the front end.
   il_signed_int_type = il_error_type = il_unknown_type = il_void_type = NULL;
   memzero((char *)shareable_constants_table,
           sizeof(shareable_constants_table));
+
+  /* Set the default source correspondence variable to default values. */
+  def_source_corresp.assoc_info = NULL;
+  def_source_corresp.name = NULL;
+  def_source_corresp.class_of_which_a_member = NULL;
+  def_source_corresp.decl_position.seq = 0;
+  def_source_corresp.decl_position.column = SP_COL_UNKNOWN;
+  /* access is set to "public" because "no access restriction" is the default
+     for everything except class members.  For the latter the field must be
+     set manually. */
+  def_source_corresp.access = (an_access_specifier)as_public;
+  /* referenced is set TRUE because initially the entity is not associated
+     with one in the source program.  All unassociated entities are assumed
+     to be referenced (otherwise, they wouldn't be created).  This does away
+     with the difficult job of setting the referenced flag in a lot of
+     different places for unassociated entities. set_source_corresp resets
+     the flag to FALSE for associated entities, for which the flag is then
+     set to TRUE (for an actual reference) by mark_referenced. */
+  def_source_corresp.referenced = TRUE;
+  def_source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
+  def_source_corresp.is_local_to_function = FALSE;
+  def_source_corresp.name_has_been_mangled = FALSE;
+#if RECORD_SCOPE_DEPTH_IN_IL
+  def_source_corresp.scope_depth = NO_SCOPE_DEPTH;
+#endif /* RECORD_SCOPE_DEPTH_IN_IL */
+
 #if DEBUG
   num_source_files_allocated             = 0;
   num_constants_allocated                = 0;
