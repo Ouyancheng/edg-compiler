@@ -2366,7 +2366,7 @@ be customized if additional linkage kinds are added to a_name_linkage_kind
 }  /* routine_linkages_are_identical */
 
 
-static a_boolean change_to_canonical_types(a_type_ptr  *type_1,
+static a_boolean f_change_to_canonical_types(a_type_ptr  *type_1,
                                            a_type_ptr  *type_2,
                                            a_boolean   seek_corresp)
 /*
@@ -2385,7 +2385,10 @@ In that case, type_1 will have its correspondence set to type_2.
   if (seek_corresp &&
       is_immediate_class_type(new_type_1) &&
       is_immediate_class_type(new_type_2) &&
-      !has_name(new_type_1) && !has_name(new_type_2)) {
+      (!has_name(new_type_1) ||
+       new_type_1->variant.class_struct_union.originally_unnamed) &&
+      (!has_name(new_type_2) ||
+       new_type_2->variant.class_struct_union.originally_unnamed)) {
     (void)seek_type_corresp(new_type_1, new_type_2);
   }  /* if */
   if (is_immediate_class_type(new_type_1) ||
@@ -2409,7 +2412,11 @@ In that case, type_1 will have its correspondence set to type_2.
     }  /* if */
   }  /* if */
   return changed;
-}  /* change_to_canonical_types */
+}  /* f_change_to_canonical_types */
+
+#define change_to_canonical_types(type_1, type_2, seek_corresp)          \
+  (secondary_translation_unit_seen() &&                                  \
+   f_change_to_canonical_types(type_1, type_2, seek_corresp))
 
 
 a_boolean f_identical_types(a_type_ptr      type_1,

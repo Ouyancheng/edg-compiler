@@ -1521,7 +1521,10 @@ is in fact valid.
     corresp_scp = &corresp_routine->source_corresp;
     match = verify_name_correspondence(routine);
     if (match &&
-        (!types_are_redecl_compatible(routine->type, corresp_routine->type) ||
+        (!f_types_are_compatible(routine->type, corresp_routine->type,
+                                 TCF_SEEK_CORRESP |
+                                 TCF_REDECLARATION |
+                                 TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) ||
          (!is_generated_new_or_delete_operator(routine) &&
           !is_generated_new_or_delete_operator(corresp_routine) &&
           !same_exception_spec(routine->type, corresp_routine->type)) ||
