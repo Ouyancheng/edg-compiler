@@ -1598,9 +1598,12 @@ the scope being pushed.
         depth_template_declaration_scope = depth_scope_stack;
     } else if (kind == (a_scope_kind)sck_template_instantiation) {
       /* A template instantiation.  The things outside the instantiation
-         become invisible. */
-      ssep->depth_template_declaration_scope =
-        depth_template_declaration_scope = NO_SCOPE_DEPTH;
+         become invisible.  Those scopes are visible if this is a Microsoft
+         specialization instantiation scope, however. */
+      if ((options & PS_MICROSOFT_SPECIALIZATION) == 0) {
+        ssep->depth_template_declaration_scope =
+          depth_template_declaration_scope = NO_SCOPE_DEPTH;
+      }  /* if */
     }  /* if */
     if (kind == (a_scope_kind)sck_namespace ||
         kind == (a_scope_kind)sck_namespace_extension ||
