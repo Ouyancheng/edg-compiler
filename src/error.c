@@ -3175,7 +3175,11 @@ associated with the translation unit that it is in.
 {
   a_boolean	result;
 
-  if (translation_units == NULL ||
+  if (!in_front_end) {
+    /* The translation unit data structure cannot be used after the front
+       end has completed. */
+    result = FALSE;
+  } else if (translation_units == NULL ||
       translation_units->next == NULL) {
     /* Optimize the case where there is only one translation unit. */
     result = FALSE;
