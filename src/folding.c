@@ -1414,36 +1414,6 @@ point are related by inheritance.
          find_base_class_of(class_2, class_1) != NULL;
 }  /* related_ptr_to_members */
 
-#if FIXED_POINT_ALLOWED
-
-static void convert_to_or_from_fixed_point_constant(
-                                                a_constant_ptr  src,
-                                                a_constant_ptr  dst,
-                                                a_boolean       *did_not_fold)
-/*
-Convert the constant *src to type dst->type and put the result in *dst.
-Either src->type or dst->type is a fixed-point type.  If the conversion
-cannot be done in the front end, set *did_not_fold to TRUE.
-
-Currently, a conversion is only performed if *src is a zero-valued integer
-constant.
-*/
-{
-  a_boolean  conversion_done = FALSE;
-
-  if (is_integral_type(src->type) && is_fixed_point_type(dst->type)) {
-    check_assertion(src->kind == (a_constant_repr_kind)ck_integer);
-    if (is_zero_constant(src)) {
-      /* The source is zero.  It is the only special case we convert. */
-      dst->kind = (a_constant_repr_kind)ck_fixed_point;
-      fxp_init_value(&dst->variant.fixed_point_value);
-      conversion_done = TRUE;
-    }  /* if */
-  }  /* if */
-  *did_not_fold = !conversion_done;
-}  /* convert_to_or_from_fixed_point_constant */
-
-#endif /* FIXED_POINT_ALLOWED */
 
 #if !RECORD_CONSTANT_EXPRESSIONS_IN_IL
 /*ARGSUSED*/ /* <-- maintain_expression is unused in that case. */
@@ -1661,8 +1631,8 @@ to the constant is maintained, by adding a cast if necessary.
           break;
 #if FIXED_POINT_ALLOWED
         case tk_fixed_point:
-          convert_to_or_from_fixed_point_constant(constant, &new_constant,
-                                                  did_not_fold);
+          /* Imaginary to fixed-point.  Not folded at compile time. */
+          *did_not_fold = TRUE;
           break;
 #endif /* FIXED_POINT_ALLOWED */
         default:
@@ -1691,8 +1661,8 @@ to the constant is maintained, by adding a cast if necessary.
           break;
 #if FIXED_POINT_ALLOWED
         case tk_fixed_point:
-          convert_to_or_from_fixed_point_constant(constant, &new_constant,
-                                                  did_not_fold);
+          /* Complex to fixed-point.  Not folded at compile time. */
+          *did_not_fold = TRUE;
           break;
 #endif /* FIXED_POINT_ALLOWED */
         default:
@@ -1704,8 +1674,23 @@ to the constant is maintained, by adding a cast if necessary.
 
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:
-      convert_to_or_from_fixed_point_constant(constant, &new_constant,
-                                              did_not_fold);
+      switch (new_type->kind) {
+        case tk_integer:
+          /* Fixed-point to integer.  Not folded at compile time. */
+        case tk_float:
+          /* Fixed-point to float.  Not folded at compile time. */
+        case tk_imaginary:
+          /* Fixed-point to imaginary.  Not folded at compile time. */
+        case tk_complex:
+          /* Fixed-point to complex.  Not folded at compile time. */
+        case tk_fixed_point:
+          /* Fixed-point to fixed-point.  Not folded at compile time. */
+          *did_not_fold = TRUE;
+          break;
+        default:
+          unexpected_condition_str(
+                              "type_change_constant: fixed-point to bad type");
+      }  /* switch */
       break;
 #endif /* FIXED_POINT_ALLOWED */
 
