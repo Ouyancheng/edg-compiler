@@ -1331,6 +1331,30 @@ See the documentation above for the bit values.
 }  /* fxcontrol_value */
 
 
+static an_expr_node_ptr add_cast_to_fxvalue_type(an_expr_node_ptr expr)
+/*
+Cast the indicated expression to the fxvalue type used to interface
+to the fixed-point runtime routines.
+*/
+{
+  a_type_ptr type = expr->type;
+
+  if (is_fixed_point_type(type)) {
+    type = lowered_integer_type_for_fixed_point_type(type);
+  }  /* if */
+  if (is_signed_integral_type(type)) {
+    /* For signed integral types, cast to the same-sized unsigned type
+       first before widening to avoid sign extension. */
+    a_type_ptr unsigned_type =
+                 other_signedness_integer_type(f_skip_typerefs(type)->
+                                                     variant.integer.int_kind);
+    expr = add_cast_if_necessary(expr, unsigned_type);
+  }  /* if */
+  expr = add_cast_if_necessary(expr, fxvalue_type());
+  return expr;
+}  /* add_cast_to_fxvalue_type */
+
+
 /*
 Runtime routine for fixed-point conversions (including integral
 source or destination).
@@ -1414,7 +1438,7 @@ destination) to a runtime call).
       shift_amount += FXTYPE_SIZE;
       /* Convert the operand to the fxvalue type used to interface to the
          runtime. */
-      src = add_cast_if_necessary(src, fxvalue_type());
+      src = add_cast_to_fxvalue_type(src);
     } else {
       /* Conversion from floating or complex to fixed point. */
       check_assertion(is_floating_type(src_type) ||
@@ -1695,7 +1719,7 @@ Lower a fixed-point operation expression.
   /* Convert the first operand to the fxvalue type used to interface to the
      runtime. */
   op1->next = NULL;
-  op1 = add_cast_if_necessary(op1, fxvalue_type());
+  op1 = add_cast_to_fxvalue_type(op1);
   if (is_unary) {
     /* A unary operation has no second operand. */
     op2_arg_type = NULL;
@@ -1705,8 +1729,10 @@ Lower a fixed-point operation expression.
     if (is_shift) {
       /* For a shift, the second operand is the int shift count. */
       op2_arg_type = integer_type((an_integer_kind)ik_int);
+      op2 = add_cast_if_necessary(op2, op2_arg_type);
+    } else {
+      op2 = add_cast_to_fxvalue_type(op2);
     }  /* if */
-    op2 = add_cast_if_necessary(op2, op2_arg_type);
   }  /* if */
   /* Make the call of the runtime comparison routine. */
   fxmask_expr->next = op1;
