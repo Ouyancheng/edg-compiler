@@ -447,6 +447,10 @@ and indentation is the indentation desired.
 
   if (sym->referenced) put_string("ref'd");
   if (sym->defined) put_string("def'd");
+  if (sym->ambiguous) put_string("ambig");
+  if (sym->synthesized_namespace_projection) {
+    put_string("synth_namespace_proj");
+  }  /* if */
   switch (sym->kind) {
     case sk_undefined:
     case sk_extern_variable:
@@ -832,10 +836,6 @@ do_variable:
       break;
 #endif /* CHECKING */
   }  /* switch */
-  if (sym->ambiguous) put_string("ambig");
-  if (sym->synthesized_namespace_projection) {
-    put_string("synth_namespace_proj");
-  }  /* if */
   if (type != NULL) {
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
     if (type->use_cfront_transitional_nested_type_name_mangling) {
