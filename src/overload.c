@@ -1588,11 +1588,7 @@ with a const selector is enabled, allow that kind of mismatch here.
                             /*try_user_conversions=*/FALSE, match_summary);
   match_summary->is_match_for_this_param = TRUE;
   if (match_summary->match_level == aml_none &&
-      (cfront_2_1_mode
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                       || microsoft_mode
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                        )) {
+      (cfront_2_1_mode || microsoft_mode)) {
     /* No match.  Try the anachronism of calling a function that
        does not require a const "this" with a const selector.  See also
        set_up_for_conversion_function_call. */
@@ -7786,6 +7782,12 @@ selected, or NULL if that's not applicable.
 Note that this routine does not check for conversion functions that
 return lvalues to which the reference could be directly bound; see
 conversion_for_direct_reference_binding_possible.
+The condition tested by this function is similar to the
+"reference-compatible" attribute of the WP [dcl.init.ref], except that
+the latter is type-based only (whereas this function also considers
+the lvalueness of the source_operand), and this function deals with
+some extensions.  Also, note that this function indicates whether
+direct binding is "possible" and not whether it is "valid".
 */
 {
   a_boolean  direct_binding_possible, type_is_correct_or_derived;
@@ -7812,11 +7814,7 @@ conversion_for_direct_reference_binding_possible.
                                 unqual_dest_type) != NULL) {
     /* The initializer has a derived type. */
     type_is_correct_or_derived = TRUE;
-  } else if ((any_cfront_mode()
-#if MICROSOFT_EXTENSIONS_ALLOWED
-             || microsoft_mode
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                              ) &&
+  } else if ((any_cfront_mode() || microsoft_mode) &&
              is_pointer_type(unqual_dest_type) &&
              is_pointer_type(unqual_source_type) &&
              same_type_with_added_qualifiers(unqual_source_type,
@@ -7861,10 +7859,20 @@ conversion_for_direct_reference_binding_possible.
   *ref_to_const_volatile = FALSE;
   if (!any_cfront_mode() && *ref_to_const &&
       is_volatile_qualified_type(base_dest_type)) {
-    /* A reference to const volatile cannot be bound to an rvalue.
+    /* A reference to const volatile may not be bound to an rvalue.
        This was added after the ARM. */
     *binding_to_rvalue_allowed = FALSE;
     *ref_to_const_volatile = TRUE;
+  }  /* if */
+  if (type_is_correct_or_derived && !*binding_to_rvalue_allowed &&
+      source_operand != NULL && is_an_rvalue(source_operand)) {
+    /* The reference may not be bound to an rvalue, and the source_operand
+       is an rvalue.  The binding is still possible, though not allowed,
+       if the operand has a class type, and using that interpretation
+       allows for clearer error messages later. */
+    if (!is_class_struct_union_type(unqual_source_type)) {
+      direct_binding_possible = FALSE;
+    }  /* if */
   }  /* if */
   /* The destination type must have no fewer type qualifiers than the source
      type to be usable without conversion (ARM 8.4.3). */
@@ -8505,11 +8513,7 @@ cases where bitwise copying applies.
     check_assertion_str(symbol_supplement_for_class(class_type)->
                                             assignment_by_bitwise_copy_allowed,
                         "prep_assignment_operand: class not bitwise copyable");
-    if ((strict_ansi_mode
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                          || microsoft_mode
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                           ) && is_qualified_type(dest_type)) {
+    if ((strict_ansi_mode || microsoft_mode) && is_qualified_type(dest_type)) {
       /* The bitwise copy is defined in terms of a notional generated copy
          assignment operator which is not cv-qualified and therefore cannot
          assign into a cv-qualified left operand. */
