@@ -55,6 +55,10 @@ IL lowering itself is done).
 /* Only include this code if it is needed: */
 #if DO_IL_LOWERING
 
+/* Forward declarator needed because of mutual recursion: */
+static a_type_ptr make_base_class_spec_type(void);
+
+
 static a_type_ptr array_of(a_type_ptr elem_type)
 /*
 Make an array type whose elements have type elem_type, and return a pointer
@@ -182,11 +186,67 @@ These are needed for RTTI as well as for exception handling.
 /*
 Pointer to the typeinfo struct type (used to represent runtime type
 information).  NULL until created.  This is the structure used by the
-runtime implementation, not the user-visible one.
+runtime implementation, not the user-visible type_info.
 */
 static a_type_ptr
 		typeinfo_type;
 
+#if ABI_CHANGES_FOR_RTTI
+static a_field_ptr
+		typeinfo_tinfo_field;
+			/* tinfo field within typeinfo_type. */
+
+/*
+Pointer to a type with the same structure as the type_info type from the
+<typeinfo> header.  NULL until created.
+*/
+static a_type_ptr
+		user_type_info_type;
+
+
+static a_type_ptr make_user_type_info_type(void)
+/*
+Make a type with the same structure as the type_info type from the
+<typeinfo> header, and return it.  Its definition is
+
+  struct type_info {
+    __mptr *__vptr;  // Virtual function table pointer
+  };
+
+This must match the header file and the runtime definition.
+
+type_of_type_info is not used because it might not be complete yet (and
+perhaps it will be completed later in this compilation).
+*/
+{
+  a_field_ptr last_field;
+  char        *name, *ptr;
+
+  /* If the type has been made already, we're done. */
+  if (user_type_info_type == NULL) {
+    /* Make the struct type. */
+    user_type_info_type = alloc_type((a_type_kind)tk_struct);
+    /* The type must be named and must have external linkage so we can generate
+       a virtual function table for it.  However, the name cannot be
+       "type_info" because that's the name of the real user-visible type,
+       so we call this one "__type_info". */
+    name = "__type_info";
+    user_type_info_type->source_corresp.name = ptr =
+                           alloc_lowered_name_string((sizeof_t)strlen(name)+1);
+    (void)strcpy(ptr, name);
+    user_type_info_type->source_corresp.name_linkage =
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
+    add_to_front_of_file_scope_types_list(user_type_info_type);
+    last_field = NULL;
+    /* Make a single field for the virtual function table pointer. */
+    make_lowered_field("__vptr", make_pointer_type(make_mptr_type()),
+                       user_type_info_type, &last_field);
+    finish_class_type(user_type_info_type);
+  }  /* if */
+  return user_type_info_type;
+}  /* make_user_type_info_type */
+
+#endif /* ABI_CHANGES_FOR_RTTI */
 
 static a_type_ptr make_typeinfo_type(void)
 /*
@@ -194,23 +254,38 @@ Make the typeinfo struct type (used to represent runtime type information)
 if it is not made already, and return a pointer to it.  Its definition is
 
   struct typeinfo {
-    char     *id;   // Id object pointer
-    __vptp   dtor;  // Destructor
-    typeinfo **bc;  // Pointer to base class array
-    char     *name; // Name (only if ABI_CHANGES_FOR_RTTI is TRUE)
+    type_info tinfo; // User type_info
+    char      *name; // Name
+    char      *id;   // Id object pointer
+    __vptp    dtor;  // Destructor
+    base_class_spec
+              **bc;  // Pointer to base class array
   };
 
-This is the typeinfo implementation type, not the type_info that the
-user sees returned from typeid.
+Note that this is the typeinfo implementation type, and it contains the
+type_info that the user sees returned from typeid.
+
+The first two fields listed are present only if ABI_CHANGES_FOR_RTTI is TRUE.
 */
 {
-  a_field_ptr   last_field;
+  a_field_ptr last_field;
 
   if (typeinfo_type == NULL) {
     /* Make the struct type. */
     typeinfo_type = alloc_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(typeinfo_type);
     last_field = NULL;
+#if ABI_CHANGES_FOR_RTTI
+    /* field: type_info tinfo */
+    make_lowered_field("tinfo",
+                       make_user_type_info_type(),
+                       typeinfo_type, &last_field);
+    typeinfo_tinfo_field = last_field;
+    /* field: char *name */
+    make_lowered_field("name",
+                     make_pointer_type(integer_type((an_integer_kind)ik_char)),
+                       typeinfo_type, &last_field);
+#endif /* ABI_CHANGES_FOR_RTTI */
     /* field: char *id */
     make_lowered_field("id",
                      make_pointer_type(integer_type((an_integer_kind)ik_char)),
@@ -218,16 +293,10 @@ user sees returned from typeid.
     /* field: __vptp dtor */
     make_lowered_field("dtor", make_vptp_type(),
                        typeinfo_type, &last_field);
-    /* field: typeinfo **bc */
+    /* field: base_class_spec *bc */
     make_lowered_field("bc",
-                       make_pointer_type(make_pointer_type(typeinfo_type)),
+                       make_pointer_type(make_base_class_spec_type()),
                        typeinfo_type, &last_field);
-#if ABI_CHANGES_FOR_RTTI
-    /* field: char *name */
-    make_lowered_field("name",
-                     make_pointer_type(integer_type((an_integer_kind)ik_char)),
-                       typeinfo_type, &last_field);
-#endif /* ABI_CHANGES_FOR_RTTI */
     finish_class_type(typeinfo_type);
   }  /* if */
   return typeinfo_type;
@@ -278,7 +347,8 @@ all denote the same type.
   /* Build the mangled name. */
   (void)mangled_id_object_name(type, mangled_name);
   mangled_name[mangled_name_length] = '\0';
-  /* Find and reuse an existing id object for the same type if there is one. */
+  /* Find and reuse an existing id object for (a different copy of) the
+     same type if there is one. */
   id_object_var = find_existing_id_object_var(mangled_name);
   if (id_object_var == NULL) {
     /* Make the variable. */
@@ -516,9 +586,16 @@ type, for use in typeinfo implementation constants.
   implicit_cast(&constant,
                 make_pointer_type(
                           array_element_type(type_pointed_to(constant.type))));
-  addr_con = alloc_shareable_constant(&constant);
+  addr_con = alloc_unshared_constant(&constant);
   return addr_con;
 }  /* make_typeinfo_name_constant */
+
+
+static a_variable_ptr
+		vtbl_for_type_info;
+			/* The variable for the virtual function table for
+			   the user-visible type_info type, once created.
+			   NULL until then. */
 
 #endif /* ABI_CHANGES_FOR_RTTI */
 
@@ -545,7 +622,7 @@ have been called on it at some previous point.
   a_memory_region_number
                  region_to_switch_back_to;
 #if ABI_CHANGES_FOR_RTTI
-  a_constant_ptr name_con;
+  a_constant_ptr type_info_con, vptr_con, name_con;
 #endif /* ABI_CHANGES_FOR_RTTI */
 
   /* Set the linkage on the typeinfo variable. */
@@ -571,21 +648,54 @@ have been called on it at some previous point.
   if (definition_needed) {
     /* The initial value of the typeinfo variable is an aggregate containing
        values as follows:
-         1)  Id object: pointer to id object variable, or NULL if an internally
+         1)  type_info -- define virtual function table pointer (only if
+             ABI_CHANGES_FOR_RTTI is TRUE).
+         2)  Pointer to name string (only if ABI_CHANGES_FOR_RTTI is TRUE).
+         3)  Id object: pointer to id object variable, or NULL if an internally
              linked class.
-         2)  Destructor: pointer to destructor, or NULL.
-         3)  Base class array pointer: pointer to array containing pointers
+         4)  Destructor: pointer to destructor, or NULL.
+         5)  Base class array pointer: pointer to array containing pointers
              to typeinfo structures for base classes, or NULL if there are
              no base classes.
-         4)  Pointer to name string (only if ABI_CHANGES_FOR_RTTI is TRUE).
     */
     /* Switch to the file scope memory region so that initial values will
        be allocated there. */
     switch_to_file_scope_region(&region_to_switch_back_to);
-    /* Id object pointer. */
-    id_con = alloc_constant((a_constant_repr_kind)ck_address);
     curr_field = typeinfo_type->variant.class_struct_union.field_list;
+#if ABI_CHANGES_FOR_RTTI
+    /* Make the virtual function table pointer.  This is just the address of
+       an extern variable.  The runtime provides the definition. */
     curr_field_type = curr_field->type;
+    vptr_con = alloc_constant((a_constant_repr_kind)ck_address);
+    if (vtbl_for_type_info == NULL) {
+      /* Make the variable for the virtual function table for type_info. */
+      /* Give the type the name "type_info" briefly so the name can be used
+         in generating the virtual function table name. */
+      char *saved_name = user_type_info_type->source_corresp.name;
+      user_type_info_type->source_corresp.name = "type_info";
+      vtbl_for_type_info =
+                   make_var_for_virtual_function_table(user_type_info_type,
+                                                       (a_base_class_ptr)NULL);
+      vtbl_for_type_info->source_corresp.referenced = TRUE;
+      user_type_info_type->source_corresp.name = saved_name;
+    }  /* if */
+    set_variable_address_constant(vtbl_for_type_info, vptr_con,
+                                  /*set_address_taken_flag=*/TRUE);
+    /* Do the array --> pointer decay. */
+    implicit_cast(vptr_con, make_pointer_type(make_mptr_type()));
+    /* Make the constant for the type_info. */
+    type_info_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    type_info_con->variant.aggregate.first_constant = vptr_con;
+    type_info_con->variant.aggregate.last_constant = vptr_con;
+    /* Make the name constant. */
+    curr_field = curr_field->next;
+    curr_field_type = curr_field->type;
+    name_con = make_typeinfo_name_constant(type);
+    curr_field = curr_field->next;
+#endif /* ABI_CHANGES_FOR_RTTI */
+    /* Id object pointer. */
+    curr_field_type = curr_field->type;
+    id_con = alloc_constant((a_constant_repr_kind)ck_address);
     /* Note that we test for nlk_external and not nlk_cplusplus_external here
        because the linkage has already been rewritten in the class case. */
     if (is_class_type &&
@@ -605,6 +715,7 @@ have been called on it at some previous point.
     /* See if the class has a destructor. */
     dtor_routine = NULL;
     if (is_class_type) {
+      check_assertion(type->source_corresp.assoc_info != NULL);
       dtor_sym = symbol_supplement_for_class(type)->destructor;
       if (dtor_sym != NULL) {
         dtor_routine = dtor_sym->variant.routine.ptr;
@@ -645,22 +756,19 @@ have been called on it at some previous point.
       /* Make the type pointer-to-element instead of pointer-to-array. */
       implicit_cast(bc_con, curr_field_type);
     }  /* if */
-#if ABI_CHANGES_FOR_RTTI
-    /* Make the name constant. */
-    name_con = make_typeinfo_name_constant(type);
-#endif /* ABI_CHANGES_FOR_RTTI */
     /* Make the aggregate constant and attach it to the variable as its initial
        value. */
     aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+#if ABI_CHANGES_FOR_RTTI
+    aggr_con->variant.aggregate.first_constant = type_info_con;
+    type_info_con->next = name_con;
+    name_con->next = id_con;
+#else /* !ABI_CHANGES_FOR_RTTI */
     aggr_con->variant.aggregate.first_constant = id_con;
+#endif /* ABI_CHANGES_FOR_RTTI */
     id_con->next = dtor_con;
     dtor_con->next = bc_con;
-#if ABI_CHANGES_FOR_RTTI
-    bc_con->next = name_con;
-    aggr_con->variant.aggregate.last_constant = name_con;
-#else /* !ABI_CHANGES_FOR_RTTI */
     aggr_con->variant.aggregate.last_constant = bc_con;
-#endif /* ABI_CHANGES_FOR_RTTI */
     typeinfo_var->init_kind = (an_init_kind)initk_static;
     typeinfo_var->initializer.constant = aggr_con;
     /* Return to the memory region that was current when this routine was
@@ -740,6 +848,12 @@ is generated on the second pass.
           force_static =
                        (vtbl_var->storage_class == (a_storage_class)sc_static);
           definition_needed= (vtbl_var->init_kind != (an_init_kind)initk_none);
+          /* If the typeinfo is static, it has to be defined; no one else
+             is going to do it.  Virtual function tables are sometimes not
+             defined if they're not used, but typeinfo variables are created
+             only if they're needed, so if one exists, it must be defined,
+             even if the virtual function table is not defined. */
+          if (force_static) definition_needed = TRUE;
         } else {
           /* The class has no virtual function table (i.e., it's not
              polymorphic), so its typeinfo variable must be defined and must
@@ -806,7 +920,7 @@ Make a typeinfo variable for the indicated type (if it does not exist
 already) and return a pointer to it.  The variable points to runtime
 type information.  It is always allocated in the file scope memory region.
 This is not the type_info structure that is visible to the programmer
-via the typeid operator.
+via the typeid operator (but it contains it).
 */
 {
   a_variable_ptr  typeinfo_var;
@@ -827,6 +941,7 @@ via the typeid operator.
 	 non-polymorphic classes, the type of definition is dependent
 	 on the linkage of the class, which is not known until the end
 	 of the compilation. */
+      prelower_class_type(type);
       if (type->variant.class_struct_union.extra_info->
                                           virtual_function_table_var != NULL) {
         /* Polymorphic class type.  The typeinfo is static if and only if
@@ -895,6 +1010,85 @@ via the typeid operator.
   return typeinfo_var;
 }  /* make_typeinfo_var */
 
+#if ABI_CHANGES_FOR_RTTI
+
+/*
+Pointer to the routine entry for the runtime routine __get_typeid.
+NULL until created.
+*/
+static a_routine_ptr
+		get_typeid_routine;
+
+
+void lower_typeid(an_expr_node_ptr expr)
+/*
+Do lowering of an enk_typeid expression node, i.e., a C++ typeid operation.
+*/
+{
+  a_type_ptr       typeid_type = expr->variant.typeid_info.type;
+  an_expr_node_ptr typeid_expr = expr->variant.typeid_info.expr;
+  an_expr_node_ptr new_expr, null_constant_node, compare_node;
+  an_expr_node_ptr question_node, vptr_expr;
+  a_variable_ptr   typeinfo_var;
+  a_constant       null_constant;
+
+  if (typeid_expr == NULL) {
+    /* No expression; the type is known statically. */
+    /* Make the runtime typeinfo variable. */
+    typeinfo_var = make_typeinfo_var(typeid_type);
+    /* Make an expression that refers to the user type_info member within
+       the implementation typeinfo variable. */
+    new_expr = var_lvalue_expr(typeinfo_var);
+    new_expr = field_lvalue_selection_expr(new_expr, typeinfo_tinfo_field);
+  } else {
+    /* Polymorphic class case with expression. */
+    check_assertion(is_immediate_class_type(typeid_type) &&
+                    is_polymorphic_class_type(typeid_type));
+    /* The expression is an lvalue with the form *p or p[x].  Since the
+       expression gives the address of the lvalue, it really has the form
+       p or p + x.  In the latter case, discard x. */
+    if (is_operation_node(typeid_expr) &&
+        typeid_expr->variant.operation.kind ==
+                                       (an_expr_operator_kind)eok_padd_subsc) {
+      typeid_expr = typeid_expr->variant.operation.operands;
+      typeid_expr->next = NULL;
+    }  /* if */
+    /* Build the runtime call __get_typeid((typeid_expr != NULL) ? vptr : NULL)
+       where vptr is the virtual function table pointer value from the
+       class object.  If NULL is passed to the runtime routine, it throws
+       bad_typeid. */
+    /* Make "typeid_expr != NULL". */
+    /* Make a NULL pointer constant of the right type. */
+    make_zero_of_proper_type(typeid_expr->type, &null_constant);
+    null_constant_node = alloc_node_for_constant(&null_constant);
+    typeid_expr->next = null_constant_node;
+    compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+                                      integer_type((an_integer_kind)ik_int),
+                                      typeid_expr);
+    /* Make code to get the virtual function table pointer. */
+    vptr_expr = make_reusable_copy(typeid_expr, /*vars_can_change=*/FALSE);
+    vptr_expr = make_vptr_field_lvalue(vptr_expr);
+    vptr_expr = add_indirection_to_node(vptr_expr);
+    /* Make a NULL pointer constant of the vptr type. */
+    make_zero_of_proper_type(vptr_expr->type, &null_constant);
+    null_constant_node = alloc_node_for_constant(&null_constant);
+    /* Assemble the "?" operation. */
+    compare_node->next = vptr_expr;
+    vptr_expr->next = null_constant_node;
+    question_node = make_operator_node((an_expr_operator_kind)eok_question,
+                                       vptr_expr->type,
+                                       compare_node);
+    /* Make the __get_typeid call. */
+    new_expr = make_runtime_rout_call("__get_typeid", &get_typeid_routine,
+                                 make_pointer_type(make_user_type_info_type()),
+                                      question_node);
+  }  /* if */
+  /* Overwrite the enk_typeid node with a cast from the runtime's idea of
+     type_info to the user's version. */
+  change_to_cast(expr, new_expr, expr->type);
+}  /* lower_typeid */
+
+#endif /* ABI_CHANGES_FOR_RTTI */
 #if GENERATE_EH_TABLES
 
 /*
@@ -3434,10 +3628,16 @@ with each new translation unit are handled in eh_lower_init.)
      precompiled headers */
   if (exceptions_enabled && precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
-#if GENERATE_EH_TABLES
       pch_saved_var_array_elem(typeinfo_type),
       pch_saved_var_array_elem(num_of_pending_class_typeinfo_vars),
       pch_saved_var_array_elem(base_class_spec_type),
+#if ABI_CHANGES_FOR_RTTI
+      pch_saved_var_array_elem(typeinfo_tinfo_field),
+      pch_saved_var_array_elem(user_type_info_type),
+      pch_saved_var_array_elem(vtbl_for_type_info),
+      pch_saved_var_array_elem(get_typeid_routine),
+#endif /* ABI_CHANGES_FOR_RTTI */
+#if GENERATE_EH_TABLES
       pch_saved_var_array_elem(region_descr_type),
       pch_saved_var_array_elem(array_descr_type),
 #endif /* GENERATE_EH_TABLES */
@@ -3486,10 +3686,16 @@ invocation of the front end.
 */
 {
   /* Static variables in lower_eh.c: */
-#if GENERATE_EH_TABLES
   typeinfo_type = NULL;
   num_of_pending_class_typeinfo_vars = 0;
   base_class_spec_type = NULL;
+#if ABI_CHANGES_FOR_RTTI
+  typeinfo_tinfo_field = NULL;
+  user_type_info_type = NULL;
+  vtbl_for_type_info = NULL;
+  get_typeid_routine = NULL;
+#endif /* ABI_CHANGES_FOR_RTTI */
+#if GENERATE_EH_TABLES
   region_descr_type = NULL;
   array_descr_type = NULL;
 #endif /* GENERATE_EH_TABLES */
