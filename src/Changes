@@ -1,5 +1,33 @@
 Version 2.22
 
+1/5/94   Access declarations involving hidden and ambiguous names
+
+An error is now issued on an access declaration for which the unqualified
+name is ambiguous in the context of the class in which the access
+declaration appears; in other words, an access declaration may not be
+used to resolve an ambiguity.  For example:
+
+  struct A { int i; };
+  struct B { int i; };
+  struct C : private A, private B {
+    A::i;          // Invalid access declaration: "i" is ambiguous
+  };
+
+Also, errors are issue more consistently if an access declaration refers,
+albeit with a qualified name, to a member hidden by another declaration.
+For example:
+
+  struct A { int i; };
+  struct B : public A { int i; };
+  struct C : private B {
+    A::i;          // Invalid access declaration: B::i hides A::i
+  };
+
+These diagnostics may be somewhat controversial, since they are not
+required by the ARM.  However, they are justified by viewing an access
+declaration exclusively as a means to control the access of an inherited
+member.
+
 1/5/94   Routine names changed for improved portability
 
 The names of two routines have been changed because they were not
