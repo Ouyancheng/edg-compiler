@@ -1973,9 +1973,7 @@ IA-64 ABI; see comments below.
 
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- prefix_size_node is not used in that case. */
-#else /* IA64_ABI */
+#if IA64_ABI
 /*ARGSUSED*/ /* <-- zero_storage is not used in that case. */
 #endif /* IA64_ABI */
 static an_expr_node_ptr make_placement_array_new_call(
@@ -2036,15 +2034,17 @@ IA-64 ABI, the routines called are different.
                                        void_star_type(), arg_expr_list);
   }  /* if */
 #else /* IA64_ABI */
+  an_expr_node_ptr assign_node, arg_entity_node = entity_node;
   if (prefix_size_node != NULL) {
-    an_expr_node_ptr cookie_ptr_node, cookie_value_node, assign_node;
+    an_expr_node_ptr cookie_ptr_node, cookie_value_node;
     /* If there was padding, we must set the value indicating how many
        elements there are.  Compute the address of the "cookie". */
-    cookie_ptr_node = entity_node;
-    entity_node = make_reusable_copy(entity_node, /*vars_can_change=*/FALSE);
-    cookie_ptr_node = add_cast_if_necessary(cookie_ptr_node,
+
+    cookie_ptr_node = add_cast_if_necessary(entity_node,
                                             make_pointer_type
                                                     (prefix_size_node->type));
+    arg_entity_node = make_reusable_copy(entity_node,
+                                         /*vars_can_change=*/FALSE);
     cookie_ptr_node->next = node_for_integer_constant(1L,
                                                       targ_size_t_int_kind);
     cookie_ptr_node = make_operator_node((an_expr_operator_kind)eok_psubtract,
@@ -2058,12 +2058,14 @@ IA-64 ABI, the routines called are different.
     assign_node = make_assignment_expr(cookie_ptr_node, 
                                        (an_expr_operator_kind)eok_iassign,
                                        cookie_value_node);
-    entity_node = make_comma_node(assign_node, entity_node);
   }  /* if */
-  call_node = make_vec_new_call(entity_node, entity_type, num_elem_node, 
+  call_node = make_vec_new_call(arg_entity_node, entity_type, num_elem_node, 
                                 ctor_routine, dtor_routine,
                                 (a_routine_ptr)NULL, (a_routine_ptr)NULL,
                                 zero_storage);
+  if (prefix_size_node != NULL) {
+    call_node = make_comma_node(assign_node, call_node);
+  }  /* if */
 #endif /* IA64_ABI */
   if (delete_routine != NULL) {
     /* A placement delete routine must be called.  The fact that the
@@ -2078,6 +2080,16 @@ IA-64 ABI, the routines called are different.
     /* The first argument for the delete call is a pointer to the array. */
     entity_node_copy = make_reusable_copy(entity_node,
                                           /*vars_can_change=*/TRUE);
+    if (prefix_size_node != NULL) {
+      /* Subtract the array prefix size. */
+      entity_node_copy = add_cast_if_necessary(entity_node_copy,
+                                               char_star_type());
+      entity_node_copy->next = prefix_size_node;
+      entity_node_copy = make_operator_node(
+                                          (an_expr_operator_kind)eok_psubtract,
+                                          entity_node_copy->type,
+                                          entity_node_copy);
+    }  /* if */
     /* Cast the argument to "void *", which is what the delete routine
        expects. */
     entity_node_copy = add_cast_if_necessary(entity_node_copy,
@@ -5885,15 +5897,13 @@ arrays with class elements.
 #else /* IA64_ABI */
       prefix_size_node = get_array_new_padding(elem_type, new_routine,
                                                /*even_if_zero=*/FALSE);
-      if (prefix_size_node != NULL) {
 #endif /* IA64_ABI  */
+      if (prefix_size_node != NULL) {
         size_node->next = prefix_size_node;
         size_node = make_operator_node((an_expr_operator_kind)eok_iadd,
                                        size_node->type, size_node);
         size_node->next = size_node_next;
-#if IA64_ABI
       }  /* if */
-#endif /* IA64_ABI */
     }
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     /* Make the "new" call. */
@@ -5915,10 +5925,8 @@ arrays with class elements.
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
     /* Add the array prefix size to get from the address returned to
        the actual starting address of the array. */
-#if IA64_ABI
-    if (prefix_size_node != NULL) 
-#endif /* IA64_ABI */
-    { an_expr_node_ptr temp_var_node, add_node;
+    if (prefix_size_node != NULL) {
+      an_expr_node_ptr temp_var_node, add_node;
 
       /* Make "temp = (type *)((char *)temp + __array_new_prefix_size)". */
       temp_var_node = var_rvalue_expr(temp_var);

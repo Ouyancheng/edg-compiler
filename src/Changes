@@ -1,5 +1,14 @@
 Version 3.1
 
+1/22/03  Placement array delete on exception handles array prefix
+
+The code generated to do a delete on exception for a placement
+array new now adjusts the address passed to the placement array
+delete routine to account for the array prefix, if one is
+used.  Without this change, the pointer passed to the "delete"
+routine was not the same as the one returned by the "new"
+routine.
+
 1/22/03  Microsoft compatibility: lvalue cast of float to same-sized type
 
 In Microsoft C mode, the front end now accepts an lvalue cast of
