@@ -2001,19 +2001,31 @@ done:;
 
 #if MICROSOFT_KEYWORDS_ALLOWED
 
-static a_boolean calling_conventions_are_compatible(a_calling_convention cc1,
-                                                    a_calling_convention cc2)
+a_boolean calling_conventions_are_compatible(a_type_ptr type1,
+                                             a_type_ptr type2)
 /*
-Return TRUE if the two given calling conventions are compatible.  That
-means they are identical or one is cc_default and the other matches
-default_calling_convention.
+Return TRUE if the calling conventions of the two given function types
+are compatible.  That means they are identical or one is cc_default and
+the other matches default_calling_convention.
 */
 {
-  a_boolean compatible = (cc1 == cc2 ||
-                          (cc1 == (a_calling_convention)cc_default &&
-                           cc2 == default_calling_convention) ||
-                          (cc2 == (a_calling_convention)cc_default &&
-                           cc1 == default_calling_convention));
+  a_calling_convention          cc1, cc2;
+  a_routine_type_supplement_ptr rtsp1, rtsp2;
+  a_boolean                     compatible = FALSE;
+
+  type1 = skip_typerefs(type1);
+  rtsp1 = type1->variant.routine.extra_info;
+  cc1 = rtsp1->calling_convention;
+  type1 = skip_typerefs(type2);
+  rtsp2 = type2->variant.routine.extra_info;
+  cc2 = rtsp2->calling_convention;
+  if (cc1 == cc2 ||
+      (cc1 == (a_calling_convention)cc_default &&
+       cc2 == default_calling_convention) ||
+      (cc2 == (a_calling_convention)cc_default &&
+       cc1 == default_calling_convention)) {
+    compatible = TRUE;
+  }  /* if */
   return compatible;
 }  /* calling_conventions_are_compatible */
 
@@ -2182,8 +2194,7 @@ for exact pointer equality.
                                           flags)))
 #if MICROSOFT_KEYWORDS_ALLOWED
               && (ignore_calling_conventions ||
-                  calling_conventions_are_compatible(rtsp1->calling_convention,
-                                                    rtsp2->calling_convention))
+                  calling_conventions_are_compatible(type_1, type_2))
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
                                                   ) {
             compat = TRUE;
