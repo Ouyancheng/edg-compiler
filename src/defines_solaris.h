@@ -108,14 +108,11 @@ Determine the C compiler being used to configure initialization handling
 in the C-generating back end.
 */
 #ifdef SUNOS
-/* Don't configure under SunOS. */
+#define USE_PATCH_INIT_STARTUP 1
 #else /* ifndef SUNOS */
-#ifdef __SUNPRO_C
-#else /* ifndef __SUNPRO_C */
-#ifndef __GNUC__
+#if !defined(__GNUC__) && !defined(__CENTERLINE__) && !defined(__SUNPRO_C)
 #define USE_INIT_SECTION_IN_GENERATED_C 1
-#endif /* ifndef __GNUC__ */
-#endif /* ifdef __SUNPRO_C */
+#endif /* !defined(__GNUC__) && !defined(__CENTERLINE__) && ... */
 #endif /* ifdef SUNOS */
 
 /******************************************************************************
