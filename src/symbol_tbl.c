@@ -5573,18 +5573,19 @@ an instance of the class template.
 
   db_enter(3, "get_template_class");
 
+  /* If the next token is not a left angle bracket then just return
+     the symbol of the class template. */
+  if (next_token() != tok_lt) {
+    new_sym = template_symbol;
+    goto skip_processing;
+  }  /* if */
   /* Save source position for error reporting. */
   copy_source_position(pos_curr_token, start_pos);
   /* Save the current locator. */
   orig_locator = locator_for_curr_id;
   add_stop_token(tok_gt);
+  /* Get the angle bracket token. */
   (void)get_token();
-  if (curr_token != tok_lt) {
-    pos_sy_error(ec_missing_template_arg_list, &start_pos, template_symbol);
-    any_errors = TRUE;
-    unget_token();
-    goto error_exit;
-  }  /* if */
   /* Get token following opening angle bracket. */
   (void)get_token();
   /* Scan a comma separated list of arguments.  The arguments can be
@@ -5682,8 +5683,8 @@ an instance of the class template.
              new_sym->variant.type, (a_routine_ptr)NULL);
 #endif
 
-error_exit:
   remove_stop_token(tok_gt);
+skip_processing:
   db_exit();
   return new_sym;
 }  /* get_template_class */
