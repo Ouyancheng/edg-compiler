@@ -22,7 +22,7 @@ types.c -- Utility routines that check types.
 #include "cmd_line.h"
 #include "mem_manage.h"
 #include "folding.h"
-
+#include "templates.h"
 
 /*
 Macros defining some basic classes of types (see 3.1.2.5).  Defined as
@@ -784,6 +784,7 @@ to see if any of the types on the list can now be given sizes.
 {
   a_boolean               something_changed;
   an_array_type_fixup_ptr atfp, prev_atfp;
+  a_type_ptr              tp;
 
   db_enter(5, "check_fixup_list_for_array_types");
   do {
@@ -794,7 +795,9 @@ to see if any of the types on the list can now be given sizes.
          prev_atfp = atfp, atfp = atfp->next) {
       /* See if the element type for the type to be fixed up by this
          entry is now complete. */
-      if (!is_incomplete_type(array_element_type(atfp->array_type))) {
+      tp = underlying_array_element_type(atfp->array_type);
+      check_for_uninstantiated_template_class(tp);
+      if (!is_incomplete_type(tp)) {
         set_type_size(atfp->array_type);
         something_changed = TRUE;
         /* Take the entry off the list.  The storage for the entry is
@@ -884,6 +887,8 @@ array_type.
     /* Get the number of elements.  Note that this is zero for an incomplete
        type like int a[]. */
     temp = array_type->variant.array.number_of_elements;
+    /* Next get the size of an element.  If it is itself an array, its own
+       size may need to be set. */
     elem_type = array_type->variant.array.element_type;
 #if CHECKING
     if (elem_type == NULL) {
@@ -891,6 +896,7 @@ array_type.
     }  /* if */
 #endif /* CHECKING */
     elem_type = skip_typerefs(elem_type);
+    if (is_array_type(elem_type)) set_type_size(elem_type);
 #if CHECKING
     if (elem_type->size == 0) {
       internal_error("set_array_type_size: bad element type");
