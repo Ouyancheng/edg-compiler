@@ -4919,21 +4919,24 @@ used only in C++ mode.
 
   dest_type = skip_typerefs(dest_type);
   cssp = symbol_supplement_for_class(dest_type);
-  source_type = skip_typerefs(source_type);
-  /* Watch out for the case where the source type's definition has been
-     partially processed -- we know that the destination type is a base
-     class, but the source class is still incomplete, and one can't
-     make an rvalue of an incomplete type. */
-  if (is_class_struct_union_type(source_type) &&
-      !is_incomplete_type(source_type)) {
-    if (is_initialization ? cssp->construction_by_bitwise_copy_allowed :
-                            cssp->assignment_by_bitwise_copy_allowed) {
-      /* The destination class can be set by a bitwise copy from something
-         of the same type or a derived type thereof. */
-      if (types_are_compatible(dest_type, source_type) ||
-          find_base_class_of(source_type, dest_type) != NULL) {
-        bitwise_copy_allowed = TRUE;
-      }  /* if */
+  if (is_initialization ? cssp->construction_by_bitwise_copy_allowed :
+                          cssp->assignment_by_bitwise_copy_allowed) {
+    /* The destination class can be set by a bitwise copy from something
+       of the same type or a derived type thereof. */
+    source_type = skip_typerefs(source_type);
+    if (types_are_compatible(dest_type, source_type)) {
+      /* Same type, bitwise copy is allowed. */
+      bitwise_copy_allowed = TRUE;
+    } else if (is_class_struct_union_type(source_type) &&
+               find_base_class_of(source_type, dest_type) != NULL &&
+               /* Watch out for the case where the source type's definition
+                  has been partially processed -- we know that the destination
+                  type is a base class, but the source class is still
+                  incomplete, and one can't make an rvalue of an
+                  incomplete type. */
+               !is_incomplete_type(source_type)) {
+      /* Derived class, bitwise copy is allowed. */
+      bitwise_copy_allowed = TRUE;
     }  /* if */
   }  /* if */
   return bitwise_copy_allowed;
