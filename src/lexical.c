@@ -5658,12 +5658,6 @@ The token can be a normal or wide string literal.
 			   needed). */
 
 
-static char *asm_func_body_buffer = NULL;
-static sizeof_t size_asm_func_body_buffer = 0;
-static sizeof_t pos_in_asm_func_body_buffer;
-			/* The number of characters that have been added to
-			   asm_func_body_buffer thus far in processing. */
-
 static void expand_asm_func_body_buffer(sizeof_t size_needed)
 /*
 Expand the asm_func_body_buffer by reallocating it, so that its total size
@@ -11461,6 +11455,8 @@ done to determine whether a precompiled header may be used.
   any_tokens_fetched_from_curr_input_file = FALSE;
   curr_token_asm_string = NULL;
   scanning_microsoft_asm = FALSE;
+  asm_func_body_buffer = NULL;
+  size_asm_func_body_buffer = 0;
 }  /* lexical_reset */
 
 

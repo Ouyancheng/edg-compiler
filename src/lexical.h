@@ -1210,6 +1210,21 @@ EXTERN a_boolean
 			   an asm function body or a Microsoft-style asm
 			   block. */
 
+EXTERN sizeof_t pos_in_asm_func_body_buffer;
+			/* The number of characters that have been added to
+			   asm_func_body_buffer thus far in processing. */
+
+EXTERN char *asm_func_body_buffer;
+			/* Pointer to a dynamically allocated buffer used to
+			   construct the string representation of an asm
+			   function or Microsoft asm block. */
+
+EXTERN sizeof_t size_asm_func_body_buffer;
+			/* The size of the asm buffer. */
+
+
+
+
 #if ASM_FUNCTION_ALLOWED
 extern void copy_from_source_to_asm_func_buffer(char *stop_char,
                                                 char *after_comment_stop_char);
