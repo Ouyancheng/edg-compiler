@@ -1009,17 +1009,19 @@ vp had an incomplete array type that has been completed by an initializer.
          char a[] = "abc";  <-- Error; int [3] is incompatible with int [5].
     */
     make_locator_for_symbol(symbol_ptr, &locator);
-    name_linkage = symbol_ptr->
+    if (!is_error_locator(locator)) {
+      name_linkage = symbol_ptr->
                            variant.variable.ptr->source_corresp.name_linkage;
-    ext_sym = find_external_symbol(&locator, name_linkage,
-                                   (a_type_ptr)NULL, &ext_locator);
+      ext_sym = find_external_symbol(&locator, name_linkage,
+                                     (a_type_ptr)NULL, &ext_locator);
 #if CHECKING
-    if (ext_sym == NULL) {
-      internal_error("put_type_back_into_variable: ext_sym not found");
-    }  /* if */
+      if (ext_sym == NULL) {
+        internal_error("put_type_back_into_variable: ext_sym not found");
+      }  /* if */
 #endif /* CHECKING */
-    (void)reconcile_external_symbol_types(ext_sym, source_pos, vp_type,
+      (void)reconcile_external_symbol_types(ext_sym, source_pos, vp_type,
                                         /*suppress_incompatible_error=*/FALSE);
+    }  /* if */
   }  /* if */
   /* Put the updated type into the variable. */
   vp->type = vp_type;
