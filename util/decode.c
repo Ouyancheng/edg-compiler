@@ -3673,10 +3673,14 @@ The syntax is:
       write_id_ch('-', dctl);
       ptr++;
     }  /* if */
-    while (isdigit((unsigned char)*ptr)) {
-      write_id_ch(*ptr, dctl);
-      ptr++;
-    }  /* while */
+    if (!isdigit((unsigned char)*ptr)) {
+      bad_mangled_name(dctl);
+    } else {
+      do {
+        write_id_ch(*ptr, dctl);
+        ptr++;
+      } while (isdigit((unsigned char)*ptr));
+    }  /* if */
     ptr = advance_past('E', ptr, dctl);
   }  /* if */
   return ptr;
