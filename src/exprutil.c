@@ -7550,10 +7550,33 @@ non-NULL return *con_value == NULL.
              (only valid in C++). */
           op2 = op1->next;
           op3 = op2->next;
-          op1->next = op2 = conv_lvalue_expr_to_rvalue(op2, &constant_case2,
-                                                       (a_constant_ptr *)NULL);
-          op2->next = op3 = conv_lvalue_expr_to_rvalue(op3, &constant_case3,
-                                                       (a_constant_ptr *)NULL);
+          op2 = conv_lvalue_expr_to_rvalue(op2, &constant_case2,
+                                           (a_constant_ptr *)NULL);
+          op3 = conv_lvalue_expr_to_rvalue(op3, &constant_case3,
+                                           (a_constant_ptr *)NULL);
+          if (gcc_mode && C_mode()) {
+            /* In gcc mode, promotions must be done to get back to what
+               we would have had in standard C mode. */
+            if (is_arithmetic_or_enum_type(op2->type)) {
+              a_type_ptr result_type = usual_arithmetic_conversions(op2->type,
+                                                                    op3->type);
+              cast_node(&op2, result_type,
+                        /*check_cast_access=*/FALSE,
+                        /*is_implicit_cast=*/TRUE,
+                        /*is_reinterpret_cast=*/FALSE,
+                        /*reinterpret_semantics=*/FALSE,
+                        &error_position);
+              cast_node(&op3, result_type,
+                        /*check_cast_access=*/FALSE,
+                        /*is_implicit_cast=*/TRUE,
+                        /*is_reinterpret_cast=*/FALSE,
+                        /*reinterpret_semantics=*/FALSE,
+                        &error_position);
+              node->type = make_pointer_type(result_type);
+            }  /* if */
+          }  /* if */
+          op1->next = op2;
+          op2->next = op3;
           *constant_case = constant_case2 && constant_case3;
           /* If all three operands are now constant, the overall result is
              constant. */

@@ -4158,6 +4158,23 @@ the type.  If is_type is FALSE, this is a "sizeof expression", and
 }  /* make_runtime_sizeof_expr */
 
 
+static void conv_gcc_lvalue_question_to_rvalue(an_operand *operand)
+/*
+If the given operand is an lvalue "?" operation in gcc mode, change it
+to the corresponding rvalue.
+*/
+{
+  if (gcc_mode && is_expression_operand(operand) && is_an_lvalue(operand)) {
+    an_expr_node_ptr expr = operand->variant.expression;
+    if (is_operation_node(expr) &&
+        expr->variant.operation.kind == (an_expr_operator_kind)eok_question &&
+        expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+      conv_lvalue_to_rvalue(operand);
+    }  /* if */
+  }  /* if */
+}  /* conv_gcc_lvalue_question_to_rvalue */
+
+
 static void scan_sizeof_operator(an_operand *result)
 /*
 Scan the sizeof operator.  The operand of the sizeof operator cannot be an
@@ -4288,6 +4305,7 @@ Syntax:
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
+    conv_gcc_lvalue_question_to_rvalue(&operand);
     if (is_parenthesized) {
       /* When scanning the expression with a trapped left parenthesis, the
          position returned in the operand indicates the token following
@@ -4478,6 +4496,7 @@ be inappropriate, because the feature is probably used to implement
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
+    conv_gcc_lvalue_question_to_rvalue(&operand);
     alignof_type = operand.type;
 #if GNU_EXTENSIONS_ALLOWED
     if (gcc_mode) {
@@ -4583,6 +4602,7 @@ The parentheses are required, unlike for sizeof.
   } else {
     /* Scan an expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+    conv_gcc_lvalue_question_to_rvalue(&operand);
     result = operand.type;
   }  /* if */
   if (!is_error_type(result)) {
