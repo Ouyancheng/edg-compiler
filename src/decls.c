@@ -3357,11 +3357,11 @@ otherwise, set *ext_sym to NULL.
            order that their bodies appear. */
         remove_from_routines_list(routine_ptr);
         add_to_routines_list(routine_ptr, /*at_file_scope=*/TRUE);
-        if (routine_ptr->is_inline) {
-          /* Leave the storage class static. */
-        } else {
+        if (routine_ptr->storage_class != (a_storage_class)sc_static) {
           /* Put in the storage class for the definition (static or 
-             unspecified). */
+             unspecified).  If it's already static, we don't change it to
+             unspecified.  If it used to be unspecified and is now static,
+             an error will already have been issued. */
           routine_ptr->storage_class = storage_class;
         }  /* if */
         /* If the IL entry was previously referenced, the symbol should
