@@ -818,6 +818,9 @@ the completion of a catch clause.
 {
 #if 0
   /* To be added when throw stacking is added. */
+#else
+  /* Temporary means of indicating that a throw is not in process. */
+  thrown_typeinfo = NULL;
 #endif /* 0 */
 }  /* __free_thrown_object */
 
