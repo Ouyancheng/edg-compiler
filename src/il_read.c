@@ -464,7 +464,7 @@ necessary to make it directly accessible in memory.
 #if DEBUG
     if (debug_level >= 5) {
       fprintf(f_debug, "Read IL entry from file: kind = %u, number = %lu\n",
-              byte_entry_kind, (unsigned long)entry_number);
+              (unsigned int)byte_entry_kind, (unsigned long)entry_number);
     }  /* if */
 #endif /* DEBUG */
 #if CHECKING
