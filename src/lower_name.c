@@ -1173,9 +1173,11 @@ and an indication of that fact should be put out.
   sizeof_t           mangled_name_length, section_length;
   char               *name;
   a_class_type_supplement_ptr
-                     ctsp = type->variant.class_struct_union.extra_info;
+                     ctsp;
   a_boolean          previously_mangled_version_used = FALSE;
 
+  check_assertion(is_immediate_class_type(type));
+  ctsp = type->variant.class_struct_union.extra_info;
   /* This routine shouldn't be called after the nested type mangling has been
      done. */
   check_assertion_str(!type->source_corresp.nested_type_mangling_has_been_done,
@@ -1259,6 +1261,29 @@ information about those things should be put out).
   mangled_full_class_name((type), FALSE, FALSE, (store_at))
 
 
+static sizeof_t mangled_name_with_length(char *name,
+                                         char *store_at)
+/*
+Put out a name with a prefix that indicates the length, e.g., "3abc" for the
+name "abc".  name is null-terminated.  Place the mangled name at *store_at if
+store_at != NULL, and (always) return the length of the mangled name.
+*/
+{
+  sizeof_t mangled_name_length, name_length, digits;
+
+  name_length = strlen(name);
+  digits = digits_to_represent((unsigned long)name_length);
+  mangled_name_length = name_length + digits;
+  if (store_at != NULL) {
+    (void)sprintf(store_at, "%lu", (unsigned long)name_length);
+    store_at += digits;
+    (void)memcpy(store_at, name, size_t_arg(name_length));
+    store_at += name_length;
+  }  /* if */
+  return mangled_name_length;
+}  /* mangled_name_with_length */
+
+
 static sizeof_t mangled_class_encoding(a_type_ptr type,
                                        a_boolean  show_template_specialization,
                                        a_boolean  show_specialization,
@@ -1278,6 +1303,7 @@ specialization and an indication of that fact should be put out.
 {
   sizeof_t   mangled_name_length, name_length, digits;
   a_type_ptr template_param = NULL;
+  char       *name;
 
   check_assertion(is_immediate_class_type(type));
   if (type->source_corresp.assoc_info != NULL) {
@@ -1285,25 +1311,31 @@ specialization and an indication of that fact should be put out.
        we will use the template parameter encoding. */
     template_param =
              symbol_supplement_for_class(type)->template_param_for_proxy_class;
-    if (template_param != NULL) {
-      check_assertion(template_param->kind == (a_type_kind)tk_template_param);
-      /* For tptk_member types just put out the proxy class name. */
-      if (template_param->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tptk_member) {
-        type = template_param;
-        template_param = NULL;
-      }  /* if */
-    }  /* if */
   }  /* if */
   if (template_param != NULL) {
     /* This class is the proxy for a template parameter.  Use the encoding
        for the template parameter as the name for the class. */
-    check_assertion(template_param->variant.template_param.kind ==
-                                   (a_template_param_constant_kind)tptk_param);
-    mangled_name_length = mangled_encoding_for_template_parameter(
+    check_assertion(template_param->kind == (a_type_kind)tk_template_param);
+    switch (template_param->variant.template_param.kind) {
+      case tptk_param:
+        mangled_name_length = mangled_encoding_for_template_parameter(
                &template_param->variant.template_param.extra_info->coordinates,
                store_at);
-    if (store_at != NULL) store_at += mangled_name_length;
+        if (store_at != NULL) store_at += mangled_name_length;
+        break;
+      case tptk_member:
+        /* For something like T::x, where T is a template parameter, just
+           put out "x" here. */
+        name = type->source_corresp.name;
+        check_assertion_str(name != NULL,
+                            "mangled_class_encoding: tptk_member has no name");
+        mangled_name_length = mangled_name_with_length(name, store_at);
+        if (store_at != NULL) store_at += mangled_name_length;
+        break;
+      default:
+        unexpected_condition_str(
+                            "mangled_class_encoding: bad template param kind");
+    }  /* switch */
   } else {
     /* Not a proxy for a template parameter.  Put out the class name preceded
        by its length. */
@@ -1343,7 +1375,7 @@ the usual nesting_level == 1.
 */
 {
   a_source_correspondence *parent_scp;
-  sizeof_t                mangled_name_length = 0, name_length, section_length;
+  sizeof_t                mangled_name_length = 0, section_length;
   sizeof_t                digits;
   a_boolean               more_levels;
 
@@ -1439,16 +1471,9 @@ the usual nesting_level == 1.
     }  /* if */
     /* Put out the namespace name preceded by the length of the name, e.g.,
        "NNN" --> "3NNN". */
-    name_length = strlen(name);
-    digits = digits_to_represent((unsigned long)name_length);
-    mangled_name_length += name_length + digits;
-    if (store_at != NULL) {
-      /* Actually store the name. */
-      (void)sprintf(store_at, "%lu", (unsigned long)name_length);
-      store_at += digits;
-      (void)memcpy(store_at, name, size_t_arg(name_length));
-      store_at += name_length;
-    }  /* if */
+    section_length = mangled_name_with_length(name, store_at);
+    mangled_name_length += section_length;
+    if (store_at != NULL) store_at += section_length;
   }  /* if */
   return mangled_name_length;
 }  /* r_mangled_parent_qualifier */
@@ -1492,9 +1517,8 @@ used for named types (classes, enums, and typedefs) and for unnamed
 classes and enums.  Nested types are encoded as such.
 */
 {
-  sizeof_t   mangled_name_length = 0, name_length;
-  char       *name;
-  sizeof_t   digits;
+  sizeof_t mangled_name_length = 0, section_length;
+  char     *name;
 
   if (type->source_corresp.nested_type_mangling_has_been_done) {
     /* The parent information has already been mangled into the type name,
@@ -1525,12 +1549,12 @@ classes and enums.  Nested types are encoded as such.
     */
     if (is_immediate_class_type(type)) {
       /* Class name. */
-      name_length = mangled_class_encoding(type,
+      section_length = mangled_class_encoding(type,
                                          /*show_template_specialization*/FALSE,
-                                           /*show_specialization=*/FALSE,
-                                           store_at);
-      mangled_name_length += name_length;
-      if (store_at != NULL) store_at += name_length;
+                                              /*show_specialization=*/FALSE,
+                                              store_at);
+      mangled_name_length += section_length;
+      if (store_at != NULL) store_at += section_length;
     } else {
       /* Not a class name (typedef or enum). */
       name = type->source_corresp.name;
@@ -1540,16 +1564,9 @@ classes and enums.  Nested types are encoded as such.
         give_unnamed_enum_a_name(type);
         name = type->source_corresp.name;
       }  /* if */
-      name_length = strlen(name);
-      digits = digits_to_represent((unsigned long)name_length);
-      mangled_name_length += name_length + digits;
-      if (store_at != NULL) {
-        /* Actually store the name. */
-        (void)sprintf(store_at, "%lu", (unsigned long)name_length);
-        store_at += digits;
-        (void)memcpy(store_at, name, size_t_arg(name_length));
-        store_at += name_length;
-      }  /* if */
+      section_length = mangled_name_with_length(name, store_at);
+      mangled_name_length += section_length;
+      if (store_at != NULL) store_at += section_length;
     }  /* if */
   }  /* if */
   return mangled_name_length;
