@@ -1366,20 +1366,6 @@ if it has not already been made.  Return a pointer to it.
 }  /* make_caught_object_address_var */
 
 
-static a_cleanup_action_ptr last_cleanup_region(a_cleanup_action_ptr cap)
-/*
-Find the first cleanup region on the indicated list that has an associated
-exception cleanup region, and return a pointer to it.  "First" means first
-encountered on the list, which means last added.  If there is no such
-region, return NULL.  cap is allowed to be NULL on entry.
-*/
-{
-  /* Ignore entries that are not regions. */
-  for (; cap != NULL && !cap->applies_on_exception_cleanup; cap = cap->next) {}
-  return cap;
-}  /* last_cleanup_region */
-
-
 static a_cleanup_region_number cleanup_region_number(a_cleanup_action_ptr cap)
 /*
 Return the cleanup region number from the indicated cleanup action entry.
@@ -1408,27 +1394,28 @@ and issue an error if not.  If cap is NULL, return max_region_number
 
 
 static a_cleanup_region_number context_cleanup_region_number(
-                                                         a_context_ptr context)
+                                                  a_context_ptr        context,
+                                                  a_cleanup_action_ptr cap)
 /*
-Return the exception cleanup region number that applies at the end of the
-indicated context, or NULL_EH_REGION_NUMBER if none applies.  If necessary,
-work outwards through contexts to find a cleanup region.  context is not
-allowed to be NULL on entry.
+Return the exception cleanup region number that applies at the indicated
+cleanup action of the indicated context, or NULL_EH_REGION_NUMBER if none
+applies.  If necessary, work outwards through contexts to find a cleanup
+region.  context is not allowed to be NULL on entry, but cap may be.
 */
 {
-  a_cleanup_action_ptr last_region_cap = NULL;
-
   /* Work outwards through the contexts, looking for one that has an
      associated region. */
-  for (;; context = context->parent) {
-    last_region_cap = last_cleanup_region(context->cleanup_actions);
-    if (last_region_cap != NULL) break;
+  for (;; context = context->parent, cap = context->cleanup_actions) {
+    /* Ignore entries that are not regions. */
+    for (; cap != NULL && !cap->applies_on_exception_cleanup;
+         cap = cap->next) {}
+    if (cap != NULL) break;
     /* Stop at the function context.  There can be cleanup actions in the
        file scope context but we're not interested in them here. */
     if (!context->subscope_region &&
         context->scope->kind == (a_scope_kind)sck_function) break;
   }  /* for */
-  return cleanup_region_number(last_region_cap);
+  return cleanup_region_number(cap);
 }  /* context_cleanup_region_number */
 
 
@@ -1529,7 +1516,7 @@ pointer can be examined.
                                                     handle_number,
                                                     TARG_VAR_HANDLE_INT_KIND);
   /* Make the previous region index number. */
-  prev_region_number = cleanup_region_number(last_cleanup_region(cap->next));
+  prev_region_number = context_cleanup_region_number(curr_context, cap->next);
   prev_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_unsigned_integer_constant(prev_con, prev_region_number,
                                 TARG_REGION_NUMBER_INT_KIND);
@@ -1564,7 +1551,8 @@ actions in that context, set eh_curr_region to NULL_EH_REGION_NUMBER.
   a_cleanup_region_number region_number;
 
   /* Get the region number of the last cleanup action in the region. */
-  region_number = context_cleanup_region_number(context);
+  region_number = context_cleanup_region_number(context,
+                                                context->cleanup_actions);
   /* Generate an assignment statement to set curr_eh_region. */
   (void)insert_var_assignment_statement(
                                   make_eh_curr_region_var(),
@@ -2149,7 +2137,8 @@ Do IL lowering for an stmk_try_block statement.
                                                   ehse_variant_field),
                       ehse_try_field),
                     ehse_try_region_number_field);
-  region_number = context_cleanup_region_number(curr_context);
+  region_number = context_cleanup_region_number(curr_context,
+                                                curr_context->cleanup_actions);
   (void)insert_assignment_statement(try_frame_region_number,
                                     (an_expr_operator_kind)eok_passign,
                                     node_for_integer_constant(
