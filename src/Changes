@@ -1,5 +1,20 @@
 Version 2.40
 
+12/3/98   Microsoft compatibility: friend functions in class templates
+          analyzed only if used
+
+In Microsoft mode, a friend function defined in a class template is only
+semantically analyzed if it is used.  The following example, which is
+rejected in default mode, is now accepted in Microsoft mode.
+
+	template <class T> struct A {
+		friend T f(T) { return T(); }
+	};
+	// B has no default constructor
+	struct B { B(int){} };
+
+	A<B> ab;
+
 12/2/98   Standalone C++-generating back end
 
 The C++-generating back end has been changed not to call
