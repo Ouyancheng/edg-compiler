@@ -4842,7 +4842,7 @@ value.
 #endif /* ifdef CFE */
 #ifdef CFE
 
-static dump_var_for_wide_string_constant(a_constant_ptr constant)
+static void dump_var_for_wide_string_constant(a_constant_ptr constant)
 /*
 Write a definition for a static variable that contains the value of the
 wide string constant given by constant.  Wide string constants are put
