@@ -1,5 +1,13 @@
 Version 2.12
 
+11/9/92 Cleaner allocation of IL entry number and orphan pointer
+
+When the alternate file format is used for the IL, each IL entry in
+memory is preceded by space for an IL entry number.  The allocation
+of that number now preserves the alignment specified by
+HOST_ALIGNMENT_REQUIRED.  Ditto for the allocation of the next-orphan
+pointer that precedes file-scope IL entries.
+
 11/9/92 Fixed bug in handling nonstandard friend declarations
 
 Nonstandard friend declarations of previously declared unions were not
