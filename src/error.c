@@ -1463,9 +1463,6 @@ error code.
       m =
         "more than one conversion function from %t to a built-in type applies";
       break;
-    case ec_sym_not_a_field_or_base_class:
-      m = "%no is not a nonstatic data member or base class of class %t";
-      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

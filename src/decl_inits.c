@@ -1695,8 +1695,9 @@ initialized.  These are addressed in the course of the processing.
             } else {
               /* Not a base class of the class for which a constructor is
                  being defined. */
-              pos_syty_error(ec_sym_not_a_field_or_base_class, &error_position,
-                             member_or_base_sym, class_type);
+              pos_stty_error(ec_not_a_field_or_base_class, &error_position,
+                             member_or_base_sym->header->identifier,
+                             class_type);
             }  /* if */
             init_type = error_type();
           } else {
@@ -1713,8 +1714,8 @@ initialized.  These are addressed in the course of the processing.
           }  /* if */
         } else {
           /* Not a base class, not a field.  Issue an error. */
-          pos_syty_error(ec_sym_not_a_field_or_base_class, &error_position,
-                         member_or_base_sym, class_type);
+          pos_stty_error(ec_not_a_field_or_base_class, &error_position,
+                         member_or_base_sym->header->identifier, class_type);
           init_type = error_type();
         }  /* if */
 scan_paren:
