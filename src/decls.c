@@ -3932,7 +3932,7 @@ be a using-declaration.
         linked_decl->kind == (a_symbol_kind)sk_namespace_projection) {
       /* In Sun and Microsoft modes it is possible to redeclare a variable
          outside its namespace when that variable is visible through a
-         namespace declaration.  In that case, we must push that namespace
+         using-declaration.  In that case, we must push that namespace
          scope so that the associated variable can be found by
          remove_from_variables_list and add_to_variables_list. */
       a_namespace_ptr  nsp = fundamental_symbol_of(linked_decl)
