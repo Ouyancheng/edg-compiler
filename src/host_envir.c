@@ -2577,6 +2577,51 @@ and return 1.
 }  /* mbc_length */
 
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+
+int mbc_to_wide_char(char          *mb,
+                     unsigned long *wc,
+                     a_boolean     *error)
+/*
+Convert a multibyte character sequence pointed to by mb to a single wide
+character returned in *wc.  Return the number of characters in the
+multibyte character sequence.  If the multibyte character sequence is
+invalid, set *error to TRUE if error is non-NULL, and return 1.
+*/
+{
+  int       numch;
+  a_boolean local_error = FALSE;
+
+#if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
+  /* Use custom code for SJIS instead of the C library routines. */
+  numch = mbc_length(mb, &local_error);
+  if (local_error) {
+    /* Bad multibyte character. */
+    numch = 1;
+    *wc = 0;
+  } else {
+    *wc = (unsigned char)mb[0];
+    if (numch != 1) {
+      *wc = (*wc << targ_char_bit) | (unsigned char)mb[1];
+      check_assertion(numch == 2);
+    }  /* if */
+  }  /* if */
+#else /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+  /* Use a standard C library routine to do the multibyte character
+     sequence to wide character conversion. */
+  numch = mbtowc(wc, *temp_ptr, MB_CUR_MAX);
+  if (numch < 0) {
+    /* Invalid multibyte character sequence. */
+    numch = 1;
+    *wc = 0;
+    local_error = TRUE;
+  }  /* if */
+#endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+  if (error != NULL) *error = local_error;
+  return numch;
+}  /* mbc_to_wide_char */
+
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 unsigned long extract_wide_char_from_string(char *str)
 /*

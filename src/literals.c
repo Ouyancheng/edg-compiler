@@ -581,40 +581,27 @@ the size of wchar_t.
   /* Simple version: no multibyte characters to consider. */
   conv_single_char(temp_ptr, &remaining_mbc_char_count, ch, centity_mask);
 #else /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-  /* Multibyte character processing may be needed, but not if it's disabled,
-     and not if the input is an escape sequence. */
+  /* Multibyte character processing may be needed. */
   if (!multibyte_chars_in_source_enabled || **temp_ptr == '\\') {
-    /* Simple version: no multibyte characters to consider. */
+    /* Use simple routine if multibyte characters are disabled or if
+       the character is an escape. */
     conv_single_char(temp_ptr, &remaining_mbc_char_count, ch, centity_mask);
     check_assertion(remaining_mbc_char_count == 0);
   } else {
-#if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
-    /* Use custom code for SJIS instead of the C library routines. */
-    conv_single_char(temp_ptr, &remaining_mbc_char_count, ch, centity_mask);
-    if (remaining_mbc_char_count != 0) {
-      unsigned long ch2;
-      conv_single_char(temp_ptr, &remaining_mbc_char_count, &ch2,
-                       centity_mask);
-      *ch = (*ch << targ_char_bit) | ch2;
-      check_assertion(remaining_mbc_char_count == 0);
+    unsigned  long wc;
+    int       numch;
+    a_boolean error;
+
+    /* Convert a multibyte character sequence to a wide character. */
+    numch = mbc_to_wide_char(*temp_ptr, &wc, &error);
+    if (error) {
+      /* Invalid multibyte character sequence. */
+      conv_line_loc_to_source_pos(*temp_ptr, &error_position);
+      warning(ec_bad_multibyte_char);
+      wc = 0;
     }  /* if */
-#else /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
-    /* Use a standard C library routine to do the multibyte character
-       sequence to wide character conversion. */
-    { wchar_t wc;
-      int     numch;
-      numch = mbtowc(&wc, *temp_ptr, MB_CUR_MAX);
-      if (numch < 0) {
-        /* Invalid multibyte character sequence. */
-        conv_line_loc_to_source_pos(*temp_ptr, &error_position);
-        warning(ec_bad_multibyte_char);
-        wc = 0;
-        numch = 1;
-      }  /* if */
-      *ch = wc;
-      *temp_ptr += numch;
-    }
-#endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+    *ch = wc;
+    *temp_ptr += numch;
   }  /* if */
 #endif /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 }  /* conv_single_wide_char */
