@@ -1980,10 +1980,10 @@ from the PCH file) to reflect the information loaded from the file.
 #if RECORD_MACROS_IN_IL
   il_header.macros = il_header_from_pch.macros;
 #endif /* RECORD_MACROS_IN_IL */
-  check_assertion_str2(il_header_from_pch.
-                          number_of_external_nonclass_template_entities == 0,
-                       "pch_fixup_part_1:",
-                       "external nonclass template entities not zero");
+#if ONE_INSTANTIATION_PER_OBJECT
+  il_header.number_of_external_nonclass_template_entities =
+              il_header_from_pch.number_of_external_nonclass_template_entities;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   db_exit();
 }  /* pch_fixup_part_1 */
 

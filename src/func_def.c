@@ -140,9 +140,11 @@ on the override_list.
     }  /* if */
   }  /* if */
   /* If this is a template class, instantiate all the virtual member
-     functions. */
-  if (class_type->variant.class_struct_union.is_template_class &&
-      !class_type->variant.class_struct_union.is_specialized &&
+     functions.  When instantiating extern inline functions in a way similar
+     to templates, do this for all classes. */
+  if ((instantiate_extern_inline ||
+       (class_type->variant.class_struct_union.is_template_class &&
+        !class_type->variant.class_struct_union.is_specialized)) &&
       class_type->variant.class_struct_union.any_virtual_functions) {
     /* Look for virtual functions on the class routines list. */
     a_routine_ptr rp = class_type->variant.class_struct_union.extra_info->
@@ -151,7 +153,6 @@ on the override_list.
       if (rp->is_virtual && !rp->pure_virtual) {
         an_overriding_virtual_function_ptr ovfp;
         a_symbol_ptr                       sym;
-        a_template_instance_ptr            tip;
 
         for (ovfp = override_list; ovfp != NULL; ovfp = ovfp->next) {
           if (ovfp->primary_function == rp) {
@@ -163,12 +164,8 @@ on the override_list.
         }  /* for */
         /* The function could be called, so mark it to be instantiated. */
         sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
-        tip = sym->variant.routine.instance_ptr;
-        if (tip != NULL && !tip->instantiation_required) {
-          /* Set the instantiation_required flag for the virtual function. */
-          update_instantiation_required_flag(tip, /*value=*/TRUE,
-                                             /*defer_inline=*/TRUE);
-        }  /* if */
+        /* Set the instantiation_required flag for the virtual function. */
+        set_instance_required(sym, /*value=*/TRUE, /*defer_inline=*/TRUE);
       }  /* if */
 next_function:;
     }  /* for */
@@ -647,6 +644,12 @@ and for the instantiation of template functions.
   rout_type = skip_typerefs(rout_ptr->type);
   rtsp = rout_type->variant.routine.extra_info;
   is_instantiation = (flags & SFB_IS_INSTANTIATION) != 0;
+  if (instantiate_extern_inline && rout_ptr->is_inline &&
+      rout_ptr->storage_class == (a_storage_class)sc_unspecified) {
+    /* When inline functions are instantiated like templates, add the function
+       to the list of inline functions if it is inline. */
+    add_to_inline_function_list(rout_ptr);
+  }  /* if */
   if (!C_mode() && !is_instantiation) {
 #if BACK_END_IS_CP_GEN_BE
     /* Set the "name linkage environment" for this routine.  This is used by

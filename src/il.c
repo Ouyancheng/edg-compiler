@@ -8607,7 +8607,6 @@ of compiler-generated function (e.g., a constructor).
 */
 {
   a_symbol_ptr             assoc_sym;
-  a_template_instance_ptr  instance_ptr;
 
   /* Set the referenced flag.  This is only necessary for virtual
      functions referenced by qualified name.  For non-virtual functions,
@@ -8637,14 +8636,12 @@ of compiler-generated function (e.g., a constructor).
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If the function is an instance of a function template, mark it
-     as requiring an instantiation. */
+     as requiring an instantiation.  This is also done for extern inline
+     functions when inline functions are instantiated using a
+     mechanism like the template instantiation mechanism. */
   assoc_sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
   if (assoc_sym != NULL) {
-    instance_ptr = assoc_sym->variant.routine.instance_ptr;
-    if (instance_ptr != NULL) {
-      update_instantiation_required_flag(instance_ptr, TRUE,
-                                         /*defer_inline=*/FALSE);
-    }  /* if */
+    set_instance_required(assoc_sym, TRUE, /*defer_inline=*/FALSE);
   }  /* if */
 }  /* mark_routine_referenced */
 
@@ -10869,10 +10866,13 @@ eliminated, if appropriate.
         prev_rp->next = rp->next;
       }  /* if */
       rp->next = NULL;
-      /* If the instantiation_required flag was set, clear it now. */
-      if (rp->is_template_function && !rp->is_specialized) {
+      /* If the instantiation_required flag was set, clear it now.  Or,
+         if the function is extern inline and we are instantiating extern
+         inline functions using a mechanism like the template instantiation
+         mechanism, clear the inline instance required flag. */
+      if ((rp->is_template_function && !rp->is_specialized) ||
+          (instantiate_extern_inline && rp->is_inline)) {
         a_symbol_ptr             sym;
-        a_template_instance_ptr  tip;
         a_boolean                okay_to_clear_flag = TRUE;
 
         sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
@@ -10912,9 +10912,7 @@ eliminated, if appropriate.
             }  /* if */
           }  /* if */
           if (okay_to_clear_flag) {
-            tip = sym->variant.routine.instance_ptr;
-            check_assertion(tip != NULL);
-            tip->instantiation_required = FALSE;
+            set_instance_required(sym, FALSE, /*defer_inline=*/FALSE);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -10977,7 +10975,24 @@ eliminated, if appropriate.
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
 #if ONE_INSTANTIATION_PER_OBJECT
+
+unsigned long assign_instantiation_needed_bit_number(void)
+/*
+Increment the number of external template entities and return the bit number
+to be used for the next instantiation needed bit number.
+*/
+{
+  il_header.number_of_external_nonclass_template_entities++;
+  /* When generating one instantiation per object, assign a "bit number"
+     to each external nonclass entity.  Actually, two bits: the second
+     is used for class definition_needed bits.  Bit numbers 1 and 2 are
+     reserved for the needed and definition_needed flags for entities
+     in the compilation that are not instantiations. */
+  return (il_header.number_of_external_nonclass_template_entities*2) + 1;
+}  /* assign_instantiation_needed_bit_number */
+
 
 void clear_instantiation_needed_flags_scan_state(
                            an_instantiation_needed_flags_scan_state_ptr infssp,

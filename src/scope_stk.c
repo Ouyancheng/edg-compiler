@@ -3907,11 +3907,15 @@ e.g., because it's externally defined.
      be referenced from some other compilation unit. */
   if (rout->storage_class == (a_storage_class)sc_unspecified) {
     is_needed = TRUE;
-    if (rout->is_inline) {
+    if (rout->is_trivial_default_constructor) {
+      /* Trivial constructors have no bodies so are never needed. */
+      is_needed = FALSE;
+    } else if (treat_as_static_inline(rout)) {
       /* An exception is "extern inline" functions, which are not regarded
          as referenced from elsewhere.  Each compilation unit has its own
          copy, and this copy is needed only if it is referenced in this
-         compilation unit. */
+         compilation unit.  When "extern inline" functions are not lowered
+         to static functions, treat_as_static_inline returns FALSE. */
       is_needed = FALSE;
     } else if (rout->is_template_function &&
                !rout->is_specialized &&
@@ -4360,6 +4364,9 @@ End a name scope by popping an entry off the scope stack.
        (if DO_IL_LOWERING is TRUE) may allocate variables that are added to
        the IL. */
     update_auto_instantiation_flags();
+    /* Do the similar processing for inline functions, when instantiating
+       inline functions similarly to templates. */
+    update_inline_function_flags();
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
 

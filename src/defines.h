@@ -67,6 +67,9 @@ Flags to be set when using the KAI inliner.
 #define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE 1
 #define COMPOUND_LITERAL_ENABLING_POSSIBLE 1
 #define IGNORE_CARRIAGE_RETURN_IN_SOURCE 1
+#ifndef CP_GEN_BE_VERSION
+#define INSTANTIATE_EXTERN_INLINE 1
+#endif /* ifndef CP_GEN_BE_VERSION */
 #ifdef SELFCOMP_VERSION
 /* Self-compiled version. */
 #define ALTERNATE_IL_FILE_FORMAT 0

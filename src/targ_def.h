@@ -2026,6 +2026,25 @@ tree.
 #endif /* !defined(LOWER_LVALUE_RETURNING_OPERATIONS) */
 
 /*
+Flag that is TRUE if the definition of extern inline functions
+should be controlled by the template instantiation mechanism.
+
+When this flag is set, only one out-of-line copy of an extern inline
+function is generated.  This is more standard conforming as it
+ensures that the address of an inline function remains constant
+across translation units.  The disadvantage is that it requires that
+the template instantiation mechanism be employed for inline functions.
+Extern inline functions cannot be lowered when this flag is set.
+
+When this flag is FALSE, multiple copies of extern inline functions
+are generated.  Note that if the function has local static variables,
+multiple copies of the variables are *not* generated.
+*/
+#ifndef INSTANTIATE_EXTERN_INLINE
+#define INSTANTIATE_EXTERN_INLINE FALSE
+#endif /* ifndef INSTANTIATE_EXTERN_INLINE */
+
+/*
 This switch controls whether "extern inline" functions are rewritten as
 normal inline functions.  The transformation involves promoting local static
 variables to external, and rewriting references to the address of an
@@ -2033,8 +2052,16 @@ extern inline function to use a global variable containing the address
 of the chosen copy.
 */
 #ifndef LOWER_EXTERN_INLINE
-#define LOWER_EXTERN_INLINE TRUE
+#if INSTANTIATE_EXTERN_INLINE
+#define LOWER_EXTERN_INLINE FALSE /* Do not change this. */
+#else /* !INSTANTIATE_EXTERN_INLINE */
+#define LOWER_EXTERN_INLINE TRUE /* You can change this. */
+#endif /* INSTANTIATE_EXTERN_INLINE */
 #endif /* ifndef LOWER_EXTERN_INLINE */
+
+#if LOWER_EXTERN_INLINE && INSTANTIATE_EXTERN_INLINE
+ #error -- extern inline functions cannot be instantiated when they are lowered
+#endif /* !LOWER_EXTERN_INLINE && INSTANTIATE_EXTERN_INLINE */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*

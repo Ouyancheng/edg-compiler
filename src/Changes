@@ -1,5 +1,47 @@
 Version 2.44
 
+1/19/00  Alternate implementation of extern inline functions
+
+A new mechanism for providing out-of-line definitions of extern
+inline functions has been implemented.  The old mechanism, which
+is still the default, generates static copies of the extern inline
+function in those translation units in which an out-of-line copy
+is needed.  The drawback of this approach is that the address of
+an extern inline function is not constant across translation
+units as mandated by the standard.  The new mechanism is similar
+to that used for the automatic instantiation of templates.  If
+an out-of-line definition is needed for an extern inline function,
+the prelinker assigns the "instantiation" of the inline function
+to one of the translation units in which it could be defined.  Thus,
+the new mechanism provides a slightly greater level of standard
+conformance.
+
+If "-tused" mode is being used, a definition of the inline function
+is generated if the function is referenced in that translation unit.
+Note that when using the prelinker, an out-of-line definition is only
+created if one is actually required, but when using "-tused", an
+out-of-line definition may be created even if it is not strictly
+needed.
+
+The principal drawback of the new approach is that it usually requires
+a prelinking step even for programs that don't make use of templates.
+This may require changes in user's Makefiles when creating libraries
+because the object files that comprise the library may need to be
+prelinked before the library is built.
+
+When one instantiation per object mode is used, a separate instantiation
+object file is created for each extern inline function body that is
+generated.
+
+There is no mechanism to manually control the definition of extern
+inline function bodies (i.e., there is no equivalent of the
+"#pragma instantiate" or explicit instantiation directive that
+controls extern inline function definitions).
+
+The new mechanism is enabled by setting the INSTANTIATE_EXTERN_INLINE
+configuration flag to TRUE.  No changes to the prelinker are needed
+to support this feature.
+
 1/19/00  C++-generating back end: constant expression output, lvalues
 
 The changes made to record and use constant expressions in the IL

@@ -1433,12 +1433,7 @@ projection symbol.
       if (sym_kind == (a_symbol_kind)sk_static_data_member) {
         /* If we are marking a template static data member as referenced, also
            set its instantiation required flag. */
-        a_template_instance_ptr	tip;
-        tip = sym_ptr->variant.static_data_member.instance_ptr;
-        if (tip != NULL && !tip->instantiation_required) {
-          update_instantiation_required_flag(tip, TRUE,
-                                            /*defer_inline=*/FALSE);
-        }  /* if */
+        set_instance_required(sym_ptr, TRUE, /*defer_inline=*/FALSE);
       }  /* if */
       scptr->referenced = TRUE;
     }  /* if */

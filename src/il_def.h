@@ -5042,6 +5042,21 @@ typedef struct a_routine {
 			   reconstruct name linkage blocks when appropriate
 			   (e.g., extern "C" { static int f() { ... } }). */
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if INSTANTIATE_EXTERN_INLINE
+  a_bit_field	inline_instance_required:1;
+			/* TRUE for an inline function if the function was
+			   referenced in a way that requires a definition of
+			   the body of the inline function somewhere in the
+			   complete program.  This flag is set for all
+			   routines because a routine can be declared inline
+			   after it has been called. */
+  a_bit_field	suppress_inline_body:1;
+			/* This field is used when inline functions are
+			   instantiated using a mechanism similar to the
+			   template instantiation mechanism.  This field
+			   is TRUE when the body of an extern inline function
+			   should not be emitted by the back end. */
+#endif /* INSTANTIATE_EXTERN_INLINE */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
@@ -7922,11 +7937,12 @@ EXTERN struct il_header_tag {
 			   files should be created.  NULL if the
 			   one-instantiation-per-object option is not being
 			   used. */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
   unsigned long	number_of_external_nonclass_template_entities;
 			/* The number of externally linked template functions
 			   and template static data members in this
-			   translation unit. */
+			   translation unit.  This value is only maintained
+			   when one instantiation per object mode is used. */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
 } il_header;
 
 

@@ -846,6 +846,17 @@ EXTERN a_boolean
 			   are passed through to the output unchanged. */
 
 
+EXTERN a_boolean
+		instantiate_extern_inline
+#if VAR_INITIALIZERS
+                            = INSTANTIATE_EXTERN_INLINE
+#endif /* VAR_INITIALIZERS */
+                                 ;
+			/* TRUE if the instantiation mechanism should be used
+			   to control the definition of extern inline
+			   functions. */
+
+
 /* Aside from occasional references in targ_def.h, the following values
    should be used *only* to initialize the variables declared in this file.
    To enforce this convention, they are undefined at this time.  (This is

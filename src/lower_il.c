@@ -4219,6 +4219,12 @@ overridden function).
     entry_routine->source_corresp.name_linkage =
                                              (a_name_linkage_kind)nlk_external;
   }  /* if */  
+#if ONE_INSTANTIATION_PER_OBJECT
+  /* Use the needed bit number from the overriding function.  This is needed
+     when instantiating inline functions. */
+  entry_routine->instantiation_needed_bit_number =
+                          overriding_function->instantiation_needed_bit_number;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   entry_routine->overriding_function_for_covariant_return_type =
                                                            overriding_function;
   entry_routine->overridden_function_for_covariant_return_type =

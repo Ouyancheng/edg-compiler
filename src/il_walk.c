@@ -403,7 +403,7 @@ definition of the routine is needed, and not just the declaration.
 {
 #if ONE_INSTANTIATION_PER_OBJECT
   if (one_instantiation_per_object) {
-    if (!rout->is_inline) {
+    if (!treat_as_static_inline(rout)) {
       if (needed_flag_bit_number != 0) {
       /* If we reach this spot while doing a walk for a particular
          instantiation bit number, and that's not the bit number associated
@@ -749,7 +749,7 @@ references.
     if (entry_kind == (an_il_entry_kind)iek_routine) {
       a_routine_ptr rout = (a_routine_ptr)entry_ptr;
       if (rout->storage_class == (a_storage_class)sc_unspecified &&
-          !rout->is_inline) {
+          !treat_as_static_inline(rout)) {
         set_per_instantiation_needed_flag(entry_ptr, entry_kind,
                                         rout->instantiation_needed_bit_number);
       }  /* if */
@@ -776,7 +776,7 @@ references.
        translation units.  The caller could reasonably be expected to do
        this, but doing it here reduces the possibility of error. */
     if (rout->storage_class == (a_storage_class)sc_unspecified &&
-        !rout->is_inline) {
+        !treat_as_static_inline(rout)) {
       set_routine_definition_needed(rout);
     }  /* if */
   }  /* if */

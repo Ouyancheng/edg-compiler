@@ -310,14 +310,17 @@ extern
 void update_nested_template_class_symbol_info(a_symbol_ptr       sym,
                                               a_type_kind	 type_kind);
 
-extern void update_instantiation_required_flag(
-                                        a_template_instance_ptr tip,
-                                        a_boolean               value,
-				        a_boolean	        defer_linline);
+extern void set_instance_required(a_symbol_ptr	sym,
+			   a_boolean	value,
+			   a_boolean	defer_inline);
 
 extern void process_deferred_instantiation_requests(void);
 
 extern void instantiation_wrapup(void);
+
+extern void inline_function_wrapup(void);
+
+extern void add_to_inline_function_list(a_routine_ptr	rout_ptr);
 
 extern void templates_one_time_init(void);
 
@@ -326,6 +329,7 @@ extern void templates_init(void);
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 extern void wrapup_auto_instantiation_information(void);
 extern void update_auto_instantiation_flags(void);
+extern void update_inline_function_flags(void);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 extern void instantiation_pragma(a_pending_pragma_ptr	ppp);

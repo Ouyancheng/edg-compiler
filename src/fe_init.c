@@ -816,6 +816,9 @@ source file's compilation.
   /* near_and_far_enabled, far_data_pointers, and far_code_pointers are
      initialized in fe_early_init and changed if necessary in cmd_line.c. */
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if ONE_INSTANTIATION_PER_OBJECT
+  il_header.number_of_external_nonclass_template_entities = 0;
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   il_header.UCN_identifiers_used = FALSE;
   if (pp_output_file_needed) {
     /* Open the preprocessing output file. */
@@ -958,7 +961,6 @@ being used).
   il_header.time_of_compilation = strcpy(
                                 alloc_il((sizeof_t)(strlen(curr_date_time)+1)),
                                 curr_date_time);
-  il_header.number_of_external_nonclass_template_entities = 0;
 #if ONE_INSTANTIATION_PER_OBJECT
   il_header.instantiation_dir_name = instantiation_dir_name == NULL ? NULL :
           strcpy(alloc_il((sizeof_t)(strlen(instantiation_dir_name)+1)),

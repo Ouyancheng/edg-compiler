@@ -6398,6 +6398,9 @@ if this routine has a body (dump nothing if it has no body).
 */
 {
   a_boolean       has_defn = (rout->assoc_scope != NULL_region_number
+#if INSTANTIATE_EXTERN_INLINE
+                              && !rout->suppress_inline_body
+#endif /* INSTANTIATE_EXTERN_INLINE */
 #if MAINTAIN_NEEDED_FLAGS
                               && rout->definition_needed
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -6406,7 +6409,10 @@ if this routine has a body (dump nothing if it has no body).
   a_storage_class storage_class = rout->storage_class;
 
 #if ONE_INSTANTIATION_PER_OBJECT
-  if (has_defn && needed_flag_bit_number != 0 && !rout->is_inline) {
+  if (has_defn && needed_flag_bit_number != 0 &&
+      (!rout->is_inline ||
+       (instantiate_extern_inline &&
+        rout->storage_class != (a_storage_class)sc_static))) {
     /* We're generating separate files for each instantiation, so do not
        put instantiation definitions into the primary output file, or
        primary-file routine definitions into the instantiation files. */
@@ -6875,7 +6881,13 @@ the C output files for all instantiations.
        rout = rout->next) {
     if (rout->instantiation_needed_bit_number != 0 &&
         /* Ignore generated startup initialization routines. */
-        rout->is_template_function) {
+        (rout->is_template_function
+#if INSTANTIATE_EXTERN_INLINE
+         || (rout->is_inline &&
+             rout->storage_class != (a_storage_class)sc_static &&
+             !rout->suppress_inline_body)
+#endif /* INSTANTIATE_EXTERN_INLINE */
+                                         )) {
       generate_one_instantiation_C_output_file(&rout->source_corresp,
                                         rout->instantiation_needed_bit_number);
     }  /* if */

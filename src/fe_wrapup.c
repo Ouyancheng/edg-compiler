@@ -99,6 +99,10 @@ and before the back end (if any) is executed.
     generate_required_virtual_destructor_bodies(il_header.primary_scope);
   }  /* if */
 
+  /* Determine which extern inline functions should have bodies emitted
+     as part of this translation unit. */
+  inline_function_wrapup();
+
   /* Pop the file declaration scope off the scope stack. */
   pop_scope();
 

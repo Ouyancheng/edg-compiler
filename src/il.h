@@ -131,6 +131,8 @@ extern void clear_instantiation_needed_flags_scan_state(
 extern unsigned long next_set_instantiation_needed_flag(
                           an_instantiation_needed_flags_scan_state_ptr infssp);
 
+extern unsigned long assign_instantiation_needed_bit_number(void);
+
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 /* Macro to fetch the value of the needed flag. */
@@ -144,6 +146,20 @@ extern a_boolean instantiation_needed_flag_is_set(
 #else /* !ONE_INSTANTIATION_PER_OBJECT */
 #define needed_flag_is_set(scp) ((scp)->needed)
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+
+/* Macro to determine whether a routine is to be treated as a static inline
+   function.  This includes "extern inline" functions that are lowered to
+   static functions. */
+#if LOWER_EXTERN_INLINE
+/* When lowering "extern inline" all inline functions are treated as static. */
+#define treat_as_static_inline(rout)					\
+  ((rout)->is_inline)
+#else /* !LOWER_EXTERN_INLINE */
+/* When not lowering "extern inline" only those declared static are treated
+   as static. */
+#define treat_as_static_inline(rout)					\
+  ((rout)->is_inline && ((rout)->storage_class == (a_storage_class)sc_static))
+#endif /* LOWER_EXTERN_INLINE */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
