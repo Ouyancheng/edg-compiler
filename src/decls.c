@@ -6092,9 +6092,17 @@ return a pointer to it in *symbol_ptr.
             /* Stay with the access specified on the original declaration. */
           }  /* if */
         }  /* if */
-        /* However, in C++ we may still need an sk_type symbol,
-           since tags and typedefs do not occupy the same name space. */
-        if (sym->kind == (a_symbol_kind)sk_type) {
+        /* In C++ we may still need an sk_type symbol, since tags and typedefs
+           do not occupy the same name space.  Furthermore, if a typedef
+           redeclares a using-declaration, we replace the using- declaration
+           symbol by a new typedef (this has no impact on the meaning of the
+           language, but makes e.g. the C++ generating back end simpler). */
+        if (locator->specific_symbol->kind ==
+                                     (a_symbol_kind)sk_namespace_projection) {
+          sym = NULL;
+          remove_symbol(locator->specific_symbol);
+          clear_specific_symbol(*locator);
+        } else if (sym->kind == (a_symbol_kind)sk_type) {
           a_symbol_reference_kind  ref_kind = SRK_DECLARATION;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
