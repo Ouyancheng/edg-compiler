@@ -1793,7 +1793,7 @@ specification is handled later (see check_throw_specification).
   if (curr_token == tok_rparen) {
     (void)get_token();
   } else {
-    if (exceptions_enabled) error(ec_exp_rparen);
+    if (exceptions_enabled) (void)required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
 done:;
   db_exit();
@@ -3683,10 +3683,15 @@ to NULL.
 #endif /* ASM_FUNCTION_ALLOWED */
                           );
       if (is_function_def && old_decl_has_body) {
+#if 0
         /* Previous routine already has a body, and new one does (or will)
            too.  Let processing fall into call to alloc_local_symbol, which
            will give a redefinition error. */
         redecl_error_already_issued = FALSE;
+#else /* if !0 */
+        pos_sy_error(ec_already_defined, &locator->source_position, sym);
+        redecl_error_already_issued = TRUE;
+#endif /* if 0 */
         linked_redecl_error = TRUE;
       } else {
         /* Check that the old and new types are compatible, and form the
