@@ -840,6 +840,8 @@ extern a_scope_ptr push_for_init_scope(void);
 extern a_scope_ptr push_namespace_scope(a_scope_kind    kind,
                                         a_namespace_ptr assoc_namespace);
 
+extern void pop_namespace_scope(void);
+
 extern void push_template_instantiation_scope(
                             a_template_decl_info_ptr	decl_info,
                             a_type_ptr			assoc_type,

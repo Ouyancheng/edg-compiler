@@ -1623,7 +1623,9 @@ a_scope_ptr push_namespace_scope(a_scope_kind    kind,
 Interface to push_scope_full that is used for sck_namespace scopes
 ("original" namespace definitions).  It is also used to reopen an
 sck_namespace IL scope by pushing an sck_namespace_extension scope stack
-entry (for "extension-namespace-definitions").
+entry (for "extension-namespace-definitions").  This is used both when
+a namespace is defined and when an instantiation scope is pushed for a
+template defined in a namespace.
 */
 {
   a_scope_ptr     scope;
@@ -1649,6 +1651,66 @@ entry (for "extension-namespace-definitions").
                                             &scope_stack[depth_scope_stack]);
   return scope;
 }  /* push_namespace_scope */
+
+
+static void microsoft_using_directive_bug_processing(a_namespace_ptr	nsp)
+/*
+The Microsoft compiler (as of Visual C++ 6.0) has a bug that causes a
+namespace nominated by a using-directive to visible in the file scope.
+
+  namespace M  { 
+    class C{};
+  }
+  namespace N {
+    using namespace M;
+  }
+  namespace N {}
+  void f(C*); // C is visible in the global namespace
+
+This bug only occurs when the using-directive is in a namespace that
+has been extended (i.e., not one for which there has only been a
+primary namespace definition).
+
+This routine implements this bug by taking the using-directives from the
+namespace being popped and applying them to the file scope.
+*/
+{
+  /* Add active using directives for the namespaces that should be
+     visible because of the transitivity of using directives. */
+ a_scope_depth	depth;
+ add_active_using_directives_for_namespace(nsp,
+                                           &scope_stack[DEPTH_OF_FILE_SCOPE]);
+ /* Update all of the scopes on the scope stack to indicate that symbols
+    visible as a result of a using-directive may be visible. */
+ for (depth = depth_scope_stack; depth >= DEPTH_OF_FILE_SCOPE; depth--) {
+   scope_stack[depth].inactive_symbols_may_be_visible = TRUE;
+ }  /* for */
+}  /* microsoft_using_directive_bug_processing */
+
+
+void pop_namespace_scope(void)
+/*
+Pop a namespace or namespace extension scope.  Unlike push_namespace_scope,
+this routine is used only for namespace scopes that appear in the source
+program, not used when popping the namespace scope pushed as part of the
+template instantiation process.
+*/
+{
+  a_namespace_ptr		assoc_namespace;
+  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+  a_scope_kind			kind;
+
+  kind = ssep->kind;
+  check_assertion(kind == (a_scope_kind)sck_namespace ||
+                  kind == (a_scope_kind)sck_namespace_extension);
+  assoc_namespace = ssep->assoc_namespace;
+  pop_scope();
+  if (microsoft_bugs && kind == (a_scope_kind)sck_namespace_extension) {
+    /* Make any using-directives in this namespace visible in the file
+       scope (to emulate a Microsoft bug). */
+    microsoft_using_directive_bug_processing(assoc_namespace);
+  }  /* if */
+}  /* pop_namespace_scope */
 
 
 static a_scope_depth find_depth_of_common_scope(a_namespace_ptr nsp)

@@ -8275,7 +8275,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       discard_curr_construct_pragmas();
     }  /* if */
     /* Pop the namespace or namespace-extension scope. */
-    pop_scope();
+    pop_namespace_scope();
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* If (because of an error) an empty source-sequence entry was left in the
