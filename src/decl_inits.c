@@ -462,6 +462,7 @@ also create an stmk_init statement at the current point in the code.
   a_dynamic_init_ptr      new_dip;
   a_statement_ptr         init_stmt;
   a_scope_stack_entry_ptr ssep;
+  an_expr_node_ptr        node;
 
   db_enter(4, "gen_dynamic_initiailization");
   /* Build the dynamic initialization entry. */
@@ -513,6 +514,10 @@ also create an stmk_init statement at the current point in the code.
     init_stmt = add_statement((a_statement_kind)stmk_init);
     init_stmt->seq_number = vp->source_corresp.decl_position.seq;
     init_stmt->variant.dynamic_init = new_dip;
+    node = alloc_expr_node((an_expr_node_kind)enk_variable_address);
+    node->type = vp->type;
+    node->variant.variable = vp;
+    init_stmt->expr = node;
   }  /* if */
   db_exit();
 }  /* gen_dynamic_initialization */
