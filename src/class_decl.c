@@ -1897,7 +1897,7 @@ The situation we are looking for (discussed in ARM 10.10c) is of this sort:
         class D : B, C { };
 or in graphical terms:
            A          virtual function A::f() is declared
-          / \ 
+          / \
          B   C        B::f() overrides A::f()
           \ /         C::f() overrides A::f()
            D          No D::f() was declared.
@@ -3852,7 +3852,7 @@ B is not complete and even though A is also a direct base class of D.
     inheritance is added to example (3):
 
   class A { int a; };                       //      A   
-  class B : public virtual A { int b; };    //     /|\  
+  class B : public virtual A { int b; };    //     /|\
   class C : public virtual A { int c; };    //    B | C 
   class D : public B, public C,             //     \|/  
             public virtual A { int d; };    //      D   
