@@ -8516,11 +8516,9 @@ cast to the proper base class.
   check_assertion(return_stmt != NULL &&
                   return_stmt->kind == (a_statement_kind)stmk_return);
   return_stmt->expr = expr;
-#if INSTANTIATE_EXTERN_INLINE
   /* Suppress the body of the wrapper function if the primary function
      is to be suppressed. */
   routine->suppress_inline_body = overriding_function->suppress_inline_body;
-#endif /*  INSTANTIATE_EXTERN_INLINE */
   pop_generated_routine_context(scope, region_number, &grcontext);
 }  /* add_body_for_covariant_return_type_entry_routine */
 

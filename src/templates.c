@@ -14758,39 +14758,43 @@ the inline_instance_required field in the routine entry associated with sym.
 The symbol passed in must be for a function or a static data member,
 but it need not be for a template entity or an inline function.
 "value" is the value to which the field(s) are to be set.  defer_inline
-is passed to update_instantiation_required_flag.
+is passed to update_instantiation_required_flag.  Does nothing if called
+in C mode.
 */
 {
-  a_template_instance_ptr	tip;
+  /* Do nothing in C mode. */
+  if (!C_mode()) {
+    a_template_instance_ptr	tip;
 
 #if DEBUG
-  if (db_flag_is_set("set_instance_required")) {
-    fprintf(f_debug, "Setting instance required for ");
-    db_symbol_name(sym);
-    fprintf(f_debug, " to %s\n", value ? "true" : "false");
-  }  /* if */
+    if (db_flag_is_set("set_instance_required")) {
+      fprintf(f_debug, "Setting instance required for ");
+      db_symbol_name(sym);
+      fprintf(f_debug, " to %s\n", value ? "true" : "false");
+    }  /* if */
 #endif /* DEBUG */
-  if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-    tip = sym->variant.static_data_member.instance_ptr;
-  } else {
-    check_assertion(sym->kind == (a_symbol_kind)sk_member_function ||
-                    sym->kind == (a_symbol_kind)sk_routine);
-    tip = sym->variant.routine.instance_ptr;
-  }  /* if */
-  if (tip != NULL) {
-    update_instantiation_required_flag(tip, value, defer_inline);
-  }  /* if */
+    if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+      tip = sym->variant.static_data_member.instance_ptr;
+    } else {
+      check_assertion(sym->kind == (a_symbol_kind)sk_member_function ||
+                      sym->kind == (a_symbol_kind)sk_routine);
+      tip = sym->variant.routine.instance_ptr;
+    }  /* if */
+    if (tip != NULL) {
+      update_instantiation_required_flag(tip, value, defer_inline);
+    }  /* if */
 #if INSTANTIATE_EXTERN_INLINE
-  /* The inline instance required flag is set for all functions (even
-     those that are not inline).  A function can be declared inline after
-     it has been called. */
-  if (sym->kind == (a_symbol_kind)sk_member_function ||
-      sym->kind == (a_symbol_kind)sk_routine) {
-    a_routine_ptr	rp;
-    rp = sym->variant.routine.ptr;
-    rp->inline_instance_required = value;
-  }  /* if */
+    /* The inline instance required flag is set for all functions (even
+       those that are not inline).  A function can be declared inline after
+       it has been called. */
+    if (sym->kind == (a_symbol_kind)sk_member_function ||
+        sym->kind == (a_symbol_kind)sk_routine) {
+      a_routine_ptr	rp;
+      rp = sym->variant.routine.ptr;
+      rp->inline_instance_required = value;
+    }  /* if */
 #endif /* INSTANTIATE_EXTERN_INLINE */
+  }  /* if */
 }  /* set_instance_required */
 
 
@@ -15304,6 +15308,7 @@ emitted in this translation unit.
   a_boolean	result = FALSE;
   a_boolean	body_can_be_generated = FALSE;
 
+  check_assertion(!C_mode());
   if (rout_ptr->assoc_scope != NULL_region_number) {
     /* The routine has a body. */
     body_can_be_generated = TRUE;
@@ -15342,6 +15347,7 @@ the body should be emitted by the back end.
 {
   a_boolean	emit_function;
 
+  check_assertion(!C_mode());
   emit_function = inline_function_should_be_emitted(rout_ptr);
   rout_ptr->suppress_inline_body = !emit_function;
   if (emit_function) {
@@ -15367,23 +15373,26 @@ are instantiated using a mechanism like the template instantiation mechanism.
 */
 {
 #if INSTANTIATE_EXTERN_INLINE
-  a_routine_list_entry_ptr	rlep;
+  /* Do nothing in C mode. */
+  if (!C_mode()) {
+    a_routine_list_entry_ptr	rlep;
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  /* Set the flag that indicates that this translation unit contains
-     instantiatable entities. */
-  if (inline_function_list != NULL) any_instantiations_required = TRUE;
+    /* Set the flag that indicates that this translation unit contains
+       instantiatable entities. */
+    if (inline_function_list != NULL) any_instantiations_required = TRUE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
-    set_body_needed_flag_for_inline_function(rlep->routine);
-  }  /* for */
+    for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
+      set_body_needed_flag_for_inline_function(rlep->routine);
+    }  /* for */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  if (any_instantiations_required && use_template_info_file &&
-      generate_template_files()) {
-    /* Make sure the template information file has been created. */
-    if (f_template_info == NULL) open_template_info_file();
-  }  /* if */
+    if (any_instantiations_required && use_template_info_file &&
+        generate_template_files()) {
+      /* Make sure the template information file has been created. */
+      if (f_template_info == NULL) open_template_info_file();
+    }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  }  /* if */
 #endif /* INSTANTIATE_EXTERN_INLINE */
 }  /* inline_function_wrapup */
 
@@ -15480,8 +15489,8 @@ write an instantiation file name entry to the template information file.
   }  /* if */
 }  /* write_instantiation_file_name_for_inline_function */
 
-#endif /* INSTANTIATE_EXTERN_INLINE */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#endif /* INSTANTIATE_EXTERN_INLINE */
 
 void update_inline_function_flags(void)
 /*
@@ -15491,17 +15500,20 @@ are instantiated using a mechanism like the template instantiation mechanism.
 */
 {
 #if INSTANTIATE_EXTERN_INLINE
-  a_routine_list_entry_ptr	rlep;
+  /* Nothing to do in C mode. */
+  if (!C_mode()) {
+    a_routine_list_entry_ptr	rlep;
 
-  for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
-    create_instantiation_flags_for_inline_function(rlep->routine);
+    for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
+      create_instantiation_flags_for_inline_function(rlep->routine);
 #if ONE_INSTANTIATION_PER_OBJECT
-    /* If we are using one instantiation per object mode, write the
-       name of the instantiation object file to the template information
-       file. */
-    write_instantiation_file_name_for_inline_function(rlep->routine);
+      /* If we are using one instantiation per object mode, write the
+         name of the instantiation object file to the template information
+         file. */
+      write_instantiation_file_name_for_inline_function(rlep->routine);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-  }  /* for */
+    }  /* for */
+  }  /* if */
 #endif /* INSTANTIATE_EXTERN_INLINE */
 }  /* update_inline_function_flags */
 

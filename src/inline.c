@@ -1664,14 +1664,12 @@ versions of those routines.
     if (routine->is_inline && routine->inlinable) {
       /* If the routine's address was taken, an out of line copy is needed. */
       if (routine->address_taken) routine->need_out_of_line_copy = TRUE;
-#if INSTANTIATE_EXTERN_INLINE
-      if (!routine->suppress_inline_body) {
-        /* When instantiating extern inline functions we need to put out
-           an out-of-line copy when told to do so via the suppress_inline_body
-           flag. */
+      if (routine->storage_class == (a_storage_class)sc_unspecified &&
+          !routine->suppress_inline_body) {
+        /* For extern inline functions we need to put out an out-of-line
+           copy when told to do so via the suppress_inline_body flag. */
         routine->need_out_of_line_copy = TRUE;
       }  /* if */
-#endif /* INSTANTIATE_EXTERN_INLINE */
       if (!routine->need_out_of_line_copy) {
         /* We don't need an out-of-line copy, so mark the routine as
            unreferenced because it's no longer needed. */
