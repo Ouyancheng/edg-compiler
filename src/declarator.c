@@ -1384,7 +1384,8 @@ declaration.
           declarator(di_flags, &do_flags, param_type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL,
                      &param_locator, &param_type_ptr, &param_ssep,
-                     (a_func_info_block_ptr)NULL, &local_decl_pos_block);
+                     (a_func_info_block_ptr)NULL, &local_decl_pos_block,
+                     (an_attribute_ptr *)NULL);
         } else {
           /* No declarator. */
           set_to_error_locator(param_locator);
@@ -2653,7 +2654,8 @@ a_type_ptr pointer_declarator(
                       a_call_conv_descr_ptr unbound_calling_convention,
                       a_type_qualifier_set  *left_qualifiers,
                       a_type_qualifier_set  *unbound_qualifiers,
-                      a_decl_pos_block_ptr  decl_pos_block)
+                      a_decl_pos_block_ptr  decl_pos_block,
+                      an_attribute_ptr      *attributes)
 /*
 Scan the pointer component of a declarator.  Syntax for C++ (ARM 8.0):
 
@@ -3021,6 +3023,14 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
       /* Add the qualifiers to the complete type being built up. */
       complete_type = make_qualified_type(complete_type, qualifiers);
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    /* Attributes may appear after the pointer declarator in some cases. */
+    if (attributes != NULL && gcc_mode) {
+      *attributes = scan_attributes();
+      /* Advance to the end of the list. */
+      attributes = last_attribute_link(attributes);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Keep looping as long as there are pointer declarators. */
   }  /* for */
 #if DEBUG
@@ -3542,7 +3552,8 @@ static void r_declarator(
                   a_type_qualifier_set        *p_unbound_qualifiers,
                   a_source_sequence_entry_ptr *declarator_ssep,
                   a_func_info_block           *func_info,
-                  a_decl_pos_block_ptr        decl_pos_block)
+                  a_decl_pos_block_ptr        decl_pos_block,
+                  an_attribute_ptr            *attributes)
 /*
 Scan a declarator (3.5.4) or an abstract declarator (3.5.5), depending
 on the values of real_declarator_allowed and abstract_declarator_allowed
@@ -3660,7 +3671,11 @@ The syntax is:
                                        C_dialect == C_dialect_cplusplus,
                                      &left_call_conv, &unbound_call_conv,
                                      &left_qualifiers, &unbound_qualifiers,
-                                     decl_pos_block);
+                                     decl_pos_block, attributes);
+#if GNU_EXTENSIONS_ALLOWED
+  /* Advance to the end of the attribute list. */
+  attributes = last_attribute_link(attributes);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   derived_type = NULL;
   bottom_derived_type = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3725,7 +3740,11 @@ The syntax is:
                  is_constructor, is_destructor,
                  &inner_left_call_conv, &unbound_call_conv,
                  &inner_left_qualifiers, &unbound_qualifiers,
-                 declarator_ssep, func_info, decl_pos_block);
+                 declarator_ssep, func_info, decl_pos_block,
+                 (an_attribute_ptr *)attributes);
+#if GNU_EXTENSIONS_ALLOWED
+    attributes = last_attribute_link(attributes);
+#endif /* GNU_EXTENSIONS_ALLOWED */
     if (local_do_flags & DO_REAL_DECLARATOR_SCANNED) {
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
       /* Copy the position of the declarator-id into declarator_pos. */
@@ -4297,7 +4316,8 @@ void declarator(a_decl_flag_set             input_flags,
                 a_type_ptr                  *p_complete_type,
                 a_source_sequence_entry_ptr *declarator_ssep,
                 a_func_info_block           *func_info,
-                a_decl_pos_block_ptr        decl_pos_block)
+                a_decl_pos_block_ptr        decl_pos_block,
+                an_attribute_ptr            *attributes)
 /*
 Scan a declarator.  This is an interface routine for r_declarator, provided
 so that parameters needed only on recursive calls for nested declarators
@@ -4324,7 +4344,7 @@ the parameters.
                &bottom_derived_type, &is_constructor, &is_destructor,
                (a_call_conv_descr_ptr)NULL, (a_call_conv_descr_ptr)NULL,
                (a_type_qualifier_set *)NULL, (a_type_qualifier_set *)NULL,
-               declarator_ssep, func_info, decl_pos_block);
+               declarator_ssep, func_info, decl_pos_block, attributes);
   if (is_constructor) {
     *output_flags |= DO_IS_CONSTRUCTOR;
   }  /* if */

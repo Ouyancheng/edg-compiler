@@ -7456,7 +7456,7 @@ In C++ mode an error is issued if a type definition appears in a type-name
                /*member_parent_type=*/(a_type_ptr)NULL,
                (a_symbol_locator *)NULL, type_ptr,
                &declarator_ssep, (a_func_info_block_ptr)NULL,
-               (a_decl_pos_block_ptr)NULL);
+               (a_decl_pos_block_ptr)NULL, (an_attribute_ptr *)NULL);
     if (explicit_cv_qualifiers != NULL) {
       /* Explicit qualifiers might have been introduced in the declarator: */
       *explicit_cv_qualifiers = is_top_level_qualified_type(*type_ptr);
@@ -7560,7 +7560,7 @@ within this routine if is_parenthesized comes in FALSE.
                  /*member_parent_type=*/(a_type_ptr)NULL,
                  (a_symbol_locator *)NULL, type_ptr,
                  &declarator_ssep, (a_func_info_block_ptr)NULL,
-                 &decl_pos_block);
+                 &decl_pos_block, (an_attribute_ptr *)NULL);
     }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
@@ -7574,7 +7574,8 @@ within this routine if is_parenthesized comes in FALSE.
 				       (a_call_conv_descr_ptr)NULL,
                                        (a_type_qualifier_set *)NULL,
                                        (a_type_qualifier_set *)NULL,
-                                       &decl_pos_block);
+                                       &decl_pos_block,
+                                       (an_attribute_ptr *)NULL);
     derived_type = NULL;
     bottom_derived_type = NULL;
     add_stop_token(tok_lbracket);
@@ -7748,7 +7749,8 @@ is no parent.
                                        (a_call_conv_descr_ptr)NULL,
                                        (a_type_qualifier_set *)NULL,
                                        (a_type_qualifier_set *)NULL,
-                                       &decl_pos_block);
+                                       &decl_pos_block,
+                                       (an_attribute_ptr *)NULL);
     if (any_cfront_mode() &&
         check_member_function_typedef(complete_type, &type_pos)) {
       /* The type is a cfront-style member function typedef -- it is an error
@@ -8229,7 +8231,8 @@ clause is to be attached.  catch_pos is the source position of "catch".
                      &do_flags, type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL,
                      &locator, &type_ptr, &declarator_ssep,
-                     (a_func_info_block_ptr)NULL, &decl_pos_block);
+                     (a_func_info_block_ptr)NULL, &decl_pos_block,
+                     (an_attribute_ptr *)NULL);
           if (do_flags & DO_REAL_DECLARATOR_SCANNED) {
             sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
                                decl_scope_level,
@@ -8633,7 +8636,8 @@ Return a pointer to the variable that is declared.
        array. */
     declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, type_ptr,
                /*member_parent_type=*/(a_type_ptr)NULL, &locator, &type_ptr,
-               &declarator_ssep, (a_func_info_block_ptr)NULL, &decl_pos_block);
+               &declarator_ssep, (a_func_info_block_ptr)NULL, &decl_pos_block,
+               (an_attribute_ptr *)NULL);
   } else {
     /* No declarator.  Issue a single diagnostic on this malformed
        condition declaration. */
@@ -10318,9 +10322,7 @@ continue_with_declaration:
         /* Add these to the prefix_attributes. */
         *last_prefix_attribute = attributes;
         /* And compute what's now the end of the prefix attributes. */
-        while (*last_prefix_attribute != NULL) {
-          last_prefix_attribute = &(*last_prefix_attribute)->next;
-        }  /* while */
+        last_prefix_attribute = last_attribute_link(last_prefix_attribute);
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* Save the source position of the first token of the declarator. */
@@ -10328,8 +10330,15 @@ continue_with_declaration:
       declarator(di_flags, &do_flags, type_ptr, 
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
                  &local_type_ptr, &declarator_ssep, &func_info,
-                 &decl_pos_block);
+                 &decl_pos_block, 
 #if GNU_EXTENSIONS_ALLOWED
+                 last_prefix_attribute
+#else /* !GNU_EXTENSIONS_ALLOWED */
+                 (an_attribute_ptr *)NULL
+#endif /* !GNU_EXTENSIONS_ALLOWED */
+                 );
+#if GNU_EXTENSIONS_ALLOWED
+      last_prefix_attribute = last_attribute_link(last_prefix_attribute);
       asm_name = NULL;
       if (gcc_mode) {
         /* Look for an asm() symbol name tag.  It is ignored on

@@ -260,7 +260,8 @@ void declarator(a_decl_flag_set             input_flags,
                 a_type_ptr                  *p_complete_type,
                 a_source_sequence_entry_ptr *declarator_ssep,
                 a_func_info_block           *func_info,
-                a_decl_pos_block_ptr        decl_pos_block);
+                a_decl_pos_block_ptr        decl_pos_block,
+		an_attribute_ptr            *attributes);
 
 extern
 a_type_ptr pointer_declarator(
@@ -270,7 +271,8 @@ a_type_ptr pointer_declarator(
                       a_call_conv_descr_ptr unbound_calling_convention,
                       a_type_qualifier_set  *left_qualifiers,
                       a_type_qualifier_set  *unbound_qualifiers,
-                      a_decl_pos_block_ptr  decl_pos_block);
+                      a_decl_pos_block_ptr  decl_pos_block,
+		      an_attribute_ptr      *attributes);
 
 extern
 void array_declarator(a_type_ptr            *new_type_ptr,

@@ -1713,6 +1713,7 @@ Display the indicated init kind and initializer.
   }  /* switch */
 }  /* disp_initializer */
 
+#if GNU_EXTENSIONS_ALLOWED
 
 static void disp_named_register(char             *field_name,
                                 a_named_register reg)
@@ -1785,6 +1786,7 @@ field storing the register.
   (void)printf("%s\n", s);
 }  /* disp_named_register */
 
+#endif /* GNU_EXTENSIONS_ALLOWED */
                                 
 static void disp_variable(a_variable_ptr ptr)
 /*

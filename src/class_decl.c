@@ -10974,7 +10974,8 @@ the IL, the template header is passed via template_decl.
       declarator(di_flags, &decl_info.do_flags, member_type,
                  friend_specified ? (a_type_ptr)NULL : class_type,
                  &locator, &local_type, &decl_info.declarator_ssep,
-                 &func_info, &decl_info.decl_pos_block);
+                 &func_info, &decl_info.decl_pos_block,
+                 (an_attribute_ptr *)NULL);
       if (!C_mode()) {
         remove_stop_token(tok_lbrace);
         check_completed_member_type(&local_type, &locator, class_state,

@@ -181,6 +181,23 @@ ap.  ap may be NULL.
 }  /* free_attribute_list */
 
 
+an_attribute_ptr *last_attribute_link(an_attribute_ptr *attributes)
+/*
+Return the address of the last "next" pointer in the list given by
+"*attributes". ( If "*attributes" is NULL, return "attributes".)
+If "attributes" itself is NULL, then return NULL.
+*/
+{
+  if (attributes != NULL) {
+    while (*attributes != NULL) {
+      attributes = &(*attributes)->next;
+    }  /* while */
+  }  /* if */
+
+  return attributes;
+}  /* last_attribute_link */
+
+
 static a_host_large_integer scan_integral_argument(a_boolean *err,
                                                    a_boolean *ovflo)
 /*

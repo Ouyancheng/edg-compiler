@@ -181,6 +181,8 @@ extern an_attribute_ptr copy_attribute_list(an_attribute_ptr attributes);
 
 extern void free_attribute_list(an_attribute_ptr  attributes);
 
+extern an_attribute_ptr *last_attribute_link(an_attribute_ptr *attributes);
+
 extern a_type_ptr get_type_with_mode(a_type_ptr        type,
                                      a_type_mode_kind  mode,
                                      a_source_position *pos);

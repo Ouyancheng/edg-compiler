@@ -7250,7 +7250,8 @@ information.
     declarator(di_flags, do_flags, *type,
                !friend_specified ? parent_class : (a_type_ptr)NULL,
                locator, type,
-               &declarator_ssep, func_info, decl_pos_block);
+               &declarator_ssep, func_info, decl_pos_block,
+               (an_attribute_ptr *)NULL);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (declarator_ssep != NULL) {
       remove_from_src_seq_list(declarator_ssep);
@@ -11080,7 +11081,8 @@ depends on a template parameter type, return TRUE in *template_dependent
              &do_flags, *param_type_ptr,
              /*member_parent_type=*/(a_type_ptr)NULL, param_locator,
              param_type_ptr, &declarator_ssep,
-             (a_func_info_block_ptr)NULL, &decl_pos_block);
+             (a_func_info_block_ptr)NULL, &decl_pos_block,
+             (an_attribute_ptr *)NULL);
   if (is_unnamed != NULL) {
     /* Return a flag indicating whether the parameter is unnamed. */
     *is_unnamed = (do_flags & DO_REAL_DECLARATOR_SCANNED) == 0;
@@ -14254,7 +14256,8 @@ that follows.
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
     declarator(di_flags, &do_flags, type, decl_state->class_declared_in,
-               &locator, &type, &declarator_ssep, &func_info, &decl_pos_block);
+               &locator, &type, &declarator_ssep, &func_info, &decl_pos_block,
+               (an_attribute_ptr *)NULL);
     sym = NULL;
     has_parenthesized_initializer =
                               (do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
@@ -18517,7 +18520,8 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
     declarator(di_flags, &do_flags, type, (a_type_ptr)NULL, &locator, &type,
-               &declarator_ssep, &func_info, &decl_pos_block);
+               &declarator_ssep, &func_info, &decl_pos_block,
+               (an_attribute_ptr *)NULL);
     record_param_id_list_declarations(&func_info);
     /* Issue diagnostic on an incomplete-type in an exception specification. */
     report_exception_spec_errors(&func_info);
