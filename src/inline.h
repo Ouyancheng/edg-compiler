@@ -43,7 +43,8 @@ typedef struct a_variable_remapping_for_inlining {
   a_variable_ptr
 		orig_variable;
 			/* The original variable, i.e. the one being
-                           rewritten. */
+			   rewritten.  If NULL, this entry exists only for
+			   the arg_expr and arg_expr_next fields, below. */
   a_byte_boolean
 		is_constant;
 			/* TRUE if the variable is remapped to a constant;
@@ -57,6 +58,15 @@ typedef struct a_variable_remapping_for_inlining {
     a_variable_ptr
 		variable;
   } variant;
+  /* Information used if this remapping came from an argument.  It is needed
+     to restore the "next" pointer between argument expressions if the
+     inlining fails. */
+  an_expr_node_ptr
+		arg_expr,
+		arg_expr_next;
+			/* Argument expression and the original "next" pointer
+			   thereof.  arg_expr is NULL if this information is
+			   not applicable. */
 } a_variable_remapping_for_inlining;
 
 

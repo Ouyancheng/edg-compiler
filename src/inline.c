@@ -80,19 +80,29 @@ The entry is placed on the variable_remappings_for_inlining global list.
   vrip->orig_variable = var;
   vrip->is_constant = FALSE;
   vrip->variant.variable = NULL;
+  vrip->arg_expr = NULL;
+  vrip->arg_expr_next = NULL;
   return vrip;
 }  /* alloc_variable_remapping_for_inlining */
 
 
-static void free_variable_remapping_for_inlining(
-                                    a_variable_remapping_for_inlining_ptr vrip)
+static void free_variable_remappings_for_inlining(void)
 /*
-Free a variable remapping entry by placing it on the available list.
+Free the variable remapping entries on the global list by returning them to
+the available list.
 */
 {
-  vrip->next = avail_variable_remappings_for_inlining;
-  avail_variable_remappings_for_inlining = vrip;
-}  /* free_variable_remapping_for_inlining */
+  a_variable_remapping_for_inlining_ptr vrip, vrip_next;
+
+  for (vrip = variable_remappings_for_inlining;
+       vrip != NULL;
+       vrip = vrip_next) {
+    vrip_next = vrip->next;
+    vrip->next = avail_variable_remappings_for_inlining;
+    avail_variable_remappings_for_inlining = vrip;
+  }  /* for */
+  variable_remappings_for_inlining = NULL;
+}  /* free_variable_remappings_for_inlining */
 
 
 static void set_up_variable_remapping_for_inlining(
@@ -121,10 +131,18 @@ The code is inserted at *insert_location, and *insert_location is updated.
        param_var = param_var->next, arg = arg_next) {
     check_assertion_str(arg != NULL,
                         "set_up_variable_remapping_...: too few args");
-    arg_next = arg->next;
     /* Detach the argument expression from the rest of the list so it can
-       be used by itself. */
+       be used by itself.  Put a pointer to the argument expression, and
+       the original "next" value, in the remap entry, so that the "next"
+       pointer can be restored if the inlining cannot be done.  Note that
+       if no remapping is required on the parameter, the remap entry is
+       still needed to preserve the information needed for the relinking
+       on failure. */
+    arg_next = arg->next;
     arg->next = NULL;
+    vrip = alloc_variable_remapping_for_inlining(param_var);
+    vrip->arg_expr = arg;
+    vrip->arg_expr_next = arg_next;
     if (!param_var->source_corresp.referenced) {
       /* We don't need the parameter if it's not referenced.  However, if
          the argument has side effects, we need to evaluate it. */
@@ -133,7 +151,6 @@ The code is inserted at *insert_location, and *insert_location is updated.
       }  /* if */
     } else {
       /* The parameter is referenced, so it must be remapped. */
-      vrip = alloc_variable_remapping_for_inlining(param_var);
       if (!param_var->param_value_has_been_changed &&
           !param_var->address_taken &&
           is_constant_node(arg)) {
@@ -156,18 +173,22 @@ The code is inserted at *insert_location, and *insert_location is updated.
       }  /* if */
 #if DEBUG
       if (debug_level >= 4) {
-        if (first) {
-          fprintf(f_debug, "Parameter remappings established:\n");
-          first = FALSE;
+        /* Don't print entries that exist only to preserve the "next"
+           pointer restoration information. */
+        if (vrip->orig_variable != NULL) {
+          if (first) {
+            fprintf(f_debug, "Parameter remappings established:\n");
+            first = FALSE;
+          }  /* if */
+          db_variable(vrip->orig_variable);
+          fprintf(f_debug, " --> ");
+          if (vrip->is_constant) {
+            db_constant(vrip->variant.constant);
+          } else {
+            db_name(&vrip->variant.variable->source_corresp);
+          }  /* if */
+          fprintf(f_debug, "\n");
         }  /* if */
-        db_variable(vrip->orig_variable);
-        fprintf(f_debug, " --> ");
-        if (vrip->is_constant) {
-          db_constant(vrip->variant.constant);
-        } else {
-          db_name(&vrip->variant.variable->source_corresp);
-        }  /* if */
-        fprintf(f_debug, "\n");
       }  /* if */
 #endif /* DEBUG */
     }  /* if */
@@ -211,21 +232,38 @@ successfully.  Put the temporary variables previously created into the
 calling context scope.
 */
 {
-  a_variable_remapping_for_inlining_ptr vrip, vrip_next;
+  a_variable_remapping_for_inlining_ptr vrip;
 
   /* Look at each remapping established. */
   for (vrip = variable_remappings_for_inlining;
        vrip != NULL;
-       vrip = vrip_next) {
-    vrip_next = vrip->next;
+       vrip = vrip->next) {
     if (!vrip->is_constant) {
       /* A temporary.  Add it to the current scope. */
       add_temporary_to_scope(vrip->variant.variable, curr_context->scope);
     }  /* if */
-    /* Free the entry. */
-    free_variable_remapping_for_inlining(vrip);
   }  /* for */
 }  /* finish_variable_remapping_for_inlining */
+
+
+static void relink_argument_expressions_on_failure(void)
+/*
+Inlining of a call has failed for some reason.  Relink the argument expressions
+of the original call into a list again.  (They were broken apart and used
+separately in assignments to parameter temporaries.)
+*/
+{
+  a_variable_remapping_for_inlining_ptr vrip;
+
+  /* Look at each remapping established. */
+  for (vrip = variable_remappings_for_inlining;
+       vrip != NULL;
+       vrip = vrip->next) {
+    if (vrip->arg_expr != NULL) {
+      vrip->arg_expr->next = vrip->arg_expr_next;
+    }  /* if */
+  }  /* for */
+}  /* relink_argument_expressions_on_failure */
 
 
 a_boolean get_var_remapping_for_inlining(a_variable_ptr var,
@@ -642,6 +680,9 @@ statement).
              routine.  The statement or expression created above is just
              discarded. */
           routine->need_out_of_line_copy = TRUE;
+          /* Relink the argument expressions of the call by their "next"
+             pointers. */
+          relink_argument_expressions_on_failure();
         } else {
           /* Inlining was successful. */
           /* Now that inlining is known to have succeeded, add the temporary
@@ -664,7 +705,8 @@ statement).
             overwrite_node(expr, inlined_call_expr);
           }  /* if */
         }  /* if */
-        variable_remappings_for_inlining = NULL;
+        /* Free the remapping entries. */
+        free_variable_remappings_for_inlining();
         /* Put the inlinable flag back on, unless we've discovered that this
            function can never be inlined. */
         routine->inlinable = inlinable;
