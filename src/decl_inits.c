@@ -1616,11 +1616,12 @@ initialized.  These are addressed in the course of the processing.
   a_constructor_init_ptr        virtual_list, end_of_virtual_list;
   a_constructor_init_ptr        direct_list, end_of_direct_list;
   a_base_class_ptr              bcp;
+  a_class_type_supplement_ptr   ctsp;
   a_class_symbol_supplement_ptr cssp;
   a_routine_ptr                 conversion_routine, rp;
   a_dynamic_init_ptr            dip, ctor_dip;
   int                           direct_base_class_count = 0;
-  a_source_position             lparen_pos;
+  a_source_position             lparen_pos, ctor_init_pos;
 
   db_enter(3, "ctor_initializer");
   class_type = ((a_symbol_ptr)ctor_rout->source_corresp.assoc_info)->
@@ -1628,10 +1629,19 @@ initialized.  These are addressed in the course of the processing.
 #if CHECKING
   if (class_type == NULL) internal_error("ctor_initializer: NULL class type");
 #endif /* if CHECKING */
+  ctsp = class_type->variant.class_struct_union.extra_info;
   is_generated_cctor = !user_defined &&
                        is_copy_constructor(ctor_rout, class_type,
                                            &const_object_okay,
                                            &volatile_object_okay);
+  /* The position for this operation is the current token (maybe a ":")
+     in the user-defined case, and the declaration position of the routine
+     otherwise. */
+  if (user_defined) {
+    ctor_init_pos = pos_curr_token;
+  } else {
+    ctor_init_pos = ctor_rout->source_corresp.decl_position;
+  }  /* if */
   /* The first step is to construct three lists of constructor initializer
      entries, one for virtual base classes that have constructors, one for
      nonvirtual direct base classes that have constructors, and one for
@@ -1647,9 +1657,7 @@ initialized.  These are addressed in the course of the processing.
   direct_list = end_of_direct_list = NULL;
   /* Scan the list of base classes, which may include some that are
      ineligible for initialization. */
-  for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
-       bcp != NULL;
-       bcp = bcp->next) {
+  for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct) ++direct_base_class_count;
     if (bcp->is_virtual || bcp->direct) {
       cssp = symbol_supplement_for_class(bcp->type);
@@ -1914,8 +1922,7 @@ initialized.  These are addressed in the course of the processing.
             init_type = skip_typerefs(init_type);
             /* Locate it in the base classes list for the current class.  Note
                that only direct and virtual base classes can be specified. */
-            bcp = class_type->
-                    variant.class_struct_union.extra_info->base_classes;
+            bcp = ctsp->base_classes;
             for (; bcp != NULL; bcp = bcp->next) {
               if (bcp->type == init_type) {
                 if (bcp->direct || bcp->is_virtual) {
@@ -2096,7 +2103,7 @@ scan_arg_for_scan_initialization:
              be returned TRUE. */
           rp = select_copy_constructor(tp,
                                        const_object_okay, volatile_object_okay,
-                                       &error_position, &bitwise_copy);
+                                       &ctor_init_pos, &bitwise_copy);
         }  /* if */
         if (bitwise_copy) {
           /* Construction by bitwise copy is allowed. */
@@ -2137,10 +2144,10 @@ scan_arg_for_scan_initialization:
           a_symbol_ptr field_sym = (a_symbol_ptr)cip->variant.field->
                                                    source_corresp.assoc_info;
           if (ctor_rout->compiler_generated) {
-            pos_syty_warning(ec_cannot_initialize_field, &error_position,
+            pos_syty_warning(ec_cannot_initialize_field, &ctor_init_pos,
                              field_sym, class_type);
           } else {
-            pos_sy_warning(ec_missing_initializer_on_field, &error_position,
+            pos_sy_warning(ec_missing_initializer_on_field, &ctor_init_pos,
                            field_sym);
           }  /* if */
           if (prev_cip == NULL) {
@@ -2166,7 +2173,7 @@ scan_arg_for_scan_initialization:
           }  /* if */
           continue;
         }  /* if */
-        rp = select_default_constructor(tp, &error_position);
+        rp = select_default_constructor(tp, &ctor_init_pos);
         if (rp == NULL) {
           /* Error in trying to find a default constructor. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
@@ -2203,6 +2210,20 @@ scan_arg_for_scan_initialization:
     }  /* if */
     prev_cip = cip;
   }  /* for */
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+  { a_routine_ptr new_routine;
+    /* Determine and remember the default operator new() routine for the
+       class.  This is done here because we are working out the "wrapper"
+       code that will be required, and the "new" routine will be called from
+       the wrapper. */
+    set_class_assoc_operator_new_routine(class_type);
+    new_routine = ctsp->assoc_operator_new_routine;
+    if (new_routine != NULL) {
+      mark_routine_referenced(new_routine, &ctor_init_pos);
+      new_routine->called = TRUE;
+    }  /* if */
+  }
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 #if DEBUG
   if (debug_level >= 3) {
     db_symbol((a_symbol_ptr)ctor_rout->source_corresp.assoc_info,
@@ -2246,6 +2267,7 @@ though neither constructors nor initialization is involved here.)
   a_routine_ptr                 rp;
   a_base_class_ptr              bcp;
   a_dynamic_init_ptr            dip;
+  a_class_type_supplement_ptr   ctsp;
 
   db_enter(3, "dtor_initializer");
   class_type = ((a_symbol_ptr)dtor_rout->source_corresp.assoc_info)->
@@ -2253,6 +2275,7 @@ though neither constructors nor initialization is involved here.)
 #if CHECKING
   if (class_type == NULL) internal_error("dtor_initializer: NULL class type");
 #endif /* if CHECKING */
+  ctsp = class_type->variant.class_struct_union.extra_info;
   /* The order of destructor calls is exactly the reverse of the order of
      constructor calls.  In other words, destructors for virtual base classes
      are last, preceded by destructors for nonvirtual direct base classes,
@@ -2262,9 +2285,7 @@ though neither constructors nor initialization is involved here.)
      and nonvirtual direct base classes. */
   virtual_list = NULL;
   cip_list = end_of_cip_list = NULL;
-  for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
-       bcp != NULL;
-       bcp = bcp->next) {
+  for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
     if (bcp->is_virtual || bcp->direct) {
       /* If the virtual base class or direct base class has a destructor, a
          dynamic init entry will be required.  Create the constructor init
@@ -2353,6 +2374,21 @@ though neither constructors nor initialization is involved here.)
       }  /* if */
     }  /* if */
   }  /* for */
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
+  { a_routine_ptr delete_routine;
+    /* Determine and remember the default operator delete() routine for the
+       class.  This is done here because we are working out the "wrapper"
+       code that will be required, and the "delete" routine will be called from
+       the wrapper. */
+    set_class_assoc_operator_delete_routine(class_type);
+    delete_routine = ctsp->assoc_operator_delete_routine;
+    if (delete_routine != NULL) {
+      mark_routine_referenced(delete_routine,
+                              &dtor_rout->source_corresp.decl_position);
+      delete_routine->called = TRUE;
+    }  /* if */
+  }
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DEBUG
   if (debug_level >= 3) {
     db_symbol((a_symbol_ptr)dtor_rout->source_corresp.assoc_info,
