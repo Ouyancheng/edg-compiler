@@ -1813,7 +1813,7 @@ types).
              Specifically, conflicts with virtual bases in the field are not
              considered for virtual bases that aren't also direct bases. */
           gnu_conflict_found(field_type, ebcp, /*in_field*/FALSE,
-                             ebcp->direct || !ebcp->virtual)) {
+                             ebcp->direct || !ebcp->is_virtual)) {
         result = TRUE;
         break;
       }  /* if */
