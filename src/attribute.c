@@ -1804,9 +1804,7 @@ a typedef, is_typedef is TRUE.
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
     default:
       /* An invalid attribute. */
-      pos_ty_diagnostic(is_typedef ? es_error : es_warning,
-                        ec_attribute_does_not_apply_to_type,
-                        &ap->position, type);
+      pos_ty_warning(ec_attribute_does_not_apply_to_type, &ap->position, type);
   }  /* switch */
 }  /* apply_one_attribute_to_type */
 
