@@ -48,20 +48,14 @@ Microsoft bugs mode.
 
 4/30/04  Embedded C Extensions
 
-The front end now accepts the C language extensions suggested by ISO/IEC
-TR 18037 (also known as "Embedded C").  The extensions include three new
-facilities that can be configured independently: fixed-point types
-(configured using the macro FIXED_POINT_ALLOWED and enabled with the
-option --fixed_point), named address spaces (NAMED_ADDRESS_SPACES_ALLOWED
-and --named_address_spaces), and named-register storage classes
-(NAMED_REGISTERS_ALLOWED and --named_registers).  These extensions are
-only available in C modes at this time (and none of the aforementioned
-command-line options imply C mode).  If all three extensions are
-configured into the front end (by setting the macros FIXED_POINT_ALLOWED,
-NAMED_ADDRESS_SPACES_ALLOWED, and NAMED_REGISTERS_ALLOWED to TRUE), an
-additional command-line option --embedded_c is available: It enables all
-three extensions and implies the default ANSI C dialect (i.e., it is
-equivalent to "--c --fixed_point --named_address_spaces --named_registers").
+The front end now accepts the C language extensions specified by ISO/IEC
+TR 18037 (also known as "Embedded C", formerly as "DSP-C").  The
+extensions are three new facilities that can be configured independently:
+fixed-point types (configured using the macro FIXED_POINT_ALLOWED), named
+address spaces (NAMED_ADDRESS_SPACES_ALLOWED), and named-register storage
+classes (NAMED_REGISTERS_ALLOWED).  If the macro EMBEDDED_C_ALLOWED is set
+to TRUE, all three features are configured in.  These extensions are only
+available in C modes at this time.
 
 The fixed-point extensions include new basic types called _Fract (fractional
 values between -1 and 1 or -- for the unsigned variants -- between 0 and 1)
