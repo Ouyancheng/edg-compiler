@@ -1,5 +1,16 @@
 Version 3.5
 
+5/14/04  Microsoft compatibility: Initializers optional on const enum variables
+
+Variables of const enum types (and arrays of const enum) can now be left
+uninitialized in Microsoft mode: A warning will be issued (previously, an
+error was issued).  For example:
+
+  enum { k } const x[2];  // const x not initialized: Now okay in Microsoft
+                          // mode (with a warning).  Previously an error.
+
+(See also Changes entry of 1/20/97.)
+
 5/14/04  Aborts on invalid uses of Embedded C registers and address spaces
 
 Embedded C (see Changes entry of 4/30/04) named-register storage specifiers
@@ -45917,7 +45928,7 @@ There is now a required_buffer_size parameter in decode_identifier
 That is useful when a buffer overflow occurs (it tells you how big a
 buffer must be allocated to try again).
 
-6/27/97 Specific declaration of inline function template
+6/27/94 Specific declaration of inline function template
 
 An error is now issued (rather than an internal error) if an instance of
 an inline function template is referenced (and therefore instantiated "on

@@ -4994,12 +4994,12 @@ are created by a new expression (in which case sym is NULL).  In both cases
             if (is_empty_POD_class && !is_incomplete_array) {
               severity = strict_ansi_error_severity;
             } else if (microsoft_mode) {
-              if (is_class_struct_union_type(type)) {
-                /* MSVC++ does not require an initializer for a const class
-                   variable with no default constructor. */
+              if (is_class_struct_union_type(type) || is_enum_type(type)) {
+                /* MSVC++ does not require an initializer for a const class or
+                   enum variable with no default constructor. */
                 severity = es_warning;
               } else if (vp->declared_storage_class ==
-                                          (a_storage_class)sc_static) {
+                                                 (a_storage_class)sc_static) {
                 /* It is probably a bug that MSVC++ has different behavior on
                    the following:
                      const int i;         // Error (no initializer)
