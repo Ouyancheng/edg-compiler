@@ -5188,6 +5188,10 @@ issue an error.
     /* Pointer to nonstatic member function. */
     rout = member_sym->variant.routine.ptr;
     set_ptr_to_member_function_constant(rout, &constant);
+    if (!rout->is_virtual) {
+      /* Force the routine to be instantiated or generated. */
+      if_evaluating_mark_routine_referenced(rout);
+    }  /* if */
   }  /* if */
   if (is_template_dependent_context() &&
       is_template_dependent_type(constant.type)) {

@@ -2931,10 +2931,6 @@ nonstatic member function indicated by routine.
   check_assertion(member_sym != NULL && member_sym->is_class_member);
   member_class = member_sym->parent.class_type;
   con->type = ptr_to_member_type(routine->type, member_class);
-  if (!routine->is_virtual) {
-    /* Force the routine to be instantiated or generated. */
-    if_evaluating_mark_routine_referenced(routine);
-  }  /* if */
 }  /* set_ptr_to_member_function_constant */
 
 
