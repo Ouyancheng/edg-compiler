@@ -4021,9 +4021,9 @@ cross-reference output describing this declaration.
   }  /* if */
   if (sym == NULL) {
     /* There is no (compatible) symbol, so enter one now. */
-    sym = enter_local_symbol((a_symbol_kind)sk_variable, locator,
-                             effective_decl_level,
-                             redecl_error_already_issued);
+    sym = enter_symbol((a_symbol_kind)sk_variable, locator,
+                       effective_decl_level,
+                       redecl_error_already_issued);
 #if RECORD_HIDDEN_NAMES_IN_IL
     /* Block extern declarations have associated hidden name entries; so we
        must make sure there is an IL scope to attach those entries to. */
@@ -10665,6 +10665,12 @@ continue_with_declaration:
          case there ought to be one. */
       set_err_pos_to_curr_token();
       if (has_initializer) {
+        /* If the variable had already been declared previously, old_type
+           would be set. */
+        a_boolean  decl_invisible_to_initializer =
+                        (!C_mode() && old_type == NULL &&
+                         ((microsoft_mode && has_parenthesized_initializer) ||
+                          any_cfront_mode()));
         /* Advance past the "=". */
         if (curr_token == tok_assign) (void)get_token();
         /* Now scan the initializer. */
@@ -10679,12 +10685,24 @@ continue_with_declaration:
             }  /* if */
           }  /* if */
         }  /* if */
+        if (decl_invisible_to_initializer && !symbol_ptr->is_error) {
+          /* In Cfront mode and (for parenthesized initializers) Microsoft
+             mode, the declared variable is not visible until after the
+             initializer has been parsed.  To emulate this, we temporarily
+             mark the symbol as invisible. */
+          symbol_ptr->is_invisible = TRUE;
+        }  /* if */
         /* If the symbol is a parameter, the subroutine will generate the
            error.  This is done rather than flagging the error here because
            the subroutine can scan over the initializer expression neatly. */
         initializer(symbol_ptr, &locator.source_position, linkage,
                     has_parenthesized_initializer, is_old_style_param_decl,
                     &incomplete_type_error_reported, &decl_pos_block);
+        if (decl_invisible_to_initializer && !symbol_ptr->is_error) {
+          /* Mark the symbol as visible now that the initializer is
+             complete. */
+          symbol_ptr->is_invisible = FALSE;
+        }  /* if */
         if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
             !is_old_style_param_decl) {
           /* All initialized variables are considered defined.  This flag
