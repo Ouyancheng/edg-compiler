@@ -3909,12 +3909,12 @@ units.
 
 
 static a_boolean is_corresponding_sym_in_trans_unit(
-				char			*canonical_entry,
-				a_symbol_ptr		candidate_sym,
-				a_translation_unit_ptr	tup)
+			a_trans_unit_corresp_ptr	corresp_ptr,
+			a_symbol_ptr			candidate_sym,
+			a_translation_unit_ptr		tup)
 /*
 Return TRUE if candidate_sym is defined in the translation unit specified
-by tup and refers to an IL entry whose canonical entry is canonical_entry.
+by tup and refers to an IL entry whose correspondence pointer is corresp_ptr.
 */
 {
   char			*entry;
@@ -3923,8 +3923,7 @@ by tup and refers to an IL entry whose canonical entry is canonical_entry.
 
   entry = il_entry_for_symbol_null_okay(candidate_sym, &il_kind);
   if (entry != NULL) {
-    entry = canonical_il_entry_of(entry);
-    result = entry == canonical_entry &&
+    result = trans_unit_corresp_of(entry) == corresp_ptr &&
              symbol_is_from_trans_unit(candidate_sym, tup);
   }  /* if */
   return result;
@@ -3944,13 +3943,14 @@ corresponding instance, or NULL if no corresponding instance is found.
   a_symbol_ptr				template_sym;
   a_template_symbol_supplement_ptr	tssp;
   a_symbol_ptr				candidate_sym;
-  char					*canonical_entry;
+  a_trans_unit_corresp_ptr		corresp_ptr;
+  char					*entry;
   an_il_entry_kind			il_kind;
 
-  /* Get the canonical IL entry associated with sym_to_find. */
-  canonical_entry = il_entry_for_symbol(sym_to_find, &il_kind);
-  canonical_entry = canonical_il_entry_of(canonical_entry);
-  check_assertion(canonical_entry != NULL);
+  /* Get the correspondence entry associated with sym_to_find. */
+  entry = il_entry_for_symbol(sym_to_find, &il_kind);
+  corresp_ptr = trans_unit_corresp_of(entry);
+  check_assertion(corresp_ptr != NULL);
   /* Get the corresponding template in the specified translation unit.
      Note that it is possible that there is no such corresponding template. */
   template_sym = template_symbol_for_class_symbol(sym_to_find);
@@ -3961,7 +3961,7 @@ corresponding instance, or NULL if no corresponding instance is found.
     candidate_sym = tssp->variant.class_template.prototype_instantiation;
     /* First check whether the prototype instantiation is a match. */
     if (candidate_sym != NULL &&
-        is_corresponding_sym_in_trans_unit(canonical_entry,
+        is_corresponding_sym_in_trans_unit(corresp_ptr,
                                            candidate_sym, tup)) {
       result_sym = candidate_sym;
     } else {
@@ -3972,7 +3972,7 @@ corresponding instance, or NULL if no corresponding instance is found.
            ps_sym != NULL; ps_sym = ps_sym->next) {
         candidate_sym = ps_sym->variant.template_info->
                                 variant.class_template.prototype_instantiation;
-        if (is_corresponding_sym_in_trans_unit(canonical_entry,
+        if (is_corresponding_sym_in_trans_unit(corresp_ptr,
                                                candidate_sym, tup)) {
           result_sym = candidate_sym;
           break;
@@ -3984,7 +3984,7 @@ corresponding instance, or NULL if no corresponding instance is found.
         a_symbol_ptr	inst_sym;
         for (inst_sym = tssp->variant.class_template.instantiations;
              inst_sym != NULL; inst_sym = inst_sym->next) {
-          if (is_corresponding_sym_in_trans_unit(canonical_entry,
+          if (is_corresponding_sym_in_trans_unit(corresp_ptr,
                                                  inst_sym, tup)) {
             result_sym = inst_sym;
             break;
@@ -4019,19 +4019,20 @@ corresponding instance, or NULL if no corresponding instance is found.
 
 
 static a_symbol_ptr find_corresponding_symbol_on_symbol_list(
-				a_symbol_ptr		sym_to_find,
-				a_symbol_ptr		symbols,
-				a_boolean		is_routine,
-				a_type_ptr		parent_class,
-				a_namespace_ptr		parent_namespace,
-				char			*canonical_entry,
-				a_translation_unit_ptr	tup)
+			a_symbol_ptr			sym_to_find,
+			a_symbol_ptr			symbols,
+			a_boolean			is_routine,
+			a_type_ptr			parent_class,
+			a_namespace_ptr			parent_namespace,
+			a_trans_unit_corresp_ptr	corresp_ptr,
+			a_translation_unit_ptr		tup)
 /*
 Look through the list of symbols specified by "symbols" to find one
 from the translation unit "tup" that corresponds to "sym_to_find".
-is_routine is TRUE if sym_to_find is a routine symbol.  "parent_class" and
-"parent_namespace" are used to indicate the class or namespace (if any)
-of the corresponding symbol in the other translation unit.
+"corresp_ptr" is the correspondence pointer of associated with the
+symbol to be found.  is_routine is TRUE if sym_to_find is a routine symbol.
+"parent_class" and "parent_namespace" are used to indicate the class or
+namespace (if any) of the corresponding symbol in the other translation unit.
 */
 {
   a_symbol_ptr		result_sym = NULL;
@@ -4072,7 +4073,7 @@ of the corresponding symbol in the other translation unit.
     sym_to_check = is_list ? sym->variant.overloaded_function.symbols : sym;
     for (; sym_to_check != NULL;
          sym_to_check = is_list ? sym_to_check->next : NULL) {
-      if (is_corresponding_sym_in_trans_unit(canonical_entry,
+      if (is_corresponding_sym_in_trans_unit(corresp_ptr,
                                              sym_to_check, tup)) {
         result_sym = sym_to_check;
         break;
@@ -4171,7 +4172,9 @@ NULL if none is found.
   a_symbol_ptr		parent_sym;
   a_type_ptr		parent_class = NULL;
   a_namespace_ptr	parent_namespace = NULL;
-  char			*canonical_entry;
+  char			*il_entry;
+  a_trans_unit_corresp_ptr
+			corresp_ptr;
   an_il_entry_kind	il_kind;
   a_symbol_ptr		symbols = NULL;
   a_symbol_list_entry_ptr
@@ -4202,16 +4205,16 @@ NULL if none is found.
       parent_namespace = parent_sym->variant.namespace_info.ptr;
     }  /* if */
   }  /* if */
-  /* Get the canonical IL entry associated with sym_to_find. */
-  canonical_entry = il_entry_for_symbol(sym_to_find, &il_kind);
-  canonical_entry = canonical_il_entry_of(canonical_entry);
-  check_assertion(canonical_entry != NULL);
+  /* Get the correspondence entry associated with sym_to_find. */
+  il_entry = il_entry_for_symbol(sym_to_find, &il_kind);
+  corresp_ptr = trans_unit_corresp_of(il_entry);
+  check_assertion(corresp_ptr != NULL);
   if (symbol_list != NULL) {
     /* Find the symbol on a list of symbol list entries. */
     a_symbol_list_entry_ptr	slep;
     for (slep = symbol_list; slep != NULL; slep = slep->next) {
       a_symbol_ptr	sym_to_check = slep->symbol;
-      if (is_corresponding_sym_in_trans_unit(canonical_entry,
+      if (is_corresponding_sym_in_trans_unit(corresp_ptr,
                                              sym_to_check, tup)) {
         result_sym = sym_to_check;
         break;
@@ -4222,14 +4225,8 @@ NULL if none is found.
        pointer of the symbol. */
     result_sym = find_corresponding_symbol_on_symbol_list(
                       sym_to_find, symbols, is_routine, parent_class,
-                      parent_namespace, canonical_entry, tup);
+                      parent_namespace, corresp_ptr, tup);
   }  /* if */
-  /* Make sure the canonical entry didn't change during this processing.
-     The canonical entry can change if a entity that originally did not
-     exist in the primary translation unit is later added.  This routine
-     is structured such that the canonical entry pointer is fetched at a
-     point after the point at which new entities may have been added. */
-  check_assertion(canonical_entry == canonical_il_entry_of(canonical_entry));
   return result_sym;
 }  /* find_corresponding_symbol */
 
