@@ -515,7 +515,11 @@ typedef struct a_constant {
   a_type_ptr    type;
                         /* The type of the constant.  Will be compatible
                            with the representation below.  A ck_aggregate
-                           entry has a NULL type pointer. */
+                           or ck_init_repeat entry has a NULL type pointer. */
+#ifdef FIL
+			/* A ck_init_position entry also has a NULL type
+			   pointer. */
+#endif /* ifdef FIL */
   unsigned int  implicit_cast:1;
                         /* If this is TRUE, then the value indicated by
                            the representation has been cast to the type
