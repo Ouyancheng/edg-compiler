@@ -1,5 +1,14 @@
 Version 2.32
 
+5/8/96  Internal error with aggregate initialization of namespace member
+
+The internal error provoked by the following has been fixed:
+
+  namespace N {
+    extern char a[];
+  }
+  char N::a[] = { 0 };
+
 5/8/96  Spurious error in cfront mode on template static data member
         definition with redundant parentheses
 
