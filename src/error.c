@@ -1021,6 +1021,15 @@ error code.
     case ec_unqual_function_with_qual_object:
       m = "function may not be called for const- or volatile-qualified object";
       break;
+    case ec_too_many_virtual_functions:
+      m = "program too large to compile (too many virtual functions)";
+      break;
+    case ec_bad_return_type_on_virtual_function_override:
+      m = "type differs from base class virtual function by return type alone";
+      break;
+    case ec_ambiguous_virtual_function_override:
+      m = "redefinition of base class virtual function \"%s\" is ambiguous";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
