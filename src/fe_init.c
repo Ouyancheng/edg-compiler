@@ -124,7 +124,9 @@ Do required initialization for host-dependent things.
 #else /* CHAR_MIN != 0 */
     /* Host should have signed characters. */
     c = -1;
-    if (c > 0) internal_error("host_init: CHAR_MIN in basics.h is set wrong");
+    if (c > 0) { /*lint !e774*/
+      internal_error("host_init: CHAR_MIN in basics.h is set wrong");
+    }  /* if */
 #endif /* CHAR_MIN == 0 */
   }
 #endif /* CHECKING */
@@ -817,7 +819,7 @@ source file's compilation.
 #if RUNTIME_USES_NAMESPACES
     need_std = TRUE;
 #endif /* RUNTIME_USES_NAMESPACES */
-    if (need_std) {
+    if (need_std) {  /*lint !e774*/
       /* Predeclare namespace "std" and create a symbol for it.  Note that
          the symbol is not actually added to the symbol table until namespace
          "std" is explicitly declared. */
