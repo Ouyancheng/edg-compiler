@@ -13071,7 +13071,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
         (type != NULL && !is_function_type(type))) {
       pos_error(ec_invalid_instantiation_argument, start_pos);
     } else {
-      pos_st_diagnostic(severity_if_not_found, ec_undefined_identifier,
+      pos_st_diagnostic(severity_if_not_found, ec_not_a_template_name,
                         &locator.source_position,
                         locator.symbol_header->identifier);
     }  /* if */

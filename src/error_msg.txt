@@ -848,7 +848,7 @@ ec_nonstd_asm_decl_within_template;;"nonstandard \"asm\" declaration is not supp
 ec_cl_old_specializations_option_only_in_cplusplus;;"option \"old_specializations\" can be used only when compiling C++"
 ec_nonstd_old_specialization;;"specializing %n without \"template<>\" syntax is nonstandard"
 ec_bad_linkage_for_decl;;"this declaration may not have extern \"C\" linkage"
-ec_not_a_template_name;;"%sq is not a class or function template name"
+ec_not_a_template_name;;"%sq is not a class or function template name in the current scope"
 ec_nonstd_default_arg_on_function_template_redecl;;"specifying a default argument when redeclaring an unreferenced function template is nonstandard"
 ec_default_arg_on_function_template_not_allowed;;"specifying a default argument when redeclaring an already referenced function template is not allowed"
 ec_pm_derived_class_from_virtual_base;;"cannot convert pointer to member of base class %t2 to pointer to member of derived class %t1 -- base class is virtual"
