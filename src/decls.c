@@ -1504,6 +1504,7 @@ by id_linkage.
       }  /* for */
       if (other_decl == NULL && function_template_seen &&
           guiding_decls_allowed) {
+        a_partial_order_candidate_ptr	candidates_list = NULL;
         /* We didn't find a match, but there was at least one function
            template.  See if it either provides a match with an
            existing instance of the template or if a new instance can
@@ -1515,22 +1516,40 @@ by id_linkage.
              other_decl = is_list ? other_decl->next : NULL) {
           if (other_decl->kind == (a_symbol_kind)sk_function_template) {
             /* Look for a match on the list of instantiations. */
-            sym = matching_template_function(other_decl, type,
-                                             /*is_decl_context=*/TRUE);
-            if (sym != NULL) {
-              /* Found a match. */
-              if (match != NULL) {
-                /* This declaration cannot be a guiding declaration for more
-                   than one template function.  Issue an ambiguity error. */
-                pos_syty_error(ec_ambiguous_guiding_decl,
-                               &locator->source_position, sym, type);
-                break;
-              }  /* if */
-              match = sym;
-              /* Continue looping so as to check for an ambiguous reference. */
+            if (has_matching_template_function(other_decl, type,
+                                              /*is_decl_context=*/TRUE)) {
+              /* This template can generate an instance of the appropriate
+                 type.  Add the matching template to a list of matching
+                 candidates. */
+              add_to_partial_order_candidates_list(&candidates_list,
+                                                   other_decl,
+                                                   (a_template_arg_ptr)NULL);
             }  /* if */
           }  /* if */
         }  /* for */
+        if (candidates_list != NULL) {
+          /* If any of the templates matched, select the best one using
+             the partial ordering rules.  If a best match cannot be selected,
+             an arbitrary member of the unordered set of templates will be
+             returned and the ambiguous flag will be set. */
+          a_boolean		ambiguous;
+          a_template_arg_ptr	templ_arg_list;
+          a_symbol_ptr		best_sym;
+          select_best_partial_order_candidate(
+                           candidates_list, (a_symbol_ptr)NULL, &best_sym,
+                           &templ_arg_list, &ambiguous);
+          /* Generate a partial instantiation of the matching instance. */
+          sym = matching_template_function(best_sym, type,
+                                           /*is_decl_context=*/TRUE);
+          other_decl = best_sym;
+          match = sym;
+          if (ambiguous) {
+            /* This declaration cannot be a guiding declaration for more
+               than one template function.  Issue an ambiguity error. */
+            pos_syty_error(ec_ambiguous_guiding_decl,
+                           &locator->source_position, sym, type);
+          }  /* if */
+        }  /* if */
         if (match != NULL) {
           linked_symbol = other_decl = match;
           if (match->variant.routine.instance_ptr->is_guiding_decl) {

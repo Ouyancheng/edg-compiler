@@ -8442,11 +8442,11 @@ function template instance;  Return in the symbol for the instance, or
 NULL if no instance is found.
 */
 {
-  a_symbol_ptr  orig_sym;
-  a_boolean     any_found = FALSE;
-  a_symbol_ptr  sym_found = NULL;
-  a_symbol_ptr	new_sym = NULL;
-  a_boolean	any_templates = FALSE;
+  a_symbol_ptr  		orig_sym;
+  a_boolean     		any_found = FALSE;
+  a_symbol_ptr			new_sym = NULL;
+  a_boolean			any_templates = FALSE;
+  a_partial_order_candidate_ptr	candidates_list = NULL;
 
   orig_sym = sym;
   if (sym->is_class_member) {
@@ -8469,25 +8469,37 @@ NULL if no instance is found.
       is_list = FALSE;
     }  /* if */
     for (; sym != NULL; sym = is_list ? sym->next : NULL) {
-      a_symbol_ptr	lookup_sym = NULL;
       /* If this is a function template symbol, use it to find a function
          that matches the type we are looking for. */
       if (sym->kind != (a_symbol_kind)sk_function_template) continue;
       any_templates = TRUE;
-      lookup_sym = sym;
+      if (has_matching_template_function(sym, type,
+                                         /*is_decl_context=*/TRUE)) {
+        /* This template can generate an instance of the appropriate
+           type.  Add the matching template to a list of matching
+           candidates. */
+        add_to_partial_order_candidates_list(&candidates_list, sym,
+                                             (a_template_arg_ptr)NULL);
+      }  /* if */
+    }  /* for */
+    if (candidates_list != NULL) {
+      /* If any of the templates matched, select the best one using
+         the partial ordering rules.  If a best match cannot be selected,
+         an arbitrary member of the unordered set of templates will be
+         returned and the ambiguous flag will be set. */
+      a_template_arg_ptr	templ_arg_list;
+      a_boolean			ambiguous;
+      any_found = TRUE;
+      select_best_partial_order_candidate(candidates_list, (a_symbol_ptr)NULL,
+					  &sym, &templ_arg_list,
+					  &ambiguous);
       /* Look for a match on the list of instantiations. */
-      if (lookup_sym != NULL) {
-        sym_found = matching_template_function(lookup_sym, type,
-                                               /*is_decl_context=*/TRUE);
-        if (sym_found != NULL) {
-          if (any_found) {
-            sym_error(ec_ambiguous_overloaded_function, orig_sym);
-            new_sym = NULL;
-            break;
-          }  /* if */
-          any_found = TRUE;
-          new_sym = sym_found;
-        }  /* if */
+      if (ambiguous) {
+        sym_error(ec_ambiguous_overloaded_function, orig_sym);
+        new_sym = NULL;
+      } else {
+        new_sym = matching_template_function(sym, type,
+                                             /*is_decl_context=*/TRUE);
       }  /* if */
     }  /* for */
   }  /* if */
