@@ -4388,7 +4388,7 @@ See also 3.6.6.4.
   /* Put the expression into the statement. */
   sp->expr = return_expr;
   if (!return_expr_in_void_function) {
-    sp->variant.dynamic_init = dip;
+    sp->variant.return_dynamic_init = dip;
   } else {
     /* The cfront 2.1 and Microsoft C compatibility case: "return expr" in
        a void function.  The statement already put out is an expression
