@@ -1,5 +1,15 @@
 Version 2.30
 
+9/15/95  Function template specializations in friend declarations
+
+This sort of case is now handled properly:
+
+  template <class T> void f(T) { }
+  class A {
+    friend void f(long) { }
+    friend void f(long) { }
+  };
+
 9/13/95  IL CHANGE: flag to mark implicit declaration
 
 A new flag, implicit_decl, has been added to a_src_seq_secondary_decl,
