@@ -5039,8 +5039,6 @@ on a prior declaration.
        be done before the routine's decl position is modified, to assure that
        the "original declaration line number" is displayed accurately. */
     check_throw_specification(func_info, rp);
-    copy_source_position(locator->source_position,
-                         rp->source_corresp.decl_position);
     /* If this is an member function of an instantiation of a class
        template, set the specific_def flag in the instance entry. */
     if (sym->variant.routine.instance_ptr != NULL) {
@@ -5048,14 +5046,16 @@ on a prior declaration.
       sym->variant.routine.ptr->specific_def = TRUE;
       sym->variant.routine.instance_ptr->instantiation_required = FALSE;
     }  /* if */
-  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
-                            &locator->source_position,
-                            func_info->declarator_ssep);
+    record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
+                              &locator->source_position,
+                              func_info->declarator_ssep);
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-  mark_defined(sym, &locator->source_position);
+    mark_defined(sym, &locator->source_position);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    copy_source_position(locator->source_position,
+                         rp->source_corresp.decl_position);
+  }  /* if */
   if (func_info->is_inline) {
     if (!sym->variant.routine.ptr->is_inline &&
         sym->variant.routine.ptr->called) {
