@@ -12463,7 +12463,6 @@ are handled in lexical_init.)
   register_trans_unit_variable(curr_token);
   register_trans_unit_variable(curr_token_pragmas);
   register_trans_unit_variable(const_for_curr_token);
-  register_trans_unit_variable(curr_token_asm_string);
   register_trans_unit_variable(pos_curr_token);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   register_trans_unit_variable(end_pos_curr_token);
