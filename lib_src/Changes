@@ -1,4 +1,4 @@
-Version 2.35
+Version 2.35, February 28, 1997
 
 2/21/97  Type of an_object_handle configured automatically
 
@@ -21,6 +21,7 @@ The placement delete routines are now included in the runtime only
 when the ABI_CHANGES_FOR_PLACEMENT_DELETE flag is set.  By default
 this flag is set to the value of the __EDG_ABI_CHANGES_FOR_PLACEMENT_DELETE
 macro defined by the front end.
+
 -------------------------------------------------------------------------------
 Version 2.34, December 18, 1996
 
