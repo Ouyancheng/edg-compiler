@@ -115,10 +115,6 @@ the same size and alignment), a warning rather than an error is issued in
 SVR4-C mode.  (This behavior is more restrictive than in version 2.28;
 i.e., errors are now issued in more cases.)
 
-Note: since no error is issued in such cases of incompatible return types,
-back ends may need to be prepared to deal with IL that has two separate
-routine entries sharing the same name but having different types.
-
 4/4/95   Abort in prototype instantiation of invalid class template
 
 A bug has been fixed that could cause an abort during the prototype
