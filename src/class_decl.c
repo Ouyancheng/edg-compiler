@@ -380,14 +380,47 @@ static void db_virtual_function_override(
 Dump a virtual function override entry, for debug purposes.
 */
 {
-  fputs("virtual function ", f_debug);
+  fputs("  virtual function ", f_debug);
   db_name(&ovfp->primary_function->source_corresp);
   fputs(" overridden by ", f_debug);
   db_name(&ovfp->overriding_function->source_corresp);
-  fputs(", type =\n  ", f_debug);
+  fputs(", type =\n    ", f_debug);
   db_type(ovfp->overriding_function->type);
   (void)fputc('\n', f_debug);
 }  /* db_virtual_function_override */
+
+
+static void db_virtual_function_override_list(a_base_class_ptr  bcp)
+/*
+Dump a base class's list of overriding virtual functions, for debug purposes.
+*/
+{
+  an_overriding_virtual_function_ptr ovfp = bcp->overriding_virtual_functions;
+  for (; ovfp != NULL; ovfp = ovfp->next) {
+    db_virtual_function_override(ovfp);
+  }  /* for */
+}  /* db_virtual_function_override_list */
+
+
+static void db_all_virtual_function_override_lists(a_type_ptr  class_type)
+/*
+Dump the virtual function override lists for a class, by base class.
+*/
+{
+  a_base_class_ptr  bcp;
+
+  bcp = class_type->variant.class_struct_union.extra_info->base_classes;
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->overriding_virtual_functions != NULL) {
+      fputs("virtual function override list for base class \"", f_debug);
+      db_name(&bcp->type->source_corresp);
+      fputs("\" in class \"", f_debug);
+      db_name(&class_type->source_corresp);
+      fputs("\":\n", f_debug);
+      db_virtual_function_override_list(bcp);
+    }  /* if */
+  }  /* for */
+}  /* db_all_virtual_function_override_lists */
 
 
 static void db_virtual_function_number_sequence(a_base_class_ptr  bcp)
@@ -1961,40 +1994,56 @@ or struct definition.  The syntax is
 #endif /* CHECKING */
         path = new_bcp->derivation;
         for (; bcp != NULL; bcp = bcp->next) {
+#if DEBUG
+          if (debug_level >= 4) {
+            fputs("candidate for base classes list ", f_debug);
+            db_base_class(bcp, FALSE);
+            if (bcp->overriding_virtual_functions != NULL) {
+              db_virtual_function_override_list(bcp);
+            }  /* if */
+          }  /* if */
+#endif /* DEBUG */
           if (bcp->direct) {
             /* Add the direct base class and all *its* base classes to the
                base class list for the derived class. */
             new_bcp = add_indirect_base_class(bcp, ctsp->base_classes,
                                               &end_of_base_classes_list, path,
                                               base_class_type, type_ptr);
-            if (new_bcp == NULL) {
-              /* add_indirect_base_class returns NULL only when the class to
-                 be copied is a virtual base class and it's already on the
-                 base classes list that is being constructed. */
-#if CHECKING
-              if (!bcp->is_virtual) {
-                internal_error("scan_base_specifiers_list: bcp not virtual");
-              }  /* if */
-#endif /* CHECKING */
-              continue;
-            }  /* if */
-          } else {
-            /* Indirect base classes must have their virtual function override
-               lists copied, too. */
-            if (new_bcp == NULL || new_bcp->next == NULL ||
-                new_bcp->next->type != bcp->type) {
-              /* There is a gap in the new base class entries added to the
-                 list. This can be the result of duplicating a virtual base
-                 class that's already present on the list. */
-              continue;
-            }  /* if */
-            new_bcp = new_bcp->next;
+            /* add_indirect_base_class returns NULL when the class to
+               be copied is a virtual base class and it's already on the
+               base classes list that is being constructed. */
+            if (new_bcp == NULL) continue;
           }  /* if */
-          /* Copy the virtual function override entries from bcp to the
-             corresponding copied base class new_bcp. */
-          copy_virtual_function_override_list(
+          if (bcp->overriding_virtual_functions != NULL) {
+            if (!bcp->direct) {
+              /* Indirect base classes must have their virtual function
+                 override lists copied, too. */
+              for (new_bcp = ctsp->base_classes;
+                   new_bcp->type != bcp->type;
+                   new_bcp = new_bcp->next) {
+#if CHECKING
+                if (new_bcp->next == NULL) {
+                  internal_error(
+                          "scan_base_specifiers_list: base class not on list");
+                }  /* if */
+#endif /* CHECKING */
+              }  /* for */
+            }  /* if */
+            /* Copy the virtual function override entries from bcp to the
+               corresponding copied base class new_bcp. */
+            copy_virtual_function_override_list(
                              bcp->overriding_virtual_functions, new_bcp,
                              base_class_type, type_ptr);
+#if DEBUG
+            if (debug_level >= 4) {
+              if (bcp->overriding_virtual_functions != NULL) {
+                fputs("new base class ", f_debug);
+                db_base_class(bcp, FALSE);
+                db_virtual_function_override_list(new_bcp);
+              }  /* if */
+            }  /* if */
+#endif /* DEBUG */
+          }  /* if */
         }  /* for */
       }  /* if */
 skip_base_class:
@@ -6277,6 +6326,7 @@ next_declaration:
 #if DEBUG
   if (debug_level >= 3) {
     db_symbol(tag_sym, "tag_sym: ", 4);
+    db_all_virtual_function_override_lists(class_type);
   }  /* if */
 #endif
   db_exit();
