@@ -3526,16 +3526,17 @@ symbol must be added to the inactive list.
            enclosing scope (a remark will be issued later, unless a more
            serious declaration error is encountered). */
         if (old_sym_ptr != NULL &&
+            depth_innermost_function_scope != NO_SCOPE_DEPTH &&
             old_sym_ptr->kind == (a_symbol_kind)sk_variable &&
             old_sym_ptr->variant.variable.ptr
                        ->source_corresp.is_local_to_function &&
+            sym_ptr->kind == (a_symbol_kind)sk_variable &&
             /* The following condition is needed to avoid having function
                parameters from an instantiation being reported as hiding
                variables (or parameters) from a function that triggered the
                instantiation. */
             old_sym_ptr->decl_scope >=
-                         scope_stack[depth_innermost_function_scope].number &&
-            sym_ptr->kind == (a_symbol_kind)sk_variable) {
+                         scope_stack[depth_innermost_function_scope].number) {
           hidden_sym = old_sym_ptr;
         }  /* if */
         /* If the symbol is not being entered in the innermost scope, skip
