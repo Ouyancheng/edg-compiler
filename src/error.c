@@ -351,7 +351,11 @@ error code.
       m = "forward-defined enum type is nonstandard";
       break;
     case ec_struct_too_large:
-      m = "struct is too large";
+      if (C_dialect == C_dialect_cplusplus) {
+        m = "class is too large";
+      } else {
+        m = "struct or union is too large";
+      }  /* if */
       break;
     case ec_bad_bit_field_size:
       m = "invalid size for bit field";
@@ -432,13 +436,25 @@ error code.
       m = "expected a \"{\"";
       break;
     case ec_expr_not_ptr_to_struct_or_union:
-      m = "expression must have pointer-to-struct-or-union type";
+      if (C_dialect == C_dialect_cplusplus) {
+        m = "expression must have pointer-to-class type";
+      } else {
+        m = "expression must have pointer-to-struct-or-union type";
+      }  /* if */
       break;
     case ec_exp_field_name:
-      m = "expected a field name";
+      if (C_dialect == C_dialect_cplusplus) {
+        m = "expected a member name";
+      } else {
+        m = "expected a field name";
+      }  /* if */
       break;
     case ec_field_not_a_member:
-      m = "no such field in this struct or union";
+      if (C_dialect == C_dialect_cplusplus) {
+        m = "no such member in this class";
+      } else {
+        m = "no such field in this struct or union";
+      }  /* if */
       break;
     case ec_expr_not_a_modifiable_lvalue:
       m = "expression must be a modifiable lvalue";
@@ -486,7 +502,11 @@ error code.
       m = "conversion of non-zero integer to pointer";
       break;
     case ec_expr_not_struct_or_union:
-      m = "expression must have struct or union type";
+      if (C_dialect == C_dialect_cplusplus) {
+        m = "expression must have class type";
+      } else {
+        m = "expression must have struct or union type";
+      }  /* if */
       break;
     case ec_old_fashioned_assignment_operator:
       m = "old-fashioned assignment operator";
@@ -806,6 +826,9 @@ error code.
       break;
     case ec_exp_comma:
       m = "expected a \",\"";
+      break;
+    case ec_type_identifier_not_allowed:
+      m = "type identifier is not allowed";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
