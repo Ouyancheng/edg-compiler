@@ -7118,8 +7118,17 @@ local-variable-static-init entry.
            simply be zeroed, because NULL for a pointer to data member is
            represented as -1.  The initialization must be expanded to
            a constant. */
-        *init_kind = (an_init_kind)initk_static;
-        initializer->constant = lower_zero_initialization(variable->type);
+        a_constant_ptr cp = lower_zero_initialization(variable->type);
+        if (has_static_storage_duration(variable->storage_class)) {
+          *init_kind = (an_init_kind)initk_static;
+          initializer->constant = cp;
+        } else {
+          /* Automatic variable; use dynamic initialization to a constant. */
+          *init_kind = (an_init_kind)initk_dynamic;
+          initializer->dynamic =
+                         alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+          initializer->dynamic->variant.constant = cp;
+        }  /* if */
       }  /* if */
       break;
 #endif /* IA64_ABI */
@@ -13524,6 +13533,98 @@ and all subscopes.
   }  /* for */
 }  /* do_scope_class_member_promotion */
 
+#if IA64_ABI
+
+static unsigned long discriminator_of(a_source_correspondence  *scp,
+                                      an_il_entry_kind         entry_kind,
+                                      a_scope_ptr              scope,
+                                      a_boolean                *done)
+/*
+Scan the indicated scope and its sub-scopes to determine a discriminator
+value for scp, which has kind entry_kind.  The discriminator is the count
+of entries in the scope list with the same name as scp whose source position
+precedes scp in the function.  If an entry that follows scp is found
+anywhere in the scope, *done is returned TRUE.
+*/
+{
+  unsigned long discriminator = 0;
+  a_scope_ptr   subscope;
+
+#define decl_seq_of(x) (((a_symbol_ptr)((x)->assoc_info))->decl_seq)
+#define sym_header_of(x) (((a_symbol_ptr)((x)->assoc_info))->header)
+
+  *done = FALSE;
+  for (subscope = scope->scopes; subscope != NULL; subscope = subscope->next) {
+    /* Check block scopes under this scope. */
+    unsigned long subdisc = discriminator_of(scp, entry_kind, subscope, done);
+    discriminator += subdisc;
+    /* Don't look at any more subscopes once we find one with some declarations
+       that follow scp. */
+    if (*done) break;
+  }  /* for */
+  if (entry_kind == iek_variable) {
+    /* Check for previous like-named local static variables. */
+    a_variable_ptr var;
+    for (var = scope->variables; var != NULL; var = var->next) {
+      if (decl_seq_of(&var->source_corresp) >= decl_seq_of(scp)) {
+        /* A variable declared after the position of scp, or scp itself. */
+        *done = TRUE;
+        break;
+      }  /* if */
+      if (sym_header_of(&var->source_corresp) == sym_header_of(scp)) {
+        /* Same name, count toward discriminator value. */
+        discriminator++;
+      }  /* if */
+    }  /* for */
+  } else if (entry_kind == iek_type) {
+    /* Check for previous like-named types. */
+    a_type_ptr type;
+    for (type = scope->types; type != NULL; type = type->next) {
+      if (decl_seq_of(&type->source_corresp) >= decl_seq_of(scp)) {
+        /* A type declared after the position of scp, or scp itself. */
+        *done = TRUE;
+        break;
+      }  /* if */
+      if (sym_header_of(&type->source_corresp) == sym_header_of(scp)) {
+        /* Same name, count toward discriminator value. */
+        discriminator++;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return discriminator;
+#undef decl_seq_of
+#undef sym_header_of
+}  /* discriminator_of */
+
+
+static void assign_discriminators(a_scope_ptr scope)
+/*
+For the IA-64 ABI name mangling scheme, assign discriminators to
+entities in the indicated scope (a function or block scope) and
+its subscopes.  A discriminator is an identifying number used to
+distinguish the mangled names of entities with the same name in the
+same function.
+*/
+{
+  a_variable_ptr var;
+  a_type_ptr     type;
+  a_scope_ptr    subscope;
+  a_boolean      dummy;
+
+  for (var = scope->variables; var != NULL; var = var->next) {
+    var->discriminator = discriminator_of(&var->source_corresp, iek_variable,
+                                          innermost_function_scope, &dummy);
+  }  /* for */
+  for (type = scope->types; type != NULL; type = type->next) {
+    type->discriminator = discriminator_of(&type->source_corresp, iek_type,
+                                          innermost_function_scope, &dummy);
+  }  /* for */
+  for (subscope = scope->scopes; subscope != NULL; subscope = subscope->next) {
+    assign_discriminators(subscope);
+  }  /* for */
+}  /* assign_discriminators */
+
+#endif /* IA64_ABI */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
 
 static a_boolean local_entities_should_be_promoted(a_scope_ptr scope)
@@ -13687,8 +13788,8 @@ with the outermost enclosing class, for later promotion out of the class
 #endif /* DEBUG */
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
-      mangle_promoted_entity_name(&type->source_corresp, /*final=*/FALSE,
-                                  routine, scope);
+      mangle_promoted_entity_name(&type->source_corresp, iek_type,
+                                  /*final=*/FALSE, routine, scope);
       /* The is_local_to_function flag in the type is not cleared yet.  That
          happens at the end of lowering. */
       if (routine_class == NULL) {
@@ -13718,7 +13819,7 @@ with the outermost enclosing class, for later promotion out of the class
         for (enum_con = type->variant.integer.enum_info.constant_list;
              enum_con != NULL;
              enum_con = enum_con->next) {
-          mangle_promoted_entity_name(&enum_con->source_corresp,
+          mangle_promoted_entity_name(&enum_con->source_corresp, iek_constant,
                                       /*final=*/TRUE, routine, scope);
           enum_con->source_corresp.is_local_to_function = FALSE;
         }  /* for */
@@ -13782,8 +13883,8 @@ block -- scopes for "for" init blocks do not have one.
       scope->variables = variable->next;
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
-      mangle_promoted_entity_name(&variable->source_corresp, /*final=*/FALSE,
-                                  routine, scope);
+      mangle_promoted_entity_name(&variable->source_corresp, iek_variable,
+                                  /*final=*/FALSE, routine, scope);
       variable->source_corresp.is_local_to_function = FALSE;
 #if LOWER_EXTERN_INLINE
       if (is_or_will_be_extern_inline(routine)) {
@@ -13966,6 +14067,10 @@ part of the lowering of the file scope memory region.
     (void)fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
+#if IA64_ABI
+  /* Assign name mangling discriminators for the local entities. */
+  assign_discriminators(scope);
+#endif /* IA64_ABI */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   if (local_entities_should_be_promoted(scope)) {
     /* Local entities need to be promoted because they're potentially

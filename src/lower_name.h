@@ -93,6 +93,7 @@ extern char *mangled_typeinfo_string(a_type_ptr type);
 #if DO_IL_LOWERING
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
 extern void mangle_promoted_entity_name(a_source_correspondence *scp,
+                                        an_il_entry_kind        entry_kind,
                                         a_boolean               final,
                                         a_routine_ptr           routine,
                                         a_scope_ptr             scope);

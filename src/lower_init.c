@@ -4955,52 +4955,56 @@ C99 mode for the same reason.
       } else {
         /* Not entire variable. */
         a_type_ptr entity_type = type_from_init_pos_descr(ipdp);
-        if (is_aggregate_or_union_type(entity_type) ||
-            is_or_was_ptr_to_member_function_type(entity_type) ||
-            ipdp->array_element_sequence) {
-          an_expr_node_ptr entity_size_node;
+#if IA64_ABI
+        if (contains_ptr_to_data_member(entity_type)) {
+          /* If the entity type contains pointers to data members they must
+             be initialized to -1, not zero, for the IA-64 ABI. */
+          a_type_ptr       element_type;
+          a_targ_size_t    num_elements;
+          if (is_array_type(entity_type)) {
+            element_type = underlying_array_element_type(entity_type);
+            num_elements = num_array_elements(entity_type);
+          } else {
+            element_type = entity_type;
+            num_elements = 1;
+          } /* if */
+          if (ipdp->array_element_sequence) {
+            num_elements *= ipdp->array_element_count;
+          }  /* if */
           entity_node = make_init_entity_node(ipdp, 
                                               /*using_as_address=*/TRUE,
                                               /*using_as_dest=*/TRUE);
-#if IA64_ABI
-          if (contains_ptr_to_data_member(entity_type)) {
-            /* If the entity type contains pointers to data members they must
-               be initialized to -1, not zero. */
-            a_type_ptr       element_type;
-            a_targ_size_t    num_elements;
-            if (is_array_type(entity_type)) {
-              element_type = underlying_array_element_type(entity_type);
-              num_elements = num_array_elements(entity_type);
-            } else {
-              element_type = entity_type;
-              num_elements = 1;
-            } /* if */
-            insert_call_to_helper_routine_to_zero_entity(
+          insert_call_to_helper_routine_to_zero_entity(
                    element_type,
                    entity_node,
-                   node_for_integer_constant(num_elements,
-                                             (an_integer_kind)ik_unsigned_int),
+                   node_for_host_large_integer(
+                                            (a_host_large_integer)num_elements,
+                                            (an_integer_kind)ik_unsigned_int),
                    eff_insert_location);
-          } else
+        } else
 #endif /* IA64_ABI */
-          /* Do not insert code here.  */
-          {
-            /* Aggregate.  Use a runtime routine call to zero it. */
-            a_targ_size_t entity_size;
-            entity_size = f_skip_typerefs(entity_type)->size;
-            if (ipdp->array_element_sequence) {
-              /* For a sequence of array elements, multiply by the number of
-                 elements. */
-              check_assertion_str(ipdp->array_element_count > 0,
+        /* Do not insert code here.  */
+        if (is_aggregate_or_union_type(entity_type) ||
+            is_or_was_ptr_to_member_function_type(entity_type) ||
+            ipdp->array_element_sequence) {
+          /* Aggregate.  Use a runtime routine call to zero it. */
+          a_targ_size_t    entity_size;
+          an_expr_node_ptr entity_size_node;
+          entity_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
+                                              /*using_as_dest=*/TRUE);
+          entity_size = f_skip_typerefs(entity_type)->size;
+          if (ipdp->array_element_sequence) {
+            /* For a sequence of array elements, multiply by the number of
+               elements. */
+            check_assertion_str(ipdp->array_element_count > 0,
                       "lower_dynamic_init: dik_zero array_element_count <= 0");
-              entity_size *= ipdp->array_element_count;
-            }  /* if */
-            entity_size_node = node_for_host_large_integer(
-                        (a_host_large_integer)entity_size, 
-                        targ_size_t_int_kind);
-            insert_call_to_zero_entity(entity_node, entity_size_node,
-                                       eff_insert_location);
+            entity_size *= ipdp->array_element_count;
           }  /* if */
+          entity_size_node = node_for_host_large_integer(
+                                             (a_host_large_integer)entity_size,
+                                             targ_size_t_int_kind);
+          insert_call_to_zero_entity(entity_node, entity_size_node,
+                                     eff_insert_location);
         } else {
           /* Setting a scalar to zero; can be done by an assignment. */
           goto do_assignment;

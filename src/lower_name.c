@@ -921,11 +921,15 @@ for entity.  The kind indicates the kind of entity processed.
 static void add_prefix_for_local_class(a_type_ptr               type,
                                        a_mangling_control_block *mctl)
 /*
-Add a prefix indicating the routine containing type, which is a local class.
+Add a prefix indicating the routine containing type, which is a local class,
+for the IA-64 ABI.
 */
 {
-  a_class_symbol_supplement_ptr ssp = symbol_supplement_for_class(type);
+  a_class_symbol_supplement_ptr ssp;
 
+  check_assertion(is_immediate_class_type(type) &&
+                  type->source_corresp.is_local_to_function);
+  ssp = symbol_supplement_for_class(type);
   add_to_mangled_name('Z', mctl);
   mangled_function_name(ssp->enclosing_routine,
                         /*suppress_param_encoding=*/FALSE,
@@ -937,17 +941,22 @@ Add a prefix indicating the routine containing type, which is a local class.
 
 
 static void add_prefix_for_local_class_if_necessary(
-                                               a_type_ptr               type,
-                                               a_mangling_control_block *mctl)
+                                                a_type_ptr               type,
+                                                a_mangling_control_block *mctl)
 /*
-If type is a local class, or a member of a local class, output the prefix
-indicating the routine containing the class.
+If type is a local type, or a member of a local class, output the prefix
+indicating the routine containing the type, for the IA-64 ABI.
 */
 {
+  /* Typedefs and cv-qualified types should not get here. */
+  check_assertion(type->kind != (a_type_kind)tk_typeref);
   while (type->source_corresp.is_class_member) {
     type = type->source_corresp.parent.class_type;
   }  /* while */
-  if (type->source_corresp.is_local_to_function) {
+  if (is_enum_type(type)) {
+    /* We do not have any way of getting the containing function at this
+       point.  */
+  } else if (type->source_corresp.is_local_to_function) {
     add_prefix_for_local_class(type, mctl);
   }  /* if */
 }  /* add_prefix_for_local_class_if_necessary */
@@ -1405,7 +1414,11 @@ original form used an expression, which expr points to.
 #if !IA64_ABI
       add_str_to_mangled_name("sz", mctl);
 #else /* IA64_ABI */
-      add_str_to_mangled_name((expr != NULL) ? "sz" : "st", mctl);
+      if (expr != NULL) {
+        add_str_to_mangled_name("sz", mctl);
+      } else {
+        add_str_to_mangled_name("st", mctl);
+      }  /* if */
 #endif /* IA64_ABI */
       break;
     case tpck_alignof:
@@ -1827,7 +1840,7 @@ has an explicit template argument list, given by template_arg_list.
   } else if (is_member) {
     if (con->source_corresp.is_class_member) {
       add_prefix_for_local_class_if_necessary(con->source_corresp.
-                                                    parent.class_type, mctl);
+                                                      parent.class_type, mctl);
     }  /* if */
     /* Mark the start of the nested name. */
     add_to_mangled_name('N', mctl);
@@ -2986,7 +2999,7 @@ static void mangled_type_name(a_type_ptr               type,
                               a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the name of the type "type".
-This routine is used for named types (classes, enums, and typedefs)
+This routine is used for named types (classes, enums, but never typedefs)
 and for unnamed classes and enums.  Nested types are encoded as such.
 */
 {
@@ -2996,6 +3009,8 @@ and for unnamed classes and enums.  Nested types are encoded as such.
   a_class_type_supplement_ptr ctsp;
 #endif /* IA64_ABI */
 
+  /* Typedefs and cv-qualifiers are not allowed here. */
+  check_assertion(type->kind != (a_type_kind)tk_typeref);
 #if IA64_ABI
   /* The caller has already checked to see if a substitution is available for
      this entire type.  Check here to see if the type is an instantiation of a
@@ -3930,8 +3945,8 @@ name.
     /* Mark the start of the nested name. */
     if (routine->source_corresp.is_class_member) {
       add_prefix_for_local_class_if_necessary(
-                                   routine->source_corresp.parent.class_type, 
-                                   mctl);
+                                     routine->source_corresp.parent.class_type,
+                                     mctl);
     }  /* if */
     add_to_mangled_name('N', mctl);
     if (routine->source_corresp.is_class_member) {
@@ -4845,19 +4860,7 @@ and truncated names.
                        "final_type_name_mangling:", 
                        "mangled_name_cannot_be_included_in_other_name is set");
   if (has_name(type)) {
-    if (type_needs_parent_qualifier(type) 
-#if IA64_ABI
-        /* A type instantiated from a template will have a name that might
-           collide with other types in the user namespace.  Therefore, we add
-           the prefix in this case as well.  */
-        || ((type->kind == (a_type_kind)tk_class ||
-             type->kind == (a_type_kind)tk_struct ||
-             type->kind == (a_type_kind)tk_union) &&
-            type->variant.class_struct_union.extra_info != NULL &&
-            type->variant.class_struct_union.extra_info->assoc_template 
-                                                                   != NULL)
-#endif /* IA64_ABI */
-                                                                           ) {
+    if (type_needs_parent_qualifier(type)) {
       /* Nested type names must be mangled (because they exist in a scope
          that does not exist in the generated C code).  The mangled form
          is something like
@@ -4872,6 +4875,20 @@ and truncated names.
       /* The following does compression and truncation if necessary. */
       (void)end_mangling(&type->source_corresp, /*final=*/TRUE, &mctl);
       type->source_corresp.mangled_name_cannot_be_included_in_other_name= TRUE;
+#if IA64_ABI
+    } else if (is_immediate_class_type(type) &&
+               type->variant.class_struct_union.extra_info != NULL &&
+               type->variant.class_struct_union.extra_info->assoc_template 
+                                                                    != NULL) {
+        /* A type instantiated from a template will have a name that might
+           collide with other types in the user namespace.  Therefore, we add
+           the prefix in this case as well.  */
+      start_mangling(&mctl);
+      add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
+      add_str_to_mangled_name(type->source_corresp.name, &mctl);
+      (void)end_mangling(&type->source_corresp, /*final=*/TRUE, &mctl);
+      type->source_corresp.mangled_name_cannot_be_included_in_other_name= TRUE;
+#endif /* IA64_ABI */
     } else {
       /* Not a nested type.  Check for compression and truncation. */
       final_entity_name_mangling(&type->source_corresp);
@@ -5429,22 +5446,52 @@ returned.
 }  /* search_scope_list */
 
 #endif /* !IA64_ABI */
+#if IA64_ABI
+
+static void add_discriminator_if_necessary(a_source_correspondence  *scp,
+                                           an_il_entry_kind         entry_kind,
+                                           a_mangling_control_block *mctl)
+/*
+The entity (of kind entry_kind) whose source correspondence entry is
+scp is local to the function "routine".  Add a discriminator to the
+mangled name if necessary.  A discriminator is a number used in the
+IA-64 ABI to distinguish function-local entities with the same name.
+*/
+{
+  a_discriminator discriminator = 0;
+
+  check_assertion(scp->is_local_to_function);
+  if (entry_kind == iek_variable) {
+    discriminator = ((a_variable_ptr)scp)->discriminator;
+  } else if (entry_kind == iek_type) {
+    discriminator = ((a_type_ptr)scp)->discriminator;
+  }  /* if */
+  if (discriminator > 0) {
+    add_to_mangled_name('_', mctl);
+    add_number_to_mangled_name((unsigned long)(discriminator - 1), mctl);
+  }  /* if */
+}  /* add_discriminator_if_necessary */
+
+#endif /* IA64_ABI */
 
 #if IA64_ABI
 /*ARGSUSED*/  /* <-- scope is not used in that case. */
+#else /* !IA64_ABI */
+/*ARGSUSED*/ /* <-- entry_kind is not used in that case. */
 #endif /* IA64_ABI */
 void mangle_promoted_entity_name(a_source_correspondence *scp,
+                                 an_il_entry_kind        entry_kind,
                                  a_boolean               final,
                                  a_routine_ptr           routine,
                                  a_scope_ptr             scope)
 /*
-scp points to the source correspondence field of an entity that is being
-promoted out of the routine "routine" (or one of its block scopes) to
-the file scope.  scope indicates the scope out of which the entity is
-being promoted (a function or block scope).  Give the entity a mangled
-name if necessary.  If final is TRUE, do the final name mangling,
-which may produce a name that can no longer be embedded in other
-mangled names.
+scp points to the source correspondence field of an entity (of kind
+entry_kind) that is being promoted out of the routine "routine" (or
+one of its block scopes) to the file scope.  scope indicates the scope
+out of which the entity is being promoted (a function or block scope).
+Give the entity a mangled name if necessary.  If final is TRUE, do the
+final name mangling, which may produce a name that can no longer be
+embedded in other mangled names.
 */
 {
   a_mangling_control_block mctl;
@@ -5480,6 +5527,7 @@ mangled names.
                           &mctl);
     add_to_mangled_name('E', &mctl);
     mangled_name_with_length(scp->name, &mctl);
+    add_discriminator_if_necessary(scp, entry_kind, &mctl);
 #endif /* !IA64_ABI */
     (void)end_mangling(scp, final, &mctl);
   }  /* if */
