@@ -5256,9 +5256,8 @@ When single_operand is TRUE, the <varargs.h> form is expected:
     an_expr_node_ptr va_start_node;
 
     va_start_node =
-      make_operator_node(single_operand ?
-                             (an_expr_operator_kind)eok_va_start_single_operand
-                           : (an_expr_operator_kind)eok_va_start,
+      make_operator_node((an_expr_operator_kind)single_operand ?
+                             eok_va_start_single_operand : eok_va_start,
                          void_type(), node1);
     make_expression_operand(va_start_node, va_start_node->type, result);
   }  /* if */
