@@ -5680,14 +5680,28 @@ Generate code for a using-directive or a using-declaration.
 }  /* gen_using_directive_or_declaration */
 
 
+/* Declaration needed because of forward reference: */
+static void gen_routine_specifiers_and_declaration(
+                          a_routine_ptr                rout,
+                          a_type_ptr                   rout_type,
+                          a_boolean                    is_definition,
+                          a_boolean                    is_specialization,
+                          a_boolean                    friend_decl,
+                          a_boolean                    decl_within_class,
+                          a_boolean                    instantiation_directive,
+                          a_src_seq_secondary_decl_ptr sec_decl,
+                          a_scope_ptr                  scope,
+                          a_boolean                    suppress_specifiers,
+                          a_boolean                    *context_pop_needed,
+                          a_source_sequence_scan_state *saved_state);
+
+
 static void gen_instantiation_directive(void)
 /*
 Generate code for an instantiation directive.
 */
 {
   an_il_entry_kind               kind;
-  a_type_ptr                     type;
-  a_source_correspondence        *scp;
   an_instantiation_directive_ptr idp =
                                   ss_entry_ptr(curr_source_sequence_entry,
                                                an_instantiation_directive_ptr);
@@ -5720,22 +5734,37 @@ Generate code for an instantiation directive.
     switch (kind) {
       case iek_routine:
         { a_routine_ptr rout = (a_routine_ptr)idp->entity.ptr;
-          type = rout->type;
-          scp = &rout->source_corresp;
+          a_boolean     context_pop_needed;
+          gen_routine_specifiers_and_declaration(
+                                         rout, rout->type,
+                                         /*is_definition=*/FALSE,
+                                         /*is_specialization=*/FALSE,
+                                         /*friend_decl=*/FALSE,
+                                         /*decl_within_class=*/FALSE,
+                                         /*instantiation_directive=*/TRUE,
+                                         (a_src_seq_secondary_decl_ptr)NULL,
+                                         (a_scope_ptr)NULL,
+                                         /*suppress_specifiers=*/FALSE,
+                                         &context_pop_needed,
+                                         (a_source_sequence_scan_state *)NULL);
+          /* Pop the name context for a class/namespace member. */
+          if (context_pop_needed) {
+            pop_name_context_if_member(&rout->source_corresp);
+          }  /* if */
+          write_tok_ch(';');
         }
-        goto routine_or_var;
+        break;
       case iek_variable:
         { a_variable_ptr var = (a_variable_ptr)idp->entity.ptr;
-          type = var->type;
-          scp = &var->source_corresp;
+          gen_general_declaration_using_type(var->type,
+                                             &var->source_corresp,
+                                             kind,
+                                            (a_src_seq_secondary_decl_ptr)NULL,
+                                             TQ_NONE,
+                                             /*suppress_specifiers=*/FALSE,
+                                             GDO_SUPPRESS_POSITION);
+          write_tok_ch(';');
         }
-routine_or_var:
-        gen_general_declaration_using_type(type, scp, kind,
-                                           (a_src_seq_secondary_decl_ptr)NULL,
-                                           TQ_NONE,
-                                           /*suppress_specifiers=*/FALSE,
-                                           GDO_SUPPRESS_POSITION);
-        write_tok_ch(';');
         break;
       case iek_type:
         { a_type_ptr class_type = (a_type_ptr)idp->entity.ptr;
@@ -6880,6 +6909,136 @@ flags on the classes found on an earlier call.
 }  /* gen_typedefs_for_template_classes_in_default_arguments */
 
 
+static void gen_routine_specifiers_and_declaration(
+                          a_routine_ptr                rout,
+                          a_type_ptr                   rout_type,
+                          a_boolean                    is_definition,
+                          a_boolean                    is_specialization,
+                          a_boolean                    friend_decl,
+                          a_boolean                    decl_within_class,
+                          a_boolean                    instantiation_directive,
+                          a_src_seq_secondary_decl_ptr sec_decl,
+                          a_scope_ptr                  scope,
+                          a_boolean                    suppress_specifiers,
+                          a_boolean                    *context_pop_needed,
+                          a_source_sequence_scan_state *saved_state)
+/*
+Generate the type specifiers and declarator for a declaration of the
+routine rout.  Its type is rout_type (that may differ from rout->type for
+a declared_type).  If is_definition is TRUE, this is a definition; if
+is_specialization is TRUE, this is a specialization declaration; if
+friend_decl is TRUE, this is a friend declaration; if decl_within_class
+is TRUE, this is a declaration of a member within its class; if
+instantiation_directive is TRUE, this is an instantiation directive.
+If this is a secondary declaration, sec_decl points to the entry;
+otherwise, it is NULL (not used for instantiation directives).
+scope is the function scope for a function definition, or NULL otherwise.
+If suppress_specifiers is TRUE, the specifiers of the declaration are
+suppressed; that's used for comma lists (note: suppressing the specifiers
+is not exactly the same as suppressing the return type).  If this
+routine does a name context push for a member, *context_pop_needed
+will be returned TRUE.  For a definition, the current scan state will
+be saved in *saved_state before the transition to the source sequence
+list for the function definition.
+*/
+{
+  a_boolean  force_unqualified_name;
+  a_type_ptr qual_rout_type = rout_type;
+  a_routine_type_supplement_ptr
+             rtsp = f_skip_typerefs(rout_type)->variant.routine.extra_info;
+
+  *context_pop_needed = FALSE;
+  /* Determine the effective routine type by starting from the routine
+     type and removing type qualifiers but not typedefs.  Type qualifiers
+     can appear above the function type even in a function definition
+     in the presence of Microsoft qualifiers like near/far. */
+  while (rout_type->kind == (a_type_kind)tk_typeref &&
+         !typeref_is_typedef(rout_type)) {
+    rout_type = rout_type->variant.typeref.type;
+  }  /* while */
+  /* An unqualified name is used in the declarator if this is a declaration
+     rather than a definition.  Specializations are an exception, and
+     get the full normal handling. */
+  force_unqualified_name = !is_definition && !is_specialization;
+  if (rout_type->kind != (a_type_kind)tk_routine) {
+    /* If the function type comes from a typedef, handle the declaration
+       in the conventional way.  This can occur only for declarations. */
+    a_gen_decl_options_set options = GDO_NO_OPTIONS;
+    if (friend_decl)             options |= GDO_FUNCTION_FRIEND_DECL;
+    if (force_unqualified_name)  options |= GDO_FORCE_UNQUALIFIED_NAME;
+    if (instantiation_directive) options |= GDO_SUPPRESS_POSITION;
+    check_assertion(!is_definition);
+    gen_general_declaration_using_type(qual_rout_type, &rout->source_corresp,
+                                       iek_routine, sec_decl, TQ_NONE,
+                                       suppress_specifiers,
+                                       options);
+  } else {
+    /* Normal routine case.  Do the declaration in a special way because
+       (a) function definitions use information from the function parameter
+       variables, and (b) we need to suppress return types on constructors,
+       destructors, etc. */
+    a_boolean return_type_needed = TRUE;
+    if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+        rout->special_kind == (a_special_function_kind)sfk_destructor ||
+        rout->special_kind == (a_special_function_kind)sfk_conversion) {
+      /* Do not put out the return type for a constructor, destructor, or
+         conversion function. */
+      return_type_needed = FALSE;
+    }  /* if */
+    if (return_type_needed) {
+      /* Write the type specifiers and the first part of the declarator. */
+      form_type_first_part(qual_rout_type,
+                           /*under_lhs_declarator=*/FALSE,
+                           /*need_trailing_space=*/TRUE,
+                           TQ_NONE,
+                           suppress_specifiers ? FTO_SUPPRESS_SPECIFIERS :
+                                                 FTO_NO_OPTIONS,
+                           &octl);
+    }  /* if */
+    if (!instantiation_directive) {
+      /* Position the output file to the declaration position (again). */
+      set_decl_position(&rout->source_corresp, sec_decl);
+    }  /* if */
+    /* Write the routine name. */
+    if (friend_decl) {
+      /* Friend declaration.  The rules for using qualified names are
+         different than for ordinary declarations. */
+      gen_friend_function_decl_name(&rout->source_corresp);
+    } else {
+      gen_decl_name(&rout->source_corresp, iek_routine,
+                    force_unqualified_name);
+    }  /* if */
+    if (!force_unqualified_name) {
+      /* Push the name context for a class/namespace member. */
+      push_name_context_if_member(&rout->source_corresp);
+      *context_pop_needed = TRUE;
+    }  /* if */
+    if (is_definition) {
+      /* Follow the source sequence list for the function. */
+      save_source_sequence_scan_state(saved_state);
+      curr_source_sequence_entry = scope->source_sequence_list;
+      adv_to_signif_source_sequence_entry();
+    }  /* if */
+    /* Write the second part of the declarator. */
+    /* Suppress default arguments on generated instances. */
+    gen_function_declarator_with_scope(rout_type, scope,
+                                       /*suppress_def_args=*/
+                                                 (rout->is_template_function &&
+                                                  !rout->is_specialized &&
+                                                  !decl_within_class));
+    /* If the function has a throw specification, put it out here after the
+       function declarator. */
+    if (rtsp->exception_specification != NULL) {
+      gen_exception_specification(rtsp->exception_specification);
+    }  /* if */
+    if (return_type_needed) {
+      form_type_second_part_simple(rout_type->variant.routine.return_type,
+                                   /*under_lhs_declarator=*/FALSE, &octl);
+    }  /* if */
+  }  /* if */
+}  /* gen_routine_specifiers_and_declaration */
+
+
 static void gen_routine_decl(a_boolean suppress_specifiers,
                              a_boolean *another_decl_in_comma_list)
 /*
@@ -6892,11 +7051,11 @@ TRUE if the declaration following this one is such a continuation.
 */
 {
   a_routine_ptr                 rout;
-  a_type_ptr                    rout_type, unqual_rout_type, qual_rout_type;
+  a_type_ptr                    rout_type, unqual_rout_type;
   a_src_seq_secondary_decl_ptr  sec_decl;
   a_boolean                     is_definition = FALSE, friend_decl;
   a_boolean                     decl_within_class = FALSE;
-  a_boolean                     context_pop_needed = FALSE;
+  a_boolean                     context_pop_needed;
   a_storage_class               storage_class;
   a_scope_ptr                   scope = NULL;
   a_memory_region_number        scope_region_number;
@@ -6906,7 +7065,6 @@ TRUE if the declaration following this one is such a continuation.
   a_function_state              state;
   a_boolean                     decl_within_function =
                                             (innermost_function_scope != NULL);
-  a_boolean                     force_unqualified_name;
   a_boolean                     need_to_unset_typedefs = FALSE;
 
   *another_decl_in_comma_list = FALSE;
@@ -6943,7 +7101,6 @@ TRUE if the declaration following this one is such a continuation.
   }  /* if */
   check_assertion_str(rout_type != NULL,
                       "gen_routine_decl: declared_type is NULL");
-  qual_rout_type = rout_type;
   unqual_rout_type = skip_typerefs(rout_type);
   rtsp = unqual_rout_type->variant.routine.extra_info;
   /* Advance past the source sequence entry for the routine. */
@@ -7106,90 +7263,17 @@ TRUE if the declaration following this one is such a continuation.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Generate a declaration for the routine name with the right type. */
-  /* Determine the effective routine type by starting from the routine
-     type and removing type qualifiers but not typedefs.  Type qualifiers
-     can appear above the function type even in a function definition
-     in the presence of Microsoft qualifiers like near/far. */
-  while (rout_type->kind == (a_type_kind)tk_typeref &&
-         !typeref_is_typedef(rout_type)) {
-    rout_type = rout_type->variant.typeref.type;
-  }  /* while */
-  /* An unqualified name is used in the declarator if this is a declaration
-     rather than a definition.  Specializations are an exception, and
-     get the full normal handling. */
-  force_unqualified_name = !is_definition && !is_specialization;
-  if (rout_type->kind != (a_type_kind)tk_routine) {
-    /* If the function type comes from a typedef, handle the declaration
-       in the conventional way.  This can occur only for declarations. */
-    check_assertion(!is_definition);
-    gen_general_declaration_using_type(qual_rout_type, &rout->source_corresp,
-                                       iek_routine, sec_decl, TQ_NONE,
-                                       suppress_specifiers,
-                                       friend_decl*GDO_FUNCTION_FRIEND_DECL |
-                                       force_unqualified_name*
-                                                   GDO_FORCE_UNQUALIFIED_NAME);
-  } else {
-    /* Normal routine case.  Do the declaration in a special way because
-       (a) function definitions use information from the function parameter
-       variables, and (b) we need to suppress return types on constructors,
-       destructors, etc. */
-    a_boolean return_type_needed = TRUE;
-    if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
-        rout->special_kind == (a_special_function_kind)sfk_destructor ||
-        rout->special_kind == (a_special_function_kind)sfk_conversion) {
-      /* Do not put out the return type for a constructor, destructor, or
-         conversion function. */
-      return_type_needed = FALSE;
-    }  /* if */
-    if (return_type_needed) {
-      /* Write the type specifiers and the first part of the declarator. */
-      form_type_first_part(qual_rout_type,
-                           /*under_lhs_declarator=*/FALSE,
-                           /*need_trailing_space=*/TRUE,
-                           TQ_NONE,
-                           suppress_specifiers ? FTO_SUPPRESS_SPECIFIERS :
-                                                 FTO_NO_OPTIONS,
-                           &octl);
-    }  /* if */
-    /* Position the output file to the declaration position (again). */
-    set_decl_position(&rout->source_corresp, sec_decl);
-    /* Write the routine name. */
-    if (friend_decl) {
-      /* Friend declaration.  The rules for using qualified names are
-         different than for ordinary declarations. */
-      gen_friend_function_decl_name(&rout->source_corresp);
-    } else {
-      gen_decl_name(&rout->source_corresp, iek_routine,
-                    force_unqualified_name);
-    }  /* if */
-    if (!force_unqualified_name) {
-      /* Push the name context for a class/namespace member. */
-      push_name_context_if_member(&rout->source_corresp);
-      context_pop_needed = TRUE;
-    }  /* if */
-    if (is_definition) {
-      /* Follow the source sequence list for the function. */
-      save_source_sequence_scan_state(&saved_state);
-      curr_source_sequence_entry = scope->source_sequence_list;
-      adv_to_signif_source_sequence_entry();
-    }  /* if */
-    /* Write the second part of the declarator. */
-    /* Suppress default arguments on generated instances. */
-    gen_function_declarator_with_scope(rout_type, scope,
-                                       /*suppress_def_args=*/
-                                                 (rout->is_template_function &&
-                                                  !rout->is_specialized &&
-                                                  !decl_within_class));
-    /* If the function has a throw specification, put it out here after the
-       function declarator. */
-    if (rtsp->exception_specification != NULL) {
-      gen_exception_specification(rtsp->exception_specification);
-    }  /* if */
-    if (return_type_needed) {
-      form_type_second_part_simple(rout_type->variant.routine.return_type,
-                                   /*under_lhs_declarator=*/FALSE, &octl);
-    }  /* if */
-  }  /* if */
+  gen_routine_specifiers_and_declaration(rout, rout_type,
+                                         is_definition,
+                                         is_specialization,
+                                         friend_decl,
+                                         decl_within_class,
+                                         /*instantiation_directive=*/FALSE,
+                                         sec_decl,
+                                         scope,
+                                         suppress_specifiers,
+                                         &context_pop_needed,
+                                         &saved_state);
   if (need_to_unset_typedefs) {
     (void)gen_typedefs_for_template_classes_in_default_arguments(
                                                       rtsp->param_type_list,

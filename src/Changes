@@ -1,5 +1,12 @@
 Version 2.41
 
+1/25/99   C++-generating back end: constructors in instantiation directives
+
+The C++-generating back end formerly put out instantiation directives
+incorrectly for constructors, destructors, and conversion functions,
+because it included a return type in the declaration.  The return type
+is now suppressed.
+
 1/24/99   Microsoft mode array new and delete
 
 A refinement of the 5/2/98 change for array new and delete in Microsoft mode:
