@@ -2183,6 +2183,7 @@ definition whose name can be used as part of the module ID.
 #if !STANDALONE_UTILITY_PROGRAM
         /* Avoid routines with an associated error symbol. */
         if (in_front_end &&
+            ((a_symbol_ptr)routine->source_corresp.assoc_info) != NULL &&
             ((a_symbol_ptr)routine->source_corresp.assoc_info)->is_error) {
           check_assertion(total_errors != 0);
           continue;
