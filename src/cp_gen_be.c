@@ -1041,13 +1041,14 @@ instantiations, the current source sequence entry is pointing to the
 associated a_template entry.
 */
 {
+  /* Advance past the source sequence entry for the type itself. */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (ss_entry_kind(curr_source_sequence_entry) == iek_template) {
     check_assertion(is_immediate_class_type(type) &&
-                    type->variant.class_struct_union.is_nonreal_class);
-    /* Advance past the source sequence entry for the type itself. */
-    check_for_and_take_source_seq_entry(
-                assoc_template_of(type)->source_corresp.source_sequence_entry);
+                    type->variant.class_struct_union.is_nonreal_class &&
+                    ss_entry_ptr(curr_source_sequence_entry, a_template_ptr)
+                                      ->prototype_instantiation.type == type);
+    adv_curr_source_sequence_entry();
   } else
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   {

@@ -3291,9 +3291,7 @@ and the class instantiation will detect the runaway case.
      data member definitions.  Microsoft does not allow this either. */
 #endif /* 0 */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-  if (prototype_instantiations_in_il) {
-    var_ptr->assoc_template = tssp->il_template_entry;
-  }  /* if */
+  var_ptr->assoc_template = tssp->il_template_entry;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 done:
   /* The already instantiated flag is set even if certain error conditions
@@ -3828,13 +3826,13 @@ prototype instantiation is considered as a potential match.
     ctsp = class_type->variant.class_struct_union.extra_info;
     ctsp->template_arg_list = *new_list;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (prototype_instantiations_in_il) {
+    {
       /* For certain classes (like X<int>::Y<T>) the prototype instantiation
          must be fetched from the prototype template (e.g., X<T>::Y).  Hence
          we cannot just use prototype_sym. */
       a_symbol_ptr  proto_template = prototype_template_of(class_template_sym);
       ctsp->assoc_template =
-                     proto_template->variant.template_info->il_template_entry;
+                      proto_template->variant.template_info->il_template_entry;
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     set_source_corresp(&(class_type->source_corresp), sym);
@@ -6867,9 +6865,7 @@ type based on the template argument list and the template parameter list
     rp->source_corresp.access = templ_rout->source_corresp.access;
     rp->template_arg_list = templ_arg_list;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (prototype_instantiations_in_il) {
-      rp->assoc_template = tssp->il_template_entry;
-    }  /* if */
+    rp->assoc_template = tssp->il_template_entry;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if DECL_MODIFIERS_IN_USE
     {
@@ -12470,7 +12466,7 @@ any non-empty template parameter lists that were scanned.
            the declarative information looking for gross syntax errors. */
         prototype_okay = TRUE;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-        assoc_template_of(prototype_type) = decl_state->il_template_entry;
+        assoc_template_of(prototype_type) = tssp->il_template_entry;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         instantiate_class_template(sym, prototype_type,
                                    &class_templ_cache_segments);
