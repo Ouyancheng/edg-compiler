@@ -1,5 +1,20 @@
 Version 3.1
 
+12/14/02 C++-generating back end: inaccessible typedefs in generated code
+
+When the C++-generating back end generates template arguments
+in template references, in a configuration in which template
+instances are put out in the generated code as specializations,
+there are cases where the generated code contained access
+errors.  This is not a problem that can be solved in general,
+because within such a specialization entities that could be
+referenced via the template parameter in the original code
+must be referenced directly, and that underlying type
+may not be accessible in the template.  We have, however,
+checked in a workaround that strips off member typedefs
+if the underlying type is not a class member, which avoids
+some of the most common problem cases.
+
 12/13/02 Missing inline function, multiple translation units
 
 In some convoluted cases involving multiple translation units,
