@@ -723,19 +723,17 @@ control checking is done.
       check_protected_member_access(sym, pos, class_of_object);
     }  /* if */
   }  /* if */
+  /* Update the symbol and the cross-reference listing. */
+  record_symbol_reference((SRK_REFERENCE | SRK_IMPLICIT), sym, pos,
+                          /*update_il_entry=*/FALSE);
   if (!evaluated) {
-    /* Unevaluated expression.  Do not set referenced (etc.). */
+    /* Unevaluated expression.  Do not set the IL referenced flag. */
+  } else if (rp->is_virtual && honor_virtual) {
+    /* Virtual function call.  Do not set the IL referenced flag because the
+       call might actually be of an overriding function. */
   } else {
-    /* Update the symbol and the cross-reference listing. */
-    record_symbol_reference((SRK_REFERENCE | SRK_IMPLICIT), sym, pos,
-                            /*update_il_entry=*/FALSE);
-    if (rp->is_virtual && honor_virtual) {
-      /* Virtual function call.  Do not set referenced (etc.) because the
-         call might actually be of an overriding function. */
-    } else {
-      /* Non-virtual call. */
-      mark_routine_referenced(rp);
-    }  /* if */
+    /* Non-virtual call. */
+    mark_routine_referenced(rp);
   }  /* if */
 }  /* reference_to_implicitly_invoked_function */
 
