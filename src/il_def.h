@@ -8465,12 +8465,13 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "f+", "f-", "f*", "f/", "f==", "f!=", "f>", "f<", "f>=", "f<=", "f=",
    "p+", "p-", "p=",
 #if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
-   "x+", "x-", "x*", "x/", "x==", "x!=", "x=", "complex",
+   "x+", "x-", "x*", "x/", "x==", "x!=", "x=",
 #endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
 #if C99_IL_EXTENSIONS_SUPPORTED
    "x+=", "x-=", "x*=", "x/=", "j*",
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef FIL
+   "complex",
    "c==", "c!=", "c>", "c<", "c>=", "c<=", "c=", "//",
    "i**i", "r**i", "x**i", "r**r", "x**x",
 #endif /* ifdef FIL */
