@@ -1,5 +1,16 @@
 Version 2.42
 
+4/19/99  Spurious error on declaration of conversion operator in class
+         with nonreal base class in Microsoft mode
+
+A bug was introduced in 2.41 that caused a spurious redeclaration error
+to be issued when a conversion operator was declared in a class template
+with a template-dependent base class.  This has been fixed.
+
+  template<class T> struct A : T {
+    operator int();
+  };
+
 4/19/99  Partial specialization problem when the current partial specialization
          is referenced using a template argument list
 

@@ -3123,7 +3123,9 @@ is a that of a constructor.
        class "A".  This is necessary for curr_token_type_symbol to handle
        this case correctly. */
     (void)simplify_curr_class_qualified_name();
-    if (!locator_for_curr_id.is_qualified_name) {
+    if (!locator_for_curr_id.is_qualified_name &&
+        !locator_for_curr_id.is_conversion_name &&
+        !locator_for_curr_id.is_operator_name) {
       clear_token_cache(&cache, /*reusable=*/FALSE);
       /* Put the current token in the cache. */
       cache_curr_token(&cache);
@@ -3155,7 +3157,9 @@ is a that of a constructor.
          constructor declaration.  The syntax looks like a constructor
          declaration, so do a lookup to see if it's a typedef name for the
          current class. */
-      sym = normal_id_lookup(&locator_for_curr_id, IDL_TENTATIVE_TYPE_LOOKUP);
+      sym = normal_id_lookup(&locator_for_curr_id,
+                             IDL_TENTATIVE_TYPE_LOOKUP |
+                             IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
       if (sym != NULL && sym->kind == (a_symbol_kind)sk_type &&
           skip_typerefs(sym->variant.type.ptr) == class_type &&
           !sym->ambiguous) {
