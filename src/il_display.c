@@ -2253,7 +2253,7 @@ Display the indicated scope.
     case sck_block:
       (void)printf("sck_block\n");
       if (ptr->variant.parameter != NULL) {
-        disp->ptr("parameter", (char *)ptr->variant.parameter, iek_variable);
+        disp_ptr("parameter", (char *)ptr->variant.parameter, iek_variable);
       }  /* if */
       break;
     case sck_func_prototype:
@@ -2913,7 +2913,7 @@ This routine is called during IL walking.
           break;
         case iek_exception_specification:
           disp_exception_specification(
-                                 an_exception_specification_ptr)entry_ptr);
+                                 (an_exception_specification_ptr)entry_ptr);
           break;
         case iek_switch_clause:
           disp_switch_clause((a_switch_clause_ptr)entry_ptr);
