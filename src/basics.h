@@ -15,6 +15,7 @@ This should be included first in every compilation unit.
 
 */
 
+/* Test line -- remove. */
 #ifndef CFE
 /*
 Set the conditional compilation switch indicating that this is the
