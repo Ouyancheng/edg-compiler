@@ -1,5 +1,10 @@
 Version 2.29
 
+4/12/95  Lvalue casts in Microsoft mode
+
+Lvalue casts, including those involving integral types of unequal size,
+are permitted in Microsoft mode.
+
 4/11/95  Use of incomplete enum type in Microsoft mode
 
 In Microsoft mode an enum type for which no definition has yet been seen
