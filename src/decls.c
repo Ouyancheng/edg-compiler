@@ -5389,6 +5389,7 @@ advance_past_final_token:
          performed.  In error cases, they may not have been.  If any
          remain, do them now. */
       end_deferral_of_access_checks();
+      access_checks_deferred = FALSE;
     }  /* if */
     if (curr_token == tok_semicolon || curr_token == tok_rbrace) {
       /* Advance past the final token of the declaration (which should be a
@@ -5401,6 +5402,13 @@ advance_past_final_token:
     }  /* if */
   }  /* if */
 return_point:
+  if (access_checks_deferred) {
+    /* We are processing a declaration for which access checks were
+       deferred.  Normally, any deferred checks will have already been
+       performed.  In error cases, they may not have been.  If any
+       remain, do them now. */
+    end_deferral_of_access_checks();
+  }  /* if */
   /* Do necessary remove_stop_tokens.  Even when there is no error, this
      does the remove_stop_token for tok_semicolon. */
   remove_all_local_stop_tokens();
