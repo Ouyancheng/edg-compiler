@@ -1355,6 +1355,29 @@ we know we are calling the destructor for a complete object.
 }  /* make_dtor_implied_arg_list */
 
 
+static a_boolean need_zeroing_for_value_initialization(a_dynamic_init_ptr dip)
+/*
+Return TRUE if the dik_constructor initialization in the indicated
+dynamic initialization is value-initialization that requires zeroing
+of the storage before the constructor is called.
+*/
+{
+  a_boolean     need_zeroing = FALSE;
+  a_routine_ptr ctor_routine = dip->variant.constructor.ptr;
+
+  /* Zeroing is required if the initialization is value-initialization
+     for a class that has no user-written constructor, and the class
+     has data members that require zero initialization. */
+  if (dip->variant.constructor.value_initialization &&
+      ctor_routine->compiler_generated &&
+      ctor_routine->source_corresp.parent.class_type->
+                          variant.class_struct_union.has_zero_init_component) {
+    need_zeroing = TRUE;
+  }  /* if */
+  return need_zeroing;
+}  /* need_zeroing_for_value_initialization */
+
+
 static void add_constructor_call(a_dynamic_init_ptr     dip,
                                  an_expr_node_ptr       entity_node,
                                  an_expr_node_ptr       source_node,
@@ -1384,8 +1407,7 @@ already been lowered.
     internal_error("add_constructor_call: bad kind");
   }  /* if */
 #endif /* CHECKING */
-  if (dip->variant.constructor.value_initialization &&
-      ctor_routine->compiler_generated) {
+  if (need_zeroing_for_value_initialization(dip)) {
     /* To do value-initialization on a class without a user-written
        constructor, zero the object and then call the default constructor. */
     an_expr_node_ptr entity_node_copy =
@@ -2268,13 +2290,8 @@ in default_version_of_routine).
     internal_error("add_array_constructor_call: not dik_constructor");
   }  /* if */
 #endif /* CHECKING */
+  zero_storage = need_zeroing_for_value_initialization(dip);
   ctor_routine = dip->variant.constructor.ptr;
-  /* To value-initialize an object of a class without a user-written
-     constructor, zero the storage first and then call the default
-     constructor.  This has to be tested before the constructor
-     is replaced by the default version. */
-  zero_storage = (dip->variant.constructor.value_initialization &&
-                  ctor_routine->compiler_generated);
   ctor_routine = default_version_of_routine(ctor_routine,
                                             dip->variant.constructor.args);
   if (dip->init_expr_lifetime != NULL) {
@@ -4856,14 +4873,9 @@ arrays with class elements.
        elements instead of the whole array. */
     elem_dip = elem_dynamic_init(dip);
     check_assertion(elem_dip->kind == (a_dynamic_init_kind)dik_constructor);
+    zero_storage = need_zeroing_for_value_initialization(elem_dip);
     /* Get the constructor routine to call. */
     ctor_routine = elem_dip->variant.constructor.ptr;
-    /* To value-initialize an object of a class without a user-written
-       constructor, zero the storage first and then call the default
-       constructor.  This has to be tested before the constructor
-       is replaced by the default version. */
-    zero_storage = (elem_dip->variant.constructor.value_initialization &&
-                    ctor_routine->compiler_generated);
     /* If the constructor has default arguments, make a routine that
        calls the constructor with the necessary default arguments. */
     /* Note that elem_dip->variant.constructor.args must not be lowered
