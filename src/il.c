@@ -10198,11 +10198,8 @@ related to "needed" flags.
 #endif /* DEBUG */
     /* If the definition_needed flag was set previously, set it again so
        the function body will be scanned.  The fact that rout->defined was
-       FALSE prevented the scanning of the body.  This also sets the
-       keep_definition_in_il flag if the routine is needed; clear it to
-       make sure the subtree is walked if it was set already (if it
-       wasn't set, clearing it does nothing). */
-    if (rout->definition_needed) rout->keep_definition_in_il = FALSE;
+       FALSE prevented the scanning of the body.  Likewise for the
+       keep_definition_in_il flag. */
     remark_routine_definition_needed(rout);
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */

@@ -658,7 +658,8 @@ If the indicated routine is marked as having its definition needed,
 clear the flag and set it again.  Do this also for any per-instantiation
 definition-needed bits that are set.  This is used to sweep the
 body of the function when the routine "defined" flag gets set after some
-"definition needed" flags were set.
+"definition needed" flags were set.  Also handles the keep_definition_in_il
+flag.
 */
 {
 #if ONE_INSTANTIATION_PER_OBJECT
@@ -683,7 +684,13 @@ body of the function when the routine "defined" flag gets set after some
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   if (rout->definition_needed) {
     rout->definition_needed = FALSE;
+    rout->keep_definition_in_il = FALSE;
     set_routine_definition_needed(rout);
+  } else if (rout->keep_definition_in_il) {
+    /* The routine has keep_definition_in_il but not definition_needed.
+       Remark the body for the keep_definition_in_il. */
+    rout->keep_definition_in_il = FALSE;
+    set_routine_keep_definition_in_il(rout);
   }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
   needed_flag_bit_number = saved_needed_flag_bit_number;

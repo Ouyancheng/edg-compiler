@@ -1,5 +1,21 @@
 Version 3.0
 
+2/27/02  Incorrect keep_in_il flags, IL write/read error
+
+The maintenance of needed flags, in particular the keep_definition_in_il
+flag on routines, had a small flaw which could cause an inconsistent
+IL tree, which could result in an IL write/read error (but is
+probably harmless otherwise).  In a rare case involving a default
+argument expression that is the only reference to a routine, and
+which is never used in the compilation, and in which the routine with
+the default argument is called (without using the default argument)
+from a function that is lowered immediately, there ensued a
+situation where the routine had keep_definition_in_il but not
+definition_needed set before the body of the routine was processed.
+This is okay (though unusual), but the definition is supposed to be swept
+appropriately once it shows up, and that didn't happen in this case.
+Now fixed.
+
 2/27/02  Display of backslashes in error messages
 
 When a file name contains backslash characters (typically as a directory
