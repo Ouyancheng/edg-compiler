@@ -89,8 +89,8 @@ able to if the template itself has not yet been defined.
           internal_error("instantiate_template_class: bad 1st token in cache");
         }  /* if */
 #endif /* CHECKING */
-        (void)push_scope(sck_template_instantiation, tssp->declaration_scope,
-                         tp, (a_routine_ptr)NULL,
+        (void)push_scope((a_scope_kind)sck_template_instantiation,
+                         tssp->declaration_scope, tp, (a_routine_ptr)NULL,
                          (a_function_instantiation_entry_ptr)NULL);
         /* Scan the base specifiers list, if any, and the body of the class. */
         (void)scan_class_definition(tp, DEPTH_OF_FILE_SCOPE,
@@ -118,7 +118,7 @@ void instantiate_template_function(a_routine_ptr   rout,
   db_enter(3, "instantiate_template_function");
 #if 0
   rescan_reusable_cache(p_token_cache);
-  void(push_scope(sck_template_instantiation, scope_number,
+  void(push_scope((a_scope_kind)sck_template_instantiation, scope_number,
                   (a_type_ptr)NULL, rout,
                   (a_function_instantiation_entry_ptr)NULL);
   template_function_definition(...);
@@ -301,53 +301,459 @@ no need to actually instantiate X<int> in the example above.
       db_symbol(class_template_sym, "template: ", 2);
     }  /* if */
 #endif /* DEBUG */
+  } else {
+    /* We are reusing a class type that already exists, so new_list will not
+       be used.  Return the entries to the available list for reuse. */
+    free_template_arg_list(new_list);
   }  /* if */
   db_exit();
   return sym;
 }  /* find_template_class */
 
 
+a_type_ptr copy_type_with_substitution(a_type_ptr          type,
+                                       a_template_arg_ptr  templ_arg_list)
+{
+  a_type_ptr          tp, tp2;
+  int                 i;
+  a_template_arg_ptr  tap;
+  a_param_type_ptr    ptp, new_ptp, prev_ptp;
+
+  switch (type->kind) {
+    case tk_template_param:
+      tap = templ_arg_list;
+      for (i = type->variant.list_position; i > 1; --i) {
+        tap = tap->next;
+      }  /* for */
+      type = tap->variant.type;
+      break;
+    case tk_pointer:
+      tp = copy_type_with_substitution(type, templ_arg_list);
+      type = make_pointer_type(tp);
+      break;
+    case tk_typeref:
+      tp = copy_type_with_substitution(skip_typerefs(type), templ_arg_list),
+      type = make_identically_qualified_type(tp, type);
+      break;
+    case tk_ptr_to_member:
+      tp = copy_type_with_substitution(type->variant.ptr_to_member.type,
+                                       templ_arg_list);
+      tp2 = copy_type_with_substitution(type->variant.ptr_to_member.
+                                                       class_of_which_a_member,
+                                        templ_arg_list);
+      type = ptr_to_member_type(tp, tp2);
+      break;
+    case tk_routine:
+      tp = alloc_type((a_type_kind)tk_routine);
+      tp2 = copy_type_with_substitution(type->variant.routine.return_type,
+                                        templ_arg_list);
+      tp->variant.routine.return_type = tp2;
+      ptp = type->variant.routine.extra_info->param_type_list;
+      prev_ptp = NULL;
+      for (; ptp != NULL; ptp = ptp->next) {
+        tp2 = copy_type_with_substitution(ptp->type, templ_arg_list);
+        new_ptp = alloc_param_type(tp2);
+        if (prev_ptp == NULL) {
+          tp->variant.routine.extra_info->param_type_list = new_ptp;
+        } else {
+          prev_ptp->next = new_ptp;
+        }  /* if */
+        prev_ptp = new_ptp;
+      }  /* if */
+      if (identical_types(type, tp)) {
+        /* Throw the new type away. */
+      } else {
+        type = tp;
+        add_to_types_list(type, DEPTH_OF_FILE_SCOPE,
+                          /*in_old_style_param_decl_list=*/FALSE);
+      }  /* if */
+      break;
+#if CHECKING
+    case tk_array:
+      internal_error("copy_type_with_substitution: NYI");
+#endif /* CHECKING */
+    default:;
+      /* No modification required. */
+  }  /* switch */
+  return type;
+}  /* copy_type_with_substitution */
+
+
+static a_boolean matches_template_type(a_type_ptr         type,
+                                       a_type_ptr         templ_type,
+                                       a_template_arg_ptr *templ_arg_list)
+{
+  a_boolean           match = FALSE;
+  a_type_ptr          tp, ttp;
+  a_param_type_ptr    ptp, tptp;
+  int                 i;
+  a_template_arg_ptr  tap, prev_tap;
+
+  if (templ_type->kind == (a_type_kind)tk_template_param) {
+    prev_tap = NULL;
+    for (i = templ_type->variant.list_position; i > 0; --i) {
+      if (prev_tap == NULL) {
+        tap = *templ_arg_list;
+      } else {
+        tap = prev_tap->next;
+      }  /* if */
+      if (tap == NULL) {
+        tap = alloc_template_arg(/*is_arg_type=*/TRUE);
+        if (prev_tap == NULL) {
+          *templ_arg_list = tap;
+        } else {
+          prev_tap->next = tap;
+        }  /* if */
+      }  /* if */
+      prev_tap = tap;
+    }  /* for */
+    if (tap->variant.type == NULL) {
+      tap->variant.type = type;
+      match = TRUE;
+    } else if (identical_types(type, tap->variant.type)) {
+      /* Okay. */
+      match = TRUE;
+    } else {
+      /* Not a match.  Return FALSE. */
+    }  /* if */
+  } else {
+    if (type->kind == (a_type_kind)tk_typeref) {
+      if (!is_const_qualified_type(type) &&
+          !is_volatile_qualified_type(type)) {
+        type = type->variant.typeref.type;
+      }  /* if */
+    }  /* if */
+    if (templ_type->kind == (a_type_kind)tk_typeref) {
+      if (!is_const_qualified_type(templ_type) &&
+          !is_volatile_qualified_type(templ_type)) {
+        templ_type = templ_type->variant.typeref.type;
+      }  /* if */
+    }  /* if */
+    if (templ_type->kind != type->kind) {
+      /* No match. */
+    } else {
+      switch (type->kind) {
+        case tk_typeref:
+          if (!type_qualifiers_match(type, templ_type)) {
+            tp = type->variant.typeref.type;
+            ttp = templ_type->variant.typeref.type;
+            match = matches_template_type(tp, ttp, templ_arg_list);
+          }  /* if */
+          break;
+        case tk_array:
+          tp = type->variant.array.element_type;
+          ttp = templ_type->variant.array.element_type;
+          match = matches_template_type(tp, ttp, templ_arg_list);
+          break;
+        case tk_pointer:
+          tp = type->variant.pointer.type;
+          ttp = templ_type->variant.pointer.type;
+          match = matches_template_type(tp, ttp, templ_arg_list);
+          break;
+        case tk_ptr_to_member:
+          tp = type->variant.ptr_to_member.type;
+          ttp = templ_type->variant.ptr_to_member.type;
+          if (identical_types(tp, ttp) ||
+              matches_template_type(tp, ttp, templ_arg_list)) {
+            tp = type->variant.ptr_to_member.class_of_which_a_member;
+            ttp = templ_type->variant.ptr_to_member.class_of_which_a_member;
+            match = (identical_types(tp, ttp) ||
+                     matches_template_type(tp, ttp, templ_arg_list));
+          }  /* if */
+          break;
+        case tk_routine:
+          tp = type->variant.routine.return_type;
+          ttp = templ_type->variant.routine.return_type;
+          if (identical_types(tp, ttp) ||
+              matches_template_type(tp, ttp, templ_arg_list)) {
+            ptp = type->variant.routine.extra_info->param_type_list;
+            tptp = templ_type->variant.routine.extra_info->param_type_list;
+            for (;;) {
+              tp = ptp->type;
+              ttp = tptp->type;
+              if (!identical_types(tp, ttp) &&
+                  !matches_template_type(tp, ttp, templ_arg_list)) {
+                break;
+              }  /* if */
+              ptp = ptp->next;
+              tptp = tptp->next;
+              if (ptp == NULL || tptp == NULL) {
+                match = (ptp == tptp);
+                break;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+          break;
+#if CHECKING
+        default:
+          internal_error("matches_template_type: bad type kind");
+#endif /* CHECKING */
+      }  /* switch */
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* matches_template_type */
+
+
+static a_template_arg_ptr build_template_arg_list(
+                                              a_symbol_ptr     templ_sym,
+                                              a_type_ptr       return_type,
+                                              a_param_type_ptr param_type_list)
+{
+  a_template_symbol_supplement_ptr  tssp;
+  a_type_ptr                        templ_rout_type, tp;
+  a_param_type_ptr                  templ_ptp, ptp;
+  a_template_arg_ptr                templ_arg_list;
+  a_boolean                         okay;
+
+  db_enter(3, "build_template_arg_list");
+  templ_arg_list = NULL;
+  tssp = templ_sym->variant.template.extra_info;
+  templ_rout_type = tssp->variant.function.routine->type;
+  if (return_type == NULL) {
+    /* The return type does not figure into the match, so it can be ignored. */
+    okay = TRUE;
+  } else {
+    tp = templ_rout_type->variant.routine.return_type;
+    if (!identical_types(return_type, tp)) {
+      okay = matches_template_type(return_type, tp, &templ_arg_list);
+    }  /* if */
+  }  /* if */
+  if (okay) {
+    ptp = param_type_list;
+    templ_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
+    for (; templ_ptp != NULL; templ_ptp = templ_ptp->next) {
+      if (ptp == NULL) {
+#if CHECKING
+        if (!templ_ptp->has_default_arg) {
+          internal_error("new_template_function_symbol: expected default arg");
+        }  /* if */
+#endif /* CHECKING */
+#if 0
+        /* NYI */
+#endif /* if 0 */
+      } else {
+        if (!identical_types(ptp->type, templ_ptp->type) &&
+            !matches_template_type(ptp->type, templ_ptp->type,
+                                   &templ_arg_list)) {
+          okay = FALSE;
+          break;
+        }  /* if */
+      }  /* if */
+      ptp = ptp->next;
+#if CHECKING
+      if (ptp != NULL && templ_ptp->next == NULL) {
+        internal_error("new_template_function_symbol: bad param_type list");
+      }  /* if */
+#endif /* if 0 */
+    }  /* for */
+  }  /* if */
+  if (!okay) {
+    if (templ_arg_list != NULL) {
+      free_template_arg_list(templ_arg_list);
+      templ_arg_list = NULL;
+    }  /* if */
+#if CHECKING
+  } else {
+    a_template_param_ptr  templ_param = tssp->parameters;
+    a_template_arg_ptr    templ_arg = templ_arg_list;
+    for (; templ_arg != NULL; templ_arg = templ_arg->next) {
+      if (templ_param == NULL) {
+        internal_error("build_template_arg_list: made too many template args");
+      } else if (templ_arg->variant.type == NULL) {
+        internal_error("build_template_arg_list: missing type ptr");
+      }  /* if */
+      templ_param = templ_param->next;
+    }  /* for */
+    if (templ_param != NULL) {
+      internal_error("build_template_arg_list: made too few template args");
+    }  /* if */
+#endif /* CHECKING */
+  }  /* if */
+  db_exit();
+  return templ_arg_list;
+}  /* build_template_arg_list */
+
+
 a_symbol_ptr find_template_function(a_symbol_ptr        function_template_sym,
-                                    a_template_arg_ptr  new_list,
+                                    a_type_ptr          curr_type,
+                                    a_param_type_ptr    param_type_list,
                                     a_source_position   *source_pos)
 /*
 */
 {
+  a_symbol_ptr                        sym;
+  a_type_ptr                          return_type, rout_type;
+  a_boolean                           check_default_args;
   a_template_symbol_supplement_ptr    tssp;
-  a_function_instantiation_entry_ptr  fiep, prev_fiep;
-  a_template_arg_ptr                  old_list;
+  a_function_instantiation_entry_ptr  fiep;
+  a_param_type_ptr                    ptp, reference_ptp;
+  a_template_arg_ptr                  template_arg_list;
 
   db_enter(3, "find_template_function");
-  /* Make a pass over the entries representing instantiations of the function
-     template. */
-  tssp = function_template_sym->variant.template.extra_info;
-  fiep = tssp->variant.function.instantiations;
-  prev_fiep = NULL;
-  for (; fiep != NULL; fiep = fiep->next) {
-    /* Old list is the template argument list from a template function that
-       has already been created.  See if the list passed in matches it. */
-    old_list = fiep->arg_list;
-    if (equiv_template_arg_lists(old_list, new_list,
-                                 /*is_func_template=*/TRUE)) {
-      if (prev_fiep != NULL) {
-        prev_fiep->next = fiep->next;
-        fiep->next = tssp->variant.function.instantiations;
-        tssp->variant.function.instantiations = fiep;
-      }  /* if */
-#if DEBUG
-      if (debug_level >= 3) db_symbol(fiep->routine_sym, "found: ", 2);
-#endif /* DEBUG */
-      break;
-    }  /* if */
-    prev_fiep = fiep;
-  }  /* for */
-  if (fiep == NULL) {
-#if 0
-    /* NYI */
-#endif /* if 0 */
+#if CHECKING
+  if ((curr_type == NULL) == (param_type_list == NULL)) {
+    internal_error("find_template_function: bad rout type / param type combo");
   }  /* if */
+#endif /* CHECKING */
+  if (curr_type == NULL) {
+    check_default_args = TRUE;
+    return_type = NULL;
+  } else {
+#if CHECKING
+    if (!is_function_type(curr_type)) {
+      internal_error("find_template_function: expected routine type");
+    }  /* if */
+#endif /* CHECKING */
+    curr_type = skip_typerefs(curr_type);
+    param_type_list = curr_type->variant.routine.extra_info->param_type_list;
+    check_default_args = FALSE;
+    return_type = curr_type->variant.routine.return_type;
+  }  /* if */
+  /* sym is the symbol for a template function to be returned.  Returning NULL
+     means no template function could be found or created. */
+  sym = NULL;
+  tssp = function_template_sym->variant.template.extra_info;
+  /* First be sure the number of parameters in the template function is
+     compatible with the number in param_type_list. */
+  reference_ptp = tssp->variant.function.routine->type->
+                                  variant.routine.extra_info->param_type_list;
+  for (ptp = param_type_list; ptp != NULL; ptp = ptp->next) {
+    if (reference_ptp == NULL) {
+      /* Too many params to match this template. */
+      goto done;
+    }  /* if */
+    reference_ptp = reference_ptp->next;
+  }  /* if */
+  if (reference_ptp != NULL && (!check_default_args ||
+                                !reference_ptp->has_default_arg)) {
+    /* Too many args in function template (and therefore in each of its
+       instantiations) to justify looking any further. */
+    goto done;
+  }  /* if */
+  /* Make a pass over the entries representing instantiations of the function
+     template to see if any of them match the current type signature. */
+  fiep = tssp->variant.function.instantiations;
+  for (; fiep != NULL; fiep = fiep->next) {
+    if (fiep->specialization_seen) {
+      /* A function that matches this template but has a user definition
+         rather than definition by instantiation.  If it is the function we
+         seek it will already have been found directly -- ignore such cases
+         in this search. */
+      goto get_next_sym;
+    }  /* if */
+    sym = fiep->routine_sym;
+    rout_type = sym->variant.routine.ptr->type;
+    if (return_type != NULL) {
+      if (!identical_types(return_type,
+                           rout_type->variant.routine.return_type)) {
+        /* No match.  Advance to the next template function symbol. */
+        goto get_next_sym;
+      }  /* if */
+    }  /* if */
+    reference_ptp = rout_type->variant.routine.extra_info->param_type_list;
+    ptp = param_type_list;
+#if CHECKING
+    if (reference_ptp == NULL || ptp == NULL) {
+      internal_error("find_template_function: bad param type list");
+    }  /* if */
+#endif /* CHECKING */
+    for (;;) {
+      if (!identical_types(ptp->type, reference_ptp->type)) {
+        /* No match.  Advance to the next template function symbol. */
+        goto get_next_sym;
+      }  /* if */
+      reference_ptp = reference_ptp->next;      
+      ptp = ptp->next;
+      if (ptp == NULL) {
+        /* We have a match. */
+#if CHECKING
+        if (reference_ptp != NULL) {
+          if (check_default_args && reference_ptp->has_default_arg) {
+            /* Okay. */
+          } else {
+            /* The template function does not have enough parameters.  This
+               should already have been checked for. */
+            internal_error("find_template_function: param list mixup");
+          }  /* if */
+        }  /* if */
+#endif /* CHECKING */
+#if 0
+        /* Add code to look for multiple matches from the same template? */
+#endif /* if 0 */
+        goto done;
+#if CHECKING
+#endif /* CHECKING */
+      }  /* if */
+    }  /* for */
+get_next_sym:;
+  }  /* for */
+  /* Falling through to here means the type signature passed in does not
+     match any existing template function based on the function template in
+     question, but that it is not disqualified on other grounds.  Try to match
+     the type signature to the template's type signature.  If successful, a
+     template arg list is returned; otherwise, NULL is returned. */
+  template_arg_list = build_template_arg_list(function_template_sym,
+                                              return_type,
+                                              param_type_list);
+  if (template_arg_list == NULL) {
+    sym = NULL;
+  } else {
+    a_memory_region_number              region_to_switch_back_to;
+    a_function_instantiation_entry_ptr  fiep;
+    a_routine_ptr                       templ_rout, rp;
+    a_param_type_ptr                    ptp, new_ptp, prev_ptp;
+
+    sym = make_template_function_symbol(function_template_sym, source_pos);
+    /* All IL routines and their types must be at the file scope level, so
+       switch to that memory region if necessary. */
+    templ_rout = tssp->variant.function.routine;
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    if (curr_type != NULL) {
+      /* Just reuse the type entry passed in by the caller. */
+    } else {
+      curr_type = alloc_type((a_type_kind)tk_routine);
+      prev_ptp = NULL;
+      for (ptp = param_type_list; ptp != NULL; ptp = ptp->next) {
+        new_ptp = alloc_param_type(ptp->type);
+        if (prev_ptp == NULL) {
+          curr_type->variant.routine.extra_info->param_type_list = new_ptp;
+        } else {
+          prev_ptp->next = new_ptp;
+        }  /* if */
+        prev_ptp = new_ptp;
+      }  /* for */
+      curr_type->variant.routine.return_type =
+                copy_type_with_substitution(templ_rout->type->
+                                                   variant.routine.return_type,
+                                            template_arg_list);
+      add_to_types_list(curr_type, DEPTH_OF_FILE_SCOPE,
+                        /*in_old_style_param_decl_list=*/FALSE);
+    }  /* if */
+    rp = alloc_routine();
+    rp->type = curr_type;
+    rp->storage_class = templ_rout->storage_class;
+    rp->special_kind = templ_rout->special_kind;
+    rp->opname_kind = templ_rout->opname_kind;
+    rp->is_inline = templ_rout->is_inline;
+    add_to_routines_list(rp, /*at_file_scope=*/TRUE);
+    switch_back_to_original_region(region_to_switch_back_to);
+    sym->variant.routine.ptr = rp;
+    /* Create the associated function instantiation entry and link it
+       onto the front of the instantiation list for the template. */
+    fiep = alloc_function_instantiation_entry();
+    fiep->template_sym = function_template_sym;
+    fiep->arg_list = template_arg_list;
+    fiep->next = tssp->variant.function.instantiations;
+    tssp->variant.function.instantiations = fiep;
+    /* Make the function instantiation entry and its associated symbol
+       point at each other. */
+    fiep->routine_sym = sym;
+    sym->variant.routine.instance_ptr = fiep;
+  }  /* if */
+done:
   db_exit();
-  return fiep->routine_sym;
+  return sym;
 }  /* find_template_function */
 
 
