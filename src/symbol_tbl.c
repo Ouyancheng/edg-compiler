@@ -3040,7 +3040,8 @@ the compiler-generated flag should be cleared.
      is given a storage class of sc_extern since there is no definition
      in the current translation unit. */
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
-                      &func_info, &sym, &linkage, &old_type, &ext_sym);
+                      &func_info, /*is_variable_def=*/FALSE, &sym, &linkage,
+                      &old_type, &ext_sym);
   sym->variant.routine.ptr->compiler_generated = TRUE;
   db_exit();
 }  /* make_global_operator_new_or_delete_symbol */
@@ -7165,24 +7166,29 @@ already, if necessary).  A cross-reference entry for a definition will
 be put out.
 */
 {
-  a_source_correspondence       *scp;
-  a_source_sequence_entry_ptr   ssep;
-  a_src_seq_secondary_decl_ptr  sssdp;
-  a_boolean                     force_alloc_in_filescope;
-  a_memory_region_number        region_to_switch_back_to;
-
-  check_assertion(!sym_ptr->defined);
+  /* Put the source position in the symbol (since this is the definition)
+     and mark the symbol "defined".  Also, set the decl-sequence number
+     associated with this declaration (again, unconditionally, since this is
+     the definition). */
   sym_ptr->decl_position = *source_position;
   sym_ptr->defined = TRUE;
   set_decl_sequence_number(sym_ptr);
+  /* Update the cross reference file if it exists and if this is not a
+     template instantiation. */
   if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
     if (f_xref_info != NULL) {
       /* If writing cross-reference information, write an entry for this
          declaration. */
       write_xref_entry(srk_definition, sym_ptr, source_position);
     }  /* if */
-    /* Put the decl_position in the symbol. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+    {
+    a_source_correspondence       *scp;
+    a_source_sequence_entry_ptr   ssep;
+    a_src_seq_secondary_decl_ptr  sssdp;
+    a_boolean                     force_alloc_in_filescope;
+    a_memory_region_number        region_to_switch_back_to;
+    
     /* If this is a definition that follows a previous declaration, the latter
        should be recorded as a secondary. */
     scp = source_corresp_entry_for_symbol(sym_ptr);
@@ -7242,6 +7248,7 @@ be put out.
       }  /* if */
     }  /* if */
     sym_update_source_sequence_list(sym_ptr, source_position);
+    }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 }  /* mark_defined */
