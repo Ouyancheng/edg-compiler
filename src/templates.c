@@ -9158,10 +9158,10 @@ template entities.
   a_boolean	specialization_defined;
   a_boolean	template_def;
 
-  if (tip->explicit_instantiation ||
+  if (!tip->explicit_do_not_instantiate && (tip->explicit_instantiation ||
       ((tip->instantiation_required || instantiation_mode == tim_all) &&
         (instantiation_mode != tim_none ||
-         is_static_or_inline_template_function(tip)))) {
+         is_static_or_inline_template_function(tip))))) {
     /* For error checking purposes, find out if a specific definition
        exists and whether a body exists for the template definition. */
     if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
@@ -9750,7 +9750,8 @@ instantiation of a given template instance.
     }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   }  /* if */
-  result = template_def && !specialized && !tip->already_instantiated;
+  result = template_def && !specialized && !tip->already_instantiated &&
+           !tip->explicit_do_not_instantiate;
   return result;
 }  /* can_be_instantiated */
 
