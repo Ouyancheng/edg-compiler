@@ -7087,6 +7087,9 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
       /* "=" has a predefined meaning for C-style classes (i.e., bitwise
          assignment).  Also go that way for incomplete classes, to get
          a clearer error message. */
+      /* Instantiate the type if it is a template class.  This ensures that
+         the operator= function is declared. */
+      check_for_uninstantiated_template_class(operand_1->type);
       has_predef_meaning = symbol_supplement_for_class(operand_1->type)->
                                           assignment_by_bitwise_copy_allowed ||
                            is_incomplete_type(operand_1->type);

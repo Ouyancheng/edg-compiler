@@ -1,5 +1,17 @@
 Version 2.28
 
+1/24/95  Instantiation of left operand of "="
+
+The underlying type of the left operand of a "=" operator, if a template
+class, is now forced to be instantiated.  This is necessary to create
+the declaration for the operator= function, if any.
+
+  template<class T> struct A { T i; };
+  A<int> & f();
+  main () {
+    f() = f();  // Formerly got error "expression must be a modifiable lvalue"
+  }
+
 1/23/95  Bug in generation of implicitly declared assignment operator
 
 A bug has been fixed in how assignment operators are implicitly declared
