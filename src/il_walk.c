@@ -576,7 +576,8 @@ is being kept, and all entries should be marked to be kept.
     /* Mark the source sequence entry the right way (and the secondary
        declaration entry too, if there is one). */
     if (keep_in_il) {
-      walk_tree_and_set_keep_in_il(ssep, iek_source_sequence_entry);
+      walk_ptr(ssep, a_source_sequence_entry, iek_source_sequence_entry);
+    }  /* if */
   }  /* for */
 }  /* set_keep_in_il_on_sslist */
 
