@@ -103,6 +103,21 @@ e.g., 1297 --> 4.
 }  /* digits_to_represent */
 
 
+static sizeof_t digits_to_represent_with_underscore(unsigned long value)
+/*
+Like digits_to_represent, returns the number of digits needed to represent
+the value.  However, if the number of digits is greater than one, add
+one to account for an underscore following the digits to separate them from
+things following in the mangled name.
+*/
+{
+  sizeof_t ndigits = digits_to_represent(value);
+
+  if (ndigits > 1) ndigits++;
+  return ndigits;
+}  /* digits_to_represent_with_underscore */
+
+
 static sizeof_t mangled_encoding_for_function_type(a_type_ptr type,
                                                    char       *store_at)
 /*
@@ -237,6 +252,19 @@ store_at != NULL, and (always) return the length of the encoding.
 }  /* mangled_encoding_for_function_qualifiers */
 
 
+static void store_digits_and_underscore(unsigned long value,
+                                        sizeof_t      digits,
+                                        char          *store_at)
+/*
+Store the decimal representation of value at *store_at.  If the representation
+takes more than one digit, add an underscore after it.  digits indicates
+the size of the output including the underscore.
+*/
+{
+  (void)sprintf(store_at, "%lu%s", value, (digits > 1) ? "_" : "");
+}  /* store_digits_and_underscore */
+
+
 static sizeof_t literal_representation(a_constant_ptr con,
                                        char           *store_at)
 /*
@@ -260,11 +288,12 @@ used to encode constants as part of the mangled names of template classes.
          This is compatible with cfront 3.0.1. */
       str = str_for_integer_constant(con);
       str_length = strlen(str);  /* Includes "-" sign if any. */
-      digits = digits_to_represent((unsigned long)str_length);
+      digits = digits_to_represent_with_underscore((unsigned long)str_length);
       literal_length = 1 + digits + str_length;
       if (store_at != NULL) {
         *store_at++ = 'L';
-        (void)sprintf(store_at, "%lu", (unsigned long)str_length);
+        store_digits_and_underscore((unsigned long)str_length, digits,
+                                    store_at);
         store_at += digits;
         (void)memcpy(store_at, str, size_t_arg(str_length));
         /* Use "n" to represent a minus sign. */
@@ -302,11 +331,12 @@ used to encode constants as part of the mangled names of template classes.
           }  /* while */
         }  /* if */
       }
-      digits = digits_to_represent((unsigned long)str_length);
+      digits = digits_to_represent_with_underscore((unsigned long)str_length);
       literal_length = 1 + digits + str_length;
       if (store_at != NULL) {
         *store_at++ = 'L';
-        (void)sprintf(store_at, "%lu", (unsigned long)str_length);
+        store_digits_and_underscore((unsigned long)str_length, digits,
+                                    store_at);
         store_at += digits;
         while (str_length > 0) {
           /* Move the string and recode non-alphanumeric characters. */
@@ -426,11 +456,12 @@ used to encode constants as part of the mangled names of template classes.
         (void)sprintf(buffer, "%ld", (long)delta);
         str = buffer;
         str_length = strlen(str);  /* Includes "-" sign if any. */
-        digits = digits_to_represent((unsigned long)str_length);
+        digits= digits_to_represent_with_underscore((unsigned long)str_length);
         literal_length = 1 + digits + str_length;
         if (store_at != NULL) {
           *store_at++ = 'L';
-          (void)sprintf(store_at, "%lu", (unsigned long)str_length);
+          store_digits_and_underscore((unsigned long)str_length, digits,
+                                      store_at);
           store_at += digits;
           (void)memcpy(store_at, str, size_t_arg(str_length));
           /* Use "n" to represent a minus sign. */
@@ -463,12 +494,13 @@ used to encode constants as part of the mangled names of template classes.
         (void)sprintf(buffer, "%ld", (long)index);
         str = buffer;
         str_length = strlen(str);  /* Includes "-" sign if any. */
-        digits = digits_to_represent((unsigned long)str_length);
+        digits= digits_to_represent_with_underscore((unsigned long)str_length);
         literal_length += 2 + digits + str_length + 1;
         if (store_at != NULL) {
           *store_at++ = '_';
           *store_at++ = 'L';
-          (void)sprintf(store_at, "%lu", (unsigned long)str_length);
+          store_digits_and_underscore((unsigned long)str_length, digits,
+                                      store_at);
           store_at += digits;
           (void)memcpy(store_at, str, size_t_arg(str_length));
           /* Use "n" to represent a minus sign. */
