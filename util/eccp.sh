@@ -36,7 +36,7 @@ MUNCH=$EDG_BASE/lib/edg_munch
 #
 # "edg_prelink" executable
 #
-EDG_PRELINK=${EDG_PRELINK-$EDG_BASE/lib/edg_prelink}
+EDG_PRELINK=${EDG_PRELINK_PATH-$EDG_BASE/lib/edg_prelink}
 #
 # Flag indicating whether to use "patch" or "munch" for static initialization.
 #
