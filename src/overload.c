@@ -6246,6 +6246,11 @@ format string can be deduced, set appropriate fields in arg_block.
 {
   a_constant_ptr con_ptr;
 
+  /* Skip any cast operations (e.g., from char* to char const*). */
+  while (node->kind == (an_expr_node_kind)enk_operation &&
+         node->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
+    node = node->variant.operation.operands;
+  }  /* while */
 #if GNU_EXTENSIONS_ALLOWED
   /* Check to see if this argument is a call to a routine with the
      "format_arg" attribute. */

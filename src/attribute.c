@@ -2099,6 +2099,8 @@ Copy any GNU type attributes in type dst to type src.
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
           dst_rtsp->does_not_return = src_rtsp->does_not_return;
           dst_rtsp->is_const = src_rtsp->is_const;
+          dst_rtsp->arg_pragma = src_rtsp->arg_pragma;
+          dst_rtsp->fmt_arg = src_rtsp->fmt_arg;
           /* Update the result since a skip_typerefs was applied to dst. */
           result = dst;
         }

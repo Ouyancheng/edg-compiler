@@ -1,5 +1,30 @@
 Version 3.4
 
+12/15/03 Constant format string not checked when cast
+
+The front end normally checks printf- and scanf-style format string literals
+and issues warnings when they are not followed by appropriate arguments in
+calls to functions marked with the appropriate #pragma or GNU attribute.
+However, if the front end applied a cast operation to such a string (e.g., to
+"char const*"), it no longer performed this sort of checking.  The problem was
+particularly likely to occur in combination with the GNU attribute format_arg.
+This is now fixed: String constants can also be checked as format strings
+when cast.
+
+12/15/03 GNU mode: Attribute format sometimes without effect
+
+In GNU mode, the format attribute was sometimes lost when the declaration
+specifying the attributes was followed by a definition without attributes.
+For example:
+
+  void f(int, char const*, ...) __attribute__((printf, 2, 3));
+  void f(int, char const*, ...) {}
+  int main() {
+    f(2, "%s");  /* Warning was not issued.  Now fixed. */
+  }
+
+This is now fixed.
+
 12/15/03 Build problem on Solaris when not using GNU extensions
 
 When building the front end on Solaris without enabling GNU extensions, the
