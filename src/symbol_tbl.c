@@ -2151,6 +2151,10 @@ Add the given symbol to its symbol header's inactive list.
 */
 {
   a_symbol_header_ptr sym_hdr = sym_ptr->header;
+
+  check_assertion_str(sym_ptr->kind != (a_symbol_kind)sk_extern_variable &&
+                      sym_ptr->kind != (a_symbol_kind)sk_extern_routine,
+                      "add_symbol_to_inactive_list: bad symbol kind");
   sym_ptr->next = sym_hdr->inactive_symbols;
   sym_hdr->inactive_symbols = sym_ptr;
 }  /* add_symbol_to_inactive_list */
@@ -2188,6 +2192,9 @@ symbol must be added to the inactive list.
     if (hdr_ptr == NULL || hdr_ptr == error_symbol_header) {
       internal_error("link_symbol_into_symbol_table: NULL or error header");
     }  /* if */
+    check_assertion_str(sym_ptr->kind != (a_symbol_kind)sk_extern_variable &&
+                        sym_ptr->kind != (a_symbol_kind)sk_extern_routine,
+                        "link_symbol_into_symbol_table: bad symbol kind");
 #endif /* CHECKING */
     insert_after = NULL;
     if (scope_depth == NO_SCOPE_DEPTH) {
@@ -8817,6 +8824,14 @@ End a name scope by popping an entry off the scope stack.
         (void)fputs(", class = \"", f_debug);
         db_name(&ssep->assoc_type->source_corresp);
         (void)fputc('"', f_debug);
+      } else if ((kind == (a_scope_kind)sck_namespace ||
+                  kind == (a_scope_kind)sck_namespace_extension) &&
+                 ssep->il_scope != NULL &&
+                 ssep->il_scope->variant.assoc_namespace != NULL) {
+        (void)fprintf(f_debug, ", namespace%s = \"",
+                      kind == (a_scope_kind)sck_namespace ? "" : "-ext");
+        db_name(&ssep->il_scope->variant.assoc_namespace->source_corresp);
+        (void)fputc('"', f_debug);
       } else {
         fputs(", kind = ", f_debug);
         (void)db_scope_kind(kind);
@@ -8879,6 +8894,13 @@ End a name scope by popping an entry off the scope stack.
          end of the file scope. */
     } else {
       end_of_scope_symbol_check(sym, curr_routine);
+    }  /* if */
+    if (sym->kind == (a_symbol_kind)sk_extern_variable ||
+        sym->kind == (a_symbol_kind)sk_extern_routine) {
+      /* Extern variable and routine symbols were not really entered into
+         the symbol table proper, so don't try to remove them or add them to
+         the inactive list. */
+      continue;
     }  /* if */
     if (kind != (a_scope_kind)sck_namespace_extension) {
       /* Remove the symbol from the symbol table.  This is not done for
