@@ -1,5 +1,18 @@
 Version 2.15
 
+2/25/93  Invalid argument list on template member definition
+
+The error handling has been improved for definitions of members
+of class templates in which an incorrect template argument list
+is supplied.  For example,
+
+  template <class T> struct A {
+    void f();
+  };
+
+  template <class T> A<int>::f(){}
+
+
 2/25/93  Bug in sizeof applied to overloaded function or operator
 
 If sizeof was aplied to an expression involving an overloaded function

@@ -5073,7 +5073,41 @@ by the options.  Returns TRUE if any errors were diagnosed.
   } else if (global_qualifier_error) {
     pos_error(ec_global_qualifier_not_allowed, pos);
     any_errors = TRUE;
-  } /* if */
+  }  /* if */
+  if (!any_errors) {
+    /* If GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION is specified we are
+       scanning a template definition of a member function or static
+       data member.  The class portion must specify the prototype
+       instantiation (i.e., the argument list must match the
+       template parameter list). */
+    if (locator_for_curr_id.is_qualified_name &&
+        locator_for_curr_id.qualifier_class_type != NULL &&
+        options & GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION) {
+      a_symbol_ptr  type_sym;
+      type_sym = (a_symbol_ptr)skip_typerefs(locator_for_curr_id.
+			qualifier_class_type)->source_corresp.assoc_info;
+      if (!is_template_class_symbol(type_sym)) {
+        /* The class is not a template class. */
+        pos_ty_error(ec_not_a_class_template, &pos_curr_token, 
+		     locator_for_curr_id.qualifier_class_type);
+        any_errors = TRUE;
+      } else if (!is_prototype_instantiation_symbol(type_sym)) {
+	/* The class is a template class but not the prototype
+	   instantiation. */
+        a_symbol_ptr class_template_sym;
+        a_symbol_ptr prototype_sym;
+        a_type_ptr   prototype_type;
+        class_template_sym = type_sym->variant.class_struct_union.
+						extra_info->class_template;
+        prototype_sym = class_template_sym->variant.template_info->
+			   variant.class_template.prototype_instantiation;
+        prototype_type = prototype_sym->variant.class_struct_union.type;
+        pos_syty_error(ec_must_be_prototype_instantiation, &pos_curr_token, 
+		       class_template_sym, prototype_type);
+        any_errors = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
 #if CHECKING
   if ((locator_for_curr_id.is_operator_name ||
        locator_for_curr_id.is_conversion_name) &&

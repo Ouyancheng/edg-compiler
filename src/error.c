@@ -1862,6 +1862,9 @@ error code.
     case ec_decl_hides_template_parameter:
       m = "declaration of %sq hides template parameter";
       break;
+    case ec_must_be_prototype_instantiation:
+      m = "argument list for a member definition of %no must be %t";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

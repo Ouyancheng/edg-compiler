@@ -538,7 +538,8 @@ typedef enum /*an_error_code*/ {
   ec_nonstd_void_param_list,
   ec_cfront_name_lookup_bug,
   ec_redeclaration_of_template_param_name,
-  ec_decl_hides_template_parameter
+  ec_decl_hides_template_parameter,
+  ec_must_be_prototype_instantiation
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -201,6 +201,11 @@ typedef int an_identifier_options_set;
 			   non-class types and class types that have no
 			   destructors that are not part of a qualified name
 			   (e.g., ~A or ~int). */
+#define GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION \
+				      0x200
+			/* If the identifier is a qualified name the
+			   class component must refer to the prototype
+			   instantiation. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)

@@ -293,6 +293,8 @@ encountered.
   }  /* if */
 #endif /* DEBUG */
   instance_sym = (a_symbol_ptr)prototype_type->source_corresp.assoc_info;
+  /* Save a pointer to the prototype instantiation. */
+  tssp->variant.class_template.prototype_instantiation = instance_sym;
   template_arg_list = prototype_type->variant.class_struct_union.extra_info->
                                                              template_arg_list;
   (void)push_scope((a_scope_kind)sck_template_instantiation,
@@ -317,6 +319,8 @@ encountered.
   /* Set the flag that indicates that the prototype instantiation has
      been completed. */
   tssp->variant.class_template.prototype_instantiation_complete = TRUE;
+  /* Save a pointer to the prototype instantiation. */
+  tssp->variant.class_template.prototype_instantiation = instance_sym;
   /* Advance past the end-of-source token. */
   (void)get_token();
   db_exit();

@@ -1150,6 +1150,7 @@ and return a pointer to it.
       tssp->variant.class_template.instantiations = NULL;
       tssp->variant.class_template.type_kind = (a_type_kind)tk_error;
       tssp->variant.class_template.member_function_templates = NULL;
+      tssp->variant.class_template.prototype_instantiation = NULL;
       tssp->variant.class_template.prototype_instantiation_complete = FALSE;
 #if CHECKING 
       tssp->variant.class_template.dummy = FALSE;

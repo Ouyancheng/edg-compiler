@@ -4846,6 +4846,9 @@ otherwise it is NULL.  The syntax is:
         if (!(input_flags & DI_QUALIFIED_NAME_ALLOWED)) {
           options |= GID_DISALLOW_QUALIFIED_NAME;
         }  /* if */
+        if (input_flags & DI_IS_TEMPLATE_DECLARATION) {
+          options |= GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION;
+        }  /* if */
         if (cfront_compatibility_mode) {
           /* Provide support for an exploitable cfront bug. */
           if (locator_for_curr_id.is_qualified_name &&

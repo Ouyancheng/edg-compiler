@@ -828,6 +828,11 @@ typedef struct a_template_symbol_supplement {
 			   are defined outside the class template declaration.
 			   The are linked by next pointers and thus are
 			   not actually in the symbol table. */
+      a_symbol_ptr
+		prototype_instantiation;
+			/* Points to the symbol representing the prototype
+			   instantiation.  The prototype instantiation is
+			   also on the instantiations list above. */
       unsigned int
 		prototype_instantiation_complete:1;
 			/* TRUE when the prototype instantiation of the
@@ -1991,6 +1996,15 @@ which is_class_struct_union_type is TRUE.
   /* } else { */							\
     NULL								\
   /* } */
+
+/* Return TRUE if the symbol represents the prototype instantiation of a
+   class template.  A prototype instantiation is a template class symbol
+   with a non-NULL scope. */
+#define is_prototype_instantiation_symbol(sym)				\
+  (is_template_class_symbol((sym)) &&					\
+   (sym)->variant.class_struct_union.extra_info->is_nonreal_class &&	\
+   (sym)->variant.class_struct_union.type->variant.			\
+    		       class_struct_union.extra_info->assoc_scope != NULL)
 
 
 #if DEBUG
