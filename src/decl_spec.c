@@ -1422,7 +1422,7 @@ to indicate whether an enumeration is actually defined.
       /* There was an error is looking up the tag, and this is not a
          definition.  For error recovery, return an error type. */
       *type_ptr = error_type();
-      goto done;
+      goto return_point;
     }  /* if */
   } else {
     /* No tag identifier present. */
@@ -1839,7 +1839,7 @@ to indicate whether an enumeration is actually defined.
   /* If necessary, pop the namespace extension scope. */
   if (namespace_extension_pushed) pop_namespace_extension_scope();
   *type_ptr = enum_type;
-done:;
+return_point:;
   db_exit();
 }  /* enum_specifier */
 
