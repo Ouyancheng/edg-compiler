@@ -100,10 +100,21 @@ static a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                                   a_scope_depth     *effective_decl_level,
                                   a_boolean         *tag_resolution)
 /*
+
 Scan a tag identifier for a class, struct, union, or enum declaration.
 If a tag symbol already exists for the identifier, return a pointer to
 that symbol; otherwise return NULL.  If there is no identifier or if there
 is an error, return NULL.
+
+check_for_vacuous_decl is TRUE when the context permits a declaration like
+"struct x;".  is_ref_within_new_expr is TRUE when the declaration appears
+inside a new expression.  *effective_decl_level will have been initialized
+to decl_scope_level by the caller; it may be changed in C++ for a forward
+reference to a tag within a function prototype or a class definition -- the
+tag is entered into the innermost non-class/non-prototype scope, which is
+returned as its effective declaration level.  *tag_resolution is returned
+TRUE if this is the definition of a previously declared incomplete class or
+enum.
 
 This routine may look more complicated than is necessary -- it isn't.
 This routine can either be matching up a definition with a previous
