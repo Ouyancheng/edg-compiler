@@ -147,12 +147,6 @@ Output the indicated template argument in the way described by octl.
     case tak_type:
       /* Type argument. */
       form_type(tap->variant.type, octl);
-      if (octl->gen_compilable_code && tap->next == NULL) {
-        /* When generating compilable code, put out a space after the
-           final type and before the closing ">" to avoid the
-           possibility of getting ">>" with nested template references. */
-        octl->output_str(" ");
-      }  /* if */
       break;
     case tak_nontype:
       /* Nontype argument. */
@@ -219,6 +213,13 @@ is put out.
       octl->output_str(", ");
     }  /* for */
     octl->output_str(">");
+    if (octl->gen_compilable_code) {
+      /* When generating compilable code, put out a space after the
+         final ">" avoid the possibility of getting ">>" with nested
+         template references or with a nontype expression that ends
+         with ">". */
+      octl->output_str(" ");
+    }  /* if */
   }  /* if */
 }  /* form_template_args */
 
@@ -3210,12 +3211,7 @@ precedence confusion.  Do the output in the way described by octl.
           form_template_args(constant->variant.template_param.variant.
                                                          template_ref.arg_list,
                              octl);
-          if (need_parens) {
-            octl->output_str(")");
-          } else {
-            /* Avoid the ">>" problem. */
-            octl->output_str(" ");
-          }  /* if */
+          if (need_parens) octl->output_str(")");
           break;
         default:
           octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**");
