@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1993 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -5714,7 +5714,7 @@ conversion to be done on the constructor argument in
 that case, it is set to point to a list describing the set of
 ambiguous functions; the caller must free that list.  *ambiguity_list
 is set to NULL to indicate a case that is undecidable because of an
-error.  This routine is only used in C++ mode.
+error.  This routine is used only in C++ mode.
 */
 {
   a_boolean                     okay, bitwise_copy_okay;
@@ -7894,6 +7894,6 @@ Initialize things related to overload resolution in expression scanning.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1993 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
