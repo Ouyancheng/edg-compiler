@@ -1693,7 +1693,7 @@ indicate any error/warning detected, or *err_code == ec_no_error if
 everything went fine.
 */
 {
-  a_boolean     is_signed;
+  a_boolean     is_signed, ovflo;
   long          value_1, value_2, result_value;
   unsigned long mask;
 
@@ -1707,7 +1707,9 @@ everything went fine.
   } else {
     set_constant_kind(result, (a_constant_repr_kind)ck_integer);
     value_1 = constant_1->variant.integer_value;
-    value_2 = value_of_integer_constant(constant_2);
+    value_2 = value_of_integer_constant(constant_2, &ovflo);
+    /* No need to check ovflo because check_shift_count has already
+       established that the shift count is reasonable. */
     /* The operand to be shifted is either signed or unsigned, and the
        shift must be done accordingly. */
     is_signed = int_constant_is_signed(constant_1);
