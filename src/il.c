@@ -2922,6 +2922,8 @@ to it.
   bcp->next                            = NULL;
   bcp->type                            = NULL;
   bcp->derived_class                   = NULL;
+  bcp->decl_position.seq               = 0;
+  bcp->decl_position.column            = SP_COL_UNKNOWN;
   bcp->is_virtual                      = FALSE;
   bcp->direct                          = FALSE;
   bcp->ambiguous                       = FALSE;

@@ -1093,6 +1093,11 @@ typedef struct a_base_class {
 			/* The class derived (directly or indirectly) from
 			   this base class on whose base_classes list it
 			   appears. */
+  a_source_position
+		decl_position;
+			/* For direct base classes, the source position of
+			   of its declaration.  Otherwise, the source position
+			   of a direct base class derived from it. */
   unsigned int	direct:1;
 			/* TRUE if this is a direct base class of
 			   derived_class. */
