@@ -3611,6 +3611,11 @@ a template parameter.
     tssp = templ_sym->variant.template_info;
     template_param_found = tssp->is_nonreal_member ||
                          tssp->variant.class_template.template_template_param;
+    if (!template_param_found && templ_sym->is_class_member) {
+      /* Check whether the parent type depends on a template parameter. */
+      template_param_found =
+                   is_or_contains_template_param(templ_sym->parent.class_type);
+    }  /* if */
   }  /* if */
   return template_param_found;
 }  /* template_arg_involves_template_param */
@@ -11104,12 +11109,9 @@ set, and its source sequence entry, if any, has been put out.)
       if (!err || sym->is_error) {
         /* Set parent information in the IL entry. */
         if (sym->is_class_member) {
-          if (!sym->parent.class_type->
-                                 variant.class_struct_union.is_nonreal_class) {
-            set_class_membership((a_symbol_ptr)NULL,
-                                 &il_template_entry->source_corresp,
-                                 sym->parent.class_type);
-          }  /* if */
+          set_class_membership((a_symbol_ptr)NULL,
+                               &il_template_entry->source_corresp,
+                               sym->parent.class_type);
         } else if (sym->parent.namespace_ptr != NULL) {
           set_namespace_membership((a_symbol_ptr)NULL,
                                    &il_template_entry->source_corresp,
