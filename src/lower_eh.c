@@ -3554,6 +3554,7 @@ is not passed through).
 {
   an_expr_node_ptr   internal_try_node;
 #if DO_FULL_PORTABLE_EH_LOWERING
+  /* Fully-lowered scheme: */
   a_variable_ptr     try_frame;
   an_expr_node_ptr   compare_node, rethrow_node;
   an_expr_node_ptr   catch_plus_rethrow, zero_node, question_node;
@@ -3596,7 +3597,8 @@ is not passed through).
      from the end of the code sequence for the stack pop. */
   internal_try_node = add_cast_if_necessary(internal_try_node, void_type());
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
-  /* Partially-lowered version: use leck_internal_try. */
+  /* In other schemes, insert an enk_lowered_eh_construct/leck_internal_try
+     expression node. */
   internal_try_node = alloc_lowered_eh_construct_node(
                                (a_lowered_eh_construct_kind)leck_internal_try);
   internal_try_node->variant.lowered_eh.variant.
