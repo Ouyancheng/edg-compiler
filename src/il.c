@@ -5779,27 +5779,28 @@ void add_to_labels_list(a_label_ptr label_ptr)
 Add the given label to the labels list for the function (not current) scope.
 */
 {
-  a_scope_stack_entry_ptr
-		 ssep;
-  a_scope_ptr    sp;
+  a_scope_stack_entry_ptr ssep;
 
   /* Get pointer to the current function scope entry. */
 #if CHECKING
-  if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+  if (innermost_function_scope == NULL) {
     internal_error("add_to_labels_list: not inside function");
   }  /* if */
 #endif /* CHECKING */
-  ssep = &scope_stack[depth_innermost_function_scope];
-  sp = ssep->il_scope;
-#if CHECKING
-  if (sp == NULL) internal_error("add_to_labels_list: NULL IL scope");
-#endif /* CHECKING */
-  if (sp->labels == NULL) {
-    sp->labels = label_ptr;
+  if (innermost_function_scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+    /* The function scope is on the scope stack. */
+    ssep = &scope_stack[innermost_function_scope->depth_in_scope_stack];
   } else {
-    ssep->last_label->next = label_ptr;
+    /* The function scope is not on the scope stack, as in generated routines
+       in IL lowering. */
+    ssep = NULL;
   }  /* if */
-  ssep->last_label = label_ptr;
+  if (innermost_function_scope->labels == NULL) {
+    innermost_function_scope->labels = label_ptr;
+  } else {
+    if (ssep != NULL) ssep->last_label->next = label_ptr;
+  }  /* if */
+  if (ssep != NULL) ssep->last_label = label_ptr;
   label_ptr->next = NULL;
 }  /* add_to_labels_list */
 

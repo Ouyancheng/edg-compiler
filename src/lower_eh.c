@@ -3291,9 +3291,7 @@ Do IL lowering for an stmk_try_block statement.
      See comment below. */
   { a_statement_ptr label_stmt = alloc_statement((a_statement_kind)stmk_label);
     label = alloc_label();
-    /* Add the label to the front of the function scope list. */
-    label->next = innermost_function_scope->labels;
-    innermost_function_scope->labels = label;
+    add_to_labels_list(label);
     label_stmt->variant.label.ptr = label;
     label->variant.exec_stmt = label_stmt;
     /* Add the label statement at the start of the try compound statement. */
