@@ -1964,8 +1964,8 @@ current structured statement.
     set_reachable(curr_reachability);
   } else if (kind == ssk_switch) {
     /* The body of a switch is not reachable until a case or default label
-       appears. */
-    set_unreachable(curr_reachability);
+       appears.  However, set_unreachable is not called until after the
+       condition declaration, if any, is scanned. */
   } else if (kind == ssk_compound) {
     /* Represent this compound statement by adding a block entry to the
        control_flow_descr_list. */
@@ -2509,6 +2509,9 @@ returned.
   /* The node points to an expression that represents the value of the
      initialized variable. */
   node->variant.condition->expr = var_rvalue_expr(vp);
+  /* Copy the type of the variable expression into the condition node (since
+     all expression nodes need to have a type). */
+  node->type = node->variant.condition->expr->type;
   db_exit();
   /* Return the condition node. */
   return node;
@@ -2686,6 +2689,10 @@ See also 3.6.4.2.
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
+  /* The body of a switch is not reachable until a case or default label
+     appears.  However, set_unreachable is not called until after the
+     condition declaration, if any, is scanned. */
+  set_unreachable(curr_reachability);
   /* Scan the dependent statement. */
   dependent_statement();
   if (sssep->curr_switch_clause != NULL) {
