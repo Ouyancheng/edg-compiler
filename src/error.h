@@ -587,7 +587,9 @@ typedef enum /*an_error_code*/ {
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   ec_non_arith_operation_in_templ_arg,
   ec_local_type_in_nonlocal_var,
-  ec_local_type_in_function
+  ec_local_type_in_function,
+  ec_jumping_over_init,
+  ec_name_at_decl_position
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

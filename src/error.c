@@ -2019,6 +2019,12 @@ error code.
     case ec_local_type_in_function:
       m = "use of a local type to declare a function";
       break;
+    case ec_jumping_over_init:
+      m = "jumping over initializing declaration:";
+      break;
+    case ec_name_at_decl_position:
+      m = "%nd";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
