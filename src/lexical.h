@@ -1306,6 +1306,8 @@ extern a_pending_pragma_ptr alloc_pending_pragma
 
 extern void free_pending_pragma(a_pending_pragma_ptr ppp);
 
+extern void free_pending_pragma_list(a_pending_pragma_ptr ppp);
+
 extern void begin_rescan_of_pragma_tokens(a_pending_pragma_ptr ppp);
 
 extern void wrapup_rescan_of_pragma_tokens(void);

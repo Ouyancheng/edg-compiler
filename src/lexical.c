@@ -619,7 +619,7 @@ Return a pending pragma entry to the available list.
 }  /* free_pending_pragma */
 
 
-static void free_pending_pragma_list(a_pending_pragma_ptr ppp)
+void free_pending_pragma_list(a_pending_pragma_ptr ppp)
 /*
 Free a list of pending pragma entries.
 */
