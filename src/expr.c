@@ -2014,6 +2014,50 @@ The result is placed in *result.
 }  /* do_field_selection_operation */
 
 
+static a_boolean is_valid_op_arrow_return_type(a_type_ptr  return_type,
+                                               a_type_ptr  class_type)
+/*
+Return TRUE if return_type is a valid return type for an operator-> function
+that is called.  class_type is the class of which the function is a
+member.
+*/
+{
+  a_boolean  err = FALSE;
+
+  if (is_error_type(return_type)) {
+    /* No action. */
+  } else if (is_pointer_type(return_type)) {
+    /* It's a pointer type -- be sure it's a pointer to a class. */
+    if (!is_class_struct_union_type(type_pointed_to(return_type))) {
+      /* Not a pointer-to-class type. */
+      err = TRUE;
+    }  /* if */
+  } else {
+    /* Not a pointer type.  Be sure the type is a class type for which
+       operator-> is defined. */
+    if (is_reference_type(return_type)) {
+      return_type = skip_typerefs(type_pointed_to(return_type));
+    }  /* if */
+    if (!is_immediate_class_type(return_type)) {
+      /* Not a class type. */
+      err = TRUE;
+    } else if (return_type == class_type) {
+      /* X& X::operator->() would involve unbounded recursion at runtime,
+         so we issue an error on such cases. */
+      err = TRUE;
+    } else {
+      check_assertion(!is_incomplete_type(return_type));
+      if (opname_member_function_symbol((an_opname_kind)onk_arrow,
+                                        return_type) == NULL) {
+        /* return_type is a class for which no operator-> has been defined. */
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return !err;
+}  /* is_valid_op_arrow_return_type */
+
+
 static void do_member_function_selection_operation(
                                      an_operand       *operand_1,
                                      a_symbol_ptr     routine_sym,
@@ -2111,17 +2155,30 @@ bound with the function in *bound_function_selector.
     if (is_arrow_operator && C_dialect == C_dialect_cplusplus) {
       /* Note that we do not use "is_class_or_error_operand" here.  That's
          deliberate: doing so could cause infinite loops. */
-      while (is_class_struct_union_type(operand_1->type)) {
-        check_for_operator_overloading((an_opname_kind)onk_arrow,
-                                       /*unary_operator=*/TRUE,  /* sic */
-                                       /*must_be_member_function=*/TRUE,
-                                       /*try_conversions=*/FALSE,
-                                       /*has_predef_meaning=*/TRUE,
-                                       operand_1, (an_operand *)NULL,
-                                       &operand_1->position,
-                                       result, &processed);
-        if (!processed) break;
-        copy_operand(result, operand_1);
+      if (is_class_struct_union_type(operand_1->type)) {
+        do {
+          a_type_ptr  tp, class_type = skip_typerefs(operand_1->type);
+
+          check_for_operator_overloading((an_opname_kind)onk_arrow,
+                                         /*unary_operator=*/TRUE,  /* sic */
+                                         /*must_be_member_function=*/TRUE,
+                                         /*try_conversions=*/FALSE,
+                                         /*has_predef_meaning=*/TRUE,
+                                         operand_1, (an_operand *)NULL,
+                                         &operand_1->position,
+                                         result, &processed);
+          if (!processed) break;
+          copy_operand(result, operand_1);
+          if (!is_error_operand(operand_1)) {
+            if (!is_valid_op_arrow_return_type(result->type, class_type)) {
+              pos_ty2_error(ec_bad_return_type_for_op_arrow,
+                            &operand_1->position, class_type, result->type);
+              make_error_operand(operand_1);
+              change_operand_refs_to_error(operand_1);
+              break;
+            }  /* if */
+          }  /* if */
+        } while (is_class_struct_union_type(operand_1->type));
       }  /* while */
     }  /* if */
     /* Do implicit operand transformations.  In the "." case, keep an lvalue
