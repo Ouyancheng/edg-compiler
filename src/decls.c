@@ -558,7 +558,7 @@ locator_for_curr_id.
   pip->next = NULL;
   pip->locator = locator_for_curr_id;
   pip->declaration_processed = FALSE;
-  pip->type = NULL;
+  pip->param_type = NULL;
   pip->storage_class = (a_storage_class)sc_unspecified;
   db_exit();
   return(pip);
@@ -616,7 +616,7 @@ return NULL.
 
 
 static void add_to_param_id_list(a_symbol_locator      *locator,
-                                 a_type_ptr            type_ptr,
+                                 a_param_type_ptr      param_type_ptr,
                                  a_storage_class       storage_class,
                                  a_func_info_block_ptr func_info,
                                  a_param_id_ptr        *last_param_id)
@@ -640,7 +640,7 @@ storage_class are the type and storage class for the parameter.
       /* Put the proper location into the parameter id entry. */
       new_param_id->locator = *locator;
       /* Save the type and storage class for the later declaration. */
-      new_param_id->type          = type_ptr;
+      new_param_id->param_type    = param_type_ptr;
       new_param_id->storage_class = storage_class;
       /* Put this entry on the end of the list of param ids. */
       if (func_info->param_id_list == NULL) {
@@ -1075,8 +1075,7 @@ scope is that of a class definition.
                that case the names are not significant.  However, if the user
                makes a mistake, having as complete a list as possible
                minimizes the error recovery problems. */
-            add_to_param_id_list(&param_locator, param_type_ptr, 
-                                 param_storage_class,
+            add_to_param_id_list(&param_locator, ptp, param_storage_class,
                                  func_info, &last_param_id);
             if (is_error_locator(param_locator)) {
               func_info->any_prototype_names_omitted = TRUE;
@@ -1176,7 +1175,7 @@ scope is that of a class definition.
             /* Enter the parameter anyway, for best error recovery. */
           }  /* if */
           /* Add the identifier to the parameter id list. */
-          add_to_param_id_list(&locator_for_curr_id, (a_type_ptr)NULL,
+          add_to_param_id_list(&locator_for_curr_id, (a_param_type_ptr)NULL,
                                (a_storage_class)sc_unspecified,
                                func_info, &last_param_id);
           /* Advance past the identifier. */
@@ -1360,19 +1359,20 @@ in the file scope).
 }  /* make_variable */
 
 
-static a_variable_ptr make_parameter(a_type_ptr      type_ptr,
-                                     a_storage_class storage_class,
-                                     a_symbol_ptr    sym)
+static a_variable_ptr make_parameter(a_param_type_ptr ptp,
+                                     a_storage_class  storage_class,
+                                     a_symbol_ptr     sym)
 /*
-Allocate an entry for a variable with type type_ptr and storage class
-storage_class, and return a pointer to it.  The variable is a function
-parameter.  The parameter is linked to/from its associated symbol sym.
+Allocate an entry for the variable to be associated with param type entry
+*ptp, and return a pointer to it.  The variable is a function parameter.
+The parameter is linked to/from its associated symbol sym.
 */
 {
   a_variable_ptr vp;
 
   vp = alloc_variable();
-  vp->type = type_ptr;
+  vp->type = ptp->type;
+  vp->assoc_param_type = ptp;
   vp->storage_class = storage_class;
   vp->is_parameter = TRUE;
   /* sym will be NULL when the parameter is unnamed. */
@@ -3577,6 +3577,11 @@ function_lparen:
     }  /* if */
     complete_type = derived_type;
   }  /* if */
+  if (is_function_type(complete_type)) {
+    /* Check whether the routine needs special support for returning a class
+       object by value. */
+    set_routine_calling_method_flag(complete_type);
+  }  /* if */
   /* If there were pointer types scanned at the beginning of this routine,
      the bottom-most derived type is the bottom-most pointer type. */
   if (bottom_pointer_derived_type != NULL) {
@@ -5416,8 +5421,16 @@ explicitly specified (rather than defaulted to "int").
          undeclared, and create the variable entries. */
       do {
         if (!param_id->declaration_processed) {
-         /* Enter any undeclared parameters with a type of int. */
-          param_id->type = integer_type((an_integer_kind)ik_int);
+#if CHECKING
+          if (param_id->param_type != NULL) {
+            internal_error("function_declaration: param_id has param_type");
+          }  /* if */
+#endif /* CHECKING */
+          /* Enter any undeclared parameters with a type of int.  The
+             param_type entry must be allocated in the file-scope region. */
+          param_id->param_type =
+                        alloc_param_type(integer_type((an_integer_kind)ik_int),
+                                         /*at_file_scope=*/TRUE);
           param_id->storage_class = (a_storage_class)sc_auto;
           decl_parameter(&(param_id->locator), &param_id->symbol);
         }  /* if */
@@ -5427,19 +5440,17 @@ explicitly specified (rather than defaulted to "int").
            list rather than the order in which they appear in the
            declarations.  Note that the variable entry is allocated
            in the current (function) scope, not at the file scope. */
-        (void)make_parameter(param_id->type, param_id->storage_class,
+        (void)make_parameter(param_id->param_type, param_id->storage_class,
                              param_id->symbol);
-        /* Also build a list of parameter types that is attached to the 
-           routine type and is needed for checking of type compatibility.
-           See types_are_compatible. */
-        /* The param_type entry must be allocated in the file-scope region. */
-        ptp = alloc_param_type(param_id->type, /*at_file_scope=*/TRUE);
+        /* Now build the list of parameter types that is attached to the 
+           routine type (needed for checking type compatibility -- see
+           types_are_compatible). */
         if (old_style_param_types == NULL) {
-          old_style_param_types = ptp;
+          old_style_param_types = param_id->param_type;
         } else {
-          end_old_style_param_types->next = ptp;
+          end_old_style_param_types->next = param_id->param_type;
         }  /* if */
-        end_old_style_param_types = ptp;
+        end_old_style_param_types = param_id->param_type;
       } while ((param_id = param_id->next) != NULL);
     }  /* if */
     /* Save the composite type determined by decl_var_or_routine, if any.
@@ -5512,7 +5523,7 @@ explicitly specified (rather than defaulted to "int").
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
       decl_parameter(&(param_id->locator), &param_symbol_ptr);
-      (void)make_parameter(param_id->type, param_id->storage_class,
+      (void)make_parameter(param_id->param_type, param_id->storage_class,
                            param_symbol_ptr);
     }  /* while */
   }  /* if */
@@ -5567,27 +5578,38 @@ that appears within a class definition, this routine duplicates relevant
 processing of function definition.
 */
 {
-  a_type_ptr          unqualified_rout_type;
-  a_type_ptr          return_type;
+  a_type_ptr          rout_type, return_type;
   a_symbol_locator    locator;
   a_symbol_ptr        symbol_ptr;
   a_routine_type_supplement_ptr
                       extra_info;
   a_scope_ptr         scope;
+  a_param_type_ptr    ptp;
   a_param_id_ptr      param_id;
   a_symbol_ptr        param_symbol_ptr;
   int                 saved_container_pos, saved_depth_stmt_stack;
   int                 saved_code_reachable;
 
   db_enter(3, "inline_function_definition");
-  unqualified_rout_type = make_unqualified_type(rout_ptr->type);
-  extra_info = unqualified_rout_type->variant.routine.extra_info;
+  rout_type = skip_typerefs(rout_ptr->type);
+  extra_info = rout_type->variant.routine.extra_info;
+  /* Check whether the routine needs special support for returning a class
+     object by value.   This flag is set in declarator (i.e., as soon as the
+     routine type is seen) and usually that is sufficient.  However, with
+     inlined friend functions a class that is referenced as a return type may
+     not have been completely defined. */
+  set_routine_calling_method_flag(rout_type);
+  /* Similarly, check for value parameters that must be passed using a copy
+     constructor. */
+  for (ptp = extra_info->param_type_list; ptp != NULL; ptp = ptp->next) {
+    set_arg_transfer_method_flag(ptp);
+  }  /* for */
   /* 3.7.1, constraints: The return type of a function shall be void
      or an object type other than array.  See also the constraints of
      3.5.4.3 on function declarators, enforced previously by
      add_to_derived_type_list.  In addition, a reference type (including a
      reference to an array or function) may also be returned (ARM 8.2.5). */
-  return_type = unqualified_rout_type->variant.routine.return_type;
+  return_type = rout_type->variant.routine.return_type;
   if (is_void_type(return_type) ||
       (is_object_type(return_type) && !is_array_type(return_type)) ||
       is_reference_type(return_type)) {
@@ -5608,13 +5630,10 @@ processing of function definition.
   rout_ptr->is_inline = TRUE;
   /* For a member function create the implicit "this" param variable and
      set a pointer to it in the scope entry. */
-  if (symbol_ptr->class_of_which_a_member != NULL) {
-    a_type_ptr	rtp = skip_typerefs(rout_ptr->type);
-    if (routine_type_is_nonstatic_member_function(rtp)) {
-      scope->variant.routine.this_param_variable =
-                make_this_param_variable(rtp->variant.routine.extra_info->
-						   implicit_this_param_type);
-    }  /* if */
+  if (extra_info->implicit_this_param_type != NULL) {
+    /* Routine is a nonstatic member function. */
+    scope->variant.routine.this_param_variable =
+                make_this_param_variable(extra_info->implicit_this_param_type);
   }  /* if */
   /* If a lint-style "argsused" or "varargs" comment appeared, remember that in
      the function type.  That will suppress any warnings about unused
@@ -5628,7 +5647,7 @@ processing of function definition.
     /* Declare each parameter identifier to have the associated type
        from the parameter type list. */
     decl_parameter(&(param_id->locator), &param_symbol_ptr);
-    (void)make_parameter(param_id->type, param_id->storage_class,
+    (void)make_parameter(param_id->param_type, param_id->storage_class,
                          param_symbol_ptr);
   }  /* for */
   /* Free the list of parameter ids, now that it is no longer needed. */
@@ -5662,7 +5681,7 @@ processing of function definition.
      is not swallowed by compound_statement, so that the pop_scope call
      can be done to get any errors out right on the "}". */
   scope->assoc_block = compound_statement(/*at_function_level=*/TRUE,
-                                              /*explicit_return_type=*/TRUE);
+                                          /*explicit_return_type=*/TRUE);
   /* Restore the original structured statement stack. */
   restore_struct_stmt_stack(saved_container_pos, saved_depth_stmt_stack,
                             saved_code_reachable);
@@ -6251,7 +6270,8 @@ continue_with_declaration:
            (they're needed so that the parameters can be entered later in
            the right order). */
         param_id->symbol        = symbol_ptr;
-        param_id->type          = local_type_ptr;
+        param_id->param_type    = alloc_param_type(local_type_ptr,
+                                                   /*at_file_scope=*/TRUE);
         param_id->storage_class = local_storage_class;
       } else if (local_storage_class == (a_storage_class)sc_typedef) {
         decl_typedef(&locator, local_type_ptr, &symbol_ptr);
