@@ -585,8 +585,13 @@ hidden name checking on its own members, too.
       }  /* if */
 #endif /* DEBUG */
       /* Unhide the injected class names since they can now be accessed
-         using an unqualified name even if that was not so in the base. */
-      check_name_unhiding(sym_ptr, sp);
+         using an unqualified name even if that was not so in the base.
+         However, do not do so if the derived class has the same (unqualified)
+         name as the base class. */
+      if (((a_symbol*)class_type->source_corresp.assoc_info)->header
+                                                         != sym_ptr->header) {
+        check_name_unhiding(sym_ptr, sp);
+      }  /* if */
       /* Perform a lookup. */
       clear_locator(&locator, &sym_ptr->decl_position);
       locator.symbol_header = sym_ptr->header;

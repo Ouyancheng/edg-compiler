@@ -1,5 +1,23 @@
 Version 2.44
 
+6/26/00  C++-generating back end: injected base class names hidden by the
+         name of the derived class
+
+The hidden name table processing used to assume that injected base class names
+are always visible as unqualified names.  However, it is possible for a
+derived class to have the same unqualified name as one of it base classes;
+the unqualified name then refers to the derived class.  For example:
+
+  struct A { struct N {}; };
+  struct B {
+    struct N: A::N {  // "N" refers to B::N, not A::N despite name injection
+      void f() { A::N *p = 0; }
+    };
+  };
+
+In this example, the C++-generating back end used to (erroneously) rewrite the
+declaration of "p" using the unqualified name "N".  This is now fixed.
+
 6/23/00  Microsoft compatibility: allow duplicate inline specifier
 
 In Microsoft mode, the duplicate appearance of the "inline" specifier on a
