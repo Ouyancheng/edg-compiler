@@ -1,5 +1,18 @@
 Version 3.5
 
+10/27/04 printf/scanf format string checking: "l" means wide characters
+
+The checking of the printf/scanf format string now understands the
+C99 addition that an "l" length specifier applied to "c", "s", or
+a scanset means the underlying characters are wide (i.e., wchar_t).
+
+  #include <stddef.h>
+  #include <stdio.h>
+  int main() {
+    wchar_t x[] = L"abc";
+    printf("%ls\n", x);  // No warning now
+  }
+
 10/26/04 Sun compatibility: Link scope specifiers
 
 When the new configuration flag SUN_EXTENSIONS_ALLOWED is set to TRUE, the
