@@ -126,8 +126,8 @@ Return a delayed-scan-fixup entry to the available list.
 static void add_to_delayed_scan_fixup_list(a_delayed_scan_fixup_ptr dsfp,
                                            a_scope_stack_entry_ptr  ssep)
 /*
-Add a delayed-scan-fixup entry to the end of the list for the current scope
-stack entry.
+Add a delayed-scan-fixup entry to the end of the list for the class
+associated with the indicated scope stack entry.
 */
 {
 #if CHECKING
@@ -135,8 +135,9 @@ stack entry.
     internal_error("add_to_delayed_scan_fixup_list: bad scope kind");
   }  /* if */
 #endif /* CHECKING */
-  if (ssep->delayed_scan_fixup_list == NULL) {
-    ssep->delayed_scan_fixup_list = dsfp;
+  if (ssep->last_delayed_scan_fixup == NULL) {
+    (symbol_supplement_for_class(ssep->assoc_type))->
+                                    delayed_scan_fixup_list = dsfp;
   } else {
     ssep->last_delayed_scan_fixup->next = dsfp;
   }  /* if */
@@ -294,6 +295,67 @@ been declared for all successor arguments.
   scan_default_arg_expr(param_type_entry);
   db_exit();
 }  /* delayed_scan_of_default_arg_expr */
+
+
+static void delayed_scan_fixup_for_class(a_symbol_ptr  class_sym)
+/*
+*/
+{
+  a_delayed_scan_fixup_ptr       dsfp, next_dsfp;
+  a_class_symbol_supplement_ptr  cssp;
+  a_symbol_ptr                   sym;
+
+  db_enter(3, "delayed_scan_fixup_for_class");
+  cssp = class_sym->variant.class_struct_union.extra_info;
+  dsfp = cssp->delayed_scan_fixup_list;
+  if (cssp != NULL || cssp->any_nested_classes) {
+#if DEBUG
+    if (debug_level >= 3) {
+      fputs("class to rescan: ", f_debug);
+      db_name(&class_sym->variant.class_struct_union.type->source_corresp);
+    }  /* if */
+#endif /* DEBUG */
+    push_class_reactivation_scope(class_sym->variant.class_struct_union.type);
+    if (cssp->any_nested_classes) {
+      for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
+        if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
+            sym->kind == (a_symbol_kind)sk_union_tag) {
+          delayed_scan_fixup_for_class(sym);
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    for (; dsfp != NULL; dsfp = next_dsfp) {
+      rescan_cached_tokens(&dsfp->token_cache);
+      if (dsfp->is_arg_default_value) {
+        delayed_scan_of_default_arg_expr(dsfp->variant.param_type);
+        /* In the normal case the current token should be end_of_source,
+           which was inserted to mark the end of the cached token stream. */
+        if (curr_token != tok_end_of_source) {
+          pos_error(ec_exp_comma, &pos_curr_token);
+          /* If necessary, keep flushing until end-of-source is found. */
+          while (curr_token != tok_end_of_source) (void)get_token();
+        }  /* if */
+      } else {
+        inline_function_definition(dsfp->variant.inline_func.routine,
+                                   &dsfp->variant.inline_func.extra_info);
+        /* In the normal case the current token should be end_of_source,
+           which was inserted to mark the end of the cached token stream.
+           If necessary, keep flushing until end-of-source is found. */
+        while (curr_token != tok_end_of_source) (void)get_token();
+      }  /* if */
+      next_dsfp = dsfp->next;
+      free_delayed_scan_fixup(dsfp);
+      /* Advance past the end-of-source token, which was added in
+         the prescan routine. */
+      (void)get_token();
+    }  /* for */
+    /* The delayed scan fixup entries have been freed, so clear the
+       pointer in the class symbol supplement. */
+    cssp->delayed_scan_fixup_list = NULL;
+    pop_class_reactivation_scope();
+  }  /* if */
+  db_exit();
+}  /* delayed_scan_fixup_for_class */
 
 
 #if DEBUG
@@ -5307,7 +5369,7 @@ class/struct/union is actually defined.
     /* This is a class, struct, or union definition -- not merely a
        declaration. */
     *defines_something = TRUE;
-    if (tag_sym != NULL) tag_sym->defined = TRUE;
+    tag_sym->defined = TRUE;
     /* If this is the definition of a nested class, set the parent class
        pointer in the tag symbol and set the access. */
     if (scope_stack[decl_scope_level].kind ==
@@ -5834,7 +5896,6 @@ next_declaration:
     cssp = tag_sym->variant.class_struct_union.extra_info;
     cssp->symbols = scope_stack[depth_scope_stack].symbols;
     if (C_dialect == C_dialect_cplusplus) {
-      a_delayed_scan_fixup_ptr  dsfp, next_dsfp;
       /* Create compiler-generated default constructor, copy constructor,
          destructor, and assignment operator, if any is needed. */
       check_special_member_functions(class_type);
@@ -5861,44 +5922,20 @@ next_declaration:
          through its base classes to determine whether it is abstract by
          inheritance and set the flag accordingly. */
       check_abstract_class(class_type);
-      /* Do delayed processing for default argument declarations and inline
-         member function definitions. */
-      for (dsfp = scope_stack[depth_scope_stack].delayed_scan_fixup_list;
-           dsfp != NULL;
-           dsfp = next_dsfp) {
-        rescan_cached_tokens(&dsfp->token_cache);
-        if (dsfp->is_arg_default_value) {
-          delayed_scan_of_default_arg_expr(dsfp->variant.param_type);
-          /* In the normal case the current token should be end_of_source,
-             which was inserted to mark the end of the cached token stream. */
-          if (curr_token != tok_end_of_source) {
-            pos_error(ec_exp_comma, &pos_curr_token);
-            /* If necessary, keep flushing until end-of-source is found. */
-            while (curr_token != tok_end_of_source) (void)get_token();
-          }  /* if */
-        } else {
-          inline_function_definition(dsfp->variant.inline_func.routine,
-                                     &dsfp->variant.inline_func.extra_info);
-          /* In the normal case the current token should be end_of_source,
-             which was inserted to mark the end of the cached token stream.
-             If necessary, keep flushing until end-of-source is found. */
-          while (curr_token != tok_end_of_source) (void)get_token();
-        }  /* if */
-        next_dsfp = dsfp->next;
-        free_delayed_scan_fixup(dsfp);
-        /* Advance past the end-of-source token, which was added in
-           the prescan routine. */
-        (void)get_token();
-      }  /* for */
-      /* The delayed scan fixup entries have been freed, so clear the
-         pointer in the scope stack entry. */
-      scope_stack[depth_scope_stack].delayed_scan_fixup_list = NULL;
     }  /* if */
     /* Pop the pseudo-scope created for the fields. */
     pop_scope();
     remove_stop_token(tok_rbrace);
     /* Check for and ignore the closing brace. */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
+    /* Rescan tokens that were cached (inline function definitions, default
+       arguments). */
+    if (C_dialect == C_dialect_cplusplus &&
+        tag_sym->class_of_which_a_member == NULL) {
+      /* For non-nested classes do delayed processing for default argument
+         declarations and inline member function definitions. */
+      delayed_scan_fixup_for_class(tag_sym);
+    }  /* if */
     /* If this is the resolution of a previously incomplete tag, and there
        is a list of array types to be resolved, look to see if any of them
        are arrays whose element type is this struct/union type.  (This
