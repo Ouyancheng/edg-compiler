@@ -1,5 +1,19 @@
 Version 2.42
 
+7/12/99  Microsoft compatibility: allow most operators to be static members
+
+In Microsoft bugs mode, operators that can be declared in namespace scope can
+also be declared as static members.  The resulting operators can only be
+called using a qualified name.  For example:
+
+  struct X {
+    static void operator!(X const&) {} // Accepted in Microsoft bugs mode.
+  };
+  int main() {
+    X::operator!(X()); // OK in Microsoft bugs mode.
+    !X(); // Error.
+  }
+
 7/12/99  Cfront and Microsoft compatibility: implicit int return type and
          member functions whose name is found as a type name
 
@@ -8,7 +22,7 @@ declarations of the following form:
 
   typedef int I;
   struct X {
-    I(); // Declares "int X::I()" in Microsoft and Cfront modes
+    I(); // Declares "int X::I()" in Microsoft and Cfront modes.
     I(int); // Error.
   };
 
