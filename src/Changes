@@ -1,5 +1,23 @@
 Version 2.30
 
+7/24/95  Memory region problem with IL lowering default_version_of_routine
+
+The routine default_version_of_routine in IL lowering takes a function
+having default and/or implied arguments and generates a function that can
+be called without arguments and supplies the default and implied
+arguments.  There was a bug in that routine that generated the
+implied argument expressions for constructors and destructors before
+switching into the memory region of the generated function.  If the current
+memory region was for another function, the expressions would end up in
+one function memory region while the reference was in another.  The following
+program demonstrates the problem, though it may or may not abort depending
+on the exact layout of memory (it aborted for us when using the
+non-alternate file format, but it appeared to work on other versions):
+
+  struct A {};
+  struct B : virtual A {};
+  B b[2];
+
 7/21/95  Include file names that are also directory names
 
 If, when searching for an include file, a directory was encountered
