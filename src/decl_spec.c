@@ -3949,7 +3949,7 @@ Returns TRUE if there is an error in the specifiers.
 
               ident_pos = pos_curr_token;
               tag_sym = coalesce_and_lookup_generalized_identifier(
-                                      GID_NO_OPTIONS, ilm_normal, &lookup_err);
+                              GID_NO_OPTIONS, ilm_tentative_type, &lookup_err);
               /* Even if the lookup was successful, if the next token is not
                  a ";" this is not of the form "friend T;". */
               if (next_token() != tok_semicolon) {
