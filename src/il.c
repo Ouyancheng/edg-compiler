@@ -19,6 +19,7 @@ il.c -- Construction of intermediate language trees.
 #include "mem_tables.h"
 #include "mem_manage.h"
 #include "target.h"
+#include "lang_feat.h"
 #include "symbol_tbl.h"
 #include "error.h"
 #include "types.h"

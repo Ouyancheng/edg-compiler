@@ -28,6 +28,9 @@ and protected by the ifndef there.
 #ifndef TARGET_H
 #include "target.h"
 #endif /* ifndef TARGET_H */
+#ifndef LANG_FEAT_H
+#include "lang_feat.h"
+#endif /* ifndef LANG_FEAT_H */
 #ifndef MEM_TABLES_H
 #include "mem_tables.h"
 #endif /* ifndef MEM_TABLES_H */
