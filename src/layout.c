@@ -1944,22 +1944,43 @@ allocated at that offset.  This function returns TRUE in that case.
         }  /* for */
       }  /* if */
     }  /* if */
-    /* If this is a virtual base that was allocated at a nonzero
-       offset in the layout of one of the direct base types, then it won't
-       be allocated at offset zero in this layout either. */
-    if (!result && ebcp->is_virtual) {
-      a_base_class_ptr  sub_bcp = base_classes_of(bcp->type);
-      for (; sub_bcp != NULL; sub_bcp = sub_bcp->next) {
-        if (sub_bcp->is_virtual && sub_bcp->offset != 0 &&
-            same_entities(sub_bcp->type, ebcp->type)) {
-          result = TRUE;
-          break;
-        }  /* if */
-      }  /* if */
-    }  /* if */
   }  /* for */
   return result;
 }  /* gnu_leading_empty_base_conflict */
+
+
+static a_targ_size_t virtual_base_offset_computed_for_last_direct_base_type(
+                                                       a_base_class_ptr  ebcp)
+/*
+The given base class should be an empty direct virtual base.  If this base had
+already appeared as a virtual base of another direct base, return the offset
+within the last direct base in which it appeared.  Otherwise return zero.
+This is used to emulate a strange GNU IA-64 layout bug.
+*/
+{
+  a_targ_size_t     result = (a_targ_size_t)0;
+
+  check_assertion(ebcp->is_virtual && ebcp->direct);
+
+  if (ebcp->derivation->next != NULL) {
+    /* The virtual base has more than one derivation, which means it was
+       derived from indirectly at least once. */
+    a_base_class_ptr  bcp = base_classes_of(ebcp->derived_class);
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (bcp->direct && bcp != ebcp) {
+        a_base_class_ptr  sub_bcp = base_classes_of(bcp->type);
+        for (; sub_bcp != NULL; sub_bcp = sub_bcp->next) {
+          if (sub_bcp->is_virtual &&
+              same_entities(sub_bcp->type, ebcp->type)) {
+            result = sub_bcp->offset;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* virtual_base_offset_computed_for_last_direct_base_type */
 
 
 static a_field_ptr trailing_nonclass_field(a_type_ptr     class_type,
@@ -2363,17 +2384,29 @@ static void allocate_empty_base(a_layout_block_ptr lob,
 Allocate bcp (an empty base class).
 */
 {
-  a_targ_size_t              offset, size;
+  a_targ_size_t              offset = (a_targ_size_t)0, size;
   an_unnormalized_bit_offset dummy = 0;
 
-  /* Attempt to allocate the base at offset zero. */
-  if (!(base_subobject_conflict(bcp, (a_targ_size_t)0) ||
+  /* Attempt to allocate the base at offset zero.  Some GNU compilers do not
+     always use offset zero for the initial attempt at placing an empty
+     virtual base: Instead they may use an offset computed for the virtual
+     base in one of the direct base types. */
+  if (emulate_gnu_abi_bugs && bcp->is_virtual) {
+    offset = virtual_base_offset_computed_for_last_direct_base_type(bcp);
+  }  /* if */
+  if (!(base_subobject_conflict(bcp, offset) ||
         (emulate_gnu_abi_bugs &&
          gnu_leading_empty_base_conflict(lob->class_type, bcp)))) {
-    bcp->offset = 0;
+    bcp->offset = offset;
   } else {
     /* It didn't work at offset zero; try putting it at the end of the object 
        as created so far. */
+    if (emulate_gnu_abi_bugs && offset != (a_targ_size_t)0) {
+      /* If a GNU compiler initially tried a nonzero offset it effectively
+         adds that offset to the current end of the object (thereby creating
+         a "gap" in the layout). */
+      lob->byte_offset += offset;
+    }  /* if */
     offset = lob->byte_offset;
     size = bcp->type->variant.class_struct_union.extra_info->
                                         alignment_without_virtual_base_classes;

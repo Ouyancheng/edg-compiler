@@ -1,5 +1,36 @@
 Version 3.4
 
+8/8/03   GNU IA-64 ABI: Layout of empty virtual bases
+
+The IA-64 ABI specifies that an empty virtual base should be allocated
+at offset zero if that does not cause a conflict, and at the current end
+of the object otherwise.  A Changes entry of 7/16/03 explains that GNU
+compilers sometimes do not consider offset zero.  However, it appears
+that these compilers initially consider another offset for an empty
+virtual base that depends on where that empty virtual base was allocated
+in one of the direct base types.  Furthermore, if that offset leads to a
+type conflict, the current end of the object layout is increased by the
+value of the offset.  For example, for a common 32-bit platform:
+
+  struct E {};
+  struct B: E { virtual f(); };
+  struct D: B, virtual E {  // Base E is at offset 4 because offset 0 already
+                            // has an E subobject.
+  #ifdef NO_CONFLICT
+    int i;
+  #endif
+  };
+  struct P { virtual g(); };
+  struct X: P, D, virtual E {};
+    // Virtual base E should go at offset 0 in X, but GNU compilers first
+    // attempt offset 4 because that was the offset of E in direct base D.
+    // If NO_CONFLICT is not defined, offset 4 creates a conflict with the
+    // nonvirtual base E.  Normally, offset 8 should be tried in case of
+    // conflict (because offset 8 is the end of the object prior to placing
+    // the virtual base), but GNU compilers try 4+8 instead.
+
+This behavior is now imitated when emulating GNU IA-64 bugs.
+
 8/7/03   GNU C++ mode: Unnamed "class" treated as "struct"
 
 In GNU C++ mode, an unnamed class type defined with the "class" keyword is
@@ -696,7 +727,7 @@ of X.  For example:
   struct B: E { virtual f(); };
   struct D: B, virtual E {};  // Virtual base E cannot be allocated at
                               // offset 0 in D.
-  struct P { virtual g()l };
+  struct P { virtual g(); };
   struct X: P, D, virtual E {};  // Virtual base E should go at offset 0,
                                  // but GNU compilers do not do so.
 
