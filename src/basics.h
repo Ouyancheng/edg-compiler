@@ -392,11 +392,15 @@ extern void debug_exit(void);
 #define db_exit()					              \
 { if (db_active) debug_exit();}
 
+/* Macro that returns TRUE if the specified debug flag is set. */
+#define db_flag_is_set(name)						\
+  (db_active && debug_flag_is_set(name))
 #else /* !DEBUG */
 
 /* If debugging code is not included: */
 #define db_enter(reporting_level, function_name) /* empty */
 #define db_exit()                                /* empty */
+#define db_flag_is_set(name) 			 /* empty */
 
 #endif /* DEBUG */
 

@@ -50,9 +50,11 @@ The structure defining the linked list of routines from which debug information
 has been requested.
 */
 typedef enum /*a_debug_action*/ {
+  da_none,
   da_set_level,
   da_increase_level,
-  da_decrease_level
+  da_decrease_level,
+  da_set_flag
 } a_debug_action;
 
 /*
@@ -125,12 +127,17 @@ Allocate and initialize a debug request record.
 
 a_boolean proc_debug_option(char *debug_option)
 /*
-Parse the debug option (as received by proc_command_line from getopt) and
-either set the global debug variable to some static value, or build a data
-structure indicating changes to the global debug value on entry and exit to
-specific routines.
+Parse the debug option (as received by proc_command_line) and either set
+the global debug variable to some static value, or build a data structure
+indicating changes to the global debug value on entry and exit to specific
+routines.  The option is expected to have one of the following
+forms:
 
-These are the debug directives currently understood by this routine:
+  -dnumber[!]
+  -dname=number[!]
+  -dname+=number[!]
+  -dname-=number[!]
+  -d-name
 
   =   set the debug level to the value following the equal sign, always print
       the entry and exit message
@@ -141,6 +148,12 @@ These are the debug directives currently understood by this routine:
 
       If the number following any of the above is followed by a !, do not
       print the entry end exit message, but still perform the action specified.
+
+Options of the form "-d-name" are used to set the debug flag named "name" to
+TRUE.  When multiple "set flag" options are specified, they must be specified
+using the format
+
+	-d-flag1,-flag2
 
 Returns TRUE if there was an error during parsing of the debug option.
 */
@@ -167,11 +180,20 @@ Returns TRUE if there was an error during parsing of the debug option.
     do {
 
       head = NULL;
+      action = da_none;
+      do_not_print_message = FALSE;
+      level = 0;
       do {
 
-	/* The first thing must be the name of the routine. */
-        if (!isalpha((unsigned char)*curr_char)) {
-	  goto error_exit;
+        if (*curr_char == '-') {
+          /* Set the specified debug flag to TRUE. */
+          action = da_set_flag;
+          curr_char++;
+        } else {
+          /* The first thing must be the name of the routine. */
+          if (!isalpha((unsigned char)*curr_char)) {
+            goto error_exit;
+          }  /* if */
         }  /* if */
 
         /* Gather up the name of the routine. */
@@ -195,41 +217,46 @@ Returns TRUE if there was an error during parsing of the debug option.
 
         /* If the next character is a comma, then another name follows.  If
 	   not, then the character must be either an equals, a plus, or a
-	   minus. */
-        done = (*curr_char != ',');
+	   minus.  "set flag" options may not be in a comma separated
+           list. */
+        done = (*curr_char != ',' || action != da_none);
         if (!done) curr_char++;
       } while (!done);
-      switch (*curr_char++) {
-	case '=':
-	  action = da_set_level;
-	  break;
-	case '+':
-	  if (*curr_char++ != '=') goto error_exit;
-	  action = da_increase_level;
-	  break;
-	case '-':
-	  if (*curr_char++ != '=') goto error_exit;
-	  action = da_decrease_level;
-	  break;
-	default:
-	  goto error_exit;
-      }  /* switch */
-
-      /* There should be a number following the action. */
-      level = 0;
-      if (!isdigit((unsigned char)*curr_char)) {
-	goto error_exit;
-      }  /* if */
-      while (isdigit((unsigned char)*curr_char)) {
-	level = (level * 10) + (*curr_char++ - '0');
-      }  /* while */
-      /* "!" at the end indicates that the entry/exit message should not
-         be printed. */
-      if (*curr_char == '!') {
-	do_not_print_message = TRUE;
-	curr_char++;
+      if (action == da_set_flag) {
+        /* There are no arguments following a set flag option. */
       } else {
-	do_not_print_message = FALSE;
+        switch (*curr_char++) {
+          case '=':
+            action = da_set_level;
+            break;
+         case '+':
+           if (*curr_char++ != '=') goto error_exit;
+           action = da_increase_level;
+           break;
+         case '-':
+           if (*curr_char++ != '=') goto error_exit;
+           action = da_decrease_level;
+           break;
+         default:
+           goto error_exit;
+         }  /* switch */
+
+        /* There should be a number following the action. */
+        level = 0;
+        if (!isdigit((unsigned char)*curr_char)) {
+          goto error_exit;
+        }  /* if */
+        while (isdigit((unsigned char)*curr_char)) {
+          level = (level * 10) + (*curr_char++ - '0');
+        }  /* while */
+        /* "!" at the end indicates that the entry/exit message should not
+           be printed. */
+        if (*curr_char == '!') {
+          do_not_print_message = TRUE;
+          curr_char++;
+        } else {
+         do_not_print_message = FALSE;
+        }  /* if */
       }  /* if */
 
       /* Now update all of the requests in the local list and move them to the
@@ -273,6 +300,29 @@ Returns TRUE if there was an error during parsing of the debug option.
 error_exit:
   return(TRUE);
 }  /* proc_debug_option */
+
+
+a_boolean debug_flag_is_set(char *function_name)
+/*
+Return TRUE if the debug request list contains a da_set_flag entry
+for the specified name. 
+*/
+{
+  a_debug_request_ptr   request_ptr;
+  a_boolean		result = FALSE;
+
+  /* Run through the list of debug requests and see if this name appears. */
+  request_ptr = debug_requests;
+  while (request_ptr != NULL) {
+    if (strcmp(function_name, request_ptr->name) == 0 &&
+        request_ptr->action == da_set_flag) {
+      result = TRUE;
+      break;
+    }  /* if */
+    request_ptr = request_ptr->next;
+  }  /* while */
+  return result;
+}  /* debug_flag_is_set */
 
 
 void debug_enter(int reporting_level, char *function_name)

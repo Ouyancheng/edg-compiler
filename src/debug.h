@@ -24,6 +24,8 @@ Externals for debugging.
 */
 extern a_boolean proc_debug_option(char *debug_option);
 
+extern a_boolean debug_flag_is_set(char *name);
+
 /* Prints the headers for a given category of data structures (e.g.,
    "Lexical table use"). */
 #define db_space_used_header(name)					 \
