@@ -1,5 +1,18 @@
 Version 2.20
 
+9/20/93  Catastrophic error recursion
+
+Under certain conditions it is possible for the compiler to generate
+a catastrophic error during the processing of an earlier catastrophic
+error.  This condition is now detected and an appropriate diagnostic
+is issued.
+
+9/20/93  Spurious error on runaway recursive instantiation
+
+The front end would sometimes issue a second error message when
+it encountered a runaway recursive function instantiation.  This
+has been corrected.
+
 9/19/93  Internal error on function template call with incomplete type
 
 There is no longer an internal on a call of a function template with an
