@@ -15510,6 +15510,7 @@ caller.
   return result_tip;
 }  /* find_corresponding_instance */
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 static a_boolean entity_is_specialized_with_new_syntax(
 					a_template_instance_ptr	tip)
@@ -15534,6 +15535,7 @@ has been specialized using a new-style specialization.
   return specialized;
 }  /* entity_is_specialized_with_new_syntax */
 
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 static a_boolean entity_is_specialized(a_template_instance_ptr	tip)
 /*
