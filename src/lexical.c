@@ -5134,8 +5134,11 @@ This routine may only be called in C++ mode.
 			last_aedp = NULL;
   a_boolean		can_be_vacuous_dtor =
 				 (options & GID_VACUOUS_DTOR_RECOGNIZED);
+  a_boolean		dtor_must_be_nonclass =
+				 (options & GID_DTOR_MUST_BE_NONCLASS);
   a_boolean		is_vacuous_dtor = FALSE;
-  a_boolean		is_non_class_dtor = FALSE;
+  a_boolean		is_nonclass_dtor = FALSE;
+  a_type_ptr		dtor_class_type = NULL;
   a_type_ptr		dtor_type = NULL;
 
   db_enter(4, "is_generalized_identifier_start");
@@ -5173,7 +5176,7 @@ This routine may only be called in C++ mode.
       ((next_tok = next_two_tokens(&next_tok_2)) == tok_colon_colon ||
 				        next_tok == tok_lt)) ||
       /* Check for a things like "int::~". */
-      (((dtor_type = type_keyword()) != NULL) &&
+      (((dtor_class_type = type_keyword()) != NULL) &&
        (next_tok = next_two_tokens(&next_tok_2)) == tok_colon_colon &&
         next_tok_2 == tok_compl)) {
     /* Look up the identifier to see if it could be a class name.  Note that
@@ -5189,7 +5192,7 @@ This routine may only be called in C++ mode.
        recognized, and the token following the "::" is a tilde, we repeat
        the lookup without the restriction that the name must be a class name.
     */
-    if (dtor_type != NULL) {
+    if (dtor_class_type != NULL) {
       /* This looks like a vacuous destructor reference.  We may change
          this later if we don't find the right name following the "::". */
       is_vacuous_dtor = TRUE;
@@ -5244,13 +5247,15 @@ This routine may only be called in C++ mode.
     /* See if the identifier is followed by "::".  Note that nex_tok is not
        used because the next token may have changed while scanning a
        template argument list. */
-    if (dtor_type != NULL) {
+    if (dtor_class_type != NULL) {
       /* We have a vacuous destructor reference of the form "int::~...".
          Skip of the code in the "else" clause that processing the
          rest of the class qualifier. */
-      class_type = dtor_type;
+      class_type = dtor_class_type;
       (void)get_token();  /* Gets the type name. */
       (void)get_token();  /* The "::" that follows the type name. */
+      is_qualified_name = TRUE;
+      is_file_scope_qualified_name = FALSE;
     } else if (next_token() == tok_colon_colon) {
       a_boolean    first_class = TRUE;
       /* This is a qualifier. */
@@ -5347,6 +5352,12 @@ This routine may only be called in C++ mode.
     /* We still think we have an identifier.  curr_token contains
        either the token following the qualifier or the first token of what
        might be an identifier.  Determine whether it is an identifier. */
+    if (is_vacuous_dtor && curr_token != tok_compl) {
+      /* We thought we were processing a vacuous destructor because we
+         found something unusual in the qualifier, but there is no
+         tilde after the qualifier.  Reset the flag. */
+      is_vacuous_dtor = FALSE;
+    }  /* if */
     if (curr_token == tok_identifier) {
       /* It is an identifier. */
     } else if (curr_token == tok_operator) {
@@ -5363,8 +5374,8 @@ This routine may only be called in C++ mode.
      /* If we have already discovered that we have a vacuous destructor
         reference, then it must be a non-class destructor reference
 	(e.g., int::~int). */
-     is_non_class_dtor = is_vacuous_dtor;
-     if (!is_vacuous_dtor && can_be_vacuous_dtor) {
+     is_nonclass_dtor = is_vacuous_dtor;
+     if (!is_vacuous_dtor && can_be_vacuous_dtor && is_qualified_name) {
        /* So far this looks like a normal destructor reference (i.e.,
           the qualified name represents a class, not some other type).
           See if the class has a destructor.  If it does not, this is a
@@ -5373,6 +5384,11 @@ This routine may only be called in C++ mode.
 	 							      NULL) {
          is_vacuous_dtor = TRUE;
        }  /* if */
+     } else if (dtor_must_be_nonclass && !is_qualified_name) {
+       /* A destructor that is not part of a qualified name must be a
+          nonclass vacuous destructor when we are in "dtor_must_be_nonclass"
+          mode. */
+       is_vacuous_dtor = is_nonclass_dtor = TRUE;
      }  /* if */
     } else if (is_qualified_name) {
       /* A class qualifier followed by something invalid.  Proceed as if
@@ -5431,19 +5447,41 @@ This routine may only be called in C++ mode.
     /* Check for a destructor name.  Destructor names are always recognized
        following a class qualifier, but otherwise are only recognized if the
        GID_DTOR_RECOGNIZED flag is set. */
-    if (is_non_class_dtor) {
+    if (is_nonclass_dtor) {
       /* Don't do normal destructor processing on a non-class vacuous
-         destructor.  Just set the flag in the locator. */
+         destructor.  Set the destructor flag in the locator and
+         look up the identifier or type that follows the tilde. */
       (void)get_token();  /* Get the token after the "~". */
+      if (curr_token == tok_identifier) {
+	/* A typedef name -- lookup the symbol and find the type pointed to. */
+        a_symbol_ptr	type_sym;
+	type_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+        if (type_sym != NULL && is_type_symbol(type_sym)) {
+	  /* If the symbol found is a type, get the type pointed to. */
+	  dtor_type = type_symbol_type(type_sym);
+          dtor_type = skip_typerefs(dtor_type);
+	}  /* if */
+      } else {
+	/* A type keyword (e.g. int, long, etc.). Get the type
+           associated with the keyword. */
+        dtor_type = type_keyword();
+        /* This will eventually result in the locator qualifier class type
+	   being set to the type of the vacuous destructor. */
+        class_type = dtor_type;
+        /* Make the current token a tok_identifier. */
+        curr_token = tok_identifier;
+      }  /* if */
       locator_for_curr_id.is_destructor_name = TRUE;
     } else if (((options & GID_DTOR_RECOGNIZED) || (is_qualified_name)) &&
         !is_file_scope_qualified_name) {
       /* The name can be a destructor name like "~A". */
       (void)get_destructor_name();
     }  /* if */
-    if (is_vacuous_dtor) {
-      /* Make sure a vacuous destructor reference is correctly formed. */
-      if (!is_non_class_dtor) {
+    if (is_vacuous_dtor && is_qualified_name) {
+      /* Make sure a vacuous destructor reference is correctly formed. 
+         These tests only apply if the vacuous destructor is part of
+         a qualified name. */
+      if (!is_nonclass_dtor) {
 	/* If class_type is NULL an error must have already occurred. */
         if (class_type != NULL) {
           /* If this is a vacuous destructor reference, just make sure
@@ -5462,32 +5500,14 @@ This routine may only be called in C++ mode.
         /* This is a vacuous destructor reference for a non-class
            type (e.g., int::~int).  Make sure the type of the thing
            before the "::" matches the type of the thing after it. */
-        a_type_ptr	type = NULL;
-        if (curr_token == tok_identifier) {
-	  /* A typedef name -- lookup the symbol and find the type
-	     pointed to. */
-          a_symbol_ptr	type_sym;
-	  type_sym = normal_id_lookup(&locator_for_curr_id,
-				      IDL_NO_OPTIONS);
-          if (type_sym != NULL && is_type_symbol(type_sym)) {
-	    /* If the symbol found is a type, get the type pointed to. */
-	    type = type_symbol_type(type_sym);
-            type = skip_typerefs(type);
-	  }  /* if */
-        } else {
-	  /* A type keyword (e.g. int, long, etc.). Get the type
-             associated with the keyword. */
-          type = type_keyword();
-          /* Make the current token a tok_identifier. */
-          curr_token = tok_identifier;
-        }  /* if */
-        /* If the class_type is NULL then an error occured while
+        /* If the dtor_class_type is NULL then an error occured while
 	   scanning the part before the "::~", so don't issue another
            error here.  If the type of the thing after the "::~" is NULL,
-           or doesn't match class_type, issue an error. */
-        if (class_type != NULL &&
-            (type == NULL || (skip_typerefs(class_type) != type))) {
-          type_error(ec_destructor_type_mismatch, class_type);
+           or doesn't match dtor_class_type, issue an error. */
+        if (dtor_class_type != NULL &&
+            (dtor_type == NULL ||
+			     (skip_typerefs(dtor_class_type) != dtor_type))) {
+          type_error(ec_destructor_type_mismatch, dtor_class_type);
           err = TRUE;
           /* Set the class type to NULL as an indicator to the
 	     coalesce routine that an error has occurred. */
@@ -5501,7 +5521,7 @@ This routine may only be called in C++ mode.
        qualified name, e.g., "x" in "A::B::x".  In the destructor and
        operator name cases, curr_token has been changed to
        tok_identifier. */
-    if (curr_token != tok_identifier && !is_non_class_dtor) {
+    if (curr_token != tok_identifier && !is_nonclass_dtor) {
       /* The final identifier is missing.  Unget the current token and
          build an error locator. */
       unget_token();
@@ -5523,7 +5543,7 @@ This routine may only be called in C++ mode.
     locator_for_curr_id.access_errors = first_aedp;
     locator_for_curr_id.has_been_coalesced = TRUE;
     locator_for_curr_id.is_vacuous_destructor_reference = is_vacuous_dtor;
-    locator_for_curr_id.is_non_class_destructor = is_non_class_dtor;
+    locator_for_curr_id.is_nonclass_destructor = is_nonclass_dtor;
 
     /* Since we're returning a pseudo-token, set pos_curr_token. */
     pos_curr_token = start_position;

@@ -146,11 +146,11 @@ typedef struct a_symbol_locator {
 			/* TRUE if the identifier is a destructor name of
 			   a type that has no destructor.  Used for
 			   explicit destructor invocations of the form
-			   p->int::~int.  The type can be a non-class type
+			   p->int::~int.  The type can be a nonclass type
 			   or a class type with no destructor. */
-  unsigned int	is_non_class_destructor:1;
+  unsigned int	is_nonclass_destructor:1;
 			/* TRUE for vacuous destructor references for 
-			   non-class types such as int::~int or i::~i
+			   nonclass types such as int::~int or i::~i
 			   where "i" is a typedef name. */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
