@@ -31,6 +31,11 @@ attribute.c -- Processing of attributes, a GCC extension.
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
+/* Needed because of forward references: */
+static a_type_ptr copy_type_and_apply_attributes(an_attribute_ptr attributes,
+                                                 a_type_ptr       tp,
+                                                 a_boolean        is_typedef);
+
 /* Previously allocated attributes available for reuse. */
 static an_attribute_ptr avail_attributes;
 
@@ -726,6 +731,23 @@ attributes.  */
            on a machine where sizeof(int) == 4. */
         type = get_type_with_mode(type, ap->variant.mode, &ap->position);
         break;
+      case ak_noreturn:
+      case ak_const:
+        /* GCC allows "noreturn" and "const" to apply to variables
+           with pointer-to-function type.  GCC does not accept "pure"
+           in this context, even though it is conceptually similar. */
+        {
+          an_attribute_ptr next;
+          /* Temporarily remove "ap" from the attributes list so that
+             we can use copy_type_and_apply_attributes. */
+          next = ap->next;
+          ap->next = (an_attribute_ptr)NULL;
+          type = copy_type_and_apply_attributes(ap, type, 
+                                                /*is_typedef=*/FALSE);
+          /* Restore the attribute list. */
+          ap->next = next;
+        }
+        break;
       default:
         /* No action. */
         break;
@@ -840,7 +862,10 @@ invalid attributes.
                         &pos_curr_token);
         break;
       case ak_mode:
-        /* This attribute was handled in apply_attributes_to_variable_type. */
+      case ak_noreturn:
+      case ak_const:
+        /* These attributes were handled in
+           apply_attributes_to_variable_type. */
         break;
       case ak_weak:
         if (check_variable_not_local(vp, ap)) {
@@ -1139,7 +1164,7 @@ void apply_attributes_to_type(an_attribute_ptr attributes,
 Apply the attributes to the indicated type, which must not be a
 typeref.  Issue diagnostic messages about any invalid attributes.  If
 is_typedef is TRUE, then tp is a new type being created as part of a
-`typedef' declaration.  This routine modifies tp in place; the caller
+typedef declaration.  This routine modifies tp in place; the caller
 must make a copy if tp may already be shared.
 */
 {
@@ -1196,6 +1221,29 @@ must make a copy if tp may already be shared.
       case ak_unused:
         tp->variables_are_implicitly_referenced = TRUE;
         break;
+      case ak_noreturn:
+      case ak_const:
+        /* GCC allows "noreturn" and "const" to apply to
+           pointer-to-function types.  GCC does not accept "pure" in
+           this context, even though it is conceptually similar. */
+        /* Recall that tp is not a typeref here. */
+        if (!is_pointer_type(tp) || !is_function_type(type_pointed_to(tp))) {
+          pos_ty_error(ec_attr_requires_func_type,
+                       &ap->position, tp);
+        } else {
+          a_type_ptr rout_type = tp->variant.pointer.type;
+          rout_type = copy_type_and_apply_attributes((an_attribute_ptr)NULL,
+                                                     rout_type,
+                                                     is_typedef);
+          tp->variant.pointer.type = rout_type;
+          rout_type = skip_typerefs(rout_type);
+          if (ap->kind == (an_attribute_kind)ak_noreturn) {
+            rout_type->variant.routine.extra_info->does_not_return = TRUE;
+          } else {
+            rout_type->variant.routine.extra_info->is_const = TRUE;
+          }  /* if */
+        }  /* if */
+        break;
       case ak_transparent_union:
         if (tp->kind != (a_type_kind)tk_union) {
           pos_ty_error(ec_transparent_type_is_not_union,
@@ -1223,11 +1271,12 @@ must make a copy if tp may already be shared.
 }  /* apply_attributes_to_type */
 
 
-a_type_ptr apply_attributes_to_typedef(an_attribute_ptr attributes,
-                                       a_type_ptr       tp)
+static a_type_ptr copy_type_and_apply_attributes(an_attribute_ptr attributes,
+                                                 a_type_ptr       tp,
+                                                 a_boolean        is_typedef)
 /*
 Make a copy of tp and apply the attributes to the copy.  Return the
-newly created type.
+newly created type.  If is_typedef is TRUE, tp is a new typedef.
 */
 {
   a_type_qualifier_set qualifiers;
@@ -1263,16 +1312,33 @@ newly created type.
     add_to_types_list(copy, NO_SCOPE_DEPTH);
   }  /* if */
   /* Apply the attributes to the copy. */
-  apply_attributes_to_type(attributes, copy, /*is_typedef=*/TRUE);
-  /* The transparent union attribute applies to the original type as
-     well as the typedef. */
-  if (copy->kind == (a_type_kind)tk_union &&
-      copy->variant.class_struct_union.is_transparent) {
-    check_assertion(tp->kind == (a_type_kind)tk_union);
-    tp->variant.class_struct_union.is_transparent = TRUE;
-  }  /* if */
+  apply_attributes_to_type(attributes, copy, is_typedef);
   /* Create an appropriately qualified version of the copy. */
   copy = make_qualified_type(copy, qualifiers);
+
+  return copy;
+}  /* copy_type_and_apply_attributes */
+
+
+a_type_ptr apply_attributes_to_typedef(an_attribute_ptr attributes,
+                                       a_type_ptr       tp)
+/* 
+Apply the attributes to the indicated type, which is a new typedef.
+*/
+{
+  a_type_ptr copy;
+  a_type_ptr union_type;
+
+  copy = copy_type_and_apply_attributes(attributes, tp, /*is_typedef=*/TRUE);
+  /* The transparent union attribute applies to the original type as
+     well as the typedef. */
+  if (is_union_type(copy)) {
+    union_type = skip_typerefs(copy);
+    if (union_type->variant.class_struct_union.is_transparent) {
+      check_assertion(is_union_type(tp));
+      skip_typerefs(tp)->variant.class_struct_union.is_transparent = TRUE;
+    }  /* if */
+  }  /* if */
 
   return copy;
 }  /* apply_attributes_to_typedef */

@@ -1388,6 +1388,23 @@ given to the entity just declared.
 }  /* write_alignment_attribute */
 
 
+static void write_routine_type_attributes(a_type_ptr type)
+/*
+Write out attributes that apply to the indicated type, which must
+be a routine type.
+*/
+{
+  a_routine_type_supplement_ptr 
+                      rtsp = skip_typerefs(type)->variant.routine.extra_info;
+  if (rtsp->does_not_return) {
+    write_tok_str(" __attribute__((__noreturn__))");
+  }  /* if */
+  if (rtsp->is_const) {
+    write_tok_str(" __attribute__((__const__))");
+  }  /* if */
+}  /* write_routine_type_attributes */
+
+
 static void write_type_attributes(a_type_ptr type)
 /*
 Write out attributes that apply to the indicated type.
@@ -1409,6 +1426,10 @@ Write out attributes that apply to the indicated type.
   if (type->kind == (a_type_kind)tk_union &&
       type->variant.class_struct_union.is_transparent) {
     write_tok_str(" __attribute__((__transparent_union__))");
+  }  /* if */
+  if (is_pointer_type(type) &&
+      is_function_type(type_pointed_to(type))) {
+    write_routine_type_attributes(f_skip_typerefs(type_pointed_to(type)));
   }  /* if */
 }  /* write_type_attributes */
   
@@ -1467,6 +1488,10 @@ Write out attributes that apply to the indicated variable.
   }  /* if */
   if (var->aliased_variable != NULL) {
     write_string_argument_attribute("__alias__", var->aliased_variable);
+  }  /* if */
+  if (is_pointer_type(var->type) &&
+      is_function_type(type_pointed_to(var->type))) {
+    write_routine_type_attributes(f_skip_typerefs(type_pointed_to(var->type)));
   }  /* if */
 }  /* write_variable_attributes */
 

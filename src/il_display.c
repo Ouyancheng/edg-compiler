@@ -1076,6 +1076,14 @@ Display a_routine_type_supplement.
       disp_boolean("routine_name_linkage_is_explicit", TRUE);
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->does_not_return) {
+    disp_boolean("does_not_return", TRUE);
+  }  /* if */
+  if (ptr->is_const) {
+    disp_boolean("is_const", TRUE);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (ptr->lint_varargs_count != NOT_LINT_VARARGS) {
     disp_long("lint_varargs_count", (long)ptr->lint_varargs_count);
   }  /* if */

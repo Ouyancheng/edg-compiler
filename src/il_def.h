@@ -3261,12 +3261,24 @@ typedef struct a_routine_type_supplement {
   a_bit_field	routine_name_linkage_is_explicit:1;
 			/* TRUE when the routine_name_linkage is set based
 			   on an explicit linkage specifier in the source. */
-  a_bit_field  qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
+  a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Used for nonstatic member functions: the cv-
 			   qualification of the function type (e.g., the
 			   "const" in "void f(int) const").  Can contain
 			   qualifiers even when this_class (declared below) is
 			   NULL in the case of a function typedef. */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	does_not_return:1;
+			/* TRUE if the type was declared with the
+			   "noreturn" attribute.  Note that this flag
+			   is not set on the type of a routine
+			   declared with the "noreturn" attribute. */
+  a_bit_field	is_const:1;
+			/* TRUE if the type was declared with the
+			   "const" attribute.  Note that this flag
+			   is not set on the type of a routine
+			   declared with the "const" attribute. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   a_lint_varargs_count
 	         lint_varargs_count;

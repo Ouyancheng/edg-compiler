@@ -1222,6 +1222,10 @@ to default values.
       rtsp->suppress_diagnostic_on_incomplete_return_type = FALSE;
       rtsp->routine_name_linkage     = default_routine_name_linkage;
       rtsp->routine_name_linkage_is_explicit = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+      rtsp->does_not_return          = FALSE;
+      rtsp->is_const                 = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if CHECKING
       rtsp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
