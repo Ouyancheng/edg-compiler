@@ -11378,6 +11378,13 @@ selection operator, in which case it points to the type of the left operand.
                        ec_template_not_in_template);
           }  /* if */
           (void)get_token();
+          if (curr_token == tok_star) {
+            /* A construct like "T::template *".  Template must be followed by
+               an identifier. */
+            diagnostic(strict_ansi_discretionary_severity,
+                       ec_invalid_token_after_template);
+            is_template = FALSE;
+          }  /* if */
         }  /* if */
         /* If the current token begins an operator name, then coalesce
            the operator. */

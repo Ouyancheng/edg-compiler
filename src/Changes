@@ -1,5 +1,16 @@
 Version 3.1
 
+10/14/02 Missing diagnostic on "T::template *"
+
+No diagnostic was issued if the template keyword (used for disambiguation
+purposes in a qualified name) was followed by the "*" of a pointer-to-member
+operator.  This has been fixed.  Note that the example requires
+--parse_templates for the diagnostic to be issued.
+
+  template <class T> void f(T) {
+    typedef void (*T::template *FP)(int);
+  }
+
 10/14/02 Cast of function template with explicit arguments
 
 A reference to a function template with explicit template arguments
