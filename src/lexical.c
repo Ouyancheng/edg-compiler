@@ -9447,9 +9447,6 @@ TRUE if a symbol that can only be a vacuous destructor is returned.
                     (class_type->variant.class_struct_union.
                                          extra_info->assoc_scope != NULL ||
                      class_type->variant.class_struct_union.is_nonreal_class);
-  /* These lookups are speculative -- don't create projection symbols for
-     them. */
-  lookup_kind |= IDL_DO_NOT_CREATE_PROJ_SYM;
   /* Only get normal_sym from the locator if a fundamental symbol was
      returned by the lookup.  The specific symbol in the locator could
      be non-NULL in error cases. */ 
@@ -9458,6 +9455,9 @@ TRUE if a symbol that can only be a vacuous destructor is returned.
                                        : locator_for_curr_id.specific_symbol;
   if (do_class_lookup) {
     clear_specific_symbol(locator_for_curr_id);
+    /* These lookups are speculative -- don't create projection symbols for
+       them. */
+    lookup_kind |= IDL_DO_NOT_CREATE_PROJ_SYM;
     /* Only get class_sym from the locator if a fundamental symbol was
        returned by the lookup.  The specific symbol in the locator could
        be non-NULL in error cases. */
