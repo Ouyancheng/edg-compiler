@@ -7497,9 +7497,12 @@ about it).
     fputs("==> ", f_debug);
     do {
       olp = olp->parent_lifetime;
-    } while (olp->kind == (an_object_lifetime_kind)olk_block_after_label);
+    } while (olp != NULL &&
+             olp->kind == (an_object_lifetime_kind)olk_block_after_label);
   }  /* if */
-  if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
+  if (olp == NULL) {
+    fputs("<null>", f_debug);
+  } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
     db_scope((a_scope_ptr)olp->entity.ptr);
   } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_none) {
     fputs("<unbound>", f_debug);
@@ -8012,14 +8015,24 @@ with it.  Entries associated with scopes must also have no child entries.
           } else {
             is_useless = TRUE;
           }  /* if */
-        } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_block &&
-                   has_child_with_temporary_lifetime(olp)) {
-          /* Lifetime is bound to a block entry (cfront dependent statement
-             case) and has one or more children.  As with the normal olk_block
-             case, we don't want expression temporary object lifetimes
-             "floating up". */
+        } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_block) {
+          if (has_child_with_temporary_lifetime(olp)) {
+            /* Lifetime is bound to a block entry (cfront dependent statement
+               case) and has one or more children.  As with the normal
+               olk_block case, we don't want expression temporary object
+               lifetimes "floating up". */
+          } else {
+            is_useless = TRUE;
+          }  /* if */
         } else {
-          is_useless = TRUE;
+          /* An unbound object lifetime. */
+          if (olp->has_block_after_label_child_lifetime ||
+              has_child_with_temporary_lifetime(olp)) {
+            /* Treat it as useful.  (This may be a condition for its being
+               bound.) */
+          } else {
+            is_useless = TRUE;
+          }  /* if */
         }  /* if */
         break;
       case olk_block_after_label:
