@@ -624,7 +624,6 @@ there is additional processing to be done.
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,
-                                &pp->position,
                                 ppp->source_sequence_entry);
     /* The source sequence entry is now attached to the IL pragma entry.
        Clear the copy of the source_sequence_entry pointer in the pending

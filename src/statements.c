@@ -1285,7 +1285,6 @@ the current function scope.
       wrapup_decl_statement();
     }  /* if */
     f_update_source_sequence_list((char *)sp, iek_statement,
-                                  (a_source_position *)NULL,
                                   (a_source_sequence_entry_ptr)NULL);
   }  /* if */
 }  /* stmt_update_source_sequence_list */
@@ -3133,7 +3132,6 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry for the switch clause. */
     update_source_sequence_list((char *)scp, iek_switch_clause,
-                                (a_source_position *)NULL,
                                 (a_source_sequence_entry_ptr)NULL);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Represent this case label by adding an entry to the

@@ -626,13 +626,11 @@ extern void add_to_source_sequence_list(a_source_sequence_entry  *new_ssep);
 
 extern void f_update_source_sequence_list(char                    *entity_ptr,
                                           an_il_entry_kind        kind,
-                                          a_source_position       *pos,
                                           a_source_sequence_entry *old_ssep);
 
-#define update_source_sequence_list(entity_ptr, kind, pos, old_ssep)     \
+#define update_source_sequence_list(entity_ptr, kind, old_ssep)          \
 { if (!source_sequence_entries_disallowed) {                             \
-    f_update_source_sequence_list((entity_ptr), (kind), (pos),           \
-                                  (old_ssep));                           \
+    f_update_source_sequence_list((entity_ptr), (kind), (old_ssep));     \
   }  /* if */                                                            \
 }  /* update_source_sequence_list */
 

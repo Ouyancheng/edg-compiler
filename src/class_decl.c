@@ -3498,8 +3498,10 @@ special function kind (e.g., constructor, destructor), if any.
                            (a_boolean)func_info->is_inline, is_virtual,
                            &locator->source_position);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if 0
     update_source_sequence_list((char *)rtn, (an_il_entry_kind)iek_routine,
-                                &locator->source_position, declarator_ssep);
+                                declarator_ssep);
+#endif /* if 0 */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     discard_curr_construct_pragmas();
   } else {
@@ -3531,6 +3533,9 @@ special function kind (e.g., constructor, destructor), if any.
       record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                 declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (!func_info->is_definition) {
+        set_src_seq_secondary_decl_entity_type((char *)rtn, member_type);
+      }  /* if */
       set_rout_src_seq_entry_for_default_arg_decl(rtn, func_info);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       if (func_info->is_definition) {
@@ -3859,6 +3864,9 @@ table.
      definition must appear outside the class definition. */
   record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
                             ssep);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  set_src_seq_secondary_decl_entity_type((char *)var, member_type);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
@@ -4238,7 +4246,7 @@ class, struct, or union.
        from record_symbol_declaration).  An exception is made for unnamed
        fields; call the subroutine directly. */
     update_source_sequence_list((char *)field, (an_il_entry_kind)iek_field,
-                                &locator->source_position, ssep);
+                                ssep);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else if (!is_anonymous_union) {
     /* Create the field symbol. */
