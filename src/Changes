@@ -1,5 +1,13 @@
 Version 3.5
 
+10/6/04   Embedded C: negation of unsigned fixed-point value
+
+When a negative value is converted to an unsigned fixed-point type, the
+result should be zero.  Formerly, when such a conversion was done the
+result was the absolute value of the input.
+
+  unsigned _Accum a = -(unsigned _Accum)1;
+
 10/5/04   Syntax error on [] after new in strict mode
 
 An expression like 

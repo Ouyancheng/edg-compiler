@@ -544,6 +544,12 @@ the value is already known to be too large.  Set *err on overflow.  Set
   *err = FALSE;
   *inexact = FALSE;
   if (!overflow) {
+    if (is_negative && fxp_descr->is_unsigned) {
+      /* A negative value being stored in an unsigned value.  Set it to
+         zero. */
+      init_mantissa(mp);
+      exponent = 0;
+    }  /* if */
     /* Adjust the mantissa so that it is normalized in the high-order bits
        of the mantissa. */
     normalize_mantissa(mp, &exponent);
@@ -605,9 +611,9 @@ the value is already known to be too large.  Set *err on overflow.  Set
     /* No overflow.  Store the result in the appropriate form. */
     store_hex_fxp_value(mp, fxp_descr, value);
     /* Negate the value, if necessary.  If the source is negative and the
-       destination is unsigned, a diagnostic will be issued by the caller.
-       On overflow, the saturated value will have already been created with
-       the appropriate sign above. */
+       destination is unsigned, a diagnostic will be issued by the caller
+       and the value set to zero above.  On overflow, the saturated value
+       will have already been created with the appropriate sign above. */
     if (is_negative && !fxp_descr->is_unsigned) {
       a_boolean	negate_err;
       negate_fixed_point_value(value, &negate_err);
