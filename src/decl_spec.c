@@ -2241,6 +2241,7 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
     }  /* if */
     /* Record cross-reference information. */
     if (!is_friend_decl && !locator.is_template_id &&
+        is_file_or_namespace_scope(&scope_stack[depth_scope_stack]) &&
         class_type->variant.class_struct_union.is_prototype_instantiation &&
         ctsp->template_arg_list != NULL &&
         !(ctsp->assoc_scope != NULL &&
