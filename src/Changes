@@ -1,5 +1,13 @@
 Version 2.43
 
+12/2/99  ABI CHANGE: Name mangling for template conversion functions
+
+The mangled name for a template conversion function has included the
+return type, which is redundant because the "name" of the conversion
+function also includes the type.  The return type has now been removed.
+This is an ABI change.  The old mangled form will be generated if
+ABI_COMPATIBILITY_VERSION is less than 243.
+
 12/2/99  is_reinterpret_cast flag in IL an_expr_node entry
 
 The operation variant of an_expr_node now has an is_reinterpret_cast flag
