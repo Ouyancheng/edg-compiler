@@ -3204,10 +3204,8 @@ Syntax:
   if (is_error_type(sizeof_type)) {
     set_error_constant(&constant);
   } else {
-    clear_constant(&constant, (a_constant_repr_kind)ck_integer);
-    set_unsigned_value_of_integer_constant(&constant,
-                          (unsigned long)sizeof_type->size,
-                          integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND));
+    set_unsigned_integer_constant(&constant, (unsigned long)sizeof_type->size,
+                                  (an_integer_kind)TARG_SIZE_T_INT_KIND);
   }  /* if */
   make_constant_operand(&constant, result);
 
@@ -3272,10 +3270,9 @@ be inappropriate, because the feature is probably used to implement
   if (is_error_type(alignof_type)) {
     set_error_constant(&constant);
   } else {
-    clear_constant(&constant, (a_constant_repr_kind)ck_integer);
-    set_unsigned_value_of_integer_constant(&constant,
-                          (unsigned long)alignof_type->alignment,
-                          integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND));
+    set_unsigned_integer_constant(&constant,
+                                  (unsigned long)alignof_type->alignment,
+                                  (an_integer_kind)TARG_SIZE_T_INT_KIND);
   }  /* if */
   make_constant_operand(&constant, result);
   /* Check for and pass over the right parenthesis. */
