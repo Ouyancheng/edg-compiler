@@ -586,7 +586,7 @@ typedef struct a_member_decl_info {
   a_storage_class
 		storage_class;
 			/* Storage class returned from decl_specifiers. */
-  a_bit_field	is_first_in_declarator_list;
+  a_bit_field	is_first_in_declarator_list:1;
 			/* TRUE for the first declarator in a declarator list,
 			   FALSE thereafter. */
   a_bit_field	is_constructor:1;
