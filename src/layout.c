@@ -230,12 +230,96 @@ conventions of Microsoft's bit-field allocation scheme.
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 
+/* An entry on the pack alignment stack. */
+typedef struct a_pack_alignment_stack_entry *a_pack_alignment_stack_entry_ptr;
+typedef struct a_pack_alignment_stack_entry {
+  a_pack_alignment_stack_entry_ptr
+		next;
+			/* Next entry on the stack.  NULL for the entry at
+			   the bottom of the stack. */
+  char		*name;
+			/* The identifying name of this stack entry -- used
+			   for "targetted" popping.  May be NULL. */
+  a_targ_alignment
+		alignment;
+			/* The alignment associated with this stack entry.
+			   May be zero, to indicate that the global default
+			   should be used. */
+} a_pack_alignment_stack_entry;
+
+
 static a_targ_alignment
 		curr_max_member_alignment;
 			/* Current pack alignment, as specified by the most
 			   recent #pragma pack directive.  If it is zero, use
 			   the default pack alignment, as specified on the
 			   command line. */
+
+static a_pack_alignment_stack_entry_ptr
+		pack_alignment_stack;
+			/* Pointer to the top of the stack of pack alignment
+			   values produced by #pragma pack directives. */
+
+static a_pack_alignment_stack_entry_ptr
+		avail_pack_alignment_stack_entries;
+			/* List of pack alignment stack entries freed and
+			   available for reuse. */
+
+
+static void push_pack_alignment(char              *name,
+                                a_targ_alignment  alignment)
+/*
+Push an entry onto the top of the pack alignment stack, initializing it with
+the specified name (which may be a NULL pointer) and alignment (which may be
+zero).
+*/
+{
+  a_pack_alignment_stack_entry_ptr  pasep;
+
+  if (avail_pack_alignment_stack_entries != NULL) {
+    pasep = avail_pack_alignment_stack_entries;
+    avail_pack_alignment_stack_entries = pasep->next;
+  } else {
+    pasep = (a_pack_alignment_stack_entry_ptr)alloc_fe(
+                                   sizeof(a_pack_alignment_stack_entry));
+  }  /* if */
+  pasep->name = name;
+  pasep->alignment = alignment;
+  pasep->next = pack_alignment_stack;
+  pack_alignment_stack = pasep;
+}  /* push_pack_alignment */
+
+
+static void pop_pack_alignment(void)
+/*
+Pop the top entry from the pack alignment stack and return it to the available
+list.
+*/
+{
+  a_pack_alignment_stack_entry_ptr  pasep = pack_alignment_stack;
+
+  pack_alignment_stack = pasep->next;
+  pasep->next = avail_pack_alignment_stack_entries;
+  avail_pack_alignment_stack_entries = pasep;
+}  /* if */
+
+
+static a_pack_alignment_stack_entry_ptr find_pack_alignment_stack_entry(
+                                                                  char  *name)
+/*
+Search the pack alignment stack for an entry that matches "name" and if it's
+found return a pointer to it.  Return NULL if it's not found.
+*/
+{
+  a_pack_alignment_stack_entry_ptr  pasep = pack_alignment_stack;
+
+  if (name != NULL) {
+    for (; pasep != NULL; pasep = pasep->next) {
+      if (pasep != NULL && strcmp(name, pasep->name) == 0) break;
+    }  /* for */
+  }  /* if */
+  return pasep;
+}  /* find_pack_alignment_stack_entry */
 
 
 a_boolean check_pack_alignment_value(long              value,
@@ -273,45 +357,159 @@ the member's type).  If n is omitted, the pack alignment effectively reverts
 to the default value, if any, that was specified on the command line.  The
 current value is stored in curr_max_member_alignment and is copied into the
 type entry for a class, struct, or union when layout processing commences.
+
+The "enhanced syntax" is also supported:
+
+   #pragma pack(push {, name} {, n})
+   #pragma pack(pop  {, name} {, n})
+
+"push" mean to push curr_max_member_alignment onto the pack alignment stack.
+A name may be provided to identify the entry for a targetted pop.  When n is
+specified, that becomes the new curr_max_member_alignment; otherwise the old
+one is retained.  "pop" with a name means to remove all entries on the pack
+alignment stack down to and including the named entry; without a name, only
+the top entry is removed.  curr_max_member_alignment is then set either to n
+if n is supplied or to the value associated with the last entry popped.
 */
 {
   a_stop_token_array  save_stop_tokens_array;
   a_boolean           err = FALSE;
+  a_boolean           is_push = FALSE, is_pop = FALSE;
   long                val;
+  an_error_severity   severity;
 
   db_enter(3, "pack_pragma");
-  /* Reset the current pack alignment value to zero, in case there's an
-     error.  Zero means, use the default pack alignment that was specified
-     on the command line. */
-  curr_max_member_alignment = 0;
   /* Save the stop token state, push a pragma scope, etc. */
   begin_rescan_of_pragma_tokens(ppp, save_stop_tokens_array);
   add_stop_token(tok_rparen);
   /* Check for a left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
-  if (curr_token == tok_rparen) {
-    /* "()" means revert to the default (if any) specified on the command
-       line.  The variable curr_max_member_alignment was already set to zero,
-       so nothing else is needed. */
-  } else if (curr_token != tok_int_constant) {
-    /* Expected an integer constant. */
-    syntax_error(ec_exp_int_constant);
-  } else {
+  if (curr_token == tok_identifier) {
+    /* Issue warnings in Microsoft mode for incorrect "push" and "pop"
+       uses, errors otherwise. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    severity = microsoft_mode ? es_warning : es_error;
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+    severity = es_error;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Scan the tokens of the "enhanced syntax", except for the integer
+       constant if any.  First check for "push" and "pop". */
+    if (locator_for_curr_id.symbol_header->identifier_length == 4 &&
+        strncmp(locator_for_curr_id.symbol_header->identifier,
+                "push", size_t_arg(4)) == 0) {
+      is_push = TRUE;
+      /* Advance past "push". */
+      (void)get_token();
+    } else if (locator_for_curr_id.symbol_header->identifier_length == 3 &&
+               strncmp(locator_for_curr_id.symbol_header->identifier,
+                       "pop", size_t_arg(3)) == 0) {
+      is_pop = TRUE;
+      if (pack_alignment_stack == NULL) {
+        /* In Microsoft mode we issue a warning on specifying "pop" when the
+           stack is empty.  In default mode it's an error. */
+        diagnostic(severity, ec_empty_pack_alignment_stack);
+        curr_max_member_alignment = 0;
+      }  /* if */
+      /* Advance past "pop". */
+      (void)get_token();
+    }  /* if */
+    if (is_push || is_pop) {
+      /* Do special processing for managing the pack alignment stack. */
+      char                              *name = NULL;
+      a_pack_alignment_stack_entry_ptr  pasep = NULL;
+
+      /* Next should be either the closing parenthesis or a comma. */
+      if (curr_token != tok_rparen) {
+        /* Advance past the comma.  It should be followed by either an
+           identifier or an integer constant. */
+        (void)required_token(tok_comma, ec_exp_comma);
+        if (curr_token == tok_identifier) {
+          name = locator_for_curr_id.symbol_header->identifier;
+          if (is_pop && pack_alignment_stack != NULL) {
+            /* Be sure the name specified is on the stack.  If it's not,
+               issue a diagnostic and leave the stack intact. */
+            pasep = find_pack_alignment_stack_entry(name);
+            if (pasep == NULL) {
+              /* In Microsoft mode we issue a warning on specifying "pop" for
+                 a name that's not on the stack.  In default mode it's an
+                 error. */
+              pos_st_diagnostic(severity, ec_not_found_on_pack_alignment_stack,
+                                &pos_curr_token, name);
+            } else {
+              /* If the entry was found, pop off all the intervening entries
+                 now.  The last one is popped off later. */
+              while (pasep != pack_alignment_stack) pop_pack_alignment();
+            }  /* if */
+          }  /* if */
+          /* Advance past the name. */
+          (void)get_token();
+          /* Next should be either the closing parenthesis or a comma. */
+          if (curr_token != tok_rparen) {
+            /* Advance past the comma -- the next token should be the integer
+               constant. */
+            (void)required_token(tok_comma, ec_exp_comma);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      /* Final processing for "push" and "pop". */
+      if (is_push) {
+        /* Push the entry onto to stack, saving the current pack alignment
+           before it's overwritten by a new value. */
+        push_pack_alignment(name, curr_max_member_alignment);
+      } else {
+        if (pack_alignment_stack != NULL) {
+          if (name != NULL && pasep == NULL && severity == es_error) {
+            /* An error was issued.  Leave the stack intact.  Note -- this
+               is not what Microsoft does after the warning; they pop one
+               entry off the stack, as though "#pragma pack(pop, xxx)" were
+               identical to "#pragma pack(pop)" when "xxx" is not found.
+               This is not done by default because it creates error
+               recovery problems. */
+          } else {
+            /* Pull out the saved pack alignment value before popping the
+               entry off the stack. */
+            curr_max_member_alignment = pack_alignment_stack->alignment;
+            pop_pack_alignment();
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (curr_token == tok_int_constant) {
     /* Get the integer constant variable and check it against allowable
        values for a pack alignment. */
     val = value_of_integer_constant(&const_for_curr_token, &err);
     if (err ||
         !check_pack_alignment_value(val, &curr_max_member_alignment)) {
       error(ec_bad_pack_alignment);
+      /* Reset the current pack alignment value to zero, which means: use the
+         default pack alignment that was specified on the command line. */
+      curr_max_member_alignment = 0;
     }  /* if */
     /* Advance to the right parenthesis. */
     (void)get_token();
+  } else if (curr_token != tok_rparen) {
+    /* Expected an integer constant. */
+    syntax_error(ec_exp_int_constant);
   }  /* if */
   remove_stop_token(tok_rparen);
   /* Check for the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   /* Restore the stop token array, pop the pragma scope, etc. */
   wrapup_rescan_of_pragma_tokens(/*pragma_err=*/FALSE, save_stop_tokens_array);
+#if DEBUG
+  if (debug_level >= 3) {
+    fprintf(f_debug, "curr_max_member_alignment = %d, stack = ",
+            (int)curr_max_member_alignment);
+    if (pack_alignment_stack == NULL) {
+      fputs("NULL\n", f_debug);
+    } else {
+      char *name = pack_alignment_stack->name;
+      fprintf(f_debug, "\"%s\" : %d\n", name == NULL ? "" : name,
+              pack_alignment_stack->alignment);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
   db_exit();
 } /* pack_pragma */
 
@@ -1998,6 +2196,8 @@ void layout_one_time_init(void)
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(curr_max_member_alignment),
+      pch_saved_var_array_elem(pack_alignment_stack),
+      pch_saved_var_array_elem(avail_pack_alignment_stack_entries),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -2013,6 +2213,8 @@ Do layout initialization.
 {
 #if USER_CONTROL_OF_STRUCT_PACKING
   curr_max_member_alignment = 0;
+  pack_alignment_stack = NULL;
+  avail_pack_alignment_stack_entries = NULL;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   check_assertion_str2(!targ_microsoft_bit_field_allocation ||
                               (targ_bit_field_container_size < 0),
