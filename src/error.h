@@ -565,7 +565,8 @@ typedef enum /*an_error_code*/ {
   ec_incompatible_ptr_to_member_selection_operands,
   ec_self_friendship,
   ec_period_used_as_qualifier,
-  ec_const_function_anachronism
+  ec_const_function_anachronism,
+  ec_dependent_stmt_is_declaration
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
