@@ -119,6 +119,7 @@ Process the source correspondence field pointed to by ptr.
 #define remap_parent(ptr) /* Nothing */
 #endif /* ifdef CFE */
 
+#undef remap_source_sequence_entry
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #define remap_source_sequence_entry(ptr) \
   remap_ptr((ptr).source_sequence_entry, a_source_sequence_entry_ptr, \
@@ -1655,6 +1656,20 @@ The subtree is not processed.
 #endif /* REMAP_ONLY_ROUTINES_NEEDED */
 #endif /* !DO_SUBTREE_WALK */
 
+/*
+Get rid of the macros defined in this file so they aren't used accidentally.
+*/
+#undef remap_ptr
+#undef remap_next_ptr
+#undef walk_ptr
+#undef walk_string_ptr
+#undef walk_list_on_link_field
+#undef walk_list
+#undef remap_parent
+#undef remap_source_sequence_entry
+#undef walk_source_corresp
+#undef report_bad_init_kind
+#undef walk_initializer
 
 /******************************************************************************
 *                                                             \  ___  /       *
