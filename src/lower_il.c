@@ -12470,6 +12470,7 @@ the needed-flag walk for the file scope.
 {
   a_routine_ptr  rout;
   a_variable_ptr var;
+  a_boolean      any_exports = any_exported_templates();
 
   if (il_lowering_needed()) {
     /* This processing is done in a separate routine, rather than in
@@ -12481,6 +12482,13 @@ the needed-flag walk for the file scope.
     for (rout = il_header.primary_scope->routines;
          rout != NULL;
          rout = rout->next) {
+      if (any_exports &&
+          rout->storage_class == (a_storage_class)sc_static) {
+        /* When exported templates are present, any static is potentially
+           referenced (directly or indirectly) from an instantiation and
+           should be externalized. */
+        rout->source_corresp.static_used_by_instantiation = TRUE;
+      }  /* if */
       if (rout->source_corresp.static_used_by_instantiation &&
 #if ONE_INSTANTIATION_PER_OBJECT
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
@@ -12500,7 +12508,11 @@ the needed-flag walk for the file scope.
           }  /* if */
           externalize_source_correspondence(&rout->source_corresp,
                                             /*is_variable=*/FALSE);
-          rout->storage_class = (a_storage_class)sc_unspecified;
+          if (translation_unit_needed_only_for_exported_templates) {
+            rout->storage_class = (a_storage_class)sc_extern;
+          } else {
+            rout->storage_class = (a_storage_class)sc_unspecified;
+          }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
           mark_as_needed((char *)rout, (an_il_entry_kind)iek_routine);
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -12512,7 +12524,16 @@ the needed-flag walk for the file scope.
          var = var->next) {
 #if !USE_INIT_SECTION_IN_GENERATED_C
       char *var_name = var->source_corresp.name;
+#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
 
+      if (any_exports &&
+          var->storage_class == (a_storage_class)sc_static) {
+        /* When exported templates are present, any static is potentially
+           referenced (directly or indirectly) from an instantiation and
+           should be externalized. */
+        var->source_corresp.static_used_by_instantiation = TRUE;
+      }  /* if */
+#if !USE_INIT_SECTION_IN_GENERATED_C
       if (var_name != NULL && var_name[0] == '_' &&
           strcmp(var_name, "__link") == 0) {
         /* Do not rename the __link variable.  It is specific to a particular
@@ -12534,7 +12555,11 @@ the needed-flag walk for the file scope.
         } else {
           externalize_source_correspondence(&var->source_corresp,
                                             /*is_variable=*/TRUE);
-          var->storage_class = (a_storage_class)sc_unspecified;
+          if (translation_unit_needed_only_for_exported_templates) {
+            var->storage_class = (a_storage_class)sc_extern;
+          } else {
+            var->storage_class = (a_storage_class)sc_unspecified;
+          }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
           mark_as_needed((char *)var, (an_il_entry_kind)iek_variable);
 #endif /* MAINTAIN_NEEDED_FLAGS */

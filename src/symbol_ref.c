@@ -1464,12 +1464,6 @@ projection symbol.
         set_instance_required(sym_ptr, TRUE, /*defer_inline=*/FALSE);
       }  /* if */
       scptr->referenced = TRUE;
-      if (scope_stack[depth_scope_stack].in_prototype_instantiation &&
-          scptr->name_linkage == (a_name_linkage_kind)nlk_internal) {
-        /* This is a static entity referenced from a prototype instantiation
-           of a template.  Mark it for special processing. */
-        scptr->static_used_by_instantiation = TRUE;
-      }  /* if */
     }  /* if */
   }  /* if */
   if (update_il_entry && (kind & SRK_ADDRESS_TAKEN)) {
