@@ -4361,7 +4361,9 @@ template associated with error_code.  After constructing the segment list
 {
   a_msg_segment_ptr  curr_seg;
   char               *msg_template;
+#if CHECKING
   int                i;
+#endif /* CHECKING */
 
   if (check_severity(&error_pos, &severity, diag_kind)) {
     /* Get the error message text (template) and construct the message
