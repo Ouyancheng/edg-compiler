@@ -2314,6 +2314,31 @@ the base class.
 }  /* set_shares_virtual_function_info_flags */
 
 
+static void set_target_of_conversion_function_flag(a_type_ptr  class_type)
+/*
+If it has not been set yet, set the target_of_conversion_function flag for
+class_type.  Also set the flag in each of class_type's base classes.
+*/
+{
+  a_class_symbol_supplement_ptr  cssp;
+  a_base_class_ptr               bcp;
+
+  cssp = symbol_supplement_for_class(class_type);
+  if (cssp->target_of_conversion_function) {
+    /* Already set.  In particular, this check saves the overhead of going
+       through all the base classes more than necessary. */
+  } else {
+    /* The flag has not been set yet. */
+    cssp->target_of_conversion_function = TRUE;
+    /* Set the flag in each direct base class.  Since this is done
+       recursively, all base class will be updated. */
+    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+      if (bcp->direct) set_target_of_conversion_function_flag(bcp->type);
+    }  /* for */
+  }  /* if */
+}  /* set_target_of_conversion_function_flag */
+    
+
 static void add_indirect_base_class(a_base_class_ptr      base_class_to_copy,
                                     a_base_class_ptr      directly_derived_bcp,
                                     a_derivation_step_ptr path,
@@ -2904,6 +2929,18 @@ or struct definition.  The syntax is
                                    base_ctsp->highest_virtual_function_number;
         }  /* if */
         first_direct_nonvirtual_base_class = FALSE;
+        /* If the derived class was already mentioned as the target of a
+           conversion function, the base class should also have its
+           target_of_conversion_function flag set.  Here's the kind of
+           case where this is needed:
+             class A;
+             class B { ... };
+             class X { operator A&(); };      // The flag is set for A
+             class A : public B { ... };      // It must be set for B, too.
+        */
+        if (cssp->target_of_conversion_function) {
+          set_target_of_conversion_function_flag(new_direct_bcp->type);
+        }  /* if */
       }  /* if */
 skip_base_class:
       /* Advance past the base class name to the comma or right brace. */
@@ -3768,8 +3805,7 @@ special function kind (e.g., constructor, destructor), if any.
         } else {
           /* The target type of the conversion is a class or ref-to-class
              type: set a flag to mark it as target of a conversion. */
-          (symbol_supplement_for_class(tp))->
-                                   target_of_conversion_function = TRUE;
+          set_target_of_conversion_function_flag(tp);
         }  /* if */
       } else if (is_void_type(tp)) {
         /* Except in cfront-compatibility mode, conversion to void type will
