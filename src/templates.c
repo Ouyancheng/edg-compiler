@@ -2091,6 +2091,7 @@ static void replace_body_with_semicolon(a_template_cache_segment_ptr tcsp)
   a_cached_token_ptr	first_token = before_first_token->next;
   a_cached_token_ptr	last_token = tcsp->last_token;
   a_cached_token_ptr	ctp;
+  a_cached_token_ptr	semicolon_token;
 
   /* See if the last token if the cache is followed by an optional
      semicolon.  Only insert one if there is not already one there. */
@@ -2099,7 +2100,11 @@ static void replace_body_with_semicolon(a_template_cache_segment_ptr tcsp)
     if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
       continue;
     }  /* if */
-    insert_semicolon = ctp->token != (a_byte_token_kind)tok_semicolon;
+    if (ctp->token != (a_byte_token_kind)tok_semicolon) {
+      insert_semicolon = TRUE;
+    } else {
+      semicolon_token = ctp;
+    }  /* if */
     break;
   }  /* for */
   if (insert_semicolon) {
@@ -2114,6 +2119,7 @@ static void replace_body_with_semicolon(a_template_cache_segment_ptr tcsp)
        the body. */
     replacement_token->next = last_token->next;
     before_first_token->next = replacement_token;
+    semicolon_token = replacement_token;
   } else {
     /* No semicolon is needed.  Link the tokens to remove the member
        body.  Update the token sequence number of the token that now
@@ -2127,25 +2133,28 @@ static void replace_body_with_semicolon(a_template_cache_segment_ptr tcsp)
   }  /* if */
   /* Unlink the rest of the cache from the last token of the body. */
   last_token->next = NULL;
+  /* Update the semicolon token with information about the tokens that
+     have been removed. */
+  check_assertion(semicolon_token->extra_info_kind ==
+                                           (a_token_extra_info_kind)teik_none);
+  semicolon_token->extra_info_kind =
+                                  (a_token_extra_info_kind)teik_extracted_body;
+  semicolon_token->variant.extracted_template.symbol = tcsp->symbol;
+  semicolon_token->variant.extracted_template.semicolon_inserted =
+                                                              insert_semicolon;
 }  /* replace_body_with_semicolon */
 
 
-static
-a_template_cache_segment_ptr extract_member_bodies(
+static void extract_member_bodies(
 			   a_template_symbol_supplement_ptr tssp,
-                           a_template_cache_segment_ptr	    cache_segments,
-                           a_boolean                        functions_only)
+                           a_template_cache_segment_ptr	    cache_segments)
 /*
 Go through the member functions and nested classes of the class template
-associated with tssp, and remove the tokens from the token cache.  If
-functions_only is TRUE, only the function bodies are extracted.  Nested
-classes remain on the list.  The pointer to the updated list is
-returned to the caller.
+associated with tssp, and remove the tokens from the token cache.
 */
 {
   a_template_cache_segment_ptr		tcsp;
   a_template_cache_segment_ptr		next_tcsp;
-  a_template_cache_segment_ptr		new_list = NULL;
 
   db_enter(4, "extract_member_bodies");
   if (cache_segments != NULL && cache_segments->before_first_token == NULL) {
@@ -2162,7 +2171,7 @@ returned to the caller.
        while scanning the class definition and no ending token was found.
        Don't attempt to remove the body from the template. */ 
     if (tcsp->last_token_number == NO_TOKEN_SEQUENCE_NUMBER) continue;
-    switch (tcsp->symbol->kind) {
+     switch (tcsp->symbol->kind) {
       case sk_member_function:
       case sk_class_template:
       case sk_function_template:
@@ -2185,13 +2194,6 @@ returned to the caller.
         break;
       case sk_class_or_struct_tag:
       case sk_union_tag:
-        if (functions_only) {
-          /* Add this entry to a new list of entries that still need to
-             be processed. */
-          tcsp->next = new_list;
-          new_list = tcsp;
-          continue;
-        }  /* if */
         tssp = tcsp->template_info;
         /* Only extract the body of the nested class if it is a
            "standalone" nested class (i.e., one that is not anonymous
@@ -2211,13 +2213,10 @@ returned to the caller.
       default:
         unexpected_condition();
     }  /* switch */
-    /* Free the template cache segment for the member just removed.  Note
-       that when only processing functions, this code is bypassed for entries
-       that are put on the new list. */
+    /* Free the template cache segment for the member just removed. */
     free_template_cache_segment(tcsp);
   }  /* for */
   db_exit();
-  return new_list;
 }  /* extract_member_bodies */
 
 
@@ -10048,18 +10047,11 @@ any non-empty template parameter lists that were scanned.
     }  /* if */
   }  /* if */
   {
-    a_boolean	member_bodies_need_extraction = prototype_okay;
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    /* Member function bodies are extracted before the template string is
-       constructed when member function instantiations are included in the
-       source sequence lists.  In this mode, member function bodies are
-       put out as specializations (by the C++ generating back end), and 
-       the function bodies cannot be present in the class template body. */
-    if (member_bodies_need_extraction) {
-      cache_segments = extract_member_bodies(tssp, cache_segments,
-                                            /*functions_only=*/TRUE);
-    }  /* if */
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    /* Extract the bodies of any member functions, nested classes, or
+       member templates that were defined within this class template. */
+    if (prototype_okay) {
+      extract_member_bodies(tssp, cache_segments);
+    } /* if */
 #if RECORD_TEMPLATES_IN_IL
     if (!decl_state->in_prototype_instantiation) {
       complete_il_template_entry(decl_state->il_template_entry, sym,
@@ -10074,13 +10066,6 @@ any non-empty template parameter lists that were scanned.
       }  /* if */
     }  /* if */
 #endif /* RECORD_TEMPLATES_IN_IL */
-    /* When member function bodies are not extracted above, they are done now
-       that the template string for the class has been created.  Nested class
-       bodies are always extracted at this point. */
-    if (member_bodies_need_extraction) {
-      (void)extract_member_bodies(tssp, cache_segments,
-                                  /*functions_only=*/FALSE);
-    } /* if */
   }
 #if DEBUG
   if (debug_level >= 3) {

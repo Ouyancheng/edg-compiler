@@ -1,5 +1,14 @@
 Version 2.38
 
+11/17/97  Member class template bodies should not be removed when
+          source sequence entries are created for nonclass template
+          instantiations
+
+When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
+the bodies of member class templates were incorrectly being removed from
+the enclosing class along with member function bodies.  This resulted in
+the creation of incorrect template strings.  This has been fixed.
+
 11/17/97  Internal error on conversion template to nested member class
 
 An internal error would result if a conversion template was used to convert

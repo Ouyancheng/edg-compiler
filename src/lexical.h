@@ -1263,6 +1263,25 @@ typedef struct a_pp_token_descr {
 			   terminator. */
 } a_pp_token_descr;
 
+
+/*
+Structure used to record information about a template body that has been
+extracted from the enclosing cache.  This is used when creating template
+strings so that the nested template body can be put out as part of the
+template string for the enclosing template.
+*/
+typedef struct an_extracted_template_descr *an_extracted_template_descr_ptr;
+typedef struct an_extracted_template_descr {
+  a_symbol_ptr	symbol;
+			/* The symbol associated with the extracted body. */
+  a_byte_boolean
+		semicolon_inserted;
+			/* TRUE if the token with which this body is associated
+			   is a semicolon that was inserted after the body
+			   was removed. */
+} an_extracted_template_descr;
+
+
 /*
 Data structure used to save information about a token so that the token
 can be cached and then rescanned.  Note that this is never done with
@@ -1274,7 +1293,8 @@ enum a_token_extra_info_kind_tag {
   teik_identifier,	/* Extra information for an identifier. */
   teik_constant,	/* Extra information for a literal constant. */
   teik_pragma,		/* Extra information for a pragma. */
-  teik_pp_token         /* Extra information for a pp token. */
+  teik_pp_token,        /* Extra information for a pp token. */
+  teik_extracted_body   /* Extra information for an extracted template body. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_token_extra_info_kind;
@@ -1314,10 +1334,17 @@ typedef struct a_cached_token {
 			/* A list of pragmas associated with the next token
 			   in the cache. */
     /* When extra_info_kind == teik_pp_token: */
-    a_pp_token_descr	pp_token_descr;
+    a_pp_token_descr
+		pp_token_descr;
 			/* When a pp token is cached a copy of the string
 			   that represents the token is saved as part of
 			   the cache. */
+    /* When extra_info_kind == teik_extracted_body: */
+    an_extracted_template_descr
+		extracted_template;
+			/* When a template body is removed from a token
+			   cache, the semicolon after the member declaration
+			   is annotated with an extract template descriptor. */
   } variant;
 } a_cached_token;
 
