@@ -157,6 +157,21 @@ typedef struct a_required_destructor_call {
 
 
 /*
+Structure put on a list to remember the locations of all return statements
+in the current routine, so they can be rewritten to execute epilogue code.
+*/
+typedef struct a_return_memo *a_return_memo_ptr;
+typedef struct a_return_memo {
+  a_return_memo_ptr
+		next;	/* Next entry on the list, or NULL if this is the
+			   last. */
+  a_statement_ptr
+		stmt;
+			/* Pointer to a return statement. */
+} a_return_memo;
+
+
+/*
 Entry used to describe an insert position within a statement or expression
 tree.
 */
@@ -258,14 +273,11 @@ EXTERN unsigned long
 			/* Count of conditional parts of expressions that we
 			   are inside of.  Incremented on entering conditional
 			   operands of "?:", "&&", and "||". */
-EXTERN a_label_ptr
-		destructor_epilogue_label;
-			/* Set while lowering the body of a destructor;
-			   return statements in the body are changed to
-			   branch to this label. */
-EXTERN unsigned long
-		count_of_refs_to_destructor_epilogue_label;
-			/* Number of returns converted to branches as above. */
+EXTERN a_return_memo_ptr
+		return_memo_list;
+			/* List of return statements found in the current
+			   routine, maintained so that epilogue code can be
+			   added. */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 EXTERN sizeof_t	size_mangled_name_buffer /* = 0*/;
@@ -404,6 +416,12 @@ extern a_boolean virtual_dtor_should_be_generated_for_class(
                                                         a_type_ptr class_type);
 
 extern a_required_destructor_call_ptr alloc_required_destructor_call(void);
+
+extern void add_to_return_memo_list(a_statement_ptr return_stmt);
+
+extern void free_return_memo_list(a_return_memo_ptr rmp);
+
+extern void turn_statement_into_block(a_statement_ptr statement);
 
 extern void gen_required_destructor_calls(
                                    a_context_ptr          outer_context,

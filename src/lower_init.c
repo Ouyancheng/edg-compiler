@@ -3980,13 +3980,14 @@ destructor scope.
                          ctsp;
   a_constructor_init_ptr ctor_init;
   an_insert_location     insert_location, insert_location2;
-  a_statement_ptr        top_level_stmt, label_stmt;
-  a_statement_ptr        return_stmt;
+  a_statement_ptr        top_level_stmt, prev_stmt, label_stmt;
   an_expr_node_ptr       zero_constant_node, complete_obj_param_node;
   an_expr_node_ptr       compare_node;
   an_expr_node_ptr       vtbl_addr_node, vptr_node;
   a_variable_ptr         primary_vtbl_var, vtbl_var;
   a_routine_ptr          dtor_routine = scope->variant.routine.ptr;
+  a_return_memo_ptr      rmp, rmp_next;
+  a_label_ptr            epilogue_label;
 
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the destructor routine.  Lines enclosed in [...]
@@ -4112,33 +4113,64 @@ destructor scope.
                                         &insert_location);
     }  /* if */
   }  /* for */
-  /* The user code in the destructor follows this point, so find the end of the
-     top-level statement sequence and add the rest of the code there.  Return
-     statements in the body of the destructor have already been turned into
-     gotos to destructor_epilogue_label.
-  */
+  /* The user code in the destructor follows this point.  All returns in the
+     destructor have been put on the return_memo_list.  See if the first
+     of them (i.e., the last encountered in the routine) is a top-level
+     return. */
+  for (prev_stmt = NULL,
+           top_level_stmt = scope->assoc_block->variant.block.statements;
+       top_level_stmt != NULL;
+       prev_stmt = top_level_stmt,
+           top_level_stmt = top_level_stmt->next) {
+    if (return_memo_list != NULL && top_level_stmt == return_memo_list->stmt) {
+      /* This is a top-level return statement. */
+      break;
+    }  /* if */
+  }  /* for */
   /* Note that there must be at least one statement in the top-level block. */
-  for (top_level_stmt = scope->assoc_block->variant.block.statements;
-       top_level_stmt->next != NULL;
-       top_level_stmt = top_level_stmt->next) {}
-  if (top_level_stmt->kind == (a_statement_kind)stmk_goto &&
-      top_level_stmt->variant.label == destructor_epilogue_label) {
-    /* The last top-level statement is a goto to the epilogue, so it can
-       be turned into a no-op. */
-    turn_statement_into_noop(top_level_stmt);
-    count_of_refs_to_destructor_epilogue_label--;
+  check_assertion(prev_stmt != NULL);
+  if (top_level_stmt == NULL) {
+    /* There was no top-level return, so add one at the end of the top-level
+       statement list. */
+    top_level_stmt = alloc_statement((a_statement_kind)stmk_return);
+    set_insert_location(prev_stmt, &insert_location);
+    insert_statement(top_level_stmt, &insert_location);
+    /* Add the return to the return memo list. */
+    add_to_return_memo_list(top_level_stmt);
   }  /* if */
-  set_insert_location(top_level_stmt, &insert_location);
-  destructor_epilogue_label->source_corresp.referenced =
-                             (count_of_refs_to_destructor_epilogue_label != 0);
-  if (destructor_epilogue_label->source_corresp.referenced) {
-    /* Define the epilogue label. */
+  /* Now there is a top-level return statement and insert_location is set to
+     insert in front of it.  The return statement is pointed to by
+     top_level_stmt and by the first entry of the return memo list,
+     and prev_stmt points to the statement preceding the return. */
+  /* We will be inserting code before the return or at the end of the top-level
+     statement list. */
+  set_insert_location(prev_stmt, &insert_location);
+  /* Leave just the entry for this return on the memo list.  The rest are
+     processed and freed. */
+  rmp = return_memo_list->next;
+  return_memo_list->next = NULL;
+  if (rmp == NULL) {
+    /* There are no other returns. */
+  } else {
+    /* There are other returns.  Add an epilogue label and change the other
+       returns to gotos to that label. */
+    epilogue_label = alloc_label();
     label_stmt = alloc_statement((a_statement_kind)stmk_label);
-    label_stmt->variant.label = destructor_epilogue_label;
-    destructor_epilogue_label->variant.exec_stmt = label_stmt;
-    destructor_epilogue_label->parent_block = scope->assoc_block;
-    add_to_labels_list(destructor_epilogue_label);
+    label_stmt->variant.label = epilogue_label;
+    epilogue_label->variant.exec_stmt = label_stmt;
+    epilogue_label->parent_block = scope->assoc_block;
+    epilogue_label->source_corresp.referenced = TRUE;
+    add_to_labels_list(epilogue_label);
     insert_statement(label_stmt, &insert_location);
+    /* Change the other returns to gotos. */
+    for (; rmp != NULL; rmp = rmp_next) {
+      a_statement_ptr stmt = rmp->stmt;
+      rmp_next = rmp->next;
+      set_statement_kind(stmt, (a_statement_kind)stmk_goto);
+      stmt->variant.label = epilogue_label;
+      rmp->next = NULL;
+      free_return_memo_list(rmp);
+    }  /* for */
   }  /* if */
   /* Generate a destructor call for each data member that appears on the
      ctor_init list. */
@@ -4261,9 +4293,6 @@ destructor scope.
     call_stmt = make_call_statement(delete_routine, this_param_node);
     insert_statement(call_stmt, &insert_location2);
   }
-  /* Add a return statement at the end of the routine. */
-  return_stmt = alloc_statement((a_statement_kind)stmk_return);
-  insert_statement(return_stmt, &insert_location);
   { a_statement_ptr  block_stmt;
     an_expr_node_ptr this_param_node, null_constant_node, if_node;
     a_constant       null_constant;

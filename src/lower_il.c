@@ -68,7 +68,8 @@ Count of entries allocated, for debugging purposes.
 */
 static unsigned long
 		allocated_name_string_length,
-		num_required_destructor_calls_allocated;
+		num_required_destructor_calls_allocated,
+		num_return_memos_allocated;
 #endif /* DEBUG */
 
 
@@ -102,6 +103,11 @@ static a_required_destructor_call_ptr
 		avail_required_destructor_calls;
 			/* List of required destructor call entries that have
 			   been freed and are available for reuse. */
+
+static a_return_memo_ptr
+		avail_return_memos;
+			/* List of return memo entries that have been freed
+			   and are available for reuse. */
 
 static a_context_ptr
 		nearest_function_context;
@@ -288,6 +294,46 @@ available list.
     avail_required_destructor_calls = rdcp;
   }  /* for */
 }  /* free_required_destructor_call_list */
+
+
+void add_to_return_memo_list(a_statement_ptr return_stmt)
+/*
+Allocate a return memo entry to record the existence of the indicated return
+statement, and add it to the list of memo entries.
+*/
+{
+  a_return_memo_ptr rmp;
+
+  if (avail_return_memos != NULL) {
+    /* Reuse a freed entry. */
+    rmp = avail_return_memos;
+    avail_return_memos = rmp->next;
+  } else {
+    /* Allocate a new entry. */
+    rmp = (a_return_memo_ptr)alloc_fe(sizeof(a_return_memo));
+#if DEBUG
+    num_return_memos_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  rmp->next = return_memo_list;
+  return_memo_list = rmp;
+  rmp->stmt = return_stmt;
+}  /* alloc_return_memo */
+
+
+void free_return_memo_list(a_return_memo_ptr rmp)
+/*
+Free a list of return memo entries by putting them on the available list.
+*/
+{
+  a_return_memo_ptr rmp_next;
+
+  for (; rmp != NULL; rmp = rmp_next) {
+    rmp_next = rmp->next;
+    rmp->next = avail_return_memos;
+    avail_return_memos = rmp;
+  }  /* for */
+}  /* free_return_memo_list */
 
 
 void push_context(a_context   *context,
@@ -5872,7 +5918,7 @@ it; otherwise, switch_context is NULL.
 }  /* lower_switch_clause_list */
 
 
-static void turn_statement_into_block(a_statement_ptr statement)
+void turn_statement_into_block(a_statement_ptr statement)
 /*
 Turn the indicated statement into a block statement with a copy of the
 original statement under it.
@@ -5892,17 +5938,20 @@ original statement under it.
 
 
 static void turn_branch_into_block(a_statement_ptr        statement,
-                                   an_insert_location_ptr insert_location)
+                                   an_insert_location_ptr insert_location,
+                                   a_statement_ptr        *orig_statement)
 /*
 Turn a branch statement (goto or return) into a block, and set *insert_location
 so that statements can be inserted at the beginning of the block (i.e.,
-in front of the original branch statement).
+in front of the original branch statement).  *orig_statement is set to point
+to the original statement in its new location.
 */
 {
   turn_statement_into_block(statement);
   /* We know the original statement is a branch of some sort, so
      the end of the block is not reachable. */
   statement->variant.block.extra_info->end_of_block_reachable = FALSE;
+  *orig_statement = statement->variant.block.statements;
   /* Insert at the start of the added block. */
   set_block_start_insert_location(statement, insert_location);
 }  /* turn_branch_into_block */
@@ -6072,7 +6121,7 @@ static void gen_goto_required_destructor_calls(a_statement_ptr statement)
 Generate any destructor calls required preceding the indicated goto statement.
 */
 {
-  a_statement_ptr    goto_block, label_block;
+  a_statement_ptr    goto_block, label_block, orig_statement;
   a_context_ptr      goto_context, outermost_context_being_exited;
   an_insert_location insert_location;
   a_boolean          any_label_block_destructor_calls_needed;
@@ -6168,7 +6217,7 @@ end_context_loop:
       any_label_block_destructor_calls_needed) {
     /* Some destructor calls are needed.  Generate them. */
     /* Turn the goto into a block so code can be inserted in front of it. */
-    turn_branch_into_block(statement, &insert_location);
+    turn_branch_into_block(statement, &insert_location, &orig_statement);
     if (any_exited_block_destructor_calls_needed) {
       gen_required_destructor_calls(outermost_context_being_exited,
                                     &insert_location);
@@ -6219,16 +6268,16 @@ static void lower_statement(a_statement_ptr statement)
 Do IL lowering of the indicated statement and everything under it.
 */
 {
-  a_routine_ptr      curr_routine;
   a_context          context, dependent_context;
   a_scope_ptr        scope;
   an_insert_location insert_location;
-  a_statement_ptr    last_statement, body_statement;
+  a_statement_ptr    last_statement, body_statement, return_statement;
   a_boolean          make_block;
   an_expr_node_ptr   return_expr;
   a_variable_ptr     temp_var;
   a_required_destructor_call_ptr
                      rdcp;
+  a_dynamic_init_ptr dip;
 
   if (statement != NULL) {
     /* Track the source position for internal errors. */
@@ -6271,39 +6320,29 @@ Do IL lowering of the indicated statement and everything under it.
         }  /* if */
         /* Keep track of whether or not we have already turned the return
            statement into a block.  We haven't so far. */
+        return_statement = statement;
         make_block = TRUE;
-        curr_routine = nearest_function_scope->variant.routine.ptr;
-        if (curr_routine->special_kind ==
-                                    (a_special_function_kind)sfk_destructor) {
-          /* In a destructor, change returns into gotos to the epilogue
-             label. */
-          set_statement_kind(statement, (a_statement_kind)stmk_goto);
-          statement->expr = NULL;
-          statement->variant.label = destructor_epilogue_label;
-          count_of_refs_to_destructor_epilogue_label++;
-        } else {
-          a_dynamic_init_ptr dip = statement->variant.return_dynamic_init;
-          if (dip != NULL) {
-            /* This routine returns its value via a copy constructor.
-               The dynamic initialization entry indicates the operation to
-               be done. */
-            an_init_pos_descr ipd;
-            a_boolean         keep_dynamic_init;
-            statement->variant.return_dynamic_init = NULL;
-            set_var_indirect_init_pos_descr(return_value_pointer_variable,
-                                            &ipd);
-            /* Put the return statement under a block so we can insert in
-               front of it. */
-            turn_branch_into_block(statement, &insert_location);
-            make_block = FALSE;
-            lower_dynamic_init(dip, &ipd,
-                               /*first_time_test_var=*/(a_variable_ptr)NULL,
-                               /*is_expr_temporary=*/FALSE,
-                               (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                               (a_constructor_init_ptr)NULL,
-                               &insert_location, &keep_dynamic_init);
-            check_assertion(!keep_dynamic_init);
-          }  /* if */
+        dip = statement->variant.return_dynamic_init;
+        if (dip != NULL) {
+          /* This routine returns its value via a copy constructor.
+             The dynamic initialization entry indicates the operation to
+             be done. */
+          an_init_pos_descr ipd;
+          a_boolean         keep_dynamic_init;
+          statement->variant.return_dynamic_init = NULL;
+          set_var_indirect_init_pos_descr(return_value_pointer_variable, &ipd);
+          /* Put the return statement under a block so we can insert in
+             front of it. */
+          turn_branch_into_block(statement, &insert_location,
+                                 &return_statement);
+          make_block = FALSE;
+          lower_dynamic_init(dip, &ipd,
+                             /*first_time_test_var=*/(a_variable_ptr)NULL,
+                             /*is_expr_temporary=*/FALSE,
+                             (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
+                             (a_constructor_init_ptr)NULL,
+                             &insert_location, &keep_dynamic_init);
+          check_assertion(!keep_dynamic_init);
         }  /* if */
         if (any_required_destructor_calls(nearest_function_context)) {
           /* Generate any destructor calls required on exit from the
@@ -6326,7 +6365,8 @@ Do IL lowering of the indicated statement and everything under it.
                be executing the code here, because a return can have either
                a dynamic init entry or an expression, but not both. */
             check_assertion(make_block);
-            turn_branch_into_block(statement, &insert_location);
+            turn_branch_into_block(statement, &insert_location,
+                                   &return_statement);
             make_block = FALSE;
             /* Insert the "temp = return-expr;" statement. */
             (void)insert_var_assignment_statement(
@@ -6337,11 +6377,15 @@ Do IL lowering of the indicated statement and everything under it.
           if (make_block) {
             /* Turn the return into a block so that code can be inserted
                in front of the return. */
-            turn_branch_into_block(statement, &insert_location);
+            turn_branch_into_block(statement, &insert_location,
+                                   &return_statement);
           }  /* if */
           gen_required_destructor_calls(nearest_function_context,
                                         &insert_location);
         }  /* if */
+        /* Maintain a list of all returns in the routine so that epilogue code
+           can be added for destructors and for exception handling. */
+        add_to_return_memo_list(return_statement);
         break;
       case stmk_if:
         lower_full_expr(statement->expr, /*repeated_in_loop=*/FALSE);
@@ -6788,12 +6832,11 @@ Do IL lowering of the indicated scope and everything under it.
       } else if (routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor) {
         add_destructor_params(scope);
-        /* For a destructor, make up a label that returns will be changed
-           to branch to. */
-        destructor_epilogue_label = alloc_label();
-        count_of_refs_to_destructor_epilogue_label = 0;
       }  /* if */
     }  /* if */
+    /* Clear the list of return statements found in the routine.  This list
+       is built so that epilogue code can be added at each return. */
+    return_memo_list = NULL;
     /* Lower the executable code. */
     /* Note that the statements are done after the declarations, and they
        are done only for functions, not for blocks; the statements in the
@@ -6810,6 +6853,8 @@ Do IL lowering of the indicated scope and everything under it.
     }  /* if */
     /* Add prologue code for exceptions. */
     add_eh_function_prologue(scope);
+    /* Free any return memos that were not used. */
+    free_return_memo_list(return_memo_list);
   }  /* if */
   pop_context();
   db_exit();
@@ -6959,6 +7004,8 @@ Display and return the amount of space used for various IL lowering tables.
   db_space_used_lost("required dtor call", avail_required_destructor_calls,
                      num_required_destructor_calls_allocated,
                      a_required_destructor_call);
+  db_space_used_lost("return memos", avail_return_memos,
+                     num_return_memos_allocated, a_return_memo);
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   db_space_used_general_buffer("mangled name buffer",
                                size_mangled_name_buffer);
@@ -6987,6 +7034,7 @@ of the front end.
 #endif /* DEBUG */
   /* Static variables in lower_il.c: */
   avail_required_destructor_calls = NULL;
+  avail_return_memos = NULL;
   pure_virtual_called_routine = NULL;
   vptp_type = NULL;
   mptr_type = NULL;
@@ -6994,6 +7042,7 @@ of the front end.
 #if DEBUG
   allocated_name_string_length            = 0;
   num_required_destructor_calls_allocated = 0;
+  num_return_memos_allocated              = 0;
 #endif /* DEBUG */
   /* Do lower_name.c initialization. */
   name_lower_init();
