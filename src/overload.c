@@ -523,9 +523,10 @@ are used in resolving calls to overloaded functions.
   cfp->specific_type = NULL;
   cfp->arg_matches = NULL;
   cfp->current_arg_match = NULL;
-  cfp->prev_func_arg_match_with_same_match_level = NULL;
+  cfp->next_in_arg_best_match_set = NULL;
   cfp->in_best_match_set = FALSE;
   cfp->in_best_match_set_for_some_argument = FALSE;
+  cfp->in_best_match_set_for_curr_argument = FALSE;
   return cfp;
 }  /* alloc_candidate_function */
 
@@ -3394,7 +3395,7 @@ is set to TRUE.
   a_candidate_function_ptr candidates = *candidate_functions;
   a_candidate_function_ptr cfp, best_cfp, end_candidate_functions, cfp_next;
   unsigned long            number_in_best_match_set;
-  an_arg_match_summary_ptr best_match_for_curr_arg, curr_arg;
+  an_arg_match_summary_ptr curr_arg;
   int                      cmp;
   a_boolean                overall_ambiguity = FALSE, any_error_match = FALSE;
 
@@ -3442,56 +3443,66 @@ is set to TRUE.
     /* Loop for each argument. */
     while (candidates->current_arg_match != NULL) {
       /* Find the best-match set for this argument. */
-      best_match_for_curr_arg = NULL;
+      a_candidate_function_ptr best_match_set_for_curr_arg = NULL;
       /* Loop for each candidate function.  Look at the current argument
          under each function to find the best matches. */
       for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
+        a_boolean new_match_worse_than_some_match_in_set = FALSE;
         curr_arg = cfp->current_arg_match;
-        /* Ignore error matches in finding the best matches (but they get
-           added to the best-match set below). */
         if (curr_arg->match_level == aml_error) {
+          /* Always add error matches to the best-match set. */
           any_error_match = TRUE;
         } else {
-          if (best_match_for_curr_arg == NULL) {
-            /* First match considered for this argument.  It's the best
-               so far by definition. */
-            cmp = 1;
-          } else {
-            /* Compare the current argument match level against the best
-               match so far. */
-            cmp = compare_arg_match_levels(curr_arg, best_match_for_curr_arg);
-          }  /* if */
-          if (cmp < 0) {
-            /* The argument match being examined is not as good as the best
-               match so far.  Ignore it. */
-            cfp->prev_func_arg_match_with_same_match_level = NULL;
-          } else {
-            /* The argument match being examined is at least as good as the
-               best match so far. */
-            if (cmp > 0) {
-              /* The argument match being examined is better than any seen
-                 so far.  Remember it as the best so far. */
-              best_match_for_curr_arg = curr_arg;
+          a_candidate_function_ptr func_in_set, prev_func_in_set = NULL;
+          for (func_in_set = best_match_set_for_curr_arg;
+               func_in_set != NULL;
+               func_in_set = func_in_set->next_in_arg_best_match_set) {
+            /* Compare the current argument match level against one match
+               in the set of best matches so far on this argument. */
+            cmp = compare_arg_match_levels(curr_arg,
+                                           func_in_set->current_arg_match);
+            if (cmp < 0) {
+              /* The current argument match is not as good as this match in
+                 the set, so it will not be added to the set.  We do have
+                 to keep going to compare the current argument match against
+                 the other matches in the set. */
+              new_match_worse_than_some_match_in_set = TRUE;
+              prev_func_in_set = func_in_set;
+            } else if (cmp > 0) {
+              /* The current argument match is better than this match in
+                 the set, so remove the match from the set. */
+              func_in_set->in_best_match_set_for_curr_argument = FALSE;
+              if (prev_func_in_set == NULL) {
+                best_match_set_for_curr_arg =
+                                       func_in_set->next_in_arg_best_match_set;
+              } else {
+                prev_func_in_set->next_in_arg_best_match_set =
+                                       func_in_set->next_in_arg_best_match_set;
+              }  /* if */
+            } else {
+              /* The current argument match is no better/no worse than this
+                 match in the set, so keep the match in the set. */
+              prev_func_in_set = func_in_set;
             }  /* if */
-            /* Remember that this argument match is a member of a best-match
-               set, at least at the moment. */
-            cfp->prev_func_arg_match_with_same_match_level =
-                                                       best_match_for_curr_arg;
-          }  /* if */
+          }  /* for */
+        }  /* if */
+        /* Add the new match to the set if it is no worse than everything
+           in the set. */
+        if (!new_match_worse_than_some_match_in_set) {
+          cfp->next_in_arg_best_match_set = best_match_set_for_curr_arg;
+          best_match_set_for_curr_arg = cfp;
+          cfp->in_best_match_set_for_curr_argument = TRUE;
+        } else {
+          cfp->in_best_match_set_for_curr_argument = FALSE;
         }  /* if */
       }  /* for */
-      /* Here, the current argument matches with 
-         prev_func_arg_match_with_same_match_level == best_match_for_curr_arg
-         are the best-match set for the current argument. */
       /* Loop through the functions and form the intersection of the
          best-match set for this argument and the overall best-match
          set to date. */
       for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
         /* Also keep functions with error matches in the best-match set. */
         curr_arg = cfp->current_arg_match;
-        if (cfp->prev_func_arg_match_with_same_match_level ==
-                                                     best_match_for_curr_arg ||
-            curr_arg->match_level == aml_error) {
+        if (cfp->in_best_match_set_for_curr_argument) {
           /* This function is in the best-match set for the current
              argument. */
           cfp->in_best_match_set_for_some_argument = TRUE;

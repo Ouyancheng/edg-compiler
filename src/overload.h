@@ -291,16 +291,11 @@ typedef struct a_candidate_function {
 		current_arg_match;
 			/* The argument match entry currently being considered
 			   by select_best_candidate_functions. */
-  an_arg_match_summary_ptr
-		prev_func_arg_match_with_same_match_level;
-			/* If non-NULL, points to an argument match summary
-			   for the same argument on a previous candidate
-			   function that has the same match level.  This is
-			   used to keep track of the set of best-matching
-			   arguments: they are the set that has this field
-			   pointing to the argument match that was chosen as
-			   best (i.e., all the argument matches that tied
-			   for "best"). */
+  a_candidate_function_ptr
+		next_in_arg_best_match_set;
+			/* If non-NULL, points to the next candidate function
+			   that's in the set of best matches for the argument
+			   currently being examined. */
   a_byte_boolean
 		in_best_match_set;
 			/* TRUE if the function is in the set of best-matching
@@ -309,6 +304,10 @@ typedef struct a_candidate_function {
 		in_best_match_set_for_some_argument;
 			/* TRUE if the function is in the set of best-matching
 			   functions for some argument. */
+  a_byte_boolean
+		in_best_match_set_for_curr_argument;
+			/* TRUE if the function is in the set of best-matching
+			   functions for the current argument. */
 } a_candidate_function;
 
 

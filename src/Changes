@@ -1,5 +1,19 @@
 Version 2.43
 
+12/6/99  Overload resolution gave incorrect ambiguity error
+
+In certain cases involving three or more viable functions, at least one
+of which is a template, overload resolution incorrect reported
+ambiguity instead of picking the best function.  Now fixed.
+
+  template<class T> int getd(const T &);
+  int getd(char *a);
+  int getd(const char *a);
+  int main(){
+    char c[5];  
+    getd(c);  // Incorrectly gave ambiguity
+  }
+
 12/6/99  Access of nested class in class template when redeclared
 
 A spurious access error was issued when a nested class of a class template
