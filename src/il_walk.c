@@ -79,9 +79,11 @@ typedef char	*a_char_ptr;
 static void walk_string_entry(char             *entry_ptr,
                               an_il_entry_kind entry_kind,
                               sizeof_t         entry_length);
+#if MAINTAIN_NEEDED_FLAGS
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 static void set_keep_in_il_on_source_sequence_entries(a_scope_ptr scope);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 
 /* Build a routine to walk entries and their subtrees. */

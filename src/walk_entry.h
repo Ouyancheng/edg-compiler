@@ -178,9 +178,14 @@ Similar to walk_list, but expands to nothing in the NEEDED_FLAG_WALK mode.
 Similar to walk_list, but used to walk lists attached to a scope.  If the
 local variable do_only_needed_entries_on_lists is TRUE, walk the list but
 call walk_ptr only on those entries with the "needed" flag TRUE.
-In NEEDED_FLAG_WALK mode, expands to nothing.
+In NEEDED_FLAG_WALK mode, expands to nothing.  When MAINTAIN_NEEDED_FLAGS
+is FALSE, expands to a simple walk_list.
 */
 #undef walk_needed_on_list
+#if !MAINTAIN_NEEDED_FLAGS
+#define walk_needed_on_list(ptr, ptr_type, entry_kind) \
+  walk_list(ptr, ptr_type, entry_kind)
+#else /* MAINTAIN_NEEDED_FLAGS */
 #if NEEDED_FLAG_WALK
 #define walk_needed_on_list(ptr, ptr_type, entry_kind) /* Nothing */
 #else /* !NEEDED_FLAG_WALK */
@@ -197,6 +202,7 @@ In NEEDED_FLAG_WALK mode, expands to nothing.
   }  /* if */ \
 }  /* walk_needed_on_list */
 #endif /* NEEDED_FLAG_WALK */
+#endif /* !MAINTAIN_NEEDED_FLAGS */
 
 /*
 Process the source correspondence field pointed to by ptr.
@@ -1107,11 +1113,11 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         a_scope_ptr  ptr = (a_scope_ptr)entry_ptr;
         a_scope_kind kind = ptr->kind;
-#if !NEEDED_FLAG_WALK
+#if MAINTAIN_NEEDED_FLAGS && !NEEDED_FLAG_WALK
         a_boolean    do_only_needed_entries_on_lists =
                                               (walking_to_set_keep_in_il &&
                                                kind == (a_scope_kind)sck_file);
-#endif /* !NEEDED_FLAG_WALK */
+#endif /* MAINTAIN_NEEDED_FLAGS && !NEEDED_FLAG_WALK */
         remap_next_ptr(ptr->next, a_scope_ptr, iek_scope);
         switch (kind) {
           case sck_file:
@@ -1253,14 +1259,14 @@ the file scope, do not process it (but record an orphan in the latter case).
            processing. */
         remap_ptr_not_needed(ptr->src_seq_sublist_list, a_src_seq_sublist_ptr,
                              iek_src_seq_sublist);
-#if !NEEDED_FLAG_WALK
+#if MAINTAIN_NEEDED_FLAGS && !NEEDED_FLAG_WALK
         /* When setting the keep_in_il flag, source sequence entries are
            kept if and only if the associated IL entry is kept.  Note that
            this is done last so all the keep_in_il flags are set already. */
         if (walking_to_set_keep_in_il) {
           set_keep_in_il_on_source_sequence_entries(ptr);
         }  /* if */
-#endif /* !NEEDED_FLAG_WALK */
+#endif /* MAINTAIN_NEEDED_FLAGS && !NEEDED_FLAG_WALK */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }
       break;
