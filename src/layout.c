@@ -1280,11 +1280,14 @@ subobject_type are considered in addition to direct bases.
              field != NULL;
              field = field->next) {
           /* If the field type is an array get the (ultimate) element type. */
+          num_field_array_elts = 1;
           if (is_array_type(field->type)) {
-            num_field_array_elts = num_array_elements(field->type);
+            /* Watch out for prototype instantiations. */
+            if (!has_unknown_specified_bound(field->type)) {
+              num_field_array_elts = num_array_elements(field->type);
+            }  /* if */
             field_type = underlying_array_element_type(field->type);
           } else {
-            num_field_array_elts = 1;
             field_type = field->type;
           }  /* if */
           if (is_empty_class_type(field_type)) {
