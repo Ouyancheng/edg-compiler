@@ -4484,7 +4484,7 @@ void decl_function_template(a_symbol_locator            *locator,
                             a_symbol_ptr                *symbol_ptr,
                             a_storage_class             storage_class,
                             a_decl_modifiers_block_ptr  decl_modifiers,
-                            a_template_param_ptr        templ_param_list,
+                            a_template_decl_info_ptr    templ_decl_info,
                             a_scope_depth               orig_decl_level)
 /*
 Roughly speaking, this routine does for function templates what
@@ -4511,11 +4511,13 @@ is not a template declaration scope.
   a_boolean                         changed_to_inline = FALSE;
   a_boolean                         namespace_reactivated = FALSE;
   a_boolean                         is_friend_decl;
+  a_template_param_ptr		    templ_param_list;
 #if DECL_MODIFIERS_IN_USE
   a_boolean			    redeclaration = FALSE;
 #endif /* DECL_MODIFIERS_IN_USE */
 
   db_enter(3, "decl_function_template");
+  templ_param_list = templ_decl_info->parameters;
   if (func_info->is_inline && !extern_inline_allowed) {
     storage_class = (a_storage_class)sc_static;
   } else if (storage_class == (a_storage_class)sc_unspecified) {
@@ -4714,6 +4716,18 @@ is not a template declaration scope.
                                  /*suppress_redecl_error=*/FALSE);
       }  /* if */
       tssp = template_supplement_for_symbol(sym);
+      if (tssp->variant.function.decl_cache.decl_info == NULL) {
+        /* If this is the initial declaration of this template, set the
+           template cache information to point to the template declaration
+           information that was passed in.  This must be done now so that
+           things like the template parameter list will be available to
+           other routines that are called below.  This includes the
+           diagnostic routines that make use of the template parameter
+           list in diagnostic output. */
+        set_template_cache_info(&tssp->variant.function.decl_cache,
+                                (a_token_cache_ptr)NULL,
+                                templ_decl_info);
+      }  /* if */
       rout_ptr = NULL;
       /* Set namespace membership on this template function. */
       if (is_friend_decl && ssep->in_prototype_instantiation) {

@@ -9124,7 +9124,7 @@ information returned from decl_specifiers and declarator.
                                            dso_flags, start_pos, func_info);
   } else {
     decl_function_template(locator, type, func_info, &sym, storage_class,
-                           decl_modifiers, decl_state->decl_info->parameters,
+                           decl_modifiers, decl_state->decl_info,
                            decl_state->effective_decl_level);
   }  /* if */
   db_exit();
