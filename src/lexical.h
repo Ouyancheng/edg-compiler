@@ -154,8 +154,6 @@ EXTERN char	*token_names[(int)tok_last+1]
 /* These declarations are placed here so that they will be defined before
    symbol_tbl.h is included. */
 
-struct a_cached_token;
-
 typedef struct a_lint_and_pragma_state *a_lint_and_pragma_state_ptr;
 typedef struct a_lint_and_pragma_state {
   /* Structure used to summarize a state of the lint and pragma flags,
