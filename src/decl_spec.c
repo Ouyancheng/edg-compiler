@@ -198,11 +198,10 @@ static void scan_declspec_align(a_decl_modifiers_block_ptr  decl_modifiers)
 /*
 Scan the Microsoft C/C++ mode extension
 
-  __declspec(align(<integer-literal>)
+  __declspec(align(<integer-literal>))
 
 The current token is the "align" modifier token.  Add the information on
-alignment specification to *decl_modifiers.  Return with the closing
-parenthesis of the property list as the current token.
+alignment specification to *decl_modifiers.
 */
 {
   /* Skip the "align" specifier. */
@@ -698,7 +697,7 @@ void update_extended_decl_info_for_class(
 Update the specified class type with information based on a previous scan of
 extended declaration modifiers, as specified by *extended_decl_info.
 class_definition is TRUE if the modifiers appeared on a class definition
-(as opposed to just a declaration)  err_pos is a pointer to a source position
+(as opposed to just a declaration).  err_pos is a pointer to a source position
 used for diagnostics.
 */
 {
