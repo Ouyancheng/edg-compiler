@@ -1662,7 +1662,7 @@ bcp base if it has a subobject of the same type as the first base.
         break;
       }  /* if */
     }  /* for */
-    if (first_base != NULL) {
+    if (first_base != NULL && !first_base->is_virtual) {
       check_assertion(first_base->offset_is_set && first_base->offset == 0);
       result = gnu_conflict_found(skip_typerefs(bcp->type),
                                   skip_typerefs(first_base->type));
