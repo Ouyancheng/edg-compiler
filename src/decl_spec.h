@@ -22,7 +22,6 @@ decl_spec.h -- Declarations related to decl_spec.c (having to with
 #include "decls.h"
 #endif /* ifndef DECLS_H */
 
-typedef struct an_extended_decl_info_block *an_extended_decl_info_block_ptr;
 typedef struct an_extended_decl_info_block {
   a_type_qualifier_set
 		qualifiers;

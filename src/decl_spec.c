@@ -3917,9 +3917,10 @@ Returns TRUE if there is an error in the specifiers.
           an_extended_decl_info_block  extended_decl_info;
           a_source_position            specifier_start_pos;
           a_boolean                    is_declspec = FALSE;
-          a_boolean                    is_member_decl;
+          a_boolean                    local_is_member_decl;
 
-          is_member_decl = ((input_flags & DSI_IS_MEMBER_DECLARATION) != 0);
+          local_is_member_decl =
+                        ((input_flags & DSI_IS_MEMBER_DECLARATION) != 0);
           clear_extended_decl_info_block(extended_decl_info);
           specifier_start_pos = pos_curr_token;
           /* A Microsoft storage class modifier.  If this is a __declspec,
@@ -3927,8 +3928,8 @@ Returns TRUE if there is an error in the specifiers.
           switch (curr_token) {
             case tok_declspec:
               scan_extended_decl_modifiers(/*is_class_decl=*/FALSE,
-                                           is_member_decl, &extended_decl_info,
-                                           &err);
+                                           local_is_member_decl,
+                                           &extended_decl_info, &err);
               decl_specifiers_seen |= DS_DECLSPEC;
               is_declspec = TRUE;
               break;
