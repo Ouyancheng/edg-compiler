@@ -1,5 +1,11 @@
 Version 2.33
 
+9/13/96 Microsoft compatibility: __STDC__ not defined
+
+The Microsoft Visual C++ compiler does not define the preprocessor
+variable __STDC__ when extensions are suported, so the front end has
+been changed not to define __STDC__ in Microsoft mode.
+
 9/13/96 Compilation speed problem with extremely large switch statements
 
 In the compilation process for case labels of switch statements, the

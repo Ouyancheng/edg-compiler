@@ -3752,12 +3752,17 @@ command line -D options.
      and, if so, what its value is are implementation dependent."),
      left undefined otherwise.  __STDC__ cannot be redefined when
      compiling ANSI C, but can be redefined when compiling C++. */
-  if (C_dialect == C_dialect_ANSI || C_dialect == C_dialect_cplusplus
+  if ((C_dialect == C_dialect_ANSI || C_dialect == C_dialect_cplusplus)
 #if OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
       /* If configured to use old-style preprocessing in cfront
          compatibility mode, do not define __STDC__ in that mode. */
       && !any_cfront_mode()
 #endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* The Microsoft compiler does not define __STDC__ in either C or
+         C++ mode when it supports extensions. */
+      && !microsoft_mode
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                       ) {
     (void)enter_predef_macro("1", "__STDC__", C_dialect == C_dialect_ANSI,
                              /*ref_suppresses_pch_file=*/FALSE);
