@@ -5728,6 +5728,7 @@ Scan the body of a class definition, including the base classes list.
              to the next declaration. */
           /* Check first whether this is an anonymous union declaration. */
           if (member_storage_class == (a_storage_class)sc_unspecified &&
+              !is_incomplete_type(member_type) &&
               is_anonymous_union_decl(member_type, dso_flags,
                                       &is_nonstd_anonymous_union,
                                       &pos_curr_token)) {
