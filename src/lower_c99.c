@@ -445,6 +445,24 @@ Transform the given complex expression ("z1!=z2") into a function call
 }  /* lower_c99_xne */
 
 
+static a_boolean is_fixed_address(an_expr_node_ptr expr)
+/*
+Return TRUE if the given expression (an lvalue) is for a simple variable
+whose address does not change.  x[i], for example, is changeable because
+the value of "i" might change.  The expression must also have no side
+effects to be considered simple.  The safe answer is FALSE.
+*/
+{
+  a_boolean is_fixed = FALSE;
+
+  if (is_variable_address_node(expr)) {
+    /* Simple variable address. */
+    is_fixed = TRUE;
+  }  /* if */
+  return is_fixed;
+}  /* is_fixed_address */
+
+
 static void lower_c99_compound_assignment(an_expr_node_ptr  expr,
                                           char              *rout_name,
                                           a_routine_ptr     *xop_routine)
@@ -456,10 +474,15 @@ called routine (op@) are rout_name and xop_routine, respectively.
 */
 {
   an_expr_node_ptr  lhs = expr->variant.operation.operands, rhs = lhs->next;
-  an_expr_node_ptr  lhs_copy, xop_call, assignment;
-  a_type_ptr        op_type = expr->variant.operation.operands->next->type;
+  an_expr_node_ptr  lhs_copy, lhs_for_init = NULL, xop_call, assignment;
+  a_type_ptr        op_type = skip_typerefs(rhs->type);
 
-  op_type = skip_typerefs(op_type);
+  if (!is_fixed_address(lhs)) {
+    /* The left-hand-side expression address is not invariant, so copy it to
+       a temporary to avoid evaluating it more than once. */
+    lhs_for_init = lhs;
+    lhs = make_lvalue_reusable_copy(lhs_for_init, /*vars_can_change=*/TRUE);
+  }  /* if */
   lhs_copy = make_lvalue_reusable_copy(lhs, /*vars_can_change=*/TRUE);
   lhs_copy = add_indirection_to_node(lhs_copy);
   lhs_copy = add_c99_lowered_cast_if_necessary(lhs_copy, op_type);
@@ -471,6 +494,11 @@ called routine (op@) are rout_name and xop_routine, respectively.
   lhs->next = xop_call;
   assignment =  make_operator_node((an_expr_operator_kind)eok_sassign,
                                    expr->type, lhs);
+  if (lhs_for_init) {
+    /* Add a comma expression to force the initialization of the temporary
+       before any part of the compound assignment is evaluated. */
+    assignment = make_comma_node(lhs_for_init, assignment);
+  }  /* if */
   overwrite_node(expr, assignment);
 }  /* lower_c99_compound_assignment */
 
@@ -1064,6 +1092,27 @@ statement statement.
 }  /* lower_c99_expr_full */
 
 
+static void end_of_c99_full_expr(void)
+/*
+Do end-of-full-expression processing for C99 lowering.
+*/
+{
+  /* Release any reable temporaries that were allocated. */
+  release_reusable_temporaries();
+}  /* end_of_c99_full_expr */
+
+
+static void lower_c99_full_expr(an_expr_node_ptr expr)
+/*
+Do C99 lowering on the indicated full expression.  A full expression is
+one not contained inside another expression.
+*/
+{
+  lower_c99_expr(expr);
+  end_of_c99_full_expr();
+}  /* lower_c99_full_expr */
+
+
 static void lower_c99_dynamic_init(a_dynamic_init_ptr dip)
 /*
 Do C99 lowering on the indicated dynamic initialization entry.
@@ -1075,6 +1124,9 @@ Do C99 lowering on the indicated dynamic initialization entry.
       break;
     case dik_expression:
       lower_c99_expr(dip->variant.expression);
+      /* Do end-of-full-expression processing if this initialization is
+         at the top level. */
+      if (dip->variable != NULL) end_of_c99_full_expr();
       break;
     default:
       unexpected_condition_str("lower_c99_dynamic_init: bad kind");
@@ -1129,6 +1181,7 @@ Do C99 lowering on the indicated statement.
     lower_c99_expr_full(statement->expr,
                         (statement->kind == (a_statement_kind)stmk_expr) ?
                                             statement : (a_statement_ptr)NULL);
+    end_of_c99_full_expr();
   }  /* if */
   switch (statement->kind) {
     case stmk_expr:
@@ -1167,7 +1220,7 @@ Do C99 lowering on the indicated statement.
           lower_c99_statement(flp->initialization);
         }  /* if */
         if (flp->increment != NULL) {
-          lower_c99_expr(flp->increment);
+          lower_c99_full_expr(flp->increment);
         }  /* if */
       }
       lower_c99_statement(statement->variant.for_loop.statement);
@@ -1298,7 +1351,7 @@ Do C99 lowering for all entities in and under the given scope.
   for (vla_dim = scope->vla_dimensions;
        vla_dim != NULL;
        vla_dim = vla_dim->next) {
-    lower_c99_expr(vla_dim->dimension_expr);
+    lower_c99_full_expr(vla_dim->dimension_expr);
   }  /* for */
   /* Visit all initializers for local static variables. */
   for (lsvip = scope->local_static_variable_inits;

@@ -827,6 +827,8 @@ extern void lower_expr_list(an_expr_node_ptr expr_list,
 extern void lower_expr(an_expr_node_ptr expr,
                        a_boolean        is_lvalue);
 
+extern void release_reusable_temporaries(void);
+
 extern void lower_full_expr(an_expr_node_ptr expr,
                             a_boolean        is_lvalue,
                             a_statement_ptr  statement);

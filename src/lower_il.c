@@ -8269,6 +8269,25 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
 }  /* lower_expr */
 
 
+void release_reusable_temporaries(void)
+/*
+Release any reusable temporaries in the current context.  This is used
+at the end of a full expression.
+*/
+{
+  /* NULL test is needed when this code is used to lower expressions
+     in aggregate initializers in Microsoft C mode. */
+  if (curr_context != NULL) {
+    a_temporary_list_entry_ptr tlep;
+    for (tlep = curr_context->local_temporaries;
+         tlep != NULL;
+         tlep = tlep->next) {
+      tlep->in_use = FALSE;
+    }  /* for */
+  }  /* if */
+}  /* release_reusable_temporaries */
+
+
 #if !MINIMAL_INLINING
 /*ARGSUSED*/  /* <-- statement is not used in that case. */
 #endif /* !MINIMAL_INLINING */
@@ -8354,16 +8373,7 @@ to the statement; otherwise, it is NULL.
   }  /* if */
   /* Release any temporary variables that are no longer needed after the
      end of the full expression. */
-  /* NULL test is needed when this code is used to lower expressions
-     in aggregate initializers in Microsoft C mode. */
-  if (curr_context != NULL) {
-    a_temporary_list_entry_ptr tlep;
-    for (tlep = curr_context->local_temporaries;
-         tlep != NULL;
-         tlep = tlep->next) {
-      tlep->in_use = FALSE;
-    }  /* for */
-  }  /* if */
+  release_reusable_temporaries();
 }  /* lower_full_expr */
 
 
