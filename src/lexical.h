@@ -289,20 +289,39 @@ typedef enum a_pragma_binding_kind {
 
 
 /*
-Typedef used to declare pointers to pragma processing functions.
+Typedefs used to declare pointers to pragma processing functions.
+
+For pbk_next_construct pragmas, either sym_ptr or stmt_ptr will be
+defined.  The one that is not defined will be NULL.  For all other
+binding kinds, both sym_ptr and stmt_ptr will be NULL.
 */
-typedef void a_pragma_processing_function(a_pragma_kind kind,
-                                          a_pending_pragma_ptr ppp);
-typedef a_pragma_processing_function *a_pragma_processing_function_ptr;
+typedef void a_next_construct_pragma_function
+					(a_pending_pragma_ptr ppp,
+					 struct a_symbol      *sym_ptr,
+					 a_statement_ptr      stmt_ptr);
+typedef a_next_construct_pragma_function *a_next_construct_pragma_function_ptr;
+
+typedef void an_immediate_pragma_function(a_pending_pragma_ptr ppp);
+typedef an_immediate_pragma_function *an_immediate_pragma_function_ptr;
+
+typedef void an_other_pragma_function(a_pending_pragma_ptr ppp);
+typedef an_other_pragma_function *an_other_pragma_function_ptr;
 
 /*
-For each pragma that is defined, there exists an a_pragma_description
+Typedef used for a pragma processing function pointer that may point to
+any one of the various processing function types.
+*/
+typedef void a_generic_pragma_function(a_pending_pragma_ptr ppp, ...);
+typedef a_generic_pragma_function *a_generic_pragma_function_ptr;
+
+/*
+For each pragma that is defined, there exists an a_pragma_kind_description
 record that indicates how that pragma is to be handled by the front
 end.
 */
-typedef struct a_pragma_description *a_pragma_description_ptr;
-typedef struct a_pragma_description {
-  a_pragma_description_ptr
+typedef struct a_pragma_kind_description *a_pragma_kind_description_ptr;
+typedef struct a_pragma_kind_description {
+  a_pragma_kind_description_ptr
 	        next;
 			/* Pointer to the next element in the list of
 			   pragma descriptions. */
@@ -312,12 +331,22 @@ typedef struct a_pragma_description {
 		binding_kind;
 			/* The binding kind indicates when and how the pragma
 			   should be scanned by the front end. */
-  a_pragma_processing_function_ptr
-		processing_function;
+  union {
+    /* When binding_kind == pbk_next_construct */
+    a_next_construct_pragma_function_ptr
+		next_construct_processing_function;
 			/* Pointer to the function to be called to
 			   do any special processing required for this
-			   pragma.  May be NULL for pbk_immediate
-			   when include_in_il is set. */
+			   pragma.  May be NULL. */
+    /* When binding_kind == pbk_immediate */
+    an_immediate_pragma_function_ptr
+		immediate_processing_function;
+                        /* Processing function for immediate pragmas. */
+    /* When binding_kind == pbk_other */
+    an_other_pragma_function_ptr
+		other_processing_function;
+                        /* Processing function for other pragmas. */
+  } variant;
   unsigned int	may_bind_to_decl:1;
 			/* For pbk_next_construct pragmas, TRUE if this
 			   pragma can bind to a declaration. */
@@ -330,28 +359,37 @@ typedef struct a_pragma_description {
 			   list;  Otherwise, the pragma is added to the
 			   pragma list associated with the current scope
 			   stack entry.  This flag is used again to determine
-			   the IL scope to be used when include_in_il is TRUE.
-                           See the description below.  */
-  unsigned int	include_in_il:1;
-			/* For pbk_immediate and pbk_other pragmas, this is
-			   TRUE if the IL entry for this pragma should be
-			   included in the IL tree as an "indeterminate
-			   position" pragma.  The pragma will be included
-			   in the file scope IL pragma list (when global is
-			   TRUE) or in the current function scope IL pragma
-			   list (when global is FALSE and there is an
-			   active function scope).  If this flag is not
-                           set, the pragma will not be automatically included
-			   in the IL by the front end but can still be
-			   made part of the IL by user written code to
-			   explicitly link the pragma into the IL. */
-  unsigned int	pass_through_only:1;
+			   the IL scope to be used when
+			   automatically_include_in_il is TRUE.  See the
+			   description below.  */
+  unsigned int	automatically_include_in_il:1;
+			/* This flag is TRUE if the front end should
+			   automatically generate an IL entry for this
+			   pragma kind.  When this flag is TRUE, the front
+			   end will create an IL entry before the
+			   processing function (if any) is called.
+			   For pbk_next_construct pragmas, the pragma is
+			   entered in the same IL scope as the entity to
+			   which it is bound.  For pbk_immediate and
+			   pbk_other pragmas the pragma is entered in the
+			   file scope (when global is TRUE) or in the
+			   current IL scope (when global is FALSE).
+			   If this flag is not set, the pragma will
+			   not be automatically included in the IL by
+			   the front end but can still be made part of
+			   the IL by user written code to explicitly
+			   link the pragma into the IL. */
+  unsigned int	make_text_not_tokens:1;
 			/* TRUE if this pragma should not scanned into a
 			   token cache but rather should be preserved as
-			   a string that can be passed to a back end.
-			   The string created for pass through pragmas
-			   begins with the identifier following the
-			   #pragma keyword. */
+			   a null terminated string.  The string created
+			   begins with the identifier following the #pragma
+		           keyword.  The character string representation
+			   may be used in source-to-source transformation
+			   applications to pass pragmas to the generated
+			   output, and may also be used for pragmas which are
+			   more easily processed through the use of a
+			   character string instead of a token cache. */
   unsigned int	expand_macros:1;
   unsigned int	processing_C_code_in_pragma:1;
 			/* The value of the flags to be used while scanning
@@ -367,7 +405,7 @@ typedef struct a_pragma_description {
 			   in an improper location.
 			   May be es_none if no diagnostic is to be
                            issued. */
-} a_pragma_description;
+} a_pragma_kind_description;
 
 
 /*
@@ -380,7 +418,7 @@ typedef struct a_pending_pragma {
   a_pending_pragma_ptr
 		next;
 			/* Next element in a list of pragmas. */
-  a_pragma_description_ptr
+  a_pragma_kind_description_ptr
 		descr_ptr;
 			/* Pointer to the structure that describes the
 			   particular kind of pragma being processed. */
@@ -435,7 +473,7 @@ typedef struct a_pending_pragma {
 } a_pending_pragma;
 
 
-EXTERN a_pragma_description_ptr pragma_descriptions;
+EXTERN a_pragma_kind_description_ptr pragma_descriptions;
 			/* Pointer to a linked list of pragma descriptions. */
 
 EXTERN a_pending_pragma_ptr
@@ -444,7 +482,7 @@ EXTERN a_pending_pragma_ptr
 			   pragmas the immediately preceded the current
 			   token. */
 
-EXTERN a_pragma_description_ptr
+EXTERN a_pragma_kind_description_ptr
 		 pragma_description_for_pragma_kind[(int)pk_last + 1];
 			/* An array that can be used to get a pointer to
 			   a pragma description given a pragma kind.  Note that
@@ -1260,8 +1298,10 @@ extern a_symbol_ptr coalesce_template_class_reference
 			 a_boolean		   *err);
 
 extern a_pending_pragma_ptr alloc_pending_pragma
-					(a_pragma_description_ptr pdp,
-                                         a_source_position        *pos);
+					(a_pragma_kind_description_ptr pkdp,
+                                         a_source_position             *pos);
+
+extern void free_pending_pragma(a_pending_pragma_ptr ppp);
 
 extern void begin_rescan_of_pragma_tokens(a_pending_pragma_ptr ppp);
 

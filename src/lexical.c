@@ -386,17 +386,31 @@ Allocate a cached constant entry.  Reuse a freed entry if possible.
 }  /* alloc_cached_constant */
 
 
-static a_pragma_description_ptr add_pragma_description
+/*ARGSUSED*/ /* <-- because ppp is not used but is present because this
+                is a pragma processing function whose type is specified
+                by the type an_immediate_pragma_function. */
+static void set_lint_not_reached_flag(a_pending_pragma_ptr ppp)
+/*
+Pragma processing function invoked when a lint NOTREACHED comment is
+encountered.  This routine just sets the global flag that indicates that
+a the lint comment has been seen.
+*/
+{
+  lint_notreached_flag = TRUE;
+}  /* set_lint_not_reached_flag */
+
+
+static a_pragma_kind_description_ptr add_pragma_description
                       (a_pragma_kind 	     kind,
 		       a_pragma_binding_kind binding_kind,
-		       a_pragma_processing_function_ptr
+		       a_generic_pragma_function_ptr
 					     processing_function,
 		       a_boolean	     is_pseudo_pragma,
 		       a_boolean	     may_bind_to_decl,
 		       a_boolean	     may_bind_to_stmt,
 		       a_boolean	     global,
-		       a_boolean	     include_in_il,
-		       a_boolean	     pass_through_only,
+		       a_boolean	     automatically_include_in_il,
+		       a_boolean	     make_text_not_tokens,
 		       a_boolean	     expand_macros,
 		       a_boolean	     processing_C_code_in_pragma,
 		       an_error_severity     error_severity)
@@ -407,7 +421,7 @@ things like lint comments that are treated like pragmas by the front end
 but cannot be referenced by name in a pragma directive.
 */
 {
-  a_pragma_description_ptr	pdp;
+  a_pragma_kind_description_ptr	pkdp;
 
   /* Make sure this pragma kind is not already on the list. */
   check_assertion_str(pragma_description_for_pragma_kind[kind] == NULL,
@@ -418,37 +432,138 @@ but cannot be referenced by name in a pragma directive.
                       (may_bind_to_decl || may_bind_to_stmt),
                       "add_pragma_description: bad next_construct binding");
   /* Allocate a new entry. */
-  pdp = (a_pragma_description_ptr)alloc_fe(sizeof(a_pragma_description));
+  pkdp = (a_pragma_kind_description_ptr)
+				alloc_fe(sizeof(a_pragma_kind_description));
 #if DEBUG
   num_pragma_descriptions_allocated++;
 #endif /* DEBUG */
-  pdp->kind = kind;
-  pdp->binding_kind = binding_kind;
-  pdp->processing_function = processing_function;
-  pdp->may_bind_to_decl = may_bind_to_decl;
-  pdp->may_bind_to_stmt = may_bind_to_stmt;
-  pdp->global = global;
-  pdp->include_in_il = include_in_il;
-  pdp->pass_through_only = pass_through_only;
-  pdp->expand_macros = expand_macros;
-  pdp->processing_C_code_in_pragma = processing_C_code_in_pragma;
-  pdp->error_severity = error_severity;
+  pkdp->kind = kind;
+  pkdp->binding_kind = binding_kind;
+  switch (binding_kind) {
+    case pbk_next_construct:
+      pkdp->variant.next_construct_processing_function 
+                  = (a_next_construct_pragma_function_ptr)processing_function;
+      break;
+    case pbk_immediate:
+      pkdp->variant.immediate_processing_function
+                      = (an_immediate_pragma_function_ptr)processing_function;
+      break;
+    case pbk_other:
+      pkdp->variant.other_processing_function
+                          = (an_other_pragma_function_ptr)processing_function;
+      break;
+#if CHECKING
+    default:
+      unexpected_condition_str("add_pragma_description: bad binding kind");
+#endif /* CHECKING */
+  }  /* switch */
+  pkdp->may_bind_to_decl = may_bind_to_decl;
+  pkdp->may_bind_to_stmt = may_bind_to_stmt;
+  pkdp->global = global;
+  pkdp->automatically_include_in_il = automatically_include_in_il;
+  pkdp->make_text_not_tokens = make_text_not_tokens;
+  pkdp->expand_macros = expand_macros;
+  pkdp->processing_C_code_in_pragma = processing_C_code_in_pragma;
+  pkdp->error_severity = error_severity;
   if (is_pseudo_pragma) {
     /* This is a pseudo-pragma (such as a lint comment) that cannot
        be referenced by name.  Don't add it to the linked list. */
-    pdp->next = NULL;
+    pkdp->next = NULL;
   } else {
-    pdp->next = pragma_descriptions;
-    pragma_descriptions = pdp;
+    pkdp->next = pragma_descriptions;
+    pragma_descriptions = pkdp;
   }  /* if */
   /* Save the pragma description in an array indexed by pragma kind. */
-  pragma_description_for_pragma_kind[(int)kind] = pdp;
-  return pdp;
+  pragma_description_for_pragma_kind[(int)kind] = pkdp;
+  return pkdp;
 }  /* add_pragma_description */
 
 
-a_pending_pragma_ptr alloc_pending_pragma(a_pragma_description_ptr pdp,
-					  a_source_position	   *pos)
+static a_pragma_kind_description_ptr add_next_construct_pragma_description
+                      (a_pragma_kind 	     kind,
+		       a_next_construct_pragma_function_ptr
+					     processing_function,
+		       a_boolean	     is_pseudo_pragma,
+		       a_boolean	     may_bind_to_decl,
+		       a_boolean	     may_bind_to_stmt,
+		       a_boolean	     automatically_include_in_il,
+		       a_boolean	     make_text_not_tokens,
+		       a_boolean	     expand_macros,
+		       a_boolean	     processing_C_code_in_pragma,
+		       an_error_severity     error_severity)
+/*
+This is an interface to the general add_pragma_description that is
+used for creating pbk_next_construct pragmas.
+*/
+{
+  /* A pbk_next_construct pragma must bind to a declaration and/or
+     statement. */
+  check_assertion_str(may_bind_to_decl || may_bind_to_stmt,
+     "add_next_construct_pragma_description: bad next_construct binding");
+  return add_pragma_description
+           (kind, pbk_next_construct,
+            (a_generic_pragma_function_ptr)processing_function,
+            is_pseudo_pragma, may_bind_to_decl, may_bind_to_stmt,
+	    /*global=*/FALSE, automatically_include_in_il,
+            make_text_not_tokens, expand_macros, processing_C_code_in_pragma,
+            error_severity);
+}  /* add_next_construct_pragma_description */
+
+
+static a_pragma_kind_description_ptr add_immediate_pragma_description
+                      (a_pragma_kind 	     kind,
+		       an_immediate_pragma_function_ptr
+					     processing_function,
+		       a_boolean	     is_pseudo_pragma,
+		       a_boolean	     global,
+		       a_boolean	     automatically_include_in_il,
+		       a_boolean	     make_text_not_tokens,
+		       a_boolean	     expand_macros,
+		       a_boolean	     processing_C_code_in_pragma,
+		       an_error_severity     error_severity)
+/*
+This is an interface to the general add_pragma_description that is
+used for creating pbk_immediate pragmas.
+*/
+{
+  return add_pragma_description
+           (kind, pbk_immediate,
+            (a_generic_pragma_function_ptr)processing_function,
+	    is_pseudo_pragma, /*may_bind_to_decl=*/FALSE,
+            /*may_bind_to_expr=*/NULL, global, automatically_include_in_il,
+            make_text_not_tokens, expand_macros, processing_C_code_in_pragma,
+            error_severity);
+}  /* add_immediate_pragma_description */
+
+
+static a_pragma_kind_description_ptr add_other_pragma_description
+                      (a_pragma_kind 	     kind,
+		       an_other_pragma_function_ptr
+					     processing_function,
+		       a_boolean	     is_pseudo_pragma,
+		       a_boolean	     global,
+		       a_boolean	     automatically_include_in_il,
+		       a_boolean	     make_text_not_tokens,
+		       a_boolean	     expand_macros,
+		       a_boolean	     processing_C_code_in_pragma,
+		       an_error_severity     error_severity)
+/*
+This is an interface to the general add_pragma_description that is
+used for creating pbk_other pragmas.
+*/
+{
+  return add_pragma_description
+           (kind, pbk_other,
+            (a_generic_pragma_function_ptr)processing_function,
+	    is_pseudo_pragma, /*may_bind_to_decl=*/FALSE,
+            /*may_bind_to_expr=*/NULL, global, automatically_include_in_il,
+            make_text_not_tokens, expand_macros, processing_C_code_in_pragma,
+            error_severity);
+}  /* add_other_pragma_description */
+
+
+a_pending_pragma_ptr alloc_pending_pragma(a_pragma_kind_description_ptr pkdp,
+					  a_source_position	        *pos)
 /*
 Allocate and initialize a pending pragma entry.  Reuse a freed entry if
 possible.
@@ -471,7 +586,7 @@ possible.
   /* Initialize the token cache as a reusable token cache. */
   clear_token_cache(&ppp->token_cache, /*reusable=*/TRUE);
   ppp->id_position = *pos;
-  ppp->descr_ptr = pdp;
+  ppp->descr_ptr = pkdp;
   ppp->discard_cache_when_done = TRUE;
   ppp->has_been_scanned = FALSE;
   ppp->pragma_text = NULL;
@@ -479,7 +594,7 @@ possible.
   ppp->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Initialize any pragma-specific information. */
-  switch (pdp->kind) {
+  switch (pkdp->kind) {
     case pk_lint_varargs_count:
       ppp->variant.lint_varargs_count = 0;
       break;
@@ -490,7 +605,7 @@ possible.
 }  /* alloc_pending_pragma */
 
 
-static void free_pending_pragma(a_pending_pragma_ptr ppp)
+void free_pending_pragma(a_pending_pragma_ptr ppp)
 /*
 Return a pending pragma entry to the available list.
 */
@@ -549,10 +664,10 @@ information can be updated, if necessary.
 */
 {
   a_pending_pragma_ptr		ppp;
-  a_pragma_description_ptr	pdp;
+  a_pragma_kind_description_ptr	pkdp;
 
-  pdp = pragma_description_for_pragma_kind[(int)kind];
-  ppp = alloc_pending_pragma(pdp, pos);
+  pkdp = pragma_description_for_pragma_kind[(int)kind];
+  ppp = alloc_pending_pragma(pkdp, pos);
   add_to_curr_token_pragma_list(ppp);
   return ppp;
 }  /* add_curr_token_pseudo_pragma */
@@ -602,7 +717,7 @@ pbk_immediate pragmas are processed here.
 */
 {
   a_pending_pragma_ptr		ppp;
-  a_pragma_description_ptr	pdp;
+  a_pragma_kind_description_ptr	pkdp;
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Create source sequence entries for any pragmas that don't yet have
@@ -612,22 +727,22 @@ pbk_immediate pragmas are processed here.
   ppp = curr_token_pragmas;
   while (ppp != NULL) {
     a_pending_pragma_ptr	next_ppp = ppp->next;
-    pdp = ppp->descr_ptr;
-    switch (pdp->binding_kind) {
+    pkdp = ppp->descr_ptr;
+    switch (pkdp->binding_kind) {
       case pbk_next_construct:
-        if (pdp->error_severity != es_none) {
+        if (pkdp->error_severity != es_none) {
           an_error_code	error_code;
           /* Select the appropriate error based on the kinds of constructs
              that this pragma may bind to. */
-          if (pdp->may_bind_to_decl && pdp->may_bind_to_stmt) {
+          if (pkdp->may_bind_to_decl && pkdp->may_bind_to_stmt) {
             error_code = ec_pragma_must_precede_decl_or_stmt;
-          } else if (pdp->may_bind_to_decl) {
+          } else if (pkdp->may_bind_to_decl) {
             error_code = ec_pragma_must_precede_declaration;
           } else {
             error_code = ec_pragma_must_precede_statement;
           }  /* if */
-          if (pdp->error_severity != es_none) {
-            pos_diagnostic(pdp->error_severity, error_code, &ppp->id_position);
+          if (pkdp->error_severity != es_none) {
+            pos_diagnostic(pkdp->error_severity, error_code, &ppp->id_position);
           }  /* if */
         }  /* if */
         free_pending_pragma(ppp);
@@ -635,11 +750,11 @@ pbk_immediate pragmas are processed here.
       case pbk_immediate:
         /* Immediate pragmas are processed when the token they precede is
            discarded. */
-        if (pdp->processing_function != NULL) {
-          (*pdp->processing_function)(pdp->kind, ppp);
+        if (pkdp->variant.immediate_processing_function != NULL) {
+          (*pkdp->variant.immediate_processing_function)(ppp);
         }  /* if */
 #if 0
-        /* Do include_in_il processing. */
+        /* Do automatically_include_in_il processing. */
 #endif
         free_pending_pragma(ppp);
         break;
@@ -692,24 +807,25 @@ remain on the current token pragma list.
     a_boolean			remove_from_curr_list = FALSE;
     a_boolean			add_to_new_list = FALSE;
     a_boolean			issue_diagnostic = FALSE;
-    a_pragma_description_ptr	pdp = ppp->descr_ptr;
-    a_pragma_binding_kind	binding_kind = pdp->binding_kind;
+    a_pragma_kind_description_ptr
+				pkdp = ppp->descr_ptr;
+    a_pragma_binding_kind	binding_kind = pkdp->binding_kind;
     an_error_code		error_code;
     if (binding_kind == pbk_next_construct) {
       /* All pbk_next_construct pragmas will be removed from the list. */
       remove_from_curr_list = TRUE;
-      if ((is_decl && pdp->may_bind_to_decl) ||
-          (!is_decl && pdp->may_bind_to_stmt)) {
+      if ((is_decl && pkdp->may_bind_to_decl) ||
+          (!is_decl && pkdp->may_bind_to_stmt)) {
         /* The pragma binding matches the kind of construct being processed. */
         add_to_new_list = TRUE;
       } else {
         /* The pragma binding does not match the kind of construct being
            processed.  Issue an error. */
         issue_diagnostic = TRUE;
-        if (pdp->may_bind_to_decl) {
+        if (pkdp->may_bind_to_decl) {
           error_code = ec_pragma_must_precede_declaration;
         } else {
-          check_assertion(pdp->may_bind_to_stmt);
+          check_assertion(pkdp->may_bind_to_stmt);
           error_code = ec_pragma_must_precede_statement;
         }  /* if */
       }  /* if */
@@ -746,8 +862,8 @@ remain on the current token pragma list.
       }  /* if */
     }  /* if */
     if (issue_diagnostic) {
-      if (pdp->error_severity != es_none) {
-        pos_diagnostic(pdp->error_severity, error_code, &ppp->id_position);
+      if (pkdp->error_severity != es_none) {
+        pos_diagnostic(pkdp->error_severity, error_code, &ppp->id_position);
       }  /* if */
     }  /* if */
     ppp = next_ppp;
@@ -7207,157 +7323,140 @@ Initialize the pragma description table.
      pragma kind. */
   int	i;
   for (i = (int)pk_none; i < (int)pk_last; ++i) {
-    pragma_description_for_pragma_kind[i] = (a_pragma_description_ptr)NULL;
+    pragma_description_for_pragma_kind[i] =
+					 (a_pragma_kind_description_ptr)NULL;
   }  /* for */
-  (void)add_pragma_description(pk_printf_args,
-                               pbk_next_construct,
-			       (a_pragma_processing_function_ptr)NULL,
-			       /*is_pseudo_pragma=*/FALSE,
-			       /*may_bind_to_decl=*/TRUE,
-			       /*may_bind_to_stmt=*/FALSE,
-                               /*global=*/FALSE,
-                               /*include_in_il=*/FALSE,
-                               /*pass_through_only=*/FALSE,
-                               /*expand_macros=*/FALSE,
-                               /*processing_C_code_in_pragma=*/FALSE,
-                               es_error);
-  (void)add_pragma_description(pk_scanf_args,
-                               pbk_next_construct,
-			       (a_pragma_processing_function_ptr)NULL,
-			       /*is_pseudo_pragma=*/FALSE,
-			       /*may_bind_to_decl=*/TRUE,
-			       /*may_bind_to_stmt=*/FALSE,
-                               /*global=*/FALSE,
-                               /*include_in_il=*/FALSE,
-                               /*pass_through_only=*/FALSE,
-                               /*expand_macros=*/FALSE,
-                               /*processing_C_code_in_pragma=*/FALSE,
-                               es_error);
+  (void)add_next_construct_pragma_description
+		(pk_printf_args,
+		 (a_next_construct_pragma_function_ptr)NULL,
+		 /*is_pseudo_pragma=*/FALSE,
+		 /*may_bind_to_decl=*/TRUE,
+		 /*may_bind_to_stmt=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code_in_pragma=*/FALSE,
+                 es_error);
+  (void)add_next_construct_pragma_description
+		(pk_scanf_args,
+	         (a_next_construct_pragma_function_ptr)NULL,
+		 /*is_pseudo_pragma=*/FALSE,
+		 /*may_bind_to_decl=*/TRUE,
+		 /*may_bind_to_stmt=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code_in_pragma=*/FALSE,
+                 es_error);
 #if 0
   /* Change lint comment error severities to es_none. */
 #endif 
-  (void)add_pragma_description(pk_lint_argsused,
-                               pbk_next_construct,
-			       (a_pragma_processing_function_ptr)NULL,
-			       /*is_pseudo_pragma=*/TRUE,
-			       /*may_bind_to_decl=*/TRUE,
-			       /*may_bind_to_stmt=*/FALSE,
-                               /*global=*/FALSE,
-                               /*include_in_il=*/FALSE,
-                               /*pass_through_only=*/FALSE,
-                               /*expand_macros=*/FALSE,
-                               /*processing_C_code_in_pragma=*/FALSE,
-                               es_warning);
-  (void)add_pragma_description(pk_lint_varargs_count,
-                               pbk_next_construct,
-			       (a_pragma_processing_function_ptr)NULL,
-			       /*is_pseudo_pragma=*/TRUE,
-			       /*may_bind_to_decl=*/TRUE,
-			       /*may_bind_to_stmt=*/FALSE,
-                               /*global=*/FALSE,
-                               /*include_in_il=*/FALSE,
-                               /*pass_through_only=*/FALSE,
-                               /*expand_macros=*/FALSE,
-                               /*processing_C_code_in_pragma=*/FALSE,
-                               es_warning);
-  (void)add_pragma_description(pk_lint_not_reached,
-                               pbk_next_construct,
-			       (a_pragma_processing_function_ptr)NULL,
-			       /*is_pseudo_pragma=*/TRUE,
-			       /*may_bind_to_decl=*/TRUE,
-			       /*may_bind_to_stmt=*/TRUE,
-                               /*global=*/FALSE,
-                               /*include_in_il=*/FALSE,
-                               /*pass_through_only=*/FALSE,
-                               /*expand_macros=*/FALSE,
-                               /*processing_C_code_in_pragma=*/FALSE,
-                               es_warning);
-  (void)add_pragma_description(pk_instantiate,
-                               pbk_immediate,
-			       instantiation_pragma,
-			       /*is_pseudo_pragma=*/FALSE,
-			       /*may_bind_to_decl=*/FALSE,
-			       /*may_bind_to_stmt=*/FALSE,
-                               /*global=*/FALSE,
-                               /*include_in_il=*/FALSE,
-                               /*pass_through_only=*/FALSE,
-                               /*expand_macros=*/TRUE,
-                               /*processing_C_code_in_pragma=*/TRUE,
-                               es_error);
-  (void)add_pragma_description(pk_do_not_instantiate,
-                               pbk_immediate,
-			       instantiation_pragma,
-			       /*is_pseudo_pragma=*/FALSE,
-			       /*may_bind_to_decl=*/FALSE,
-			       /*may_bind_to_stmt=*/FALSE,
-                               /*global=*/FALSE,
-                               /*include_in_il=*/FALSE,
-                               /*pass_through_only=*/FALSE,
-                               /*expand_macros=*/TRUE,
-                               /*processing_C_code_in_pragma=*/TRUE,
-                               es_error);
-  (void)add_pragma_description(pk_can_instantiate,
-                               pbk_immediate,
-			       instantiation_pragma,
-			       /*is_pseudo_pragma=*/FALSE,
-			       /*may_bind_to_decl=*/FALSE,
-			       /*may_bind_to_stmt=*/FALSE,
-                               /*global=*/FALSE,
-                               /*include_in_il=*/FALSE,
-                               /*pass_through_only=*/FALSE,
-                               /*expand_macros=*/TRUE,
-                               /*processing_C_code_in_pragma=*/TRUE,
-                               es_error);
+  (void)add_next_construct_pragma_description
+		(pk_lint_argsused,
+		 (a_next_construct_pragma_function_ptr)NULL,
+		 /*is_pseudo_pragma=*/TRUE,
+		 /*may_bind_to_decl=*/TRUE,
+		 /*may_bind_to_stmt=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code_in_pragma=*/FALSE,
+                 es_warning);
+  (void)add_next_construct_pragma_description
+		(pk_lint_varargs_count,
+		 (a_next_construct_pragma_function_ptr)NULL,
+		 /*is_pseudo_pragma=*/TRUE,
+		 /*may_bind_to_decl=*/TRUE,
+		 /*may_bind_to_stmt=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code_in_pragma=*/FALSE,
+                 es_warning);
+  (void)add_immediate_pragma_description
+		(pk_lint_not_reached,
+		 set_lint_not_reached_flag,
+		 /*is_pseudo_pragma=*/TRUE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code_in_pragma=*/FALSE,
+                 es_warning);
+  (void)add_immediate_pragma_description
+		(pk_instantiate,
+	         instantiation_pragma,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/TRUE,
+                 /*processing_C_code_in_pragma=*/TRUE,
+                 es_error);
+  (void)add_immediate_pragma_description
+		(pk_do_not_instantiate,
+		 instantiation_pragma,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/TRUE,
+                 /*processing_C_code_in_pragma=*/TRUE,
+                 es_error);
+  (void)add_immediate_pragma_description
+		(pk_can_instantiate,
+		 instantiation_pragma,
+		 /*is_pseudo_pragma=*/FALSE,
+		 /*global=*/FALSE,
+		 /*automatically_include_in_il=*/FALSE,
+		 /*make_text_not_tokens=*/FALSE,
+		 /*expand_macros=*/TRUE,
+		 /*processing_C_code_in_pragma=*/TRUE,
+		 es_error);
 #if 0
 #else
-  (void)add_pragma_description(pk_test_next_decl,
-                               pbk_next_construct,
-			       (a_pragma_processing_function_ptr)NULL,
-			       /*is_pseudo_pragma=*/FALSE,
-			       /*may_bind_to_decl=*/TRUE,
-			       /*may_bind_to_stmt=*/FALSE,
-                               /*global=*/FALSE,
-                               /*include_in_il=*/FALSE,
-                               /*pass_through_only=*/FALSE,
-                               /*expand_macros=*/FALSE,
-                               /*processing_C_code_in_pragma=*/FALSE,
-                               es_error);
-  (void)add_pragma_description(pk_test_next_statement,
-                               pbk_next_construct,
-			       (a_pragma_processing_function_ptr)NULL,
-			       /*is_pseudo_pragma=*/FALSE,
-			       /*may_bind_to_decl=*/FALSE,
-			       /*may_bind_to_stmt=*/TRUE,
-                               /*global=*/FALSE,
-                               /*include_in_il=*/FALSE,
-                               /*pass_through_only=*/FALSE,
-                               /*expand_macros=*/FALSE,
-                               /*processing_C_code_in_pragma=*/FALSE,
-                               es_error);
-  (void)add_pragma_description(pk_test_immediate,
-                               pbk_immediate,
-			       (a_pragma_processing_function_ptr)NULL,
-			       /*is_pseudo_pragma=*/FALSE,
-			       /*may_bind_to_decl=*/FALSE,
-			       /*may_bind_to_stmt=*/FALSE,
-                               /*global=*/FALSE,
-                               /*include_in_il=*/FALSE,
-                               /*pass_through_only=*/FALSE,
-                               /*expand_macros=*/FALSE,
-                               /*processing_C_code_in_pragma=*/FALSE,
-                               es_error);
-  (void)add_pragma_description(pk_test_other,
-                               pbk_other,
-			       (a_pragma_processing_function_ptr)NULL,
-			       /*is_pseudo_pragma=*/FALSE,
-			       /*may_bind_to_decl=*/FALSE,
-			       /*may_bind_to_stmt=*/FALSE,
-                               /*global=*/FALSE,
-                               /*include_in_il=*/FALSE,
-                               /*pass_through_only=*/FALSE,
-                               /*expand_macros=*/FALSE,
-                               /*processing_C_code_in_pragma=*/FALSE,
-                               es_error);
+  (void)add_next_construct_pragma_description
+		(pk_test_next_decl,
+		 (a_next_construct_pragma_function_ptr)NULL,
+		  /*is_pseudo_pragma=*/FALSE,
+		  /*may_bind_to_decl=*/TRUE,
+		  /*may_bind_to_stmt=*/FALSE,
+                  /*automatically_include_in_il=*/FALSE,
+                  /*make_text_not_tokens=*/FALSE,
+                  /*expand_macros=*/FALSE,
+                  /*processing_C_code_in_pragma=*/FALSE,
+                  es_error);
+  (void)add_next_construct_pragma_description
+ 		(pk_test_next_statement,
+		 (a_next_construct_pragma_function_ptr)NULL,
+		 /*is_pseudo_pragma=*/FALSE,
+		 /*may_bind_to_decl=*/FALSE,
+		 /*may_bind_to_stmt=*/TRUE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code_in_pragma=*/FALSE,
+                 es_error);
+  (void)add_immediate_pragma_description
+		(pk_test_immediate,
+                 (an_immediate_pragma_function_ptr)NULL,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code_in_pragma=*/FALSE,
+                 es_error);
+  (void)add_other_pragma_description
+		(pk_test_other,
+	         (an_other_pragma_function_ptr)NULL,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code_in_pragma=*/FALSE,
+                 es_error);
 #endif
 }  /* init_pragma_descriptions */
 
@@ -7393,8 +7492,8 @@ Display and return the amount of space used for various lexical tables.
   db_space_used_lost("pending pragma entry", avail_pending_pragmas,
                      num_pending_pragmas_allocated,
                      a_pending_pragma);
-  db_space_used("pragam descriptions", num_pragma_descriptions_allocated,
-                a_pragma_description);
+  db_space_used("pragma kind descriptions", num_pragma_descriptions_allocated,
+                a_pragma_kind_description);
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   db_space_used("file suffixes", num_file_suffixes_allocated,
                 a_file_suffix);
