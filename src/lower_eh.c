@@ -528,7 +528,7 @@ string literals were implemented).
         curr_translation_unit->file_scope_pointers_block.last_type = *type_ptr;
       }  /* if */
     } else
-#endif /* ABI_CHANGE_FOR_IA64 */
+#endif /* IA64_ABI */
     /* Do not add code here. */
     {
       add_to_front_of_file_scope_types_list(*type_ptr);
