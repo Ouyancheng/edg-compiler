@@ -1,5 +1,21 @@
 Version 2.39
 
+6/16/98   Spurious error on friend declaration in presence of using-directive
+
+A spurious error would result when a friend declaration that refers to
+a template instance refers to a name that names an overload set that
+contains functions made visible by a using-directive.  This has been
+fixed.
+
+  namespace N {
+    template <class T> void f(T,T);
+  }
+  using namespace N;
+  template <class T> void f(T);
+  class A {
+    friend void f<>(int);
+  };
+
 6/16/98   Internal error in lower_type caused by error type as
           template argument
 

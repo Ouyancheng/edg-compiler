@@ -1521,7 +1521,10 @@ called by id_linkage.
       for (; other_decl != NULL;
              other_decl = is_list ? other_decl->next : NULL) {
         a_type_ptr  tp;
-        if (other_decl->kind == (a_symbol_kind)sk_namespace_projection) {
+        a_symbol_ptr	fund_other_decl;
+        fund_other_decl = fundamental_symbol_of(other_decl);
+        if (other_decl->kind == (a_symbol_kind)sk_namespace_projection &&
+            !locator->is_template_id) {
           /* Ignore namespace projection symbols that may have gotten into
              this overload set by a using declaration -- e.g.,
                namespace N { void f(int); }
@@ -1529,9 +1532,10 @@ called by id_linkage.
                void f();
                int f(int);           // Does *not* match N::f(int)
           */
-        } else if (other_decl->kind == (a_symbol_kind)sk_function_template) {
+        } else if (fund_other_decl->kind ==
+                                         (a_symbol_kind)sk_function_template) {
           a_template_symbol_supplement_ptr  tssp;
-          tssp = other_decl->variant.template_info;
+          tssp = fund_other_decl->variant.template_info;
           if (is_function_template) {
             a_template_param_ptr	other_templ_param_list;
             tp = tssp->variant.function.routine->type;
@@ -1544,7 +1548,7 @@ called by id_linkage.
                 routine_types_are_compatible(tp, type, TCF_NO_FLAGS)) {
               /* The other_decl template function matches the current
                  declaration. */
-              linked_symbol = other_decl;
+              linked_symbol = fund_other_decl;
               *overload_symbol = NULL;
               goto done;
             }  /* if */
@@ -1561,11 +1565,14 @@ called by id_linkage.
             /* Compare the routine type of the current declaration with that
                of the previous declaration.  other_decl may be a namespace
                projection symbol, so fundamental_symbol_of is called. */
-            tp = fundamental_symbol_of(other_decl)->variant.routine.ptr->type;
+            check_assertion(
+                  fund_other_decl->kind == (a_symbol_kind)sk_routine ||
+                  fund_other_decl->kind == (a_symbol_kind)sk_member_function);
+            tp = fund_other_decl->variant.routine.ptr->type;
             if (routine_types_are_compatible(tp, type, TCF_NO_FLAGS)) {
               /* Other_decl matches the current declaration.  Null out
                  *overload_symbol in case it was set. */
-              other_decl = fundamental_symbol_of(other_decl);
+              other_decl = fund_other_decl;
               *overload_symbol = NULL;
               break;
             }  /* if */
@@ -1590,16 +1597,18 @@ called by id_linkage.
         for (other_decl = other_decl_saved;
              other_decl != NULL;
              other_decl = is_list ? other_decl->next : NULL) {
-          if (other_decl->kind == (a_symbol_kind)sk_function_template) {
+          a_symbol_ptr	fund_other_decl;
+          fund_other_decl = fundamental_symbol_of(other_decl);
+          if (fund_other_decl->kind == (a_symbol_kind)sk_function_template) {
             /* Look for a match on the list of instantiations. */
-            if (has_matching_template_function(other_decl, type,
+            if (has_matching_template_function(fund_other_decl, type,
                                                locator->template_arg_list,
                                               /*is_decl_context=*/TRUE)) {
               /* This template can generate an instance of the appropriate
                  type.  Add the matching template to a list of matching
                  candidates. */
               add_to_partial_order_candidates_list(&candidates_list,
-                                                   other_decl,
+                                                   fund_other_decl,
                                                    (a_template_arg_ptr)NULL);
             }  /* if */
           }  /* if */
