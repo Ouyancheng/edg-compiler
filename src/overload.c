@@ -1739,19 +1739,23 @@ not used in that case, and can be NULL.
 
 static a_type_ptr this_param_type_for_overload_res(
                                              a_type_ptr   routine_type,
-                                             a_symbol_ptr proj_function_symbol)
+                                             a_symbol_ptr proj_function_symbol,
+                                             a_boolean    is_conv_func)
 /*
 Return the effective "this" parameter type that should be used in
 overload resolution for the function with the indicated type and
 symbol (possibly a projection symbol).  For conversion functions and
 functions imported via a using-declaration, the effective "this"
 parameter type is based on the derived class indicated by the
-projection symbol.
+projection symbol.  is_conv_func is TRUE if the function is a
+conversion function.
 */
 {
   a_type_ptr this_param_type = implicit_this_param_type_of(routine_type);
 
-  if (proj_function_symbol->kind == (a_symbol_kind)sk_projection) {
+  if (proj_function_symbol->kind == (a_symbol_kind)sk_projection &&
+      (proj_function_symbol->variant.projection.is_using_decl ||
+       is_conv_func)) {
     /* Make a pointer to the class of the projection, qualified like the
        actual "this" parameter type. */
     a_type_ptr underlying_type = proj_function_symbol->parent.class_type;
@@ -2111,10 +2115,20 @@ that are marked "explicit" are ignored.
        test is done on the projection symbol, if any, and not on the
        underlying fundamental symbol. */
     if (proj_function_symbol->is_invisible) goto reject_function;
-    /* Remove namespace projections, if any. */
+    /* Remove projection, if any. */
     function_symbol = fundamental_symbol_of(proj_function_symbol);
     function_template_case = (function_symbol->kind ==
                                           (a_symbol_kind)sk_function_template);
+    if (is_ambiguous_by_inheritance(proj_function_symbol)) {
+      /* The symbol is ambiguous, and as such is an arbitrary
+         representative of a set of functions that collided due
+         to inheritance.  There's no point in seeing whether the function
+         indicated matches up, since there might be another function
+         that isn't represented that would match better.  Just put the
+         symbol in the candidate functions set.  It will stay in there
+         and cause the overload resolution to be ambiguous. */
+      goto accept_function;
+    }  /* if */
     if (!function_template_case) {
       /* The symbol is not a function template (i.e., it's a normal
          function). */
@@ -2293,8 +2307,9 @@ that are marked "explicit" are ignored.
              are involved in classes, the parameter type is taken to be the
              class in which the "using" occurs. */
           a_type_ptr this_param_type =
-                        this_param_type_for_overload_res(routine_type,
-                                                         proj_function_symbol);
+                      this_param_type_for_overload_res(routine_type,
+                                                       proj_function_symbol,
+                                                       /*is_conv_func=*/FALSE);
           if (implicit_selector_type != NULL) {
             /* The selector is an implicit "this->".  See how well it
                matches.  It might not match at all. */
@@ -2339,6 +2354,7 @@ that are marked "explicit" are ignored.
         }  /* if */
       }  /* if */
     }  /* if */
+accept_function:
     /* The function is a viable candidate.  Add it to the candidates
        list. */
     if (function_template_case) {
@@ -3090,7 +3106,8 @@ check_next_function:;
 static void select_best_candidate_functions(
                         a_candidate_function_ptr *candidate_functions,
                         a_source_position        *source_pos,
-                        a_boolean                *undecidable_because_of_error)
+                        a_boolean                *undecidable_because_of_error,
+                        a_boolean                *ambiguous)
 /*
 *candidate_functions is the list of viable functions for a particular
 overloaded function call.  From that set, select the best functions
@@ -3099,10 +3116,11 @@ that do not make the "best" set are freed.  On return from this function,
 the *candidate_functions list has no members if there are no viable
 functions, has more than one member if the call is ambiguous, and
 has exactly one member if the call is valid.  *source_pos is the source
-position of the reference.  If the best functions could not be selected
-because there were error arguments in the matches,
-*undecidable_because_of_error is returned TRUE and *candidate_functions
-is set to NULL.
+position of the reference.  If the call is ambiguous, *ambiguous
+is set to TRUE.  If the best functions could not be selected because
+there were error arguments in the matches, *undecidable_because_of_error
+is returned TRUE, *candidate_functions is set to NULL, and *ambiguous
+is set to TRUE.
 */
 {
   a_candidate_function_ptr candidates = *candidate_functions;
@@ -3120,6 +3138,7 @@ is set to NULL.
   }  /* if */
 #endif /* DEBUG */
   *undecidable_because_of_error = FALSE;
+  *ambiguous = FALSE;
   candidates = *candidate_functions;
   /* If there are no functions or there is exactly one function, the
      list is already correct. */
@@ -3143,7 +3162,15 @@ is set to NULL.
       cfp->in_best_match_set_for_some_argument = FALSE;
       number_in_best_match_set++;
       set_first_arg_match(cfp);
+      if (cfp->function_symbol != NULL &&
+          is_ambiguous_by_inheritance(cfp->function_symbol)) {
+        /* A candidate is an ambiguous symbol, which is an arbitrary
+           representative of a set of functions that collided due
+           to inheritance.  The overload resolution is ambiguous. */
+        overall_ambiguity = TRUE;
+      }  /* if */
     }  /* for */
+    if (overall_ambiguity) goto create_final_list;
     /* Loop for each argument. */
     while (candidates->current_arg_match != NULL) {
       /* Find the best-match set for this argument. */
@@ -3325,17 +3352,20 @@ create_final_list:
     }  /* for */
     candidates = *candidate_functions;
   }  /* if */
-  if (candidates != NULL &&
-      candidates->is_function_template &&
-      candidates->next == NULL) {
-    /* A single candidate function template was unambiguously selected.
-       Create the template function instance. */
-    a_symbol_ptr sym = candidates->function_symbol;
-    if (is_ambiguous_by_inheritance(sym)) {
-      /* The template symbol is a conversion function that is ambiguous by
-         inheritance.  Return it (and not the instance) to the caller
-         so the ambiguity error can be put out. */
-    } else {
+  if (*undecidable_because_of_error) {
+    *ambiguous = TRUE;
+  } else if (candidates != NULL) {
+    if (candidates->next != NULL ||
+        (candidates->function_symbol != NULL &&
+         is_ambiguous_by_inheritance(candidates->function_symbol))) {
+      /* There is more than one function in the "best" set, or only one
+         function but its name is ambiguous, so the overload resolution
+         is ambiguous. */
+      *ambiguous = TRUE;
+    } else if (candidates->is_function_template) {
+      /* A single candidate function template was unambiguously selected.
+         Create the template function instance. */
+      a_symbol_ptr sym = candidates->function_symbol;
       reduce_projection_symbol_to_fundamental_symbol(sym);
       candidates->function_symbol = sym =
                          find_template_function(sym,
@@ -3399,8 +3429,7 @@ routine is called only in C++ mode.
   a_candidate_function_ptr candidate_functions;
   a_symbol_ptr             function_symbol;
   a_boolean                matched_except_for_missing_selector = FALSE;
-  a_boolean                undecidable_because_of_error = FALSE;
-  a_boolean                ambiguous = FALSE;
+  a_boolean                undecidable_because_of_error, ambiguous;
   a_boolean                sym_is_undefined;
   a_boolean                some_function_tried = FALSE;
 
@@ -3460,41 +3489,28 @@ routine is called only in C++ mode.
     /* Try each function symbol on the symbol list. */
     for (slep = symbol_list; slep != NULL; slep = slep->next) {
       function_symbol = slep->symbol;
-      if (is_ambiguous_by_inheritance(function_symbol)) {
-        /* The symbol is ambiguous, and as such is an arbitrary
-           representative of a set of functions that collided due
-           to namespace inheritance.  There's no point in seeing
-           if the function indicated matches up, since there might
-           be another function that isn't represented that would
-           match better. */
-        pos_sy_error(ec_ambiguous_name, call_position, function_symbol);
-        ambiguous = TRUE;
-      } else {
-        try_overloaded_function_match(function_symbol,
-                                      is_template_id,
-                                      template_arg_list,
-                                      arg_operand_list,
-                                      have_selector,
-                                      bound_function_selector,
-                                      /*selector_is_object_pointer=*/TRUE,
-                                      /*ctor_conversion_case=*/FALSE,
-                                      /*effects_copy_initialization=*/FALSE,
-                                      &candidate_functions,
-                                      &matched_except_for_missing_selector);
-        some_function_tried = TRUE;
-      }  /* if */
+      try_overloaded_function_match(function_symbol,
+                                    is_template_id,
+                                    template_arg_list,
+                                    arg_operand_list,
+                                    have_selector,
+                                    bound_function_selector,
+                                    /*selector_is_object_pointer=*/TRUE,
+                                    /*ctor_conversion_case=*/FALSE,
+                                    /*effects_copy_initialization=*/FALSE,
+                                    &candidate_functions,
+                                    &matched_except_for_missing_selector);
+      some_function_tried = TRUE;
     }  /* for */
     free_list_of_symbol_list_entries(symbol_list);
   }  /* if */
   /* The candidate_functions list now contains all the viable functions.
      Find the best one(s). */
-  if (!ambiguous) {
-    select_best_candidate_functions(&candidate_functions, call_position,
-                                    &undecidable_because_of_error);
-  }  /* if */
+  select_best_candidate_functions(&candidate_functions, call_position,
+                                  &undecidable_because_of_error, &ambiguous);
   function_symbol = NULL;
   *arg_match_list = NULL;
-  if (undecidable_because_of_error || ambiguous) {
+  if (undecidable_because_of_error) {
     /* There was some previous error, so do not put out an error message. */
   } else if (candidate_functions == NULL) {
     /* None of the functions applies. */
@@ -3517,19 +3533,26 @@ routine is called only in C++ mode.
       display_argument_list_types(arg_operand_list);
       end_error();
     }  /* if */
-  } else if (candidate_functions->next != NULL ||
-             is_ambiguous_by_inheritance(
-                                       candidate_functions->function_symbol)) {
+  } else if (ambiguous) {
     /* More than one function applies and is a best match -- ambiguity. */
 #if DEBUG
     if (debug_level >= 4) {
       db_candidate_function_list(candidate_functions);
     }  /* if */
 #endif /* DEBUG */
-    pos_sy_start_error(err_ambiguous, call_position,
-                       overloaded_function_symbol);
-    diagnose_overload_ambiguity(candidate_functions, arg_operand_list,
-                                (an_opname_kind)onk_none);
+    if (candidate_functions->next == NULL &&
+        candidate_functions->function_symbol != NULL &&
+        is_ambiguous_by_inheritance(candidate_functions->function_symbol)) {
+      /* For a case involving a single function name that's ambiguous
+         by inheritance, use a simpler message. */
+      pos_sy_error(ec_ambiguous_name, call_position,
+                   overloaded_function_symbol);
+    } else {
+      pos_sy_start_error(err_ambiguous, call_position,
+                         overloaded_function_symbol);
+      diagnose_overload_ambiguity(candidate_functions, arg_operand_list,
+                                  (an_opname_kind)onk_none);
+    }  /* if */
   } else {
     /* Exactly one function applies and is best. */
     function_symbol = candidate_functions->function_symbol;
@@ -4594,9 +4617,22 @@ This routine is only used in C++ mode.
     /* Set template_arg_list early so that, on goto to reject_function, we
        know what has to be freed. */
     template_arg_list = NULL;
+    conversion_routine = NULL;
+    result_is_an_lvalue = FALSE;
+    this_match_ptr = NULL;
     base_conversion_symbol = fundamental_symbol_of(conversion_symbol);
     function_template_case = (base_conversion_symbol->kind ==
                                           (a_symbol_kind)sk_function_template);
+    if (is_ambiguous_by_inheritance(conversion_symbol)) {
+      /* The symbol is ambiguous, and as such is an arbitrary
+         representative of a set of functions that collided due
+         to inheritance.  There's no point in seeing whether the function
+         indicated matches up, since there might be another function
+         that isn't represented that would match better.  Just put the
+         symbol in the candidate functions set.  It will stay in there
+         and cause the overload resolution to be ambiguous. */
+      goto accept_function;
+    }  /* if */
     if (!function_template_case) {
       /* The symbol is not a template. */
       conversion_routine = base_conversion_symbol->variant.routine.ptr;
@@ -4796,8 +4832,10 @@ This routine is only used in C++ mode.
         However, we must also see whether or not it can be called for this
         argument (i.e., are the type qualifiers okay), and how good the
         match is. */
-    eff_this_param_type = this_param_type_for_overload_res(conv_routine_type,
-                                                           conversion_symbol);
+    eff_this_param_type =
+                       this_param_type_for_overload_res(conv_routine_type,
+                                                        conversion_symbol,
+                                                        /*is_conv_func=*/TRUE);
     selector_match_with_this_param(source_operand,
                                    /*selector_is_object_pointer=*/FALSE,
                                    conversion_routine,
@@ -4805,10 +4843,11 @@ This routine is only used in C++ mode.
                                    &this_match);
     /* Ignore this function if it cannot be called for this argument. */
     if (this_match.match_level == aml_none) goto reject_function;
-    /* The routine is viable. */
-    /* Add the conversion function to the candidate functions list. */
     this_match_ptr = alloc_arg_match_summary();
     *this_match_ptr = this_match;
+accept_function:
+    /* The routine is viable. */
+    /* Add the conversion function to the candidate functions list. */
     if (function_template_case) {
       add_function_template_to_candidate_functions_list(
                                          conversion_symbol,
@@ -6220,8 +6259,6 @@ functions could still apply).
         /* candidate_functions will contain the list of viable functions. */
         candidate_functions = NULL;
         /* Find any member function for the operator. */
-        ambiguous = FALSE;
-        undecidable_because_of_error = FALSE;
         if (operand_1_is_class) {
           /* Instantiate the type if it is a template class.  This ensures that
              member operator functions that could apply are declared. */
@@ -6237,19 +6274,9 @@ functions could still apply).
                             "check_for_operator_overloading: func not member");
             }  /* if */
 #endif /* CHECKING */
-            if (is_ambiguous_by_inheritance(member_functions_symbol)) {
-              /* The symbol is ambiguous, and as such is an arbitrary
-                 representative of a set of functions that collided.  There's
-                 no point in seeing if the function indicated matches up, since
-                 there might be another function that isn't represented that
-                 would match better. */
-              pos_sy_error(ec_ambiguous_name, operator_position,
-                           member_functions_symbol);
-              ambiguous = TRUE;
-            } else {
-              /* Use the first operand as the selector expression, and
-                 the second operand as the first actual argument . */
-              try_overloaded_function_match(
+            /* Use the first operand as the selector expression, and
+               the second operand as the first actual argument . */
+            try_overloaded_function_match(
                                          member_functions_symbol,
                                          /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
@@ -6261,7 +6288,6 @@ functions could still apply).
                                          /*effects_copy_initialization=*/FALSE,
                                          &candidate_functions,
                                          &matched_except_for_missing_selector);
-            }  /* if */
           }  /* if */
         }  /* if */
         /* Find any non-member function for the operator. */
@@ -6304,18 +6330,7 @@ functions could still apply).
                                                   &type_list);
           for (slep = symbol_list; slep != NULL; slep = slep->next) {
             nonmember_functions_symbol = slep->symbol;
-            if (is_ambiguous_by_inheritance(nonmember_functions_symbol)) {
-              /* The symbol is ambiguous, and as such is an arbitrary
-                 representative of a set of functions that collided due
-                 to namespace inheritance.  There's no point in seeing
-                 if the function indicated matches up, since there might
-                 be another function that isn't represented that would
-                 match better. */
-              pos_sy_error(ec_ambiguous_name, operator_position,
-                           nonmember_functions_symbol);
-              ambiguous = TRUE;
-            } else {
-              try_overloaded_function_match(
+            try_overloaded_function_match(
                                          nonmember_functions_symbol,
                                          /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
@@ -6327,7 +6342,6 @@ functions could still apply).
                                          /*effects_copy_initialization=*/FALSE,
                                          &candidate_functions,
                                          &matched_except_for_missing_selector);
-            }  /* if */
           }  /* for */
           free_list_of_symbol_list_entries(symbol_list);
         }  /* if */
@@ -6343,17 +6357,16 @@ functions could still apply).
                                                arg_operand_list,
                                                &candidate_functions);
         }  /* if */
-        if (!ambiguous) {
-          /* The candidate_functions list now contains all the viable
-             functions.  Find the best. */
-          select_best_candidate_functions(&candidate_functions,
-                                          operator_position,
-                                          &undecidable_because_of_error);
-        }  /* if */
+        /* The candidate_functions list now contains all the viable
+           functions.  Find the best. */
+        select_best_candidate_functions(&candidate_functions,
+                                        operator_position,
+                                        &undecidable_because_of_error,
+                                        &ambiguous);
         function_symbol = NULL;
         arg_expr_list = NULL;
         arg_operand_list_not_used = FALSE;
-        if (undecidable_because_of_error || ambiguous) {
+        if (undecidable_because_of_error) {
           /* There was a previous error. */
           *processed = TRUE;
           arg_operand_list_not_used = TRUE;
@@ -6375,10 +6388,7 @@ functions could still apply).
             make_error_operand(result);
             arg_operand_list_not_used = TRUE;
           }  /* if */
-        } else if (candidate_functions->next != NULL ||
-                   (candidate_functions->function_symbol != NULL &&
-                    is_ambiguous_by_inheritance(
-                                      candidate_functions->function_symbol))) {
+        } else if (ambiguous) {
           /* More than one function applies and is a best match --
              ambiguity. */
           *processed = TRUE;
@@ -6728,21 +6738,18 @@ because of an error.  This routine is used only in C++ mode.
          Find the best ones. */
       select_best_candidate_functions(&candidate_functions,
                                       &source_operand->position,
-                                      &undecidable_because_of_error);
+                                      &undecidable_because_of_error,
+                                      ambiguous);
       if (undecidable_because_of_error) {
-        *ambiguous = TRUE;
         /* Note that candidate_functions is NULL
            (select_best_candidate_functions returns it that way in this case),
            so a NULL ambiguity_list will be returned to indicate "undecidable
-           because of error". */
+           because of error".  *ambiguous is also set to TRUE. */
       } else if (candidate_functions == NULL) {
         /* No constructor or conversion function is suitable. */
-      } else if (candidate_functions->next != NULL ||
-                 is_ambiguous_by_inheritance(
-                                       candidate_functions->function_symbol)) {
+      } else if (*ambiguous) {
         /* More than one constructor or conversion function matches at the same
            level.  Ambiguity. */
-        *ambiguous = TRUE;
 #if DEBUG
         if (debug_level >= 4) {
           db_candidate_function_list(candidate_functions);
@@ -6849,21 +6856,18 @@ C++ mode.
   /* Of the viable functions, select the best. */
   select_best_candidate_functions(&candidate_functions,
                                   &source_operand->position,
-                                  &undecidable_because_of_error);
-  *ambiguous = FALSE;
+                                  &undecidable_because_of_error,
+                                  ambiguous);
   okay = FALSE;
   if (undecidable_because_of_error) {
-    *ambiguous = TRUE;
     /* Note that candidate_functions is NULL (select_best_candidate_functions
        returns it that way in this case), so a NULL ambiguity_list will
-       be returned to indicate "undecidable because of error". */
+       be returned to indicate "undecidable because of error".  *ambiguous
+       is also set to TRUE. */
   } else if (candidate_functions == NULL) {
     /* There are no viable conversion functions. */
-  } else if (candidate_functions->next != NULL ||
-             is_ambiguous_by_inheritance(
-                                       candidate_functions->function_symbol)) {
+  } else if (*ambiguous) {
     /* There are several equally desirable functions. */
-    *ambiguous = TRUE;
 #if DEBUG
     if (debug_level >= 4) {
       db_candidate_function_list(candidate_functions);
@@ -9226,6 +9230,7 @@ wanted.  If a bitwise copy is allowed, return NULL and
         }  /* if */
       } else {
         /* Not a template. */
+        check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
         routine = sym->variant.routine.ptr;
         routine_type = routine->type;
       }  /* if */
@@ -9295,16 +9300,14 @@ next_function:;
     }  /* for */
     /* Pick the best copy constructor. */
     select_best_candidate_functions(&candidate_functions, pos,
-                                    &undecidable_because_of_error);
-    *ambiguous = FALSE;
+                                    &undecidable_because_of_error, ambiguous);
     cctor_sym = NULL;
     if (undecidable_because_of_error) {
-      *ambiguous = TRUE;
+      /* Previous error. */
     } else if (candidate_functions == NULL) {
       /* There are no viable conversion functions. */
-    } else if (candidate_functions->next != NULL) {
+    } else if (*ambiguous) {
       /* There are several equally desirable functions. */
-      *ambiguous = TRUE;
     } else {
       /* There is exactly one best function. */
       cctor_sym = candidate_functions->function_symbol;
