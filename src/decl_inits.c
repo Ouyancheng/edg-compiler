@@ -396,10 +396,10 @@ element type is template dependent.
        is being initialized with a string.  Handle this case specially. */
     a_boolean      err = FALSE;
 
-    /* Do concatenations like "abc" __FUNCTION__. */
-    (void)do_expression_level_string_literal_concatenation();
     if (!using_pending_init_con) {
       /* The constant wasn't prescanned. */
+      /* Do concatenations like "abc" __FUNCTION__. */
+      (void)do_expression_level_string_literal_concatenation();
       cp = &const_for_curr_token;
       if (cp->kind != (a_constant_repr_kind)ck_string) {
         /* The constant is not a string. */
