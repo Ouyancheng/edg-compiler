@@ -122,14 +122,22 @@ it allows the cases without a qualified name.
 9/29/94  #pragma hdrstop
 
 Not only has code been added to recognize "#pragma hdrstop", as part of
-precompiled header processing, but the directive has also been added to
-our own source files.  The typical idiom is:
+precompiled header processing, but the directive has also been added to our
+own source files.  The typical idiom is:
 
   #include "fe_common.h"
-  #if HDRSTOP_RECOGNIZED
+  #ifdef PCH_PRAGMA_GUARD
   #pragma hdrstop
-  #endif /* HDRSTOP_RECOGNIZED */
+  #endif /* PCH_PRAGMA_GUARD */
   #include ...
+
+(PCH_PRAGMA_GUARD is provided to avoid diagnostics from compilers that
+don't recognize #pragma hdrstop.  Whether or how it is set does not
+actually affect the EDG front end's ability to recognize the pragma.)
+
+"#pragma no_pch" is also used occasionally -- it suppresses generation of a
+precompiled header file.  It appears in files for which precompiled header
+file sharing is impossible.
 
 9/29/94  New header files, new protocol for header file inclusion
 
