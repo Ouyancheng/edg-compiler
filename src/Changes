@@ -1,5 +1,18 @@
 Version 3.6
 
+3/30/05  Microsoft compatibility: Calling conventions on constructors and
+         destructors
+
+In Microsoft mode, the front end now ignores explicit calling convention
+specifiers on constructors and destructors (with a warning).  This causes
+some cases that previously triggered errors to be accepted.  For example:
+
+  struct S { S(); };
+  __stdcall S::S() {}  // Now accepted with a warning.  (Previously an error.)
+
+The special case of specifying __cdecl on a constructor with an ellipsis
+parameter is accepted without a warning (see Changes entry of 9/17/96).
+
 3/30/05  Position of top-level break statement within switch clause
 
 The front end previously recorded the break_position field of a_switch_clause

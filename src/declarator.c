@@ -2608,6 +2608,11 @@ information should be ignored or if an error should be issued.
                specified is being ignored. */
             discard = TRUE;
           }  /* if */
+        } else if (rtsp->assoc_routine_is_ctor ||
+                   rtsp->assoc_routine_is_dtor) {
+          /* Calling convention specifiers are always ignored on constructors
+             and destructors. */
+          discard = TRUE;
         } else if (rtsp->calling_convention != calling_convention) {
           /* The underlying routine type needs to be updated. */
           if (any_typedefs) {
