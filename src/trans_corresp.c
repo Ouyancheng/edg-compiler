@@ -241,11 +241,36 @@ a source correspondence).
   conv_seq_to_file_and_line(scp->decl_position.seq, &file_name,
                             &full_name, &line, &at_end_of_source);
   if (line != 0) {
-    fprintf(f_debug, " in file %s (line %ld)", file_name, line);
+    fprintf(f_debug, " in file %s (line %ld)\n", file_name, line);
   } else {
-    fprintf(f_debug, " (built-in; line %ld)", line);
+    fprintf(f_debug, " (built-in; line %ld)\n", line);
   }  /* if */
 }  /* db_scp */
+
+
+static void db_sym_list(a_symbol_list_entry_ptr  entries)
+/*
+Dump a short summary of the symbols in the given list.
+*/
+{
+  a_line_number                line;
+  char                         *file_name, *full_name;
+  a_boolean                    at_end_of_source;
+
+  while (entries != NULL) {
+    a_symbol_ptr  sym = entries->symbol;
+    db_symbol_name(sym);
+    fprintf(f_debug, " (%s)", symbol_kind_names[(int)sym->kind]);
+    conv_seq_to_file_and_line(sym->decl_position.seq, &file_name,
+                              &full_name, &line, &at_end_of_source);
+    if (line != 0) {
+      fprintf(f_debug, " (%s:%ld)\n", file_name, line);
+    } else {
+      fprintf(f_debug, " (%s:built-in)\n", file_name);
+    }  /* if */
+    entries = entries->next;
+  }  /* while */
+}  /* db_sym_list */
 
 #endif /* DEBUG */
 
@@ -4343,6 +4368,10 @@ way, determine to which other IL entry this might correspond.
       } else {
         find_type_correspondence(root, /*parent_found=*/FALSE);
       }  /* if */
+    }
+    if (trans_unit_corresp_of_unknown_entry(scp) == NULL) {
+      /* The entity might be an instantiation waiting to be processed. */
+      process_pending_instantiations();
     }  /* if */
     if (trans_unit_corresp_of_unknown_entry(scp) == NULL) {
       /* A correspondence error at an outer level prevent this entry from
