@@ -668,6 +668,7 @@ static a_boolean class_specifier(a_boolean  vacuous_decl_allowed,
                                  a_boolean  is_friend_decl,
                                  a_boolean  is_ref_within_new_expr,
 				 a_boolean  is_explicit_instantiation,
+                                 a_boolean  is_template_specialization,
                                  a_type_ptr *type_ptr,
                                  a_boolean  *declares_something,
                                  a_boolean  *defines_something)
@@ -966,7 +967,17 @@ the template.
       cssp = tag_sym->variant.class_struct_union.extra_info;
       if (cssp->is_instance) {
         /* A template class or a nested class within a template class. */
-        if (is_class_definition ||
+        if (is_template_specialization) {
+          if (is_class_definition || curr_token == tok_semicolon) {
+            if (cssp->is_specific_template_def) {
+              /* Redeclaration. */
+              *declares_something = FALSE;
+            } else {
+              cssp->is_specific_template_def = TRUE;
+            }  /* if */
+            is_template_specific_decl = TRUE;
+          }  /* if */
+        } else if (is_class_definition ||
             (curr_token == tok_semicolon &&
              !is_friend_decl && !is_explicit_instantiation)) {
           /* We have a specific declaration of a template class. */
@@ -2614,6 +2625,10 @@ Returns TRUE if there is an error in the specifiers.
                Just return a flag to the caller. */
             *output_flags |= DSO_MUTABLE;
           }  /* if */
+        } else if ((input_flags & DSI_IS_TEMPLATE_SPECIALIZATION) &&
+                   curr_token != tok_static) {
+          error(ec_storage_class_not_allowed);
+          err = TRUE;
         } else if (is_member_decl &&
                    curr_token != tok_static && curr_token != tok_typedef) {
           error(ec_bad_member_storage_class);
@@ -3167,11 +3182,12 @@ process_class_specifier:
           if (basic_type == bt_none) {
             if (num_specifiers > 0) vacuous_decl_allowed = FALSE;
             if (!class_specifier(
-                            vacuous_decl_allowed, is_friend_decl,
-                            (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
-                            (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
-                            type_ptr, &declares_something,
-                            &defines_something)) {
+                          vacuous_decl_allowed, is_friend_decl,
+                          (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
+                          (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
+                          (input_flags & DSI_IS_TEMPLATE_SPECIALIZATION) != 0,
+                          type_ptr, &declares_something,
+                          &defines_something)) {
               err = TRUE;
             }  /* if */
             basic_type = bt_struct_union;
@@ -3184,11 +3200,12 @@ process_class_specifier:
             error(ec_bad_combination_of_type_specifiers);
             /* Scan the specifier anyway, but throw it away. */
             (void)class_specifier(
-                            /*vacuous_decl_allowed=*/FALSE,
-                            /*is_friend_decl=*/FALSE,
-                            (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
-                            (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
-                            &dummy_type, &dummy_flag, &dummy_flag);
+                          /*vacuous_decl_allowed=*/FALSE,
+                          /*is_friend_decl=*/FALSE,
+                          (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
+                          (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
+                          (input_flags & DSI_IS_TEMPLATE_SPECIALIZATION) != 0,
+                          &dummy_type, &dummy_flag, &dummy_flag);
           }  /* if */
           goto no_get_token;
         }  /* if */
