@@ -5125,10 +5125,10 @@ See also 3.6.6.4.
          &return_pos);
     stmt_update_source_sequence_list(sp);
   }  /* if */
-  /* Do processing required for any pragmas that are bound to the current
-     statement. */
-  process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
   if (sp != NULL) {
+    /* Do processing required for any pragmas that are bound to the current
+       statement. */
+    process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
     /* Put the expression into the statement. */
     sp->expr = return_expr;
     if (!microsoft_C_mode_void_return) {
