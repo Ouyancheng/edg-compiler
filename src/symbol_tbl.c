@@ -5098,6 +5098,10 @@ it is added to the end of the scope entry symbol list for the class.
     /* A name X cannot be inherited into class X, since the "name slot" for
        is already taken (sort of) by the constructor. */
     progenitor_sym = NULL;
+  } else if (locator->is_operator_name &&
+             locator->variant.opname == (an_opname_kind)onk_assign) {
+    /* Assignment operators are not inherited (13.4.3). */
+    progenitor_sym = NULL;
   } else {
     progenitor_sym = find_progenitor_symbol(class_ptr, locator, must_be_tag,
                                             &path, &access, &ambiguous);
@@ -6336,6 +6340,8 @@ a projection symbol is needed to check for ambiguity and access).
     /* Yes.  Look for one in the desired class. */
     clear_locator(&locator, &pos_curr_token);
     locator.symbol_header = symhdr;
+    locator.is_operator_name = TRUE;
+    locator.variant.opname = kind;
     if (class_qualified_id_lookup(&locator, class_type,
                                   (IDL_NO_OPTIONS |
                                    IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) != NULL) {
