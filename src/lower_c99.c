@@ -1522,7 +1522,7 @@ second parameter.
       break;
     case enk_variable_address:
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
-      if (expr->variant.variable->is_vla) {
+      if (lower_variable_length_arrays && expr->variant.variable->is_vla) {
         /* VLAs are lowered to pointers (to automatically managed storage).
            The pointer value should be used; not its address. */
         expr->kind = (an_expr_node_kind)enk_variable;
