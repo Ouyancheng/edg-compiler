@@ -2293,8 +2293,7 @@ Returns TRUE if there is an error in the specifiers.
           error(ec_type_specifier_not_allowed);
           err = TRUE;
 #if LONG_LONG_ALLOWED
-        } else if (size == size_long && curr_token == tok_long &&
-                   !any_cfront_mode()) {
+        } else if (size == size_long && curr_token == tok_long) {
           /* long long.  This is an extension. */
           size = size_long_long;
           if (strict_ansi_mode) {
