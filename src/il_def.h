@@ -216,8 +216,15 @@ typedef a_byte an_access_specifier;
 #define is_more_accessible(access1, access2) ((int)(access1) < (int)(access2))
 #endif /* ifdef CIL */
 
-/* Kind of name linkage (e.g., external name visibility). */
-/* If you update this, be sure to update name_linkage_kind_names too. */
+/* Kind of name linkage (e.g., external name visibility).  Note that
+   "name linkage" applies to names (in some implementations it controls
+   whether the external name for an entity will be mangled) and also applies
+   to function types (e.g., implying a calling convention in some
+   implementations). */
+/* If you add linkage kinds, be sure to update name_linkage_kind_names and
+   NUM_BITS_FOR_NAME_LINKAGE; you will probably also need to customize
+   routine_linkages_are_compatible and routine_linkages_are_identical (which
+   are defined in types.c). */
 enum a_name_linkage_kind_tag {
   nlk_none,		/* No linkage, as for a local variable. */
 #ifdef CIL

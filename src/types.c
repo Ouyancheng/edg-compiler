@@ -1965,6 +1965,10 @@ a_boolean routine_linkages_are_compatible(a_name_linkage_kind  nlk1,
 Return TRUE if the indicated name linkages are compatible with respect to the
 calling conventions they imply.  is_impl_conv is TRUE if the compatibility
 check occurs in connection with an implicit type conversion.
+
+Note: this routine (along with routine_linkages_are_identical) may have to
+be customized if additional linkage kinds are added a_name_linkage_kind
+(defined in il_def.h).
 */
 {
   a_boolean  compat;
@@ -2010,6 +2014,10 @@ static a_boolean routine_linkages_are_identical(a_name_linkage_kind nlk1,
 Return TRUE if the indicated name linkages are identical with respect to the
 calling conventions they imply.  In a default implementation, extern "C"
 routine linkage is construed as different from extern "C++" linkage.
+
+Note: this routine (along with routine_linkages_are_compatible) may have to
+be customized if additional linkage kinds are added a_name_linkage_kind
+(defined in il_def.h).
 */
 {
   check_assertion_str2((nlk1 == (a_name_linkage_kind)nlk_external ||
