@@ -1552,9 +1552,16 @@ initialized.  These are addressed in the course of the processing.
         }  /* if */
         /* Scan the base class name or member name. */
         member_or_base_sym = get_normal_id_or_qualified_name(IDL_NO_OPTIONS);
-        if (member_or_base_sym == NULL) {
+        if (member_or_base_sym == NULL ||
+            member_or_base_sym->kind == (a_symbol_kind)sk_undefined) {
           /* No such name or qualified name in the symbol table. */
-          type_error(ec_not_a_field_or_base_class, class_type);
+          if (is_error_locator(locator_for_curr_id)) {
+            /* Some error will already have been issued on this name. */
+          } else {
+            pos_stty_error(ec_not_a_field_or_base_class, &error_position,
+                           locator_for_curr_id.symbol_header->identifier,
+                           class_type);
+          }  /* if */
           init_type = error_type();
         } else if (member_or_base_sym->kind == (a_symbol_kind)sk_field &&
                    member_or_base_sym->class_of_which_a_member == class_type) {
@@ -1688,7 +1695,8 @@ initialized.  These are addressed in the course of the processing.
             } else {
               /* Not a base class of the class for which a constructor is
                  being defined. */
-              type_error(ec_not_a_field_or_base_class, class_type);
+              pos_syty_error(ec_sym_not_a_field_or_base_class, &error_position,
+                             member_or_base_sym, class_type);
             }  /* if */
             init_type = error_type();
           } else {
@@ -1705,7 +1713,8 @@ initialized.  These are addressed in the course of the processing.
           }  /* if */
         } else {
           /* Not a base class, not a field.  Issue an error. */
-          type_error(ec_not_a_field_or_base_class, class_type);
+          pos_syty_error(ec_sym_not_a_field_or_base_class, &error_position,
+                         member_or_base_sym, class_type);
           init_type = error_type();
         }  /* if */
 scan_paren:
