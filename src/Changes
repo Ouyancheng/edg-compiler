@@ -1,5 +1,22 @@
 Version 2.07
 
+6/5/92  Added protected member access check of ARM 11.5.
+
+Access control checking has been enchanced to do the checking mandated
+by ARM 11.5.
+
+6/5/92  Subscript checking disabled for arrays dimensioned [1].
+
+A warning is no longer issued for out-of-range subscripts on
+arrays with size 1, on the assumption that a size of 1 means there's
+some trickery going on.
+
+6/5/92  Constant address expressions not folded to address constants.
+
+In nonconstant expressions, constant addressing expressions are now
+always kept in expression form rather than in constant address form.  
+That provides more information for alising analysis.
+
 6/5/92  Added support for various diagnostic message fill-ins.
 
 Support was added to allow type and symbol names to be inserted in diagnostic
