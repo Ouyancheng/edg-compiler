@@ -949,7 +949,7 @@ Free a block of memory to general storage.
 {
   free((char*)ptr);
 #if DEBUG
-  total_general_mem_allocated += size;
+  total_general_mem_allocated -= size;
 #endif /* DEBUG */
 }  /* free_general */
 
