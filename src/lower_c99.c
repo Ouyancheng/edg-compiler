@@ -1600,7 +1600,7 @@ Transform the given cast expression into a function call (compatible with C89).
 #if LOWER_FIXED_POINT
 
 /*
-Runtime routines for fixed-point comparisons.
+Runtime routines for fixed-point operations.
 */
 static a_routine_ptr
 		fixed_eq_routine,
@@ -1608,20 +1608,18 @@ static a_routine_ptr
 		fixed_gt_routine,
 		fixed_lt_routine,
 		fixed_ge_routine,
-		fixed_le_routine;
-/*
-Runtime routines for fixed-point binary (two-operand) operations.
-*/
-static a_routine_ptr
+		fixed_le_routine,
 		fixed_add_routine,
 		fixed_subtract_routine,
 		fixed_multiply_routine,
-		fixed_divide_routine;
+		fixed_divide_routine,
+		fixed_shiftl_routine,
+		fixed_shiftr_routine;
 
 
-static void lower_c99_fixed_point_operation2(an_expr_node_ptr expr)
+static void lower_c99_fixed_point_operation(an_expr_node_ptr expr)
 /*
-Lower a two-operand fixed-point operation expression.
+Lower a fixed-point operation expression.
 */
 {
   an_expr_operator_kind op = expr->variant.operation.kind;
@@ -1634,8 +1632,10 @@ Lower a two-operand fixed-point operation expression.
   int                   shift_amount = 0;
   a_boolean             need_result_fxtype = FALSE;
   a_boolean             is_comparison = FALSE;
+  a_boolean             is_shift = FALSE;
   an_integer_kind       fxmask_int_kind = FXMASK_INT_KIND;
   a_type_ptr            return_type;
+  a_type_ptr            op2_arg_type = fxvalue_type();
 
   /* Select the proper runtime routine for the operation. */
   switch (op) {
@@ -1689,6 +1689,16 @@ Lower a two-operand fixed-point operation expression.
       routine = &fixed_divide_routine;
       need_result_fxtype = TRUE;
       break;
+    case eok_fxshiftl:
+      routine_name = "_Fixed_shiftl";
+      routine = &fixed_shiftl_routine;
+      is_shift = TRUE;
+      break;
+    case eok_fxshiftr:
+      routine_name = "_Fixed_shiftr";
+      routine = &fixed_shiftr_routine;
+      is_shift = TRUE;
+      break;
     default:
       unexpected_condition_str("bad fixed point operator");
   }  /* switch */
@@ -1702,41 +1712,49 @@ Lower a two-operand fixed-point operation expression.
   /* Build up the fxmask argument describing the operand types. */
   fxmask = fxcontrol_value();
   shift_amount = FXCONTROL_SIZE;
+  /* First operand fxtype. */
   fxmask |= (fxtype_value_for_type(op1->type) << shift_amount);
   shift_amount += FXTYPE_SIZE;
-  fxmask |= (fxtype_value_for_type(op2->type) << shift_amount);
-  shift_amount += FXTYPE_SIZE;
+  if (!is_shift) {
+    /* Second operand fxtype. */
+    fxmask |= (fxtype_value_for_type(op2->type) << shift_amount);
+    shift_amount += FXTYPE_SIZE;
+  }  /* if */
   if (need_result_fxtype) {
-    /* Operations like add need the fxmask2 variant, which includes
-       two operand types and a result type. */
-    fxmask_int_kind = FXMASK2_INT_KIND;
+    /* Result fxtype. */
     fxmask |= (fxtype_value_for_type(expr->type) << shift_amount);
+    /* Operations like "add" need the fxmask2 variant, which includes
+       two operand types and a result type and is therefore bigger. */
+    fxmask_int_kind = FXMASK2_INT_KIND;
   }  /* if */
   fxmask_expr = node_for_integer_constant((long)fxmask, fxmask_int_kind);
   /* Convert the first operand to the fxvalue type used to interface to the
      runtime. */
   op1->next = NULL;
   op1 = add_cast_if_necessary(op1, fxvalue_type());
-  /* Convert the second operand to the fxvalue type used to interface to the
+  /* Convert the second operand to the type used to interface to the
      runtime. */
-  op2 = add_cast_if_necessary(op2, fxvalue_type());
+  if (is_shift) {
+    /* For a shift, the second operand is the int shift count. */
+    op2_arg_type = integer_type((an_integer_kind)ik_int);
+  }  /* if */
+  op2 = add_cast_if_necessary(op2, op2_arg_type);
   /* Make the call of the runtime comparison routine. */
   fxmask_expr->next = op1;
   op1->next = op2;
-  new_expr = make_prototyped_runtime_call_full(
-                                         routine_name, routine,
-                                         return_type,
-                                         integer_type(fxmask_int_kind),
-                                         fxvalue_type(),
-                                         fxvalue_type(),
-                                         fxmask_expr);
+  new_expr = make_prototyped_runtime_call_full(routine_name, routine,
+                                               return_type,
+                                               integer_type(fxmask_int_kind),
+                                               fxvalue_type(),
+                                               op2_arg_type,
+                                               fxmask_expr);
   /* Cast the value returned by the runtime routine to the final
      desired type (probably does nothing except add a typedef if
      appropriate). */
   new_expr = add_cast_if_necessary(new_expr, expr->type);
   /* Overwrite the original node with the lowered expression. */
   overwrite_node(expr, new_expr);
-}  /* lower_c99_fixed_point_operation2 */
+}  /* lower_c99_fixed_point_operation */
 
 #endif /* LOWER_FIXED_POINT */
 #if GNU_EXTENSIONS_ALLOWED
@@ -2044,15 +2062,17 @@ _Bool type, and VLA types.
     case eok_fxsubtract:
     case eok_fxmultiply:
     case eok_fxdivide:
+    case eok_fxshiftl:
+    case eok_fxshiftr:
     case eok_fxeq:
     case eok_fxne:
     case eok_fxgt:
     case eok_fxlt:
     case eok_fxge:
     case eok_fxle:
-      /* Two-operand fixed-point operations. */
+      /* Fixed-point operations. */
 #if LOWER_FIXED_POINT
-      lower_c99_fixed_point_operation2(expr);
+      lower_c99_fixed_point_operation(expr);
 #endif /* LOWER_FIXED_POINT */
       break;
 #endif /* FIXED_POINT_ALLOWED */
@@ -3420,6 +3440,8 @@ Do one-time initialization of variables related to C99 IL lowering.
       pch_saved_var_array_elem(fixed_subtract_routine),
       pch_saved_var_array_elem(fixed_multiply_routine),
       pch_saved_var_array_elem(fixed_divide_routine),
+      pch_saved_var_array_elem(fixed_shiftl_routine),
+      pch_saved_var_array_elem(fixed_shiftr_routine),
 #endif /* LOWER_FIXED_POINT */
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
       pch_saved_var_array_elem(vla_types),
@@ -3489,6 +3511,8 @@ for each translation unit.
   fixed_subtract_routine = NULL;
   fixed_multiply_routine = NULL;
   fixed_divide_routine = NULL;
+  fixed_shiftl_routine = NULL;
+  fixed_shiftr_routine = NULL;
   { int k;
     for (k = 0; k < (int)fk_last; ++k) {
       float_fixed_conv_routine[k] = NULL;
