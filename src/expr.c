@@ -1321,7 +1321,9 @@ is being called for a derived class object).
   if (constructor_sym != NULL) {
     /* Check that the constructor is accessible and mark it referenced. */
     reference_to_implicitly_invoked_function(constructor_sym, err_pos,
-					     object_class_type);
+					     object_class_type,
+                                             /*honor_virtual=*/FALSE,
+                                             curr_expr_is_evaluated());
     *conversion_routine = constructor_sym->variant.routine.ptr;
   }  /* if */
   pop_expr_stack();
@@ -3842,7 +3844,8 @@ specification allow a variable-sized array as the top type.
     } else {
       /* There is no new-initializer, so a default constructor should exist. */
       ctor_routine = select_default_constructor(base_new_type, &type_position,
-						base_new_type);
+						base_new_type,
+                                                curr_expr_is_evaluated());
       arg_expr_list = NULL;
       if (ctor_routine != NULL) {
         /* Provide default arguments if any. */
@@ -4097,7 +4100,9 @@ As an anachronism, allow an expression inside the [ ].
              a destructor). */
           pos_warning(ec_delete_of_incomplete_class, &delete_position);
         }  /* if */
-        dtor_routine = select_destructor(base_delete_type, base_delete_type);
+        dtor_routine = select_destructor(base_delete_type, base_delete_type,
+                                         /*honor_virtual=*/TRUE,
+                                         curr_expr_is_evaluated());
         if (dtor_routine != NULL) {
           /* Class with destructor.  Destruction is required. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
