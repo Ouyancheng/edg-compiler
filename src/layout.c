@@ -1439,11 +1439,17 @@ base class).
       bctp->variant.class_struct_union.any_virtual_base_classes
 #endif /* ABI_COMPATIBILITY_VERSION >= 304 */
                                                                ) {
+    /* In IA-64 ABI configurations, size_without_virtual_base_classes
+       does not include tail padding.  Even when there are no virtual
+       bases, size_without_virtual_base_classes may be different from
+       size since the latter does include tail padding.  For empty
+       class types size_without_virtual_base_classes is zero, but
+       that is not the right value to compute the base extent since
+       the difference between zero and the actual empty class size is
+       not considered to be "tail padding" by the IA-64 ABI. */
     next_byte = bcp->offset + bctp->variant.class_struct_union.extra_info
                                   ->size_without_virtual_base_classes;
   } else {
-    /* This includes empty base classes (whose size without virtual base
-       classes is zero). */
     next_byte = bcp->offset + bctp->size;
   }  /* if */
   return next_byte;
