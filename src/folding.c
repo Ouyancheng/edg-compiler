@@ -342,8 +342,27 @@ Convert a pointer constant to a constant of type as specified by
 #endif /* CHECKING */
   /* Change of pointer type for an address constant. */
   /* Change of pointer type for an integer cast to a pointer type. */
-  copy_constant(old_constant, new_constant);
-  implicit_cast(new_constant, new_type);
+  /* Change of an address constant previously cast to integer to another
+     type. */
+  if (is_integral_type(new_type)) {
+    /* Pointer value being forced into an integral type.  Make sure the
+       integral type is large enough to hold a pointer. */
+#if TARG_ALL_POINTERS_SAME_SIZE
+    /* All pointers are the same size. */
+    if (skip_typerefs(new_type)->size < TARG_SIZEOF_POINTER) {
+      *err_code = ec_integer_truncated;
+      *err_severity = es_error;
+    }  /* if */
+#else /* !TARG_ALL_POINTERS_SAME_SIZE */
+??=error conv_pointer_to_whatever: different-sized pointers not implemented.
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
+  }  /* if */
+  if (*err_code != ec_no_error) {
+    set_error_constant(new_constant);
+  } else {
+    copy_constant(old_constant, new_constant);
+    implicit_cast(new_constant, new_type);
+  }  /* if */
 }  /* conv_pointer_to_whatever */
 
 
