@@ -647,6 +647,14 @@ a new symbol is created and entered in the symbol table.
     update_source_sequence_list((char *)vp, (an_il_entry_kind)iek_variable,
                                 param_id->source_sequence_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (param_id->type_pos.seq != 0) {
+      /* Since set_source_corresp is not called for unnamed entities, create
+         the associated decl-pos supplement directly. */
+      vp->source_corresp.decl_pos_info =
+                     alloc_decl_position_supplement(in_file_scope(vp));
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     make_locator_for_symbol(sym, &locator);
     if (function_instantiation) {
@@ -666,22 +674,22 @@ a new symbol is created and entered in the symbol table.
     mark_defined(sym, &sym->decl_position);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     mark_variable_value_set(sym);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    {
-    a_decl_position_supplement_ptr  dpsp = vp->source_corresp.decl_pos_info;
-    if (dpsp != NULL) {
-      dpsp->identifier_range = param_id->identifier_range;
-      dpsp->specifiers_range = param_id->specifiers_range;
-      dpsp->declarator_range = param_id->declarator_range;
-    }  /* if */
-    }
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if DEBUG
     if (debug_level >= 3) {
       db_symbol(sym, "Changed from parameter symbol: ", 4);
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  {
+  a_decl_position_supplement_ptr  dpsp = vp->source_corresp.decl_pos_info;
+  if (dpsp != NULL) {
+    dpsp->identifier_range = param_id->identifier_range;
+    dpsp->specifiers_range = param_id->specifiers_range;
+    dpsp->declarator_range = param_id->declarator_range;
+  }  /* if */
+  }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
 }  /* decl_parameter */
 
