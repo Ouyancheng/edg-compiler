@@ -3168,10 +3168,18 @@ that expression.
       member_con = member_con->next;
       check_assertion(member_con != NULL);
     }  /* if */
+    while (member_con->kind == (a_constant_repr_kind)ck_init_repeat) {
+      /* We can't add under a ck_init_repeat (the repeated constant
+         must be truly constant), so skip this constant. */
+      member_con = member_con->next;
+      check_assertion(member_con != NULL);
+    }  /* while */
     expr_ptr = find_expression_in_initializer(member_con);
+#if CHECKING
   } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
-    expr_ptr =
-             find_expression_in_initializer(con->variant.init_repeat.constant);
+    /* ck_init_repeat constants should not appear at this level. */
+    unexpected_condition();
+#endif /* CHECKING */
   } else {
     an_expr_node_ptr   expr;
     a_dynamic_init_ptr dip =
