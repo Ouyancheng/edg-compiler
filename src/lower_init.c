@@ -10623,7 +10623,9 @@ The overriding function must have a definition in the current compilation.
   a_routine_ptr          overriding_function, overridden_function;
   a_base_class_ptr       bcp;
   a_type_ptr             overriding_return_type, overridden_return_type;
+#if IA64_ABI
   a_variable_ptr         this_param = NULL;
+#endif /* IA64_ABI */
 
   /* The routine type must be already lowered so that, among other things,
      the implicit "this" parameter is already in the parameter type list. */
@@ -10651,7 +10653,9 @@ The overriding function must have a definition in the current compilation.
     param_var = make_lowered_param_variable(make_qualified_type(ptp->type,
                                                                 qualifiers));
     if (ptp == this_ptp) {
+#if IA64_ABI
       this_param = param_var;
+#endif /* IA64_ABI */
       param_var->is_this_parameter = TRUE;
     }  /* if */
     if (last_param_var == NULL) {
