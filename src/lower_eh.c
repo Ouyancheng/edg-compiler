@@ -259,7 +259,6 @@ not a user type_info type.
   return (a_type_info_kind)i;
 }  /* is_type_info_type */
 
-#if ABI_CHANGES_FOR_RTTI
 
 a_type_info_kind is_type_info_vtbl(a_variable_ptr vtbl)
 /*
@@ -276,7 +275,6 @@ this vtable does not belong to any type_info type.
   return (a_type_info_kind)i;
 }  /* is_type_info_vtbl */
 
-#endif /* ABI_CHANGES_FOR_RTTI */
 
 static void set_name_for_typeinfo_type(a_type_ptr type,
                                        char       *name)
@@ -294,9 +292,9 @@ function table for it.
 }  /* set_name_for_typeinfo_type */
 
 
-static a_type_ptr make_user_type_info_type(void)
+static a_type_ptr make_user_typeinfo_type(void)
 /*
-Make a type with the same structure as the type_info type from the
+Make a type with the same structure as the std::type_info type from the
 <typeinfo> header, and return it.  
 
 Its definition is
@@ -312,12 +310,17 @@ is too strong a word: the virtual function table pointer must be at the
 proper offset.  The rest of the fields, and the overall size, need
 not match up.
 
-Note that even if we have the type_info type from the <typeinfo> header,
-we do not use it, because we don't know that it has the structure
-that we require.  We build a version of the type for IL lowering.
+Note that even if we have the type_info type from the <typeinfo> header
+(pointed to by type_of_type_info), we do not use it, because we don't
+know that it has the structure that we require, and we don't know
+whether it is complete at this point (it might be completed later in
+the compilation).  We build a version of that type for IL lowering.
+
 Note a notational convention (possibly overly subtle): a "type_info"
 refers to a type declared in the header, and a "typeinfo" (no underscore)
-refers to the corresponding type built by IL lowering.
+refers to the corresponding type built by IL lowering.  The type
+built here is considered the tik_user typeinfo type, and a call to
+this routine essentially implements make_typeinfo_type for tik_user.
 */
 {
   a_field_ptr last_field;
@@ -358,7 +361,7 @@ refers to the corresponding type built by IL lowering.
     finish_class_type(typeinfo_types[(int)tik_user]);
   }  /* if */
   return typeinfo_types[(int)tik_user];
-}  /* make_user_type_info_type */
+}  /* make_user_typeinfo_type */
 
 #endif /* ABI_CHANGES_FOR_RTTI */
 
@@ -449,8 +452,8 @@ string literals were implemented).
       break;
     case tik_user:
       /* This is a special case.  There are lots of derived classes, 
-         but they are all set up from make_user_type_info_type. */
-      (void)make_user_type_info_type();
+         but they are all set up from make_user_typeinfo_type. */
+      (void)make_user_typeinfo_type();
       break;
     default:
       unexpected_condition();
@@ -503,7 +506,7 @@ string literals were implemented).
     type_ptr = &typeinfo_types[(int)kind];
   }  /* if */
   if (*type_ptr == NULL) {
-    /* Make the struct type. */
+    /* Make the struct type for the typeinfo type we are creating. */
     *type_ptr = alloc_type((a_type_kind)tk_struct);
     last_field = NULL;
 #if IA64_ABI
@@ -535,7 +538,7 @@ string literals were implemented).
     }  /* if */
 #if ABI_CHANGES_FOR_RTTI
 #if !IA64_ABI
-    base_class = make_user_type_info_type();
+    base_class = make_user_typeinfo_type();
 #else /* IA64_ABI */
     /* Develop the base class type. */
     switch (kind) {
@@ -545,7 +548,7 @@ string literals were implemented).
       case tik_function:
       case tik_class:
       case tik_pbase:
-        base_class = make_user_type_info_type();
+        base_class = make_user_typeinfo_type();
         break;
       case tik_pointer:
       case tik_ptr_to_member:
@@ -607,7 +610,7 @@ string literals were implemented).
         make_lowered_field("pointee",
                            make_pointer_type(
                                   make_qualified_type(
-                                           make_user_type_info_type(),
+                                           make_user_typeinfo_type(),
                                            TQ_CONST)),
                            *type_ptr, &last_field);
         break;
@@ -1578,7 +1581,7 @@ typeinfo variable in a COMDAT group.
                                         /*set_address_taken_flag=*/TRUE);
           implicit_cast(pointee_con, 
                         make_pointer_type(
-                              make_qualified_type(make_user_type_info_type(),
+                              make_qualified_type(make_user_typeinfo_type(),
                                                   TQ_CONST)));
           type_info_con->next = flags_con;
           flags_con->next = pointee_con;
@@ -2141,13 +2144,13 @@ Do lowering of an enk_typeid expression node, i.e., a C++ typeid operation.
                                    integer_type(targ_ptrdiff_t_int_kind),
                                    vptr_expr);
     vptr_expr = add_cast_if_necessary(vptr_expr, 
-                               make_pointer_type(make_user_type_info_type()));
+                               make_pointer_type(make_user_typeinfo_type()));
     /* Make "__cxa_bad_typeid(), (std::typeinfo*)0". */
     bad_typeid_expr = make_runtime_rout_call("__cxa_bad_typeid",
                                              &bad_typeid_routine,
                                              void_type(),
                                              (an_expr_node_ptr)NULL);
-    make_zero_of_proper_type(make_pointer_type(make_user_type_info_type()),
+    make_zero_of_proper_type(make_pointer_type(make_user_typeinfo_type()),
                              &null_constant);
     null_constant_node = alloc_node_for_constant(&null_constant);
     bad_typeid_expr = make_comma_node(bad_typeid_expr, null_constant_node);
@@ -2168,7 +2171,7 @@ Do lowering of an enk_typeid expression node, i.e., a C++ typeid operation.
                                        compare_node);
     /* Make the __get_typeid call. */
     new_expr = make_runtime_rout_call("__get_typeid", &get_typeid_routine,
-                                 make_pointer_type(make_user_type_info_type()),
+                                 make_pointer_type(make_user_typeinfo_type()),
                                       question_node);
 #endif /* !IA64_ABI */
   }  /* if */
