@@ -8596,6 +8596,7 @@ later.
 }  /* eliminate_bodies_of_unneeded_functions */
 
 
+#if 0
 void eliminate_unneeded_variables_from_list(a_variable_ptr *list)
 /*
 */
@@ -8658,7 +8659,7 @@ void eliminate_unneeded_types_from_list(a_type_ptr *list)
     }  /* if */
   }  /* for */  
 }  /* eliminate_unneeded_types_from_list */
-
+#endif /* if 0 */
 
 void eliminate_unneeded_il_entries(a_scope_ptr scope)
 /*
@@ -8670,6 +8671,7 @@ eliminated, if appropriate.
 */
 {
   a_namespace_ptr  nsp;
+  a_variable_ptr   vp, prev_vp, next_vp;
   a_type_ptr       tp, prev_tp, next_tp;
   a_routine_ptr    rp, prev_rp, next_rp;
 
@@ -8684,8 +8686,6 @@ eliminated, if appropriate.
   }  /* for */
   /* Go through the list of variables that were declared in the current
      scope, removing any for which the keep_in_il flag is FALSE. */
-  eliminate_unneeded_variables_from_list(&scope->variables);
-#if 0
   prev_vp = NULL;
   for (vp = scope->variables; vp != NULL; vp = next_vp) {
     next_vp = vp->next;
@@ -8709,30 +8709,6 @@ eliminated, if appropriate.
       prev_vp = vp;
     }  /* if */
   }  /* for */  
-#endif /* if 0 */
-  prev_rp = NULL;
-  for (rp = scope->routines; rp != NULL; rp = next_rp) {
-    next_rp = rp->next;
-#if DEBUG
-    if (debug_level >= 4) {
-      fprintf(f_debug, "%semoving routine ",
-              il_entry_prefix_of(rp).keep_in_il ? "Not r" : "R");
-      db_name(&rp->source_corresp);
-      fputc('\n', f_debug);
-    }  /* if */
-#endif /* DEBUG */
-    if (!il_entry_prefix_of(rp).keep_in_il) {
-      /* Remove it from the routines list by linking around it. */
-      if (prev_rp == NULL) {
-        scope->routines = rp->next;
-      } else {
-        prev_rp->next = rp->next;
-      }  /* if */
-      rp->next = NULL;
-    } else {
-      prev_rp = rp;
-    }  /* if */
-  }  /* for */
   prev_tp = NULL;
   for (tp = scope->types; tp != NULL; tp = next_tp) {
     next_tp = tp->next;
@@ -8784,6 +8760,142 @@ eliminated, if appropriate.
         }  /* if */
       }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR | DELETE_CAN_BE_FOLDED_INTO_DTOR */
+    }  /* if */
+  }  /* for */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  if (scope->kind == (a_scope_kind)sck_file) {
+    a_scope_orphaned_list_header_ptr  solhp, prev_solhp, next_solhp;
+    prev_solhp = NULL;
+    for (solhp = il_header.scope_orphaned_list_headers;
+         solhp != NULL;
+         solhp = next_solhp) {
+      next_solhp = solhp->next;
+      rp = solhp->assoc_routine;
+      if (rp->defined) {
+        prev_solhp = solhp;
+      } else {
+        prev_vp = NULL;
+        for (vp = solhp->orphaned_variables; vp != NULL; vp = next_vp) {
+          next_vp = vp->next;
+#if DEBUG
+          if (debug_level >= 4) {
+            fprintf(f_debug, "%semoving orphaned variable ",
+                    il_entry_prefix_of(vp).keep_in_il ? "Not r" : "R");
+            db_name(&vp->source_corresp);
+            fputc('\n', f_debug);
+          }  /* if */
+#endif /* DEBUG */
+          if (!il_entry_prefix_of(vp).keep_in_il) {
+            /* Remove it from the variables list by linking around it. */
+            if (prev_vp == NULL) {
+              solhp->orphaned_variables = vp->next;
+            } else {
+              prev_vp->next = vp->next;
+            }  /* if */
+            vp->next = NULL;
+          } else {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+            vp->source_corresp.source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+            prev_vp = vp;
+          }  /* if */
+        }  /* for */  
+        prev_tp = NULL;
+        for (tp = solhp->orphaned_types; tp != NULL; tp = next_tp) {
+          next_tp = tp->next;
+#if DEBUG
+          if (debug_level >= 4) {
+            fprintf(f_debug, "%semoving orphaned type ",
+                    il_entry_prefix_of(tp).keep_in_il ? "Not r" : "R");
+            db_abbreviated_type(tp);
+            fputc('\n', f_debug);
+          }  /* if */
+#endif /* DEBUG */
+          if (!il_entry_prefix_of(tp).keep_in_il) {
+            /* Remove it from the types list by linking around it. */
+            if (prev_tp == NULL) {
+              solhp->orphaned_types = tp->next;
+            } else {
+              prev_tp->next = tp->next;
+            }  /* if */
+            tp->next = NULL;
+          } else {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+            tp->source_corresp.source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+            prev_tp = tp;
+          }  /* if */
+        }  /* for */  
+        if (solhp->orphaned_variables != NULL ||
+            solhp->orphaned_types != NULL
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+            || solhp->orphaned_src_seq_sublists != NULL
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+                                                       ) {
+          prev_solhp = solhp;
+          /* The scope-orphaned-list header is being retained in the IL, and
+             it points to the routine, so be sure the routine entry is kept,
+             too. */
+          if (!il_entry_prefix_of(rp).keep_in_il) {
+            mark_to_keep_in_il((char *)rp, (an_il_entry_kind)iek_routine);
+          }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+          if (solhp->orphaned_src_seq_sublists != NULL) {
+            a_source_sequence_entry_ptr  ssep;
+            a_src_seq_sublist_ptr        sublist;
+            a_source_correspondence      *scp;
+
+            for (sublist = solhp->orphaned_src_seq_sublists;
+                 sublist != NULL;
+                 sublist = sublist->next) {
+              for (ssep = sublist->source_sequence_list;
+                   ssep != NULL;
+                   ssep = ssep->next) {
+                scp = source_corresp_for_il_entry(ssep->entity.ptr,
+                                                  ssep->entity.kind);
+                if (scp != NULL) {
+                  check_assertion(scp->source_sequence_entry == ssep ||
+                                  scp->source_sequence_entry == NULL);
+                  scp->source_sequence_entry = NULL;
+                }  /* if */
+              }  /* for */
+            }  /* for */
+            solhp->orphaned_src_seq_sublists = NULL;
+          }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        } else {
+          if (prev_solhp == NULL) {
+            il_header.scope_orphaned_list_headers = next_solhp;
+          } else {
+            prev_solhp->next = next_solhp;
+          }  /* if */
+          solhp->next = NULL;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+  prev_rp = NULL;
+  for (rp = scope->routines; rp != NULL; rp = next_rp) {
+    next_rp = rp->next;
+#if DEBUG
+    if (debug_level >= 4) {
+      fprintf(f_debug, "%semoving routine ",
+              il_entry_prefix_of(rp).keep_in_il ? "Not r" : "R");
+      db_name(&rp->source_corresp);
+      fputc('\n', f_debug);
+    }  /* if */
+#endif /* DEBUG */
+    if (!il_entry_prefix_of(rp).keep_in_il) {
+      /* Remove it from the routines list by linking around it. */
+      if (prev_rp == NULL) {
+        scope->routines = rp->next;
+      } else {
+        prev_rp->next = rp->next;
+      }  /* if */
+      rp->next = NULL;
+    } else {
+      prev_rp = rp;
     }  /* if */
   }  /* for */
 #if RECORD_HIDDEN_NAMES_IN_IL
@@ -8856,35 +8968,6 @@ eliminated, if appropriate.
 #endif /* DEBUG */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  if (scope->kind == (a_scope_kind)sck_file) {
-    a_scope_orphaned_list_header_ptr  solhp, prev_solhp, next_solhp;
-    prev_solhp = NULL;
-    for (solhp = il_header.scope_orphaned_list_headers;
-         solhp != NULL;
-         solhp = next_solhp) {
-      next_solhp = solhp->next;
-      rp = solhp->assoc_routine;
-      if (rp->defined) {
-        prev_solhp = solhp;
-      } else {
-        eliminate_unneeded_variables_from_list(&solhp->orphaned_variables);
-        eliminate_unneeded_types_from_list(&solhp->orphaned_types);
-        if (solhp->orphaned_variables != NULL ||
-            solhp->orphaned_types != NULL) {
-          prev_solhp = solhp;
-        } else {
-          if (prev_solhp == NULL) {
-            il_header.scope_orphaned_list_headers = next_solhp;
-          } else {
-            prev_solhp->next = next_solhp;
-          }  /* if */
-          solhp->next = NULL;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   db_exit();
 }  /* eliminate_unneeded_il_entries */
 
