@@ -71,6 +71,8 @@ extern void clear_init_pos_descr(an_init_pos_descr_ptr ipdp);
 extern void set_var_indirect_init_pos_descr(a_variable_ptr        var,
                                             an_init_pos_descr_ptr ipdp);
 
+extern a_type_ptr type_from_init_pos_descr(an_init_pos_descr_ptr ipdp);
+
 extern an_expr_node_ptr make_init_entity_node(an_init_pos_descr_ptr ipdp);
 
 extern void lower_dynamic_init(a_dynamic_init_ptr       dip,

@@ -724,6 +724,25 @@ to by variable var.
 }  /* set_var_indirect_init_pos_descr */
 
 
+void a_type_ptr type_from_init_pos_descr(an_init_pos_descr_ptr ipdp)
+/*
+Return the type of the object indicated by ipdp.
+*/
+{
+  a_type_ptr type;
+
+  /* If the description has modifiers, then the type is that after the last
+     modifier (the first on the list).  Otherwise, the type is the base
+     type. */
+  if (ipdp->modifiers != NULL) {
+    type = ipdp->modifiers->type;
+  } else {
+    type = ipdp->base_type;
+  }  /* if */
+  return type;
+}  /* type_from_init_pos_descr */
+
+
 static void modify_ctor_init_pos_descr(a_constructor_init_ptr   ctor_init,
                                        an_init_pos_descr_ptr    ipdp,
                                        an_init_pos_modifier_ptr ipmp)
@@ -1612,11 +1631,7 @@ are any (genuine) constants in the aggregate, set *keep_constant to TRUE.
      the non-constant parts have been rewritten. */
   mark_as_visited(aggr_const);
   /* Determine the type of the aggregate being initialized. */
-  if (ipdp->modifiers != NULL) {
-    aggr_type = ipdp->modifiers->type;
-  } else {
-    aggr_type = ipdp->base_type;
-  }  /* if */
+  aggr_type = type_from_init_pos_descr(ipdp);
   aggr_type = skip_typerefs(aggr_type);
   /* Start a new level in the init_pos_modifier chain. */
   ipd = *ipdp;
