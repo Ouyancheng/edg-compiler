@@ -80,7 +80,8 @@ list of needed destructions.
 */
 {
   /* If the entry has already been put on the list, terminate the execution. */
-  if (ndp->next != NULL) __already_marked_for_destruction();
+  if (ndp->next != NULL ||
+      ndp == needed_destruction_head) __already_marked_for_destruction();
   ndp->next = needed_destruction_head;
   needed_destruction_head = ndp;
 }  /* __record_needed_destruction */
