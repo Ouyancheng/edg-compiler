@@ -14231,6 +14231,8 @@ of the front end.
   num_include_file_histories_allocated = 0;
   num_preinclude_files_allocated = 0;
   cached_pp_token_string_space = 0;
+  num_compares_in_source_line_modif_hash_table = 0;
+  num_lookups_in_source_line_modif_hash_table = 0;
 #endif /* DEBUG */
 #if CHECKING
   /* Make sure the UCN table is properly formed.  Each element of the
