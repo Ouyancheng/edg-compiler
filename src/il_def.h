@@ -5720,8 +5720,12 @@ typedef struct a_scope {
 			   non-static). */
   an_asm_entry_ptr
 		asm_entries;
-			/* List of asm entries declared in the current scope,
-			   NULL if none. */
+			/* List of asm entries representing asm declarations
+			   that appear in the current scope, NULL if none.
+			   (Note: asm entries associated with asm statements
+			   do not show up on this list, and so the pointer is
+			   always NULL for function and block scopes.  Neither
+			   are asm functions included in the list.) */
   a_scope_ptr   scopes;	/* List of local scopes under this scope.  Used for
 			   block scopes inside function and block scopes,
 			   and prototype scopes inside prototype scopes.
