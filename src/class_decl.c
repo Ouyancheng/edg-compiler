@@ -1476,6 +1476,9 @@ entry appears on a linked list pointed to from base_class.
 }  /* record_virtual_function_override */
 
 
+#if !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+/*ARGSUSED*/ /* class_type is used only to support covariant return types. */
+#endif /* !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 static a_boolean return_types_are_override_compatible(
                                  a_type_ptr       type_of_overriding_routine,
                                  a_type_ptr       type_of_overridden_routine,
@@ -1525,9 +1528,9 @@ the class of which the overriding function is a member.
         /* The types referenced/pointed to are both classes. */
         if (!any_qualifier_in_set_missing(get_type_qualifiers(tp2),
                                           get_type_qualifiers(tp1))) {
-          /* The cv-qualification on the class the overriding function's
+          /* The cv-qualification on the class of the overriding function's
              return type (tp1) is equal to or less than the cv-qualification
-             on the class of overridden function's return type (tp2). */
+             on the class of the overridden function's return type (tp2). */
           tp1 = skip_typerefs(tp1);
           tp2 = skip_typerefs(tp2);
           /* Next see if the class associated with the overridden function
