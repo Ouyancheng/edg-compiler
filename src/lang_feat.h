@@ -203,7 +203,7 @@ the implicit inclusion is performed.  If it is FALSE implicit
 inclusion is not performed. 
 */
 #ifndef INSTANTIATION_BY_IMPLICIT_INCLUSION
-#define INSTANTIATION_BY_IMPLICIT_INCLUSION FALSE
+#define INSTANTIATION_BY_IMPLICIT_INCLUSION TRUE
 #endif /* ifndef INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 #endif /* ifndef LANG_FEAT_H */
