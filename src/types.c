@@ -1328,12 +1328,14 @@ array_type.
   underlying_elem_type =
                   skip_typerefs(underlying_array_element_type(array_type));
   if (is_incomplete(underlying_elem_type) &&
-      is_immediate_class_type(underlying_elem_type)) {
+      (is_immediate_class_type(underlying_elem_type) ||
+       is_immediate_enum_type(underlying_elem_type))) {
     /* This is an array whose element type (directly or indirectly) is an
-       incomplete class type.  The size cannot be determined now. The array
-       type is put on a list so it can be fixed later if the element type is
-       defined.  (Note that an array of incomplete struct is an extension in
-       C, but it's standard in C++.) */
+       incomplete class or enum type.  The size cannot be determined now.
+       The array type is put on a list so it can be fixed later if the
+       element type is defined.  (Note that an array of incomplete struct is
+       an extension in C, but it's standard in C++; array on incomplete enum
+       is an extension in both languages.) */
     add_to_dependent_type_fixup_list(underlying_elem_type,
                                      (a_dependent_type_fixup_kind)
                                                 dtfk_array_type_size,
