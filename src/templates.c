@@ -8994,7 +8994,14 @@ initially used when processing the declaration of a partial specialization.
                                      prototype_sym);
     prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
     if (prototype_instantiations_in_il) {
-      add_to_types_list(prototype_type, NO_SCOPE_DEPTH);
+      if (decl_state->decl_scope_err) {
+        /* Don't add the type to the type list in error cases.  This is done
+           to prevent what might be an erroneous local type from being added
+           to a non-local list. */
+        check_assertion(total_errors != 0);
+      } else {
+        add_to_types_list(prototype_type, NO_SCOPE_DEPTH);
+      }  /* if */
     }  /* if */
     prototype_ctsp->assoc_template = decl_state->il_template_entry;
     /* Use the name linkage saved at the point of the original template
