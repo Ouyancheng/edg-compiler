@@ -12564,7 +12564,7 @@ information).  See the definition of a_tmpl_decl_state for details.
         /* Bypass the ">". */
         (void)get_token();
         if (prototype_instantiations_in_il) {
-          template_decl = make_template_decl(/*tp_list=*/NULL);
+          template_decl = make_template_decl((a_template_param_ptr)NULL);
           template_decl->template_pos = template_pos;
           if (decl_state->il_template_entry != NULL) {
             template_decl->parent =
@@ -16638,9 +16638,10 @@ brace) is returned in *final_token.  options is a bit set of option flags.
 */
 {
   a_boolean		export_present = FALSE;
-  a_source_position	export_pos = null_source_position;
+  a_source_position	export_pos;
 
   db_enter(3, "template_directive_or_declaration");
+  export_pos = null_source_position;
   check_assertion(curr_token == tok_template || curr_token == tok_export);
   /* Templates are outside the "Embedded C++" subset. */
   feature_is_not_part_of_embedded_cplusplus_subset(
