@@ -2922,16 +2922,12 @@ or not to put out the definition; otherwise, it's set to NULL.
      that contains the definition of the lexically first non-inline, virtual,
      non-pure member function of the class.  See ARM 10.8.1c and "New Virtual
      Table Strategy" in the AT&T cfront 2.1 Release Notes. */
-  if (!class_type->source_corresp.referenced) {
-    /* The class is not referenced, so the virtual function table is not
-       needed.  Note that externally-linked classes will always be marked
-       as referenced. */
-    defined_here = FALSE;
-  } else if (class_type->source_corresp.name_linkage !=
+  if (class_type->source_corresp.name_linkage !=
                                  (a_name_linkage_kind)nlk_cplusplus_external) {
-    /* Not C++ external linkage, therefore must define any virtual function
-       table, if needed. */
-    defined_here = TRUE;
+    /* Not C++ external linkage, therefore any definition of the virtual
+       function table would have to be here.  No definition is needed if
+       the class is not referenced. */
+    defined_here = class_type->source_corresp.referenced;
   } else {
     ctsp = class_type->variant.class_struct_union.extra_info;
 #if CHECKING

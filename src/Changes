@@ -1,5 +1,10 @@
 Version 2.20
 
+9/9/93   IL lowering: virtual function tables
+
+The definition of the virtual function table can now be put out for an
+externally-linked class that is unreferenced.
+
 9/3/93   Yet another IL change to support exception handling
 
 An enk_throw expression node, which represents a throw expression, now
