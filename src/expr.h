@@ -35,11 +35,6 @@ extern an_expr_node_ptr scan_switch_expression(void);
 
 extern an_expr_node_ptr scan_void_expression(void);
 
-extern an_expr_node_ptr scan_required_type_expression(
-                                           a_type_ptr    required_type,
-                                           a_boolean     allow_top_level_comma,
-                                           an_error_code err_code);
-
 extern void scan_default_arg_expr(a_param_type_ptr ptp);
 
 extern an_expr_node_ptr scan_return_expression(a_type_ptr    required_type,
@@ -70,17 +65,20 @@ extern an_expr_node_ptr prep_rvalue_arg_expr(an_expr_node_ptr  expr,
 extern a_symbol_ptr find_copy_constructor(a_type_ptr class_type,
                                           a_boolean  const_object_required,
                                           a_boolean  volatile_object_required,
-                                          a_boolean  *ambiguous);
+                                          a_boolean  *ambiguous,
+                                          a_boolean  *class_bitwise_copy);
 
 extern a_routine_ptr select_copy_constructor(
                                     a_type_ptr        class_type,
                                     a_boolean         const_object_required,
                                     a_boolean         volatile_object_required,
-                                    a_source_position *err_pos);
+                                    a_source_position *err_pos,
+                                    a_boolean         *class_bitwise_copy);
 
 extern an_expr_node_ptr scan_class_initializer_expression(
                                             a_type_ptr    required_type,
-                                            a_routine_ptr *conversion_routine);
+                                            a_routine_ptr *conversion_routine,
+                                            a_boolean     *class_bitwise_copy);
 
 extern void scan_constant_initializer_expression(a_type_ptr required_type,
                                                  a_constant *constant);

@@ -3175,7 +3175,7 @@ specification allow a variable-sized array as the top type.
   a_source_position placement_position;
   a_type_ptr        new_type, base_new_type, element_type, ptr_new_type;
   an_expr_node_ptr  new_array_dimension, sizeof_node, function_node;
-  an_operand        sizeof_operand, function_operand;
+  an_operand        sizeof_operand, function_operand, init_operand;
   a_boolean         use_global_new = FALSE;
   a_symbol_ptr      operator_new_symbol, ctor_sym;
   a_routine_ptr     new_routine, ctor_routine;
@@ -3449,11 +3449,14 @@ specification allow a variable-sized array as the top type.
       }  /* if */
       add_stop_token(tok_rparen);
       if (curr_token != tok_rparen) {
-        /* The new-initializer is not empty. */
-        init_val_node = scan_required_type_expression(
-                                                new_type,
-                                                /*allow_top_level_comma=*/TRUE,
-                                                ec_bad_initializer_type);
+        /* The new-initializer is not empty.  Scan it. */
+        scan_expr(&init_operand, PREC_LOWEST, expression_kind,
+                  EOPT_NO_OPTIONS);
+        /* Convert to the required type. */
+        prep_initializer_operand(&init_operand, new_type,
+                                 (an_expression_kind)ek_normal,
+                                  ec_bad_initializer_type);
+        init_val_node = make_node_from_operand(&init_operand);
         needs_initialization = TRUE;
       }  /* if */
       (void)required_token(tok_rparen, ec_exp_rparen);
@@ -5412,16 +5415,11 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
        dropped. */
     if (C_dialect == C_dialect_cplusplus &&
         is_class_struct_union_type(operand_1->type)) {
-      /* C++ class assignment.  Assignment must be via an assignment operator 
-         function.  Note that such functions must be member functions.
-         Also note that has_predef_meaning is FALSE, which seems wrong.
-         However, the predefined meaning of assignment for classes is
-         embodied in the assignment operator functions; other than that,
-         there is no predefined assignment of classes. */
+      /* Look for C++ operator overloading cases. */
       check_for_operator_overloading((an_opname_kind)onk_assign,
                                      /*unary_operator=*/FALSE,
                                      /*must_be_member_function=*/TRUE,
-                                     /*has_predef_meaning=*/FALSE,  /* sic */
+                                     /*has_predef_meaning=*/TRUE,
                                      operand_1, &operand_2,
                                      expression_kind, &operator_position,
                                      result, &processed);
@@ -6597,47 +6595,6 @@ This routine is not used for constant or not-evaluated expressions.
 }  /* scan_void_expression */
 
 
-an_expr_node_ptr scan_required_type_expression(
-                                           a_type_ptr    required_type,
-                                           a_boolean     allow_top_level_comma,
-                                           an_error_code err_code)
-/*
-Scan an expression and convert it to the type required_type; issue the
-error err_code if it cannot be converted to that type.  Return a pointer to the
-expression.  Allow a top-level comma if allow_top_level_comma is TRUE.
-*/
-{
-  an_expr_node_ptr         expression;
-  an_operand               result;
-  a_local_expr_options_set options;
-
-  db_enter(3, "scan_required_type_expression");
-
-  /* Scan the expression. */
-  options = EOPT_NO_OPTIONS;
-  if (!allow_top_level_comma) options |= EOPT_DISALLOW_COMMA_OPERATOR;
-  scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
-            options);
-  /* Convert to the required type. */
-  prep_initializer_operand(&result, required_type,
-                           (an_expression_kind)ek_normal, err_code);
-  expression = make_node_from_operand(&result);
-  /* If generating cross-reference information, flush out the references
-     for the current expression now.  If we are not generating such
-     information, this is harmless. */
-  flush_xref_entries_list();
-
-#if DEBUG
-  if (debug_level >= 3) {
-    db_expression(expression);
-  }  /* if */
-#endif /* DEBUG */
-  db_exit();
-
-  return expression;
-}  /* scan_required_type_expression */
-
-
 void scan_default_arg_expr(a_param_type_ptr ptp)
 /*
 Scan a default argument expression on a formal parameter declaration, change
@@ -7060,7 +7017,8 @@ Otherwise, return NULL.
 a_symbol_ptr find_copy_constructor(a_type_ptr class_type,
                                    a_boolean  const_object_required,
                                    a_boolean  volatile_object_required,
-                                   a_boolean  *ambiguous)
+                                   a_boolean  *ambiguous,
+                                   a_boolean  *class_bitwise_copy)
 /*
 Find and return a pointer to a symbol representing a copy constructor for
 the class indicated by class_type.  If const_object_required is TRUE, return
@@ -7068,77 +7026,89 @@ a copy constructor that accepts a first parameter whose type is const
 qualified.  Similarly for volatile_object_required.  Otherwise, return what's
 found.  If no acceptable copy constructor is found, return NULL.  If more
 than one acceptable copy constructor is found, set *ambiguous to TRUE
-and return NULL.  This routine is only used in C++ mode.
+and return NULL.  If a bitwise copy is allowed, return NULL and
+*class_bitwise_copy TRUE.  This routine is only used in C++ mode.
 */
 {
   a_symbol_ptr  sym, cctor_sym = NULL;
   a_boolean     is_overloaded_function;
   a_boolean     const_object_okay, volatile_object_okay;
   a_boolean     sym_matches_exactly, cctor_sym_matches_exactly = FALSE;
+  a_class_symbol_supplement_ptr
+                cssp;
 
   /* This routine is similar to select_overloaded_function. */
   *ambiguous = FALSE;
+  *class_bitwise_copy = FALSE;
   class_type = skip_typerefs(class_type);
-  sym = (symbol_supplement_for_class(class_type))->constructor;
-#if CHECKING
-  if (sym == NULL) {
-    internal_error("find_copy_constructor: NULL constructor");
-  }  /* if */
-#endif /* CHECKING */
-  /* If sym is an overloaded function symbol we need to go through the whole
-     list. */
-  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    is_overloaded_function = TRUE;
-    sym = sym->variant.overloaded_function.symbols;
+  cssp = symbol_supplement_for_class(class_type);
+  if (cssp->construction_by_bitwise_copy_allowed) {
+    /* A bitwise copy is allowed. */
+    cctor_sym = NULL;
+    *class_bitwise_copy = TRUE;
   } else {
-    is_overloaded_function = FALSE;
-  }  /* if */
-  /* Examine each constructor for this class to find a copy constructor.
-     There may be more than one.  For instance, there may be a copy
-     constructor that can copy a const object and another that cannot. */
-  for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-    if (is_copy_constructor(sym->variant.routine, sym->class_of_which_a_member,
-                            &const_object_okay, &volatile_object_okay)) {
-      if ((const_object_required && !const_object_okay) || 
-          (volatile_object_required && !volatile_object_okay)) {
-        /* A copy constructor was found that cannot copy the sort of object
-           that we need to be able to copy. Keep looking for a suitable copy
-           constructor. */
-      } else {
-        /* sym represents a suitable copy constructor. */
-        sym_matches_exactly =
+    sym = cssp->constructor;
+#if CHECKING
+    if (sym == NULL) {
+      internal_error("find_copy_constructor: NULL constructor");
+    }  /* if */
+#endif /* CHECKING */
+    /* If sym is an overloaded function symbol we need to go through the whole
+       list. */
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      is_overloaded_function = TRUE;
+      sym = sym->variant.overloaded_function.symbols;
+    } else {
+      is_overloaded_function = FALSE;
+    }  /* if */
+    /* Examine each constructor for this class to find a copy constructor.
+       There may be more than one.  For instance, there may be a copy
+       constructor that can copy a const object and another that cannot. */
+    for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
+      if (is_copy_constructor(sym->variant.routine,
+                              sym->class_of_which_a_member,
+                              &const_object_okay, &volatile_object_okay)) {
+        if ((const_object_required && !const_object_okay) || 
+            (volatile_object_required && !volatile_object_okay)) {
+          /* A copy constructor was found that cannot copy the sort of object
+             that we need to be able to copy. Keep looking for a suitable copy
+             constructor. */
+        } else {
+          /* sym represents a suitable copy constructor. */
+          sym_matches_exactly =
                            (const_object_okay == const_object_required &&
                             volatile_object_okay == volatile_object_required);
-        if (cctor_sym != NULL) {
-          /* A suitable copy constructor had already been found, so there's
-             more than one.  We may have an ambiguous reference.  We give
-             preference to a perfect match over the case in which the
-             required and provided qualifiers do not match up exactly. */
-          if (!cctor_sym_matches_exactly && sym_matches_exactly) {
-            /* cctor_sym was not a perfect match but sym is, so sym is
-               preferred.  Fall through to override the previous settings of
-               cctor_sym and related variables. */
-          } else {
-            if (cctor_sym_matches_exactly == sym_matches_exactly) {
-              /* Both constructors match up exactly with the const and
-                 volatile requirements or neither does.  In either case
-                 there's no reason to prefer one over the other. */
-              *ambiguous = TRUE;
+          if (cctor_sym != NULL) {
+            /* A suitable copy constructor had already been found, so there's
+               more than one.  We may have an ambiguous reference.  We give
+               preference to a perfect match over the case in which the
+               required and provided qualifiers do not match up exactly. */
+            if (!cctor_sym_matches_exactly && sym_matches_exactly) {
+              /* cctor_sym was not a perfect match but sym is, so sym is
+                 preferred.  Fall through to override the previous settings of
+                 cctor_sym and related variables. */
             } else {
-              /* cctor_sym is an exact match and sym is not.  Ignore sym. */
+              if (cctor_sym_matches_exactly == sym_matches_exactly) {
+                /* Both constructors match up exactly with the const and
+                   volatile requirements or neither does.  In either case
+                   there's no reason to prefer one over the other. */
+                *ambiguous = TRUE;
+              } else {
+                /* cctor_sym is an exact match and sym is not.  Ignore sym. */
+              }  /* if */
+              /* Skip to the end of the loop. */
+              continue;
             }  /* if */
-            /* Skip to the end of the loop. */
-            continue;
           }  /* if */
+          /* We've found one.  Record it, but keep looking.  If there's an
+             ambiguity we need to report it. */
+          cctor_sym = sym;
+          cctor_sym_matches_exactly = sym_matches_exactly;
+          *ambiguous = FALSE;
         }  /* if */
-        /* We've found one.  Record it, but keep looking.  If there's an
-           ambiguity we need to report it. */
-        cctor_sym = sym;
-        cctor_sym_matches_exactly = sym_matches_exactly;
-        *ambiguous = FALSE;
       }  /* if */
-    }  /* if */
-  }  /* for */
+    }  /* for */
+  }  /* if */
   return cctor_sym;
 }  /* find_copy_constructor */
 
@@ -7147,7 +7117,8 @@ a_routine_ptr select_copy_constructor(
                                     a_type_ptr        class_type,
                                     a_boolean         const_object_required,
                                     a_boolean         volatile_object_required,
-                                    a_source_position *err_pos)
+                                    a_source_position *err_pos,
+                                    a_boolean         *class_bitwise_copy)
 /*
 Find and return a pointer to a routine representing a copy constructor for
 the class indicated by class_type.  If const_object_required is TRUE, return
@@ -7155,7 +7126,8 @@ a copy constructor that accepts a first parameter whose type is const
 qualified.  Similarly for volatile_object_required.  Otherwise, return what's
 found.  If no acceptable copy constructor is found, issue a diagnostic and
 return NULL.  If more than one acceptable copy constructor is found,
-issue a (different) diagnostic and return NULL.  This routine is only
+issue a (different) diagnostic and return NULL.  If a bitwise copy
+is allowed, return NULL and *class_bitwise_copy TRUE.  This routine is only
 used in C++ mode.
 */
 {
@@ -7166,9 +7138,11 @@ used in C++ mode.
   cctor_sym = find_copy_constructor(class_type,
                                     const_object_required,
                                     volatile_object_required,
-                                    &ambiguous);
+                                    &ambiguous, class_bitwise_copy);
   cctor_routine = NULL;
-  if (cctor_sym == NULL) {
+  if (*class_bitwise_copy) {
+    /* A bitwise copy is allowed. */
+  } else if (cctor_sym == NULL) {
     if (!ambiguous) {
       /* No applicable copy constructor. */
       if (const_object_required && !volatile_object_required) {
@@ -7197,19 +7171,21 @@ used in C++ mode.
 
 an_expr_node_ptr scan_class_initializer_expression(
                                              a_type_ptr    required_type,
-                                             a_routine_ptr *conversion_routine)
+                                             a_routine_ptr *conversion_routine,
+                                             a_boolean     *class_bitwise_copy)
 /*
 Scan an expression that is the initial value of an entity of class type.
 required_type indicates the class type (it may have some qualifiers on
 top of it).  Find a constructor (possibly a copy constructor; not a conversion
 routine) that will convert the expression scanned into the class type.
 Return a pointer to that conversion routine in *conversion_routine, or
-NULL if no such routine exists.  Return a pointer to the expression scanned.
-Actually, it's an argument list for the call of the conversion routine;
-the caller must build the call of the conversion routine using the expression
-returned as the argument.  This routine is used only in C++ mode, for
-initializers for classes with constructors, i.e., in cases where copy
-constructor elision can be done:
+NULL if no such routine exists, or NULL plus *class_bitwise_copy TRUE if
+a bitwise copy can be done.  Return a pointer to the expression scanned.
+Actually, it's an argument list for the call of the conversion routine or
+for the bitwise copy; the caller must build the call of the conversion
+routine using the expression returned as the argument.  This routine is
+used in both C and C++ mode for initializers for classes.  It's particularly
+useful for C++ cases where copy constructor elision might be done:
 
   struct A { A(int) {...} A(A&) {...} };
   A x = 1;            // A::A(int)
@@ -7236,7 +7212,7 @@ of a statement).
   /* Find out whether or not the conversion is possible, and if so,
      what the proper conversion routine is. */
   prep_elision_initializer_operand(&result, class_type, conversion_routine,
-                                   &expression);
+                                   &expression, class_bitwise_copy);
   /* If generating cross-reference information, flush out the references
      for the current expression now.  If we are not generating such
      information, this is harmless. */
