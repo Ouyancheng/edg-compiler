@@ -652,8 +652,14 @@ scope is that of a class definition.
   } else {
     /* Determine whether this is an old-style list of identifiers or
        a prototyped parameter list. */
-    if (member_function_parent_type != NULL) {
-      /* This is a C++ member function so it must be prototyped. */
+    if (!C_mode() &&
+        (!allow_anachronisms || member_function_parent_type != NULL)) {
+      /* If this is a C++ member function, it must be prototyped.  If
+         anachronism support is not the default or was not explicitly
+         requested, always parse the declaration as a prototyped param list
+         -- this will produce better error messages in certain cases (even
+         though it will produce poor error recovery if it actually *is* an
+         old-style list). */
       extra_info->prototyped = TRUE;
     } else {
       /* Not a member function -- examine the first token. */
