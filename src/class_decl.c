@@ -469,6 +469,9 @@ typedef struct a_member_decl_info {
 			/* TRUE if the current declaration is a constructor.
 			   In unusual cases this value may be different from
 			   (dso_flags & DSO_CONSTRUCTOR). */
+  a_bit_field	is_trivial_default_constructor:1;
+			/* TRUE for an implicit declaration of a trivial
+			   default constructor. */
   a_bit_field	is_destructor:1;
 			/* TRUE if the current declaration is a destructor.
 			   In unusual cases this value may be different from
@@ -521,6 +524,7 @@ static void initialize_member_decl_info(a_member_decl_info_ptr mdip,
   mdip->storage_class = (a_storage_class)sc_unspecified;
   mdip->is_first_in_declarator_list = TRUE;
   mdip->is_constructor = FALSE;
+  mdip->is_trivial_default_constructor = FALSE;
   mdip->is_destructor = FALSE;
   mdip->invalid_virtual_specifier = FALSE;
   mdip->is_unnamed_field = FALSE;
@@ -4966,8 +4970,11 @@ declared member functions.
      by curr_il_region_number -- i.e., in the memory region of the scope in
      which its class is declared. */
   /* Member functions are static by default. */
+  /* Pass NO_SCOPE_DEPTH for trivial default constructor so that routine entry
+     will not actually be added to the IL. */
   rtn = make_routine(member_type, (a_storage_class)sc_static,
-                     decl_scope_level);
+                     decl_info->is_trivial_default_constructor ?
+                                  NO_SCOPE_DEPTH : decl_scope_level);
   sym->variant.routine.ptr = rtn;
   /* Set the source correspondence, including the access specifier. */
   set_source_corresp(&rtn->source_corresp, sym);
@@ -5163,32 +5170,42 @@ declared member functions.
     if (rtn->special_kind == (a_special_function_kind)sfk_constructor) {
       /* Set the pointer to the constructor symbol in the class symbol
          supplement. */
-      if (cssp->constructor == NULL) {
-        cssp->constructor = sym;
-      } else if (cssp->constructor->kind ==
-                                  (a_symbol_kind)sk_overloaded_function) {
-        /* The overloaded function symbol is already registered. */
+      if (decl_info->is_trivial_default_constructor) {
+        /* A trivial default constructor is never actually called, so it is
+           not added to the constructor set (which should be empty). */
+        check_assertion(cssp->constructor == NULL);
+        cssp->trivial_default_constructor = sym;
       } else {
-        /* The overloaded function symbol was just created. */
-        cssp->constructor = overload_sym;
-      }  /* if */
-      /* Determine if this is a default constructor. */
-      if (is_default_constructor(rtn, /*is_declarative_context=*/TRUE)) {
-        cssp->has_default_constructor = TRUE;
-      }  /* if */
-      /* Determine if this is a copy constructor.  If so, set the class symbol
-         supplement flags appropriately. */
-      if (is_copy_constructor(rtn, class_type, &qualifiers,
-                              /*is_declarative_context=*/TRUE)) {
-        cssp->has_copy_constructor = TRUE;
-        cssp->has_copy_constructor_for_const_object |= 
+        if (cssp->constructor == NULL) {
+          cssp->constructor = sym;
+        } else if (cssp->constructor->kind ==
+                                    (a_symbol_kind)sk_overloaded_function) {
+          /* The overloaded function symbol is already registered. */
+        } else {
+          /* The overloaded function symbol was just created. */
+          cssp->constructor = overload_sym;
+        }  /* if */
+        /* Determine if this is a default constructor. */
+        if (is_default_constructor(rtn, /*is_declarative_context=*/TRUE)) {
+          cssp->has_nontrivial_default_constructor = TRUE;
+          if (!compiler_generated) {
+            cssp->has_user_declared_default_constructor = TRUE;
+          }  /* if */
+        }  /* if */
+        /* Determine if this is a copy constructor.  If so, set the class
+           symbol supplement flags appropriately. */
+        if (is_copy_constructor(rtn, class_type, &qualifiers,
+                                /*is_declarative_context=*/TRUE)) {
+          cssp->has_copy_constructor = TRUE;
+          cssp->has_copy_constructor_for_const_object |= 
                                                ((qualifiers & TQ_CONST) != 0);
-        if (!compiler_generated) {
-          /* If a user-defined copy constructor is declared for the class,
-             construction by bitwise copying is not allowed.  (On the other
-             hand, this flag *may* be TRUE even when the compiler generates a
-             a copy constructor.) */
-          cssp->construction_by_bitwise_copy_allowed = FALSE;
+          if (!compiler_generated) {
+            /* If a user-defined copy constructor is declared for the class,
+               construction by bitwise copying is not allowed.  (On the other
+               hand, this flag *may* be TRUE even when the compiler generates
+               a copy constructor.) */
+            cssp->construction_by_bitwise_copy_allowed = FALSE;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else if (rtn->special_kind == (a_special_function_kind)sfk_destructor) {
@@ -7349,16 +7366,37 @@ The routine body is not generated until it is known to be needed.
   a_type_qualifier_set          qualifiers;
   a_member_decl_info            decl_info;
   a_source_position             *pos;
+  a_boolean                     user_declared_copy_assignment_op = FALSE;
 
   db_enter(3, "check_special_member_functions");
   cssp = symbol_supplement_for_class(class_type);
   pos = &class_type->source_corresp.decl_position;
-  if (class_state->constructor_required && cssp->constructor == NULL) {
-    /* A default constructor needs to be generated. */
-    initialize_member_decl_info(&decl_info, pos);
-    decl_info.is_constructor = TRUE;
-    generate_special_function(class_type, class_state, &decl_info,
-                              (a_param_type_ptr)NULL);
+  /* Check for a user-declared copy assignment operator. */
+  if (assignment_operator_for_copy_exists(cssp->assignment_operator,
+                                          &dummy_flag)) {
+    /* If the user has already defined an assignment operator, neither
+       is bitwise copying allowed nor must the compiler generate one. */
+    cssp->assignment_by_bitwise_copy_allowed = FALSE;
+    user_declared_copy_assignment_op = TRUE;
+    /* A POD cannot have a user-defined copy assignment operator. */
+    class_state->POD_ruled_out = TRUE;
+  }  /* if */
+  if (cssp->constructor == NULL) {
+    if (!class_state->POD_ruled_out) {
+      /* This is a POD class.  Its implicitly-declared default constructor
+         need not actually be generated. */
+    } else {
+      /* A default constructor needs to be generated. */
+      initialize_member_decl_info(&decl_info, pos);
+      decl_info.is_constructor = TRUE;
+      if (!class_state->constructor_required) {
+        /* We are generating a declaration of a trivial default constructor.
+           Since it will never actually be called it gets special handling. */
+        decl_info.is_trivial_default_constructor = TRUE;
+      }  /* if */
+      generate_special_function(class_type, class_state, &decl_info,
+                                (a_param_type_ptr)NULL);
+    }  /* if */
   }  /* if */
   if (cssp->constructor != NULL && !cssp->has_copy_constructor) {
     default_copy_constructor_check(class_type, &const_okay);
@@ -7382,14 +7420,7 @@ The routine body is not generated until it is known to be needed.
   }  /* if */
   /* Create a default assignment operator to copy an object of the current
      class if one doesn't already exist. */
-  if (assignment_operator_for_copy_exists(cssp->assignment_operator,
-                                          &dummy_flag)) {
-    /* If the user has already defined an assignment operator, neither
-       is bitwise copying allowed nor must the compiler generate one. */
-    cssp->assignment_by_bitwise_copy_allowed = FALSE;
-    /* A POD cannot have a user-defined copy assignment operator. */
-    class_state->POD_ruled_out = TRUE;
-  } else {
+  if (!user_declared_copy_assignment_op) {
     /* Generate a copy assignment operator if bitwise copying is not allowed.
        If bitwise copying *is* allowed, generate it only if an assignment
        operator was declared by the program -- it's needed, even though it
@@ -8493,7 +8524,7 @@ member.  Determine whether a diagnostic is actually required and put it out.
         } else if (is_const_qualified_type(tp)) {
           /* Usually, a member of const type must be explicitly
              initialized. */
-          if (type_has_default_constructor(tp)) {
+          if (type_has_user_declared_default_constructor(tp)) {
             /* A const data member that has its own default constructor will
                be initialized when the default constructor for the current
                class is generated.  So skip this one and keep looking. */
