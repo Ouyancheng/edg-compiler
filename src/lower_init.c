@@ -2800,7 +2800,7 @@ destructors in the IA-64 ABI.
                                   (a_special_function_kind)sfk_destructor);
   /* Check to see if the routine already exists on the alternate_entry_points
      list. */
-  for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
+  for (rlep = routine->variant.alternate_entry_points;
        rlep != NULL; 
        rlep = rlep->next) {
     if (rlep->routine->ctor_dtor_kind == kind) {
@@ -2810,34 +2810,15 @@ destructors in the IA-64 ABI.
     }  /* if */
   }  /* for */
   if (new_routine == NULL) {
-    char                          ch;
+    /* Make a new alternate entry point. */
     char                          *name, *mangled_name;
     a_type_ptr                    routine_type = skip_typerefs(routine->type);
     a_type_ptr                    this_param_type;
     a_param_type_ptr              param_type, last_param_type;
     a_routine_type_supplement_ptr rtsp, new_rtsp;
     a_storage_class               new_storage_class;
+
     rtsp = routine->type->variant.routine.extra_info;
-    if (!has_name(routine)) {
-      /* A constructor or destructor for an unnamed class may not have a
-         name.  For example, if a local class is used to declare a variable
-         ("struct { C c; } x;"), the constructor will have no name.  In this
-         case, the alternate entry point does not need a name either. */
-      name = NULL;
-    } else {
-      /* Compute the mangled name for this new entry point.  It's the same as
-         the routine -- but "C9" or "D9" needs to become "C1", "C2", etc. */
-      mangled_name = get_mangled_function_name(routine);
-      name = alloc_lowered_name_string(strlen(mangled_name) + 1);
-      (void)strcpy(name, mangled_name);
-      switch (kind) {
-        case cdk_complete:  ch = '1';               break;
-        case cdk_subobject: ch = '2';               break;
-        case cdk_deleting:  ch = '0';               break;
-        default:            unexpected_condition();
-      }  /* switch */
-      name[routine->variant.ctor_dtor.base_name_offset + 1] = ch;
-    }  /* if */
     /* Make a type and routine entry for the routine. */
     /* The "this" parameter is generated in its lowered form (i.e., as a
        normal parameter). */
@@ -2853,7 +2834,7 @@ destructors in the IA-64 ABI.
        to promote_routines later. */
     check_assertion(routine->source_corresp.is_class_member);
     new_routine = make_rout_entry_no_add(
-                                  name, new_storage_class,
+                                  (char *)NULL, new_storage_class,
                                   routine_type->variant.routine.return_type,
                                   this_param_type);
     new_routine->is_inline = routine->is_inline;
@@ -2863,7 +2844,6 @@ destructors in the IA-64 ABI.
       new_routine->use_comdat = TRUE;
     }  /* if */
 #endif /* LOWER_EXTERN_INLINE */
-    new_routine->source_corresp.name_has_been_mangled = TRUE;
     new_routine->source_corresp.is_class_member = TRUE;
     new_routine->source_corresp.parent.class_type =
                                      routine->source_corresp.parent.class_type;
@@ -2898,8 +2878,8 @@ destructors in the IA-64 ABI.
        routine. */
     rlep = alloc_list_entry_for_routine();
     rlep->routine = new_routine;
-    rlep->next = routine->variant.ctor_dtor.alternate_entry_points;
-    routine->variant.ctor_dtor.alternate_entry_points = rlep;
+    rlep->next = routine->variant.alternate_entry_points;
+    routine->variant.alternate_entry_points = rlep;
     last_param_type = new_rtsp->param_type_list;
     if (kind == (a_ctor_or_dtor_kind)cdk_subobject && 
         rtsp->this_class->
@@ -2914,6 +2894,15 @@ destructors in the IA-64 ABI.
     copy_and_lower_param_type_list(routine_type, last_param_type, 
                                    /*do_default_args=*/TRUE,
                                    /*do_lowering=*/FALSE);
+    if (has_name(routine)) {
+      /* Compute the mangled name for this new entry point.  It's the same as
+         the routine -- but "C9" or "D9" needs to become "C1", "C2", etc. */
+      mangled_name = get_mangled_function_name(new_routine);
+      name = alloc_lowered_name_string(strlen(mangled_name) + 1);
+      (void)strcpy(name, mangled_name);
+      new_routine->source_corresp.name = name;
+      new_routine->source_corresp.name_has_been_mangled = TRUE;
+    }  /* if */
   }  /* if */
   /* Define the routine if appropriate. */
   if (routine->assoc_scope != NULL_region_number &&

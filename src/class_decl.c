@@ -13121,7 +13121,7 @@ have been processed.
   if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
       rp->special_kind == (a_special_function_kind)sfk_destructor) {
     a_routine_list_entry_ptr rlep;
-    for (rlep = rp->variant.ctor_dtor.alternate_entry_points;
+    for (rlep = rp->variant.alternate_entry_points;
          rlep != NULL;
          rlep = rlep->next) {
       make_routine_externally_linked(rlep->routine, count);

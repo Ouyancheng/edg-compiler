@@ -2518,12 +2518,10 @@ Display the indicated routine.
 #if IA64_ABI && DO_IL_LOWERING
   } else if (ptr->special_kind == (a_special_function_kind)sfk_constructor ||
              ptr->special_kind == (a_special_function_kind)sfk_destructor) {
-    if (ptr->variant.ctor_dtor.alternate_entry_points != NULL) {
+    if (ptr->variant.alternate_entry_points != NULL) {
       disp_routine_list("alternate_entry_points",
-                        ptr->variant.ctor_dtor.alternate_entry_points);
+                        ptr->variant.alternate_entry_points);
     }  /* if */
-    disp_unsigned_long("base_name_offset",
-                       ptr->variant.ctor_dtor.base_name_offset);
 #endif /* IA64_ABI && DO_IL_LOWERING */
 #if GNU_EXTENSIONS_ALLOWED
   } else if (ptr->special_kind == (a_special_function_kind)sfk_none &&

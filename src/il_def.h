@@ -6327,7 +6327,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if DO_IL_LOWERING && IA64_ABI
+#if DO_IL_LOWERING
 
 /*
 An enumeration of the different kinds of constructor and destructor entry
@@ -6337,6 +6337,7 @@ the IA64 ABI.
 enum a_ctor_or_dtor_kind_tag {
   cdk_none,		/* A constructor or destructor as originally created
 			   by lowering. */
+#if IA64_ABI
   cdk_complete,		/* A version of a constructor or destructor for a
 			   complete object. */
   cdk_subobject,	/* A version of a constructor or destructor for a
@@ -6344,12 +6345,13 @@ enum a_ctor_or_dtor_kind_tag {
   cdk_deleting,		/* A version of a destructor that destroys a
 			   complete object and then deletes the storage
 			   associated with the object. */
+#endif /* IA64_ABI */
   cdk_last		/*lint -esym(769,a_ctor_or_dtor_kind_tag::cdk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_ctor_or_dtor_kind;
 
-#endif /* DO_IL_LOWERING && IA64_ABI */
+#endif /* DO_IL_LOWERING */
 
 /*
 Data structures related to routines:
@@ -6435,23 +6437,10 @@ typedef struct a_routine {
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if IA64_ABI && DO_IL_LOWERING
     /* When special_kind == sfk_constructor or sfk_destructor. */
-    struct {
-      a_routine_list_entry_ptr
+    a_routine_list_entry_ptr
 		alternate_entry_points;
 			/* When ctor_or_dtor_kind == cdk_none, the other
 			   constructor and destructor entry points. */
-      sizeof_t	base_name_offset;
-			/* When ctor_or_dtor_kind != cdk_none, the offset into
-			   the mangled name for this constructor that
-			   indicates the location of the "C" that indicates
-			   that this entity is a constructor.  (This value is
-			   used when calculating the mangled name for
-			   alternate entry points; see
-			   default_version_of_routine.)	 Invalid until the
-			   routine name has been mangled either in
-			   mangle_function_name or in
-			   get_mangled_function_name. */
-    } ctor_dtor;
 #endif /* IA64_ABI */
   } variant;
   a_bit_field	address_taken:1;
@@ -6751,7 +6740,8 @@ typedef struct a_routine {
 			   mangled name of the routine.	 */
   a_bit_field /* a_ctor_or_dtor_kind */
 		ctor_dtor_kind:2;
-			/* The kind of constructor or destructor. */
+			/* The kind of constructor or destructor.  cdk_none
+			   for other kinds of routines. */
 #endif /* DO_IL_LOWERING && IA64_ABI */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE

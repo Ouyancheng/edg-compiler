@@ -7434,7 +7434,7 @@ routine's mangled name.
       routine->special_kind == (a_special_function_kind)sfk_destructor) {
     /* Any alternate entry points for a constructor or destructor should get
        the same linkage as the main entry point.  */
-    for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
+    for (rlep = routine->variant.alternate_entry_points;
          rlep != NULL;
          rlep = rlep->next) {
       rlep->routine->use_comdat = TRUE;
@@ -7538,7 +7538,7 @@ not include the function scope memory region, if any.
                                     (a_ctor_or_dtor_kind)cdk_deleting,
                                     /*define_now=*/TRUE);
       }  /* if */
-      for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
+      for (rlep = routine->variant.alternate_entry_points;
            rlep != NULL;
            rlep = rlep->next) {
         a_routine_ptr arout = rlep->routine;
@@ -13111,7 +13111,7 @@ or namespace scope) into the file scope.
     if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
         routine->special_kind == (a_special_function_kind)sfk_destructor) {
       a_routine_list_entry_ptr rlep;
-      for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
+      for (rlep = routine->variant.alternate_entry_points;
            rlep != NULL;
            rlep = rlep->next) {
         a_routine_ptr arout = rlep->routine;
