@@ -2507,14 +2507,7 @@ scope is that of a class definition.
           if (default_arg_expr_allowed) {
             ptp->has_default_arg = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-            if (!is_error_locator(param_locator)) {
-              /* Check to be sure last_param_id is the one for the current
-                 parameter. */
-              check_assertion(last_param_id != NULL &&
-                              last_param_id->source_sequence_entry ==
-                                                              param_ssep);
-              last_param_id->has_default_arg = TRUE;
-            }  /* if */
+            last_param_id->has_default_arg = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           }  /* if */
         }  /* if */
