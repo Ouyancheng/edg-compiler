@@ -2364,6 +2364,7 @@ in cases where the orphan lists have not been generated yet.
   a_type_ptr      type;
   a_namespace_ptr nsp;
   a_scope_ptr     subscope;
+  a_scope_ptr     saved_innermost_function_scope;
 
   if (scope->kind == (a_scope_kind)sck_file) {
     /* Process the types on the orphan lists. */
@@ -2371,7 +2372,13 @@ in cases where the orphan lists have not been generated yet.
     for (solhp = il_header.scope_orphaned_list_headers;
          solhp != NULL;
          solhp = solhp->next) {
+      saved_innermost_function_scope = innermost_function_scope;
+      check_assertion(solhp->assoc_routine != NULL &&
+                      solhp->assoc_routine->assoc_scope != NULL_region_number);
+      innermost_function_scope = 
+               il_header.region_scope_entry[solhp->assoc_routine->assoc_scope];
       list_processing_routine(solhp->orphaned_types);
+      innermost_function_scope = saved_innermost_function_scope;
     }  /* for */
 #if DO_IL_LOWERING
     /* Templates instantiated late in the primary translation unit in
@@ -2399,7 +2406,10 @@ in cases where the orphan lists have not been generated yet.
          been generated. */
       if (func_scope != NULL &&
           !func_scope->function_body_processing_finished) {
+        saved_innermost_function_scope = innermost_function_scope;
+        innermost_function_scope = func_scope;
         process_local_types(func_scope, list_processing_routine);
+        innermost_function_scope = saved_innermost_function_scope;
       }  /* if */
     }  /* if */
   }  /* for */
