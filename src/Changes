@@ -1,5 +1,26 @@
 Version 3.4
 
+8/13/03  IA-64 ABI problem with sharing of long string literals
+
+In versions using the IA-64 ABI, the lowered IL for an extern inline
+function containing two identical string literals longer than 80
+characters was incorrect.  It contained two variables generated to
+hold the two string literals, where a single variable should have
+been generated.  In addition, the two variables had the same
+mangled name, which could cause errors or aborts in back ends.
+
+  inline void f() {
+    char *p = "123456789012345678901234567890123456789012345678901234567890"
+              "123456789012345678901234567890123456789012345678901234567890"
+              "123456789012345678901234567890";
+    char *p2= "123456789012345678901234567890123456789012345678901234567890"
+              "123456789012345678901234567890123456789012345678901234567890"
+              "123456789012345678901234567890";
+  }
+  int main() {
+    f();
+  }
+
 8/11/03  Declared type of old-style C parameter definition
 
 The front end used to not record the declared type of an old-style C parameter

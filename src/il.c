@@ -4376,6 +4376,18 @@ nonidentical.
     /* strictly_identical is TRUE. */
     /* The types must be pointer-identical. */
     same_types = same_entities(cp1_type, cp2_type);
+    if (!same_types && cp1->kind == (a_constant_repr_kind)ck_string &&
+        identical_types(cp1_type, cp2_type)) {
+      /* ... except that for string constants we allow type equivalence,
+         because for strings with length greater than
+         MAX_TRACKED_STRING_TYPE_LENGTH a different array type is created
+         each time.  Note that, while this test is desirable in general,
+         it is necessary for the IA-64 ABI so that identical string
+         literals in inline functions are properly merged into one.
+         Without this test we would put out two variables for the two
+         string constants and they would have the same mangled name. */
+      same_types = TRUE;
+    }  /* if */
   }  /* if */
   /* The constants can be the same only if their types are the same. */
   if (same_types) {
