@@ -401,13 +401,14 @@ the "text" field of *template_ptr to point to it.
       cache = template_body_cache;
       /* There will be no cache for the token body if no body was declared --
          in which case, terminate the loop. */
-      if (cache == NULL) break;
+      if (cache == NULL || cache->first_token == NULL) break;
     } else {
       /* All done. */
       break;
     }  /* if */
   }  /* for */
-  if (template_body_cache != NULL &&
+  if ((template_body_cache != NULL &&
+       template_body_cache->first_token != NULL) &&
       (template_ptr->kind == (a_template_kind)templk_function ||
        template_ptr->kind == (a_template_kind)templk_member_function)) {
     /* Function template definition -- no semicolon needed. */
@@ -3699,6 +3700,397 @@ arguments.
 }  /* template_param_appears_in_param_list */
 
 
+static void fixup_types_that_refer_to_incomplete_instantiations(
+                                      a_symbol_ptr   sym,
+				      a_type_ptr     prototype_type)
+/*
+This is the resolution of a previously incomplete template
+declaration; check for incomplete instantiations.  And if there are
+any incomplete instantiations that were involved in array type
+declarations, the instantiations need to be done and the arrays
+fixed up at this time.  For example:
+    template <class T> class X;
+    typedef X<int> arr[10];
+    template <class T> class X { ... };
+Now that template X has been def
+ined, X<int> can be instantiated and
+the size of arr can be computed.
+*/
+{
+  a_template_symbol_supplement_ptr  tssp;
+  a_symbol_ptr                      instance_sym;
+
+  /* Loop though all the instantiations of the current class template. */
+  tssp = sym->variant.template_info;
+  for (instance_sym = tssp->variant.class_template.instantiations;
+       instance_sym != NULL;
+       instance_sym = instance_sym->next) {
+    if (instance_sym ==
+	tssp->variant.class_template.prototype_instantiation) {
+      /* Ignore the prototype instantiation. */
+    } else if (instance_sym->variant.class_struct_union.extra_info->
+	                                          is_specific_template_def) {
+      /* Ignore specific definitions. */
+    } else {
+      /* Found an incomplete instantiation.  Be sure the type kind matches
+	 that of the current template definition. */
+      a_type_ptr                  class_type;
+      a_dependent_type_fixup_ptr  dtfp;
+      
+      class_type = instance_sym->variant.class_struct_union.type;
+      if (class_type->kind == prototype_type->kind) {
+	/* Okay. */
+      } else if (class_type->kind == (a_type_kind)tk_union ||
+		 prototype_type->kind == (a_type_kind)tk_union) {
+	/* Error, detected elsewhere. */
+      } else {
+	class_type->kind = prototype_type->kind;
+      }  /* if */
+      /* See if it has any fixup entries that resulted from uses in array
+	 declarations. */
+      dtfp = instance_sym->variant.class_struct_union.extra_info->
+	                                           dependent_type_fixup_list;
+      for (; dtfp != NULL; dtfp = dtfp->next) {
+	if (dtfp->fixup_kind ==
+	                (a_dependent_type_fixup_kind)dtfk_array_type_size) {
+	  /* This one was used in at least one array declaration; there
+	     may be others on the list but one is enough to justify
+	     instantiating the template class.  The call to do the array
+	     fixup is made from scan_class_defintion. */
+	  instantiate_template_class(instance_sym->
+				     variant.class_struct_union.type);
+	  break;
+	}  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* for */
+}  /* fixup_types_that_refer_to_incomplete_instantiations */
+
+
+#if RECORD_TEMPLATES_IN_IL
+static
+void complete_il_template_entry(a_template_ptr il_template_entry,
+                                a_symbol_ptr   sym,
+                                a_token_cache  *decl_token_cache,
+                                a_token_cache  *template_param_list_cache,
+                                a_token_cache  *p_template_body_cache)
+/*
+Finish up establishing the IL template entry.  (It has already been
+added to the templates list, its decl_position has been set, and
+its source correspondence entry, if any, has been put out.)
+*/
+{
+  a_boolean  err = FALSE;
+  if (il_template_entry != NULL) {
+    if (sym != NULL && !sym->is_error) {
+      /* Set the template kind. */
+      switch (sym->kind) {
+        case sk_class_template:
+          il_template_entry->kind = (a_template_kind)templk_class;
+          break;
+        case sk_function_template:
+          il_template_entry->kind = (a_template_kind)templk_function;
+          break;
+        case sk_member_function:
+          il_template_entry->kind = (a_template_kind)templk_member_function;
+          break;
+        case sk_static_data_member:
+          il_template_entry->kind = (a_template_kind)templk_static_data_member;
+          break;
+        default:
+          /* There must have been an error.  Do the check because we don't
+             want an incomplete IL entry to be handed to the back end. */
+          check_assertion(total_errors > 0);
+          err = TRUE;
+      }  /* switch */
+      if (!err) {
+	/* Give it a name, etc.  Note that the class-of-which-a-member field
+	   should not be set, since the parent class of a member function or
+	   static data member template is generally not a real class. */
+	set_source_corresp(&il_template_entry->source_corresp, sym);
+	/* Create the string that represents the template declaration. */
+	make_template_string(il_template_entry, template_param_list_cache,
+			     decl_token_cache, p_template_body_cache);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* complete_il_template_entry */
+#endif /* RECORD_TEMPLATES_IN_IL */
+
+
+static a_symbol_ptr template_static_data_member_declaration
+                    (a_symbol_locator                 *locator,
+		     a_decl_flag_set                  do_flags,
+		     a_type_ptr                       type,
+		     a_template_param_ptr             template_param_list,
+		     a_template_symbol_supplement_ptr *p_tssp)
+/*
+Scan a template static data member declaration.  locator identifies
+the static data member being declared.  do_flags contains the
+declaration flags returned by declarator.  type is the type pointer
+returned by declarator.  template_param_list points to the parameter
+list for this template declaration.  p_tssp points to the location
+in which the template symbol supplement for this template should be
+returned to the caller.
+*/
+{
+  /* Name is a member of a class template (or a class nested within a class
+     template).  It is not a function, so (in a legal program) it must be
+     a static data member. */
+  /* Special processing for static data member template declarations. */
+  a_boolean                        err = FALSE;
+  a_token_cache                    local_token_cache;
+  a_token_cache                    *p_token_cache;
+  a_symbol_ptr                     sym;
+  a_boolean                        has_parenthesized_initializer = FALSE;
+  a_template_symbol_supplement_ptr tssp = NULL;
+
+  db_enter(4, "template_static_data_member_declaration");
+  sym = locator->specific_symbol;
+  has_parenthesized_initializer = 
+                              (do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
+  if (is_error_locator(*locator)) {
+    /* An error occurred while scanning the declarator of what we assume
+       is a static data member.  We make this assumption because the
+       declarator is not a function and is followed by an equals sign. */
+    err = TRUE;
+  } else if (sym->kind != (a_symbol_kind)sk_static_data_member) {
+    /* Not a static data member. */
+    if (sym->kind == (a_symbol_kind)sk_field) {
+      pos_error(ec_nonstatic_member_def_not_allowed,
+		&locator->source_position);
+    } else if (sym->kind == (a_symbol_kind)sk_projection) {
+      /* A member of a base class. */
+      pos_error(ec_inherited_member_not_allowed, &locator->source_position);
+    } else {
+      pos_sy_error(ec_not_compatible_with_previous_decl,
+		   &locator->source_position, sym);
+    } /* if */
+    err = TRUE;
+  } else if (sym->defined) {
+    /* Prior definition. */
+    pos_sy_error(ec_already_defined, &locator->source_position, sym);
+    err = TRUE;
+  } else if (!types_are_compatible(type,
+				   sym->variant.static_data_member.
+				   variable->type)) {
+    /* The type of the static data member definition does not match
+       the declaration in the class. */
+    pos_sy_error(ec_not_compatible_with_previous_decl,
+		 &locator->source_position, sym);
+    err = TRUE;
+  } else {
+    /* This is a template definition of a static data member of a
+       class template. */
+#if CHECKING
+    if (sym->variant.static_data_member.instance_ptr->template_sym != sym) {
+      internal_error("template_declaration: bad instance for static mem");
+    } /* if */
+#endif /* CHECKING */
+    mark_defined(sym, &locator->source_position);
+    tssp = sym->variant.static_data_member.instance_ptr->template_info;
+    /* Update the param list ptr, which should be non-null when the
+       symbol is defined. */
+    tssp->parameters = template_param_list;
+    tssp->declaration_scope = scope_stack[decl_scope_level].number;
+    /* Make sure the parameter list matches the class declaration. */
+    if (!member_template_param_list_matches_class
+	(template_param_list, sym, &error_position)) {
+      err = TRUE;
+    } /* if */
+  }  /* if */
+  /* Scan the initializer expression, if any, and cache its tokens.
+     The initializer may be of the form "= ...;" or "(...);".
+     Anything else will not get cached and an error will be generated
+     on this declaration. */
+  if (curr_token == tok_assign || has_parenthesized_initializer) {
+    add_stop_token(tok_semicolon);
+    p_token_cache = err ? &local_token_cache : &tssp->token_cache;
+    clear_token_cache(p_token_cache, /*reusable=*/TRUE);
+    cache_token_stream(p_token_cache, stop_token_array);
+    remove_stop_token(tok_semicolon);
+    if (err) {
+      discard_token_cache(p_token_cache);
+    } else if (curr_token == tok_semicolon) {
+      terminate_token_cache(p_token_cache);
+    } /* if */
+  } /* if */
+  *p_tssp = tssp;
+  db_exit();
+  return sym;
+}  /* template_static_data_member_declaration */
+
+
+static void check_function_template_param_usage
+                         (a_symbol_ptr                     sym,
+			  a_type_ptr                       type,
+			  a_template_param_ptr             template_param_list,
+			  a_template_symbol_supplement_ptr tssp)
+/*
+Make sure that all of the template parameters are used as part of the
+signature of the functions that will be generated from this template.
+Use in a function parameter with a default argument is not counted as
+it would not be possible to deduce the value of a template parameter
+when the associated function argument was omitted.  Also make sure that
+only type parameters are used (nontype parameters for function templates
+are a new feature and are not yet implemented).
+*/
+{
+  a_template_param_ptr   tpp;
+  a_type_ptr	         rout_type = skip_typerefs(type);
+  for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
+    a_symbol_ptr param_sym = tpp->param_symbol;
+    if (param_sym->kind != (a_symbol_kind)sk_type) {
+      pos_error(ec_not_a_type_arg, &param_sym->decl_position);
+      tssp->variant.function.cannot_be_called = TRUE;
+    } else {
+      /* Make sure that all template parameters are used by
+	 function parameter types and not just by parameters
+	 with default arguments.  If an error occurs set the
+	 cannot_be_called flag to prevent an instantiation from
+	 being attempted with an incomplete set of template arguments. */
+      a_boolean	only_in_default_args;
+      a_boolean	param_used;
+      param_used = template_param_appears_in_param_list
+	(param_sym->variant.type, rout_type, &only_in_default_args);
+      if (!param_used) {
+	pos_sy2_error(ec_not_used_in_template_function_params,
+		      &param_sym->decl_position, param_sym, sym);
+	tssp->variant.function.cannot_be_called = TRUE;
+      } else if (only_in_default_args) {
+	pos_sy2_error(ec_template_param_only_used_in_default_args,
+		      &param_sym->decl_position, param_sym, sym);
+	tssp->variant.function.cannot_be_called = TRUE;
+      } /* if */
+    } /* if */
+  } /* for */
+}  /* check_function_template_param_usage */
+
+
+static a_symbol_ptr template_function_declaration
+                    (a_symbol_locator                 *locator,
+		     a_func_info_block                *func_info,
+		     a_storage_class                  storage_class,
+		     a_decl_modifier                  decl_modifiers,
+		     a_type_ptr                       type,
+		     a_template_param_ptr             template_param_list,
+		     a_token_cache                    *decl_token_cache,
+		     a_boolean                        *decl_token_cache_used,
+		     a_template_symbol_supplement_ptr *p_tssp,
+		     a_boolean                        *defines_something)
+/*
+Scan a function template declaration or the declaration of a member
+function of a class template.  locator identifies the static data
+member being declared.  type is the type pointer returned by
+declarator.  template_param_list points to the parameter list for this
+template declaration.  decl_token_cache points to the token cache that
+contains the token comprising the function declarator.
+decl_token_cache_used is set to TRUE if the pointer to this token
+cache is recorded in the template symbol supplement for this template.
+p_tssp points to the location in which the template symbol supplement
+for this template should be returned to the caller.  defines_something
+is set to TRUE if this is a function definition and not just a
+declaration.
+*/
+{
+  a_boolean                        err = FALSE;
+  a_symbol_ptr                     sym = NULL;
+  a_template_symbol_supplement_ptr tssp = NULL;
+
+  db_enter(4, "template_function_declaratation");  
+  /* Set a flag in each param type entry whose associated type is or
+     contains a template parameter. */
+  set_type_involves_template_param_flags(type);
+  /* Process a function template declaration. */
+  decl_function_template(locator, type, func_info, &sym, storage_class,
+			 decl_modifiers);
+  if (is_error_locator(*locator)) {
+    err = TRUE;
+  } else if (curr_token == tok_lbrace ||
+	     (curr_token == tok_colon && is_constructor_symbol(sym))) {
+    if (sym->defined) {
+      pos_sy_error(ec_already_defined, &locator->source_position, sym);
+      err = TRUE;
+    } /* if */
+    mark_defined(sym, &locator->source_position);
+  } else {
+    mark_declared(sym, &locator->source_position);
+    if (sym->kind == (a_symbol_kind)sk_member_function) {
+      /* A non-defining declaration of a member function is not
+	 allowed. */
+      pos_error(ec_member_function_redecl_outside_class,
+		&locator->source_position);
+    } /* if */
+  } /* if */
+  if (sym->kind == (a_symbol_kind)sk_member_function) {
+    tssp = sym->variant.routine.instance_ptr->template_info;
+  } else {
+    tssp = sym->variant.template_info;
+  } /* if */
+  /* Make sure that the template parameter list is compatible with
+     any previous declaration (i.e., the declaration of the class
+     if this is a member function. */
+  if (sym->class_of_which_a_member != NULL) {
+    if (!member_template_param_list_matches_class(template_param_list,
+						  sym, &error_position)) {
+      err = TRUE;
+    } /* if */
+  } /* if */
+  if (err) {
+    a_token_cache  local_token_cache;
+    clear_token_cache(&local_token_cache, /*reusable=*/FALSE);
+    cache_function_template_body(&local_token_cache, /*is_ctor=*/TRUE,
+				 defines_something, sym);
+    discard_token_cache(&local_token_cache);
+  } else {
+    a_def_arg_expr_fixup_ptr  daefp;
+    
+    cache_function_template_body(&tssp->token_cache,
+				 is_constructor_symbol(sym),
+				 defines_something, sym);
+    if (*defines_something || 
+	tssp->variant.function.decl_token_cache.first_token == NULL) {
+      /* The decl_token_cache should point to the declaration associated
+	 with the definition, if a definition is present. */
+      tssp->variant.function.decl_token_cache = *decl_token_cache;
+      *decl_token_cache_used = TRUE;
+      /* Copy the func_info block and then null out its the param-id
+	 pointer so that it won't be freed. */
+      tssp->variant.function.func_info = *func_info;
+      func_info->param_id_list = NULL;
+      tssp->parameters = template_param_list;
+      tssp->declaration_scope = scope_stack[decl_scope_level].number;
+    } /* if */
+    /* Link the default argument list from the template supplement
+       onto the end of the list of current default arguments.  The
+       list in the supplement must be for arguments that follow the
+       new list (otherwise it would be an error).  Find the end
+       of the current list and link the existing list to the end. */
+    daefp = curr_default_args;
+    if (daefp != NULL) {
+      while (daefp->next != NULL) daefp = daefp->next;
+      daefp->next = tssp->variant.function.def_arg_expr_list;
+      tssp->variant.function.def_arg_expr_list = curr_default_args;
+    } /* if */
+  } /* if */
+  if (sym->class_of_which_a_member != NULL) {
+    /* Out-of-line definition of a member function of a class template.
+       Don't impose requirements on the use of template parameters in the
+       parameters. */
+  } else if (err) {
+    /* Avoid spurious errors -- skip the check for template params, since
+       this might have been intended to be a member function. */
+  } else {
+    /* Go back through the template params and be sure there are only
+       type args.  The other kind is allowed only for class templates. */
+    check_function_template_param_usage(sym, type, template_param_list, tssp);
+  }  /* if */
+  *p_tssp = tssp;
+  db_exit();
+  return sym;
+}  /* template_function_declaration */
+
+
 a_symbol_ptr template_declaration(a_boolean  *defines_something,
                                   a_boolean  no_advance_past_final_token)
 /*
@@ -3725,8 +4117,8 @@ the right brace or semicolon terminating the template declaration is left
 as the current token; otherwise, it is consumed.
 */
 {
-  a_template_param_ptr              tpp, template_param_list = NULL;
-  a_symbol_ptr                      sym, param_sym, instance_sym;
+  a_template_param_ptr              template_param_list = NULL;
+  a_symbol_ptr                      sym;
   a_template_symbol_supplement_ptr  tssp;
   a_boolean                         tag_resolution = FALSE;
   a_type_ptr                        prototype_type = NULL;
@@ -3814,7 +4206,6 @@ as the current token; otherwise, it is consumed.
     a_symbol_locator   locator;
     a_decl_flag_set    do_flags;
     a_decl_flag_set    dso_flags;
-    a_boolean          has_parenthesized_initializer = FALSE;
     a_func_info_block  func_info;
     a_storage_class    storage_class;
     a_decl_modifier    decl_modifiers;
@@ -3824,212 +4215,32 @@ as the current token; otherwise, it is consumed.
     scan_template_declaration(/*is_initial_decl=*/TRUE, nonglobal_decl_err,
                               &dso_flags, &do_flags, &locator, &type,
                               &func_info, &storage_class, &decl_modifiers);
-    has_parenthesized_initializer = 
-                             (do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
     if (!is_function_type(type) && 
         (locator.specific_symbol != NULL ||
          (is_error_locator(locator) && curr_token == tok_assign))) {
-      /* Name is a member of a class template (or a class nested within a class
-         template).  It is not a function, so (in a legal program) it must be
-         a static data member. */
-      /* Special processing for static data member template declarations. */
-      a_boolean      err = FALSE;
-      a_token_cache  local_token_cache, *p_token_cache;
-
-      sym = locator.specific_symbol;
-      if (is_error_locator(locator)) {
-        /* An error occurred while scanning the declarator of what we assume
-	   is a static data member.  We make this assumption because the
-           declarator is not a function and is followed by an equals sign. */
-        err = TRUE;
-      } else if (sym->kind != (a_symbol_kind)sk_static_data_member) {
-        /* Not a static data member. */
-        if (sym->kind == (a_symbol_kind)sk_field) {
-          pos_error(ec_nonstatic_member_def_not_allowed,
-                    &locator.source_position);
-        } else if (sym->kind == (a_symbol_kind)sk_projection) {
-          /* A member of a base class. */
-          pos_error(ec_inherited_member_not_allowed, &locator.source_position);
-        } else {
-          pos_sy_error(ec_not_compatible_with_previous_decl,
-                       &locator.source_position, sym);
-        }  /* if */
-        err = TRUE;
-      } else if (sym->defined) {
-        /* Prior definition. */
-        pos_sy_error(ec_already_defined, &locator.source_position, sym);
-        err = TRUE;
-      } else if (!types_are_compatible(type,
-                                       sym->variant.static_data_member.
-                                                          variable->type)) {
-        /* The type of the static data member definition does not match
-           the declaration in the class. */
-        pos_sy_error(ec_not_compatible_with_previous_decl,
-                     &locator.source_position, sym);
-        err = TRUE;
-      } else {
-        /* This is a template definition of a static data member of a
-           class template. */
-#if CHECKING
-        if (sym->variant.static_data_member.instance_ptr->
-                                                  template_sym != sym) {
-          internal_error("template_declaration: bad instance for static mem");
-        }  /* if */
-#endif /* CHECKING */
-        mark_defined(sym, &locator.source_position);
-        tssp = sym->variant.static_data_member.instance_ptr->template_info;
-        /* Update the param list ptr, which should be non-null when the
-           symbol is defined. */
-        tssp->parameters = template_param_list;
-        tssp->declaration_scope = scope_stack[decl_scope_level].number;
-        /* Make sure the parameter list matches the class declaration. */
-        if (!member_template_param_list_matches_class
-                      (template_param_list, sym, &error_position)) {
-          err = TRUE;
-        }  /* if */
-      }  /* if */
-      /* Scan the initializer expression, if any, and cache its tokens.
-         The initializer may be of the form "= ...;" or "(...);".
-         Anything else will not get cached and an error will be generated
-         on this declaration. */
-      if (curr_token == tok_assign || has_parenthesized_initializer) {
-        add_stop_token(tok_semicolon);
-        p_token_cache = err ? &local_token_cache : &tssp->token_cache;
-        clear_token_cache(p_token_cache, /*reusable=*/TRUE);
-        cache_token_stream(p_token_cache, stop_token_array);
-        remove_stop_token(tok_semicolon);
-        if (err) {
-          discard_token_cache(p_token_cache);
-        } else if (curr_token == tok_semicolon) {
-          terminate_token_cache(p_token_cache);
+      sym = template_static_data_member_declaration(&locator, do_flags, type,
+						    template_param_list,
+						    &tssp);
 #if RECORD_TEMPLATES_IN_IL
-          /* Save a pointer to the token cache for the initializer. */
-          p_template_body_cache = p_token_cache;
+      /* Save a pointer to the token cache for the initializer.  tssp may
+         be NULL in error cases. */
+      if (tssp != NULL) p_template_body_cache = &tssp->token_cache;
 #endif /* RECORD_TEMPLATES_IN_IL */
-        }  /* if */
-      }  /* if */
     } else if (is_function_type(type)) {
-      a_boolean  err = FALSE;
+      sym = template_function_declaration(&locator, &func_info, storage_class,
+					  decl_modifiers, type,
+					  template_param_list,
+					  &decl_token_cache,
+					  &decl_token_cache_used,
+					  &tssp, defines_something);
 
-      /* Set a flag in each param type entry whose associated type is or
-         contains a template parameter. */
-      set_type_involves_template_param_flags(type);
-      /* Process a function template declaration. */
-      decl_function_template(&locator, type, &func_info, &sym, storage_class,
-                             decl_modifiers);
-      if (is_error_locator(locator)) {
-        err = TRUE;
-      } else if (curr_token == tok_lbrace ||
-                 (curr_token == tok_colon && is_constructor_symbol(sym))) {
-        if (sym->defined) {
-          pos_sy_error(ec_already_defined, &locator.source_position, sym);
-          err = TRUE;
-        }  /* if */
-        mark_defined(sym, &locator.source_position);
-      } else {
-        mark_declared(sym, &locator.source_position);
-        if (sym->kind == (a_symbol_kind)sk_member_function) {
-          /* A non-defining declaration of a member function is not
-             allowed. */
-          pos_error(ec_member_function_redecl_outside_class,
-                    &locator.source_position);
-        }  /* if */
-      }  /* if */
-      if (sym->kind == (a_symbol_kind)sk_member_function) {
-        tssp = sym->variant.routine.instance_ptr->template_info;
-      } else {
-        tssp = sym->variant.template_info;
-      }  /* if */
-      /* Make sure that the template parameter list is compatible with
-         any previous declaration (i.e., the declaration of the class
-         if this is a member function. */
-      if (sym->class_of_which_a_member != NULL) {
-        if (!member_template_param_list_matches_class(template_param_list,
-                                                      sym, &error_position)) {
-          err = TRUE;
-        }  /* if */
-      }  /* if */
-      if (err) {
-        a_token_cache  local_token_cache;
-        clear_token_cache(&local_token_cache, /*reusable=*/FALSE);
-        cache_function_template_body(&local_token_cache, /*is_ctor=*/TRUE,
-                                     defines_something, sym);
-        discard_token_cache(&local_token_cache);
-      } else {
-	a_def_arg_expr_fixup_ptr  daefp;
-
-        cache_function_template_body(&tssp->token_cache,
-                                     is_constructor_symbol(sym),
-                                     defines_something, sym);
-        if (*defines_something || 
-            tssp->variant.function.decl_token_cache.first_token == NULL) {
-          /* The decl_token_cache should point to the declaration associated
-             with the definition, if a definition is present. */
-          tssp->variant.function.decl_token_cache = decl_token_cache;
-          decl_token_cache_used = TRUE;
-          /* Copy the func_info block and then null out its the param-id
-             pointer so that it won't be freed. */
-            tssp->variant.function.func_info = func_info;
-          func_info.param_id_list = NULL;
-          tssp->parameters = template_param_list;
-          tssp->declaration_scope = scope_stack[decl_scope_level].number;
-        }  /* if */
-	/* Link the default argument list from the template supplement
-	   onto the end of the list of current default arguments.  The
-	   list in the supplement must be for arguments that follow the
-	   new list (otherwise it would be an error).  Find the end
-	   of the current list and link the existing list to the end. */
-	daefp = curr_default_args;
-	if (daefp != NULL) {
-	  while (daefp->next != NULL) daefp = daefp->next;
-	  daefp->next = tssp->variant.function.def_arg_expr_list;
-          tssp->variant.function.def_arg_expr_list = curr_default_args;
-	}  /* if */
 #if RECORD_TEMPLATES_IN_IL
-        if (*defines_something) {
-          /* Save a pointer to the token cache for function body. */
-          p_template_body_cache = &tssp->token_cache;
-        }  /* if */
+      if (*defines_something) {
+	/* Save a pointer to the token cache for function body.  tssp may
+           be NULL in error cases. */
+	if (tssp != NULL) p_template_body_cache = &tssp->token_cache;
+      } /* if */
 #endif /* RECORD_TEMPLATES_IN_IL */
-      }  /* if */
-      if (sym->class_of_which_a_member != NULL) {
-        /* Out-of-line definition of a member function of a class template.
-           Don't impose requirements on the use of template parameters in the
-           parameters. */
-      } else if (err) {
-        /* Avoid spurious errors -- skip the check for template params, since
-           this might have been intended to be a member function. */
-      } else {
-        /* Go back through the template params and be sure there are only
-           type args.  The other kind is allowed only for class templates. */
-        a_type_ptr	rout_type = skip_typerefs(type);
-        for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
-          param_sym = tpp->param_symbol;
-          if (param_sym->kind != (a_symbol_kind)sk_type) {
-            pos_error(ec_not_a_type_arg, &param_sym->decl_position);
-            tssp->variant.function.cannot_be_called = TRUE;
-          } else {
-	    /* Make sure that all template parameters are used by
-	       function parameter types and not just by parameters
-	       with default arguments.  If an error occurs set the
-	       cannot_be_called flag to prevent an instantiation from
-	       being attempted with an incomplete set of template arguments. */
-	    a_boolean	only_in_default_args;
-	    a_boolean	param_used;
-	    param_used = template_param_appears_in_param_list
-                   (param_sym->variant.type, rout_type, &only_in_default_args);
-	    if (!param_used) {
-              pos_sy2_error(ec_not_used_in_template_function_params,
-                            &param_sym->decl_position, param_sym, sym);
-	      tssp->variant.function.cannot_be_called = TRUE;
-	    } else if (only_in_default_args) {
-              pos_sy2_error(ec_template_param_only_used_in_default_args,
-                            &param_sym->decl_position, param_sym, sym);
-	      tssp->variant.function.cannot_be_called = TRUE;
-            }  /* if */
-          }  /* if */
-        }  /* for */
-      }  /* if */
     } else {
       /* Error -- not a class template, a function template, nor a static
          data member template. */
@@ -4100,99 +4311,17 @@ as the current token; otherwise, it is consumed.
     instantiate_class_template(sym, prototype_type);
     if (tag_resolution) {
       /* This is the resolution of a previously incomplete template
-         declaration; check for incomplete instantiations.  And if there are
-         any incomplete instantiations that were involved in array type
-         declarations, the instantiations need to be done and the arrays
-         fixed up at this time.  For example:
-           template <class T> class X;
-           typedef X<int> arr[10];
-           template <class T> class X { ... };
-         Now that template X has been defined, X<int> can be instantiated and
-         the size of arr can be computed. */
-      /* Loop though all the instantiations of the current class template. */
-      tssp = sym->variant.template_info;
-      for (instance_sym = tssp->variant.class_template.instantiations;
-           instance_sym != NULL;
-           instance_sym = instance_sym->next) {
-        if (instance_sym ==
-                  tssp->variant.class_template.prototype_instantiation) {
-          /* Ignore the prototype instantiation. */
-        } else if (instance_sym->variant.class_struct_union.extra_info->
-                                                   is_specific_template_def) {
-          /* Ignore specific definitions. */
-        } else {
-          /* Found an incomplete instantiation.  Be sure the type kind matches
-             that of the current template definition. */
-          a_type_ptr                  class_type;
-          a_dependent_type_fixup_ptr  dtfp;
-
-          class_type = instance_sym->variant.class_struct_union.type;
-          if (class_type->kind == prototype_type->kind) {
-            /* Okay. */
-          } else if (class_type->kind == (a_type_kind)tk_union ||
-                     prototype_type->kind == (a_type_kind)tk_union) {
-            /* Error, detected elsewhere. */
-          } else {
-            class_type->kind = prototype_type->kind;
-          }  /* if */
-          /* See if it has any fixup entries that resulted from uses in array
-             declarations. */
-          dtfp = instance_sym->variant.class_struct_union.extra_info->
-                                               dependent_type_fixup_list;
-          for (; dtfp != NULL; dtfp = dtfp->next) {
-            if (dtfp->fixup_kind == (a_dependent_type_fixup_kind)
-                                                   dtfk_array_type_size) {
-              /* This one was used in at least one array declaration; there
-                 may be others on the list but one is enough to justify
-                 instantiating the template class.  The call to do the array
-                 fixup is made from scan_class_defintion. */
-              instantiate_template_class(instance_sym->
-                                             variant.class_struct_union.type);
-              break;
-            }  /* if */
-          }  /* for */
-        }  /* if */
-      }  /* for */
+	 declaration.  If there are any incomplete instantitions that were
+         involved in array type declarations, fix them up now. */
+      fixup_types_that_refer_to_incomplete_instantiations(sym, prototype_type);
     }  /* if */
   }  /* if */
 #if RECORD_TEMPLATES_IN_IL
-  if (il_template_entry != NULL) {
-    /* Finish up establishing the IL template entry.  (It's already been
-       added to the templates list, its decl_position has been set, and
-       its source correspondence entry, if any, has been put out.) */
-    if (sym != NULL && !sym->is_error) {
-      /* Set the template kind. */
-      switch (sym->kind) {
-        case sk_class_template:
-          il_template_entry->kind = (a_template_kind)templk_class;
-          break;
-        case sk_function_template:
-          il_template_entry->kind = (a_template_kind)templk_function;
-          break;
-        case sk_member_function:
-          il_template_entry->kind = (a_template_kind)templk_member_function;
-          break;
-        case sk_static_data_member:
-          il_template_entry->kind = (a_template_kind)templk_static_data_member;
-          break;
-        default:
-          /* There must have been an error.  Do the check because we don't
-             want an incomplete IL entry to be handed to the back end. */
-          check_assertion(total_errors > 0);
-          goto skip_template_string;
-      }  /* switch */
-      /* Give it a name, etc.  Note that the class-of-which-a-member field
-         should not be set, since the parent class of a member function or
-         static data member template is generally not a real class. */
-      set_source_corresp(&il_template_entry->source_corresp, sym);
-      /* Create the string that represents the template declaration. */
-      make_template_string(il_template_entry, &template_param_list_cache,
-                           &decl_token_cache, p_template_body_cache);
-    }  /* if */
-skip_template_string:
-    /* The cache for the template parameter list is no longer needed. */
-    discard_token_cache(&template_param_list_cache);
-  }  /* if */
+  complete_il_template_entry(il_template_entry, sym, &decl_token_cache,
+			     &template_param_list_cache,
+			     p_template_body_cache);
+  /* The cache for the template parameter list is no longer needed. */
+  discard_token_cache(&template_param_list_cache);
 #endif /* RECORD_TEMPLATES_IN_IL */
   /* If the declaration token cache is not needed, discard it. */
   if (!decl_token_cache_used) {
