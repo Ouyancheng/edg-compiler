@@ -2,9 +2,10 @@ Version 2.34
 
 10/16/96 Object lifetime on initialization of local static variable
 
-An object lifetime is no longer generated for the initialization of a
-local static variable when the initializer is a non-constant that has no
-side effects.  For example:
+An object lifetime was sometimes generated for the initialization of a
+local static variable even when the initializer was known to have no side
+effects; this has been corrected (in part fixing a problem introduced in
+version 2.33 -- see Changes entry for 9/30/96).  For example:
 
   int i;
   struct S { int x, y, z; };
