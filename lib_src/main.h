@@ -19,6 +19,7 @@ Declarations relating to main.c -- program startup and termination.
 #include <stddef.h>
 #include <osfcn.h>
 
+	
 /*
 The __linkl structure for each source module that has file scope initialization
 or termination routines.
@@ -37,9 +38,6 @@ struct __linkl {
 /*
 The AT&T patch utility will link all the struct __linkl *__link defined
 in separate compilations onto a linked list pointed to by __head.
-Note that this is not explicitly initialized.  This allows an alternate
-version of main to be supplied that does not initialize __head to be
-used without causing a linkage conflict.
 */
 struct __linkl	*__head         /* Pointer to the head of the linked list
 				   of initialization and termination
@@ -49,10 +47,22 @@ struct __linkl	*__head         /* Pointer to the head of the linked list
 #endif /* VAR_INITIALIZERS */
                               ;
 
+
+/*
+The AT&T munch utility creates arrays of pointers to static constructor
+and destructor pointers.
+*/
+typedef void (*func_ptr)();
+func_ptr _ctors[];
+func_ptr _dtors[];
+
 #define TRUE 1
 #define FALSE 0
 
 typedef int a_boolean;
+
+/* Set to TRUE to enable debugging code. */
+#define DEBUG FALSE
 
 #endif /* MAIN_H */
 
