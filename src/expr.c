@@ -4409,6 +4409,7 @@ type conversions.
   if (err) {
     /* There was a previous error (e.g., the type to cast to is invalid
        regardless of the type of the source).  Do no further checking. */
+    change_refs_to_error(operand);
   } else {
     if (cast_to_reference) {
       /* In C++, "An object may be explicitly converted to a reference type
@@ -7185,6 +7186,8 @@ variable:
                    compile time. */
                 error_and_make_error_operand(ec_constant_value_not_known,
                                              result);
+                change_refs_to_error(rep);
+                rep = NULL;
               } else {
                 /* The identifier is const and has a known constant value. */
                 make_constant_operand(con_val, result);
@@ -7192,6 +7195,8 @@ variable:
             } else {
               /* All other cases are not allowed. */
               error_and_make_error_operand(ec_expr_not_constant, result);
+              change_refs_to_error(rep);
+              rep = NULL;
             }  /* if */
           } else {
             /* Nonconstant expression. */

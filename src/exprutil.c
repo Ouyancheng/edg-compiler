@@ -2158,10 +2158,6 @@ lvalue.  If there is an error, change the operand to an error operand.
     if (is_error_operand(operand)) {
       /* An error message has already been issued for this operand. */
     } else {
-      /* Avoid further errors by changing the references to error
-         references. */
-      change_refs_to_error(operand->ref_entries_list);
-      /* Issue the error. */
       error_in_operand(ec_expr_not_a_modifiable_lvalue, operand);
     }  /* if */
   }  /* if */
@@ -3920,6 +3916,15 @@ not an lvalue, it is left alone.
 #endif /* CHECKING */
     /* Save the operand's source position. */
     orig_operand = *operand;
+    /* Change simple "reference" references to "use" references. */
+    /* Note that what we want to avoid here is changing "modified" references
+       to "use" references, as would happen for references surviving
+       from an lvalue-returning assignment. */
+    change_some_ref_kinds(operand->ref_entries_list, srk_reference, srk_use);
+    /* Change the kind in the reference entry for a subscripted array from an
+       address-taken entry to a simple "use" reference. */
+    change_some_ref_kinds(operand->ref_entries_list, srk_address_taken,
+                          srk_use);
     if (is_error_operand(operand)) {
       /* Error operand -- leave it alone (but make sure it's not an lvalue
          anymore). */
@@ -3930,16 +3935,6 @@ not an lvalue, it is left alone.
       error_in_operand(ec_incomplete_type_not_allowed, operand);
     } else {
       using_lvalue(operand);
-      /* Change simple "reference" references to "use" references. */
-      /* Note that what we want to avoid here is changing "modified" references
-         to "use" references, as would happen for references surviving
-         from an lvalue-returning assignment. */
-      change_some_ref_kinds(operand->ref_entries_list, srk_reference,
-                            srk_use);
-      /* Change the kind in the reference entry for a subscripted array from an
-         address-taken entry to a simple "use" reference. */
-      change_some_ref_kinds(operand->ref_entries_list, srk_address_taken,
-                            srk_use);
       if (is_constant_operand(operand)) {
         /* The lvalue address is specified by a constant. */
         a_constant_ptr con = &operand->variant.constant;
