@@ -232,14 +232,19 @@ Overloaded Function".
           if (is_ptr) {
             ptr_routine_type = make_pointer_type(routine_type);
           } else {
-            check_assertion(sym->is_class_member);
-            /* The class of the pointer to member is always the class in
-               which the function is defined, not any derived class
-               indicated in the projection symbol. */
-            ptr_routine_type = ptr_to_member_type(routine_type,
-                                                  sym->parent.class_type);
+            if (!sym->is_class_member) {
+              /* Can't match a non-member function to a pointer to member. */
+              ptr_routine_type = NULL;
+            } else {
+              /* The class of the pointer to member is always the class in
+                 which the function is defined, not any derived class
+                 indicated in the projection symbol. */
+              ptr_routine_type = ptr_to_member_type(routine_type,
+                                                    sym->parent.class_type);
+            }  /* if */
           }  /* if */
-          if (impl_conversion_possible(ptr_routine_type,
+          if (ptr_routine_type != NULL &&
+              impl_conversion_possible(ptr_routine_type,
                                        /*source_is_constant=*/FALSE,
                                        (a_constant_ptr)NULL,
                                        dest_type,
