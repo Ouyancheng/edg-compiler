@@ -1993,9 +1993,8 @@ symbol associated with them.
   /* Do two iterations.  The first dumps all types, but only forward references
      for structs/unions. The second dumps the bodies of structs/unions.  This
      is necessary to get the ordering right. */
-  /* On both passes, ignore unnamed types that are not tags.  These are
-     probably shared types put on the file-scope list so that they will be 
-     found on a traversal of the file-scope IL tree. */
+  /* On both passes, ignore unnamed types that are not tags.  There probably
+     aren't any of these, but if there are, they should be ignored. */
   bodies = FALSE;
   for (;;) {
     for (type = type_list; type != NULL; type = type->next) {
