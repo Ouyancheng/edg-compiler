@@ -1658,6 +1658,17 @@ or enum.
     curr_source_sequence_entry = saved_curr_source_sequence_entry;
     sublist_parent_source_sequence_entry =
                                     saved_sublist_parent_source_sequence_entry;
+  } else if (is_immediate_class_type(type) &&
+             type->variant.class_struct_union.originally_unnamed &&
+             has_name(type)) {
+    /* A case like
+         typedef struct { ... } A, *PA;
+       The latter case can use the "name for linkage purposes" typedef to
+       refer to the unnamed tag. */
+    /* A global qualifier will not be necessary since we're using this in
+       the same declaration. */
+    gen_name(&type->source_corresp, iek_type,
+             /*force_qualified_name=*/FALSE);
   } else {
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
