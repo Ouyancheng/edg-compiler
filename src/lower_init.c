@@ -7708,7 +7708,8 @@ Do IL lowering of an enk_temp_init expression node.
   result_is_addr = expr->variant.init.result_is_addr;
   if (dip->kind == (a_dynamic_init_kind)dik_expression && !result_is_addr &&
       dip->destructor == NULL &&
-      !dip->is_optimized_class_rvalue_question_mark) {
+      !dip->is_optimized_class_rvalue_question_mark &&
+      dip->master_entry == NULL) {
     /* For a simple expression temporary case where the address of the
        temporary is not taken, just lower the expression and create no
        temporary.  This is a useful for cases where a function returns
