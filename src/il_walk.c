@@ -73,11 +73,6 @@ typedef char	*a_char_ptr;
 static void walk_string_entry(char             *entry_ptr,
                               an_il_entry_kind entry_kind,
                               sizeof_t         entry_length);
-#if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-static void set_keep_in_il_on_source_sequence_entries(a_scope_ptr scope);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
 
 
 /* Build a routine to walk entries and their subtrees. */
@@ -290,6 +285,10 @@ can be NULL to indicate that the corresponding function is unnecessary.
 
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
 
+/* "needed" flag section: */
+
+static void set_class_definition_needed(a_type_ptr type);
+
 /* Generate walk_tree_and_set_needed from the walk_entry.h source. */
 #undef DO_SUBTREE_WALK
 #define DO_SUBTREE_WALK TRUE
@@ -306,6 +305,29 @@ can be NULL to indicate that the corresponding function is unnecessary.
 #define UNDEF_WALK_ENTRY_MACROS_AT_END
 #include "walk_entry.h"
 
+
+static void set_class_definition_needed(a_type_ptr type)
+/*
+Set the definition_needed flag on the indicated class type.  This means the
+definition of the class is needed, and not just the declaration.
+*/
+{
+  /* Set the flag if it is not set already. */
+  if (!type->variant.class_struct_union.definition_needed) {
+    type->variant.class_struct_union.definition_needed = TRUE;
+    /* If the class is already marked as needed, redo the sweep for that,
+       because before the definition_needed flag is set the subtree of
+       the class is not swept when the class needed flag is set. */
+    if (type->source_corresp.needed) {
+      type->source_corresp.needed = FALSE;
+      walk_tree_and_set_needed((char *)type, iek_type);
+    }  /* if */
+    /* If this is a nested class, set definition_needed on the parent too. */
+    if (type->source_corresp.is_class_member) {
+      set_class_definition_needed(type->source_corresp.parent.class_type);
+    }  /* if */
+  }  /* if */
+}  /* set_class_definition_needed */
 
 /*
 Given an IL entry at entry_ptr with kind entry_kind, return TRUE if the
@@ -350,17 +372,6 @@ as needed.
     } else {
       /* The flag is not set, so set it and keep walking. */
       scp->needed = TRUE;
-#if 0
-#else /* 0 */
-      /* For now, set the definition_needed flag on a class whenever the needed
-         flag is set. */
-      if (entry_kind == iek_type) {
-        a_type_ptr type = (a_type_ptr)entry_ptr;
-        if (is_immediate_class_type(type)) {
-          type->variant.class_struct_union.definition_needed = TRUE;
-        }  /* if */
-      }  /* if */
-#endif /* 0 */
       if (entry_kind == iek_routine) {
         /* The entry is a routine.  If it has a definition, walk it now.
            Note that walking the routine and its subtree will not
@@ -446,6 +457,34 @@ references.
 }  /* mark_as_needed */
 
 
+/* "keep_in_il" flag section: */
+
+static void clear_keep_in_il_to_allow_subtree_walk(
+                                                  char             *entry_ptr,
+                                                  an_il_entry_kind entry_kind);
+
+static void set_class_keep_definition_in_il(a_type_ptr type);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+static void set_keep_in_il_on_source_sequence_entries(a_scope_ptr scope);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+/* Generate walk_tree_and_set_keep_in_il from the walk_entry.h source. */
+#undef DO_SUBTREE_WALK
+#define DO_SUBTREE_WALK TRUE
+#undef NEEDED_FLAG_WALK
+#define NEEDED_FLAG_WALK FALSE
+#undef KEEP_IN_IL_WALK
+#define KEEP_IN_IL_WALK TRUE
+#undef WALK_ENTRY_ROUTINE_STATIC
+#define WALK_ENTRY_ROUTINE_STATIC static
+#undef WALK_ENTRY_ROUTINE_NAME
+#define WALK_ENTRY_ROUTINE_NAME walk_tree_and_set_keep_in_il
+#undef WALK_ORPHANED_ENTRY_ROUTINE_NAME
+#define WALK_ORPHANED_ENTRY_ROUTINE_NAME walk_orphaned_entries_set_keep_in_il
+#undef UNDEF_WALK_ENTRY_MACROS_AT_END
+#include "walk_entry.h"
+
+
 static void clear_keep_in_il_to_allow_subtree_walk(char             *entry_ptr,
                                                    an_il_entry_kind entry_kind)
 /*
@@ -482,23 +521,33 @@ the subtree is walked again if it has changed.
     }  /* if */
   }  /* if */
 }  /* clear_keep_in_il_to_allow_subtree_walk */
-      
 
-/* Generate walk_tree_and_set_keep_in_il from the walk_entry.h source. */
-#undef DO_SUBTREE_WALK
-#define DO_SUBTREE_WALK TRUE
-#undef NEEDED_FLAG_WALK
-#define NEEDED_FLAG_WALK FALSE
-#undef KEEP_IN_IL_WALK
-#define KEEP_IN_IL_WALK TRUE
-#undef WALK_ENTRY_ROUTINE_STATIC
-#define WALK_ENTRY_ROUTINE_STATIC static
-#undef WALK_ENTRY_ROUTINE_NAME
-#define WALK_ENTRY_ROUTINE_NAME walk_tree_and_set_keep_in_il
-#undef WALK_ORPHANED_ENTRY_ROUTINE_NAME
-#define WALK_ORPHANED_ENTRY_ROUTINE_NAME walk_orphaned_entries_set_keep_in_il
-#undef UNDEF_WALK_ENTRY_MACROS_AT_END
-#include "walk_entry.h"
+
+static void set_class_keep_definition_in_il(a_type_ptr type)
+/*
+Set the keep_definition_in_il flag on the indicated class type.  This means
+the definition of the class is must be kept in the IL, and not just the
+declaration.
+*/
+{
+  /* Set the flag if it is not set already. */
+  if (!type->variant.class_struct_union.keep_definition_in_il) {
+    type->variant.class_struct_union.keep_definition_in_il = TRUE;
+    /* If the class is already marked to be kept in the IL, redo the sweep
+       for that, because before the keep_definition_in_il flag is set the
+       subtree of the class is not swept when the class keep_in_il flag
+       is set. */
+    if (il_entry_prefix_of(type).keep_in_il) {
+      clear_keep_in_il_to_allow_subtree_walk((char *)type, iek_type);
+      walk_tree_and_set_keep_in_il((char *)type, iek_type);
+    }  /* if */
+    /* If this is a nested class, set keep_definition_in_il on the parent
+       too. */
+    if (type->source_corresp.is_class_member) {
+      set_class_keep_definition_in_il(type->source_corresp.parent.class_type);
+    }  /* if */
+  }  /* if */
+}  /* set_class_keep_definition_in_il */
 
 
 static void r_set_keep_in_il_on_virtual_functions_in_scope(a_scope_ptr scope)
@@ -600,17 +649,6 @@ to be kept.
   } else {
     /* The flag is not set, so set it and keep walking. */
     il_entry_prefix_of(entry_ptr).keep_in_il = TRUE;
-#if 0
-#else /* 0 */
-    /* For now, set the keep_definition_in_il flag on a class whenever the
-       keep_in_il flag is set. */
-    if (entry_kind == iek_type) {
-      a_type_ptr type = (a_type_ptr)entry_ptr;
-      if (is_immediate_class_type(type)) {
-        type->variant.class_struct_union.keep_definition_in_il = TRUE;
-      }  /* if */
-    }  /* if */
-#endif /* 0 */
     /* If this is an entry that might be redeclared or redefined later,
        do not walk its subtree now. */
     if (should_not_walk_subtree(entry_ptr, entry_kind)) {

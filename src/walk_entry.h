@@ -233,6 +233,37 @@ simple walk_list.
 #endif /* NEEDED_FLAG_WALK */
 
 /*
+Set the definition_needed or keep_definition_in_il flag in a type if the
+type is a class type.  Used to indicate cases that require the full type
+of a class rather than just a declaration.
+set_proper_definition_needed_flag sets either definition_needed or
+keep_definition_in_il, or does nothing, depending on the configuration.
+*/
+#undef definition_needed_if_class
+#undef set_proper_definition_needed_flag
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+#if NEEDED_FLAG_WALK
+#define set_proper_definition_needed_flag(ptr) \
+  set_class_definition_needed(ptr);
+#else /* !NEEDED_FLAG_WALK (i.e., KEEP_IN_IL_WALK) */
+#define set_proper_definition_needed_flag(ptr) \
+  set_class_keep_definition_in_il(ptr);
+#endif /* NEEDED_FLAG_WALK */
+#define definition_needed_if_class(ptr) \
+{ a_type_ptr local_ptr = skip_typerefs(ptr); \
+  if (local_ptr->kind == (a_type_kind)tk_array) { \
+    local_ptr = underlying_array_element_type(local_ptr); \
+  }  /* if */ \
+  if (is_immediate_class_type(local_ptr) && (local_ptr)->size != 0) { \
+    set_proper_definition_needed_flag(local_ptr); \
+  }  /* if */ \
+}  /* definition_needed_if_class */
+#else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
+#define definition_needed_if_class(ptr) /* Nothing */
+#define set_proper_definition_needed_flag(ptr) /* Nothing */
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+
+/*
 Process the source correspondence field pointed to by ptr.
 */
 /* Macro to remap class or namespace parent only if it exists. */
@@ -241,6 +272,7 @@ Process the source correspondence field pointed to by ptr.
 #define remap_parent(ptr) \
 { if ((ptr).is_class_member) {  \
     remap_ptr((ptr).parent.class_type, a_type_ptr, iek_type);  \
+    set_proper_definition_needed_flag((ptr).parent.class_type); \
   } else {  \
     remap_ptr((ptr).parent.namespace_ptr, a_namespace_ptr, iek_namespace); \
   }  /* if */  \
@@ -400,6 +432,11 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, a_constant_ptr, iek_constant);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+        if (ptr->type != NULL) {
+          definition_needed_if_class(ptr->type);
+        }  /* if */
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
         switch (ptr->kind) {
           case ck_error:
           case ck_integer:
@@ -492,6 +529,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_param_type_ptr ptr = (a_param_type_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_param_type_ptr, iek_param_type);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
+        definition_needed_if_class(ptr->type);
         walk_ptr(ptr->default_arg_expr, an_expr_node_ptr, iek_expr_node);
       }
       break;
@@ -659,6 +697,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, a_variable_ptr, iek_variable);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
+        definition_needed_if_class(ptr->type);
         remap_ptr_not_needed(ptr->assoc_param_type, a_param_type_ptr,
                              iek_param_type);
         walk_initializer(ptr->init_kind, ptr->initializer);
@@ -679,6 +718,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, a_field_ptr, iek_field);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
+        definition_needed_if_class(ptr->type);
       }
       break;
     case iek_exception_specification:
@@ -710,7 +750,15 @@ the file scope, do not process it (but record an orphan in the latter case).
            walked automatically.  The entry_process_func can arrange
            to call walk_routine_scope_il if it wants to. */
 #ifdef CFE
-#if NEEDED_FLAG_WALK
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+        if (ptr->defined) {
+          /* This is a defined routine, so its return type must be complete. */
+          a_type_ptr rout_type = ptr->type;
+          rout_type = skip_typerefs(rout_type);
+          definition_needed_if_class(rout_type->variant.routine.return_type);
+        }  /* if */
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* When setting the "needed" flag, the befriending list is generally
            not significant.  However, if the function is defined in a friend
            declaration, the class in which it is defined gets marked as
@@ -718,12 +766,17 @@ the file scope, do not process it (but record an orphan in the latter case).
         if (ptr->defined_in_friend_decl) {
           /* The class in which the definition occurs is the first one on the
              list. */
-          walk_ptr(ptr->befriending_classes->class_type, a_type_ptr, iek_type);
+          a_type_ptr containing_class = ptr->befriending_classes->class_type;
+#if NEEDED_FLAG_WALK
+          walk_ptr(containing_class, a_type_ptr, iek_type);
+#endif /* NEEDED_FLAG_WALK */
+          definition_needed_if_class(containing_class);
         }  /* if */
-#else /* !NEEDED_FLAG_WALK */
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+#if !NEEDED_FLAG_WALK
         walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
                   iek_class_list_entry);
-#endif /* NEEDED_FLAG_WALK */
+#endif /* !NEEDED_FLAG_WALK */
 #endif /* ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
@@ -765,6 +818,7 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         an_expr_node_ptr ptr = (an_expr_node_ptr)entry_ptr;
         walk_ptr(ptr->type, a_type_ptr, iek_type);
+        definition_needed_if_class(ptr->type);
         remap_next_ptr(ptr->next, an_expr_node_ptr, iek_expr_node);
         switch (ptr->kind) {
           case enk_error:
@@ -773,6 +827,59 @@ the file scope, do not process it (but record an orphan in the latter case).
           case enk_operation:
             walk_list(ptr->variant.operation.operands, an_expr_node_ptr,
                       iek_expr_node);
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+            /* Certain operators on pointers require that the type pointed
+               to be complete. */
+            { a_type_ptr optype;
+              switch (ptr->variant.operation.kind) {
+                case eok_ppost_incr:
+                case eok_ppost_decr:
+                case eok_ppre_incr:
+                case eok_ppre_decr:
+                case eok_padd_assign:
+                case eok_psubtract_assign:
+                  /* First operand is an lvalue for a pointer. */
+                  optype = type_pointed_to(type_pointed_to(
+                                       ptr->variant.operation.operands->type));
+                  goto do_definition_needed_if_class;
+                case eok_subscript:
+                case eok_padd:
+                case eok_padd_subsc:
+                case eok_psubtract:
+                case eok_pdiff:
+                  /* First operand is a pointer. */
+                  optype = type_pointed_to(
+                                        ptr->variant.operation.operands->type);
+do_definition_needed_if_class:
+                  definition_needed_if_class(optype);
+                  break;
+                case eok_base_class_cast:
+                  /* First operand is a pointer to class. */
+                  optype = type_pointed_to(
+                                        ptr->variant.operation.operands->type);
+                  goto do_set_proper_definition_needed_flag;
+                case eok_derived_class_cast:
+                  /* Destination class (pointed to by result type) must be
+                     complete. */
+                  optype = type_pointed_to(ptr->type);
+                  goto do_set_proper_definition_needed_flag;
+                case eok_pm_base_class_cast:
+                  /* First operand is a pointer to member. */
+                  optype = pm_class_type(
+                                        ptr->variant.operation.operands->type);
+                  goto do_set_proper_definition_needed_flag;
+                case eok_pm_derived_class_cast:
+                  /* Destination class (pointed to by result type) must be
+                     complete. */
+                  optype = pm_class_type(ptr->type);
+do_set_proper_definition_needed_flag:
+                  set_proper_definition_needed_flag(optype);
+                  break;
+                default:
+                  break;
+              }  /* switch */
+            }
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
             break;
           case enk_constant:
             walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
@@ -800,6 +907,16 @@ the file scope, do not process it (but record an orphan in the latter case).
           case enk_temp_init:
             walk_ptr(ptr->variant.init.dynamic_init,
                      a_dynamic_init_ptr, iek_dynamic_init);
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+            /* If the temp init returns the address of the temporary, mark
+               the underlying type as requiring a definition.  When the
+               return type is not a temporary, the normal processing on the
+               type of the expression will do the marking. */
+            if (ptr->variant.init.result_is_addr) {
+              a_type_ptr temp_type = type_pointed_to(ptr->type);
+              definition_needed_if_class(temp_type);
+            }  /* if */
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
             break;
           case enk_new_delete:
             walk_ptr(ptr->variant.new_delete, a_new_delete_supplement_ptr,
@@ -821,6 +938,7 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
           case enk_typeid:
             walk_ptr(ptr->variant.typeid_info.type, a_type_ptr, iek_type);
+            definition_needed_if_class(ptr->variant.typeid_info.type);
             walk_ptr(ptr->variant.typeid_info.expr, an_expr_node_ptr,
                      iek_expr_node);
             break;
@@ -1622,6 +1740,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_base_class_ptr ptr = (a_base_class_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_base_class_ptr, iek_base_class);
         remap_ptr(ptr->type, a_type_ptr, iek_type);
+        set_proper_definition_needed_flag(ptr->type);
         remap_ptr(ptr->derived_class, a_type_ptr, iek_type);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
         remap_ptr_not_needed(ptr->data_section_base_class, a_base_class_ptr,
@@ -1746,6 +1865,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_new_delete_supplement_ptr ptr =
                                         (a_new_delete_supplement_ptr)entry_ptr;
         walk_ptr(ptr->type, a_type_ptr, iek_type);
+        definition_needed_if_class(ptr->type);
         walk_ptr(ptr->routine, a_routine_ptr, iek_routine);
         walk_list(ptr->arg, an_expr_node_ptr, iek_expr_node);
         walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
@@ -1757,6 +1877,7 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         a_throw_supplement_ptr ptr = (a_throw_supplement_ptr)entry_ptr;
         walk_ptr(ptr->type, a_type_ptr, iek_type);
+        definition_needed_if_class(ptr->type);
         walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
         walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
@@ -2109,6 +2230,8 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 #undef walk_list
 #undef walk_list_not_needed
 #undef walk_needed_on_list
+#undef definition_needed_if_class
+#undef set_proper_definition_needed_flag
 #undef remap_parent
 #undef remap_source_sequence_entry
 #undef walk_source_corresp
