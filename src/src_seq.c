@@ -2118,7 +2118,7 @@ associate with the indicated sck_function scope.
       }  /* if */
       ssep = find_src_seq_secondary_decl_entry(ssep, (char *)rp);
       check_assertion_str2(ssep != NULL,
-                           "eliminate_bodies_of_unneeded_functions:",
+                           "eliminate_function_body_source_sequence_entries:",
                            "source sequence secondary decl not found");
       /* Reset the source sequence entry pointer in the routine entry. */
       scp->source_sequence_entry = ssep;
