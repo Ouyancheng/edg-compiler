@@ -3507,7 +3507,8 @@ namespace-extension scope.
         idlbp->storage_class = (a_storage_class)sc_static;
       } else {
         idlbp->linkage = idl_external;
-        if (linked_symbol->kind == sk_routine && idlbp->is_definition) {
+        if (linked_symbol->kind == (a_symbol_kind)sk_routine &&
+            idlbp->is_definition) {
           idlbp->storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
       }  /* if */
