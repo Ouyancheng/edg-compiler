@@ -1499,7 +1499,7 @@ by id_linkage.
               if (match != NULL) {
                 /* This declaration cannot be a guiding declaration for more
                    than one template function.  Issue an ambiguity error. */
-                pos_syty_error(ec_guiding_decl_ambiguity,
+                pos_syty_error(ec_ambiguous_guiding_decl,
                                &locator->source_position, sym, type);
                 break;
               }  /* if */
