@@ -10397,7 +10397,7 @@ continue_with_declaration:
         /* A storage class can only be specified for an object or a function
            (ARM 7.1.1). */
         if (storage_class != (a_storage_class)sc_unspecified) {
-          diagnostic(C_dialect == C_dialect_cplusplus ? es_error : es_warning,
+          diagnostic((C_mode() || any_cfront_mode()) ? es_warning : es_error,
                      ec_storage_class_not_allowed);
         }  /* if */
         /* ARM 7.1.6 implies that the absence of a object in this declaration
