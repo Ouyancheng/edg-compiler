@@ -960,7 +960,7 @@ for the source parameter of the copy constructor.
 
 static an_expr_node_ptr implied_source_of_copy(
                                               a_constructor_init_ptr ctor_init,
-                                              an_expr_node_ptr       dest_node)
+                                              an_init_pos_descr_ptr  dest)
 /*
 We're processing a dynamic initialization entry that represents a copy of
 something from an implied source location to the thing being initialized.
@@ -969,13 +969,14 @@ that indicates a copy of a member of a class; if ctor_init is NULL, the
 copy is of the object thrown by an exception handling "throw" into the
 parameter of the catch clause.  In either case, create an expression to
 describe the address of the implied source and return a pointer to it.
-dest_node is the expression node for the destination of the initialization;
-its type is needed for the "throw" case.
+dest describes the entity being initialized.
 */
 {
   an_expr_node_ptr     source_node;
   an_init_pos_descr    cctor_source_ipd;
   an_init_pos_modifier cctor_source_ipm;
+  a_variable_ptr       catch_parameter, caught_object_addr;
+  a_type_ptr           param_type;
 
   if (ctor_init != NULL) {
     /* The implied source is the member being copied by the
@@ -987,9 +988,23 @@ its type is needed for the "throw" case.
     source_node = make_init_entity_node(&cctor_source_ipd);
   } else {
     /* The implied source is the address in __caught_object_address. */
-    source_node = var_rvalue_expr(make_caught_object_address_var());
-    /* Cast the source node to the same type as the destination node. */
-    source_node = add_cast_if_necessary(source_node, dest_node->type);
+    caught_object_addr = make_caught_object_address_var();
+    /* We expect a simple catch parameter as the destination. */
+    check_assertion(dest->modifiers == NULL &&
+                    !dest->indirect_through_variable);
+    catch_parameter = dest->variable;
+    param_type = catch_parameter->type;
+    if (is_reference_type(param_type)) {
+      /* Initializing a reference parameter, so copy the pointer into
+         the parameter, instead of copying the object pointed to. */
+      source_node = var_lvalue_expr(caught_object_addr);
+     } else {
+      /* Normal case (not a reference). */
+      source_node = var_rvalue_expr(caught_object_addr);
+    }  /* if */
+    /* Cast the source node a pointer to the type of thing to be copied. */
+    source_node = add_cast_if_necessary(source_node,
+                                        make_pointer_type(param_type));
   }  /* if */
   return source_node;
 }  /* implied_source_of_copy */
@@ -1013,11 +1028,15 @@ and update *insert_location.
   /* Make an expression for the address of the destination entity. */
   dest_node = make_init_entity_node(dest);
   /* Make an expression for the address of the source entity. */
-  source_node = implied_source_of_copy(ctor_init, dest_node);
+  source_node = implied_source_of_copy(ctor_init, dest);
   /* Make an assignment statement. */
   /* Choose the operation.  For simple types use the built-in operator.
      For other types use a block copy. */
   type = type_pointed_to(source_node->type);
+  if (is_reference_type(type)) {
+    /* Replace a reference type by a pointer type. */
+    type = make_pointer_type(type_pointed_to(type));
+  }  /* if */
   if (is_integral_type(type) ||
       is_floating_type(type) ||
       is_pointer_type(type) ||
@@ -2330,7 +2349,7 @@ do_assignment:;
       if (dip->variant.constructor.is_copy_constructor_with_implied_source) {
         /* The constructor is a copy constructor, and the source of the
            copy is implied.  Determine the source location. */
-        source_node = implied_source_of_copy(ctor_init, entity_node);
+        source_node = implied_source_of_copy(ctor_init, ipdp);
       }  /* if */
       if (ipdp->whole_array) {
         /* Construct an array. */
