@@ -7839,6 +7839,8 @@ see expr.h).
       /* Fall through to next case ("::" is the start of a qualified name). */
     case tok_identifier:
     case tok_operator:               /* Start of "operator+" and the like. */
+      /* Watch out for something like "S::*". */
+      if (!is_qualified_name_start()) goto bad_start_of_primary;
       scan_identifier(&local_result, &local_bound_function_selector,
                       local_options);
       break;

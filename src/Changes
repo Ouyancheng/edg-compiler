@@ -1,5 +1,25 @@
 Version 2.22
 
+2/11/94  Proper error handling on pointer-to-member type in expression
+
+An internal error is no longer given when a pointer-to-member pointer
+declarator appears at an inopportune time in an expression:
+
+  struct S {int i;};
+  void f()
+  {
+    new int (S::*);  // Error on S::*
+  }
+
+2/11/94  Referenced flag of class set in lowering of constructor/destructor
+
+When the body of a constructor or destructor is processed in IL lowering,
+the referenced flag of the class is now set to TRUE.  It was almost
+always set already, but it wasn't for a case like
+
+  struct A {virtual ~A() {}};
+  struct B : public A {B(); B(int i) {}};
+
 2/11/94  Ordering of types output from the C-generating back end
 
 The C-generating back end makes two passes through each type list
