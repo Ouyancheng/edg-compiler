@@ -1036,10 +1036,13 @@ necessary.  This routine may be called iteratively.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
-static char *get_file_modification_time_string(char	*file_name)
+char *get_file_modification_time_string(char		*file_name,
+				        a_boolean	strip_newline)
 /*
 Return the last modification time of "file_name" as a date/time string.
 If the file does not exist, or is not a regular file, return NULL.
+The ctime function includes a newline in the returned string.  If
+strip_newline is TRUE, the newline is replaced with null terminator.
 When a string is the static buffer returned by the ctime function,
 which will be overwritten when ctime is called again.
 */
@@ -1049,6 +1052,12 @@ which will be overwritten when ctime is called again.
 
   if (get_file_modification_time(file_name, &mod_time)) {
     time_str = ctime(&mod_time);
+    if (strip_newline) {
+      char	*ptr;
+      /* Replace the newline with a null. */
+      ptr = strchr(time_str, '\n');
+      if (ptr != NULL) *ptr = '\0';
+    }  /* if */
   }  /* if */
   return time_str;
 }  /* get_file_modification_time_string */
@@ -2327,8 +2336,10 @@ Set module_id to the string.
       /* In the very unlikely event that the file does not define any
          externally visible variables or routines, use the modification
          time of the source file and the current directory name.  If
-         there is no source file, use the time of compilation. */
-      str1 = get_file_modification_time_string(file_name);
+         there is no source file, use the time of compilation.  The newline
+         is preserved for compatibility with earlier versions. */
+      str1 = get_file_modification_time_string(file_name,
+                                               /*strip_newline=*/FALSE);
       if (str1 == NULL) str1 = il_header.time_of_compilation;
       str2 = current_directory_name;
     } else {

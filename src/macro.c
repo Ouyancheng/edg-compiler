@@ -85,6 +85,10 @@ static a_symbol_ptr
 			   mode. */
 
 static a_symbol_ptr
+		timestamp_macro_symbol;
+			/* Pointer to the symbol entry for the Microsoft
+			   __TIMESTAMP__ macro. */
+static a_symbol_ptr
 		counter_macro_symbol;
 			/* Pointer to the symbol entry for the Microsoft
 			   __COUNTER__ macro. */
@@ -2379,6 +2383,22 @@ end_scan_for_macro_modifs:;
            integer value each time it is used, starting with zero. */
         /* We assume we don't need to call ensure_arg_raw_text_space. */
         (void)sprintf(repl_text, "%lu", counter_macro_number++);
+      } else if (macro_symbol == timestamp_macro_symbol) {
+        /* The Microsoft __TIMESTAMP__ macro.  This returns the modification
+           time of the current input file. */
+        char	*time_str;
+        size_t	length;
+        time_str = get_file_modification_time_string(curr_ise->full_name,
+                                                     /*strip_newline=*/TRUE);
+        /* The time string should only be NULL if the file was removed
+           after it was opened, or if the input coming from standard
+           input. */
+        if (time_str == NULL) time_str = "<unknown>";
+        check_assertion(time_str != NULL);
+        length = strlen(time_str);
+        /* "+3" in the following is for the two quotes and the null. */
+        ensure_arg_raw_text_space(length+3, special_macro_arg);
+        sprintf(repl_text, "\"%s\"", time_str);
 #if CHECKING
       } else {
         internal_error("macro_invocation: unknown special predefined macro");
@@ -5531,6 +5551,10 @@ command line -D options.
                                             (char *)NULL, "__COUNTER__",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
+    timestamp_macro_symbol = enter_predef_macro(
+                                            (char *)NULL, "__TIMESTAMP__",
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
   /* Enter system specific macros and assertions. */
   enter_system_specific_predefined_macros_and_assertions();
@@ -5656,6 +5680,7 @@ Do one-time initialization of variables related to macro processing.
       pch_saved_var_array_elem(defined_macro_symbol),
       pch_saved_var_array_elem(Pragma_macro_symbol),
       pch_saved_var_array_elem(microsoft_pragma_macro_symbol),
+      pch_saved_var_array_elem(timestamp_macro_symbol),
       pch_saved_var_array_elem(counter_macro_symbol),
       pch_saved_var_array_elem(counter_macro_number),
       pch_saved_var_array_elem(date_macro_symbol),
@@ -5681,6 +5706,7 @@ Do one-time initialization of variables related to macro processing.
   register_trans_unit_variable(defined_macro_symbol);
   register_trans_unit_variable(Pragma_macro_symbol);
   register_trans_unit_variable(microsoft_pragma_macro_symbol);
+  register_trans_unit_variable(timestamp_macro_symbol);
   register_trans_unit_variable(counter_macro_symbol);
   register_trans_unit_variable(counter_macro_number);
   register_trans_unit_variable(date_macro_symbol);
@@ -5712,6 +5738,7 @@ after this function.
   defined_macro_symbol = NULL;
   Pragma_macro_symbol = NULL;
   microsoft_pragma_macro_symbol = NULL;
+  timestamp_macro_symbol = NULL;
   counter_macro_symbol = NULL;
   counter_macro_number = 0;
   date_macro_symbol = NULL;

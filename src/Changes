@@ -1,5 +1,15 @@
 Version 3.5
 
+7/15/04  Microsoft compatibility: __TIMESTAMP__ macro
+
+The Microsoft __TIMESTAMP__ macro is now supported.  It expands to the
+modification time of the source file in which it is specified.
+
+  #include <stdio.h>
+  int main() {
+    printf("%s\n", __TIMESTAMP__);
+  }
+
 7/14/04  Embedded C: Compile-time conversion of fixed-point to/from complex
 
 Compile-time conversion between fixed-point and complex/imaginary values

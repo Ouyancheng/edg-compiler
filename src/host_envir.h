@@ -2008,6 +2008,10 @@ EXTERN_C int stat(char *path, struct stat *buf);
 extern a_boolean get_file_modification_time(char   *file_name,
 					    time_t *time);
 
+/* Get the file modification time as a string. */
+extern char *get_file_modification_time_string(char		*file_name,
+					       a_boolean	strip_newline);
+
 /* Is the specified file a regular (e.g., not directory) file. */
 extern a_boolean is_regular_file(char *file_name);
 
