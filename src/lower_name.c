@@ -687,6 +687,7 @@ Return TRUE if type represents ::std::`template_name'<char>.
       strcmp(template_ptr->source_corresp.name, template_name) == 0) {
     /* Check that the first template argument is char and that there is
        only one argument. */
+    type = skip_typerefs(type);
     arg = type->variant.class_struct_union.extra_info->template_arg_list;
     if (arg != NULL && arg->kind == (a_templ_arg_kind)tak_type &&
         arg->next == NULL) {
@@ -717,6 +718,7 @@ and thus is eligible for the `Ss' substitution.
   if (tmpl != NULL && is_Sb_substitution(tmpl)) {
     /* Now check the template arguments. */
     /* The first argument should be char. */
+    type = skip_typerefs(type);
     arg = type->variant.class_struct_union.extra_info->template_arg_list;
     if (arg != NULL && arg->kind == (a_templ_arg_kind)tak_type) {
       arg_type = arg->variant.type;
@@ -766,6 +768,7 @@ and thus is eligible for a special substitution.
       strcmp(template_ptr->source_corresp.name, stream_name) == 0) {
     /* Now check the template arguments. */
     /* The first argument should be char. */
+    type = skip_typerefs(type);
     arg = type->variant.class_struct_union.extra_info->template_arg_list;
     if (arg != NULL && arg->kind == (a_templ_arg_kind)tak_type) {
       arg_type = arg->variant.type;
@@ -3063,6 +3066,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
       add_substitution_if_available(tmpl, 
                                     (an_il_entry_kind)iek_template, 
                                     mctl)) {
+    type = skip_typerefs(type);
     ctsp = type->variant.class_struct_union.extra_info;
     mangled_template_arguments(ctsp->template_arg_list,
                                /*partial_spec=*/FALSE,
