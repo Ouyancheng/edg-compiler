@@ -3593,26 +3593,36 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
                        /*parenthesized_init=*/TRUE,
                        /*force_parens=*/TRUE);
     } else {
+      an_expr_node_ptr cexpr;
       /* A type without a name, e.g., a cv-qualified class type.
          Use an old-style cast. */
-      /* The initialization must be a constructor call with only one explicit
-         argument. */
-#if CHECKING
-      check_assertion_str(dip->kind == (a_dynamic_init_kind)dik_constructor,
-                          "gen_temp_init: bad kind for old-style cast");
-      { an_expr_node_ptr cexpr = dip->variant.constructor.args;
-        check_assertion_str(cexpr != NULL &&
-                            (cexpr->next == NULL ||
-                             cexpr->next->generated_default_arg),
-                         "gen_temp_init: old-style cast allows only one expr");
-      }
-#endif /* CHECKING */
       write_tok_ch('(');
       gen_cast(temp_type);
-      gen_dynamic_init(dip,
-                       (a_type_ptr)NULL, /* Not a reference, not needed. */
-                       /*parenthesized_init=*/TRUE,
-                       /*force_parens=*/FALSE);
+      /* The initialization must be a constructor call. */
+      check_assertion_str(dip->kind == (a_dynamic_init_kind)dik_constructor,
+                          "gen_temp_init: bad kind for old-style cast");
+      /* If the initialization doesn't have exactly one argument, use
+         an unqualified functional-notation type conversion inside the
+         old-style cast, e.g., ((const X)X(1, 2)).  This may modify the
+         semantics of the program, because it creates an extra temporary,
+         but that's probably harmless.  This comes up on functional-notation
+         casts to template parameter types, where the deduced type is
+         cv-qualified and instantiations are put out.  The instantiation
+         has no name for the cv-qualified type, whereas the original template
+         source can use the name of the template parameter. */
+      cexpr = dip->variant.constructor.args;
+      if (cexpr == NULL ||
+          (cexpr->next != NULL && !cexpr->next->generated_default_arg)) {
+        /* Use an inner cast. */
+        gen_type(skip_typerefs(temp_type));
+        gen_dynamic_init(dip,
+                         (a_type_ptr)NULL, /* Not a reference, not needed. */
+                         /*parenthesized_init=*/TRUE,
+                         /*force_parens=*/TRUE);
+      } else {
+        /* Only one cast is needed.  Put out the argument for it. */
+        gen_expr_with_parens(cexpr);
+      }  /* if */
       write_tok_ch(')');
     }  /* if */
   } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
