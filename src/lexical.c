@@ -4937,7 +4937,13 @@ the error on the final identifier not being found on lookup.
              an incomplete type. */
           if (!qualifier_err && class_type != NULL) {
             check_for_uninstantiated_template_class(class_type);
-            if (is_incomplete_type(class_type)) {
+            /* Check for an incomplete type.  If the type is incomplete, also
+               check whether the type is currently being defined.  We determine
+               this by checking the assoc_scope field of the class type
+               supplement. */
+            if (is_incomplete_type(class_type) &&
+                class_type->variant.class_struct_union.
+                            extra_info->assoc_scope == NULL) {
               pos_error(ec_incomplete_type_not_allowed, &start_position);
               qualifier_err = TRUE;
             }  /* if */
