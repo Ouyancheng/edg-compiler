@@ -862,10 +862,10 @@ error code.
       m = "invalid base class";
       break;
     case ec_no_access_to_name:
-      m = "name is inaccessible";
+      m = "member name is inaccessible";
       break;
     case ec_ambiguous_name:
-      m = "name is ambiguous";
+      m = "member name is ambiguous";
       break;
     case ec_old_style_parameter_list:
       m = "old-style parameter list";
