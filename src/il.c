@@ -366,7 +366,9 @@ Dump a field entry, for debug purposes.
   }  /* if */
   fputs("field \"", f_debug);
   db_name(&fp->source_corresp);
-  fputs("\", type = ", f_debug);
+  fputs("\"", f_debug);
+  if (fp->is_mutable) fputs(", mutable", f_debug);
+  fputs(", type = ", f_debug);
   db_abbreviated_type(fp->type);
   fprintf(f_debug, ", offset = %lu", (unsigned long)fp->offset);
   if (fp->is_bit_field) {
