@@ -1,5 +1,10 @@
 Version 2.26
 
+10/5/94  Empty enumerations output by C++-generating back end
+
+Empty enumerations are now output correctly by the C++-generating back
+end (where "correctly" means "without a core dump").
+
 10/5/94  IL write: template param types that leak out of the front end
 
 Template parameter types, which are really a front-end-only concept,
