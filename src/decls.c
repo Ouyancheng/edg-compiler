@@ -4369,6 +4369,23 @@ skip_overloading:;
 #if ASM_FUNCTION_ALLOWED
       }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
+      if (routine_ptr->compiler_generated) {
+        /* This is an entry for a compiler generated ::operator new or
+           ::operator delete.  It was created during initialization, but
+           is overridden by the present declaration. */
+        check_assertion(routine_ptr->special_kind ==
+                                (a_special_function_kind)sfk_operator &&
+                        (routine_ptr->opname_kind ==
+                                                 (an_opname_kind)onk_new ||
+                         routine_ptr->opname_kind ==
+                                                 (an_opname_kind)onk_delete));
+        routine_ptr->compiler_generated = FALSE;
+        check_assertion(sym->decl_position.seq == 0);
+        /* Record the new source position, both in the symbol and in the
+           routine entry. */
+        sym->decl_position = locator->source_position;
+        routine_ptr->source_corresp.decl_position = sym->decl_position;
+      }  /* if */
       if (is_function_def) {
         a_boolean saved_referenced_flag;
         /* If this is a definition, unlink the routine entry and relink it
@@ -4388,18 +4405,6 @@ skip_overloading:;
         /* Keep an indication of any references so far (the referenced
            flag is reset by the set_source_corresp call). */
         routine_ptr->source_corresp.referenced = saved_referenced_flag;
-        if (routine_ptr->compiler_generated) {
-          /* This is an entry for a compiler generated ::operator new or
-             ::operator delete.  It was created during initialization, but
-             is overridden by the present declaration. */
-          check_assertion(routine_ptr->special_kind ==
-                                (a_special_function_kind)sfk_operator &&
-                          (routine_ptr->opname_kind ==
-                                                 (an_opname_kind)onk_new ||
-                           routine_ptr->opname_kind ==
-                                                 (an_opname_kind)onk_delete));
-          routine_ptr->compiler_generated = FALSE;
-        }  /* if */
       }  /* if */
       changed_to_inline = (func_info->is_inline && !routine_ptr->is_inline);
     }  /* if */
