@@ -802,11 +802,13 @@ Do the output in the way described by octl.
       output_qualifier(TQ_RESTRICT, "restrict");
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
     if (octl->gen_compilable_code &&
         !microsoft_dialect_is_generated_code_target) {
       /* Suppress "__unaligned" in generated compilable code. */
       qualifiers &= ~TQ_UNALIGNED;
     }  /* if */
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
     output_qualifier(TQ_UNALIGNED, "__unaligned");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
@@ -864,11 +866,15 @@ an attribute (in that case microsoft_dialect_is_generated_code_target should
 be FALSE).
 */
 {
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   if (octl->gen_compilable_code &&
       !microsoft_dialect_is_generated_code_target) {
     /* The Microsoft keywords should only be suppressed in compilable code.
        Not, for example, in diagnostics. */
-  } else if (calling_convention != (a_calling_convention)cc_default) {
+  } else
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+  /* Do not insert code here. */
+  if (calling_convention != (a_calling_convention)cc_default) {
     /* Put out nothing for the default calling convention. */
     octl->output_str(calling_convention_names[(int)calling_convention]);
     /* Put out a trailing space. */
@@ -2045,10 +2051,13 @@ output.
   char *bptr = buffer;
   int  nchars = 1;
 
-  if ((isprint((unsigned char)ch) &&
+  if ((isprint((unsigned char)ch)
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
        /* The Sun cc (4.1.2) in -O mode when outputting assembly language
           has a bug that transforms quote into accent grave.  Avoid it. */
-       !(sun_is_generated_code_target && ch == '\'')) ||
+       && !(sun_is_generated_code_target && ch == '\'')
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+                                                       ) ||
       (ch == '\t' && octl->gen_raw_tab_in_literals)) {
     /* Escape some characters, e.g., quotes. */
     if (ch == '"' || ch == '\'' || ch == '\\' ||
