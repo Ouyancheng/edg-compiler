@@ -2072,8 +2072,7 @@ extern a_symbol_ptr make_projection_symbol(a_symbol_ptr      progenitor_sym,
                                            a_derivation_step *path,
                                            a_boolean         ambiguous);
 
-extern a_symbol_ptr make_template_class_symbol(a_symbol_ptr       ct_symbol,
-                                               a_source_position *pos);
+extern a_symbol_ptr make_template_class_symbol(a_symbol_ptr  ct_symbol);
 
 extern a_symbol_ptr make_template_function_symbol(a_symbol_ptr       templ_sym,
                                                   a_source_position  *pos);
