@@ -3220,6 +3220,31 @@ routine.
 }  /* is_main_function */
 
 
+static void set_corresp_for_associated_templates(a_symbol_ptr  sym,
+                                                 a_symbol_ptr  corresp_sym)
+/*
+The given symbols correspond to members of a prototype instantiation.  If
+these members are defined outside their class, they may have an associated
+template entry.  If so, this function establishes a correspondence between
+those template entries.
+*/
+{
+  a_template_symbol_supplement_ptr
+                   tssp = template_supplement_for_symbol(sym),
+                   corresp_tssp = template_supplement_for_symbol(corresp_sym);
+
+  if (tssp != NULL && corresp_tssp != NULL) {
+    a_template_ptr  templ = tssp->il_template_entry;
+    a_template_ptr  corresp_templ = corresp_tssp->il_template_entry;
+    if (templ != NULL && corresp_templ != NULL &&
+        templ->kind == corresp_templ->kind &&
+        is_template_symbol((a_symbol_ptr)templ->source_corresp.assoc_info)) {
+      set_trans_unit_corresp(iek_template, templ, corresp_templ);
+    }  /* if */
+  }  /* if */
+}  /* set_corresp_for_associated_templates */
+
+
 static void establish_trans_unit_correspondences_for_class(a_type_ptr  type)
 /*
 Set the correspondence pointers in the members of a type.  The members' types
@@ -3295,8 +3320,24 @@ are not checked.
             set_no_trans_unit_corresp(iek_template, templ);
             clear_instantation_correspondences(templ, /*visited=*/TRUE);
           } else {
-            set_trans_unit_corresp(iek_template, templ, corresp_templ);
-            establish_instantiation_correspondences(templ, corresp_templ);
+            an_il_entry_kind  entry_kind = (an_il_entry_kind)iek_template;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+            if (prototype_instantiations_in_il) {
+              /* When prototype instantiations are recorded in the IL, the
+                 list of templates may also contain prototype instantiations.
+                 These need to be treated differently. */
+              a_symbol_ptr  templ_sym =
+                                (a_symbol_ptr)templ->source_corresp.assoc_info;
+              if (templ_sym->kind != (a_symbol_kind)sk_class_template &&
+                  templ_sym->kind != (a_symbol_kind)sk_function_template) {
+                (void)il_entry_for_symbol(templ_sym, &entry_kind);
+              }  /* if */
+            }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+            set_trans_unit_corresp(entry_kind, templ, corresp_templ);
+            if (entry_kind == iek_template) {
+              establish_instantiation_correspondences(templ, corresp_templ);
+            }  /* if */
           }  /* if */
         }  /* for */
       }
@@ -3373,17 +3414,7 @@ are not checked.
                                                   ->source_corresp.assoc_info,
                           corresp_sym = (a_symbol_ptr)corresp_routine
                                                   ->source_corresp.assoc_info;
-            a_template_symbol_supplement_ptr
-                          tssp = template_supplement_for_symbol(sym),
-                          corresp_tssp =
-                                  template_supplement_for_symbol(corresp_sym);
-            if (tssp != NULL && corresp_tssp != NULL &&
-                tssp->il_template_entry != NULL &&
-                corresp_tssp->il_template_entry != NULL) {
-              set_trans_unit_corresp(iek_template,
-                                     tssp->il_template_entry,
-                                     corresp_tssp->il_template_entry);
-            }  /* if */
+            set_corresp_for_associated_templates(sym, corresp_sym);
           }  /* if */
         }  /* for */
       }
@@ -3412,17 +3443,7 @@ are not checked.
           if (type->variant.class_struct_union.is_prototype_instantiation) {
             /* Establish a correspondence between the template entries
                associated with these static data members (if applicable). */
-            a_template_symbol_supplement_ptr
-                          tssp = template_supplement_for_symbol(sym),
-                          corresp_tssp =
-                                  template_supplement_for_symbol(corresp_sym);
-            if (tssp != NULL && corresp_tssp != NULL &&
-                tssp->il_template_entry != NULL &&
-                corresp_tssp->il_template_entry != NULL) {
-              set_trans_unit_corresp(iek_template,
-                                     tssp->il_template_entry,
-                                     corresp_tssp->il_template_entry);
-            }  /* if */
+            set_corresp_for_associated_templates(sym, corresp_sym);
           }  /* if */
         }  /* for */
       }
@@ -4287,6 +4308,8 @@ be templ itself and therefore unusable).
          tssp = templ_sym->variant.template_info,
          corresp_tssp = corresp_sym->variant.template_info;
 
+  check_assertion(templ_sym->kind == (a_symbol_kind)sk_class_template ||
+                  templ_sym->kind == (a_symbol_kind)sk_function_template);
   if (templ != tssp->il_template_entry) {
     /* There can be multiple a_template entries for the same template.  Only
        process the instantiations when encountering the a_template entry that
@@ -4326,7 +4349,7 @@ be templ itself and therefore unusable).
         clear_type_correspondence(class_type, /*visited=*/TRUE);
       }  /* if */
     }  /* if */
-  } else if (templ_sym->kind == (a_symbol_kind)sk_function_template) {
+  } else {
     /* Record the instantiations for later processing to avoid infinite
        recursion. */
     a_template_instance_ptr  inst = tssp->variant.function.instantiations;
@@ -4356,8 +4379,6 @@ be templ itself and therefore unusable).
         set_no_trans_unit_corresp(iek_routine, tssp->variant.function.routine);
       }  /* if */
     }  /* if */
-  } else {
-    unexpected_condition_str("Bad symbol");
   }  /* if */
 }  /* establish_instantiation_correspondences */
 
