@@ -2194,7 +2194,6 @@ bucket of the shareable_constants_table to use for the constant.
   a_constant_hash_value hash_value;
   a_targ_size_t         length;
   char                  *cptr;
-  sizeof_t              n;
   a_boolean             ovflo;
 
   /* Compute a hash value from the constant.  The hash doesn't have to
@@ -2220,14 +2219,8 @@ bucket of the shareable_constants_table to use for the constant.
                                          *(cp->variant.string.value+length-1));
       break;
     case ck_float:
-      /* It's hard to do something machine-independent for floats.  Add 
-         together the bytes that make up the float.  Note that the whole float
-         was zeroed in initialization, so any gaps have predictable values. */
-      hash_value = 500;
-      cptr = (char *)&cp->variant.float_value;
-      for (n = sizeof(an_internal_float_value); n > 0; n--) {
-        hash_value += (a_constant_hash_value)*cptr++;
-      }  /* for */
+      /* Use a host-dependent routine for floating-point constants. */
+      hash_value = 500 + fp_hash(&cp->variant.float_value);
       break;
     case ck_address:
       /* Address constant.  If the thing pointed to is named, hash the name;
@@ -2299,20 +2292,13 @@ a_boolean eq_constants(a_constant *cp1,
 Return TRUE if the two constants are identical.
 */
 {
-  a_boolean eq = FALSE;
+  a_boolean  eq = FALSE, unordered;
+  a_type_ptr cp1_type = cp1->type, cp2_type = cp2->type;
 
   if (cp1 == cp2) {
     /* Same pointer implies same constant. */
     eq = TRUE;
-  } else if (cp1->kind          == cp2->kind &&
-             cp1->type          == cp2->type &&
-             /* Check the types if either constant has been implicitly cast
-                or (always) if they are template parameters (since parameter
-                2 of one template is not necessarily the same as parameter 2
-                of another template). */
-             ((!cp1->implicit_cast && !cp2->implicit_cast &&
-               cp1->kind != (a_constant_repr_kind)ck_template_param) ||
-              identical_types(cp1->type, cp2->type))) {
+  } else if (cp1->kind == cp2->kind && cp1_type  == cp2_type) {
     switch (cp1->kind) {
       case ck_error:
         /* No further field to check. */
@@ -2328,13 +2314,13 @@ Return TRUE if the two constants are identical.
         }  /* if */
         break;
       case ck_float:
-        /* Note that set_constant_kind zeroes the entire float_value
-           so a memcmp can be used.  We assume that the internal 
-           representation always represents the same constant as the
-           same set of bits. */
-        eq = (memcmp((char *)&cp1->variant.float_value,
-                     (char *)&cp2->variant.float_value,
-                     sizeof(cp1->variant.float_value)) == 0);
+        cp1_type = skip_typerefs(cp1_type);
+        if (is_floating_type(cp1_type)) {
+          eq = (fp_compare(cp1_type->variant.float_kind,
+                           &cp1->variant.float_value,
+                           &cp2->variant.float_value,
+                           &unordered) == 0 && !unordered);
+        }  /* if */
         break;
       case ck_address:
         if (cp1->variant.address.kind   == cp2->variant.address.kind &&
