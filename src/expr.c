@@ -28,9 +28,7 @@ expr.c -- Expression scanning routines.
 #include "decl_inits.h"
 #include "disambig.h"
 #include "decl_spec.h"
-#if DO_IL_LOWERING
 #include "func_def.h"
-#endif /* DO_IL_LOWERING */
 
 
 /* Forward declarations. */
@@ -3885,12 +3883,10 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
     if (is_incomplete_type(typeid_type)) {
       error(ec_incomplete_type_not_allowed);
       err = TRUE;
-#if DO_IL_LOWERING
     } else {
       /* Marking the virtual functions as required will ensure that the
          typeinfo for the class is defined. */
       require_definitions_of_virtual_functions_in_class(typeid_type);
-#endif /*  DO_IL_LOWERING */
     }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -4404,12 +4400,10 @@ Syntax:
         complete_class_type_is_needed(underlying_cast_type);
         if (!is_incomplete_type(underlying_cast_type)) {
           cast_type_okay = TRUE;
-#if DO_IL_LOWERING
           /* Marking the virtual functions as required will ensure that the
 	     typeinfo for the class is defined. */
           require_definitions_of_virtual_functions_in_class(
                                                         underlying_cast_type);
-#endif /*  DO_IL_LOWERING */
         }  /* if */
       } else if (!reference_case && is_void_type(underlying_cast_type)) {
         /* Casting to void * is okay. */
