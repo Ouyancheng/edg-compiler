@@ -1,5 +1,34 @@
 Version 2.26
 
+9/8/94   Source sequence entry on a nonstandard friend declaration
+
+Generation of a source sequence entry and/or cross reference information
+may now occur for friend declarations in which the class-key is omitted,
+e.g.,
+
+  class A;
+  class B {
+    friend A;     // Nonstandard decl; formerly xref entry and source
+                  //   sequence entry were not put out for such cases
+  };
+
+9/8/94   Source sequence entry on instantiation of template function
+
+A source sequence entry is no longer put out for the on-the-fly
+instantiation of an inline member function of a class template; it was not
+being done correctly, but it shouldn't have been done at all.  (It was only
+when FUNCTION_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS was TRUE
+that the problem occurred.)  Here's an example:
+
+  template <class T> struct A {
+    void f() { }
+  };
+  void g() {
+    A<int> a;
+    a.f();             // Source sequence entry is no longer issued here
+                       //   for the definition of A<int>::f
+  }
+
 9/8/94   Explicit destructor calls using template parameters that
          refer to typedefs
 
@@ -21,7 +50,6 @@ parameter whose type refers to a typedef, as in the following example:
     A<int>::B ab;
     f(&ab);
   }
-
 
 9/8/94   Using processing_C_code_in_pragma without expand_macros
 
