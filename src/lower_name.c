@@ -2726,7 +2726,7 @@ IA-64 ABI to distinguish function-local entities with the same name.
         is_enum_constant(sym->variant.constant)) {
       /* This is an enumerator constant.  The constant itself never appears
          to ABI consumers (only its value as a template argument), but for
-         he purpose of generating C code, we do need to ensure uniqueness.
+         the purpose of generating C code, we do need to ensure uniqueness.
          To that end, use the discriminator of the enum type. */
       a_type_ptr  enum_type = skip_typerefs(sym->variant.constant->type);
       check_assertion(is_immediate_enum_type(enum_type));
