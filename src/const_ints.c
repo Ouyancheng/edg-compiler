@@ -54,7 +54,7 @@ Set the integer value entry *intval to the signed value "value".
   register a_host_large_integer this_part;
   for (i = INT_VALUE_PARTS_PER_INTEGER_VALUE - 1; i >= 0; --i) {
     this_part = value & MAX_UINT_VALUE_PART;
-    intval->part[i] = this_part;
+    intval->part[i] = (an_int_value_part)this_part;
     value = signed_shift_right(value, BITS_IN_INT_VALUE_PART);
   }  /* if */
 }  /* set_integer_value */
@@ -70,7 +70,7 @@ Set the integer value entry *intval to the unsigned value "value".
   register a_host_large_integer this_part;
   for (i = INT_VALUE_PARTS_PER_INTEGER_VALUE - 1; i >= 0; --i) {
     this_part = value & MAX_UINT_VALUE_PART;
-    intval->part[i] = this_part;
+    intval->part[i] = (an_int_value_part)this_part;
     value = value >> BITS_IN_INT_VALUE_PART;
   }  /* if */
 }  /* set_unsigned_integer_value */
@@ -515,7 +515,7 @@ and FALSE otherwise.
     } else {
       carry = 0;
     }  /* if */
-    op_1->part[i] = work;
+    op_1->part[i] = (an_int_value_part)work;
   }  /* for */
   /* Check for overflow. */
   if (!is_signed) {
@@ -736,7 +736,7 @@ shift count is a legal value.
     }  /* if */
     work = get_part(*op_1, i + part_offset) << first_part_shift |
            get_part(*op_1, i + part_offset + 1) >> second_part_shift;
-    op_1->part[i] = work & MAX_UINT_VALUE_PART;
+    op_1->part[i] = (an_int_value_part)(work & MAX_UINT_VALUE_PART);
   }  /* for */
   *err = overflow;
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
@@ -789,7 +789,7 @@ shift count is a legal value.
     register a_host_large_unsigned	work;
     work = get_part(*op_1, i - part_offset) >> first_part_shift |
            get_part(*op_1, i - part_offset - 1) << second_part_shift;
-    op_1->part[i] = work & MAX_UINT_VALUE_PART;
+    op_1->part[i] = (an_int_value_part)(work & MAX_UINT_VALUE_PART);
   }  /* for */
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 }  /* shift_right_integer_values */
@@ -839,7 +839,7 @@ underflow occurred.
     } else {
       borrow = 0;
     }  /* if */
-    op_1->part[i] = work;
+    op_1->part[i] = (an_int_value_part)work;
   }  /* for */
   /* Check for underflow or overflow. */
   if (!is_signed) {
@@ -906,7 +906,7 @@ of elements in an array of parts.
     register int i_cp;							\
     register an_int_value_part	*from_cp = from_arg;			\
     register an_int_value_part	*to_cp = to_arg;			\
-    for (i_cp = 0; i_cp < parts_cp; ++i_cp) to_cp[i_cp] = from_cp[i_cp];\
+    for (i_cp = 0; i_cp < (int)parts_cp; ++i_cp) to_cp[i_cp] = from_cp[i_cp];\
   }
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
@@ -1058,9 +1058,9 @@ otherwise.
          work_value modulo the size of each value part. */
       carry = work_value >> BITS_IN_INT_VALUE_PART;
       work_value &= MAX_UINT_VALUE_PART;
-      work_area[work_slot] = work_value;
+      work_area[work_slot] = (an_int_value_part)work_value;
     }  /* for */
-    work_area[j] = carry;
+    work_area[j] = (an_int_value_part)carry;
   }  /* for */
   /* Copy the low order parts of the result back into the original operand
      1 provided by the caller. */
@@ -1113,7 +1113,7 @@ a pointer to its work area which is larger than a normal integer value.
   for (i = parts - 1; i >= 0; --i) {
     work = ((a_host_large_unsigned)value[i] *
             (a_host_large_unsigned)factor) + carry;
-    value[i] = work & MAX_UINT_VALUE_PART;
+    value[i] = (an_int_value_part)(work & MAX_UINT_VALUE_PART);
     carry = work >> BITS_IN_INT_VALUE_PART;
   }  /* for */
 }  /* multiply_by_int_value_part */
@@ -1137,8 +1137,8 @@ pointer to its work area which is larger than a normal integer value.
 
   for (i = 0; i < parts; ++i) {
     work = value[i];
-    value[i] = ((a_host_large_unsigned)value[i] + borrow) /
-                                                (a_host_large_unsigned)divisor;
+    value[i] = (an_int_value_part)(((a_host_large_unsigned)value[i] + borrow) /
+                                               (a_host_large_unsigned)divisor);
     borrow = ((work + borrow) % divisor) * INT_VALUE_PART_BASE;
   }  /* for */
 }  /* divide_by_int_value_part */
@@ -1164,7 +1164,7 @@ part of a work area rather than a normal integer value.
     } else {
       borrow = 0;
     }  /* if */
-    work_area[i] = work;
+    work_area[i] = (an_int_value_part)work;
   }  /* for */
 }  /* special_subtract */
 
@@ -1298,8 +1298,8 @@ are done with op_1.
      integer value part (e.g., 65536) by the first non-zero part of the
      divisor (plus 1).  The result is a factor that, when multiplied
      by the first digit of the divisor, will yield a value > (base/2). */
-  normalization_factor = (INT_VALUE_PART_BASE /
-                                           (op_2.part[op_2_first_part] + 1));
+  normalization_factor = (an_int_value_part)((INT_VALUE_PART_BASE /
+                                           (op_2.part[op_2_first_part] + 1)));
   multiply_by_int_value_part(op_2.part, INT_VALUE_PARTS_PER_INTEGER_VALUE,
                              normalization_factor);
   /* Multiply the dividend by the normalization factor. */
@@ -1358,7 +1358,7 @@ are done with op_1.
     /* Subtract the value calculated above from the work area. */
     special_subtract(&work_area[j], &temp_product[0]);
     /* D5. Save the first digit of the quotient. */
-    local_quotient[quotient_pos] = q;
+    local_quotient[quotient_pos] = (an_int_value_part)q;
     /* D7.  Loop on j. */
   }  /* for */
   /* D8.  Unnormalize the remainder. */

@@ -2637,7 +2637,7 @@ Extract the wide character value and return it.
   unsigned char ch;
   int           i;
 
-  for (i = 0; i < targ_sizeof_wchar_t; i++) {
+  for (i = 0; i < (int)targ_sizeof_wchar_t; i++) {
     if (targ_little_endian) {
       ch = (unsigned char)str[(targ_sizeof_wchar_t - 1) - i];
     } else {

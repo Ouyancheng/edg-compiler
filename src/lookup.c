@@ -167,16 +167,16 @@ the options being used for the lookup.
       /* Look for symbols whose lookup characteristics match the current
          lookup. */
       if (sym->synthesized_namespace_projection &&
-          sym->qualified_lookup == qualified_lookup &&
+          (a_boolean)sym->qualified_lookup == qualified_lookup &&
           sym->parent.namespace_ptr == qualifier_namespace &&
-          sym->must_be_class_or_namespace_lookup ==
+          (a_boolean)sym->must_be_class_or_namespace_lookup ==
                                                  must_be_class_or_namespace &&
-          sym->instantiation_context_lookup ==
+          (a_boolean)sym->instantiation_context_lookup ==
                                               instantiation_context_lookup &&
-          sym->tentative_type_lookup == tentative_type_lookup &&
-          sym->must_be_namespace_lookup == must_be_namespace &&
-          sym->must_be_class_lookup == must_be_class &&
-          sym->must_be_tag_lookup == must_be_tag) {
+          (a_boolean)sym->tentative_type_lookup == tentative_type_lookup &&
+          (a_boolean)sym->must_be_namespace_lookup == must_be_namespace &&
+          (a_boolean)sym->must_be_class_lookup == must_be_class &&
+          (a_boolean)sym->must_be_tag_lookup == must_be_tag) {
         /* If this is not a qualified lookup, the decl_scope of the symbol
            must match the current scope. */
         if (qualified_lookup) {
