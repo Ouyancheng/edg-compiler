@@ -398,6 +398,14 @@ Set the definition_needed flag on the indicated routine.  This means the
 definition of the routine is needed, and not just the declaration.
 */
 {
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  /* When we reach this spot while doing a walk for a particular
+     instantiation, just return.  Whether or not a given routine's definition
+     is included in a given instantiation object file is something known
+     statically, and no separate bit is maintained for each routine/each
+     instantiation. */
+  if (needed_flag_bit_number != 0) goto end_of_routine;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
   /* Set the flag if it is not set already. */
   if (!rout->definition_needed) {
     check_assertion_str(!rout->is_trivial_default_constructor,
@@ -417,6 +425,20 @@ definition of the routine is needed, and not just the declaration.
       check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
                           "set_routine_definition_needed: memory region gone");
       scope = il_header.region_scope_entry[rout->assoc_scope];
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+      if (one_instantiation_per_object) {
+        /* If we're maintaining a separate set of "needed" flags for each
+           instantiation, sweep the body for the bit number associated with
+           this routine.  Routines that aren't instantiations are included
+           under bit 1, used for the whole compilation excluding
+           instantiations. */
+        unsigned long saved_needed_flag_bit_number = needed_flag_bit_number;
+        needed_flag_bit_number = rout->instantiation_needed_bit_number;
+        if (needed_flag_bit_number == 0) needed_flag_bit_number = 1;
+        mark_as_needed((char *)scope, iek_scope);
+        needed_flag_bit_number = saved_needed_flag_bit_number;
+      }  /* if */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
       /* walk_tree_and_set_needed is not used here so that this routine can
          be callable from outside of the needed flag walk. */
       mark_as_needed((char *)scope, iek_scope);
@@ -437,6 +459,9 @@ definition of the routine is needed, and not just the declaration.
       }  /* if */
     }  /* if */
   }  /* if */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+end_of_routine:;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 }  /* set_routine_definition_needed */
 
 
@@ -600,8 +625,7 @@ Set the per-instantiation "needed" bit numbered bit_number to indicate
 everything referenced from the indicated externally-defined entity
 (a variable or routine).  If bit_number is 0, the entity is not an
 instantiation with an associated bit; use bit number 1 (used for everything
-in the compilation excluding the instantiations).  The entity is
-expected to be defined already, so that its definition can be swept.
+in the compilation excluding the instantiations).
 */
 {
   unsigned long save_needed_flag_bit_number = needed_flag_bit_number;
@@ -609,18 +633,6 @@ expected to be defined already, so that its definition can be swept.
   if (bit_number == 0) bit_number = 1;
   needed_flag_bit_number = bit_number;
   mark_as_needed(entry_ptr, entry_kind);
-  if (entry_kind == iek_routine) {
-    /* Sweep the definition of a routine. */
-    a_routine_ptr rout = (a_routine_ptr)entry_ptr;
-
-    if (rout->defined) {
-      a_scope_ptr scope;
-      check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
-                      "set_per_instantiation_needed_flag: memory region gone");
-      scope = il_header.region_scope_entry[rout->assoc_scope];
-      mark_as_needed((char *)scope, iek_scope);
-    }  /* if */
-  }  /* if */
   needed_flag_bit_number = save_needed_flag_bit_number;
 }  /* set_per_instantiation_needed_flag */
 
