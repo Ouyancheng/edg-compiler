@@ -326,23 +326,48 @@ If it involves no template-parameter type, simply return "type".
   a_template_arg_ptr  tap;
   a_param_type_ptr    ptp, new_ptp, prev_ptp;
 
+  db_enter(5, "copy_type_with_substitution");
+#if DEBUG
+  if (debug_level >= 5) {
+    fputs("in:  ", f_debug);
+    db_type(type);
+    fputc('\n', f_debug);
+  }  /* if */
+#endif /* DEBUG */
   switch (type->kind) {
     case tk_template_param:
+      /* If this template parameter type entry corresponds to the i-th
+         parameter, the real type to substitute for it is given in the i-th
+         template argument.  Find the template argument that matches this
+         template parameter and return it to the caller. */
       tap = templ_arg_list;
       for (i = type->variant.list_position; i > 1; --i) {
         tap = tap->next;
       }  /* for */
+#if CHECKING
+      if (tap->variant.type == NULL) {
+        internal_error("copy_type_with_substitution: NULL ptr in templ arg");
+      }  /* if */
+#endif /* CHECKING */
       type = tap->variant.type;
       break;
     case tk_pointer:
-      tp = copy_type_with_substitution(type, templ_arg_list);
+      /* Make a pointer type based on a copy (or reuse, if copying is not
+         required) of the type pointed to. */
+      tp = type->variant.pointer.type;
+      tp = copy_type_with_substitution(tp, templ_arg_list);
       type = make_pointer_type(tp);
       break;
     case tk_typeref:
+      /* Make an identically qualified type of a copy (or reuse) of the type
+         that underlies the typeref. */
       tp = copy_type_with_substitution(skip_typerefs(type), templ_arg_list),
       type = make_identically_qualified_type(tp, type);
       break;
     case tk_ptr_to_member:
+      /* Make a pointer to member type.  The current pointer to member type
+         points to two types, so the new type is based on copies (or reuses)
+         of each. */
       tp = copy_type_with_substitution(type->variant.ptr_to_member.type,
                                        templ_arg_list);
       tp2 = copy_type_with_substitution(
@@ -351,15 +376,28 @@ If it involves no template-parameter type, simply return "type".
       type = ptr_to_member_type(tp, tp2);
       break;
     case tk_routine:
+      /* Make a routine type based on the "type" making substitutions as
+         required in the return type and each of the parameter types. */
       tp = alloc_type((a_type_kind)tk_routine);
+      /* Fill in the return type. */
       tp2 = copy_type_with_substitution(type->variant.routine.return_type,
                                         templ_arg_list);
       tp->variant.routine.return_type = tp2;
+      /* Clone the routine type supplement, except for the pointers. */
+      *(tp->variant.routine.extra_info) = *(type->variant.routine.extra_info);
+      tp->variant.routine.extra_info->assoc_routine = NULL;
+      /* Make copies of the entries on type's param types list, making the
+         appropriate substitutions for template parameter type entries. */
       ptp = type->variant.routine.extra_info->param_type_list;
       prev_ptp = NULL;
       for (; ptp != NULL; ptp = ptp->next) {
-        tp2 = copy_type_with_substitution(ptp->type, templ_arg_list);
-        new_ptp = alloc_param_type(tp2);
+        new_ptp = alloc_param_type(copy_type_with_substitution(ptp->type,
+                                                              templ_arg_list));
+        if (ptp->has_default_arg) {
+          new_ptp->has_default_arg = TRUE;
+          new_ptp->default_arg_expr = copy_expr_tree(ptp->default_arg_expr,
+                                                     /*clone_temps=*/TRUE);
+        }  /* if */
         if (prev_ptp == NULL) {
           tp->variant.routine.extra_info->param_type_list = new_ptp;
         } else {
@@ -367,21 +405,41 @@ If it involves no template-parameter type, simply return "type".
         }  /* if */
         prev_ptp = new_ptp;
       }  /* if */
+      set_routine_calling_method_flag(tp);
+      /* If a new type is created, add it to the types list at file scope.
+         Otherwise, just reuse the same type. */
       if (identical_types(type, tp)) {
-        /* Throw the new type away. */
+        /* Throw the new type (tp) away. */
       } else {
         type = tp;
         add_to_types_list(type, DEPTH_OF_FILE_SCOPE,
                           /*in_old_style_param_decl_list=*/FALSE);
       }  /* if */
       break;
-#if CHECKING
     case tk_array:
-      internal_error("copy_type_with_substitution: NYI");
-#endif /* CHECKING */
+      /* Make an array type based on "type", making substitutions as
+         required in the element type.  Note that if the element type doesn't
+         require substitution, we don't create a new type entry. */
+      tp = copy_type_with_substitution(type->variant.array.element_type,
+                                       templ_arg_list);
+      if (!identical_types(tp, type->variant.array.element_type)) {
+        type = alloc_type((a_type_kind)tk_array);
+        type->variant.array.element_type = tp;
+        set_type_size(type);
+        add_to_types_list(type, DEPTH_OF_FILE_SCOPE,
+                          /*in_old_style_param_decl_list=*/FALSE);
+      }  /* if */
     default:;
       /* No modification required. */
   }  /* switch */
+#if DEBUG
+  if (debug_level >= 5) {
+    fputs("out: ", f_debug);
+    db_type(type);
+    fputc('\n', f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
   return type;
 }  /* copy_type_with_substitution */
 
@@ -405,6 +463,7 @@ template argument list to include n entries.
   int                 i;
   a_template_arg_ptr  tap, prev_tap;
 
+  db_enter(5, "matches_template_type");
   if (templ_type->kind == (a_type_kind)tk_template_param) {
     prev_tap = NULL;
     for (i = templ_type->variant.list_position; i > 0; --i) {
@@ -501,6 +560,7 @@ template argument list to include n entries.
       }  /* switch */
     }  /* if */
   }  /* if */
+  db_exit();
   return match;
 }  /* matches_template_type */
 
@@ -547,9 +607,6 @@ templ_sym).
   a_memory_region_number              region_to_switch_back_to;
   a_function_instantiation_entry_ptr  fiep;
   a_routine_ptr                       templ_rout, rp;
-  a_type_ptr                          tp;
-  a_param_type_ptr                    ptp, new_ptp, prev_ptp;
-  a_routine_type_supplement_ptr       extra_info, new_extra_info;
 
   db_enter(4, "make_template_function");
 #if CHECKING
@@ -570,37 +627,18 @@ templ_sym).
     /* If the routine type does not already exist, create one, based on the
        function template's parameter list (the function parameters, that is,
        not the template parameters) along with the template argument list. */
-    rout_type = alloc_type((a_type_kind)tk_routine);
-    /* Fill in the return type. */
-    tp = templ_rout->type->variant.routine.return_type;
-    rout_type->variant.routine.return_type =
-                               copy_type_with_substitution(tp, templ_arg_list);
-    /* Clone the routine type supplement, except for the pointers. */
-    new_extra_info = rout_type->variant.routine.extra_info;
-    extra_info = templ_rout->type->variant.routine.extra_info;
-    *new_extra_info = *extra_info;
-    new_extra_info->assoc_routine = NULL;
-    /* Make copies of the function template's param types list, making the
-       appropriate substitutions for template parameter type entries. */
-    prev_ptp = NULL;
-    for (ptp = extra_info->param_type_list; ptp != NULL; ptp = ptp->next) {
-      tp = copy_type_with_substitution(ptp->type, templ_arg_list);
-      new_ptp = alloc_param_type(tp);
-      if (ptp->has_default_arg) {
-        new_ptp->has_default_arg = TRUE;
-        new_ptp->default_arg_expr = copy_expr_tree(ptp->default_arg_expr,
-                                                   /*clone_temps=*/TRUE);
-      }  /* if */
-      if (prev_ptp == NULL) {
-        new_extra_info->param_type_list = new_ptp;
-      } else {
-        prev_ptp->next = new_ptp;
-      }  /* if */
-      prev_ptp = new_ptp;
-    }  /* for */
-    set_routine_calling_method_flag(rout_type);
-    add_to_types_list(rout_type, DEPTH_OF_FILE_SCOPE,
-                      /*in_old_style_param_decl_list=*/FALSE);
+    rout_type = copy_type_with_substitution(templ_rout->type, templ_arg_list);
+#if 0
+#else
+#if CHECKING
+  } else {
+    a_type_ptr tp;
+    tp = copy_type_with_substitution(templ_rout->type, templ_arg_list);
+    if (!identical_types(tp, rout_type)) {
+      internal_error("make_template_function: type created wrong");
+    }  /* if */
+#endif /* CHECKING */
+#endif /* if 0 */
   }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
   /* Give the routine entry the type passed in, and set other fields in
