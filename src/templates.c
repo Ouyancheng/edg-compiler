@@ -15957,13 +15957,13 @@ that follows.
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         }  /* if */
-#if SUN_EXTENSIONS_ALLOWED
-        if (sun_mode) {
+#if SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+        if (sun_mode || microsoft_mode) {
           update_variable_decl_modifiers(vp, &decl_modifiers,
                                          &locator.source_position,
                                          already_specialized);
         }  /* if */
-#endif /* SUN_EXTENSIONS_ALLOWED */
+#endif /* SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* A specialization of a routine. */
         /* Issue an error if the exception specification on the instance does
@@ -16047,14 +16047,14 @@ that follows.
           apply_attributes_to_routine(attributes, rp);
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if SUN_EXTENSIONS_ALLOWED
-        if (sun_mode) {
+#if SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+        if (sun_mode || microsoft_mode) {
           update_routine_decl_modifiers(rp, &decl_modifiers,
                                         &locator.source_position,
                                         already_specialized, is_definition,
                                         (a_boolean)rp->is_inline);
         }  /* if */
-#endif /* SUN_EXTENSIONS_ALLOWED */
+#endif /* SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
         if (is_definition) {
           /* This is a defining declaration of the function template. */
           func_info.is_definition = TRUE;
