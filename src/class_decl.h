@@ -22,6 +22,10 @@ class_decl.h -- Declarations related to class_decl.c (having to do with
 #include "il.h"
 #endif /* ifndef IL_H */
 
+extern a_boolean do_alignment(a_targ_size_t    *byte_offset,
+                             int              *bit_offset,
+                             a_targ_alignment alignment);
+
 extern a_boolean set_field_size_and_offset(a_field_ptr      field,
                                            a_targ_size_t    *p_byte_offset,
                                            int              *p_bit_offset,
