@@ -2873,6 +2873,7 @@ a variable) and return a pointer to the constant.
       handle_con->type = var_handle_type;
       handle_con->variant.stack_offset.variable = var;
       handle_con->variant.stack_offset.offset = handle->offset;
+      set_variable_address_taken(var);
     }  /* if */
   } else {
     /* No variable, so this is a simple constant (e.g., an index into the

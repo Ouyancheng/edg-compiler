@@ -3344,6 +3344,15 @@ Set the address_taken flag on the indicated variable.
   if (variable->is_parameter || variable->is_handler_param) {
     variable->param_value_has_been_changed = TRUE;
   }  /* if */
+#if DO_IL_LOWERING
+  if (il_lowering_underway) {
+    /* If the storage class is "register", change it to "auto", because
+       C doesn't allow taking the address of a register variable (C++ does). */
+    if (variable->storage_class == (a_storage_class)sc_register) {
+      variable->storage_class = (a_storage_class)sc_auto;
+    }  /* if */
+  }  /* if */
+#endif /* DO_IL_LOWERING */
 }  /* set_variable_address_taken */
 
 

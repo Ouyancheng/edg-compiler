@@ -71,7 +71,6 @@ static a_variable_ptr make_construction_vtbls_array(
                                            a_type_ptr              class_type,
                                            a_construction_vtbl_ptr elements);
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
-static void set_lowering_variable_address_taken(a_variable_ptr variable);
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
@@ -214,7 +213,7 @@ element.
   set_variable_address_constant(var, &addr_constant,
                                 /*set_address_taken_flag=*/FALSE);
   implicit_cast(&addr_constant, ptr_element_type);
-  set_lowering_variable_address_taken(var);
+  set_variable_address_taken(var);
   var->source_corresp.referenced = TRUE;
 #if IA64_ABI
   /* Add the offset from the start of the variable to the actual address
@@ -683,20 +682,6 @@ routine later in order to ensure that the "defined" flag is set.
 }  /* make_routine_definition */
 
 
-static void set_lowering_variable_address_taken(a_variable_ptr variable)
-/*
-Set the address_taken flag in the indicated variable.
-*/
-{
-  set_variable_address_taken(variable);
-  /* If the storage class is "register", change it to "auto", because
-     C doesn't allow taking the address of a register variable (C++ does). */
-  if (variable->storage_class == (a_storage_class)sc_register) {
-    variable->storage_class = (a_storage_class)sc_auto;
-  }  /* if */
-}  /* set_lowering_variable_address_taken */
-
-
 static void clear_init_pos_modifier(an_init_pos_modifier_ptr ipmp)
 /*
 Set the fields of the indicated initialization position modifier entry to
@@ -1045,7 +1030,7 @@ cannot be a bitfield selection.
        guarantees it will work. */
     if (ipdp != NULL &&
         !ipdp->indirect_through_variable && ipdp->variable != NULL) {
-      set_lowering_variable_address_taken(ipdp->variable);
+      set_variable_address_taken(ipdp->variable);
     }  /* if */
   }  /* if */
   return entity_node;
@@ -1145,7 +1130,7 @@ TRUE, the entity is the destination of an initialization operation.
     entity_node = var_lvalue_expr(ipdp->variable);
     /* If we will be using this expression as an address, set the address-taken
        flag in the variable. */
-    if (using_as_address) set_lowering_variable_address_taken(ipdp->variable);
+    if (using_as_address) set_variable_address_taken(ipdp->variable);
   }  /* if */
   if (using_as_dest) {
     /* The entity will be used as the destination of an initialization, so
@@ -7327,7 +7312,7 @@ Do IL lowering of an enk_temp_init expression node.
       set_expr_node_kind(expr, (an_expr_node_kind)enk_variable_address);
       /* The address of the temporary escapes (or might escape) into the
          surrounding context, so set its address_taken flag. */
-      set_lowering_variable_address_taken(temp_var);
+      set_variable_address_taken(temp_var);
     } else {
       set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
     }  /* if */
