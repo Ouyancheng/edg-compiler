@@ -105,6 +105,7 @@ Do any processing that is required at the end of a translation unit
   file_scope = curr_translation_unit->primary_scope;
   if (il_entry_prefix_of(file_scope).secondary_trans_unit) {
     establish_trans_unit_correspondences_for_scope(file_scope);
+    verify_trans_unit_correspondences_for_scope(file_scope);
   }  /* if */
 
   db_exit();

@@ -26,6 +26,8 @@ extern char* f_canonical_il_entry_of(char *il_entry);
 
 extern void establish_trans_unit_correspondences_for_scope(a_scope_ptr  scope);
 
+extern void verify_trans_unit_correspondences_for_scope(a_scope_ptr  scope);
+
 #endif /* ifndef TRANS_CORRESP_H */
 
 /******************************************************************************

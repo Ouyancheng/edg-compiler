@@ -106,12 +106,12 @@ entity1 point to the IL node pointed to by entity2.
   f_record_trans_unit_corresp((char*)entity1, (char*)entity2)
 
 
-static void f_process_bad_trans_unit_corresp(char *entity)
+static void f_report_bad_trans_unit_corresp(char *entity)
 /*
 The given IL node has a source correspondence and an associated symbol.  It
 also has a non-NULL translation unit correspondence, but it points to a node
 that does not actually correspond to the given entity.  Therefore, issue a
-diagnostic and clear the correspondence pointer.
+diagnostic.
 */
 {
   a_symbol_ptr  sym = (a_symbol_ptr)((a_source_correspondence_ptr)entity)->
@@ -123,6 +123,19 @@ diagnostic and clear the correspondence pointer.
                ec_corresp_decl_at,
                &((a_source_correspondence_ptr)corresp_entity)->decl_position);
   end_error();
+}  /* f_report_bad_trans_unit_corresp */
+
+#define report_bad_trans_unit_corresp(entity)                        \
+  f_report_bad_trans_unit_corresp((char*)entity)
+
+
+static void f_process_bad_trans_unit_corresp(char  *entity)
+/*
+Same as f_report_bad_trans_unit_corresp but also clear the correspondence
+pointer.
+*/
+{
+  f_report_bad_trans_unit_corresp(entity);
   clear_trans_unit_corresp(entity);
 }  /* process_bad_trans_unit_corresp */
 
@@ -405,7 +418,7 @@ type is in fact valid.
     }  /* if */
   }  /* for */
   if (enumerator != NULL || corresp_enumerator != NULL) {
-    process_bad_trans_unit_corresp(type);
+    report_bad_trans_unit_corresp(type);
     match = FALSE;
   }  /* if */
   if (!match) {
@@ -422,10 +435,11 @@ type is in fact valid.
 */
 {
   a_boolean   match = verify_name_correspondence(type);
+  a_boolean   report_error = FALSE;
   a_type_ptr  corresp_type = (a_type_ptr)canonical_il_entry_of(type);
 
   if (!match) {
-     process_bad_trans_unit_corresp(type);
+     report_error = TRUE;
   } else {
     if (corresp_type != NULL && is_immediate_class_type(corresp_type)) {
       a_scope_ptr  scope = type->
@@ -446,9 +460,9 @@ type is in fact valid.
             break;
           }  /* if */
         }  /* for */
-        if (field != NULL && corresp_field == NULL) {
-          match = FALSE;
-        } else if (corresp_field != NULL && field == NULL) {
+        if ((field != NULL && corresp_field == NULL) ||
+            (corresp_field != NULL && field == NULL)) {
+          report_error = TRUE;
           match = FALSE;
         }  /* if */
       }
@@ -465,9 +479,9 @@ type is in fact valid.
             break;
           }  /* if */
         }  /* for */
-        if (mem_type != NULL && corresp_mem_type == NULL) {
-          match = FALSE;
-        } else if (corresp_mem_type != NULL && mem_type == NULL) {
+        if ((mem_type != NULL && corresp_mem_type == NULL) ||
+            (corresp_mem_type != NULL && mem_type == NULL)) {
+          report_error = TRUE;
           match = FALSE;
         }  /* if */
       }
@@ -484,9 +498,9 @@ type is in fact valid.
             break;
           }  /* if */
         }  /* for */
-        if (routine != NULL && corresp_routine == NULL) {
-          match = FALSE;
-        } else if (corresp_routine != NULL && routine == NULL) {
+        if ((routine != NULL && corresp_routine == NULL) ||
+            (corresp_routine != NULL && routine == NULL)) {
+          report_error = TRUE;;
           match = FALSE;
         }  /* if */
       }
@@ -503,9 +517,9 @@ type is in fact valid.
             break;
           }  /* if */
         }  /* for */
-        if (variable != NULL && corresp_variable == NULL) {
-          match = FALSE;
-        } else if (corresp_variable != NULL && variable == NULL) {
+        if ((variable != NULL && corresp_variable == NULL) ||
+            (corresp_variable != NULL && variable == NULL)) {
+          report_error = TRUE;;
           match = FALSE;
         }  /* if */
       }
@@ -522,15 +536,18 @@ type is in fact valid.
             break;
           }  /* if */
         }  /* for */
-        if (constant != NULL && corresp_constant == NULL) {
-          match = FALSE;
-        } else if (corresp_constant != NULL && constant == NULL) {
+        if ((constant != NULL && corresp_constant == NULL) ||
+            (corresp_constant != NULL && constant == NULL)) {
+          report_error = TRUE;;
           match = FALSE;
         }  /* if */
       }
     }  /* if */
   }  /* if */
   if (!match) {
+    if (report_error) {
+      report_bad_trans_unit_corresp(type);
+    }  /* if */
     clear_class_type_correspondence(type);
   }  /* if */
   return match;
@@ -586,6 +603,193 @@ check that the two indeed match up beyond name, kind and scope attributes.
 }  /* verify_namespace_correspondence */
 
 
+static void verify_namespace_correspondences_for_scope(a_scope_ptr  scope)
+/*
+Traverse the list of namespaces of the given scope and verify a
+translation unit correspondence pointer for each of them.
+*/
+{
+  a_namespace_ptr  nsp;
+
+  /* Visit all namespaces. */
+  for (nsp = scope->namespaces;
+       nsp != NULL;
+       nsp = nsp->next) {
+    if (has_name(nsp)) {
+      if (!verify_namespace_correspondence(nsp)) {
+        /* Some error occurred---clear the association. */
+        clear_trans_unit_corresp(nsp);
+      } else if (!nsp->is_namespace_alias) {
+        /* Verify correspondences for nested namespaces. */
+        verify_trans_unit_correspondences_for_scope(
+                                                    nsp->variant.assoc_scope);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* verify_namespace_correspondences_for_scope */
+
+
+static void verify_type_correspondences_for_scope(a_scope_ptr  scope)
+/*
+Traverse the list of types of the given scope and verify a translation unit
+correspondence pointer for each of them.
+*/
+{
+  a_type_ptr  type;
+
+  /* Visit all types. */
+  for (type = scope->types; type != NULL; type = type->next) {
+    a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+
+    /* Note that placeholder types do not have an associated symbol. */
+    if (type_sym != NULL && may_have_correspondence(type_sym)) {
+      if (trans_unit_corresp_pointer_of(type) != NULL &&
+          !verify_type_correspondence(type)) {
+        /* Some error occurred---clear the association. */
+        clear_trans_unit_corresp(type);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* verify_type_correspondences_for_scope */
+
+
+static void verify_routine_correspondences_for_scope(a_scope_ptr  scope)
+/*
+Traverse the list of routines of the given scope and verify a translation
+unit correspondence pointer for each of them.
+*/
+{
+  a_routine_ptr  routine;
+
+  /* Visit all routines. */
+  for (routine = scope->routines;
+       routine != NULL;
+       routine = routine->next) {
+    if (trans_unit_corresp_pointer_of(routine) != NULL &&
+        !verify_routine_correspondence(routine)) {
+      /* Some error occurred---clear the association. */
+      clear_trans_unit_corresp(routine);
+    }  /* if */
+  }  /* for */
+}  /* verify_routine_correspondences_for_scope */
+
+
+static void verify_variable_correspondences_for_scope(a_scope_ptr  scope)
+/*
+Traverse the list of variables of the given scope and verify a translation
+unit correspondence pointer for each of them.
+*/
+{
+  a_variable_ptr  variable;
+
+  /* Visit all variables. */
+  for (variable = scope->variables;
+       variable != NULL;
+       variable = variable->next) {
+    if (trans_unit_corresp_pointer_of(variable) != NULL &&
+        !verify_variable_correspondence(variable)) {
+      /* Some error occurred---clear the association. */
+      clear_trans_unit_corresp(variable);
+    }  /* if */
+  }  /* for */
+}  /* verify_variable_correspondences_for_scope */
+
+
+static void establish_trans_unit_correspondences_for_enum(a_type_ptr  type)
+/*
+Establish correspondences for the list of constants associated with the
+given enum type.
+*/
+{
+  a_type_ptr      corresp_type = (a_type_ptr)canonical_il_entry_of(type);
+
+  if (corresp_type != NULL) {
+    a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list;
+    a_constant_ptr  corresp_enumerator = 
+                        corresp_type->variant.integer.enum_info.constant_list;
+
+    for (; enumerator != NULL && corresp_enumerator != NULL;
+         enumerator = enumerator->next,
+                              corresp_enumerator = corresp_enumerator->next) {
+      record_trans_unit_corresp(enumerator, corresp_enumerator);
+    }
+  }  /* for */
+}  /* establish_trans_unit_correspondences_for_enum */
+
+
+static void establish_trans_unit_correspondences_for_class(a_type_ptr  type)
+/*
+Set the correspondence pointers in the members of a type.  The members' types
+are not checked.
+*/
+{
+  a_type_ptr  corresp_type = (a_type_ptr)canonical_il_entry_of(type);
+
+  if (corresp_type != NULL && is_immediate_class_type(corresp_type)) {
+    a_scope_ptr  scope = type->
+                           variant.class_struct_union.extra_info->assoc_scope;
+    a_scope_ptr  corresp_scope = corresp_type->
+                           variant.class_struct_union.extra_info->assoc_scope;
+  
+    /* Traverse fields: */
+    {
+      a_field_ptr  field = type->variant.class_struct_union.field_list;
+      a_field_ptr  corresp_field = corresp_type->
+                                        variant.class_struct_union.field_list;
+      for (; field != NULL && corresp_field != NULL;
+           field = field->next, corresp_field = corresp_field->next) {
+        record_trans_unit_corresp(field, corresp_field);
+      }  /* for */
+    }
+    /* Traverse member types: */
+    {
+      a_type_ptr  mem_type = scope->types;
+      a_type_ptr  corresp_mem_type = corresp_scope->types;
+      for (; mem_type != NULL && corresp_mem_type != NULL;
+           mem_type = mem_type->next,
+                                  corresp_mem_type = corresp_mem_type->next) {
+        record_trans_unit_corresp(mem_type, corresp_mem_type);
+        if (is_immediate_class_type(mem_type)) {
+          establish_trans_unit_correspondences_for_class(mem_type);
+        } else if (is_immediate_enum_type(mem_type)) {
+          establish_trans_unit_correspondences_for_enum(mem_type);
+        }  /* if */
+      }  /* for */
+    }
+    /* Traverse member routines: */
+    {
+      a_routine_ptr  routine = scope->routines;
+      a_routine_ptr  corresp_routine = corresp_scope->routines;
+      for (; routine != NULL && corresp_routine != NULL;
+           routine = routine->next,
+                                    corresp_routine = corresp_routine->next) {
+        record_trans_unit_corresp(routine, corresp_routine);
+      }  /* for */
+    }
+    /* Traverse static data members: */
+    {
+      a_variable_ptr  variable = scope->variables;
+      a_variable_ptr  corresp_variable = corresp_scope->variables;
+      for (; variable != NULL && corresp_variable != NULL;
+           variable = variable->next,
+                                corresp_variable = corresp_variable->next) {
+        record_trans_unit_corresp(variable, corresp_variable);
+      }  /* for */
+    }
+    /* Traverse member constants: */
+    {
+      a_constant_ptr  constant = scope->constants;
+      a_constant_ptr  corresp_constant = corresp_scope->constants;
+      for (; constant != NULL && corresp_constant != NULL;
+           constant = constant->next,
+                                  corresp_constant = corresp_constant->next) {
+        record_trans_unit_corresp(constant, corresp_constant);
+      }  /* for */
+    }
+  }  /* if */
+}  /* establish_trans_unit_correspondences_for_class */
+
+
 static void find_namespace_correspondence(a_namespace_ptr  nsp)
 /*
 Look for the given namespace in another translation unit and set the
@@ -639,7 +843,12 @@ unit correspondence pointer if one is found.
          name: they should probably match up. */
       if (sym->kind == type_sym->kind) {
         /* Record the correspondence. */
-        record_trans_unit_corresp(type, sym->variant.namespace_info.ptr);
+        record_trans_unit_corresp(type, type_symbol_type(sym));
+        if (is_immediate_class_type(type)) {
+          establish_trans_unit_correspondences_for_class(type);
+        } else if (is_immediate_enum_type(type)) {
+          establish_trans_unit_correspondences_for_enum(type);
+        }  /* if */
         break;
       } else if (is_tag_symbol(type_sym) && !is_type_symbol(sym)) {
         /* This is not a conflict. */
@@ -746,112 +955,74 @@ translation unit correspondence pointer if one is found.
 }  /* find_variable_correspondence */
 
 
-static void establish_namespace_correspondences_for_scope(a_scope_ptr  scope)
-/*
-Traverse the list of namespaces of the given scope and establish a
-translation unit correspondence pointer for each of them.
-*/
-{
-  a_namespace_ptr  nsp;
-
-  /* Visit all namespaces. */
-  for (nsp = scope->namespaces;
-       nsp != NULL;
-       nsp = nsp->next) {
-    if (has_name(nsp)) {
-      find_namespace_correspondence(nsp);
-      if (!verify_namespace_correspondence(nsp)) {
-        /* Some error occurred---clear the association. */
-        clear_trans_unit_corresp(nsp);
-      } else if (!nsp->is_namespace_alias) {
-        /* Establish correspondences for nested namespaces. */
-        establish_trans_unit_correspondences_for_scope(
-                                                    nsp->variant.assoc_scope);
-      }  /* if */
-    }  /* if */
-  }  /* for */
-}  /* establish_namespace_correspondences_for_scope */
-
-
-static void establish_type_correspondences_for_scope(a_scope_ptr  scope)
-/*
-Traverse the list of types of the given scope and establish a translation unit
-correspondence pointer for each of them.
-*/
-{
-  a_type_ptr  type;
-
-  /* Visit all types. */
-  for (type = scope->types; type != NULL; type = type->next) {
-    a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-
-    /* Note that placeholder types do not have an associated symbol. */
-    if (type_sym != NULL && may_have_correspondence(type_sym)) {
-      find_type_correspondence(type);
-      if (trans_unit_corresp_pointer_of(type) != NULL &&
-          !verify_type_correspondence(type)) {
-        /* Some error occurred---clear the association. */
-        clear_trans_unit_corresp(type);
-      }  /* if */
-    }  /* if */
-  }  /* for */
-}  /* establish_type_correspondences_for_scope */
-
-
-static void establish_routine_correspondences_for_scope(a_scope_ptr  scope)
-/*
-Traverse the list of routines of the given scope and establish a translation
-unit correspondence pointer for each of them.
-*/
-{
-  a_routine_ptr  routine;
-
-  /* Visit all routines. */
-  for (routine = scope->routines;
-       routine != NULL;
-       routine = routine->next) {
-    find_routine_correspondence(routine);
-    if (trans_unit_corresp_pointer_of(routine) != NULL &&
-        !verify_routine_correspondence(routine)) {
-      /* Some error occurred---clear the association. */
-      clear_trans_unit_corresp(routine);
-    }  /* if */
-  }  /* for */
-}  /* establish_routine_correspondences_for_scope */
-
-
-static void establish_variable_correspondences_for_scope(a_scope_ptr  scope)
-/*
-Traverse the list of variables of the given scope and establish a translation
-unit correspondence pointer for each of them.
-*/
-{
-  a_variable_ptr  variable;
-
-  /* Visit all variables. */
-  for (variable = scope->variables;
-       variable != NULL;
-       variable = variable->next) {
-    find_variable_correspondence(variable);
-    if (trans_unit_corresp_pointer_of(variable) != NULL &&
-        !verify_variable_correspondence(variable)) {
-      /* Some error occurred---clear the association. */
-      clear_trans_unit_corresp(variable);
-    }  /* if */
-  }  /* for */
-}  /* establish_variable_correspondences_for_scope */
-
-
 void establish_trans_unit_correspondences_for_scope(a_scope_ptr  scope)
 /*
 Establish correspondences for all the applicable entities in the given
+scope.  The process is repeated in nested class and namespace scopes.
+*/
+{
+  /* Visit all namespaces. */
+  {
+    a_namespace_ptr  nsp;
+    for (nsp = scope->namespaces;
+         nsp != NULL;
+         nsp = nsp->next) {
+      if (has_name(nsp)) {
+        find_namespace_correspondence(nsp);
+        if (!nsp->is_namespace_alias) {
+          /* Establish correspondences for nested namespaces. */
+          establish_trans_unit_correspondences_for_scope(
+                                                    nsp->variant.assoc_scope);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }
+
+  /* Visit all types. */
+  {
+    a_type_ptr  type;
+    for (type = scope->types; type != NULL; type = type->next) {
+      a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+
+      /* Note that placeholder types do not have an associated symbol. */
+      if (type_sym != NULL && may_have_correspondence(type_sym)) {
+        find_type_correspondence(type);
+      }  /* if */
+    }  /* for */
+  }
+
+  /* Visit all routines. */
+  {
+    a_routine_ptr  routine;
+    for (routine = scope->routines;
+         routine != NULL;
+         routine = routine->next) {
+      find_routine_correspondence(routine);
+    }  /* for */
+  }
+
+  /* Visit all variables. */
+  {
+    a_variable_ptr  variable;
+    for (variable = scope->variables;
+         variable != NULL;
+         variable = variable->next) {
+      find_variable_correspondence(variable);
+    }  /* for */
+  }
+}  /* establish_trans_unit_correspondences_for_scope */
+
+
+void verify_trans_unit_correspondences_for_scope(a_scope_ptr  scope)
+/*
+Verify correspondences for all the applicable entities in the given
 scope.  The process is repeated in nested scopes.
 */
 {
-  establish_namespace_correspondences_for_scope(scope);
-  establish_type_correspondences_for_scope(scope);
-  establish_routine_correspondences_for_scope(scope);
-  establish_variable_correspondences_for_scope(scope);
+  verify_namespace_correspondences_for_scope(scope);
+  verify_type_correspondences_for_scope(scope);
+  verify_routine_correspondences_for_scope(scope);
+  verify_variable_correspondences_for_scope(scope);
 }  /* establish_trans_unit_correspondences_for_scope */
 
 
