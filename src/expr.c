@@ -3693,9 +3693,13 @@ As an anachronism, allow an expression inside the [ ].
         }  /* if */
       }  /* if */
       /* Put together the call of the delete routine. */
-      /* Cast the pointer to void *. */
-      cast_node(&ptr_node, make_pointer_type(void_type()),
-                /*is_implicit_cast=*/TRUE, &operand.position);
+      /* Cast the pointer to "void *".  Force generation of a cast even
+         if the node already has type "void *" so that IL lowering (and
+         back ends) can tell the real type of the pointer by uniformly
+         removing a single cast. */
+      ptr_node = make_operator_node((an_expr_operator_kind)eok_cast,
+                                    make_pointer_type(void_type()),
+                                    ptr_node);
       /* Select the proper "delete" routine.  If the type is a class type and
          the class has a "delete" operator, use it.  However, if "::" preceded
          the keyword "delete", always use the global ::delete.  Also use the
