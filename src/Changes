@@ -1,5 +1,20 @@
 Version 2.37
 
+6/24/97   Microsoft compatibility: function parameter type involving pointer
+          or reference to array of unknown bounds
+
+An error is no longer issued in Microsoft C++ mode when a function
+parameter type contains a pointer or reference to array of unknown bounds:
+
+  typedef unsigned histogram[][32][32];
+  void foo (const histogram *bar);    // No longer an error in Microsoft mode
+
+Controlling whether this check is done is a new global variable,
+ptr_to_unknown_bound_array_allowed_in_param_type, which is set to TRUE in
+Microsoft and cfront modes and FALSE in strict ANSI mode.  Its default value
+is DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE, defined in
+lang_feat.h.
+
 6/24/97   Saving of IL header information when using precompiled headers
 
 Some of the IL header fields were not being correctly reset after

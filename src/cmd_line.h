@@ -925,6 +925,18 @@ EXTERN a_boolean
 			   severity of the diagnostic issued is controlled
 			   by the discretionary-error mechanism. */
 
+EXTERN a_boolean
+		ptr_to_unknown_bound_array_allowed_in_param_type
+#if VAR_INITIALIZERS
+                  = DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE
+#endif /* VAR_INITIALIZERS */
+                                                                            ;
+			/* TRUE if in C++ a function parameter type may
+			   include a pointer or reference to an array of
+			   unknown size.  The standard disallows such param
+			   types, but they are accepted by cfront, MSVC++,
+			   and (reportedly) other C++ compilers. */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

@@ -388,23 +388,27 @@ error checking and type adjustments as required.
       /* See if any type qualifiers were specified, and if they are
          okay. */
       check_type_qualifiers(type_ptr, error_pos);
-      /* In C++ (except in cfront compatibility mode) disallow a parameter type
-         that includes a pointer or reference to an array of unspecified size
-         (WP 8.3.5 para 3). */
-      if (!C_mode() && !any_cfront_mode()) {
-        a_boolean  is_ref = FALSE;
-
+      if (!C_mode()) {
+        /* In C++ disallow a parameter type that includes a pointer or
+           reference to an array of unspecified size (WP 8.3.5 para 3).
+           (This restriction is relaxed in cfront and Microsoft compatibility
+           modes; it can also be relaxed in default mode -- see
+           DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE.) */
+        if (!ptr_to_unknown_bound_array_allowed_in_param_type) {
+          a_boolean  is_ref = FALSE;
 #if 0
-        /* WP 8.3.5 para 3 uses "includes" -- does this cover use in a template
-           argument?  We currently assume "yes", but it the answer turns out to
-           be "no", change the flags passed to traverse_type_tree by
-           is_or_contains_ptr_or_ref_to_unknown_bound_array. */
+          /* WP 8.3.5 para 3 uses "includes" -- does this cover use in a
+             template argument?  We currently assume "yes", but if the answer
+             turns out to be "no", the flags passed to traverse_type_tree by
+             is_or_contains_ptr_or_ref_to_unknown_bound_array should be
+             changed. */
 #endif /* if 0 */
-        if (is_or_contains_ptr_or_ref_to_unknown_bound_array(*type_ptr,
-                                                             &is_ref)) {
-          pos_error(is_ref ? ec_param_type_ref_array_of_unknown_bound :
-                             ec_param_type_ptr_to_array_of_unknown_bound,
-                    error_pos);
+          if (is_or_contains_ptr_or_ref_to_unknown_bound_array(*type_ptr,
+                                                               &is_ref)) {
+            pos_error(is_ref ? ec_param_type_ref_array_of_unknown_bound :
+                               ec_param_type_ptr_to_array_of_unknown_bound,
+                      error_pos);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

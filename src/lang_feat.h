@@ -853,6 +853,15 @@ MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED is TRUE.
 #define DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED FALSE
 #endif /* ifndef DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED */
 
+/*
+Flag to control whether in C++ a function parameter type may involve a pointer
+or reference to an array of unknown bounds.  It is the initial value of global
+variable ptr_to_unknown_bound_array_allowed_in_param_type.  The variable is
+set to TRUE in Microsoft and cfront compatibility modes.  It is set to FALSE
+is strict ANSI mode.
+*/
+#define DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE FALSE
+
 #endif /* ifndef LANG_FEAT_H */
 
 
