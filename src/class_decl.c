@@ -8520,7 +8520,9 @@ moreover, several fields of *decl_info may be updated by this routine.
         pos_error(ec_explicit_not_allowed, err_pos);
       }  /* if */
       if (is_qualified_type(member_type)) {
-        pos_error(ec_useless_type_qualifiers, err_pos);
+        pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity :
+                                          es_warning,
+                       ec_useless_type_qualifiers, err_pos);
       }  /* if */
     } else if (storage_class == (a_storage_class)sc_typedef) {
       /* A case like "typedef int;" or "typedef struct { int i; };" */
@@ -8541,6 +8543,11 @@ moreover, several fields of *decl_info may be updated by this routine.
       pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity :
                                         es_warning,
                      ec_useless_decl, err_pos);
+      if (is_qualified_type(member_type)) {
+        pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity :
+                                          es_warning,
+                       ec_useless_type_qualifiers, err_pos);
+      }  /* if */
     } else {
       /* A case like "int;" is explicitly disallowed by language in ARM 9.2. */
       pos_error(ec_useless_decl, err_pos);
