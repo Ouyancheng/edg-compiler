@@ -925,7 +925,7 @@ for the IA-64 ABI.
   mangled_function_name(ssp->enclosing_routine,
                         /*suppress_param_encoding=*/FALSE,
                         /*suppress_prefix=*/TRUE,
-                        /*base_name_ofset=*/NULL,
+                        /*base_name_offset=*/(sizeof_t *)NULL,
                         mctl);
   add_to_mangled_name('E', mctl);
 }  /* add_prefix_for_local_class */
@@ -1612,7 +1612,8 @@ template classes.
     }  /* if */
 #endif /* IA64_ABI */
     mangled_function_name(routine, suppress_param_encoding,
-                          /*suppress_prefix=*/FALSE, (sizeof_t *)NULL,
+                          /*suppress_prefix=*/FALSE,
+                          /*base_name_offset=*/(sizeof_t *)NULL,
                           mctl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (abkind == (an_address_base_kind)abk_uuidof) {
@@ -1750,7 +1751,8 @@ specification in the mangling for lengths of literals.
       if (include_parent_info) {
         /* Include class and namespace information in the name. */
         mangled_function_name(func, /*suppress_param_encoding=*/TRUE, 
-                              /*suppress_prefix=*/FALSE, (sizeof_t *)NULL,
+                              /*suppress_prefix=*/FALSE,
+                              /*base_name_offset=*/(sizeof_t *)NULL,
                               mctl);
       } else {
         /* Use a simple name (no class or namespace information). */
@@ -2546,10 +2548,10 @@ and "routine" is the routine to which the entity is local.
   add_str_to_mangled_name("__", mctl);
   if (routine->source_corresp.name != NULL) {
     mangled_function_name_externalized_if_necessary(
-                                             routine,
-                                             /*suppress_param_encoding=*/FALSE,
-                                             /*base_offset=*/(sizeof_t *)NULL,
-                                             mctl);
+                                         routine,
+                                         /*suppress_param_encoding=*/FALSE,
+                                         /*base_name_offset=*/(sizeof_t *)NULL,
+                                         mctl);
   }  /* if */
 }  /* add_local_name_suffix */
 
@@ -3912,8 +3914,8 @@ static void mangled_function_name(
 Add to the mangled name the encoding for the name of the function "routine".
 If suppress_param_encoding is TRUE, suppress the information on parameter
 types; just put out the base encoded name.  If base_name_offset is not NULL,
-it is set with the offset from the start of the mangling to the point where
-the base name appears.
+*base_name_offset is set to the offset from the start of the mangling to
+the point where the base name appears.
 */
 #if IA64_ABI
 /* 
@@ -4312,7 +4314,9 @@ static void mangled_function_name_externalized_if_necessary(
 /*
 Add to the mangled name the encoding for the name of the function "routine".
 If suppress_param_encoding is TRUE, suppress the information on parameter
-types; just put out the base encoded name.  If the routine will be
+types; just put out the base encoded name.  If base_name_offset is not NULL,
+*base_name_offset is set to the offset from the start of the mangling to
+the point where the base name appears.  If the routine will be
 externalized, use the encoding for the externalized form.
 */
 {
@@ -5595,7 +5599,8 @@ other mangled names.
 #else /* IA64_ABI */
     add_str_to_mangled_name("_ZZ", &mctl);
     mangled_function_name(routine, /*suppress_param_encoding=*/FALSE,
-                          /*suppress_prefix=*/TRUE, (sizeof_t *)NULL,
+                          /*suppress_prefix=*/TRUE,
+                          /*base_name_offset=*/(sizeof_t *)NULL,
                           &mctl);
     add_to_mangled_name('E', &mctl);
     mangled_name_with_length(scp->name, &mctl);
@@ -5693,7 +5698,7 @@ pointer, or performs the "this" adjustments.
     mangled_function_name(prim_routine,
                           /*suppress_param_encoding=*/FALSE,
                           /*suppress_prefix=*/TRUE,
-                          (sizeof_t *)NULL,
+                          /*base_name_offset=*/(sizeof_t *)NULL,
                           &mctl);
   }  /* if */
   (void)end_mangling(&entry_routine->source_corresp, /*final=*/TRUE, &mctl);
