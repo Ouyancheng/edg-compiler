@@ -5639,9 +5639,14 @@ is looked up.  Returns TRUE if identifier is a qualified name.
     return_value = locator_for_curr_id.is_qualified_name;
     /* Perform error checks as specified in "options". */
     okay = TRUE;
-    if (check_for_generalized_identifier_errors(options, &error_position)) {
-      *err = TRUE;
-      okay = FALSE;
+    /* Don't check any further if we already have an error locator.  Leave
+       okay TRUE so that we don't try to build a new error locator later. */
+    *err = is_error_locator(locator_for_curr_id);
+    if (!*err) {
+      if (check_for_generalized_identifier_errors(options, &error_position)) {
+        *err = TRUE;
+        okay = FALSE;
+      }  /* if */
     }  /* if */
   } else {
     /* Mask the error flags out of the options flags to prevent the errors
@@ -5746,6 +5751,13 @@ is looked up.  Returns TRUE if identifier is a qualified name.
             }  /* if */
           }  /* if*/
         }  /* if */ 
+      }  /* if */
+    } else {
+      /* Not a qualified name -- possibly not an identifier.  If an
+         error locator was built by is_generalized_identifier_start,
+         set err to TRUE. */
+      if (is_error_locator(locator_for_curr_id)) {
+        *err = TRUE;
       }  /* if */
     }  /* if */
   }  /*if */
