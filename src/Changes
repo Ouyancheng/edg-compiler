@@ -1,5 +1,16 @@
 Version 2.36
 
+4/10/97   Types declared in parameter declarations in pcc mode
+
+Struct and enum tags introduced in parameter declarations are no longer
+injected into the file scope in pcc mode -- that is, in pcc mode the
+handling is now the same as in default C mode for the following:
+
+  void f(ps)
+  struct S { int i; } *ps;
+  { ... }
+  struct S s;                 // Now an error in pcc mode
+
 4/9/97    Partially-lowered EH cleanup state determination at unreachable code
 
 When exception handling is partially-lowered, instructions must sometimes

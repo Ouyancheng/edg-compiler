@@ -1117,25 +1117,16 @@ declaration of this symbol.
                       kind == (a_symbol_kind)sk_enum_tag ||
                       kind == (a_symbol_kind)sk_type ||
                       kind == (a_symbol_kind)sk_constant);
-      if (C_dialect == C_dialect_pcc) {
-        /* In pcc a type declared in a parameter declaration belongs to the
-           file scope.  For example:
-               void f(a) struct s { int i; }; s a; { ... }
-               struct s *aa;
-           "s" refers to the same struct in both declarations. */
-        scope_level = DEPTH_OF_FILE_SCOPE;
-      } else {
-        /* In C-mode a type declared in a parameter declaration is local to
-           function.  Issue a warning on type declarations, since they will
-           not be visible outside the function declaration.  For example:
-               inf f(struct s a;);
-               struct s {int b;};
-           The first "struct s" is a different type than the second, which is
-           probably not what was wanted. */
-        if (kind != (a_symbol_kind)sk_constant &&
-            !is_error_locator(*locator)) {
-          pos_warning(ec_decl_in_prototype_scope, &locator->source_position);
-        }  /* if */
+      /* In C-mode a type declared in a parameter declaration is local to
+         function.  Issue a warning on type declarations, since they will
+         not be visible outside the function declaration.  For example:
+             inf f(struct s a;);
+             struct s {int b;};
+         The first "struct s" is a different type than the second, which is
+         probably not what was wanted. */
+      if (kind != (a_symbol_kind)sk_constant &&
+          !is_error_locator(*locator)) {
+        pos_warning(ec_decl_in_prototype_scope, &locator->source_position);
       }  /* if */
     }  /* if */
   }  /* if */
