@@ -7867,20 +7867,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
   if (template_sym != NULL) {
     class_is_being_instantiated =
             current_class_symbol_if_class_template(&current_instantiation_sym);
-    if (class_is_being_instantiated &&
-        is_class_struct_union_symbol(current_instantiation_sym)) {
-      /* If the class is being instantiated, determine whether the
-         instantiation is of the primary template or of a partial
-         specialization.  If it is a partial specialization, a reference
-         like A<T> always refers to a nonreal instance, never a prototype
-         instantiation. */
-      a_symbol_ptr	instance_templ_sym;
-      instance_templ_sym = current_instantiation_sym->
-                         variant.class_struct_union.extra_info->class_template;
-      if (instance_templ_sym == template_sym) {
-        primary_template_being_instantiated = TRUE;
-      }  /* if */
-    }  /* if */
   }  /* if */
   if (next_tok != tok_lt) {
     if (options & GID_CLASS_TEMPLATE_REQUIRED) {
@@ -7930,6 +7916,20 @@ a routine to lookup the appropriate instance (or generate one if needed).
        followed by a template argument list, we need to substitute the
        class template symbol for the injected symbol. */
     template_sym = class_template_for_injected_template_symbol(template_sym);
+  }  /* if */
+  if (class_is_being_instantiated &&
+      is_class_struct_union_symbol(current_instantiation_sym)) {
+    /* If the class is being instantiated, determine whether the
+       instantiation is of the primary template or of a partial
+       specialization.  If it is a partial specialization, a reference
+       like A<T> always refers to a nonreal instance, never a prototype
+       instantiation. */
+    a_symbol_ptr	instance_templ_sym;
+    instance_templ_sym = current_instantiation_sym->
+                         variant.class_struct_union.extra_info->class_template;
+    if (instance_templ_sym == template_sym) {
+      primary_template_being_instantiated = TRUE;
+    }  /* if */
   }  /* if */
   /* Always allocate template arguments at the file scope. */
   switch_to_file_scope_region(&region_to_switch_back_to);
