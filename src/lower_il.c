@@ -2223,6 +2223,9 @@ Make an lvalue for the virtual table pointer of the object pointed to by var.
 
 #if ABI_CHANGES_FOR_RTTI
 
+#if IA64_ABI
+/*ARGSUSED*/  /* <--- other_expr is not used in that case. */
+#endif /* IA64_ABI */
 an_expr_node_ptr make_any_vptr_rvalue(an_expr_node_ptr expr,
                                       an_expr_node_ptr *other_expr)
 /*
@@ -2240,6 +2243,9 @@ virtual function table pointer address is returned; *other_expr is
 set to point to the updated expression.
 */
 {
+  /* For the IA-64 ABI, every object with a virtual function pointer
+     has it at offset zero, so we don't need to find a base class. */
+#if !IA64_ABI
   a_type_ptr class_type = f_skip_typerefs(type_pointed_to(expr->type));
 
   check_assertion_str(is_immediate_class_type(class_type),
@@ -2270,6 +2276,7 @@ set to point to the updated expression.
                     "make_any_vptr_rvalue: no base class with virtuals found");
 found_base_class:;
   }  /* if */
+#endif /* !IA64_ABI */
   /* Pick the virtual function pointer out of the class. */
   expr = make_vptr_field_lvalue(expr);
   expr = add_indirection_to_node(expr);
