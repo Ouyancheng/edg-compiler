@@ -204,6 +204,7 @@ enum a_symbol_kind_tag {
   sk_projection,	/* Projection of a member symbol from a base class
 			   into a derived class. */
   sk_overloaded_function, /* C++ overloaded function (member or non-member). */
+  sk_parameter,         /* Parameter name in a function prototype. */
   sk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -220,7 +221,7 @@ EXTERN char	*db_sym_names[(int)sk_last + 1]
    "keyword", "macro", "constant", "type", "class-or-struct", "union",
    "enum", "variable", "field", "static-data-member", "member-function",
    "routine", "label", "undefined", "extern-variable", "extern-routine",
-   "projection", "overloaded-function",
+   "projection", "overloaded-function", "parameter",
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -554,7 +555,7 @@ typedef struct a_symbol {
 			   function prototype scope and was subsequently
 			   reentered in the function scope. */
   union {
-    /* When kind == sk_undefined, no variant fields. */
+    /* When kind == sk_undefined or sk_parameter, no variant fields. */
     /* When kind == sk_keyword: */
     a_token_kind
 		keyword_token;

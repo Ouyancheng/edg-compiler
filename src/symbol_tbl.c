@@ -276,6 +276,7 @@ and indentation is the indentation desired.
     case sk_undefined:
     case sk_extern_variable:
     case sk_extern_routine:
+    case sk_parameter:
       break;
     case sk_keyword:
       fprintf(f_debug, "\"%s\"",
@@ -674,6 +675,7 @@ state.
   sym_ptr->kind = sym_kind;
   switch (sym_kind) {
     case sk_undefined:
+    case sk_parameter:
       /* No variant fields to set. */
       break;
     case sk_keyword:
@@ -1057,6 +1059,9 @@ the proper insert location.
   a_symbol_header_ptr          hdr_ptr = sym_ptr->header;
   a_symbol_ptr                 insert_after;
   a_scope_depth                curr_depth;
+#if 0
+  an_error_code                error_code;
+#endif /* if 0 */
 
 #if CHECKING
   if (hdr_ptr == NULL) {
@@ -1111,14 +1116,31 @@ the proper insert location.
                                                  &insert_after)) {
             /* Error, this identifier has already been declared. */
             if (!suppress_error) {
+#if 0
+              /* Issue a redeclaration error.  Special versions of the message
+                 are used for parameters and for type name redeclarations in
+                 C++. */
+              if (sym_ptr->kind == (a_symbol_kind)sk_parameter &&
+                  old_sym_ptr->kind == (a_symbol_kind)sk_parameter) {
+                error_code = ec_dupl_param_name;
+              } else if (C_dialect == C_dialect_cplusplus &&
+                         is_type_symbol(sym_ptr) &&
+                         is_type_symbol(old_sym_ptr)) {
+                error_code = ec_bad_type_name_redeclaration;
+              } else {
+                error_code = ec_id_already_declared;
+              }  /* if */
+              pos_error(error_code, &(sym_ptr->decl_position));
               /* Issue a redeclaration error.  A special version of the message
                  is used for type name redeclarations in C++. */
+#else
               pos_error((is_type_symbol(sym_ptr) &&
                          is_type_symbol(old_sym_ptr) &&
                          C_dialect == C_dialect_cplusplus) ?
                                                ec_bad_type_name_redeclaration :
                                                ec_id_already_declared,
                         &(sym_ptr->decl_position));
+#endif /* if 0 */
             }  /* if */
           }  /* if */
           /* Go ahead and enter the symbol anyway.  Both symbols will be
@@ -5154,6 +5176,7 @@ to avoid an 8-character external name clash with symbol_table.)
   name_space_for_symbol_kind[(int)sk_routine]             = nsk_other;
   name_space_for_symbol_kind[(int)sk_label]               = nsk_label;
   name_space_for_symbol_kind[(int)sk_undefined]           = nsk_other;
+  name_space_for_symbol_kind[(int)sk_parameter]           = nsk_other;
   name_space_for_symbol_kind[(int)sk_extern_variable]     = nsk_extern;
   name_space_for_symbol_kind[(int)sk_extern_routine]      = nsk_extern;
   name_space_for_symbol_kind[(int)sk_projection]          = nsk_other;
