@@ -4665,7 +4665,10 @@ specification allow a variable-sized array as the top type.
                                              (an_opname_kind)onk_array_new :
                                              (an_opname_kind)onk_new;
         a_symbol_ptr   sym = opname_function_symbol(array_opname_kind);
-        if (function_symbol == find_default_operator_new_sym(sym)) {
+        a_boolean      ambiguous;
+
+        if (function_symbol ==
+                        find_default_operator_new_sym(sym, &ambiguous)) {
           new_routine = NULL;
         }  /* if */
       }  /* if */
@@ -5088,8 +5091,9 @@ As an anachronism, allow an expression inside the [ ].
                                              (an_opname_kind)onk_array_delete :
                                              (an_opname_kind)onk_delete;
           a_symbol_ptr   sym = opname_function_symbol(array_opname_kind);
+          a_boolean      ambiguous;
 
-          sym = find_default_operator_delete_sym(sym);
+          sym = find_default_operator_delete_sym(sym, &ambiguous);
           if (sym != NULL && delete_routine == sym->variant.routine.ptr) {
             delete_routine = NULL;
             /* Mark the destructor as referenced if it is virtual, because

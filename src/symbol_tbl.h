@@ -2220,11 +2220,15 @@ extern void make_type_conversion_locator(a_type_ptr         type,
                                          a_symbol_locator   *locator,
                                          a_source_position  *pos);
 
-extern a_symbol_ptr find_default_operator_new_sym(a_symbol_ptr sym);
+extern a_symbol_ptr find_default_operator_new_sym(a_symbol_ptr sym,
+                                                  a_boolean    *ambiguous);
 
-extern a_symbol_ptr find_default_operator_delete_sym(a_symbol_ptr sym);
+extern a_symbol_ptr find_default_operator_delete_sym(a_symbol_ptr sym,
+                                                     a_boolean    *ambiguous);
 
-extern a_symbol_ptr find_corresponding_operator_delete_sym(a_symbol_ptr sym);
+extern a_symbol_ptr find_corresponding_operator_delete_sym(
+                                                     a_symbol_ptr op_new_sym,
+                                                     a_boolean    *ambiguous);
 
 extern void make_global_operator_new_or_delete_symbol(an_opname_kind  opname);
 

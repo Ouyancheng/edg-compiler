@@ -3962,13 +3962,15 @@ type "type" is recorded in the locator.
 }  /* make_type_conversion_locator */
 
 
-a_symbol_ptr find_default_operator_new_sym(a_symbol_ptr sym)
+a_symbol_ptr find_default_operator_new_sym(a_symbol_ptr sym,
+                                           a_boolean    *ambiguous)
 /*
 Given the symbol for an operator new() (which may be overloaded), find the
 default (i.e., single-argument) version and return a pointer to its symbol,
 or NULL if it is not found or there is an ambiguity resulting from default
 arguments.  The symbol might be for a class-specific operator new(), and
-therefore might be a projection symbol.
+therefore might be a projection symbol.  If there is an ambiguity return
+*ambiguous set to TRUE.
 */
 {
   a_boolean        is_overloaded;
@@ -4014,12 +4016,14 @@ therefore might be a projection symbol.
 }  /* find_default_operator_new_sym */
 
 
-a_symbol_ptr find_default_operator_delete_sym(a_symbol_ptr sym)
+a_symbol_ptr find_default_operator_delete_sym(a_symbol_ptr sym,
+                                              a_boolean    *ambiguous)
 /*
 Given the symbol for an operator delete() (which may be overloaded), find the
 default version (usually the single-argument version) and return a pointer to
 its symbol, or NULL if it is not found.  The symbol might be for a
 class-specific operator delete(), and therefore might be a projection symbol.
+If there is an ambiguity return *ambiguous set to TRUE.
 */
 {
   a_boolean        is_overloaded;
@@ -4068,12 +4072,14 @@ class-specific operator delete(), and therefore might be a projection symbol.
 }  /* find_default_operator_delete_sym */
 
 
-a_symbol_ptr find_corresponding_operator_delete_sym(a_symbol_ptr op_new_sym)
+a_symbol_ptr find_corresponding_operator_delete_sym(a_symbol_ptr op_new_sym,
+                                                    a_boolean    *ambiguous)
 /*
 op_new_sym is a symbol for an operator new function.  Find and return the
 corresponding operator delete function (i.e., the operator delete function
 with identical parameter types as the operator new function, excluding the
-first parameter in each).  Return NULL if no match is found.
+first parameter in each).  Return NULL if no match is found.  If there is an
+ambiguity return *ambiguous set to TRUE.
 */
 {
   a_symbol_ptr      sym;
@@ -4102,7 +4108,7 @@ first parameter in each).  Return NULL if no match is found.
   if (op_new_param_type_list->next == NULL) {
     /* This is default (single-argument) operator new, so find the default
        operator delete. */
-    sym = find_default_operator_delete_sym(sym);
+    sym = find_default_operator_delete_sym(sym, ambiguous);
   } else {
     /* Placement new.  We need to examine all the delete operators and look
        for a type match. */

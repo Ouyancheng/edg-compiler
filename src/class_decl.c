@@ -7153,6 +7153,7 @@ class and record it in the class's assoc_operator_new_routine field.
 {
   a_symbol_ptr                sym;
   a_class_type_supplement_ptr ctsp;
+  a_boolean                   ambiguous;
 
   check_assertion(is_immediate_class_type(class_type));
   ctsp = class_type->variant.class_struct_union.extra_info;
@@ -7168,7 +7169,7 @@ class and record it in the class's assoc_operator_new_routine field.
       } else {
         /* There is a class-specific operator new() (or several).  See if
            there is a default (one-argument) version. */
-        sym = find_default_operator_new_sym(sym);
+        sym = find_default_operator_new_sym(sym, &ambiguous);
       }  /* if */
     } else {
       /* Look for a global operator new(). */
@@ -7176,7 +7177,7 @@ class and record it in the class's assoc_operator_new_routine field.
       /* "new" can be overloaded; find the default (one-argument) version
          of the routine if so.  Since the default version always exists,
          we must find something here. */
-      sym = find_default_operator_new_sym(sym);
+      sym = find_default_operator_new_sym(sym, &ambiguous);
       check_assertion(sym != NULL);
     }  /* if */
     if (sym != NULL) {
@@ -7199,6 +7200,7 @@ function is potentially part of the wrapper code.
 {
   a_symbol_ptr                sym;
   a_class_type_supplement_ptr ctsp;
+  a_boolean                   ambiguous;
 
   check_assertion(is_immediate_class_type(class_type));
   ctsp = class_type->variant.class_struct_union.extra_info;
@@ -7230,7 +7232,7 @@ function is potentially part of the wrapper code.
     }  /* if */
     if (sym != NULL) {
       /* Since delete might be overloaded, find the default version. */
-      sym = find_default_operator_delete_sym(sym);
+      sym = find_default_operator_delete_sym(sym, &ambiguous);
       if (sym != NULL) {
         ctsp->assoc_operator_delete_routine = sym->variant.routine.ptr;
       }  /* if */
