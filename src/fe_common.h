@@ -76,9 +76,11 @@ incorporated:
 /* Production of a string-form representation of IL entities. */
 #include "il_to_str.h"
 
-/* Symbol table declarations.  symbol_tbl.h also pulls in lexical.h and
-   types.h. */
+/* Symbol table declarations.  symbol_tbl.h also pulls in lexical.h. */
 #include "symbol_tbl.h"
+
+/* Type system support. */
+#include "types.h"
 
 #if DEBUG
 /* Debug declarations. */
