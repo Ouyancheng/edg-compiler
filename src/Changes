@@ -1,5 +1,11 @@
 Version 2.16
 
+4/14/93  Routine calling method flag for template functions
+
+This flag may have been set incorrectly under certain circumstances
+for template functions and member functions of template classes.  The
+flag is now set correctly.
+
 4/14/93  dik_routine in IL dynamic initialization entry
 
 A new kind of dynamic initialization entry (dik_call_returning_class_via_cctor)

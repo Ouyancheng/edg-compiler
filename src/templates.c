@@ -400,6 +400,13 @@ Instantiate the body of the template function associated with tip.
     sym_error(ec_runaway_recursive_instantiation, rout_sym);
     goto done;
   }  /* if */
+#if DEBUG
+  if (debug_level >= 3) {
+    fprintf(f_debug, "instantiating: ");
+    db_symbol(rout_sym, "", 0);
+    db_symbol(tip->template_sym, "\nbased on: ", 2);
+  }  /* if */
+#endif /* DEBUG */
   rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
   rout_ptr->is_instantiation = TRUE;
   /* Set the linkage and storage class. */
@@ -418,6 +425,11 @@ Instantiate the body of the template function associated with tip.
                                   (a_name_linkage_kind)nlk_cplusplus_external;
     }  /* if */
   }  /* if */
+  /* Check whether the routine needs special support for returning a class
+     object by value.   The flag is set in declarator but the information
+     used may not have been complete at the time the flag was originally
+     set. */
+  set_routine_calling_method_flag(rout_type);
   ++(tssp->pending_instantiations);
   /* Push the template instantiation scope. */
   (void)push_scope((a_scope_kind)sck_template_instantiation,
