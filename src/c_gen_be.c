@@ -2998,6 +2998,9 @@ Generate an expression operation.
         { a_type_ptr operand_1_type = type_pointed_to(operand_1->type);
           operand_1_type = skip_typerefs(operand_1_type);
           write_tok_str(",");
+          /* No cast to size_t or the like is needed; in BSD and System V
+             the length is int, and in ANSI C the function is prototyped
+             so the conversion will be implicit. */
           write_unsigned_num((unsigned long)operand_1_type->size);
           write_tok_str(")");
         }
@@ -3481,7 +3484,7 @@ described by the list pointed to by "ipdp" to the constant pointed to by
        name (it is implicit). */
 #if __BSD__
     /* BSD UNIX -- use bcopy. */
-    write_tok_str("bcopy(");
+    write_tok_str("bcopy((char *)");
     dump_constant(constant);
     write_tok_str(",");
     dump_var_for_init(variable, ipdp);
@@ -3489,12 +3492,15 @@ described by the list pointed to by "ipdp" to the constant pointed to by
     /* System V or ANSI -- use memcpy. */
     write_tok_str("memcpy(");
     dump_var_for_init(variable, ipdp);
-    write_tok_str(",");
+    write_tok_str(", (char *)");
     dump_constant(constant);
 #endif /* __BSD__ */
     /* Add the string length as the length of the move.  strcpy cannot be
        used because the string might contain extra nulls, or none. */
     write_tok_str(",");
+    /* No cast to size_t or the like is needed; in BSD and System V
+       the length is int, and in ANSI C the function is prototyped
+       so the conversion will be implicit. */
     write_unsigned_num((unsigned long)constant->variant.string.length);
     write_tok_str(")");
   } else {
