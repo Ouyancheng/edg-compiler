@@ -1298,7 +1298,9 @@ position when it's at the beginning of a set of zero-length lines
 
 /*
 Flag that is TRUE to indicate that carriage return characters at the ends
-of input lines should be ignored.
+of input lines should be ignored as part of the line terminator, and carriage
+returns outside of comments and character/string literals should be treated
+as white space, with an optional diagnostic.
 */
 #ifndef IGNORE_CARRIAGE_RETURN_IN_SOURCE
 #define IGNORE_CARRIAGE_RETURN_IN_SOURCE TRUE

@@ -1858,7 +1858,8 @@ column for the caret in the second pass.
 { if (pass_for_caret && curr_column >= source_pos->column) {          \
     goto end_of_loop;                                                 \
   } else {                                                            \
-    if (/*lint --e(506)*/ !pass_for_caret || (out_char) == '\t') {    \
+    if ((out_char != '\r') &&                                         \
+        (/*lint --e(506)*/ !pass_for_caret || (out_char) == '\t')) {  \
       putcb(out_char);                                                \
     } else {                                                          \
       putcb(' ');                                                     \

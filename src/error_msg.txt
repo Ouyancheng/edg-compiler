@@ -1428,6 +1428,7 @@ ec_friend_specifier_ignored;;"friend specifier is not allowed in a class definit
 ec_cannot_use_thread_local_storage;;"only static and extern variables can use thread-local storage"
 ec_multiple_thread_local_storage_specifiers;;"multiple thread-local storage specifiers"
 ec_virtual_function_never_defined;;"virtual %n was not defined (and cannot be defined elsewhere because it is a member of an unnamed namespace)"
+ec_stray_carriage_return;;"carriage return character in source line outside of comment or character/string literal"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -1,5 +1,16 @@
 Version 3.6
 
+1/3/05   Carriage returns ignored as white space
+
+When IGNORE_CARRIAGE_RETURN_IN_SOURCE is TRUE (which is the default),
+stray carriage return characters in source lines, outside of comments
+or character/string literals, are now ignored as white space except in
+strict mode.  A remark is issued.  Such carriage return characters
+are ignored by the GNU and Microsoft compilers, so this is useful
+as a compatibility feature.  Carriage return characters that are part
+of the line termination sequence are completely ignored, without
+a diagnostic, as before.
+
 12/23/04 static_cast of void * to pointer to incomplete class not accepted
 
 A static_cast of a void * to a pointer to an incomplete class type was
