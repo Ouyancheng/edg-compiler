@@ -756,9 +756,23 @@ itself recursively to process classes nested within this class.
          of all the member functions. */
       /* Don't do this for things like generated copy constructors. */
       if (!rout->compiler_generated) {
+        a_type_ptr  declared_type = rout->declared_type;
+
+        if (declared_type == NULL || declared_type == rout->type) {
+          /* Make a copy of the routine type; default_args, if any, will be
+             ignored. */
+          declared_type = copy_routine_type_with_param_types(
+                                                  rout->type,
+                                                  /*copy_default_args=*/FALSE);
+        } else {
+          /* Use the declared_type in the routine entry only if it has no
+             default args; otherwise, make a copy. */
+          declared_type = routine_type_without_default_args(declared_type);
+        }  /* if */
         add_source_sequence_entry_for_partial_instantiation(
-                                             (char *)rout,
-                                             (an_il_entry_kind)iek_routine);
+                                                (char *)rout,
+                                                (an_il_entry_kind)iek_routine,
+                                                declared_type);
       }  /* if */
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -797,7 +811,8 @@ itself recursively to process classes nested within this class.
          of all the static data members. */
       add_source_sequence_entry_for_partial_instantiation(
                                            (char *)var,
-                                           (an_il_entry_kind)iek_variable);
+                                           (an_il_entry_kind)iek_variable,
+                                           var->declared_type);
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -3349,7 +3364,8 @@ included in the search.
       }  /* if */
       add_source_sequence_entry_for_partial_instantiation(
                                              (char *)class_type,
-                                             (an_il_entry_kind)iek_type);
+                                             (an_il_entry_kind)iek_type,
+                                             class_type);
       if (scope_pushed) {
         /* Restore the state. */
         pop_ss_insert_stack();
@@ -5796,9 +5812,25 @@ type based on the template argument list and the template parameter list
     }  /* if */
     /* Add a secondary source sequence entry to represent the partial
        instantiation -- it will take the form of an explicit specialization. */
-    add_source_sequence_entry_for_partial_instantiation(
-                                             (char *)rp,
-                                             (an_il_entry_kind)iek_routine);
+    { a_type_ptr  declared_type = rp->declared_type;
+
+      check_assertion(declared_type != NULL);
+      if (declared_type == rp->type) {
+        /* Make a copy of the routine type; default_args, if any, will be
+           ignored. */
+        declared_type = copy_routine_type_with_param_types(
+                                                rp->type,
+                                                /*copy_default_args=*/FALSE);
+      } else {
+        /* Use the declared_type in the routine entry only if it has no
+           default args; otherwise, make a copy. */
+        declared_type = routine_type_without_default_args(declared_type);
+      }  /* if */
+      add_source_sequence_entry_for_partial_instantiation(
+                                               (char *)rp,
+                                               (an_il_entry_kind)iek_routine,
+                                               declared_type);
+    }
     if (new_insert_point != NULL) pop_ss_insert_stack();
   }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */

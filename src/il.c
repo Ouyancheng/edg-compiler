@@ -10549,11 +10549,13 @@ sequence list.
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
 void add_source_sequence_entry_for_partial_instantiation(
-                                                    char               *ptr,
-                                                    an_il_entry_kind   kind)
+                                          char               *ptr,
+                                          an_il_entry_kind   kind,
+                                          a_type_ptr         declared_type)
 /*
 Add a source sequence secondary declaration entry to represent the
 partial instantiation of the entity specified by the indicated entity.
+declared_type points to a type that should be recorded in the entry.
 */
 {
   a_src_seq_secondary_decl_ptr  sssdp;
@@ -10569,23 +10571,10 @@ partial instantiation of the entity specified by the indicated entity.
     sssdp = alloc_src_seq_secondary_decl();
     sssdp->entity.ptr = ptr;
     sssdp->entity.kind = (a_byte_il_entry_kind)kind;
-    switch (kind) {
-      case iek_routine:
-        sssdp->declared_type = routine_type_without_default_args(
-                                   ((a_routine_ptr)ptr)->declared_type);
-        break;
-      case iek_type:
-        sssdp->declared_type = (a_type_ptr)ptr;
-        sssdp->autonomous_tag_decl = TRUE;
-        break;
-      case iek_variable:
-        sssdp->declared_type = ((a_variable_ptr)ptr)->declared_type;
-        break;
-#if CHECKING
-      default:
-        unexpected_condition();
-#endif /* CHECKING */
-    }  /* switch */
+    sssdp->declared_type = declared_type;
+    if (kind == (an_il_entry_kind)iek_type) {
+      sssdp->autonomous_tag_decl = TRUE;
+    }  /* if */
     /* This partial instantiation can be triggered anywhere.  Use the
        position associated with the symbol. */
     sym = (a_symbol_ptr)source_corresp_for_il_entry(ptr, kind)->assoc_info;

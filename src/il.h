@@ -1008,8 +1008,9 @@ extern void add_end_of_construct_source_sequence_entry(
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
 extern void add_source_sequence_entry_for_partial_instantiation(
-                                                    char               *ptr,
-                                                    an_il_entry_kind   kind);
+                                            char               *ptr,
+                                            an_il_entry_kind   kind,
+                                            a_type_ptr         declared_type);
 
 extern void push_ss_insert_stack(
                            a_source_sequence_entry_ptr  list_to_be_removed);
