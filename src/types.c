@@ -1742,6 +1742,9 @@ base class casts and virtual function calls.
     case enk_error:
     case enk_address_of_ellipsis:
     case enk_routine_address:
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    case enk_result_of_overriding_function:
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
       /* Complete object type is not known. */
       break;
     case enk_variable:
