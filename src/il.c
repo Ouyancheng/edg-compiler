@@ -3795,6 +3795,45 @@ Copy the type entry "from" to "to".
 }  /* copy_type */
 
 
+void copy_routine_type_with_param_types(a_type_ptr from_type,
+                                        a_type_ptr to_type)
+/*
+Make a copy of a routine type and its param types list.  This routine is
+called in cases where a routine type and its copy may not share the same
+param-types list (for example, when as the result of a user error a routine
+type in a function definition is based on a typedef).
+*/
+{
+  a_param_type_ptr  old_ptp, new_ptp, prev_new_ptp;
+  a_boolean         il_walk_flag;
+
+  copy_type(from_type, to_type);
+  old_ptp = from_type->variant.routine.extra_info->param_type_list;
+  prev_new_ptp = NULL;
+  for (; old_ptp != NULL; old_ptp = old_ptp->next) {
+    new_ptp = alloc_param_type(old_ptp->type);
+    /* Do a struct copy from the old param type to the new -- but preserve
+       the current value of the il_walk_flag. */
+    il_walk_flag = new_ptp->il_walk_flag;
+    *new_ptp = *old_ptp;
+    new_ptp->il_walk_flag = il_walk_flag;
+    /* Expressions may not be shared -- that is, they may not be pointed to
+       from more than one place.  Therefore a copy must be made of the
+       expression node for the default arg (if one exists). */
+    if (old_ptp->default_arg_expr != NULL) {
+      new_ptp->default_arg_expr = copy_expr_tree(old_ptp->default_arg_expr,
+                                                 /*clone_temps=*/TRUE);
+    }  /* if */
+    if (prev_new_ptp == NULL) {
+      to_type->variant.routine.extra_info->param_type_list = new_ptp;
+    } else {
+      prev_new_ptp->next = new_ptp;
+    }  /* if */
+    prev_new_ptp = new_ptp;
+  }  /* for */
+}  /* copy_routine_type_with_param_types */
+
+
 void set_dynamic_init_kind(a_dynamic_init_ptr  dip,
                            a_dynamic_init_kind kind)
 /*

@@ -244,6 +244,9 @@ extern void set_routine_calling_method_flag(a_type_ptr routine_type);
 extern void copy_type(a_type_ptr from,
                       a_type_ptr to);
 
+extern void copy_routine_type_with_param_types(a_type_ptr from_type,
+                                               a_type_ptr to_type);
+
 extern void switch_il_region(a_memory_region_number region_number);
 
 extern void switch_to_file_scope_region(
