@@ -446,6 +446,9 @@ Initialize the option information table.
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* ABI_CHANGES_FOR_RTTI */
+  add_option_description(optk_building_runtime, "building_runtime", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1316,6 +1319,11 @@ Process the arguments on the command line that invoked the compiler.
         rtti_enabled = opt_value;
         break;
 #endif /* ABI_CHANGES_FOR_RTTI */
+      case optk_building_runtime:
+        /* We are building the runtime library for the compiler. */
+        check_assertion(opt_value == TRUE);
+        building_runtime = TRUE;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
