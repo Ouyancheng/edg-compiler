@@ -7865,6 +7865,89 @@ conversion_for_direct_reference_binding_possible.
 }  /* direct_reference_binding_possible */
 
 
+static a_boolean underlying_entity_is_auto(an_expr_node_ptr expr,
+                                           a_boolean        *is_temp)
+/*
+Return TRUE if the underlying entity of the indicated expression tree
+(an lvalue address) has auto (or register) storage class.  *is_temp
+is set to TRUE if the underlying entity is a temporary.  If the
+true answer cannot be determined, the safe answer is FALSE.
+*/
+{
+  a_boolean entity_is_auto = FALSE;
+
+  *is_temp = FALSE;
+  if (expr->kind == (an_expr_node_kind)enk_variable_address) {
+    if (!has_static_storage_duration(expr->variant.variable->storage_class)) {
+      /* Address of non-static variable. */
+      entity_is_auto = TRUE;
+    }  /* if */
+  } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+    if (expr->variant.init.result_is_addr &&
+        !expr->variant.init.static_temp) {
+      /* Address of non-static temporary. */
+      entity_is_auto = TRUE;
+      *is_temp = TRUE;
+    }  /* if */
+  } else if (is_operation_node(expr)) {
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    an_expr_node_ptr      operands = expr->variant.operation.operands;
+    an_expr_node_ptr      check_operand = NULL;
+
+    if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+      /* Operations that return an lvalue. */
+      if (op == (an_expr_operator_kind)eok_comma) {
+        /* Continue with the second operand. */
+        check_operand = operands->next;
+      } else if (op == (an_expr_operator_kind)eok_question) {
+        /* Check both the second and third operands. */
+        entity_is_auto = underlying_entity_is_auto(operands->next, is_temp);
+        if (!entity_is_auto) {
+          entity_is_auto = underlying_entity_is_auto(operands->next->next,
+                                                     is_temp);
+        }  /* if */
+      } else {
+        /* Others, e.g., pre-increment, assignment.  Continue with the
+           first operand. */
+        check_operand = operands;
+      }  /* if */
+    } else if (((op == (an_expr_operator_kind)eok_cast ||
+                 op == (an_expr_operator_kind)eok_base_class_cast) &&
+                 expr->variant.operation.compiler_generated) ||
+               op == (an_expr_operator_kind)eok_field) {
+      /* Implicit cast or field selection.  Continue with first operand. */
+      check_operand = operands;
+    }  /* if */
+    if (check_operand != NULL) {
+      entity_is_auto = underlying_entity_is_auto(check_operand, is_temp);
+    }  /* if */
+  }  /* if */
+  return entity_is_auto;
+}  /* underlying_entity_is_auto */
+
+
+static void check_for_returning_reference_to_local_entity(an_operand *operand)
+/*
+operand is the address being bound to a reference in a return statement.
+Issue a warning if it is a local entity.
+*/
+{
+  a_boolean is_temp;
+
+  if (is_expression_operand(operand)) {
+    if (underlying_entity_is_auto(operand->variant.expression, &is_temp)) {
+      if (is_temp) {
+        /* Returning a reference to a temporary. */
+        pos_warning(ec_return_ref_init_requires_temp, &operand->position);
+      } else {
+        /* Returning a reference to a local variable. */
+        pos_warning(ec_returning_ref_to_local_variable, &operand->position);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_for_returning_reference_to_local_entity */
+
+
 static void prep_reference_initializer_operand(
                               an_operand    *source_operand,
                               a_type_ptr    dest_type,
@@ -8181,14 +8264,6 @@ to be acceptable, and *conversion describes it.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (!err && initializing_return_value) {
-        /* A temporary should not be created to return a value, since
-           what would happen immediately is that the address of the
-           (stack-based) temporary would be returned to the caller. */
-        pos_warning(ec_return_ref_init_requires_temp,
-                    &source_operand->position);
-        warn = TRUE;
-      }  /* if */
       if (!err && !warn) {
         /* Let the user know a temp was used. */
         pos_remark(ec_temp_used_for_ref_init, &source_operand->position);
@@ -8200,6 +8275,9 @@ to be acceptable, and *conversion describes it.
        temporary has a lifetime as long as the reference. */
     adjust_top_temporary_for_binding_to_reference(source_operand,
                                                   static_lifetime);
+  } else if (initializing_return_value) {
+    /* Check for returning a reference to a local entity. */
+    check_for_returning_reference_to_local_entity(source_operand);
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details(source_operand, &orig_operand);

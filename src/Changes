@@ -1,5 +1,12 @@
 Version 2.34
 
+11/26/96 Warning on return of local variable or temporary
+
+A warning is now issued in more cases when a function returns a reference
+that is bound to a local variable or temporary.  Formerly, a warning
+was issued only for temporaries, and only when the temporary was created
+by the process of binding a reference to non-const.
+
 11/26/96 C++-generating back end: pragma as sole contents of class
 
 The C++-generating back end has been changed so that it does not get an
