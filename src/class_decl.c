@@ -2808,6 +2808,7 @@ is omitted, the type defaults to "int".
   /* Scan the constant expression. */
   cp = alloc_constant((a_constant_repr_kind)ck_error);
   scan_constant_initializer_expression(member_type, cp);
+  add_to_constants_list(cp);
   /* Enter the constant name in the symbol table.  Do this after scanning
      the expression to avoid problems with a recursive reference, though
      it may mean the order in which errors are issued is a little strange. */
@@ -2841,14 +2842,16 @@ table.
                            locator, decl_scope_level,
                            /*suppress_redecl_error=*/FALSE);
   sym->class_of_which_a_member = class_type;
-  /* Create the variable entry for the static data member.  make_variable
-     is not called because for static data members the variable should not
-     be added to the variables list for the file scope or routine scope. */
-  /* The variable is allocated in the current memory region, as indicated
-     by curr_il_region_number -- i.e., in the memory region of the scope in
-     which its class is declared. */
-  sym->variant.variable = var = alloc_variable();
-  var->type = member_type;
+  /* Create the variable entry for the static data member. */
+  /* The storage class of static data members is sc_static until they are
+     promoted to external linkage, at which time the storage class will
+     become sc_extern or sc_unspecified (depending on whether or not a
+     definition is provided).  All static data member variables are allocated
+     in the file scope memory region and put on the variables list for the
+     current class. */
+  var = make_variable(member_type, (a_storage_class)sc_static,
+                      /*at_file_scope=*/FALSE);
+  sym->variant.variable = var;
   /* Set the source correspondence fields of the variable. */
   set_source_corresp(&var->source_corresp, sym);
   var->source_corresp.class_of_which_a_member = class_type;
@@ -2857,15 +2860,7 @@ table.
      If and when its linkage is promoted to C++, the linkage of the static
      data members will also be changed. */
   var->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
-  /* Similarly, the storage class of static data members is sc_static until
-     they are promoted to externally linkage, at which time the storage class
-     will become sc_extern or sc_unspecified (depending on whether or not
-     a definition is provided). */
-  var->storage_class = (a_storage_class)sc_static;
   var->source_corresp.access = access;
-  /* Link the variable entry onto the static data members list of the
-     class, which is the variables list of the class's scope entry. */
-  add_to_variables_list(var, decl_scope_level);
 #if DEBUG
   if (debug_level >= 3) db_symbol(sym, "", 4);
 #endif /* DEBUG */
@@ -4104,28 +4099,6 @@ making room for virtual base classes, which appear at the end of the layout.
 }  /* finish_laying_out_class */
 
 
-static a_variable_ptr make_this_param_variable(a_type_ptr type_ptr)
-/*
-Allocate a variable entry with type type_ptr that will serve as the
-"this" parameter for a member function.  type_ptr will be NULL for static
-member functions, which have no implicit parameter; simply return NULL in
-this case.
-*/
-{
-  a_variable_ptr vp;
-
-  if (type_ptr == NULL) {
-    vp = NULL;
-  } else {
-    vp = alloc_variable();
-    vp->type = type_ptr;
-    vp->storage_class = (a_storage_class)sc_auto;
-    vp->is_parameter = TRUE;
-  }  /* if */
-  return(vp);
-}  /* make_this_param_variable */
-
-
 static void generate_special_function(a_type_ptr               class_type,
                                       a_param_type_ptr         ptp,
                                       a_special_function_kind  sfkind)
@@ -4648,7 +4621,8 @@ empty statement block.
   rout_ptr->assoc_scope = curr_il_region_number;
   rtsp->assoc_routine = rout_ptr;
   scope->variant.routine.this_param_variable =
-                make_this_param_variable(rtsp->implicit_this_param_type);
+                make_param_variable(rtsp->implicit_this_param_type,
+                                    (a_storage_class)sc_auto);
   /* Enter the constructor and destructor initializers, to record possible
      implicit initializers. */
   if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor) {
@@ -5359,17 +5333,9 @@ class/struct/union is actually defined.
   }  /* if */
   if (tag_sym == NULL) {
     /* Create a new class, struct, or union type.  All such types are
-       allocated in the file scope memory region and added to the file
-       scope types list, even when they are defined within the scope of a
-       function.  This is because they may be involved in a function
-       type which has visibility outside the function scope.  So switch
-       to the file scope memory region before allocating the type entry,
-       and switch back after the allocation is complete. */
-    if (tag_id_present) {
-      class_type = alloc_named_type(type_kind);
-    } else {
-      class_type = alloc_unlinked_type(type_kind);
-    }  /* if */
+       allocated in the file scope memory region, though local types will be
+       added to the function scope's types list. */
+    class_type = alloc_unlinked_type(type_kind);
     /* Wait to add the type to the types list; it should not be added
        until the closing brace of the full definition appears, to get the
        IL list in the right order. */
@@ -5379,30 +5345,6 @@ class/struct/union is actually defined.
       tag_sym = enter_local_symbol(tag_kind, &locator, effective_decl_level,
                                    /*suppress_redecl_error=*/FALSE);
       set_source_corresp(&(class_type->source_corresp), tag_sym);
-      if (is_local_class &&
-          scope_stack[decl_scope_level].kind !=
-                                     (a_scope_kind)sck_class_struct_union) {
-        /* This class is being declared within a function scope, and it is not
-           a declaration nested within a C++ class definition.  (In ordinary
-           C decl_scope_level will never refer to a class-struct-union scope.)
-           Create a type (a "tag typeref") that resides within the current
-           scope (i.e., is allocated in the function scope memory region and
-           is on the function scope's types list) and that points to the class
-           type itself in the file scope. */
-        a_type_ptr  tag_typeref_type = NULL;
-
-        /* Switch to the function scope region before allocating the "tag
-           typeref" type entry, and switch back afterwards. */
-        switch_to_function_scope_region(&region_to_switch_back_to);
-        tag_typeref_type =
-                        alloc_local_scope_type((a_type_kind)tk_typeref,
-                                               effective_decl_level,
-                                               in_old_style_param_decl_list);
-        switch_back_to_original_region(region_to_switch_back_to);
-        tag_typeref_type->variant.typeref.type = class_type;
-        tag_typeref_type->variant.typeref.is_function_scope_tag = TRUE;
-        set_source_corresp(&(tag_typeref_type->source_corresp), tag_sym);
-      }  /* if */
     } else {
       /* Tagless class, struct, or union.  Create a symbol to represent it;
          though not entered in the symbol table, it is needed to carry
@@ -5999,8 +5941,8 @@ next_declaration:
          incomplete structs/unions are not added to the type list (this code
          is bypassed) because the actual definition has not yet appeared.  See
          pop_scope; they get added at the end of the scope. */
-      add_to_types_list(class_type, DEPTH_OF_FILE_SCOPE,
-                        /*in_old_style_param_decl_list=*/FALSE);
+      add_to_types_list(class_type, effective_decl_level,
+                        in_old_style_param_decl_list);
     }  /* if */
     /* Save a pointer to the list of member symbols in the tag symbol.  Note
        that there may be symbols even if there there were no declarations,
