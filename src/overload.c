@@ -6463,6 +6463,7 @@ initializer has previously been found to be acceptable, and
   a_type_ptr base_dest_type, base_source_type;
   a_type_ptr unqual_dest_type, unqual_source_type;
   a_boolean  type_is_correct_or_derived, err = FALSE, dropping_qualifiers;
+  a_boolean  direct_binding_possible, binding_to_rvalue_allowed;
   a_boolean  ref_to_const, temporary_used, warn = FALSE;
   an_operand orig_operand;
 
@@ -6511,13 +6512,15 @@ initializer has previously been found to be acceptable, and
          only add type qualifiers at the top level. */
       type_is_correct_or_derived = TRUE;
     }  /* if */
+    direct_binding_possible = type_is_correct_or_derived;
     /* Determine whether or not the reference is to a const type. */
     ref_to_const = is_const_qualified_type(base_dest_type);
+    binding_to_rvalue_allowed = ref_to_const;
     if (!any_cfront_mode() && ref_to_const &&
         is_volatile_qualified_type(base_dest_type)) {
-      /* A reference to const volatile cannot be bound to an rvalue, so treat
-         it as a nonconst reference.  This was added after the ARM. */
-      ref_to_const = FALSE;
+      /* A reference to const volatile cannot be bound to an rvalue.
+         This was added after the ARM. */
+      binding_to_rvalue_allowed = FALSE;
     }  /* if */
     /* The destination type must have no fewer type qualifiers than the source
        type to be usable without conversion (ARM 8.4.3). */
@@ -6546,10 +6549,10 @@ initializer has previously been found to be acceptable, and
         dropping_qualifiers = FALSE;
       } else {
         /* Qualifiers are being dropped, so disallow a direct binding. */
-        type_is_correct_or_derived = FALSE;
+        direct_binding_possible = FALSE;
       }  /* if */
     }  /* if */
-    if (type_is_correct_or_derived && ref_to_const &&
+    if (type_is_correct_or_derived && binding_to_rvalue_allowed &&
         is_bit_field_operand(source_operand)) {
       /* For a bit-field case like
            struct A { int i:2; } a;
@@ -6557,9 +6560,9 @@ initializer has previously been found to be acceptable, and
          disallow direct binding.  Note that in the ref to nonconst
          case we leave the operand as it is to get a more specific error
          message about taking the address of a bit field. */
-      type_is_correct_or_derived = FALSE;
+      direct_binding_possible = FALSE;
     }  /* if */
-    if (type_is_correct_or_derived && is_an_lvalue(source_operand)) {
+    if (direct_binding_possible && is_an_lvalue(source_operand)) {
       /* The initial value is an lvalue of the right type; the initialization
          can be done directly. */
       /* Convert the lvalue to an rvalue pointer to the object. */
@@ -6581,14 +6584,14 @@ initializer has previously been found to be acceptable, and
       dest_type = make_pointer_type(base_dest_type);
       /* Cast the operand to the result type. */
       cast_operand(dest_type, source_operand, /*is_implicit_cast=*/TRUE);
-    } else if (type_is_correct_or_derived &&
+    } else if (direct_binding_possible &&
                is_a_function_designator(source_operand)) {
       /* The initial value is a function designator of the right type;
          the initialization can be done directly. */
       conv_function_designator_to_ptr_to_function(source_operand);
-    } else if (type_is_correct_or_derived &&
+    } else if (direct_binding_possible &&
                is_class_struct_union_type(base_dest_type) &&
-               (ref_to_const ||
+               (binding_to_rvalue_allowed ||
                 (any_cfront_mode() ? (!initializing_variable ||
                                       operand_is_temp_init(source_operand)) :
                                      allow_anachronisms))) {
@@ -6608,7 +6611,7 @@ initializer has previously been found to be acceptable, and
          destination. */
       dest_type = make_pointer_type(base_dest_type);
       cast_operand(dest_type, source_operand, /*is_implicit_cast=*/TRUE);
-      if (!ref_to_const) {
+      if (!binding_to_rvalue_allowed) {
         /* In cfront mode or when anachronisms are allowed this can happen
            for a ref to non-const.  Issue a warning in that case. */
         pos_warning(ec_nonconst_ref_init_anachronism,
@@ -6648,10 +6651,10 @@ initializer has previously been found to be acceptable, and
         } else if (!temporary_used) {
           /* The conversion is doable and does not require a temporary
              (e.g., it uses a conversion function that returns a reference). */
-        } else if (!ref_to_const) {
-          /* A reference to non-const is initialized in a way that requires a
-             temporary.  This is an error according to the ARM (8.4.3),
-             but we allow it as an anachronism. */
+        } else if (!binding_to_rvalue_allowed) {
+          /* A reference to non-const or to const volatile is initialized
+             in a way that requires a temporary.  This is an error according
+             to the ARM (8.4.3), but we allow it as an anachronism. */
           if (cfront_argument_case ||
               (cfront_2_1_mode && operand_is_temp_init(source_operand) &&
                source_operand->variant.expression->variant.
