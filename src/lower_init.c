@@ -3965,10 +3965,11 @@ and made external) can be a tentative definition (i.e., uninitialized).
 
   check_assertion(variable->storage_class == (a_storage_class)sc_unspecified &&
                   variable->init_kind == (an_init_kind)initk_static);
-  /* The WP [stmt.dcl] paragraph 3 says "A local object with static
-     storage duration initialized with an integral constant-
-     expression is initialized before its block is first entered."
-     So we move the initialization to the start of the block in which
+  /* The WP [stmt.dcl] paragraph 3 says "A local object of POD type with
+     static storage duration initialized with constant-expressions is
+     initialized before its block is first entered."  Non-POD type
+     variables can also be initialized early in some cases.
+     So we put a dynamic initialization at the start of the block in which
      the variable is declared. */
   set_block_start_insert_location(scope->assoc_block, &insert_location);
   set_var_init_pos_descr(variable, &ipd);
