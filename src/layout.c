@@ -467,7 +467,7 @@ there was an overflow error.
        to the next byte. */
     overflow = !increment_field_offsets(byte_offset, bit_offset,
 				       (a_targ_size_t)0,
-                                       (int)(targ_char_bit - *bit_offset));
+                                       targ_char_bit - *bit_offset);
   }  /* if */
   if (!overflow) {
     byte_mod = *byte_offset % alignment;
@@ -713,7 +713,7 @@ if there's no overflow TRUE is returned.
         /* For a bit-field. */
         overflow = !increment_field_offsets(p_byte_offset, p_bit_offset,
                                             (a_targ_size_t)0,
-                                            (int)field->bit_size);
+                                            field->bit_size);
       } else {
         /* For a normal field. */
         overflow = !increment_field_offsets(p_byte_offset, p_bit_offset,
