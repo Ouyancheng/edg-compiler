@@ -3027,11 +3027,22 @@ are not checked.
         a_variable_ptr  corresp_var = corresp_scope->variables;
         for (; var != NULL && corresp_var != NULL;
              var = var->next, corresp_var = corresp_var->next) {
-          set_trans_unit_corresp(iek_variable, var, corresp_var);
-          if (type->variant.class_struct_union.is_prototype_instantiation) {
-            a_symbol_ptr  sym = (a_symbol_ptr)var->source_corresp.assoc_info;
-            a_symbol_ptr  corresp_sym = (a_symbol_ptr)corresp_var
+          a_symbol_ptr  sym = (a_symbol_ptr)var->source_corresp.assoc_info;
+          a_symbol_ptr  corresp_sym = (a_symbol_ptr)corresp_var
                                                   ->source_corresp.assoc_info;
+          if (sym != NULL && corresp_sym != NULL &&
+              (sym->variant.static_data_member.instance_ptr == 0) !=
+                 (corresp_sym->variant.static_data_member.instance_ptr == 0)) {
+            /* One of the members is template instance, the other not.
+               Avoid setting a correspondence in that case. */
+            f_report_bad_trans_unit_corresp((char*)var,
+                                            &corresp_sym->decl_position);
+          } else {
+            set_trans_unit_corresp(iek_variable, var, corresp_var);
+          }  /* if */
+          if (type->variant.class_struct_union.is_prototype_instantiation) {
+            /* Establish a correspondence between the template entries
+               associated with these static data members (if applicable). */
             a_template_symbol_supplement_ptr
                           tssp = template_supplement_for_symbol(sym),
                           corresp_tssp =
