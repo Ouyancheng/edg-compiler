@@ -1094,15 +1094,22 @@ Dump the contents of the indicated expression node for debug purposes.
       }  /* if */
       break;
     case enk_throw:
+      fputs("throw: ", f_debug);
       tsp = node->variant.throw_info;
-      fprintf(f_debug, "type = ");
-      db_abbreviated_type(tsp->type);
-      fprintf(f_debug, ", dynamic_init = ");
-      if (tsp->dynamic_init == NULL) {
-        fprintf(f_debug, "<null>");
+      if (tsp == NULL) {
+        fputs("rethrow", f_debug);
       } else {
-        db_dynamic_initializer(tsp->dynamic_init, level + 2);
+        fprintf(f_debug, "type = ");
+        db_abbreviated_type(tsp->type);
+        fprintf(f_debug, ", dynamic_init = ");
+        if (tsp->dynamic_init == NULL) {
+          fprintf(f_debug, "<null>");
+        } else {
+          db_dynamic_initializer(tsp->dynamic_init, level + 2);
+        }  /* if */
       }  /* if */
+      fputs("\n", f_debug);
+      break;
     case enk_error:
       fputs("error node\n", f_debug);
       break;
