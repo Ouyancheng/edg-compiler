@@ -5909,7 +5909,9 @@ to (or a function designator).
 {
   /* Leave an error operand alone. */
   if (!is_error_operand(operand)) {
-    operand->type = type_pointed_to(operand->type);
+    if (operand->type != type_of_unknown_templ_param_nontype) {
+      operand->type = type_pointed_to(operand->type);
+    }  /* if */
     if (is_function_type(operand->type)) {
       operand->state = (an_operand_state)os_function_designator;
     } else {
