@@ -908,26 +908,6 @@ to by ssep.
 }  /* add_to_scopes_list */
 
 
-static a_scope_ptr create_block_scope(a_scope_stack_entry_ptr ssep)
-/*
-Create an IL scope for the scope whose scope stack entry is pointed to by
-ssep.  This is for the case of a block scope, where we do not want to
-create the IL scope until something is actually declared in the scope.
-Return a pointer to the scope entry.
-*/
-{
-  a_scope_ptr sp;
-
-  /* Allocate the scope entry. */
-  ssep->il_scope = sp = alloc_scope(ssep->number, (a_scope_kind)sck_block);
-  /* Add it to the scopes list for the scope enclosing the scope indicated
-     by ssep. */
-  add_to_scopes_list(sp, ssep-1);
-
-  return (sp);
-}  /* create_block_scope */
-
-
 void set_default_source_corresp(a_source_correspondence *sc)
 /*
 Set the given source correspondence struct to default values.
@@ -1557,7 +1537,7 @@ at_file_scope == TRUE.
 }  /* alloc_param_type */
 
 
-a_class_type_supplement_ptr alloc_class_type_supplement(
+static a_class_type_supplement_ptr alloc_class_type_supplement(
                                         a_type_ptr     class_struct_union_type,
                                         a_scope_number scope_number)
 /*
@@ -1582,6 +1562,79 @@ class_struct_union_type; the associated scope number is scope_number.
   class_scope->variant.assoc_type = class_struct_union_type;
   return ctsp;
 }  /* alloc_class_type_supplement */
+
+
+a_class_type_supplement_ptr make_class_type_supplement(a_type_ptr class_type)
+/*
+Make sure that the class/struct/union type pointed to by class_type
+has a class type supplement and associated IL scope, i.e., allocate
+and initialize those if they do not already exist.  If the type is
+also associated with an entry in the scope stack, set the IL scope
+pointer therein.  Return the class type supplement pointer.
+This routine is only used in C++ mode; C-style structs and unions do
+not need a type supplement or scope entries.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_class_type_supplement_ptr	ctsp;
+
+#if CHECKING
+  if (class_type == NULL) {
+    internal_error("make_class_type_supplement: NULL class type pointer");
+  }  /* if */
+#endif /* CHECKING */
+  /* See if there is already a class type supplement allocated. */
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  if (ctsp == NULL) {
+    /* No, so allocate one. */
+    ctsp = alloc_class_type_supplement(class_type, ssep->number);
+    class_type->variant.class_struct_union.extra_info = ctsp;
+    /* See if the class type is associated with an entry on the scope stack.
+       If so, the IL scope pointer should be stored in it. */
+    for (ssep = &scope_stack[depth_scope_stack];
+         ssep != &scope_stack[DEPTH_OF_FILE_SCOPE];
+         ssep--) {
+      if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
+          ssep->assoc_type == class_type) {
+        /* This scope stack entry is for the class we just modified. */
+        ssep->il_scope = ctsp->assoc_scope;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return ctsp;
+}  /* make_class_type_supplement */
+
+
+static a_scope_ptr ensure_il_scope_exists(a_scope_stack_entry_ptr ssep)
+/*
+Make sure that the scope stack entry pointed to by ssep points to an IL
+scope.  For block and class scopes, create the scope now if necessary.
+*/
+{
+  a_scope_ptr sp = ssep->il_scope;
+
+  if (sp == NULL) {
+    /* There is no IL scope. */
+    if (ssep->kind == (a_scope_kind)sck_block) {
+      /* Create the IL scope in a block scope. */
+      ssep->il_scope = sp = alloc_scope(ssep->number, (a_scope_kind)sck_block);
+      /* Add it to the scopes list for the scope enclosing the scope indicated
+         by ssep. */
+      add_to_scopes_list(sp, ssep-1);
+    } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
+      /* Create the IL scope in a class scope.  That means creating the class
+         type supplement as well. */
+      (void)make_class_type_supplement(ssep->assoc_type);
+      sp = ssep->il_scope;
+#if CHECKING
+    } else if (ssep->kind != (a_scope_kind)sck_func_prototype) {
+      internal_error("ensure_il_scope_exists: NULL IL scope");
+#endif /* CHECKING */
+    }  /* if */
+  }  /* if */
+  return sp;
+}  /* ensure_il_scope_exists */
 
 
 a_type_ptr alloc_type(a_type_kind kind)
@@ -1685,17 +1738,9 @@ in_old_style_param_decl_list is TRUE.
 
   /* Get a pointer to the current or file scope entry. */
   ssep = &scope_stack[at_file_scope ? DEPTH_OF_FILE_SCOPE : decl_scope_level];
-  sp = ssep->il_scope;
+  /* Create the IL scope if necessary (for block scopes or class scopes). */
+  sp = ensure_il_scope_exists(ssep);
   last_type_ptr_ptr = &ssep->last_type;
-  /* Create the IL scope if necessary in a block scope. */
-  if (sp == NULL && ssep->kind == sck_block) sp = create_block_scope(ssep);
-#if CHECKING
-  if (sp == NULL) {
-    if (ssep->kind != sck_func_prototype) {
-      internal_error("add_to_types_list: NULL IL scope");
-    }  /* if */
-  }  /* if */
-#endif /* CHECKING */
   /* If we are currently inside the declaration list for the old-style
      parameters of a function (e.g., in the "struct" line in
 
@@ -1765,7 +1810,7 @@ in_old_style_param_decl_list is TRUE.
     if (!in_old_style_param_decl_list) {
       /* Function prototype scope. */
       ssep->il_scope = sp;
-      routine_type = ssep->assoc_routine_type;
+      routine_type = ssep->assoc_type;
 #if CHECKING
       if (routine_type == NULL) {
         internal_error("add_to_types_list: assoc_routine_type is NULL");
@@ -2076,12 +2121,8 @@ for the file scope if at_file_scope is TRUE.
 
   /* Get pointer to current or file scope entry. */
   ssep = &scope_stack[at_file_scope ? DEPTH_OF_FILE_SCOPE : decl_scope_level];
-  sp = ssep->il_scope;
-  /* Create the IL scope if necessary in a block scope. */
-  if (sp == NULL && ssep->kind == sck_block) sp = create_block_scope(ssep);
-#if CHECKING
-  if (sp == NULL) internal_error("add_to_variables_list: NULL IL scope");
-#endif /* CHECKING */
+  /* Create the IL scope if necessary (for block scopes or class scopes). */
+  sp = ensure_il_scope_exists(ssep);
   if (sp->variables == NULL) {
     sp->variables = var_ptr;
   } else {
@@ -2237,10 +2278,8 @@ for the file scope if at_file_scope is TRUE.
 
   /* Get pointer to current or file scope entry. */
   ssep = &scope_stack[at_file_scope ? DEPTH_OF_FILE_SCOPE : decl_scope_level];
-  sp = ssep->il_scope;
-#if CHECKING
-  if (sp == NULL) internal_error("add_to_routines_list: NULL IL scope");
-#endif /* CHECKING */
+  /* Create the IL scope if necessary (for block scopes or class scopes). */
+  sp = ensure_il_scope_exists(ssep);
   if (sp->routines == NULL) {
     sp->routines = rout_ptr;
   } else {
