@@ -1,5 +1,24 @@
 Version 2.41
 
+1/26/99   Partial specialization problem when mixing "class" and "struct"
+
+The partial specialization processing did not work properly in certain
+cases if a partial specialization was declared as a "class" and the
+primary template was declared as a "struct" (or vice-versa).  This
+has been fixed.
+
+  template<class T1, class T2> struct A { };
+  template<class T1> class A<T1, int> { };  // worked if "struct"
+
+  template<class T1> struct B { };
+  template<class T1, class T2> struct B< A<T1, T2> > { };
+  template<class T1> struct B< A<T1, int> > { };
+
+  int main()
+  {
+     B< A<float, int> > b;
+  }
+
 1/25/99   Cast like int() allowed as constant expression
 
 A functional-notation cast with no arguments, which for scalar

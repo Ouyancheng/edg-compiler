@@ -131,6 +131,13 @@ predicates.
 /* Template parameter type. */
 #define is_template_param(tp) ((tp)->kind == (a_type_kind)tk_template_param)
 
+/* Macro that is TRUE if two type kinds are the same, or are the same except
+   that one is tk_class and the other is tk_struct. */
+#define equiv_type_kinds(kind_1, kind_2)				\
+  (kind_1 == kind_2 ||							\
+  (kind_1 == (a_type_kind)tk_class && kind_2 == (a_type_kind)tk_struct) || \
+  (kind_2 == (a_type_kind)tk_class && kind_1 == (a_type_kind)tk_struct))
+
 
 a_type_ptr f_skip_typerefs(a_type_ptr type_ptr)
 /*
@@ -2198,7 +2205,7 @@ for more information.
     if (type_1 == type_2) {
       /* If the types are now the same, they are identical. */
       identical = TRUE;
-    } else if (type_1->kind == type_2->kind) {
+    } else if (equiv_type_kinds(type_1->kind, type_2->kind)) {
       /* The top level kinds are the same, check further. */
       switch (type_1->kind) {
         case tk_error:
@@ -2627,7 +2634,7 @@ for exact pointer equality.
     } else if (type_1 == type_2) {
       /* If the types are now the same, they are compatible. */
       compat = TRUE;
-    } else if (type_1->kind == type_2->kind) {
+    } else if (equiv_type_kinds(type_1->kind, type_2->kind)) {
       /* The top level kinds are the same, check further. */
       switch (type_1->kind) {
         case tk_error:
@@ -2881,7 +2888,7 @@ that is not required to be checked by the ANSI C standard.
   if (types_are_compatible(type_1, type_2)) {
     /* Compatible types are interchangeable. */
     interch = TRUE;
-  } else if (type_1->kind != type_2->kind) {
+  } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
     /* The kinds are different, so the types are not interchangeable. */
     /* interch = FALSE;  -- already set. */
   } else if (type_1->kind == (a_type_kind)tk_integer) {
