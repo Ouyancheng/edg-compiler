@@ -139,14 +139,16 @@ Add the indicated null-terminated string to the mangled name.
 }  /* add_str_to_mangled_name */
 
 
-static void end_mangling(a_mangling_control_block_ptr mctl)
+static char *end_mangling(a_mangling_control_block_ptr mctl)
 /*
 Do processing at the end of mangling a name.  At the least, this includes
-adding the final null character.
+adding the final null character.  Return the address of the mangled name
+in the buffer.
 */
 {
   /* Add the final null. */
   add_to_mangled_name('\0', mctl);
+  return temp_text_buffer;
 }  /* end_mangling */
 
 
@@ -2256,8 +2258,7 @@ name in the routine entry.
     start_mangling(&mctl);
     /* Create the name. */
     mangled_function_name(routine, suppress_param_encoding, &mctl);
-    end_mangling(&mctl);
-    mangled_name = temp_text_buffer;
+    mangled_name = end_mangling(&mctl);
   }  /* if */
   return mangled_name;
 }  /* get_mangled_function_name */
@@ -2347,8 +2348,7 @@ name in the variable entry.
     /* Generate the mangled name in a buffer. */
     start_mangling(&mctl);
     mangled_member_variable_name(variable, &mctl);
-    end_mangling(&mctl);
-    mangled_name = temp_text_buffer;
+    mangled_name = end_mangling(&mctl);
   }  /* if */
   return mangled_name;
 }  /* get_mangled_static_data_member_name */
@@ -2368,7 +2368,7 @@ Mangle the name of the indicated class, if necessary.
 */
 {
   a_mangling_control_block mctl;
-  char                     *mangled_name;
+  char                     *mangled_name, *buffer;
 
   error_position = class_type->source_corresp.decl_position;
   /* Template class names must be mangled because otherwise all instances
@@ -2378,10 +2378,10 @@ Mangle the name of the indicated class, if necessary.
       !class_type->source_corresp.name_has_been_mangled) {
     start_mangling(&mctl);
     mangled_basic_class_name(class_type, &mctl);
-    end_mangling(&mctl);
+    buffer = end_mangling(&mctl);
     /* Allocate space for the mangled name and copy it. */
     mangled_name = alloc_lowered_name_string(mctl.length);
-    (void)strcpy(mangled_name, temp_text_buffer);
+    (void)strcpy(mangled_name, buffer);
     /* Note that the mangled name is not put into the type until after it has
        been completely built, because the old name is used in building the
        mangled form. */
@@ -2471,7 +2471,7 @@ extension) a declared class member constant.
 */
 {
   a_mangling_control_block mctl;
-  char                     *mangled_name;
+  char                     *mangled_name, *buffer;
 
   error_position = con->source_corresp.decl_position;
   if (!con->source_corresp.name_has_been_mangled) {
@@ -2479,10 +2479,10 @@ extension) a declared class member constant.
     /* Determine how long the mangled name is. */
     mangled_member_name(&con->source_corresp,
                         /*is_specialization=*/FALSE, &mctl);
-    end_mangling(&mctl);
+    buffer = end_mangling(&mctl);
     /* Allocate space for the mangled name and copy it. */
     mangled_name = alloc_lowered_name_string(mctl.length);
-    (void)strcpy(mangled_name, temp_text_buffer);
+    (void)strcpy(mangled_name, buffer);
     con->source_corresp.unmangled_name = con->source_corresp.name;
     con->source_corresp.name = mangled_name;
     con->source_corresp.name_has_been_mangled = TRUE;
@@ -2540,7 +2540,7 @@ Mangle the name of the indicated function, if necessary.
 {
   a_boolean                suppress_param_encoding;
   a_mangling_control_block mctl;
-  char                     *mangled_name;
+  char                     *mangled_name, *buffer;
 
   error_position = routine->source_corresp.decl_position;
   /* Compiler-generated routines have no name, and they are left alone. */
@@ -2550,10 +2550,10 @@ Mangle the name of the indicated function, if necessary.
       /* Mangle the function name. */
       start_mangling(&mctl);
       mangled_function_name(routine, suppress_param_encoding, &mctl);
-      end_mangling(&mctl);
+      buffer = end_mangling(&mctl);
       /* Allocate space for the mangled name and copy it. */
       mangled_name = alloc_lowered_name_string(mctl.length);
-      (void)strcpy(mangled_name, temp_text_buffer);
+      (void)strcpy(mangled_name, buffer);
       routine->source_corresp.unmangled_name = routine->source_corresp.name;
       routine->source_corresp.name = mangled_name;
       routine->source_corresp.name_has_been_mangled = TRUE;
@@ -2569,7 +2569,7 @@ variable.
 */
 {
   a_mangling_control_block mctl;
-  char                     *mangled_name;
+  char                     *mangled_name, *buffer;
 
   error_position = variable->source_corresp.decl_position;
   if (!variable->source_corresp.name_has_been_mangled &&
@@ -2578,10 +2578,10 @@ variable.
                                       variable->source_corresp.name_linkage)) {
     start_mangling(&mctl);
     mangled_member_variable_name(variable, &mctl);
-    end_mangling(&mctl);
+    buffer = end_mangling(&mctl);
     /* Allocate space for the mangled name and copy it. */
     mangled_name = alloc_lowered_name_string(mctl.length);
-    (void)strcpy(mangled_name, temp_text_buffer);
+    (void)strcpy(mangled_name, buffer);
     variable->source_corresp.unmangled_name = variable->source_corresp.name;
     variable->source_corresp.name = mangled_name;
     variable->source_corresp.name_has_been_mangled = TRUE;
@@ -2662,7 +2662,7 @@ other name mangling that might use the name is done.
 */
 {
   a_mangling_control_block mctl;
-  char                     *mangled_name;
+  char                     *mangled_name, *buffer;
 
   error_position = type->source_corresp.decl_position;
   if (type_needs_parent_qualifier(type) && has_name(type) &&
@@ -2678,10 +2678,10 @@ other name mangling that might use the name is done.
     start_mangling(&mctl);
     add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
     mangled_type_name(type, &mctl);
-    end_mangling(&mctl);
+    buffer = end_mangling(&mctl);
     /* Allocate space for the mangled name and copy it. */
     mangled_name = alloc_lowered_name_string(mctl.length);
-    (void)strcpy(mangled_name, temp_text_buffer);
+    (void)strcpy(mangled_name, buffer);
     /* Do not save the unmangled name when the class was originally
        unnamed and has been given a name. */
     if (!type->source_corresp.name_has_been_mangled) {
@@ -2971,6 +2971,7 @@ be copied elsewhere.
 */
 {
   a_mangling_control_block mctl;
+  char                     *buffer;
 
   start_mangling(&mctl);
   /* Determine the mangled name.  It is
@@ -3003,8 +3004,8 @@ be copied elsewhere.
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
   /* Add the derived class name. */
   mangled_vtbl_class_name(class_type, &mctl);
-  end_mangling(&mctl);
-  return temp_text_buffer;
+  buffer = end_mangling(&mctl);
+  return buffer;
 }  /* mangled_vtbl_name */
 
 
@@ -3017,11 +3018,12 @@ The name returned is in a temporary buffer and must be copied elsewhere.
 */
 {
   a_mangling_control_block mctl;
+  char                     *buffer;
 
   start_mangling(&mctl);
   mangled_class_name_internal(type, &mctl);
-  end_mangling(&mctl);
-  return temp_text_buffer;
+  buffer = end_mangling(&mctl);
+  return buffer;
 }  /* mangled_class_name */
 
 
@@ -3034,14 +3036,15 @@ be copied elsewhere.
 */
 {
   a_mangling_control_block mctl;
+  char                     *buffer;
 
   start_mangling(&mctl);
   /* Start with the prefix. */
   add_str_to_mangled_name(prefix, &mctl);
   /* Add the mangled name of the type. */
   mangled_encoding_for_type(type, &mctl);
-  end_mangling(&mctl);
-  return temp_text_buffer;
+  buffer = end_mangling(&mctl);
+  return buffer;
 }  /* mangled_prefixed_type_encoding */
 
 
@@ -3117,7 +3120,7 @@ and that is after normal name mangling has been done.
 */
 {
   a_mangling_control_block mctl;
-  char                     *mangled_name;
+  char                     *mangled_name, *buffer;
   unsigned long            scope_number;
 
   /* Leave the name alone if the entity is unnamed. */
@@ -3150,11 +3153,11 @@ and that is after normal name mangling has been done.
     if (routine->source_corresp.name != NULL) {
       mangled_function_name(routine, /*suppress_param_encoding=*/FALSE, &mctl);
     }  /* if */
-    end_mangling(&mctl);
+    buffer = end_mangling(&mctl);
     /* Allocate space for the mangled name and copy it.  The old name is
        saved as unmangled_name. */
     mangled_name = alloc_lowered_name_string(mctl.length);
-    (void)strcpy(mangled_name, temp_text_buffer);
+    (void)strcpy(mangled_name, buffer);
     scp->unmangled_name = scp->name;
     scp->name = mangled_name;
     scp->name_has_been_mangled = TRUE;
@@ -3178,7 +3181,7 @@ entry_routine (it has no name on entry).
 */
 {
   a_mangling_control_block mctl;
-  char                     *mangled_name;
+  char                     *mangled_name, *buffer;
 
   start_mangling(&mctl);
   /* The mangled name has the form
@@ -3195,10 +3198,10 @@ entry_routine (it has no name on entry).
   mangled_function_name(prim_routine,
                         /*suppress_param_encoding=*/FALSE,
                         &mctl);
-  end_mangling(&mctl);
+  buffer = end_mangling(&mctl);
   /* Allocate space for the mangled name and copy it. */
   mangled_name = alloc_lowered_name_string(mctl.length);
-  (void)strcpy(mangled_name, temp_text_buffer);
+  (void)strcpy(mangled_name, buffer);
   entry_routine->source_corresp.name = mangled_name;
   entry_routine->source_corresp.name_has_been_mangled = TRUE;
 }  /* mangle_covariant_return_type_entry_name */
