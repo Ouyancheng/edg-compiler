@@ -1,5 +1,11 @@
 Version 2.43
 
+10/31/99 Loop with NEAR_AND_FAR_ENABLED but not MICROSOFT_EXTENSIONS_ALLOWED
+
+A bug in the disambiguation routines could cause an infinite loop when
+NEAR_AND_FAR_ENABLED is TRUE but MICROSOFT_EXTENSIONS_ALLOWED is FALSE.
+This has been fixed.
+
 10/29/99 IL file reading problem with pragma in certain instantiation contexts
 
 An IL read/write internal error could occur when processing a pragma in

@@ -234,6 +234,12 @@ not need to be cached.
       if (state != NULL) cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       continue;
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+    } else {
+      /* When (other) Microsoft extensions are not allowed, exit the
+         loop when the token is not a near/far keyword. */
+      break;
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
