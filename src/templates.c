@@ -5047,11 +5047,11 @@ Do some simple consistency checking on a function template argument list.
 void instantiate_default_argument(a_symbol_ptr		rout_sym,
 				  a_param_type_ptr	param)
 /*
-Rescan a default arguments of a template function, or member function
+Rescan a default argument of a template function, or member function
 of a template class.  rout_sym points to the symbol of the function
-instance with which the parameter is associated.  param points the
-the parameter list entry for the parameter whose default argument is
-to be instantiated.
+instance with which the parameter is associated.  param points to the
+parameter list entry for the parameter whose default argument is to be
+instantiated.
 */
 {
   a_def_arg_expr_fixup_ptr		daefp;
