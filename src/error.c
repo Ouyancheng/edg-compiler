@@ -1106,6 +1106,21 @@ error code.
     case ec_nonstatic_member_operator_not_allowed:
       m = "\"operator%s\" may not be a nonstatic member function";
       break;
+    case ec_too_many_args_for_conversion:
+      m = "no arguments allowed on user-defined conversion";
+      break;
+    case ec_too_many_args_for_operator:
+      m = "too many arguments for overloaded operator";
+      break;
+    case ec_too_few_args_for_operator:
+      m = "too few arguments for overloaded operator";
+      break;
+    case ec_no_args_with_class_type:
+      m = "nonmember operator requires an argument with class type";
+      break;
+    case ec_default_arg_expr_not_allowed:
+      m = "default argument is not allowed";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -389,7 +389,12 @@ typedef enum /*an_error_code*/ {
   ec_ambiguous_default_constructor,
   ec_temp_used_for_ref_init,
   ec_nonmember_operator_not_allowed,
-  ec_nonstatic_member_operator_not_allowed
+  ec_nonstatic_member_operator_not_allowed,
+  ec_too_many_args_for_conversion,
+  ec_too_many_args_for_operator,
+  ec_too_few_args_for_operator,
+  ec_no_args_with_class_type,
+  ec_default_arg_expr_not_allowed
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
