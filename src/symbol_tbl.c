@@ -2659,31 +2659,7 @@ the overloaded function symbol.
   } else {
     /* The existing symbol is not an sk_overloaded_function symbol
        (i.e., it's a simple function symbol of some kind). */
-    /* Create an sk_overloaded_function symbol and attach the old
-       function symbol to it. */
-    hdr_ptr = other_sym->header;
-    overload_sym = alloc_symbol((a_symbol_kind)sk_overloaded_function,
-                                   hdr_ptr, &(other_sym->decl_position));
-    overload_sym->decl_scope = other_sym->decl_scope;
-    if (other_sym->is_class_member) {
-      set_class_membership(overload_sym, (a_source_correspondence *)NULL,
-                           other_sym->parent.class_type);
-    }  /* if */
-    /* Put overload_sym into the primary list in place of other_sym. */
-    /* Find the symbol preceding other_sym on its list. */
-    prev_sym_ptr = hdr_ptr->symbol;
-    if (prev_sym_ptr == other_sym) {
-      /* The entry is the first on the header list. */
-      hdr_ptr->symbol = overload_sym;
-    } else {
-      while (prev_sym_ptr->next != other_sym) {
-        prev_sym_ptr = prev_sym_ptr->next;
-      }  /* while */
-      prev_sym_ptr->next = overload_sym;
-    }  /* if */
-    overload_sym->next = other_sym->next;
-    other_sym->next = NULL;
-    /* Also put overload_sym into the scope list in place of other_sym. */
+    /* Find the scope stack entry associated with this declaration. */
     ssep = &scope_stack[decl_scope_level];
     /* If the scope stack entry for the overloaded function is not that of
        the current scope (e.g., when a friend declaration refers to a function
@@ -2697,6 +2673,44 @@ the overloaded function symbol.
       --ssep;
     }  /* if */
     pointers_block = assoc_pointers_block_of(ssep);
+    /* Create an sk_overloaded_function symbol and attach the old
+       function symbol to it. */
+    hdr_ptr = other_sym->header;
+    overload_sym = alloc_symbol((a_symbol_kind)sk_overloaded_function,
+                                   hdr_ptr, &(other_sym->decl_position));
+    overload_sym->decl_scope = other_sym->decl_scope;
+    /* If the symbol is a member of a class or namespace, set the membership
+       of the new symbol. */
+    if (other_sym->is_class_member) {
+      set_class_membership(overload_sym, (a_source_correspondence *)NULL,
+                           other_sym->parent.class_type);
+    } else if (other_sym->parent.namespace_ptr != NULL) {
+      set_namespace_membership(overload_sym,  (a_source_correspondence *)NULL,
+                               other_sym->parent.namespace_ptr);
+    }  /* if */
+    /* Put overload_sym into the symbol list in place of other_sym.
+       This will normally use the active symbol list, but may use the
+       inactive list for namespace extensions. */
+    /* Find the symbol preceding other_sym on its list. */
+    if (pointers_block->add_symbols_to_inactive_list) {
+      prev_sym_ptr = hdr_ptr->inactive_symbols;
+      if (prev_sym_ptr == other_sym) hdr_ptr->inactive_symbols = overload_sym;
+    } else {
+      prev_sym_ptr = hdr_ptr->symbol;
+      if (prev_sym_ptr == other_sym) hdr_ptr->symbol = overload_sym;
+    }  /* if */
+    if (prev_sym_ptr == other_sym) {
+      /* The entry is the first on the header list.  This case is handled
+         above. */
+    } else {
+      while (prev_sym_ptr->next != other_sym) {
+        prev_sym_ptr = prev_sym_ptr->next;
+      }  /* while */
+      prev_sym_ptr->next = overload_sym;
+    }  /* if */
+    overload_sym->next = other_sym->next;
+    other_sym->next = NULL;
+    /* Also put overload_sym into the scope list in place of other_sym. */
     prev_sym_ptr = pointers_block->symbols;
     if (prev_sym_ptr == other_sym) {
        /* The entry is the first on the scope's symbol list. */
@@ -6483,6 +6497,7 @@ the global namespace) to be found as the result of a lookup.
 #else
   /* Temporary version. */
   sym_error(ec_ambiguous_name, curr_sym);
+  curr_sym = new_sym;  /* Just to suppress unused warning. */
   *err = TRUE;
   return curr_sym;
 #endif
@@ -6511,6 +6526,7 @@ C and C++.
   a_boolean               must_be_tag   = (options & IDL_MUST_BE_TAG);
   a_boolean		  skip_curr_function_scope =
                                       (options & IDL_SKIP_CURR_FUNCTION_SCOPE);
+  a_boolean		  is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP);
   a_boolean		  first_scope;
   a_boolean               must_be_type_name;
   a_boolean               look_for_projected_symbol = FALSE;
@@ -6640,6 +6656,7 @@ C and C++.
          stack has at least two entries (the file scope and the class or
          class reactivation). */
       for (first_scope = TRUE;; first_scope = FALSE) {
+        a_scope_kind	kind = ssep->kind;
         {
           /* Add any using directives from this scope to the list of
              active using directives for this lookup. */
@@ -6653,11 +6670,11 @@ C and C++.
             active_using_tail = audp;
           }  /* while */
         }
-        if (ssep->kind == (a_scope_kind)sck_class_reactivation ||
-            ssep->kind == (a_scope_kind)sck_namespace_extension ||
-	    ssep->kind == (a_scope_kind)sck_template_instantiation) {
+        if (kind == (a_scope_kind)sck_class_reactivation ||
+            kind == (a_scope_kind)sck_namespace_extension ||
+	    kind == (a_scope_kind)sck_template_instantiation) {
           if (cfront_2_1_mode &&
-              ssep->kind == (a_scope_kind)sck_class_reactivation &&
+              kind == (a_scope_kind)sck_class_reactivation &&
               skip_first_class_reactivation_scope) {
             /* This is used to skip class reactivation scopes when
                processing friend declarations in cfront compatibility
@@ -6700,7 +6717,7 @@ C and C++.
             sym = tag_symbol;
             goto end_lookup;
           }  /* if */
-	  if (ssep->kind == (a_scope_kind)sck_class_reactivation) {
+	  if (kind == (a_scope_kind)sck_class_reactivation) {
             /* There is no inactive symbol that is in this class. */
             /* Look for a symbol projected (inherited) into this class. */
             look_for_projected_symbol = TRUE;
@@ -6710,7 +6727,7 @@ C and C++.
             /* Not a class scope, so do not look for projected symbol. */
             look_for_projected_symbol = FALSE;
           }  /* if */
-	} else if (ssep->kind == (a_scope_kind)sck_pragma) {
+	} else if (kind == (a_scope_kind)sck_pragma) {
 	  /* We have found a pragma scope -- ignore symbols in this scope. */
           skip_symbols_from_this_scope();
 	  goto next_scope;
@@ -6733,11 +6750,11 @@ C and C++.
                  check for symbols visible as a result of using
                  directives. */
               sym = active_sym;
-              found_at_file_scope = ssep->kind == (a_scope_kind)sck_file;
+              found_at_file_scope = kind == (a_scope_kind)sck_file;
               goto check_for_using_directives;
             }  /* if */
           }  /* for */
-          if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
+          if (kind == (a_scope_kind)sck_class_struct_union) {
             /* For class scopes, look for a symbol projected (inherited)
                into the class scope. */
             look_for_projected_symbol = TRUE;
@@ -6784,7 +6801,13 @@ C and C++.
 next_scope:
         /* End the loop when we reach the bottom of the scope stack. */
         if (ssep == &scope_stack[DEPTH_OF_FILE_SCOPE]) break;
-        if (cfront_2_1_mode && ssep->kind == (a_scope_kind)sck_function) {
+        if (is_linkage_lookup) {
+          /* When doing a linkage lookup, stop when we encounter the first
+             namespace scope. */
+          if (kind == (a_scope_kind)sck_namespace ||
+              kind == (a_scope_kind)sck_namespace_extension) break;
+        }  /* if */
+        if (cfront_2_1_mode && kind == (a_scope_kind)sck_function) {
           /* In cfront compatibility mode friend functions defined within
              a class ignore the innermost class reactivation scope.
              If this is a friend function, set a flag that will cause
@@ -6807,7 +6830,7 @@ next_scope:
            an instantiation of something defined within another template)
 	   then continue looking for names until the first nonnested
 	   instantiation is encountered. */
-        if (ssep->kind == (a_scope_kind)sck_template_instantiation &&
+        if (kind == (a_scope_kind)sck_template_instantiation &&
 	    !ssep->nested_instantiation) {
           a_scope_number  file_scope_number;
           ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
@@ -6825,92 +6848,97 @@ next_scope:
         }  /* if */
       }  /* for */
 check_for_using_directives:
-      /* If no symbol was found, or if the symbol found was from the file
-         scope, look for symbols that are visible as a result of
-         using directives. */
-      if (sym == NULL || found_at_file_scope) {
-        an_active_using_directive_ptr	audp;
-        a_symbol_ptr			new_sym;
-        /* Set a flag in the namespace supplement for each of the
-           namespaces on the active using list. */
-        for (audp = active_using_list; audp != NULL; audp = audp->next) {
-          audp->namespace_supplement->on_active_using_list = TRUE;
-        }  /* for */
-        /* Look through the inactive symbols for any symbols associated with
-           one of the marked namespaces. */
-        new_sym = inactive_symbol_list;
-        for (new_sym = inactive_symbol_list;
-             new_sym != NULL; new_sym = new_sym->next) {
-          a_namespace_ptr	nsp;
-          a_symbol_ptr		ns_sym;
-          /* Ignore symbols that are not namespace members. */
-          if (new_sym->is_class_member) continue;
-          nsp = new_sym->parent.namespace_ptr;
-          if (nsp == NULL) continue;
-          nsp = skip_namespace_aliases(nsp);
-          ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
-          if (ns_sym->variant.namespace_info.extra_info->
-                                                       on_active_using_list) {
-            if (sym == NULL) {
-              /* There was no previous symbol. */
-              sym = new_sym;
-            } else {
-              /* Merge the information about this symbol, with that
-                 of any previous symbol that was found. */
-              a_boolean	err;
-              sym = add_symbol_to_lookup_set(sym, new_sym, &err);
-              /* If an error occurred while trying to reconcile the two
-                 symbols, don't look for any additional matches. */
-              if (err) break;
+      /* If this is a linkage lookup, don't do the using directive
+         lookup, nested class anachronism lookup, or SVR4 mode lookup. */
+      if (!is_linkage_lookup) {
+        /* If no symbol was found, or if the symbol found was from the file
+           scope, look for symbols that are visible as a result of
+           using directives. */
+        if (sym == NULL || found_at_file_scope) {
+          an_active_using_directive_ptr	audp;
+          a_symbol_ptr			new_sym;
+          /* Set a flag in the namespace supplement for each of the
+             namespaces on the active using list. */
+          for (audp = active_using_list; audp != NULL; audp = audp->next) {
+            audp->namespace_supplement->on_active_using_list = TRUE;
+          }  /* for */
+          /* Look through the inactive symbols for any symbols associated with
+             one of the marked namespaces. */
+          new_sym = inactive_symbol_list;
+          for (new_sym = inactive_symbol_list;
+               new_sym != NULL; new_sym = new_sym->next) {
+            a_namespace_ptr	nsp;
+            a_symbol_ptr		ns_sym;
+            /* Ignore symbols that are not namespace members. */
+            if (new_sym->is_class_member) continue;
+            nsp = new_sym->parent.namespace_ptr;
+            if (nsp == NULL) continue;
+            nsp = skip_namespace_aliases(nsp);
+            ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
+            if (ns_sym->variant.namespace_info.extra_info->
+                                                        on_active_using_list) {
+              if (sym == NULL) {
+                /* There was no previous symbol. */
+                sym = new_sym;
+              } else {
+                /* Merge the information about this symbol, with that
+                   of any previous symbol that was found. */
+                a_boolean	err;
+                sym = add_symbol_to_lookup_set(sym, new_sym, &err);
+                /* If an error occurred while trying to reconcile the two
+                   symbols, don't look for any additional matches. */
+                if (err) break;
+              }  /* if */
             }  /* if */
-          }  /* if */
-        }  /* for */
-        /* Clear the flag in the namespace supplement that was set earlier. */
-        for (audp = active_using_list; audp != NULL; audp = audp->next) {
-          audp->namespace_supplement->on_active_using_list = FALSE;
-        }  /* for */
-      }  /* if */
-    }  /* if */
-    if (sym == NULL) {
-      /* See if the nested class anachronism (ARM 18.3.5) yields a symbol.
-         Note that if there is an ambiguity, NULL is returned.  Note also
-         that we look for a semivisible nested class only if no other symbol
-         is found.  This means a nested class that is semivisible at function
-         scope will not hide a name at file scope; this is different from how
-         cfront 2.1 works, but it means that programs that are legal by the
-         ARM do not fail to compile or otherwise behave differently because
-         the anachronism was invoked. */
-      if (allow_anachronisms) sym = find_nested_type_symbol(locator);
-      if (sym != NULL) {
-        if (is_acceptable_symbol(sym)) {
-          locator->is_semivisible_nested_type = TRUE;
-        } else {
-          sym = NULL;
+          }  /* for */
+          /* Clear the flag in the namespace supplement that was set
+             earlier. */
+          for (audp = active_using_list; audp != NULL; audp = audp->next) {
+            audp->namespace_supplement->on_active_using_list = FALSE;
+          }  /* for */
         }  /* if */
       }  /* if */
-    }  /* if */
-    if (sym == NULL && any_nonreal_bases) {
-      /* If no symbol was found and one of the classes searched has
-         a nonreal base class then consider the symbol to be a member
-         of the class with the nonreal base class.  This will occur when
-         a base class depends on a template parameter (such as A<T>)
-         or when the base class is a template parameter (such as T).
-         In these cases it is impossible to know, at the time that
-         prototype instantiation is done, which names will be in the
-         classes used in the real instantiations.  Any name is accepted
-         as a member of the class. */
-      sym = add_member_to_proxy_or_nonreal_class(class_with_nonreal_base,
-						 options, locator);
-    }  /* if */
-    if (sym == NULL && C_dialect == C_dialect_ANSI && !strict_ansi_mode &&
-        (options & IDL_TENTATIVE_TYPE_LOOKUP) == 0) {
-      /* This is a feature taken from SVR4 compatibility mode that has been
-         expanded to be used in default ANSI C mode. A symbol declared as
-	 a block extern in a block that is no longer in scope may be
-	 referenced later.  Look for an external variable or routine that
-	 matches the name being looked up.  This is not done during
-	 tentative type lookups. */
-      sym = find_out_of_scope_declaration(locator);
+      if (sym == NULL) {
+        /* See if the nested class anachronism (ARM 18.3.5) yields a symbol.
+           Note that if there is an ambiguity, NULL is returned.  Note also
+           that we look for a semivisible nested class only if no other symbol
+           is found.  This means a nested class that is semivisible at function
+           scope will not hide a name at file scope; this is different from how
+           cfront 2.1 works, but it means that programs that are legal by the
+           ARM do not fail to compile or otherwise behave differently because
+           the anachronism was invoked. */
+        if (allow_anachronisms) sym = find_nested_type_symbol(locator);
+        if (sym != NULL) {
+          if (is_acceptable_symbol(sym)) {
+            locator->is_semivisible_nested_type = TRUE;
+          } else {
+            sym = NULL;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (sym == NULL && any_nonreal_bases) {
+        /* If no symbol was found and one of the classes searched has
+           a nonreal base class then consider the symbol to be a member
+           of the class with the nonreal base class.  This will occur when
+           a base class depends on a template parameter (such as A<T>)
+           or when the base class is a template parameter (such as T).
+           In these cases it is impossible to know, at the time that
+           prototype instantiation is done, which names will be in the
+           classes used in the real instantiations.  Any name is accepted
+           as a member of the class. */
+        sym = add_member_to_proxy_or_nonreal_class(class_with_nonreal_base,
+  						 options, locator);
+      }  /* if */
+      if (sym == NULL && C_dialect == C_dialect_ANSI && !strict_ansi_mode &&
+          (options & IDL_TENTATIVE_TYPE_LOOKUP) == 0) {
+        /* This is a feature taken from SVR4 compatibility mode that has been
+           expanded to be used in default ANSI C mode. A symbol declared as
+  	 a block extern in a block that is no longer in scope may be
+  	 referenced later.  Look for an external variable or routine that
+  	 matches the name being looked up.  This is not done during
+  	 tentative type lookups. */
+        sym = find_out_of_scope_declaration(locator);
+      }  /* if */
     }  /* if */
 end_lookup:
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
@@ -8784,6 +8812,124 @@ in cfront compatibility mode.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 
 
+static
+void wrapup_scope(a_scope_ptr			scope_ptr,
+                  a_scope_kind			kind,
+                  a_scope_pointers_block_ptr	pointers_block,
+                  a_boolean 	                is_namespace_wrapup)
+/*
+Do the processing required when a scope is closed.  This includes
+doing any necessary end-of-scope processing on the symbols from
+the scope.  This routine does processing that is done for scopes as they
+are popped off of the stack and also for namespace scopes and the end
+of the translation unit.
+
+scope_ptr points to the IL scope entry associated with this scope,
+and may be NULL.  is_namespace_wrapup is TRUE if this call is
+used to do the final namespace processing at the end of the translation
+unit.
+*/
+{
+  a_symbol_ptr			sym;
+
+  db_enter(3, "wrapup_scope");
+  if (kind == (a_scope_kind)sck_namespace_extension) {
+    /* Symbol processing is not done for namespace extension scopes. */
+  } else {
+    a_boolean                is_prototype_instantiation = FALSE;
+    a_routine_ptr            curr_routine = NULL;
+    /* Check for prototype instantiation of a class template. */
+    if (kind == (a_scope_kind)sck_function) {
+      /* If the scope is for a routine, get a pointer to the routine. */
+      curr_routine = scope_ptr->variant.routine.ptr;
+    }  /* if */
+    if (kind == (a_scope_kind)sck_class_struct_union &&
+        (symbol_supplement_for_class(scope_ptr->variant.assoc_type))->
+                                                            is_nonreal_class) {
+      is_prototype_instantiation = TRUE;
+    }  /* if */
+    /* Remove the symbols declared in this scope from the symbol table.
+       Check for unreferenced symbols, and issue warnings for those. */
+    for (sym = pointers_block->symbols;
+         sym != NULL;
+         sym = sym->next_in_scope) {
+      if (kind == (a_scope_kind)sck_func_prototype && !is_tag_symbol(sym)) {
+        /* Don't check on symbols entered in the scope of a function prototype.
+           They will be reentered in the scope of the function and should be
+           checked when the function scope is popped.  Tag symbols are
+           checked because tags associated with incomplete types need to
+           be put on the types list of the prototype scope. */
+      } else if (is_prototype_instantiation) {
+        /* Don't check on symbols entered in the scope of a class template
+           prototype instantiation -- the information may not be complete. */
+      } else if (kind == (a_scope_kind)sck_namespace && !is_namespace_wrapup) {
+        /* Don't check symbols in namespaces and namespace extensions because
+           we don't have complete information yet.  This will be done at the
+           end of the file scope. */
+      } else {
+        end_of_scope_symbol_check(sym, curr_routine);
+      }  /* if */
+      if (sym->kind == (a_symbol_kind)sk_extern_variable ||
+          sym->kind == (a_symbol_kind)sk_extern_routine) {
+        /* Extern variable and routine symbols were not really entered into
+           the symbol table proper, so don't try to remove them or add them to
+           the inactive list. */
+        continue;
+      }  /* if */
+      if (kind == (a_scope_kind)sck_namespace && is_namespace_wrapup) {
+        /* Namespace symbols were removed from the symbol table when the
+           namespace was first closed.  Don't do it again now. */
+      } else {
+        /* Remove the symbol from the symbol table.  This is not done for
+           namespace extension scopes because symbols from namespace extension
+           scopes are put directly on the inactive list.  The symbol list from
+           the scope entry includes all symbols in the namespace, not only
+           those added as a result of this extension.  (Note that symbols are
+           not removed from the scope list.  This is because they must
+           sometimes remain accessible and the scope list, saved away in some
+           other data structure, is a convenient way to get at them again.) */
+        unlink_symbol_from_symbol_table(sym);
+      }  /* if */
+      /* Put struct/union/class members, namespace members, and template
+         parameters on the inactive list of the proper symbol header.  For
+         namespace members, this only needs to be done for the initial
+         definition.  When a namespace extension is done, the symbols are
+         added directly to the inactive list. */
+      if (kind == (a_scope_kind)sck_class_struct_union ||
+          (kind == (a_scope_kind)sck_namespace && !is_namespace_wrapup) ||
+          kind == (a_scope_kind)sck_template_declaration) {
+        add_symbol_to_inactive_list(sym);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  db_exit();
+}  /* wrapup_scope */
+
+
+static void wrapup_namespace_scopes(a_scope_ptr scope_ptr)
+/*
+Call wrapup_scope for any namespace scopes defined within the scope
+pointed to by scope_ptr.
+*/
+{
+  a_namespace_ptr	nsp = scope_ptr->namespaces;
+
+  while (nsp != NULL) {
+    if (!nsp->is_namespace_alias) {
+      a_scope_pointers_block_ptr	pointers_block;
+      a_scope_ptr			assoc_scope = nsp->variant.assoc_scope;
+      pointers_block = &namespace_supplement_for_namespace(nsp)->
+                                                                pointers_block;
+      wrapup_scope(assoc_scope, assoc_scope->kind,
+                   pointers_block, /*is_namespace_wrapup=*/TRUE);
+      /* Process any namespaces defined within this one. */
+      wrapup_namespace_scopes(assoc_scope);
+    }  /* if */
+    nsp = nsp->next;
+  }  /* while */
+}  /* wrapup_namespace_scopes */
+
+
 void pop_scope(void)
 /*
 End a name scope by popping an entry off the scope stack.
@@ -8791,14 +8937,12 @@ End a name scope by popping an entry off the scope stack.
 {
   a_scope_stack_entry_ptr  ssep, parent_ssep;
   a_scope_pointers_block_ptr pointers_block;
-  a_symbol_ptr             sym;
   a_routine_ptr            curr_routine = NULL;
   a_memory_region_number   old_memory_region_number, new_memory_region_number;
   a_scope_kind             kind;
   an_extern_type_fixup_ptr etfp;
   a_scope_depth            scope_depth;
   a_boolean                old_region_still_needed;
-  a_boolean                is_prototype_instantiation = FALSE;
   a_scope_ptr              il_scope;
 
   db_enter(3, "pop_scope");
@@ -8870,60 +9014,10 @@ End a name scope by popping an entry off the scope stack.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
     }  /* if */
   }  /* if */
-  /* Check for prototype instantiation of a class template. */
-  if (kind == (a_scope_kind)sck_class_struct_union &&
-      (symbol_supplement_for_class(ssep->assoc_type))->is_nonreal_class) {
-    is_prototype_instantiation = TRUE;
-  }  /* if */
-  /* Remove the symbols declared in this scope from the symbol table.
-     Check for unreferenced symbols, and issue warnings for those. */
-  for (sym = pointers_block->symbols; sym != NULL; sym = sym->next_in_scope) {
-    if (kind == (a_scope_kind)sck_func_prototype && !is_tag_symbol(sym)) {
-      /* Don't check on symbols entered in the scope of a function prototype.
-         They will be reentered in the scope of the function and should be
-         checked when the function scope is popped.  Tag symbols are
-	 checked because tags associated with incomplete types need to
-	 be put on the types list of the prototype scope. */
-    } else if (is_prototype_instantiation) {
-      /* Don't check on symbols entered in the scope of a class template
-         prototype instantiation -- the information may not be complete. */
-    } else if (kind == (a_scope_kind)sck_namespace ||
-               kind == (a_scope_kind)sck_namespace_extension) {
-      /* Don't check symbols in namespaces and namespace extensions because
-         we don't have complete information yet.  This will be done at the
-         end of the file scope. */
-    } else {
-      end_of_scope_symbol_check(sym, curr_routine);
-    }  /* if */
-    if (sym->kind == (a_symbol_kind)sk_extern_variable ||
-        sym->kind == (a_symbol_kind)sk_extern_routine) {
-      /* Extern variable and routine symbols were not really entered into
-         the symbol table proper, so don't try to remove them or add them to
-         the inactive list. */
-      continue;
-    }  /* if */
-    if (kind != (a_scope_kind)sck_namespace_extension) {
-      /* Remove the symbol from the symbol table.  This is not done for
-         namespace extension scopes because symbols from namespace extension
-         scopes are put directly on the inactive list.  The symbol list from
-         the scope entry includes all symbols in the namespace, not only those
-         added as a result of this extension.  (Note that symbols are not
-         removed from the scope list.  This is because they must sometimes
-         remain accessible and the scope list, saved away in some other data
-         structure, is a convenient way to get at them again.) */
-      unlink_symbol_from_symbol_table(sym);
-    }  /* if */
-    /* Put struct/union/class members, namespace members, and template
-       parameters on the inactive list of the proper symbol header.  For
-       namespace members, this only needs to be done for the initial
-       definition.  When a namespace extension is done, the symbols are
-       added directly to the inactive list. */
-    if (kind == (a_scope_kind)sck_class_struct_union ||
-        kind == (a_scope_kind)sck_namespace ||
-        kind == (a_scope_kind)sck_template_declaration) {
-      add_symbol_to_inactive_list(sym);
-    }  /* if */
-  }  /* for */
+  /* Remove symbols from the symbol table, and reenter them on the
+     inactive list if necessary. */
+  wrapup_scope(ssep->il_scope, kind, pointers_block,
+               /*is_namespace_wrapup=*/FALSE);
   il_scope = ssep->il_scope;
   if (C_dialect == C_dialect_cplusplus && il_scope != NULL) {
     if (kind == (a_scope_kind)sck_function ||
@@ -8957,6 +9051,11 @@ End a name scope by popping an entry off the scope stack.
     end_of_scope_pragma_processing(ssep->pending_pragmas);
   }  /* if */
   if (!C_mode()) {
+    /* If this is the file scope, call a routine to do end-of-scope
+       processing for any namespace scopes that may exist. */
+    if (kind == (a_scope_kind)sck_file) {
+      wrapup_namespace_scopes(il_header.primary_scope);
+    }  /* if */
     /* Free any active using directive entries.  This is not done for
        namespace and namespace extension scopes because the entries
        are used if the extension scope is reactivated. */

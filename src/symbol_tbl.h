@@ -86,6 +86,12 @@ typedef int an_id_lookup_options_set;
 				   suppresses the creation of a new
 				   symbol if the name is not found in the
 				   class. */
+#define IDL_LINKAGE_LOOKUP 0x40
+				/* A special lookup used for determining
+				   identifier linkage.  This lookup stops
+				   at the first namespace scope and suppresses
+				   some of the special lookups (such as
+				   the using directive lookup). */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*
@@ -2857,6 +2863,15 @@ which is_class_struct_union_type is TRUE.
 #define symbol_supplement_for_class(tp)                              \
   (((a_symbol_ptr)(skip_typerefs(tp))->source_corresp.assoc_info)->  \
                             variant.class_struct_union.extra_info)
+
+/*
+Given a namespace pointer, return a pointer to the namespace symbol
+supplement.
+*/
+#define namespace_supplement_for_namespace(nsp)				\
+  (((a_symbol_ptr)(skip_namespace_aliases(nsp))->source_corresp.assoc_info)-> \
+                                          variant.namespace_info.extra_info)
+
 
 /* Return a pointer to the current routine entry (only usable when within
    a routine definition). */
