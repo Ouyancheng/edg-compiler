@@ -1,5 +1,10 @@
 Version 3.3
 
+7/16/03  GNU C++ mode: __cplusplus defined to 1
+
+In g++ mode the __cplusplus macro is now defined to the 1 instead of
+199711L as specified by the C++ standard.
+
 7/16/03  GNU IA-64 ABI: Offset of virtual empty bases
 
 The IA-64 ABI specifies that a virtual empty base should be placed at

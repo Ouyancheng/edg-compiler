@@ -4765,7 +4765,7 @@ command line -D options.
   /* __cplusplus is defined as 199711L if we are compiling C++, left undefined
      otherwise.  For compatibility, c_plusplus is also defined. */
   if (C_dialect == C_dialect_cplusplus) {
-    (void)enter_predef_macro((char *)((microsoft_mode ||
+    (void)enter_predef_macro((char *)((microsoft_mode || gpp_mode ||
                                        any_cfront_mode()) ? "1" : "199711L"),
 			     "__cplusplus",
 			     /*cannot_be_redefined=*/TRUE,
