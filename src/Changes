@@ -1,5 +1,10 @@
 Version 2.46
 
+1/4/01   C99 mode cannot be enabled when Microsoft mode is the default
+
+The front end gave an error if the --c99 option was used when Microsoft mode
+was the default.  This has been fixed.
+
 1/4/01   Inconsistent positions on certain variable declarations
 
 When a variable with linkage was declared (and not defined) in two different 
