@@ -1211,7 +1211,17 @@ template is defined.
     if (sse_ptr->kind == (a_scope_kind)sck_template_instantiation) {
       /* The instantiation context depth is the depth at the point the
          instantiation is triggered. */
-      sse_ptr = &scope_stack[sse_ptr->instantiation_context_depth];
+      if (sse_ptr->instantiation_context_depth == NO_SCOPE_DEPTH) {
+        /* The current scope must be a nested instantiation.  Get the
+           context from the enclosing instantiation. */
+        check_assertion(sse_ptr->depth_innermost_instantiation_scope !=
+                                                           NO_SCOPE_DEPTH);
+        sse_ptr = &scope_stack[sse_ptr->depth_innermost_instantiation_scope];
+      } else {
+        /* The scope in which the instantiation was triggered is recorded
+           in the scope stack entry. */
+        sse_ptr = &scope_stack[sse_ptr->instantiation_context_depth];
+      }  /* if */
     } else if (sse_ptr->depth_innermost_instantiation_scope !=
                                                          NO_SCOPE_DEPTH) {
       /* The current scope is within an instantiation.  Find the innermost
