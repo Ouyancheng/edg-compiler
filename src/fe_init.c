@@ -93,6 +93,9 @@ been included by the inclusion of fe_common.h.
 #include "lower_name.h"
 #include "lower_init.h"
 #include "lower_eh.h"
+#if MINIMAL_INLINING
+#include "inline.h"
+#endif /* MINIMAL_INLINING */
 #endif /* DO_IL_LOWERING */
 
 
