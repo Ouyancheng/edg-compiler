@@ -2128,6 +2128,10 @@ array variants) and marked as compiler-generated.
 
 #if DECL_MODIFIERS_IN_USE
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* The parameters are only used to check Microsoft-specific
+                declaration modifiers. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean incompatible_routine_decl_modifiers(a_routine_ptr  rp1,
                                                      a_routine_ptr  rp2)
 /*
@@ -2135,14 +2139,18 @@ Return TRUE if and only if the two corresponding routines have incompatible
 declaration modifiers.
 */
 {
-  a_boolean  result = FALSE;
+  a_boolean        result = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_decl_modifier  dm_mask = (a_decl_modifier)(DM_DLLIMPORT | DM_DLLEXPORT);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* dllimport and dllexport need not match up.  The only constraint is that
      there should not be two dllexport definitions, but that is covered by
      the more general check for multiple definitions. */
-  result = ((rp1->decl_modifiers & ~(DM_DLLIMPORT | DM_DLLEXPORT)) !=
-            (rp2->decl_modifiers & ~(DM_DLLIMPORT | DM_DLLEXPORT)));
+
+  result = ((rp1->decl_modifiers & ~dm_mask) !=
+            (rp2->decl_modifiers & ~dm_mask));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* incompatible_routine_decl_modifiers */
