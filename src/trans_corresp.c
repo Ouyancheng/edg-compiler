@@ -2633,12 +2633,10 @@ way, determine to which other IL entry this might correspond.
        type. */
     if (scp->is_class_member) {
       root = scp->parent.class_type;
-      if (kind != (an_il_entry_kind)iek_field &&
+      if (kind == (an_il_entry_kind)iek_type &&
           has_name((a_type_ptr)scp) &&
-          root->variant.class_struct_union.is_prototype_instantiation &&
-          root->variant.class_struct_union.extra_info != NULL &&
-          root->variant.class_struct_union.extra_info
-                                                   ->assoc_template != NULL) {
+          ((a_type_ptr)scp)
+                    ->variant.class_struct_union.is_prototype_instantiation) {
         /* Prototype instantiations are not always recorded in the IL.
            Therefore, set root to NULL so that the symbol table will be used
            to find the named member instead. */
