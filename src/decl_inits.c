@@ -1551,18 +1551,13 @@ is set to TRUE; otherwise it is set to FALSE.
 #if CHECKING
     if (is_incomplete_type(member_type)) {
       /* Members of unions or aggregates cannot be incomplete. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
       a_boolean top_level = (context->prev_context == NULL);
-      if (microsoft_mode && top_level && is_array_type(member_type) &&
-            (*field)->next == NULL) {
-        /* ... except that in Microsoft mode it's okay to initialize
+      if (top_level && is_array_type(member_type) && (*field)->next == NULL) {
+        /* ... except that in several modes it's okay to initialize
            a field of incomplete array type when it's the last field in
            the struct (but only when the struct is the top-level object
-           type). */
-      } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-              /* Do not add code here. */
-      {
+           type).  (See also: check_field_type.) */
+      } else {
         internal_error("get_field_init_info: can't init 0-size member");
       }  /* if */
     }  /* if */
