@@ -6722,6 +6722,10 @@ by recursive calls.
             if (rp->is_inline) {
               /* An inline member function remains internally linked even
                  when it is a member of an externally linked class. */
+            } else if (ctsp->template_arg_list != NULL &&
+                       instantiation_mode == tim_local) {
+              /* In local instantiation mode the member function remains
+                 internally linked. */
             } else {
               /* All other functions must be externally linked.  The storage
                  class (extern or unspecified) depends on whether the function
