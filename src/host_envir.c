@@ -1842,7 +1842,12 @@ buffer.
 extern int getpagesize(void);
 #endif /* __BSD__ */
 
-int get_page_size(void)
+static int	page_size = 0;
+			/* The size of a host page.  Memory mapped blocks must
+			   be requested in increments of this size. */
+
+
+static int get_page_size(void)
 /*
 Return the size of a host page.  When map_file_region is called,
 incremental_size must be a multiple of the page size.
@@ -1857,6 +1862,21 @@ incremental_size must be a multiple of the page size.
   check_assertion_str2(page_size > 0, "get_page_size:", "invalid page size");
   return page_size;
 }  /* get_page_size */
+
+
+sizeof_t do_page_alignment(sizeof_t size)
+/*
+Return "size" adjusted as needed to be a multiple of the system page size.
+*/
+{
+  sizeof_t	size2;
+
+  /* On the first call of this routine, get the host page size. */
+  if (page_size == 0) page_size = get_page_size();
+  size2 = (size / page_size) * page_size;
+  if (size2 < size) size2 += page_size;
+  return size2;
+}  /* do_page_alignment */
 
 
 a_void_ptr map_file_region(FILE		*file,
@@ -1895,6 +1915,55 @@ should be added.
   }  /* if */
   return addr;
 }  /* map_file_region */
+
+
+a_void_ptr map_input_file_to_region(FILE		*file,
+                                    sizeof_t		offset,
+				    sizeof_t		size,
+				    a_void_ptr		address)
+/*
+Map the data pointed to by "file", starting at "offset" bytes,
+for "size" bytes to the address specified by "address".
+This mapping is done as a private mapping so that any changes to
+the data will be local.  This is used to map a section of a PCH
+file to a memory region.
+*/
+{
+  int		fd = file->_file;
+  a_void_ptr	result_addr;
+
+  result_addr = (a_void_ptr)mmap(address, size,
+                            PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_FIXED,
+                            fd, (off_t)offset);
+  /* mmap returns (cresult_addr_t)-1 if the operation fails. */
+#if CHECKING
+  if (result_addr == (caddr_t)-1) {
+    fprintf(f_debug, "Map failed: address=%p, size=%lu, offset=%lu\n",
+            address, (unsigned long)size, (unsigned long)offset);
+  }  /* if */
+#endif /* CHECKING */
+  if (result_addr == (caddr_t)-1) result_addr = NULL;
+  return result_addr;
+}  /* map_input_file_to_region */
+
+
+sizeof_t seek_to_page_alignment(FILE *file)
+/*
+Seeks to the next position in the file that is a multiple of the
+host page size.  This is used to ensure that data written to a file
+is at an offset that can be used as an argument to mmap.  Return the
+current file position.
+*/
+{
+  sizeof_t	curr_pos;
+
+  curr_pos = (sizeof_t)ftell(file);
+  curr_pos = do_page_alignment(curr_pos);
+  if (fseek(file, curr_pos, SEEK_SET) != 0) {
+    unexpected_condition_str("seek_to_page_alignment: fseek error");
+  }  /* if */
+  return curr_pos;
+}  /* seek_to_page_alignment */
 
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 

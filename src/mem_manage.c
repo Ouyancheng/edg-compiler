@@ -275,10 +275,6 @@ static sizeof_t	mmap_size_allocated;
 static FILE*	f_mmap_file;
 			/* The file descriptor for the mmap file. */
 
-static int	page_size;
-			/* The size of a host page.  Memory mapped blocks must
-			   be requested in increments of this size. */
-
 
 a_void_ptr alloc_new_mem_block(sizeof_t size)
 /*
@@ -315,19 +311,6 @@ PCH was created.
 #endif /* DEBUG */
   return addr;
 }  /* alloc_new_mem_block */
-
-
-static sizeof_t do_page_alignment(sizeof_t size)
-/*
-Return "size" adjusted as needed to be a multiple of the system page size.
-*/
-{
-  sizeof_t	size2;
-
-  size2 = (size / page_size) * page_size;
-  if (size2 < size) size2 += page_size;
-  return size2;
-}  /* do_page_alignment */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
  
 
@@ -508,6 +491,25 @@ Free any unallocated space remaining in the indicated memory block.
   char                   *alloc_addr;
 
   db_enter(5, "trim_mem_block");
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  /* Round the space used in this block up to a multiple of the
+     host page size. */
+  {
+    sizeof_t	space_used;
+    a_void_ptr	new_next_avail;
+    space_used = hdr->next_avail_in_block - (char *)hdr;
+    space_used = do_page_alignment(space_used);
+    new_next_avail = (char *)hdr + space_used;
+    if (new_next_avail > hdr->after_end_of_block) {
+      /* There is not enough space in the block for another aligned
+         memory region. */
+      hdr->next_avail_in_block = hdr->after_end_of_block;
+    } else {
+      /* Set the next available to the newly aligned value. */
+      hdr->next_avail_in_block = new_next_avail;
+    }  /* if */
+  }
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   /* Save the remaining space only if it's big enough. */
   space_remaining_in_block = hdr->after_end_of_block -
                              hdr->next_avail_in_block;
@@ -911,7 +913,6 @@ of the front end.
   mmap_size_allocated = 0;
   f_mmap_file = NULL;
   okay_to_free_mem_blocks = FALSE;
-  page_size = get_page_size();
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   /* Initialize the memory region for general front end storage. */
   init_memory_region(NULL_region_number, (sizeof_t)0);

@@ -1069,12 +1069,20 @@ extern DOES_NOT_RETURN exit_compilation(an_error_severity severity);
 extern char *get_file_name_from_curr_dir(a_boolean first);
 
 #if USE_MMAP_FOR_MEMORY_REGIONS
-extern int get_page_size(void);
+extern sizeof_t do_page_alignment(sizeof_t size);
 
 extern
 a_void_ptr map_file_region(FILE		*file,
                            sizeof_t	curr_size,
 		           sizeof_t	incremental_size);
+
+extern
+a_void_ptr map_input_file_to_region(FILE		*file,
+                                    sizeof_t		offset,
+				    sizeof_t		size,
+				    a_void_ptr		address);
+
+extern sizeof_t seek_to_page_alignment(FILE *file);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
 /* Set up signal handlers. */

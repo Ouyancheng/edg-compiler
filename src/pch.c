@@ -941,9 +941,16 @@ in exactly the same manner as that in which they were created.
 #endif /* DEBUG */
   while (mbhp != NULL) {
     sizeof_t	size;
+    sizeof_t	region_size;
     size = mbhp->next_avail_in_block - (char *)mbhp;
+    region_size = mbhp->after_end_of_block - (char *)mbhp;
     pch_write_value(size);
+    pch_write_value(region_size);
     pch_write_value(mbhp);
+#if USE_MMAP_FOR_MEMORY_REGIONS
+    /* If using memory mapping, skip to a multiple of the host page size. */
+    (void)seek_to_page_alignment(f_pch_output);
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
     fwrite_with_check(mbhp, size, f_pch_output);
 #if DEBUG
     if (debug_level >= 4) {
@@ -963,6 +970,8 @@ file.  See write_a_memory_region for more information.
 */
 {
   a_mem_block_header_ptr	mbhp = mem_region_table[number];
+  sizeof_t			offset;
+
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug, "Reading memory region %0d\n", number);
@@ -970,7 +979,9 @@ file.  See write_a_memory_region for more information.
 #endif /* DEBUG */
   for (;;) {
     sizeof_t	size;
+    sizeof_t	region_size;
     pch_read_value(size);
+    pch_read_value(region_size);
     pch_read_value(mbhp);
 #if DEBUG
     if (debug_level >= 4) {
@@ -978,7 +989,21 @@ file.  See write_a_memory_region for more information.
               mbhp);
     }  /* if */
 #endif /* DEBUG */
+#if USE_MMAP_FOR_MEMORY_REGIONS
+    /* If using memory mapping, skip to a multiple of the host page size. */
+    offset = seek_to_page_alignment(f_pch_input);
+    if (map_input_file_to_region(f_pch_input, offset,
+                                 region_size, (a_void_ptr)mbhp) == NULL) {
+      unexpected_condition_str("read_a_memory_region: map failed");
+    }  /* if */
+    /* Seek past the area just mapped. */
+    if (fseek(f_pch_input, offset + size, SEEK_SET) != 0) {
+      unexpected_condition_str("read_a_memory_region: fseek error");
+    }  /* if */
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+    /* When not using memory mapping, just read the memory region. */
     fread_with_check((char *)mbhp, size, f_pch_input);
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
     /* See if this is the last block in the memory region. */
     if (mbhp->next == NULL) break;
   }  /* for */
