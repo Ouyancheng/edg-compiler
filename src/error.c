@@ -1222,6 +1222,12 @@ error code.
     case ec_static_member_in_union:
       m = "static data member not allowed in a union";
       break;
+    case ec_bound_function_cast_anachronism:
+      m = "cast of bound function to normal function pointer (anachronism)";
+      break;
+    case ec_expr_not_ptr_to_member:
+      m = "expression must have pointer-to-member type";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
