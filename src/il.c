@@ -155,7 +155,7 @@ Return a pointer to a string describing the float type indicated by kind.
 }  /* db_float_type_name */
 
 
-static void db_name(a_source_correspondence *sc)
+void db_name(a_source_correspondence *sc)
 /*
 Dump the name from a source correspondence (if any).
 */
@@ -205,7 +205,7 @@ print_name:
 }  /* db_abbreviated_type */
 
 
-static void db_access_control(an_access_specifier as)
+void db_access_control(an_access_specifier as)
 /*
 Dump an access control specifier.
 */

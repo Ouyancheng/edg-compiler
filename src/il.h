@@ -229,6 +229,10 @@ extern void copy_type(a_type_ptr from,
    (storage_class) == (a_storage_class)sc_unspecified)
 
 #if DEBUG
+extern void db_name(a_source_correspondence *sc);
+
+extern void db_access_control(an_access_specifier as);
+
 extern void db_constant(a_constant *cp);
 
 extern void db_field(a_field *fp);
