@@ -172,8 +172,8 @@ typedef struct a_msg_segment {
 				   segment.  NULL if none. */
   char		*second_quote;	/* Pointer to the second double quote in the 
 				   segment.  NULL if none. */
-  sizeof_t	length;		/* Current length of the message segment. */
-  sizeof_t	max_length;	/* Maximum string size that can be accommodated
+  int		length;		/* Current length of the message segment. */
+  int		max_length;	/* Maximum string size that can be accommodated
 				   in the message segment buffer. */
   short		sequence_no;	/* Sequence number of the user string, type,
 				   source position, or symbol name in the
@@ -1976,7 +1976,7 @@ new buffer before adding the string.  Allow room for a NULL character at the
 end of the buffer.
 */
 {
-  sizeof_t	length_of_string;
+  int	length_of_string;
 
   if (str != NULL) {
     length_of_string = strlen(str);
@@ -2005,7 +2005,7 @@ end of the buffer.
       }  /* if */
       /* Now we can go ahead and reset the segment pointer. */
       seg_ptr->segment    = new_buffer;
-      seg_ptr->max_length = new_size - 1;
+      seg_ptr->max_length = (int)(new_size - 1);
     }  /* if */
     (void)strcpy((char *)(seg_ptr->segment + seg_ptr->length), str);
     seg_ptr->length += length_of_string;
