@@ -6666,14 +6666,14 @@ Rewrite a cast to a reference as the equivalent cast to a pointer type.
 From [expr.reinterpret.cast]:
 
   An lvalue expression of type T1 can be cast to the type "reference  to
-  T2"  if  an  expression of type "pointer to T1" can be explicitly con-
-  verted to the type "pointer to T2" using a reinterpret_cast.  That is,
+  T2"  if  an  expression of type "pointer to T1" can be explicitly
+  converted to the type "pointer to T2" using a reinterpret_cast.  That is,
   a  reference  cast  reinterpret_cast<T&>(x) has the same effect as the
-  conversion *reinterpret_cast<T*>(&x) with the built-in & and *  opera-
-  tors.   The  result is an lvalue that refers to the same object as the
+  conversion *reinterpret_cast<T*>(&x) with the built-in & and *  operators.
+  The  result is an lvalue that refers to the same object as the
   source lvalue, but with a different type.  No temporary is created, no
   copy  is made, and constructors (_class.ctor_) or conversion functions
-  (_class.conv_) are not called.67)
+  (_class.conv_) are not called.
 
 [expr.static.cast] allows a similar conversion, but it's hidden in the words
 
