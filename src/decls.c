@@ -2381,7 +2381,7 @@ scope is that of a class definition.
        for member function declarations outside a class definition when
        a function qualifier is present.  If there is a function qualifier,
        it is applied to the type pointed to by the this param type. */
-    if (is_type_qualifier()) {
+    if (is_type_qualifier() && extra_info->prototyped) {
       /* In C++ the type of certain member functions may be qualified.  Scan
          for a const or volatile qualifier. */
       a_storage_class    dummy_storage_class;
