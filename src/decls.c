@@ -3642,10 +3642,12 @@ a pointer to it in *symbol_ptr.
                            decl_scope_level, suppress_redecl_error);
   /* Create a new type entry and add it to the types list for the current
      scope. */
-  sym->variant.type = tp = alloc_type((a_type_kind)tk_typeref);
+  sym->variant.type = tp = alloc_named_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
   set_source_corresp(&(tp->source_corresp), sym);
+#if 0
   add_to_types_list(tp, decl_scope_level, in_old_style_param_decl_list);
+#endif /* if 0 */
 
 return_point:
   /* Return the type name symbol to the caller. */
@@ -4676,13 +4678,13 @@ to indicate whether an enumeration is actually defined.
         /* Switch to the function scope region before allocating the "tag
            typeref" type entry, and switch back afterwards. */
         switch_to_function_scope_region(&region_to_switch_back_to);
-        tp = alloc_type((a_type_kind)tk_typeref);
+        tp = alloc_local_scope_type((a_type_kind)tk_typeref,
+                                    effective_decl_level,
+                                    in_old_style_param_decl_list);
         switch_back_to_original_region(region_to_switch_back_to);
         tp->variant.typeref.type = enum_type;
         tp->variant.typeref.is_function_scope_tag = TRUE;
         set_source_corresp(&(tp->source_corresp), tag_sym);
-        add_to_types_list(tp, effective_decl_level,
-                          in_old_style_param_decl_list);
       }  /* if */
     }  /* if */
     /* When an enumeration is defined within a class definition, its access
@@ -4893,10 +4895,12 @@ to indicate whether an enumeration is actually defined.
        Tags that were declared in a prototype scope were added to the
        type list at the end of the prototype scope, so do not add them
        again. */
+#if 0
     if (!prototype_tag_resolution) {
       add_to_types_list(enum_type, DEPTH_OF_FILE_SCOPE,
                         /*in_old_style_param_decl_list=*/FALSE);
     }  /* if */
+#endif /* if 0 */
     /* Switch back from the file scope memory region to whatever region
        was current upon entry. */
     switch_back_to_original_region(region_to_switch_back_to);
@@ -6252,10 +6256,12 @@ list and not linked into the file scope types list.
         }  /* if */
       }  /* for */
     }  /* if */
+#if 0
     /* The parameter type is not on the file scope or prototype scope types
        lists, so add it to the file scope types list. */
     add_to_types_list(param_type, DEPTH_OF_FILE_SCOPE,
                       /*in_old_style_param_decl_list=*/FALSE);
+#endif /* if 0 */
 done_with_param_type:;
   }  /* for */
 }  /* link_param_types_into_file_scope_types_list */
