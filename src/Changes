@@ -1,6 +1,13 @@
 
 Version 2.06, May 22, 1992
 
+5/28/92  Fixed bugs in processing main() declarations.
+
+Overloading of main() is no longer possible.  Static and inline
+specifiers on main() are disallowed (except in C mode, where a static
+function named "main" is permitted).  If main() is mentioned in a
+friend declaration, inline definition is disallowed.
+
 5/27/92  Extension to allow member function redeclaration.
 
 For Cfront compatibility we permit (contrary to ARM 9.2) multiple
