@@ -103,7 +103,7 @@ except K&R/pcc mode.  For example:
 The Microsoft compiler allows a member function template or a member
 function of a template class to be explicitly specialized after it
 has been used.  This is not allowed by the standard.  The front end
-now allows such specializations in Microsoft bugs mode, a warning
+now allows such specializations in Microsoft bugs mode.  A warning
 is issued.
 
 9/21/00  IL memory corruption when
