@@ -7524,7 +7524,9 @@ NULL.
       if (!types_are_identical) {
         /* If the types are not the same, see if they are dependent types
            that could turn out to be the same. */
-        dependent_typedef_redeclaration = is_template_dependent_context() &&
+        dependent_typedef_redeclaration =
+                                sym->kind == (a_symbol_kind)sk_type &&
+                                is_template_dependent_context() &&
                                 dependent_typedef_redecl_allowed(tp, type_ptr);
       }  /* if */
       if (((types_are_identical || dependent_typedef_redeclaration)
