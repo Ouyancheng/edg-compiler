@@ -7499,6 +7499,32 @@ ones are allocated in the scope specified by decl_scope_level.
 }  /* check_anonymous_union_symbols */
 
 
+static a_boolean is_compiler_generated_member_function(a_symbol_ptr  sym)
+/*
+Returns TRUE if and only if sym refers to either a compiler-generated member
+function or an overload set of compiler generated member functions.
+*/
+{
+  a_boolean result;
+
+  if (sym->kind == (a_symbol_kind)sk_member_function &&
+      sym->variant.routine.ptr->compiler_generated) {
+    result = TRUE;
+  } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    a_symbol_ptr  overloaded_sym = sym->variant.overloaded_function.symbols;
+    for (; overloaded_sym != NULL; overloaded_sym = overloaded_sym->next) {
+      if (!is_compiler_generated_member_function(overloaded_sym)) {
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_compiler_generated_member_function */
+
+
 static a_boolean is_anonymous_union_decl(a_type_ptr              member_type,
                                          a_member_decl_info_ptr  decl_info)
 /*
@@ -7563,8 +7589,7 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
                 /* Okay. */
               } else if (sym == cssp->trivial_default_constructor) {
                 /* Okay. */
-              } else if (sym->kind == (a_symbol_kind)sk_member_function &&
-                         sym->variant.routine.ptr->compiler_generated) {
+              } else if (is_compiler_generated_member_function(sym)) {
                 /* A compiler generated function -- most likely a default
                    assignment operator.  This is okay. */
               } else {

@@ -1,5 +1,16 @@
 Version 2.44
 
+2/10/00  Microsoft compatibility: anonymous structs with non-POD fields
+
+The front end now accepts Microsoft anonymous struct members with non-POD
+fields.  Previously, such member declarations were reported as useless.
+
+  struct P { int x; P() {} };  // Non-POD type.
+  struct S {
+    struct { P a; };  // Microsoft anonymous struct.
+    S() { a.x = 3; }  // Used to not find 'a', even in Microsoft mode.
+  };
+
 2/8/00   Microsoft compatibility: name of current class not found as an
          injected class name
 
