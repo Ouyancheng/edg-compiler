@@ -122,6 +122,11 @@ static a_param_id_ptr
 			/* List of parameter id entries freed and available
 			   for reuse. */
 
+static a_boolean
+		in_instantiation_wrapup;
+			/* TRUE when instantiation wrapup has been called
+			   to do end-of-compilation unit instantiations. */
+
 
 #if DEBUG
 #define DEBUG_LINE_LENGTH 79
@@ -6977,46 +6982,6 @@ list.
 }  /* add_to_instantiations_required_list */
 
 
-void update_instantiation_required_flag(a_template_instance_ptr tip,
-                                        a_boolean               value)
-/*
-Updates the instantiation required flag in a template instance entry.  If the
-flag is set to TRUE the instance entry is added to a list of entries for which
-instantiation is required.  If the flag is set to FALSE the entry is simply
-updated but not removed from the list.
-*/
-{
-  a_symbol_ptr   sym;
-
-  if (value) {
-    if (!tip->already_instantiated) {
-      sym = tip->instance_sym;
-      if (sym == tip->template_sym) {
-        /* Somehow a member function of a nonreal class (e.g., a prototype
-           instantiation of a class template) has been referenced.  (This
-           can occur in a sizeof operation applied to the address of a
-           static member function -- anywhere else?).  Do not instantiate
-           the function. */
-      } else if (is_function_symbol(sym) && sym->defined &&
-                 sym->variant.routine.ptr->is_inline) {
-        /* Inline (member or nonmember) functions are instantiated at the
-           point of first use, in case the back end requires the function
-           body immediately to perform inlining. */
-        instantiate_template_function(tip);
-        tip->already_instantiated = TRUE;
-        tip->instantiation_required = FALSE;
-      } else if (!tip->instantiation_required) {
-        /* It's not yet on the list. */
-        tip->instantiation_required = TRUE;
-        add_to_instantiations_required_list(tip);
-      }  /* if */
-    }  /* if */
-  } else {
-    tip->instantiation_required = FALSE;
-  }  /* if */
-}  /* update_instantiation_required_flag */
-
-
 static a_boolean should_be_instantiated(a_template_instance_ptr	tip)
 /*
 Determines whether this template instance needs an instantiation and
@@ -7086,6 +7051,62 @@ such as instantiating a template for which no body was supplied.
 }  /* should_be_instantiated */
 
 
+void update_instantiation_required_flag(a_template_instance_ptr tip,
+                                        a_boolean               value)
+/*
+Updates the instantiation required flag in a template instance entry.  If the
+flag is set to TRUE the instance entry is added to a list of entries for which
+instantiation is required.  If the flag is set to FALSE the entry is simply
+updated but not removed from the list.
+*/
+{
+  a_symbol_ptr   sym;
+
+  if (value) {
+    if (!tip->already_instantiated) {
+      sym = tip->instance_sym;
+      if (sym == tip->template_sym) {
+        /* Somehow a member function of a nonreal class (e.g., a prototype
+           instantiation of a class template) has been referenced.  (This
+           can occur in a sizeof operation applied to the address of a
+           static member function -- anywhere else?).  Do not instantiate
+           the function. */
+      } else if (is_function_symbol(sym) && sym->defined &&
+                 sym->variant.routine.ptr->is_inline) {
+        /* Inline (member or nonmember) functions are instantiated at the
+           point of first use, in case the back end requires the function
+           body immediately to perform inlining. */
+        instantiate_template_function(tip);
+        tip->instantiation_required = FALSE;
+      } else if (!tip->instantiation_required) {
+        /* The flag is not already set.  If we are in instantiation wrapup
+           then instantiate the function now instead of just adding it to
+	   the end of the list.  This makes it possible to detect runaway
+           recursive instantiations that are very difficult to detect
+	   when the instantiations are done serially. */
+        tip->instantiation_required = TRUE;
+	if (in_instantiation_wrapup) {
+	  if (should_be_instantiated(tip)) {
+	    if (tip->instance_sym->kind ==
+				       (a_symbol_kind)sk_static_data_member) {
+              define_template_static_data_member(tip);
+            } else {
+              instantiate_template_function(tip);
+            }  /* if */
+	  }  /* if */
+        } else {
+	  /* If we're not in instantiation wrapup just add the entry to the
+	     instantiations list. */
+          add_to_instantiations_required_list(tip);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else {
+    tip->instantiation_required = FALSE;
+  }  /* if */
+}  /* update_instantiation_required_flag */
+
+
 void instantiation_wrapup(void)
 /*
 Performs end-of-compilation processing for template instantiation.  An
@@ -7101,6 +7122,13 @@ specific definition that made it unnecessary.
   a_template_instance_ptr           tip;
 
   db_enter(3, "instantiation_wrapup");
+  /* The in_instantiation_wrapup flag indicates that we are generating
+     instantiations that were requested earlier in the compilation.  When
+     this flag is TRUE new instantiations are generated on the fly instead
+     of being added to the end of the list.  This makes it possible to
+     detect certain types of recursive instantiations that would otherwise
+     be difficult to detect. */
+  in_instantiation_wrapup = TRUE;
   for (tip = instantiations_required;
        tip != NULL;
        tip = tip->next_in_instantiation_list) {
@@ -7123,13 +7151,6 @@ specific definition that made it unnecessary.
         }  /* if */
 #endif /* DEBUG */
         instantiate_template_function(tip);
-        /* Usually template functions are instantiated "on demand" and the
-           referenced flag will already have been set.  But if the
-           instantiation mode says to instantiate whether or not there is
-           a reference, we should set the referenced flag anyway, so that
-           the back-end will be sure to generate the function. */ 
-        tip->instance_sym->variant.routine.ptr->
-                                        source_corresp.referenced = TRUE;
       }  /* if */
     }  /* if */
   }  /* for */
@@ -7302,6 +7323,7 @@ to avoid an 8-character external name clash with symbol_table.)
   depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
   instantiations_required = NULL;
   instantiations_required_tail = NULL;
+  in_instantiation_wrapup = FALSE;
   /* Initialize the conversion header list. */
   conversion_header_list = NULL;
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG

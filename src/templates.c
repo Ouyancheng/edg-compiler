@@ -414,6 +414,13 @@ Instantiate the body of the template function associated with tip.
   /* Restore the original structured statement stack. */
   restore_struct_stmt_stack(saved_container_pos, saved_depth_stmt_stack,
                             &saved_curr_reachability);
+  /* Usually template functions are instantiated "on demand" and the
+     referenced flag will already have been set.  But if the
+     instantiation mode says to instantiate whether or not there is
+     a reference, we should set the referenced flag anyway, so that
+     the back-end will be sure to generate the function. */ 
+  tip->instance_sym->variant.routine.ptr->source_corresp.referenced = TRUE;
+  tip->already_instantiated = TRUE;
   /* Pop the function scope. */
   pop_scope();
   if (rout_sym->class_of_which_a_member != NULL) {
@@ -502,6 +509,7 @@ void define_template_static_data_member(a_template_instance_ptr  tip)
     (void)def_initializer(static_data_member_sym,
                           &static_data_member_sym->decl_position);
   }  /* if */
+  tip->already_instantiated = TRUE;
   db_exit();
 }  /* define_template_static_data_member */
 

@@ -1,5 +1,26 @@
 Version 2.15
 
+2/23/93  Recursive instantiations involving functions and static data members
+
+The end-of-compilation processing of instantiations has been modified
+to enable detection of additional cases of runaway instantiations.
+
+This is an example that uses a noninline function template.  The
+instantiations had been generated serially which made detection of
+the recursion difficult.  Instantiations requested during the
+end-of-compilation processing are now generated on the fly which
+allows the recursion to be detected.
+
+  template <class T> void f(T x)
+  {
+    f(&x);
+  }
+  void main()
+  {
+    char    c;
+    f(c);
+  }
+
 2/23/93  Reworking of expression kind in expression-processing routines
 
 The ubiquitous "expression_kind" parameter in the expression routines
