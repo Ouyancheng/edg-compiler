@@ -373,6 +373,18 @@ variables.
 #define VAR_INITIALIZERS 0
 #endif /* ifndef VAR_INITIALIZERS */
 
+/*
+initial_value is a macro used to initialize external variables.  When
+VAR_INITIALIZERS is TRUE, this expands to a string that initializes
+the variable.  Otherwise, it expands to an empty string.
+*/
+#if VAR_INITIALIZERS
+#define initial_value(value) = value
+#else /* !VAR_INITIALIZERS */
+#define initial_value(value) /* nothing */
+#endif /* !VAR_INITIALIZERS */
+
+
 #ifndef DEBUG
 /* Include debugging code. */
 #define DEBUG 1

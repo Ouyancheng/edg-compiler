@@ -4583,6 +4583,11 @@ and also put that into error_position.
   error_position = pos_curr_token;                                    \
 }  /* remember_token_start */
 
+/*
+Macro that is TRUE if digraph tokens should be recognized.
+*/
+#define digraphs_allowed() (!C_mode() && alternate_tokens_allowed)
+
 
 a_token_kind get_token(void)
 /*
@@ -4799,7 +4804,7 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       if ((ch = *(curr_char_loc+1)) == ':' && !C_mode()) {
         ctoken = tok_colon_colon;
         goto two_char_token;
-      } else if (ch == '>' && !C_mode()) {
+      } else if (ch == '>' && digraphs_allowed()) {
         ctoken = tok_rbracket;
 	goto two_char_token;
       }  /* if */
@@ -4884,9 +4889,9 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       if (*(curr_char_loc+1) == '=') {
         ctoken = tok_remainder_assign;
         goto two_char_token;
-      } else if ((ch = *(curr_char_loc+1)) == ':' && !C_mode()) {
+      } else if ((ch = *(curr_char_loc+1)) == ':' && digraphs_allowed()) {
         goto check_start_of_pp_directive;
-      } else if (ch == '>' && !C_mode()) {
+      } else if (ch == '>' && digraphs_allowed()) {
         ctoken = tok_rbrace;
         goto two_char_token;
       }  /* if */
@@ -4910,10 +4915,10 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       } else if (ch == '=') {
         ctoken = tok_le;
         goto two_char_token;
-      } else if (ch == '%' && !C_mode()) {
+      } else if (ch == '%' && digraphs_allowed()) {
         ctoken = tok_lbrace;
 	goto two_char_token;
-      } else if (ch == ':' && !C_mode()) {
+      } else if (ch == ':' && digraphs_allowed()) {
         ctoken = tok_lbracket;
 	goto two_char_token;
       }  /* if */

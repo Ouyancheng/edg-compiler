@@ -11,10 +11,18 @@ conversion.  The old behavior continues in cfront 2.1 mode.
 2/17/95  Digraph and operator keyword support
 
 The front end now supports C++ digraphs (e.g., <&%, %>, etc.), and
-the operator keywords (e.g., bitor, bitand, or, etc.)  The operator
-keywords are enabled by default, but may be disabled with the
---no_operator_keywords command line option.  They are also disabled
-in cfront mode.
+the operator keywords (e.g., bitor, bitand, or, etc.)  Because they
+are likely to cause problems for existing programs, the alternate tokens
+are disabled by default.  The default may be changed by setting the
+configuration flag DEFAULT_ALTERNATE_KEYWORDS_ALLOWED.  They may
+also be enabled or disabled on the command line using the 
+--alternate_tokens and --no_alternater_tokens command line options.
+
+An example of an incompatibility caused by this feature is:
+
+  template <class T> struct A {};
+  typedef int I;
+  A<::I> a;   // Interpretted as A{:I> a;
 
 2/17/95  Destructor names containing template parameter lists
 

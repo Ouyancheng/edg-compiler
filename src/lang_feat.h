@@ -391,6 +391,16 @@ only used when DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD is TRUE.
 #endif /* DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD */
 
 /*
+Flag that is TRUE if, in C++ mode, operator keywords (e.g., bitand, compl)
+and digraphs are recognized.  This is the default value for the global
+flag alternate_tokens_allowed.
+*/
+#ifndef DEFAULT_ALTERNATE_TOKENS_ALLOWED
+#define DEFAULT_ALTERNATE_TOKENS_ALLOWED FALSE
+#endif /* ifndef DEFAULT_ALTERNATE_TOKENS_ALLOWED */
+
+
+/*
 Flag that is TRUE if "&..." should be accepted in the source code.  This
 extension is provided to support the form of macro va_start that is provided
 in some versions of stdarg.h, e.g.,

@@ -394,12 +394,12 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  add_option_description(optk_disallow_operator_keywords,
-			 "no_operator_keywords",
+  add_option_description(optk_alternate_tokens,
+			 "alternate_tokens",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_disallow_operator_keywords,
-			 "operator_keywords",
+  add_option_description(optk_alternate_tokens,
+			 "no_alternate_tokens",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 }  /* initialize_option_descriptions */
@@ -836,6 +836,8 @@ Process the arguments on the command line that invoked the compiler.
           strict_ansi_error_severity = es_warning;
           strict_ansi_discretionary_severity = es_warning;
         }  /* if */
+	/* Enable recognition of operaotor keywords and digraphs. */
+	alternate_tokens_allowed = TRUE;
         break;
       case optk_preprocess_only_emit_line_dirs:
         /* Do preprocessing only, output to stdout, with #line information. */
@@ -913,7 +915,6 @@ Process the arguments on the command line that invoked the compiler.
         C_dialect = C_dialect_cplusplus;
         allow_anachronisms = TRUE;
         long_lifetime_temps = TRUE;
-        disallow_operator_keywords = TRUE;
         break;
       case optk_cfront_3_0_mode:
         /* cfront 3.0 compatibility mode.  If both 2.1 and 3.0 modes are
@@ -925,7 +926,6 @@ Process the arguments on the command line that invoked the compiler.
         C_dialect = C_dialect_cplusplus;
         allow_anachronisms = TRUE;
         long_lifetime_temps = TRUE;
-        disallow_operator_keywords = TRUE;
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
@@ -1231,10 +1231,10 @@ Process the arguments on the command line that invoked the compiler.
         }  /* if */
         break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-      case optk_disallow_operator_keywords:
-        /* Operator keywords such as "not", "and", etc. should or should not
-           be disallowed. */
-        disallow_operator_keywords = opt_value;
+      case optk_alternate_tokens:
+        /* Operator keywords (e.g., "not", "and") and digraphs should or
+           should not be allowed. */
+        alternate_tokens_allowed = opt_value;
         break;
       default:
         /* It should not be possible to get here. */
@@ -1278,8 +1278,8 @@ Process the arguments on the command line that invoked the compiler.
     if (option_kind_used[(int)optk_wchar_t_is_keyword]) {
       command_line_error(ec_cl_wchar_t_option_only_in_cplusplus);
     }  /* if */
-    if (option_kind_used[(int)optk_disallow_operator_keywords]) {
-      command_line_error(ec_cl_operator_keyword_option_only_in_cplusplus);
+    if (option_kind_used[(int)optk_alternate_tokens]) {
+      command_line_error(ec_cl_alternate_token_option_only_in_cplusplus);
     }  /* if */
     /* Set wchar_t_is_keyword to FALSE, just in case the default value
        is TRUE.  The value must not be TRUE in C mode. */

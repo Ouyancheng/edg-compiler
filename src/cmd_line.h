@@ -110,7 +110,7 @@ typedef enum /*an_option_kind*/ {
 #if USER_CONTROL_OF_STRUCT_PACKING
   optk_pack_alignment,
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  optk_disallow_operator_keywords,
+  optk_alternate_tokens,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -483,9 +483,11 @@ EXTERN a_targ_alignment
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 EXTERN a_boolean
-                disallow_operator_keywords /* = FALSE*/;
+                alternate_tokens_allowed /* = */
+                               initial_value(DEFAULT_ALTERNATE_TOKENS_ALLOWED);
                         /* TRUE if the C++ operator keywords (such as
-			   "and", "or", "not", etc.) should not be allowed. */
+			   "and", "or", "not", etc.) and digraphs should
+			   be allowed. */
 
 
 /* Process the command line arguments. */
