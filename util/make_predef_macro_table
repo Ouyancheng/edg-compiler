@@ -36,7 +36,7 @@ get_predefined_macros()
 reformat_info()
 {
   ri_file=$1
-  sed -e "s/#define //" -e "s/ /;/" $ri_file >ri.tmp
+  sed -e "s/#define /:/" -e "s/ /:/" $ri_file >ri.tmp
   sort ri.tmp >$ri_file
   rm -f ri.tmp
 }
@@ -49,7 +49,7 @@ make_entries()
 {
   opts=$1
   mode=$2
-  comm $opts c.tmp cpp.tmp | sed -e "s/^/$mode;no;/" >>$output_file
+  comm $opts c.tmp cpp.tmp | sed -e "s/^/$mode no /" >>output.tmp
 }
 
 #
@@ -63,10 +63,11 @@ delete_unneeded_entries()
   unneeded="$unneeded __GNUC__"
   unneeded="$unneeded __VERSION__"
   unneeded="$unneeded __STDC_HOSTED__"
+  unneeded="$unneeded __STDC__"
   for name in $unneeded
   do
-    sed -e "/;$name;/ d" $output_file >$$
-    mv -f $$ $output_file
+    sed -e "/:$name:/ d" output.tmp >$$
+    mv -f $$ output.tmp
   done
 }
 
@@ -99,14 +100,14 @@ do
 done
 
 output_file=predefined_macros.txt
-rm -f $output_file info.tmp
+rm -f output.tmp info.tmp $output_file
 
 cat <<XXX >>info.tmp
 EDG C/C++ predefined macro definition file.
 
 The format of the entries in this file is:
 
-mode,!mode,mode;cannot_redefine;macro_name;macro_value
+mode,!mode,mode   cannot_redefine   macro_name   macro_value
 
 - "mode" is a label from the predefined macro modes table.  The macro is
   defined if the mode is set, or if the mode is not set when "!mode" is
@@ -146,8 +147,15 @@ make_entries -23 gcc
 make_entries -13 gpp
 make_entries -12 gnu
 
+# The entries are created with the macro name bracketed in colons so
+# that the delete routine can delete certain entries without
+# affecting those names when used in macro values.
+
 delete_unneeded_entries
 
-rm -f c.tmp cpp.tmp tmp.c info.tmp
+# Remove the colons bracketing the macro names.
+sed -e "s/:/ /" -e "s/:/ /" output.tmp >>$output_file
+
+rm -f c.tmp cpp.tmp tmp.c info.tmp output.tmp
 
 
