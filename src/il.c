@@ -640,10 +640,11 @@ class_struct_union:
       }  /* if */
       break;
     case tk_ptr_to_member:
-      fputs("pointer to member of ", f_debug);
+      fputs("ptr-to-member of ", f_debug);
       db_abbreviated_type(tp->variant.ptr_to_member.class_of_which_a_member);
-      fputs(" with type ", f_debug);
+      fputs(" (type = ", f_debug);
       db_abbreviated_type(tp->variant.ptr_to_member.type);
+      fputs(")", f_debug);
       break;
     default:
       fputs("<bad type>", f_debug);
