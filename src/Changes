@@ -5,13 +5,25 @@ Version 2.27
 A new IL entry, a_local_static_variable_init, has been created to represent
 a dynamic or aggregate-constant initialization of a local static variable.
 The variable entry itself (which is in the file scope memory region) cannot
-point at its initializer (which, as the result of a related change, is in
-the function scope memory region), and so this construct is used to
-represent the initialization.  These new entries are always allocated in
-the function scope memory region and appear on a list pointed to by a
-function or block scope.  When one is used, the variable's init kind
-is initk_function_local; the associated local static variable init entry
-must be searched for (see find_local_static_variable_init in il.c).
+point at its initializer (which is in now the function scope memory region),
+and so this construct is used to represent the initialization.  This fixes
+a problem in cases like this,
+
+  void f() {
+    int i = 0;
+    static int j = i;
+  }
+
+for which the resulting C++ IL was invalid -- there used to be a file scope
+dynamic init for j pointing to a function scope expression node.  (The bug
+had been inadvertently masked by a transformation done by IL lowering.)
+
+These new entries are always allocated in the function scope memory region
+and appear on a list pointed to by a function or block scope.  When one is
+used, the associated variable has an init kind of initk_function_local and
+does not point directly to its initializer; get_variable_initializer (in
+il.c) is provided to deal with such cases -- it returns the actual init
+kind and a pointer to the initializer.
 
 11/14/94 Fixed name lookup bug in friend processing
 
@@ -54,7 +66,7 @@ dropped as it should.
 If x is qualified (e.g., volatile int), x++ now has the qualifiers dropped
 as it should.
 
-10/31/94 Type qualifiers on rewrite of lvalue-returning assingment in IL
+10/31/94 Type qualifiers on rewrite of lvalue-returning assignment in IL
          lowering
 
 When IL lowering rewrites an lvalue-returning assignment, it now drops any
