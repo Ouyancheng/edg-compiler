@@ -37,9 +37,9 @@ trans_copy.c -- Copy IL from secondary translation units to the
 
 
 /*
-Flag that is non-zero if an IL walk is being done in the trans_copy process.
+Flag that is TRUE if we are in the setup phase for trans_copy.c.
 */
-static unsigned long in_trans_copy_walk;
+static a_boolean in_trans_copy_setup;
 
 
 /*
@@ -188,7 +188,7 @@ in the current IL walk.
              to make sure it gets done. */
           /* Don't do this copy now if we're still in
              prepare_for_trans_unit_copy and not yet in the copy phase. */
-          if (in_trans_copy_walk) {
+          if (!in_trans_copy_setup) {
             walk_il_subtree(copy_entry, copy_string_entry,
                             (a_remap_function_ptr)NULL,
                             copy_termination_test,
@@ -420,12 +420,10 @@ primary translation unit IL.
 */
 {
   db_enter(1, "copy_from_secondary_to_primary_il");
-  in_trans_copy_walk++;
   walk_file_scope_il(copy_entry, copy_string_entry,
                      (a_remap_function_ptr)NULL,
                      copy_termination_test,
                      /*clear_fe_pointers=*/FALSE);
-  in_trans_copy_walk--;
   db_exit();
 }  /* copy_from_secondary_to_primary_IL */
 
@@ -442,14 +440,12 @@ it and remapping pointers.
                   routine->assoc_scope != NULL_region_number);
   scope = il_header.region_scope_entry[routine->assoc_scope];
   check_assertion(scope != NULL);
-  in_trans_copy_walk++;
   walk_routine_scope_il(routine->assoc_scope,
                         copy_entry,
                         copy_string_entry,
                         (a_remap_function_ptr)NULL,
                         copy_termination_test,
                         /*clear_fe_pointers=*/FALSE);
-  in_trans_copy_walk--;
   scope->function_body_processing_finished = FALSE;
 }  /* move_routine_body_to_primary */
 
@@ -2441,7 +2437,7 @@ therefore will not be copied.
     check_assertion(okay);
   }
   check_assertion(initial_value_for_il_lowering_flag == FALSE);
-  in_trans_copy_walk = 0;
+  in_trans_copy_setup = TRUE;
   /* Loop over each translation unit, preparing for the copy.  This
      decides which entities should be copied, which should be merged,
      and which are duplicates that can be dropped. */
@@ -2466,6 +2462,7 @@ therefore will not be copied.
     }  /* if */
 #endif /* DEBUG */
   }  /* for */
+  in_trans_copy_setup = FALSE;
   /* Loop over each translation unit, copying the IL. */
   for (tup = translation_units->next; tup != NULL; tup = tup->next) {
     switch_translation_unit(tup);
@@ -2643,27 +2640,23 @@ primary IL.)
     /* Do two passes so that the il_walk_flag returns to its original value. */
     mark_secondary_first_pass = TRUE;
     for (;;) {
-      in_trans_copy_walk++;
       walk_file_scope_il((an_entry_process_function_ptr)NULL,
                          (a_string_entry_process_function_ptr)NULL,
                          (a_remap_function_ptr)NULL,
                          mark_secondary_termination_test,
                          /*clear_fe_pointers=*/FALSE);
-      in_trans_copy_walk--;
       /* Loop through the memory regions looking for functions in the
          primary IL, and process them too. */
       for (n = FILE_SCOPE_REGION_NUMBER + 1;
            n <= highest_used_region_number;
            ++n) {
         if (mem_region_is_primary_func_scope(n)) {
-          in_trans_copy_walk++;
           walk_routine_scope_il(n,
                                 (an_entry_process_function_ptr)NULL,
                                 (a_string_entry_process_function_ptr)NULL,
                                 (a_remap_function_ptr)NULL,
                                 mark_secondary_termination_test,
                                 /*clear_fe_pointers=*/FALSE);
-          in_trans_copy_walk--;
         }  /* if */
       }  /* for */
       if (!mark_secondary_first_pass) break;
@@ -2798,27 +2791,23 @@ before lowering and needed flag marking of the primary IL.
     for (;;) {
       a_remap_function_ptr remap_func = NULL;
       if (first_pass) remap_func = remap_secondary_pointer;
-      in_trans_copy_walk++;
       walk_file_scope_il((an_entry_process_function_ptr)NULL,
                          (a_string_entry_process_function_ptr)NULL,
                          remap_func,
                          rewrite_secondary_termination_test,
                          /*clear_fe_pointers=*/FALSE);
-      in_trans_copy_walk--;
       /* Loop through the memory regions looking for functions in the
          primary IL, and process them too. */
       for (n = FILE_SCOPE_REGION_NUMBER + 1;
            n <= highest_used_region_number;
            ++n) {
         if (mem_region_is_primary_func_scope(n)) {
-          in_trans_copy_walk++;
           walk_routine_scope_il(n,
                                 (an_entry_process_function_ptr)NULL,
                                 (a_string_entry_process_function_ptr)NULL,
                                 remap_func,
                                 rewrite_secondary_termination_test,
                                 /*clear_fe_pointers=*/FALSE);
-          in_trans_copy_walk--;
         }  /* if */
       }  /* for */
       if (!first_pass) break;
