@@ -4325,7 +4325,7 @@ implement <stdarg.h>, a standard feature.
   an_operand          operand;
   a_constant          constant;
   a_boolean           is_parenthesized = FALSE, is_type = FALSE;
-  a_type_ptr          alignof_type;
+  a_type_ptr          alignof_type, orig_type;
   an_expr_stack_entry expr_stack_entry;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   a_targ_alignment    alignment = 0;
@@ -4438,6 +4438,7 @@ implement <stdarg.h>, a standard feature.
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+  orig_type = alignof_type;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   /* Check for the case where alignof_type is a typedef type whose
      alignment was set explicitly using a GNU attribute or a Microsoft
@@ -4482,12 +4483,13 @@ implement <stdarg.h>, a standard feature.
   } else if (microsoft_mode && is_immediate_class_type(alignof_type) &&
              is_incomplete_type(alignof_type)) {
     /* In Microsoft mode __alignof results in zero for non-void incomplete
-       types. */
+       types.  Issue a warning. */
+    pos_warning(ec_alignof_incomplete_type, &start_position);
     set_unsigned_integer_constant(&constant, (a_host_large_unsigned)0,
                                   targ_size_t_int_kind);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
-    if (is_incomplete_type(alignof_type)) {
+    if (is_incomplete_type(orig_type)) {
       pos_diagnostic((gnu_mode || strict_ansi_mode) ? es_error : es_warning,
                       ec_alignof_incomplete_type, &start_position);
     }  /* if */
