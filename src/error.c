@@ -1250,6 +1250,9 @@ error code.
     case ec_delete_count_anachronism:
       m = "delete array size expression ignored (anachronism)";
       break;
+    case ec_bad_return_type_for_operator_arrow:
+      m = "operator->() requires pointer-to-class return type";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -435,7 +435,8 @@ typedef enum /*an_error_code*/ {
   ec_no_matching_new_function,
   ec_delete_already_declared,
   ec_no_match_for_addr_of_overloaded_function,
-  ec_delete_count_anachronism
+  ec_delete_count_anachronism,
+  ec_bad_return_type_for_operator_arrow
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
