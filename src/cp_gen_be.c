@@ -47,6 +47,7 @@ called in the same program as the front end is produced (if needed).
 #include "il.h"
 #include "float_pt.h"
 #include "const_ints.h"
+#include "types.h"
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_file.h"
@@ -255,74 +256,6 @@ Return TRUE if the given type has a definition.
 #define type_is_defined(type)                                         \
   ((type)->size != 0 || (type)->kind == (a_type_kind)tk_typeref)
 
-
-#if !STANDALONE_UTILITY_PROGRAM
-
-/* In the normal case, we can use the functions in types.c. */
-#ifndef TYPES_H
-#include "types.h"
-#endif /* ifndef TYPES_H */
-
-#else /* STANDALONE_UTILITY_PROGRAM */
-/* Many support functions and macros that are generally available in the
-   front end are duplicated here so that cp_gen_be.c can be compiled
-   independently of a front end. */
-
-/* Macro to strip tk_typeref entries from a type. */
-#define skip_typerefs(tp)                                             \
-  ((tp)->kind != (a_type_kind)tk_typeref ? (tp) : local_skip_typerefs(tp))
-
-
-static a_type_ptr local_skip_typerefs(a_type_ptr type_ptr)
-/*
-Strip any typeref entries off the given type to get to the real type, and
-return a pointer to that.  Note that the typeref may have some type
-qualifiers (const, volatile), and they will be dropped here.  Therefore,
-this routine should not be used when checking type qualifiers.  Note
-that ordinarily this routine should not be called directly; use the macro
-"skip_typerefs".
-*/
-{
-  while (type_ptr->kind == (a_type_kind)tk_typeref) {
-    type_ptr = type_ptr->variant.typeref.type;
-#if CHECKING
-    if (type_ptr == NULL) {
-      internal_error("local_skip_typerefs: NULL referenced type");
-    }  /* if */
-#endif /* CHECKING */
-  }  /* while */
-  return(type_ptr);
-}  /* local_skip_typerefs */
-
-
-static a_boolean is_pointer_type(a_type_ptr tp)
-/*
-Return TRUE if the indicated type is a pointer type.
-*/
-{
-  tp = skip_typerefs(tp);
-  return (tp->kind == (a_type_kind)tk_pointer &&
-          !tp->variant.pointer.is_reference);
-}  /* is_pointer_type */
-
-
-static a_boolean is_reference_type(a_type_ptr tp)
-/*
-Return TRUE if the indicated type is a reference type.
-*/
-{
-  tp = skip_typerefs(tp);
-  return (tp->kind == (a_type_kind)tk_pointer &&
-          tp->variant.pointer.is_reference);
-}  /* is_reference_type */
-
-
-#define type_pointed_to(tp) (skip_typerefs(tp)->variant.pointer.type)
-#define is_integral_type(tp) \
-  (skip_typerefs(tp)->kind == (a_type_kind)tk_integer)
-
-
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static a_boolean is_enum_constant(a_constant_ptr con)
 /*
@@ -1874,27 +1807,6 @@ Print the name of a float kind.
   }  /* switch */
   write_tok_str(str);
 }  /* gen_float_kind_name */
-
-
-static a_boolean is_immediate_type_qualifier(a_type_ptr type)
-/*
-Return TRUE if the type pointed to is a tk_typeref that indicates type
-qualification.
-*/
-{
-  a_boolean is_type_qual = FALSE;
-
-  if (type->kind == (a_type_kind)tk_typeref) {
-    /* Ignore typedefs, and typerefs that do nothing. */
-    if (type->source_corresp.name == NULL &&
-        (type->variant.typeref.is_const ||
-         type->variant.typeref.is_volatile)) {
-      /* This is a type qualifier. */
-      is_type_qual = TRUE;
-    }  /* if */
-  }  /* if */
-  return is_type_qual;
-}  /* is_immediate_type_qualifier */
 
 
 static void gen_type_qualifier(a_type_ptr type)
