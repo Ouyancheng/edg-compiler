@@ -1,3 +1,18 @@
+Version 2.30
+
+5/25/95  Prelinker diagnostic issued if nm produces no output
+
+The prelinker now issues a warning when nm produces no output.
+This is usually an indication that there is some sort of
+configuration problem (e.g., looking for the nm command in the
+wrong place).
+
+5/25/95  Prelinker bug handling first line of an archive
+
+A bug in edg_prelink resulted in the first line of nm output for an
+archive file to be ignored.  This has been corrected.
+
+-------------------------------------------------------------------------------
 Version 2.29, May 24, 1995
 
 5/3/95   Mangled codes for array new (nwa) and array delete (dla) are

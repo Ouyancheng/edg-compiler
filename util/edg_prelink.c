@@ -427,7 +427,8 @@ typedef enum /*a_pl_error_code*/ {
   pl_ec_invalid_reserved_info_lines_option,
   pl_ec_cannot_open_obj_file_list_file,
   pl_ec_cannot_open_info_file,
-  pl_ec_cannot_chdir
+  pl_ec_cannot_chdir,
+  pl_ec_no_nm_info
 } a_pl_error_code;
 
 
@@ -495,6 +496,9 @@ string.
     break;
   case pl_ec_cannot_chdir:
     m = "cannot change to directory \"%s\"";
+    break;
+  case pl_ec_no_nm_info:
+    m = "no output produced by nm -- possible configuration problem";
     break;
   default:
     pl_internal_error("invalid error code");
@@ -1298,6 +1302,7 @@ or defined in that object file.
   a_pl_object_file_ptr	objects_tail;
   a_pl_object_file_ptr	pofp;
   a_pl_input_file_ptr	pifp;
+  a_boolean		any_lines_read = FALSE;
 
   while (pl_read_input_line(f_command_output)) {
     char		*name1;
@@ -1311,6 +1316,7 @@ or defined in that object file.
       fprintf(stderr, "%s\n", pl_input_line);
     }  /* if */
 #endif /* DEBUG */
+    any_lines_read = TRUE;
 
     if (nm_format == nmfk_solaris) {
       process_line = pl_scan_solaris_nm_line(&name1, &name2, &type,
@@ -1325,6 +1331,15 @@ or defined in that object file.
       process_line = pl_scan_default_nm_line(&name1, &name2, &type,
                                              &symbol_name);
     }  /* if */
+#if DEBUG
+    if (pl_debug_level >= 5) {
+      fprintf(stderr, "nm info: name1: %s, name2: %s, type: %c, sym: %s\n",
+              name1 == NULL ? "<NULL>" : name1,
+              name2 == NULL ? "<NULL>" : name2,
+              type,
+              symbol_name == NULL ? "<NULL>" : symbol_name);
+    }  /* if */
+#endif /* DEBUG */
     /* Is this a line that should be skipped such as a blank line or
        header line? */
     if (!process_line) continue;
@@ -1346,9 +1361,6 @@ or defined in that object file.
       objects_tail = NULL;
       if (is_archive) {
         object_file_name = NULL;
-        /* Continue execution with the next line which will be the
-           first object file in the archive. */
-        continue;
       } else {
         /* Allocate an object file structure and link it to the input
            file. */
@@ -1405,6 +1417,11 @@ or defined in that object file.
       pofp->symbols = psp;
     }  /* if */
   }  /* while */
+  if (!any_lines_read) {
+    /* If there were no nm lines read, issue a warning.  This usually
+       indicates that the nm command being used in not correct. */
+    pl_warning(pl_ec_no_nm_info, NULL);
+  }  /* if */
   return;
 }  /* pl_read_nm_output */
 
