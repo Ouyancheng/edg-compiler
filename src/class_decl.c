@@ -6265,8 +6265,7 @@ next_declaration:
          incomplete structs/unions are not added to the type list (this code
          is bypassed) because the actual definition has not yet appeared.  See
          pop_scope; they get added at the end of the scope. */
-      add_to_types_list(class_type, effective_decl_level,
-                        in_old_style_param_decl_list);
+      add_to_types_list(class_type, effective_decl_level);
     }  /* if */
     /* Save a pointer to the list of member symbols in the tag symbol.  Note
        that there may be symbols even if there there were no declarations,

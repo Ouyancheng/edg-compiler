@@ -195,8 +195,7 @@ extern void set_type_kind(a_type_ptr  pte,
 extern a_type_ptr alloc_type(a_type_kind kind);
 
 extern void add_to_types_list(a_type_ptr     type_ptr,
-                              a_scope_depth  scope_level,
-                              a_boolean      in_old_style_param_decl_list);
+                              a_scope_depth  scope_level);
 
 extern a_type_ptr integer_type(an_integer_kind kind);
 

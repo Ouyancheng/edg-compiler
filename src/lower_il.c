@@ -5207,8 +5207,7 @@ this routine to do a relatively simple copy of the all the fields.
       for (scope_depth = depth_scope_stack; scope_depth >= 0; scope_depth--) {
         if (class_type == scope_stack[scope_depth].last_type) {
           /* Found the list.  Add the subobject type to its end. */
-          add_to_types_list(subobject_type, scope_depth,
-                            /*in_old_style_param_decl_list=*/FALSE);
+          add_to_types_list(subobject_type, scope_depth);
           goto added_to_list;
         }  /* if */
       }  /* for */
@@ -5421,8 +5420,7 @@ will be inserted at the point indicated by type_promotion_insert_location.
       type_promotion_insert_location = &type->next;
     } else {
       /* Add to the end of the list. */
-      add_to_types_list(type, DEPTH_OF_FILE_SCOPE,
-                        /*in_old_style_param_decl_list=*/FALSE);
+      add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
     }  /* if */
   }  /* for */
   scope->types = NULL;

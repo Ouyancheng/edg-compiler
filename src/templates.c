@@ -788,8 +788,7 @@ make_new_type:
         set_routine_calling_method_flag(new_type);
         /* A brand new type has been created -- add it to the file scope types
            list. */
-        add_to_types_list(new_type, DEPTH_OF_FILE_SCOPE,
-                          /*in_old_style_param_decl_list=*/FALSE);
+        add_to_types_list(new_type, DEPTH_OF_FILE_SCOPE);
         break;
       case tk_array:
         /* Make an array type based on "type", making substitutions as
@@ -806,8 +805,7 @@ make_new_type:
           *tp2 = *type;
           tp2->variant.array.element_type = tp;
           new_type = tp2;
-          add_to_types_list(new_type, DEPTH_OF_FILE_SCOPE,
-                            /*in_old_style_param_decl_list=*/FALSE);
+          add_to_types_list(new_type, DEPTH_OF_FILE_SCOPE);
         }  /* if */
         break;
       case tk_class:
