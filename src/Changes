@@ -1,4 +1,18 @@
 Version 2.44
+4/5/00   Microsoft and Sun compatibility: friend class lookup
+
+When a friend declaration nominates a class or struct using an unqualified
+name, the C++ standard requires that the lookup of that name stops at the
+innermost enclosing namespace scope (if not found, a class declaration is
+injected in that scope).  In Microsoft and Sun modes, this limitation is
+lifted and class names in outer namespace scopes can also be found.
+
+  struct S;
+  namespace N {
+    class C {
+      friend struct S;  // ::S in Microsoft and Sun modes; N::S otherwise.
+    };
+  }
 
 4/5/00   Microsoft compatibility: explicit specialization of class inside
          of a class template
