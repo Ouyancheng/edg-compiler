@@ -253,7 +253,6 @@ Return a pending pragma entry to the available list.
 #if 0
   /* Add code to discard token caches when appropriate. */
 #endif
-  db_exit();
 }  /* free_pending_pragma */
 
 
