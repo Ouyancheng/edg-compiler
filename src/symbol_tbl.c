@@ -8287,9 +8287,12 @@ created if a projected symbol cannot be found in any of the real bases.
          as the result of the lookup (for hidden name lookups and other special
          lookups). */
       new_sym = progenitor_sym;
-    } else if (tentative_type_lookup && !is_type_symbol(fund_progenitor_sym)) {
+    } else if (tentative_type_lookup &&
+               !(is_type_symbol(fund_progenitor_sym) ||
+                 is_class_template_symbol(fund_progenitor_sym))) {
       /* The symbol found is not a type name symbol, so do not create a
-         projection for it. */
+         projection for it.  A class template symbol is returned on a
+         tentative type lookup for improved error recovery. */
     } else if (tentative_template_lookup &&
                !symbol_is_or_contains_template(fund_progenitor_sym)) {
       /* The symbol found is not a template name symbol, so do not create a
