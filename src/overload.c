@@ -60,6 +60,7 @@ Clear a conversion description.
 */
 {
   conv->routine                        = NULL;
+  conv->routine_symbol                 = NULL;
   conv->class_identity_or_bitwise_copy = FALSE;
   conv->result_is_an_lvalue            = FALSE;
   conv->ambiguous                      = FALSE;
@@ -3962,6 +3963,7 @@ is only used in C++ mode.
       candidate = *candidate_functions;
       candidate->is_user_conversion = TRUE;
       candidate->conversion.routine = conversion_routine;
+      candidate->conversion.routine_symbol = conversion_symbol;
       candidate->conversion.std = std_conversion;
       candidate->conversion.result_is_an_lvalue = result_is_an_lvalue;
     }  /* if */
@@ -5932,6 +5934,7 @@ where the class type is already correct and nothing should be done to it.
 static void set_up_for_conversion_function_call(
                                            an_operand       *operand,
                                            a_routine_ptr    conversion_routine,
+                                           a_symbol_ptr     conversion_symbol,
                                            an_expr_node_ptr *arg_expr_list)
 /*
 Prepare for generating a call of a conversion function, but do not
@@ -5941,13 +5944,10 @@ Return an argument list for the call in *arg_expr_list.  This routine
 is used only in C++ mode.
 */
 {
-  a_symbol_ptr conversion_symbol;
-  a_type_ptr   this_param_type, routine_type;
+  a_type_ptr this_param_type, routine_type;
 
   /* Check that the conversion function is accessible and mark it as
      referenced. */
-  conversion_symbol =
-                 (a_symbol_ptr)(conversion_routine->source_corresp.assoc_info);
   routine_type = conversion_routine->type;
   this_param_type = implicit_this_param_type_of(routine_type);
   reference_to_implicitly_invoked_function(conversion_symbol,
@@ -6103,6 +6103,7 @@ be a constructor call.
                                      (a_special_function_kind)sfk_conversion) {
     /* Conversion function. */
     set_up_for_conversion_function_call(operand, conversion_routine,
+                                        conversion->routine_symbol,
                                         &arg_expr_list);
     /* Conversion routines are called directly. */
     /* Make a node for the address of the function. */

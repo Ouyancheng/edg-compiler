@@ -45,6 +45,11 @@ typedef struct a_conv_descr {
 			/* The conversion routine entry.  NULL if
 			   class_identity_or_bitwise_copy is TRUE or if there
 			   is no user-defined part of the conversion. */
+  a_symbol_ptr	routine_symbol;
+			/* Non-NULL only for conversion functions, in which
+			   case it is the symbol for the routine, possibly
+			   a projection symbol.  Needed to check access on
+			   conversion function calls. */
   a_byte_boolean
 		class_identity_or_bitwise_copy;
 			/* If TRUE, the "conversion" for a class is either
