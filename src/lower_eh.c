@@ -879,6 +879,7 @@ static a_field_ptr
 		ehse_try_field,
 		ehse_try_setjmp_buffer_field,
 		ehse_try_catch_entries_field,
+		ehse_try_rtinfo_field,
 		ehse_function_field,
 		ehse_function_regions_field,
 		ehse_function_obj_table_field,
@@ -910,6 +911,7 @@ Its definition is
       struct {
         jmp_buf  setjmp_buffer; // Buffer for setjmp
         exception_type_spec *catch_entries;  // Catch list
+        void     *rtinfo;       // Runtime info
       } try_block;
       struct {
         region_descr   *regions;            // Cleanup regions
@@ -953,6 +955,10 @@ Its definition is
     make_lowered_field("catch_entries", ptr_exception_type_spec,
                        &byte_offset, try_block_struct_type, &last_field);
     ehse_try_catch_entries_field = last_field;
+    /* field: void *rtinfo */
+    make_lowered_field("rtinfo", void_star_type(),
+                       &byte_offset, try_block_struct_type, &last_field);
+    ehse_try_rtinfo_field = last_field;
     finish_class_type(try_block_struct_type, &byte_offset);
     /* Make the function variant struct. */
     function_struct_type = alloc_type((a_type_kind)tk_struct);
@@ -1969,9 +1975,11 @@ Do IL lowering for an stmk_try_block statement.
   an_insert_location insert_location;
   a_statement_ptr    stmt_to_try, copy_of_orig_stmt;
   an_expr_node_ptr   try_frame_catch_entries, try_frame_setjmp_buffer;
+  an_expr_node_ptr   try_frame_rtinfo;
   an_expr_node_ptr   setjmp_call, compare_node, catch_clause_number_node;
   a_statement_ptr    prev_if_stmt, if_stmt;
   long               catch_clause_number;
+  a_constant         null_constant;
 
   stmt_to_try = statement->variant.try_block.statement;
   handlers = statement->variant.try_block.handlers;
@@ -1998,6 +2006,19 @@ Do IL lowering for an stmk_try_block statement.
   (void)insert_assignment_statement(try_frame_catch_entries,
                                     (an_expr_operator_kind)eok_passign,
                                     array_var_lvalue_expr(catch_array_var),
+                                    &insert_location);
+  /* Set the rtinfo field (which points to runtime information) to NULL. */
+  try_frame_rtinfo = 
+                  field_lvalue_selection_expr(
+                    field_lvalue_selection_expr(
+                      field_lvalue_selection_expr(var_lvalue_expr(try_frame),
+                                                  ehse_variant_field),
+                      ehse_try_field),
+                    ehse_try_rtinfo_field);
+  make_zero_of_proper_type(void_star_type(), &null_constant);
+  (void)insert_assignment_statement(try_frame_rtinfo,
+                                    (an_expr_operator_kind)eok_passign,
+                                    alloc_node_for_constant(&null_constant),
                                     &insert_location);
   /* Change the original stmk_try_block statement into an if statement
      that looks like
