@@ -4832,7 +4832,12 @@ this routine above this one.
     } else if (proj_sym->variant.projection.intervening_access_adjustment) {
       /* There is an access adjustment somewhere on some derivation path, so
          we must look for a projection symbol that applies at this step of
-         the path in case it is an access adjustment. */
+         the path in case it is an access adjustment.  It's okay not to find
+         such a projection symbol since the access adjustment might not be
+         at the current level. */
+      /* Note that in the overloaded function case proj_sym is a projection
+         of an sk_overloaded_function symbol, not of fund_sym. */
+      a_symbol_ptr fund_proj_sym = fundamental_symbol_of(proj_sym);
       /* Run two loops -- first over the inactive list and then (if needed)
          over the active list. */
       int iter;
@@ -4843,7 +4848,7 @@ this routine above this one.
           if (step_proj_sym->parent.class_type == viewpoint_class &&
               step_proj_sym->kind == (a_symbol_kind)sk_projection &&
               step_proj_sym->variant.projection.extra_info->
-                                          fundamental_symbol == fund_sym) {
+                                         fundamental_symbol == fund_proj_sym) {
             /* Replace the projection symbol we have by the new one.  Note
                that it will get passed down in the recursive call below,
                which is good, because once we get past the access adjustments

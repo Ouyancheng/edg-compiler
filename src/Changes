@@ -1,5 +1,23 @@
 Version 2.30
 
+8/8/95   Bug in access check for overloaded functions with access adjusted
+
+Access declarations that adjust access on a set of overloaded functions
+were not always properly handled.
+
+struct A {
+public:
+  void f(int);
+  void f(float);
+};
+struct B : private A {
+public:
+  A::f;
+};
+struct C : public B {
+  void g() { f(1); }  // Should be okay
+};
+
 8/8/95   Bug in computing derivations of indirect virtual base classes
 
 In the following example:
