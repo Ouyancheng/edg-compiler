@@ -153,6 +153,8 @@ conversion_from_class_possible.
 #define BTK_ENUM 0x80
 			/* Enumeration types in C++ (in C, they're
 			   integral). */
+#define BTK_PTRDIFF_T 0x100
+			/* ptrdiff_t */
 #define BTK_NONE 0
 typedef int a_builtin_type_kind_set;
 

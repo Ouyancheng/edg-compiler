@@ -1,5 +1,25 @@
 Version 2.46
 
+7/17/01  Overload resolution for built-in operators taking ptrdiff_t
+
+The overload resolution processing for built-in operators that take
+an operand of type ptrdiff_t (e.g., []) is now improved in that when
+evaluating a conversion function it takes into account any conversion
+needed after the conversion function to get to ptrdiff_t.
+
+  struct A {
+    operator char();
+  };
+  struct B {
+    operator char*();
+    operator[](int);
+  };
+ void foo() {
+   A len;
+   B ret;
+   ret[len];  // was ambiguous, now selects B::operator[]
+  }
+
 7/17/01  Incorrect instantiation context when using nested namespaces
 
 A problem in the way in which the instantiation context is established

@@ -6604,18 +6604,30 @@ This routine is only used in C++ mode.
                              is_pointer_type(return_type) &&
                              is_function_type(type_pointed_to(return_type))) ||
           ((builtin_types_allowed & BTK_PTR_TO_MEMBER) != 0 &&
-                                         is_ptr_to_member_type(return_type))) {
+                                         is_ptr_to_member_type(return_type)) ||
+          ((builtin_types_allowed & BTK_PTRDIFF_T) != 0 &&
+                                         is_ptrdiff_t_type(return_type))) {
         /* This conversion function returns an acceptable built-in type. */
         compatible = TRUE;
         /* The result does not have to be forced to an rvalue. */
-      } else if (((builtin_types_allowed & BTK_BOOL) != 0 &&
+      } else if ((builtin_types_allowed & BTK_BOOL) != 0 &&
                                  (is_arithmetic_or_enum_type(return_type) ||
                                   is_pointer_type(return_type) ||
-                                  is_ptr_to_member_type(return_type)))) {
+                                  is_ptr_to_member_type(return_type))) {
         /* The conversion function returns something that can be converted to
            the desired kind of type via a standard conversion. */
         compatible = TRUE;
         std_conversion.nontrivial_conversion = TRUE;
+        /* The result does not have to be forced to an rvalue. */
+      } else if ((builtin_types_allowed & BTK_PTRDIFF_T) != 0 &&
+                                  is_arithmetic_or_enum_type(return_type)) {
+        /* The conversion function returns something that can be converted to
+           ptrdiff_t via a standard conversion. */
+        compatible = TRUE;
+        std_conversion.nontrivial_conversion = TRUE;
+        if (is_ptrdiff_t_type(type_after_integral_promotion(return_type))) {
+          std_conversion.promotion = TRUE;
+        }  /* if */
         /* The result does not have to be forced to an rvalue. */
       }  /* if */
     }  /* if */
@@ -6970,8 +6982,10 @@ type_code.
   switch (type_code) {
     case INTEGRAL_TYPE_CODE:
     case PROMOTED_INTEGRAL_TYPE_CODE:
-    case PTRDIFF_T_TYPE_CODE:
       builtin_types_allowed = BTK_INTEGRAL | BTK_ENUM;
+      break;
+    case PTRDIFF_T_TYPE_CODE:
+      builtin_types_allowed = BTK_PTRDIFF_T;
       break;
     case ENUM_TYPE_CODE:
       builtin_types_allowed = BTK_ENUM;
@@ -7064,16 +7078,13 @@ match, promotion, etc.) for the operand and record it in arg_match.
       if (is_integral_or_enum_type(operand_type)) {
         if (type_code == PTRDIFF_T_TYPE_CODE) {
           /* An operand of type ptrdiff_t is wanted. */
-          if (skip_typerefs(operand_type)->variant.integer.int_kind ==
-                                                     targ_ptrdiff_t_int_kind &&
-              !is_enum_type(operand_type)) {
+          if (is_ptrdiff_t_type(operand_type)) {
             /* We have ptrdiff_t. */
             match_level = aml_exact;
           } else {
             a_type_ptr promoted_type =
                                 operand_type_after_integral_promotion(operand);
-            if (skip_typerefs(promoted_type)->variant.integer.int_kind ==
-                                                     targ_ptrdiff_t_int_kind) {
+            if (is_ptrdiff_t_type(promoted_type)) {
               /* The operand promotes to ptrdiff_t. */
               match_level = aml_promotion;
             } else {

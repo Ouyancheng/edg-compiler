@@ -76,6 +76,7 @@ extern a_boolean is_char_array_type(a_type_ptr tp);
 extern a_boolean is_wchar_t_array_type(a_type_ptr tp);
 extern a_boolean is_string_type(a_type_ptr tp);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+extern a_boolean is_ptrdiff_t_type(a_type_ptr tp);
 extern a_boolean is_class_struct_union_type(a_type_ptr tp);
 extern a_boolean is_union_type(a_type_ptr tp);
 extern a_boolean is_aggregate_or_union_type(a_type_ptr tp);
