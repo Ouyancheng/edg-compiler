@@ -7090,6 +7090,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
 */
 {
   an_il_entry_kind  kind = (an_il_entry_kind)ssep->entity.kind;
+  a_statement_ptr   sp;
 
   fputs(il_entry_kind_names[(int)kind], f_debug);
   if (kind == (an_il_entry_kind)iek_src_seq_sublist) {
@@ -7101,8 +7102,8 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
     }  /* for */
   } else {
     if (kind == (an_il_entry_kind)iek_statement) {
-      a_statement_ptr   sp = (a_statement_ptr)ssep->entity.ptr;
-      fprintf(f_debug, " (at %lu):",
+      sp = (a_statement_ptr)ssep->entity.ptr;
+      fprintf(f_debug, " (at %lu): ",
              seq_number_from_stmt_source_position(sp->position));
       if (sp->kind == (a_statement_kind)stmk_init) {
         fputs("**BAD STMT KIND**", f_debug);
@@ -7149,7 +7150,10 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       fprintf(f_debug, " (at %lu): ", sseocp->source_position.seq);
       switch (sseocp->entity.kind) {
         case iek_statement:
-          fputs("block statement", f_debug);
+          sp = (a_statement_ptr)sseocp->entity.ptr;
+          db_statement_kind(sp->kind);
+          fprintf(f_debug, " statement (at %lu)",
+                  seq_number_from_stmt_source_position(sp->position));
           break;
         case iek_type:
           fputc('"', f_debug);
