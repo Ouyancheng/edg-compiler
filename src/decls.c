@@ -2317,7 +2317,86 @@ processing should proceed in error mode.
        cause the type of this declaration to prevail in this scope, and that
        of the previous declaration to be restored when this scope ends. */
   }
-}
+}  /* recover_from_irreconcilable_external_symbol_types */
+
+
+static void find_file_scope_decl(a_symbol_ptr  ext_sym,
+                                 a_boolean     is_routine,
+                                 a_boolean     *non_file_scope_decl_found,
+                                 a_boolean     *file_scope_decl_found)
+/*
+Given an external symbol ext_sym, determine whether there's an intervening
+declaration that hides an original at file scope by looping through the
+symbol list (only valid in C mode).
+*/
+{
+  a_symbol_ptr                sym = NULL;
+  an_extern_symbol_descr_ptr  esdp;
+
+  check_assertion(C_mode());
+  /* The symbol header for the external symbol may be truncated and/or
+     case insensitive.  We therefore need to determine the header of the
+     symbol associated with an actual declaration. */
+  esdp = ext_sym->variant.extern_symbol_descr;
+  if (is_routine) {
+    sym = (a_symbol_ptr)esdp->variant.routine.ptr->source_corresp.assoc_info;
+  } else {
+    sym = (a_symbol_ptr)esdp->variant.variable->source_corresp.assoc_info;
+  }  /* if */
+  if (sym != NULL) {
+    sym = sym->header->symbol;
+  }  /* if */
+  for (; sym != NULL; sym = sym->next) {
+    if (name_space_for_symbol_kind[(int)sym->kind] == nsk_other) {
+      /* Found a symbol of the right sort. */
+      if (sym->decl_scope == scope_stack[DEPTH_OF_FILE_SCOPE].number) {
+        if (is_tag_symbol(sym)) {
+          /* Ignore a tag symbol and look for a routine or variable
+             at file scope. */
+        } else {
+          /* Special handling of symbols encountered at file scope. */
+          if ((is_routine &&
+               sym->kind == (a_symbol_kind)sk_routine) ||
+              (!is_routine &&
+               sym->kind == (a_symbol_kind)sk_variable)) {
+            *file_scope_decl_found = TRUE;
+          }  /* if */
+          break;
+        }  /* if */
+      } else if (*non_file_scope_decl_found) {
+        /* We've already located an intervening declaration. */
+      } else if (is_routine) {
+        /* Current declaration is a routine. */
+        if (sym->kind != (a_symbol_kind)sk_routine) {
+          /* An intervening declaration of something other than a
+             function.  This redeclaration is hidden from the original
+             declaration, so issue a warning instead of an error. */
+          *non_file_scope_decl_found = TRUE;
+        }  /* if */
+      } else {
+        /* Current declaration is a variable. */
+        if (sym->kind == (a_symbol_kind)sk_variable) {
+          if (sym->variant.variable.ptr == NULL) {
+            /* This is a symbol not yet bound to an IL entry, and so
+               it is the one just now being created.  Skip past it. */
+          } else if (sym->defined &&
+                     sym->decl_scope !=
+                            scope_stack[DEPTH_OF_FILE_SCOPE].number) {
+            /* This is an intervening declaration of a local variable
+               of a parameter. (We check the defined flag to rule out
+               an intervening block extern declaration.) */
+            *non_file_scope_decl_found = TRUE;
+          }  /* if */
+        } else {
+          /* An intervening declaration of something other than a
+             variable.  This redeclaration is hidden from the original
+             declaration, so issue a warning instead of an error. */
+          *non_file_scope_decl_found = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* find_file_scope_decl */
 
 
 a_boolean reconcile_external_symbol_types(
@@ -2410,57 +2489,8 @@ issued a similar error).  Return FALSE if there is some error.
              Since this only happens in C mode it is pretty straightforward. */
           a_boolean     non_file_scope_decl_found = FALSE;
           a_boolean     file_scope_decl_found = FALSE;
-
-          for (sym = ext_sym->header->symbol; sym != NULL; sym = sym->next) {
-            if (name_space_for_symbol_kind[(int)sym->kind] == nsk_other) {
-              /* Found a symbol of the right sort. */
-              if (sym->decl_scope == scope_stack[DEPTH_OF_FILE_SCOPE].number) {
-                if (is_tag_symbol(sym)) {
-                  /* Ignore a tag symbol and look for a routine or variable
-                     at file scope. */
-                } else {
-                  /* Special handling of symbols encountered at file scope. */
-                  if ((is_routine &&
-                       sym->kind == (a_symbol_kind)sk_routine) ||
-                      (!is_routine &&
-                       sym->kind == (a_symbol_kind)sk_variable)) {
-                    file_scope_decl_found = TRUE;
-                  }  /* if */
-                  break;
-                }  /* if */
-              } else if (non_file_scope_decl_found) {
-                /* We've already located an intervening declaration. */
-              } else if (is_routine) {
-                /* Current declaration is a routine. */
-                if (sym->kind != (a_symbol_kind)sk_routine) {
-                  /* An intervening declaration of something other than a
-                     function.  This redeclaration is hidden from the original
-                     declaration, so issue a warning instead of an error. */
-                  non_file_scope_decl_found = TRUE;
-                }  /* if */
-              } else {
-                /* Current declaration is a variable. */
-                if (sym->kind == (a_symbol_kind)sk_variable) {
-                  if (sym->variant.variable.ptr == NULL) {
-                    /* This is a symbol not yet bound to an IL entry, and so
-                       it is the one just now being created.  Skip past it. */
-                  } else if (sym->defined &&
-                             sym->decl_scope !=
-                                    scope_stack[DEPTH_OF_FILE_SCOPE].number) {
-                    /* This is an intervening declaration of a local variable
-                       of a parameter. (We check the defined flag to rule out
-                       an intervening block extern declaration.) */
-                    non_file_scope_decl_found = TRUE;
-                  }  /* if */
-                } else {
-                  /* An intervening declaration of something other than a
-                     variable.  This redeclaration is hidden from the original
-                     declaration, so issue a warning instead of an error. */
-                  non_file_scope_decl_found = TRUE;
-                }  /* if */
-              }  /* if */
-            }  /* if */
-          }  /* for */
+          find_file_scope_decl(ext_sym, is_routine, &non_file_scope_decl_found,
+                               &file_scope_decl_found);
           if (non_file_scope_decl_found || !file_scope_decl_found) {
             /* Either there was no other declaration in scope (e.g., when the
                external symbol records another block extern declaration) or

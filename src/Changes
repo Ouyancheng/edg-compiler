@@ -1,5 +1,18 @@
 Version 2.46
 
+1/9/01   SVR4 mode error erroneously issued as warning in some configurations
+
+In configurations where TARG_SIGNIF_CHARS_IN_EXTERNAL_NAME is nonzero and/or
+TARG_CASE_SENSITIVE_EXTERNAL_NAMES is FALSE, the front end issued a warning
+instead of an error for certain SVR4 mode declaration conflicts.
+
+  int f();
+  void g() {
+    extern long f();  /* Should trigger an error; used to result in a warning
+  }                      only. */
+
+This is now fixed.
+
 1/9/01   Spurious error when friend injection is disabled
 
 A spurious redeclaration error was issued in certain cases when friend
