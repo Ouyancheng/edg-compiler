@@ -1,5 +1,22 @@
 Version 3.4
 
+3/18/04  GNU C mode: Mixing prototyped and unprototyped function declarations
+
+In GNU C mode, an unprototyped function declaration following a prototyped
+declaration of the same function caused the front end to subsequently ignore
+the prototype in many cases (with a warning).  This behavior has been modified
+if the unprototyped function declaration is a definition: In that case, the
+prototype information is retained.  For example:
+
+  void f(short);
+  void f();              // Warning: Prototype lost.
+  void g(short);
+  void g(x) short x; {}  // No warning: Treated as "void g(short x) {}"
+  void h(short);
+  void h(x) char x; {}   // Error: Incompatible with prototype.
+
+(See also the related Changes entry of 7/2/02.)
+
 3/14/04  IA-64 ABI: typeinfo bug with array cv-qualifiers fixed in g++ 3.3
 
 g++ 3.2 has a bug in generating typeinfo information for

@@ -5417,41 +5417,47 @@ declaration.
              handling for SVR4, Microsoft C and GNU C compatibility modes. */
           a_type_ptr  old_return_type = return_type_of(routine_ptr->type);
           a_type_ptr  new_return_type = return_type_of(type_ptr);
-          if ((SVR4_C_mode &&
-               incompatible_types_are_SVR4_compatible(type_ptr,
-                                                      routine_ptr->type)) ||
-              (gcc_mode &&
-               !skip_typerefs(type_ptr)
-                                    ->variant.routine.extra_info->prototyped &&
-               skip_typerefs(routine_ptr->type)
-                                    ->variant.routine.extra_info->prototyped &&
-               f_types_are_compatible(routine_ptr->type, type_ptr,
-                                      TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
-                                      TCF_NO_DEFAULT_ARG_PROMOTIONS))) {
+          if (SVR4_C_mode &&
+              incompatible_types_are_SVR4_compatible(type_ptr,
+                                                     routine_ptr->type)) {
             /* The routine types are incompatible, but in SVR4 mode this is
                not an error as long as the incompatibility is only in the
                return type or if one of the declarations is prototyped while
                the other is not. */
-            /* GNU C compilers accept old-style definitions with unpromoted
-               types after having seen a prototype (also with unpromoted type).
-               */
-            if (SVR4_C_mode) {
-              pos_sy_warning(ec_not_compatible_with_previous_decl,
-                             &locator->source_position, linked_symbol);
-            } else {
-              pos_sy_warning(ec_prototype_lost,
-                             &locator->source_position, linked_symbol);
-            }  /* if */
+            pos_sy_warning(ec_not_compatible_with_previous_decl,
+                           &locator->source_position, linked_symbol);
             *old_type = routine_ptr->type;
             /* If this is the definition, reset the type of the routine entry
-               to use the new type.  In GNU C mode, also retain the new type
-               if no definition has been seen yet and the current type is
-               unprototyped. */
-            if (is_function_def ||
-                (gcc_mode && !old_decl_has_body &&
-                 type_ptr->kind == (a_type_kind)tk_routine &&
-                 !type_ptr->variant.routine.extra_info->prototyped)) {
+               to use the new type. */
+            if (is_function_def) {
               routine_ptr->type = type_ptr;
+            }  /* if */
+          } else if (gcc_mode &&
+                     !skip_typerefs(type_ptr)
+                                    ->variant.routine.extra_info->prototyped &&
+                     skip_typerefs(routine_ptr->type)
+                                    ->variant.routine.extra_info->prototyped &&
+                     f_types_are_compatible(
+                                      routine_ptr->type, type_ptr,
+                                      TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                                      TCF_NO_DEFAULT_ARG_PROMOTIONS)) {
+            /* GNU C compilers accept old-style definitions with unpromoted
+               types after having seen a prototype (also with unpromoted type).
+               In that case, the prototype declaration is retained for typing
+               purposes.  If a nondefining unprototype declaration follows a
+               a nondefining prototyped declaration, GNU C ignores the
+               prototype. */
+            if (!is_function_def) {
+            }  /* if */
+            *old_type = routine_ptr->type;
+            /* Retain the new (unprototyped) type if no definition has been
+               seen yet 
+               current type is unprototyped. */
+            if (!old_decl_has_body && !is_function_def &&
+                type_ptr->kind == (a_type_kind)tk_routine) {
+              routine_ptr->type = type_ptr;
+              pos_sy_warning(ec_prototype_lost,
+                             &locator->source_position, linked_symbol);
             }  /* if */
           } else if (microsoft_mode && C_mode() &&
                      identical_types(old_return_type, new_return_type)) {
