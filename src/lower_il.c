@@ -7376,6 +7376,13 @@ Do IL lowering of the indicated statement and everything under it.
       case stmk_try_block:
         lower_try_block(statement);
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case stmk_microsoft_try:
+        lower_statement(statement->variant.microsoft_try->guarded_statement);
+        lower_normal_expr(statement->variant.microsoft_try->except_expr);
+        lower_statement(statement->variant.microsoft_try->cleanup_statement);
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       case stmk_decl:
         /* Statement that marks the location of declarations.  Ignored here. */

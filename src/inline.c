@@ -1109,6 +1109,9 @@ If not, *failed is set.
       case stmk_asm:
       case stmk_switch:
       case stmk_try_block:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case stmk_microsoft_try:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
 cannot_inline_ever:
         /* This statement cannot be inlined in any context. */
