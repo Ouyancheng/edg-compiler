@@ -5615,6 +5615,7 @@ to represent the template parameters.
     } else if (curr_token != tok_template) {
       a_type_ptr           param_type_ptr;
       a_symbol_locator     param_locator;
+      a_constant_ptr       param_con;
       /* Not a type-argument, so treat it as an arg-declaration.  If this
          template declaration happens to be of a function rather than a class,
          arg-declarations are not allowed.  That will be detected later. */
@@ -5629,16 +5630,16 @@ to represent the template parameters.
          point of instantiation an actual constant will be substituted. */
       sym = enter_symbol((a_symbol_kind)sk_constant, &param_locator,
                          decl_scope_level, /*suppress_redecl_error=*/FALSE);
-      sym->variant.constant =
+      sym->variant.constant = param_con =
                          fs_constant((a_constant_repr_kind)ck_template_param);
-      sym->variant.constant->type = param_type_ptr;
-      /* Note that the variant field template_param.kind was initialized to
-         tpck_param when the constant was allocated. */
-      sym->variant.constant->variant.template_param.
+      param_con->type = param_type_ptr;
+      set_template_param_constant_kind(param_con,
+                                   (a_template_param_constant_kind)tpck_param);
+      param_con->variant.template_param.
                         variant.coordinates.depth = decl_state->nesting_depth;
-      sym->variant.constant->variant.template_param.
+      param_con->variant.template_param.
                         variant.coordinates.position = template_param_list_pos;
-      set_source_corresp(&sym->variant.constant->source_corresp, sym);
+      set_source_corresp(&param_con->source_corresp, sym);
       const_type_involves_template_param = 
 				is_or_contains_template_param(param_type_ptr);
       sym->is_template_param = TRUE;

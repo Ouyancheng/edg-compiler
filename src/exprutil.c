@@ -1518,8 +1518,8 @@ The result type is "type".  Return the operand in *result.
   node = make_operator_node(op, type, node);
   /* Build the ck_template_param constant. */
   clear_constant(&con, (a_constant_repr_kind)ck_template_param);
-  con.variant.template_param.kind =
-                               (a_template_param_constant_kind)tpck_expression;
+  set_template_param_constant_kind(&con,
+                              (a_template_param_constant_kind)tpck_expression);
   con.variant.template_param.variant.expr = node;
   con.type = type;
   /* Make the operand. */

@@ -325,6 +325,33 @@ Allocate a source file entry, initialize it, and return a pointer to it.
 }  /* alloc_source_file */
 
 
+void set_template_param_constant_kind(a_constant                     *cp,
+                                      a_template_param_constant_kind kind)
+/*
+Set the kind of a template parameter constant.  *cp is already a
+ck_template_param constant.
+*/
+{
+  check_assertion_str(cp->kind == (a_constant_repr_kind)ck_template_param,
+                    "set_template_param_constant_kind: not ck_template_param");
+  cp->variant.template_param.kind = kind;
+  switch (kind) {
+    case tpck_param:
+      cp->variant.template_param.variant.coordinates.position = 0;
+      cp->variant.template_param.variant.coordinates.depth = 0;
+      break;
+    case tpck_expression:
+      cp->variant.template_param.variant.expr = NULL;
+      break;
+    case tpck_member:
+      /* No variant fields. */
+      break;
+    default:
+      unexpected_condition_str("set_template_param_constant_kind: bad kind");
+  }  /* switch */
+}  /* set_template_param_constant_kind */
+
+
 void set_constant_kind(a_constant           *cp,
                        a_constant_repr_kind kind)
 /*
@@ -384,10 +411,8 @@ fields to default values.
       cp->variant.init_repeat.count = 0;
       break;
     case ck_template_param:
-      cp->variant.template_param.kind =
-                                  (a_template_param_constant_kind)tpck_param;
-      cp->variant.template_param.variant.coordinates.position = 0;
-      cp->variant.template_param.variant.coordinates.depth = 0;
+      set_template_param_constant_kind(cp, 
+                                  (a_template_param_constant_kind)tpck_param);
       break;
     case ck_cast:
       cp->variant.source_constant = NULL;

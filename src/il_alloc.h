@@ -28,6 +28,10 @@ a_scope_orphaned_list_header_ptr alloc_scope_orphaned_list_header(
 
 extern a_source_file_ptr alloc_source_file(void);
 
+extern void set_template_param_constant_kind(
+                                      a_constant                     *cp,
+                                      a_template_param_constant_kind kind);
+
 extern void set_constant_kind(a_constant           *cp,
                               a_constant_repr_kind kind);
 
