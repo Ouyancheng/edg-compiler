@@ -764,18 +764,19 @@ do
   then
     echo "$cfile:" 1>&2
   fi
+  gen_c_option=
   if [ $keep_int_file -eq 1 -o $gen_c_in_curr_dir -eq 1 ] ; then
     gen_c_file_name=$basefile$gen_c_suffix
     gen_c_obj_name=$basefile$gen_o_suffix
     if [ $gen_c_suffix != ".int.c" ] ; then
-      feoptions=$feoptions" "--gen_c_file_name=$gen_c_file_name
+      gen_c_option=--gen_c_file_name=$gen_c_file_name
     fi
   else
     gen_c_file_name=$TMPDIR/$basefile.$$""$gen_c_suffix
     gen_c_obj_name=$basefile.$$""$gen_o_suffix
-    feoptions=$feoptions" "--gen_c_file_name=$gen_c_file_name
+    gen_c_option=--gen_c_file_name=$gen_c_file_name
   fi
-  command=${CPFE}" "$feoptions" "$EDG_CPFE_DEFAULT_OPTIONS" "$cfile
+  command=${CPFE}" "$feoptions" "$gen_c_option" "$EDG_CPFE_DEFAULT_OPTIONS" "$cfile
   if [ $driver_debug -ne 0 ] ; then
     echo $command
   fi
