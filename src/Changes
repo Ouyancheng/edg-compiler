@@ -1,5 +1,20 @@
 Version 2.42
 
+8/2/99   Abort on pointer-to-member constant when operator& is declared
+
+An abort on a pointer-to-member constant of a type that has a user-declared
+operator& has been corrected.
+
+  struct X {
+    void operator&();
+  };
+  struct Y {
+    X x;
+  };
+  void f() {
+    &Y::x;  // Abort here eliminated
+  }
+
 7/30/99  Microsoft compatibility: access checking in elaborated type specifiers
 
 In Microsoft bug mode, access checking of qualified names in elaborated

@@ -3068,7 +3068,8 @@ operation is a pointer-to-member (see ARM 5.3).
       operand_will_not_be_used_because_of_error(&operand);
     } else {
       if (C_dialect == C_dialect_cplusplus &&
-          is_overloadable_type_operand(&operand)) {
+          is_overloadable_type_operand(&operand) &&
+          !is_sym_for_member_operand(&operand)) {
         /* Look for C++ operator overloading cases. */
         check_for_operator_overloading((an_opname_kind)onk_ampersand,
                                        /*unary_operator=*/TRUE,
