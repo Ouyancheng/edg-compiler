@@ -2229,8 +2229,8 @@ the template.  is_typedef is TRUE if the class specifier is being typedefed.
     if (!friend_injection_enabled && !is_friend_decl) {
       /* In case the previous declaration was a friend declaration, ensure
          that the symbol is henceforth visible for lookup. */
+      previously_invisible = tag_sym->is_invisible;
       tag_sym->is_invisible = FALSE;
-      previously_invisible = TRUE;
     }  /* if */
     if (is_class_definition) {
       /* Allow for alternating between class and struct, but stay with the
