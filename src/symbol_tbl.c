@@ -2286,8 +2286,7 @@ severity to be used for the diagnostic when TRUE is returned.
     /* There should be a template parameter list present, except when we
        are in the process of scanning the template parameter list. */
     check_assertion(tpp != NULL ||
-                    (ssep->kind == (a_scope_kind)sck_template_declaration &&
-                     scope_stack[decl_scope_level].number == ssep->number));
+                    ssep->kind == (a_scope_kind)sck_template_declaration);
     while (tpp != NULL && !result) {
       a_symbol_ptr  param_symbol = tpp->param_symbol;
       if (param_symbol->header == sym->header) {
