@@ -938,7 +938,7 @@ Process the default argument expressions for the indicated class.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* The default arguments on the routine type have been fixed up.
            If the declared type refers to a different type entry, copy the
-           the default argument expressions to the declared type. */
+           default argument expressions to the declared type. */
         if (do_declared_type_fixup) {
           a_type_ptr        rout_type = routine_symbol_type(sym);
           a_param_type_ptr  ptp1, ptp2;
@@ -5679,7 +5679,7 @@ declared member functions.
              set in the declared type. */
           if (tp->kind == (a_type_kind)tk_typeref) {
             /* The typedef is potentially shared, so don't modify the
-               the type it points to without copying it first. */
+               type it points to without copying it first. */
             tp = copy_routine_type_with_param_types(skip_typerefs(tp));
             rtsp2 = tp->variant.routine.extra_info;
             /* For default arg processing later on, save the type that will
