@@ -32,7 +32,7 @@ A.  C vs. C++
   base classes and virtual functions, so space is required for fields
   only.  Fields are put out in strict declaration order and aligned based
   on data type.  The alignment requirement for the struct as a whole is that
-  of the member with the greatest alignment requirment.
+  of the member with the greatest alignment requirement.
 
   C++ classes (in the generic sense) that are not unions have more
   complicated layouts.  The language definition provides few requirements
@@ -994,7 +994,7 @@ direct nonvirtual base class, call this routine recursively to pick up its
 own virtual base classes, if any.  If use_decl_order is TRUE, we have a
 simple loop, allocating pointers for base classes in the order they appear
 on the base classes list; if it is FALSE, a recursive call assures that the
-successors on the list, if any, are processed before the precessor.
+successors on the list, if any, are processed before the predecessor.
 */
 {
   a_base_class_ptr  bcp;
@@ -1102,7 +1102,7 @@ special case) allocate a pointer to its data section.  If use_decl_order is
 TRUE, we have a simple loop, allocating pointers for base classes in the
 order they appear on the base classes list; if it is FALSE, a recursive call
 assures that the successors on the list, if any, are processed before the
-precessor.
+predecessor.
 */
 {
   for (; bcp != NULL; bcp = bcp->next) {

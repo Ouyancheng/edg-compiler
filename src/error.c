@@ -3732,7 +3732,7 @@ restore the previously saved settings.
     saved_severity = *severity;
   } else if (diag_kind == (a_diagnostic_category_kind)dck_list ||
              diag_kind == (a_diagnostic_category_kind)dck_end_list) {
-    /* Reuse the error postion and severity from the primary diagnostic. */
+    /* Reuse the error position and severity from the primary diagnostic. */
     *error_pos = &saved_error_position;
     *severity = saved_severity;
 #if CHECKING

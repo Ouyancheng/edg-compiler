@@ -247,7 +247,7 @@ the two list.
         cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
         cp->variant.dynamic_init = dip;
         if (number_of_uninitialized_elements > 1) {
-          /* When there is more than one unitialized element remaining in the
+          /* When there is more than one uninitialized element remaining in the
              array, we put out an init_repeat constant on top of the
              dynamic init constant. */
           repeat_con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
