@@ -33,8 +33,8 @@ extern void check_closing_paren_after_expr_list(void);
 extern void scan_ctor_arguments(a_symbol_ptr       constructor_sym,
                                 an_expr_node_ptr   *arg_expr_list,
                                 a_routine_ptr      *conversion_routine,
-                                a_source_position  *err_pos,
-				a_type_ptr	   object_class_type);
+                                a_source_position  *source_pos,
+                                a_type_ptr         object_class_type);
 
 a_boolean new_or_delete_type_requires_array_handling(a_type_ptr type);
 

@@ -1287,8 +1287,8 @@ error err_code.
 void scan_ctor_arguments(a_symbol_ptr       constructor_sym,
                          an_expr_node_ptr   *arg_expr_list,
                          a_routine_ptr      *conversion_routine,
-                         a_source_position  *err_pos,
-			 a_type_ptr	    object_class_type)
+                         a_source_position  *source_pos,
+                         a_type_ptr         object_class_type)
 /*
 Scan the argument list for a C++ constructor call.  The current token is
 the one right after the opening parenthesis of the argument list.  The
@@ -1296,8 +1296,9 @@ constructor symbol (possibly overloaded) is constructor_sym.
 Scan the arguments and the closing parenthesis, and return the
 argument list in *arg_expr_list and a pointer to the proper constructor
 routine in *conversion_routine.  If the proper constructor cannot be
-determined, return NULL.  This routine may be called only in C++ mode.
-It's used for paren-enclosed initializers for classes that have
+determined, return NULL.  *source_pos indicates the source position
+of the call.  This routine may be called only in C++ mode.
+It's used for parenthesis-enclosed initializers for classes that have
 constructors, as in
 
   class A {...};
@@ -1371,7 +1372,7 @@ is being called for a derived class object).
   if (constructor_sym != NULL) {
     /* Check that the constructor is accessible and mark it referenced. */
     reference_to_implicitly_invoked_function(
-                                         constructor_sym, err_pos,
+                                         constructor_sym, source_pos,
                                          object_class_type,
                                          /*honor_virtual=*/FALSE,
                                          curr_expr_is_potentially_evaluated(),
