@@ -163,10 +163,18 @@ static void statement(void);
 /*
 Macro to check the lint-style "notreached" flag, and suppress a warning
 on unreachable code if a "notreached" comment was found.
+Note that the code_reachable variable will only be changed from
+reachable to reachable_error_given, both of which are treated as
+reachable -- i.e., the program semantics are not changed.  If the
+code is truly unreachable (from what we can tell without taking the
+programmer's word for it), the flag already says so and it is not
+changed.
 */
 #define check_lint_notreached_flag()                                  \
 { if (lint_notreached_flag) {                                         \
-    code_reachable = rc_unreachable_error_given;                      \
+    if (code_reachable == rc_reachable) {                             \
+      code_reachable = rc_unreachable_error_given;                    \
+    }  /* if */                                                       \
     lint_notreached_flag = FALSE;                                     \
   }  /* if */                                                         \
 }  /* check_lint_notreached_flag */
@@ -576,6 +584,13 @@ start_stmt_clause).
      structured statement is reachable. */
   if (code_reachable == rc_reachable) {
     sssep->end_reachable = code_reachable;
+  } else if (code_reachable == rc_unreachable_error_given) {
+    /* This counts as a weak form of reachable, which means the end of
+       the statement is reachable.  However, don't weaken the reachability
+       that's already there. */
+    if (sssep->end_reachable == rc_unreachable) {
+      sssep->end_reachable = rc_unreachable_error_given;
+    }  /* if */
   }  /* if */
 }  /* term_stmt_clause */
 
