@@ -16,7 +16,7 @@ the following will not be explicitly initialized to zero:
 5/13/99  Microsoft compatibility: allow __declspec on explicit specialization
          of template
 
-In Microsoft compatibility mode, an error is not longer issued when a
+In Microsoft compatibility mode, an error is no longer issued when a
 __declspec attribute appears on an explicit specialization of a template.
 
 5/10/99  Microsoft compatibility: dllimport and function definition
@@ -2933,7 +2933,7 @@ virtual base classes along more than two paths; now fixed.  For example:
   };
   struct D : virtual A, virtual B, virtual C { };
   int f(D *p) {
-    return p->i;                    // Spurious error is not longer issued
+    return p->i;                    // Spurious error is no longer issued
   }
 
 7/21/98   C++-generating back end, Microsoft compatibility: typedefs to
@@ -20183,7 +20183,7 @@ C::operator=(const C&):
   } c;
   main() {
     const C x;
-    c = x;                      // Spurious error is not longer issued
+    c = x;                      // Spurious error is no longer issued
   }
 
 1/23/95  Compile-time comparison of pointers to data members in unions
@@ -21162,7 +21162,7 @@ Since we have several customers who have added new type qualifiers (i.e.,
 beyond const and volatile), we have changed the IL representation of type
 qualification to a bit-vector -- see a_type_qualification (defined in
 il_def.h).  The variant fields in a_type have been changed (is_const and
-is_volatile are not longer used), and related changes have been made in
+is_volatile are no longer used), and related changes have been made in
 the interface to make_qualified_type and the internals of several routines
 that deal with type qualification.
 
@@ -26263,7 +26263,7 @@ and therefore did not compare correctly against other constants.
 
 10/15/93 Bug in computing alignment of a class
 
-The alignment requirements of an unnamed bit field are not longer factored
+The alignment requirements of an unnamed bit field are no longer factored
 in when computing the overall alignment for a class.  For instance:
 
   class A {
