@@ -1273,7 +1273,7 @@ global, or namespace qualifier.
 }  /* clear_qualifier_from_locator */
 
 
-static void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp)
+void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp)
 /*
 Initialize the fields in a scope-pointers-block substructure.
 */
@@ -1599,7 +1599,7 @@ hdr_ptr == NULL indicates that an error symbol should be constructed.
 }  /* alloc_symbol */
 
 
-static void unlink_symbol_from_symbol_table(a_symbol_ptr sym_ptr)
+void unlink_symbol_from_symbol_table(a_symbol_ptr sym_ptr)
 /*
 Remove a symbol from the symbol table, i.e., unlink it from its header's
 list.

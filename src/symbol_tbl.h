@@ -1812,6 +1812,8 @@ extern void make_specific_symbol_error_locator(a_symbol_locator *locator);
 
 extern void clear_qualifier_from_locator(a_symbol_locator  *locator);
 
+extern void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp);
+
 extern a_namespace_symbol_supplement_ptr
                                    alloc_namespace_symbol_supplement(void);
 
@@ -1907,6 +1909,8 @@ extern void make_symbol_for_type_of_type_info(void);
 
 extern void set_symbol_kind(a_symbol_ptr  sym_ptr,
 			    a_symbol_kind sym_kind);
+
+extern void unlink_symbol_from_symbol_table(a_symbol_ptr sym_ptr);
 
 extern a_symbol_ptr alloc_symbol(a_symbol_kind       kind,
                                  a_symbol_header_ptr hdr_ptr,
