@@ -973,7 +973,9 @@ is TRUE.
       /* There are some type qualifiers on the argument type that do not
          appear on the parameter type, so some type qualifiers are being
          dropped. */
-      ref_type_qualifiers_dropped = TRUE;
+      /* cfront allows a temporary to be used in cases like this, so
+         let them through.  Note that all cases handled here are arguments. */
+      if (!any_cfront_mode()) ref_type_qualifiers_dropped = TRUE;
     } else {
       /* Some type qualifiers are being added.  That's okay, but it may
          be a tie-breaker later. */
@@ -1227,7 +1229,8 @@ have_level:;
     arg_summary->conversion.std.type_qualifiers_added =
                                                      ref_type_qualifiers_added;
   }  /* if */
-  if (ref_to_nonconst_bound_to_rvalue && !any_cfront_mode()) {
+  if (ref_to_nonconst_bound_to_rvalue && !any_cfront_mode() &&
+      !allow_anachronisms) {
     /* You can't bind a reference to non-const to an rvalue.  This was a
        post-ARM change (in the ARM, the binding would be okay in overload
        resolution and would get an error later if chosen). */
@@ -6505,26 +6508,25 @@ initializer has previously been found to be acceptable, and
     if (dropping_qualifiers) {
       /* There are fewer qualifiers on the destination than on the source,
          so the initialization would involve dropping qualifiers. */
-      /* cfront makes a field selected from a const structure compatible
-         with a non-const reference to the underlying type:
-           struct A {};
-           struct B {
-             A a;
-             B() {}
-           };
-           const B bb;
-           A &r = bb.a;  // okay according to cfront, no warning
-           const B *pb;
-           A &rr = pb->a;  // okay according to cfront, warning
-      */
       if (cfront_2_1_mode &&
           !ref_to_const && is_const_qualified_type(base_source_type) &&
           is_field_selection_lvalue_operand(source_operand)) {
-        /* Okay.  Note that a temporary will not be used in these cases. */
+        /* cfront 2.1 makes a field selected from a const structure compatible
+           with a non-const reference to the underlying type:
+             struct A {};
+             struct B {
+               A a;
+               B() {}
+             };
+             const B bb;
+             A &r = bb.a;  // okay according to cfront, no warning
+             const B *pb;
+             A &rr = pb->a;  // okay according to cfront, warning
+           Note that a temporary will not be used in these cases. */
         pos_warning(ec_cfront_nonconst_ref_init, &source_operand->position);
         dropping_qualifiers = FALSE;
       } else {
-        /* Qualifiers are being dropped. */
+        /* Qualifiers are being dropped, so disallow a direct binding. */
         type_is_correct_or_derived = FALSE;
       }  /* if */
     }  /* if */
@@ -6568,9 +6570,9 @@ initializer has previously been found to be acceptable, and
     } else if (type_is_correct_or_derived &&
                is_class_struct_union_type(base_dest_type) &&
                (ref_to_const ||
-                (any_cfront_mode() && 
-                 (!initializing_variable ||
-                  operand_is_temp_init(source_operand))))) {
+                (any_cfront_mode() ? (!initializing_variable ||
+                                      operand_is_temp_init(source_operand)) :
+                                     allow_anachronisms))) {
       /* The source is a class rvalue but otherwise has the right type,
          and the reference is to const non-volatile.  No temporary is
          required.  Get the address of the rvalue, then cast the pointer
@@ -6580,14 +6582,16 @@ initializer has previously been found to be acceptable, and
       /* In cfront mode we allow this also for a ref to non-const if
          the source is already a temporary or if we're initializing
          a non-variable (e.g., we're passing an argument). */
+      /* When anachronisms are allowed we allow this also for a ref to
+         non-const. */
       conv_class_operand_to_object_pointer(source_operand);
       /* Use a pointer type instead of a reference type on the
          destination. */
       dest_type = make_pointer_type(base_dest_type);
       cast_operand(dest_type, source_operand, /*is_implicit_cast=*/TRUE);
       if (!ref_to_const) {
-        /* In cfront mode this can happen for a ref to non-const.  Issue
-           a warning in that case. */
+        /* In cfront mode or when anachronisms are allowed this can happen
+           for a ref to non-const.  Issue a warning in that case. */
         pos_warning(ec_nonconst_ref_init_anachronism,
                     &source_operand->position);
       }  /* if */
@@ -6598,10 +6602,13 @@ initializer has previously been found to be acceptable, and
         /* In a constant context (e.g., a nontype template argument),
            a temporary or conversion is not allowed. */
         error_in_operand(ec_init_needing_temp_not_allowed, source_operand);
-      } else if (dropping_qualifiers) {
+      } else if (dropping_qualifiers &&
+                 !(any_cfront_mode() && !initializing_variable)) {
         /* Type qualifiers were dropped (and otherwise the type is okay).
            Note that testing this early means that an implicit conversion
-           cannot be used to drop the qualifiers. */
+           cannot be used to drop the qualifiers.  cfront allows use of
+           a temporary when passing arguments even when qualifiers are
+           dropped. */
         error_in_operand(ec_qualifier_dropped_in_ref_init, source_operand);
       } else {
         /* Allocate a temporary and copy the operand into it, converting
@@ -6624,10 +6631,14 @@ initializer has previously been found to be acceptable, and
           /* A reference to non-const is initialized in a way that requires a
              temporary.  This is an error according to the ARM (8.4.3),
              but we allow it as an anachronism. */
-          if (any_cfront_mode() && !initializing_variable) {
+          if ((any_cfront_mode() && !initializing_variable) ||
+              (cfront_2_1_mode && operand_is_temp_init(source_operand) &&
+               source_operand->variant.expression->variant.
+                                   init.dynamic_init->kind ==
+                                       (a_dynamic_init_kind)dik_constructor)) {
             /* In cfront mode we allow this also for a ref to non-const if
                we're initializing a non-variable (e.g., we're passing an
-               argument). */
+               argument), or if we have a constructed temporary in 2.1 mode. */
             pos_warning(ec_nonconst_ref_init_anachronism,
                         &source_operand->position);
             warn = TRUE;
