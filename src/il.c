@@ -885,6 +885,9 @@ static void db_dynamic_initializer(a_dynamic_init_ptr  dip,
     case dik_constructor:
       db_constructor_initializer(dip, level);
       break;
+    case dik_none:
+      fputs("<none>\n", f_debug);
+      break;
   }  /* switch */
 }  /* db_dynamic_initializer */
 
@@ -2570,10 +2573,13 @@ void clear_dynamic_init(a_dynamic_init_ptr    dip,
 Initialize a dynamic_init entry of the kind specified.
 */
 {
-  dip->next     = NULL;
-  dip->variable = NULL;
-  dip->kind     = kind;
+  dip->next       = NULL;
+  dip->variable   = NULL;
+  dip->destructor = NULL;
+  dip->kind       = kind;
   switch (kind) {
+    case dik_none:
+      break;
     case dik_constant:
       dip->variant.constant = NULL;
       break;
@@ -2583,7 +2589,6 @@ Initialize a dynamic_init entry of the kind specified.
     case dik_constructor:
       dip->variant.constructor.routine = NULL;
       dip->variant.constructor.args = NULL;
-      dip->variant.constructor.corresp_destructor = NULL;
       break;
     case dik_aggregate:
       dip->variant.aggregate.aggr_const = NULL;

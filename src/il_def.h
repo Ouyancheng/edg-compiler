@@ -226,7 +226,7 @@ enum a_constant_repr_kind_tag {
 #endif /* ifdef CIL */
   ck_aggregate,         /* For list of constants in initialization. */
   ck_init_repeat,       /* Used to specify a repeated initialization constant
-                           in an aggregate. */
+                           in an array. */
 #ifdef FIL
   ck_init_position,     /* Used to specify an explicit initialization position
                            in an aggregate. */
@@ -271,6 +271,7 @@ non-constant initialization), and from stmk_init statements (which mark the
 point in an execution stream at which the initialization takes place).
 */
 enum a_dynamic_init_kind_tag {
+  dik_none,		/* No dynamic initialization. */
   dik_constant,		/* Initial value of a simple object is a constant. */
   dik_expression,	/* Initial value of a simple object is an
 			   expression. */
@@ -296,10 +297,18 @@ typedef struct a_dynamic_init {
 			   otherwise (e.g., when pointed to from a
 			   ck_dynamic_init constant to indicate initialization
 			   of one member of an aggregate). */
+  a_routine_ptr
+		destructor;
+			/* If non-NULL, the destructor routine to be invoked
+			   when this object ceases to exist; if NULL, no
+			   destructor call is required.  (Note that it is
+			   possible, if unusual, for a destructor to exist for
+			   an object even though there is no constructor.) */
   a_dynamic_init_kind
 		kind;	/* Kind of dynamic initialization (constant,
 			   expression, constructor, aggregate). */
   union {
+    /* When kind == dik_none: no variant fields. */
     /* When kind == dik_constant: */
     a_constant_ptr
 		constant;
@@ -321,11 +330,6 @@ typedef struct a_dynamic_init {
 			/* The actual arguments (not including an implicit this
 			   parameter) with which the constructor should be
 			   called. */
-      a_routine_ptr
-		corresp_destructor;
-			/* If non-NULL, the destructor routine to be invoked
-			   when this object ceases to exist; if NULL, no
-			   destructor call is required. */
     } constructor;
     /* When kind == dik_aggregate: */
     struct {
@@ -1262,7 +1266,12 @@ typedef struct a_variable {
     a_dynamic_init_ptr
 		dynamic;
 			/* Pointer to an entry describing the dynamic
-			   initialization required. */
+			   initialization required.  In the unusual case in
+			   which no dynamic initialization is required
+			   (variable receives default initialization or can
+			   be statically initialized) but a destructor must
+			   be called when the variable's lifetime terminates,
+			   a dynamic init entry will also be supplied. */
 #endif /* ifdef CIL */
   } initializer;
 #ifdef FIL
