@@ -39,6 +39,15 @@ Flags to be set for any version that uses the C++ generating back end.
 #endif /* ifdef _WIN32 */
 #endif /* ifdef CP_GEN_BE_VERSION */
 
+/*
+Flags to be set when using the KAI inliner.
+*/
+#ifdef INLINER_VERSION
+#define USING_KAI_INLINER 1
+#define ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C 1
+#define IL_SHOULD_BE_WRITTEN_TO_FILE 0
+#endif /* ifdef INLINER_VERSION */
+
 #ifdef sun
 /* Options Common to Sun hosted versions. */
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
