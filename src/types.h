@@ -215,8 +215,8 @@ The type must be known to be a routine type (not, for example, an error type).
 Extract the class type from a nonstatic member function type.
 */
 #define class_type_from_nonstatic_member_function_type(routine_type)  \
-  (f_skip_typerefs(type_pointed_to(                                   \
-    (routine_type)->variant.routine.extra_info->implicit_this_param_type)))
+  (f_skip_typerefs(type_pointed_to(f_skip_typerefs(routine_type)->    \
+               variant.routine.extra_info->implicit_this_param_type)))
 
 #endif /* ifndef TYPES_H */
 
