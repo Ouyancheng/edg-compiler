@@ -1,3 +1,25 @@
+Version 2.09
+
+09/10/92  Eliminated unneeded files
+
+Made variables used by vec_newdel static to eliminate the need for newdel.h.
+Removed newdel.h, memberptr.c, and vec_cdtor.c
+
+09/09/92  Modified vec_new and vec_delete names for cfront compatibility
+
+An extra underscore has been added to the names of several runtime routines
+to make them compatible with cfront.  The new names are "__vec_new" and
+"__vec_delete".  The EDG specific function "_vec_cctor" was changed to
+"__vec_cctor" for consistency.
+
+
+09/08/92  Added "munch" support
+
+Modified the functions that call the static constructors and destructors
+to support the AT&T "munch" style executable in addition to the "patch"
+style that was already supported.  The runtime detects whether a given
+executable was set up for "patch" or "munch".
+
 Version 2.08, August 25, 1992
 
 8/19/92  Eliminated use of printf
