@@ -2663,6 +2663,11 @@ See also 3.6.6.3.
      by looking at the entries in the structured statement stack. */
   sssep = find_enclosing_struct_stmt(/*find_switch=*/TRUE,
                                      /*find_loop=*/TRUE);
+  /* Binding a pragma to a break statement is disallowed.  This is partly
+     a consequence of how break statements are implemented -- usually no
+     explicit goto is added to the IL (so there's nothing to actually connect
+     the IL pragma entryd to). */
+  cannot_bind_to_curr_construct();
   if (sssep == NULL) {
     /* No appropriate structured statement was found. */
     error(ec_break_must_be_in_loop_or_switch);
