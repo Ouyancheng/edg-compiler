@@ -1,5 +1,15 @@
 Version 2.34
 
+12/18/96 Source sequence entry for namespace declaration
+
+A bug has been fixed that caused the source sequence entry for the macro
+in the following fragment to appear before the source sequence entry for
+the namespace declaration.  Fixed.
+
+  namespace N {
+  #define X Y
+  }
+
 12/17/96 Spurious error on declaration and definition of member class
          template within a class template
 
