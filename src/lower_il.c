@@ -7469,7 +7469,7 @@ static void lower_constructor_routine(a_routine_ptr routine)
 /*
 Do IL lowering of a constructor routine.  This is lowering of the routine
 entry and the type, not of the routine body if any
-(see lower_constructor_scope).
+(see lower_constructor_code).
 */
 {
   a_type_ptr       class_type, subobject_type;
@@ -7512,7 +7512,7 @@ static void lower_destructor_routine(a_routine_ptr routine)
 /*
 Do IL lowering of a destructor routine.  This is lowering of the routine
 entry and the type, not of the routine body if any
-(see lower_destructor_scope).
+(see lower_destructor_code).
 */
 {
   a_type_ptr       class_type;
@@ -10820,23 +10820,21 @@ constructor, but may instead be after an assignment to "this".
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
       if (bcp->is_virtual) {
         vbase_param_var = vbase_param_var->next;
-        if (bcp->direct) {
-          /* Do not set the pointer if it is shared with a base class --
-             the base class constructor has already set it. */
-          if (bcp->pointer_base_class == NULL) {
-            /* Make an expression for the value of the implicit parameter. */
-            vbase_param_node = var_rvalue_expr(vbase_param_var);
-            /* Make an expression node for the address of the virtual base
-               class pointer. */
-            vbptr_node = make_vbptr_field_lvalue_from_var(this_param_var, bcp);
-            /* Make an assignment statement that copies the implicit parameter
-               value (set earlier in the constructor code) into the virtual
-               base class pointer. */
-            (void)insert_assignment_statement(vbptr_node,
+        /* Do not set the pointer if it is shared with a base class --
+           the base class constructor has already set it. */
+        if (bcp->pointer_base_class == NULL) {
+          /* Make an expression for the value of the implicit parameter. */
+          vbase_param_node = var_rvalue_expr(vbase_param_var);
+          /* Make an expression node for the address of the virtual base
+             class pointer. */
+          vbptr_node = make_vbptr_field_lvalue_from_var(this_param_var, bcp);
+          /* Make an assignment statement that copies the implicit parameter
+             value (set earlier in the constructor code) into the virtual
+             base class pointer. */
+          (void)insert_assignment_statement(vbptr_node,
                                             (an_expr_operator_kind)eok_passign,
-                                              vbase_param_node,
-                                              insert_location);
-          }  /* if */
+                                            vbase_param_node,
+                                            insert_location);
         }  /* if */
       }  /* if */
     }  /* for */

@@ -1,5 +1,19 @@
 Version 2.13
 
+1/7/93 Bug in IL lowering generation of constructor wrappers
+
+A problem in generating the code to initialize the pointers to
+virtual base classes has been corrected.  This caused Suite++
+test 124p35 to rely on uninitialized memory, and sometimes fail.
+
+1/7/93 Unused part of float constants zeroed
+
+When float constants are stored into IL constant entries, the part
+of the floating-point representation array not filled by the float
+value is now zeroed each time it is stored.  This can avoid the problem
+of failing to recognize that two float constants are the same because
+of uninitialized background information.
+
 1/7/93 Bug in IL lowering of pointer to member operations
 
 A sequencing problem in IL lowering related to lowering of pointer to
