@@ -1058,8 +1058,13 @@ with \.  Return the macro argument created.
   ensure_arg_raw_text_space(length, map);
   end_of_string = end_of_curr_token;
   /* Copy the characters to the macro argument. */
-  { char	*src = start_of_curr_token + 1;
+  { char	*src = start_of_curr_token;
     char	*dest = map->raw_text;
+    /* For a wide string literal, skip the leading "L". */
+    if (*src == 'L') src++;
+    /* Skip over the opening quote. */
+    check_assertion(*src == '"');
+    src++;
     for (; src < end_of_string;) {
       /* If this is a \" or \\, ignore the initial character. */
       if (*src == '\\') {
