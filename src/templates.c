@@ -470,7 +470,7 @@ Instantiate the body of the template function associated with tip.
        As with the routine calling method flag, this flag may have been
        set earlier but the information may not have been complete.  The
        information must be complete at the time the function is defined
-       (i.e., is must be complete now). */
+       (i.e., it must be complete now). */
     set_arg_transfer_method_flag(ptp);
 #if CHECKING
     if ((pip->next == NULL) != (ptp->next == NULL)) {
