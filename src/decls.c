@@ -2948,10 +2948,13 @@ of the identifier.
     /* Indicate in the IL entry that the name is externally visible by
        assigning the external linkage kind that is the default for the current
        context. */
-    if (C_dialect != C_dialect_cplusplus ||
-        (is_function && sym->variant.routine.ptr == il_header.main_routine)) {
-      /* Note that "main" is always given "C" linkage. */
+    if (C_dialect != C_dialect_cplusplus) {
       scp->name_linkage = (a_name_linkage_kind)nlk_external;
+      sym->explicit_linkage_specifier = FALSE;
+    } else if (is_function &&
+               sym->variant.routine.ptr == il_header.main_routine) {
+      /* Note that "main" is always given "C++" linkage. */
+      scp->name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
       sym->explicit_linkage_specifier = FALSE;
     } else if (scp->name_linkage == (a_name_linkage_kind)nlk_none) {
       /* No prior declaration, so there's no conflict. */
@@ -4021,28 +4024,28 @@ on for use in generating cross-reference output describing this declaration.
         set_to_named_error_locator(*locator);
       } else {
         /* Check that the routine types are compatible. */
-        a_boolean  routines_compat = TRUE;
-        if (!C_mode() && !func_info->is_main_function) {
-          /* For routines that can be overloaded, id_linkage has already
-             checked that the routine types are the same.  "main" cannot
-             be overloaded, so it was not checked. */
-          if (!routine_name_linkages_are_compatible(routine_ptr->type,
-                                                    type_ptr)) {
-            routines_compat = FALSE;
+        a_boolean      routines_compat = TRUE;
+        an_error_code  error_code = ec_not_compatible_with_previous_decl;
+
+        /* For routines that can be overloaded, id_linkage has already
+           checked that the routine types are compatible.  "main" cannot
+           be overloaded, so it was not checked. */
+        if ((C_mode() || func_info->is_main_function) &&
+            !types_are_compatible(routine_ptr->type, type_ptr)) {
+          /* Error -- redeclaration requires type compatibility. */
+          routines_compat = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          /* Check that the calling conventions are compatible. */
-          } else if (microsoft_mode &&
-                     !calling_conventions_are_compatible(routine_ptr->type,
-                                                         type_ptr)) {
-            routines_compat = FALSE;
+        } else if (microsoft_mode &&
+                   !calling_conventions_are_compatible(routine_ptr->type,
+                                                       type_ptr)) {
+          /* Error -- calling conventions are compatible. */
+          routines_compat = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          }  /* if */
-        } else {
-          /* When overloading is not allowed (e.g., in C mode), check that
-             the types are compatible. */
-          if (!types_are_compatible(routine_ptr->type, type_ptr)) {
-            routines_compat = FALSE;
-          }  /* if */
+        } else if (!C_mode() && !func_info->is_main_function &&
+                   !routine_name_linkages_are_compatible(routine_ptr->type,
+                                                         type_ptr)) {
+          routines_compat = FALSE;
+          error_code = ec_incompatible_linkage_specifier;
         }  /* if */
         if (!routines_compat) {
           /* The old and new declarations are incompatible.  There is special
@@ -4071,8 +4074,7 @@ on for use in generating cross-reference output describing this declaration.
             }  /* if */
           } else {
             /* Issue an error on incompatible declarations. */
-            pos_sy_error(ec_not_compatible_with_previous_decl,
-                         &locator->source_position, linked_symbol);
+            pos_sy_error(error_code, &locator->source_position, linked_symbol);
             if (routine_ptr->storage_class == (a_storage_class)sc_static) {
               /* Reuse the routine entry to avoid error recovery problems
                  connected with constraints placed on static functions. */
@@ -8553,7 +8555,8 @@ continue_with_declaration:
               pos_warning(ec_linkage_specifier_not_allowed, &declarator_pos);
               rtsp->routine_name_linkage_is_explicit = FALSE;
             }  /* if */
-            rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_external;
+            rtsp->routine_name_linkage =
+                                 (a_name_linkage_kind)nlk_cplusplus_external;
             if (rtsp->exception_specification != NULL) {
               /* main() cannot have a throw specification, since there's no
                  call stack to unwind from main. */
