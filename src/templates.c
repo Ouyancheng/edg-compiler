@@ -5409,7 +5409,6 @@ information.
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
   a_type_qualifier_set         qualifiers;
   a_source_position            decl_start_pos;
-  a_boolean		       type_is_function = FALSE;
 
   dsi_flags = DSI_INLINE_ALLOWED |
               DSI_TYPE_SPECIFIER_ALLOWED |
@@ -5484,24 +5483,32 @@ information.
     /* Note whether this is a function type that comes from a typedef.  The
        setting is checked later if this turns out to be a function template
        definition. */
-    type_is_function = is_function_type(*type);
-    if (type_is_function && (*type)->kind == (a_type_kind)tk_typeref) {
-      func_info->function_type_from_typedef = TRUE;
-    }  /* if */
-    if (is_function_type(*type) && parent_class == NULL &&
-        locator->is_class_member) {
-      /* This is a member template declaration outside the class definition,
-         so a storage class may not be specified (as in the nontemplate
-         case). */
-      if (*storage_class != (a_storage_class)sc_unspecified) {
-        pos_error(ec_storage_class_not_allowed, &decl_start_pos);
-        *storage_class = (a_storage_class)sc_unspecified;
+    if (is_function_type(*type)) {
+      if ((*type)->kind == (a_type_kind)tk_typeref) {
+        func_info->function_type_from_typedef = TRUE;
       }  /* if */
-    }  /* if */
-    if (type_is_function) {
+      if (parent_class == NULL && locator->is_class_member) {
+        /* This is a member template declaration outside the class definition,
+           so a storage class may not be specified (as in the nontemplate
+           case). */
+        if (*storage_class != (a_storage_class)sc_unspecified) {
+          pos_error(ec_storage_class_not_allowed, &decl_start_pos);
+          *storage_class = (a_storage_class)sc_unspecified;
+        }  /* if */
+      }  /* if */
       /* Issue diagnostic on an incomplete-type in an exception
          specification. */
-      report_exception_spec_errors(func_info);
+      if (func_info->exception_spec_errors != NULL) {
+        /* If this is an instantiation of the function template and the
+           template has been defined, not just declared, treat this as a
+           definition as far as diagnostic severity is concerned.  Otherwise,
+           even if this is a template definition, let the diagnostics come
+           out with relaxed severity. */
+        if (!is_initial_decl && tip->template_sym->defined) {
+          func_info->is_definition = TRUE;
+        }  /* if */
+        report_exception_spec_errors(func_info);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (is_initial_decl) {
