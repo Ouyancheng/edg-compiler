@@ -55,6 +55,14 @@ a "for"] would have to be rewritten.)
 */
 #endif /* DO_IL_LOWERING */
 
+#if !RECORD_TEMPLATES_IN_IL
+ #error -- The C++/C-generating back end requires RECORD_TEMPLATES_IN_IL.
+#endif /* !RECORD_TEMPLATES_IN_IL */
+
+#if !RECORD_MACROS_IN_IL
+ #error -- The C++/C-generating back end requires RECORD_MACROS_IN_IL.
+#endif /* !RECORD_MACROS_IN_IL */
+
 #include "target.h"
 #include "cp_gen_be.h"
 #include "cmd_line.h"
@@ -540,6 +548,8 @@ Return TRUE if the current source sequence entry is for a declaration.
       case iek_asm_entry:
       case iek_src_seq_secondary_decl:
       case iek_pragma:
+      case iek_template:
+      case iek_macro:
         /* This is a declaration. */
         is_decl = TRUE;
         break;
