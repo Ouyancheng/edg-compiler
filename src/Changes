@@ -1,5 +1,11 @@
 Version 2.30
 
+6/5/95   Redeclaring a function "inline" after it has been called
+
+It used to be an error in all modes when an apparently noninline function
+was called and then redeclared "inline" (see WP 7.1.2 para 3).  Now we
+issue a warning by default and a discretionary error in -A mode.
+
 6/4/95   C++-generating back end: extern "C" on definitions
 
 The C++-generating back end now puts out extern "C" on variable and
