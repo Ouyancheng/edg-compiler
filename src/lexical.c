@@ -4796,7 +4796,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   } else if (curr_token == tok_comma) {
     /* All of the formal parameters have been accounted for and there are
        more actuals -- too many arguments were supplied. */
-    sym_error(ec_too_many_template_args, template_symbol);
+    pos_sy_error(ec_too_many_template_args, &pos_curr_token, template_symbol);
     flush_tokens();
     any_errors = TRUE;
   }  /* if */
