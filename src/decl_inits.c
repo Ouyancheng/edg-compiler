@@ -2585,10 +2585,13 @@ though neither constructors nor initialization is involved here.)
      and nonvirtual direct base classes. */
   /* First loop through the base classes looking for virtual base classes. */
   is_virtual_pass = TRUE;
+  cip_list = NULL;
   for (;;) {
-    cip_list = NULL;
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-      if (is_virtual_pass ? bcp->is_virtual : bcp->direct) {
+      /* On the first past, select out virtual base classes; on the second
+         pass select out dirct non-virtual base classes. */
+      if (is_virtual_pass ? bcp->is_virtual :
+                            (bcp->direct && !bcp->is_virtual)) {
         /* If the virtual base class or direct base class has a destructor, a
            dynamic init entry will be required. */
         rp = select_destructor(bcp->type, class_type, &source_pos,
