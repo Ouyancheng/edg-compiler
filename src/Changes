@@ -1,5 +1,30 @@
 Version 2.34
 
+10/29/96 Setting of cleanup state on destruction, with promoted temporaries
+
+In a case like the following, where the lifetime of a temporary is extended
+because it is bound to a reference, the cleanup state that was set when
+beginning destruction of the promoted temporary pointed back to the other
+temporary, which would already be destroyed at that point.  This would cause
+a problem if an exception were thrown in the destructor.  Now fixed.
+
+  struct X {
+    X();
+    X(const X&);
+    ~X();
+  };
+  struct Y {
+    Y();
+    Y(const Y&);
+    ~Y();
+  };
+  X f(Y&);
+  Y g();
+  int main() {
+    const X& r = f(g());  // Destruction of X temporary now has proper
+                          // cleanup state.
+  }
+
 10/25/96 Spurious ambiguity error on using directive lookup with struct
          name and synthesized overload set
 
@@ -14,7 +39,6 @@ functions from the same scope and a struct name that should be hidden.
   }
   using namespace N;
   int i = A();
-
 
 10/23/96 Interaction of cfront mode and --extern_inline
 
