@@ -1653,6 +1653,7 @@ are not checked.
           if (is_immediate_class_type(field_type) && !has_name(field_type) &&
               !has_correspondence(field_type)) {
             record_trans_unit_corresp(field_type, corresp_field->type);
+            establish_trans_unit_correspondences_for_class(field_type);
           }  /* if */
         }  /* if */
       }  /* for */
