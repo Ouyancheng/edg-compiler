@@ -8795,6 +8795,7 @@ function is potentially part of the wrapper code.
       /* Since delete might be overloaded, find the default version. */
       sym = find_default_operator_delete_sym(sym, &ambiguous);
       if (sym != NULL) {
+        sym = fundamental_symbol_of(sym);
         ctsp->assoc_operator_delete_routine = sym->variant.routine.ptr;
       }  /* if */
     }  /* if */

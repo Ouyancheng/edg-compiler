@@ -1,5 +1,22 @@
 Version 2.44
 
+6/22/00  Abort on using-declaration of overloaded delete operators
+
+The front end used to abort when processing a class that imports a set of
+overloaded delete operators from a base class with a using-declaration or
+an access declaration.
+
+  struct B {
+    void operator delete(void* p);
+    void operator delete(void* p, void* q);
+  };
+  struct D: public B {
+    D() {};
+    using B::operator delete;  // Caused front end to abort
+  };
+
+This is now fixed.
+
 6/22/00  C++-generating back end: output of extern "C" for static functions
 
 The C++-generating back end failed to output extern "C" for the declaration of
