@@ -5855,7 +5855,7 @@ expr_statement:
              lab: int j;
         */
         error(is_dependent_statement ? ec_dependent_stmt_is_declaration :
-                                       ec_declaration_after_statements);
+                                       ec_labeled_declaration);
         decl_statement();
       } else {
         /* An expression-statement. */

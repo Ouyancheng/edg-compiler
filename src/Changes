@@ -1,5 +1,17 @@
 Version 2.46
 
+3/18/01  Improved error message on labeled declaration in C99 mode
+
+The error message has been improved on a labeled declaration in
+C99 mode.  (The C99 syntax allows a label only on a statement,
+not on a declaration.)
+
+  int main() {
+    int a;
+  label:
+    int b;
+  }
+
 3/15/01  Internal error on invalid C99 _Pramga operator
 
 An internal error would occur if an ill-formed _Pragma operator

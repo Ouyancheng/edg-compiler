@@ -1120,6 +1120,7 @@ ec_bad_decl_for_export;;"\"export\" cannot be used on this declaration"
 ec_exported_member_decl;;"a member declaration cannot be declared \"export\""
 ec_exported_in_unnamed_namespace;;"a member of an unnamed namespace cannot be declared \"export\""
 ec_export_after_definition;;"a template cannot be declared \"export\" after it has been defined"
+ec_labeled_declaration;;"a declaration cannot have a label"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
