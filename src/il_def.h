@@ -1432,7 +1432,7 @@ enum a_float_kind_tag {
 typedef a_byte a_float_kind;
 
 /*
-A bit set whose values represent the presence of one or type qualifiers
+A bit set whose values represent the presence of one or more type qualifiers
 (const, volatile, along with others that an implementation might choose to
 support, such as restrict).
 */
