@@ -4026,13 +4026,30 @@ as part of the "->" or ".").  operand gives the selector, and routine_type
 gives the type of the routine being called.
 */
 {
+  a_type_ptr       this_param_type, this_class_type, operand_class_type;
+  a_boolean        is_arrow_operator = TRUE;
+  a_base_class_ptr bcp;
+
   conv_class_operand_to_object_pointer(operand);
   routine_type = skip_typerefs(routine_type);
-  /* The cast here handles base class casts and also const/volatile
-     differences. */
-  cast_operand(routine_type->variant.routine.
-                                          extra_info->implicit_this_param_type,
-               operand, /*is_implicit_cast=*/TRUE);
+  this_param_type = routine_type->variant.routine.
+                                          extra_info->implicit_this_param_type;
+  this_class_type = f_skip_typerefs(type_pointed_to(this_param_type));
+  if (is_pointer_type(operand->type)) {
+    operand_class_type = f_skip_typerefs(type_pointed_to(operand->type));
+    if (operand_class_type != this_class_type &&
+        is_immediate_class_type(operand_class_type) &&
+        (bcp = find_base_class_of(operand_class_type, this_class_type))!=NULL){
+      /* Do the cast to a base class.  Access checking is suppressed on this
+         cast, because the cast is really necessary only because the function
+         is inherited from a base class.  This is not clear from the ARM,
+         but cfront and Borland do it this way. */
+      base_class_cast_operand(operand, bcp, &is_arrow_operator,
+                              /*check_cast_access=*/FALSE);
+    }  /* if */
+  }  /* if */
+  /* The cast here handles const/volatile differences and error cases. */
+  cast_operand(this_param_type, operand, /*is_implicit_cast=*/TRUE);
 }  /* prep_special_selector_operand */
 
 
