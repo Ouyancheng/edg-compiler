@@ -3306,6 +3306,7 @@ entry is pushed on the scope stack.
   a_token_cache 		    decl_token_cache;
   a_boolean		            decl_token_cache_used = FALSE;
   a_boolean                         nonglobal_decl_err = FALSE;
+  a_pending_pragma_ptr		    pragmas_bound_to_template;
 
   db_enter(3, "template_declaration");
 #if CHECKING
@@ -3313,9 +3314,12 @@ entry is pushed on the scope stack.
     internal_error("template_declaration: expected tok_template");
   }  /* if */
 #endif /* CHECKING */
-  /* Note that select_curr_construct_pragmas is called in the caller, even
-     though the matching function, process_curr_construct_pragmas, is called
-     later in this routine. */
+  /* Note that select_curr_construct_pragmas is called in the caller.
+     extract_curr_construct_pragmas is called to save the list of
+     pragmas associated with this template declaration.  This pragma
+     list will later be associated with the template and applied to
+     each instance generated from the template. */
+  pragmas_bound_to_template = extract_curr_construct_pragmas();
   saved_curr_default_args = curr_default_args;
   curr_default_args = NULL;
   *defines_something = FALSE;
@@ -3595,10 +3599,9 @@ entry is pushed on the scope stack.
   /* Note that the template declaration scope must be popped before doing the
      prototype instantiation. */
   pop_scope();
-  /* Any pbk_next_construct pragmas that have not yet been processed will
-     be considered to bind to each of the instances generated from the
-     template.  Save the current construct pragma list in the template
-     symbol supplement. */
+  /* Any pbk_next_construct pragmas will be considered to bind to each of
+     the instances generated from the template.  Save the current construct
+     pragma list in the template symbol supplement. */
   {
     a_boolean	saved_pragmas = FALSE;
     if (sym != NULL) {
@@ -3607,15 +3610,14 @@ entry is pushed on the scope stack.
       if (tssp != NULL) {
         /* A null pointer could be returned if the symbol has an invalid
            kind because of an earlier error. */
-        tssp->pragmas_bound_to_template =
-                                          extract_curr_construct_pragmas();
+        tssp->pragmas_bound_to_template = pragmas_bound_to_template;
         saved_pragmas = TRUE;
       }  /* if */
     }  /* if */
     if (!saved_pragmas) {
       /* An error occurred earlier so we can't attach the pragmas to the
          template, so they need to be discarded. */
-      discard_curr_construct_pragmas();
+      free_pending_pragma_list(pragmas_bound_to_template);
     }  /* if */
   }
   if (prototype_type != NULL) {
