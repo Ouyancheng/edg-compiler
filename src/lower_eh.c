@@ -670,6 +670,25 @@ have been called on it at some previous point.
 }  /* define_typeinfo_var */
 
 
+static void prepare_for_defining_class_typeinfo_variable(a_type_ptr class_type)
+/*
+The indicated type (a class type) has an associated typeinfo variable that
+will be defined in the current compilation.  Do any necessary preparation
+for that definition.  In particular, this creates typeinfo variables for
+any base classes so that they will be present when the pass that defines
+typeinfo variables looks for them.
+*/
+{
+  a_base_class_ptr bcp;
+
+  for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
+       bcp != NULL;
+       bcp = bcp->next) {
+    (void)make_typeinfo_var(bcp->type);
+  }  /* for */
+}  /* prepare_for_defining_class_typeinfo_variable */
+
+
 static unsigned long
 		num_of_pending_class_typeinfo_vars;
 			/* Count of typeinfo variables generated for classes
@@ -678,15 +697,14 @@ static unsigned long
 			   final pass that finds and defines the variables. */
 
 
-void define_scope_class_typeinfo_vars(a_scope_ptr scope)
+void r_define_scope_class_typeinfo_vars(a_scope_ptr scope,
+                                        a_boolean   preparation_pass)
 /*
 Visit all the class types of the indicated scope and look for typeinfo
 variables (generated earlier).  For each typeinfo variable, generate
-the appropriate definition if one is needed.  This must be done late
-in the lowering process, so that all necessary typeinfo variables have
-been created already, and so that all virtual function tables have been
-defined if they will be (because some typeinfo entries are defined
-if and only if the associated virtual function table is defined).
+the appropriate definition if one is needed.  This routine is called
+twice, with preparation_pass == FALSE and then TRUE; the definition
+is generated on the second pass.
 */
 {
   a_type_ptr  type;
@@ -698,7 +716,11 @@ if and only if the associated virtual function table is defined).
      into the file scope here, but these class types are truly local types
      and are not used in the file scope, so it's okay to define their
      typeinfo variables now. */
-  /* Once all of the typeinfo variables have been found, quit. */
+  /* Once all of the typeinfo variables have been found, quit.  In the second
+     pass, this happens once all of the typeinfo variables have been processed.
+     In the first pass, the count of pending entries doesn't get decremented
+     (because the entries remain pending), but the test is still useful for
+     the case where there are no typeinfo variables at all. */
   for (type = scope->types;
        type != NULL && num_of_pending_class_typeinfo_vars != 0;
        type = type->next) {
@@ -724,12 +746,23 @@ if and only if the associated virtual function table is defined).
              be static. */
           definition_needed = force_static = TRUE;
         }  /* if */
-        define_typeinfo_var(type, definition_needed, force_static);
-        num_of_pending_class_typeinfo_vars--;
+        if (preparation_pass) {
+          /* This is the preparation pass, so just prepare for the definition
+             on the second pass. */
+          if (definition_needed) {
+            prepare_for_defining_class_typeinfo_variable(type);
+          }  /* if */
+        } else {
+          /* This is the second pass; do the definition. */
+          define_typeinfo_var(type, definition_needed, force_static);
+          num_of_pending_class_typeinfo_vars--;
+        }  /* if */
       }  /* if */
       /* If the class has a definition, visit the class members. */
       class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
-      if (class_scope != NULL) define_scope_class_typeinfo_vars(class_scope);
+      if (class_scope != NULL) {
+        r_define_scope_class_typeinfo_vars(class_scope, preparation_pass);
+      }  /* if */
     }  /* if */
   }  /* for */
   /* Visit all block scopes. */
@@ -737,28 +770,34 @@ if and only if the associated virtual function table is defined).
   for (block_scope = scope->scopes;
        block_scope != NULL && num_of_pending_class_typeinfo_vars != 0;
        block_scope = block_scope->next) {
-    define_scope_class_typeinfo_vars(block_scope);
+    r_define_scope_class_typeinfo_vars(block_scope, preparation_pass);
   }  /* for */
-}  /* define_scope_class_typeinfo_vars */
+}  /* r_define_scope_class_typeinfo_vars */
 
 
-void prepare_for_defining_class_typeinfo_variable(a_type_ptr class_type)
+void define_scope_class_typeinfo_vars(a_scope_ptr scope)
 /*
-The indicated type (a class type) has an associated typeinfo variable that
-will be defined in the current compilation.  Do any necessary preparation
-for that definition.  In particular, this creates typeinfo variables for
-any base classes so that they will be present when the pass that defines
-typeinfo variables looks for them.
+Visit all the class types of the indicated scope and look for typeinfo
+variables (generated earlier).  For each typeinfo variable, generate
+the appropriate definition if one is needed.  This must be done late
+in the lowering process, so that all necessary typeinfo variables have
+been created already, and so that all virtual function tables have been
+defined if they will be (because some typeinfo entries are defined
+if and only if the associated virtual function table is defined).
 */
 {
-  a_base_class_ptr bcp;
-
-  for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
-       bcp != NULL;
-       bcp = bcp->next) {
-    (void)make_typeinfo_var(bcp->type);
-  }  /* for */
-}  /* prepare_for_defining_class_typeinfo_variable */
+  /* Call the subroutine twice.  The first call does preparation, and the
+     second the actual definitions. */
+  r_define_scope_class_typeinfo_vars(scope, /*preparation_pass=*/TRUE);
+  r_define_scope_class_typeinfo_vars(scope, /*preparation_pass=*/FALSE);
+#if CHECKING
+  /* Make sure all typeinfo entries were processed. */
+  if (scope == il_header.primary_scope) {
+    check_assertion_str(num_of_pending_class_typeinfo_vars == 0,
+    "define_scope_class_typeinfo_vars: not all typeinfo variables were found");
+  }  /* if */
+#endif /* CHECKING */
+}  /* define_scope_class_typeinfo_vars */
 
 
 a_variable_ptr make_typeinfo_var(a_type_ptr type)

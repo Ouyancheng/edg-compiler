@@ -3461,15 +3461,6 @@ class_type if any are needed.
       }  /* if */
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-    if (class_type->typeinfo_var != NULL &&
-        (ctsp->virtual_function_table_var == NULL || definition_needed)) {
-      /* The type has a typeinfo variable that will be defined in this
-         compilation.  Make sure the typeinfo variables for any base classes
-         are created now so they will be present when the pass that defines
-         typeinfo variables looks at them.  Note that this is done even
-         for non-polymorphic classes. */
-      prepare_for_defining_class_typeinfo_variable(class_type);
-    }  /* if */
   }  /* if */
 }  /* define_virtual_function_tables */
 
