@@ -279,6 +279,21 @@ This bug was made visible by the instantiation change of 8/30/95.
     return (*func)(s); // Got error in version 2.30
   }
 
+12/17/95  Bug in hidden-name support
+
+For implementations using the C++-generating back end (or otherwise with
+RECORD_HIDDEN_NAMES_IN_IL set to TRUE), a bug has been fixed in handling
+template names that are referenced by means of global qualification.  For
+instance, the C++-generating back end now handles this correctly:
+
+  template <class T> void f(T*) { ... }
+  struct X {
+    void f();
+  };
+  void X::f() {
+    ::f(this);                // "::" is no longer dropped in the
+  }                           //   generated C++
+
 12/14/95  Members of class templates need not have definitions when the
           entire class is being instantiated
 
