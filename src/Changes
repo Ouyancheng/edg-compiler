@@ -33,7 +33,7 @@ A diagnostic is now issued on the following:
 12/5/96  Microsoft compatibility: implicit int on function declarations
 
 There were some cases in which errors were issued in Microsoft
-compatibility mode on function definitions with an implicit int return
+compatibility mode on function declarations with an implicit int return
 type.  This has been fixed -- warnings are issued in Microsoft C++ mode,
 and remarks in Microsoft C mode.
 
