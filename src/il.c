@@ -6690,7 +6690,7 @@ pointer to it.
   num_pragmas_allocated++;
 #endif /* DEBUG */
   pp->next                  = NULL;
-  pp->kind                  = (a_pragma_kind)pk_none;
+  pp->kind                  = kind;
   pp->entity.kind           = (a_byte_il_entry_kind)iek_none;
   pp->entity.ptr            = NULL;
   pp->decl_position         = null_source_position;
@@ -6892,6 +6892,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
     } else if (kind == (an_il_entry_kind)iek_comment) {
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
+    } else if (kind == (an_il_entry_kind)iek_pragma) {
+      a_pragma_ptr  pp = (a_pragma_ptr)ssep->entity.ptr;
+
+      fprintf(f_debug, " (at %lu): %s", pp->decl_position.seq,
+                       pragma_ids[(int)pp->kind]);
     } else if (kind == (an_il_entry_kind)iek_switch_clause) {
       /* Nothing else to display. */
     } else if (kind == (an_il_entry_kind)iek_src_seq_end_of_construct) {
@@ -7461,6 +7466,9 @@ this entity.
         kind = iek_src_seq_secondary_decl;
         entity_ptr = (char *)sssdp;
       }  /* if */
+      break;
+    case iek_pragma:
+      ((a_pragma_ptr)entity_ptr)->source_sequence_entry = new_ssep;
       break;
     default:;
       /* No pointer back to the source source sequence entry. */
