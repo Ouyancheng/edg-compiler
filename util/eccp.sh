@@ -100,6 +100,10 @@ automatic_instantiation=1
 #
 one_instantiation_per_object=0
 #
+# Flag indicating that the list of object files should be displayed.
+#
+list_object_files=0
+#
 # Default directory into which instantiations are placed when using
 # one_instantiation_per_object.
 #
@@ -311,7 +315,7 @@ prelink_copy_if_nonlocal=0
 #
 # Run the prelinker (but not the linker) on the object files.
 #
-prelink_objects=0
+suppress_link=0
 #
 # Run the prelinker to cause instantiation flags to be removed
 #
@@ -467,6 +471,7 @@ check_abbreviation()
 --keep_gen_c
 --library_directory
 --list
+--list_object_files
 --long_lifetime_temps
 --long_preserving_rules
 --microsoft
@@ -707,6 +712,13 @@ process_option()
       suppress_patch_munch=1
       ldoptions=$ldoptions" "$arg
       ;;
+    --list_object_files)
+#     Display a list of the object files.  This is used in
+#     one instantiation per object mode to get an object list that includes
+#     the instantiation object files.
+      list_object_files=1
+      suppress_link=1
+      ;;
     -munch | --munch)
 #     Use "munch" for handling static constructors and destructors
       patch_mode=0
@@ -779,7 +791,7 @@ process_option()
       ;;
     --prelink_objects)
 #     Run the prelinker (but not the linker) on the object files.
-      prelink_objects=1
+      suppress_link=1
       ;;
     --remove_instantiation_flags)
 #     Run the prelinker and request that it recompiles all of the objects
@@ -1307,6 +1319,12 @@ if [ $prelink_copy_if_nonlocal -ne 0 ] ; then
   prelink_options=$prelink_options" -N"
 fi
 #
+# Convert --list_object_files to the appropriate prelinker option.
+#
+if [ $list_object_files -ne 0 ] ; then
+  prelink_options=$prelink_options" -b"
+fi
+#
 # One instantiation per object and --prelink_copy_if_nonlocal require that
 # a new object list file name be provided to the prelinker.
 #
@@ -1621,10 +1639,16 @@ then
       fi
     fi
 #
+#   In --list_object_files mode, display the new object list.
+#
+    if [ $list_object_files -ne 0 ] ; then
+      echo $object_files
+    fi
+#
 #   Link the objects.  This is suppressed if we are just compiling, or
 #   just prelinking the objects.
 #
-    if [ $cc_only -ne 1 -a $prelink_objects -ne 1 ] ; then
+    if [ $cc_only -ne 1 -a $suppress_link -ne 1 ] ; then
 #     Save the link command in a variable so it can be done again in the
 #     "munch" step below.
 #     Note:  -lC is missing from this command and is supplied later using

@@ -3284,6 +3284,7 @@ int main(int argc, char *argv[])
   char		         *nm_command = NULL;
   a_pl_cmd_line_arg_ptr  last_arg_to_reemit = 0;
   a_boolean		 suppress_instantiation_flags = FALSE;
+  a_boolean		 list_object_files = FALSE;
 
   /* This must be done before any messages are issued. */
   message_prefix = pl_error_text(pl_ec_message_prefix);
@@ -3298,7 +3299,7 @@ int main(int argc, char *argv[])
   /* Process command-line options. */
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
-#define OPTION_LIST "a:c:d:f:il:mno:qrs:vuB:DL:NOR:SW:"
+#define OPTION_LIST "a:bc:d:f:il:mno:qrs:vuB:DL:NOR:SW:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
       case 'a':
@@ -3307,6 +3308,13 @@ int main(int argc, char *argv[])
           pl_error(pl_ec_invalid_definition_list_option, optarg);
         }  /* if */
         use_definition_list = atoi(optarg) != 0;
+        break;
+      case 'b':
+        /* This is used when the driver --list_object_files option is
+           used.  In this mode, the prelinker just outputs a list of
+           object files, which may be different than the input list
+           of objects if one instantiation per object mode is used. */
+        list_object_files = TRUE;
         break;
       case 'c':
         /* Specify the nm command to be used instead of the default
@@ -3559,63 +3567,70 @@ end_of_options:
       if (pl_debug_level >= 2) fprintf(stderr, "%s\n", temp_string);
 #endif /* DEBUG */
 
-      /* Execute the nm command. */
-      f_command_output = popen(temp_string, "r");
-      if (f_command_output == NULL) pl_error(pl_ec_popen_failed, (char *)NULL);
-      /* Read the nm output. */
-      pl_read_nm_output();
-      nm_status = pclose(f_command_output);
-      if (nm_status != 0) {
-        /* The nm command returned a nonzero status.  Issue a warning. */
-        pl_warning(pl_ec_nm_returned_error, (char*)NULL);
-      }  /* if */
-
-      /* Read the information from any existing .ii files. */
-      pl_read_instantiation_request_files();
-
-#if DEBUG
-      if (pl_debug_level >= 4) {
-        pl_db_input_files();
-      }  /* if */
-#endif /* DEBUG */
-
-      /* Add to the symbol table any names that the linker predefines. */
-      pl_add_predefined_names();
-
-      pl_prelink();
-
-#if DEBUG
-      if (pl_debug_level >= 4) {
-        pl_db_global_symbols(/*all=*/FALSE);
-      }  /* if */
-#endif /* DEBUG */
-
-      /* Determine what actions, if any, are needed.  Make two passes,
-         the first of which attempts to do assignments in local files,
-         the second in nonlocal files. */
-      no_local_changes = pl_determine_actions(/*do_local_files=*/TRUE);
-      if (!do_not_assign_to_nonlocal_objects) {
-        no_nonlocal_changes = pl_determine_actions(/*do_local_files=*/FALSE);
-      } else {
-        no_nonlocal_changes = TRUE;
-      }  /* if */
-      done = no_local_changes && no_nonlocal_changes;
-
-      /* Write the modified request files back to the disk. */
-      return_status = pl_update_request_files();
-      if (limit_recursion && ++number_of_iterations == PL_MAX_ITERATIONS) {
-        pl_error(pl_ec_instantiation_loop, (char *)NULL);
-      }  /* if */
-      /* See if there are any functions for which both an instantiation
-         and a specialization exist. */
-      if (check_specialization_errors) {
-        if (pl_check_for_specialization_errors()) {
-          /* Cause the prelink process to stop if specialization errors
-             were reported. */
-          if (return_status == 0) return_status = 1;
+      if (!list_object_files) {
+        /* Execute the nm command. */
+        f_command_output = popen(temp_string, "r");
+        if (f_command_output == NULL) {
+          pl_error(pl_ec_popen_failed, (char *)NULL);
         }  /* if */
+        /* Read the nm output. */
+        pl_read_nm_output();
+        nm_status = pclose(f_command_output);
+        if (nm_status != 0) {
+          /* The nm command returned a nonzero status.  Issue a warning. */
+          pl_warning(pl_ec_nm_returned_error, (char*)NULL);
+        }  /* if */
+
+        /* Read the information from any existing .ii files. */
+        pl_read_instantiation_request_files();
+
+#if DEBUG
+        if (pl_debug_level >= 4) {
+          pl_db_input_files();
+        }  /* if */
+#endif /* DEBUG */
+
+        /* Add to the symbol table any names that the linker predefines. */
+        pl_add_predefined_names();
+
+        pl_prelink();
+
+#if DEBUG
+        if (pl_debug_level >= 4) {
+          pl_db_global_symbols(/*all=*/FALSE);
       }  /* if */
-      if (return_status != 0 || suppress_compilation) done = TRUE;
+#endif /* DEBUG */
+
+        /* Determine what actions, if any, are needed.  Make two passes,
+           the first of which attempts to do assignments in local files,
+           the second in nonlocal files. */
+        no_local_changes = pl_determine_actions(/*do_local_files=*/TRUE);
+        if (!do_not_assign_to_nonlocal_objects) {
+          no_nonlocal_changes = pl_determine_actions(/*do_local_files=*/FALSE);
+        } else {
+          no_nonlocal_changes = TRUE;
+        }  /* if */
+        done = no_local_changes && no_nonlocal_changes;
+
+        /* Write the modified request files back to the disk. */
+        return_status = pl_update_request_files();
+        if (limit_recursion && ++number_of_iterations == PL_MAX_ITERATIONS) {
+          pl_error(pl_ec_instantiation_loop, (char *)NULL);
+        }  /* if */
+        /* See if there are any functions for which both an instantiation
+           and a specialization exist. */
+        if (check_specialization_errors) {
+          if (pl_check_for_specialization_errors()) {
+            /* Cause the prelink process to stop if specialization errors
+               were reported. */
+            if (return_status == 0) return_status = 1;
+          }  /* if */
+        }  /* if */
+        if (return_status != 0 || suppress_compilation) done = TRUE;
+      } else {
+        /* List object file mode. */
+        done = TRUE;
+      }  /* if */
       if (!done) pl_free_all();
     } while (!done);
   }  /* if */
