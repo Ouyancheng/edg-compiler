@@ -4458,7 +4458,7 @@ class, struct, or union.
   }  /* if */
   field->source_corresp.class_of_which_a_member = class_type;
   field->source_corresp.access = access;
-  if (member_sym != NULL) {
+  if (member_sym != NULL && !is_anonymous_union) {
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
                               &locator->source_position, ssep);
     /* Do processing required for any pragmas that are bound to the current
