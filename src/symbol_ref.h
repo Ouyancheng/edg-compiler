@@ -88,8 +88,7 @@ address of a const and taking the address of a nonconst object).
 			   modification, in order to suppress use/def
 			   diagnostics. */
 #define SRK_IMPLICIT 0x80
-			/* A reference or declaration is implicit or a
-			   definition involves an implicit initialization. */
+			/* A reference or declaration is implicit. */
 #define SRK_FRIEND 0x100
 			/* Or'ed with SRK_DECLARATION, a friend declaration. */
 #define SRK_TENTATIVE_DEF 0x200
@@ -101,10 +100,8 @@ address of a const and taking the address of a nonconst object).
 			   by means of an explicit reference to a template
 			   parameter. */
 #define SRK_INITIALIZATION 0x800
-			/* Or'ed with SRK_DEFINITION to indicate a variable
-			   initialization.  When SRK_IMPLICIT is set, a
-			   constructor is called implicitly; otherwise, an
-			   explicit initializer appeared in the definition. */
+			/* Or'ed with SRK_DEFINITION to indicate an explicit
+			   or implicit variable initialization. */
 #define SRK_ALL_REFERENCES \
   (SRK_USE | SRK_MODIFICATION | SRK_ADDRESS_TAKEN | SRK_ERROR)
 			/* All types of references.  Used to mask off those
