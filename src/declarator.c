@@ -2232,9 +2232,24 @@ to FALSE if the entity being declared is not initializable.
      will be coalesced by is_generalized_identifier_start.  The qualifier
      will then be discarded by simplify_curr_class_qualified_name resulting
      in an unqualified destructor that has already been coalesced. */
-  options = GID_DISALLOW_GLOBAL_QUALIFIER | GID_DTOR_RECOGNIZED;
+  options = GID_DTOR_RECOGNIZED;
   if (!(input_flags & DI_QUALIFIED_NAME_ALLOWED)) {
-    options |= GID_DISALLOW_QUALIFIED_NAME;
+    options |= GID_DISALLOW_QUALIFIED_NAME | GID_DISALLOW_GLOBAL_QUALIFIER;
+  } else if ((input_flags & DI_IS_FRIEND_DECL) &&
+             depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+    /* Note: allow global qualifier on a declarator when this is a friend
+       declaration in a class enclosed within a namespace scope -- e.g.,
+         void f();
+         namespace N {
+           void f();
+           class A { friend void ::f(); };
+         }
+       Technically, this is not allowed in the language, but it is consistent
+       with the model of friend/namespace interaction the EDG front end has
+       implemented (as of version 2.30), pending clarification of the language
+       definition. */
+  } else {
+    options |= GID_DISALLOW_GLOBAL_QUALIFIER;
   }  /* if */
   if (input_flags & DI_IS_TEMPLATE_DECLARATION) {
     options |= GID_CLASS_MUST_BE_PROTOTYPE_INSTANTIATION;
