@@ -3856,8 +3856,10 @@ Print out the constant value contained in one constant record.
       offset = constant->variant.address.offset;
       if (offset != 0) {
         /* If the offset is non-zero, cast to (char *) and back again to
-           avoid scaling problems on the pointer addition. */
-        dump_cast(con_type);
+           avoid scaling problems on the pointer addition.  If the
+           implicit_cast flag is set, the final type cast was already dumped
+           above and need not be repeated here. */
+        if (!constant->implicit_cast) dump_cast(con_type);
         fputs("((char *)", f_C_output);
       } else {
         fputc('(', f_C_output);
