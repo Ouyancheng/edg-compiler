@@ -3115,7 +3115,8 @@ associated with the translation unit that it is in.
 {
   a_boolean	result;
 
-  if (translation_units->next == NULL) {
+  if (translation_units == NULL ||
+      translation_units->next == NULL) {
     /* Optimize the case where there is only one translation unit. */
     result = FALSE;
   } else {
