@@ -52,6 +52,13 @@ program as the front end is produced.
 #include "lexical.h"
 #include "cmd_line.h"
 
+
+/* Undefine the preprocessor macro skip_typerefs() if previously 
+   defined.
+*/
+#ifdef skip_typerefs
+#undef skip_typerefs
+#endif /* ifdef skip_typerefs */
 #endif /* STANDALONE_UTILITY_PROGRAM */
 
 static a_boolean
