@@ -199,19 +199,11 @@ given symbols are identical.
     a_type_ptr  parent1 = sym1->parent.class_type;
     a_type_ptr  parent2 = sym2->parent.class_type;
     check_assertion(parent1 != NULL && parent2 != NULL);
-    result = (canonical_il_entry_of(parent1) ==
-                                              canonical_il_entry_of(parent2));
+    result = same_type_entities(parent1, parent2);
   } else {
     a_namespace_ptr  parent1 = sym1->parent.namespace_ptr;
     a_namespace_ptr  parent2 = sym2->parent.namespace_ptr;
-    if (parent1 == parent2) {
-      result = TRUE;
-    } else if (parent1 == NULL || parent2 == NULL) {
-      result = FALSE;
-    } else {
-      result = (canonical_il_entry_of(parent1) ==
-                                              canonical_il_entry_of(parent2));
-    }  /* if */
+    result = same_namespace_entities(parent1, parent2);
   }  /* if */
   return result;
 }  /* same_parents */
@@ -227,15 +219,12 @@ need to be determined.
   a_boolean        result;
 
   switch (sym->kind) {
-    case sk_class_template:
-    case sk_function_template:
-      /* FIXME -- should name_linkage be set for templates? */
-      result = TRUE;
-      break;
     case sk_class_or_struct_tag:
+    case sk_class_template:
     case sk_constant:
     case sk_enum_tag:
     case sk_field:
+    case sk_function_template:
     case sk_member_function:
     case sk_namespace:
     case sk_static_data_member:
@@ -1019,9 +1008,9 @@ is in fact valid.
 */
 {
   a_boolean       match = TRUE;
+  a_symbol_ptr    templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
 
-  if (has_correspondence(templ)) {
-    a_symbol_ptr    templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
+  if (is_template_symbol(templ_sym) && has_correspondence(templ)) {
     a_template_symbol_supplement_ptr
                     tssp = templ_sym->variant.template_info;
     a_template_ptr  corresp_templ =
@@ -1040,18 +1029,32 @@ is in fact valid.
       /* The templates don't seem to match, so don't try to verify the
          instantiations. */
     } else if (is_class_template_symbol(templ_sym)) {
-      /* Verify the instantiations (if any). */
-      a_type_ptr    class_type = tssp
+      /* A class template. Verify the instantiations (if any). */
+      a_type_ptr    class_type = prototype_template_of(templ_sym)
+                               ->variant.template_info
                                ->variant.class_template.prototype_instantiation
                                ->variant.class_struct_union.type;
       a_symbol_ptr  inst = tssp->variant.class_template.instantiations;
       for (; inst != NULL; inst = next_instance_sym(inst)) {
-        verify_class_type_correspondence(type_symbol_type(inst));
+        a_type_ptr  inst_type = type_symbol_type(inst);
+        if (!inst_type->variant.class_struct_union.is_specialized) {
+          /* Specializations appear on the types list of their scope. */
+          verify_type_correspondence(inst_type);
+        }  /* if */
       }  /* for */
       /* Also process the prototype instantiation. */
-      verify_class_type_correspondence(class_type);
-    } else {
+      verify_type_correspondence(class_type);
+    } else if (templ_sym->kind == (a_symbol_kind)sk_function_template) {
+      /* A function template.  Verify the instantiations (if any). */
+      a_template_instance_ptr  inst = tssp->variant.function.instantiations;
+      for (; inst != NULL; inst = inst->next) {
+        verify_routine_correspondence(inst->instance_sym->variant.routine.ptr);
+      }  /* for */
+      /* Also process prototype instantiation. */
+      verify_routine_correspondence(tssp->variant.function.routine);
     }  /* if */
+  } else {
+    unexpected_condition_str("Bad symbol");
   }  /* if */
   return match;
 }  /* verify_template_correspondence */
@@ -1724,41 +1727,46 @@ unit correspondence pointer if one is found.
   a_symbol_ptr  sym;
 
   check_assertion(templ_sym != NULL);
-  sym = templ_sym->header->inactive_symbols;
-  for (; sym != NULL; sym = sym->next) {
-    if (sym->decl_scope != templ_sym->decl_scope &&
-        may_have_correspondence(sym) &&
-        same_parents(sym, templ_sym)) {
-      /* Two different declarations in the same namespace and with the same
-         name: they should probably match up. */
-      if (is_template_symbol(sym) &&
-          is_class_template_symbol(sym) ==
-                                        is_class_template_symbol(templ_sym)) {
-        a_template_ptr  corresp_templ;
-        if (is_class_template_symbol(templ_sym)) {
-          corresp_templ = find_corresp_class_template(templ, sym);
+  if (is_template_symbol(templ_sym)) {
+    /* Template definitions for nontemplate members of class templates should
+       not get here. */
+    sym = templ_sym->header->inactive_symbols;
+    for (; sym != NULL; sym = sym->next) {
+      if (sym->decl_scope != templ_sym->decl_scope &&
+          may_have_correspondence(sym) &&
+          same_parents(sym, templ_sym)) {
+        /* Two different declarations in the same namespace and with the same
+           name: they should probably match up. */
+        if ((is_template_symbol(sym) &&
+             is_class_template_symbol(sym) ==
+                                        is_class_template_symbol(templ_sym)) ||
+             sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          a_template_ptr  corresp_templ;
+          if (is_class_template_symbol(templ_sym)) {
+            corresp_templ = find_corresp_class_template(templ, sym);
+          } else {
+            corresp_templ = find_corresp_function_template(templ, sym);
+          }  /* if */
+          if (corresp_templ != NULL) {
+            /* Record the correspondence. */
+            record_trans_unit_corresp(templ, corresp_templ);
+            establish_instantiation_correspondences(templ);
+            break;
+          }  /* if */
         } else {
-          corresp_templ = find_corresp_function_template(templ, sym);
-        }  /* if */
-        if (corresp_templ != NULL) {
-          /* Record the correspondence. */
-          record_trans_unit_corresp(templ, corresp_templ);
-          establish_instantiation_correspondences(templ);
+          /* An error if the conflicting entity has external linkage. */
+          conflict = TRUE;
           break;
         }  /* if */
-      } else {
-        /* An error if the conflicting entity has external linkage. */
-        conflict = TRUE;
-        break;
       }  /* if */
+    }  /* for */
+    if (conflict) {
+      f_report_bad_trans_unit_corresp((char*)templ, &sym->decl_position);
     }  /* if */
-  }  /* for */
-  if (conflict) {
-    f_report_bad_trans_unit_corresp((char*)templ, &sym->decl_position);
-  }  /* if */
-  if (trans_unit_corresp_pointer_of(templ) == NULL) {
-    /* Mark this template as visited. */
-    set_no_trans_unit_corresp(templ);
+    if (trans_unit_corresp_pointer_of(templ) == NULL) {
+      /* Mark this template as visited. */
+      set_no_trans_unit_corresp(templ);
+    }  /* if */
   }  /* if */
 }  /* find_template_correspondence */
 
@@ -1911,7 +1919,7 @@ entry.
         root = root->source_corresp.parent.class_type;
       }  /* while */
       if (trans_unit_corresp_pointer_of(root) == NULL) {
-        /* A member function of a class that was not yet visited. */
+        /* A member of a class that was not yet visited. */
         find_type_correspondence(root);
       }  /* if */
       if (trans_unit_corresp_pointer_of(field) == NULL) {
@@ -2011,7 +2019,7 @@ entry.
     if (correspondence_checking_underway &&
         trans_unit_corresp_pointer_of(var) == NULL) {
       a_type_ptr  root = NULL;
-      /* Member functions have their correspondence set when their parent type
+      /* Class members have their correspondence set when their parent type
          is processed.  Hence we look for the outermost parent type. */
       if (var->source_corresp.is_class_member) {
         root = var->source_corresp.parent.class_type;
@@ -2021,10 +2029,10 @@ entry.
         }  /* while */
       }  /* if */
       if (root == NULL) {
-        /* Not a member function. */
+        /* Not a class member. */
         find_variable_correspondence(var);
       } else if (trans_unit_corresp_pointer_of(root) == NULL) {
-        /* A member function of a class that was not yet visited. */
+        /* A member of a class that was not yet visited. */
         find_type_correspondence(root);
       }  /* if */
       if (trans_unit_corresp_pointer_of(var) == NULL) {
@@ -2083,9 +2091,10 @@ canonical entry.
         /* A correspondence error at an outer level prevent this entry from
            having a correspondence.  Mark it and its unvisited ancestors as
            having no correspondence. */
-        while (type != root) {
-          set_no_trans_unit_corresp(type);
-          type = type->source_corresp.parent.class_type;
+        a_type_ptr  parent = type;
+        while (parent != root) {
+          set_no_trans_unit_corresp(parent);
+          parent = parent->source_corresp.parent.class_type;
         }  /* while */
       }  /* if */
     }  /* if */
