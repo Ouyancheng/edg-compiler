@@ -1984,7 +1984,7 @@ Copy the type entry "from" to "to".
        copy below. */
     extra_info = to->variant.routine.extra_info;
   }  /* if */
-  /* Preserve the "next" pointer in to the "to" entry. */
+  /* Preserve the "next" pointer in the "to" entry. */
   next_ptr = to->next;
   /* Copy the type entry. */
   *to = *from;
@@ -2103,11 +2103,11 @@ to it.
   num_fields_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(&(fp->source_corresp));
-  fp->next             = NULL;
-  fp->type             = NULL;
-  fp->bit_offset       = 0;
-  fp->bit_size         = 0;
-  fp->assoc_class_type = NULL;
+  fp->next                          = NULL;
+  fp->type                          = NULL;
+  fp->bit_offset                    = 0;
+  fp->bit_size                      = 0;
+  fp->assoc_class_struct_union_type = NULL;
 
   db_exit();
   return (fp);

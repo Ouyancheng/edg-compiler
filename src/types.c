@@ -1756,7 +1756,7 @@ so far, to avoid repeating work or getting into infinite loops.
              for IL output.  The copy still corresponds to the source
              construct. */
           new_field->type = file_scope_type(old_field->type, &history);
-          new_field->assoc_class_type = new_type;
+          new_field->assoc_class_struct_union_type = new_type;
           new_field->next = NULL;
           if (new_field_list == NULL) {
             new_field_list = new_field;

@@ -706,7 +706,7 @@ typedef struct a_class_list_entry {
 } a_class_list_entry;
 
 /* Entry containing additional information about a class type (tk_class,
-   tk_struct, or tk_union). The list of nonstatic data members (i.e.,
+   tk_struct, or tk_union).  The list of nonstatic data members (i.e.,
    "fields") is kept in the type entry. */
 typedef struct a_class_type_supplement *a_class_type_supplement_ptr;
 typedef struct a_class_type_supplement {
@@ -1116,7 +1116,7 @@ typedef struct a_field {
                         /* Size of this field (in bits).  Only non-zero
                            for bit-fields; for the others, the size is
                            gotten from the type. */
-  a_type_ptr    assoc_class_type;
+  a_type_ptr    assoc_class_struct_union_type;
                         /* Pointer to the class, struct, or union type of
                            which this field is a member. */
 } a_field;
