@@ -3106,7 +3106,8 @@ type based on the template argument list and the template parameter list
        into the symbol table -- it will appear on a function instantiation
        list under the function template symbol and, optionally, in the overload
        list if it is also explicitly declared by the user. */
-    sym = make_template_function_symbol(templ_sym, source_pos, rout_type);
+    sym = make_template_function_symbol(
+                templ_sym, source_pos, rout_type->variant.routine.return_type);
     sym->variant.routine.ptr = rp;
     /* Give the routine entry the type passed in, and set other fields in
        accord with the settings in the template. */
