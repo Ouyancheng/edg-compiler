@@ -369,17 +369,14 @@ the target integers.
    be smaller than the range actually available. */
 typedef unsigned short an_int_value_part;
 #define MAX_UINT_VALUE_PART 0xffff
-#define MAX_INT_VALUE_PART 0x7fff
-#define MIN_INT_VALUE_PART (-0x8000)
 #define SIGN_BIT_INT_VALUE_PART 0x8000
 #define SIZEOF_INT_VALUE_PART (sizeof(an_int_value_part)) /* Okay to change. */
 #define BITS_IN_INT_VALUE_PART (SIZEOF_INT_VALUE_PART*CHAR_BIT)
 /* Large and efficient host integer, at least twice the size of
    an_int_value_part, used in doing computations on integer values.
    The idea is that any operation involving two an_int_value_part
-   values in the range MIN_INT_VALUE_PART..MAX_INT_VALUE_PART can
-   be done in a_host_large_integer without special coding to deal
-   with overflows.  These types are also used to manipulate integer
+   values can be done in a_host_large_integer without special coding
+   to deal with overflows.  These types are also used to manipulate integer
    values that are a subset of the values that can be represented by
    an_integer_value when AN_INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is
    FALSE.  Many operations can be done using these types, because
