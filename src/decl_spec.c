@@ -1131,7 +1131,7 @@ caution when modifying this routine.
       if (ssep->kind == (a_scope_kind)sck_file) {
         err_code = ec_nonstd_qualifier_in_global_scope_decl;
       } else {
-          err_code = ec_nonstd_qualifier_in_namespace_member_decl;
+        err_code = ec_nonstd_qualifier_in_namespace_member_decl;
       }  /* if */
       pos_warning(err_code, &pos_curr_token);
       clear_qualifier_from_locator(&locator_for_curr_id);
