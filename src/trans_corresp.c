@@ -2484,58 +2484,61 @@ corresponding instance, or NULL if no corresponding instance is found.
   canonical_entry = il_entry_for_symbol(sym_to_find, &il_kind);
   canonical_entry = canonical_il_entry_of(canonical_entry);
   check_assertion(canonical_entry != NULL);
-  /* Get the corresponding template in the specified translation unit. */
+  /* Get the corresponding template in the specified translation unit.
+     Note that it is possible that there is no such corresponding template. */
   template_sym = template_symbol_for_class_symbol(sym_to_find);
   template_sym = find_corresponding_symbol_in_trans_unit(template_sym, tup);
-  tssp = template_supplement_for_symbol(template_sym);
-  candidate_sym = tssp->variant.class_template.prototype_instantiation;
-  /* First check whether the prototype instantiation is a match. */
-  if (is_corresponding_sym_in_trans_unit(canonical_entry,
-                                         candidate_sym, tup)) {
-    result_sym = candidate_sym;
-  } else {
-    /* Check whether a partial specialization prototype instantiation is
-       a match. */
-    a_symbol_ptr	ps_sym;
-    for (ps_sym = tssp->variant.class_template.partial_specializations;
-         ps_sym != NULL; ps_sym = ps_sym->next) {
-      candidate_sym = ps_sym->variant.template_info->
+  if (template_sym != NULL) {
+    tssp = template_supplement_for_symbol(template_sym);
+    candidate_sym = tssp->variant.class_template.prototype_instantiation;
+    /* First check whether the prototype instantiation is a match. */
+    if (is_corresponding_sym_in_trans_unit(canonical_entry,
+                                           candidate_sym, tup)) {
+      result_sym = candidate_sym;
+    } else {
+      /* Check whether a partial specialization prototype instantiation is
+         a match. */
+      a_symbol_ptr	ps_sym;
+      for (ps_sym = tssp->variant.class_template.partial_specializations;
+           ps_sym != NULL; ps_sym = ps_sym->next) {
+        candidate_sym = ps_sym->variant.template_info->
                                 variant.class_template.prototype_instantiation;
-      if (is_corresponding_sym_in_trans_unit(canonical_entry,
-                                             candidate_sym, tup)) {
-        result_sym = candidate_sym;
-        break;
-      }  /* if */
-    }  /* for */
-    if (result_sym == NULL) {
-      /* We still haven't found a match.  Go through the instantiations
-         list. */
-      a_symbol_ptr	inst_sym;
-      for (inst_sym = tssp->variant.class_template.instantiations;
-           inst_sym != NULL; inst_sym = inst_sym->next) {
         if (is_corresponding_sym_in_trans_unit(canonical_entry,
-                                               inst_sym, tup)) {
-          result_sym = inst_sym;
+                                               candidate_sym, tup)) {
+          result_sym = candidate_sym;
           break;
         }  /* if */
       }  /* for */
+      if (result_sym == NULL) {
+        /* We still haven't found a match.  Go through the instantiations
+           list. */
+        a_symbol_ptr	inst_sym;
+        for (inst_sym = tssp->variant.class_template.instantiations;
+             inst_sym != NULL; inst_sym = inst_sym->next) {
+          if (is_corresponding_sym_in_trans_unit(canonical_entry,
+                                                 inst_sym, tup)) {
+            result_sym = inst_sym;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
     }  /* if */
-  }  /* if */
-  if (result_sym == NULL) {
-    /* No symbol was found.  Instantiate the class in the other translation
-       unit. */
-    a_template_arg_ptr	templ_arg_list;
-    a_type_ptr		class_type;
-    class_type = sym_to_find->variant.class_struct_union.type;
-    /* This routine cannot create a new prototype instantiation in the other
-       translation unit. */
-    check_assertion(!class_type->
+    if (result_sym == NULL) {
+      /* No symbol was found.  Instantiate the class in the other translation
+         unit. */
+      a_template_arg_ptr	templ_arg_list;
+      a_type_ptr		class_type;
+      class_type = sym_to_find->variant.class_struct_union.type;
+      /* This routine cannot create a new prototype instantiation in the other
+         translation unit. */
+      check_assertion(!class_type->
                         variant.class_struct_union.is_prototype_instantiation);
-    templ_arg_list = copy_template_arg_list(
+      templ_arg_list = copy_template_arg_list(
                                          templ_arg_list_for_class(class_type));
-    result_sym = find_template_class(template_sym, &templ_arg_list,
-                                     /*any_prototype_allowed=*/FALSE,
-                                     (a_symbol_ptr)NULL);
+      result_sym = find_template_class(template_sym, &templ_arg_list,
+                                       /*any_prototype_allowed=*/FALSE,
+                                       (a_symbol_ptr)NULL);
+    }  /* if */
   }  /* if */
   return result_sym;
 }  /* find_corresponding_class_instance_in_trans_unit */
@@ -2573,13 +2576,17 @@ Return a pointer to the symbol found, or NULL if none is found.
     parent_sym = (a_symbol_ptr)sym_to_find->
                                   parent.class_type->source_corresp.assoc_info;
     parent_sym = find_corresponding_symbol_in_trans_unit(parent_sym, tup);
-    parent_class = parent_sym->variant.class_struct_union.type;
+    if (parent_sym != NULL) {
+      parent_class = parent_sym->variant.class_struct_union.type;
+    }  /* if */
   } else if (sym_to_find->parent.namespace_ptr != NULL) {
     /* Find the corresponding parent namespace. */
     parent_sym = (a_symbol_ptr)sym_to_find->
                                parent.namespace_ptr->source_corresp.assoc_info;
     parent_sym = find_corresponding_symbol_in_trans_unit(parent_sym, tup);
-    parent_namespace = parent_sym->variant.namespace_info.ptr;
+    if (parent_sym != NULL) {
+      parent_namespace = parent_sym->variant.namespace_info.ptr;
+    }  /* if */
   }  /* if */
   sym_header = sym_to_find->header;
   for (sym = sym_header->inactive_symbols; sym != NULL; sym = sym->next) {
@@ -2648,9 +2655,6 @@ that is refers to an entity that corresponds to sym_to_find.
     result_sym = find_corresponding_inactive_symbol_in_trans_unit(
                                              sym_to_find, tup);
   }  /* if */
-  check_assertion_str2(result_sym != NULL,
-                       "find_corresponding_symbol_in_trans_unit:",
-                       "no corresponding symbol");
   return result_sym;
 }  /* find_corresponding_symbol_in_trans_unit */
 

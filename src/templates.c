@@ -14671,54 +14671,63 @@ caller.
   templ_tup = tip->exported_template_file->translation_unit;
   template_sym = find_corresponding_symbol_in_trans_unit(tip->template_sym,
                                                          templ_tup);
-  if (template_sym->is_class_member) {
-    /* If the parent is a template class instance, find the corresponding
-       parent class in the translation unit containing the template. */
-    a_type_ptr		parent_class;
-    check_assertion(tip->instance_sym->is_class_member);
-    parent_class = tip->instance_sym->parent.class_type;
-    if (parent_class->variant.class_struct_union.is_template_class) {
-      /* The parent class is a template instance. */
-      a_symbol_ptr	old_parent_sym;
-      a_symbol_ptr	new_parent_sym;
-      old_parent_sym = (a_symbol_ptr)parent_class->source_corresp.assoc_info;
-      new_parent_sym = find_corresponding_class_instance_in_trans_unit(
+  if (template_sym != NULL) {
+    if (template_sym->is_class_member) {
+      /* If the parent is a template class instance, find the corresponding
+         parent class in the translation unit containing the template. */
+      a_type_ptr		parent_class;
+      check_assertion(tip->instance_sym->is_class_member);
+      parent_class = tip->instance_sym->parent.class_type;
+      if (parent_class->variant.class_struct_union.is_template_class) {
+        /* The parent class is a template instance. */
+        a_symbol_ptr	old_parent_sym;
+        a_symbol_ptr	new_parent_sym;
+        old_parent_sym = (a_symbol_ptr)parent_class->source_corresp.assoc_info;
+        new_parent_sym = find_corresponding_class_instance_in_trans_unit(
                                                     old_parent_sym, templ_tup);
-      complete_class_type_is_needed(new_parent_sym->
+        if (new_parent_sym != NULL) {
+          /* In error cases, no corresponding symbol may be found. */
+          complete_class_type_is_needed(new_parent_sym->
                                               variant.class_struct_union.type);
+        }  /* if */
+      }  /* if */
     }  /* if */
-  }  /* if */
-  if (template_sym->kind == (a_symbol_kind)sk_function_template) {
-    /* Find (and create if necessary) the desired instance of the template
-       in the other translation unit.  If any explicit template arguments
-       were used in the referencing translation unit, we pass in the explicit
-       argument list flag here.  The source position is only used for errors,
-       which should not occur when called from here. */
-    a_routine_ptr	rout_ptr;
-    a_symbol_ptr	instance_sym;
-    a_template_arg_ptr	templ_arg_list;
-    rout_ptr = tip->instance_sym->variant.routine.ptr;
-    /* Make a copy of the template argument list. */
-    templ_arg_list = copy_template_arg_list(rout_ptr->template_arg_list);
-    instance_sym = find_template_function(
-                                    template_sym, &templ_arg_list,
-                                    rout_ptr->expl_template_arg_list_used,
-                                    &null_source_position);
-    result_tip = instance_sym->variant.routine.instance_ptr;
-  } else {
-    /* A member function of a class template or a static data member of a class
-       template. */
-    a_symbol_ptr	instance_sym;
-    /* Find the member symbol in the translation unit containing the template
-       definition.  We make sure that the parent class has been instantiated
-       there in the code above. */
-    instance_sym = find_corresponding_symbol_in_trans_unit(tip->instance_sym,
-                                                           templ_tup);
-    if (instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-      result_tip = instance_sym->variant.static_data_member.instance_ptr;
-    } else {
-      check_assertion(instance_sym->kind == (a_symbol_kind)sk_member_function);
+    if (template_sym->kind == (a_symbol_kind)sk_function_template) {
+      /* Find (and create if necessary) the desired instance of the template
+         in the other translation unit.  If any explicit template arguments
+         were used in the referencing translation unit, we pass in the explicit
+         argument list flag here.  The source position is only used for errors,
+         which should not occur when called from here. */
+      a_routine_ptr	rout_ptr;
+      a_symbol_ptr	instance_sym;
+      a_template_arg_ptr	templ_arg_list;
+      rout_ptr = tip->instance_sym->variant.routine.ptr;
+      /* Make a copy of the template argument list. */
+      templ_arg_list = copy_template_arg_list(rout_ptr->template_arg_list);
+      instance_sym = find_template_function(
+                                      template_sym, &templ_arg_list,
+                                      rout_ptr->expl_template_arg_list_used,
+                                      &null_source_position);
       result_tip = instance_sym->variant.routine.instance_ptr;
+    } else {
+     /* A member function of a class template or a static data member of a
+        class template. */
+      a_symbol_ptr	instance_sym;
+      /* Find the member symbol in the translation unit containing the template
+         definition.  We make sure that the parent class has been instantiated
+         there in the code above. */
+      instance_sym = find_corresponding_symbol_in_trans_unit(tip->instance_sym,
+                                                             templ_tup);
+     if (instance_sym == NULL) {
+       /* No corresponding symbol was found.  This can occur in certain
+          error cases. */
+     } else if (instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+        result_tip = instance_sym->variant.static_data_member.instance_ptr;
+      } else {
+        check_assertion(instance_sym->kind ==
+                                            (a_symbol_kind)sk_member_function);
+        result_tip = instance_sym->variant.routine.instance_ptr;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result_tip;
@@ -14731,6 +14740,8 @@ Call the appropriate routine to instantiate the function or static
 data member specified by tip.
 */
 {
+  a_template_instance_ptr	orig_tip = tip;
+
   /* The instantiation process may rescan various things and invalidate the
      current token positions as a result.  Save these positions so that they
      may be restored when we are done. */
@@ -14755,7 +14766,10 @@ data member specified by tip.
        containing the template definition. */
     tip = find_corresponding_instance(tip);
   }  /* if */
-  if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+  if (tip == NULL) {
+    /* This can occur when no corresponding instance could be found in the
+       translation unit containing the template. */
+  } else if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
     /* Static data member definition. */
     define_template_static_data_member(tip);
   } else {
@@ -14770,7 +14784,7 @@ data member specified by tip.
       num_total_pending_instantiations--;
     }  /* if */
   }  /* if */
-  if (tip->exported_template_file != NULL) {
+  if (orig_tip->exported_template_file != NULL) {
     /* Restore the previously active translation unit. */
     pop_translation_unit_stack();
   }  /* if */
