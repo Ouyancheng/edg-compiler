@@ -1615,6 +1615,9 @@ by a command line option.
   if (emulate_msvc_value_initialization_bugs) {
     value_initialization_enabled = FALSE;
   }  /* if */
+  /* The Microsoft C++ compiler does not check accessibility of friend function
+     declarations. */
+  no_access_check_on_friend_declarator_ids = TRUE;
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1718,6 +1721,8 @@ by a command line option.
   }  /* if */
   /* Set flags that cannot be overridden by command line options. */
   ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
+  /* Cfront does not check accessibility of friend function declarations. */
+  no_access_check_on_friend_declarator_ids = TRUE;
 }  /* set_cfront_mode_flags */
 
 
@@ -2330,6 +2335,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     ptr_to_unknown_bound_array_allowed_in_param_type = FALSE;
     single_ref_qual_ovl_res_tiebreaker = FALSE;
     floating_point_template_parameters_allowed = FALSE;
+    no_access_check_on_friend_declarator_ids = FALSE;
     if (!(option_kind_used[(int)optk_alternative_tokens])) {
       /* If alternative_tokens was not explicitly set by a command line
          option, set it now. */
@@ -2637,6 +2643,9 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   c_and_cpp_function_types_are_distinct = FALSE;
   allow_default_arg_on_template_member_definition = TRUE;
   floating_point_template_parameters_allowed = FALSE;
+  /* GNU C++ compilers do not check accessibility of friend function
+     declarations. */
+  no_access_check_on_friend_declarator_ids = TRUE;
 }  /* check_and_set_gpp_mode_options */
 
 

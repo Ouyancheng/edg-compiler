@@ -1475,6 +1475,17 @@ of the disallowed optimization.
 #endif /* ifndef DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED */
 
 /*
+Flag that is TRUE if no access checking should be performed on the
+declarator-id of a friend function declaration.  The C++ standard requires
+access checking in that case, but many C++ implementation to not perform it.
+This flag is used as the initial value of the global variable
+no_access_check_on_friend_declarator_ids.
+*/
+#ifndef DEFAULT_NO_ACCESS_CHECK_ON_FRIEND_DECLARATOR_IDS
+#define DEFAULT_NO_ACCESS_CHECK_ON_FRIEND_DECLARATOR_IDS FALSE
+#endif /* DEFAULT_NO_ACCESS_CHECK_ON_FRIEND_DECLARATOR_IDS */
+
+/*
 Flag that is true if the asm string manipulation routines and data
 structures are needed.  These are needed when asm functions are allowed
 or when Microsoft extensions (including Microsoft asms) are allowed.

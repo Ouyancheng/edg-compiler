@@ -5793,7 +5793,7 @@ declaration of the function, and again overloading is a possibility.
     }  /* if */
   }  /* if */
   if (!is_error_locator(*locator)) {
-    if (!(microsoft_mode || gpp_mode || any_cfront_mode()) ||
+    if (!no_access_check_on_friend_declarator_ids ||
         (sym != NULL && sym->ambiguous)) {
       /* Many compilers (Microsoft, GNU, ...) do not check access for the
          declarator-id of a friend declaration. */

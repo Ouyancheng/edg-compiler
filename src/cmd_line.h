@@ -741,6 +741,15 @@ EXTERN a_boolean
 			   this optimization. */
 
 EXTERN a_boolean
+		no_access_check_on_friend_declarator_ids
+#if VAR_INITIALIZERS
+			= DEFAULT_NO_ACCESS_CHECK_ON_FRIEND_DECLARATOR_IDS
+#endif /* VAR_INITIALIZERS */
+                                                                          ;
+			/* TRUE if no access check should be performed on
+			   declarator-ids of friend function declarators. */
+
+EXTERN a_boolean
 		special_subscript_cost
 #if VAR_INITIALIZERS
                                        = DEFAULT_SPECIAL_SUBSCRIPT_COST
