@@ -1,5 +1,20 @@
 Version 3.1
 
+8/7/02   Microsoft C++ compatibility: extern inline declarations
+
+In Microsoft C++ mode, inline functions have external linkage by default.
+However, if the extern keyword is explicitly specified on an inline function
+declaration, Microsoft compilers will always generate code for the function
+(even if it is not used in that translation unit).  To emulate this behavior,
+the front end now forces the "suppress_inline_body" flag in the routine entry
+to be FALSE for inline functions declared with the extern keyword and the
+C++-generating back end avoids emitting the extern specifier unless the flag
+is FALSE (when generating code for Microsoft compilers).
+
+  inline void f() {}         // Not emitted by Microsoft compilers unless
+                             // really needed.
+  extern inline void g() {}  // Always emitted by Microsoft compilers. 
+
 8/7/02   Inlining in GNU C statement expressions
 
 A GNU C statement expression, i.e., ({ ... }), returns a value if
