@@ -2391,7 +2391,7 @@ end_scan_for_macro_modifs:;
         time_str = get_file_modification_time_string(curr_ise->full_name,
                                                      /*strip_newline=*/TRUE);
         /* The time string should only be NULL if the file was removed
-           after it was opened, or if the input coming from standard
+           after it was opened, or if the input is coming from standard
            input. */
         if (time_str == NULL) time_str = "<unknown>";
         check_assertion(time_str != NULL);
