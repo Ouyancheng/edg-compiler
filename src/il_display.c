@@ -2643,6 +2643,7 @@ do_label:
         disp_ptr("vla.variable", (char *)ptr->variant.vla.variant.variable,
                  iek_variable);
       }  /* if */
+      break;
 #endif /* ifdef CFE */
 #ifdef FFE
     case stmk_fentry:
