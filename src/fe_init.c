@@ -634,6 +634,7 @@ Initialize everything that has to do with the front end.
   /* statements.h: */
   depth_stmt_stack = -1;
 
+  error_init();
   mem_manage_init();
   host_init();
   il_init();
