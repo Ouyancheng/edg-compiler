@@ -1647,9 +1647,8 @@ Print the first of possibly two parts of a type reference.
     if (need_paren) write_tok_str("(");
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
-    /* A qualifier on an array type shouldn't be possible, period. */
-    check_assertion_str(qual_type == type,
-                        "dump_type_first_part: qualifier on array type");
+    /* If qual_type != type, it's because a local typedef appears on top
+       of the array type.  Just ignore it. */
     dump_type_first_part(type->variant.array.element_type,
                          /*need_paren=*/TRUE,
                          /*need_trailing_space=*/TRUE);
@@ -1757,7 +1756,8 @@ is non-NULL, in which case that is the function scope.
             }  /* if */
             /* Watch out for unnamed parameters in C++. */
             dump_general_declaration_using_type(param_var->type,
-                                                has_name(param_var) ?
+                                                (has_name(param_var) ||
+                                                 param_var->is_this_parameter)?
                                                    &param_var->source_corresp :
                                                    NULL,
                                                 param_var, NO_TEMP);
