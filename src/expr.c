@@ -8235,19 +8235,22 @@ also handle qualified names like A::x and operator names like "operator+".
                    locator_for_curr_id.specific_symbol);
   }  /* if */
   if (sym_ptr == NULL) {
-    /* The symbol is not defined. */
+    /* The symbol was not in the symbol table; enter it now in case its use
+       later is as a function call, and to get proper cross-reference
+       output. */
+    sym_ptr = enter_symbol((a_symbol_kind)sk_undefined, &locator_for_curr_id,
+                           decl_scope_level, /*suppress_error=*/TRUE);
     if (curr_expr_kind_is_const()) {
       /* In a constant expression, an undefined identifier is still
          flagged as "undefined" -- it makes the error message clearer. */
       str_error(ec_undefined_identifier,
                 locator_for_curr_id.symbol_header->identifier);
+      record_symbol_reference((a_symbol_reference_kind)(SRK_REFERENCE |
+                                                        SRK_ERROR),
+                              sym_ptr, &locator_for_curr_id.source_position,
+                              /*update_il_entry=*/FALSE);
       make_error_operand(result);
     } else {
-      /* The symbol was not in the symbol table; enter it now in case its use
-         later is as a function call. */
-      sym_ptr = enter_symbol((a_symbol_kind)sk_undefined, &locator_for_curr_id,
-                             decl_scope_level,
-			     /*suppress_error=*/TRUE);
       /* Make a transient undefined symbol operand that will be either turned
          into an implicitly declared function or diagnosed as an error. */
       clear_operand((an_operand_kind)ok_undefined_symbol, result);
