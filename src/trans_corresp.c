@@ -265,8 +265,8 @@ the primary translation unit is preferred.
                  corresp_sym =
                        (a_symbol_ptr)corresp_templ->source_corresp.assoc_info;
             a_template_symbol_supplement_ptr
-                 tssp = templ_sym->variant.template_info,
-                 corresp_tssp = corresp_sym->variant.template_info;
+                 tssp = template_supplement_for_symbol(templ_sym),
+                 corresp_tssp = template_supplement_for_symbol(corresp_sym);
             if (tssp->all_instantiations != NULL) {
               /* The canonical entry is changing: the list of all
                  instantiations should be reattached to the new canonical
@@ -2453,6 +2453,7 @@ are not checked.
                templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info,
                corresp_sym =
                        (a_symbol_ptr)corresp_templ->source_corresp.assoc_info;
+#if 0 /* FIXME */
           a_template_symbol_supplement_ptr
                tssp = templ_sym->variant.template_info,
                corresp_tssp = corresp_sym->variant.template_info;
@@ -2468,6 +2469,7 @@ are not checked.
             corresp_tssp->all_instantiations = tssp->all_instantiations;
             tssp->all_instantiations = NULL;
           }  /* if */
+#endif /*FIXME*/
           templ_sym = is_class_template_symbol(templ_sym) ?
                                       prototype_template_of(templ_sym) : NULL;
           if (templ_sym != NULL && templ_sym->defined) {
