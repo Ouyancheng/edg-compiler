@@ -311,12 +311,16 @@ static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_boolean          force_parens);
 static void gen_statement(a_statement_ptr statement);
 static void gen_declaration(void);
-static void gen_declaration_using_type(
+static void gen_general_declaration_using_type(
                              a_type_ptr                   type,
                              a_source_correspondence      *scp,
                              an_il_entry_kind             entry_kind,
                              a_src_seq_secondary_decl_ptr sec_decl,
+                             a_type_qualifier_set         added_qualifiers,
                              a_boolean                    suppress_specifiers);
+static void gen_declaration_using_type(a_type_ptr              type,
+                                       a_source_correspondence *scp,
+                                       an_il_entry_kind        entry_kind);
 static void gen_type_decl(void);
 static void gen_variable_decl(a_boolean gen_final_semicolon,
                               a_boolean suppress_specifiers);
@@ -1862,16 +1866,19 @@ parameter.
 }  /* gen_default_arg_expr */
 
 
-static void gen_function_declarator_with_scope(a_type_ptr  type,
-                                               a_scope_ptr scope)
+static void gen_function_declarator_with_scope(a_type_ptr    type,
+                                               a_scope_ptr   scope,
+                                               a_routine_ptr rout)
 /*
 Output a function declarator for the indicated routine type.
 This is the top-level type of a function definition only if scope
-is non-NULL, in which case that is the function scope.
+is non-NULL, in which case that is the function scope.  If this is the
+top-level type of a function declaration or definition, rout points to
+the routine; otherwise it is NULL.
 */
 {
   a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
-  a_param_type_ptr              param;
+  a_param_type_ptr              param, defn_param;
   a_variable_ptr                param_var;
 
   /* The code here is similar to code in form_function_declarator. */
@@ -1921,10 +1928,19 @@ is non-NULL, in which case that is the function scope.
     } else {
       /* List the parameter types (and, if this is the definition, names
          too). */
+      defn_param = NULL;
       if (scope == NULL) {
         /* This is not a definition.  Advance past the source sequence
            entries for types declared or defined in the function declarator. */
         bypass_prototype_scope_type_src_seq_entries();
+        /* For a non-definition, also step through the parameter type list from
+           the definition it it's available (it gives the cv-qualifiers for
+           the parameters). */
+        if (rout != NULL && rout->defined) {
+          a_type_ptr rout_type = rout->type;
+          rout->type = skip_typerefs(rout_type);
+          defn_param = rout_type->variant.routine.extra_info->param_type_list;
+        }  /* if */
       } else {
         /* This is a definition.  Advance past the source sequence entries for
            the parameters and any types declared or defined in the
@@ -1944,15 +1960,21 @@ is non-NULL, in which case that is the function scope.
           gen_declaration_using_type(param_var->type,
                                      has_name(param_var) ?
                                              &param_var->source_corresp : NULL,
-                                     iek_variable,
-                                     (a_src_seq_secondary_decl_ptr)NULL,
-                                     /*suppress_specifiers=*/FALSE);
+                                     iek_variable);
           param_var = param_var->next;
         } else {
           /* This is just a declaration, so put out the type and no name. */
-          gen_declaration_using_type(param->type, NO_NAME, iek_none,
-                                     (a_src_seq_secondary_decl_ptr)NULL,
-                                     /*suppress_specifiers=*/FALSE);
+          /* If the type was qualified in the original definition, and the
+             qualifiers were removed in C++, restore them here. */
+          a_type_qualifier_set qualifiers = TQ_NONE;
+          if (defn_param != NULL) {
+            qualifiers = defn_param->qualifiers;
+            defn_param = defn_param->next;
+          }  /* if */
+          gen_general_declaration_using_type(param->type, NO_NAME, iek_none,
+                                            (a_src_seq_secondary_decl_ptr)NULL,
+                                             qualifiers,
+                                             /*suppress_specifiers=*/FALSE);
         }  /* if */
         /* Put out a default argument expression if there is one. */
         gen_default_arg_expr(param);
@@ -1983,11 +2005,13 @@ is non-NULL, in which case that is the function scope.
 static void gen_function_declarator(a_type_ptr type)
 /*
 Output a function declarator for the indicated routine type.  This is
-not a function definition.  This routine is used as an interface to the
-il_to_str routines.
+not the type for a function declaration or definition (e.g., this is
+a function type in a pointer-to-function type).  This routine is
+used as an interface to the il_to_str routines.
 */
 {
-  gen_function_declarator_with_scope(type, (a_scope_ptr)NULL);
+  gen_function_declarator_with_scope(type, (a_scope_ptr)NULL,
+                                     (a_routine_ptr)NULL);
 }  /* gen_function_declarator */
 
 
@@ -2023,27 +2047,29 @@ entry if sec_decl is non-NULL.
 }  /* set_decl_position */
 
 
-static void gen_declaration_using_type(
+static void gen_general_declaration_using_type(
                               a_type_ptr                   type,
                               a_source_correspondence      *scp,
                               an_il_entry_kind             entry_kind,
                               a_src_seq_secondary_decl_ptr sec_decl,
+                              a_type_qualifier_set         added_qualifiers,
                               a_boolean                    suppress_specifiers)
 /*
 Output a declaration built around a type.  The argument scp is the source
 correspondence entry for the entity being declared, or NULL if there is
-no name.  entry_kind indicate the IL entry kind (it is ignored if
+no name.  entry_kind indicates the IL entry kind (it is ignored if
 scp is NULL).  If sec_decl is non-NULL, this declaration is a secondary
 declaration of the entity, and sec_decl points to information about the
-secondary declaration.  If suppress_specifiers is TRUE, the type specifiers
-of the declaration are suppressed; this is used for comma-separated
-declarations (e.g., in a for-init statement).
+secondary declaration.  If added_qualifiers is not zero, the indicated
+qualifiers are added on top of the type.  If suppress_specifiers is TRUE,
+the type specifiers of the declaration are suppressed; this is used for
+comma-separated declarations (e.g., in a for-init statement).
 */
 {
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/(scp != NULL),
-                       TQ_NONE,
+                       added_qualifiers,
                        suppress_specifiers ? FTO_SUPPRESS_SPECIFIERS :
                                              FTO_NO_OPTIONS,
                        &octl);
@@ -2060,6 +2086,23 @@ declarations (e.g., in a for-init statement).
   form_type_second_part_simple(type, /*under_lhs_declarator=*/FALSE, &octl);
   /* Pop the name context for a class/namespace member. */
   if (scp != NULL) pop_name_context_if_member(scp);
+}  /* gen_general_declaration_using_type */
+
+
+static void gen_declaration_using_type(a_type_ptr              type,
+                                       a_source_correspondence *scp,
+                                       an_il_entry_kind        entry_kind)
+/*
+Output a declaration built around a type.  The argument scp is the source
+correspondence entry for the entity being declared, or NULL if there is
+no name.  entry_kind indicates the IL entry kind (it is ignored if
+scp is NULL).
+*/
+{
+  gen_general_declaration_using_type(type, scp, entry_kind,
+                                     (a_src_seq_secondary_decl_ptr)NULL,
+                                     TQ_NONE,
+                                     /*suppress_specifiers=*/FALSE);
 }  /* gen_declaration_using_type */
 
 
@@ -2278,9 +2321,7 @@ source sequence entry is the one associated with the field.
      bit fields and anonymous union fields. */
   gen_declaration_using_type(field->type,
                              has_name(field) ? &field->source_corresp : NULL,
-                             iek_field,
-                             (a_src_seq_secondary_decl_ptr)NULL,
-                             /*suppress_specifiers=*/FALSE);
+                             iek_field);
   if (field->is_bit_field) {
     /* A bit field.  Put out the size. */
     write_tok_ch(':');
@@ -2639,9 +2680,9 @@ is non-NULL and points to the secondary declaration entry.
                                  &octl);
   } else {
     /* Normal typedef. */
-    gen_declaration_using_type(under_type, &type->source_corresp,
-                               iek_type, sec_decl,
-                               /*suppress_specifiers=*/FALSE);
+    gen_general_declaration_using_type(under_type, &type->source_corresp,
+                                       iek_type, sec_decl, TQ_NONE,
+                                       /*suppress_specifiers=*/FALSE);
   }  /* if */
 }  /* gen_typedef_definition */
 
@@ -4316,9 +4357,7 @@ exception-handling "try" block.
         /* Advance past the source sequence entry. */
         check_for_and_take_source_seq_entry(scp->source_sequence_entry);
       }  /* if */
-      gen_declaration_using_type(handler_var->type, scp, iek_variable,
-                                 (a_src_seq_secondary_decl_ptr)NULL,
-                                 /*suppress_specifiers=*/FALSE);
+      gen_declaration_using_type(handler_var->type, scp, iek_variable);
     }  /* if */
     write_tok_ch(')');
     write_space();
@@ -5352,11 +5391,13 @@ lists of declarations, as in for-init statements.
   }  /* if */
   /* Output the variable name and its type.  Do not put out a name for
      anonymous union variables. */
-  gen_declaration_using_type(var_type,
-                             has_name(var) ? &var->source_corresp : NULL,
-                             iek_variable,
-                             sec_decl,
-                             suppress_specifiers);
+  gen_general_declaration_using_type(var_type,
+                                     has_name(var) ? &var->source_corresp :
+                                                     NULL,
+                                     iek_variable,
+                                     sec_decl,
+                                     TQ_NONE,
+                                     suppress_specifiers);
   /* Output the initializer, if any, but only if this is a definition.
      For member constants (static data members initialized within the
      class), the initializer gets put out on the declaration rather than
@@ -5393,9 +5434,7 @@ function.
       write_space();
       set_output_position(&var->source_corresp.decl_position);
       gen_declaration_using_type(var->type, &var->source_corresp,
-                                 iek_variable,
-                                 (a_src_seq_secondary_decl_ptr)NULL,
-                                 /*suppress_specifiers=*/FALSE);
+                                 iek_variable);
       write_tok_ch(';');
     } else if (ss_entry_kind(curr_source_sequence_entry) == iek_statement) {
       /* Stop on the opening brace of the routine. */
@@ -5682,9 +5721,9 @@ declaration or definition.
     /* If the function type comes from a typedef, handle the declaration
        in the conventional way.  This can occur only for declarations. */
     check_assertion(!is_definition);
-    gen_declaration_using_type(qual_rout_type, &rout->source_corresp,
-                               iek_routine, sec_decl,
-                               /*suppress_specifiers=*/FALSE);
+    gen_general_declaration_using_type(qual_rout_type, &rout->source_corresp,
+                                       iek_routine, sec_decl, TQ_NONE,
+                                       /*suppress_specifiers=*/FALSE);
   } else {
     /* Normal routine case.  Do the declaration in a special way because
        (a) function definitions use information from the function parameter
@@ -5721,7 +5760,7 @@ declaration or definition.
       adv_to_signif_source_sequence_entry();
     }  /* if */
     /* Write the second part of the declarator. */
-    gen_function_declarator_with_scope(rout_type, scope);
+    gen_function_declarator_with_scope(rout_type, scope, rout);
     /* If the function has a throw specification, put it out here after the
        function declarator. */
     if (rtsp->exception_specification != NULL) {
