@@ -3414,8 +3414,9 @@ or contain a pointer to data member, which must be initialized to -1.
           a_field_ptr    f;
           a_constant_ptr field_con;
           con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-          /* Ensure that fields for base classes are added so they will
-             be initialized. */
+          /* Note that we generate initializers for base classes,
+             virtual function table pointers, etc., because the class
+             is prelowered.  Make sure it is. */
           prelower_class_type(type);
           con->type = type;
           for (f = next_initializable_field(
@@ -3456,12 +3457,17 @@ pointers to data members are properly initialized to -1 for NULL.
   a_type_ptr type = skip_typerefs(constant->type);
   a_constant_ptr cp;
 
-  /* If the type contains pointers to data members, then there may be
-     additional fields or array elements that need initializing. */
+  /* Note that we need not test for unions.  If they are not at all
+     initialized, they are handled by lower_zero_initialization, which
+     handles them correctly.  If they are partially initialized, the
+     first member is (at least partially) initialized, which is all we
+     need here. */
   if (is_array_type(type) && contains_ptr_to_data_member(type)) {
     a_targ_size_t elem = 0;
     /* Count the number of elements that have been explicitly
-       initialized. */
+       initialized.  Note that they have previously been run through
+       this routine so they fully initialize any pointer to data
+       members. */
     for (cp = constant->variant.aggregate.first_constant;
          cp != NULL;
          cp = cp->next) {
@@ -3480,9 +3486,14 @@ pointers to data members are properly initialized to -1 for NULL.
     }  /* while */
   } else if (is_class_or_struct(type)) {
     a_field_ptr f, first_f, last_f = NULL;
+    /* Note that we generate initializers for base classes,
+       virtual function table pointers, etc., because the class
+       is prelowered.  Make sure it is. */
     prelower_class_type(type);
     f = next_initializable_field(type->variant.class_struct_union.field_list);
-    /* Skip over the initialized fields. */
+    /* Skip over the initialized fields.  Note that they have previously
+       been run through this routine so they fully initialize any pointer
+       to data members. */
     for (cp = constant->variant.aggregate.first_constant;
          cp != NULL;
          cp = cp->next) {
