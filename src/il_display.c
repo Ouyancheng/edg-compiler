@@ -1037,7 +1037,7 @@ static void disp_based_type_array(a_based_type_array_ptr ptr)
 Display the indicated based type array.
 */
 {
-  disp_ptr("based_type_array", (char *)ptr, iek_based_type_entry);
+  disp_ptr("based_type_array", (char *)ptr, iek_based_type_array);
   if (ptr != NULL) {
     int  element_num;
     char *elem_name;
