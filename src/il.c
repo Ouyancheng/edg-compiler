@@ -4999,7 +4999,9 @@ Make a temporary variable whose type is temp_type.  Return a pointer to it.
   temp_var = alloc_variable(storage_class);
   temp_var->type = temp_type;
   /* Name linkage stays nlk_none. */
-  add_to_variables_list(temp_var, depth_innermost_namespace_scope);
+  add_to_variables_list(temp_var,
+                        at_file_scope ? depth_innermost_namespace_scope :
+                                        decl_scope_level);
   return temp_var;
 }  /* alloc_temporary_variable */
 
