@@ -21115,6 +21115,7 @@ access errors that were detected.  options is a bit set of option flags.
 	 			saved_instantiation_mode = instantiation_mode;
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
   a_boolean			extern_template = (options & TDO_EXTERN) != 0;
+  a_boolean			discard = FALSE;
 
   db_enter(3, "explicit_instantiation");
   /* Pragmas cannot bind to explicit instantiations. */
@@ -21125,7 +21126,16 @@ access errors that were detected.  options is a bit set of option flags.
       ssep->kind != (a_scope_kind)sck_namespace_extension &&
       !(ssep->kind == (a_scope_kind)sck_class_struct_union &&
         extern_template)) {
-    error(ec_explicit_instantiation_not_in_namespace_scope);
+    an_error_severity	severity = es_error;
+    /* The Microsoft compiler allows an explicit specialization in a
+       class scope. */
+    if (microsoft_mode && ssep->kind == (a_scope_kind)sck_class_struct_union) {
+      severity = es_warning;
+    }  /* if */
+    diagnostic(severity, ec_explicit_instantiation_not_in_namespace_scope);
+    discard = severity == es_error;
+  }  /* if */
+   if (discard) {
     flush_tokens();
   } else {
     /* The instantiation mode is set to "none" while the pragma processing is

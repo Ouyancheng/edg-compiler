@@ -1,5 +1,13 @@
 Version 3.6
 
+3/31/05  Microsoft compatibility: explicit instantiation in class scope
+
+The Microsoft compiler accepts an explicit instantiation directive in
+a class scope.  We now emulate this behavior in Microsoft mode.
+
+  template <class T> class A {};
+  class B { template class A<B>; };
+
 3/30/05  GNU C++ compatibility: visibility of using-directives
 
 Version 3.5 introduced a change to emulate the visibility rules used by
