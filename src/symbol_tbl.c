@@ -92,12 +92,6 @@ static a_scope_depth
 			   affect C++ access control, this is the depth of
 			   the innermost one.  Otherwise, NO_SCOPE_DEPTH. */
 
-static a_scope_depth
-		depth_of_innermost_instantiation_scope;
-			/* If there are template instantiation scopes on the
-                           scope stack, this is the depth of the innermost
-                           one.  Otherwise, NO_SCOPE_DEPTH. */
-
 /*
 Array used to hold an identifier for external name or destructor name
 generation.
@@ -2233,7 +2227,7 @@ template with no current instantiation or definition, we return FALSE.
     /* We can skip the lookup if there are no class scopes (including
        reactivation scopes) or instantiation scopes on the stack. */
     if ((num_classes_on_scope_stack > 0) ||
-        (depth_of_innermost_instantiation_scope != NO_SCOPE_DEPTH)) {
+        (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH)) {
       /* Loop through the scope stack looking at the instantiation scopes
          and the class declaration and reactivation scopes.  Stop after
          finding the first instantiation scope.  Check each of these
@@ -4747,7 +4741,7 @@ symbol.  Otherwise, return NULL.
   assoc_symbol = normal_id_lookup(locator, IDL_MUST_BE_TAG);
   if (assoc_symbol != NULL &&
       assoc_symbol->kind == (a_symbol_kind)sk_class_template &&
-      depth_of_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+      depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
     /* If the symbol found is a class template symbol and we are inside an
        instantiation of the class, use the template class symbol associated
        with the current instantiation. */
@@ -4770,7 +4764,7 @@ symbol.  Otherwise, return NULL.
       /* Do ambiguity and access control checking on the member. */
       check_ambiguity_and_verify_access(locator);
     }  /* if */
-  } else if (depth_of_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+  } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
     /* We are within a template instantiation, so the name may map to a
        template parameter.  For example,
           class A { };
@@ -4782,7 +4776,7 @@ symbol.  Otherwise, return NULL.
     sym = normal_id_lookup(locator, IDL_NO_OPTIONS);
     if (sym != NULL && sym->kind == (a_symbol_kind)sk_type &&
         sym->decl_scope ==
-                 scope_stack[depth_of_innermost_instantiation_scope].number) {
+                 scope_stack[depth_innermost_instantiation_scope].number) {
       /* sym is a template parameter symbol representing a type.  Be sure the
          template argument with which it currently associated can be used in
          an elaborated-type-specifier of the required kind. */
@@ -5343,7 +5337,7 @@ of the template.
 #endif /* CHECKING */
       }  /* switch */
       /* Save the depth of the innermost instantiation scope. */
-      depth_of_innermost_instantiation_scope = depth_scope_stack;
+      depth_innermost_instantiation_scope = depth_scope_stack;
       /* Update the symbols of the template parameters to represent the
          values of the actual arguments by simply changing each to point to
          the type or constant specified by the corresponding template argument.
@@ -6133,11 +6127,11 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
     /* Maintain the depth of the innermost template instantiation scope. */
     if (kind == (a_scope_kind)sck_template_instantiation) {
-      depth_of_innermost_instantiation_scope = NO_SCOPE_DEPTH;
+      depth_innermost_instantiation_scope = NO_SCOPE_DEPTH;
       for (scope_depth = depth_scope_stack; scope_depth >= 0; scope_depth--) {
         if (scope_stack[scope_depth].kind ==
             (a_scope_kind)sck_template_instantiation) {
-          depth_of_innermost_instantiation_scope = scope_depth;
+          depth_innermost_instantiation_scope = scope_depth;
           break;
         }  /* if */
       }  /* for */
@@ -7050,6 +7044,7 @@ to avoid an 8-character external name clash with symbol_table.)
   depth_scope_stack = NO_SCOPE_DEPTH;
   decl_scope_level = NO_SCOPE_DEPTH;
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
+  depth_innermost_instantiation_scope = NO_SCOPE_DEPTH;
   inside_local_class = FALSE;
   next_scope_number = FILE_SCOPE_NUMBER;
 
@@ -7079,7 +7074,6 @@ to avoid an 8-character external name clash with symbol_table.)
   unnamed_class_symbol_header = NULL;
   num_classes_on_scope_stack = 0;
   depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
-  depth_of_innermost_instantiation_scope = NO_SCOPE_DEPTH;
   instantiations_required = NULL;
   instantiations_required_tail = NULL;
   /* Initialize the conversion header list. */

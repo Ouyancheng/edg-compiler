@@ -1407,6 +1407,12 @@ EXTERN a_scope_depth
 			/* Level in the scope stack that contains the innermost
 			   function scope, or NO_SCOPE_DEPTH if there isn't
 			   one. */
+EXTERN a_scope_depth
+		depth_innermost_instantiation_scope;
+			/* If there are template instantiation scopes on the
+                           scope stack, this is the depth of the innermost
+                           one.  Otherwise, NO_SCOPE_DEPTH. */
+
 EXTERN a_boolean
 		inside_local_class;
 			/* TRUE if we are currently inside a local class,
