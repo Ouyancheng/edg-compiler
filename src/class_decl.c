@@ -9141,6 +9141,107 @@ decl_specifiers and declarator) is returned.
 }  /* rescan_member_template_declaration */
 
 
+static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
+/*
+*/
+{
+  a_class_symbol_supplement_ptr  cssp;
+  a_type_ptr                     class_type;
+  a_symbol_ptr                   new_sym, del_sym;
+  a_boolean                      array_pass, is_overloaded, ambiguous;
+  an_opname_kind                 new_kind;
+  an_opname_kind                 del_kind;
+
+  cssp = tag_sym->variant.class_struct_union.extra_info;
+  class_type = tag_sym->variant.class_struct_union.type;
+  /* Do the checking once for the non-array new and delete declarations and
+     then for the array new and delete declarations.  This is done as loop
+     that iterates twice, first with array_pass set to FALSE and then with
+     array_pass set to TRUE. */
+  if (cssp->has_operator_new || cssp->has_operator_delete) {
+    /* There are non-array operator new and/or delete declarations in the
+       current class. */
+    array_pass = FALSE;
+    new_kind = (an_opname_kind)onk_new;
+    del_kind = (an_opname_kind)onk_delete;
+  } else {
+    /* Skip the first set of checks and move straight to the array new and
+       delete checking. */
+    array_pass = TRUE;
+  }  /* if */
+  for (;;) {
+    if (array_pass) {
+      if (cssp->has_operator_array_new || cssp->has_operator_array_delete) {
+        /* There are array operator new and/or delete declarations. */
+        new_kind = (an_opname_kind)onk_array_new;
+        del_kind = (an_opname_kind)onk_array_delete;
+      } else {
+        /* Skip the second set of checks. */
+        break;
+      }  /* if */
+    }  /* if */
+    /* Get a pointer to the new and delete symbols (which may be overload
+       symbols). */
+    new_sym = opname_member_function_symbol(new_kind, class_type);
+    del_sym = opname_member_function_symbol(del_kind, class_type);
+    if (exceptions_enabled) {
+      /* When exceptions are enabled, be sure each placement operator new
+         has a corresponding operator delete. */
+      a_symbol_ptr  sym = new_sym;
+      if (sym != NULL) {
+        if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          is_overloaded = TRUE;
+          sym = sym->variant.overloaded_function.symbols;
+        } else {
+          is_overloaded = FALSE;
+        }  /* if */
+        /* Loop through the entire overload set of operator new symbols. */
+        for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
+          if (sym->kind == (a_symbol_kind)sk_member_function) {
+            if (find_corresponding_operator_delete_sym(sym, class_type,
+                                                       &ambiguous) == NULL &&
+                !ambiguous) {
+              /* There is no operator delete that "corresponds" to this
+                 operator new (i.e., whose parameter types after the first
+                 match). */
+              pos_stsy_diagnostic(es_warning, ec_no_corresponding_op_delete,
+                                  &sym->decl_position,
+                                  array_pass ? "[]" : "", sym);
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    } else {
+      /* Exceptions are not enabled.  Just issue a remark if the class has an
+         operator new() but no default operator delete() or vice versa. */
+      if (new_sym != NULL) {
+        /* Some sort of operator new has been declared.  Check for the
+           default operator delete. */
+        if (del_sym == NULL ||
+            (find_default_operator_delete_sym(del_sym, &ambiguous) == NULL &&
+             !ambiguous)) {
+          /* No default operator delete. */
+          pos_stsy_remark(ec_class_with_op_new_but_no_op_delete,
+                          &error_position, array_pass ? "[]" : "", tag_sym);
+        }  /* if */
+      } else {
+        /* No operator new was declared.  If a default operator delete was
+           declared, issue a warning. */
+        if (del_sym != NULL &&
+            find_default_operator_delete_sym(del_sym, &ambiguous) == NULL &&
+            !ambiguous) {
+          /* There is an operator delete. */
+          pos_stsy_remark(ec_class_with_op_delete_but_no_op_new,
+                          &error_position, array_pass ? "[]" : "", tag_sym);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (array_pass) break;
+    array_pass = TRUE;
+  }  /* for */
+}  /* check_operator_new_and_delete */
+
+
 a_boolean scan_class_definition(a_type_ptr       class_type,
                                 a_scope_depth    effective_decl_level,
                                 a_scope_depth    orig_decl_level,
@@ -9544,20 +9645,9 @@ next_declaration:
          through its base classes to determine whether it is abstract by
          inheritance and set the flag accordingly. */
       check_abstract_class(class_type);
-      /* Issue a warning on a class with an operator new() but no operator
-         delete() or vice versa. */
-      if (cssp->has_operator_new != cssp->has_operator_delete) {
-        pos_stsy_remark(cssp->has_operator_new ?
-                           ec_class_with_op_new_but_no_op_delete :
-                           ec_class_with_op_delete_but_no_op_new,
-                        &error_position, "", tag_sym);
-      }  /* if */
-      if (cssp->has_operator_array_new != cssp->has_operator_array_delete) {
-        pos_stsy_remark(cssp->has_operator_array_new ?
-                           ec_class_with_op_new_but_no_op_delete :
-                           ec_class_with_op_delete_but_no_op_new,
-                        &error_position, "[]", tag_sym);
-      }  /* if */
+      /* Issue warnings/remarks if the class has an operator new but no
+         operator delete, etc. */
+      check_operator_new_and_delete(tag_sym);
       /* Issue a warning on a class with all private constructors and no
          friend functions. */
       if (!class_state.any_friend_decls) {
