@@ -1305,7 +1305,8 @@ indication like "f(void)::".
   /* Get the block number. */
   p = get_number(ptr, &block_number, dctl);
   /* Check for the two underscores following the block number.  For local
-     class names, there is no following function name. */
+     class names in some older versions of the mangling scheme, there is no
+     following function name. */
   if (p[0] == '_' && p[1] == '_') {
     p += 2;
     /* Put out the function name. */
