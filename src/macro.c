@@ -3621,6 +3621,7 @@ from the front end to the runtime.
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#if DO_IL_LOWERING
   /* Define the size of the offset field in the virtual function table. */
   (void)enter_predef_macro(int_kind_name(TARG_DELTA_INT_KIND),
 			   "__EDG_DELTA_TYPE",
@@ -3632,6 +3633,7 @@ from the front end to the runtime.
 			   "__EDG_VIRTUAL_FUNCTION_INDEX_TYPE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
+#endif /* DO_IL_LOWERING */
   /* Define the ABI compatibility version being used. */
   (void)enter_predef_macro(conv_int_to_str(ABI_COMPATIBILITY_VERSION),
 			   "__EDG_ABI_COMPATIBILITY_VERSION",
