@@ -11085,19 +11085,6 @@ related to "needed" flags.
 }  /* set_routine_defined */
 
 
-void mark_routine_initially_inline(a_routine_ptr  rp)
-/*
-Set the "inline" flag in the given routine.  Also set the suppress_inline_body
-flag if appropriate.  This routine should not be called for redeclarations.
-*/
-{
-  rp->is_inline = TRUE;
-  if (rp->storage_class == (a_storage_class)sc_extern) {
-    rp->suppress_inline_body = TRUE;
-  }  /* if */
-}  /* mark_routine_initially_inline */
-
-
 a_statement_ptr make_assignment_statement(an_expr_node_ptr dest,
                                           an_expr_node_ptr source)
 /*

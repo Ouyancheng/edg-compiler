@@ -3623,12 +3623,12 @@ Instantiate the body of the template function associated with tip.
   }  /* if */
 #endif /* DEBUG */
   if (func_info_ptr->is_inline) {
+    rout_ptr->is_inline = TRUE;
     if (!extern_inline_allowed) {
       rout_ptr->storage_class = (a_storage_class)sc_static;
       rout_ptr->source_corresp.name_linkage =
                                   (a_name_linkage_kind)nlk_internal;
     }  /* if */
-    mark_routine_initially_inline(rout_ptr);
   }  /* if */
   /* In case the source position in the routine instance is different from
      that of the defining template declaration, copy the latter to the
@@ -7738,9 +7738,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     rp->special_kind = templ_rout->special_kind;
     rp->opname_or_builtin.opname_kind = 
       templ_rout->opname_or_builtin.opname_kind;
-    if (templ_rout->is_inline) {
-      mark_routine_initially_inline(rp);
-    }  /* if */
+    rp->is_inline = templ_rout->is_inline;
     rp->is_explicit_constructor = templ_rout->is_explicit_constructor;
     rp->is_template_function = TRUE;
     set_source_corresp(&rp->source_corresp, sym);
@@ -14859,9 +14857,7 @@ that follows.
         }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         rp->is_specialized = TRUE;
-        if (func_info.is_inline) {
-          mark_routine_initially_inline(rp);
-        }  /* if */
+        rp->is_inline = func_info.is_inline;
         if ((func_info.is_inline && !extern_inline_allowed) ||
             rp->storage_class == (a_storage_class)sc_static) {
           /* Function was declared "static" or it was declared "inline" and
@@ -14929,7 +14925,7 @@ that follows.
             add_routine_fixup_for_specialization(decl_state->class_declared_in,
                                                  sym, &func_info, &body_cache);
             /* An in-class specialization in implicitly inline. */
-            mark_routine_initially_inline(rp);
+            rp->is_inline = TRUE;
             /* The param_id_list is needed because the func_info information
                is on the routine fixup list.  Don't discard it below. */
             keep_func_info = TRUE;
@@ -18478,8 +18474,8 @@ the body should be emitted by the back end.
 
   check_assertion(!C_mode());
   emit_function = inline_function_should_be_emitted(rout_ptr);
+  rout_ptr->suppress_inline_body = !emit_function;
   if (emit_function) {
-    rout_ptr->suppress_inline_body = FALSE;
     rout_ptr->source_corresp.referenced = TRUE;
 #if MAINTAIN_NEEDED_FLAGS
     mark_as_needed((char*)rout_ptr, (an_il_entry_kind)iek_routine);

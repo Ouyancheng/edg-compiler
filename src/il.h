@@ -852,8 +852,6 @@ extern void mark_routine_referenced(a_routine_ptr routine);
 
 extern void set_routine_defined(a_routine_ptr rout);
 
-extern void mark_routine_initially_inline(a_routine_ptr  rp);
-
 extern a_statement_ptr make_assignment_statement(an_expr_node_ptr dest,
                                                  an_expr_node_ptr source);
 

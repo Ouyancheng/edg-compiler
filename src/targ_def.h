@@ -2388,11 +2388,6 @@ multiple copies of the variables are *not* generated.
 #define INSTANTIATE_EXTERN_INLINE FALSE
 #endif /* ifndef INSTANTIATE_EXTERN_INLINE */
 
-#if INSTANTIATE_EXTERN_INLINE && !AUTOMATIC_TEMPLATE_INSTANTIATION
- #error -- if INSTANTIATE_EXTERN_INLINE is true, \
-           AUTOMATIC_TEMPLATE_INSTANTIATION must be true too
-#endif /* INSTANTIATE_EXTERN_INLINE && AUTOMATIC_TEMPLATE_INSTANTIATION */
-
 /*
 This switch controls whether "extern inline" functions are rewritten as
 normal inline functions.  The transformation involves promoting local static

@@ -4469,10 +4469,9 @@ e.g., because it's externally defined.
 	/* Trivial constructors have no bodies so are never needed. */
 	is_needed = FALSE;
       } else if (rout->is_inline &&
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-                 !((gcc_mode || microsoft_mode) &&
-                   !rout->suppress_inline_body) &&
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+                 !(gcc_mode && !rout->suppress_inline_body) &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
 		 !(c99_mode && !rout->suppress_inline_body)) {
 	/* An exception is "extern inline" functions, which are not regarded
 	   as referenced from elsewhere.  Each compilation unit has its own
