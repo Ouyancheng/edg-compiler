@@ -3566,29 +3566,20 @@ because the feature is used to implement offsetof, a standard feature.
   do_operand_transformations(result, TOPT_NO_OPTIONS);
   err = is_error_operand(result);
   if (!err) {
-    if (!curr_expr_is_evaluated()) {
-      /* The current expression is not being evaluated, so constant folding
-         was not done and we don't have a constant to look at.  That's okay,
-         because it doesn't matter what we return here anyway.  Return 0. */
-      set_unsigned_integer_constant(&constant, (unsigned long)0,
-                                    (an_integer_kind)TARG_SIZE_T_INT_KIND);
-      make_constant_operand(&constant, result);
+    /* Make a constant from the operand. */
+    extract_constant_from_operand(result, &constant);
+    /* Check that the constant is represented as an integer.  If this is not
+       the case, a user is using __INTADDR__; presumably, offsetof would
+       be using it correctly. */
+    if (is_error_type(constant.type)) {
+      err = TRUE;
+    } else if (constant.kind != (a_constant_repr_kind)ck_integer) {
+      /* The error message doesn't have to be very good, since the
+         user is using something that is probably undocumented. */
+      error(ec_expr_not_integral_constant);
+      err = TRUE;
     } else {
-      /* Make a constant from the operand. */
-      extract_constant_from_operand(result, &constant);
-      /* Check that the constant is represented as an integer.  If this is not
-         the case, a user is using __INTADDR__; presumably, offsetof would
-         be using it correctly. */
-      if (is_error_type(constant.type)) {
-        err = TRUE;
-      } else if (constant.kind != (a_constant_repr_kind)ck_integer) {
-        /* The error message doesn't have to be very good, since the
-           user is using something that is probably undocumented. */
-        error(ec_expr_not_integral_constant);
-        err = TRUE;
-      } else {
-        /* Address constant is okay. */
-      }  /* if */
+      /* Address constant is okay. */
     }  /* if */
   }  /* if */
   if (err) {
