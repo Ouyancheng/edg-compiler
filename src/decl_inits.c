@@ -246,6 +246,7 @@ the two list.
            init entry. */
         cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
         cp->variant.dynamic_init = dip;
+        cp->type = element_type;
         if (number_of_uninitialized_elements > 1) {
           /* When there is more than one uninitialized element remaining in the
              array, we put out an init_repeat constant on top of the
@@ -406,6 +407,7 @@ for unions and aggregates at that level).
       err = TRUE;
     } else {
       init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+      init_con->type = local_type;
       if (conversion_routine != NULL) {
         /* An appropriate constructor (copy or other) was found.  Build
            a dynamic init entry to call it. */
@@ -648,6 +650,7 @@ for unions and aggregates at that level).
         init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
         init_con->variant.dynamic_init = dip =
                        alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+        init_con->type = local_type;
         dip->variant.expression = local_di.variant.expression;
         if (*di_list == NULL) {
           *di_list = dip;
@@ -1196,14 +1199,16 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
 
 
 void repeat_nonconstant_init(a_dynamic_init_ptr  ctor_dip,
+                             a_type_ptr          elem_type,
                              a_dynamic_init_ptr  new_dip,
-                             int                 count)
+                             a_targ_size_t       count)
 /*
 Define a dynamic init entry for a nonconstant aggregate, which will always be
-for an array whose elements are to be initialized by a series of constructor
-calls.  The dynamic entry to be defined (new_dip) has already been allocated;
-the dynamic init entry that represents the constructor is ctor_dip.  count is
-the number of elements in the array to be initialized.
+for an array whose elements (of type elem_type) are to be initialized by a
+series of constructor calls.  The dynamic entry to be defined (new_dip) has
+already been allocated; the dynamic init entry that represents the constructor
+call is ctor_dip.  count is the number of elements in the array to be
+initialized.
 */
 {
   a_constant_ptr           aggr_con, repeat_con, dynamic_init_con;
@@ -1230,6 +1235,7 @@ the number of elements in the array to be initialized.
   /* Set the ck_dynamic_init_constant to point to the dynamic init entry
      representing the constructor call. */
   dynamic_init_con->variant.dynamic_init = ctor_dip;
+  dynamic_init_con->type = elem_type;
 }  /* repeat_nonconstant_init */
 
 
@@ -1247,7 +1253,7 @@ the default constructor (if one exists) is called.
   a_class_symbol_supplement_ptr  cssp;
   a_dynamic_init                 local_di;
   a_routine_ptr                  rp;
-  int                            count;
+  a_targ_size_t                  count;
 
   db_enter(3, "def_initializer");
   /* Default initialization is done only in C++ and only for variables and
@@ -1306,9 +1312,9 @@ the default constructor (if one exists) is called.
             if (var_type->size == 0) {
               count = 1;
             } else {
-              count = (int)(var_type->size / tp->size);
+              count = var_type->size / tp->size;
             }  /* if */
-            repeat_nonconstant_init(ctor_dip, &local_di, count);
+            repeat_nonconstant_init(ctor_dip, tp, &local_di, count);
           }  /* if */
           /* Build the repeat construct. */
           gen_dynamic_initialization(var, &local_di, err_pos);
@@ -1342,10 +1348,10 @@ the default constructor (if one exists) is called.
           if (var_type->size == 0) {
             count = 1;
           } else {
-            count = (int)(var_type->size / tp->size);
+            count = var_type->size / tp->size;
           }  /* if */
           /* Build the repeat construct. */
-          repeat_nonconstant_init(dtor_dip, &local_di, count);
+          repeat_nonconstant_init(dtor_dip, tp, &local_di, count);
         }  /* if */
         gen_dynamic_initialization(var, &local_di, err_pos);
         /* Don't set def_init_performed.  A dik_none dynamic initialization
@@ -1976,7 +1982,7 @@ scan_arg_for_scan_initialization:
       }  /* if */
       if (array_type != NULL &&
           dip->kind == (a_dynamic_init_kind)dik_constructor) {
-        int  count;
+        a_targ_size_t count;
         /* We have an array of objects with constructors.  Create a dynamic
            init entry to handle the aggregate. */
         ctor_dip = dip;
@@ -1986,9 +1992,9 @@ scan_arg_for_scan_initialization:
         if (array_type->size == 0) {
           count = 1;
         } else {
-          count = (int)(array_type->size / tp->size);
+          count = array_type->size / tp->size;
         }  /* if */
-        repeat_nonconstant_init(ctor_dip, dip, count);
+        repeat_nonconstant_init(ctor_dip, tp, dip, count);
       }  /* if */
       /* Attach the new dynamic init entry to the constructor initializer. */
       cip->initializer = dip;
@@ -2121,7 +2127,7 @@ though neither constructors nor initialization is involved here.)
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
           dip->destructor = rp;
           if (array_type != NULL) {
-            int  count;
+            a_targ_size_t count;
             /* We have an array of objects with destructors.  Create a dynamic
                init entry to handle the aggregate. */
             a_dynamic_init_ptr  dtor_dip = dip;
@@ -2131,9 +2137,9 @@ though neither constructors nor initialization is involved here.)
             if (array_type->size == 0) {
               count = 1;
             } else {
-              count = (int)(array_type->size / tp->size);
+              count = array_type->size / tp->size;
             }  /* if */
-            repeat_nonconstant_init(dtor_dip, dip, count);
+            repeat_nonconstant_init(dtor_dip, tp, dip, count);
           }  /* if */
           /* Attach the new dynamic init entry to the constructor
              initializer. */

@@ -25,8 +25,9 @@ decl_inits.h -- Declarations related to decl_inits.c (having to do with
 #endif /* ifndef SYMBOL_TBL_H */
 
 extern void repeat_nonconstant_init(a_dynamic_init_ptr  ctor_dip,
+                                    a_type_ptr          elem_type,
                                     a_dynamic_init_ptr  new_dip,
-                                    int                 count);
+                                    a_targ_size_t       count);
 
 extern a_boolean dynamic_init_has_side_effects(a_dynamic_init_ptr dip);
 
