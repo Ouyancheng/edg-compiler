@@ -3225,6 +3225,10 @@ to refine the hash value developed in hash_constant.
     case tk_integer:
       hash_value = type->variant.integer.int_kind + 53;
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+    case tk_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_float:
       hash_value = type->variant.float_kind + 87;
       break;
@@ -3521,6 +3525,21 @@ nonidentical.
                            &unordered) == 0 && !unordered);
         }  /* if */
         break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case ck_complex:
+        cp1_type = skip_typerefs(cp1_type);
+        if (is_floating_type(cp1_type)) {
+          eq = (fp_compare(cp1_type->variant.float_kind,
+                           &cp1->variant.complex_value->real,
+                           &cp2->variant.complex_value->real,
+                           &unordered) == 0 && !unordered &&
+                fp_compare(cp1_type->variant.float_kind,
+                           &cp1->variant.complex_value->imag,
+                           &cp2->variant.complex_value->imag,
+                           &unordered) == 0 && !unordered);
+        }  /* if */
+        break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case ck_address:
         if (cp1->variant.address.kind   == cp2->variant.address.kind &&
             cp1->variant.address.offset == cp2->variant.address.offset) {
