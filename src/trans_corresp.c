@@ -555,7 +555,8 @@ exact criteria).
               /* The canonical entry is changing: the list of all
                  instantiations should be reattached to the new canonical
                  entry. */
-              check_assertion(corresp_tssp->all_instantiations == NULL);
+              check_assertion_str(corresp_tssp->all_instantiations == NULL,
+                                  "Noncanonical instantiation list");
 #if DEBUG
               if (db_trace("trans_corresp", templ, iek_template) ||
                   db_trace("trans_corresp", corresp_templ, iek_template)) {

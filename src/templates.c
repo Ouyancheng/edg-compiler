@@ -8272,9 +8272,6 @@ function a friend and update the friend information.
 }  /* update_befriending_classes_for_function */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* in_class_specialization is only used for Microsoft mode. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_symbol_ptr make_template_function(
 			a_symbol_ptr		templ_sym,
 			a_template_arg_ptr	templ_arg_list,
@@ -8593,9 +8590,15 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   /* Decrement the count of pending instantiations of this template. */
   --(tssp->variant.function.pending_partial_instantiations);
   switch_back_to_original_region(region_to_switch_back_to);
-  /* Call a routine that manages the correspondence of entities between
-     translation units to notify it of the new instance. */
-  record_instantiation(sym, tssp);
+  if (!in_class_specialization) {
+    /* Call a routine that manages the correspondence of entities between
+       translation units to notify it of the new instance.  Don't do this for
+       Microsoft in-class specializations: Their correspondence is set much
+       like ordinary member functions (and recording these while the parent
+       class is not complete can lead to (erroneously) associating them with
+       a noncanonical parent class). */
+    record_instantiation(sym, tssp);
+  }  /* if */
   /* Function instantiation entries are not marked for actual instantiation
      (that is, for generation of the function body) until there is an
      invocation of the function.  In tim_all mode the instantiations
@@ -15380,8 +15383,8 @@ found.
     /* A regular function name that is expected to represent one or
        more function templates.  Loop through the function templates
        and find an instance that matches the specified function type.
-       If none exists, a new one can is generated, if possible.  If
-       more than one exists (or can be generated) an error is issued. */
+       If none exists, a new one is generated, if possible.  If more
+       than one exists (or can be generated) an error is issued. */
     a_boolean		is_list;
     if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
       sym = sym->variant.overloaded_function.symbols;
