@@ -73,11 +73,11 @@ typedef char	*a_char_ptr;
 static void walk_string_entry(char             *entry_ptr,
                               an_il_entry_kind entry_kind,
                               sizeof_t         entry_length);
-#if MAINTAIN_NEEDED_FLAGS
+#if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 static void set_keep_in_il_on_source_sequence_entries(a_scope_ptr scope);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
 
 
 /* Build a routine to walk entries and their subtrees. */
@@ -288,7 +288,7 @@ can be NULL to indicate that the corresponding function is unnecessary.
   db_exit();
 }  /* walk_routine_scope_il */
 
-#if MAINTAIN_NEEDED_FLAGS
+#if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
 
 /* Generate walk_tree_and_set_needed from the walk_entry.h source. */
 #undef DO_SUBTREE_WALK
@@ -637,7 +637,7 @@ or redeclaration).
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-#endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
 
 /*
 Macro to remap an orphan IL entry pointer from an "old" value to a "new"
@@ -872,9 +872,9 @@ of the front end.
 {
   /* Variables in il_walk.h: */
   walk_remap_func = NULL;
-#if MAINTAIN_NEEDED_FLAGS
+#if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
   end_of_file_scope_needed_flags_phase = FALSE;
-#endif /* MAINTAIN_NEEDED_FLAGS */
+#endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
   /* Variables in il_walk.c: */
   entry_process_func = NULL;
   string_entry_process_func = NULL;
