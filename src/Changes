@@ -60,7 +60,7 @@ constant in GNU C mode.  For example:
 
   enum a { i = 0x400000000000000000000000000 }; // Used to abort
 
-This is now fixed.
+This is now fixed.  [Patch sent out 7/23/02.]
 
 7/16/02  Bug fix in mangled name truncation
 
@@ -70,6 +70,7 @@ did not work correctly for names that are already within 10 characters
 of the maximum length.  This potentially caused string copies that
 overwrote characters beyond the end of space allocated for the name,
 which could have various unfortunate consequences.  Now fixed.
+[Patch sent out 7/23/02.]
 
 7/15/02  GNU compatibility: Excess aggregate initializers
 
@@ -88,6 +89,7 @@ member casts as constant casts has been fixed.  The problem cases
 involve multi-step casts such that the original member does not
 exist in the class of the final cast.  The cases are now not folded,
 leaving them to work, or not, as casts at execution time.
+[Patch sent out 7/23/02.]
 
   struct A { int a; A() : a(2) { } virtual void f() = 0; };
   struct B { int b; B() : b(3) { } virtual void f() = 0; };
@@ -99,7 +101,7 @@ leaving them to work, or not, as casts at execution time.
 
 In GNU mode, the __VERSION__ macro is now supported.  The macro
 expands to a string literal, the value of which is specified by
-the GCC_VERSION_STRING configuration macro.
+the GCC_VERSION_STRING configuration macro.  [Patch sent out 7/23/02.]
 
 7/9/02   C++-generating back end: name references
 
@@ -120,13 +122,13 @@ is merged, the address_taken flags on routines and variables were not
 being merged (or-ed) correctly.  Now, they are, so that when the
 address of an entity is taken in one translation unit and the definition
 appears in another (in which the address is not taken) the address_taken
-flag is correctly set.
+flag is correctly set.  [Patch sent out 7/23/02.]
 
 7/2/02   Sun compatibility: Explicit instantiation of a class does not
          instantiate inline members
 
 In Sun mode, the explicit instantiation of a class does not cause the
-instantiation of inline member functions.
+instantiation of inline member functions.  [Patch sent out 7/23/02.]
 
   template <class T> struct A {
     void f() { g(); }  // error if instantiated -- g is undefined
@@ -148,6 +150,8 @@ nullifies the type information implied by an earlier prototyped declaration
   void f();            // Second declaration (unprototyped)
   void f(c) int c; {}  // Third declaration conflicts with first:
                        // Previously an error, now accepted with no diagnostic
+
+[Patch sent out 7/23/02.]
 
 7/2/02   Microsoft compatibility: Declaration in for-initializer can hide
          declaration in surrounding scope
@@ -171,7 +175,7 @@ When evaluating a sizeof expression in a context in which template
 parameters are being replaced with the corresponding template
 argument values, a full instantiation of a template class was not
 being done in some cases, resulting in an incorrect size.  This
-has been fixed.
+has been fixed.  [Patch sent out 7/23/02.]
 
   template<int size> struct A { };
   template <class A> struct B { };
@@ -214,12 +218,12 @@ was rendered by the C-generating back end as
 
 This is now fixed.  We also corrected a missing initialization that could
 make the front end abort on some platforms when compiling extended asm
-constructs.
+constructs.  [Patch sent out 7/23/02.]
 
 6/27/02  Abort on using-declaration of template-dependent name
 
 An abort on processing a using-declaration of a member of a
-template-dependent class has been fixed.
+template-dependent class has been fixed.  [Patch sent out 7/23/02.]
 
   template<typename T>
   struct X: T {
@@ -244,7 +248,7 @@ of the following string literal arguments: "hidden", "protected", or
 
 An abort while doing inlining in GNU C mode has been corrected.  The
 abort came about when it is first determined that inlining cannot be
-done for the dependent statement of an "if".
+done for the dependent statement of an "if".  [Patch sent out 7/23/02.]
 
   int i, j;
   extern inline void set_close_on_exec(unsigned int fd, int flag) {
@@ -267,7 +271,7 @@ friend declaration not enclosed by that namespace.  For example:
     void f(X) {}              // Used to cause an abort
   }
 
-This is now fixed.
+This is now fixed.  [Patch sent out 7/23/02.]
 
 6/26/02  Microsoft compatibility: Using-declarations of masked members
 
@@ -296,13 +300,13 @@ entry for 12/14/99 below) for MSVC++ 6 turns out to have been a bug
 and not a feature in version 6, and has now been changed back in
 MSVC++ 7 to the way it was before.  The EDG front end has been changed
 likewise, and now gives the VC6 behavior only when microsoft_version
-is 1200.
+is 1200.  [Patch sent out 7/23/02.]
 
 6/24/02  Abort in same_type_with_added_qualifiers
 
 An abort in same_type_with_added_qualifiers has been fixed.
 It involved comparisons of template conversion functions in
-overload resolution.
+overload resolution.  [Patch sent out 7/23/02.]
 
   class StrictType {
     public:
@@ -340,6 +344,7 @@ the X86 architecture was being used.  Because certain compilers define
 only __i386 and not __i386__, we now test the __i386 macro instead.  The
 front end now, by default, defines both __i386 and __i386__ when built on
 an X86 architecture system.  Formerly, only __i386__ was defined.
+[Patch sent out 7/23/02.]
 
 6/20/02  Partial ordering and cv-qualified references
 
@@ -349,7 +354,7 @@ with the old rules but prefers f(S<T>) with the new rules.  The language
 specification in this area is sufficiently unclear to be sure that either
 of these interpretations is the correct one.  We are working on a
 proposed clarification of the rules in the standard and will incorporate
-this change as part of the proposed rules.
+this change as part of the proposed rules.  [Patch sent out 7/23/02.]
 
   template <class T> struct S { };
   template <class T> void f(S<T>);
@@ -390,6 +395,7 @@ For example:
   void g(U);      // OK in GNU C mode
 
 In such cases, the resulting composite parameter type is the union type.
+[Patch sent out 7/23/02.]
 
 6/20/02  GNU C mode: last line of file can end with backslash
 
@@ -411,6 +417,7 @@ Previously, asm definitions were only permitted for non-member functions.
 
 In GNU C mode, instead of issuing a diagnostic when a floating point
 value is out of range, the "infinity" value is silently used instead.
+[Patch sent out 7/23/02.]
 
 6/19/02  C-generating back end: Sequencing of C99 STDC pragmas
 
@@ -435,7 +442,7 @@ This is now fixed.
 6/19/02  Missing ambiguity error on ctor-initializer
 
 The front end failed to diagnose an ambiguous name used as a base class
-in a ctor-initializer.  This has been fixed.
+in a ctor-initializer.  This has been fixed.  [Patch sent out 7/23/02.]
 
   struct D { struct X {};};
   struct C { struct X {};};
@@ -466,7 +473,7 @@ library extensions (such as the upc_phaseof function) are not included.
 
 The front end can be configured to define a macro when long long is not
 enabled (__NO_LONG_LONG, by default).  This macro should have been defined
-in C mode, but was not.  This has been fixed.
+in C mode, but was not.  This has been fixed.  [Patch sent out 7/23/02.]
 
 6/18/02  GNU C compatibility: Redefinition of extern __inline__ function
 
@@ -479,7 +486,7 @@ definition is discarded and replaced by the latest one. For example:
 
 A call to the function may appear between two such definitions; if that
 call is inlined (by the lowering process), the first definition will be
-used for that purpose.
+used for that purpose.  [Patch sent out 7/23/02.]
 
 6/17/02  Sun and Microsoft compatibility: Declaration of a variable visible
          through a using-declaration.
@@ -516,7 +523,7 @@ field of the enclosing struct.  For example:
     int b;
   };
 
-Now an error is issued in such situations.
+Now an error is issued in such situations.  [Patch sent out 7/23/02.]
 
 6/14/02  Microsoft compatibility: Calling convention on out-of-class definition
 
@@ -536,30 +543,33 @@ warning).  For example:
 
   unsigned short unsigned short x;  // Accepted in GNU C mode
 
+[Patch sent out 7/23/02.]
+
 6/13/02  TARG_HAS_IEEE_FLOATING_POINT on non-Linux X86 Unix Systems
 
 TARG_HAS_IEEE_FLOATING point now defaults to TRUE on Unix systems
 that define the __i386 macro.  Formerly, this defaulted to TRUE on Linux
 and Windows, but not some other X86 operating systems such as Intel
-Solaris.
+Solaris.  [Patch sent out 7/23/02.]
 
 6/11/02  Duplicate module IDs
 
 Version 3.0 introduced a problem that could cause files with the same
 name and containing the same inline function to have the same module IDs,
 resulting in multiple definition errors at link time.  This has been fixed.
+[Patch sent out 7/23/02.]
 
 6/11/02  GNU C compatibility: extended integral constant expressions
 
 GNU C mode now allows integral constant expressions with
-nonstandard forms.
+nonstandard forms.  [Patch sent out 7/23/02.]
 
   int i [((char *) &((struct foo *) 0)->c[0]) - (char *) 0];
 
 6/11/02  GNU C compatibility: alias attribute should not find macros
 
 The front end used to mistakenly find macros when looking up an entity
-named by the alias attribute.
+named by the alias attribute.  [Patch sent out 7/23/02.]
 
   void SX() {}  // (1)
   #define SX sx
@@ -572,13 +582,13 @@ This is now fixed.
 
 In Microsoft bugs mode and Sun mode, a static_cast to the same type
 the operand already has now does nothing; in particular, it does not
-force conversion of an lvalue to an rvalue.
+force conversion of an lvalue to an rvalue.  [Patch sent out 7/23/02.]
 
 6/11/02  GNU C compatibility: "register" and "q" in asm
 
 The gcc asm support now accepts "q" as a constraint code (equivalent
 to "Q") for X86, and "memory" as a legal register on all machines in 
-the context of the clobber expression.
+the context of the clobber expression.  [Patch sent out 7/23/02.]
 
 6/3/02   Improper tiebreaker processing in overload resolution (reference
          versus pointer)
@@ -610,12 +620,15 @@ in the difference in error messages on the following:
     foo(cp);
   }
 
+[Patch sent out 7/23/02.]
+
 5/30/02  Spurious remark ("controlling expression is constant") on
          dependent expression
 
 A spurious remark was issued on a boolean controlling expression
 in a prototype instantiation of a template (e.g., in strict mode)
 when the expression is a member of a nonreal class.  Now fixed.
+[Patch sent out 7/23/02.]
 
   template<class T> struct B {
     int a;
@@ -630,13 +643,13 @@ when the expression is a member of a nonreal class.  Now fixed.
          rvalue
 
 In Microsoft bugs mode, a reference to a const volatile can now bind
-to an rvalue.  The ISO standard forbids that.
+to an rvalue.  The ISO standard forbids that.  [Patch sent out 7/23/02.]
 
 5/24/02  Compilation problem in IL display program with CHECKING set to FALSE
 
 The il_display.c file did not compile correctly when CHECKING is
 set to FALSE.  An internal_error call should have been a call
-of unexpected_condition_str.  Fixed.
+of unexpected_condition_str.  Fixed.  [Patch sent out 7/23/02.]
 
 5/23/02  Static initialization on Windows
 
@@ -648,13 +661,13 @@ is TRUE.  The C generating back end now emits the new pragma to get
 static initialization routines invoked at program startup when
 MSVC_IS_GENERATED_CODE_TARGET is TRUE and MSVC_TARGET_VERSION is 1300 or
 higher.  The --msvc_target_version command-line option can be used to
-override the default version number.  
+override the default version number.  [Patch sent out 7/23/02.]  
 
 5/23/02  Spurious error on destructor reference
 
 When a destructor is called using a qualified name that names a base
 class, and the base class is a template class, a spurious ambiguity
-error could result.  This has been fixed.
+error could result.  This has been fixed.  [Patch sent out 7/23/02.]
 
   namespace N {
     template <class T> struct A { };
@@ -671,6 +684,7 @@ error could result.  This has been fixed.
 When using dependent name lookup mode, a dependent base class of a
 nondependent base was incorrectly treated as dependent during lookups
 in a derived class that is a template.  This has been fixed.
+[Patch sent out 7/23/02.]
 
   template <class T> struct A {
     typedef int AA;
@@ -685,7 +699,7 @@ in a derived class that is a template.  This has been fixed.
 
 An error in the code that validates asm operand description could cause
 spurious diagnostics on some extended GNU C asm constructs.  This is
-now fixed.
+now fixed.  [Patch sent out 7/23/02.]
 
 5/15/02  Copying of function-scope constants while inlining
 
@@ -695,14 +709,14 @@ are encountered should be copied, because they are in the wrong
 memory region.  That is now done.  This problem seldom came up,
 but did arise more frequently when RECORD_CONSTANT_EXPRESSIONS_IN_IL
 is set and IL lowering/inlining is also done (an unusual
-combination).
+combination).  [Patch sent out 7/23/02.]
 
 5/15/02  GNU C compatibility: Spurious error when ellipsis in prototype
          declaration follows an unprototyped definition
 
 Mixing unprototyped definitions with prototype declarations that
 include an ellipsis parameter sometimes triggered a spurious error
-in GNU C mode.  This has been fixed.
+in GNU C mode.  This has been fixed.  [Patch sent out 7/23/02.]
 
   void f(int, ...);
   void f(n) int n; {}
@@ -724,7 +738,7 @@ Microsoft __based feature properly.  This has been fixed.
 The code that reads IL files into memory did not properly ensure
 alignment of the IL entries in configurations in which
 HOST_POINTER_ALIGNMENT is smaller than HOST_ALIGNMENT_REQUIRED.
-Now fixed.
+Now fixed.  [Patch sent out 7/23/02.]
 
 5/14/02  Microsoft compatibility: spurious error on function-style cast
 
