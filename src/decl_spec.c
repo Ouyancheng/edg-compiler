@@ -1421,7 +1421,7 @@ Returns TRUE if there is an error in the specifiers.
   a_symbol_ptr               curr_token_type_symbol;
   a_boolean                  err = FALSE;
   a_boolean                  bad_combination_of_type_specifiers = FALSE;
-  a_source_position          start_pos, qualifier_pos;
+  a_source_position          start_pos, const_volatile_pos;
   a_type_kind                kind;
   an_integer_kind            ikind;
   a_float_kind               fkind;
@@ -1559,7 +1559,7 @@ Returns TRUE if there is an error in the specifiers.
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          if (*qualifiers == TQ_NONE) qualifier_pos = pos_curr_token;
+          if (*qualifiers == TQ_NONE) const_volatile_pos = pos_curr_token;
           *qualifiers |= TQ_CONST;
         }  /* if */
         break;
@@ -1573,7 +1573,7 @@ Returns TRUE if there is an error in the specifiers.
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          if (*qualifiers == TQ_NONE) qualifier_pos = pos_curr_token;
+          if (*qualifiers == TQ_NONE) const_volatile_pos = pos_curr_token;
           *qualifiers |= TQ_VOLATILE;
         }  /* if */
         break;
@@ -1586,8 +1586,6 @@ Returns TRUE if there is an error in the specifiers.
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
-          /* Don't set qualifier_pos -- it's only for const and volatile
-             that we issue the diagnostic that uses it. */
           *qualifiers |= TQ_RESTRICT;
         }  /* if */
         break;
@@ -2633,9 +2631,13 @@ exit_loop:
           /* However, adding a qualifier to a typedef for a reference type
              is not allowed.  More precisely, the qualifier is ignored.
              Issue a diagnostic. */
-          if (is_reference_type(*type_ptr)) {
+          if (is_reference_type(*type_ptr)
+#if RESTRICT_ALLOWED
+              && ((*qualifiers & ~TQ_RESTRICT) != TQ_NONE)
+#endif /* RESTRICT_ALLOWED */
+                                          ) {
             *qualifiers = TQ_NONE;
-            pos_warning(ec_useless_type_qualifiers, &qualifier_pos);
+            pos_warning(ec_useless_type_qualifiers, &const_volatile_pos);
           }  /* if */        
         } else {
           /* In C we check for duplicate qualifiers on a declaration, even
@@ -2658,6 +2660,25 @@ exit_loop:
           }  /* if */
         }  /* if */
       }  /* if */
+#if RESTRICT_ALLOWED
+      if (*qualifiers & TQ_RESTRICT) {
+        /* The restrict qualifier may only be applied to pointer and reference
+           types (but not pointer-to-function-type), pointer-to-member types,
+           and (in parameter declarations only) array types. */
+        if (is_ptr_or_ref_type(*type_ptr) &&
+            !is_function_type(type_pointed_to(*type_ptr))) {
+          /* Okay. */
+        } else if (is_ptr_to_member_type(*type_ptr)) {
+          /* Okay. */
+        } else if (is_array_type(*type_ptr) && DSI_IS_PARAMETER) {
+          /* Okay. */
+        } else {
+          pos_error(ec_restrict_not_allowed, &start_pos);
+          *qualifiers &= ~TQ_RESTRICT;
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+#endif /* RESTRICT_ALLOWED */
       if (*qualifiers != TQ_NONE) {
         /* Add the qualifiers if necessary.  make_qualified_type understands
            the strange array case too. */

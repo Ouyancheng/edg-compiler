@@ -690,6 +690,7 @@ ec_not_enough_preallocated_memory;;"insufficient preallocated memory for generat
 ec_program_entity_too_large_for_pch;;"very large entity in program prevents generation of precompiled header file"
 ec_cannot_chdir;;"%sq is not a valid directory"
 ec_cannot_build_temp_file_name;;"cannot build temporary file name"
+ec_restrict_not_allowed;;"\"restrict\" is not allowed on this declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
