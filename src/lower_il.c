@@ -2981,6 +2981,37 @@ used to encode constants as part of the mangled names of template classes.
 }  /* literal_representation */
 
 
+/*
+Seed number for unnamed class names.
+*/
+static unsigned long
+		unnamed_class_name_seed;
+
+
+static void give_unnamed_class_a_name(a_type_ptr type)
+/*
+If the indicated class type is unnamed, give it a name.
+*/
+{
+  char     *name;
+  sizeof_t name_len;
+
+  /* Note that we may be changing a type that is not being lowered yet, but
+     that's okay -- the name in the IL entry is not used by the front end. */
+  if (type->source_corresp.name == NULL) {
+    /* The class is unnamed, so make up a name. */
+    /* The name is __Cnn, where nn is a unique number for the
+       class.  This is not from the ARM.  cfront uses the __Cn form, but
+       the number is different. */
+    unnamed_class_name_seed++;
+    name_len = digits_to_represent(unnamed_class_name_seed) + 4; /*"__C"+null*/
+    name = alloc_il(name_len);
+    (void)sprintf(name, "__C%lu", (unsigned long)unnamed_class_name_seed);
+    type->source_corresp.name = name;
+  }  /* if */
+}  /* give_unnamed_class_a_name */
+    
+
 static sizeof_t mangled_basic_class_name(a_type_ptr type,
                                          char       *store_at)
 /*
@@ -3001,29 +3032,15 @@ the name.
   a_template_arg_ptr tap;
   a_constant_ptr     con;
   int                pass;
-  unsigned long      unique_id;
 
   /* Always start with the name of the class, which applies even in the
      template class case. */
+  give_unnamed_class_a_name(type);
   name = type->source_corresp.name;
-  if (name == NULL) {
-    /* The class is unnamed, so make up a name. */
-    /* The name is __Cnnnnnn, where nnnnnn is a unique number for the
-       class.  This is not from the ARM.  cfront uses the __Cn form, but
-       the number is different. */
-    unique_id = unique_id_for_il_pointer(type);
-    mangled_name_length = digits_to_represent(unique_id) + 3;  /* "__C" */
-    if (store_at != NULL) {
-      (void)sprintf(store_at, "__C%lu", (unsigned long)unique_id);
-      store_at += mangled_name_length;
-    }  /* if */
-  } else {
-    /* The class is not unnamed. */
-    mangled_name_length = strlen(name);
-    if (store_at != NULL) {
-      (void)memcpy(store_at, name, (int)mangled_name_length);
-      store_at += mangled_name_length;
-    }  /* if */
+  mangled_name_length = strlen(name);
+  if (store_at != NULL) {
+    (void)memcpy(store_at, name, (int)mangled_name_length);
+    store_at += mangled_name_length;
   }  /* if */
   if (template_arg_list != NULL) {
     /* A template class.  The mangled form of the name is something like
@@ -3795,11 +3812,9 @@ Mangle the name of the indicated class, if necessary.
 
   error_position = class_type->source_corresp.decl_position;
   if (class_type->variant.class_struct_union.extra_info->
-                                                   template_arg_list != NULL ||
-      class_type->source_corresp.name == NULL) {
+                                                   template_arg_list != NULL) {
     /* Template class names must be mangled because otherwise all instances
        of the same class template have the same name. */
-    /* Unnamed classes must be given names. */
     /* Determine how long the mangled name is. */
     mangled_name_length = mangled_basic_class_name(class_type, (char *)NULL);
     /* Allocate space for the mangled name and build it.  The old name is
@@ -11808,6 +11823,7 @@ of the front end.
   end_orphaned_types_list = NULL;
   type_promotion_insert_location = NULL;
   num_conditional_exprs_inside_of = 0;
+  unnamed_class_name_seed = 0;
 }  /* il_lower_init */
 
 #endif /* DO_IL_LOWERING */
