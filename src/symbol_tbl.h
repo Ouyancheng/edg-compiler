@@ -2108,6 +2108,8 @@ extern void reactivate_prototype_scope_symbols(
 extern void relink_unnamed_class_symbol(a_symbol_ptr      sym,
                                         a_symbol_locator  *locator);
 
+extern a_symbol_ptr enter_undefined_member_symbol(a_symbol_locator *locator);
+
 extern a_symbol_ptr add_symbol_to_overload_list(a_symbol_ptr  new_sym,
                                                 a_symbol_ptr  other_sym);
 

@@ -2284,10 +2284,8 @@ bound with the function in *bound_function_selector.
         }  /* if */
         err = TRUE;
         /* Enter an undefined symbol and record a reference against it. */
-        { a_symbol_ptr undef_sym_ptr= enter_symbol((a_symbol_kind)sk_undefined,
-                                                   &locator_for_curr_id,
-                                                   decl_scope_level,
-                                                   /*suppress_error=*/TRUE);
+        { a_symbol_ptr undef_sym_ptr =
+                           enter_undefined_member_symbol(&locator_for_curr_id);
           record_symbol_reference((a_symbol_reference_kind)(SRK_REFERENCE |
                                                             SRK_ERROR),
                                   undef_sym_ptr,

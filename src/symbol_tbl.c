@@ -2296,6 +2296,42 @@ the new name and relink it into the symbol table under the new header.
 }  /* relink_unnamed_class_symbol */
 
 
+a_symbol_ptr enter_undefined_member_symbol(a_symbol_locator *locator)
+/*
+Enter a symbol for an undefined class member, or find an existing one, and
+return a pointer to the symbol.  This is used for invalid member references
+so that there is a symbol against which a reference can be recorded.
+*locator gives the necessary information about the member name and position.
+*/
+{
+  a_symbol_ptr sym_ptr;
+
+  db_enter(4, "enter_undefined_member_symbol");
+  /* Look for an existing sk_undefined symbol on the inactive list. */
+  for (sym_ptr = inactive_symbol_list_from_locator(*locator);
+       sym_ptr != NULL;
+       sym_ptr = sym_ptr->next) {
+    if (sym_ptr->kind == (a_symbol_kind)sk_undefined &&
+        sym_ptr->decl_scope == NO_SCOPE_NUMBER) {
+      /* Found one. */
+      break;
+    }  /* if */
+  }  /* for */
+  if (sym_ptr == NULL ) {
+    /* Allocate and initialize the symbol. */
+    a_symbol_header_ptr sym_hdr = locator->symbol_header;
+    sym_ptr = alloc_symbol((a_symbol_kind)sk_undefined, sym_hdr,
+                           &locator->source_position);
+    sym_ptr->is_error = TRUE;
+    /* Add the symbol to the front of the inactive list. */
+    sym_ptr->next = sym_hdr->inactive_symbols;
+    sym_hdr->inactive_symbols = sym_ptr;
+  }  /* if */
+  db_exit();
+  return sym_ptr;
+}  /* enter_undefined_member_symbol */
+
+
 a_symbol_ptr add_symbol_to_overload_list(a_symbol_ptr  new_sym,
                                          a_symbol_ptr  other_sym)
 /*
@@ -2504,7 +2540,7 @@ progenitor_sym is a member) if ambiguous is TRUE.
 static a_symbol_ptr make_parameter_symbol(a_symbol_locator  *locator)
 /*
 Create but do not yet enter an sk_parameter symbol.  This routine is called
-for old style parameter declaration.
+for old style parameter declarations.
 */
 {
   a_symbol_ptr  sym;
@@ -5558,7 +5594,7 @@ locator.  In the case of an ambiguity, return NULL.
     effective_scope_of_nested_type = NO_SCOPE_NUMBER;
     for (; sym != NULL; sym = sym->next) {
       if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
-        /* Found an type symbol, but is it nested? */
+        /* Found a type symbol, but is it nested? */
         tp = sym->class_of_which_a_member;
         if (tp != NULL) {
           /* It is a nested member type.  Pop out to the outermost parent
