@@ -6025,8 +6025,7 @@ static a_symbol_ptr function_template_declaration
                                a_storage_class           storage_class,
                                a_decl_modifier           decl_modifiers,
                                a_type_ptr                type,
-                               a_template_decl_info_ptr  template_decl_info,
-                               a_boolean                 is_template_friend)
+                               a_template_decl_info_ptr  template_decl_info)
 /*
 Scan a function template declaration or the declaration of a member function
 of a class template.  locator identifies the function template being
@@ -6034,8 +6033,7 @@ declared.  func_info points to the block of information for the current
 function declaration.  storage_class, decl_modifiers, and type indicate
 information returned from decl_specifiers and declarator.  template_decl_info
 points to the template declaration information (parameter list, declaration
-scope, etc.)  for this template declaration.  is_template_friend is TRUE if
-this is a friend declaration.
+scope, etc.)  for this template declaration.  
 */
 {
   a_symbol_ptr  sym = NULL;
@@ -6048,23 +6046,6 @@ this is a friend declaration.
   decl_function_template(locator, type, func_info, &sym, storage_class,
                          decl_modifiers, template_decl_info->parameters,
                          effective_decl_level);
-  if (!is_error_locator(*locator)) {
-    if (func_info->is_definition) {
-      if (sym->defined) {
-        pos_sy_error(ec_already_defined, &locator->source_position, sym);
-      } /* if */
-      mark_defined(sym, &locator->source_position);
-    } else {
-      mark_declared(sym, &locator->source_position);
-      if (sym->kind == (a_symbol_kind)sk_member_function &&
-          !is_template_friend) {
-        /* A non-defining declaration of a member function is not
-           allowed. */
-        pos_sy_error(ec_member_function_redecl_outside_class,
-                     &locator->source_position, sym);
-      } /* if */
-    } /* if */
-  } /* if */
   db_exit();
   return sym;
 }  /* function_template_declaration */
@@ -6319,7 +6300,11 @@ as the current token; otherwise, it is consumed.
      kinds of prescans that are done to determine the kind of declaration
      being processed. */
   cache_template_declaration(&decl_token_cache, &template_param_list_cache);
-  is_template_friend = is_template_friend_decl(&decl_token_cache);
+  /* Determine whether this is a friend declaration.  For declarations
+     inside a class this is determine by inspecting the tokens that
+     make up the template declaration. */
+  is_template_friend = is_member_decl &&
+                       is_template_friend_decl(&decl_token_cache);
   /* Determine the nesting depth of this template declaration.  Templates
      not enclosed within other templates are given a depth of "1".  The
      depth is incremented for each successive template declaration. */
@@ -6461,8 +6446,7 @@ as the current token; otherwise, it is consumed.
         sym = function_template_declaration(&locator, effective_decl_level,
                                             &func_info, storage_class,
                                             decl_modifiers, type,
-                                            template_decl_info,
-                                            is_template_friend);
+                                            template_decl_info);
         complete_function_template_decl(sym, &func_info,
                                         template_decl_info, &decl_token_cache,
                                         &decl_token_cache_used,
