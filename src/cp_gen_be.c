@@ -244,11 +244,6 @@ static void gen_expr(an_expr_node_ptr expr,
 static void gen_boolean_controlling_expression(an_expr_node_ptr expr);
 
 
-static void unimplemented(void)
-{
-  internal_error("unimplemented feature");
-}  /* unimplemented */
-
 /*
 Return TRUE if the given type has a definition.
 */
@@ -2329,31 +2324,41 @@ Write the string that corresponds to the indicated access specifier value.
 }  /* gen_access_specifier */
 
 
-static void gen_access_specifier_if_needed(a_source_correspondence *scp)
+static void gen_member_access_specifier(an_access_specifier access)
+/*
+Generate an access specifier in a class definition to change the current
+access mode to the indicated access.  Do nothing if the current access
+is already set to that value.
+*/
+{
+  if (access != curr_name_context->access) {
+    /* The desired access is not the current access, so put out an access
+       specifier, e.g., "public:". */
+    gen_access_specifier(access);
+    write_tok_ch(':');
+    write_space();
+    curr_name_context->access = access;
+  }  /* if */
+}  /* gen_member_access_specifier */
+
+
+static void gen_member_access_specifier_for_decl_of(
+                                                  a_source_correspondence *scp)
 /*
 A declaration or definition of the entity whose source correspondence
 information is given by scp is about to be put out.  If we are currently
 generating a class definition, and the entity is a member of the class,
-output an access directive (e.g., "public:") if necessary to set the
+output an access specifier (e.g., "public:") if necessary to set the
 current access mode in the class.  Otherwise, do nothing.
 */
 {
-  an_access_specifier member_access = scp->access;
-
   if (curr_name_context_is_a_class() &&
       scp->class_of_which_a_member == curr_name_context_class()) {
-     /* We're inside a class, and the entity being output is a member of that
-        class. */
-    if (member_access != curr_name_context->access) {
-      /* The desired access is not the current access, so put out an access
-         specifier, e.g., "public:". */
-      gen_access_specifier(member_access);
-      write_tok_ch(':');
-      write_space();
-      curr_name_context->access = member_access;
-    }  /* if */
+    /* We're inside a class, and the entity being output is a member of that
+       class. */
+    gen_member_access_specifier(scp->access);
   }  /* if */
-}  /* gen_access_specifier_if_needed */
+}  /* gen_member_access_specifier_for_decl_of */
 
 
 static void gen_member_constant_decl(void)
@@ -2368,8 +2373,11 @@ source sequence entry is the one associated with the constant.
   /* Advance past the source sequence entry for the constant. */
   adv_curr_source_sequence_entry();
   set_output_position(&constant->source_corresp.decl_position);
-  gen_access_specifier_if_needed(&constant->source_corresp);
+  gen_member_access_specifier_for_decl_of(&constant->source_corresp);
   /* Generate the constant type and name. */
+#if 0
+  /* Add "const". */
+#endif /* 0 */
   gen_declaration_using_type(constant->type, &constant->source_corresp,
                              (a_src_seq_secondary_decl_ptr)NULL);
   write_tok_str(" = ");
@@ -2390,7 +2398,7 @@ source sequence entry is the one associated with the field.
   /* Advance past the source sequence entry for the field. */
   adv_curr_source_sequence_entry();
   set_output_position(&field->source_corresp.decl_position);
-  gen_access_specifier_if_needed(&field->source_corresp);
+  gen_member_access_specifier_for_decl_of(&field->source_corresp);
   /* Generate the field type and name. */
   gen_declaration_using_type(field->type,
                              has_name(field) ? &field->source_corresp : NULL,
@@ -2402,6 +2410,46 @@ source sequence entry is the one associated with the field.
   }  /* if */
   write_tok_str("; ");
 }  /* gen_field_decl */
+
+
+static void gen_access_adjustment(void)
+/*
+Generate an access adjustment declaration.  The current source sequence
+entry is the one associated with the access adjustment.
+*/
+{
+  an_access_adjustment_ptr adj = ss_entry_ptr(curr_source_sequence_entry,
+                                              an_access_adjustment_ptr);
+  a_source_correspondence  *scp = NULL;
+
+  /* Advance past the source sequence entry for the adjustment. */
+  adv_curr_source_sequence_entry();
+  /* Put out an access specifier if necessary to change the current access. */
+  gen_member_access_specifier(adj->access);
+  /* Get the source correspondence entry for the entity. */
+  switch (adj->kind) {
+    case aak_field:
+      scp = &adj->variant.field->source_corresp;
+      break;
+    case aak_variable:
+      scp = &adj->variant.variable->source_corresp;
+      break;
+    case aak_routine:
+      scp = &adj->variant.routine->source_corresp;
+      break;
+    case aak_type:
+      scp = &adj->variant.type->source_corresp;
+      break;
+    case aak_constant:
+      scp = &adj->variant.constant->source_corresp;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  /* Write the access declaration, which is just a qualified name. */
+  gen_qualified_name(scp);
+  write_tok_str("; ");
+}  /* gen_access_adjustment */
 
 
 static void gen_class_definition(a_type_ptr type)
@@ -2507,6 +2555,9 @@ is the one associated with the definition of the class.
         /* A secondary declaration, i.e., a declaration of something that
            is also defined/declared elsewhere. */
         gen_secondary_decl();
+        break;
+      case iek_access_adjustment:
+        gen_access_adjustment();
         break;
       default:
         unexpected_condition_str("gen_class_definition: bad entity kind");
@@ -2635,7 +2686,7 @@ a member type, nonmember type, or friend.
     set_decl_position(&type->source_corresp, sec_decl);
     /* If generating a member of a class within the class, set the right access
        mode for the member. */
-    gen_access_specifier_if_needed(&type->source_corresp);
+    gen_member_access_specifier_for_decl_of(&type->source_corresp);
     if (kind == (a_type_kind)tk_typeref) {
       /* A typedef definition. */
       gen_typedef_definition(type, sec_decl);
@@ -3724,6 +3775,44 @@ Generate code for the indicated switch statement.
 }  /* gen_switch_statement */
 
 
+static void gen_try_block_statement(a_statement_ptr statement)
+/*
+Generate code for the indicated stmk_try_block statement, for a C++
+exception-handling "try" block.
+*/
+{
+  a_handler_ptr handler;
+
+  write_tok_str("try ");
+  gen_statement(statement->variant.try_block.statement);
+  /* Put out each handler ("catch" clause). */
+  for (handler = statement->variant.try_block.handlers;
+       handler != NULL;
+       handler = handler->next) {
+    a_variable_ptr handler_var = handler->parameter;
+    set_output_position_for_stmt(&handler->catch_position);
+    write_tok_str("catch (");
+    if (handler_var == NULL) {
+      /* A NULL parameter means the handler can catch anything. */
+      write_tok_str("...");
+    } else {
+      /* Put out the parameter.  It may be unnamed. */
+      a_source_correspondence *scp = NULL;
+      if (has_name(handler_var)) {
+        scp = &handler_var->source_corresp;
+        /* Advance past the source sequence entry. */
+        check_for_and_take_source_seq_entry(scp->source_sequence_entry);
+      }  /* if */
+      gen_declaration_using_type(handler_var->type, scp,
+                                 (a_src_seq_secondary_decl_ptr)NULL);
+    }  /* if */
+    write_tok_ch(')');
+    write_space();
+    gen_statement(handler->statement);
+  }  /* for */
+}  /* gen_try_block_statement */
+
+
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       top_statement_of_switch,
                                a_statement_ptr *last_statement)
@@ -3982,6 +4071,10 @@ Generate code for the indicated statement.
       /* "switch" statement. */
       gen_switch_statement(statement);
       break;
+    case stmk_try_block:
+      /* "try" block. */
+      gen_try_block_statement(statement);
+      break;
     case stmk_init:
       /* Initialization for declaration.  Ignored at this level (the
          initialization was processed earlier when the stmk_decl was
@@ -4211,7 +4304,7 @@ sequence entry.
   set_decl_position(&var->source_corresp, sec_decl);
   /* If generating a member of a class within the class, set the right access
      mode for the member. */
-  gen_access_specifier_if_needed(&var->source_corresp);
+  gen_member_access_specifier_for_decl_of(&var->source_corresp);
   /* Output the storage class. */
   storage_class = var->storage_class;
   if (var->source_corresp.class_of_which_a_member != NULL) {
@@ -4225,6 +4318,12 @@ sequence entry.
     }  /* if */
   }  /* if */
   gen_storage_class(storage_class);
+  /* Check for `extern "C"'. */
+  if (il_header.source_language == sl_Cplusplus &&
+      storage_class == (a_storage_class)sc_extern &&
+      var->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external) {
+    write_tok_str("\"C\" ");
+  }  /* if */
   /* Output the variable name and its type. */
   gen_declaration_using_type(var->type, &var->source_corresp, sec_decl);
   /* Output the initializer, if any, but only if this is a definition. */
@@ -4293,6 +4392,25 @@ scope, starting with the opening brace of the top-level block.
 }  /* gen_function_definition */
 
 
+static void gen_throw_specification(a_throw_specification_ptr throw_spec)
+/*
+Generate an exception throw specification, which indicates the exceptions
+that a function might throw.
+*/
+{
+  a_throw_spec_type_ptr spec_type;
+
+  write_tok_str(" throw(");
+  for (spec_type = throw_spec->throw_spec_type_list;
+       spec_type != NULL;
+       spec_type = spec_type->next) {
+    gen_type(spec_type->type, NO_NAME);
+    if (spec_type->next != NULL) write_tok_str(", ");
+  }  /* for */
+  write_tok_ch(')');
+}  /* gen_throw_specification */
+
+
 static void gen_routine_decl(void)
 /*
 Generate a declaration of the routine indicated by the current source
@@ -4300,16 +4418,17 @@ sequence entry.  This might be a member, nonmember, or friend function
 declaration or definition.
 */
 {
-  a_routine_ptr                rout;
-  a_type_ptr                   rout_type, unqual_rout_type, rout_class_type;
-  a_src_seq_secondary_decl_ptr sec_decl;
-  a_boolean                    is_definition = FALSE;
-  a_boolean                    decl_within_class = FALSE;
-  a_storage_class              storage_class;
-  a_name_context               context;
-  a_scope_ptr                  scope = NULL;
-  a_memory_region_number       scope_region_number;
-  a_source_sequence_entry_ptr  saved_curr_source_sequence_entry;
+  a_routine_ptr                 rout;
+  a_type_ptr                    rout_type, unqual_rout_type, rout_class_type;
+  a_src_seq_secondary_decl_ptr  sec_decl;
+  a_boolean                     is_definition = FALSE;
+  a_boolean                     decl_within_class = FALSE;
+  a_storage_class               storage_class;
+  a_name_context                context;
+  a_scope_ptr                   scope = NULL;
+  a_memory_region_number        scope_region_number;
+  a_source_sequence_entry_ptr   saved_curr_source_sequence_entry;
+  a_routine_type_supplement_ptr rtsp;
 
   /* Note that compiler-generated routines don't appear on the source sequence
      lists, so they never get here. */
@@ -4322,13 +4441,14 @@ declaration or definition.
   }  /* if */
   rout_type = rout->type;
   unqual_rout_type = skip_typerefs(rout_type);
+  rtsp = unqual_rout_type->variant.routine.extra_info;
   /* Advance past the source sequence entry for the routine. */
   adv_curr_source_sequence_entry();
   /* Position the output file to the declaration position. */
   set_decl_position(&rout->source_corresp, sec_decl);
   /* If generating a member of a class within the class, set the right access
      mode for the member. */
-  gen_access_specifier_if_needed(&rout->source_corresp);
+  gen_member_access_specifier_for_decl_of(&rout->source_corresp);
   if (is_definition) {
     /* This is a definition of the routine.  Determine the scope for the
        routine. */
@@ -4360,8 +4480,7 @@ declaration or definition.
   /* Determine the proper storage class to display. */
   if (rout_class_type != NULL) {
     /* Member function. */
-    if (unqual_rout_type->variant.routine.extra_info->
-                                            implicit_this_param_type == NULL) {
+    if (rtsp->implicit_this_param_type == NULL) {
       /* Static member function. */
       storage_class = (a_storage_class)sc_static;
     } else {
@@ -4380,6 +4499,12 @@ declaration or definition.
     }  /* if */
   }  /* if */
   gen_storage_class(storage_class);
+  /* Check for `extern "C"'. */
+  if (il_header.source_language == sl_Cplusplus &&
+      storage_class == (a_storage_class)sc_extern &&
+      rout->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external) {
+    write_tok_str("\"C\" ");
+  }  /* if */
   /* Generate other leading specifiers. */
   if (rout->is_inline) write_tok_str("inline ");
   if (rout->is_virtual && decl_within_class) write_tok_str("virtual ");
@@ -4420,6 +4545,11 @@ declaration or definition.
     }  /* if */
     /* Write the second part of the declarator. */
     gen_function_declarator(rout_type, scope);
+    /* If the function has a throw specification, put it out here after the
+       function declarator. */
+    if (rtsp->throw_specification != NULL) {
+      gen_throw_specification(rtsp->throw_specification);
+    }  /* if */
     if (return_type_needed) {
       gen_type_second_part(rout_type->variant.routine.return_type,
                            /*need_paren=*/TRUE);
@@ -4434,7 +4564,7 @@ declaration or definition.
   } else {
     /* The definition of the routine. */
     /* For an old-style function, declare the parameters. */
-    if (!rout_type->variant.routine.extra_info->prototyped) {
+    if (!rtsp->prototyped) {
       gen_old_style_parameter_decls();
     }  /* if */
     write_space();
