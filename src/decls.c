@@ -10852,6 +10852,8 @@ In C++, however, the declaration list is optional (3.4):
                   (a_param_id_ptr)NULL);
     } while (curr_token != tok_end_of_source);
   }  /* if */
+  /* Do any end-of-translation unit pragma processing that may be required. */
+  process_pragmas_at_end_of_source();
 }  /* translation_unit */
 
 

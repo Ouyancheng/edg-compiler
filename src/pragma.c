@@ -758,8 +758,12 @@ the pragmas.
 
 void process_pragmas_at_end_of_source(void)
 /*
+Do any pragma processing that is required when the end of the source file
+has been reached.
 */
 {
+  /* Process any current token pragmas that appeared after all other
+     tokens of the source program. */
   process_curr_token_pragmas();
 }  /* process_pragmas_at_end_of_source */
 

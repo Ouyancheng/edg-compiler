@@ -298,6 +298,8 @@ extern a_pending_pragma_ptr extract_specific_pragmas(a_pragma_kind    kind,
 extern void process_pragmas_bound_to_curr_decl_or_stmt(a_symbol_ptr     sym,
                                                        a_statement_ptr  sp);
 
+extern void process_pragmas_at_end_of_source(void);
+
 extern void pragma_init(void);
 #endif /* ifndef PRAGMA_H */
 
