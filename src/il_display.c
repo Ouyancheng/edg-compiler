@@ -506,8 +506,6 @@ static void disp_constant(a_constant_ptr ptr)
 Display the indicated constant entry.
 */
 {
-  a_float_kind fkind;
-
   disp_source_corresp(&ptr->source_corresp);
   disp_ptr("next", (char *)ptr->next, iek_constant);
   disp_ptr("type", (char *)ptr->type, iek_type);
@@ -532,35 +530,34 @@ Display the indicated constant entry.
     case ck_integer:
       (void)printf("ck_integer\n");
       disp_name("integer_value");
-      write_integer_constant(stdout, ptr);
-      printf("\n");
+      form_constant(ptr, &octl);
+      (void)printf("\n");
       break;
     case ck_string:
       (void)printf("ck_string\n");
       disp_unsigned_long("length", ptr->variant.string.length);
-      disp_string_ptr("value", ptr->variant.string.value, iek_string_text,
-                      (sizeof_t)ptr->variant.string.length);
+      disp_name("value");
+      form_constant(ptr, &octl);
+      (void)printf("\n");
       break;
     case ck_float:
       (void)printf("ck_float\n");
       disp_name("float_value");
-      fkind = skip_typerefs(ptr->type)->variant.float_kind;
-      (void)printf("%s\n", fp_to_string(fkind, &ptr->variant.float_value));
+      form_constant(ptr, &octl);
+      (void)printf("\n");
       break;
 #ifdef FFE
     case ck_complex:
       (void)printf("ck_complex\n");
       disp_name("complex_value");
-      fkind = ptr->type->variant.float_kind;
-      (void)printf("(%s, %s)\n",
-                       fp_to_string(fkind, &ptr->variant.complex_value->real),
-                       fp_to_string(fkind, &ptr->variant.complex_value->imag));
+      form_constant(ptr, &octl);
+      (void)printf("\n");
       break;
 #endif /* ifdef FFE */
 #ifdef CFE
     case ck_address:
       (void)printf("ck_address\n");
-      disp_name("kind");
+      disp_name("address.kind");
       switch (ptr->variant.address.kind) {
         case abk_routine:
           (void)printf("abk_routine\n");
@@ -580,7 +577,7 @@ Display the indicated constant entry.
         default:
           (void)printf("**BAD ADDRESS CONSTANT KIND**\n");
       }  /* switch */
-      disp_long("offset", ptr->variant.address.offset);
+      disp_long("address.offset", ptr->variant.address.offset);
       break;
     case ck_ptr_to_member:
       (void)printf("ck_ptr_to_member\n");
