@@ -1624,35 +1624,21 @@ extern a_param_id_ptr param_id_on_list(a_symbol_locator *locator,
     (sym)->variant.overloaded_function.symbols->kind ==               \
                                 (a_symbol_kind)sk_member_function))
 
-/* Return TRUE if an sk_routine or sk_member_function symbol "sym" is marked
-   as being of special function kind "kind". */
-#define is_special_kind_function_symbol(sym, kind)                    \
-  ((sym)->variant.routine.ptr->special_kind == (a_special_function_kind)kind)
+extern a_boolean is_special_function_symbol(a_symbol_ptr             sym,
+                                            a_special_function_kind  kind);
 
 /* Return TRUE if a symbol is a constructor symbol. */
 #define is_constructor_symbol(sym)                                    \
-  (((sym)->kind == (a_symbol_kind)sk_member_function &&               \
-    is_special_kind_function_symbol((sym), sfk_constructor)) ||       \
-   ((sym)->kind == (a_symbol_kind)sk_overloaded_function &&           \
-    is_special_kind_function_symbol(                                  \
-       (sym)->variant.overloaded_function.symbols, sfk_constructor)))
+  is_special_function_symbol(sym,                                     \
+                             (a_special_function_kind)sfk_constructor)
 
 /* Return TRUE if a symbol is a destructor symbol. */
 #define is_destructor_symbol(sym)                                     \
-  ((sym)->kind == (a_symbol_kind)sk_member_function &&                \
-   is_special_kind_function_symbol((sym), sfk_destructor))
-
-/* Return TRUE if a symbol is a copy constructor symbol. */
-#define is_copy_constructor_symbol(sym, p_const_okay, p_volatile_okay)\
-  ((sym)->kind == (a_symbol_kind)sk_member_function &&                \
-   is_special_kind_function_symbol((sym), sfk_constructor) &&         \
-   is_copy_constructor((sym)->variant.routine.ptr,                        \
-                       (sym)->class_of_which_a_member,                \
-                       p_const_okay, p_volatile_okay))
+  is_special_function_symbol(sym,                                     \
+                             (a_special_function_kind)sfk_destructor)
 
 /* Return TRUE if a symbol is a projection symbol created for an
-   access declaration.
-*/
+   access declaration. */
 #define is_access_adjustment_symbol(sym)                              \
   ((sym)->kind == (a_symbol_kind)sk_projection &&                     \
    (sym)->variant.projection.access_adjustment_made)
