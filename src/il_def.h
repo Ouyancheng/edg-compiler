@@ -2432,9 +2432,9 @@ enum an_init_kind_tag {
   initk_none,		/* No initialization. */
   initk_static,		/* Static initialization to a constant. */
   initk_dynamic,	/* Dynamic initialization (code is required). */
-  initk_zero		/* Static initialization to zero.  Used to distinguish
-			   a tentative definition from a real definition.
-			   Produced by IL lowering. */
+  initk_zero		/* Initialization to zero (static or dynamic).
+			   Also serves to distinguish a tentative definition
+			   from a real definition. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_init_kind;
