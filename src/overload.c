@@ -3280,7 +3280,7 @@ create_final_list:
       candidates->function_symbol = sym =
                          find_template_function(sym,
                                                 &candidates->template_arg_list,
-                             (a_boolean)candidates->expl_template_arg_list_used,
+                            (a_boolean)candidates->expl_template_arg_list_used,
                                                 source_pos);
       candidates->is_function_template = FALSE;
       if (candidates->is_user_conversion) {
