@@ -4116,12 +4116,10 @@ TRUE if a const object can be copied.
   a_boolean             is_ref_arg;
   a_type_qualifier_set  qualifiers_accepted;
   a_boolean             found_assignment_operator_for_copy = FALSE;
+  a_boolean             found_nonconst_assignment_operator_for_copy = FALSE;
 
   db_enter(4, "assignment_operator_for_copy_exists");
-  if (sym == NULL) {
-    *const_okay = TRUE;
-  } else {
-    *const_okay = FALSE;
+  if (sym != NULL) {
     sym_is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
     if (sym_is_overloaded) sym = sym->variant.overloaded_function.symbols;
     /* Loop through the one or more symbols looking for one with the right
@@ -4137,15 +4135,18 @@ TRUE if a const object can be copied.
            may be copied; if it takes it by reference, a const qualifier must
            be present on the parameter declaration. */
         if (!is_ref_arg || (qualifiers_accepted & TQ_CONST) != 0) {
-          *const_okay = TRUE;
+          /* An copy assignment operator has been located, and it accepts a
+             const object. */
           break;
         } else {
           /* This one does not accept a const object, but another in the
              overload list might, so keep looping. */
+          found_nonconst_assignment_operator_for_copy = TRUE;
         }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
+  *const_okay = !found_nonconst_assignment_operator_for_copy;
   db_exit();
   return found_assignment_operator_for_copy;
 }  /* assignment_operator_for_copy_exists */
@@ -5025,9 +5026,11 @@ defined for base classes and fields of the current class (class_type).
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     if (bcp->direct || bcp->is_virtual) {
       cssp = symbol_supplement_for_class(bcp->type);
-      (void)assignment_operator_for_copy_exists(cssp->assignment_operator,
-                                                &const_okay);
-      if (!const_okay) goto done;
+      if (assignment_operator_for_copy_exists(cssp->assignment_operator,
+                                              &const_okay) &&
+          !const_okay) {
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* for */
   /* Base classes are okay.  Now check the nonstatic data members. */
@@ -5041,9 +5044,11 @@ defined for base classes and fields of the current class (class_type).
       if (is_array_type(tp)) tp = underlying_array_element_type(tp);
       if (is_class_struct_union_type(tp)) {
         cssp = symbol_supplement_for_class(tp);
-        (void)assignment_operator_for_copy_exists(cssp->assignment_operator,
-                                                  &const_okay);
-        if (!const_okay) goto done;
+        if (assignment_operator_for_copy_exists(cssp->assignment_operator,
+                                                &const_okay) &&
+            !const_okay) {
+          goto done;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
