@@ -4502,7 +4502,11 @@ to indicate whether an enumeration is actually defined.
               suite). */
           done = TRUE;
           if (C_dialect != C_dialect_pcc) {
-            pos_warning(ec_nonstd_extra_comma, &pos_comma);
+            if (strict_ansi_mode) {
+              pos_warning(ec_nonstd_extra_comma, &pos_comma);
+            } else {
+              pos_remark(ec_nonstd_extra_comma, &pos_comma);
+            }  /* if */
           }  /* if */
         }  /* if */
         remove_stop_token(tok_comma);
@@ -6640,7 +6644,7 @@ of local variables (and types, etc.) of functions and in blocks.
          and give a more specific "Expected a declaration" message. */
       if (curr_token == tok_semicolon) {
         /* An empty declaration is ignored (as an extension in ANSI mode). */
-        warning(ec_superfluous_semicolon);
+        warning(ec_extra_semicolon);
       } else {
         if (curr_token == tok_lbrace) {
           /* Special error recovery on encountering an open brace: it
