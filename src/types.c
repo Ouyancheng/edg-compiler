@@ -1469,6 +1469,40 @@ Return TRUE if the two given integer types have the same representation
 #endif /* SAME_REPR_INTS_INTERCHANGEABLE_IN_IL */
 
 
+a_boolean identical_array_type_level(a_type_ptr  type_1,
+                                     a_type_ptr  type_2)
+/*
+Return TRUE if the two array types have identical bounds.
+*/
+{
+  a_boolean         identical = FALSE;
+  an_expr_node_ptr  node_1, node_2;
+
+  check_assertion(is_array(type_1) && is_array(type_2));
+  if (type_1->variant.array.is_variable_size_array) {
+    if (type_2->variant.array.is_variable_size_array) {
+      /* Both arrays have variable bounds. */
+      node_1 = type_1->variant.array.variant.element_count_expr;
+      node_2 = type_2->variant.array.variant.element_count_expr;
+      if (node_1->kind == (an_expr_node_kind)enk_constant &&
+          node_2->kind == (an_expr_node_kind)enk_constant) {
+        identical = eq_constants(node_1->variant.constant,
+                                 node_2->variant.constant);
+      }  /* if */
+    } else {
+      /* A variable-bound array and a fixed-bound array. */
+    }  /* if */
+  } else if (type_2->variant.array.is_variable_size_array) {
+    /* A variable-bound array and a fixed-bound array. */
+  } else {
+    /* Both arrays have fixed bounds.  Just compare the element counts. */
+    identical = (type_1->variant.array.variant.number_of_elements ==
+                 type_2->variant.array.variant.number_of_elements);
+  }  /* if */
+  return identical;
+}  /* identical_array_type_level */
+
+
 a_boolean f_identical_types(a_type_ptr type_1,
                             a_type_ptr type_2,
                             a_boolean  il_identical)
@@ -1908,16 +1942,13 @@ initial test for exact pointer equality.
           if (f_types_are_compatible(type_1->variant.array.element_type,
                                      type_2->variant.array.element_type,
                                      flags)) {
-            if (type_1->variant.array.is_variable_size_array) {
-              check_assertion(!type_2->variant.array.is_variable_size_array);
-              /* Not compatible. */
-            } else if (type_2->variant.array.is_variable_size_array) {
-              /* Not compatible. */
-            } else if (type_1->variant.array.variant.number_of_elements == 0 ||
-                       type_2->variant.array.variant.number_of_elements == 0 ||
-                       type_1->variant.array.variant.number_of_elements ==
-                            type_2->variant.array.variant.number_of_elements) {
+            if ((!type_1->variant.array.is_variable_size_array &&
+                 type_1->variant.array.variant.number_of_elements == 0) ||
+                (!type_2->variant.array.is_variable_size_array &&
+                 type_2->variant.array.variant.number_of_elements == 0)) {
               compat = TRUE;
+            } else {
+              compat = identical_array_type_level(type_1, type_2);
             }  /* if */
           }  /* if */
           break;
