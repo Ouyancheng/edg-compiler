@@ -1,5 +1,11 @@
 Version 2.34
 
+10/17/96 Spurious warning on multi-line template static data member definition
+
+A template static data member whose initializer is spread over several lines
+of a file could result in a spurious "parsing restarts here" warning.
+This has been fixed.
+
 10/17/96 Incorrect warning on nonconstant shift by address cast to integral
 
 A shift operation with a nonconstant left operand and a right operand that

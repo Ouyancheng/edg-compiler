@@ -5976,11 +5976,16 @@ an opening parenthesis).  Flush to the corresponding closing token.
 }  /* flush_until_matching_token */
 
 
-void flush_tokens_with_stop_tokens(a_token_set_array	stop_tokens)
+void flush_tokens_with_stop_tokens_and_warning_flag(
+				a_token_set_array	stop_tokens,
+				a_boolean		suppress_warning)
 /*
 Get and throw away tokens until a token is read that is in the set
-of stop tokens specified by stop_tokens.  This routine is called to
-recover from syntax errors.
+of stop tokens specified by stop_tokens.  This routine is usually called
+to recover from syntax errors.  A warning is sometimes issues depending
+on the number of tokens skipped.  Suppress any diagnostics when
+suppress_warning is TRUE.  This is used when this routine is called
+to skip tokens for some purpose other than error recovery.
 */
 {
   a_source_position start_pos;
@@ -6015,10 +6020,22 @@ recover from syntax errors.
   set_err_pos_to_curr_token();
   /* If the flushing threw away more than just a little bit, put out
      a diagnostic to tell the user where the parsing recovered. */
-  if (pos_curr_token.seq - start_pos.seq > 2) {
+  if (!suppress_warning &&
+      pos_curr_token.seq - start_pos.seq > 2) {
     warning(ec_end_of_flush);
   }  /* if */
   db_exit();
+}  /* flush_tokens_with_stop_tokens_and_warning_flag */
+
+
+void flush_tokens_with_stop_tokens(a_token_set_array	stop_tokens)
+/*
+Interface to flush_tokens_with_stop_tokens_and_warning_flag that
+indicates that warnings should be issued when appropriate.
+*/
+{
+  flush_tokens_with_stop_tokens_and_warning_flag(stop_tokens,
+                                                 /*suppress_warning=*/FALSE);
 }  /* flush_tokens_with_stop_tokens */
 
 
