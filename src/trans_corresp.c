@@ -1194,6 +1194,10 @@ is in fact valid.
          (!C_mode() && routine->is_inline != corresp_routine->is_inline &&
           (routine->is_prototype_instantiation || routine->is_specialized ||
            !routine->is_template_function)) ||
+         /* If both routines are template specialization, the explicit
+            template specialization bit should be the same. */
+         (routine->template_arg_list != NULL && 
+          routine->is_specialized != corresp_routine->is_specialized) ||
          routine->is_explicit_constructor !=
                                     corresp_routine->is_explicit_constructor ||
 #if DECL_MODIFIERS_IN_USE
@@ -2561,12 +2565,13 @@ entities.
   a_symbol_ptr  sym, corresp_sym = NULL;
   a_boolean     handled_later = FALSE;
 
-  if (!has_name(type)) {
-  } else if (is_immediate_class_type(type) &&
-             type->variant.class_struct_union.originally_unnamed) {
+  if (is_immediate_class_type(type) &&
+      type->variant.class_struct_union.originally_unnamed) {
     /* This is presumably a class that acquired a name through a typedef
        declaration.  It will be handled elsewhere. */
     handled_later = TRUE;
+  } else if (!has_name(type)) {
+    /* Cannot establish a correspondence without a name. */
   } else if (type_sym != NULL && may_have_correspondence(type_sym)) {
     a_boolean  corresp_found = FALSE;
     a_boolean  first_tag_definition = type_sym->defined && 
