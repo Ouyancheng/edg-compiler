@@ -460,6 +460,22 @@ assumed at the end of the cache list.
 }  /* if_necessary_add_lint_and_pragma_entry */
 
 
+void terminate_token_cache(a_token_cache *cache)
+/*
+Save an end-of-source token on the end of the list of tokens saved in *cache.
+*/
+{
+  a_cached_token_ptr ctp;
+
+  /* Build an entry for the end-of-source token. */
+  ctp = alloc_cached_token();
+  ctp->token = (a_byte_token_kind)tok_end_of_source;
+  ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
+  /* Add the end-of-source token to the end of the cache. */
+  add_cached_token_to_cache(ctp, cache);
+}  /* terminate_token_cache */
+
+
 void cache_curr_token(a_token_cache *cache)
 /*
 Save the current token on the end of the list of tokens saved in *cache.

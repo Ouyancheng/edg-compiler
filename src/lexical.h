@@ -888,6 +888,8 @@ typedef struct a_class_qualifier {
 extern void clear_token_cache(a_token_cache *cache);
 /* Discard the contents of a token cache. */
 extern void discard_token_cache(a_token_cache *cache);
+/* Save an end-of-source token in the token cache. */
+extern void terminate_token_cache(a_token_cache *cache);
 /* Save the current token in a token cache. */
 extern void cache_curr_token(a_token_cache *cache);
 /* Save a token stream in a token cache. */
