@@ -2305,6 +2305,9 @@ return a pointer to it.
   nssp->scope_depth_at_which_using_directive_applies = NO_SCOPE_DEPTH;
   nssp->depth_innermost_active_using_directive = NO_SCOPE_DEPTH;
   nssp->namespace_list_entry = NULL;
+#if RECORD_FORM_OF_NAME_REFERENCE
+  nssp->name_qualifiers = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   nssp->visited_by_qualified_lookup = FALSE;
   nssp->within_unnamed_namespace = FALSE;
 #if DEBUG
@@ -2500,6 +2503,9 @@ state.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         cssp->super_lookup_symbols = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if RECORD_FORM_OF_NAME_REFERENCE
+        cssp->name_qualifiers = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
         cssp->has_nontrivial_default_constructor = FALSE;
         cssp->has_user_declared_default_constructor = FALSE;
         cssp->has_copy_constructor = FALSE;
@@ -10613,10 +10619,14 @@ are handled in symbol_tbl_init.)
   cleared_locator.is_template_id                  = FALSE;
   cleared_locator.is_unknown_template_reference   = FALSE;
   cleared_locator.is_super_qualified              = FALSE;
+  cleared_locator.any_super_qualifier             = FALSE;
   cleared_locator.is_class_member                 = FALSE;
   cleared_locator.specific_symbol                 = NULL;
   cleared_locator.parent.class_type               = NULL;
   cleared_locator.template_arg_list               = NULL;
+#if RECORD_FORM_OF_NAME_REFERENCE
+  cleared_locator.name_qualifier                  = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   cleared_locator.variant.conversion_result_type  = NULL;
 
   /* Static variables in symbol_tbl.c: */

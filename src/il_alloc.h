@@ -210,6 +210,11 @@ extern a_decl_position_supplement_ptr alloc_decl_position_supplement
                                                   (a_boolean  at_file_scope);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
+#if RECORD_FORM_OF_NAME_REFERENCE
+extern a_name_qualifier_ptr alloc_name_qualifier(void);
+extern a_name_reference_ptr alloc_name_reference(void);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 extern char *copy_string_to_region(a_memory_region_number region,

@@ -2018,6 +2018,10 @@ running them through the indicated remapping function.
 #endif /* ifdef CFE */
   remap_orphan_entry_first(iek_template_parameter);
   remap_orphan_entry_first(iek_template_decl);
+#if RECORD_FORM_OF_NAME_REFERENCE
+  remap_orphan_entry_first(iek_name_reference);
+  remap_orphan_entry_first(iek_name_qualifier);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   /* Note that nothing is needed for iek_source_sequence_entry nor for its
      subordinate entries like iek_src_seq_secondary_decl and
      iek_src_seq_end_of_construct, since such entries will never appear on an
@@ -2123,6 +2127,10 @@ running them through the indicated remapping function.
 #endif /* ifdef CFE */
   remap_orphan_entry_last(iek_template_parameter);
   remap_orphan_entry_last(iek_template_decl);
+#if RECORD_FORM_OF_NAME_REFERENCE
+  remap_orphan_entry_last(iek_name_reference);
+  remap_orphan_entry_last(iek_name_qualifier);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   /* Note that nothing is needed for iek_source_sequence_entry nor for its
      subordinate entries like iek_src_seq_secondary_decl and
      iek_src_seq_end_of_construct, since such entries will never appear on an

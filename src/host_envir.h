@@ -701,6 +701,20 @@ in the current translation unit.
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
 
 /*
+Flag that is TRUE if the front end should record information about the
+form of name references in the IL.  This information is used by the C++
+generating back end so that names can be output more closely to the
+form specified in the source program.
+*/
+#ifndef RECORD_FORM_OF_NAME_REFERENCE
+#if BACK_END_IS_CP_GEN_BE
+#define RECORD_FORM_OF_NAME_REFERENCE TRUE
+#else /* !BACK_END_IS_CP_GEN_BE */
+#define RECORD_FORM_OF_NAME_REFERENCE FALSE
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+
+/*
 Flag that is TRUE if the front end should record the original structure of
 constant-expressions in addition to their resulting value.  (See expr field
 of struct a_constant.)  This can be useful for source-analysis applications.

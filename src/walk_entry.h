@@ -383,10 +383,22 @@ necessary.
 #define remap_source_sequence_entry(ptr) /* Nothing */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS & ... */
 
+#undef walk_name_reference_list
+#if RECORD_FORM_OF_NAME_REFERENCE
+#define walk_name_reference_list(ptr) \
+  walk_list_ptr((ptr).name_references, a_name_reference_ptr, \
+                iek_name_reference)
+#else /* !RECORD_FORM_OF_NAME_REFERENCE */
+#define walk_name_reference_list(ptr) /* Nothing */  
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+
 #undef walk_source_corresp
 #if NEEDED_FLAG_WALK
 #define walk_source_corresp(ptr) \
-  remap_parent(ptr)
+{ \
+  remap_parent(ptr); \
+  walk_name_reference_list(ptr); \
+}  /* walk_source_corresp */
 #else /* !NEEDED_FLAG_WALK */
 #undef walk_unmangled_name
 #if NEED_NAME_MANGLING
@@ -421,6 +433,7 @@ necessary.
   conditionally_clear_fe_pointer((ptr).assoc_info); \
   walk_per_instantiation_needed_flags(ptr); \
   walk_decl_position_supplement(ptr); \
+  walk_name_reference_list(ptr); \
 }  /* walk_source_corresp */
 #endif /* NEEDED_FLAG_WALK */
 
@@ -1802,6 +1815,29 @@ end_sizeof:;
       /* No pointers. */
       break;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_FORM_OF_NAME_REFERENCE
+    case iek_name_qualifier:
+      {
+        a_name_qualifier_ptr ptr = (a_name_qualifier_ptr)entry_ptr;
+        walk_ptr(ptr->previous_qualifier, a_name_qualifier_ptr,
+                 iek_name_qualifier);
+        if (ptr->is_class) {
+          walk_ptr(ptr->qualifier.class_type, a_type_ptr, iek_type);
+        } else {
+          walk_ptr(ptr->qualifier.namespace_ptr, a_namespace_ptr,
+                   iek_namespace);
+        }  /* if */
+        /* The next pointers are used for front end use only. */
+        conditionally_clear_fe_pointer(ptr->next);
+      }
+      break;
+    case iek_name_reference:
+      {
+        a_name_reference_ptr ptr = (a_name_reference_ptr)entry_ptr;
+        walk_ptr(ptr->qualifier, a_name_qualifier_ptr, iek_name_qualifier);
+      }
+      break;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
     case iek_object_lifetime:
       {
         an_object_lifetime_ptr ptr = (an_object_lifetime_ptr)entry_ptr;
@@ -2924,6 +2960,12 @@ of each kind.
                                         iek_template_parameter);
   walk_orphan_entry_list_for_entry_kind(a_template_decl_ptr,
                                         iek_template_decl);
+#if RECORD_FORM_OF_NAME_REFERENCE
+  walk_orphan_entry_list_for_entry_kind(a_name_reference_ptr,
+                                        iek_name_reference);
+  walk_orphan_entry_list_for_entry_kind(a_name_qualifier_ptr,
+                                        iek_name_qualifier);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   /* Note that no orphan list walking is needed for iek_source_sequence_entry
      nor for its subordinate entries like iek_src_seq_secondary_decl
      and iek_src_seq_end_of_construct, since such entries will
@@ -3004,6 +3046,7 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 #undef walk_initializer
 #undef walk_orphan_entry_list
 #undef walk_orphan_entry_list_for_entry_kind
+#undef walk_name_reference_list
 #endif /* ifdef UNDEF_WALK_ENTRY_MACROS_AT_END */
 
 

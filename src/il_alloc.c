@@ -115,6 +115,11 @@ static unsigned long
 		num_template_parameters_allocated;
 static unsigned long
 		num_templates_allocated;
+#if RECORD_FORM_OF_NAME_REFERENCE
+static unsigned long
+		num_name_references_allocated,
+                num_name_qualifiers_allocated;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if RECORD_MACROS_IN_IL
 static unsigned long
 		num_macros_allocated;
@@ -3322,6 +3327,52 @@ initialize its fields, and return a pointer to it.
 }  /* alloc_decl_position_supplement */
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+#if RECORD_FORM_OF_NAME_REFERENCE
+
+a_name_qualifier_ptr alloc_name_qualifier(void)
+/*
+Allocate a name qualifier entry, initialize its fields, and return a pointer
+to it.
+*/
+{
+  a_name_qualifier_ptr nqp;
+
+  nqp = alloc_il_of_type(a_name_qualifier);
+#if DEBUG
+  num_name_qualifiers_allocated++;
+#endif /* DEBUG */
+  nqp->next = NULL;
+  nqp->qualifier.class_type = NULL;
+  nqp->qualifier.namespace_ptr = NULL;
+  nqp->previous_qualifier = NULL;
+  nqp->is_class = FALSE;
+  return nqp;
+}  /* alloc_name_qualifier */
+
+
+a_name_reference_ptr alloc_name_reference(void)
+/*
+Allocate a name reference entry, initialize its fields, and return a pointer
+to it.
+*/
+{
+  a_name_reference_ptr nrp;
+
+  nrp = alloc_il_of_type(a_name_reference);
+#if DEBUG
+  num_name_references_allocated++;
+#endif /* DEBUG */
+  nrp->next = NULL;
+  nrp->qualifier = NULL;
+  nrp->is_global_qualified_name = FALSE;
+  nrp->is_template_id = FALSE;
+  nrp->any_super_qualifier = FALSE;
+  return nrp;
+}  /* alloc_name_reference */
+
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+
 #if DEBUG
 
 unsigned long show_il_alloc_space_used(unsigned long grand_total)
@@ -3444,6 +3495,12 @@ Display and return the amount of space used for various IL tables.
   db_space_used("template_decls", num_template_decls_allocated,
                 a_template_decl);
   db_space_used("templates", num_templates_allocated, a_template);
+#if RECORD_FORM_OF_NAME_REFERENCE
+  db_space_used("name references", num_name_references_allocated,
+                a_name_reference);
+  db_space_used("name qualifiers", num_name_qualifiers_allocated,
+                a_name_qualifier);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if RECORD_MACROS_IN_IL
   db_space_used("macros", num_macros_allocated, a_macro);
 #endif /* RECORD_MACROS_IN_IL */
@@ -3558,6 +3615,9 @@ in il_alloc_init.)
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   def_source_corresp.decl_pos_info = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  def_source_corresp.name_references = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   /* access is set to "public" because "no access restriction" is the default
      for everything except class members.  For the latter the field must be
      set manually. */
@@ -3702,6 +3762,10 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_template_parameters_allocated),
       pch_saved_var_array_elem(num_template_decls_allocated),
       pch_saved_var_array_elem(num_templates_allocated),
+#if RECORD_FORM_OF_NAME_REFERENCE
+      pch_saved_var_array_elem(num_name_references_allocated),
+      pch_saved_var_array_elem(num_name_qualifiers_allocated),
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(num_macros_allocated),
 #endif /* RECORD_MACROS_IN_IL */
@@ -3862,6 +3926,10 @@ initializations that are done for each compilation.
   num_template_parameters_allocated      = 0;
   num_template_decls_allocated           = 0;
   num_templates_allocated                = 0;
+#if RECORD_FORM_OF_NAME_REFERENCE
+  num_name_references_allocated          = 0;
+  num_name_qualifiers_allocated           = 0;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if RECORD_MACROS_IN_IL
   num_macros_allocated                   = 0;
 #endif /* RECORD_MACROS_IN_IL */

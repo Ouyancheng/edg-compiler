@@ -491,6 +491,10 @@ typedef enum /*an_il_entry_kind*/ {
   iek_template_decl,	/* a_template_decl */
   iek_template_parameter,
 			/* a_template_parameter */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  iek_name_reference,	/* a_name_reference */
+  iek_name_qualifier,	/* a_name_qualifier */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -616,6 +620,10 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 /* iek_template_decl */			"template-decl",
 /* iek_template_parameter */		"template-parameter",
+#if RECORD_FORM_OF_NAME_REFERENCE
+/* iek_name_reference */		"name-reference",
+/* iek_name_qualifier */		"name-qualifier",
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -974,6 +982,64 @@ typedef struct a_per_instantiation_needed_flags_entry {
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+#if RECORD_FORM_OF_NAME_REFERENCE
+
+/*
+Entry used to represent the qualifier portion of a qualified name.
+*/
+typedef struct a_name_qualifier *a_name_qualifier_ptr;
+typedef struct a_name_qualifier {
+  a_name_qualifier_ptr
+		next;	/* Pointer to the next name qualifier entry for
+			   a given "qualifier" value.  This is used to
+			   find a previously allocated entry that matches
+			   a given form of reference. */
+  a_parent_class_or_namespace
+		qualifier;
+			/* Pointer to the class or namespace pointer, if
+			   any.  If the qualifier was specified using a
+			   typedef or template parameter name the class
+			   pointer can actually point to a type entry for
+			   a typedef or cv-qualified typeref.  In Microsoft
+			   mode it may also point to an enum type. */
+  a_name_qualifier_ptr
+		previous_qualifier;
+			/* Pointer to the previous portion of the qualifier,
+			   if any. */
+  a_bit_field	is_class:1;
+			/* TRUE if the qualifier is a class, FALSE if it
+			   is a namespace (or __super). */
+} a_name_qualifier;
+
+/*
+Entry used to represent the form of name used to refer to an entity.
+*/
+typedef struct a_name_reference *a_name_reference_ptr;
+typedef struct a_name_reference {
+  a_name_reference_ptr
+		next;	/* Pointer to the next name reference entry for a
+			   given entity.  This is used to find a previously
+			   allocated entry that matches a given form of
+			   reference. */
+  a_name_qualifier_ptr
+		qualifier;
+			/* Points to a description of the class or namespace
+			   qualifier portion of the name.  NULL if there is
+			   such no qualifier. */
+  a_bit_field	is_global_qualified_name:1;
+			/* TRUE if the "identifier" is a C++ qualified-name
+			   that begins with a unary "::" (e.g., "::y" or
+			   ::A::x). */
+  a_bit_field	is_template_id:1;
+			/* TRUE if the name is a template-id
+			   (i.e., template-name < template-arg-list >). */
+  a_bit_field	any_super_qualifier:1;
+			/* TRUE if the name is prefixed by the Microsoft
+			   __super keyword. */
+} a_name_reference;
+
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+
 #endif /* ifdef CIL */
 
 typedef struct a_source_correspondence *a_source_correspondence_ptr;
@@ -1039,6 +1105,14 @@ typedef struct a_source_correspondence {
 			   position information about the declaration.
 			   May be NULL. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  a_name_reference_ptr
+		name_references;
+			/* Points to a list of the various forms of reference
+			   used to name this entity.  This is used to find
+			   a previously allocated entry so that it can be
+			   reused. */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #ifdef CIL
   a_bit_field /* an_access_specifier */
 		access:2;
@@ -9895,6 +9969,10 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   sizeof(a_template_decl),
   sizeof(a_template_parameter),
+#if RECORD_FORM_OF_NAME_REFERENCE
+  sizeof(a_name_reference),
+  sizeof(a_name_qualifier),
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

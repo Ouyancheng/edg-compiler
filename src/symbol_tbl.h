@@ -199,7 +199,12 @@ typedef struct a_symbol_locator {
   a_bit_field	is_super_qualified:1;
 			/* TRUE if the "identifier" is a C++ qualified-name
 			   in which the qualifier is the Microsoft __super
-			   keyword. */
+			   keyword.  This is TRUE only if __super is the
+			   only qualifier present. */
+  a_bit_field	any_super_qualifier:1;
+			/* TRUE if a qualified name began with the Microsoft
+			   __super keyword.  This is TRUE even if there
+			   are other qualifiers after __super. */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
 			   specific symbol for the qualified name.  Otherwise,
@@ -223,6 +228,18 @@ typedef struct a_symbol_locator {
 			   specified.  Typically, the reference cannot be
 			   coalesced to a pointer to a template instance
 			   until the function type is known. */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  a_name_qualifier_ptr
+		name_qualifier;
+			/* When recording the form of name references, this
+			   provides detailed information about how the
+			   qualifier portion of the name (if any) was
+			   specified.  The pointer is NULL if there was no
+			   qualifier, if there was an error processing the
+			   qualifier, or if we are in a prototype instantiation
+			   and we are not recording prototype instantiations
+			   in the IL. */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   union {
     /* When both is_operator_name and is_conversion_name are FALSE, both
        variants are undefined. */
@@ -791,6 +808,14 @@ typedef struct a_class_symbol_supplement {
 			   subsequent lookups so that the symbols may be
 			   reused. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  a_name_qualifier_ptr
+		name_qualifiers;
+			/* Points to a list of the various forms of name
+			   qualifiers used to name this class.  This is used
+			   to find a previously allocated entry so that it
+			   can be reused. */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   a_bit_field	has_nontrivial_default_constructor:1;
 			/* TRUE if a default constructor has been explicitly
 			   declared or a nontrivial default constructor has
@@ -2003,6 +2028,14 @@ typedef struct a_namespace_symbol_supplement {
 			   class symbol supplement can point to a common
 			   entry for all of the leaf classes (i.e., most
 			   base classes) in a given namespace. */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  a_name_qualifier_ptr
+		name_qualifiers;
+			/* Points to a list of the various forms of name
+			   qualifiers used to name this namespace.  This is
+			   used to find a previously allocated entry so that it
+			   can be reused. */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   a_bit_field	visited_by_qualified_lookup:1;
 			/* Used by the qualified lookup routines to indicate
 			   that this namespace has already been visited. */

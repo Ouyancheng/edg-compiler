@@ -10150,6 +10150,202 @@ by the options.  Returns TRUE if any errors were diagnosed.
   return any_errors;
 }  /* f_check_for_generalized_identifier_errors */
 
+#if RECORD_FORM_OF_NAME_REFERENCE
+
+void db_name_qualifier(a_name_qualifier_ptr	nqp)
+/*
+Display a name qualifier, for debugging purposes.
+*/
+{
+  /* Display any parent qualifiers. */
+  if (nqp->previous_qualifier != NULL) {
+    db_name_qualifier(nqp->previous_qualifier);
+  }  /* if */
+  if (nqp->is_class) {
+    db_type_name(nqp->qualifier.class_type);
+  } else /*if (nqp->qualifier.namespace_ptr != NULL)*/ {
+    db_name((a_source_correspondence*)&nqp->
+                                     qualifier.namespace_ptr->source_corresp);
+  }  /* if */
+  fprintf(f_debug, "::");
+}  /* db_name_qualifier */
+
+
+void db_name_reference(a_name_reference_ptr	nrp)
+/*
+Display a name reference, for debugging purposes.
+*/
+{
+  if (nrp->is_global_qualified_name) {
+    fprintf(f_debug, "::");
+  }  /* if */
+  if (nrp->any_super_qualifier) {
+    fprintf(f_debug, "__super::");
+  }  /* if */
+  if (nrp->qualifier != NULL) db_name_qualifier(nrp->qualifier);
+  fprintf(f_debug, "(name)");
+  if (nrp->is_template_id) {
+    fprintf(f_debug, "<...>");
+  }  /* if */
+  fprintf(f_debug, "\n");
+}  /* db_name_reference */
+
+
+static void make_name_qualifier(a_name_qualifier_ptr	*nqp,
+				a_symbol_ptr		qualifier_sym,
+				a_type_ptr		qualifier_type,
+				a_namespace_ptr		qualifier_namespace)
+/*
+Construct a name qualifier entry for the qualifier specified by
+"qualifier_sym".  "nqp" points to the previous qualifier, if any.
+If "qualifier_sym" is a type symbol, "qualifier_type" is the type
+referred to, after any typerefs/typedefs have been removed.  If
+"qualifier_sym" is a namespace symbol, "qualifier_namespace" is the
+namespace referred to, after any namespace aliases have been removed.
+
+We look for a previously allocated name qualifier entry for classes and
+namespaces.  The list is stored in the class or namespace supplement
+associated with the underlying class or namespace (after typerefs or
+aliases have been removed) but the qualifier itself points to the
+original type or namespace that was specified.
+*/
+{
+  a_name_qualifier_ptr	prev_nqp = *nqp;
+  a_name_qualifier_ptr	new_nqp = NULL;
+  a_name_qualifier_ptr	*qualifier_list = NULL;
+  a_boolean		is_type = FALSE;
+  a_type_ptr		new_type = NULL;
+  a_namespace_ptr	new_namespace = NULL;
+
+  check_assertion(qualifier_sym != NULL);
+  if (!prototype_instantiations_in_il &&
+      is_prototype_instantiation_context()) {
+    /* Don't build name reference information for prototype instantiations
+       when prototype instantiations are not being included in the IL. */
+    goto done;
+  }  /* if */
+  /* Get the class or namespace represented by the qualifier.  A
+     "class" can actually be an enum type or template parameter type
+     in certain cases. */
+  switch (qualifier_sym->kind) {
+    case sk_class_or_struct_tag:
+    case sk_union_tag:
+      /* Get the type specified by the qualifier. */
+      new_type = qualifier_sym->variant.class_struct_union.type;
+      is_type = TRUE;
+      break;
+    case sk_namespace:
+      /* Get the namespace specified by the qualifier. */
+      new_namespace = qualifier_sym->variant.namespace_info.ptr;
+      break;
+    case sk_enum_tag:
+      /* Get the enumeration type specified by the qualifier. */
+      new_type = qualifier_sym->variant.enumeration.type;
+      is_type = TRUE;
+      break;
+    case sk_type:
+      /* Get the typedef or template parameter type specified by the
+         qualifier. */
+      new_type = qualifier_sym->variant.type.ptr;
+      is_type = TRUE;
+      break;
+  }  /* switch */
+  /* See if there is a list of previously used qualifiers that can be
+     checked for an entry that can be reused. */
+  if (qualifier_type != NULL && is_class_struct_union_type(qualifier_type)) {
+    a_class_symbol_supplement_ptr	cssp;
+    cssp = symbol_supplement_for_class(qualifier_type);
+    qualifier_list = &cssp->name_qualifiers;
+  } else if (qualifier_namespace != NULL) {
+    a_namespace_symbol_supplement_ptr	nssp;
+    nssp = symbol_supplement_for_namespace(qualifier_namespace);
+    qualifier_list = &nssp->name_qualifiers;
+  }  /* if */
+  /* Look for an entry with the appropriate previous qualifier on the
+     list that was found, if any. */
+  if (qualifier_list != NULL) {
+    for (new_nqp = *qualifier_list; new_nqp != NULL; new_nqp = new_nqp->next) {
+      if (is_type == new_nqp->is_class &&
+          prev_nqp == new_nqp->previous_qualifier) {
+        if (is_type ? new_type == new_nqp->qualifier.class_type
+                    : new_namespace == new_nqp->qualifier.namespace_ptr) {
+          /* We found a matching entry. */
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  /* If no entry was found, create one now. */
+  if (new_nqp == NULL) {
+    new_nqp = alloc_name_qualifier();
+    new_nqp->previous_qualifier = prev_nqp;
+    new_nqp->is_class = is_type;
+    if (is_type) {
+      new_nqp->qualifier.class_type = new_type;
+    } else {
+      new_nqp->qualifier.namespace_ptr = new_namespace;
+    }  /* if */
+    /* If there is a list of qualifier entries, add the new entry
+       to the list. */
+    if (qualifier_list != NULL) {
+      new_nqp->next = *qualifier_list;
+      *qualifier_list = new_nqp;
+    }  /* if */
+  }  /* if */
+  /* Update the name qualifier pointer passed by the caller. */
+  *nqp = new_nqp;
+done:
+  return;
+}  /* make_name_qualifier */
+
+
+a_name_reference_ptr make_name_reference(
+				a_symbol_locator		*locator,
+				 a_source_correspondence	*scp)
+/*
+Return a pointer to a name reference entry that describes the name
+specified by "locator".  "scp" is the source correspondence of the IL entry
+referred to by the name.  The IL entry is currently used only to look for
+a previously created entry that can be reused.
+*/
+{
+  a_name_reference_ptr		nrp = NULL;
+
+  if (!prototype_instantiations_in_il &&
+      is_prototype_instantiation_context()) {
+    /* Don't build name reference information for prototype instantiations
+       when prototype instantiations are not being included in the IL. */
+    goto done;
+  }  /* if */
+  /* Look for a previously created name reference that matches the
+     information in the locator. */
+  for (nrp = scp->name_references; nrp != NULL; nrp = nrp->next) {
+    if (nrp->qualifier == locator->name_qualifier &&
+        nrp->is_global_qualified_name == locator->is_global_qualified_name &&
+        nrp->is_template_id == locator->is_template_id &&
+        nrp->any_super_qualifier == locator->any_super_qualifier) {
+      /* A match was found. */
+      break;
+    }  /* if */
+  }  /* for */
+  if (nrp == NULL) {
+    /* No match was found -- create a new entry. */
+    nrp = alloc_name_reference();
+    nrp->qualifier = locator->name_qualifier;
+    nrp->is_global_qualified_name = locator->is_global_qualified_name;
+    nrp->is_template_id = locator->is_template_id;
+    nrp->any_super_qualifier = locator->any_super_qualifier;
+    /* Put this on the list of name references pointed to by the source
+       correspondence. */
+    nrp->next = scp->name_references;
+    scp->name_references = nrp;
+  }  /* if */
+done:
+  return nrp;
+}  /* make_name_reference */
+
+
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 static a_boolean qualifier_delimiter_does_not_follow_token(void)
 /*
@@ -10675,10 +10871,14 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean                     qualifier_is_type = TRUE;
   a_boolean                     qualifier_is_enum = FALSE;
   a_boolean			qualifier_type_is_class = FALSE;
-  a_namespace_ptr		qualifier_namespace;
+  a_namespace_ptr		qualifier_namespace = NULL;
   a_token_sequence_number	start_seq_number;
   a_boolean			follows_template;
   a_boolean			is_super_qualified = FALSE;
+  a_boolean			any_super_qualifier = FALSE;
+#if RECORD_FORM_OF_NAME_REFERENCE
+  a_name_qualifier_ptr          name_qualifier = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 /* Macro used to determine whether we are processing the identifier in
    a Microsoft __if_exists or __if_not_exists directive. */
@@ -10813,7 +11013,7 @@ selection operator, in which case it points to the type of the left operand.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (curr_token == tok_super) {
       /* The Microsoft __super qualifier. */
-      is_super_qualified = TRUE;
+      any_super_qualifier = is_super_qualified = TRUE;
       /* From now on, treat this as an identifier. */
       curr_token = tok_identifier;
       if (is_global_qualified_name) {
@@ -11077,6 +11277,19 @@ selection operator, in which case it points to the type of the left operand.
              symbol. */
           mark_referenced(qualifier_sym, &locator_for_curr_id.source_position);
         }  /* if */
+#if RECORD_FORM_OF_NAME_REFERENCE
+        /* Create an entry that describes this qualifier.  Find a previously
+           created entry if possible. */
+        if (err) {
+          /* Don't try to build a qualifier if an error occurred. */
+          name_qualifier = NULL;
+        } else if (is_super_qualified) {
+          /* No name qualifier entry is created for the __super level. */
+        } else {
+          make_name_qualifier(&name_qualifier, qualifier_sym, qualifier_type,
+                              qualifier_namespace);
+        }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
         /* Skip over the class-name, and the "::".  After the two get_token
            calls, the current token will be whatever follows the
            qualifier. */
@@ -11631,10 +11844,11 @@ wrapup:
     locator_for_curr_id.has_been_coalesced = TRUE;
     locator_for_curr_id.is_vacuous_destructor_reference = is_vacuous_dtor;
     locator_for_curr_id.is_nonclass_destructor = is_nonclass_dtor;
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
     locator_for_curr_id.is_super_qualified = is_super_qualified;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    locator_for_curr_id.any_super_qualifier = any_super_qualifier;
+#if RECORD_FORM_OF_NAME_REFERENCE
+    locator_for_curr_id.name_qualifier = name_qualifier;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
     /* Since we're returning a pseudo-token, set pos_curr_token. */
     pos_curr_token = start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL

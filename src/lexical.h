@@ -1956,6 +1956,13 @@ extern void add_token_cache_to_string(a_token_cache_ptr	cache);
 extern void init_token_string(a_source_position *pos);
 #endif /* TOKENS_TO_STRING_NEEDED */
 
+#if RECORD_FORM_OF_NAME_REFERENCE
+extern a_name_reference_ptr make_name_reference(
+					a_symbol_locator	*locator,
+					a_source_correspondence	*scp);
+extern void db_name_qualifier(a_name_qualifier_ptr	nqp);
+extern void db_name_reference(a_name_reference_ptr	nrp);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 #if DEBUG
 /* Show space used in the lexical routines, for debugging purposes. */
