@@ -180,6 +180,10 @@ of each kind.
   walk_orphan_entry_list_for_entry_kind(a_handler_ptr, iek_handler);
   walk_orphan_entry_list_for_entry_kind(a_try_supplement_ptr,
                                         iek_try_supplement);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  walk_orphan_entry_list_for_entry_kind(a_microsoft_try_supplement_ptr,
+                                        iek_microsoft_try_supplement);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
   walk_orphan_entry_list_for_entry_kind(a_block_ptr, iek_block);
   walk_orphan_entry_list_for_entry_kind(a_statement_ptr, iek_statement);
@@ -411,6 +415,9 @@ running them through walk_remap_func.
   remap_orphan_entry_first(iek_switch_clause);
   remap_orphan_entry_first(iek_handler);
   remap_orphan_entry_first(iek_try_supplement);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  remap_orphan_entry_first(iek_microsoft_try_supplement);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
   remap_orphan_entry_first(iek_block);
   remap_orphan_entry_first(iek_statement);
@@ -493,6 +500,9 @@ running them through walk_remap_func.
   remap_orphan_entry_last(iek_switch_clause);
   remap_orphan_entry_last(iek_handler);
   remap_orphan_entry_last(iek_try_supplement);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  remap_orphan_entry_last(iek_microsoft_try_supplement);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
   remap_orphan_entry_last(iek_block);
   remap_orphan_entry_last(iek_statement);

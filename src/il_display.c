@@ -2112,6 +2112,21 @@ Display the indicated exception-handling "try" supplement.
   disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
 }  /* disp_try_supplement */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void disp_microsoft_try_supplement(a_microsoft_try_supplement_ptr ptr)
+/*
+Display the indicated Microsoft structured exception handling try-finally
+or try-except statement supplement.
+*/
+{
+  disp_ptr("guarded_statement", (char *)ptr->guarded_statement, iek_statement);
+  disp_ptr("except_expr", (char *)ptr->except_expr, iek_expr_node);
+  disp_ptr("cleanup_statement", (char *)ptr->cleanup_statement, iek_statement);
+}  /* disp_microsoft_try_supplement */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #endif /* ifdef CFE */
 
 static void disp_block(a_block_ptr ptr)
@@ -2249,6 +2264,13 @@ do_label:
       (void)printf("stmk_try_block\n");
       disp_try_supplement(ptr->variant.try_block);
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case stmk_microsoft_try:
+      /* Try block. */
+      (void)printf("stmk_microsoft_try\n");
+      disp_microsoft_try_supplement(ptr->variant.microsoft_try);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:
       /* "Decl" pseudo-statement. */
@@ -3244,6 +3266,9 @@ This routine is called during IL walking.
 #endif /* ifdef FFE */
 #ifdef CFE
     case iek_try_supplement:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case iek_microsoft_try_supplement:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case iek_for_loop:
     case iek_derivation_step:
     case iek_class_list_entry:

@@ -98,6 +98,9 @@ static unsigned long
 		num_switch_clauses_allocated,
 		num_handlers_allocated,
 		num_try_supplements_allocated,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+		num_microsoft_try_supplements_allocated,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 		num_blocks_allocated,
 		num_for_loops_allocated,
 		num_statements_allocated,
@@ -1418,6 +1421,9 @@ Dump a statement kind, for debug purposes.
     case stmk_asm_func_body:   s = "asm-func-body";     break;
 #endif /* ASM_FUNCTION_ALLOWED */
     case stmk_try_block:       s = "try-block";         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case stmk_microsoft_try:   s = "microsoft-try";     break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:            s = "decl";              break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -1584,6 +1590,21 @@ the dump (this one counts as the first).
             }  /* if */
           }  /* if */
           break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case stmk_microsoft_try:
+          db_statement_list(sp->variant.microsoft_try->guarded_statement,
+                            indent+2, "", how_deep-1);
+          for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
+          if (sp->variant.microsoft_try->except_expr != NULL) {
+            fprintf(f_debug, "__except\n");
+            db_expression(sp->variant.microsoft_try->except_expr);
+          } else {
+            fprintf(f_debug, "__finally\n");
+          }  /* if */
+          db_statement_list(sp->variant.microsoft_try->cleanup_statement,
+                            indent+2, "", how_deep-1);
+           break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         default:;
       }  /* switch */
     }  /* for */
@@ -7369,6 +7390,20 @@ fields to default values.
       tsp->handlers  = NULL;
       tsp->lifetime  = NULL;
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case stmk_microsoft_try:
+      { a_microsoft_try_supplement_ptr mtsp = (a_microsoft_try_supplement_ptr)
+                                 alloc_cil(sizeof(a_microsoft_try_supplement));
+        sp->variant.microsoft_try = mtsp;
+#if DEBUG
+        num_microsoft_try_supplements_allocated++;
+#endif /* DEBUG */
+        mtsp->guarded_statement = NULL;
+        mtsp->except_expr       = NULL;
+        mtsp->cleanup_statement = NULL;
+      }
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:
       /* No variant fields. */
@@ -10161,6 +10196,11 @@ Display and return the amount of space used for various IL tables.
   db_space_used("handler", num_handlers_allocated, a_handler);
   db_space_used("try supplement", num_try_supplements_allocated,
                 a_try_supplement);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  db_space_used("Microsoft try supplement",
+                num_microsoft_try_supplements_allocated,
+                a_microsoft_try_supplement);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_space_used("block", num_blocks_allocated, a_block);
   db_space_used("for_loop", num_for_loops_allocated, a_for_loop);
   db_space_used("statement", num_statements_allocated, a_statement);
@@ -10388,6 +10428,9 @@ in il_init.)
       pch_saved_var_array_elem(num_get_based_type_calls),
       pch_saved_var_array_elem(num_handlers_allocated),
       pch_saved_var_array_elem(num_try_supplements_allocated),
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(num_microsoft_try_supplements_allocated),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(num_il_entry_prefixes_allocated),
       pch_saved_var_array_elem(num_labels_allocated),
       pch_saved_var_array_elem(num_new_delete_supplements_allocated),
@@ -10516,6 +10559,9 @@ of the front end.
   num_switch_clauses_allocated           = 0;
   num_handlers_allocated                 = 0;
   num_try_supplements_allocated          = 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  num_microsoft_try_supplements_allocated= 0;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   num_blocks_allocated                   = 0;
   num_for_loops_allocated                = 0;
   num_statements_allocated               = 0;

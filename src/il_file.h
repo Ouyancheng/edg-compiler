@@ -78,6 +78,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_switch_clause),
   sizeof(a_handler),
   sizeof(a_try_supplement),
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sizeof(a_microsoft_try_supplement),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
   sizeof(a_block),
   sizeof(a_statement),

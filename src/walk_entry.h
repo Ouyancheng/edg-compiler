@@ -696,6 +696,17 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
       }
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case iek_microsoft_try_supplement:
+      {
+        a_microsoft_try_supplement_ptr ptr =
+                                     (a_microsoft_try_supplement_ptr)entry_ptr;
+        walk_ptr(ptr->guarded_statement, a_statement_ptr, iek_statement);
+        walk_ptr(ptr->except_expr, an_expr_node_ptr, iek_expr_node);
+        walk_ptr(ptr->cleanup_statement, a_statement_ptr, iek_statement);
+      }
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
     case iek_block:
 #ifdef CFE
@@ -788,6 +799,13 @@ the file scope, do not process it (but record an orphan in the latter case).
             walk_ptr(ptr->variant.try_block, a_try_supplement_ptr,
                      iek_try_supplement);
             break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          case stmk_microsoft_try:
+            walk_ptr(ptr->variant.microsoft_try,
+                     a_microsoft_try_supplement_ptr,
+                     iek_microsoft_try_supplement);
+            break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           case stmk_decl:
             /* No pointers */
