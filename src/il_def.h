@@ -665,6 +665,20 @@ typedef struct a_source_correspondence {
                         /* Pointer to null-terminated name, or NULL if
                            there is no corresponding source entity. */
 #ifdef CIL
+  union {
+    /* When is_class_member is TRUE: */
+    a_type_ptr	class_type;
+			/* Pointer to the class of which this entry is a
+			   member; in C a pointer to the struct/union in
+			   which the field was defined. */
+#if 0
+    /* When is_class_member is FALSE. */
+    a_namespace_ptr
+		namespace;
+			/* If the entry is an immediate member of a namespace,
+			   a pointer to the latter; otherwise, NULL. */
+#endif /* if 0 */
+  } parent;
   a_scope_ptr	scope_of_which_a_member;
 			/* For class members, a pointer to the scope of the
 			   parent class; for direct namespace members, a
@@ -712,6 +726,11 @@ typedef struct a_source_correspondence {
 			   classes have the flag set to TRUE, and objects
 			   declared at file scope and within nonlocal classes
 			   have it set to FALSE. */
+  unsigned int	is_class_member:1;
+			/* TRUE if the entry represents a C++ class member;
+			   also TRUE for fields in C.  (Note: it is set for
+			   anonymous union members even when their names are
+			   promoted to a non-class scope.)  */
 #if NEED_NAME_MANGLING
   unsigned int	name_has_been_mangled:1;
 			/* TRUE if the name of the entity has been changed

@@ -164,23 +164,30 @@ is done according to the output control block octl.
      for symbols promoted from anonymous unions, in which case preference
      is given to the symbol). */
   entry = il_entry_for_symbol(sym, &kind);
-  if (entry != NULL &&
-      (scp = source_corresp_for_il_entry(entry, kind)) != NULL &&
-       scp->scope_of_which_a_member == sym->scope_of_which_a_member) {
-    /* Use the IL entry to generate the name. */
-    form_name(scp, kind, octl);
-  } else {
-    /* No source correspondence entry, or else it has a different class
-       parent; use the symbol name directly. */
-    if (il_header.source_language == sl_Cplusplus) {
-      /* Put out the class qualifier on a class member. */
-      a_type_ptr  class_type = sym_class_of_which_a_member(sym);
-      if (class_type != NULL) {
-        form_class_qualifier(class_type, octl);
+  if (entry != NULL) {
+    scp = source_corresp_for_il_entry(entry, kind);
+    if (sym->is_class_member) {
+      if (scp->is_class_member &&
+          sym->parent.class_type == scp->parent.class_type) {
+        /* Use the IL entry to generate the name. */
+        form_name(scp, kind, octl);
+        goto done;
       }  /* if */
+    } else /* if (sym->parent.namespace == scp->parent.namespace) */ {
+      form_name(scp, kind, octl);
+      goto done;
     }  /* if */
-    octl->output_str(sym->header->identifier);
   }  /* if */
+  /* No source correspondence entry, or else it has a different class
+     parent; use the symbol name directly. */
+  if (il_header.source_language == sl_Cplusplus) {
+    /* Put out the class qualifier on a class member. */
+    if (sym->is_class_member && sym->parent.class_type != NULL) {
+      form_class_qualifier(sym->parent.class_type, octl);
+    }  /* if */
+  }  /* if */
+  octl->output_str(sym->header->identifier);
+done:;
 }  /* form_symbol_name */
 
 
@@ -2114,6 +2121,7 @@ the symbol table, this routine is not called for them.
 {
   a_symbol_ptr class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   a_boolean    err = FALSE;
+  a_field_ptr  fp;
 
   if (class_sym->header == member_sym->header) {
     /* Member has the same name as the class to which it belongs. */
@@ -2123,10 +2131,9 @@ the symbol table, this routine is not called for them.
     if (member_sym->kind == (a_symbol_kind)sk_field &&
         class_sym->variant.
                     class_struct_union.extra_info->constructor == NULL &&
-        (member_sym->variant.field.ptr == NULL ||
-         member_sym->scope_of_which_a_member ==
-                                member_sym->variant.field.ptr->
-                                    source_corresp.scope_of_which_a_member)) {
+        ((fp = member_sym->variant.field.ptr) == NULL ||
+         member_sym->parent.class_type ==
+                                   fp->source_corresp.parent.class_type)) {
       /* No error.  Either the field has not yet been bound to the symbol
          (never true for anonymous union symbol promotions) or the parent
          classes correspond (also untrue for anonymous union promotions). */
@@ -2367,7 +2374,10 @@ the overloaded function symbol.
     overload_sym = alloc_symbol((a_symbol_kind)sk_overloaded_function,
                                    hdr_ptr, &(other_sym->decl_position));
     overload_sym->decl_scope = other_sym->decl_scope;
-    overload_sym->scope_of_which_a_member = other_sym->scope_of_which_a_member;
+    if (other_sym->is_class_member) {
+      overload_sym->is_class_member = TRUE;
+      overload_sym->parent.class_type = other_sym->parent.class_type;
+    }  /* if */
     /* Put overload_sym into the primary list in place of other_sym. */
     /* Find the symbol preceding other_sym on its list. */
     prev_sym_ptr = hdr_ptr->symbol;
@@ -2464,16 +2474,16 @@ progenitor_sym is a member) if ambiguous is TRUE.
   register a_symbol_ptr   sym;
   a_projection_descr_ptr  pdp, progenitor_pdp = NULL;
   a_base_class_ptr        bcp;
-  a_scope_ptr             assoc_scope;
 
   db_enter(4, "make_projection_symbol");
 
   /* Allocate and initialize the symbol. */
   sym = alloc_symbol((a_symbol_kind)sk_projection, progenitor_sym->header,
                      &progenitor_sym->decl_position);
-  assoc_scope = class_ptr->variant.class_struct_union.extra_info->assoc_scope;
-  sym->scope_of_which_a_member = assoc_scope;
-  sym->decl_scope = assoc_scope->number;
+  sym->is_class_member = TRUE;
+  sym->parent.class_type = class_ptr;
+  sym->decl_scope = class_ptr->variant.class_struct_union.
+                                    extra_info->assoc_scope->number;
   sym->variant.projection.ambiguous = ambiguous;
   pdp = sym->variant.projection.extra_info;
   if (progenitor_sym->kind == (a_symbol_kind)sk_projection) {
@@ -2498,7 +2508,7 @@ progenitor_sym is a member) if ambiguous is TRUE.
        for sym, we have to look through the base symbols for the current class.
        The base class with which the fundamental symbol is associated is the
        one we want. */
-    a_type_ptr  tp = sym_class_of_which_a_member(pdp->fundamental_symbol);
+    a_type_ptr  tp = pdp->fundamental_symbol->parent.class_type;
     bcp = class_ptr->variant.class_struct_union.extra_info->base_classes;
     if (!ambiguous) {
       /* There is no ambiguity in the use of this name, so a simple type match
@@ -2631,7 +2641,7 @@ and attach them to rout_sym, and return the function template symbol.
   a_template_instance_ptr  tip;
 
 #if CHECKING
-  if (!(symbol_supplement_for_class(sym_class_of_which_a_member(rout_sym)))->
+  if (!(symbol_supplement_for_class(rout_sym->parent.class_type))->
                                                             is_nonreal_class) {
     internal_error("make_member_function_template_symbol: real class member");
   }  /* if */
@@ -2645,7 +2655,8 @@ and attach them to rout_sym, and return the function template symbol.
        member function symbol rout_sym. */
     template_sym = alloc_symbol((a_symbol_kind)sk_function_template,
                                 rout_sym->header, &rout_sym->decl_position);
-    template_sym->scope_of_which_a_member = rout_sym->scope_of_which_a_member;
+    template_sym->is_class_member = TRUE;
+    template_sym->parent.class_type = rout_sym->parent.class_type;
     template_sym->variant.template_info->variant.function.routine =
                                             rout_sym->variant.routine.ptr;
     /* Create the associated function instantiation entry, but do not link it
@@ -3462,7 +3473,7 @@ routine is only used in C++ mode.
        constructor that can copy a const object and another that cannot. */
     for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
       if (is_copy_constructor(sym->variant.routine.ptr,
-                              sym_class_of_which_a_member(sym), &qualifiers)) {
+                              sym->parent.class_type, &qualifiers)) {
         if ((required_qualifiers & qualifiers) != required_qualifiers) {
           /* A copy constructor was found that cannot copy the sort of object
              that we need to be able to copy. Keep looking for a suitable copy
@@ -4144,7 +4155,7 @@ this routine above this one.
     }  /* if */
 #endif /* CHECKING */
     need_to_compute_access = TRUE;
-    if (sym_class_of_which_a_member(proj_sym) == viewpoint_class) {
+    if (proj_sym->parent.class_type == viewpoint_class) {
       /* The step we are looking at is the first one, so the effective
          access is available from the projection symbol. */
       access = proj_sym->variant.projection.access;
@@ -4160,7 +4171,7 @@ this routine above this one.
         step_proj_sym = (iter == 1) ? proj_sym->header->inactive_symbols :
                                       proj_sym->header->symbol;
         for (; step_proj_sym != NULL; step_proj_sym = step_proj_sym->next) {
-          if (sym_class_of_which_a_member(step_proj_sym) == viewpoint_class &&
+          if (step_proj_sym->parent.class_type == viewpoint_class &&
               step_proj_sym->kind == (a_symbol_kind)sk_projection &&
               step_proj_sym->variant.projection.extra_info->
                                           fundamental_symbol == fund_sym) {
@@ -4393,7 +4404,7 @@ or is a projection symbol for one of those.
   /* Check the preferred derivation (the one that gives the most access
      statically).  preferred_derivation and preferred_path are NULL if the
      view class is the same class as the class of the viewed symbol. */
-  viewpoint_class = sym_class_of_which_a_member(view_sym);
+  viewpoint_class = view_sym->parent.class_type;
   if (have_access_across_path(symbol, viewpoint_class,
                               preferred_path, preferred_derivation,
                               view_sym,
@@ -4632,14 +4643,14 @@ routine entry of the function that was declared.
   ssep->defer_access_checks = FALSE;
   if (ssep->deferred_access_checks != NULL) {
     if (ssep->deferred_access_checks != NULL) {
-      a_type_ptr   cowam_type = assoc_class_type(rp->source_corresp.
-                                                      scope_of_which_a_member);
-      if (cowam_type != NULL) push_class_reactivation_scope(cowam_type);
+      if (rp->source_corresp.is_class_member) {
+        push_class_reactivation_scope(rp->source_corresp.parent.class_type);
+      }  /* if */
       (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
                        (a_type_ptr)NULL, rp);
       perform_deferred_access_checks();
       pop_scope();
-      if (cowam_type != NULL) pop_class_reactivation_scope();
+      if (rp->source_corresp.is_class_member) pop_class_reactivation_scope();
     }  /* if */
   }  /* if */
 }  /* perform_deferred_access_checks_for_function */
@@ -4829,7 +4840,7 @@ function.
   } else {
     access_class = skip_typerefs(access_class);
     /* Get the class of the symbol being referenced. */
-    base_class = sym_class_of_which_a_member(sym);
+    base_class = sym->parent.class_type;
     /* Try to find a class class_type such that
          (1)  class_type is on the derivation list between base_class
               and access_class.  That is,
@@ -5308,7 +5319,7 @@ qualified reference either to A::i or to C::i will pick up A::i).
      its fundamental symbol. */
   reduce_projection_symbol_to_fundamental_symbol(sym1);
   /* Loop through the base classes of the class of which sym1 is a member. */
-  for (bcp = base_classes_of(sym_class_of_which_a_member(sym1));
+  for (bcp = base_classes_of(sym1->parent.class_type);
        bcp != NULL;
        bcp = next_bcp) {
     next_bcp = bcp->next;
@@ -5617,16 +5628,13 @@ locator.  In the case of an ambiguity, return NULL.
     for (; sym != NULL; sym = sym->next) {
       if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
         /* Found a type symbol, but is it nested? */
-        tp = sym_class_of_which_a_member(sym);
-        if (tp != NULL) {
+        if (sym->is_class_member) {
+          tp = sym->parent.class_type;
           /* It is a nested member type.  Pop out to the outermost parent
              class to get the nonclass scope number. */
-          for(;;) {
-            parent_class = assoc_class_type(tp->source_corresp.
-                                                  scope_of_which_a_member);
-            if (parent_class == NULL) break;
-            tp = parent_class;
-          }  /* for */
+          while (tp->source_corresp.is_class_member) {
+            tp = tp->source_corresp.parent.class_type;
+          }  /* if */
           /* The effective scope is the innermost file, function, or block
              scope in which parent class is declared. */
           effective_scope =
@@ -5850,7 +5858,7 @@ member function is defined.
       a_symbol_ptr file_scope_sym;
       /* new_sym must now be a projection symbol or progenitor symbol.  Look
          for a symbol with the same name at file scope. */
-      check_assertion(class_type != sym_class_of_which_a_member(fund_sym));
+      check_assertion(class_type != fund_sym->parent.class_type);
       file_scope_sym = file_scope_id_lookup(locator, options);
       if (file_scope_sym != NULL && is_type_symbol(file_scope_sym)) {
         /* A file scope symbol was found.  For the incorrect lookup to be
@@ -5913,9 +5921,11 @@ needs to be done using the template parameter as the class type.
   type = alloc_type((a_type_kind)tk_class);
   set_source_corresp(&(type->source_corresp), sym);
   sym->variant.class_struct_union.type = type;
-  type->source_corresp.scope_of_which_a_member =
-                     sym->scope_of_which_a_member = 
-                     templ_param_type->source_corresp.scope_of_which_a_member;
+  if (templ_param_type->source_corresp.is_class_member) {
+    type->source_corresp.is_class_member = sym->is_class_member = TRUE;
+    type->source_corresp.parent.class_type = sym->parent.class_type =
+                           templ_param_type->source_corresp.parent.class_type;
+  }  /* if */
   tptdp->class_type = type;
   /* Set the scope number. */
   cssp = symbol_supplement_for_class(type);
@@ -5944,7 +5954,6 @@ class_type that is a ck_template_param.
   a_scope_depth			depth = NO_SCOPE_DEPTH;
   a_symbol_ptr			sym;
   a_boolean			is_type;
-  a_scope_ptr                   assoc_scope;
 
   db_enter(4, "add_member_to_proxy_or_nonreal_class");
   /* If we are doing a  "must be class", "must be tag" or "tentative type"
@@ -5963,7 +5972,8 @@ class_type that is a ck_template_param.
 #if RECORD_SCOPE_DEPTH_IN_IL
   depth = class_type->source_corresp.scope_depth;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
-  assoc_scope = class_type->variant.class_struct_union.extra_info->assoc_scope;
+  sym->is_class_member = TRUE;
+  sym->parent.class_type = class_type;
   /* Create the type or constant. */
   if (is_type) {
     a_type_ptr	type = alloc_type((a_type_kind)tk_template_param);
@@ -5971,7 +5981,8 @@ class_type that is a ck_template_param.
                                     (a_template_param_type_kind)tptk_member;
     sym->variant.type = type;
     set_source_corresp_with_scope_depth(&type->source_corresp, sym, depth);
-    type->source_corresp.scope_of_which_a_member = assoc_scope;
+    type->source_corresp.is_class_member = TRUE;
+    type->source_corresp.parent.class_type = class_type;
   } else {
     /* Create a ck_template_param constant.  We don't know the type of the
        constant so we allocate a tk_template_param to use as the type. */
@@ -5984,12 +5995,12 @@ class_type that is a ck_template_param.
     constant->type->variant.template_param.kind = 
                    (a_template_param_type_kind)tptk_type_of_member_constant;
     set_source_corresp_with_scope_depth(&constant->source_corresp, sym, depth);
-    constant->source_corresp.scope_of_which_a_member = assoc_scope;
+    constant->source_corresp.is_class_member = TRUE;
+    constant->source_corresp.parent.class_type = class_type;
   }  /* if */
   /* Add the symbol to the inactive list. */
   sym->next = sym->header->inactive_symbols;
   sym->header->inactive_symbols = sym;
-  sym->scope_of_which_a_member = assoc_scope;
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug, "Adding: ");
@@ -6418,8 +6429,7 @@ next_scope:
              the innermost class reactivation scope to be ignored.  This
              is a cfront 2.1 problem that appears to have been fixed in
              cfront 3.0. */
-          if (assoc_class_type(ssep->assoc_routine->source_corresp.
-                                        scope_of_which_a_member) == NULL) {
+          if (!ssep->assoc_routine->source_corresp.is_class_member) {
             /* Not a member function. */
             skip_first_class_reactivation_scope = TRUE;
           }  /* if */
@@ -6513,7 +6523,7 @@ end_lookup:
       if (ssep->kind == (a_scope_kind)sck_class_reactivation) {
         a_type_ptr      class_type = ssep->assoc_type;
 	if (last_ctor_or_dtor_sym != NULL &&
-            class_type == sym_class_of_which_a_member(last_ctor_or_dtor_sym)) {
+            last_ctor_or_dtor_sym->parent.class_type == class_type) {
 	  sym = check_for_cfront_name_lookup_bug(class_type, sym, locator,
 						 options);
           /* This looks like we can find an alternate symbol when emulating
@@ -6698,7 +6708,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym)                                     \
-  (sym_class_of_which_a_member(sym) == class_type &&                  \
+  ((sym)->is_class_member &&                                          \
+   (sym)->parent.class_type == class_type &&                          \
    (!must_be_class || is_class_or_class_proxy_symbol(sym)) &&	      \
    (!must_be_tag || is_tag_or_tag_proxy_symbol(sym)))
 
@@ -7963,21 +7974,18 @@ NULL.
         } else if (sym->kind != (a_symbol_kind)sk_enum_tag &&
                    !is_real_class_symbol(sym)) {
           /* Non-real template class instantiation. */
-        } else {
-          parent_class = assoc_class_type(type_ptr->source_corresp.
-                                                     scope_of_which_a_member);
-          if (parent_class != NULL &&         
-              (scope_stack[depth_scope_stack].kind !=
+        } else if (type_ptr->source_corresp.is_class_member &&
+                   (scope_stack[depth_scope_stack].kind !=
                             (a_scope_kind)sck_class_struct_union ||
-               scope_stack[depth_scope_stack].assoc_type != parent_class)) {
-            /* This must be the symbol for an anonymous union member type that
-               has been promoted out of the scope of the anonymous union.
-               The type is already on a list. */
-          } else {
-            /* Add it now to the current scope's type list.  It was not added
-               previously because no actual definition appeared. */
-            add_to_types_list(type_ptr, depth_scope_stack);
-          }  /* if */
+                    scope_stack[depth_scope_stack].assoc_type !=
+                            type_ptr->source_corresp.parent.class_type)) {
+          /* This must be the symbol for an anonymous union member type that
+             has been promoted out of the scope of the anonymous union.
+             The type is already on a list. */
+        } else {
+          /* Add it now to the current scope's type list.  It was not added
+             previously because no actual definition appeared. */
+          add_to_types_list(type_ptr, depth_scope_stack);
         }  /* if */
       }  /* if */
 #if CHECKING
@@ -8127,14 +8135,12 @@ NULL.
       break;
   }  /* switch */
 #if CHECKING
-  if (scp != NULL &&
-      sym->scope_of_which_a_member != scp->scope_of_which_a_member) {
-    a_type_ptr tp = assoc_class_type(scp->scope_of_which_a_member);
-    if (tp == NULL ||
-        tp->variant.class_struct_union.extra_info->anonymous_union_kind ==
-                                         (an_anonymous_union_kind)auk_none) {
-      internal_error("end_of_scope_symbol_check: bad scope_of_which_a_member");
-    }  /* if */
+  if (scp != NULL && scp->is_class_member &&
+      (!sym->is_class_member ||
+       scp->parent.class_type != sym->parent.class_type) &&
+      scp->parent.class_type->variant.class_struct_union.extra_info->
+               anonymous_union_kind == (an_anonymous_union_kind)auk_none) {
+    internal_error("end_of_scope_symbol_check: bad parent class");
   }  /* if */
 #endif /* if */
 }  /* end_of_scope_symbol_check */
@@ -8633,7 +8639,7 @@ is called only in C++.
 #endif /* CHECKING */
   if (class_symbol->is_class_member) {
     /* Nested class.  Push the containing class(es) first. */
-    push_class_reactivation_scope(sym_class_of_which_a_member(class_symbol));
+    push_class_reactivation_scope(class_symbol->parent.class_type);
   }  /* if */
   /* Find the IL scope to get the scope number. */
   il_scope = class_type->variant.class_struct_union.extra_info->assoc_scope;
@@ -9320,7 +9326,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.decl_scope                     = NO_SCOPE_NUMBER;
   cleared_symbol.decl_seq                       = 0;
   cleared_symbol.decl_position                  = null_source_position;
-  cleared_symbol.scope_of_which_a_member        = NULL;
+  cleared_symbol.parent.class_type              = NULL;
   cleared_symbol.referenced                     = FALSE;
   cleared_symbol.defined                        = FALSE;
   cleared_symbol.explicit_linkage_specifier     = FALSE;

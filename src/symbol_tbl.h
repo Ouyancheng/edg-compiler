@@ -1258,12 +1258,20 @@ typedef struct a_symbol {
 		decl_position;
 			/* Source position of the declaration of this
 			   symbol. */
-  a_scope_ptr	scope_of_which_a_member;
-			/* For a symbol that is a class member, this points
-			   to the class scope (this includes structs/unions
-			   when compiling C); for a symbol that is a direct
-			   member of a namespace, this points to the namespace
-			   scope; NULL otherwise. */
+  union {
+    /* When is_class_member is TRUE: */
+    a_type_ptr	class_type;
+			/* Pointer to the class of which this symbol is a
+			   member; in C a pointer to the struct/union in
+			   which the field was defined. */
+#if 0
+    /* When is_class_member is FALSE. */
+    a_namespace_ptr
+		namespace;
+			/* If the symbol is an immediate member of a namespace,
+			   a pointer to the latter; otherwise, NULL. */
+#endif /* if 0 */
+  } parent;
   a_symbol_kind kind;
 			/* The kind of symbol. */
   unsigned int	referenced:1;
@@ -1281,7 +1289,10 @@ typedef struct a_symbol {
 			   function prototype scope and was subsequently
 			   reentered in the function scope. */
   unsigned int	is_class_member:1;
-			/* TRUE if symbol represents a class member. */
+			/* TRUE if symbol represents a C++ class member; also
+			   TRUE for fields in C.  (Note: it is not set for
+			   anonymous union members whose names are promoted to
+			   a non-class scope.)  */
   unsigned int  is_error:1;
 			/* TRUE if the symbol represents an identifier for
 			   which an error has been diagnosed and which should
@@ -2356,14 +2367,6 @@ pointer of class class_type.
     f_check_protected_member_access(sym, err_pos, class_type);        \
   }  /* if */                                                         \
 }  /* check_protected_member_access */
-
-
-/*
-Return a pointer to the class of which sym is a member, or NULL if it
-is not a member.
-*/
-#define sym_class_of_which_a_member(sym)                              \
-  assoc_class_type((sym)->scope_of_which_a_member)
 
 
 /*

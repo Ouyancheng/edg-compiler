@@ -2442,7 +2442,7 @@ in il_init.)
   /* Set the default source correspondence variable to default values. */
   def_source_corresp.assoc_info = NULL;
   def_source_corresp.name = NULL;
-  def_source_corresp.scope_of_which_a_member = NULL;
+  def_source_corresp.parent.class_type = NULL;
   def_source_corresp.decl_position = null_source_position;
   /* access is set to "public" because "no access restriction" is the default
      for everything except class members.  For the latter the field must be
@@ -2459,6 +2459,7 @@ in il_init.)
   def_source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
   def_source_corresp.has_associated_pragma = FALSE;
   def_source_corresp.is_local_to_function = FALSE;
+  def_source_corresp.is_class_member = FALSE;
 #if DO_IL_LOWERING
   def_source_corresp.name_has_been_mangled = FALSE;
 #endif /* DO_IL_LOWERING */
