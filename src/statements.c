@@ -1875,6 +1875,19 @@ from the structured statement stack entry.
 }  /* wrapup_decl_statement */
 
 
+static void stmt_update_source_sequence_entry(
+                                          a_statement_ptr              sp,
+                                          a_source_sequence_entry_ptr  ssep) {
+  if (!source_sequence_entries_disallowed) {
+    if (C_dialect == C_dialect_cplusplus) {
+      /* If the previous statement was a decl-statement, deactivate it. */
+      wrapup_decl_statement();
+    }  /* if */
+    f_update_source_sequence_list((char *)sp, iek_statement, ssep);
+  }  /* if */
+}  /* if */
+
+
 static void stmt_update_source_sequence_list(a_statement_ptr  sp)
 /*
 Allocate a source sequence entry for statement sp and add it to the list for
@@ -5005,6 +5018,10 @@ See also 3.6.6.4.
   a_boolean          microsoft_C_mode_void_return = FALSE, expr_present,
                        return_stmt_allowed = TRUE;
   a_source_position  return_pos;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+                     src_seq_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "return_statement");
   check_for_unreachable_code();
@@ -5089,6 +5106,11 @@ See also 3.6.6.4.
       }  /* if */
     }  /* if */
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (return_stmt_allowed) {
+    src_seq_entry = add_empty_source_sequence_entry();
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (expr_present) {
     /* Scan the return expression and convert it to the function type. */
     return_expr = scan_return_expression(return_type,
@@ -5131,7 +5153,9 @@ See also 3.6.6.4.
     /* Allocate the return statement. */
     sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
          &return_pos);
-    stmt_update_source_sequence_list(sp);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    stmt_update_source_sequence_entry(sp, src_seq_entry);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   if (sp != NULL) {
     /* Do processing required for any pragmas that are bound to the current
@@ -5147,7 +5171,9 @@ See also 3.6.6.4.
          now by a return statement with a null expression. */
       sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
                                      &return_pos);
-      stmt_update_source_sequence_list(sp);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      stmt_update_source_sequence_entry(sp, src_seq_entry);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
