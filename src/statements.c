@@ -1326,7 +1326,7 @@ See also 3.6.6.4.
 {
   register a_statement_ptr sp;
   a_routine_ptr            rout;
-  a_type_ptr               return_type;
+  a_type_ptr               return_type, routine_type;
 
   db_enter(3, "return_statement");
   check_for_unreachable_code();
@@ -1354,7 +1354,8 @@ See also 3.6.6.4.
   } else {
     /* The expression is present. */
     /* Get the return type of the current routine entry. */
-    return_type = skip_typerefs(rout->type)->variant.routine.return_type;
+    routine_type = skip_typerefs(rout->type);
+    return_type = routine_type->variant.routine.return_type;
     if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
         rout->special_kind == (a_special_function_kind)sfk_destructor) {
       /* Constructors and destructors may not return a value (ARM 6.6.3). */
@@ -1366,9 +1367,7 @@ See also 3.6.6.4.
       return_type = error_type();
     }  /* if */
     /* Scan the return expression and convert it to the function type. */
-    sp->expr = scan_required_type_expression(return_type,
-                                             /*allow_top_level_comma=*/TRUE,
-                                             ec_bad_return_value_type);
+    sp->expr = scan_return_expression(return_type, ec_bad_return_value_type);
   }  /* if */
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
