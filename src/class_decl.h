@@ -46,7 +46,9 @@ extern
 void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp,
 					      a_token_cache_ptr decl_cache);
 
-extern a_symbol_ptr class_member_template_declaration(a_type_ptr  class_type);
+extern a_symbol_ptr class_member_template_declaration(
+				a_type_ptr  class_type,
+                                a_template_param_ptr	templ_param_list);
 
 extern a_type_ptr rescan_member_template_declaration(a_type_ptr  class_type);
 
@@ -103,8 +105,10 @@ void update_friend_function_info(a_routine_ptr   rout_ptr,
 extern void decl_friend_class(a_type_ptr          class_type,
 			      a_type_ptr          friend_class_type);
 
-extern a_symbol_ptr member_function_redecl_sym(a_symbol_ptr  sym,
-                                               a_type_ptr    type);
+extern a_symbol_ptr member_function_redecl_sym(
+				a_symbol_ptr 		sym,
+                                a_type_ptr    		type,
+				a_template_param_ptr	templ_param_list);
 
 extern a_derivation_step_ptr make_derivation_step(
                                             a_base_class       *base_class,

@@ -1251,14 +1251,16 @@ the appropriate scope depth.
 }  /* compute_effective_decl_level */
 
 
-static a_symbol_ptr find_linked_symbol(a_symbol_locator  *locator,
-                                       a_scope_depth     effective_decl_level,
-                                       a_type_ptr        type,
-                                       a_boolean         is_main,
-                                       a_boolean         is_friend_decl,
-                                       a_boolean         is_function_template,
-                                       a_symbol_ptr      *prior_decl,
-                                       a_symbol_ptr      *overload_symbol)
+static a_symbol_ptr find_linked_symbol(
+				a_symbol_locator	*locator,
+                                a_scope_depth		effective_decl_level,
+                                a_type_ptr		type,
+                                a_boolean		is_main,
+                                a_boolean		is_friend_decl,
+                                a_boolean		is_function_template,
+				a_template_param_ptr	templ_param_list,
+                                a_symbol_ptr		*prior_decl,
+                                a_symbol_ptr		*overload_symbol)
 /*
 Find and return a symbol representing the potential prior declaration of the
 variable or routine named by the specified symbol locator.  This deals with
@@ -1320,8 +1322,9 @@ input parameters include effective_decl_level, the scope at which the entity
 is to be entered into the symbol table; is_main, TRUE when the current
 declaration is global "main"; is_friend_decl, TRUE when the declaration is a
 friend declaration within a class; and is_function_template, TRUE when the
-declaration is a function template declaration.  This function is only called
-by id_linkage.
+declaration is a function template declaration.  templ_param_list is the
+template parameter list for the function template.  This function is only
+called by id_linkage.
 */
 {
   a_boolean     decls_at_same_scope;
@@ -1469,8 +1472,15 @@ by id_linkage.
           a_template_symbol_supplement_ptr  tssp;
           tssp = other_decl->variant.template_info;
           if (is_function_template) {
+            a_template_param_ptr	other_templ_param_list;
             tp = tssp->variant.function.routine->type;
-            if (routine_types_are_compatible(tp, type, TCF_NO_FLAGS)) {
+            other_templ_param_list =
+                       tssp->variant.function.decl_cache.decl_info->parameters;
+            if (equiv_template_param_lists(other_templ_param_list,
+                                           templ_param_list,
+                                           /*issue_errors=*/FALSE,
+                                           (a_source_position*)NULL) &&
+                routine_types_are_compatible(tp, type, TCF_NO_FLAGS)) {
               /* The other_decl template function matches the current
                  declaration. */
               linked_symbol = other_decl;
@@ -1598,27 +1608,31 @@ done:
 }  /* find_linked_symbol */
 
 
-static an_id_linkage_kind id_linkage(a_symbol_locator   *locator,
-                                     a_storage_class    *storage_class,
-                                     a_scope_depth      effective_decl_level,
-                                     a_type_ptr         type,
-                                     a_func_info_block  *func_info,
-                                     a_symbol_ptr       *linked_symbol,
-                                     a_symbol_ptr       *overload_symbol)
+static an_id_linkage_kind id_linkage(
+				a_symbol_locator	*locator,
+                                a_storage_class		*storage_class,
+                                a_scope_depth		effective_decl_level,
+                                a_type_ptr		type,
+                                a_func_info_block	*func_info,
+                                a_symbol_ptr		*linked_symbol,
+                                a_symbol_ptr		*overload_symbol,
+				a_template_param_ptr	templ_param_list)
 /*
 An identifier (specified by *locator) of type "type" and storage class
 "storage class" is about to be declared at the current scope level.
-Determine its linkage (see 3.1.2.2), and return it.  The linkage
-determines how this declaration interacts with other (possibly tentative)
-declarations of the same identifier.  Return in *linked_symbol a pointer
-to any linked symbol (an identifier with the same name in the same scope,
-if the new identifier has linkage).  This routine should not be called
-for function parameters (they have no linkage); it will correctly handle
+If templ_param_list is not NULL, the entity is a function template
+with the specified template parameter list.  Determine its linkage
+(see 3.1.2.2), and return it.  The linkage determines how this
+declaration interacts with other (possibly tentative) declarations of
+the same identifier.  Return in *linked_symbol a pointer to any linked
+symbol (an identifier with the same name in the same scope, if the new
+identifier has linkage).  This routine should not be called for
+function parameters (they have no linkage); it will correctly handle
 typedefs.  In C++, when the type is a function type and a previously
 declared function in the same scope has a different type, we have a
-candidate for function overloading; the *linked_symbol in this case will
-be NULL, but we return in *overload_symbol a pointer to the symbol that
-will be involved in overloading.
+candidate for function overloading; the *linked_symbol in this case
+will be NULL, but we return in *overload_symbol a pointer to the
+symbol that will be involved in overloading.
 */
 {
   an_id_linkage_kind linkage = idl_none;
@@ -1667,6 +1681,7 @@ will be involved in overloading.
     *linked_symbol = find_linked_symbol(locator, effective_decl_level, type,
                                         is_main, is_friend_decl,
                                         is_function_template_decl,
+                                        templ_param_list,
                                         &other_decl, overload_symbol);
 determine_linkage:
     /* Determine the linkage. */
@@ -3013,29 +3028,33 @@ declaration).
 
 
 static a_symbol_ptr qualified_name_redecl_sym(
-                               a_symbol_locator   *locator,
-                               a_type_ptr         type_ptr,
-                               a_scope_depth      *effective_decl_level,
-                               a_boolean          is_definition,
-                               a_boolean          is_friend_decl,
-                               an_id_linkage_kind *linkage,
-                               a_symbol_ptr       *overload_symbol,
-                               a_boolean          *namespace_reactivated)
+                               a_symbol_locator		*locator,
+                               a_type_ptr		type_ptr,
+                               a_scope_depth		*effective_decl_level,
+                               a_boolean		is_definition,
+                               a_boolean		is_friend_decl,
+			       a_template_param_ptr	templ_param_list,
+                               an_id_linkage_kind	*linkage,
+                               a_symbol_ptr		*overload_symbol,
+                               a_boolean		*namespace_reactivated)
 /*
-This routine is called from decl_variable and decl_routine for either of two
-cases: (1) when is_friend_decl is FALSE, a namespace-qualified identifier is
-being redeclared outside of the namespace of which it is a member -- this
-will be a definition in a well-formed program; and (2) when is_friend_decl
-is TRUE, a namespace- or file-scope-qualified name is being declared in a
-friend declaration.  *locator will point to a specific symbol, as well as to
-a namespace parent in most cases.  effective_decl_level will have computed
-by the caller.  type_ptr is the declared type, used for looking up symbols
-in an overload set.  is_definition is usually TRUE unless is_friend_decl is
-TRUE.  When the symbol is a member of an overloaded function set,
-*overload_symbol is returned with a pointer to the sk_overloaded_function
-symbol.  *linkage is returned with a value reflecting the linkage of the
-original symbol.  *namespace_reactivated is returned TRUE when the caller
-needs to pop the namespace scope, which for friend declarations is a
+This routine is called from decl_variable and decl_routine for either
+of two cases: (1) when is_friend_decl is FALSE, a namespace-qualified
+identifier is being redeclared outside of the namespace of which it is
+a member -- this will be a definition in a well-formed program; and
+(2) when is_friend_decl is TRUE, a namespace- or file-scope-qualified
+name is being declared in a friend declaration.  *locator will point
+to a specific symbol, as well as to a namespace parent in most cases.
+effective_decl_level will have computed by the caller.  type_ptr is
+the declared type, used for looking up symbols in an overload set.
+is_definition is usually TRUE unless is_friend_decl is TRUE.
+templ_param_list points to the template parameter list when the entity
+declared is a function template.  When the symbol is a member of an
+overloaded function set, *overload_symbol is returned with a pointer
+to the sk_overloaded_function symbol.  *linkage is returned with a
+value reflecting the linkage of the original symbol.
+*namespace_reactivated is returned TRUE when the caller needs to pop
+the namespace scope, which for friend declarations is a
 namespace-reactivation scope and for other declarations is a
 namespace-extension scope.
 */
@@ -3089,7 +3108,8 @@ namespace-extension scope.
     /* Look up the name. */
     linked_symbol = find_linked_symbol(locator, depth_scope_stack, type_ptr,
                                        /*is_main=*/FALSE, is_friend_decl,
-                                       is_function_template_decl, &prior_decl,
+                                       is_function_template_decl,
+                                       templ_param_list, &prior_decl,
                                        overload_symbol);
     if (linked_symbol != NULL) {
       /* A linked symbol was found -- set the storage class and and linkage
@@ -3273,13 +3293,14 @@ cross-reference output describing this declaration.
                                               &effective_decl_level,
                                               is_variable_def,
                                               /*is_friend_decl=*/FALSE,
+                                              (a_template_param_ptr)NULL,
                                               &linkage, &homonym_symbol,
                                               &namespace_reactivated);
   } else {
     /* Determine the linkage of this symbol. */
     linkage = id_linkage(locator, &storage_class, effective_decl_level,
                          type_ptr, (a_func_info_block_ptr)NULL, &linked_symbol,
-                         &homonym_symbol);
+                         &homonym_symbol, (a_template_param_ptr)NULL);
   }  /* if */
   /* alloc_at_file_scope will be TRUE if the IL variable entry must be
      allocated in the file scope memory region.  This is always true
@@ -3731,13 +3752,15 @@ on for use in generating cross-reference output describing this declaration.
     linked_symbol = qualified_name_redecl_sym(locator, type_ptr,
                                               &effective_decl_level,
                                               is_function_def,
-                                              is_friend_decl, &linkage,
-                                              &homonym_symbol,
+                                              is_friend_decl,
+					      (a_template_param_ptr)NULL,
+                                              &linkage, &homonym_symbol,
                                               &namespace_reactivated);
   } else {
     /* Determine the linkage of this symbol. */
     linkage = id_linkage(locator, &storage_class, effective_decl_level,
-                         type_ptr, func_info, &linked_symbol, &homonym_symbol);
+                         type_ptr, func_info, &linked_symbol, &homonym_symbol,
+                         (a_template_param_ptr)NULL);
   }  /* if */
   if (linkage != idl_none && linked_symbol != NULL) {
     /* There is a previous identifier of this name in the same scope,
@@ -3906,7 +3929,7 @@ on for use in generating cross-reference output describing this declaration.
       an_error_code  error_code;
 
       if (!overload_distinguishable(homonym_symbol, type_ptr,
-                                    /*new_is_template=*/FALSE, &error_code)) {
+                                    (a_template_param_ptr)NULL, &error_code)) {
         /* The previous declaration and the current one are not "overload
            distinguishable" for a reason given by the error code returned. */
         pos_error(error_code, &locator->source_position);
@@ -4478,7 +4501,7 @@ is not a template declaration scope.
     } else {
       /* Look for a member function symbol of this type in the symbol table.
          It is an error if it is  not already there. */
-      sym = member_function_redecl_sym(sym, type_ptr);
+      sym = member_function_redecl_sym(sym, type_ptr, templ_param_list);
       if (sym != NULL) {
         if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* This is the symbol for a member template function.  Use
@@ -4573,7 +4596,7 @@ is not a template declaration scope.
     /* Look up the name. */
     sym = qualified_name_redecl_sym(locator, type_ptr, &effective_decl_level,
                                     (a_boolean)func_info->is_definition,
-                                    is_friend_decl,
+                                    is_friend_decl, templ_param_list,
                                     &linkage, &homonym_symbol,
                                     &namespace_reactivated);
   }  /* if */
@@ -4588,7 +4611,8 @@ is not a template declaration scope.
       /* id_linkage will set sym to point to an existing symbol when we have
          a redeclaration of a function template. */
       (void)id_linkage(locator, &storage_class, effective_decl_level,
-                       type_ptr, func_info, &sym, &homonym_symbol);
+                       type_ptr, func_info, &sym, &homonym_symbol,
+                       templ_param_list);
       if (sym != NULL && sym->kind != (a_symbol_kind)sk_function_template) {
         /* Invalid redeclaration. */
         pos_sy_error(ec_not_compatible_with_previous_decl,
@@ -4615,7 +4639,7 @@ is not a template declaration scope.
       check_default_args(type_ptr);
       if (homonym_symbol != NULL &&
           !overload_distinguishable(homonym_symbol, type_ptr,
-                                    /*new_is_template=*/TRUE, &error_code)) {
+                                    templ_param_list, &error_code)) {
         /* The previous declaration and the current one are not "overload
            distinguishable" for a reason given by the error code returned. */
         pos_error(error_code, &locator->source_position);
@@ -8243,7 +8267,8 @@ continue_with_declaration:
             a_boolean		is_member_redecl;
             a_boolean		is_template_instance;
             is_member_redecl = member_function_redecl_sym(
-                                              tmp_sym, local_type_ptr) != NULL;
+                                          tmp_sym, local_type_ptr,
+                                          (a_template_param_ptr)NULL) != NULL;
             is_template_instance = has_matching_template_instance(
                                                     tmp_sym, local_type_ptr,
                                                     locator.template_arg_list);

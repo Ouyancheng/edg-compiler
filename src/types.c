@@ -4968,10 +4968,10 @@ is allocated, it is allocated in the file scope.
 }  /* composite_type */
 
 
-a_boolean overload_distinguishable(a_symbol_ptr  old_sym_ptr,
-                                   a_type_ptr    new_type,
-                                   a_boolean     new_is_template,
-                                   an_error_code *err_code)
+a_boolean overload_distinguishable(a_symbol_ptr		old_sym_ptr,
+                                   a_type_ptr		new_type,
+				   a_template_param_ptr	templ_param_list,
+                                   an_error_code	*err_code)
 /*
 Return TRUE if the new function type new_type is distinguishable under
 overload resolution from all the types of the functions indicated by
@@ -4979,9 +4979,9 @@ old_sym_ptr (which might be a simple function or an sk_overloaded_function
 symbol).  Otherwise, set *err_code to an appropriate error code
 and return FALSE.  We assume that the caller has already determined that
 the new type is not compatible with any of the existing types.
-The new type may be for a function template (new_is_template is TRUE
-in that case), as may any of the types on the old list.  Only callable
-in C++ mode.  See ARM 13.
+The new type may be for a function template (templ_param_list points to
+the templates parameter list in that case), as may any of the types on
+the old list.  Only callable in C++ mode.  See ARM 13.
 */
 {
   a_boolean        distinguishable = TRUE;
@@ -4992,6 +4992,7 @@ in C++ mode.  See ARM 13.
                    old_extra_info, new_extra_info;
   a_type_ptr       old_this_param_type, new_this_param_type;
   a_boolean        old_this_qualified, new_this_qualified;
+  a_boolean	   new_is_template = templ_param_list != NULL;
 
   db_enter(5, "overload_distinguishable");
   *err_code = ec_no_error;
@@ -5020,6 +5021,22 @@ in C++ mode.  See ARM 13.
          functions. */
       distinguishable = TRUE;
       goto distinguishable_determined;
+    }  /* if */
+    if (new_is_template) {
+      /* Both are templates.  The remaining tests are only needed if the
+         template parameter lists are equivalent.  Declarations with
+         different template parameter lists may always be overloaded. */
+      a_template_param_ptr		old_templ_param_list;
+      a_template_symbol_supplement_ptr	tssp;
+      tssp = template_supplement_for_symbol(old_sym_ptr);
+      old_templ_param_list =
+                       tssp->variant.function.decl_cache.decl_info->parameters;
+      if (!equiv_template_param_lists(old_templ_param_list, templ_param_list,
+                                      /*issue_errors=*/FALSE,
+                                      (a_source_position*)NULL)) {
+        distinguishable = TRUE;
+        goto distinguishable_determined;
+      }  /* if */
     }  /* if */
     distinguishable = FALSE;
     /* Get the old routine type. */

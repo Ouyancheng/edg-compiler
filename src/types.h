@@ -557,10 +557,11 @@ extern a_boolean expl_conversion_possible(a_type_ptr    source_type,
                                           an_error_code *warning_suggested);
 extern a_type_ptr composite_type(a_type_ptr type_1,
                                  a_type_ptr type_2);
-extern a_boolean overload_distinguishable(a_symbol_ptr  old_sym_ptr,
-                                          a_type_ptr    new_type,
-                                          a_boolean     new_is_template,
-                                          an_error_code *err_code);
+extern
+a_boolean overload_distinguishable(a_symbol_ptr		old_sym_ptr,
+                                   a_type_ptr		new_type,
+				   a_template_param_ptr	templ_param_list,
+                                   an_error_code	*err_code);
 extern a_boolean is_or_contains_error_type(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_local_type(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_unnamed_or_local_type(a_type_ptr  type_ptr,

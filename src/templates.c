@@ -2991,7 +2991,7 @@ new argument list is created and a NULL pointer is returned.
 }  /* create_initial_template_arg_list */
 
 
-static a_template_arg_ptr get_template_arg_by_list_pos(
+a_template_arg_ptr get_template_arg_by_list_pos(
                                     a_template_param_ptr      templ_param_list,
                                     a_template_arg_ptr        *templ_arg_list,
                                     a_template_param_list_pos pos)
@@ -8141,6 +8141,32 @@ existing type is simply used.
 }  /* rescan_template_type_default_arg */
 
 
+static a_boolean template_param_appears_in_param_list
+				(a_symbol_ptr param_sym,
+                                 a_type_ptr   rout_type)
+/*
+tparam_type is a tk_template_parameter type entry used in a template
+declaration, and rout_type is a routine type.  Search each of the routine's
+parameter types to see if tparam_type appears in it.  If
+*/
+{
+  a_boolean         found = FALSE;
+  a_param_type_ptr  ptp;
+
+  ptp = rout_type->variant.routine.extra_info->param_type_list;
+  for (; ptp != NULL; ptp = ptp->next) {
+    /* Inspect all template parameters, not just those that involve
+       deduced template parameters.  A template parameter can affect the
+       type even in a nondeduced location. */
+    if (template_param_used_in_type(param_sym, ptp->type)) {
+      found = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return found;
+}  /* template_param_appears_in_param_list */
+
+
 static void fixup_types_that_refer_to_incomplete_instantiations(
                                       a_symbol_ptr   sym,
 				      a_type_ptr     prototype_type)
@@ -8441,6 +8467,50 @@ returned to the caller.
 }  /* template_static_data_member_declaration */
 
 
+static void check_function_template_param_usage
+                         (a_symbol_ptr                     sym,
+			  a_type_ptr                       type,
+			  a_template_param_ptr             template_param_list)
+/*
+Make sure that all of the template parameters are used as part of the
+signature of the functions that will be generated from this template.
+Use in a function parameter with a default argument is not counted as
+it would not be possible to deduce the value of a template parameter
+when the associated function argument was omitted.
+*/
+{
+  a_template_param_ptr   tpp;
+  a_type_ptr	         rout_type = skip_typerefs(type);
+  a_boolean		 is_conversion_operator;
+
+  is_conversion_operator = is_conversion_function_symbol(sym);
+  for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
+    a_symbol_ptr param_sym = tpp->param_symbol;
+    a_boolean	 param_used;
+    if (tpp->has_default_arg) {
+      pos_error(ec_default_template_arg_not_allowed,
+                &param_sym->decl_position);
+    }  /* if */
+    if (is_conversion_operator) {
+      /* For conversion operator functions, the template parameters must be
+         used in the return type. */
+      param_used =  template_param_used_in_type(
+                            param_sym, rout_type->variant.routine.return_type);
+    } else {
+      /* Make sure that all template parameters are used by
+         function parameter types.  If an error occurs set the
+         cannot_be_called flag to prevent an instantiation from
+         being attempted with an incomplete set of template arguments. */
+      param_used = template_param_appears_in_param_list(param_sym, rout_type);
+    }  /* if */
+    if (!param_used) {
+      pos_sy2_error(ec_not_used_in_template_function_params,
+                    &param_sym->decl_position, param_sym, sym);
+    } /* if */
+  } /* for */
+}  /* check_function_template_param_usage */
+
+
 static void add_befriending_class_to_function_template
                       (a_template_symbol_supplement_ptr     tssp,
 		       a_type_ptr                           class_declared_in)
@@ -8503,6 +8573,8 @@ caller.
 {
   a_boolean                        err = sym == NULL || sym->is_error;
   a_template_symbol_supplement_ptr tssp = NULL;
+  a_template_param_ptr             template_param_list =
+                                           decl_state->decl_info->parameters;
 
   if (!err && !is_function_or_template_symbol(sym)) {
     /* The symbol is something other than a function symbol.  Issue
@@ -8654,6 +8726,23 @@ caller.
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   }  /* if */
+  if (err) {
+    /* Avoid spurious errors -- skip the check for template params, since
+       this might have been intended to be a member function. */
+  } else if (sym->kind != (a_symbol_kind)sk_function_template) {
+    /* Out-of-line definition of a member function of a class template.
+       Don't impose requirements on the use of template parameters in the
+       parameters. */
+  } else if (!distinct_mangling_for_templates) {
+    /* Go back through the template params and make sure that all of the
+       template parameters were used in a way that effects the function
+       signature.  This only needs to be done when the implementation
+       does not mangle template function instances in a way that guarantees
+       that each will be distinct, even if the template parameter types
+       are not used in the function signature. */
+    a_type_ptr  type = tssp->variant.function.routine->type;
+    check_function_template_param_usage(sym, type, template_param_list);
+  }  /* if */
   *p_tssp = tssp;
 }  /* complete_function_template_decl */
 
@@ -8708,7 +8797,8 @@ declaration (following any template clauses).
     check_assertion(sym->is_class_member);
     /* The symbol is a class member, find the symbol to which this
        declaration refers. */
-    new_sym = member_function_redecl_sym(sym, type);
+    new_sym = member_function_redecl_sym(sym, type,
+                                         decl_state->decl_info->parameters);
     /* Make sure that a matching symbol was found, and that it represents
        a function template. */
     if (new_sym == NULL ||
@@ -9115,7 +9205,8 @@ any non-empty template parameter lists that were scanned.
       /* A member template declaration. */
       a_source_position	decl_start_pos;
       decl_start_pos = pos_curr_token;
-      sym = class_member_template_declaration(decl_state->class_declared_in);
+      sym = class_member_template_declaration(
+             decl_state->class_declared_in, decl_state->decl_info->parameters);
       complete_function_template_decl(decl_state, sym,
                                       (a_func_info_block *)NULL,
                                       &tssp, &decl_start_pos);
@@ -9322,7 +9413,8 @@ for the instance, or NULL if no instance is found.
        of a template class.  Skip this step when an explicit template
        argument list has been specified, as this implies that the entity
        to be found must be a template. */
-    new_sym = member_function_redecl_sym(sym, type);
+    new_sym = member_function_redecl_sym(sym, type,
+                                         (a_template_param_ptr)NULL);
     if (new_sym != NULL) any_found = TRUE;
   }  /* if */
   if (!any_found) {

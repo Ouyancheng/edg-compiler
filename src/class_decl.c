@@ -4024,14 +4024,18 @@ the current class (class_type).
 }  /* decl_friend_class */
 
 
-a_symbol_ptr member_function_redecl_sym(a_symbol_ptr  sym,
-                                        a_type_ptr    new_type)
+a_symbol_ptr member_function_redecl_sym(
+				a_symbol_ptr		sym,
+				a_type_ptr		new_type,
+				a_template_param_ptr	templ_param_list)
 /*
 sym is a member function symbol or overloaded function symbol from a
-previous declaration.  new_type is the type from the current declaration.
-Check the type for compatibility with sym or, if sym represents an
-overloaded function, with any of the instances.  If a match is found,
-return a pointer to the symbol.  If not, return NULL.
+previous declaration.  new_type is the type from the current
+declaration.  If the new declaration is a function template,
+templ_param_list points to the template parameter list.  Check the
+type for compatibility with sym or, if sym represents an overloaded
+function, with any of the instances.  If a match is found, return a
+pointer to the symbol.  If not, return NULL.
 
 If the routine type from the current declaration or one from the original
 declaration indicates that the function as a whole was qualified (e.g.,
@@ -4057,7 +4061,7 @@ have a non-NULL implicit_this_param_type and the type match must be done
 without it.
 */
 {
-  a_boolean                      is_overloaded_function, match;
+  a_boolean			 is_overloaded_function, match;
   a_type_ptr                     orig_type, orig_this_type, new_this_type;
   a_routine_type_supplement_ptr  orig_rts, new_rts;
   a_boolean                      orig_function_is_qualified;
@@ -4081,6 +4085,8 @@ without it.
   /* Go through the symbol list and look for an instance in which the
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
+    a_template_param_ptr		other_templ_param_list;
+    a_template_symbol_supplement_ptr	tssp;
     /* Ignore projection symbols. */
     if (sym->kind == (a_symbol_kind)sk_projection) continue;
     /* Get the routine pointer associated with either the routine symbol
@@ -4097,27 +4103,45 @@ without it.
                 is_qualified_type(type_pointed_to(orig_this_type)));
     if (new_function_is_qualified != orig_function_is_qualified) {
       /* No match is possible.  Don't bother calling types_are_compatible. */
-    } else {
-      if (new_function_is_qualified) {
-        /* Both routines are qualified.  Use the "this" param type as part
-           of the compatibility check. */
-      } else {
-        /* Neither routine is qualified.  Save away the "this" param types,
-           do the compatibility check without them, and then restore them. */
-        new_rts->implicit_this_param_type = NULL;
-        orig_rts->implicit_this_param_type = NULL;
-      }  /* if */
-      match = routine_types_are_compatible(orig_type, new_type, TCF_NO_FLAGS);
-      if (!new_function_is_qualified) {
-        /* Restore the implicit "this" parameter types in orig_type and
-           new_type. */
-        new_rts->implicit_this_param_type = new_this_type;
-        orig_rts->implicit_this_param_type = orig_this_type;
-      }  /* if */
-      /* If a match was found by types_are_compatible, break out of the
-         loop. */
-      if (match) break;
+      continue;
     }  /* if */
+    if (templ_param_list != NULL &&
+        sym->kind == (a_symbol_kind)sk_function_template) {
+      /* If a template parameter list is present and the candidate symbol
+         is for a function template, make sure the lists match.  A
+         template parameter list could be present for a normal member function
+         of a class template when the member function is being defined
+         outside of the class. */
+      tssp = template_supplement_for_symbol(sym);
+      other_templ_param_list =
+                       tssp->variant.function.decl_cache.decl_info->parameters;
+      if (!equiv_template_param_lists(other_templ_param_list,
+                                     templ_param_list,
+                                     /*issue_errors=*/FALSE,
+                                     (a_source_position*)NULL)) {
+        /* The template parameter lists do not match. */
+        continue;
+      }  /* if */
+    }  /* if */
+    if (new_function_is_qualified) {
+      /* Both routines are qualified.  Use the "this" param type as part
+         of the compatibility check. */
+    } else {
+      /* Neither routine is qualified.  Save away the "this" param types,
+         do the compatibility check without them, and then restore them. */
+      new_rts->implicit_this_param_type = NULL;
+      orig_rts->implicit_this_param_type = NULL;
+    }  /* if */
+    match = routine_types_are_compatible(orig_type, new_type, TCF_NO_FLAGS);
+    if (!new_function_is_qualified) {
+      /* Restore the implicit "this" parameter types in orig_type and
+         new_type. */
+      new_rts->implicit_this_param_type = new_this_type;
+      orig_rts->implicit_this_param_type = orig_this_type;
+    }  /* if */
+    /* If a match was found by types_are_compatible, break out of the
+       loop. */
+    if (match) break;
   }  /* for */
   return sym;
 }  /* member_function_redecl_sym */
@@ -4463,7 +4487,8 @@ function symbols.
       /* A member function by this name has already been entered into the
          symbol table.  This could be a redeclaration, which is illegal for
          class members.  Check for that first by looking for a type match. */
-      new_sym = member_function_redecl_sym(sym, type);
+      new_sym = member_function_redecl_sym(sym, type,
+                                           (a_template_param_ptr)NULL);
       if (new_sym == NULL) {
         /* The previously declared function with the same name (or, if it is
            already overloaded, any instance of it) does not have a matching
@@ -4480,12 +4505,12 @@ function symbols.
          name.  The routine overload_distinguishable returns TRUE if the
          routine types are candidates for overloading; if it returns FALSE
          it also returns the error code for a diagnostic explaining why. */
-      /* template_case is FALSE in the following call because although member
-         functions of class templates have template types in their parameters,
-         they are not called using the template overload resolution
-         mechanism. */
+      /* The templ_param_list is NULL in the following call because
+         although member functions of class templates have template types
+         in their parameters, they are not called using the template
+         overload resolution mechanism. */
       if (!overload_distinguishable(sym, type,
-                                    /*template_case=*/FALSE, /* sic! */
+                                    (a_template_param_ptr)NULL,
                                     &error_code)) {
         pos_error(error_code, &locator->source_position);
         suppress_redecl_error = TRUE;
@@ -5452,16 +5477,19 @@ declared member functions.
 }  /* decl_member_function */
 
 
-static void decl_member_function_template(a_symbol_locator        *locator,
-                                          a_type_ptr              class_type,
-                                          a_type_ptr              member_type,
-                                          a_func_info_block       *func_info,
-                                          a_class_def_state_ptr   class_state,
-                                          a_member_decl_info_ptr  decl_info)
+static void decl_member_function_template(
+				a_symbol_locator        *locator,
+                                a_type_ptr              class_type,
+                                a_type_ptr              member_type,
+				a_template_param_ptr	templ_param_list,
+                                a_func_info_block       *func_info,
+                                a_class_def_state_ptr   class_state,
+                                a_member_decl_info_ptr  decl_info)
 /*
 Process the declaration of a member function template.  *locator is the
 symbol locator of the template.  class_type identifies the class in which it
-was declared, and member_type is its function type.  *func_info contains
+was declared, and member_type is its function type.  templ_param_list
+is the template parameter list of the function template.  *func_info contains
 information gathered in processing the declarator.  *class_state and
 *decl_info track general information about the class definition and specific
 information about the member declaration, respectively.  (This function is
@@ -5503,9 +5531,18 @@ in-class member function declarations.)
           /* Issue an error if the other member function template declaration
              has a type compatible with this one -- compare the routine
              types. */
-          a_type_ptr  tp = other_sym->variant.template_info->
-                                         variant.function.routine->type;
-          if (routine_types_are_compatible(tp, member_type, TCF_NO_FLAGS)) {
+          a_template_param_ptr			other_templ_param_list;
+          a_template_symbol_supplement_ptr	other_tssp;
+          a_type_ptr				tp;
+          other_tssp = template_supplement_for_symbol(other_sym);
+          tp = other_tssp->variant.function.routine->type;
+          other_templ_param_list =
+                 other_tssp->variant.function.decl_cache.decl_info->parameters;
+          if (equiv_template_param_lists(other_templ_param_list,
+                                         templ_param_list,
+                                         /*issue_errors=*/FALSE,
+                                         (a_source_position*)NULL) &&
+              routine_types_are_compatible(tp, member_type, TCF_NO_FLAGS)) {
             pos_sy_error(ec_member_function_redeclaration,
                          &locator->source_position, other_sym);
             set_to_named_error_locator(*locator);
@@ -8807,6 +8844,7 @@ static a_symbol_ptr class_member_declaration(
                         a_type_ptr             class_type,
                         a_class_def_state_ptr  class_state,
                         a_boolean              is_member_template,
+			a_template_param_ptr   templ_param_list,
                         a_boolean              *skip_semicolon_check,
                         a_type_ptr             *member_template_instance_type)
 /*
@@ -8814,7 +8852,8 @@ Scan a member declaration appearing inside a class definition.  class_type
 is the type of the class.  class_state points to a block of information
 tracking general information about the class.  *skip_semicolon_check is
 returned TRUE if the caller should suppress the check for a semicolon
-following the member declaration.
+following the member declaration.  templ_param_list is non-NULL for
+function template declarations.
 */
 {
   a_source_position    decl_start_pos;
@@ -9155,7 +9194,8 @@ following the member declaration.
       } else if (is_member_template) {
         /* Process the member function template. */
         decl_member_function_template(&locator, class_type, local_type,
-                                      &func_info, class_state, &decl_info);
+                                      templ_param_list, &func_info,
+                                      class_state, &decl_info);
         rout_sym = decl_info.member_sym;
         if (decl_info.is_constructor && (dso_flags & DSO_EXPLICIT)) {
           tssp = rout_sym->variant.template_info;
@@ -9431,11 +9471,14 @@ next_declaration:;
 }  /* class_member_declaration */
 
 
-a_symbol_ptr class_member_template_declaration(a_type_ptr  class_type)
+a_symbol_ptr class_member_template_declaration(
+				a_type_ptr		class_type,
+				a_template_param_ptr	templ_param_list)
 /*
 Scan a template function declaration that appears inside a class (or class
 template) definition.  class_type is the parent type, which may be a nonreal
-class (prototype instantiation of a class template).
+class (prototype instantiation of a class template).  templ_param_list
+is the template parameter list for the function template.
 */
 {
   a_class_def_state  *class_state_ptr;
@@ -9453,6 +9496,7 @@ class (prototype instantiation of a class template).
   class_state_ptr = scope_stack[scope_level].class_def_state;
   sym = class_member_declaration(class_type, class_state_ptr,
                                  /*is_member_template=*/TRUE,
+                                 templ_param_list,
                                  &skip_semicolon_check, &dummy_type);
   if (curr_routine_fixup != NULL) dispose_of_curr_routine_fixup();
   if (sym == NULL) {
@@ -9491,6 +9535,7 @@ decl_specifiers and declarator) is returned.
   curr_routine_fixup = NULL;
   (void)class_member_declaration(class_type, &class_state,
                                  /*is_member_template=*/FALSE,
+                                 (a_template_param_ptr)NULL,
                                  &skip_semicolon_check,
                                  &member_template_instance_type);
   curr_routine_fixup = saved_routine_fixup;
@@ -9902,6 +9947,7 @@ nested classes when their definition appears outside of the class template.
         }  /* if */
         (void)class_member_declaration(class_type, &class_state,
                                        /*is_template_member=*/FALSE,
+                                       (a_template_param_ptr)NULL,
                                        &skip_semicolon_check, &dummy_type);
         if (!skip_semicolon_check) {
           /* Check for and ignore the semicolon following the member

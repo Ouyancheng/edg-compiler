@@ -1107,7 +1107,8 @@ on a prior declaration.
     /* Look for a member function symbol of this type in the symbol table.
        It is an error if it is  not already there. */
     a_symbol_ptr	orig_sym = sym;
-    sym = member_function_redecl_sym(sym, type_ptr);
+    sym = member_function_redecl_sym(sym, type_ptr,
+                                     (a_template_param_ptr)NULL);
     if (sym == NULL && any_cfront_mode()) {
       /* In cfront it's okay to put a function qualifier on a member function
          definition.  If it's inappropriate, it's just ignored.  Do the same
@@ -1116,7 +1117,8 @@ on a prior declaration.
                                        type_ptr->variant.routine.extra_info;
       if (rtsp->implicit_this_param_type != NULL) {
         rtsp->implicit_this_param_type = NULL;
-        sym = member_function_redecl_sym(locator->specific_symbol, type_ptr);
+        sym = member_function_redecl_sym(locator->specific_symbol, type_ptr,
+                                         (a_template_param_ptr)NULL);
         if (sym != NULL) {
           pos_sy_warning(ec_not_compatible_with_previous_decl,
                          &locator->source_position, locator->specific_symbol);
