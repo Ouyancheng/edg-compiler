@@ -1308,6 +1308,7 @@ to the indicated kind (and the associated variant fields to safe values).
   sym_ptr->defined                        = FALSE;
   sym_ptr->explicit_linkage_specifier     = FALSE;
   sym_ptr->reentered_from_prototype_scope = FALSE;
+  sym_ptr->is_error                       = FALSE;
   set_symbol_kind(sym_ptr, kind);
 
   db_exit();
@@ -1364,11 +1365,10 @@ list.
     db_symbol(sym_ptr, "unlinking: ", 2);
   }  /* if */
 #endif /* CHECKING */
-
-  hdr_ptr = sym_ptr->header;
-  if (hdr_ptr == error_symbol_header) {
+  if (sym_ptr->is_error) {
     /* Error symbols are never added to a symbol list and cannot be removed. */
   } else {
+    hdr_ptr = sym_ptr->header;
     prev_ptr = hdr_ptr->symbol;
     if (sym_ptr == prev_ptr) {
       /* The symbol is the first on the header list. */
@@ -1406,7 +1406,7 @@ Remove the given symbol from the list of symbols for its scope.
   register a_symbol_ptr   ptr, prev_ptr;
   a_scope_stack_entry_ptr ssep;
 
-  if (sym_ptr->header == error_symbol_header) {
+  if (sym_ptr->is_error) {
     /* Error symbols are not on the scope list and cannot be removed. */
   } else if (sym_ptr->decl_scope == NO_SCOPE_NUMBER) {
     /* Symbols removed by a command-line -U option can be outside of any
@@ -1595,14 +1595,14 @@ the proper insert location.
   a_symbol_ptr                 insert_after;
   a_scope_depth                curr_depth;
 
-#if CHECKING
-  if (hdr_ptr == NULL) {
-    internal_error("link_symbol_into_symbol_table: NULL header pointer");
-  }  /* if */
-#endif /* CHECKING */
-  if (hdr_ptr == error_symbol_header) {
+  if (sym_ptr->is_error) {
     /* Error symbols are never added to the symbol table. */
   } else {
+#if CHECKING
+    if (hdr_ptr == NULL || hdr_ptr == error_symbol_header) {
+      internal_error("link_symbol_into_symbol_table: NULL or error header");
+    }  /* if */
+#endif /* CHECKING */
     insert_after = NULL;
     if (scope_depth == NO_SCOPE_DEPTH) {
       /* The symbol is being entered outside of any scope; this happens
@@ -1745,7 +1745,7 @@ changed if there is no error.
     ssep = &scope_stack[scope_depth];
     /* Put the proper scope number into the symbol entry. */
     sym_ptr->decl_scope = ssep->number;
-    if (sym_ptr->header == error_symbol_header) {
+    if (sym_ptr->is_error) {
       /* Error symbols are not added to the scope list. */
     } else {
       /* Add the symbol to the end of the symbols list for the scope. */
@@ -1793,6 +1793,7 @@ indicated in the locator is supposed to be ignored.
   /* Allocate and initialize the symbol. */
   sym_ptr = alloc_symbol(sym_kind, location->symbol_header,
                          &location->source_position);
+  sym_ptr->is_error = location->is_error;
   mark_declared(sym_ptr, &location->source_position,
                 /*save_as_decl_position=*/FALSE);  /* FALSE because done by
                                                       alloc_symbol. */
@@ -2317,12 +2318,14 @@ entered during initialization.
 {
   a_symbol_locator      location;
   register a_symbol_ptr sym_ptr;
+  a_source_position     pos;
 
   db_enter(4, "full_enter_symbol");
 
+  pos.seq = 0;
+  pos.column = SP_COL_UNKNOWN;
+  clear_locator(&location, &pos);
   (void)find_symbol(identifier, length, &location);
-  location.source_position.seq = 0;
-  location.source_position.column = SP_COL_UNKNOWN;
   sym_ptr = enter_symbol(sym_kind, &location, scope_depth,
                          /*suppress_error=*/FALSE);
 
@@ -5946,7 +5949,7 @@ End a name scope by popping an entry off the scope stack.
     unlink_symbol_from_symbol_table(sym);
     /* Put struct/union/class members and template parameters on the
        inactive list of the proper symbol header. */
-   if (kind == (a_scope_kind)sck_class_struct_union ||
+    if (kind == (a_scope_kind)sck_class_struct_union ||
         kind == (a_scope_kind)sck_template_declaration) {
       sym->next = sym->header->inactive_symbols;
       sym->header->inactive_symbols = sym;
@@ -6284,7 +6287,7 @@ should only be called if cross-reference information is being generated
 
   /* Ignore compiler-generated symbols and references whose position
      is the command line. */
-  if (sym_ptr->header != error_symbol_header &&
+  if (!sym_ptr->is_error &&
       sym_ptr->kind != (a_symbol_kind)sk_extern_variable &&
       sym_ptr->kind != (a_symbol_kind)sk_extern_routine &&
       source_position->seq != 0) {

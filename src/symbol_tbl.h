@@ -158,6 +158,10 @@ typedef struct a_symbol_locator {
 			/* TRUE for vacuous destructor references for 
 			   nonclass types such as int::~int or i::~i
 			   where "i" is a typedef name. */
+  unsigned int  is_error:1;
+			/* TRUE if an error has been diagnosed on the use
+			   of the associated identifier and no symbol should
+			   be entered into the symbol table. */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
 			   specific symbol for the qualified name.  Otherwise,
@@ -207,11 +211,18 @@ Clear a symbol locator.
    (locator)->source_position = *position;                            \
 }  /* clear_locator */
 
-/* Set a symbol locator to a dummy value indicating an error. */
-#define set_to_error_locator(loc) clear_locator(&(loc), &error_position)
+/* Mark a symbol locator to indicate an error and prevent its entry
+   into the symbol table. */
+#define set_to_error_locator(loc)                                     \
+{  clear_locator(&(loc), &error_position); (loc).is_error = TRUE; }
+
+/* Like set_to_error_locator, but preserving information about the
+   indentifier with which the locator is associated. */
+#define set_to_named_error_locator(loc)                               \
+{  (loc).is_error = TRUE; (loc).specific_symbol = NULL; }
 
 /* Test a locator to see if it is an error locator. */
-#define is_error_locator(loc) ((loc).symbol_header == NULL)
+#define is_error_locator(loc) ((loc).is_error)
 
 /* Retrieve a pointer to the symbol list from a locator. */
 #define symbol_list_from_locator(loc) ((loc).symbol_header->symbol)
@@ -925,6 +936,10 @@ typedef struct a_symbol {
 			/* TRUE if symbol was originally declared in a
 			   function prototype scope and was subsequently
 			   reentered in the function scope. */
+  unsigned int  is_error:1;
+			/* TRUE if the symbol represents an identifier for
+			   which an error has been diagnosed and which should
+			   not be entered into the symbol table. */
   union {
     /* When kind == sk_undefined or sk_parameter, no variant fields. */
     /* When kind == sk_keyword: */
