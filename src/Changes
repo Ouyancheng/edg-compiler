@@ -1,5 +1,14 @@
 Version 2.08
 
+7/22/92  Change _vec_new et al for cfront compatibility
+
+The calls to allocate, deallocate, construct, and destruct class array
+elements have been changed so that they are compatible with the
+cfront runtime.  _vec_new is called to allocate and/or construct an
+array, and _vec_delete is called to deallocate and/or destruct an array.
+_vec_cctor remains as it was; it implements at feature that cfront 2.1
+gives a "sorry, not implemented" for.
+
 7/20/92  Properly close intermediate language file.
 
 Fixed a bug where when the version contains a C generating back end, the
