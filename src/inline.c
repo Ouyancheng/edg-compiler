@@ -1732,8 +1732,9 @@ the routine so it can be inlined on calls from here on.
        the statement subtree and associated scopes for those if we
        wanted to be able to inline such things. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  } else if (!rtsp->prototyped) {
-    /* Old-style definitions cannot be inlined (C99 inline). */
+  } else if (!rtsp->prototyped && rtsp->param_type_list != NULL) {
+    /* Old-style definitions cannot be inlined (C99 inline).  They're
+       okay if they have no parameters. */
   } else {
     /* The routine looks like it can be inlined. */
     routine->inlinable = TRUE;
