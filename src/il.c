@@ -4846,8 +4846,7 @@ Initialize a dynamic_init entry of the kind specified.
   dip->variable   = NULL;
   dip->destructor = NULL;
   dip->lifetime   = NULL;
-  dip->prev_in_lifetime = NULL;
-  dip->dynamic_inits_unordered_with_respect_to_this_one = NULL;
+  dip->next_in_destruction_list = NULL;
   dip->init_expr_lifetime = NULL;
   dip->follows_an_exec_statement = FALSE;
   dip->inside_conditional_expression = FALSE;
@@ -4900,6 +4899,33 @@ list.
   ssep->last_dynamic_init = dip;
   dip->next = NULL;
 }  /* add_to_dynamic_inits_list */
+
+
+void record_end_of_lifetime_destruction(a_dynamic_init_ptr dip,
+                                        a_boolean          static_lifetime,
+                                        a_boolean          unordered)
+/*
+Add the given dynamic initialization entry to the file-scope dynamic_inits
+list.
+*/
+{
+  an_object_lifetime_ptr  olp;
+
+  if (dip->destructor != NULL) {
+    if (static_lifetime) {
+      olp = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->lifetime;
+    } else {
+      olp = curr_object_lifetime;
+    }  /* if */
+    dip->lifetime = olp;
+    if (olp->destructions == NULL) {
+      olp->destructions = dip;
+    } else {
+      dip->next_in_destruction_list = olp->destructions;
+      olp->destructions = dip;
+    }  /* if */
+  }  /* if */
+}  /* record_end_of_lifetime_destruction */
 
 
 static a_dynamic_init_ptr copy_dynamic_init(a_dynamic_init_ptr dip)
@@ -7041,13 +7067,13 @@ to it.
     num_object_lifetimes_allocated++;
 #endif /* DEBUG */
   }  /* if */
-  olp->entity.kind         = (a_byte_il_entry_kind)iek_none;
-  olp->entity.ptr          = NULL;
-  olp->dynamic_inits       = NULL;
-  olp->parent_lifetime     = NULL;
-  olp->parent_dynamic_init = NULL;
-  olp->child_lifetime      = NULL;
-  olp->next                = NULL;
+  olp->entity.kind                = (a_byte_il_entry_kind)iek_none;
+  olp->entity.ptr                 = NULL;
+  olp->destructions               = NULL;
+  olp->parent_lifetime            = NULL;
+  olp->parent_destruction_sublist = NULL;
+  olp->child_lifetime             = NULL;
+  olp->next                       = NULL;
   db_exit();
   return olp;
 }  /* alloc_object_lifetime */
@@ -7097,10 +7123,11 @@ void db_object_lifetime(an_object_lifetime_ptr  olp)
       fprintf(f_debug, "%sno next", str);
       str = ", ";
     }  /* if */
-    dip = olp->dynamic_inits;
-    fprintf(f_debug, "%sdynamic inits = %s\n", str,
+    dip = olp->destructions;
+    fprintf(f_debug, "%sdestructions = %s\n", str,
                      dip == NULL ? "<null>" : "");
     for (; dip != NULL; dip = dip->next) {
+      fputs("    ", f_debug);
       db_dynamic_initializer(dip, 4);
     }  /* if */
   }  /* if */
@@ -7301,7 +7328,7 @@ subscope region.
       parent->child_lifetime = olp;
       /* Record the current position in the dynamic inits list of the
          parent. */
-      olp->parent_dynamic_init = parent->dynamic_inits;
+      olp->parent_destruction_sublist = parent->destructions;
     }  /* if */
   }  /* if */
   /* Bind the object lifetime and the entity with which it is associated. */
@@ -7327,7 +7354,7 @@ with it.  Entries associated with scopes must also have no child entries.
 {
   a_boolean    is_useless = FALSE;
 
-  if (olp->dynamic_inits != NULL) {
+  if (olp->destructions != NULL) {
     /* Useless = FALSE. */
   } else {
     switch (olp->entity.kind) {
@@ -7381,7 +7408,7 @@ void make_object_lifetime_useless(an_object_lifetime_ptr  olp)
     internal_error("make_object_lifetime_useless: bad entity kind");
   }  /* if */
 #endif /* CHECKING */
-  olp->dynamic_inits = NULL;
+  olp->destructions = NULL;
 }  /* make_object_lifetime_useless */
 
 
@@ -7432,7 +7459,7 @@ void pop_object_lifetime(void)
       end_of_child_list = NULL;
       for (child = olp->child_lifetime; child != NULL; child = child->next) {
         child->parent_lifetime = parent;
-        child->parent_dynamic_init = olp->parent_dynamic_init;
+        child->parent_destruction_sublist = olp->parent_destruction_sublist;
         end_of_child_list = child;
       }  /* for */
       /* If there is a child list, promote it to parent. */
