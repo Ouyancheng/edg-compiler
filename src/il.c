@@ -2282,14 +2282,14 @@ bucket of the shareable_constants_table to use for the constant.
         a_field_ptr fp = cp->variant.ptr_to_member.variant.field;
         if (fp != NULL) hash_value = hash_name(&fp->source_corresp);
       }  /* if */
-      /* Work the type into the hash. */
-      hash_value += hash_type(cp->type) + 250;
+      hash_value += 250;
       break;
     default:
       hash_value = (a_constant_hash_value)(200 + cp->kind);
       break;
   }  /* switch */
-  if (cp->implicit_cast) {
+  if (cp->implicit_cast ||
+      cp->kind == (a_constant_repr_kind)ck_ptr_to_member) {
     /* Work the type into the hash.  This is important when you have lots of
        NULL pointer constants for a lot of different types. */
     hash_value += hash_type(cp->type);
