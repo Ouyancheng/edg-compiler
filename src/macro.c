@@ -1711,10 +1711,11 @@ static void adjust_length_for_magic_arg(a_repl_text_seq_kind kind,
 /*
 Check if the token pasting operator -- heading the replacement text sections
 pointed to by rtp -- is followed by an empty substitution of the variadic
-macro parameter.  If so, the last chunk of nonwhitespace characters should be
-removed.  This strange behavior is emulated only when extended variadic macros
-are enabled.  Some preprocessors (notably from the GNU project) implement this
-to work around the following problem:
+macro parameter.  If so, and if it is immediately preceded by a comma
+(optionally followed by white space), the comma is removed (along with any
+white space).  This strange behavior is emulated only when extended variadic
+macros are enabled.  Some preprocessors (notably from the GNU project)
+implement this to work around the following problem:
 	#define M(fmt, args) printf(fmt , ## args)
 	void f() { M("Hello.\n"); }
 Without the "deletion effect", the macro would generate an extraneous comma.
@@ -1740,18 +1741,14 @@ hence its name should not be changed.  *length is the value to be adjusted.
           map->raw_text[1] == LE_END_OF_INSERTION))) {
       /* The last macro parameter (presumably variadic) is empty or missing.
          So we adjust the section length to not include the last chunk of
-         nonwhitespace characters or if the "##" was preceded by a macro
-         parameter, the whole parameter is elided: */
+         white space characters preceded by a comma: */
       if (kind == rt_text) {
         char *back = rtp-1;
+        /* Skip preceding white space. */
         while (*back == ' ' || *back == '\t') { --back; }
-        while (*back != ' ' && *back != '\t' &&
-               (sizeof_t)(rtp-back) <= *length) {
-          --back;
-        }  /* while */
-        *length -= (rtp-back)-1;
-      } else {
-        *length = 0;
+        if (*back == ',') {
+          *length -= (rtp-back);
+        }  /* if */
       }
     }  /* if */
   }  /* if */
