@@ -10267,6 +10267,12 @@ given translation unit.
        For primary translation units, file_scope_number is already set to 0. */
     file_scope_number = take_next_scope_number();
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (!is_primary_translation_unit) {
+    /* Disable source sequence entries for secondary translation units. */
+    source_sequence_entries_disallowed = TRUE;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* symbol_tbl_trans_unit_init */
 
 

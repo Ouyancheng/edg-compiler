@@ -113,12 +113,12 @@ the primary translation unit IL.
   il_scope = curr_translation_unit->primary_scope;
 
   /* Reactivate the file scope. */
-  push_file_scope();
+  push_file_scope(/*is_reactivation=*/TRUE);
 
   /* Do the wrapup_scope processing on file and namespace scopes. */
   wrapup_scope(il_scope, (a_scope_kind)sck_file,
                &curr_translation_unit->file_scope_pointers_block,
-               /*is_namespace_wrapup=*/FALSE);
+               /*is_namespace_wrapup=*/TRUE);
   wrapup_namespace_scopes(il_scope);
 
   if (!C_mode()) {

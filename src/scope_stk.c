@@ -1245,6 +1245,7 @@ the scope being pushed.
 #if USER_CONTROL_OF_STRUCT_PACKING
   ssep->pragma_pack_is_local     = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  ssep->is_reactivation          = (options & PS_IS_REACTIVATION) != 0;
   ssep->il_scope                 = sp;
   ssep->assoc_type               = assoc_type;
   ssep->assoc_routine            = assoc_routine;
@@ -1703,13 +1704,21 @@ instantiation scopes.
 }  /* push_scope */
 
 
-void push_file_scope(void)
+void push_file_scope(a_boolean	is_reactivation)
 /*
 Activate or reactivate the file scope of the current translation unit.
+is_reactivation is TRUE if this is not the first push of the file
+scope.
 */
 {
-  (void)push_scope((a_scope_kind)sck_file, file_scope_number, (a_type_ptr)NULL,
-                   (a_routine_ptr)NULL);
+  a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
+
+  if (is_reactivation) ps_options |= PS_IS_REACTIVATION;
+  (void)push_scope_full(sck_file, file_scope_number,
+                        (a_type_ptr)NULL, (a_routine_ptr)NULL,
+                        (a_namespace_ptr)NULL, (a_symbol_ptr)NULL,
+                        (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL,
+                        (a_template_decl_info_ptr)NULL, ps_options);
   /* Add active using directives for the namespaces that should be
      visible because of the transitivity of using directives. */
   add_active_using_directives_for_scope(curr_translation_unit->primary_scope,
@@ -3790,7 +3799,7 @@ unit.
     }  /* if */
   }  /* if */
 #if RECORD_HIDDEN_NAMES_IN_IL
-  if (!C_mode() && total_errors == 0) {
+  if (!C_mode() && total_errors == 0 && is_primary_translation_unit) {
     if (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_block ||
         kind == (a_scope_kind)sck_file) {
@@ -3889,9 +3898,11 @@ unit.
            the inactive list. */
         continue;
       }  /* if */
-      if (kind == (a_scope_kind)sck_namespace && is_namespace_wrapup) {
-        /* Namespace symbols were removed from the symbol table when the
-           namespace was first closed.  Don't do it again now. */
+      if ((kind == (a_scope_kind)sck_namespace ||
+           kind == (a_scope_kind)sck_file) && is_namespace_wrapup) {
+        /* File scope and namespace scope symbols were removed from the
+           symbol table when the scope was first closed.  Don't do it again
+           now. */
       } else {
         /* Remove the symbol from the symbol table.  This is not done for
            namespace extension scopes because symbols from namespace extension
@@ -4266,10 +4277,10 @@ End a name scope by popping an entry off the scope stack.
      stack has been reallocated (e.g., by check_name_hiding_for_scope). */
   ssep = &scope_stack[depth_scope_stack];
   pointers_block = assoc_pointers_block_of(ssep);
-  /* For the file scope, this processing is done in file_scope_il_wrapup. */
-  if (ssep->kind != (a_scope_kind)sck_file) {
+  if (!(ssep->kind == (a_scope_kind)sck_file && ssep->is_reactivation)) {
     /* Remove symbols from the symbol table, and reenter them on the
-       inactive list if necessary. */
+       inactive list if necessary.  For the file scope, this is only done
+       the first time that it is popped. */
     wrapup_scope(ssep->il_scope, kind, pointers_block,
                  /*is_namespace_wrapup=*/FALSE);
   }  /* if */

@@ -991,7 +991,7 @@ when it is a secondary file.
      pointer to the scope in the translation unit entry.  This is done after
      the entry of keywords and predefined macros, because they do not belong
      to the file scope. */
-  push_file_scope();
+  push_file_scope(/*is_reactivation=*/FALSE);
   check_assertion(curr_translation_unit->primary_scope->number ==
                                                            file_scope_number);
   /* il_header fields that are per-translation-unit: */

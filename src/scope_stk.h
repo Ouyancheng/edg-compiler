@@ -44,6 +44,9 @@ typedef int a_push_scope_options_set;
 			   in which the template arguments are template
 			   dependent.  Only used for certain default template
 			   argument cases. */
+#define PS_IS_REACTIVATION		0x08
+			/* TRUE to indicate that a file scope is being
+			   reactivated. */
 
 /*
 Structure that is logically (and historically) part of a_scope_stack_entry,
@@ -332,6 +335,10 @@ typedef struct a_scope_stack_entry {
 			   effect -- i.e., does not affect the packing of
 			   structs declared outside the function body. */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  a_bit_field	is_reactivation:1;
+			/* File scopes can be pushed, popped, and then
+			   pushed again later.  This is TRUE when a file
+			   scope has been re-pushed. */
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be
@@ -888,7 +895,7 @@ extern a_scope_ptr push_scope(a_scope_kind       kind,
                               a_type_ptr         assoc_type,
                               a_routine_ptr      assoc_routine);
 
-extern void push_file_scope(void);
+extern void push_file_scope(a_boolean	is_reactivation);
 
 extern
 void push_template_declaration_scope(a_template_decl_info_ptr decl_info);
