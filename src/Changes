@@ -1,5 +1,14 @@
 Version 2.41
 
+1/22/99   C-generating back end: bit field base types
+
+When ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C is TRUE, the
+C-generating back end now puts out "signed int" or "unsigned int"
+for a plain "int" bit field, to take away the target compiler's
+choice of signedness.  (Actually, what's new is putting out "unsigned"
+in that case; "signed" was already put out.)  This also comes up for
+bit fields declared with enum type.
+
 1/22/99   C++-generating back end: virtual function calls, qualified names
 
 The C++-generating back end now never puts out a qualified name for a
