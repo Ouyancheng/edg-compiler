@@ -4078,6 +4078,13 @@ number after the last one filled.
        contains the functions declared in class_type that do not appear
        in the base classes with which the virtual function table is
        shared. */
+    /* Skip the entries on the override list that apply to the shared part
+       of the table. */
+    while (override_list != NULL &&
+           override_list->overriding_function->
+                                      virtual_function_number < entry_number) {
+      override_list = override_list->next;
+    }  /* while */
   }  /* if */
   /* Merge the list of virtual functions under class_whose_vtbl_is_being_made
      and the overrides from the base class (if any) to create each entry of
