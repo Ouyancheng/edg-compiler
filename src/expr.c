@@ -8401,6 +8401,7 @@ C-style casts and C++ functional-notation type conversions.
         do_operand_transformations(operand,
                                    TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                                   TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
+        convert_function_template_to_single_function_if_possible(operand);
       }  /* if */
       /* Check for casts that aren't valid in this kind of expression.
          Note that this check is done after the operand transformations
@@ -8819,6 +8820,7 @@ Syntax:
            be chosen by a cast to a pointer or pointer-to-member type. */
         do_operand_transformations(result,
                                   TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
+        convert_function_template_to_single_function_if_possible(result);
       }  /* if */
       /* Check for casts that aren't valid in this kind of expression.
          Note that this check is done after the operand transformations

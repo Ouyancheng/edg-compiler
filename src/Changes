@@ -1,5 +1,18 @@
 Version 3.1
 
+10/14/02 Cast of function template with explicit arguments
+
+A reference to a function template with explicit template arguments
+can often be used as if it were the name of a simple function.
+This was often accepted, but not in a case like the following where
+the cast has a different type than the implied function.  Now fixed.
+
+  typedef void (*FP)(int *);
+  template <class T> void doIt(T T_t) {}
+  int main() {
+    FP p = (FP)doIt<int>;  // Formerly got error (note int vs. int *)
+  }
+
 10/10/02 Missing precompiled header memory mismatch message
 
 When using --pch_verbose mode, messages for memory mismatches were not

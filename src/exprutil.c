@@ -8898,7 +8898,7 @@ is a "get" if put_operand is NULL.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void convert_function_template_to_single_function_if_possible(
+void convert_function_template_to_single_function_if_possible(
                                                            an_operand *operand)
 /*
 If operand is a reference to a function template with explicit template
@@ -8965,6 +8965,10 @@ function.  See Core Issue 115.
                                        &orig_operand.position,
                                        orig_operand.ref_entries_list,
                                        operand);
+      if (is_an_rvalue(&orig_operand)) {
+        conv_function_designator_to_ptr_to_function(operand,
+                                                    /*allow_ctor=*/FALSE);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* convert_function_template_to_single_function_if_possible */
