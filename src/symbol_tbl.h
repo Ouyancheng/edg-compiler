@@ -3568,7 +3568,8 @@ table processing that needs to be externally visible.
 EXTERN unsigned long
 		num_fast_id_lookups,
 		num_slow_id_lookups,
-		num_active_using_directives_allocated;
+		num_active_using_directives_allocated,
+      num_generated_entity_blocks_allocated;
 #endif /* DEBUG */
 
 extern a_symbol_ptr f_class_template_for_type(a_type_ptr	type);

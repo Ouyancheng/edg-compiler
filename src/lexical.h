@@ -166,6 +166,10 @@ typedef enum /*a_token_kind*/ {
   tok_charize,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_microsoft_asm,
+  /* Special named string constants available in C99 and Microsoft modes
+     (the "decorated" variant is only available in Microsoft mode). */
+  tok_function_name,
+  tok_decorated_function_name,
 #if NEAR_AND_FAR_ALLOWED
   tok_near,
   tok_far,
@@ -248,6 +252,8 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__uuidof", "__assume", "#@",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__asm",
+   "__FUNCTION__",
+   "__FUNCDNAME__",
 #if NEAR_AND_FAR_ALLOWED
     "__near", "__far",
 #endif /* NEAR_AND_FAR_ALLOWED */
@@ -584,6 +590,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_charize */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_microsoft_asm */
+   (an_opname_kind)onk_none,          /* tok_function_name */
+   (an_opname_kind)onk_none,          /* tok_decorated_function_name */
 #if NEAR_AND_FAR_ALLOWED
    (an_opname_kind)onk_none,          /* tok_near */
    (an_opname_kind)onk_none,          /* tok_far */

@@ -9918,6 +9918,9 @@ for space tracking purposes.
   db_space_used("exception spec err descr",
                 num_exception_spec_error_descrs_allocated,
                 an_exception_spec_error_descr);
+  db_space_used_general("generated entity blocks",
+                        num_generated_entity_blocks_allocated,
+                        a_generated_entity_block);
   grand_total = db_show_pch_space_used(grand_total);
   grand_total = db_show_template_space_used(grand_total);
   grand_total = db_show_routine_fixups_used(grand_total);

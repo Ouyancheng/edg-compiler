@@ -151,6 +151,24 @@ typedef struct a_name_hidden_by_old_for_init {
 } a_name_hidden_by_old_for_init;
 
 
+/* A set of pointers to constants that might be generated in a scope. */
+typedef struct a_generated_entity_block *a_generated_entity_block_ptr;
+typedef struct a_generated_entity_block {
+  a_variable_ptr
+		function_name;
+			/* Pointer to a constant string variable holding the
+			   name of the function currently being defined.
+			   Set only when the appropriate reserved identifier
+			   (e.g., __func__) is used in Microsoft or C99 mode;
+			   otherwise NULL. */
+  a_variable_ptr
+		decorated_function_name;
+			/* Same as "function_name", but the string variable
+			   entry holds the mangled name of the function
+			   currently being defined (Microsoft mode only). */
+} a_generated_entity_block;
+
+
 /* Scope stack, containing an entry for each currently-active scope. */
 typedef struct a_scope_stack_entry *a_scope_stack_entry_ptr;
 typedef struct a_scope_stack_entry {
@@ -385,6 +403,10 @@ typedef struct a_scope_stack_entry {
 			   with linkage have compatible but not identical
 			   types, and the outer-scope type must be restored
 			   at the end of the inner scope. */
+  a_generated_entity_block_ptr
+		generated_entities;
+			/* Set of constants generated in the current scope.
+			   (NULL if no such constants were generated.) */
   a_constant_ptr
 		shareable_constants_list;
 			/* List of shared constants for the current scope.

@@ -29,7 +29,7 @@ expr.c -- Expression scanning routines.
 #include "disambig.h"
 #include "decl_spec.h"
 #include "func_def.h"
-
+#include "lower_name.h"
 
 /* Forward declarations. */
 static void fix_up_dynamic_init_dtors(void);
@@ -11852,6 +11852,83 @@ These cases are handled here by coalescing two tokens.
 }  /* check_for_pcc_compound_assignment_operator */
 
 
+static void make_function_name_operand(an_operand *result,
+                                       a_boolean  decorated_name)
+/*
+Create an operand referring to a constant local static string variable
+containing the null-terminated name of the function.  If the variable has
+not yet been created for the current function, create it now.  The result
+is stored in *result.  If decorated_name is TRUE, the mangled name is
+returned instead of the unqualified function name.
+*/
+{
+  a_variable_ptr           name_var = NULL;
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_innermost_function_scope];
+
+  check_assertion(microsoft_mode ||
+                  (c99_mode && !decorated_name));
+  /* Check if this scope already has an associated generated entity block. */
+  if (ssep->generated_entities == NULL) {
+    ssep->generated_entities = (a_generated_entity_block_ptr)
+                                   alloc_fe(sizeof(a_generated_entity_block));
+#if DEBUG
+    ++num_generated_entity_blocks_allocated;
+#endif /* DEBUG */
+  }  /* if */
+  name_var = decorated_name ?
+                           ssep->generated_entities->decorated_function_name :
+                           ssep->generated_entities->function_name;
+  if (name_var == NULL) {
+    /* The required constant string variable has not yet been created for this
+       function.  Create it now. */
+    a_routine_ptr          rp = ssep->assoc_routine;
+    char                   *name_ptr =
+                              decorated_name ? get_mangled_function_name(rp) :
+                                               rp->source_corresp.name;
+    a_constant_ptr         name_string;
+    a_targ_size_t          length = strlen(name_ptr)+1;
+    a_memory_region_number region_to_switch_back_to;
+    /* Create an array of const char type. */
+    a_type_ptr             str_type = alloc_type((a_type_kind)tk_array);
+    str_type->variant.array.element_type =
+             make_qualified_type(integer_type(plain_char_int_kind), TQ_CONST);
+    str_type->variant.array.variant.number_of_elements = length;
+    set_type_size(str_type);
+    /* Make sure the string literal constant is allocated in file scope, so
+       that we can directly point to it as an initializer from the variable. */
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    name_string = alloc_constant((a_constant_repr_kind)ck_string);
+    switch_back_to_original_region(region_to_switch_back_to);
+    name_string->source_corresp.name =
+                                locator_for_curr_id.symbol_header->identifier;
+    name_string->source_corresp.is_local_to_function = TRUE;
+    name_string->type = str_type;
+    name_string->variant.string.length = length;
+    name_string->variant.string.value = alloc_text_of_string_literal(length);
+    (void)memcpy(name_string->variant.string.value, name_ptr, length);
+    /* Create the local static const array and initialize it with the
+       string constant. */
+    name_var = make_variable(name_string->type, (a_storage_class)sc_static,
+                             depth_scope_stack);
+    name_var->source_corresp.name =
+                                locator_for_curr_id.symbol_header->identifier;
+    name_var->source_corresp.is_local_to_function = TRUE;
+    name_var->init_kind = (an_init_kind)initk_static;
+    name_var->initializer.constant = name_string;
+    /* Remember the above construct for potential reuse. */
+    if (decorated_name && !C_mode()) {
+      ssep->generated_entities->decorated_function_name = name_var;
+    } else {
+      ssep->generated_entities->function_name = name_var;
+    }  /* if */
+  }  /* if */
+  /* Create an operand that refers to the implicit static variable. */
+  make_lvalue_variable_operand(name_var, result, (a_ref_entry_ptr)NULL);
+  result->state = (an_operand_state)os_lvalue;
+  result->type = name_var->type;
+}  /* make_function_name_operand */
+
+
 static void scan_expr_full(an_operand               *result,
                            an_operand               *bound_function_selector,
                            int                      prec_level,
@@ -11942,6 +12019,25 @@ see expr.h).
           make_this_variable_operand(this_var, /*is_implicit=*/FALSE,
                                      &local_result);
         }  /* if */
+      }  /* if */
+      (void)get_token();
+      break;
+    case tok_function_name:
+    case tok_decorated_function_name:
+      /* A magic identifier that expands to a string literal containing the
+         name of the current function in C99 and Microsoft modes.
+         (The "decorated" variant is recognized in Microsoft mode only and
+         expands to the mangled name). */
+      check_assertion(microsoft_mode ||
+                      (c99_mode && curr_token == tok_function_name));
+      if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+        /* We're not inside a function. */
+        str_error(ec_id_can_only_appear_in_function,
+                  locator_for_curr_id.symbol_header->identifier);
+        make_error_operand(&local_result);
+      } else {
+        make_function_name_operand(&local_result,
+                                   curr_token != tok_function_name);
       }  /* if */
       (void)get_token();
       break;

@@ -230,6 +230,9 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_inline, "inline");
     /* "__generic" is used in the implementation of type-generic functions. */
     enter_keyword((a_token_kind)tok_generic, "__generic");
+    /* __func__ (similar to __FUNCTION__ in Microsoft mode) is a named string
+       constant that is the name of the function currently being defined. */
+    enter_keyword((a_token_kind)tok_function_name, "__func__");
   }  /* if */
   /* __ALIGNOF__(type) returns the alignment requirement for a type.
      __INTADDR__(addr_expr) scans its argument as an initializer
@@ -279,6 +282,8 @@ Install the keywords in the symbol table.
     if (C_dialect == C_dialect_cplusplus) {
       enter_underscore_keywords((a_token_kind)tok_uuidof, "__uuidof");
     }  /* if */
+    enter_keyword((a_token_kind)tok_function_name, "__FUNCTION__");
+    enter_keyword((a_token_kind)tok_decorated_function_name, "__FUNCDNAME__");
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED

@@ -1236,6 +1236,7 @@ the scope being pushed.
   ssep->assoc_namespace          = assoc_namespace;
   ssep->vla_fixup_list           = NULL;
   ssep->extern_type_fixup_list   = NULL;
+  ssep->generated_entities       = NULL;
   ssep->shareable_constants_list = NULL;
   ssep->last_routine_fixup       = NULL;
   ssep->last_parameter           = NULL;
@@ -4253,6 +4254,11 @@ End a name scope by popping an entry off the scope stack.
     if (ssep->active_using_directives != NULL) {
       free_active_using_directive_list(ssep->active_using_directives);
       ssep->active_using_directives = NULL;
+    }  /* if */
+    /* Unlink scope-specific constants that might have been generated. */
+    if (ssep->generated_entities != NULL) {
+      ssep->generated_entities->function_name = NULL;
+      ssep->generated_entities->decorated_function_name = NULL;
     }  /* if */
     /* Do management related to the object lifetime stack.  Don't pop the
        file scope object lifetime yet, though, because we need it in IL
