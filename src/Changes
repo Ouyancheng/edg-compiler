@@ -1,5 +1,12 @@
 Version 2.27
 
+12/1/94  IL lowering of lvalue-returning operations
+
+In the case where an lvalue-returning "?" or "," operator is under
+a cast (e.g., one that adjusts const at some level), the type of the
+rewritten "?" or "," was incorrect (it was the type before the adjustment
+done by the cast).  Now fixed.
+
 11/30/94 Microsoft keyword support
 
 The front end optionally supports certain Microsoft keywords.  The
