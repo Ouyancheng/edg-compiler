@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -5344,7 +5344,6 @@ error with that, set *err TRUE as well.
           *processed = TRUE;
           (void)user_defined_conversion_possible(
                                             operand, eff_type_cast_to,
-                                            /*is_initialization=*/TRUE,
                                             /*is_copy_initialization=*/FALSE,
                                             /*need_lvalue_result=*/TRUE,
                                             /*is_reference_binding=*/TRUE,
@@ -5361,7 +5360,6 @@ error with that, set *err TRUE as well.
       if (!is_void_type(type_cast_to) &&
           !is_template_param_type(type_cast_to)) {
         if (user_defined_conversion_possible(operand, type_cast_to,
-                                             /*is_initialization=*/TRUE,
                                              /*is_copy_initialization=*/FALSE,
                                              /*need_lvalue_result=*/FALSE,
                                              /*is_reference_binding=*/FALSE,
@@ -10741,6 +10739,6 @@ this routine is called only when microsoft_mode is TRUE.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1996 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

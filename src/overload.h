@@ -409,7 +409,6 @@ extern void bind_member_function_operand_to_selector(
 extern a_boolean user_defined_conversion_possible(
                                         an_operand   *source_operand,
                                         a_type_ptr   dest_type,
-                                        a_boolean    is_initialization,
                                         a_boolean    is_copy_initialization,
                                         a_boolean    need_lvalue_result,
                                         a_boolean    is_reference_binding,
