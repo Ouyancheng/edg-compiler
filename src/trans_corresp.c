@@ -3946,7 +3946,7 @@ translation unit correspondence pointer if one is found.
             /* Don't consider symbols in noncorresponding scopes. */  
           } else if (!may_have_correspondence(sub_sym)) {
             a_source_correspondence_ptr  scp =
-                                         source_corresp_entry_for_symbol(sym);
+                                     source_corresp_entry_for_symbol(sub_sym);
             if (scp != NULL && !in_secondary_trans_unit(scp)) {
               /* The entity corresponding to sym doesn't have linkage, but
                  since it appears in the primary translation unit it could
