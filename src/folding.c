@@ -2338,7 +2338,7 @@ and *result is set to an integer 0 or 1 for the result.
      case. */
   if (op == (an_expr_operator_kind)eok_pmne) result_value = !result_value;
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
-  set_integer_constant(&result->variant.integer_value, result_value);
+  set_integer_value(&result->variant.integer_value, result_value);
 #if DEBUG
   if (debug_level  >= 5) {
     db_binary_operation(db_operator_names[op],
