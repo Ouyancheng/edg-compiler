@@ -9713,16 +9713,16 @@ non-NULL, *p_ms_attributes is returned NULL.
         field->get_property_name = decl_info->decl_modifiers.get_property_name;
         field->put_property_name = decl_info->decl_modifiers.put_property_name;
       }  /* if */
+    } else if (microsoft_mode &&
+               class_type->variant.class_struct_union.is_interface) {
+      /* Disallow real data members in interface types (property fields are
+         fine). */
+      pos_error(ec_interface_cannot_have_data_member,
+                &locator->source_position);
     }  /* if */
     if (decl_info->decl_modifiers.allocate_segname != NULL) {
       /* Only allowed for variables with static storage duration. */
       pos_error(ec_declspec_allocate_not_allowed, &locator->source_position);
-    }  /* if */
-    /* Disallow data members in interface types. */
-    if (microsoft_mode &&
-        class_type->variant.class_struct_union.is_interface) {
-      pos_error(ec_interface_cannot_have_data_member,
-                &locator->source_position);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -11227,10 +11227,10 @@ of its parent class.
 }  /* check_for_nonreal_nested_class */
 
 
-static a_boolean scan_access_specification(an_access_specifier  *access)
+static a_boolean scan_access_specification(a_class_def_state  *state)
 /*
-Check for an access specifier in the source.  If one is found, return TRUE
-and update *access accordingly.
+Check for an access specifier in a class definition (described by state).  If
+one is found return TRUE and update state->access accordingly.
 */
 {
   a_boolean  found = FALSE;
@@ -11241,13 +11241,20 @@ and update *access accordingly.
          curr_token == tok_protected) {
     found = TRUE;
     if (curr_token == tok_public) {
-      *access = (an_access_specifier)as_public;
+      state->access = (an_access_specifier)as_public;
     } else if (curr_token == tok_protected) {
-      *access = (an_access_specifier)as_protected;
+      state->access = (an_access_specifier)as_protected;
     } else {
-      *access = (an_access_specifier)as_private;
+      state->access = (an_access_specifier)as_private;
     }  /* if */
-    scope_stack[decl_scope_level].current_access = *access;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode &&
+        state->class_type->variant.class_struct_union.is_interface &&
+        (curr_token == tok_protected || curr_token == tok_private)) {
+      error(ec_interface_cannot_have_private_or_protected);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    scope_stack[decl_scope_level].current_access = state->access;
     /* Advance to the colon, which is required. */
     (void)get_token();
     if (curr_token == tok_colon) {
@@ -13386,8 +13393,8 @@ classes.
         if (C_dialect == C_dialect_cplusplus) {
           /* An access specification may appear anywhere amid the member
              declarations.  Check for it each time through the loop, and adjust
-             the value of access accordingly. */
-          if (scan_access_specification(&class_state.access)) {
+             the value of class_state.access accordingly. */
+          if (scan_access_specification(&class_state)) {
             /* An access specifier was found.  This next check catches cases
                like "...public: }". */
             if (curr_token == tok_rbrace) {

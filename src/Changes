@@ -1,5 +1,26 @@
 Version 3.4
 
+1/5/03   Microsoft compatibility: Restrictions on __interface types
+
+Two changes were made to the verification of restrictions on __interface
+types in Microsoft C++ modes.  First, the front end now accepts __interface
+types with property fields.  For example:
+
+  __interface I1 {
+    __declspec(property(get=Get, put=Put))
+      int i;  // Now accepted in Microsoft C++ mode (previously an error).
+    int Get(void);
+    void Put(int);
+  };
+
+Second, the front end now issues an error when "private" or "protected"
+specifiers appear in __interface types.  For example:
+
+  __interface I2 {
+  private:     // Now an error (previously accepted) in Microsoft C++ mode.
+    void f();
+  };
+
 12/27/03 C++-generating back end: removing non-public member typedefs
 
 The C++-generating back (with help from the il_to_str routines)
