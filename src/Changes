@@ -1,6 +1,38 @@
 Version 2.15
 
-3/3/93   Divide by zero when multiplying by (unsigned long)0
+3/3/93  Error on illegal function qualifier
+
+An error is now issued on all illegal function qualifiers -- e.g., when a
+static member function is declared to be "const".  Before a warning was
+issued in some cases.
+
+3/3/93  Disambiguation -- param list vs. arg list
+
+In response to what seems to be prevailing practice (and in the absence of
+decisive guidance from the ARM), we have changed our approach to
+disambiguating a list that could be either an argument list in a
+constructor call or a parameter list in a function declaration.  If
+necessary, we now look beyond the first list item in attempting to resolve
+the ambiguity.  Consider this example:
+
+  class A { /* ... */ };
+  static int i, j;
+  A x(int(i));            // still interpreted as a function declaration
+  A y(int(i),0);          // now interpreted as declaration of a variable
+                          //   with constructor initialization
+  A z(int(i),int(j));     // still interpreted as a function declaration
+
+In the declaration of "y" we used to reason that "int(i)" could be either
+a declaration or an expression and so must be a declaration; consequently
+"y" was taken to be function, and an error was issued on the second
+"parameter".  Now, we keep looking at subsequent items in the list until
+the ambiguity is resolved or the end of the list is reached.  In the case
+of "y" the ambiguity is resolved by the second item in the list, which
+cannot be a declaration.  If the end of the list is reached without
+resolution (as in the declaration of "z"), the ambiguity is resolved in
+favor of a declaration.
+
+3/3/93  Divide by zero when multiplying by (unsigned long)0
 
 Folding of a constant expression containing an unsigned multiply
 by zero caused a divide by zero error.  This error would occur only
