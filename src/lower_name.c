@@ -1466,7 +1466,11 @@ ignored if expr != NULL.
       add_str_to_mangled_name("af", mctl);
 #else /* IA64_ABI */
       /* Use a "vendor extended operator". */
-      add_str_to_mangled_name("v111__ALIGNOF__", mctl);
+      if (expr != NULL) {
+        add_str_to_mangled_name("v112__alignof__e", mctl);
+      } else {
+        add_str_to_mangled_name("v111__alignof__", mctl);
+      }  /* if */
 #endif /* IA64_ABI */
       break;
     case tpck_uuidof:
@@ -1474,7 +1478,11 @@ ignored if expr != NULL.
       add_str_to_mangled_name("uu", mctl);
 #else /* IA64_ABI */
       /* Use a "vendor extended operator". */
-      add_str_to_mangled_name("v18__uuidof", mctl);
+      if (expr != NULL) {
+        add_str_to_mangled_name("v19__uuidofe", mctl);
+      } else {
+        add_str_to_mangled_name("v18__uuidof", mctl);
+      }  /* if */
 #endif /* IA64_ABI */
       break;
     default:
