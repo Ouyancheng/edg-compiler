@@ -173,6 +173,18 @@ static a_based_type_fixup_ptr
 #if DEBUG
 static unsigned long
 		num_based_type_fixups_allocated;
+
+unsigned long db_show_based_type_fixups_used(unsigned long grand_total)
+/*
+Display memory use for based-type fixup entries.
+*/
+{
+  unsigned long  num, size, total;
+
+  db_space_used("based type fixups", num_based_type_fixups_allocated,
+                a_based_type_fixup);
+  return grand_total;
+}  /* db_show_based_type_fixups_used */
 #endif /* DEBUG */
 
 /*
@@ -10950,8 +10962,6 @@ Display and return the amount of space used for various IL tables.
 
   (void)fputc('\n', f_debug);
   db_space_used_other("get_based_type_calls", num_get_based_type_calls, "");
-  db_space_used_other("based type fixups",
-                      num_based_type_fixups_allocated, "");
   (void)fputc('\n', f_debug);
   db_space_used_other("num_shareable_constants", num_shareable_constants, "");
   db_space_used_other("Percent of buckets used",
