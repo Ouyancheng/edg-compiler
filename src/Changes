@@ -1,5 +1,20 @@
 Version 3.2
 
+3/28/03  Unnecessary VTT parameter on constructors/destructors, IA-64 ABI
+
+When the IA-64 ABI is used, IL lowering adds parameters to
+constructors and destructors.  One of those parameters is
+the so-called VTT parameter, which points to an array of
+virtual function table pointers used in subobject construction
+or destruction.  This parameter is necessary only when the
+class has virtual base classes, but IL lowering added it always.
+The parameter has now been removed on the internal constructors and
+destructors for classes without virtual base classes.  Note
+that the "internal" constructors and destructors, though external,
+are called only from the alternate entry points in the same
+translation unit, and therefore this change is not really an ABI
+change.
+
 3/28/03  Unnecessary wrapper routines for IA-64 ABI constructors
 
 In some cases when the IA-64 ABI is used, IL lowering generated

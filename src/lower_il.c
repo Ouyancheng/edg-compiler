@@ -7060,14 +7060,14 @@ not lowered at this time (see lower_constructor_code).
   class_type = type_pointed_to(first_param->type);
   class_type = skip_typerefs(class_type);
   prelower_class_type(class_type);
-#if !IA64_ABI
-  /* Add a parameter for each virtual base class.  See the ARM, top of
-     p. 296.  add_constructor_params does the similar processing for param
-     variables. */
   /* If you change this, see also unlowered_param_type_list_full,
      add_constructor_params, ctor_needs_implied_arg_list,
      make_ctor_implied_arg_list, var_for_copy_constructor_source,
      and add_constructor_wrapper_code. */
+#if !IA64_ABI
+  /* Add a parameter for each virtual base class.  See the ARM, top of
+     p. 296.  add_constructor_params does the similar processing for param
+     variables. */
   if (class_type->variant.class_struct_union.any_virtual_base_classes) {
     prev_param = first_param;
     for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
@@ -7088,10 +7088,12 @@ not lowered at this time (see lower_constructor_code).
     }  /* for */
   }  /* if */
 #else /* IA64_ABI */
-  /* Add the VTT parameter. */
-  added_param = alloc_param_type(make_virtual_table_table_pointer_type());
-  added_param->next = first_param->next;
-  first_param->next = added_param;
+  if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+    /* Add the VTT parameter. */
+    added_param = alloc_param_type(make_virtual_table_table_pointer_type());
+    added_param->next = first_param->next;
+    first_param->next = added_param;
+  }  /* if */
 #endif /* IA64_ABI */
 }  /* lower_constructor_routine_type */
 
@@ -7127,10 +7129,12 @@ not lowered at this time (see lower_destructor_code).
   added_param->next = first_param->next;
   first_param->next = added_param;
 #if IA64_ABI
-  /* Add the VTT parameter. */
-  added_param = alloc_param_type(make_virtual_table_table_pointer_type());
-  added_param->next = first_param->next->next;
-  first_param->next->next = added_param;
+  if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+    /* Add the VTT parameter. */
+    added_param = alloc_param_type(make_virtual_table_table_pointer_type());
+    added_param->next = first_param->next->next;
+    first_param->next->next = added_param;
+  }  /* if */
 #endif /* IA64_ABI */
 }  /* lower_destructor_routine_type */
 
@@ -15082,10 +15086,8 @@ scope.
   a_type_ptr             class_type, subobject_type;
   a_class_type_supplement_ptr
                          ctsp;
+#endif /* !IA64_ABI */
   a_routine_ptr          ctor_routine = scope->variant.routine.ptr;
-#else /* IA64_ABI */
-  a_variable_ptr         vtt_param_var;
-#endif /* IA64_ABI */
 
   prev_param_var = scope->variant.routine.parameters;
 #if !IA64_ABI
@@ -15113,11 +15115,13 @@ scope.
     }  /* for */
   }  /* if */
 #else /* IA64_ABI */
-  /* Add the VTT parameter. */
-  vtt_param_var = make_lowered_param_variable(
+  if (ctor_needs_vtt_argument(ctor_routine)) {
+    /* Add the VTT parameter. */
+    a_variable_ptr vtt_param_var = make_lowered_param_variable(
                                       make_virtual_table_table_pointer_type());
-  vtt_param_var->next = prev_param_var->next;
-  prev_param_var->next = vtt_param_var;
+    vtt_param_var->next = prev_param_var->next;
+    prev_param_var->next = vtt_param_var;
+  }  /* if */
 #endif /* IA64_ABI */
 }  /* add_constructor_params */
 
@@ -15144,11 +15148,13 @@ scope.
   complete_obj_param_var->next = this_param_var->next;
   this_param_var->next = complete_obj_param_var;
 #if IA64_ABI
-  /* Add the VTT parameter. */
-  vtt_param_var = make_lowered_param_variable(
+  if (dtor_needs_vtt_argument(scope->variant.routine.ptr)) {
+    /* Add the VTT parameter. */
+    vtt_param_var = make_lowered_param_variable(
                                       make_virtual_table_table_pointer_type());
-  vtt_param_var->next = complete_obj_param_var->next;
-  complete_obj_param_var->next = vtt_param_var;
+    vtt_param_var->next = complete_obj_param_var->next;
+    complete_obj_param_var->next = vtt_param_var;
+  }  /* if */
 #endif /* IA64_ABI */
 }  /* add_destructor_params */
 

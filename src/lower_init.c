@@ -1260,10 +1260,12 @@ for the source parameter of the copy constructor.
     }  /* for */
   }  /* if */
 #else /* IA64_ABI */
-  /* Skip over the VTT parameter. */
-  source_param_var = source_param_var->next;
-  check_assertion_str(source_param_var != NULL,
+  if (ctor_needs_vtt_argument(curr_routine)) {
+    /* Skip over the VTT parameter. */
+    source_param_var = source_param_var->next;
+    check_assertion_str(source_param_var != NULL,
                   "var_for_copy_constructor_source: source param missing (3)");
+  }  /* if */
 #endif /* IA64_ABI */
   return source_param_var;
 }  /* var_for_copy_constructor_source */
