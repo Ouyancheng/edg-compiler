@@ -5948,7 +5948,7 @@ is a template specialization declaration.
                                 (a_name_linkage_kind)nlk_cplusplus_external :
                                 (a_name_linkage_kind)nlk_internal;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (prototype_instantiations_in_il) {
+    if (prototype_instantiations_in_il && nonclass_prototype_instantiations) {
       /* Normally, we let add_to_routines_list determine which scope to add
          the routine to, but for proxy members nominated in friends, that
          would yield a nonexisting scope; instead we just put those on the
