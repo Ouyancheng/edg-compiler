@@ -94,6 +94,7 @@ Do required initialization for host-dependent things.
 #if CHECKING
   /* Check that CHAR_MIN is set right for the host char signedness. */
   { char c;
+    a_boolean bool;
 #if CHAR_MIN == 0
     /* Host should have unsigned characters. */
     c = (1 << CHAR_BIT) - 1;
@@ -103,13 +104,14 @@ Do required initialization for host-dependent things.
     c = -1;
     if (c > 0) internal_error("host_init: CHAR_MIN in basics.h is set wrong");
 #endif /* CHAR_MIN == 0 */
+    /* Make sure that AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG is
+      set correctly. */
+    bool = (AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG !=
+            ((BITS_IN_AN_INTEGER_VALUE) > (sizeof(long) * CHAR_BIT)));
+    if (bool) {
+      internal_error("host_init: AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG in target.h is set wrong");
+    }  /* if */
   }
-  /* Make sure that AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG is
-     set correctly. */
-  if (AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG !=
-      (BITS_IN_AN_INTEGER_VALUE > sizeof(long) * CHAR_BIT)) {
-    internal_error("host_init: AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG in target.h is set wrong");
-  }  /* if */
 #endif /* CHECKING */
 
 #if CHAR_MAX-CHAR_MIN != ((1 << CHAR_BIT) - 1)
@@ -559,38 +561,41 @@ Initialize target machine characteristics.
       internal_error(
                    "target_init: TARG_PTRDIFF_T_MIN in target.h is set wrong");
     }  /* if */
-  }
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-#if 0
-  /* Can't enable this yet. */
-  /* When using host integers to represent target integers, make sure the
-     host integer selected is large enough. */
-  if (TARG_SIZEOF_LARGEST_INTEGER > sizeof(an_integer_value)) {
-    internal_error("target_init: an_integer_value in target.h is too small");
-  }  /* if */
-#endif /* 0 */
+    /* When using host integers to represent target integers, make sure the
+       host integer selected is large enough. */
+    if (TARG_SIZEOF_LARGEST_INTEGER*TARG_CHAR_BIT >
+        sizeof(an_integer_value)*CHAR_BIT) {
+      internal_error("target_init: an_integer_value in target.h is too small");
+    }  /* if */
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-  /* When using the simulated large integer approach to represent target
-     integers, the sizes must be right. */
-  if (BITS_IN_HOST_LARGE_INTEGER != sizeof(a_host_large_integer)*CHAR_BIT) {
-    internal_error(
+    /* When using the simulated large integer approach to represent target
+       integers, the sizes must be right. */
+    bool = (BITS_IN_HOST_LARGE_INTEGER !=
+            sizeof(a_host_large_integer)*CHAR_BIT);
+    if (bool) {
+      internal_error(
            "target_init: BITS_IN_HOST_LARGE_INTEGER in target.h is set wrong");
-  }  /* if */
-  if (SIZEOF_INT_VALUE_PART > sizeof(an_int_value_part)) {
-    internal_error(
+    }  /* if */
+    bool = (SIZEOF_INT_VALUE_PART > sizeof(an_int_value_part));
+    if (bool) {
+      internal_error(
                 "target_init: SIZEOF_INT_VALUE_PART in target.h is set wrong");
-  }  /* if */
-  if (BITS_IN_INT_VALUE_PART != SIZEOF_INT_VALUE_PART*CHAR_BIT ||
-      2*BITS_IN_INT_VALUE_PART > BITS_IN_HOST_LARGE_INTEGER) {
-    internal_error(
+    }  /* if */
+    bool = (BITS_IN_INT_VALUE_PART != SIZEOF_INT_VALUE_PART*CHAR_BIT ||
+            2*BITS_IN_INT_VALUE_PART > BITS_IN_HOST_LARGE_INTEGER);
+    if (bool) {
+      internal_error(
                "target_init: BITS_IN_INT_VALUE_PART in target.h is set wrong");
-  }  /* if */
-  if (BITS_IN_INT_VALUE_PART*INT_VALUE_PARTS_PER_INTEGER_VALUE !=
-      TARG_SIZEOF_LARGEST_INTEGER*TARG_CHAR_BIT) {
-    internal_error(
-    "target_init: INT_VALUE_PARTS_PER_INTEGER_VALUE in target.h is set wrong");
-  }  /* if */
+    }  /* if */
+    bool = (BITS_IN_INT_VALUE_PART*INT_VALUE_PARTS_PER_INTEGER_VALUE !=
+            TARG_SIZEOF_LARGEST_INTEGER*TARG_CHAR_BIT);
+    if (bool) {
+      internal_error(
+      "target_init: INT_VALUE_PARTS_PER_INTEGER_VALUE in target.h is set wrong");
+    }  /* if */
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  }
 #endif /* CHECKING */
 #if TARG_CHAR_BIT != CHAR_BIT
 ??=error -- the target and host characters must have the same number of bits.
