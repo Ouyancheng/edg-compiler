@@ -779,9 +779,7 @@ The syntax is:
   if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
     /* The initializer of a static data member is scanned with the original
        class reactivated. */
-    (void)push_scope((a_scope_kind)sck_class_reactivation,
-                     symbol_ptr->decl_scope,
-                     symbol_ptr->class_of_which_a_member, (a_routine_ptr)NULL);
+    push_class_reactivation_scope(symbol_ptr->class_of_which_a_member);
   }  /* if */
   if (C_dialect == C_dialect_cplusplus &&
       is_class_struct_union_type(vp_type)) {
@@ -976,7 +974,7 @@ The syntax is:
   if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
     /* The initializer of a static data member was scanned with the original
        class reactivated.  Restore the scope to what it was before. */
-    pop_scope();
+    pop_class_reactivation_scope();
   }  /* if */
   if (put_init_in_variable) {
     /* There was no error that precludes initialization, so update the

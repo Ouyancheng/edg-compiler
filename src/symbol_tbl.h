@@ -937,6 +937,8 @@ extern a_scope_ptr push_scope(a_scope_kind   kind,
                               a_routine_ptr  assoc_routine);
 /* End a name scope. */
 extern void pop_scope(void);
+extern void push_class_reactivation_scope(a_type_ptr class_type);
+extern void pop_class_reactivation_scope(void);
 /* Record use information (for cross-reference, etc.). */
 extern void mark_declared(a_symbol_ptr      sym_ptr,
                           a_source_position *source_position,
