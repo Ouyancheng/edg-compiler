@@ -292,6 +292,10 @@ typedef int a_decl_flag_set;
 #define DO_REAL_DECLARATOR_SCANNED 0x2
 			/* If this bit was set a name was scanned, indicating
 			   a real, not abstract, declarator. */
+#define DO_PTR_TO_MEMBER_TYPEDEF 0x4
+			/* If this bit was set a nonstandard ptr-to-member
+			   typedef name, recognized in cfront-compatibility
+			   mode only, was seen. */
 /* Constants defining bits in the input bit vector used in calls to
    decl_specifiers. */
 #define DSI_NO_INPUT_FLAGS 0x0
