@@ -358,7 +358,7 @@ Write any common code needed in all C output files.
     startline((a_seq_number)0);
     fputs("#ifndef __GNUC__", f_C_output);
     startline((a_seq_number)0);
-    fputs("#define __inline__ static", f_C_output);
+    fputs("#define __inline__", f_C_output);
     startline((a_seq_number)0);
     fputs("#endif", f_C_output);
     startline((a_seq_number)0);
@@ -8524,12 +8524,10 @@ routine has a body (dump nothing if it has no body).
     /* Put out "inline" in a special way so it can be supported if the
        underlying C compiler recognizes it. */
     (void)fprintf(f_C_output, "__inline__ ");
-  } else {
-    dump_storage_class(routine->storage_class);
   }  /* if */
 #endif /* ifdef CFE */
-#ifdef FFE
   dump_storage_class(routine->storage_class);
+#ifdef FFE
   if (fortran_main) {
     /* Fortran main programs are put out as returning "int" even though
        the routine type says it returns void. */
