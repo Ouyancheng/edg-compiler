@@ -2195,6 +2195,38 @@ end_of_routine:
 }  /* full_demangle_identifier */
 
 
+static a_boolean is_mangled_type_name(char *ptr)
+/*
+Return TRUE if the encoding beginning at ptr appears to be a mangled
+type name.  This is used to distinguish a local mangled non-nested
+type name with template arguments (e.g., __15MyTemp__tm__2_i) from a
+cfront-style local name (e.g., __2name); the character passed in is
+the one after the double underscore.
+*/
+{
+  a_boolean is_type_name = FALSE;
+  char      *p = ptr;
+
+  if (isdigit((unsigned char)*p)) {
+    /* Skip over the number. */
+    do { p++; } while (isdigit((unsigned char)*p));
+    /* The next character must be alphabetic. */
+    if (isalpha((unsigned char)*p)) {
+      /* This doesn't have to be a full recognizer; it just has to distinguish
+         the two cases given above.  To do that, look for the double underscore
+         that must appear in a mangled name that has template arguments. */
+      for (p++; *p != '\0'; p++) {
+        if (p[0] == '_' && p[1] == '_') {
+          is_type_name = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return is_type_name;
+}  /* is_mangled_type_name */
+
+
 static char *demangle_static_variable_name(char                       *ptr,
                                            a_decode_control_block_ptr dctl)
 /*
@@ -2436,8 +2468,9 @@ length returned the second time will be correct).
       write_id_str(" for ", dctl);
       end_ptr = demangle_identifier(p+2, dctl);
     }  /* if */
-  } else if (start_of_id_is("__Q", id)) {
-    /* Nested class name. */
+  } else if (start_of_id_is("__Q", id) ||
+             (start_of_id_is("__", id) && is_mangled_type_name(id+2))) {
+    /* Mangled type name. */
     end_ptr = demangle_type_name(id+2, dctl);
   } else if (start_of_id_is("__STV__", id)) {
     /* Static variable made external by addition of prefix "__STV__" and

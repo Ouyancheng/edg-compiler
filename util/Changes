@@ -1,5 +1,19 @@
 Version 3.2
 
+2/20/03  Demangling of non-nested type names with template arguments,
+         Cfront-like ABI
+
+In version 3.1, the Cfront-like ABI mangling for a type that is
+not nested but does have template arguments changed to include
+leading underscores and a length.
+
+Old: MyTemp__tm__2_i
+New: __15MyTemp__tm__2_i
+
+These names are not external, and as such the demangler is not
+strictly speaking required to handle them.  However, it did handle
+the old form, so it has been updated to also handle the new form.
+
 2/19/03  Demangling of virtual function table names, Cfront-like ABI
 
 Certain mangled names of virtual function tables in the Cfront-like
