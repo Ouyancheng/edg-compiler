@@ -26,7 +26,6 @@ il.c -- Construction of intermediate language trees.
 #include "il_walk.h"
 #include "exprutil.h"
 #include "folding.h"
-#include "il_alloc.h"
 
 #if ALTERNATE_IL_FILE_FORMAT
 #include "il_file.h"
