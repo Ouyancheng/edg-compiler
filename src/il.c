@@ -972,6 +972,16 @@ Dump the contents of the indicated constant, for debug purposes.
   octl.gen_pcc_code = (C_dialect == C_dialect_pcc);
   octl.debug_output = TRUE;
 
+  /* If this is a template parameter, output its coordinates. */
+  if (cp->kind == (a_constant_repr_kind)ck_template_param) {
+    if (cp->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_param) {
+      fprintf(f_debug, "template-param#(%0lu,%0lu) ",
+       (unsigned long)cp->variant.template_param.variant.coordinates.depth,
+       (unsigned long)cp->variant.template_param.variant.coordinates.position);
+    }  /* if */
+  }  /* if */
+
   /* Output the constant. */
   form_constant(cp, /*need_parens=*/FALSE, &octl);
 }  /* db_constant */
