@@ -4494,25 +4494,66 @@ as the error position.
   return conflicts;
 }  /* conflicts_with_previous_function_decl */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
-#if !DECL_MODIFIERS_IN_USE
-/* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
-#endif /* !DECL_MODIFIERS_IN_USE */
+static void merge_decl_modifiers(a_type_ptr              class_type,
+                                 a_member_decl_info_ptr  decl_info,
+                                 a_boolean               is_definition)
+/*
+class_type is the type of the current class, in which the decl_modifiers
+field may have been set to indicate modifiers for the class as a whole, and
+a field in *decl_info represents the modifiers declared for the current member.
+Check for compatibility and update *decl_info based on the two.  is_definition
+is TRUE when this is called for a member function definition.
+*/
+{
+  a_decl_modifier  decl_modifiers, class_decl_modifiers;
+
+  class_decl_modifiers =
+          class_type->variant.class_struct_union.extra_info->decl_modifiers;
+  if (class_decl_modifiers != DM_NONE) {
+    check_assertion_str(class_decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT),
+                        "merge_decl_modifiers: unexpected class modifiers");
+    decl_modifiers = decl_info->decl_modifiers;
+    if (decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT)) {
+      /* If there are dll modifiers on the class, they cannot appear on the
+         member declaration, too. */
+      pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                     &decl_info->decl_start_pos,
+                     decl_modifier_names[(decl_modifiers & DM_DLLIMPORT ?
+                                           (int)dmt_dllimport :
+                                           (int)dmt_dllexport)]);
+      decl_modifiers &= ~(DM_DLLIMPORT | DM_DLLEXPORT);
+    }  /* if */
+    if (is_definition && (class_decl_modifiers & DM_DLLIMPORT)) {
+      /* Put no dll attribute on an inline member function. */
+    } else {
+      /* Merge the sets of flags. */
+      decl_modifiers |= class_decl_modifiers;
+    }  /* if */
+    decl_info->decl_modifiers = decl_modifiers;
+  }  /* if */
+}  /* merge_decl_modifiers */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 static void decl_member_function(a_symbol_locator        *locator,
                                  a_type_ptr              class_type,
                                  a_type_ptr              member_type,
                                  a_func_info_block_ptr   func_info,
                                  a_class_def_state_ptr   class_state,
                                  a_member_decl_info_ptr  decl_info,
-                                 a_boolean               compiler_generated,
-                                 a_decl_modifier         decl_modifiers)
+                                 a_boolean               compiler_generated)
 /*
 For a member function declaration:  create a symbol entry and a routine entry
 for the member function, add the symbol to the symbol table, and append the
 routine entry to the routines list for the current class.  *locator give the
 source locator of the declaration.  class_type points to the type entry of the
 class of which the function is a member, and member_type points to the type
-entry of the function itself.
+entry of the function itself.  *class_state and *decl_info track general
+information about the class definition and specific information about the
+member declaration, respectively.  compiler_generated is TRUE for implicitly
+declared member functions.
 */
 {
   a_symbol_ptr                  sym, overload_sym;
@@ -4793,10 +4834,16 @@ entry of the function itself.
          supplement. */
       cssp->destructor = sym;
     }  /* if */
-    update_routine_decl_modifiers(rtn, decl_modifiers,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* If decl-modifiers were declared for the class and/or for the
+       member, check for consistency and use the union of the two. */
+    merge_decl_modifiers(class_type, decl_info,
+                         (a_boolean)func_info->is_definition);
+    update_routine_decl_modifiers(rtn, decl_info->decl_modifiers,
                                   &locator->source_position,
                                   /*is_redecl=*/FALSE,
                                   (a_boolean)func_info->is_definition);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) db_symbol(sym, "", 4);
@@ -4979,10 +5026,18 @@ function declarations.)
         cssp->constructor = overload_sym;
       }  /* if */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#if 0
+    /* If decl-modifiers were declared for the class and/or for the
+       member, check for consistency and use the union of the two. */
+    merge_decl_modifiers(class_type, decl_info,
+                         (a_boolean)func_info->is_definition);
+#endif /* if 0 */
     update_routine_decl_modifiers(rtn, decl_modifiers,
                                   &locator->source_position,
                                   /*is_redecl=*/FALSE,
                                   (a_boolean)func_info->is_definition);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   *symbol_ptr = sym;
   db_exit();
@@ -5111,24 +5166,40 @@ specific information about the member declaration, respectively.
 }  /* decl_nonstd_member_constant */
 
 
-#if !DECL_MODIFIERS_IN_USE
-/* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
-#endif /* !DECL_MODIFIERS_IN_USE */
-static void decl_static_data_member(a_symbol_locator            *locator,
-                                    a_type_ptr                  class_type,
-                                    a_type_ptr                  member_type,
-                                    a_class_def_state_ptr       class_state,
-                                    a_source_sequence_entry_ptr ssep,
-                                    a_decl_modifier             decl_modifiers)
+static void decl_static_data_member(a_symbol_locator        *locator,
+                                    a_type_ptr              class_type,
+                                    a_type_ptr              member_type,
+                                    a_class_def_state_ptr   class_state,
+                                    a_member_decl_info_ptr  decl_info)
 /*
 Do processing for a static data member, including entering it in the symbol
-table.
+table.  *locator is the symbol-locator for the current declaration, class_type
+is the class of which it is a member, and *p_member_type is the type with
+which the member was declared.  *class_state and *decl_info track general
+information about the class definition and specific information about the
+member declaration, respectively.
 */
 {
   a_symbol_ptr    sym, prototype_tag_sym;
   a_variable_ptr  var;
 
   db_enter(3, "decl_static_data_member");
+  if (is_void_type(member_type)) {
+    error(ec_incomplete_type_not_allowed);
+    member_type = error_type();
+  }  /* if */
+  if (class_state->is_local_class) {
+    /* Static data members are not allowed in local classes. */
+    pos_error(ec_static_not_allowed, &decl_info->decl_start_pos);
+    /* Set the type for this invalid static member to error type. This will
+       assure "proper" (or unobtrusive) behavior later, if a definition is
+       encountered.  It also eliminates semi-spurious error messages if there
+       are references to it. */
+    member_type = error_type();
+  } else if (is_union_type(class_type)) {
+    /* Unions are not allowed to have static data members. */
+    pos_error(ec_static_not_allowed, &decl_info->decl_start_pos);
+  }  /* if */
   /* Create the variable entry for the static data member. */
   /* The storage class of static data members is sc_static until they are
      promoted to external linkage, at which time the storage class will
@@ -5144,6 +5215,7 @@ table.
   set_source_corresp(&var->source_corresp, sym);
   sym->variant.static_data_member.variable = var;
   set_class_membership(sym, &var->source_corresp, class_type);
+  decl_info->member_sym = sym;
   /* Static data members will have the same name linkage as the class of
      which they are members.  (In cfront mode that may mean internal linkage
      -- if and when its linkage is promoted to C++, the linkage of the static
@@ -5158,7 +5230,11 @@ table.
     var->storage_class = (a_storage_class)sc_extern;
   }  /* if */
   var->source_corresp.access = class_state->access;
-
+  if (class_state->access != (an_access_specifier)as_public) {
+    /* Strictly speaking, any nonpublic member prevents a class from being an
+       aggregate -- keep track. */
+    class_state->any_nonpublic_members = TRUE;
+  }  /* if */
   if (curr_token == tok_assign) {
     if ((is_const_qualified_type(member_type) &&
          is_integral_type(member_type)) ||
@@ -5184,7 +5260,7 @@ table.
   /* This is entered as a declaration rather than a definition, since the
      definition must appear outside the class definition. */
   record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
-                            ssep);
+                            decl_info->declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   (void)set_src_seq_secondary_decl_type((char *)var, member_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -5216,9 +5292,14 @@ table.
       }  /* if */
     }  /* if */
   }  /* if */
-  update_variable_decl_modifiers(var, decl_modifiers,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* If decl-modifiers were declared for the class and/or for the member,
+     check for consistency and use the union of the two. */
+  merge_decl_modifiers(class_type, decl_info, /*is_definition=*/FALSE);
+  update_variable_decl_modifiers(var, decl_info->decl_modifiers,
                                  &locator->source_position,
                                  /*is_redecl=*/FALSE);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Check for the case in which the type is or contains a routine type for
      which default arguments have been specified. */
   if (curr_routine_fixup != NULL &&
@@ -5815,12 +5896,8 @@ specified by decl_scope_level.
 }  /* check_anonymous_union_symbols */
 
 
-#if !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-/* ARGSUSED */ /* error_pos is only used with the anonymous union extension. */
-#endif /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS*/
 static a_boolean is_anonymous_union_decl(a_type_ptr              member_type,
-                                         a_member_decl_info_ptr  decl_info,
-                                         a_source_position       *error_pos)
+                                         a_member_decl_info_ptr  decl_info)
 /*
 A declaration has appeared in which there is no declarator.  Return TRUE if
 it is an anonymous union declaration.  If ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
@@ -5893,7 +5970,7 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
           pos_diagnostic(strict_ansi_error_severity, 
                          C_mode() ? ec_nonstd_unnamed_field :
                                     ec_nonstd_unnamed_member,
-                         error_pos);
+                         &pos_curr_token);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -6281,7 +6358,7 @@ respectively.
 
 static void decl_nonstatic_data_member(a_symbol_locator        *locator,
                                        a_type_ptr              class_type,
-                                       a_type_ptr              *member_type,
+                                       a_type_ptr              member_type,
                                        a_class_def_state_ptr   class_state,
                                        a_member_decl_info_ptr  decl_info)
 /*
@@ -6303,23 +6380,23 @@ specific information about the member declaration, respectively.
 
   db_enter(3, "decl_nonstatic_data_member");
   /* Do error checking on the type. */
-  check_field_type(locator, member_type, class_state, decl_info);
+  check_field_type(locator, &member_type, class_state, decl_info);
   /* Set the flag to record that at least one named field was encountered. */
   if (!decl_info->is_unnamed_field) class_state->any_named_fields = TRUE;
   if (!C_mode() && class_type->kind == (a_type_kind)tk_union) {
     /* An object of a class with a constructor, a destructor, or a user-
        defined assignment operator cannot be a member of a union. */
-    if (!is_valid_union_field(*member_type, &locator->source_position)) {
-      *member_type = error_type();
+    if (!is_valid_union_field(member_type, &locator->source_position)) {
+      member_type = error_type();
     }  /* if */
   }  /* if */
   /* Create the field entry. */
   field = alloc_field();
-  field->type = *member_type;
+  field->type = member_type;
   /* A colon next indicates a bit-field. */
   if (curr_token == tok_colon) {
     /* Scan the bit-field size and determine the bit-field type. */
-    scan_bit_field_size(&unnamed_field, member_type, &bit_field_size,
+    scan_bit_field_size(&unnamed_field, &member_type, &bit_field_size,
                         &bit_field_is_signed, locator);
     field->is_bit_field = TRUE;
     field->bit_size = (a_byte)bit_field_size;
@@ -6388,7 +6465,7 @@ specific information about the member declaration, respectively.
     /* In C++ we need to keep track of whether any members have reference
        type. */
     cssp = symbol_supplement_for_class(class_type);
-    if (is_reference_type(*member_type)) {
+    if (is_reference_type(member_type)) {
       cssp->any_ref_member = TRUE;
       /* Assignment by bitwise copy is not allowed when a class has reference
          type members. */
@@ -6401,9 +6478,9 @@ specific information about the member declaration, respectively.
      qualified, including recursively the members of any contained
      classes, structs, or unions.  This is useful for determination of
      modifiable lvalues (see 3.2.2.1). */
-  if (is_const_qualified_type(*member_type) ||
-      (is_class_struct_union_type(*member_type) &&
-       skip_typerefs(*member_type)->
+  if (is_const_qualified_type(member_type) ||
+      (is_class_struct_union_type(member_type) &&
+       skip_typerefs(member_type)->
                             variant.class_struct_union.any_const_member)) {
     class_type->variant.class_struct_union.any_const_member = TRUE;
     if (C_dialect == C_dialect_cplusplus) {
@@ -6417,10 +6494,10 @@ specific information about the member declaration, respectively.
     check_anonymous_union_symbols(member_sym, class_type,
                                   decl_info->is_nonstd_anonymous_union);
   }  /* if */
-  if (is_aggregate_or_union_type(*member_type)) {
+  if (is_aggregate_or_union_type(member_type)) {
     /* If the member's type is class, struct, or union -- or array of class,
        struct, or union -- there is additional checking to be done. */
-    a_type_ptr  tp = skip_typerefs(*member_type);
+    a_type_ptr  tp = skip_typerefs(member_type);
     if (is_array_type(tp)) {
       tp = skip_typerefs(underlying_array_element_type(tp));
     }  /* if */
@@ -6483,8 +6560,8 @@ specific information about the member declaration, respectively.
   }  /* if */
   if (!class_state->any_const_or_ref_fields &&
       !decl_info->is_anonymous_union && !decl_info->is_unnamed_field &&
-      (is_reference_type(*member_type) ||
-       is_const_qualified_type(*member_type))) {
+      (is_reference_type(member_type) ||
+       is_const_qualified_type(member_type))) {
     class_state->any_const_or_ref_fields = TRUE;
   }  /* if */
   class_state->is_first_field = FALSE;
@@ -6573,8 +6650,7 @@ operator should be created.  No routine body is generated at this time.
   /* Create a symbol and enter it in the symbol table, and create a routine
      entry and add it to the routines list for the current scope. */
   decl_member_function(&locator, class_type, rout_type, &func_info,
-                       class_state, decl_info, /*compiler_generated=*/TRUE,
-                       DM_NONE);
+                       class_state, decl_info, /*compiler_generated=*/TRUE);
   done_with_func_info(func_info);
   /* It can be that the head of symbols list for the scope has been
      modified (it may have been changed to an sk_overloaded_function, or
@@ -7367,48 +7443,6 @@ done:;
   db_exit();
 }  /* member_using_declaration */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static a_decl_modifier merge_decl_modifiers(a_type_ptr         class_type,
-                                            a_decl_modifier    decl_modifiers,
-                                            a_boolean          is_definition,
-                                            a_source_position  *pos)
-/*
-class_type is the type of the current class, in which the decl_modifiers
-field may have been set to indicate modifiers for the class as a whole, and
-decl_modifiers represents the modifiers declared for the current member.
-Check for compatibility and return a set of decl-modifier flags based on
-the two.  is_definition is TRUE when this is called for a member function
-definition.  pos is the error position.
-*/
-{
-  a_decl_modifier  class_decl_modifiers;
-
-  class_decl_modifiers =
-          class_type->variant.class_struct_union.extra_info->decl_modifiers;
-  if (class_decl_modifiers != DM_NONE) {
-    check_assertion_str(class_decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT),
-                        "merge_decl_modifiers: unexpected class modifiers");
-    if (decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT)) {
-      /* If there are dll modifiers on the class, they cannot appear on the
-         member declaration, too. */
-      pos_st_warning(ec_decl_modifiers_invalid_for_this_decl, pos,
-                     decl_modifier_names[(decl_modifiers & DM_DLLIMPORT ?
-                                           (int)dmt_dllimport :
-                                           (int)dmt_dllexport)]);
-      decl_modifiers &= ~(DM_DLLIMPORT | DM_DLLEXPORT);
-    }  /* if */
-    if (is_definition && (class_decl_modifiers & DM_DLLIMPORT)) {
-      /* Put no dll attribute on an inline member function. */
-    } else {
-      /* Merge the sets of flags. */
-      decl_modifiers |= class_decl_modifiers;
-    }  /* if */
-  }  /* if */
-  return decl_modifiers;
-}  /* merge_decl_modifiers */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr find_corresp_prototype_tag_sym(a_symbol_ptr  curr_sym)
 /*
@@ -7619,9 +7653,9 @@ and update *access accordingly.
 
 
 static void check_missing_declarator_in_member_declaration(
-                               a_type_ptr              class_type,
-                               a_type_ptr              member_type,
-                               a_member_decl_info_ptr  decl_info)
+                                           a_type_ptr              class_type,
+                                           a_type_ptr              member_type,
+                                           a_member_decl_info_ptr  decl_info)
 /*
 This routine is called while a member declaration is being scanned when a
 semicolon is encountered immediately after the declaration-specifiers.  In
@@ -7639,7 +7673,7 @@ moreover, several fields of *decl_info may be updated by this routine.
   /* Check first whether this is an anonymous union declaration. */
   if (storage_class == (a_storage_class)sc_unspecified &&
       !is_incomplete_type(member_type) &&
-      is_anonymous_union_decl(member_type, decl_info, &pos_curr_token)) {
+      is_anonymous_union_decl(member_type, decl_info)) {
     /* A C++ anonymous union -- "union { int i, j; };" */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
     /* It might also be an anonymous-union-like construct in C or C++, namely
@@ -8023,7 +8057,6 @@ following the member declaration.
   a_decl_flag_set      dso_flags;
   a_type_qualifier_set qualifiers;
   a_type_ptr           member_type;
-  a_decl_modifier      decl_modifiers;
   a_boolean            no_decl_specifiers;
   a_boolean            friend_specified;
   a_boolean            type_explicitly_specified, inline_specified;
@@ -8049,8 +8082,7 @@ following the member declaration.
      omitted, e.g., for a function member with implicit type. */
   add_stop_token(tok_colon);
   (void)decl_specifiers(dsi_flags, &dso_flags, &decl_info.storage_class,
-                        &member_type, &qualifiers,
-                        &decl_modifiers);
+                        &member_type, &qualifiers, &decl_info.decl_modifiers);
   decl_info.dso_flags = dso_flags;
   if ((dso_flags & DSO_DEFINES_SOMETHING) && !is_error_type(member_type)) {
 #if CHECKING
@@ -8304,7 +8336,7 @@ following the member declaration.
           decl_info.storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
         rout_sym = decl_friend_function(&locator, class_type, local_type,
-                                        &func_info, decl_modifiers);
+                                        &func_info, decl_info.decl_modifiers);
       } else {
         /* Must be a member function declaration. */
         if ((decl_info.is_constructor || decl_info.is_destructor) &&
@@ -8323,17 +8355,10 @@ following the member declaration.
              being an aggregate -- keep track. */
           class_state->any_nonpublic_members = TRUE;
         }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        /* If decl-modifiers were declared for the class and/or for the
-           member, check for consistency and use the union of the two. */
-        decl_modifiers = merge_decl_modifiers(class_type, decl_modifiers,
-                                              function_def_present,
-                                              &decl_start_pos);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Create a symbol for the member function. */
         decl_member_function(&locator, class_type, local_type, &func_info,
                              class_state, &decl_info,
-                             /*compiler_generated=*/FALSE, decl_modifiers);
+                             /*compiler_generated=*/FALSE);
         rout_sym = decl_info.member_sym;
         if (class_state->is_nonreal_instantiation) {
           /* During the prototype instantiation, save the token sequence
@@ -8490,8 +8515,6 @@ following the member declaration.
       discard_curr_construct_pragmas();
       break;
     } else if (decl_info.storage_class == (a_storage_class)sc_typedef) {
-      a_symbol_ptr        typedef_sym_ptr;
-
       check_assertion(C_dialect == C_dialect_cplusplus);
       if (decl_info.do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
         /* This looked like a cfront-style member function typedef.  Be sure
@@ -8510,7 +8533,7 @@ following the member declaration.
         warning(ec_missing_type_specifier);
       }  /* if */
       /* Typedef declaration. */
-      decl_typedef(&locator, local_type, class_type, &typedef_sym_ptr,
+      decl_typedef(&locator, local_type, class_type, &decl_info.member_sym,
                    decl_info.declarator_ssep);
       /* Note: access will have been set in decl_typedef. */
       if (class_state->access != (an_access_specifier)as_public) {
@@ -8523,7 +8546,7 @@ following the member declaration.
         /* Update the symbol pointer in the fixup entry -- it's needed when
            the default args are scanned (once the entire class has been
            scanned). */
-        curr_routine_fixup->symbol = typedef_sym_ptr;
+        curr_routine_fixup->symbol = decl_info.member_sym;
       }  /* if */
     } else if (mutable_specified &&
                is_const_qualified_type(local_type)) {
@@ -8546,39 +8569,11 @@ following the member declaration.
       }  /* if */
       if (decl_info.storage_class == (a_storage_class)sc_static) {
         /* Static data member. */
-        if (is_void_type(local_type)) {
-          error(ec_incomplete_type_not_allowed);
-          local_type = error_type();
-        }  /* if */
-        if (class_state->is_local_class) {
-          /* Static data members are not allowed in local classes. */
-          pos_error(ec_static_not_allowed, &decl_start_pos);
-          /* Set the type for this invalid static member to error type.
-             This will assure "proper" (or unobtrusive) behavior later, if a
-             definition is encountered.  It also eliminates semi-spurious
-             error messages if there are references to it. */
-          local_type = error_type();
-        } else if (is_union_type(class_type)) {
-          /* Unions are not allowed to have static data members. */
-          pos_error(ec_static_not_allowed, &decl_start_pos);
-        }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        /* If decl-modifiers were declared for the class and/or for the
-           member, check for consistency and use the union of the two. */
-        decl_modifiers = merge_decl_modifiers(class_type, decl_modifiers,
-                                              /*is_definition=*/FALSE,
-                                              &decl_start_pos);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        decl_static_data_member(&locator, class_type, local_type, class_state,
-                                decl_info.declarator_ssep, decl_modifiers);
-        if (class_state->access != (an_access_specifier)as_public) {
-          /* Strictly speaking, any nonpublic member prevents a class from
-             being an aggregate -- keep track. */
-          class_state->any_nonpublic_members = TRUE;
-        }  /* if */
+        decl_static_data_member(&locator, class_type, local_type,
+                                class_state, &decl_info);
       } else {
         /* Non-static data member (= field). */
-        decl_nonstatic_data_member(&locator, class_type, &local_type,
+        decl_nonstatic_data_member(&locator, class_type, local_type,
                                    class_state, &decl_info);
       }  /* if */
       if (C_dialect == C_dialect_cplusplus) {
