@@ -11268,7 +11268,7 @@ caller.
                               decl_state->decl_info);
     } /* if */
     if (decl_state->class_declared_in != NULL &&
-        do_dependent_name_processing) {
+        do_dependent_name_processing && decl_state->defines_something) {
       /* Create a routine fixup entry so that the body of this template
          (if present) and any default arguments will have their prototype
          instantiations done at the completion of the prototype instantiation
