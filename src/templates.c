@@ -3960,7 +3960,6 @@ template instance entry already associated with static_data_member_sym.
 Also, add the instance to the definitions list for the template.
 */
 {
-  a_template_instance_ptr           tip;
   a_scope_number                    corresp_prototype_decl_scope;
   a_type_ptr                        tp, member_type;
   a_symbol_ptr                      sym;
@@ -4009,26 +4008,27 @@ Also, add the instance to the definitions list for the template.
       }  /* if */
     }  /* for */
   }  /* if */
-#if CHECKING
-  if (sym == NULL) {
-    internal_error(
-               "find_static_data_member_template: no corresponding template");
+  check_assertion_str2(sym != NULL || total_errors != 0,
+                       "find_static_data_member_template:",
+                       "no corresponding template");
+  if (sym != NULL) {
+    /* sym is the template symbol with which static_data_member_sym is
+       associated.  Create a static data member def entry and set the pointers
+       to bind them all together. */
+    a_template_instance_ptr  tip = alloc_template_instance();
+    sym->variant.static_data_member.instance_ptr = tip;
+    tip->instance_sym = sym;
+    tip->template_sym = sym;
+    vp = static_data_member_sym->variant.static_data_member.variable;
+    /* Link the new entry to the start of the definition list of the static
+       data member template. */
+    tssp = sym->variant.static_data_member.instance_ptr->template_info;
+    tip->next = tssp->variant.static_data_member.definitions;
+    tssp->variant.static_data_member.definitions = tip;
+    /* Mark the variable entry as an instance of a static data member
+       template. */
+    vp->is_template_static_data_member = TRUE;
   }  /* if */
-#endif /* CHECKING */
-  /* sym is the template symbol with which static_data_member_sym is
-     associated.  Create a static data member def entry and set the pointers
-     to bind them all together. */
-  tip = static_data_member_sym->variant.static_data_member.instance_ptr;
-  tip->template_sym = sym;
-  vp = static_data_member_sym->variant.static_data_member.variable;
-  /* Link the new entry to the start of the definition list of the static
-     data member template. */
-  tssp = sym->variant.static_data_member.instance_ptr->template_info;
-  tip->next = tssp->variant.static_data_member.definitions;
-  tssp->variant.static_data_member.definitions = tip;
-  /* Mark the variable entry as an instance of a static data member
-     template. */
-  vp->is_template_static_data_member = TRUE;
   db_exit();
 }  /* find_static_data_member_template */
 

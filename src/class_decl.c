@@ -5559,11 +5559,11 @@ member declaration, respectively.
     /* A nonnull instance_ptr marks this static data member as a member of
        a (real or nonreal) instantiation of a class template. */
     if (!is_error_locator(*locator)) {
-      a_template_instance_ptr  tip = alloc_template_instance();
-      sym->variant.static_data_member.instance_ptr = tip;
-      tip->instance_sym = sym;
       if (class_state->is_nonreal_instantiation) {
         /* A member of a prototype instantiation. */
+        a_template_instance_ptr  tip = alloc_template_instance();
+        sym->variant.static_data_member.instance_ptr = tip;
+        tip->instance_sym = sym;
         tip->template_sym = sym;
         tip->template_info = alloc_template_symbol_supplement(
                                        (a_symbol_kind)sk_static_data_member);
