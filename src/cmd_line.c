@@ -308,7 +308,7 @@ to is the option letter.
     if (match) break;
   }  /* for */
   /* Record the fact that this option kind has been used. */
-  if (odp != NULL) option_kind_used[odp->kind] = TRUE;
+  if (odp != NULL) option_kind_used[(int)odp->kind] = TRUE;
   return odp;
 }  /* look_up_option_description */
 
@@ -878,26 +878,26 @@ Process the arguments on the command line that invoked the compiler.
   /* Check for the use of C++ options when the dialect being compiled
      is not C++. */
   if (C_dialect != C_dialect_cplusplus) {
-    if (option_kind_used[ok_cplusplus_anachronisms]) {
+    if (option_kind_used[(int)ok_cplusplus_anachronisms]) {
       command_line_error(ec_cl_anachronism_option_only_in_cplusplus);
     }  /* if */
-    if (option_kind_used[ok_suppress_virtual_function_table_definition]) {
+    if (option_kind_used[(int)ok_suppress_virtual_function_table_definition]) {
       command_line_error(ec_cl_vtbl_option_only_in_cplusplus);
     }  /* if */
-    if (option_kind_used[ok_template_instantiation_mode]) {
+    if (option_kind_used[(int)ok_template_instantiation_mode]) {
       command_line_error(ec_cl_instantiation_option_only_in_cplusplus);
     }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (option_kind_used[ok_automatic_template_instantiation]) {
+    if (option_kind_used[(int)ok_automatic_template_instantiation]) {
       command_line_error(ec_cl_auto_instantiation_option_only_in_cplusplus);
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-    if (option_kind_used[ok_implicit_template_inclusion]) {
+    if (option_kind_used[(int)ok_implicit_template_inclusion]) {
       command_line_error(ec_cl_implicit_inclusion_option_only_in_cplusplus);
     }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-    if (option_kind_used[ok_exception_handling]) {
+    if (option_kind_used[(int)ok_exception_handling]) {
       command_line_error(ec_cl_exceptions_option_only_in_cplusplus);
     }  /* if */
   }  /* if */
@@ -914,7 +914,7 @@ Process the arguments on the command line that invoked the compiler.
        give an error if allow anachronisms is the default -- quietly
        set the flag to not allow anachronisms. */
     if (allow_anachronisms) {
-      if (option_kind_used[ok_cplusplus_anachronisms]) {
+      if (option_kind_used[(int)ok_cplusplus_anachronisms]) {
         /* Anachronisms were enabled by a command line option. */
         command_line_error(ec_cl_strict_ansi_incompatible_with_anachronisms);
       } else {
