@@ -4128,9 +4128,8 @@ Generate code for a new or delete operation.
          :: new (arg2, arg3, ...) type(initializer)
        Everything except "new" and the type is optional. */
     write_tok_str("new ");
-    if (arg->next != NULL) {
-      /* More than one argument, so this is a "placement" new.  Put out
-         arguments 2-n inside parentheses. */
+    if (ndsp->placement_new) {
+      /* A "placement" new.  Put out arguments 2-n inside parentheses. */
       gen_argument_list(arg, routine->type, /*skip_num=*/1);
       write_space();
     }  /* if */
