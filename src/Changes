@@ -75,7 +75,9 @@ Support for the complex unary minus operator had accidentally been left out
 of version 2.45 of the C++-generating back end.  This caused internal errors
 when the operator had to be rendered.
 
-  _Complex double a = __I__, b = -a;  // Used to trigger an internal error.
+  void f() {
+    _Complex double a = __I__, b = -a;  // Used to trigger an internal error.
+  }
 
 This is now fixed.
 
