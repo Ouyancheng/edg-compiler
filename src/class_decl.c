@@ -403,9 +403,26 @@ routine recursively for each nested class.
 #endif /* DEBUG */
     /* Reactivate the class. */ 
     push_class_reactivation_scope(class_type);
-    /* Go through all the routine fixup entries created for the class. */
-    for (; rfp != NULL; rfp = next_rfp) {
-      /* First scan the default arg expressions, if there are any. */
+    /* Go through all the routine fixup entries created for the class twice,
+       once for the default arguments, then for the function bodies.  This
+       is desirable to control dependencies, e.g.:
+         class A {
+           void f1() { f2(); }
+           void f2(int i=1) {}
+         };
+       Here we want to know about the default arguments for f2 before
+       processing the call to it in the body of f1. */
+#if 0
+    /* This does not, however, fix dependency problems in a case like this:
+         class A {
+           int f1(int i=f2()) { return i; }
+           static int f2(int i=1) { return i; }
+         };
+    */
+#endif /* if 0 */
+    /* First go though the routine fixup entries and scan the default
+       argument expressions. */
+    for (; rfp != NULL; rfp = rfp->next) {
       daefp = rfp->def_arg_expr_fixup_list;
       if (daefp != NULL) {
         /* The function prototype scope should be reactivated and its symbols
@@ -444,7 +461,10 @@ routine recursively for each nested class.
         /* Pop the reactivated function prototype scope off the stack. */
         pop_scope();
       }  /* if */
-      /* Now scan the inline function body, if there is one. */
+    }  /* for */
+    /* Now go through the routine fixup entries a second time to scan inline
+       function bodies. */
+    for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = next_rfp) {
       if (rfp->function_body_token_cache.first_token != NULL) {
         /* Let get_token know about the cache. */
         rescan_cached_tokens(&rfp->function_body_token_cache);
