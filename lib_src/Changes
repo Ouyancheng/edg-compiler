@@ -11,12 +11,13 @@ and results in an abort in __main_called_more_than_once.
 The Working Paper specifies that an exception is "uncaught" from the
 time that the object to be thrown is completely evaluated until the time
 that the initialization of the catch parameter is complete.  The EH runtime
-has been updated to conform to this definition.  Two new routines have
-been added that are called by the code generated when the portable
-EH mechanism is being used:  __exception_started is called after the
-thrown object has been evaluated, but before the copy constructor
-call (if any) that copies the object to the EH temporary;  __exception_caught
-is called from the catch handler to mark the completion of the throw.
+has been updated to conform to this definition when using ABI versions
+2.33 and newer.  Two new routines have been added that are called by the
+code generated when the portable EH mechanism is being used:
+ __exception_started is called after the thrown object has been evaluated,
+but before the copy constructor call (if any) that copies the object to
+the EH temporary;  __exception_caught is called from the catch handler to
+mark the completion of the throw.
 
 9/25/96 uncaught_exception routine has been added
 
