@@ -1656,11 +1656,13 @@ Syntax:
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
   if (call_may_be_folded && !call_folded_to_constant &&
       curr_expr_kind_is_const()) {
     /* Unfolded routine calls are not allowed in constant expressions. */
     error_in_operand(ec_bad_constant_function_call, result);
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);
   db_exit();
