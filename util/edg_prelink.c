@@ -813,6 +813,7 @@ reset between iterations of the prelinker.
   pifp->command_line = NULL;
   pifp->compilation_directory = NULL;
   pifp->compilation_file_name = NULL;
+  pifp->secondary_files = NULL;
   pifp->instantiation_directory = NULL;
 }  /* reset_pl_input_file */
 
