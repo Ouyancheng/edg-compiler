@@ -2088,7 +2088,7 @@ end_scan_for_macro_modifs:;
         /* Also GNU __BASE_FILE__. */
         if (macro_symbol == base_file_macro_symbol) {
           /* __BASE_FILE__.  Use the primary source file name. */
-          file_name = il_header.primary_source_file->file_name;
+          file_name = curr_translation_unit->source_file->file_name;
         } else {
           /* __FILE__.  Use the current source file name. */
           /* Convert the sequence number to a file name. */
