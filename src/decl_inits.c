@@ -2118,7 +2118,7 @@ the default constructor (if one exists) is called.
   a_boolean                         def_init_performed = FALSE;
   a_variable_ptr                    var = NULL;
   a_type_ptr                        var_type, tp;
-  a_class_symbol_supplement_ptr     cssp;
+  a_class_symbol_supplement_ptr     cssp = NULL;
   a_dynamic_init_ptr                init_dip, orig_init_dip;
   a_routine_ptr                     ctor = NULL, dtor = NULL;
   a_boolean                         static_lifetime;
@@ -2143,13 +2143,15 @@ the default constructor (if one exists) is called.
     if (is_array_type(tp)) {
       tp = skip_typerefs(underlying_array_element_type(tp));
     }  /* if */
-    /* Default initialization is done only for objects that are defined in
-       the current translation unit (i.e., storage class other than "extern")
-       and that require constructor initialization. */
-    if (is_class_struct_union_type(tp) &&
+    if (is_class_struct_union_type(tp)) {
+      /* Default initialization is done only for objects that are defined
+         in the current translation unit (i.e., storage class other than
+         "extern") and that require constructor initialization. */
+      cssp = symbol_supplement_for_class(tp);
+    }  /* if */
+    if (cssp != NULL && !cssp->is_POD &&
         var->storage_class != (a_storage_class)sc_extern &&
-        !is_incomplete_type(var_type) &&
-        (!is_const || type_has_user_declared_default_constructor(tp))) {
+        !is_incomplete_type(var_type) && !cssp->is_POD) {
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
         /* Perform the default initialization of a static data member with
            its parent class reactivated. */
@@ -2167,21 +2169,29 @@ the default constructor (if one exists) is called.
           push_namespace_reactivation_scope(sym->parent.namespace_ptr);
         }  /* if */
       }  /* if */
-      cssp = symbol_supplement_for_class(tp);
       if (cssp->constructor != NULL) {
-        ctor = select_default_constructor(tp, err_pos, tp, /*evaluated=*/TRUE);
-        /* Even if ctor is NULL (as a result of failing to find a default
-           constructor) we still set def_init_performed as though default
-           initialization were done even though it wasn't -- this will
-           prevent a redundant diagnostic from being issued. */
-        def_init_performed = TRUE;
+        /* There are user-declared constructor(s) and/or implicitly-declared
+           nontrivial constructors.  Look for a default constructor. */
+        ctor = select_default_constructor(tp, err_pos, tp,
+                                          /*evaluated=*/TRUE);
+        if (is_const && ctor != NULL && ctor->compiler_generated) {
+          /* A default constructor was found, but it isn't a user-declared
+             constructor.  No initialization is performed, and an error
+             will be issued later. */
+        } else {
+          /* Even if ctor is NULL (as a result of failing to find a default
+             constructor) we still set def_init_performed as though default
+             initialization were done even though it wasn't -- this will
+             prevent a redundant diagnostic from being issued. */
+          def_init_performed = TRUE;
+        }  /* if */
       } else if (!is_const) {
-        /* There is no user-declared or nontrivial implicitly declared default
-           constructor.  However, the language definition says that a
-           non-const object is "default initialized", which means the trivial
-           default constructor will be called.  We apply the as-if rule and
-           suppress the call (since it's a no-op), but the definition still
-           needs to be generated, since it may have side-effects. */
+        /* There is no user-declared or nontrivial implicitly declared
+           default constructor.  However, the language definition says an
+           object is "default initialized", which means the trivial default
+           constructor will be called.  We apply the as-if rule and suppress
+           the call (since it's a no-op), but the definition still needs to
+           be generated, since it may have side-effects. */
         if (reference_to_trivial_default_constructor(tp, err_pos)) {
           def_init_performed = TRUE;
         }  /* if */
@@ -3512,7 +3522,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
   a_name_linkage_kind  name_linkage;
   a_boolean            init_required;
   a_base_class_ptr     bcp;
-  a_boolean            is_empty_class = FALSE;
+  a_boolean            is_empty_POD_class = FALSE;
   an_error_severity    severity;
   a_boolean            is_incomplete_array = FALSE;
 
@@ -3537,13 +3547,15 @@ are created by a new expression (in which case sym is NULL).  In both cases
       type = underlying_array_element_type(type);
     }  /* if */
     if (C_dialect == C_dialect_cplusplus &&
-        is_class_struct_union_type(type) &&
-        !symbol_supplement_for_class(type)->any_nonstatic_data_members) {
-      /* Uninitialized const object that is an "empty" class (i.e., one with
-         no nonstatic data members).  The WP probably requires initialization
-         of const objects even when they are empty.  Other C++ compilers don't
-         enforce such a restriction, however. */
-      is_empty_class = TRUE;
+        is_class_struct_union_type(type)) {
+      a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(type);
+      if (!cssp->any_nonstatic_data_members && cssp->is_POD) {
+        /* Uninitialized const object that is an "empty" POD class (i.e.,
+           one with no nonstatic data members).  The WP probably requires
+           initialization of const objects even when they are empty.  Other
+           C++ compilers don't enforce such a restriction, however. */
+        is_empty_POD_class = TRUE;
+      }  /* if */
     }  /* if */
     if (vp != NULL) {
       /* Uninitialized const variable.  In C++ this is permitted only for
@@ -3557,11 +3569,12 @@ are created by a new expression (in which case sym is NULL).  In both cases
               decl_scope_level <= depth_innermost_namespace_scope)) {
            /* In C++ const qualified variables that are internally linked
               must be initialized (ARM 7.1.6). */
-           if (is_empty_class && !strict_ansi_mode && !is_incomplete_array) {
+           if (is_empty_POD_class && !strict_ansi_mode &&
+               !is_incomplete_array) {
              /* Except in strict mode, don't bother issuing a diagnostic on
                 something like "const struct S { } s;". */
            } else {
-             if (is_empty_class && !is_incomplete_array) {
+             if (is_empty_POD_class && !is_incomplete_array) {
                severity = strict_ansi_error_severity;
              } else {
                severity = es_error;
@@ -3592,7 +3605,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
       /* Uninitialized const new-object.  Issue a discretionary error.  If
          it's an empty class, issue a discretionary error in strict mode,
          otherwise a warning. */
-      if (is_empty_class &&
+      if (is_empty_POD_class &&
           (!strict_ansi_mode ||
            (strict_ansi_error_severity != (an_error_severity)es_error &&
             strict_ansi_error_severity != (an_error_severity)
