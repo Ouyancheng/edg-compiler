@@ -920,42 +920,38 @@ the label are promoted to the lifetime of the function scope.
     }  /* if */
     /* Loop through any olk_block_after_label lifetimes that may belong to the
        block that is being terminated. */
-    promote_from = curr_object_lifetime;
-    while (promote_from != block_olp) {
-      check_assertion(promote_from->kind ==
+    while (curr_object_lifetime != block_olp) {
+      check_assertion(curr_object_lifetime->kind ==
                             (an_object_lifetime_kind)olk_block_after_label);
-      if (promote_from->destructions != NULL) {
-        /* This subblock has destructions, so its lifetime will be retained
-           in the IL.  This means its olk_block will be retained, too. */
-        keep_block_object_lifetime = TRUE;
-        /* Continue on. */
+      promote_from = curr_object_lifetime;
+      promote_to = curr_object_lifetime->parent_lifetime;
+      /* Pop the block-after-label object lifetime.  If, after it's popped,
+         it's no longer in the IL, we'll need to promote pointers that
+         reference it. */
+      if (pop_object_lifetime()) {
+        /* Popping the object lifetime did not result in its being removed
+           from the IL, so labels and gotos that reference it don't need to
+           have their pointers updated.  This means the block lifetime will
+           be retained. */
+        keep_block_object_lifetime = FALSE;
       } else {
-        /* Find the innermost olk_block_after_label lifetime in the chain
-           that will be kept in the IL.  Stop at the lifetime for the block
-           itself. */
-        promote_to =
-              innermost_block_object_lifetime(promote_from->parent_lifetime);
-        while (promote_to != block_olp && promote_to->destructions == NULL) {
-          promote_to =
-               innermost_block_object_lifetime(promote_to->parent_lifetime);
-        }  /* while */
-        /* Now do the promotions. */
+        /* Promote the label and goto lifetime pointers. */
         promote_label_and_goto_lifetimes(block_cfdp, promote_from, promote_to);
       }  /* if */
-      /* Advance promote_from to the next in the parent chain. */
-      promote_from =
-               innermost_block_object_lifetime(promote_from->parent_lifetime);
+      check_assertion(promote_to == curr_object_lifetime);
     }  /* while */
     /* At this point all the promotions have been done for the subblocks
        created by label declarations.  Now do the top-level lifetime of the
        block -- if required. */
-    if (!keep_block_object_lifetime) {
+    if (!keep_block_object_lifetime && is_useless_object_lifetime(block_olp)) {
       promote_to = block_olp->parent_lifetime;
       check_assertion_str2(
-                     block_olp->kind == (an_object_lifetime_kind)olk_block ||
-                     block_olp->kind == (an_object_lifetime_kind)olk_try_block,
-                     "fixup_curr_block_labels_and_gotos:",
-                     "bad parent of curr block lifetime");
+                    promote_to->kind == (an_object_lifetime_kind)olk_block ||
+                    promote_to->kind ==
+                            (an_object_lifetime_kind)olk_block_after_label ||
+                    promote_to->kind == (an_object_lifetime_kind)olk_try_block,
+                    "fixup_curr_block_labels_and_gotos:",
+                    "bad parent of curr block lifetime");
       promote_label_and_goto_lifetimes(block_cfdp, block_olp, promote_to);
       /* Null out the lifetime pointer in the block control frow entry.  "NULL"
          means that the lifetimes of any labels or statements within are
@@ -2323,7 +2319,7 @@ the block statement.
     /* cfront mode dependent statement. */
     /* Pop the statement stack. */
     pop_stmt_stack();
-    pop_object_lifetime();
+    (void)pop_object_lifetime();
   } else {
     /* Store the IL scope pointer in the block.  This is NULL except for
        blocks with declarations. */
@@ -2731,7 +2727,7 @@ where handler-seq is a sequence of one or more handlers of the form
       catch_pos = pos_curr_token;
     } while (loop_token(tok_catch));
   }  /* if */
-  pop_object_lifetime();
+  (void)pop_object_lifetime();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
 
