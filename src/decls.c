@@ -2657,7 +2657,9 @@ created; the caller must set it.
         if (sym->kind == (a_symbol_kind)sk_extern_routine) {
           rp = sym->variant.extern_symbol_descr->variant.routine.ptr;
           if (rp->source_corresp.name_linkage ==
-                                     (a_name_linkage_kind)nlk_external) {
+                                     (a_name_linkage_kind)nlk_external &&
+              !routine_types_are_compatible(
+                                          type_ptr, rp->type, TCF_NO_FLAGS)) {
             /* Illegal overloading involving two extern "C" functions with
                the same name.  Microsoft compilers let this through if the
                two declarations are in different namespaces. */

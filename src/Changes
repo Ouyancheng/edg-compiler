@@ -1,5 +1,19 @@
 Version 2.44
 
+6/8/00   Spurious error on block scope redeclaration of extern "C" function
+         in Microsoft mode
+
+Version 2.43 of the front end introduced a bug that caused the front end to
+issue a spurious overloading error in Microsoft mode if an extern "C" function
+was redeclared in block scope.
+
+  extern "C" void f();
+  void g() {
+    void f();  // Error in version 2.43 with --microsoft
+  }
+
+This is now fixed.
+
 6/8/00   Spurious error on namespace qualified template friend declaration
 
 A spurious error was issued on a template friend declaration in which the
