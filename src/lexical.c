@@ -10875,7 +10875,9 @@ called the current token is the right brace, except for error cases.
     /* Cache the parameter declaration. */
     cache_to_compound_stmt(p_token_cache, stop_tokens);
     /* Cache the catch compound statement. */
-    cache_compound_stmt(p_token_cache, stop_tokens);
+    if (curr_token == tok_lbrace) {
+      cache_compound_stmt(p_token_cache, stop_tokens);
+    }
     /* Exit the loop if we are not at the expected close of the
        compound statement. */
     if (curr_token != tok_rbrace) break;

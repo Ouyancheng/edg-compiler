@@ -1,5 +1,15 @@
 Version 2.44
 
+1/26/00  Abort on missing left brace in certain catch-clauses
+
+The front end used to abort in the absence of a left brace following the
+"catch (<decl>)" construct of a function-try-block of a function template or
+in-class member function definition.
+
+  template<class T> void f() try {} catch (...) }  // Used to abort.
+
+This is now fixed.
+
 1/26/00  Useless destructions and object lifetimes from default arguments
          left in IL
 
