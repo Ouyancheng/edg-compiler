@@ -727,6 +727,10 @@ type.
                               err_code, err_severity);
       conversion_handled = TRUE;
     }  /* if */
+  } else if (is_floating_type(new_type)) {
+    /* Converting an address to a floating-point type cannot be done at
+       compile-time. */
+    *did_not_fold = TRUE;
   } else if (is_reinterpret_cast) {
     /* Suppress the related-class processing for reinterpret_casts.  If
        constant addressing expressions are not being folded, keep the

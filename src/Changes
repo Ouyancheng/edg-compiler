@@ -1,5 +1,13 @@
 Version 2.37
 
+9/18/97   Cast of address to floating-point type not a constant expression
+
+A cast of an address to a floating-point type is no longer considered
+an operation that can be folded at compile time.
+
+  void f(void) { }
+  double x = (double)(unsigned)f;  // error
+
 9/18/97   Lowering of member constant variables without definitions
 
 IL lowering now removes the initializer from member constant variables
