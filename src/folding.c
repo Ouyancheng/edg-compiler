@@ -4664,8 +4664,8 @@ as the position for any diagnostics issued.
           do_fxcompare(constant_1, op, constant_2, result);
           break;
         case eok_fxshiftl:
-            do_fxshiftl(constant_1, constant_2, result, &err_code,
-                        &err_severity);
+          do_fxshiftl(constant_1, constant_2, result, &err_code,
+                      &err_severity);
           break;
         case eok_fxshiftr:
           do_fxshiftr(constant_1, constant_2, result, &err_code,

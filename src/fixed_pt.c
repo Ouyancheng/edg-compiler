@@ -1143,7 +1143,7 @@ void fxp_shift(a_constant		*constant,
 	       a_boolean		shift_right,
 	       a_boolean		*err)
 /*
-Shift fixed-point constant by shift_count bits, producing result.  Do
+Shift a fixed-point constant by shift_count bits, producing result.  Do
 a right shift if shift_right is TRUE, left otherwise.  If an error occurs
 (such as overflow) set err.
 */
