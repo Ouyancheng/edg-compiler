@@ -924,7 +924,7 @@ See ARM 7.2.1c for name encoding.
       named_type = type;
     } else {
       /* Unnamed enum; if there is a named typedef above the enum, use its
-         name.  Note that we use the typedef name even it it's the name of
+         name.  Note that we use the typedef name even if it's the name of
          a qualified version of the enum; that's what cfront does. */
       named_type = named_typedef;
     }  /* if */

@@ -2107,7 +2107,7 @@ static void make_module_id(void)
 /*
 Make a string that is based on the name of the current module and is used to
 qualify static names that are put out as external names, to make them unique.
-Set module_id to the string.  Do not make the string again it it has already
+Set module_id to the string.  Do not make the string again if it has already
 been made.
 */
 {

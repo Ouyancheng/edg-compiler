@@ -3905,7 +3905,7 @@ Do IL lowering of the indicated type and everything under it.
 #endif /* CHECKING */
         }  /* if */
         /* Make a copy of the original pointer-to-member type.  Note that
-           this copy is for the use of IL lowering; it it not really part
+           this copy is for the use of IL lowering; it is not really part
            of the IL tree. */
         copy_of_pm_type = alloc_type(type->kind);
         copy_type(type, copy_of_pm_type);
