@@ -2900,6 +2900,8 @@ indicated position.
   diag_message(error_code, error_pos, es_remark, dck_standalone);
 }  /* pos_ty_remark */
 
+#if 0
+/* This routine is not currently used by the compiler. */
 
 void pos_ty2_remark(an_error_code     error_code,
                     a_source_position *error_pos,
@@ -2916,6 +2918,7 @@ indicated position.
   diag_message(error_code, error_pos, es_remark, dck_standalone);
 }  /* pos_ty2_remark */
 
+#endif /* 0 */
 
 void type_remark(an_error_code error_code,
                  a_type_ptr    type)
@@ -3015,6 +3018,8 @@ indicated position.
   diag_message(error_code, error_pos, es_warning, dck_standalone);
 }  /* pos_ty_warning */
 
+#if 0
+/* This routine is not currently used by the compiler. */
 
 void pos_ty2_warning(an_error_code     error_code,
                      a_source_position *error_pos,
@@ -3031,6 +3036,7 @@ indicated position.
   diag_message(error_code, error_pos, es_warning, dck_standalone);
 }  /* pos_ty2_warning */
 
+#endif /* 0 */
 
 void pos_opt_ty2_warning(an_error_code     error_code,
                          a_source_position *error_pos,
