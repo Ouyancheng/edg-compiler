@@ -9881,14 +9881,14 @@ continue_with_declaration:
                       &locator.source_position);
           }  /* if */
           var_ptr->type = error_type();
-        } else if (is_tentative_definition && 
+        } else if (strict_ansi_mode && is_tentative_definition && 
                    local_storage_class == (a_storage_class)sc_static) {
           /* The C standard prohibits tentative declarations with incomplete
              type and internal linkage in 6.7.2 para 3, but a reading of
              6.1.2.5 may lead to the conclusion that the prohibition does not
              exist: issue a discretionary error instead of a "hard" error. */
           if (!incomplete_type_error_reported) {
-            pos_diagnostic(es_discretionary_error,
+            pos_diagnostic(strict_ansi_discretionary_severity,
                            ec_incomplete_type_not_allowed,
                            &locator.source_position);
           }  /* if */

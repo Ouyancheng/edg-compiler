@@ -222,7 +222,8 @@ example:
   static int fi[]; /* Could not have "static" and "incomplete type" */
   static int fi[] = { 42, 43 };
 
-In C mode, this is now reported as a discretionary error.
+In C mode, this is now accepted by default and reported as a discretionary
+error in strict mode.
 
 6/28/99  Specifying an invalid output file name as a PCH file
 
