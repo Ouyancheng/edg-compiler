@@ -1,5 +1,20 @@
 Version 2.43
 
+10/13/99 IL file reading abort on macros inside dllimport function definitions
+
+In Microsoft mode, when a macro appeared inside a dllimport function body,
+the IL reader aborted (as a consequence of a corrupt source sequence structure
+being written to the file).
+
+  struct __declspec(dllimport) X {
+    void f();
+  };
+  void X::f() {
+  #define M 2
+  }
+
+This example used to abort in some configurations.  This is now fixed.
+
 10/13/99 Improved wording on nontype template parameter with class type
 
 The diagnostic issued when a nontype template parameter has been declared

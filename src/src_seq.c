@@ -512,7 +512,7 @@ separate sublists.
         ssep->prev->next = new_ssep;
         new_ssep->prev = ssep->prev;
         ssep->prev = NULL;
-      }  /* for */
+      }  /* if */
       sublist->source_sequence_list = ssep;
       sublist->last_source_sequence_entry = ssep;
       /* Proceed through the list now headed by ssep.  As long as successor
@@ -2130,6 +2130,52 @@ the source sequence entry that follows the entry or entries removed.
 }  /* drop_from_fs_src_seq_list */
 
 
+static void merge_function_sublists_into_file_scope_src_seq_list(
+                                                           a_scope_ptr  scope)
+/*
+scope is a pointer to the scope of a function body that may contain source
+sequence sublists of items in file scope memory.  Before the body (function
+scope memory) is released, we must make sure that these sublists be
+accessible from the remaining source sequence structures---i.e., we must move
+the sublists to their appropriate place in the file scope source sequence
+list.  This function performs that task.
+*/
+{
+  a_routine_ptr          rp = scope->variant.routine.ptr;
+  a_source_sequence_entry_ptr
+                         file_ssep = rp->source_corresp.source_sequence_entry;
+  a_src_seq_sublist_ptr  sublist = scope->src_seq_sublist_list;
+  for (; sublist != NULL; sublist = sublist->next) {
+    a_source_sequence_entry_ptr  start = sublist->source_sequence_list,
+                                 end = start;
+    /* Find the end of this sublist, and filter out items that are neither
+       macros nor pragmas: */
+    for (; end->next != NULL; end = end->next) {
+      if (end->entity.kind != iek_macro && end->entity.kind != iek_pragma) {
+        if (end == start) {
+          start = end->next;
+        } else {
+          end->prev->next = end->next;
+        }  /* if */
+        if (end->next != NULL) {
+          end->next->prev = end->prev;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    /* Insert the sublist just after *file_ssep: */
+    end->next = file_ssep->next;
+    if (file_ssep->next != NULL) {
+      file_ssep->next->prev = end;
+    }  /* if */
+    start->prev = file_ssep;
+    file_ssep->next = start;
+    /* If there are any more sublists, we'll insert them after the current
+       one: */
+    file_ssep = end;
+  }  /* for */
+}  /* merge_function_sublists_into_file_scope_src_seq_list */
+
+
 void eliminate_function_body_source_sequence_entries(a_scope_ptr  sp)
 /*
 Remove the source sequence entries that represent the body of the function
@@ -2155,6 +2201,10 @@ associate with the indicated sck_function scope.
         db_source_sequence_entry(ssep);
       }  /* if */
 #endif /* DEBUG */
+      /* The sublists in this function that are really in allocated in file
+         scope memory (e.g., macro references) should be inserted into the
+         file scope list. */
+      merge_function_sublists_into_file_scope_src_seq_list(sp);
       (void)drop_from_fs_src_seq_list(ssep);
       /* The source-sequence entry pointer in the routine needs to be
          reset as though the definition had never happened.  This means
@@ -2285,7 +2335,7 @@ associate with the indicated sck_function scope.
                  that the next one will be added right after it. */
               insert_ssep = sublist_ssep;
             }  /* if */
-          }  /* while */
+          }  /* for */
         }  /* for */
 done_with_func_prototype_decls:;
       }  /* if */
