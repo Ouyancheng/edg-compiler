@@ -457,6 +457,14 @@ supported.)
 */
 #define TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE TRUE
 
+/*
+The minimum alignment required for class/struct/union objects in the target
+environment.  If C code is being generated, this may be dictated by the
+characteristics of the C compiler that will be used for subsequent
+processing.
+*/
+#define TARG_MINIMUM_STRUCT_ALIGNMENT 1
+
 #endif /* ifndef TARGET_H */
 
 

@@ -143,7 +143,7 @@ Clear the block used to contain information while working out class layout.
   lob->class_type = class_type;
   lob->byte_offset = 0;
   lob->bit_offset = 0;
-  lob->alignment = 1;
+  lob->alignment = TARG_MINIMUM_STRUCT_ALIGNMENT;
   lob->any_overflow = FALSE;
 }  /* clear_layout_block */
 

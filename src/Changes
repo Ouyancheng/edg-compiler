@@ -1,5 +1,11 @@
 Version 2.17
 
+4/28/93  Minimum alignment requirements for class/struct/union objects
+
+A new configuration constant, TARG_MINIMUM_STRUCT_ALIGNMENT, has been
+added to match the alignment of objects of class, struct, and union type
+to the requirements of the target environment.
+
 4/27/93  Memory leak involving param-id entries
 
 Sometimes param-id entries were not being returned to their available
