@@ -1239,6 +1239,35 @@ stack -- i.e., between calls of push_stmt_stack and pop_stmt_stack.
   ((sp)->variant.block.extra_info->lifetime != NULL)
 
 
+static a_boolean is_primary_block_of_switch_statement(
+                                     a_struct_stmt_stack_entry_ptr  sssep)
+/*
+Return TRUE if sssep points to a structured-statement-stack entry for a
+compound statement that is the primary block of the switch statement, either
+because that's the way it was written -- switch (x) { ... } -- or because a
+block was inserted by the compiler (which occurs in C++ only).  This routine
+is not called for the top-level compound statement of a function.
+*/
+{
+  a_boolean  is_switch_block = FALSE;
+
+  if (sssep->kind == ssk_compound) {
+    check_assertion(depth_stmt_stack > 0);
+    /* See if the compound statement is nested immediately within a switch
+       statement.  Note that in C mode it's necessary to do a further check,
+       to rule out cases like this:
+         switch (x) case 1: { ... }
+    */
+    if ((sssep-1)->kind == ssk_switch &&
+        sssep->statement ==
+                  (sssep-1)->statement->variant.switch_stmt.body_statement) {
+      is_switch_block = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_switch_block;
+}  /* is_primary_block_of_switch_statement */
+
+
 a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
                                           a_source_position  *stmt_pos)
 /*
@@ -1268,11 +1297,10 @@ the current statement sequence.
   }  /* if */
 #endif /* CHECKING */
   sssep = &struct_stmt_stack[depth_stmt_stack];
-  /* A block that is the primary statement of a switch should be ignored;
-     statements should be added to the switch itself. */
-  if (sssep->kind == ssk_compound &&
-      depth_stmt_stack != 0 &&
-      struct_stmt_stack[depth_stmt_stack-1].kind == ssk_switch) {
+  if (depth_stmt_stack > 0 &&
+      is_primary_block_of_switch_statement(sssep)) {
+    /* A block that is the primary statement of a switch should be ignored;
+       statements should be added to the switch itself. */
     sssep--;
   }  /* if */
   statement_list_allowed = FALSE;
@@ -4111,9 +4139,28 @@ after_check:
      switch, and we take care not to consider that case to be unusual.
      See add_statement for special code in adding code to a switch
      statement. */
-  label_directly_in_switch = top_sssep == sssep ||
-                             (top_sssep->kind == ssk_compound &&
-                              top_sssep-1 == sssep);
+  if (top_sssep == sssep) {
+    /* The label appears immediately in the switch statement.  This can occur
+       in C mode, since no block is implicitly inserted for a case like this:
+         switch (x) case 1: ...
+    */
+    check_assertion(C_mode());
+    label_directly_in_switch = TRUE;
+  } else if (is_primary_block_of_switch_statement(top_sssep)) {
+    /* The label appears in the compound statement that is immediately within
+       the switch statement -- either this sort of case, as it is represented
+       in C++ mode,
+         switch (x) case 1: ...
+       or where a top-level compound statement is explicit in the source:
+         switch (x) { case 1: ... }
+    */
+    check_assertion(top_sssep-1 == sssep);
+    label_directly_in_switch = TRUE;
+  } else {
+    /* Unusual case -- the label does not appear at the top level of the
+       switch statement. */
+    label_directly_in_switch = FALSE;
+  }  /* if */
               
   /* The value does not appear already, and therefore it is okay to proceed
      and add it.  First, we try to see if the new value can just be added
