@@ -1831,12 +1831,21 @@ the template.
                 err = TRUE;
               }  /* if */
               if (cssp->is_nonreal_class) {
-                /* A specialization of a nonreal class.  This can only occur
-                   when a specialization appears in an invalid scope.  An
-		   error will have already been issued. */
-                tag_sym = NULL;
-                set_to_named_error_locator(locator);
-                err = TRUE;
+                /* A specialization of a nonreal class.  This is usually the
+                   result of a specialization in an invalid scope, in which
+                   case an error will have already been issued.  This can
+                   also occur in Microsoft mode where specializations are
+                   allowed in class scopes. */
+                if (microsoft_mode) {
+                  class_type->variant.class_struct_union.is_specialized = TRUE;
+                  /* The specialization that is in the prototype instantiation
+		     of the enclosing class should itself be treated as a
+		     prototype instantiation. */
+                } else {
+                  tag_sym = NULL;
+                  set_to_named_error_locator(locator);
+                  err = TRUE;
+                }  /* if */
               } else if (class_type_is_complete && !err) {
                 /* The class has already been instantiated and can't now
                    be specialized. */
@@ -2153,7 +2162,8 @@ the template.
       class_type->kind = type_kind;
       /* If this is a nested class of a class template, update the type kind
          associated with the template. */
-      if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+      if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+          !is_template_specialization) {
         update_nested_template_class_symbol_info(tag_sym, type_kind);
       }  /* if */
     }  /* if */

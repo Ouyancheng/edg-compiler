@@ -12212,7 +12212,7 @@ that follows.
       /* Storage class is not allowed. */
       pos_error(ec_storage_class_not_allowed, &decl_start_pos);
     }  /* if */
-    if (!is_template_instance_class_symbol(sym)) {
+    if (!is_any_template_instance_class_symbol(sym)) {
       /* Not a template instance. */
       sym_error(ec_entity_cannot_be_specialized, sym);
     } else {

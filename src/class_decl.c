@@ -11452,6 +11452,13 @@ nested classes when their definition appears outside of the class template.
                                                         is_nonreal_class) {
         class_state.is_nonreal_instantiation = cssp->is_nonreal_class = TRUE;
       }  /* if */
+    } else if (cssp->is_nonreal_class) {
+      /* A definition of a nonreal class that is not a template instantiation.
+         This should only occur when defining a specialization of a class
+         in a class scope. */
+      check_assertion(microsoft_mode &&
+                      class_type->variant.class_struct_union.is_specialized);
+      class_state.is_nonreal_instantiation = TRUE;
     }  /* if */
     class_state.is_template_instantiation = is_template_instantiation;
     /* Find the prototype instantiation symbol associated with this

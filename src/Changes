@@ -1,5 +1,19 @@
 Version 2.44
 
+4/5/00   Microsoft compatibility: explicit specialization of class inside
+         of a class template
+
+In Microsoft mode, an explicit specialization of a member class template
+can be declared in the scope of a class (or class template).  Formerly, the
+front end only supported such specializations of functions.  The standard
+does not permit any form of specialization to be declared within a class.
+
+  template <class T> struct A {
+    template <int I> struct B { };
+    template <> struct B<0> { };
+  };
+  A<int>::B<0> b;
+
 4/4/00   Aborts when casting address constant expressions to integral types
 
 The front end used to sometimes abort processing when encountering address
