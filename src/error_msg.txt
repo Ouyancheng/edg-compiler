@@ -1252,6 +1252,7 @@ ec_typedef_in_elab_type;;"typedef %sq may not be used in an elaborated type spec
 ec_call_of_zero;;"call of zero constant ignored"
 ec_handler_redeclares_parameter;;"parameter %sq may not be redeclared in a catch clause of function try block"
 ec_specialization_out_of_namespace;;"the initial explicit specialization of %n must be declared in the namespace containing the template"
+ec_cc_clobber_ignored;;"\"cc\" clobber ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

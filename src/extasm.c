@@ -652,6 +652,9 @@ The syntax is
       if (strcmp(name, "memory") == 0) {
         /* The string "memory" can appear in place of a register name.  */
         reg = (a_named_register)anr_memory;
+      } else if (strcmp(name, "cc") == 0) {
+        warning(ec_cc_clobber_ignored);
+        reg = (a_named_register)anr_invalid;
       } else {
         reg = name_to_register(name);
       }  /* if */

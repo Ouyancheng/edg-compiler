@@ -1,5 +1,11 @@
 Version 3.1
 
+10/8/02  GNU compatibility: cc clobber ignored
+
+In GNU C and C++ modes, the front end now ignores (with a warning) the use
+of "cc" (condition codes) in an extended asm clobber list.  (The similar
+"flags" register is not ignored.)
+
 10/7/02  Dual alignments for built-in types
 
 A new configuration macro TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES causes the
