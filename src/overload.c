@@ -630,6 +630,135 @@ operand list.
 
 
 /*
+Output control block used with the il_to_str routines to output argument
+types for diagnostic messages.
+*/
+static an_il_to_str_output_control_block
+		octl;
+
+
+static void set_up_for_argument_type_formatting(void)
+/*
+Initialize the control block for the il_to_str routines before using them
+to format argument types.  This setup arranges for the output to go into
+temp_text_buffer.
+*/
+{
+  clear_il_to_str_output_control_block(&octl);
+  octl.output_str = put_str_to_temp_text_buffer;
+  pos_in_temp_text_buffer = 0;
+}  /* set_up_for_argument_type_formatting */
+
+
+static void format_argument_type_for_display(an_arg_operand_ptr arg_operand)
+/*
+Add the type of the indicated argument to the string being built up in
+temp_text_buffer.
+*/
+{
+  form_type(arg_operand->operand.type, &octl);
+}  /* format_argument_type_for_display */
+
+
+static void display_argument_list_types(an_arg_operand_ptr arg_operand_list)
+/*
+Put the types of the arguments on arg_operand_list into temp_text_buffer
+so they can be used in a diagnostic.  Format them as a comma-separated list.
+The start_error or equivalent has already been done.  This routine does not
+call end_error.
+*/
+{
+  an_arg_operand_ptr arg_operand;
+
+  /* Display nothing if the argument list is empty. */
+  if (arg_operand_list != NULL) {
+    set_up_for_argument_type_formatting();
+    for (arg_operand = arg_operand_list;
+         arg_operand != NULL;
+         arg_operand = arg_operand->next) {
+      format_argument_type_for_display(arg_operand);
+      if (arg_operand->next != NULL) {
+        /* This is not the last argument, so put a comma after it. */
+        put_str_to_temp_text_buffer(", ");
+      }  /* if */
+    }  /* for */
+    put_ch_to_temp_text_buffer('\0');
+    str_add_diag_info(ec_argument_list_types_add_on, temp_text_buffer);
+  }  /* if */
+}  /* display_argument_list_types */
+
+
+static void display_operand_types(an_arg_operand_ptr arg_operand_list,
+                                  an_opname_kind     kind)
+/*
+Put the types of the operands (given by arg_operand_list) of an operator
+(given by kind) into temp_text_buffer so they can be used in a diagnostic.
+The start_error or equivalent has already been done.  This routine does not
+call end_error.
+*/
+{
+  an_arg_operand_ptr arg_operand;
+  a_boolean          unary_operator;
+  a_boolean          list_form;
+  char               *opname = opname_names[(int)kind];
+  unsigned long      num;
+
+  set_up_for_argument_type_formatting();
+  /* Normal cases:
+        unop type1
+        type1 binop type2
+     Special cases:
+        type1 [ type2 ]
+        type1 ? type2 : type3
+     List form used for (), -> new, new[], delete, and delete[]:
+        type1, type2, ...
+  */
+  list_form = (kind == (an_opname_kind)onk_function_call ||
+               kind == (an_opname_kind)onk_new ||
+               kind == (an_opname_kind)onk_array_new ||
+               kind == (an_opname_kind)onk_arrow ||
+               kind == (an_opname_kind)onk_delete ||
+               kind == (an_opname_kind)onk_array_delete);
+  unary_operator = (!list_form && arg_operand_list->next == NULL);
+  if (unary_operator) {
+    /* Unary operator precedes the operand. */
+    put_str_to_temp_text_buffer(opname);
+    put_ch_to_temp_text_buffer(' ');
+  }  /* if */
+  for (arg_operand = arg_operand_list, num = 1;
+       arg_operand != NULL;
+       arg_operand = arg_operand->next, num++) {
+    format_argument_type_for_display(arg_operand);
+    if (list_form) {
+      /* List form.  Comma after each operand except the last. */
+      if (arg_operand->next != NULL) {
+        put_str_to_temp_text_buffer(", ");
+      }  /* if */
+    } else if (num == 1) {
+      /* After the first operand. */
+      if (kind == (an_opname_kind)onk_subscript) {
+        put_str_to_temp_text_buffer(" [ ");
+      } else if (!unary_operator) {
+        /* Binary operators go between the first and second operands. */
+        put_ch_to_temp_text_buffer(' ');
+        put_str_to_temp_text_buffer(opname);
+        put_ch_to_temp_text_buffer(' ');
+      }  /* if */
+    } else if (num == 2) {
+      /* After the second operand. */
+      if (kind == (an_opname_kind)onk_subscript) {
+        put_str_to_temp_text_buffer(" ]");
+      } else if (kind == (an_opname_kind)onk_question) {
+        put_str_to_temp_text_buffer(" : ");
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  put_ch_to_temp_text_buffer('\0');
+  str_add_diag_info(ec_operand_types_add_on, temp_text_buffer);
+}  /* display_operand_types */
+
+
+/*
 Type codes used in type patterns that describe built-in operators
 for overload resolution.
 */
@@ -707,12 +836,15 @@ This applies to projection and namespace projection symbols.
 
 static void diagnose_overload_ambiguity(
                                   a_candidate_function_ptr candidate_functions,
+                                  an_arg_operand_ptr       arg_operand_list,
                                   an_opname_kind           kind)
 /*
 Issue the add-on diagnostics to describe an overloading ambiguity.
 candidate_functions gives the list of functions in the best-match set.
-kind gives the operator associated with any entries in the set for
-built-in operators.  The start_error or equivalent has already been done.
+arg_operand_list gives the operand list, but is NULL if the operand types
+should not be listed.  kind gives the operator associated with any entries
+in the set for built-in operators.  The start_error or equivalent has
+already been done, and this routine does the end_error call.
 */
 {
   a_candidate_function_ptr cfp;
@@ -766,6 +898,14 @@ built-in operators.  The start_error or equivalent has already been done.
       str_add_diag_info(ec_builtin_operator_add_on, buf);
     }  /* if */
   }  /* for */
+  if (arg_operand_list != NULL) {
+    /* Display the operand types. */
+    if (kind == (an_opname_kind)onk_none) {
+      display_argument_list_types(arg_operand_list);
+    } else {
+      display_operand_types(arg_operand_list, kind);
+    }  /* if */
+  }  /* if */
   end_error();
 }  /* diagnose_overload_ambiguity */
 
@@ -2963,8 +3103,10 @@ only in C++ mode.
       pos_error(ec_member_ref_requires_object, call_position);
     } else {
       /* Normal case. */
-      pos_sy_error(err_none_applies, call_position,
-                   overloaded_function_symbol);
+      pos_sy_start_error(err_none_applies, call_position,
+                         overloaded_function_symbol);
+      display_argument_list_types(arg_operand_list);
+      end_error();
     }  /* if */
   } else if (candidate_functions->next != NULL) {
     /* More than one function applies and is a best match -- ambiguity. */
@@ -2975,7 +3117,8 @@ only in C++ mode.
 #endif /* DEBUG */
     pos_sy_start_error(err_ambiguous, call_position,
                        overloaded_function_symbol);
-    diagnose_overload_ambiguity(candidate_functions, (an_opname_kind)onk_none);
+    diagnose_overload_ambiguity(candidate_functions, arg_operand_list,
+                                (an_opname_kind)onk_none);
   } else {
     /* Exactly one function applies and is best. */
     function_symbol = candidate_functions->function_symbol;
@@ -5217,7 +5360,11 @@ functions could still apply).
           } else {
             /* Error: no applicable operator function. */
             *processed = TRUE;
-            pos_error(ec_no_matching_operator_function, operator_position);
+            pos_st_start_error(ec_no_matching_operator_function,
+                               operator_position,
+                               opname_names[(int)kind]);
+            display_operand_types(arg_operand_list, kind);
+            end_error();
             make_error_operand(result);
             arg_operand_list_not_used = TRUE;
           }  /* if */
@@ -5232,7 +5379,8 @@ functions could still apply).
 #endif /* DEBUG */
           pos_st_start_error(ec_ambiguous_operator_function, operator_position,
                              opname_names[(int)kind]);
-          diagnose_overload_ambiguity(candidate_functions, kind);
+          diagnose_overload_ambiguity(candidate_functions, arg_operand_list,
+                                      kind);
           make_error_operand(result);
           arg_operand_list_not_used = TRUE;
         } else {
@@ -5696,7 +5844,8 @@ set *processed to TRUE if the conversion is ambiguous.
       if (ambiguity_list != NULL) {
         pos_ty_start_error(ec_ambiguous_conversion_to_builtin,
                            &operand->position, operand->type);
-        diagnose_overload_ambiguity(ambiguity_list, (an_opname_kind)onk_none);
+        diagnose_overload_ambiguity(ambiguity_list, (an_arg_operand_ptr)NULL,
+                                    (an_opname_kind)onk_none);
         free_candidate_function_list(ambiguity_list);
       }  /* if */
       conv_to_error_operand(operand);
@@ -5853,7 +6002,8 @@ a reference type (the caller should have rewritten that case).
           pos_ty2_start_error(err_code, &source_operand->position,
                               source_type, diag_dest_type);
         }  /* if */
-        diagnose_overload_ambiguity(ambiguity_list, (an_opname_kind)onk_none);
+        diagnose_overload_ambiguity(ambiguity_list, (an_arg_operand_ptr)NULL,
+                                    (an_opname_kind)onk_none);
         free_candidate_function_list(ambiguity_list);
       }  /* if */
     }  /* if */

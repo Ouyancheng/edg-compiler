@@ -1,5 +1,10 @@
 Version 2.30
 
+9/2/95   Argument type information in overload resolution diagnostics
+
+Diagnostics produced for overload resolution problems now include the types
+of the arguments.
+
 9/1/95   Deduced template function that cannot be called
 
 The following program formerly got an internal error because the front end
