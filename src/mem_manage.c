@@ -1752,6 +1752,7 @@ must be initialized for each compilation.
   init_memory_region(FILE_SCOPE_REGION_NUMBER, (sizeof_t)0);
 }  /* mem_manage_init */
 
+#if MAKE_FRONT_END_CALLABLE
 
 static void free_text_buffers(void)
 /*
@@ -1792,7 +1793,6 @@ Free the general memory specified by *list.
   *list = NULL;
 }  /* free_general_memory */
 
-#if MAKE_FRONT_END_CALLABLE
 
 void mem_manage_wrapup(void)
 /*
