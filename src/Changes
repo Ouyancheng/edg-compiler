@@ -1,4 +1,15 @@
 Version 2.44
+
+4/7/00   Abort in Microsoft mode on duplicate dllimport definition
+
+The front end used to abort processing when encountering a duplicate
+definition of a function specified as "dllimport".
+
+  __declspec(dllimport) void f() {}
+  __declspec(dllimport) void f() {}  // Used to abort; now a normal error
+
+This is now fixed.
+
 4/5/00   Microsoft and Sun compatibility: friend class lookup
 
 When a friend declaration nominates a class or struct using an unqualified
