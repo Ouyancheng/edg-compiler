@@ -4142,6 +4142,8 @@ This routine may only be called in C++ mode.
         }  /* if */
         class_scope = NO_SCOPE_NUMBER;
       } else {
+        /* Do ambiguity and access control checking on the class symbol. */
+        check_ambiguity_and_verify_access(&locator_for_curr_id);
         /* Record the reference on the symbol. */
         mark_referenced(class_symbol, &pos_curr_token);
         /* Determine the scope number for the class. */
@@ -4204,13 +4206,6 @@ the error on the final identifier not being found on lookup.
           locator_for_curr_id.specific_symbol != NULL) {
         /* The current token is already a qualified name or specific symbol. */
         is_qualified_name = locator_for_curr_id.is_qualified_name;
-        if (is_qualified_name) {
-          /* Do the ambiguity/access control check.  In the normal case (below)
-             it is done by scope_qualified_id_lookup. */
-          if (!(options & IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL)) {
-            check_ambiguity_and_verify_access(&locator_for_curr_id);
-          }  /* if */
-        }  /* if */
       } else {
         /* See if there is a class qualifier (the "A::" part of "A::x"), and
            if so, get it and determine the scope number it represents. */
@@ -4238,14 +4233,16 @@ the error on the final identifier not being found on lookup.
             error(ec_exp_identifier);
           } else {
             /* The final identifier is present.  Look it up in the class
-               scope.  For a destructor, add the "~" to the name in the
-               locator. */
+               scope. */
+            /* For a destructor, add the "~" to the name in the locator. */
             if (is_destructor) tildize_locator(&locator_for_curr_id);
             if (scope_qualified_id_lookup(&locator_for_curr_id, class_scope,
                                           options) != NULL) {
               /* The name was found.  locator_for_curr_id.specific_symbol
                  is already set. */
               okay = TRUE;
+              /* Ambiguity and access control checking is not done because
+                 we don't know yet what kind of reference this is. */
             } else {
               /* The identifier could not be found in the scope. */
               if (!qualifier_err &&
