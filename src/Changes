@@ -1,12 +1,12 @@
 Version 2.42
 
-7/6/99  Extra source positions for "__except" and "__finally" tokens
+7/6/99   Extra source positions for "__except" and "__finally" tokens
 
 In Microsoft mode, when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the source
 positions associated with the "__except" and "__finally" tokens are now
 recorded in a_microsoft_try_supplement (field except_or_finally_position).
 
-7/2/99  Diagnosing missing initializers for empty const POD objects
+7/2/99   Diagnosing missing initializers for empty const POD objects
 
 By default, the front end used to warn about missing initializers on unnamed
 empty const POD objects, but was silent in the case of named variables.  (In
@@ -19,7 +19,7 @@ inconsistency has been removed by no longer issuing the warning by default.
     new X const; // Used to warn by default (no longer)
   }
 
-7/2/99  Abstract class status of template classes
+7/2/99   Abstract class status of template classes
 
 The front end used to erroneously consider abstract certain classes generated
 from class templates with dependent base classes.  For example:
@@ -35,8 +35,8 @@ from class templates with dependent base classes.  For example:
 
 This is now fixed.
 
-7/2/99  Microsoft compatibility: constructor chosen over conversion function
-        to do conversion
+7/2/99   Microsoft compatibility: constructor chosen over conversion function
+         to do conversion
 
 In Microsoft bugs mode, a constructor will be chosen over a conversion
 function to do a conversion.
@@ -56,13 +56,13 @@ function to do a conversion.
     return 0;
   }
 
-7/2/99  Extra slash in temporary file name on DOS/Windows
+7/2/99   Extra slash in temporary file name on DOS/Windows
 
 On Microsoft operating systems, a temporary file name would contain
 an extra slash if the temporary directory name was terminated by a
 backslash.  This has been fixed.
 
-7/2/99  Microsoft compatibility: ignore self qualification
+7/2/99   Microsoft compatibility: ignore self qualification
 
 In Microsoft bugs mode, the qualifier "C::" in the declarator of a member
 or friend declaration that appears in the definition of class C is ignored.
@@ -74,7 +74,7 @@ in namespace scope.  For example,
     friend void S::g(); // Warning (no error) with --microsoft_bugs
   };                    // and the friend is ::g (!)
 
-7/2/99  Multiple carriage returns ignored before newline
+7/2/99   Multiple carriage returns ignored before newline
 
 When IGNORE_CARRIAGE_RETURN_IN_SOURCE is TRUE, all carriage returns that
 appear immediately before the end of line are ignored.  Formerly, only
@@ -86,7 +86,7 @@ a macro definition (and such a line appears in the atlcom.h header
 file) into a line with a line terminator of carriage-return/
 carriage-return/line-feed.
 
-7/1/99  Variadic macros
+7/1/99   Variadic macros
 
 Two variants of macro definitions that can be invoked with a variable number
 of arguments are now supported.  These extensions can be enabled with the
@@ -116,7 +116,7 @@ part of a parameter) is erased.  For example:
   E("%c%s\n", 'E', "DG"); /* Expands to "printf("%c%s\n", 'E', "DG");" */
   E("EDG\n"); /* Expands to "printf("EDG\n");" -- no extra comma. */
 
-6/30/99 ## operator dropped in IL
+6/30/99  ## operator dropped in IL
 
 When the token pasting operator ("##") was not followed by a macro parameter,
 it did not appear in the textual string for the macro definition that appears
@@ -128,7 +128,7 @@ in the (optionally generated) IL a_macro entry.  For example,
 
 This is now fixed.
 
-6/29/99 #line directives in preprocessed output in presence of line splices
+6/29/99  #line directives in preprocessed output in presence of line splices
 
 In some cases involving line splices (lines continued using "\"), the
 textual preprocessed output produced by the front end lost line
