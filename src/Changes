@@ -55,10 +55,10 @@ issued.
 
 3/25/05  Microsoft compatibility: Implicit destruction of property fields
 
-In Microsoft C++ mode, the front previous incorrectly created IL to destroy a
-property field with a class type requiring nontrivial destruction.  This
-problem could manifest itself as an internal error when reading an IL file
-containing such IL.  For example:
+In Microsoft C++ mode, the front end previously incorrectly created IL to
+destroy a property field with a class type requiring nontrivial destruction.
+This problem could manifest itself as an internal error when reading an IL
+file containing such IL.  For example:
 
   struct A { ~A(); };
   struct S {
