@@ -1,5 +1,26 @@
 Version 2.20
 
+10/29/93 Destruction of expression temporaries after simple switch
+
+A bug in IL lowering has been fixed.  The bug involved missing
+destructor calls for temporaries created in expressions when a
+switch statement with no associated scope appeared between the
+creation of the temporary and the end of the scope.  For example:
+
+  struct A {
+	A(int);
+	~A();
+	operator int();
+  };
+  void f()
+  {
+	switch (A(87)) {  // Temporary never destroyed
+		default:
+			break;
+	}
+  }
+
+
 10/28/93 Include file search order -- new default behavior
 
 It used to be that, by default, the primary include search directory was
