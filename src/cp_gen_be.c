@@ -7893,6 +7893,7 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     need_to_unset_typedefs = FALSE;
   a_scope_ptr                   common_scope, orig_scope = NULL;
   a_boolean                     need_extern_C_closing_brace = FALSE;
+  a_boolean                     microsoft_out_of_class_redecl = FALSE;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   a_template_decl_ptr           template_decl;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
@@ -8039,12 +8040,19 @@ TRUE if the declaration following this one is such a continuation.
       }  /* if */
     } else {
       /* A declaration of a function. */
+      /* Normally, this should not be a member function, but in Microsoft
+         mode it is possible to redeclare a member without defining it. */
+      microsoft_out_of_class_redecl = rout->source_corresp.is_class_member;
       /* The function is not defined (here), so use "extern" instead of
          no storage class.  Also use "extern" for file-scope static routines
-         declared extern inside functions. */
-      if (storage_class == (a_storage_class)sc_unspecified ||
-          (storage_class == (a_storage_class)sc_static &&
-           decl_within_function)) {
+         declared extern inside functions.  Again, Microsoft member
+         redeclaration are an exception (storage class should be omitted). */
+      if (microsoft_out_of_class_redecl) {
+        check_assertion(microsoft_mode);
+        storage_class = (a_storage_class)sc_unspecified;
+      } else if (storage_class == (a_storage_class)sc_unspecified ||
+                 (storage_class == (a_storage_class)sc_static &&
+                  decl_within_function)) {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
     }  /* if */
@@ -8119,12 +8127,14 @@ TRUE if the declaration following this one is such a continuation.
   }  /* if */
   /* An unqualified name is used in the declarator if this is a declaration
      rather than a definition.  Specializations are an exception, and
-     get the full normal handling. */
+     get the full normal handling.  Another exception are nondefining
+     out-of-class member declarations in Microsoft mode. */
   /* Also force an unqualified name on a declaration in the scope of the
      routine.  This is necessary sometimes in the presence of
      using-directives. */
   force_unqualified_name = C_mode() ||
-                           (!is_definition && !is_specialization) ||
+                           (!is_definition && !is_specialization &&
+                            !microsoft_out_of_class_redecl) ||
                            (decl_scope_of(&rout->source_corresp) ==
                                                curr_name_context->assoc_scope);
   /* Generate a declaration for the routine name with the right type. */

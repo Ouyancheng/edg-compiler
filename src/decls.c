@@ -5488,6 +5488,7 @@ recorded in the IL, the template header is passed via template_decl.
   a_boolean			    redeclaration = FALSE;
 #endif /* DECL_MODIFIERS_IN_USE */
   an_id_linkage_block      idlb;
+  a_boolean  microsoft_out_of_class_redecl;
 
   db_enter(3, "decl_function_template");
   check_assertion(scope_stack[depth_scope_stack].kind ==
@@ -5850,6 +5851,8 @@ recorded in the IL, the template header is passed via template_decl.
     redeclaration = TRUE;
 #endif /* DECL_MODIFIERS_IN_USE */
   }  /* if */
+  microsoft_out_of_class_redecl = sym->is_class_member &&
+                                                    !func_info->is_definition;
   if (!is_error_locator(*locator)) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
     a_boolean  saved_sses_disallowed;
@@ -5866,11 +5869,12 @@ recorded in the IL, the template header is passed via template_decl.
         pos_sy_error(ec_already_defined, &locator->source_position, sym);
       } /* if */
       mark_defined(sym, &locator->source_position);
-    } else {
+    } else if (!microsoft_out_of_class_redecl) {
       mark_declared(sym, &locator->source_position);
-      if (sym->is_class_member && !idlb.is_friend_decl && !is_specialization) {
-        /* A non-defining declaration of a member function is not
-           allowed. */
+      if (!microsoft_mode &&
+          sym->is_class_member && !idlb.is_friend_decl && !is_specialization) {
+        /* A non-defining declaration of a member function is only allowed
+           in Microsoft mode. */
         pos_sy_error(ec_member_function_redecl_outside_class,
                      &locator->source_position, sym);
       } /* if */
@@ -5887,7 +5891,8 @@ recorded in the IL, the template header is passed via template_decl.
   if (prototype_instantiations_in_il) {
     a_source_sequence_entry_ptr  ssep;
     check_assertion(nonclass_prototype_instantiations);
-    if (sym->kind == (a_symbol_kind)sk_function_template) {
+    if (sym->kind == (a_symbol_kind)sk_function_template ||
+        microsoft_out_of_class_redecl) {
       /* We have already recorded (mark_defined/mark_declared) the template in
          the code above, but not the prototype instantiation. */
       ssep = func_info->declarator_ssep;
@@ -9193,7 +9198,7 @@ for some situations in Microsoft mode).
       pos_sy_error(ec_old_specialization_not_allowed,
                    &locator->source_position, sym);
       set_to_error_locator(*locator);
-    } else if (!microsoft_mode) {
+    } else {
       pos_sy_error(ec_member_function_redecl_outside_class,
                    declarator_pos, sym);
       set_to_error_locator(*locator);
@@ -9946,8 +9951,11 @@ continue_with_declaration:
          like it could be part of a function-definition, go scan that. */
       if (function_definition_allowed && is_function) {
         if (local_storage_class != (a_storage_class)sc_typedef &&
-            curr_token != tok_semicolon && curr_token != tok_comma &&
-            curr_token != tok_assign && curr_token != tok_end_of_source) {
+            (curr_token != tok_semicolon ||
+             (microsoft_mode && locator.is_class_member)) &&
+            curr_token != tok_comma &&
+            curr_token != tok_assign &&
+            curr_token != tok_end_of_source) {
           a_boolean  is_function_try_block = curr_token == tok_try;
           if (!has_explicit_type_specifier) {
             /* Function with no explicitly specified return type.  Issue a
@@ -9994,9 +10002,14 @@ continue_with_declaration:
           }  /* if */
           check_assertion(curr_token == tok_rbrace ||
                           curr_token == tok_end_of_source ||
+                          (microsoft_mode && locator.is_class_member &&
+                           curr_token == tok_semicolon) ||
                           total_errors != 0);
-          /* Right brace is expected. */
-          final_token = tok_rbrace;
+          /* Right brace is expected, except for the Microsoft extension that
+             allows a nondefining out-of-class member declaration. */
+          final_token = (microsoft_mode && locator.is_class_member &&
+                         curr_token == tok_semicolon) ? tok_semicolon :
+                                                        tok_rbrace;
           goto advance_past_final_token;
 #if ASM_FUNCTION_ALLOWED
         } else if (declared_storage_class == (a_storage_class)sc_asm) {

@@ -1112,6 +1112,8 @@ function is similar to that of decl_routine, which is called for
 the definitions of ordinary functions.  After doing some error checking,
 it calls reconcile_routine_types to merge the current type with the type
 on a prior declaration.
+This function is also called in the case of a nondefining out-of-class
+member declaration (allowed in Microsoft mode only).
 */
 {
   a_symbol_ptr         sym;
@@ -1119,6 +1121,9 @@ on a prior declaration.
   a_routine_ptr        rp;
   a_type_ptr           rout_type;
   a_scope_stack_entry  *ssep = &scope_stack[depth_scope_stack];
+  a_boolean            microsoft_out_of_class_redecl = microsoft_mode &&
+                                                  locator->is_class_member &&
+                                                  curr_token == tok_semicolon;
 
   db_enter(3, "define_member_function");
   class_type = locator->specific_symbol->parent.class_type;
@@ -1204,7 +1209,7 @@ on a prior declaration.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (sym == NULL || sym->defined) {
+  if (sym == NULL || (sym->defined && !microsoft_out_of_class_redecl)) {
     /* Error case. */
     a_routine_ptr        other_rp = NULL;
     a_symbol_header_ptr  hdr = locator->symbol_header;
@@ -1327,19 +1332,34 @@ on a prior declaration.
     }  /* if */
     update_routine_decl_modifiers(rp, decl_modifiers,
                                   &locator->source_position,
-                                  /*is_redecl=*/TRUE, /*is_definition=*/TRUE,
+                                  /*is_redecl=*/TRUE,
+                                  !microsoft_out_of_class_redecl,
                                   (a_boolean)func_info->is_inline);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Mark the routine to indicate that, though really belonging to the
        scope of its parent class, it is defined elsewhere. */
-    rp->defined_outside_of_parent = TRUE;
-    record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
-                              &locator->source_position,
-                              func_info->declarator_ssep);
+    if (!microsoft_out_of_class_redecl) {
+      rp->defined_outside_of_parent = TRUE;
+      record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
+                                &locator->source_position,
+                                func_info->declarator_ssep);
+      set_routine_declared_type(rp, func_info->declared_type);
+    } else {
+      a_src_seq_secondary_decl_ptr  sssdp;
+      record_symbol_declaration(SRK_DECLARATION, sym,
+                                &locator->source_position,
+                                func_info->declarator_ssep);
+      sssdp = (a_src_seq_secondary_decl_ptr)
+                                       func_info->declarator_ssep->entity.ptr;
+      sssdp->declared_type = func_info->declared_type;
+    }  /* if */
     /* Set the declared-type in the routine entry. */
-    set_routine_declared_type(rp, func_info->declared_type);
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-    mark_defined(sym, &locator->source_position);
+    if (!microsoft_out_of_class_redecl) {
+      mark_defined(sym, &locator->source_position);
+    } else {
+      mark_declared(sym, &locator->source_position);
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     copy_source_position(locator->source_position,
                          rp->source_corresp.decl_position);
@@ -1380,13 +1400,12 @@ on a prior declaration.
     rp->storage_class = (a_storage_class)sc_static;
     rp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
   } else if (rp->source_corresp.name_linkage ==
-                           (a_name_linkage_kind)nlk_cplusplus_external) {
+                           (a_name_linkage_kind)nlk_cplusplus_external &&
+             !microsoft_out_of_class_redecl) {
     /* The routine will have been given a storage class of sc_extern when it
        was originally declared; change it to sc_unspecified now that the
        definition has been seen. */
     rp->storage_class = (a_storage_class)sc_unspecified;
-    rp->source_corresp.name_linkage =
-                                 (a_name_linkage_kind)nlk_cplusplus_external;
     if (!rp->is_inline) {
       /* Also set the referenced flag, assuming a reference from another
          translation unit. */
@@ -1632,8 +1651,14 @@ associated with the function is returned.
                  decl_modifiers, &symbol_ptr, &linkage, &old_type, &ext_sym,
                  decl_pos_block);
   }  /* if */
+  /* Now scan the function body, except if we're dealing with the special
+     Microsoft extension case that allows a nondefining out-of-class
+     member declaration. */
+  if (curr_token == tok_semicolon && microsoft_mode &&
+      locator->is_class_member) {
+    /* There is no definition. */
+  } else {
   routine_ptr = symbol_ptr->variant.routine.ptr;
-  /* Scan the function body. */
   flags = SFB_NO_FLAGS;
   if (!has_explicit_type_specifier) {
     flags |= SFB_IMPLICITLY_DECLARED_RETURN_TYPE;
@@ -1659,6 +1684,7 @@ associated with the function is returned.
     }  /* if */
   }  /* if */
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
+  }  /* if */
 
   db_exit();
   return symbol_ptr;
