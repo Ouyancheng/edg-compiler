@@ -303,7 +303,7 @@ routine recursively for each nested class.
        is desirable to control dependencies, e.g.:
          class A {
            void f1() { f2(); }
-           void f2(int i=1) {}
+           static void f2(int i=1) {}
          };
        Here we want to know about the default arguments for f2 before
        processing the call to it in the body of f1. */
@@ -313,6 +313,12 @@ routine recursively for each nested class.
            int f1(int i=f2()) { return i; }
            static int f2(int i=1) { return i; }
          };
+       where the default argument for f2 must be dealt with before that of
+       f1.  Currently, if the declaration for f1 precedes that of f2, we
+       issue an error ("too few arguments in function call"), but vice versa
+       is okay.  Is this order dependence appropriate?  Or should the
+       language impose some restrictions on what can appear in a default
+       argument expression?
     */
 #endif /* if 0 */
     /* First go though the routine fixup entries and scan the default
@@ -2466,35 +2472,6 @@ or struct definition.  The syntax is
         add_indirect_base_class(bcp, new_direct_bcp, path,
                                 &end_of_base_classes_list, type_ptr);
       }  /* for */
-#if 0
-      if (!new_direct_bcp->is_virtual &&
-          new_direct_bcp->
-              type->variant.class_struct_union.any_virtual_base_classes) {
-        for (bcp = base_classes_of(type_ptr); bcp != NULL; bcp = bcp->next) {
-          if (bcp->is_virtual && bcp->pointer_base_class == NULL) {
-            /* bcp is a virtual base class of the new class and its
-               pointer_base_class field has not been set yet. */
-            a_base_class_ptr other_bcp =
-                                 base_classes_of(new_direct_bcp->type);
-            a_base_class_ptr pointer_base_class = NULL;
-            for (; other_bcp != NULL; other_bcp = other_bcp->next) {
-              if (other_bcp->is_virtual && other_bcp->type == bcp->type) {
-                pointer_base_class = other_bcp->pointer_base_class;
-                break;
-              }  /* if */
-            }  /* for */
-            if (pointer_base_class != NULL) {
-              pointer_base_class =
-                       corresponding_base_class(pointer_base_class, type_ptr,
-                                                (a_base_class_ptr)NULL);
-                check_assertion(!pointer_base_class->
-                                              any_virtual_steps_in_derivation);
-              bcp->pointer_base_class = pointer_base_class;
-            }  /* if */
-          }  /* if */
-        }  /* for */
-      }  /* if */
-#endif /* if 0 */
       /* Enter the base name on the base class list in the derived class's
          class-supplement entry. */
       if (end_of_base_classes_list == NULL) {
@@ -6993,12 +6970,6 @@ skip_tag_scan:
           pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
           tag_sym = NULL;
           set_to_error_locator(locator);
-#if 0
-        } else if (tag_sym->defined) {
-          pos_sy_error(ec_already_defined, &locator.source_position, tag_sym);
-          tag_sym = NULL;
-          set_to_error_locator(locator);
-#endif /* if 0 */
         }  /* if */
       }  /* if */
     }  /* if */
