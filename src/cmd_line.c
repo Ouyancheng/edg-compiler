@@ -1400,6 +1400,7 @@ static a_flag_name
 #if IA64_ABI
   { "emulate_gnu_abi_bugs", &emulate_gnu_abi_bugs },
   { "warn_about_tail_padding_use", &warn_about_tail_padding_use },
+  { "reuse_tail_padding", &targ_reuse_tail_padding },
 #endif /* IA64_ABI */
   { NULL, NULL }  /* must be last */
 };
