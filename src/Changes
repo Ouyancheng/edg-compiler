@@ -940,7 +940,7 @@ This is now fixed.
 
 2/18/02  Microsoft mode: overload resolution, reference versus non-reference
 
-An idiosyncracy of MSVC++ overload resolution related to comparing two
+An idiosyncrasy of MSVC++ overload resolution related to comparing two
 parameters when one is a reference and the other is not (see Changes
 entries of 9/11/97 and 12/5/98) has been fixed in MSVC++ 7.0.  Therefore,
 the EDG front end now disables that quirk when the Microsoft version
@@ -3329,7 +3329,7 @@ out by the C++-generating back end in the form f(p, a1, a2, ...)
 instead of the original source form p->f(a1, a2, ...).  Now fixed.
 This required the addition of a new expression operator
 eok_generic_member_call (IL CHANGE), which will be seen only in
-IL for prototype instantations.
+IL for prototype instantiations.
  
 6/1/01   Microsoft compatibility: floating-point nontype template
          parameters accepted
@@ -3605,7 +3605,7 @@ was not treated as a constant expression.  Now it is accepted in Microsoft
 mode.
 
 4/16/01  Enumerator expression that is template-dependent member of
-         class, in prototype instantation
+         class, in prototype instantiation
 
 The processing for the expression of an enumerator was incorrect in
 a prototype instantiation of a template when the expression is
@@ -4097,7 +4097,7 @@ where the variables are initialized with a compound literal.
 2/28/01  Lowering of C99 designated initializers: bad code generated
 
 In some obscure cases involving designated initializers for unions
-that initialize different members of the same union, the generared
+that initialize different members of the same union, the generated
 IL was incorrect, and therefore the generated code was incorrect.
 There is also an obscure case involving array initializations and
 skipped elements and re-initialization.  Both are now fixed.
