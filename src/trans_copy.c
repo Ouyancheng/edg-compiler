@@ -1559,26 +1559,32 @@ static void copy_instantiation_info_for_routine(a_routine_ptr routine)
 /*
 The indicated routine has been copied from the secondary translation
 unit IL to the primary IL.  routine points to the copy in the
-secondary translation unit.  Update any instantiation list information
-associated with the routine.  Also handle the "instantiation" lists for
-extern inline functions, if appropriate.
+secondary translation unit, except for member functions of local
+classes, where it points to the primary IL copy.  Update any
+instantiation list information associated with the routine.
+Also handle the "instantiation" lists for extern inline functions,
+if appropriate.
 */
 {
-  a_boolean     overwrite = entry_to_be_merged(routine);
-  a_routine_ptr corresp_routine =
-                 (a_routine_ptr)checked_trans_unit_corresp_pointer_of(routine);
-  a_routine_ptr primary_routine =
-                                 (a_routine_ptr)canonical_il_entry_of(routine);
+  a_boolean     local_member_function = !in_secondary_trans_unit(routine);
+  a_boolean     overwrite = (!local_member_function &&
+                             entry_to_be_merged(routine));
+  a_routine_ptr primary_routine= (a_routine_ptr)canonical_il_entry_of(routine);
   a_symbol_ptr  sym = (a_symbol_ptr)(routine->source_corresp.assoc_info);
-  /* Note that if the routine was copied on top of an original routine
-     in the primary IL the symbol pointer from the original entry was
-     saved in the assoc_info field of the intermediate copy. */
-  a_symbol_ptr  orig_sym = overwrite ?
-                   (a_symbol_ptr)(corresp_routine->source_corresp.assoc_info) :
-                   (a_symbol_ptr)NULL;
+  a_symbol_ptr  orig_sym = NULL;
 
   /* This routine runs while switched to the primary translation unit. */
-  check_assertion(is_primary_translation_unit);
+  check_assertion(is_primary_translation_unit &&
+                  (!local_member_function ||
+                   routine->source_corresp.is_local_to_function));
+  if (overwrite) {
+    /* Note that if the routine was copied on top of an original routine
+       in the primary IL the symbol pointer from the original entry was
+       saved in the assoc_info field of the intermediate copy. */
+    a_routine_ptr corresp_routine =
+                 (a_routine_ptr)checked_trans_unit_corresp_pointer_of(routine);
+    orig_sym = (a_symbol_ptr)(corresp_routine->source_corresp.assoc_info);
+  }  /* if */
   if (instantiate_extern_inline && routine->is_inline &&
       routine->storage_class == (a_storage_class)sc_unspecified) {
     /* extern inline functions are put on a list so they can be
@@ -1631,7 +1637,8 @@ static void wrap_up_moved_function(a_routine_ptr rout)
 rout identifies a function which has been moved from a secondary
 translation unit to the primary translation unit IL.  Do final processing,
 which includes IL lowering if appropriate.  rout points to the instance
-of the routine in the secondary translation unit.
+of the routine in the secondary translation unit, except for member
+functions of local classes, where it points to the primary IL copy.
 */
 {
   a_routine_ptr primary_rout = (a_routine_ptr)canonical_il_entry_of(rout);
@@ -1653,28 +1660,22 @@ of the routine in the secondary translation unit.
 
 
 static void finish_moved_function_processing(a_scope_ptr scope,
-                                             a_boolean   do_inlines)
+                                             a_boolean   do_inlines);
+
+
+static void finish_type_list_moved_function_processing(a_type_ptr type_list,
+                                                       a_boolean  do_inlines)
 /*
-Finish processing in the indicated scope and its subscopes for any
+Finish processing in the indicated type list and its subscopes for any
 functions whose bodies were moved from the secondary translation unit IL
-to the primary IL.  This includes lowering if necessary.  The scope
-passed in is from the secondary translation unit.  Inline functions
-are processed only if do_inlines is TRUE, other functions only if
-do_inlines is FALSE, thus allowing a two-pass sweep.
+to the primary IL.
 */
 {
-  a_routine_ptr   routine;
-  a_type_ptr      type;
-  a_namespace_ptr nsp;
+  a_type_ptr type;
 
-  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
-    if (!nsp->is_namespace_alias) {
-      finish_moved_function_processing(nsp->variant.assoc_scope, do_inlines);
-    }  /* if */
-  }  /* for */
   if (!C_mode()) {
     /* Look for class types and process their member functions. */
-    for (type = scope->types; type != NULL; type = type->next) {
+    for (type = type_list; type != NULL; type = type->next) {
       if (is_immediate_class_type(type)) {
         a_scope_ptr class_scope =
                       type->variant.class_struct_union.extra_info->assoc_scope;
@@ -1684,7 +1685,40 @@ do_inlines is FALSE, thus allowing a two-pass sweep.
       }  /* if */
     }  /* for */
   }  /* if */
+}  /* finish_type_list_moved_function_processing */
+
+
+static void finish_moved_function_processing(a_scope_ptr scope,
+                                             a_boolean   do_inlines)
+/*
+Finish processing in the indicated scope and its subscopes for any
+functions whose bodies were moved from the secondary translation unit IL
+to the primary IL.  This includes lowering if necessary.  The scope
+passed in is from the secondary translation unit except for local
+class scopes.  Inline functions are processed only if do_inlines is
+TRUE, other functions only if do_inlines is FALSE, thus allowing a
+two-pass sweep.
+*/
+{
+  a_routine_ptr   routine;
+  a_namespace_ptr nsp;
+
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      finish_moved_function_processing(nsp->variant.assoc_scope, do_inlines);
+    }  /* if */
+  }  /* for */
+  finish_type_list_moved_function_processing(scope->types, do_inlines);
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
+    if (routine->assoc_scope != NULL_region_number) {
+      a_scope_ptr rout_scope =
+                            il_header.region_scope_entry[routine->assoc_scope];
+      check_assertion_str(rout_scope != NULL,
+                          "finish_moved_function_processing: body missing");
+      /* Handle local classes (and their member functions). */
+      finish_type_list_moved_function_processing(rout_scope->types,
+                                                 do_inlines);
+    }  /* if */
     /* Process inline functions only if appropriate. */
     if ((do_inlines != 0) == (routine->is_inline != 0)) {
       wrap_up_moved_function(routine);
