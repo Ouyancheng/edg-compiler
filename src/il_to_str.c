@@ -3558,7 +3558,8 @@ precedence confusion.  Do the output in the way described by octl.
         int           out_len = 0;
 
 #if BACK_END_IS_C_GEN_BE
-        if (octl->c_generating_back_end && constant->assoc_var_assigned) {
+        if (octl->c_generating_back_end && constant->assoc_var_assigned &&
+            is_wide_string_constant(constant)) {
           /* The C-generating back end transforms wide string literals: it
              creates a variable initialized with the string value and then
              uses the variable instead of the string.  This ensures proper
