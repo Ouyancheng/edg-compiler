@@ -37,6 +37,7 @@ static a_boolean conversion_to_class_possible(
                                   an_operand               *source_operand,
                                   a_type_ptr               dest_type,
                                   a_boolean                is_initialization,
+                                  a_boolean                try_bitwise_copy,
                                   a_boolean                is_explicit_cast,
                                   a_conv_descr             *conversion,
                                   a_boolean                *ambiguous,
@@ -696,6 +697,7 @@ already set, with a value of NULL indicating a same-class copy.
     a_boolean ambiguous;
     if (conversion_to_class_possible(arg_operand, param_type,
                                      /*is_initialization=*/TRUE,
+                                     /*try_bitwise_copy=*/TRUE,
                                      /*is_explicit_cast=*/FALSE,
                                      conversion, &ambiguous,
                                      (a_candidate_function_ptr *)NULL) ||
@@ -1071,8 +1073,13 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
        may not want the transformations we've done. */
     check_assertion(orig_arg_operand != NULL);
     if (param_is_class_type &&
+        /* Bitwise copies are not tried here because they were considered
+           above, and bitwise copies that drop type qualifiers under
+           a reference would be allowed by here after we've gone to the
+           trouble of rejecting them above. */
         (conversion_to_class_possible(orig_arg_operand, param_type,
                                       /*is_initialization=*/TRUE,
+                                      /*try_bitwise_copy=*/FALSE,
                                       /*is_explicit_cast=*/FALSE,
                                       &conversion, &ambiguous,
                                       (a_candidate_function_ptr *)NULL) ||
@@ -4647,6 +4654,7 @@ static a_boolean conversion_to_class_possible(
                                   an_operand               *source_operand,
                                   a_type_ptr               dest_type,
                                   a_boolean                is_initialization,
+                                  a_boolean                try_bitwise_copy,
                                   a_boolean                is_explicit_cast,
                                   a_conv_descr             *conversion,
                                   a_boolean                *ambiguous,
@@ -4657,6 +4665,7 @@ constructor, conversion function, or bitwise copy) set *conversion
 to describe the conversion and return TRUE.  Otherwise, return FALSE.
 If is_initialization is TRUE, this conversion is for an initialization;
 otherwise, it's for an assignment.  The result is always an rvalue.
+Bitwise copies are considered if try_bitwise_copy is TRUE.
 If is_explicit_cast is TRUE, this conversion is an explicit cast;
 allow user-defined conversions on constructor arguments, and convert
 source_operand to the argument type of the constructor before returning
@@ -4696,16 +4705,15 @@ C++ mode.
   class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
   cssp = class_symbol->variant.class_struct_union.extra_info;
   source_type = source_operand->type;
+  source_type = skip_typerefs(source_type);
   /* candidate_functions will contain the list of viable functions. */
   candidate_functions = NULL;
   /* Check for a same-class bitwise copy.  The derived-class bitwise copy
      is checked for below. */
-  /* A bitwise copy cannot be done if any type qualifiers are dropped. */
-  bitwise_copy_okay = (is_initialization ?
+  bitwise_copy_okay = try_bitwise_copy &&
+                      (is_initialization ?
                                    cssp->construction_by_bitwise_copy_allowed :
-                                   cssp->assignment_by_bitwise_copy_allowed) &&
-                      !any_qualifier_missing(dest_type, source_type);
-  source_type = skip_typerefs(source_type);
+                                   cssp->assignment_by_bitwise_copy_allowed);
   if (bitwise_copy_okay && identical_types(class_type, source_type)) {
     /* The source and destination types are the same class type, and a
        bitwise copy is allowed on that type.  That means there are no
@@ -5033,6 +5041,7 @@ caller should have rewritten that case).
        function. */
     if (conversion_to_class_possible(source_operand, dest_type,
                                      is_initialization,
+                                     /*try_bitwise_copy=*/TRUE,
                                      is_explicit_cast,
                                      conversion, &ambiguous,
                                      &ambiguity_list)) {
