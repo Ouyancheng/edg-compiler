@@ -156,6 +156,10 @@ static a_boolean
 			/* If TRUE, temporary variables should be "cloned"
 			   (replaced by new equivalent temporaries) during
 			   expression copying. */
+static a_template_arg_ptr
+		avail_template_args;
+			/* List of freed template arg entries that are
+			   available for reuse. */
 
 
 /* Forward declarations needed because of mutual recursion: */
@@ -2737,11 +2741,15 @@ a pointer to it.
 {
   a_template_arg_ptr tap;
 
-  tap = (a_template_arg_ptr)alloc_il(sizeof(a_template_arg));
-
+  if (avail_template_args != NULL) {
+    tap = avail_template_args;
+    avail_template_args = avail_template_args->next;
+  } else {
+    tap = (a_template_arg_ptr)alloc_il(sizeof(a_template_arg));
 #if DEBUG
-  num_template_args_allocated++;
+    num_template_args_allocated++;
 #endif
+  }  /* if */
   tap->next             = NULL;
   tap->is_type          = is_type_arg;
   if (is_type_arg) {
@@ -2751,6 +2759,18 @@ a pointer to it.
   }  /* if */
   return tap;
 }  /* alloc_template_arg */
+
+
+void free_template_arg(a_template_arg_ptr  tap)
+/*
+Return a template arg entry to the available list.
+*/
+{
+  if (tap != NULL) {
+    tap->next = avail_template_args;
+    avail_template_args = tap;
+  }  /* if */
+}  /* free_template_arg */
 
 
 a_base_class_ptr alloc_base_class(void)
@@ -5584,6 +5604,7 @@ of the front end.
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 #endif /* DEBUG */
   avail_rewritten_temporaries = NULL;
+  avail_template_args = NULL;
 }  /* il_init */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
