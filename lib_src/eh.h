@@ -30,9 +30,12 @@ typedef void (*a_function_ptr)();
                            pointer to a destructor or an operator delete
 			   function. */
 
-typedef a_byte *a_unique_type_id;
+typedef a_byte a_unique_id;
 			/* The thing pointed to by the unique ID in a
 			   typeinfo record. */
+
+typedef a_unique_id *a_unique_id_ptr;
+			/* A pointer to a unique ID. */
 
 typedef void (*a_void_function_ptr)();
 			/* Type used to store a generic function pointer. */
@@ -51,11 +54,15 @@ typedef unsigned short an_object_offset;
 /* Definitions of the values in the flags field of the region description
    entry. */
 typedef a_byte a_base_class_spec_flag_set;
-#define BCS_INDIRECT	0x01
+#define BCS_NO_FLAGS	0x00
+			/* Value when no flags are set. */
+#define BCS_VIRTUAL	0x01
 			/* The offset provides the position of a pointer
 			   to the base class.  Used for virtual base
 			   classes. */
-#define BCS_LAST	0x02
+#define BCS_AMBIGUOUS	0x02
+			/* TRUE if this is an ambiguous base class. */
+#define BCS_LAST	0x04
 			/* TRUE if this is the last base class specifier
 			   in the array. */
 
@@ -84,7 +91,7 @@ typedef struct a_base_class_spec {
 /* Type description information for objects that are thrown or
    caught. */
 typedef struct a_typeinfo {
-  a_unique_type_id
+  a_unique_id_ptr
 		unique_id;
 			/* When this field is non-NULL two typeinfo
 			   structures describe the same type if their
@@ -98,7 +105,7 @@ typedef struct a_typeinfo {
 			   direct base classes of a class. */
 } a_typeinfo;
 
-typedef short an_object_handle;
+typedef unsigned short an_object_handle;
 			/* An offset into the object address array. */
 
 typedef void *an_object_ptr;

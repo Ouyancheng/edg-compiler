@@ -353,6 +353,51 @@ Print the contents of a region description entry.
 #endif /* DEBUG */
 
 
+static void set_base_class_flags(a_typeinfo_ptr	class_typeinfo,
+				 a_boolean	set_flag)
+/*
+Go through all of the base classes (direct and indirect) of the class
+indicated by class_typeinfo and set the base class flags in the unique
+ID.  This is used later to determine whether a catch clause refers to
+a base class of the class being thrown.  set_flag is TRUE if the flags
+are to be set and FALSE if they are to be cleared.
+
+When the flags are set this routine detects ambiguous base classes and
+sets the flags accordingly.
+*/
+{
+  a_base_class_spec_ptr	bcsp = class_typeinfo->base_class_entries;
+
+  if (bcsp != NULL) {
+    /* A base class list is present. */
+    a_boolean	done = FALSE;
+    do {
+      a_typeinfo_ptr	base_typeinfo = bcsp->typeinfo;
+      a_unique_id	new_value;
+      /* Set the flags for this base class and then call this routine
+         recursively. */
+      if (set_flag) {
+        a_unique_id	old_value = *(base_typeinfo->unique_id);
+        if (old_value == BCS_NO_FLAGS) new_value = bcsp->flags;
+      } else {
+        new_value = BCS_NO_FLAGS;
+      }  /* if */
+      *(base_typeinfo->unique_id) = new_value;
+      if (base_typeinfo->base_class_entries != NULL) {
+        /* This base class has its own bases.  Call this routine
+	   recursively. */
+        set_base_class_flags(base_typeinfo, set_flag);
+      }  /* if */
+      /* The last entry in the array will have the BCS_LAST flag set. */
+      done = bcsp->flags & BCS_LAST;
+      /* Advance the pointer to the next element in the array of base
+         class specifications. */
+      bcsp++;
+    } while (!done);
+  }  /* if */
+}  /* set_base_class_flags */
+
+
 static void cleanup(an_eh_stack_entry_ptr ehsep,
                       a_region_number       region)
 /*
@@ -433,12 +478,19 @@ plus 1).
     index++;
 #if 0
     /* Pointer and reference handling needs to be added. */
-    /* Base class handling needs to be added. */
 #endif /* 0 */
     if (etsp->flags & ETS_IS_ELLIPSIS) {
       match = TRUE;
     } else if (matching_typeinfo(etsp->typeinfo, typeinfo)) {
       match = TRUE;
+    } else if (*(etsp->typeinfo->unique_id) != BCS_AMBIGUOUS) {
+      /* An ambiguous base class -- no match. */
+    } else if (*(etsp->typeinfo->unique_id) != BCS_NO_FLAGS) {
+      /* A base class of the class that was thrown. */
+      match = TRUE;
+#if 0
+      /* Derived to base conversion needs to be done. */
+#endif /* 0 */
     }  /* if */
     if (match) {
       result = index;
@@ -455,7 +507,7 @@ plus 1).
 Temporary variables that hold the information about the thrown type.
 This will be replaced with a stack of throw information.
 */
-static a_typeinfo_ptr	thrown_typeinfo;
+static a_typeinfo_ptr	thrown_typeinfo = NULL;
 static a_boolean	thrown_is_pointer;
 static int		throw_buffer[1024];
 static a_boolean	throw_in_process = FALSE;
@@ -477,7 +529,17 @@ a try block with a catch that matches the type of the object thrown.
     fprintf(__f_debug, "__throw called\n");
   }  /* if */
 #endif /* DEBUG */
+  /* Set the base class flags for the thrown type. */
   /* Find the try block that can catch the object being thrown. */
+#if 0
+#else /* 0 */
+  if (thrown_typeinfo != NULL) {
+    /* Clear the base class flags from the previous throw.  This needs to
+       be changed when stacked throws are implemented. */
+    set_base_class_flags(thrown_typeinfo, /*set_flag=*/FALSE);
+  }  /* if */
+#endif /* 1 */
+  set_base_class_flags(thrown_typeinfo, /*set_flag=*/TRUE);
   ehsep = __curr_eh_stack_entry;
   while (ehsep != NULL) {
     an_eh_stack_entry_kind	kind = ehsep->kind;

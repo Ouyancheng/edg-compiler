@@ -100,7 +100,16 @@ Error routines.
 /* Macro to test an assertion and generate an internal error if
    the condition is not TRUE.  The macro expands to nothing when checking
    code is not being used. */
-#include <assert.h>
+EXTERN_C void abort(void);
+#define assert(test) \
+  {									\
+    if (!(test)) {							\
+      (void)fprintf(__f_debug, "Assertion failed in file \"%s\", line %d\n", \
+                    __FILE__, __LINE__);				\
+      abort();								\
+    }  /* if */								\
+  }
+
 #define check_assertion(test)						\
   assert(test)
 #define unexpected_condition()						\
