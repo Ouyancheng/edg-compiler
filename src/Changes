@@ -1,5 +1,16 @@
 Version 2.29
 
+5/11/95  Diagnostic on uninitialized empty-class object
+
+We used to suppress the diagnostic on failing to initialize a const
+object when its type was an empty class; now we issue a warning (or an
+error in -A mode).
+
+5/11/95  Diagnostic on typedef redeclaration
+
+The error message issued for attempting to redeclare a typedef name with a
+new type now notes the source position of the original declaration.
+
 5/11/95  Removal of top-level cv-qualifiers from function parameter types
 
 Top-level qualifiers are removed from function parameter types (see changes
