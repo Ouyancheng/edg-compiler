@@ -11474,6 +11474,9 @@ at some later point call free_arg_operand_list to free the entry.
   /* Scan the constant expression. */
   arg_operand = alloc_arg_operand();
   scan_expr(&arg_operand->operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  /* Don't do final processing on the attached cross-reference entries.
+     They are given to the caller. */
+  curr_expr_ref_entries = NULL;
   pop_expr_stack();
 
 #if DEBUG
@@ -11498,16 +11501,45 @@ processing routines.
 */
 {
   a_boolean           compatible;
+  an_operand          operand;
   an_expr_stack_entry expr_stack_entry;
 
   push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
-  compatible = nontype_template_arg_conversion_possible(&arg_operand->operand,
+  /* Don't do anything with references on this operand, since this is only
+     exploratory. */
+  operand = arg_operand->operand;
+  operand.ref_entries_list = NULL;
+  compatible = nontype_template_arg_conversion_possible(&operand,
                                                         param_type);
   pop_expr_stack();
   return compatible;
 }  /* nontype_template_arg_is_compatible_with_param_type */
+
+
+static void copy_nontype_template_arg_operand(an_arg_operand_ptr arg_operand,
+                                              an_operand         *operand)
+/*
+arg_operand is an_arg_operand for a nontype template argument.  Make a
+copy of it in *operand.  If the operand has attached reference entries,
+make a copy of the list for use in the current processing.  This is
+necessary because the kinds of reference made to the template argument
+differ depending on the type of the template parameter against which it
+is matched up (e.g., a reference parameter uses the address of the
+argument instead of the value).
+*/
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  check_assertion_str(arg_operand->operand.kind !=
+                                              (an_operand_kind)ok_property_ref,
+            "copy_nontype_template_arg_operand: escaped property-ref operand");
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  *operand = arg_operand->operand;
+  /* Copy the list of references, if any. */
+  operand->ref_entries_list =
+                    copy_ref_entry_list(arg_operand->operand.ref_entries_list);
+}  /* copy_nontype_template_arg_operand */
 
 
 void conv_nontype_template_arg_to_param_type(an_arg_operand_ptr arg_operand,
@@ -11521,6 +11553,7 @@ converted result in *constant.  This is callable from outside of the
 expression processing routines.
 */
 {
+  an_operand          operand;
   an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "conv_nontype_template_arg_to_param_type");
@@ -11528,8 +11561,9 @@ expression processing routines.
   push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
+  copy_nontype_template_arg_operand(arg_operand, &operand);
   /* Convert the operand to the parameter type and extract a constant. */
-  prep_nontype_template_argument_initializer(&arg_operand->operand,
+  prep_nontype_template_argument_initializer(&operand,
                                              param_type, constant);
   pop_expr_stack();
 

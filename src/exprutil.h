@@ -583,6 +583,8 @@ types, so use the is_member_constant flag.
    (var)->is_member_constant)
 
 
+extern a_ref_entry_ptr copy_ref_entry_list(a_ref_entry_ptr ref_list);
+
 extern void flush_ref_entries_except(a_ref_entry_ptr keep_list1,
                                      a_ref_entry_ptr keep_list2);
 

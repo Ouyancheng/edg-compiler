@@ -73,7 +73,8 @@ placed in the entry.  At this point the kind of reference is the generic
 SRK_REFERENCE.  An entry of this kind is used to hold information on a single
 reference to a symbol in an expression.  The information is held, rather than
 recorded immediately, because the kind of reference may be revised as more of
-the expression is scanned.
+the expression is scanned.  The entry is put on the reference list for
+the current expression, headed by curr_expr_ref_entries.
 */
 {
   a_ref_entry_ptr rep;
@@ -95,8 +96,46 @@ the expression is scanned.
   copy_source_position(*pos, rep->position);
   rep->next = NULL;
   rep->next_operand_ref = NULL;
+  /* Put the entry on the list of entries for the current expression.
+     The list is dumped when flush_ref_entries_list is called.
+     The entry is put at the end of the list to preserve source order. */
+  if (curr_expr_ref_entries == NULL) {
+    curr_expr_ref_entries = rep;
+  } else {
+    a_ref_entry_ptr last_rep;
+    for (last_rep = curr_expr_ref_entries;
+         last_rep->next != NULL;
+         last_rep = last_rep->next) {}
+    last_rep->next = rep;
+  }  /* if */
   return rep;
 }  /* alloc_ref_entry */
+
+
+a_ref_entry_ptr copy_ref_entry_list(a_ref_entry_ptr ref_list)
+/*
+Make a copy of a list of reference entries, and return a pointer to the
+copied list.  The list of entries is for a single operand, and is linked
+on the next_operand_ref field.  The new entries are placed on the reference
+list for the current expression, headed by curr_expr_ref_entries.
+*/
+{
+  a_ref_entry_ptr copy_list = NULL, copy_list_end = NULL;
+
+  for (; ref_list != NULL; ref_list = ref_list->next_operand_ref) {
+    a_ref_entry_ptr new_ref = alloc_ref_entry(ref_list->symbol,
+                                              &ref_list->position);
+    *new_ref = *ref_list;
+    new_ref->next_operand_ref = NULL;
+    if (copy_list == NULL) {
+      copy_list = new_ref;
+    } else {
+      copy_list_end->next_operand_ref = new_ref;
+    }  /* if */
+    copy_list_end = new_ref;
+  }  /* for */
+  return copy_list;
+}  /* copy_ref_entry_list */
 
 
 static void free_ref_entry(a_ref_entry_ptr rep)
@@ -219,7 +258,7 @@ freed.  If the proper kind of reference is known right away, it is
 recorded right away and no entry is created; NULL is returned.
 */
 {
-  a_ref_entry_ptr rep, last_rep;
+  a_ref_entry_ptr rep;
   a_boolean       ref_kind_can_be_affected_by_context;
   a_boolean       evaluated = curr_expr_is_potentially_evaluated();
   a_symbol_ptr    fund_sym = fundamental_symbol_of(sym_ptr);
@@ -262,17 +301,6 @@ recorded right away and no entry is created; NULL is returned.
       /* The kind of reference can be affected by context, so build an entry
          for it. */
       rep = alloc_ref_entry(fund_sym, source_position);
-      /* Put the entry on the list of entries for the current expression.
-         The list is dumped when flush_ref_entries_list is called.
-         The entry is put at the end of the list to preserve source order. */
-      if (curr_expr_ref_entries == NULL) {
-        curr_expr_ref_entries = rep;
-      } else {
-        for (last_rep = curr_expr_ref_entries;
-             last_rep->next != NULL;
-             last_rep = last_rep->next) {}
-        last_rep->next = rep;
-      }  /* if */
     }  /* if */
   }  /* if */
   return rep;
