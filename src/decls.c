@@ -118,27 +118,6 @@ abstract or real declarator.
    (C_dialect == C_dialect_cplusplus &&                               \
     is_ptr_to_member_declarator_start()))
 
-static a_boolean is_name_of_curr_class(void)
-/*
-Return TRUE if the current scope is a class definition and the name of the
-class is the same as the name that locator_for_curr_id represents.
-*/
-{
-  a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
-  a_symbol_ptr             class_sym;
-  a_boolean                match;
-
-  if (ssep->kind != (a_scope_kind)sck_class_struct_union) {
-    match = FALSE;
-  } else {
-    class_sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
-    match = (locator_for_curr_id.symbol_header == class_sym->header &&
-             (!locator_for_curr_id.is_qualified_name ||
-              locator_for_curr_id.qualifier_class_type == ssep->assoc_type));
-  }  /* if */
-  return match;
-}  /* is_name_of_curr_class */
-
 
 static a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
                                      a_boolean in_prescan)
@@ -7267,17 +7246,86 @@ to indicate whether an enumeration is actually defined.
 }  /* enum_specifier */
 
 
+a_boolean is_constructor_decl(a_type_ptr    class_type)
 /*
-Local macro for decl_specifiers: if curr_token_type_symbol has not
-been determined, determine it now.
+class_type is a pointer to the class that is currently being defined.  Return
+TRUE and modify locator_for_curr_id appropriate if the current declaration
+is a that of a constructor.
 */
-#define determine_curr_token_type_symbol(is_new_type_name)            \
-{ if (!determined_curr_token_type_symbol) {                           \
-    curr_token_type_symbol = curr_type_symbol(is_new_type_name,	      \
-                                              /*in_prescan=*/FALSE);  \
-    determined_curr_token_type_symbol = TRUE;                         \
-  }  /* if */                                                         \
-}  /* determine_curr_token_type_symbol */
+{
+  a_boolean      is_constructor = FALSE;
+  a_symbol_ptr   tag_sym;
+  a_token_cache  cache;
+  a_symbol_ptr   curr_token_type_symbol;
+
+  tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+  if (locator_for_curr_id.symbol_header == tag_sym->header &&
+      (!locator_for_curr_id.is_qualified_name ||
+       locator_for_curr_id.qualifier_class_type == class_type)) {
+    /* The name is the same as that of a class being defined.  This is treated
+       as a constructor declaration if the next two tokens are a left paren
+       and declaration start token.  Use token caching in the look-ahead,
+       since the tokens will have to be rescanned no matter what. */
+    /* Change "A::A" into "A" if we are processing inside the definition of
+       class "A".  This is necessary for curr_token_type_symbol to handle
+       this case correctly. */
+    (void)simplify_curr_class_qualified_name();
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    /* Put the current token in the cache. */
+    cache_curr_token(&cache);
+    /* Advance to what may be the left paren. */
+    if (get_token() == tok_lparen) {
+      /* Cache the left parenthesis. */
+      cache_curr_token(&cache);
+      /* Advance past it.  If the next token is a right paren or
+         the start of a parameter declaration, this must be a
+         constructor. */
+      (void)get_token();
+      if (curr_token == tok_rparen || curr_token == tok_ellipsis ||
+          is_decl_start(/*expr_context=*/FALSE,
+                        /*real_declarator_allowed=*/TRUE)) {
+        /* Constructor. */
+        is_constructor = TRUE;
+      }  /* if */
+    }  /* if */
+    /* Note that rescan_cached_tokens caches the current token as
+       well as resetting the current token state to what it was
+       before token caching was started.  So the current token
+       should again be the name of the class being defined. */
+    rescan_cached_tokens(&cache);
+    if (is_constructor) {
+      a_source_position  pos;
+
+      /* Turn the current locator from a "specific symbol" locator
+         into a constructor locator. */
+      curr_token_type_symbol = curr_type_symbol(/*is_new_type_name=*/FALSE,
+                                                /*in_prescan=*/FALSE);
+      if (curr_token_type_symbol != tag_sym) {
+        if (class_type ==
+               locator_for_curr_id.specific_symbol->class_of_which_a_member) {
+          if (locator_for_curr_id.specific_symbol->kind !=
+                                    (a_symbol_kind)sk_projection) {
+            /* This can only mean that another member has been
+               declared with the class name.  Issue an error. */
+            str_error(ec_id_already_declared,
+                        locator_for_curr_id.symbol_header->identifier);
+          }  /* if */
+        } else if (curr_token_type_symbol != NULL) {
+          check_assertion(
+                    is_template_class_symbol(curr_token_type_symbol));
+          pos_sy2_error(ec_bad_constructor_name,
+                        &locator_for_curr_id.source_position,
+                        curr_token_type_symbol, tag_sym);
+        }  /* if */
+        locator_for_curr_id.specific_symbol = tag_sym;
+      }  /* if */
+      pos = locator_for_curr_id.source_position;
+      change_class_locator_into_constructor_locator(
+                                         &locator_for_curr_id, &pos);
+    }  /* if */
+  }  /* if */
+  return is_constructor;
+}  /* is_constructor_decl */
 
 
 a_boolean decl_specifiers(a_decl_flag_set       input_flags,
@@ -7363,7 +7411,6 @@ Returns TRUE if there is an error in the specifiers.
 {
   int                num_specifiers;
   a_symbol_ptr       curr_token_type_symbol;
-  a_boolean          determined_curr_token_type_symbol = FALSE;
   a_boolean          err = FALSE;
   a_boolean          bad_combination_of_type_specifiers = FALSE;
   a_source_position  start_pos;
@@ -7900,85 +7947,19 @@ process_class_specifier:
               num_specifiers == (((*output_flags & DSO_VIRTUAL) ? 1 : 0) +
                                  ((*storage_class ==
                                      (a_storage_class)sc_static) ? 1 : 0) +
-                                 (is_inline ? 1 : 0)) &&
-              is_name_of_curr_class()) {
-
-            /* The name is the same as that of a class being defined.  This
-               is treated as a constructor declaration if the next two
-               tokens are a left paren and declaration start token.  Use
-               token caching in the look-ahead, since the tokens will have
-               to be rescanned no matter what. */
-            a_token_cache    cache;
-            a_boolean        is_constructor = FALSE;
-
-            /* Change "A::A" into "A" if we are processing inside the
-               definition of class "A".  This is necessary for
-               determine_curr_type_symbol to handle this case
-               correctly. */
-            (void)simplify_curr_class_qualified_name();
-            clear_token_cache(&cache, /*reusable=*/FALSE);
-            /* Put the current token in the cache. */
-            cache_curr_token(&cache);
-            /* Advance to what may be the left paren. */
-            if (get_token() == tok_lparen) {
-              /* Cache the left parenthesis. */
-              cache_curr_token(&cache);
-              /* Advance past it.  If the next token is a right paren or
-                 the start of a parameter declaration, this must be a
-                 constructor. */
-              (void)get_token();
-              if (curr_token == tok_rparen || curr_token == tok_ellipsis ||
-                  is_decl_start(/*expr_context=*/FALSE,
-                                /*real_declarator_allowed=*/TRUE)) {
-                /* Constructor. */
-                is_constructor = TRUE;
-              }  /* if */
-            }  /* if */
-            /* Note that rescan_cached_tokens caches the current token as
-               well as resetting the current token state to what it was
-               before token caching was started.  So the current token
-               should again be the name of the class being defined. */
-            rescan_cached_tokens(&cache);
-            if (is_constructor) {
-              a_type_ptr         tp;
-              a_symbol_ptr       tag_sym;
-              a_source_position  pos;
-
-              tp = scope_stack[decl_scope_level].assoc_type;
-              tag_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+                                 (is_inline ? 1 : 0))) {
+            a_type_ptr  class_type = scope_stack[decl_scope_level].assoc_type;
+            check_assertion(class_type != NULL &&
+                            is_class_struct_union_type(class_type)); 
+            if (is_constructor_decl(class_type)) {
               basic_type = bt_no_type;
               *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
-              /* Turn the current locator from a "specific symbol" locator
-                 into a constructor locator. */
-              determine_curr_token_type_symbol(/*is_new_type_name=*/FALSE);
-              if (curr_token_type_symbol != tag_sym) {
-                if (locator_for_curr_id.specific_symbol->
-                                           class_of_which_a_member == tp) {
-                  if (locator_for_curr_id.specific_symbol->kind !=
-                                            (a_symbol_kind)sk_projection) {
-                    /* This can only mean that another member has been
-                       declared with the class name.  Issue an error. */
-                    str_error(ec_id_already_declared,
-                                locator_for_curr_id.symbol_header->identifier);
-                  }  /* if */
-                } else if (curr_token_type_symbol != NULL) {
-                  check_assertion(
-                            is_template_class_symbol(curr_token_type_symbol));
-                  pos_sy2_error(ec_bad_constructor_name,
-                                &locator_for_curr_id.source_position,
-                                curr_token_type_symbol, tag_sym);
-                }  /* if */
-                locator_for_curr_id.specific_symbol = tag_sym;
-              }  /* if */
-              pos = locator_for_curr_id.source_position;
-              change_class_locator_into_constructor_locator(
-                                                 &locator_for_curr_id, &pos);
               /* Note that with a branch to exit_loop the get_token call
                  is bypassed.  This means curr_token will still represent
                  the constructor name (= class name) upon return to the
                  caller. */
               goto exit_loop;
-            }  /* if */
+            }  /* if */              
           }  /* if */
         }  /* if */
         /* The appearance of an identifier may mean that the specifiers
@@ -8027,7 +8008,9 @@ process_class_specifier:
         }  /* if */
         /* Look up the identifier as a type symbol, if it has not already been
            looked up. */
-        determine_curr_token_type_symbol(input_flags & DSI_IS_NEW_TYPE_NAME);
+        curr_token_type_symbol = curr_type_symbol(input_flags &
+                                                        DSI_IS_NEW_TYPE_NAME,
+                                                  /*in_prescan=*/FALSE);
         if (curr_token_type_symbol != NULL) {
           if (sign != sign_none || size != size_none) {
             /* We are in pcc mode, in which adjectival modification of a
@@ -8338,7 +8321,6 @@ something_unexpected:
     (void)get_token();
 no_get_token:
     num_specifiers++;
-    determined_curr_token_type_symbol = FALSE;
     /* Check for special conditions that will cause this loop to terminate. */
     if (input_flags & DSI_COLLECT_TYPE_QUALIFIERS) {
       /* We are only interested in scanning type qualifiers (e.g., in a
