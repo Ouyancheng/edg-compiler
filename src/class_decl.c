@@ -8091,10 +8091,13 @@ completed (C++ only).
           }  /* if */
           /* Check for template declaration. */
           if (curr_token == tok_template) {
-            /* A friend template declaration may appear in a class
-	       declaration. */
-            template_declaration(&local_defines_something,
-                                 /*no_advance_past_final_token=*/FALSE);
+            /* A template declaration in a class may be a member template
+	       declaration or a friend declaration.  Explicit instantiations
+	       are not permitted in a class context.  The error for an
+	       explicit instantiation in a class will be issued by
+	       template_directive_or_declaration. */
+            template_directive_or_declaration(
+              &local_defines_something, /*no_advance_past_final_token=*/FALSE);
             goto next_declaration;
           }  /* if */
         }  /* if */
