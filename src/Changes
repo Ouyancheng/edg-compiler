@@ -17,7 +17,7 @@ the member was specifically named in the instantiation pragma.
   };
   template <class T> A<T>::A(){}
   #pragma instantiate A<int>  // No longer an error
-  #pragma instantiate A<int>::A()  // Still an error
+  #pragma instantiate A<int>::A(const A&)  // Still an error
 
 12/13/95  Pointer-to-member template parameters that depend on other template
           parameter types
