@@ -688,6 +688,7 @@ update the cross reference and source sequence output.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* record_access_adjustment */
 
+
 static a_boolean is_cfront_base_class_destructor_access_bug(
                                                 a_symbol_ptr   sym,
                                                 a_routine_ptr  rp,
@@ -722,26 +723,27 @@ implicitly -- e.g., a copy constructor that is called when a class
 object is passed by value or an assignment operator that is called when
 another assignment operator function is being created.  Check that the
 special member function is accessible and mark the routine entry
-referenced.  *pos gives the source position of the reference.
-class_of_object points to the type of the object for which the function
-is being called, which is not always the same as the class of which the
-function is a member.  This is used to check protected member access
-which only applies to objects of a derived class.  class_of_object may
-be NULL if protected member access checking is not needed.  Also, if the
-routine is compiler generated, it may still need to be defined, since
-the definition may have been put off until an actual reference occurred
-(e.g., ARM 12.8).  This function deals with implicitly called
-constructors, destructors, assignment operators, and conversion
-functions.  If honor_virtual is TRUE, and the function is virtual, the
-reference is considered to be a virtual call; that means the access
-control checking is done, but the IL entry is not marked as referenced.
-If evaluated is FALSE, the reference is within an unevaluated
-expression; again, access control checking is done, but the IL entry is
-not marked as referenced.  If suppress_access_check is TRUE, no access
-control checking is done.
+referenced.  sym can be a projection symbol.  *pos gives the source
+position of the reference.  class_of_object points to the type of the
+object for which the function is being called, which is not always the
+same as the class of which the function is a member.  This is used to
+check protected member access which only applies to objects of a
+derived class.  class_of_object may be NULL if protected member access
+checking is not needed.  Also, if the routine is compiler generated, it
+may still need to be defined, since the definition may have been put
+off until an actual reference occurred (e.g., ARM 12.8).  This function
+deals with implicitly called constructors, destructors, assignment
+operators, and conversion functions.  If honor_virtual is TRUE, and the
+function is virtual, the reference is considered to be a virtual call;
+that means the access control checking is done, but the IL entry is not
+marked as referenced.  If evaluated is FALSE, the reference is within
+an unevaluated expression; again, access control checking is done, but
+the IL entry is not marked as referenced.  If suppress_access_check is
+TRUE, no access control checking is done.
 */
 {
-  a_routine_ptr rp = sym->variant.routine.ptr;
+  a_symbol_ptr  base_sym = fundamental_symbol_of(sym);
+  a_routine_ptr rp = base_sym->variant.routine.ptr;
 
   check_assertion(rp->special_kind ==
                                (a_special_function_kind)sfk_constructor ||
@@ -771,7 +773,7 @@ control checking is done.
     }  /* if */
   }  /* if */
   /* Update the symbol and the cross-reference listing. */
-  record_symbol_reference((SRK_REFERENCE | SRK_IMPLICIT), sym, pos,
+  record_symbol_reference((SRK_REFERENCE | SRK_IMPLICIT), base_sym, pos,
                           /*update_il_entry=*/FALSE);
   if (!evaluated) {
     /* Unevaluated expression.  Do not set the IL referenced flag. */
