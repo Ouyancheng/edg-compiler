@@ -8524,9 +8524,9 @@ static a_boolean compatible_functions_with_c_linkage(a_symbol_ptr sym1,
 
   if (identical_types(rp1->type, rp2->type) &&
       rp1->type->variant.routine.extra_info->routine_name_linkage ==
-                                                               nlk_external &&
+                                          (a_name_linkage_kind)nlk_external &&
       rp2->type->variant.routine.extra_info->routine_name_linkage ==
-                                                               nlk_external) {
+                                          (a_name_linkage_kind)nlk_external) {
     result = TRUE;
   }  /* if */
   return result;
