@@ -6177,6 +6177,12 @@ tree.
                                          entity_node);
       }  /* if */
     }  /* if */
+    if (is_array_type(modifiers->type)) {
+      /* Do the pointer decay from array to pointer to element. */
+      a_type_ptr ptr_elem_type =
+                        make_pointer_type(array_element_type(modifiers->type));
+      entity_node = add_cast(entity_node, ptr_elem_type);
+    }  /* if */
   }  /* if */
   return entity_node;
 }  /* modify_init_entity_node */
