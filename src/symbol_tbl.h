@@ -593,6 +593,31 @@ typedef struct a_class_symbol_supplement {
 
 
 /*
+Data structure providing information about a label reference in a goto
+statement -- used only for forward references, before the label has been
+defined.  (Used in C++ only.)
+*/
+typedef struct a_goto_entry *a_goto_entry_ptr;
+typedef struct a_goto_entry {
+  a_goto_entry_ptr
+		next;
+			/* Next in a linked list of goto entries, all of which
+			   refer to the same (undefined) label; NULL if this
+			   is the last entry on the list. */
+  a_statement_ptr
+		goto_statement;
+			/* The goto statement in which the given label is
+			   referenced; always a forward reference (i.e., to
+			   to a label that has not yet been defined). */
+  unsigned long
+		curr_scope_init_count;
+			/* The number of initializing declarations that
+			   have appeared in the scope of the goto statement
+			   and that precede it. */
+} a_goto_entry;
+
+
+/*
 Data structure used to pass information about function declarations back
 from the scanning of the function declarator.
 */
@@ -1123,8 +1148,27 @@ typedef struct a_symbol {
                            the particular instance of the function. */
     } routine;
     /* When kind == sk_label: */
-    a_label_ptr	label;
+    struct {
+      a_label_ptr
+		ptr;
 			/* The label. */
+      union {
+        /* When defined == FALSE. */
+        a_goto_entry_ptr
+		goto_list;
+			/* When the label has been referenced in one or more
+			   goto statements but has not yet been defined,
+			   pointer to a list of entries identifying the
+			   references (used in C++ only). */
+        /* When defined == TRUE. */
+	unsigned long
+		curr_scope_init_count;
+			/* When the label has been defined, the number of
+			   initializing declarations that have appeared in
+			   the scope to which the label belongs and lexically
+			   precede the label (used in C++ only). */
+      } variant;
+    } label;
     /* When kind == sk_extern_variable or sk_extern_routine: */
     an_extern_symbol_descr_ptr
 		extern_symbol_descr;
@@ -1531,6 +1575,13 @@ typedef struct a_scope_stack_entry {
 		template_param_list;
                         /* When kind == sck_template_instantiation, contains
 			   a pointer to the template parameter list. */
+  unsigned long
+		init_count;
+			/* When kind == sck_file, sck_routine, or sck_block,
+			   the number of initializing declarations (i.e.,
+			   declarations of variables or static data members
+			   in which an implicit or explicit initialization
+			   is done). */
 } a_scope_stack_entry;
 
 
@@ -1923,6 +1974,7 @@ extern void add_to_param_id_list(a_symbol_locator      *locator,
 extern a_param_id_ptr param_id_on_list(a_symbol_locator *locator,
                                        a_param_id_ptr    param_id_list);
 
+extern void check_jump_over_initialization(a_statement_ptr  sp);
 
 /* Examine the list of symbols with a given name, looking for an instance
    with a particular kind. */
