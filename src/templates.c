@@ -11856,7 +11856,7 @@ information returned from decl_specifiers and declarator.
   if (func_info->is_definition) {
     
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  } else {
+  } else if (!source_sequence_entries_disallowed) {
     /* Turn the source sequence entry for the a_template entry into a
        secondary source sequence entry. */
     a_src_seq_secondary_decl_ptr sssdp = secondary_src_seq_for_template(
