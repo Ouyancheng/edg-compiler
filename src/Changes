@@ -13,7 +13,7 @@ problem:
   class C : A, B { };      //        C       C
   class D : C { };         //         \     /
   class E : C { };         //          D   E
-  class F : D, E { }       //           \ /
+  class F : D, E { };      //           \ /
                            //            F
 
 We now get the offsets right for all four instances of base class X in
