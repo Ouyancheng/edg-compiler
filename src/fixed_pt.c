@@ -509,6 +509,8 @@ the value is already known to be too large.  Set *err on overflow.  Set
     if (mantissa_bits == 1 && exponent == 1 && fxp_descr->is_fract_type) {
       /* The input value is 1 or -1.  Return the saturated value, but don't
          set the error flag. */
+    } else if (fxp_descr->saturating) {
+      /* If this is a saturating type, silently saturate. */
     } else {
       /* Except for the case above, set the error flag on overflow. */
       *err = TRUE;
@@ -1077,6 +1079,54 @@ the constant is a fixed-point or integer value.
   }  /* if */
   return conversion_done;
 }  /* conv_constant_to_long_double */
+
+
+void fxp_shift(a_constant		*constant,
+	       int			shift_count,
+	       a_constant		*result,
+	       a_boolean		shift_right,
+	       a_boolean		*err)
+/*
+Shift fixed-point constant by shift_count bits, producing result.  Do
+a right shift if shift_right is TRUE, left otherwise.  If an error occurs
+(such as overflow) set err.
+*/
+{
+  a_mantissa		mantissa;
+  long			exponent;
+  a_boolean		is_negative;
+  a_boolean		local_err;
+  a_boolean		inexact;
+  a_fixed_point_type_descr
+			*fxp_descr;
+  a_fixed_point_type_descr
+			*result_fxp_descr;
+
+  *err = FALSE;
+  check_assertion(constant->kind == (a_constant_repr_kind)ck_fixed_point);
+  set_constant_kind(result, (a_constant_repr_kind)ck_fixed_point);
+  fxp_descr = fxp_descr_for_constant(constant);
+  result_fxp_descr = fxp_descr_for_constant(result);
+  /* Convert the fixed-point value into the internal mantissa
+     representation. */
+  load_hex_fxp_value(&constant->variant.fixed_point_value,
+                     fxp_descr, &mantissa, &exponent, &is_negative);
+  /* Adjust the mantissa so that it is normalized in the high-order bits
+     of the mantissa. */
+  normalize_mantissa(&mantissa, &exponent);
+  /* Increment or decrement the exponent by the shift count. */
+  if (shift_right) exponent -= shift_count; else exponent += shift_count;
+  /* Convert and store the mantissa as a fixed-point value. */
+  conv_mantissa_to_fixed_point(&mantissa, exponent, is_negative,
+                               result_fxp_descr, /*overflow=*/FALSE,
+                               &result->variant.fixed_point_value,
+                               &local_err, &inexact);
+  if (local_err) {
+    /* If an error (overflow) occurred, indicate that the operation was not
+       folded. */
+    *err = TRUE;
+  }  /* if */
+} /* fxp_shift */
 
 
 void fxp_add(a_constant		*constant_1,

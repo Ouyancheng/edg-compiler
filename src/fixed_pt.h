@@ -72,6 +72,13 @@ extern char* fxp_to_string(a_fixed_point_type_descr  *fxp_descr,
                            a_fixed_point_value       *value);
 
 extern
+void fxp_shift(a_constant		*constant,
+	       int			shift_count,
+	       a_constant		*result,
+	       a_boolean		shift_right,
+	       a_boolean		*err);
+
+extern
 void fxp_add(a_constant		*constant_1,
 	     a_constant		*constant_2,
 	     a_constant		*result,

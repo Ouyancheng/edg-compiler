@@ -2698,6 +2698,83 @@ Do the shift left operation on all types of integers.
 #endif /* DEBUG */
 }  /* do_shiftl */
 
+#if FIXED_POINT_ALLOWED
+
+static void do_fxshift(a_constant        *constant_1,
+		       a_constant        *constant_2,
+		       a_constant        *result,
+		       a_boolean         shift_right,
+		       an_error_code     *err_code,
+		       an_error_severity *err_severity)
+/*
+Low-level routine to do a left or right shift on an fixed-point value.
+Shift *constant_1 by *constant_2 (right if shift_right is TRUE, left
+otherwise), and put the result in *result.  *err_code and *err_severity are
+set to indicate any error/warning detected, or *err_code == ec_no_error if
+everything went fine.
+*/
+{
+  int		shift_count;
+  a_boolean	err;
+
+  *err_code = ec_no_error;
+  *err_severity = es_warning;
+
+  check_shift_count(constant_2, constant_1->type, err_code);
+  if (*err_code != ec_no_error) {
+    /* Something wrong with the shift count. */
+    *err_severity = es_error;
+  }  /* if */
+  if (*err_severity != es_error) {
+    /* Fold the shift. */
+    shift_count = (int)value_of_integer_constant(constant_2, &err);
+    /* No need to check err because check_shift_count has already
+       established that the shift count is reasonable. */
+    fxp_shift(constant_1, shift_count, result, shift_right, &err);
+    if (err) {
+      *err_code = ec_bad_fixed_operation_result;
+      *err_severity = es_error;
+    }  /* if */
+  }  /* if */
+}  /* do_fxshift */
+
+
+static void do_fxshiftr(a_constant        *constant_1,
+		        a_constant        *constant_2,
+		        a_constant        *result,
+		        an_error_code     *err_code,
+		        an_error_severity *err_severity)
+/*
+Do the shift right operation on fixed-point values.
+*/
+{
+  do_fxshift(constant_1, constant_2, result, /*shift_right=*/TRUE,
+	     err_code, err_severity);
+
+#if DEBUG
+  db_binary_operation("fx>>", constant_1, constant_2, result, *err_code);
+#endif /* DEBUG */
+}  /* do_fxshiftr */
+
+
+static void do_fxshiftl(a_constant        *constant_1,
+		      a_constant          *constant_2,
+		      a_constant          *result,
+		      an_error_code       *err_code,
+		      an_error_severity   *err_severity)
+/*
+Do the shift left operation on fixed-point values.
+*/
+{
+  do_fxshift(constant_1, constant_2, result, /*shift_right=*/FALSE,
+	     err_code, err_severity);
+
+#if DEBUG
+  db_binary_operation("fx<<", constant_1, constant_2, result, *err_code);
+#endif /* DEBUG */
+}  /* do_fxshiftl */
+
+#endif /* FIXED_POINT_ALLOWED */
 
 static void do_icompare(a_constant            *constant_1,
                         an_expr_operator_kind op,
@@ -4406,6 +4483,8 @@ as the position for any diagnostics issued.
               constant_2->kind == (a_constant_repr_kind)ck_fixed_point) &&
              (constant_1->kind != (a_constant_repr_kind)ck_fixed_point ||
               constant_2->kind != (a_constant_repr_kind)ck_fixed_point) &&
+             (op != (an_expr_operator_kind)eok_shiftl) &&
+             (op != (an_expr_operator_kind)eok_shiftr) &&
              (op != (an_expr_operator_kind)eok_fxadd) &&
              (op != (an_expr_operator_kind)eok_fxsubtract) &&
              (op != (an_expr_operator_kind)eok_fxmultiply) &&
@@ -4490,10 +4569,22 @@ as the position for any diagnostics issued.
           do_idivide(constant_1, constant_2, result, &err_code, &err_severity);
           break;
         case eok_shiftl:
-          do_shiftl(constant_1, constant_2, result, &err_code, &err_severity);
+          if (constant_1->kind == (a_constant_repr_kind)ck_fixed_point) {
+            do_fxshiftl(constant_1, constant_2, result,
+		        &err_code, &err_severity);
+          } else {
+            do_shiftl(constant_1, constant_2, result, &err_code,
+                      &err_severity);
+          }  /* if */
           break;
         case eok_shiftr:
-          do_shiftr(constant_1, constant_2, result, &err_code, &err_severity);
+          if (constant_1->kind == (a_constant_repr_kind)ck_fixed_point) {
+            do_fxshiftr(constant_1, constant_2, result,
+		        &err_code, &err_severity);
+          } else {
+            do_shiftr(constant_1, constant_2, result, &err_code,
+                      &err_severity);
+          }  /* if */
           break;
         case eok_ieq:
         case eok_ine:

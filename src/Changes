@@ -1,5 +1,9 @@
 Version 3.5
 
+7/13/04 Embedded C: folding of shift operations
+
+Fixed-point shifts of constant values are now folded at compile-time.
+
 7/12/04 GNU compatibility: Distinguish GNU asm syntax from standard asm syntax
 
 In configurations supporting GNU extensions (i.e., with GNU_EXTENSIONS_ALLOWED
