@@ -1,5 +1,18 @@
 Version 3.4
 
+10/6/03  IA-64 ABI with --no_rtti: virtual function table problems
+
+Lowering for the IA-64 ABI did not work right when configured with
+SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED TRUE and --no_rtti.
+First, the virtual function tables generated were incorrect:
+they had a missing offset-to-base preceding the null typeinfo
+pointer (which means the entries were all off by one position).
+Second, the fix described in the Changes entry of 6/24/03 was
+also needed in the IA-64 mode.  Third, a base class that has
+a virtual base always needs its own virtual function table,
+because it needs its own set of offsets to virtual bases in
+the negative part of the table.  All three problems are now fixed.
+
 10/6/03  Microsoft compatibility: nonmember using-declaration of class member
 
 The Microsoft compiler accepts a nonmember using-declaration that refers

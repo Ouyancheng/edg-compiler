@@ -4601,6 +4601,19 @@ FALSE means either the base class does not need a virtual function table
          class does not override any virtual functions. */
       needed = TRUE;
 #endif /* ABI_CHANGES_FOR_RTTI */
+#if IA64_ABI
+    } else if (bcp->type->variant.class_struct_union.any_virtual_base_classes){
+      /* A base class that has virtual bases needs its own virtual function
+         table because it has its own virtual base class offsets. */
+      needed = TRUE;
+    } else if (!needs_virtual_function_table(bcp->derived_class) &&
+               is_primary_base_class(bcp)) {
+      /* If this is the primary base class of a derived class that has
+         no virtual functions, we need this base class virtual function
+         table because it ends up being the derived class virtual function
+         table. */
+      needed = TRUE;
+#endif /* IA64_ABI */
     } else if (bcp->overriding_virtual_functions != NULL) {
       /* Some of the virtual functions in the base class are overridden
          in class_type, so a separate virtual function table instance is
@@ -4613,7 +4626,6 @@ FALSE means either the base class does not need a virtual function table
          needed. */
       needed = TRUE;
 #else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
-#if !IA64_ABI
     } else if (bcp->type->variant.class_struct_union.extra_info->
                                     virtual_function_info_base_class != NULL) {
       /* This base class shares its virtual function table pointer with
@@ -4637,7 +4649,6 @@ FALSE means either the base class does not need a virtual function table
           break;
         }  /* if */
       }  /* for */
-#endif /* !IA64_ABI */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     } else {
       /* In other cases, no separate instance is needed. */
@@ -4824,7 +4835,7 @@ class_type if any are needed and if they have not already been generated.
            for the derived class.  In the IA-64 ABI, the derived class
            vtable includes the vtable for its primary base class, and there
            is no vtable for the primary base class, as opposed to in the
-           Cfront-like ABI, where the base_class-in-derived vtable contains
+           Cfront-like ABI, where the base-class-in-derived vtable contains
            the derived class slots, and there is no vtable for the derived
            class. */
         || class_type->variant.class_struct_union.
@@ -5201,7 +5212,7 @@ to the end.
 
 static void add_vtbl_entry_init(a_targ_ptrdiff_t delta,
                                 a_routine_ptr    func_to_call,
-                                a_variable_ptr   typeinfo_var,
+                                a_boolean        typeinfo_entry,
                                 a_constant_ptr   *first_con,
                                 a_constant_ptr   *last_con,
                                 a_boolean        prepend,
@@ -5211,12 +5222,13 @@ Put out a constant to fill an entry of a virtual function table.
 The constant is added to the end (beginning) of the list given by
 *first_con and *last_con if prepend is FALSE (TRUE).  func_to_call
 may be NULL; in that case, a NULL pointer is put out for the function
-unless typeinfo_var is non-NULL, in which case a pointer to the
-indicated typeinfo variable is put into the function pointer field.  
+unless typeinfo_entry is TRUE, in which case a pointer to the
+typeinfo variable for class_type is put into the function pointer field
+(but if RTTI information is not supposed to be generated, null is put out).
 For the Cfront-like ABI, create a ck_aggregate constant and dependent
 constants to initialize the entry to {delta, 0, func_to_call}.
 For the IA-64 ABI, put out a single constant (a delta or a function
-pointer) rather than an aggregate; however, when typeinfo_var is non-NULL
+pointer) rather than an aggregate; however, when typeinfo_entry is TRUE
 put out two constants (delta to start of class plus pointer to typeinfo),
 which will initialize two slots in the virtual function table.
 class_type is the class type whose vtbl is being constructed
@@ -5259,26 +5271,49 @@ class_type is the class type whose vtbl is being constructed
 #if IA64_ABI
     add_init(first_con, last_con, delta_con, prepend);
     /* In the IA-64 ABI, we generally put out only a single constant.
-       The exception is when typeinfo_var is non-NULL, when we put out
+       The exception is when typeinfo_entry is TRUE, when we put out
        the delta and the typeinfo pointer. */
-    if (typeinfo_var == NULL) goto done;
+    if (!typeinfo_entry) goto done;
 #endif /* IA64_ABI */
   }  /* if */
   /* Make the pointer to the function to call. */ 
   func_con = alloc_constant((a_constant_repr_kind)ck_address);
   if (func_to_call == NULL) {
-    if (typeinfo_var != NULL) {
-      /* A pointer to a typeinfo variable is put into the function pointer
-         field.  This is used for the [0] entry in the table when the RTTI
-         ABI changes are enabled. */
-      /* This requires that it be possible to put a variable pointer into
-         a function pointer.  Sorry about that. */
-      set_variable_address_constant(typeinfo_var, func_con,
-                                    /*set_address_taken_flag=*/TRUE);
-      implicit_cast(func_con, pointer_type);
+    if (typeinfo_entry) {
+      /* This is the typeinfo slot in the virtual function table. */
+#if ABI_CHANGES_FOR_RTTI
+      if (generate_rtti_typeinfo) {
+        /* A pointer to a typeinfo variable is put into the function pointer
+           field.  This is used for the [0] entry in the table (Cfront-like
+           ABI) or the [-1] entry in the table (IA-64 ABI) when the RTTI
+           ABI changes are enabled. */
+        a_variable_ptr typeinfo_var = make_typeinfo_var(class_type);
+        /* This requires that it be possible to put a variable pointer into
+           a function pointer.  Sorry about that. */
+        set_variable_address_constant(typeinfo_var, func_con,
+                                      /*set_address_taken_flag=*/TRUE);
+        implicit_cast(func_con, pointer_type);
+      } else
+#endif /* ABI_CHANGES_FOR_RTTI */
+      /* Do not add code here. */
+      {
+        /* Put a null typeinfo pointer in the table.  This is used when
+           RTTI is disabled. */
+        make_zero_of_proper_type(pointer_type, func_con);
+#if GENERATE_EH_TABLES
+        /* If exceptions are enabled, force generation of the typeinfo variable
+           for the type because it might be referenced from some other
+           compilation unit.  When RTTI information is generated, the virtual
+           function table always points to the typeinfo variable, so this
+           processing is not needed. */
+        if (exceptions_enabled) {
+          (void)make_typeinfo_var(class_type);
+        }  /* if */
+#endif /* GENERATE_EH_TABLES */
+      }  /* if */
     } else {
       /* Put a NULL pointer in the table.  This is used for the
-         [0] entry in the table and the last entry in cfront mode. */
+         last entry in cfront mode. */
       make_zero_of_proper_type(pointer_type, func_con);
     }  /* if */
   } else {
@@ -5598,7 +5633,7 @@ gives the offset to the virtual base class whose vtable is being made.
        considered in the complete object. */
     offset = ((overrider_bcp != NULL) ? overrider_bcp->offset : 0) -
                                                                  vbase_offset;
-    add_vtbl_entry_init(offset, (a_routine_ptr)NULL, (a_variable_ptr)NULL,
+    add_vtbl_entry_init(offset, (a_routine_ptr)NULL, /*typeinfo_entry=*/FALSE,
                         first_con, last_con, /*prepend=*/TRUE,
                         vbase->type);
   }  /* for */
@@ -5850,7 +5885,7 @@ table.
                               (derived_bcp != NULL ? derived_bcp->offset : 0));
     /* Create the vtable entry. */
     add_vtbl_entry_init(delta,
-                        (a_routine_ptr)NULL, (a_variable_ptr)NULL,
+                        (a_routine_ptr)NULL, /*typeinfo_entry=*/FALSE,
                         first_con, last_con, /*prepend=*/TRUE,
                         class_whose_vtbl_is_being_made);
   }  /* for */
@@ -5991,12 +6026,12 @@ table.
 #endif /* IA64_ABI */
     }  /* if */
     /* Create the initializing constants for this entry of the table. */
-    add_vtbl_entry_init(delta, func_to_call, (a_variable_ptr)NULL, 
+    add_vtbl_entry_init(delta, func_to_call, /*typeinfo_entry=*/FALSE,
                         first_con, last_con, /*prepend=*/FALSE,
                         class_whose_vtbl_is_being_made);
 #if IA64_ABI
     if (second_func_to_call != NULL) {
-      add_vtbl_entry_init(delta, second_func_to_call, (a_variable_ptr)NULL, 
+      add_vtbl_entry_init(delta, second_func_to_call, /*typeinfo_entry=*/FALSE,
                           first_con, last_con, /*prepend=*/FALSE,
                           class_whose_vtbl_is_being_made);
       entry_number += 1;
@@ -6053,6 +6088,7 @@ table.
   a_constant_ptr              start_of_vtbl = NULL, end_of_vtbl = NULL;
   a_boolean                   main_vtbl = FALSE;
 #endif /* IA64_ABI */
+  a_targ_ptrdiff_t            delta;
 
 #if IA64_ABI
   /* For construction vtables, each virtual function table is placed in
@@ -6184,51 +6220,30 @@ table.
       last_con = &aggr_con->variant.aggregate.last_constant;
     }  /* if */
     /* Put out the initialization for the [0] entry. */
-#if ABI_CHANGES_FOR_RTTI
-    if (generate_rtti_typeinfo) {
-      /* The [0] entry includes the offset of the class whose vtbl is being
-         made in the complete class, and a pointer to the typeinfo entry for
-         the class. */
-      a_targ_ptrdiff_t delta;
-      if (ctor_bcp == NULL) {
-        delta = (bcp != NULL) ? (a_targ_ptrdiff_t)bcp->offset :
-                                (a_targ_ptrdiff_t)0;
+    /* The [0] entry includes the offset of the class whose vtbl is being
+       made in the complete class, and a pointer to the typeinfo entry for
+       the class. */
+    if (ctor_bcp == NULL) {
+      delta = (bcp != NULL) ? (a_targ_ptrdiff_t)bcp->offset :
+                              (a_targ_ptrdiff_t)0;
 #if IA64_ABI
-      } else if (bcp == NULL) {
-        delta = (a_targ_ptrdiff_t)0;
+    } else if (bcp == NULL) {
+      delta = (a_targ_ptrdiff_t)0;
 #endif /* IA64_ABI */
-      } else {
-        a_base_class_ptr eff_bcp = corresp_base_class(bcp, ctor_bcp);
-        delta = eff_bcp->offset - ctor_bcp->offset;
-      }
+    } else {
+      a_base_class_ptr eff_bcp = corresp_base_class(bcp, ctor_bcp);
+      delta = eff_bcp->offset - ctor_bcp->offset;
+    }
 #if IA64_ABI
-      /* Under the IA64 ABI, the sign is reversed: the value stored in the
-         vtable is added to the pointer to the base in order to get the
-         pointer to the complete object. */
-      delta = -delta;
+    /* Under the IA64 ABI, the sign is reversed: the value stored in the
+       vtable is added to the pointer to the base in order to get the
+       pointer to the complete object. */
+    delta = -delta;
 #endif /* IA64_ABI */
-      add_vtbl_entry_init(delta,
-                          (a_routine_ptr)NULL,
-                          make_typeinfo_var(class_type), first_con, 
-                          last_con, /*prepend=*/FALSE, class_type);
-    } else
-#endif /* ABI_CHANGES_FOR_RTTI */
-    /* Do not insert code here; this is the "else" of an "if". */
-    {
-      add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL,
-                          (a_variable_ptr)NULL, first_con, last_con, 
-                          /*prepend=*/FALSE, class_type);
-#if GENERATE_EH_TABLES
-      /* If exceptions are enabled, force generation of the typeinfo variable
-         for the type because it might be referenced from some other
-         compilation unit.  When RTTI information is generated, the virtual
-         function table always points to the typeinfo variable, so this
-         processing is not needed. */
-      if (exceptions_enabled && bcp == NULL) {
-        (void)make_typeinfo_var(class_type);
-      }  /* if */
-#endif /* GENERATE_EH_TABLES */
-    }  /* if */
+    add_vtbl_entry_init(delta,
+                        (a_routine_ptr)NULL,
+                        /*typeinfo_entry=*/TRUE, first_con, 
+                        last_con, /*prepend=*/FALSE, class_type);
 #if IA64_ABI
     /* Find the base (in the most derived class) corresponding to the subobject
        whose vtable is being made. */
@@ -6258,7 +6273,7 @@ table.
     /* Put out the initialization for an extra zeroed entry at the end, for
        cfront compatibility. */
     add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL,
-                        (a_variable_ptr)NULL, first_con, last_con, 
+                        /*typeinfo_entry=*/FALSE, first_con, last_con, 
                         /*prepend=*/FALSE, class_type);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     switch_back_to_original_region(region_to_switch_back_to);
