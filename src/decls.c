@@ -4227,6 +4227,9 @@ namespace and type are ignored, so that the modified function may not in
 fact be a Microsoft Windows entry point).
 */
 {
+  /* If the function was declared with a typedef, do not change its calling
+     convention since that would change the typedef's type.  (I.e., do not
+     apply skip_typerefs to type.) */
   if (type->kind == (a_type_kind)tk_routine) {
     a_routine_type_supplement_ptr  rtsp = type->variant.routine.extra_info;
     if (rtsp->calling_convention == (a_calling_convention)cc_default) {
