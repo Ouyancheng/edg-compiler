@@ -2040,6 +2040,9 @@ error code.
     case ec_throw_specification_not_allowed:
       m = "throw specification is not allowed";
       break;
+    case ec_template_and_instance_linkage_conflict:
+      m = "external/internal linkage conflict for %nfd";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
