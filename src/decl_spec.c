@@ -931,6 +931,19 @@ skip_tag_scan:
               push_namespace_extension_scope(tag_sym->parent.namespace_ptr);
               namespace_extension_pushed = TRUE;
               effective_decl_level = depth_scope_stack;
+            } else {
+              /* A namespace-qualified name that refers to the current
+                 namespace is not allowed in a definition. */
+              check_assertion_str2(ssep->il_scope->kind ==
+                                              (a_scope_kind)sck_namespace &&
+                                   tag_sym->parent.namespace_ptr ==
+                                     ssep->il_scope->variant.assoc_namespace,
+                                   "scan_tag_name:",
+                                   "expected curr-namespace qualified name");
+              pos_error(ec_qualifier_in_namespace_member_decl,
+                        &locator.source_position);
+              tag_sym = NULL;
+              set_to_error_locator(locator);
             }  /* if */
           }  /* if */
         }  /* if */
