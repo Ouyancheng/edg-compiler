@@ -3272,14 +3272,14 @@ skip_overloading:;
         err = def_external_linkage.is_explicit;
       }  /* if */
       if (err) {
-        /* The ARM specifies that inconsistencies are errors for functions but
-           not for variables.  Just issue a remark or, in strict ansi mode,
-           a warning in the latter case. */
+        /* Neither functions nor variables are supposed to have inconsistent
+           linkage specifications, but it's more of a problem for functions.
+           Issue an error for functions, a warning for variables. */
         pos_sy_diagnostic(is_function ?
                             (an_error_severity)es_error :
                             (strict_ansi_mode ?
-                               (an_error_severity)es_warning :
-                               (an_error_severity)es_remark),
+                               strict_ansi_error_severity :
+                               (an_error_severity)es_warning),
                           ec_incompatible_linkage_specifier,
                           &locator->source_position, *ext_sym);
       }  /* if */
