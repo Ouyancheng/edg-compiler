@@ -2771,6 +2771,9 @@ in il_init.)
 #if BACK_END_IS_CP_GEN_BE
   def_source_corresp.global_qualification_needed = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  def_source_corresp.static_used_by_instantiation = FALSE;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #if RECORD_SCOPE_DEPTH_IN_IL
   def_source_corresp.scope_depth = NO_SCOPE_DEPTH;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */

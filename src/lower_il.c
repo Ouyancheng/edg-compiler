@@ -4869,6 +4869,48 @@ local-variable-static-init entry.
   }  /* switch */
 }  /* lower_initializer */
 
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+
+static void externalize_source_correspondence(
+                                           a_source_correspondence *scp,
+                                           a_boolean               is_variable)
+/*
+Change the source correspondence information for a static variable
+(is_variable TRUE) or routine (is_variable FALSE) to make it external with
+a generated name.  This is used for static entities that are referenced
+by instantiations, when the instantiations are placed in separate object
+files.  The static entity must be made external so the instantiation
+files can reference it.
+*/
+{
+  sizeof_t name_len, prefix_len, module_id_len;
+  char     *prefix = (is_variable ? "__STV__" : "__STF__");
+  char     *module_id = make_module_id();
+  char     *new_name, *ptr;
+
+  scp->name_linkage = nlk_external;
+  check_assertion(scp->name_has_been_mangled || is_variable);
+  /* The generated name has the form
+       __STV__name__module_id  (variable)
+       __STF__name__module_id  (function)
+  */
+  name_len = strlen(scp->name);
+  prefix_len = strlen(prefix);
+  module_id_len = strlen(module_id);
+  new_name = alloc_lowered_name_string(prefix_len + name_len + module_id_len +
+                                       3);
+  ptr = new_name;
+  (void)strcpy(ptr, prefix);
+  ptr += prefix_len;
+  (void)strcpy(ptr, scp->name);
+  ptr += name_len;
+  (void)strcpy(ptr, "__");
+  ptr += 2;
+  (void)strcpy(ptr, module_id);
+  scp->name = new_name;
+}  /* externalize_source_correspondence */
+
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 
 static void lower_variable(a_variable_ptr variable)
 /*
@@ -4897,6 +4939,14 @@ Do IL lowering of the indicated variable and everything under it.
          appeared. */
       variable->init_kind = (an_init_kind)initk_none;
       variable->is_member_constant = FALSE;
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+    } else if (variable->source_corresp.static_used_by_instantiation) {
+      /* This is a static variable referenced from an instantiation, so
+         it has to made external. */
+      externalize_source_correspondence(&variable->source_corresp,
+                                        /*is_variable=*/TRUE);
+      variable->storage_class = (a_storage_class)sc_unspecified;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
     }  /* if */
     if (variable->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal &&
@@ -5026,6 +5076,15 @@ not include the function scope memory region, if any.
       routine->storage_class = (a_storage_class)sc_static;
     } /* if */
 #endif /* LOWER_EXTERN_INLINE */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+    if (routine->source_corresp.static_used_by_instantiation) {
+      /* This is a static routine referenced from an instantiation, so
+         it has to made external. */
+      externalize_source_correspondence(&routine->source_corresp,
+                                        /*is_variable=*/FALSE);
+      routine->storage_class = (a_storage_class)sc_unspecified;
+    }  /* if */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
     if (routine->overriding_function_for_covariant_return_type != NULL &&
         routine->overriding_function_for_covariant_return_type->assoc_scope !=

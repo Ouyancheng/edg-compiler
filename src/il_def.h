@@ -955,6 +955,12 @@ typedef struct a_source_correspondence {
 			/* A leading "::" is needed when referring to this
 			   entity.  Used within the C++-generating back end. */
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  a_bit_field	static_used_by_instantiation:1;
+			/* TRUE if this entity is a static variable or function
+			   that is referenced from an instantiation and
+			   therefore needs to be made external. */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #endif /* ifdef CIL */
 #if RECORD_SCOPE_DEPTH_IN_IL
   a_scope_depth	scope_depth;

@@ -461,6 +461,11 @@ Display the indicated source correspondence entry.
      nested_type_mangling_has_been_done, which are used only during
      IL lowering. */
 #endif /* NEED_NAME_MANGLING */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  if (scp->static_used_by_instantiation) {
+    disp_boolean("  static_used_by_instantiation", TRUE);
+  }  /* if */
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #if RECORD_SCOPE_DEPTH_IN_IL
   disp_long("  scope_depth", (long)scp->scope_depth);
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */

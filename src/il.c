@@ -12235,6 +12235,13 @@ needed_flag_bit_number plus bit_offset.
     ptr->bytes[byte_number] &= ~bit;
   }  /* if */
 #undef BITS_PER_ENTRY
+  if (needed_flag_bit_number != 1 && new_value != 0 &&
+      scp->name_linkage == nlk_internal) {
+    /* This is a static entity that is needed from an instantiation.
+       Mark the entity so that it will be made external so it can be accessed
+       from the instantiation file. */
+    scp->static_used_by_instantiation = TRUE;
+  }  /* if */
 }  /* set_instantiation_needed_flag */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
