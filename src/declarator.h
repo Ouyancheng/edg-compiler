@@ -254,7 +254,6 @@ Clear a calling convention description.
 extern
 void declarator(a_decl_flag_set             input_flags,
                 a_decl_flag_set             *output_flags,
-                a_type_qualifier_set        *array_qualifiers,
                 a_type_ptr                  specifiers_type,
                 a_type_ptr                  member_parent_type,
                 a_symbol_locator            *locator,
@@ -280,7 +279,6 @@ void array_declarator(a_type_ptr            *new_type_ptr,
                       a_boolean             vla_asterisk_allowed,
                       a_boolean             top_level_field_decl,
                       a_boolean             top_level_param_decl,
-                      a_type_qualifier_set  *array_qualifiers,
                       a_decl_pos_block_ptr  decl_pos_block);
 
 extern a_boolean restrict_qualifier_is_allowed(a_type_ptr         type,

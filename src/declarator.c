@@ -1294,7 +1294,6 @@ declaration.
       last_param_type = NULL;
       do {
         a_type_qualifier_set qualifiers = TQ_NONE;
-        a_type_qualifier_set array_qualifiers = TQ_NONE;
         a_decl_pos_block     local_decl_pos_block;
         add_stop_token(tok_comma);
         copy_source_position(pos_curr_token, param_type_pos);
@@ -1371,7 +1370,7 @@ declaration.
             /* Permit a variable length array declaration. */
             di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
           }  /* if */
-          declarator(di_flags, &do_flags, &array_qualifiers, param_type_ptr,
+          declarator(di_flags, &do_flags, param_type_ptr,
                      /*member_parent_type=*/(a_type_ptr)NULL,
                      &param_locator, &param_type_ptr, &param_ssep,
                      (a_func_info_block_ptr)NULL, &local_decl_pos_block);
@@ -1383,8 +1382,7 @@ declaration.
            array-to-pointer adjustment, if any). */
         declared_type = param_type_ptr;
         /* Check that the type is legal, and do required adjustments. */
-        check_and_adjust_parameter_type(&param_type_ptr, &param_type_pos,
-                                        array_qualifiers);
+        check_and_adjust_parameter_type(&param_type_ptr, &param_type_pos);
         /* Standardize the storage class: unspecified becomes auto. */
         if (param_storage_class == (a_storage_class)sc_unspecified) {
           param_storage_class = (a_storage_class)sc_auto;
@@ -1987,7 +1985,6 @@ void array_declarator(a_type_ptr            *new_type_ptr,
                       a_boolean             vla_asterisk_allowed,
                       a_boolean             top_level_field_decl,
                       a_boolean             top_level_param_decl,
-                      a_type_qualifier_set  *array_qualifiers,
                       a_decl_pos_block_ptr  decl_pos_block)
 /*
 Scan an array declarator (ISO C 6.5.4.2), or an array declarator in an
@@ -2001,9 +1998,7 @@ unknown size can be indicated with the "[*]" syntax in a function prototype.
 top_level_field_decl is TRUE to indicate that this is the declaration of
 a nonstatic data member of a class.  top_level_param_decl is TRUE to
 indicate that this is a a top-level declarator in a function parameter
-declaration.  If cv-qualifiers appear at the start of the [...] in a
-parameter declaration, return them in *array_qualifiers.  array_qualifiers
-may be NULL if it is not needed.
+declaration.
 */
 {
   a_targ_size_t           num_of_elements;
@@ -2015,10 +2010,10 @@ may be NULL if it is not needed.
   a_source_position       start_pos, size_pos;
   an_expr_node_ptr        dim_expr = NULL;
   a_boolean               static_seen = FALSE;
+  a_type_qualifier_set    qualifiers = TQ_NONE;
 
   db_enter(3, "array_declarator");
   copy_source_position(pos_curr_token, start_pos);
-  if (array_qualifiers != NULL) *array_qualifiers = TQ_NONE;
   /* Pass over the initial left bracket. */
   (void)get_token();
   add_stop_token(tok_rbracket);
@@ -2040,7 +2035,6 @@ may be NULL if it is not needed.
      inside the brackets. */
   if (is_type_qualifier_token(curr_token)) {
     a_source_position     qualifier_pos;
-    a_type_qualifier_set  qualifiers;
 
     qualifier_pos = pos_curr_token;
     qualifiers = collect_type_qualifiers(decl_pos_block);
@@ -2052,14 +2046,13 @@ may be NULL if it is not needed.
         pos_error(ec_type_qualifier_not_allowed, &qualifier_pos);
         qualifiers &= TQ_RESTRICT;
       }  /* if */
-      check_assertion(array_qualifiers != NULL);
-      *array_qualifiers = qualifiers;
     } else {
       /* This is not a top-level declarator for a parameter, so "restrict"
          and cv-qualifiers are not allowed.  Issue an error. */
       pos_error((qualifiers == TQ_RESTRICT) ?
                    ec_restrict_not_allowed : ec_type_qualifier_not_allowed,
                 &qualifier_pos);
+      qualifiers = TQ_NONE;
     }  /* if */
     if (c99_mode && top_level_param_decl && curr_token == tok_static &&
         !static_seen) {
@@ -2135,6 +2128,7 @@ may be NULL if it is not needed.
   } else {
     *new_type_ptr = alloc_type((a_type_kind)tk_array);
     (*new_type_ptr)->variant.array.is_static = static_seen;
+    (*new_type_ptr)->variant.array.qualifiers = qualifiers;
     /* Store the array size. */
     if (has_vla_asterisk) {
       /* [*] case (C only).  Since the size of the VLA is not specified,
@@ -3490,7 +3484,6 @@ to FALSE if the entity being declared is not initializable.
 static void r_declarator(
 		  a_decl_flag_set             input_flags,
                   a_decl_flag_set             *output_flags,
-                  a_type_qualifier_set        *array_qualifiers,
                   a_type_ptr                  specifiers_type,
                   a_type_ptr                  member_parent_type,
                   a_symbol_locator            *locator,
@@ -3527,10 +3520,7 @@ type in the declarator derived type list is a function, *func_info is
 filled with extra information about the parameter list, for use if a
 function body follows.  For declarators that may turn out to be member
 functions, member_parent_type is a pointer to the class (or struct or
-union) type of which it is a member; otherwise it is NULL.  If there
-are any cv-qualifiers inside a top-level array declarator [...] when
-scanning a parameter type, they are returned in *array_qualifiers.
-array_qualifiers may be NULL if it is not needed.
+union) type of which it is a member; otherwise it is NULL.
 
 The routine "declarator" is called at the top level, and it calls
 this routine to do the actual work.  This routine can call itself
@@ -3601,7 +3591,6 @@ The syntax is:
      position of the declarator-id).  It will be changed later if required. */
   copy_source_position(pos_curr_token, declarator_pos);
   *output_flags = DO_NO_OUTPUT_FLAGS;
-  if (array_qualifiers != NULL) *array_qualifiers = TQ_NONE;
   real_declarator_allowed = input_flags & DI_REAL_DECLARATOR_ALLOWED;
   abstract_declarator_allowed = input_flags & DI_ABSTRACT_DECLARATOR_ALLOWED;
   parenthesized_initializer_allowed =
@@ -3685,8 +3674,7 @@ The syntax is:
        initializers from the input_flags bit vector.  (The other flags are
        passed on in the recursive call.) */
     r_declarator((input_flags & ~DI_PARENTHESIZED_INITIALIZER_ALLOWED),
-                 &local_do_flags, array_qualifiers,
-                 /*specifiers_type=*/(a_type_ptr)NULL,
+                 &local_do_flags, /*specifiers_type=*/(a_type_ptr)NULL,
                  member_parent_type, locator,
                  &derived_type, &bottom_derived_type,
                  is_constructor, is_destructor,
@@ -3977,7 +3965,7 @@ function_lparen:
       array_declarator(&new_type_ptr, nonconstant_dimension_allowed,
                        vla_allowed, vla_asterisk_allowed,
                        top_level_field_decl, top_level_param_decl,
-                       array_qualifiers, decl_pos_block);
+                       decl_pos_block);
       if (nonconstant_dimension_allowed) {
         /* In C++ a array declarator that appears in an operator new()
            expression may have a nonconstant expression in the first
@@ -4258,7 +4246,6 @@ function_lparen:
 
 void declarator(a_decl_flag_set             input_flags,
                 a_decl_flag_set             *output_flags,
-                a_type_qualifier_set        *array_qualifiers,
                 a_type_ptr                  specifiers_type,
                 a_type_ptr                  member_parent_type,
                 a_symbol_locator            *locator,
@@ -4287,7 +4274,7 @@ the parameters.
     decl_pos_block->declarator_range.end = end_pos_curr_token;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  r_declarator(input_flags, output_flags, array_qualifiers, specifiers_type,
+  r_declarator(input_flags, output_flags, specifiers_type,
                member_parent_type, locator, p_complete_type,
                &bottom_derived_type, &is_constructor, &is_destructor,
                (a_call_conv_descr_ptr)NULL, (a_call_conv_descr_ptr)NULL,

@@ -1,5 +1,17 @@
 Version 2.46
 
+6/28/01  C++-generating back end: qualifiers in array declarators
+
+The C++-generating back end used to not reproduce cv-qualifiers appearing
+in array declarators of function parameters.  For example:
+
+  void f(int a[const 10]) {}
+
+was rendered without the "const".
+
+This is now fixed.  The fix required the addition of a new field "qualifiers"
+to tk_array type entries (IL CHANGE).
+
 6/27/01  Spurious warning on members of nested classes in unnamed namespaces
 
 When a member function of a nested class in an unnamed namespace was defined

@@ -4088,6 +4088,12 @@ typedef struct a_type {
                 element_type;
                         /* Type of the elements of the array type. */
       a_bit_field
+		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
+			/* Bit set with bits set to indicate the presence
+			   of one or more type qualifiers in an array
+			   declarator (const, volatile, or other(s) as defined
+			   by the implementation).  This is a C99 feature.*/
+      a_bit_field
 		is_template_dependent_size_array:1;
 			/* TRUE only in C++ and if the array size is constant
 			   and depends on a template parameter.  If this flag

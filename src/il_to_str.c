@@ -1513,6 +1513,8 @@ the way described by octl.
 */
 {
   octl->output_str("[");
+  form_type_qualifier(type->variant.array.qualifiers,
+                      /*need_trailing_space=*/TRUE, octl);
 #if !SUPPRESS_ARRAY_STATIC_IN_GENERATED_CODE
   if (type->variant.array.is_static) {
     /* C99 static. */

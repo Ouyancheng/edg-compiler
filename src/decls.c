@@ -364,16 +364,13 @@ an error diagnostic and return TRUE.
 }  /* check_member_function_typedef */
 
 
-void adjust_parameter_type(a_type_ptr           *type_ptr,
-                           a_type_qualifier_set array_qualifiers)
+void adjust_parameter_type(a_type_ptr  *type_ptr)
 /*
 *type_ptr points to the type of a parameter.  Modify the type if
 necessary.  See 3.7.1:  A declaration of a parameter as "array of
 type" shall be adjusted to "pointer to type", and the declaration of
 a parameter as "function returning type" shall be adjusted to
-"pointer to function returning type", as in 3.2.2.1.  array_qualifiers
-contains any cv-qualifiers specified inside the array declarator [...],
-e.g., "restrict".
+"pointer to function returning type", as in 3.2.2.1.
 */
 {
   db_enter(4, "adjust_parameter_type");
@@ -381,11 +378,12 @@ e.g., "restrict".
      that has an incomplete-type parameter, but one can complete it later. */
   if (is_array_type(*type_ptr)) {
     /* Array, adjust to pointer to element type. */
+    a_type_qualifier_set  qualifiers = (*type_ptr)->variant.array.qualifiers;
     *type_ptr = make_pointer_type(array_element_type(*type_ptr));
     /* A parameter type that is restrict-qualified-array-of-T decays into
-       restrict-qualified-ptr-to-T. */
-    if (array_qualifiers != TQ_NONE) {
-      *type_ptr = make_qualified_type(*type_ptr, array_qualifiers);
+       restrict-qualified-ptr-to-T.  (Same with const and volatile in C99.) */
+    if (qualifiers != TQ_NONE) {
+      *type_ptr = make_qualified_type(*type_ptr, qualifiers);
     }  /* if */
   } else if (is_function_type(*type_ptr)) {
     /* Function, adjust to pointer to function. */
@@ -427,13 +425,10 @@ type.  Check to see if any type qualifiers that are specified are meaningful.
 
 
 void check_and_adjust_parameter_type(a_type_ptr           *type_ptr,
-                                     a_source_position    *error_pos,
-                                     a_type_qualifier_set array_qualifiers)
+                                     a_source_position    *error_pos)
 /*
 This routine is called for all function parameter declarations.  It does
-error checking and type adjustments as required.  array_qualifiers
-contains any cv-qualifiers specified inside the array declarator [...],
-e.g., "restrict".
+error checking and type adjustments as required.
 */
 {
   if (any_cfront_mode() &&
@@ -452,7 +447,7 @@ e.g., "restrict".
     }  /* if */
     /* Adjust the type if necessary (for example, "array of x" becomes
        "pointer to x"). */
-    adjust_parameter_type(type_ptr, array_qualifiers);
+    adjust_parameter_type(type_ptr);
     /* Disallow "void" as a parameter type. */
     if (is_void_type(*type_ptr)) {
       pos_error(ec_void_param_not_allowed, error_pos);
@@ -7210,7 +7205,7 @@ In C++ mode an error is issued if a type definition appears in a type-name
          once the scan has been completed. */
       di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
     }  /* if */
-    declarator(di_flags, &do_flags, (a_type_qualifier_set *)NULL, *type_ptr,
+    declarator(di_flags, &do_flags, *type_ptr,
                /*member_parent_type=*/(a_type_ptr)NULL,
                (a_symbol_locator *)NULL, type_ptr,
                &declarator_ssep, (a_func_info_block_ptr)NULL,
@@ -7313,7 +7308,7 @@ within this routine if is_parenthesized comes in FALSE.
       declarator(DI_ABSTRACT_DECLARATOR_ALLOWED |
                     DI_QUALIFIED_NAME_ALLOWED |
                     DI_DIMENSION_EXPRESSION_ALLOWED,
-                 &do_flags, (a_type_qualifier_set *)NULL, *type_ptr,
+                 &do_flags, *type_ptr,
                  /*member_parent_type=*/(a_type_ptr)NULL,
                  (a_symbol_locator *)NULL, type_ptr,
                  &declarator_ssep, (a_func_info_block_ptr)NULL,
@@ -7343,7 +7338,6 @@ within this routine if is_parenthesized comes in FALSE.
                        /*vla_asterisk_allowed=*/FALSE,
                        /*top_level_field_decl=*/FALSE,
                        /*top_level_param_decl=*/FALSE,
-                       (a_type_qualifier_set *)NULL,
                        &decl_pos_block);
       add_to_derived_type_list(new_type_ptr,
                                &derived_type, &bottom_derived_type,
@@ -7354,7 +7348,6 @@ within this routine if is_parenthesized comes in FALSE.
                          /*vla_asterisk_allowed=*/FALSE,
                          /*top_level_field_decl=*/FALSE,
                          /*top_level_param_decl=*/FALSE,
-                         (a_type_qualifier_set *)NULL,
                          &decl_pos_block);
         /* Add the new type to the bottom of the existing derived type list.
            Note that this involves error checking. */
@@ -7981,9 +7974,9 @@ clause is to be attached.  catch_pos is the source position of "catch".
         if (is_abstract_or_real_declarator_start()) {
           declarator(DI_REAL_DECLARATOR_ALLOWED |
                        DI_ABSTRACT_DECLARATOR_ALLOWED,
-                     &do_flags, (a_type_qualifier_set *)NULL, type_ptr,
-                     /*member_parent_type=*/(a_type_ptr)NULL, &locator,
-                     &type_ptr, &declarator_ssep,
+                     &do_flags, type_ptr,
+                     /*member_parent_type=*/(a_type_ptr)NULL,
+                     &locator, &type_ptr, &declarator_ssep,
                      (a_func_info_block_ptr)NULL, &decl_pos_block);
           if (do_flags & DO_REAL_DECLARATOR_SCANNED) {
             sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
@@ -8000,7 +7993,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
           complete_type_is_needed(type_ptr);
           /* Adjust the type if necessary (for example, "array of x"
              becomes "pointer to x"). */
-          adjust_parameter_type(&type_ptr, /*array_qualifiers=*/TQ_NONE);
+          adjust_parameter_type(&type_ptr);
           if (is_invalid_catch_type(type_ptr, &decl_pos)) {
             /* An appropriate error message will have been issued by
                invalid_catch_type. */
@@ -8338,8 +8331,7 @@ Return a pointer to the variable that is declared.
   if (is_declarator_start()) {
     /* Scan the declarator, which is not allowed to specify a function or an
        array. */
-    declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags,
-               (a_type_qualifier_set *)NULL, type_ptr,
+    declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, type_ptr,
                /*member_parent_type=*/(a_type_ptr)NULL, &locator, &type_ptr,
                &declarator_ssep, (a_func_info_block_ptr)NULL, &decl_pos_block);
   } else {
@@ -9656,7 +9648,6 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean                    first_declarator = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean		       access_checks_deferred = FALSE;
-  a_type_qualifier_set         array_qualifiers;
   a_token_kind                 final_token = tok_semicolon;
   a_boolean                    is_linkage_spec_decl = FALSE;
   a_boolean                    restore_name_linkage = FALSE;
@@ -9984,7 +9975,7 @@ continue_with_declaration:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Save the source position of the first token of the declarator. */
       declarator_start_pos = pos_curr_token;
-      declarator(di_flags, &do_flags, &array_qualifiers, type_ptr, 
+      declarator(di_flags, &do_flags, type_ptr, 
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
                  &local_type_ptr, &declarator_ssep, &func_info,
                  &decl_pos_block);
@@ -10160,8 +10151,7 @@ continue_with_declaration:
             param_id->declared_type = local_type_ptr;
           }  /* if */
           /* Check that the type is legal, and do required adjustments. */
-          check_and_adjust_parameter_type(&local_type_ptr, &decl_start_pos,
-                                          array_qualifiers);
+          check_and_adjust_parameter_type(&local_type_ptr, &decl_start_pos);
           is_function = top_declarator_type_is_function = FALSE;
           /* For pcc compatibility, promote float parameters to double. */
           if (C_dialect == C_dialect_pcc) {
