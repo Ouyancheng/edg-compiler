@@ -437,6 +437,7 @@ check_abbreviation()
 --db
 --debug
 --define_macro
+--definition_list_file
 --dependencies
 --diag_error
 --diag_remark
@@ -989,11 +990,17 @@ process_option()
          --diag_warning | \
          --diag_error | \
          --microsoft_version | \
+	 --definition_list_file | \
          --pack_alignment)
       feoptions=$feoptions" $curr_arg $curr_param"
       used_two_params=1
 #     See if an instantiation mode was specified
       case $arg in
+        --definition_list_file)
+          # The definition list file option is not put in the instantiation
+          # command.
+          add_to_instantiation_command=0
+          ;;
         -t | --instantiate)
           instantiation_mode_specified=1
           ;;
@@ -1041,10 +1048,16 @@ process_option()
           --diag_warning=* | \
           --diag_error=* | \
           --microsoft_version=* | \
+          --definition_list_file=* | \
           --pack_alignment=*)
       feoptions=$feoptions" $curr_arg"
 #     See if an instantiation mode was specified
       case $arg in
+        --definition_list_file=*)
+          # The definition list file option is not put in the instantiation
+          # command.
+          add_to_instantiation_command=0
+          ;;
         -t* | --instantiate=*)
           instantiation_mode_specified=1
           ;;
