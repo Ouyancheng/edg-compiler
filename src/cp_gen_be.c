@@ -7158,12 +7158,14 @@ is the one associated with the pragma.
 */
 {
   a_pragma_ptr pp = ss_entry_ptr(curr_source_sequence_entry, a_pragma_ptr);
+  a_boolean    saved_suppress_line_breaking = octl.suppress_line_breaking;
 
   /* Advance past the source sequence entry for the pragma. */
   adv_curr_source_sequence_entry();
   /* Ignore this entry if told to do so. */
   if (!pp->ignore_in_back_end) {
     begin_pp_directive("");
+    octl.suppress_line_breaking = TRUE;
     set_output_position(&pp->position);
     if (pp->kind == (a_pragma_kind)pk_stdc) {
       gen_stdc_pragma(pp);
@@ -7187,6 +7189,7 @@ is the one associated with the pragma.
       write_str(pp->pragma_text);
     }  /* if */
     end_pp_directive();
+    octl.suppress_line_breaking = saved_suppress_line_breaking;
   }  /* if */
 }  /* gen_pragma */
 

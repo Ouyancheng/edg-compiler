@@ -2020,6 +2020,7 @@ Dump a single #pragma from the IL entry.
 */
 {
   unsigned long saved_indent = indent;
+  a_boolean     saved_suppress_line_breaking = octl.suppress_line_breaking;
 
   /* Ignore this entry if told to do so. */
   if (!pp->ignore_in_back_end) {
@@ -2027,6 +2028,7 @@ Dump a single #pragma from the IL entry.
     set_output_position(&pp->position);
     indent = 0;
     disable_line_wrapping();
+    octl.suppress_line_breaking = TRUE;
     if (pp->kind == (a_pragma_kind)pk_stdc) {
       dump_stdc_pragma(pp);
 #if IDENT_DIRECTIVE_AND_PRAGMA
@@ -2049,6 +2051,7 @@ Dump a single #pragma from the IL entry.
       write_str(pp->pragma_text);
     }  /* if */
     enable_line_wrapping();
+    octl.suppress_line_breaking = saved_suppress_line_breaking;
     end_output_line();
     indent = saved_indent;
   }  /* if */

@@ -60,7 +60,8 @@ Clear an output control block to default values.
 #endif /* DEBUG */
   octl->force_qualified_name      = FALSE;
   octl->gen_vla_array_as_asterisk_bound_array = FALSE;
-  octl->gen_raw_tab_in_literals = FALSE;
+  octl->gen_raw_tab_in_literals   = FALSE;
+  octl->suppress_line_breaking    = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -3403,7 +3404,7 @@ precedence confusion.  Do the output in the way described by octl.
               break;
             }  /* if */
             if (out_len >= 128 && octl->gen_compilable_code &&
-                !octl->gen_pcc_code) {
+                !octl->gen_pcc_code && !octl->suppress_line_breaking) {
               /* Break long string constants by using concatenation.  This
                  allows the output routine to begin a new line. */
               output_partial_token_str("\"", octl);
@@ -3429,7 +3430,7 @@ precedence confusion.  Do the output in the way described by octl.
               break;
             }  /* if */
             if (out_len >= 128 && octl->gen_compilable_code &&
-                !octl->gen_pcc_code) {
+                !octl->gen_pcc_code && !octl->suppress_line_breaking) {
               /* Break long string constants by using concatenation.  This
                  allows the output routine to begin a new line. */
               output_partial_token_str("\"", octl);

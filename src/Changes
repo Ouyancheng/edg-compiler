@@ -1,5 +1,10 @@
 Version 2.46
 
+2/3/02   No breaking of long strings in #pragmas
+
+Long strings that appear in #pragmas (e.g., #pragma ident) are no
+longer broken into multiple strings if they exceed 128 characters.
+
 2/2/02   Problem with unnamed enums and list of nontag types used in
          exception handling
 
