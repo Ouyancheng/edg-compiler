@@ -213,6 +213,14 @@ The size and alignment of such a field are defined by the following.
 #define TARG_SIZEOF_VIRTUAL_FUNCTION_INFO TARG_SIZEOF_POINTER
 #define TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO TARG_ALIGNOF_POINTER
 
+/* 
+Numbering for virtual functions.  Each virtual member function in a given
+class is assigned a unique number which can (for instance) be used to
+define a virtual function table index value.
+*/
+typedef unsigned short a_virtual_function_number;
+#define MAX_VIRTUAL_FUNCTIONS_PER_CLASS USHRT_MAX
+
 /*
 Enumerated types:
 */
