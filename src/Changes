@@ -1,5 +1,13 @@
 Version 2.46
 
+11/16/01 "this" as selector doesn't make call dependent
+
+Overload resolution has assumed that a member function called on
+the basis of the "this" parameter of the current (template) function
+is dependent, which appears not to be correct with the revised
+definition in TC1.  Such calls are no longer considered to be
+dependent merely because of the selector.
+
 11/15/01 Incorrect template parameter nesting depths
 
 Under certain unusual circumstances the nesting depth assigned to the

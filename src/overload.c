@@ -4268,16 +4268,6 @@ and return NULL.  This routine is called only in C++ mode.
         break;
       }  /* if */
     }  /* for */
-    if (!dependent_call && overloaded_function_symbol != NULL &&
-        overloaded_function_symbol->is_class_member &&
-        (have_selector ?
-                (bound_function_selector != NULL &&
-                 is_template_dependent_type(bound_function_selector->type)) :
-                TRUE)) {
-      /* The selector object is dependent.  An implicit selector is
-         always dependent in a prototype instantiation. */
-      dependent_call = TRUE;
-    }  /* if */
     if (!dependent_call && is_template_id &&
         template_arg_list_involves_template_param(template_arg_list)) {
       /* A call like f<T>(1), where the explicit template argument
