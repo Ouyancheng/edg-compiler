@@ -4402,7 +4402,6 @@ only done in pcc mode.
 
 static a_boolean cast_type_pre_check(
                                    a_type_ptr               *p_type_cast_to,
-                                   a_boolean                *cast_to_reference,
                                    a_boolean                *int_to_ptr_case,
                                    a_boolean                *cast_to_func_ptr,
                                    a_boolean                *templ_cast_to_ptr,
@@ -4412,9 +4411,7 @@ Do a first check on the destination type of a cast to see if it is legal.
 That is, do a check that the type is legal as the destination type of a
 cast without regard to the source type.  Return TRUE if there is an error.
 *p_type_cast_to is the destination type of the cast.  On return,
-*cast_to_reference is TRUE if the cast is to a reference type
-(*p_type_cast_to will be adjusted to the corresponding pointer type in
-that case), *int_to_ptr_case is TRUE if the destination type is a pointer
+*int_to_ptr_case is TRUE if the destination type is a pointer
 type in a context that requires that the source type be an integral type,
 *cast_to_func_ptr is TRUE if the cast is to a pointer-to-function type
 in C++, and *templ_cast_to_ptr is true if the cast is to a pointer or
@@ -4426,7 +4423,6 @@ for both C-style casts and C++ functional-notation type conversions.
   a_type_ptr type_cast_to = *p_type_cast_to;
 
   *int_to_ptr_case = FALSE;
-  *cast_to_reference = FALSE;
   *cast_to_func_ptr = FALSE;
   *templ_cast_to_ptr = FALSE;
   /* Instantiate the type if it is a template class. */
@@ -4493,13 +4489,7 @@ for both C-style casts and C++ functional-notation type conversions.
         err = TRUE;
       }  /* if */
     } else if (is_reference_type(type_cast_to)) {
-      /* Casting to a reference type in C++ is checked by casting the lvalue
-         pointer to the corresponding pointer type.  ARM 5.4:  "An object
-         may be explicitly converted to a reference type X& if a pointer to
-         that object may be explicitly converted to an X*". */
-      *cast_to_reference = TRUE;
-      *p_type_cast_to = type_cast_to =
-                              make_pointer_type(type_pointed_to(type_cast_to));
+      /* Casting to a reference type in C++. */
     } else if (is_ptr_to_member_type(type_cast_to)) {
       /* In C++, a cast to a pointer-to-member type is allowed. */
     } else if (cfront_compatibility_mode && is_array_type(type_cast_to)) {
@@ -4566,7 +4556,6 @@ static void do_cast(a_type_ptr         type_cast_to,
                     an_operand         *operand,
                     an_operand         *bound_function_selector,
                     a_boolean          err,
-                    a_boolean          cast_to_reference,
                     a_boolean          int_to_ptr_case,
                     a_boolean          cast_to_func_ptr,
                     a_boolean          templ_cast_to_ptr,
@@ -4578,8 +4567,7 @@ type_cast_to.  If is is a bound function (only in C++),
 will be TRUE in that case, indicating a cast of a bound function pointer
 to a normal function pointer, an anachronism).  err is TRUE if it has
 already been determined that the cast is invalid (this routine does
-additional checking).  cast_to_reference is TRUE if the cast is to a
-reference type.  int_to_ptr_case is TRUE if cast_type_pre_check
+additional checking).  int_to_ptr_case is TRUE if cast_type_pre_check
 determined that the source type must be integral (that must be checked
 here).  templ_cast_to_ptr is TRUE if the cast is to a pointer or pointer-
 to-member type in a template argument.  start_position is the source
@@ -4589,7 +4577,7 @@ C-style casts and C++ functional-notation type conversions.
 {
   a_type_ptr        source_type;
   an_error_code     warning_suggested;
-  a_boolean         failed = FALSE;
+  a_boolean         cast_to_reference = FALSE, processed = FALSE;
   a_user_conv_descr user_conversion;
   an_expr_node_ptr  func_ptr_node, object_node;
 
@@ -4597,49 +4585,68 @@ C-style casts and C++ functional-notation type conversions.
     /* There was a previous error (e.g., the type to cast to is invalid
        regardless of the type of the source).  Do no further checking. */
   } else {
-    if (cast_to_reference) {
-      /* In C++, "An object may be explicitly converted to a reference type
-         X& if a pointer to that object may be explicitly converted
-         to an X*" (ARM 5.4).  Rewrite the cast in that form.  Note that
-         type_cast_to is already set to the proper pointer type. */
-      /* It's not entirely clear what the ARM means about "a pointer
-         to an object".  One interpretation would be that the expression
-         must be an lvalue (that term in C++ includes function designators).
-         We broaden that slightly by allowing class rvalues to be used
-         as well. */
-      if (is_an_lvalue(operand)) {
-        take_address_of_lvalue(operand);
-      } else if (is_a_function_designator(operand)) {
-        conv_function_designator_to_ptr_to_function(operand);
-      } else if (is_class_struct_union_type(operand->type)) {
-        conv_class_operand_to_object_pointer(operand);
-      } else {
-        if (!is_error_operand(operand)) {
-          error_in_operand(ec_expr_not_an_lvalue, operand);
+    /* Check for user-defined conversions, but not in C. */
+    if (!C_mode()) {
+      /* See if we're casting to a reference type. */
+      cast_to_reference = is_reference_type(type_cast_to);
+      /* Don't check for user-defined conversions in constant expressions. */
+      if (!curr_expr_kind_is_const()) {
+        a_type_ptr eff_type_cast_to = type_cast_to;
+        if (cast_to_reference) {
+          /* A cast to a reference type is really a cast to an lvalue of
+             the type underlying the reference. */
+          eff_type_cast_to = type_pointed_to(type_cast_to);
+        }  /* if */
+        /* Don't check for user-defined conversions when casting to void
+           or a template parameter (unknown) type. */
+        if (!is_void_type(eff_type_cast_to) &&
+            !is_template_param_type(eff_type_cast_to)) {
+          a_boolean failed;
+          if (user_defined_conversion_possible(operand, eff_type_cast_to,
+                                               /*is_initialization=*/TRUE,
+                                               cast_to_reference,
+                                               &user_conversion,
+                                               &failed)) {
+            /* A user-defined conversion can be done. */
+            user_convert_operand(operand, eff_type_cast_to, &user_conversion);
+            processed = TRUE;
+          } else if (failed) {
+            /* A user-defined conversion was our only hope, and it failed.
+               The error has already been issued. */
+            err = TRUE;
+            processed = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
-    /* Check for user-defined conversions, but not in constant expressions
-       or in C, and not when casting to void or a template parameter (unknown)
-       type. */
-    if (C_dialect == C_dialect_cplusplus &&
-        !curr_expr_kind_is_const() &&
-        !is_void_type(type_cast_to) &&
-        !is_template_param_type(type_cast_to) &&
-        user_defined_conversion_possible(operand, type_cast_to,
-                                         /*is_initialization=*/TRUE,
-                                         &user_conversion,
-                                         &failed)) {
-      /* A user-defined conversion can be done. */
-      if (!cast_to_reference) user_conversion.result_is_an_lvalue = FALSE;
-      user_convert_operand(operand, type_cast_to, &user_conversion);
-    } else if (failed) {
-      /* A user-defined conversion was our only hope, and it failed.
-         The error has already been issued. */
-      err = TRUE;
-    } else {
+    if (!processed) {
       /* No user-defined conversion applies. */
-      if (!cast_to_reference) {
+      if (cast_to_reference) {
+        /* In C++, "An object may be explicitly converted to a reference type
+           X& if a pointer to that object may be explicitly converted
+           to an X*" (ARM 5.4).  Rewrite the cast in that form. */
+        /* Note that this is done after the check for user-defined
+           conversions above, since it is possible that such a cast
+           can be done by a conversion function, and if so, it should
+           be done that way. */
+        type_cast_to = make_pointer_type(type_pointed_to(type_cast_to));
+        /* It's not entirely clear what the ARM means about "a pointer
+           to an object".  One interpretation would be that the expression
+           must be an lvalue (that term in C++ includes function designators).
+           We broaden that slightly by allowing class rvalues to be used
+           as well. */
+        if (is_an_lvalue(operand)) {
+          take_address_of_lvalue(operand);
+        } else if (is_a_function_designator(operand)) {
+          conv_function_designator_to_ptr_to_function(operand);
+        } else if (is_class_struct_union_type(operand->type)) {
+          conv_class_operand_to_object_pointer(operand);
+        } else {
+          if (!is_error_operand(operand)) {
+            error_in_operand(ec_expr_not_an_lvalue, operand);
+          }  /* if */
+        }  /* if */
+      } else {
         /* Normal case (not a cast to reference).  Do array --> pointer and
            function --> pointer conversions.  They must be done now because
            they affect the type of the operand.  Don't do lvalue --> rvalue
@@ -4868,7 +4875,7 @@ or
   a_source_position start_position;
   a_type_ptr        type_cast_to;
   a_boolean         err = FALSE;
-  a_boolean         int_to_ptr_case, cast_to_reference, cast_to_func_ptr;
+  a_boolean         int_to_ptr_case, cast_to_func_ptr;
   a_boolean         templ_cast_to_ptr;
   a_local_expr_options_set
                     cast_options;
@@ -4900,9 +4907,9 @@ or
     type_name(&type_cast_to);
     /* Check the type to see if it is valid.  This is done early to get a
        better error position. */
-    err = cast_type_pre_check(&type_cast_to, &cast_to_reference,
-                              &int_to_ptr_case, &cast_to_func_ptr,
-                              &templ_cast_to_ptr, local_options);
+    err = cast_type_pre_check(&type_cast_to, &int_to_ptr_case,
+                              &cast_to_func_ptr, &templ_cast_to_ptr,
+                              local_options);
 
     /* The next token should be the closing rparen. */
     (void)required_token(tok_rparen, ec_exp_rparen);
@@ -4919,8 +4926,8 @@ or
                    cast_options);
     /* Check compatibility of the types and do the cast. */
     do_cast(type_cast_to, result, &local_bound_function_selector, err,
-            cast_to_reference, int_to_ptr_case, cast_to_func_ptr,
-            templ_cast_to_ptr, &start_position);
+            int_to_ptr_case, cast_to_func_ptr, templ_cast_to_ptr,
+            &start_position);
   } else {
     /* This is an expression in parentheses.  The parentheses do not
        affect the fact that the enclosed expression is an immediate operand
@@ -5001,7 +5008,6 @@ type is passed in as type_cast_to.  The result is returned in *result.
   a_source_position             start_position, lparen_pos;
   a_boolean                     err = FALSE;
   a_boolean                     int_to_ptr_case;
-  a_boolean                     cast_to_reference;
   a_boolean                     cast_to_func_ptr, templ_cast_to_ptr;
   a_symbol_ptr                  ctor_sym;
   an_expr_node_ptr              arg_expr_list;
@@ -5018,8 +5024,7 @@ type is passed in as type_cast_to.  The result is returned in *result.
   /* Check the type to see if it is valid.  This is done early to get a
      better error position.  Note that this even does a worthwhile check
      for the class case (abstract class). */
-  err = cast_type_pre_check(&type_cast_to, &cast_to_reference,
-                            &int_to_ptr_case, &cast_to_func_ptr,
+  err = cast_type_pre_check(&type_cast_to, &int_to_ptr_case, &cast_to_func_ptr,
                             &templ_cast_to_ptr, local_options);
   /* See if we have a case that is clearly a constructor call. */
   if (is_class_struct_union_type(type_cast_to)) {
@@ -5080,7 +5085,7 @@ type is passed in as type_cast_to.  The result is returned in *result.
            reject it now. */
         pos_error(ec_expr_not_constant, &lparen_pos);
         make_error_operand(result);
-      } else if (cast_to_reference) {
+      } else if (is_reference_type(type_cast_to)) {
         /* Disallow a cast to a reference type; this may or may not turn
            out to be allowed by the standard for C++. */
         pos_error(ec_bad_cast, &lparen_pos);
@@ -5112,8 +5117,8 @@ type is passed in as type_cast_to.  The result is returned in *result.
                      cast_options);
       /* Check compatibility of the types and do the cast. */
       do_cast(type_cast_to, result, &local_bound_function_selector, err,
-              cast_to_reference, int_to_ptr_case, cast_to_func_ptr,
-              templ_cast_to_ptr, &start_position);
+              int_to_ptr_case, cast_to_func_ptr, templ_cast_to_ptr,
+              &start_position);
     }  /* if */
     /* Check for the closing parenthesis. */
     check_closing_paren_after_expr_list();

@@ -380,6 +380,7 @@ extern a_boolean user_defined_conversion_possible(
                                   an_operand        *source_operand,
                                   a_type_ptr        dest_type,
                                   a_boolean         is_initialization,
+                                  a_boolean         need_lvalue_result,
                                   a_user_conv_descr *user_conversion,
                                   a_boolean         *failed);
 
