@@ -75,6 +75,9 @@ linkage-name of the class.  Formerly, they were unnamed.
   } A;
   A a;
 
+The lack of a name on the constructor led to an abort in make_module_id
+in some unusual cases.
+
 1/26/01  Microsoft compatibility: __declspec specifiers on enum definitions
 
 In Microsoft mode, the front end now accepts the same __declspec specifiers
