@@ -2414,13 +2414,11 @@ source position *macro_pos.
   /* If the macro is function-like, put out the parameters. */
   if (!mdp->object_like) {
     put_string_into_temp_buffer("(", &pos);
-    for (pp = mdp->param_list;;) {
+    for (pp = mdp->param_list; pp != NULL; pp = pp->next) {
       /* Put out a macro parameter name. */
       put_string_into_temp_buffer(pp->name, &pos);
-      pp = pp->next;
-      if (pp == NULL) break;
       /* There are more parameters, so put out a comma separator. */
-      put_string_into_temp_buffer(",", &pos);
+      if (pp->next != NULL) put_string_into_temp_buffer(",", &pos);
     }  /* for */
     put_string_into_temp_buffer(")", &pos);
   }  /* if */
