@@ -624,7 +624,7 @@ Helper macro for is_simple_scalar_assignment below.
 */
 #if FIXED_POINT_ALLOWED
 #define or_is_simple_fixed_point_assignment(op)                             \
-  || (op) == (an_expr_operator_kind)eok_fxassign
+  || ((op) == (an_expr_operator_kind)eok_fxassign)
 #else /* !FIXED_POINT_ALLOWED */
 #define or_is_simple_fixed_point_assignment(op) /* Nothing */
 #endif /* FIXED_POINT_ALLOWED */
