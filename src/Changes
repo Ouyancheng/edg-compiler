@@ -1,5 +1,14 @@
 Version 2.42
 
+6/15/99  Minimal inlining: no temporaries for pointer-to-member-function
+         constant arguments
+
+Minimal inlining has been improved so that pointer-to-member-function
+constants (which are represented as structs after lowering) are considered
+constant arguments and can therefore be used directly in place of the
+corresponding parameter within the inlined function call (no copy to a
+temporary is needed).
+
 6/14/99  Inappropriate diagnostics on parenthesized constructors and
          destructors
 

@@ -203,6 +203,27 @@ variable.
 }  /* make_remapping_temporary */
 
 
+static a_boolean is_ptr_to_member_function_constant_expr(an_expr_node_ptr expr)
+/*
+Return TRUE if the indicated expression is the lowered version of a
+pointer to member function constant.
+*/
+{
+  a_boolean is_pmf_con = FALSE;
+
+  if (is_variable_node(expr)) {
+    a_variable_ptr var = expr->variant.variable;
+    if (!has_name(var) &&
+        /* Variables for constants are initialized.  Temporaries are not. */
+        var->init_kind == initk_static &&
+        is_or_was_ptr_to_member_function_type(var->type)) {
+      is_pmf_con = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_pmf_con;
+}  /* is_ptr_to_member_function_constant_expr */
+
+
 static a_boolean is_constant_valued_expression(
                                             an_expr_node_ptr expr,
                                             a_boolean        local_vars_change,
@@ -238,6 +259,9 @@ body have side effects).
     }  /* if */
     *is_non_null = constant_bool_value_known_at_compile_time(con) &&
                    !is_false_constant(con);
+  } else if (is_ptr_to_member_function_constant_expr(expr)) {
+    /* A pointer to member function constant is constant. */
+    is_constant_valued = TRUE;
   } else if (is_variable_address_node(expr)) {
     is_constant_valued = TRUE;
     /* We assume that variables other than extern variables have non-null
@@ -459,7 +483,8 @@ The code is inserted at *insert_location, and *insert_location is updated.
              when field selections are done.  We would have to support
              remapping an enk_variable_address to some expression, which
              we don't do currently.  Avoid that case. */
-          !is_class_struct_union_type(param_var->type)) {
+          (!is_class_struct_union_type(param_var->type) ||
+           is_ptr_to_member_function_constant_expr(arg))) {
         /* The argument is constant-valued and the parameter is unmodified.
            The parameter gets remapped to a constant-valued expression. */
         vrip->kind = vrk_constant_expr;
