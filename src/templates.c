@@ -3701,22 +3701,23 @@ that make up the declaration and do a prototype instantiation.
          error down the line. */
       sym = coalesce_and_lookup_generalized_identifier
                                (GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
-      if (sym != NULL &&
-          sym->decl_scope == scope_stack[depth_scope_stack].number) {
-        /* The symbol found is from the current template declaration scope.
-           This means that the name of the class is the same as one of
-           its template parameters -- this is an error. */
-        pos_error(ec_class_template_same_name_as_templ_param,
-                  &locator_for_curr_id.source_position);
-        suppress_redecl_error = TRUE;
-      }  /* if */
-      if (sym != NULL && !is_template_friend &&
-          sym->decl_scope != scope_stack[effective_decl_level].number) {
-        /* The symbol found by the lookup is not from the scope in which
-           this template is being declared.  Discard the symbol found
-           by the lookup. */
-        sym = NULL;
-        locator_for_curr_id.specific_symbol = NULL;
+      if (!locator_for_curr_id.is_qualified_name && sym != NULL) {
+        if (sym->decl_scope == scope_stack[depth_scope_stack].number) {
+          /* The symbol found is from the current template declaration scope.
+             This means that the name of the class is the same as one of
+             its template parameters -- this is an error. */
+          pos_error(ec_class_template_same_name_as_templ_param,
+                    &locator_for_curr_id.source_position);
+          suppress_redecl_error = TRUE;
+        }  /* if */
+        if (!is_template_friend &&
+            sym->decl_scope != scope_stack[effective_decl_level].number) {
+          /* The symbol found by the lookup is not from the scope in which
+             this template is being declared.  Discard the symbol found
+             by the lookup. */
+          sym = NULL;
+          locator_for_curr_id.specific_symbol = NULL;
+        }  /* if */
       }  /* if */
       locator = locator_for_curr_id;
       /* Cache the identifier and advance past it so we can discriminate
