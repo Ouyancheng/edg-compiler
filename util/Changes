@@ -1,5 +1,14 @@
 Version 2.32
 
+3/4/96   Error status returned by prelinker when recompiles fail
+
+The prelinker uses the system() function to recompile source files
+to generate instantiations.  When the eccp command returns a nonzero
+status (via the system() function) to the prelinker, the system()
+function shifts the return status 8 bits to the left before
+returning it.  The prelinker has been modified to adjust the
+return value by shifting it back to the right.
+
 2/28/96  Configuration file that defined variables used by eccp
 
 eccp now looks in the directory specified by the EDG_BASE environment

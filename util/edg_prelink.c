@@ -27,6 +27,7 @@ Prelink utility for template instantiation.
 #endif /* __ANSI__ */
 /* Used to get a prototype for chdir. */
 #include <unistd.h>
+#include "errno.h"
 
 #if defined(__SUNPRO_CC) && __BSD__
 /* The SunOS 4.1.3 Sun CC header files do not define the system function. */
@@ -2121,6 +2122,14 @@ Execute the command to recompile a file.
   fprintf(stdout, pl_error_text(pl_ec_executing), message_prefix, command);
   fflush(stdout);
   result = system(command);
+  /* The return value from the system command is usually the return value of
+     the command executed shifted left by 8 bits.  If the return value is
+     -1, the system command failed for the reason specified by errno. */
+  if (result == -1) {
+    result = errno;
+  } else {
+    result = result >> 8;
+  }  /* if */
   free(command);
   if (chdir_needed) {
     /* Return to the original directory. */
