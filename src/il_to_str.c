@@ -4093,8 +4093,11 @@ Do the output in the way described by octl.
     /* Output the "unused" attribute. */
     form_simple_attribute("__unused__", need_leading_space, octl);
   }  /* if */
-  if (gcc_is_generated_code_target && type->source_corresp.is_deprecated) {
-    /* Output the "deprecated" attribute. */
+  if (gcc_is_generated_code_target && type->source_corresp.is_deprecated &&
+      !octl->c_generating_back_end) {
+    /* If we're generating output for the C-generating back end, we do not
+       output the attribute __deprecated__ because any diagnostics it might
+       trigger were already issued by the front end. */
     form_simple_attribute("__deprecated__", need_leading_space, octl);
   }  /* if */
   if (type->kind == (a_type_kind)tk_integer && type->variant.integer.packed) {
@@ -4211,7 +4214,11 @@ If *need_leading_space is TRUE, precede the attribute with a leading space.
   if (var->has_gnu_unused_attribute) {
     form_simple_attribute("__unused__", need_leading_space, octl);
   }  /* if */
-  if (gcc_is_generated_code_target && var->source_corresp.is_deprecated) {
+  if (gcc_is_generated_code_target && var->source_corresp.is_deprecated &&
+      !octl->c_generating_back_end) {
+    /* If we're generating output for the C-generating back end, we do not
+       output the attribute __deprecated__ because any diagnostics it might
+       trigger were already issued by the front end. */
     form_simple_attribute("__deprecated__", need_leading_space, octl);
   }  /* if */
   if (var->is_not_common) {
@@ -4247,7 +4254,10 @@ If *need_leading_space is TRUE, precede the attribute with a leading space.
 *need_leading_space is set to TRUE if an attribute was actually output.
 */
 {
-  if (field->source_corresp.is_deprecated) {
+  if (field->source_corresp.is_deprecated && !octl->c_generating_back_end) {
+    /* If we're generating output for the C-generating back end, we do not
+       output the attribute __deprecated__ because any diagnostics it might
+       trigger were already issued by the front end. */
     form_simple_attribute("__deprecated__", need_leading_space, octl);
   }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -4288,7 +4298,11 @@ If *need_leading_space is TRUE, precede the attribute with a leading space.
   if (rout->has_gnu_used_attribute) {
     form_simple_attribute("__used__", need_leading_space, octl);
   }  /* if */
-  if (gcc_is_generated_code_target && rout->source_corresp.is_deprecated) {
+  if (gcc_is_generated_code_target && rout->source_corresp.is_deprecated &&
+      !octl->c_generating_back_end) {
+    /* If we're generating output for the C-generating back end, we do not
+       output the attribute __deprecated__ because any diagnostics it might
+       trigger were already issued by the front end. */
     form_simple_attribute("__deprecated__", need_leading_space, octl);
   }  /* if */
   if (rout->allocates_memory) {
