@@ -971,12 +971,12 @@ typedef struct a_dynamic_init {
     } constructor;
   } variant;
 #if DO_IL_LOWERING
-  struct an_init_pos_descr
-		*init_pos_descr;
-			/* Used by IL lowering to record the position of the
+  struct a_destructible_entity_descr
+		*destructible_entity_descr;
+			/* Used by IL lowering to record information about the
 			   entity initialized, in an IL-lowering-specific
 			   form.  This is needed later when generating
-			   destruction code. */
+			   destruction code.  Not used for static variables. */
 #endif /* DO_IL_LOWERING */
 } a_dynamic_init;
 

@@ -4910,7 +4910,7 @@ Initialize a dynamic_init entry of the kind specified.
 #endif /* CHECKING */
   set_dynamic_init_kind(dip, kind);
 #if DO_IL_LOWERING
-  dip->init_pos_descr                = NULL;
+  dip->destructible_entity_descr     = NULL;
 #endif /* DO_IL_LOWERING */
 }  /* clear_dynamic_init */
 
