@@ -1853,6 +1853,8 @@ the function instantiation entry and set all the pointers.
   if (tip != NULL) {
     /* Symbol is already marked as an instantiation. */
     if (tip->template_sym != templ_sym) {
+      /* But it's an instance of some other template -- ignore it. */
+    } else {
       tssp = templ_sym->variant.template_info;
     }  /* if */
   } else {
