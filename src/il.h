@@ -73,8 +73,6 @@ a function can be substituted that does something else.
 
 extern char *alloc_il(sizeof_t size);
 
-extern char *alloc_cil(sizeof_t size);
-
 extern void set_constant_kind(a_constant           *cp,
                               a_constant_repr_kind kind);
 
@@ -155,10 +153,6 @@ extern a_type_ptr related_member_type(a_type_ptr member_type,
 
 extern a_type_ptr related_ptr_to_member_type(a_type_ptr member_type,
                                              a_type_ptr class_type);
-
-extern void add_based_type_list_member(a_type_ptr        base_type,
-                                       a_based_type_kind kind,
-                                       a_type_ptr        based_type);
 
 extern a_type_ptr make_pointer_type(a_type_ptr type_pointed_to);
 

@@ -182,7 +182,7 @@ typedef struct a_source_sequence_cache_entry {
 			/* Cached source file pointer. */
 } a_source_sequence_cache_entry;
 
-a_source_sequence_cache_entry seq_cache;
+static a_source_sequence_cache_entry seq_cache;
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -1411,7 +1411,7 @@ file and line number.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-char *alloc_cil(sizeof_t size)
+static char *alloc_cil(sizeof_t size)
 /*
 Allocate and return "size" bytes of storage in the current IL memory region.
 */
@@ -1964,8 +1964,8 @@ not check that again, so it should not be called directly).
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 
-void r_add_scope_orphaned_il_lists(a_scope_ptr   scope,
-                                   a_routine_ptr routine)
+static void r_add_scope_orphaned_il_lists(a_scope_ptr   scope,
+                                          a_routine_ptr routine)
 /*
 If the indicated scope (a function or block scope) contains non-empty
 lists that are in the file scope memory region (e.g., local types or
@@ -4179,9 +4179,9 @@ front of the list.
 }  /* get_based_type */
 
 
-void add_based_type_list_member(a_type_ptr        base_type,
-                                a_based_type_kind kind,
-                                a_type_ptr        based_type)
+static void add_based_type_list_member(a_type_ptr        base_type,
+                                       a_based_type_kind kind,
+                                       a_type_ptr        based_type)
 /*
 Add a based type list member to the based_types list of base_type
 indicating that based_type is a type based on base_type, and the relationship
