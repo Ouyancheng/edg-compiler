@@ -2431,7 +2431,10 @@ typedef struct an_exception_specification {
 		source_range;
 			/* Source range of the declaration of this exception
 			   specification -- from the source position of
-			   "throw" to that of the closing parenthesis. */
+			   "throw" to that of the closing parenthesis.  If
+			   the specification is for a routine synthesized by
+			   the front end, the start and ending positions are
+			   both equal to that of the synthesized routine. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } an_exception_specification;
 

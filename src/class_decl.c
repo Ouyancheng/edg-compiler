@@ -5502,7 +5502,8 @@ TRUE.
          allocate the entry. */
       new_esp = alloc_exception_specification();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      new_esp->source_range = old_esp->source_range;
+      new_esp->source_range.start = sym->decl_position;
+      new_esp->source_range.end = sym->decl_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       rtsp->exception_specification = new_esp;
     }  /* if */
