@@ -12384,6 +12384,12 @@ need initialization for every (primary and secondary) translation unit.
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   last_scope_orphaned_list_header = NULL;
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if ORPHAN_PROCESSING_NEEDED
+  /* Initialize the orphaned_file_scope_il_entries array to NULL
+     pointers. */
+  memzero((char *)orphaned_file_scope_il_entries,
+          sizeof(orphaned_file_scope_il_entries));
+#endif /* ORPHAN_PROCESSING_NEEDED */
   based_type_fixup_list = NULL;
   il_reset();
 }  /* il_trans_unit_init */

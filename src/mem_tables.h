@@ -230,12 +230,12 @@ region.
 			
 
 EXTERN a_mem_block_header_ptr
-		*mem_region_table /* = NULL */;
+		*mem_region_table;
 			/* A dynamically-allocated array.  mem_region_table[i]
 			   points to the last memory block header for 
 			   region i. */
 EXTERN a_memory_region_number
-		size_of_mem_region_table /* = 0 */;
+		size_of_mem_region_table;
 			/* Current size of mem_region_table (number of regions,
 			   not number of bytes). */
 EXTERN a_memory_region_number

@@ -56,13 +56,13 @@ static a_boolean
 
 
 static a_mem_block_header_ptr
-		reusable_blocks_list = NULL;
+		reusable_blocks_list;
 			/* List of memory blocks freed and available for
 			   reuse.  These are only partial blocks; full blocks
 			   are actually freed with free. */
 
 static a_boolean
-		okay_to_free_mem_blocks = !USE_MMAP_FOR_MEMORY_REGIONS;
+		okay_to_free_mem_blocks;
 			/* TRUE if it is okay to free (using free())
 			   memory region blocks that are no longer needed.
 			   This is set FALSE if other memory (for example,
@@ -121,15 +121,15 @@ static a_variable_registration_ptr
 Record of memory allocated, for space tracking purposes.
 */
 static unsigned long
-		total_mem_allocated = 0;
+		total_mem_allocated;
 			/* Total memory allocated via malloc, minus total
 			   memory freed via free. */
 static unsigned long
-		max_mem_allocated = 0;
+		max_mem_allocated;
 			/* The high-water mark, the largest value that
 			   total_mem_allocated ever had. */
 static unsigned long
-		total_general_mem_allocated = 0;
+		total_general_mem_allocated;
 			/* The part of total_mem_allocated that was
 			   allocated in general storage, i.e., by
 			   alloc_general and realloc_general. */
@@ -1359,70 +1359,81 @@ Register a variable that is specific to a given translation unit.
 void mem_manage_one_time_init(void)
 /*
 Do one-time initialization of variables related to the mem_manage routines.
-(Variables that need to be reinitialized with each new translation unit
-are handled in mem_manage_init.)
 */
 {
+  okay_to_free_mem_blocks = TRUE;
 #if !STANDALONE_UTILITY_PROGRAM
   /* Save variables from mem_manage.h and mem_manage.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
+    /* highest_used_region_number is saved directly in the PCH file, and
+       therefore doesn't need to be saved here. */
 #if DEBUG
       pch_saved_var_array_elem(total_mem_used),
+      pch_saved_var_array_elem(num_alignment_bytes_allocated),
 #endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
 #if USE_MMAP_FOR_MEMORY_REGIONS
-  mmap_initialized = FALSE;
   /* When doing precompiled header processing, we allocate memory blocks
      in mapped memory, which cannot be freed. */
   okay_to_free_mem_blocks = !precompiled_header_processing_required;
+  mem_alloc_history = NULL;
+  mmap_initialized = FALSE;
+  mmap_size_allocated = 0;
+  mmap_file_offset = 0;
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+  exhausted_preallocated_memory = FALSE;
+  large_mem_block_needed = FALSE;
+  total_mem_blocks_allocated = 0;
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-  trans_unit_variables = NULL;
-  trans_unit_variables_tail = NULL;
-#else /* STANDALONE_UTILITY_PROGRAM */
-  /* The memory blocks can always be freed by standalone utility programs. */
-  okay_to_free_mem_blocks = TRUE;
+  num_of_mem_alloc_history_entries = 0;
+  size_of_mem_alloc_history = 0;
+  mem_alloc_history_entries_used = 0;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-}  /* mem_manage_one_time_init */
-
-
-void mem_manage_init(void)
-/*
-Initialize static variables related to the mem_manage routines.  This is done
-as a subroutine (rather than relying on static initialization) so that it
-can be redone to compile more than one source file in a single invocation
-of the front end.
-*/
-{
-  /* Variables in mem_tables.h: */
-  highest_used_region_number = NULL_region_number;
+#if DEBUG
+  allocated_in_region = NULL;
+  size_of_allocated_in_region = 0;
+  total_mem_allocated = 0;
+  max_mem_allocated = 0;
+  total_general_mem_allocated = 0;
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  num_mapped_bytes_allocated = 0;
+  num_mapped_bytes_from_pch = 0;
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+#endif /* DEBUG */
 #ifdef USING_PURIFY
   /* Call the Purify runtime routine to determine whether this executable
      has been processed using Purify. */
   purify_is_active = purify_is_running();
 #endif /* USING_PURIFY */
+  reusable_blocks_list = NULL;
+  index_for_il_file = NULL;
+  mem_region_table = NULL;
+  size_of_mem_region_table = 0;
+  trans_unit_variables = NULL;
+  trans_unit_variables_tail = NULL;
+}  /* mem_manage_one_time_init */
 
-  /* Static variables in mem_manage.c: */
+
+void mem_manage_init(void)
+/*
+Initialize static variables related to the mem_manage routines that
+must be initialized for each compilation.
+*/
+{
+  highest_used_region_number = NULL_region_number;
 #if DEBUG
   total_mem_used = 0;
   num_alignment_bytes_allocated = 0;
 #endif /* DEBUG */
-  /* If we are not allocating the memory regions in special memory
-     mapped area, then we need to record all malloc calls. */
-#if USE_MMAP_FOR_MEMORY_REGIONS
-#if DEBUG
-  num_mapped_bytes_allocated = 0;
-  num_mapped_bytes_from_pch = 0;
-#endif /* DEBUG */
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   if (index_for_il_file !=  NULL) {
     /* This pointer will be non-NULL on all but the first compilation when
-       multiple translation units are being processed.  Clear the array of
+       multiple compilations are being processed.  Clear the array of
        values left over from a previous compilation. */
     memzero((char *)index_for_il_file,
             size_t_arg((size_of_mem_region_table)*sizeof(a_file_position)));
@@ -1432,12 +1443,6 @@ of the front end.
   init_memory_region(NULL_region_number, (sizeof_t)0);
   /* Initialize the memory region for file scope IL information. */
   init_memory_region(FILE_SCOPE_REGION_NUMBER, (sizeof_t)0);
-#if ORPHAN_PROCESSING_NEEDED
-  /* Initialize the orphaned_file_scope_il_entries array to NULL
-     pointers. */
-  memzero((char *)orphaned_file_scope_il_entries,
-          sizeof(orphaned_file_scope_il_entries));
-#endif /* ORPHAN_PROCESSING_NEEDED */
 }  /* mem_manage_init */
 
 

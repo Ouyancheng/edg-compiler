@@ -2139,10 +2139,12 @@ every translation unit.
   is_header_stop_dir = FALSE;
 }  /* preproc_trans_unit_init */
 
+
 void preproc_init(void)
 /*
-Initialize things related to preprocessing.  (Predefined macros are
-established by init_predefined_macros.)
+Initialize things related to preprocessing that must be initialized
+for each compilation.  (Predefined macros are established by 
+init_predefined_macros.)
 */
 {
   preproc_trans_unit_init();

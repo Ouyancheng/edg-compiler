@@ -219,28 +219,28 @@ typedef long	a_mem_alloc_history_number;
 			    mem_alloc_history array. */
 
 EXTERN a_mem_alloc_history_number
-		num_of_mem_alloc_history_entries /* = 0*/;
+		num_of_mem_alloc_history_entries;
 			/* Number of elements used in the memory allocation
 			   history array. */
 
 EXTERN a_mem_alloc_history_number
-		size_of_mem_alloc_history /* = 0 */;
+		size_of_mem_alloc_history;
 			/* Number of array elements in the memory allocation
 			   history array. */
 
 EXTERN a_mem_alloc_history_number
-		mem_alloc_history_entries_used /* = 0*/;
+		mem_alloc_history_entries_used;
 			/* The number of entries in the mem_alloc_history
 			   array for which the associated memory is
 			   actually in use by the compilation. */
 
 #if USE_MMAP_FOR_MEMORY_REGIONS
 EXTERN a_mem_alloc_history_ptr
-		mem_alloc_history /* = NULL*/;
+		mem_alloc_history;
 			/* Pointer to an array of memory allocation history
 			   entries. */
 
-#else /* USE_MMAP_FOR_MEMORY_REGIONS */
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
 #define SIZE_OF_MEM_ALLOC_HISTORY 500
 			/* Number of entries in the fixed size memory
 			   allocation history array. */
@@ -252,12 +252,12 @@ EXTERN a_mem_alloc_history
 			   for PCH processing. */
 
 EXTERN a_boolean
-		exhausted_preallocated_memory /* = FALSE*/;
+		exhausted_preallocated_memory;
 			/* TRUE if all of the preallocated PCH memory has
 			   been used, making creation of a PCH impossible. */
 
 EXTERN a_boolean
-		large_mem_block_needed /* = FALSE*/;
+		large_mem_block_needed;
 			/* TRUE if a PCH file cannot be created because
 			   a memory block that is larger than those
 			   preallocated is needed. */
@@ -269,7 +269,7 @@ EXTERN a_source_position
 			   precompiled header file. */
 
 EXTERN a_mem_alloc_history_number
-		total_mem_blocks_allocated /* = 0 */;
+		total_mem_blocks_allocated;
 			/* Total number of memory blocks allocated.  This
 			   may be larger than the number of memory history
 			   entries when the preallocated memory has been
@@ -295,11 +295,11 @@ Macro that is TRUE if two memory allocation history entries are equivalent.
 
 #if DEBUG
 EXTERN unsigned long
-		*allocated_in_region /* = NULL */;
+		*allocated_in_region;
 			/* Parallel array to mem_region_table.  Keeps track
 			   of the allocation in each region. */
 EXTERN a_memory_region_number
-		size_of_allocated_in_region /* = 0 */;
+		size_of_allocated_in_region;
 			/* Size of allocated_in_region (in entries, not 
 			   bytes). */
 #endif /* DEBUG */
