@@ -1121,10 +1121,6 @@ unreachable code).
       vp->init_kind = (an_init_kind)initk_dynamic;
       vp->initializer.dynamic = dip;
     }  /* if */
-    /* Build the initialization statement and add it to the statement block. */
-    init_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_init,
-                                          &vp->source_corresp.decl_position);
-    init_stmt->variant.dynamic_init = dip;
   } else {
     /* An initialization of a file-scope variable or a static data member. */
     check_assertion(in_file_scope(vp));
@@ -1144,6 +1140,13 @@ unreachable code).
      appropriate object-lifetime entry. */
   record_end_of_lifetime_destruction(dip, static_lifetime,
                                      /*scope_lifetime=*/TRUE);
+  if (!at_file_scope) {
+    /* Build the initialization statement and add it to the statement block.
+       This must be done after record_end_of_lifetime_destruction is called. */
+    init_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_init,
+                                          &vp->source_corresp.decl_position);
+    init_stmt->variant.dynamic_init = dip;
+  }  /* if */
   /* Mark all dynamically initialized variables as referenced.  (They are
      "referenced" in the sense that a variable assigned to, even if never
      used, is referenced.)  It is especially important not to leave the
