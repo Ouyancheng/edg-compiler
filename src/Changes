@@ -1,5 +1,10 @@
 Version 2.29
 
+4/19/94  Parsing "overload" declarations inside a class definition
+
+A bug has been fixed in parsing a declaration involving the "overload"
+keyword (an anachronism) when it appears inside a class definition.
+
 4/19/95  asm statements in Microsoft mode
 
 In Microsoft mode asm statements of the form
