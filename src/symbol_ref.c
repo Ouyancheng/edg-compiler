@@ -755,7 +755,15 @@ created for this entity; otherwise, it is NULL.
     if (is_definition) {
       sym_ptr->decl_position = *source_position;
       scptr = source_corresp_entry_for_symbol(sym_ptr);
-      if (scptr != NULL) scptr->decl_position = *source_position;
+      if (scptr != NULL) {
+#if RECORD_TEMPLATES_IN_IL
+        if (is_template_symbol(sym_ptr)) {
+          /* The decl_position field in the IL template entry is not
+             updated. */
+        } else
+#endif /* RECORD_TEMPLATES_IN_IL */
+        scptr->decl_position = *source_position;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Set declaration sequence numbers based on the first declaration of the
