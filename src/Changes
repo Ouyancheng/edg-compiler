@@ -350,6 +350,25 @@ Universal character names (e.g., \u0401) are now accepted in C++ mode in
 identifiers, character literals, and string literals (they have always been
 accepted in comments because they have no special meaning there).
 
+The UCN escapes are translated to the appropriate internal value in
+character and string literals.  In identifiers, on the other hand, they
+are left as UCN escapes, e.g., an identifier with the name "x\u00d6"
+will have a name string that contains the "\u" and the hexadecimal
+value.  If IL lowering is used and REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING
+is TRUE (which it is by default), the "\" in such names will be
+rewritten by IL lowering to the single other character indicated
+by UCN_ESCAPE_REWRITE_CHAR.  Note that this is not a complete
+solution if the character to which the escape is changed is a
+character that is valid in identifiers (as is the case with the
+default setting of UCN_ESCAPE_REWRITE_CHAR to "_"), because it is
+then possible (if unlikely) that a user might write an identifier
+that would match an identifier with a rewritten UCN escape
+character (for example, with a rewrite to "_", "x\u00d6" is
+rewritten as "x_u00d6").  A better choice is a character accepted
+by the linker but not valid as an identifier character in C.  If
+there is no such character, a character like "_" will provide a
+"good enough" implementation.
+
 6/23/99  Microsoft compatibility: static member function overrides inherited
          virtual member function
 
