@@ -1,5 +1,16 @@
 Version 2.30
 
+5/31/95  Type of template static data members not instantiated when needed
+
+The front end failed to instantiate a template class that was referenced
+only as the type of a template static data member.  In the following
+example, A<int> was not being instantiated.  This has been corrected.
+
+  template <class T> struct A { int a; };
+  template <class T> struct B { static const A<T> ca; };
+  template <class T> const A<T> B<T>::ca;
+  B<int> b;
+
 5/30/95  Diagnostic on use of "long long"
 
 The diagnostic issued for using "long long" in strict ANSI mode (-A) is

@@ -1104,6 +1104,9 @@ and the class instantiation will detect the runaway case.
     internal_error("define_template_static_data_member: sym already def'd");
   }  /* if */
 #endif /* CHECKING */
+  /* If the type of the static data member is a template class, make sure
+     it is instantiated. */
+  check_for_uninstantiated_template_class(var_ptr->type);
   if (tssp->token_cache.first_token != NULL) {
     a_boolean  incomplete_type_error_reported;
     a_boolean  has_parenthesized_initializer;
