@@ -1,5 +1,17 @@
 Version 2.37
 
+8/15/97   Internal error when generating preprocessing output
+
+When preprocessing output is being generated, an internal error
+could occur if a macro name immediately preceded a #define.  Now fixed.
+
+  #define f(x) 1
+  f
+  #define h f(1)
+
+A similar problem was also possible with an #assert or #unassert
+directive.
+
 8/15/97   Diagnostic on redeclaration of macro as empty
 
 When a macro is redefined differently, a diagnostic should be issued.

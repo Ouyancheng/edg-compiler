@@ -2624,10 +2624,14 @@ Scan and process a #define directive.
   char		  *curr_text_section;
   a_pointer_registration
                   curr_text_section_reg;
+  char            *buffer_start;
+  a_pointer_registration
+		  buffer_start_reg;
   a_pointer_registration_ptr
 		  save_registered_pointers = registered_pointers;
 
   register_pointer_variable(curr_text_section, curr_text_section_reg);
+  register_pointer_variable(buffer_start, buffer_start_reg);
 
   db_enter(3, "proc_define");
   (void)get_token();
@@ -2742,7 +2746,15 @@ Scan and process a #define directive.
     }  /* if */
     /* Scan the replacement-list as tokens, and place in the buffer; then
        allocate space for the text, and build the a_macro_def entry. */
-    next_avail_in_macro_buffer = macro_buffer;
+    /* Do not reset the next_avail_in_macro_buffer pointer if there
+       is text saved in the macro buffer to be inserted at the beginning of
+       the preprocessed output line.  This happens when a macro identifier
+       immediately precedes a #define and the #define is encountered while
+       looking for the parenthesis following the macro name. */
+    if (line_start_source_line_modif == NULL) {
+      next_avail_in_macro_buffer = macro_buffer;
+    }  /* if */
+    buffer_start = next_avail_in_macro_buffer;
     /* Not inside a cpp string. */
     end_of_cpp_string = NULL;
     /* Last section in replacement text is not raw text. */
@@ -2761,7 +2773,7 @@ Scan and process a #define directive.
            so that need not be checked for here. */
         /* Any pending end-of-token marker is suppressed. */
         need_end_of_token_marker = FALSE;
-        if (next_avail_in_macro_buffer == macro_buffer) {
+        if (next_avail_in_macro_buffer == buffer_start) {
           /* Output buffer is empty, so this is the first token.  Error. */
           error(ec_paste_cannot_be_first);
           (void)mdefn_get_token(param_list, &param_num,
@@ -2907,7 +2919,7 @@ Scan and process a #define directive.
         }  /* for */
       }  /* if */
       fprintf(f_debug, "replacement text:\n");
-      for (temp_ptr = macro_buffer; *temp_ptr != (int)rt_null;) {
+      for (temp_ptr = buffer_start; *temp_ptr != (int)rt_null;) {
         rts_kind = (a_repl_text_seq_kind)*(temp_ptr++);
         /* Extract the section length or argument number. */
         get_macro_repl_text_number(rts_number, temp_ptr);
@@ -2950,10 +2962,10 @@ Scan and process a #define directive.
          Both definitions have to be object-like or function-like,
          and the replacement text and parameter list have to have
          the same spelling after white space is standardized. */
-      sizeof_t new_length = next_avail_in_macro_buffer - macro_buffer;
+      sizeof_t new_length = next_avail_in_macro_buffer - buffer_start;
       mdp = assoc_symbol->variant.macro_def;
       if ((a_boolean)mdp->object_like == object_like &&
-          smemcmp(mdp->repl_text, macro_buffer, new_length) == 0 &&
+          smemcmp(mdp->repl_text, buffer_start, new_length) == 0 &&
           mdp->repl_text[new_length] == rt_null){
         /* Check parameter lists to make sure they match. */
         for (pp = param_list, pp2 = mdp->param_list;
@@ -2973,12 +2985,12 @@ redef_error:
       }  /* if */
     }  /* if */
     /* Allocate space for the text, and copy it. */
-    repl_text_len = next_avail_in_macro_buffer - macro_buffer;
+    repl_text_len = next_avail_in_macro_buffer - buffer_start;
     repl_text = alloc_fe((sizeof_t)(repl_text_len+1));
 #if DEBUG
     macro_definition_space += repl_text_len+1;
 #endif /* DEBUG */
-    (void)memcpy(repl_text, macro_buffer, size_t_arg(repl_text_len));
+    (void)memcpy(repl_text, buffer_start, size_t_arg(repl_text_len));
     repl_text[repl_text_len] = '\0';
     /* Allocate and fill the macro definition block. */
     if (mdp == NULL) {
@@ -3098,16 +3110,15 @@ the entry in either case.
 static char *collect_optional_assert_token_sequence(a_boolean *err)
 /*
 Collect the optional token-sequence for an #assert or #unassert as a character
-string in macro_buffer, and return a pointer to the beginning of the string.
-Return NULL if there was no token sequence.  Allocation in macro_buffer
-begins at the start, so the caller must know that macro_buffer is not in
-use currently.  On return, next_avail_in_macro_buffer will indicate the
-character position after the terminating null in the string.  Return *err
-TRUE if there was some error.
+string in temp_text_buffer, and return a pointer to the beginning of the
+(null-terminated) string.  Return NULL if there was no token sequence.
+The caller must know that temp_text_buffer is not in use currently.
+Return *err TRUE if there was some error.
 */
 {
   char          *start_loc = NULL;
   unsigned long paren_count;
+  sizeof_t      offset;
 
   *err = FALSE;
   /* The directive can end here, after the name, or there can be a list
@@ -3122,8 +3133,8 @@ TRUE if there was some error.
     /* The opening parenthesis is present.  Scan the tokens until the
        closing parenthesis. */
     paren_count = 0;
-    /* macro_buffer starts out empty. */
-    start_loc = next_avail_in_macro_buffer = macro_buffer;
+    /* temp_text_buffer starts out empty. */
+    pos_in_temp_text_buffer = 0;
     while (get_token() != tok_newline && curr_token != tok_end_of_source) {
       /* Count parentheses within the loop, because nested parentheses
          matter, as in
@@ -3138,19 +3149,18 @@ TRUE if there was some error.
         paren_count++;
       }  /* if */
       /* Put the text of the current token and a blank (as a token separator)
-         into macro_buffer.  White space is not significant and is not
+         into temp_text_buffer.  White space is not significant and is not
          saved. */
-      ensure_macro_buffer_space(len_of_curr_token+1);
-      (void)memcpy(next_avail_in_macro_buffer, start_of_curr_token,
-                   size_t_arg(len_of_curr_token));
-      next_avail_in_macro_buffer += len_of_curr_token;
-      *next_avail_in_macro_buffer++ = ' ';
+      for (offset = 0; offset < len_of_curr_token; offset++) {
+        put_ch_to_temp_text_buffer(start_of_curr_token[offset]);
+      }  /* for */
+      put_ch_to_temp_text_buffer(' ');
     }  /* while */
     /* Add a null character to end the token sequence. */
-    ensure_macro_buffer_space(1);
-    *next_avail_in_macro_buffer++ = '\0';
-    /* We now have in macro_buffer a character string representing the
+    put_ch_to_temp_text_buffer('\0');
+    /* We now have in temp_text_buffer a character string representing the
        token-sequence. */
+    start_loc = temp_text_buffer;
     /* Check for the closing parenthesis. */
     if (!required_token(tok_rparen, ec_exp_rparen)) *err = TRUE;
   }  /* if */
@@ -3234,7 +3244,7 @@ token-list.
     /* Find or make a predicate entry for the name. */
     predicate_entry = find_or_make_predicate_entry(start_of_curr_token,
                                                    len_of_curr_token);
-    /* Collect the optional token sequence in macro_buffer. */
+    /* Collect the optional token sequence in temp_text_buffer. */
     token_str = collect_optional_assert_token_sequence(&err);
   }  /* if */
   /* If there was no error, install the assertion value. */
@@ -3284,7 +3294,7 @@ or
        not found. */
     predicate_entry = find_predicate_entry(start_of_curr_token,
                                            len_of_curr_token, &prev_app);
-    /* Collect the optional token sequence in macro_buffer. */
+    /* Collect the optional token sequence in temp_text_buffer. */
     token_str = collect_optional_assert_token_sequence(&err);
   }  /* if */
   /* If there was no error, do the #unassert. */
