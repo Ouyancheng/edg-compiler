@@ -7430,20 +7430,21 @@ declared and before the partial instantiation of the function was done.
 
 
 static void scan_template_declaration(
-				a_boolean         	   is_initial_decl,
-                                a_boolean         	   is_member_decl,
-                                a_type_ptr		   parent_class,
-				a_boolean         	   decl_scope_err,
-				a_boolean		   is_specialization,
-                                a_decl_flag_set   	   *dso_flags,
-                                a_decl_flag_set   	   *do_flags,
-                                a_symbol_locator  	   *locator,
-                                a_type_ptr        	   *type,
-                                a_func_info_block	   *func_info,
-                                a_storage_class		   *storage_class,
+                                a_boolean                  is_initial_decl,
+                                a_boolean                  is_member_decl,
+                                a_type_ptr                 parent_class,
+                                a_boolean                  decl_scope_err,
+                                a_boolean                  is_specialization,
+                                a_decl_flag_set            *dso_flags,
+                                a_decl_flag_set            *do_flags,
+                                a_symbol_locator           *locator,
+                                a_type_ptr                 *type,
+                                a_func_info_block          *func_info,
+                                a_storage_class            *storage_class,
                                 a_decl_modifiers_block_ptr decl_modifiers,
-                                a_routine_ptr		   templ_rout,
-				a_template_instance_ptr	   tip,
+                                a_routine_ptr              templ_rout,
+                                a_template_instance_ptr    tip,
+                                an_attribute_ptr           *attributes,
                                 a_decl_pos_block_ptr       decl_pos_block)
 /*
 Calls decl_specifiers and declarator to scan a template declaration of
@@ -7495,7 +7496,7 @@ information.
   }  /* if */
   decl_start_pos = pos_curr_token;
   (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type,
-                        &qualifiers, (an_attribute_ptr *)NULL, decl_modifiers,
+                        &qualifiers, attributes, decl_modifiers,
                         decl_pos_block, (a_upc_block_size *)NULL);
   if (is_error_type(*type) && !is_declarator_start()) {
     /* Error of some sort. */
@@ -7527,7 +7528,7 @@ information.
                !friend_specified ? parent_class : (a_type_ptr)NULL,
                locator, type,
                &declarator_ssep, func_info, decl_pos_block,
-               (an_attribute_ptr *)NULL);
+               attributes);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (declarator_ssep != NULL) {
       remove_from_src_seq_list(declarator_ssep);
@@ -7724,12 +7725,13 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     a_source_position		saved_error_position;
     a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position           saved_curr_construct_end_position;
+    a_source_position           saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if DECL_MODIFIERS_IN_USE
-    a_source_position	 locator_position;
+    a_source_position	          locator_position;
 #endif /* DECL_MODIFIERS_IN_USE */
-    a_template_cache_ptr tcp;
+    a_template_cache_ptr        tcp;
+    an_attribute_ptr            attributes = NULL;
     /* Push the template instantiation scope.  Note that the instance symbol
        passed to push_template_instantiation_scope is NULL.  This is done
        because the type associated with the symbol is not yet complete
@@ -7808,7 +7810,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
                                 &dso_flags, &do_flags, &locator,
                                 &rout_type, &func_info, &storage_class,
                                 &decl_modifiers, templ_rout, tip,
-                                &decl_pos_block);
+                                &attributes, &decl_pos_block);
       /* Save the prototype scope symbols in the instance pointer. */
       tip->prototype_scope_symbols = func_info.prototype_scope_symbols;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -7872,6 +7874,11 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
                                   (a_boolean)rp->is_inline);
     }
 #endif /* DECL_MODIFIERS_IN_USE */
+#if GNU_EXTENSIONS_ALLOWED
+    if (gpp_mode && attributes != NULL) {
+      apply_attributes_to_routine(attributes, rp);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Add it to the routines list of the appropriate scope; NO_SCOPE_DEPTH
        is passed in to cause the scope to be computed. */
     add_to_routines_list(rp, NO_SCOPE_DEPTH);
@@ -13653,7 +13660,8 @@ static a_symbol_ptr function_template_declaration(
                                a_func_info_block           *func_info,
                                a_storage_class             storage_class,
                                a_decl_modifiers_block_ptr  decl_modifiers,
-                               a_type_ptr                  type)
+                               a_type_ptr                  type,
+                               an_attribute_ptr            attributes)
 /*
 Scan a function template declaration or the declaration of a member function
 of a class template.  locator identifies the function template being
@@ -13678,7 +13686,7 @@ information returned from decl_specifiers and declarator.
   decl_state->prototype_scope_symbols = func_info->prototype_scope_symbols;
   /* Process a function template declaration. */
   decl_function_template(locator, type, func_info, &sym, storage_class,
-                         decl_modifiers, decl_state->decl_info,
+                         decl_modifiers, decl_state->decl_info, attributes,
                          decl_state->orig_decl_level,
                          decl_state->is_specialization);
   if (func_info->is_definition) {
@@ -14149,6 +14157,7 @@ any non-empty template parameter lists that were scanned.
       a_func_info_block       func_info;
       a_storage_class         storage_class;
       a_decl_modifiers_block  decl_modifiers;
+      an_attribute_ptr        attributes = NULL;
 
       /* Scan the decl. specifiers and the declaration. */
       clear_func_info(&func_info);
@@ -14160,7 +14169,7 @@ any non-empty template parameter lists that were scanned.
                                 &dso_flags, &do_flags, &locator, &type,
                                 &func_info, &storage_class, &decl_modifiers,
                                 (a_routine_ptr)NULL,
-			        (a_template_instance_ptr)NULL,
+                                (a_template_instance_ptr)NULL, &attributes,
                                 &decl_state->decl_pos_block);
       /* If an error occurred scanning the declarator, set the flag to
          suppress subsequent errors. */
@@ -14189,7 +14198,7 @@ any non-empty template parameter lists that were scanned.
       } else if (is_function_type(type)) {
         sym = function_template_declaration(
                  decl_state, &locator, &func_info, storage_class,
-                 &decl_modifiers, type);
+                 &decl_modifiers, type, attributes);
         complete_function_template_decl(decl_state, sym, &func_info,
                                         &tssp, &locator.source_position);
         if (decl_state->defines_something) {

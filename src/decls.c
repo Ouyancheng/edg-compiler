@@ -5996,7 +5996,9 @@ skip_overloading:;
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   /* Apply the attributes to the routine. */
-  apply_attributes_to_routine(attributes, routine_ptr);
+  if (attributes != NULL) {
+    apply_attributes_to_routine(attributes, routine_ptr);
+  }  /* if */
   /* Record the assembly name. */
   if (asm_name != NULL) {
     routine_ptr->asm_name = asm_name;
@@ -6121,9 +6123,10 @@ skip_overloading:;
 }  /* decl_routine */
 
 
-#if !DECL_MODIFIERS_IN_USE
-/* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
-#endif /* !DECL_MODIFIERS_IN_USE */
+#if !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED
+/* ARGSUSED */ /* decl_modifiers and attributes are not used in some
+                  configurations. */
+#endif /* !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED */
 void decl_function_template(a_symbol_locator            *locator,
                             a_type_ptr                  type_ptr,
                             a_func_info_block           *func_info,
@@ -6131,6 +6134,7 @@ void decl_function_template(a_symbol_locator            *locator,
                             a_storage_class             storage_class,
                             a_decl_modifiers_block_ptr  decl_modifiers,
                             a_template_decl_info_ptr    templ_decl_info,
+                            an_attribute_ptr            attributes,
                             a_scope_depth               orig_decl_level,
                             a_boolean                   is_specialization)
 /*
@@ -6751,6 +6755,12 @@ is a template specialization declaration.
       pop_namespace_extension_scope();
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  /* Apply the attributes to the routine. */
+  if (attributes != NULL) {
+    apply_attributes_to_routine(attributes, rout_ptr);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Return the function template symbol. */
   *symbol_ptr = sym;
 #if DEBUG
