@@ -3211,34 +3211,23 @@ cleared.
   a_func_info_block              func_info;
 
   db_enter(5, "make_global_operator_new_or_delete_symbol");
-#if CHECKING
-  if (opname != (an_opname_kind)onk_new &&
-      opname != (an_opname_kind)onk_array_new &&
-      opname != (an_opname_kind)onk_delete &&
-      opname != (an_opname_kind)onk_array_delete) {
-    internal_error("global_operator_new_or_delete_symbol: bad opname kind");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion_str(is_new_operator(opname) || is_delete_operator(opname),
+                      "global_operator_new_or_delete_symbol: bad opname kind");
   /* Create a locator for the symbol that is to be created. This will also
      create the symbol header. */
   make_opname_locator(opname, &locator, &null_source_position);
   /* Create a routine type. */
   rout_type = alloc_type((a_type_kind)tk_routine);
   extra_info = rout_type->variant.routine.extra_info;
-  /* Return type for operator delete is void; return type for operator new
-     is void*. */
-  tp = void_type();
-  if (opname == (an_opname_kind)onk_new ||
-      opname == (an_opname_kind)onk_array_new) {
-     tp = make_pointer_type(tp);
-  }  /* if */
-  rout_type->variant.routine.return_type = tp;
-  /* Both new and delete take one parameter -- the size for the former and
-     void* for the latter. */
-  if (opname == (an_opname_kind)onk_new ||
-      opname == (an_opname_kind)onk_array_new) {
+  if (is_new_operator(opname)) {
+    /* Return type for operator new and new[] is void *. */
+    rout_type->variant.routine.return_type = make_pointer_type(void_type());
+    /* One parameter -- the size. */
     tp = integer_type(targ_size_t_int_kind);
   } else {
+    /* Return type for operator delete and delete[] is void. */
+    rout_type->variant.routine.return_type = void_type();
+    /* One paramter -- void *. */
     tp = make_pointer_type(void_type());
   }  /* if */
   extra_info->param_type_list = alloc_param_type(tp);

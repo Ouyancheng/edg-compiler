@@ -3579,6 +3579,14 @@ enum an_opname_kind_tag {
 typedef a_byte an_opname_kind;
 #endif /* ifdef CIL */
 
+#define is_new_operator(op)                                         \
+  ((op) == (an_opname_kind)onk_new ||                               \
+   (op) == (an_opname_kind)onk_array_new)
+
+#define is_delete_operator(op)                                      \
+  ((op) == (an_opname_kind)onk_delete ||                            \
+   (op) == (an_opname_kind)onk_array_delete)
+
 /*
 Data structures related to routines:
 */
