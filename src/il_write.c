@@ -55,12 +55,11 @@ static an_il_entry_number
 		max_entry_number;
 			/* Maximum allowed entry number, used for overflow
 			   checking. */
-#ifdef __CENTERLINE__
 #if CHECKING && DEBUG
 /* CenterLine debugging variables used to locate a missing (unwritten) IL entry
    by entry kind and entry number within that kind in a specific memory
-   region.  By setting the variables centerline_memory_region_number,
-   centerline_entry_kind, and centerline_entry_number after loading
+   region.  By setting the variables trace_memory_region_number,
+   trace_entry_kind, and trace_entry_number after loading
    il_write.c into the CodeCenter environment, CodeCenter will stop
    (centerline_stop()) when the entry number is assigned for the specified
    IL entry.
@@ -69,7 +68,7 @@ static an_il_entry_number
         2. set stop in assign_entry_number
         3. run the test compilation
         4. when CodeCenter stops in assign_entry_number:
-            a. set the 3 centerline variable values
+            a. set the 3 tracing variable values
             b. remove the stop at the entry of assign_entry_number
         5. continue
 
@@ -77,21 +76,43 @@ static an_il_entry_number
    by the stack trace can help to determine the cause of the error.
 */
 a_memory_region_number
-		centerline_memory_region_number;
+		trace_memory_region_number;
 			/* Memory region of the omitted IL entry. */
 an_il_entry_kind
-		centerline_entry_kind;
+		trace_entry_kind;
 			/* IL entry kind of the omitted IL entry. */
 an_il_entry_number
-		centerline_entry_number;
+		trace_entry_number;
 			/* IL entry number of the omitted IL entry. */
 a_memory_region_number
-		centerline_region_being_written;
+		trace_region_being_written;
 			/* Variable used by write_memory_region()
 			   to record the memory region number currently
 			   being written. */
-#endif /* CHECKING && DEBUG */
+
+static void trace_entry_assignment()
+{
+#ifdef __CENTERLINE__
+  centerline_stop();
+#else /* !defined(__CENTERLINE) */
+  (void)fprintf(f_debug,
+                "Entry number %ld in region %ld (kind = %ld: %s).\n",
+                (long)trace_entry_number, (long)trace_memory_region_number,
+                (long)trace_entry_kind, il_entry_kind_names[trace_entry_kind]);
 #endif /* ifdef __CENTERLINE__ */
+}  /* trace_entry_assignment */
+
+
+static void trace_entry(a_memory_region_number memory_region_number,
+                        an_il_entry_kind       entry_kind,
+                        an_il_entry_number     entry_number)
+{
+  trace_memory_region_number = memory_region_number;
+  trace_entry_kind = entry_kind;
+  trace_entry_number = entry_number;
+}  /* trace_entry */
+
+#endif /* CHECKING && DEBUG */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
 
@@ -112,7 +133,7 @@ triggering an internal error.
                 (unsigned long)entry_ptr);
 #ifdef __CENTERLINE__
   (void)fprintf(f_debug, "         memory region = %4ld\n",
-                centerline_region_being_written);
+                trace_region_being_written);
 #endif /* ifdef __CENTERLINE__ */
 }  /* display_il_entry_kind_and_ptr */
 
@@ -270,18 +291,16 @@ end_of_routine:
   /* Return the encoded form of the entry number in *encoded_number. */
   *encoded_number = entry_number;
   if (!epp->file_scope) *encoded_number |= FUNC_ENTRY_NUMBER_BIT;
-#ifdef __CENTERLINE__
 #if CHECKING && DEBUG
   /* Stop if the entry being examined is the one we're looking for. */
-  if (entry_kind == centerline_entry_kind &&
-      entry_number == centerline_entry_number &&
-      ((centerline_memory_region_number == FILE_SCOPE_REGION_NUMBER) ?
+  if (entry_kind == trace_entry_kind &&
+      entry_number == trace_entry_number /* &&
+      ((trace_memory_region_number == FILE_SCOPE_REGION_NUMBER) ?
         epp->file_scope :
-        (centerline_region_being_written == centerline_memory_region_number))){
-    centerline_stop();
+        (trace_region_being_written == trace_memory_region_number)) */){
+    trace_entry_assignment();
   }  /* if */
 #endif /* CHECKING && DEBUG */
-#endif /* ifdef __CENTERLINE__ */
   return epp;
 }  /* assign_entry_number */
 
@@ -727,7 +746,7 @@ Write the indicated memory region to the file f_il_output.
     /* Alternate file format. */
 #ifdef __CENTERLINE__
 #if CHECKING && DEBUG
-    centerline_region_being_written = region_number;
+    trace_region_being_written = region_number;
 #endif /* CHECKING && DEBUG */
 #endif /* ifdef __CENTERLINE__ */
     { a_file_position  count_array_pos;
