@@ -18,7 +18,12 @@ passed by the front end.
 1/5/96   Order of destruction of temporaries used by the EH mechanism
 
 Temporary copies of thrown objects are now destroyed in the sequence
-specified by the Working Paper.
+specified by the Working Paper.  The WP specifies (15.1 [except.throw])
+that the temporary object "persists as long as there is a handler being
+executed for that exception".  The most visible consequence of this
+change is that a throw that transfers control out of a handler will
+cause the exception object associated with that handler to be destroyed
+(unless the throw is a rethrow of that object).
 
 12/28/95 Added placement array new and delete and nothrow new routines
 
