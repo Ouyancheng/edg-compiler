@@ -1,7 +1,19 @@
 Version 2.17
 
+4/27/93  No access control on base class cast for "this" of conversion
+
+  class base {public: operator int();};
+  class derived : private base {
+    public:
+        base::operator int;     // adjust access to 'base::operator int'
+  };
+  void m() {derived de; int i = int(de);} // No error
+
+
 -------------------------------------------------------------------------------
 Version 2.16, April 27, 1993
+
+4/27/93  IL version number changed to 2.08.
 
 4/26/93  Pointer-to-member constant IL representation changed
 
@@ -172,11 +184,6 @@ classes.  For example,
       static int i;      // A::B::i is now marked as externally linked
     };
   };
-  
-4/19/93  parent_block pointer on continue labels
-
-The parent_block pointer on labels generated as the branch target
-for "continue" statements has been corrected.
 
 4/19/93  IL lowering generates dtor calls on goto to label before init
 
