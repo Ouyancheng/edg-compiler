@@ -3230,7 +3230,7 @@ function_lparen:
     }  /* if */
     if (unbound_qualifiers != TQ_NONE) {
       /* If there are unbound type qualifiers, apply them to the complete
-         type (if it exists).  If it does not exists, return the unbound
+         type (if it exists).  If it does not exist, return the unbound
          type qualifiers to the caller. */
       if (complete_type != NULL) {
         complete_type = make_qualified_type(complete_type, unbound_qualifiers);
