@@ -2877,6 +2877,12 @@ enable_microsoft_mode:
   if (do_dependent_name_processing) {
     /* Do nonclass prototype instantiations when dependent name processing
        is being done. */
+    if (option_kind_used[(int)optk_parse_function_templates] &&
+        !nonclass_prototype_instantiations) {
+      /* The option --no_parse_function_templates was used: it implies that
+         no dependent name processing is done. */
+      command_line_error(ec_cl_dep_name_requires_parse_function_templates);
+    }  /* if */
     nonclass_prototype_instantiations = TRUE;
     /* Do argument dependent lookup when doing dependent name processing. */
     arg_dependent_lookup_enabled = TRUE;
