@@ -11309,9 +11309,11 @@ next_declaration:
     /* Restore the stop token state. */
     pop_stop_token_stack();
 #if RECORD_HIDDEN_NAMES_IN_IL
-    /* Perform hidden name checking on all names inherited from base
-       classes. */
-    check_hiding_by_inherited_names(class_type, scope_ptr);
+    if (!C_mode()) {
+      /* Perform hidden name checking on all names inherited from base
+         classes. */
+      check_hiding_by_inherited_names(class_type, scope_ptr);
+    }  /* if */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
     /* If entities dependent on this class were declared before the class
        was defined, they will have been recorded on a fixup list.  Now
