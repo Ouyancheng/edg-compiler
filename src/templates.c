@@ -8765,11 +8765,19 @@ whether the nontype parameter is unnamed.
   /* Adjust the type if necessary (for example, "array of x"
      becomes "pointer to x"). */
   adjust_parameter_type(param_type_ptr, /*restrict_qualified=*/FALSE);
-  /* Check for illegal nontype parameter types. */
+  /* Check for illegal nontype parameter types.  Template parameters of
+     void type, class type, and floating point type are not permitted
+     by the standard.  Floating point template parameters are still
+     accepted when ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS is TRUE.
+     Template parameters of array type are permitted even though there
+     is no way to make use of them. */
   tp = skip_typerefs(*param_type_ptr);
   if (is_void_type(tp)) {
     /* A parameter type of void is not allowed. */
     error(ec_void_template_parameter);
+  } else if (is_class_struct_union_type(tp)) {
+    /* A template parameter cannot have class type. */
+    error(ec_template_parameter_has_class_type);
   } else if (tp->kind == (a_type_kind)tk_float) {
 #if ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS
     /* Though no longer permitted by the working paper (as of 3/94) floating 
@@ -8923,12 +8931,6 @@ to represent the template parameters.
          arg-declarations are not allowed.  That will be detected later. */
       scan_a_template_parameter_declaration(&param_locator, &param_type_ptr,
                                             &is_unnamed);
-#if 0
-      /* Check here for types for which constants cannot be created?  E.g.,
-         the program would not be able to declare a constant class object or
-         a constant array.  Likewise, should reference types be permitted?
-         Should a constant with an error type be created for such cases? */
-#endif /* if 0 */
       /* Create a symbol and bind a template param constant to it. At each
          point of instantiation an actual constant will be substituted. */
       if (!is_unnamed) {
