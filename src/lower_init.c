@@ -4558,7 +4558,7 @@ destructor scope, and also lower the user code.
        Without this special case, when destroying a C object C::f would
        be called.  Don't do this in cfront mode.
     */
-    if (vtbl_var == NULL && !cfront_compatibility_mode) {
+    if (vtbl_var == NULL && !cfront_compatibility_mode &&
         !bcp->shares_virtual_function_info) {
       a_class_type_supplement_ptr base_class_ctsp =
                               bcp->type->variant.class_struct_union.extra_info;
