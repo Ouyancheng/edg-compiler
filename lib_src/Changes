@@ -1,5 +1,12 @@
 Version 2.36
 
+5/5/97   File renamed to guarantee uniqueness when truncated to 8 characters
+
+array_newno.c has been renamed to array_nonew.c.  This permits the runtime
+file names to be truncated to 8 characters with the assurance that the
+resulting names will still be unique, which is important when using
+certain DOS library utilities.
+
 3/3/97   Check to ensure that a needed destruction is not registered twice
 
 A check has been added to __record_needed_destruction() to guard against
