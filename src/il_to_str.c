@@ -1420,8 +1420,8 @@ output in the way described by octl.
 }  /* form_char */
 
 
-void form_wide_char(unsigned long                         wc,
-                    an_il_to_str_output_control_block_ptr octl)
+static void form_wide_char(unsigned long                         wc,
+                           an_il_to_str_output_control_block_ptr octl)
 /*
 Output the indicated wide character as part of a string literal or character
 constant.  Handle unprintable characters and necessary escapes.  Do the

@@ -3236,7 +3236,8 @@ static a_routine_ptr
 
 #if DO_FULL_PORTABLE_EH_LOWERING
 
-void initialize_eh_stack_entry_for_try(a_variable_ptr     try_frame,
+static void initialize_eh_stack_entry_for_try(
+                                       a_variable_ptr     try_frame,
                                        a_variable_ptr     catch_array_var,
                                        an_insert_location *insert_location,
                                        an_expr_node_ptr   *setjmp_compare_node)
