@@ -1,5 +1,14 @@
 Version 3.3
 
+7/28/03  GNU mode: New built-in functions used by GNU headers
+
+In GNU C and C++ modes, the front end now recognizes the built-in functions
+__builtin_exp, __builtin_huge_val, __builtin_huge_valf, __builtin_huge_vall,
+__builtin_nan, __builtin_nanf, __builtin_nanl, __builtin_nans, __builtin_nansf,
+__builtin_nansl, and __builtin_prefetch.  These functions were introduced in
+version 3.3 of the GNU C and C++ compilers.  Uses of these functions appear
+in the GNU headers.
+
 7/28/03  Nested classes have access to surrounding classes
 
 Core issue 45 changed a rule in the ARM that said that nested
