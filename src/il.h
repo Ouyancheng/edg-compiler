@@ -319,8 +319,10 @@ extern void set_variable_address_constant(
 extern void set_constant_address_constant(a_constant_ptr constant,
                                           a_constant     *con);
 
+#if GNU_EXTENSIONS_ALLOWED
 extern void set_label_address_constant(a_label_ptr label,
                                        a_constant  *con);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern void set_ptr_to_member_function_constant(a_routine_ptr routine,
                                                 a_constant    *con);

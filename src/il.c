@@ -3009,6 +3009,7 @@ the indicated constant.
   con->type = make_pointer_type(constant->type);
 }  /* set_constant_address_constant */
 
+#if GNU_EXTENSIONS_ALLOWED
 
 void set_label_address_constant(a_label_ptr label,
                                 a_constant  *con)
@@ -3026,6 +3027,7 @@ the indicated label.
   con->type = make_pointer_type(void_type());
 }  /* set_label_address_constant */
 
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 void set_ptr_to_member_function_constant(a_routine_ptr routine,
                                          a_constant    *con)
