@@ -51,7 +51,7 @@ the release should contain no defines.
 
 /* Options for Windows-NT version. */
 
-#define __MSDOS__
+#define __MSDOS__ 1
 #define __MSC__ 1
 #define __ANSIC__ 1
 #define TARG_LITTLE_ENDIAN TRUE
