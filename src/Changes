@@ -1,5 +1,10 @@
 Version 3.2
 
+3/4/03   File handle not released on Windows version
+
+On Windows, the routine that reads directory entries failed to release
+a file handle after the last entry had been read.  Now fixed.
+
 3/4/03   Microsoft compatibility: injected class name handling
 
 In Microsoft bugs mode, special treatment is given to injected class

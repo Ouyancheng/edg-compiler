@@ -1942,6 +1942,8 @@ char *get_file_name_from_dir(a_boolean	first,
     if (_tfindnext(handle, &fileinfo) < 0) {
       /* Returns -1 when there are no more files. */
       result = NULL;
+      /* Release the handle used to read the directory. */
+      _findclose(handle);
     } else {
       result = fileinfo.name;
     }  /* if */
