@@ -1155,12 +1155,6 @@ arguments, and as dimensions of arrays in template signatures.
       /* Put out the final "O". */
       add_to_mangled_name('O', mctl);
       break;
-    case enk_variable_address:
-    case enk_routine_address:
-      /* These can come up in error cases. */
-      check_assertion_str(total_errors != 0,
-                          "mangled_encoding_for_expression: bad kind");
-      break;
     default:
       unexpected_condition_str("mangled_encoding_for_expression: bad kind");
   }  /* switch */

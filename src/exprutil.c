@@ -5359,7 +5359,17 @@ eok_lvalue/eok_rvalue node is inserted only for the unexpected cases.
     if (!lvalue_expected) {
       /* The operand is an lvalue, and the operation expects an rvalue.
          Add an eok_lvalue node. */
-      expr = make_node_from_operand(operand);
+      if (curr_expr_kind_is(ek_template_arg) &&
+          is_constant_operand(operand)) {
+        /* Avoid generating enk_variable_address and enk_routine_address
+           nodes for constant addresses in template arguments. */
+        a_constant_ptr con =
+                          alloc_shareable_constant(&operand->variant.constant);
+        expr = alloc_node_for_allocated_constant(con);
+      } else {
+        /* Not a template argument. */
+        expr = make_node_from_operand(operand);
+      }  /* if */
       expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
                                 operand->type, expr);
       make_expression_operand(expr, rvalue_type(operand->type), operand);
