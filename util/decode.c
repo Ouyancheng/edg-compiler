@@ -2101,10 +2101,18 @@ address of the uncompressed name.
 
   /* Advance past "__CPR". */
   id += 5;
-  /* Avoid errors on scanning numbers in the compressed form. */
-  dctl->input_id_len = (unsigned long)-1;
-  /* Accumulate the length of the uncompressed name. */
-  id = get_number(id, &length, dctl);
+  /* Accumulate the length of the uncompressed name.  Cannot use get_number
+     here because the number's value can be bigger than the input id
+     length. */
+  length = 0;
+  if (!isdigit((unsigned char)*id)) {
+    bad_mangled_name(dctl);
+    goto end_of_routine;
+  }  /* if */
+  do {
+    length = length*10 + (*id - '0');
+    id++;
+  } while (isdigit((unsigned char)*id));
   /* Check for the two underscores following the length. */
   if (id[0] != '_' || id[1] != '_') {
     bad_mangled_name(dctl);
@@ -2122,6 +2130,11 @@ address of the uncompressed name.
        do the demangling in the space remaining at the beginning. */
     uncompressed_name = dctl->output_id+dctl->output_id_size-(length+1);
     dctl->output_id_size -= length+1;
+    /* Set the "input length" -- really the output size -- now.  This
+       is used for error checking on the numbers scanned in the decompression
+       processing (which are positions in the uncompressed string, really,
+       not in the input string). */
+    dctl->input_id_len = length;
     dst = uncompressed_name;
     for (src = id; *src != '\0';) {
       char ch = *src++;
@@ -2164,7 +2177,6 @@ address of the uncompressed name.
     }  /* if */
     /* Add the final null. */
     *dst++ = '\0';
-    dctl->input_id_len = length;
   }  /* if */
 end_of_routine:;
   return uncompressed_name;
