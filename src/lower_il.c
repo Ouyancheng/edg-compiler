@@ -1586,7 +1586,7 @@ any better if we did know it was a complete object).
   if (pointer_bcp != NULL) {
     /* The pointer to the virtual base class is allocated in a base class.
        Cast down to the proper base class. */
-    check_assertion(!pointer_bcp->any_virtual_steps_in_derivation);
+    check_assertion(!pointer_bcp->derivation->base_class->is_virtual);
     node = make_base_class_lvalue(node, pointer_bcp,
                                   /*complete_object=*/FALSE);
     /* The following line does not use pointer_bcp->type because the type here
@@ -1649,7 +1649,7 @@ any better if we did know it was a complete object).
   if (vptr_bcp != NULL) {
     /* The pointer to the virtual function table is allocated in a base
        class.  Cast down to the proper base class. */
-    check_assertion(!vptr_bcp->any_virtual_steps_in_derivation);
+    check_assertion(!vptr_bcp->derivation->base_class->is_virtual);
     node = make_base_class_lvalue(node, vptr_bcp, /*complete_object=*/FALSE);
     /* The following line does not use vptr_bcp->type because the type here
        could be either that type or the corresponding type-as-subobject. */
@@ -1767,8 +1767,8 @@ pointer to the new node.
 */
 {
   a_type_ptr            class_type, step_class_type, node_class_type;
-  a_derivation_step_ptr dsp, virt_dsp;
-  a_base_class_ptr      derivation_bcp, step_bcp, virt_bcp;
+  a_derivation_step_ptr dsp;
+  a_base_class_ptr      derivation_bcp, step_bcp;
 
   class_type = type_pointed_to(node->type);
   class_type = skip_typerefs(class_type);
@@ -1780,40 +1780,23 @@ pointer to the new node.
   prelower_class_type(class_type);
   step_class_type = class_type;
   dsp = bcp->derivation;
-  /* See if there are any virtual steps in the derivation of the base class. */
-  if (bcp->any_virtual_steps_in_derivation) {
-    /* Yes.  That means the casts can be done as one hop to the furthest
-       virtual base class on the derivation, followed by non-virtual steps.
-       Find the last virtual step in the derivation. */
-    if (bcp->is_virtual) {
-      /* The final base class is virtual, so it is the last virtual step
-         in the derivation by definition. */
-      virt_bcp = bcp;
-      /* No non-virtual steps after this one. */
-      dsp = NULL;
-    } else {
-      /* The base class is not virtual and there is at least one virtual
-         step in getting to it. */
-      /* Find the last virtual step in the derivation. */
-      virt_dsp = NULL;
-      for (; dsp != NULL; dsp = dsp->next) {
-        if (dsp->base_class->is_virtual) virt_dsp = dsp;
-      }  /* for */
-      check_assertion(virt_dsp != NULL);
-      virt_bcp = virt_dsp->base_class;
-      step_class_type = virt_bcp->type;
-      /* The non-virtual steps start after the virtual step. */
-      dsp = virt_dsp->next;
-    }  /* if */
+  /* See if there are any virtual steps in the derivation of the base class.
+     If so, the first step is to a virtual base class (the front end
+     standardizes the derivation steps up to the last virtual step into
+     an initial "leap" to the virtual base class). */
+  step_bcp = dsp->base_class;
+  if (step_bcp->is_virtual) {
     /* Generate code for the hop to the virtual base class. */
-    node = make_vbase_class_lvalue(node, virt_bcp, complete_object);
+    node = make_vbase_class_lvalue(node, step_bcp, complete_object);
+    step_class_type = step_bcp->type;
+    /* The non-virtual steps start after the virtual step. */
+    dsp = dsp->next;
   }  /* if */
   /* Now any initial virtual hop has been done.  dsp indicates the
      remaining derivation steps, or is NULL if all were handled by
      the virtual hop.  step_class_type is the unqualified class type
      we've gotten to so far. */
-  /* Put out a field selection or virtual base class pointer indirection
-     for each step in the derivation. */
+  /* Put out a field selection for each step in the derivation. */
   /* Two class type variables are needed because the fields for the base
      classes may have the type of the base class as a subobject or the type
      of the base class itself (that's what node_class_type will contain)
@@ -3097,7 +3080,7 @@ whether or not to put out the virtual function table.
        and (part of) a virtual function table with a base class. */
 #if CHECKING
     if (sharing_bcp->offset != 0 ||
-        sharing_bcp->any_virtual_steps_in_derivation) {
+        sharing_bcp->derivation->base_class->is_virtual) {
       internal_error("fill_virtual_function_table: bad vtbl sharing");
     }  /* if */
 #endif /* CHECKING */
@@ -4369,10 +4352,7 @@ static void related_class_cast_step(
                                an_expr_node_ptr node,
                                a_boolean        is_lvalue,
                                a_boolean        any_nonzero_offset,
-                               a_type_ptr       virtual_step_class,
                                an_expr_node_ptr *null_preservation_source_node,
-                               a_base_class_ptr *base_class_for_virtual_step,
-                               a_boolean        *complete_object,
                                an_expr_node_ptr *result_node,
                                a_targ_size_t    *derived_class_cast_offset)
 /*
@@ -4395,29 +4375,18 @@ examining the fundamental source node or the offsets in the base class
 casts (any_nonzero_offset is maintained going down to aid that determination).
 If we cannot suppress the NULL-preservation code, we can at least put it
 just once around the whole sequence instead of around each cast in the
-sequence.  The recursive technique also allows optimization of casts
-to virtual base classes.  When a virtual step is found while descending,
-virtual_step_class is set to the virtual base class type.  Then, when the
-bottom is reached, we can set *base_class_for_virtual_step to correspond
-to the hop from the bottommost type to the step of the virtual base class,
-and also set *complete_object to indicate whether or not the underlying
-object is a complete object (if so, the virtual step can be done without
-an indirection).  Then, on the ascent, we suppress the casting steps
-preceding the virtual step, and generate optimized code for the hop to
-the virtual step.  The recursive descent also has the advantage that it
+sequence.  The recursive descent also has the advantage that it
 avoids the need to look up the base class entry for each step of the cast
 more than once.
 */
 {
   an_expr_operator_kind op;
-  a_boolean             derived, handle_virtual_at_this_level;
+  a_boolean             derived, virtual_base_of_complete_object = FALSE;
   an_expr_node_ptr      source_node;
   a_type_ptr            source_class, dest_class;
-  a_base_class_ptr      bcp, virt_bcp;
+  a_base_class_ptr      bcp;
   a_boolean             need_null_preservation_code;
 
-  *base_class_for_virtual_step = NULL;
-  *complete_object = FALSE;
   op = node->variant.operation.kind;
   derived = (op == (an_expr_operator_kind)eok_derived_class_cast);
   /* Determine the source and destination class types and the relationship
@@ -4448,41 +4417,50 @@ more than once.
   /* Find the base class entry that relates the source_class to the
      dest_class. */
   if (!derived) {
-    bcp = find_direct_base_class_of(source_class, dest_class);
+    bcp = find_direct_or_virtual_base_class_of(source_class, dest_class);
   } else {
-    bcp = find_direct_base_class_of(dest_class, source_class);
+    bcp = find_direct_or_virtual_base_class_of(dest_class, source_class);
   }  /* if */
   check_assertion(bcp != NULL);
-  /* If this step is to a virtual base class, and no previous step was a
-     step to a virtual base class, pass the virtual base class type down
-     in the recursive processing to let the bottom-most call deal with
-     the virtual step. */
-  handle_virtual_at_this_level = FALSE;
-  if (virtual_step_class != NULL) {
-    /* A previous step (higher up the tree, i.e., further in the sequence
-       of casts) was a step to a virtual base class, so we do not test here. */
-  } else if (bcp->is_virtual) {
-    /* No previous step was virtual and this one is, so remember it as we
-       continue down the tree. */
-    handle_virtual_at_this_level = TRUE;
-    virtual_step_class = bcp->type;
+  /* Keep track of whether or not the sequence of casts involves a nonzero
+     offset (if it does not, we do not need NULL-preservation code). */
+  if (bcp->is_virtual) {
+    /* This step is to a virtual base class (this will turn out to be
+       the first cast in the sequence, because all steps up to the last
+       virtual base class are compressed into a single cast to the virtual
+       base class). */
+#if CHECKING
+    /* Cannot cast up from a virtual base class. */
+    if (derived) {
+      internal_error("related_class_cast_step: derived cast is virtual");
+    }  /* if */
+#endif /* CHECKING */
+    /* If we start with a complete object, the cast to the virtual base
+       class can be done without an indirection, because we know where the
+       virtual base class is in the complete object. */
+    if (node_complete_object_type(source_node, /*call_case=*/FALSE) ==
+                                                                source_class) {
+      /* We have a complete object, so it is possible to go directly to the
+         virtual base class without using a pointer indirection. */
+      virtual_base_of_complete_object = TRUE;
+      /* Keep track of whether the cast involves a non-zero offset. */
+      if (bcp->offset != 0) any_nonzero_offset = TRUE;
+    }  /* if */
   } else {
-    /* No previous step was virtual and this one is not either.  Remember if
-       the offset is non-zero (if all offsets are zero, we do not need
-       NULL-preservation code). */
+    /* This is a nonvirtual step.  Remember whether the offset is nonzero. */
     if (bcp->offset != 0) any_nonzero_offset = TRUE;
   }  /* if */
   /* See if there is another cast below this one.  If so, make a recursive
      call to get down to the bottom of the sequence of casts. */
   if (is_operation_node(source_node) &&
       source_node->variant.operation.kind == op) {
+    check_assertion_str(!bcp->is_virtual,
+                        "related_class_cast_step: virtual step is not first");
+    /* Recursive call to get to the start of the sequence of casts: */
     related_class_cast_step(source_node,
                             is_lvalue,
                             any_nonzero_offset,
-                            virtual_step_class,
                             null_preservation_source_node,
-                            base_class_for_virtual_step,
-                            complete_object,
                             &source_node,
                             derived_class_cast_offset);
   } else {
@@ -4492,42 +4470,8 @@ more than once.
     lower_expr(source_node, is_lvalue);
     /* The offsets for derived class casts are summed on the way back up. */
     *derived_class_cast_offset = 0;
-    if (virtual_step_class != NULL) {
-      /* There was a virtual step somewhere in the sequence of casts.
-         The overall cast can be viewed as an initial hop to the bottommost
-         virtual base class (this hop possibly corresponding to several cast
-         steps in the expression) followed by any remaining (non-virtual)
-         cast steps.  If we start with a complete object, the cast to the
-         virtual base class can be done without an indirection. */
-#if CHECKING
-      /* Cannot cast up from a virtual base class. */
-      if (derived) {
-        internal_error("related_class_cast_step: derived cast is virtual");
-      }  /* if */
-#endif /* CHECKING */
-      /* Find the base class entry that relates the source class
-         and the virtual base class.  We cannot use find_base_class_of
-         because we specifically want an entry with is_virtual TRUE --
-         there might be others if the base class appears as both a virtual
-         and a non-virtual base class. */
-      virt_bcp = find_virtual_base_class_of(source_class,
-                                            virtual_step_class);
-      /* virt_bcp is now the base class entry that gets us from the
-         original type (source_class) to the desired virtual base class
-         (virtual_step_class).  Pass it back up to the invocation that
-         will deal with the virtual step. */
-      *base_class_for_virtual_step = virt_bcp;
-      if (node_complete_object_type(source_node, /*call_case=*/FALSE) ==
-                                                                source_class) {
-        /* We have a complete object, so it is possible to go directly to the
-           virtual base class without using a pointer indirection. */
-        *complete_object = TRUE;
-        /* Keep track of whether or not the cast involves a non-zero offset. */
-        if (virt_bcp->offset != 0) any_nonzero_offset = TRUE;
-      }  /* if */
-    }  /* if */
     /* See if we need code to preserve NULL values.  NULL is supposed to
-       pass through a downward/upward cast unaltered.  We can suppress the
+       pass through a derived class cast unaltered.  We can suppress the
        special code if the expression being cast can be assumed to be
        non-NULL or if the transformation is a do-nothing transformation
        (the offset is zero). */
@@ -4536,10 +4480,10 @@ more than once.
          non-NULL. */
       need_null_preservation_code = FALSE;
     } else if (cannot_be_null(source_node)) {
-      /* The source address is known to not be NULL. */
+      /* The source address is known not to be NULL. */
       need_null_preservation_code = FALSE;
-    } else if (virtual_step_class != NULL && !*complete_object) {
-      /* There is a virtual step in the casts and it cannot be optimized
+    } else if (bcp->is_virtual && !virtual_base_of_complete_object) {
+      /* This first step is to a virtual base class and it cannot be optimized
          as an offset within a complete object.  Therefore a pointer
          indirection will be required in the sequence and the
          NULL-preservation code is required. */
@@ -4553,7 +4497,8 @@ more than once.
          any_nonzero_offset. */
       need_null_preservation_code = TRUE;
     } else {
-      /* The casts add up to an identity transformation. */
+      /* The casts add up to an identity transformation, so the NULL-
+         preservation code is not needed. */
       need_null_preservation_code = FALSE;
     }  /* if */
     *null_preservation_source_node = NULL;
@@ -4578,24 +4523,13 @@ more than once.
        the total.  The addition here is guaranteed not to overflow because
        it must be within one object. */
     *derived_class_cast_offset += bcp->offset;
-  } else if (*base_class_for_virtual_step != NULL) {
-    /* There is a virtual base class step in the sequence of casts.
-       If the present level is the level of the applicable step,
-       process the cast now.  Otherwise, do nothing, because the
-       present step is elided by the virtual step optimization. */
-    if (!handle_virtual_at_this_level) {
-      /* Do nothing; the present cast is elided. */
-    } else {
-      /* Generate the code for the virtual base class cast.  There are two
-         subcases: when the source is known to be a complete object (in
-         which case no indirection is needed), and when it is not. */
-      source_node = make_vbase_class_lvalue(source_node,
-                                            *base_class_for_virtual_step,
-                                            *complete_object);
-      /* Now that we've dealt with the virtual hop, put things back to normal
-         for levels above this one. */
-      *base_class_for_virtual_step = NULL;
-    }  /* if */
+  } else if (bcp->is_virtual) {
+    /* This (first) step is to a virtual base class. */
+    /* Generate the code for the virtual base class cast.  There are two
+       subcases: when the source is known to be a complete object (in
+       which case no indirection is needed), and when it is not. */
+    source_node = make_vbase_class_lvalue(source_node, bcp,
+                                          virtual_base_of_complete_object);
   } else {
     /* Non-virtual step. */
     source_node = make_base_class_lvalue(source_node, bcp,
@@ -4614,10 +4548,8 @@ is_lvalue is TRUE.
 */
 {
   an_expr_node_ptr null_preservation_source_node;
-  a_base_class_ptr base_class_for_virtual_step;
   an_expr_node_ptr result_node;
   a_targ_size_t    derived_class_cast_offset;
-  a_boolean        complete_object;
 
   /* Use a recursive routine to pick up a sequence of base-class or
      derived-class casts and generate the code for it.  Using a recursive
@@ -4630,10 +4562,7 @@ is_lvalue is TRUE.
   related_class_cast_step(node,
                           is_lvalue,
                           /*any_nonzero_offset=*/FALSE,
-                          /*virtual_step_class=*/(a_type_ptr)NULL,
                           &null_preservation_source_node,
-                          &base_class_for_virtual_step,
-                          &complete_object,
                           &result_node,
                           &derived_class_cast_offset);
   if (node->variant.operation.kind ==
@@ -4714,7 +4643,7 @@ class to the class of node in *offset.
   if (node->variant.operation.kind ==
                                (an_expr_operator_kind)eok_pm_base_class_cast) {
     /* Casting from a derived class to a base class. */
-    bcp = find_direct_base_class_of(source_class, dest_class);
+    bcp = find_direct_or_virtual_base_class_of(source_class, dest_class);
     check_assertion(bcp != NULL);
     if (bcp->is_virtual) {
       /* For a virtual base class skip, assume that we have a whole object
@@ -4731,7 +4660,7 @@ class to the class of node in *offset.
     }  /* if */
   } else {
     /* Casting from a base class to a derived class. */
-    bcp = find_direct_base_class_of(dest_class, source_class);
+    bcp = find_direct_or_virtual_base_class_of(dest_class, source_class);
     check_assertion(bcp != NULL);
 #if CHECKING
     if (bcp->is_virtual) {
