@@ -1,5 +1,17 @@
 Version 2.15
 
+2/19/93  Fixed bug with subscript as operand of "?" lvalue
+
+The following provoked an internal error:
+
+  struct String { String(const String&); String(); } object;
+  template <class Type> struct Array {
+      Type *ia;
+      Type init() { return (ia) ? ia[1] : (Type) object; }
+  };
+  void test () {Array<String> SA; SA.init ();}
+
+
 2/19/93  Default values for template parameters
 
 Default values may now be provided for template parameters.  Defaults
