@@ -1178,7 +1178,7 @@ scope is that of a class definition.
   a_boolean               dangling_type_specifier = FALSE;
   a_boolean               defines_something;
   a_boolean               default_arg_expr_allowed = FALSE;
-  an_expr_node_ptr        *dim_expr_ptr;
+  an_expr_node_ptr        dim_expr_ptr;
 
   db_enter(3, "function_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -1296,7 +1296,7 @@ scope is that of a class definition.
                          DI_ABSTRACT_DECLARATOR_ALLOWED, &do_flags,
                        param_type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
                        &param_locator, &param_type_ptr, &bottom_derived_type,
-                       (a_func_info_block_ptr)NULL, dim_expr_ptr);
+                       (a_func_info_block_ptr)NULL, &dim_expr_ptr);
           } else {
             /* No declarator. */
             set_to_error_locator(param_locator);
@@ -5680,7 +5680,7 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
   a_decl_flag_set           dso_flags, do_flags;
   a_type_ptr                bottom_derived_type;
   a_source_position         start_pos;
-  an_expr_node_ptr          *dim_expr_ptr = NULL;
+  an_expr_node_ptr          dim_expr_ptr;
 
   db_enter(3, "type_name");
   set_err_pos_to_curr_token();
@@ -5700,7 +5700,7 @@ Scan a type-name (see 3.5.5) and return a pointer to the type.  The syntax is:
                &do_flags, *type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
 	       (a_symbol_locator *)NULL,
                type_ptr, &bottom_derived_type, (a_func_info_block_ptr)NULL,
-               dim_expr_ptr);
+               &dim_expr_ptr);
   }  /* if */
   copy_source_position(start_pos, error_position);
   db_exit();
@@ -5730,7 +5730,7 @@ syntax is:
                                                      opt
 */
 {
-  a_type_ptr            specifiers_type, complete_type, new_type_ptr;
+  a_type_ptr            complete_type, new_type_ptr;
   a_type_ptr            derived_type, bottom_derived_type = NULL;
   a_decl_flag_set       dso_flags, do_flags;
   a_source_position     start_pos;
@@ -5742,7 +5742,7 @@ syntax is:
   copy_source_position(pos_curr_token, start_pos);
   *dimension_expr = NULL;
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_NEW_TYPE_NAME,
-                        &dso_flags, &storage_class, &specifiers_type);
+                        &dso_flags, &storage_class, type_ptr);
   if (C_dialect == C_dialect_cplusplus && dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
@@ -5757,15 +5757,16 @@ syntax is:
       declarator(DI_ABSTRACT_DECLARATOR_ALLOWED |
                     DI_QUALIFIED_NAME_ALLOWED |
                     DI_DIMENSION_EXPRESSION_ALLOWED,
-                 &do_flags, *type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
-                 (a_symbol_locator *)NULL,
-                 type_ptr, &bottom_derived_type, (a_func_info_block_ptr)NULL,
+                 &do_flags, *type_ptr,
+                 /*member_parent_type=*/(a_type_ptr)NULL,
+                 (a_symbol_locator *)NULL, type_ptr,
+                 &bottom_derived_type, (a_func_info_block_ptr)NULL,
                  dimension_expr);
     }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
   } else {
-    complete_type = pointer_declarator(specifiers_type, &bottom_derived_type);
+    complete_type = pointer_declarator(*type_ptr, &bottom_derived_type);
     derived_type = NULL;
     bottom_derived_type = NULL;
     add_stop_token(tok_lbracket);
@@ -6654,7 +6655,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean         need_comma_remove_stop_token     = FALSE;
   a_boolean         need_assign_remove_stop_token    = FALSE;
   a_boolean         need_lbrace_remove_stop_token    = FALSE;
-  an_expr_node_ptr  *dim_expr_ptr = NULL;
+  an_expr_node_ptr  dim_expr_ptr;
 #if ASM_FUNCTION_ALLOWED
   a_boolean         is_asm_function = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -6874,7 +6875,7 @@ continue_with_declaration:
                            0 : DI_QUALIFIED_NAME_ALLOWED),
                  &do_flags, type_ptr, /*member_parent_type=*/(a_type_ptr)NULL,
                  &locator, &local_type_ptr, &bottom_derived_type, &func_info,
-                 dim_expr_ptr);
+                 &dim_expr_ptr);
       is_function = is_function_type(local_type_ptr);
       is_main_function =
                 (is_function && !is_error_locator(locator) &&
