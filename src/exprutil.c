@@ -3761,16 +3761,23 @@ initialization entry.  *position gives the associated source position.
 }  /* alloc_dtor_dynamic_init */
 
 
-void set_temp_init_dynamic_init_lifetime(a_dynamic_init_ptr dip)
+void set_temp_init_dynamic_init_lifetime(an_expr_node_ptr temp_init_node)
 /*
-The indicated dynamic initialization is attached to an enk_temp_init.
-If it requires a later destruction, put it into the current object lifetime.
+If the dynamic initialization attached to the indicated enk_temp_init
+requires a later destruction, put it into the current object lifetime.
 */
 {
   if (curr_expr_is_potentially_evaluated()) {
+    a_dynamic_init_ptr dip = temp_init_node->variant.init.dynamic_init;
     /* Put the destruction (if any) on the list for the current object
        lifetime. */
     record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE);
+    /* If the lifetime happens to turn out to be static (e.g., when
+       long lifetime temps are enabled), mark the temp init as requiring
+       a static temporary. */
+    if (dip->lifetime->kind == (an_object_lifetime_kind)olk_global_static) {
+      temp_init_node->variant.init.static_temp = TRUE;
+    }  /* if */
   }  /* if */
 }  /* set_temp_init_dynamic_init_lifetime */
 
@@ -3812,7 +3819,7 @@ the value) of the temporary if result_is_addr is TRUE.
   temp_init_node->variant.init.dynamic_init = dip;
   dip->is_expr_temp_init = TRUE;
   /* Put the dynamic initialization on a destruction list if appropriate. */
-  set_temp_init_dynamic_init_lifetime(dip);
+  set_temp_init_dynamic_init_lifetime(temp_init_node);
   return temp_init_node;
 }  /* alloc_temp_init_node */
 

@@ -5700,6 +5700,7 @@ the initialization being done is for the value returned from a function.
        because it will be given to the caller, who will put it on a
        list at that level. */
     remove_from_destruction_list(dip);
+    temp_init_node->variant.init.static_temp = FALSE;
     if (initializing_return_value && dip->destructor != NULL) {
       /* In a return, we don't want a dynamic initialization that specifies
          a destructor call (the caller does the destruction);
@@ -5905,7 +5906,7 @@ happen only in C++ mode.
       }  /* if */
       /* Put the dynamic initialization on a destruction list if
          appropriate. */
-      set_temp_init_dynamic_init_lifetime(dip);
+      set_temp_init_dynamic_init_lifetime(temp_init_node);
     }  /* if */
     *p_temp_init_node = temp_init_node;
   }  /* if */
