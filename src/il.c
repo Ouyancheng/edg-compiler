@@ -1539,12 +1539,19 @@ physical line position for the sequence number.
     /* See if the sequence number falls within any child file. */
 examine_children:
     (*nesting_depth)++;
-    if (curr_file->full_name != NULL) {
-      /* Examining a real file, rather than an entry for a #line directive.
-         Remember the physical file information in case what we're descending
-         to is an entry for a #line directive. */
-      phys_curr_file = curr_file;
+    if (!physical_line) {
+      /* #line directives are just as valid as #includes. */
       lines_in_children = 0;
+    } else {
+      /* We want the physical line number, so #line directives count less than
+         #includes. */
+      if (curr_file->full_name != NULL) {
+        /* Examining a real file, rather than an entry for a #line directive.
+           Remember the physical file information in case what we're descending
+           to is an entry for a #line directive. */
+        phys_curr_file = curr_file;
+        lines_in_children = 0;
+      }  /* if */
     }  /* if */
     child_file = curr_file->first_child_file;
     /* Check the sequence number against each child.  The children are
