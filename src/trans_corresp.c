@@ -2838,12 +2838,12 @@ supplement for an instantiation that matches inst.
          determined when the body of the class template is instantiated. */
       if ((ctsp->partial_spec_template_arg_list == NULL &&
            corresp_ctsp->partial_spec_template_arg_list == NULL) ||
-          (class_type_has_body(class_type) &&
-           class_type_has_body(corresp_type) &&
-           equiv_template_arg_lists(
+          class_type_has_body(class_type) ||
+          class_type_has_body(corresp_type) ||
+          equiv_template_arg_lists(
                                  ctsp->partial_spec_template_arg_list,
                                  corresp_ctsp->partial_spec_template_arg_list,
-                                 ETA_IS_NONREAL_MEMBER))) {
+                                 ETA_IS_NONREAL_MEMBER)) {
         break;
       }  /* if */
     }  /* if */
