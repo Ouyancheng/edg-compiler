@@ -2704,8 +2704,8 @@ returned set to TRUE.
        S is a class type name or an initialization of a scalar like int i(0).
        This form of initialization is allowed in C++ mode only.  Note that
        the opening parenthesis has already been scanned in the caller. */
-    if ((cssp != NULL && cssp->constructor != NULL) ||
-        is_template_param_type(vp_type)) {
+    a_boolean  dependent_type = is_or_contains_template_param(vp_type);
+    if ((cssp != NULL && cssp->constructor != NULL) || dependent_type) {
       /* It's a class type and there's a constructor or we're dealing with a
          dependent type that could be such a class. */
       /* Depending on the arguments present, a constructor, possibly the copy
@@ -2714,7 +2714,7 @@ returned set to TRUE.
 
       /* Use the source position of the first argument as the call position. */
       pos = pos_curr_token;
-      if (is_template_param_type(vp_type)) {
+      if (dependent_type) {
         scan_dependent_type_parenthesized_initializer(
                                   /*force_object_lifetime=*/FALSE, &init_dip);
       } else {
