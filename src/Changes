@@ -1,5 +1,16 @@
 Version 2.35
 
+2/26/97  Name mangling change: nontype template parameters that are
+         pointers to members -- show class/namespace membership
+
+When a pointer-to-member-function appears as a nontype template argument
+and includes a function name, the cfront mangling scheme includes only
+the function name, and not the name of any parent class.  This can cause
+some template entities to have duplicate mangled names.  This has
+been fixed by including class/namespace membership information in the
+name.  The old behavior is provided with ABI_COMPATIBILITY_VERSION < 235,
+and when --no_distinct_template_signatures is in effect.
+
 2/25/97  Ambiguous guiding declaration
 
 When compiling with --guiding_decls an error is now issued when more than

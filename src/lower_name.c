@@ -723,19 +723,45 @@ mangling for lengths of literals.
           *store_at++ = '_';
         }  /* if */
         if (func != NULL) {
-          /* Name of function.  Note that this is the unmangled name. */
-          str = func->source_corresp.name;
-          /* Determine the size of the name.  Stop on two underscores. */
-          for (str_length = 0;
-               str[str_length] != '\0' &&
-                 (str[str_length] != '_' || str[str_length+1] != '_');
-               str_length++) {}
+          /* Name of function. */
+          /* The newer version of this includes parent information, but that's
+             not compatible with cfront. */
+          a_boolean include_parent_info;
+#if ABI_COMPATIBILITY_VERSION < 235
+          include_parent_info = FALSE;
+#else /* ABI_COMPATIBILITY_VERSION >= 235 */
+          /* Making this conditional on the new-style mangling for templates
+             is a little strange, but if you have the new-style mangling
+             you're completely incompatible with cfront, so it's not
+             a ridiculous idea. */
+          include_parent_info = distinct_mangling_for_templates;
+#endif /* ABI_COMPATIBILITY_VERSION < 235 */
+          if (include_parent_info) {
+            /* Include class and namespace information in the name. */
+            str_length = mangled_function_name(func,
+                                              /*suppress_param_encoding=*/TRUE,
+                                               (char *)NULL);
+          } else {
+            /* Use a simple name (no class or namespace information). */
+            str = func->source_corresp.name;
+            /* Determine the size of the name.  Stop on two underscores. */
+            for (str_length = 0;
+                 str[str_length] != '\0' &&
+                   (str[str_length] != '_' || str[str_length+1] != '_');
+                 str_length++) {}
+          }  /* if */
           digits = digits_to_represent((unsigned long)str_length);
           literal_length += digits + str_length;
           if (store_at != NULL) {
             (void)sprintf(store_at, "%lu", (unsigned long)str_length);
             store_at += digits;
-            (void)memcpy(store_at, str, size_t_arg(str_length));
+            if (include_parent_info) {
+              (void)mangled_function_name(func,
+                                          /*suppress_param_encoding=*/TRUE,
+                                          store_at);
+            } else {
+              (void)memcpy(store_at, str, size_t_arg(str_length));
+            }  /* if */
             store_at += str_length;
           }  /* if */
         } else {
