@@ -1,5 +1,15 @@
 Version 2.17
 
+4/27/93  Memory leak involving param-id entries
+
+Sometimes param-id entries were not being returned to their available
+list after they were no longer needed.  This has been corrected.
+
+4/27/93  Access declarations involving conversion operators
+
+When a conversion operator was mentioned in an access declaration, the
+conversion-list-entry was not being created.  This bug has been fixed.
+
 4/27/93  No access control on base class cast for "this" of conversion
 
   class base {public: operator int();};
