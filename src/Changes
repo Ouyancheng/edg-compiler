@@ -1,5 +1,18 @@
 Version 3.1
 
+10/17/02 GNU C++ compatibility: Field with array type of unspecified length
+
+In GNU C++ mode (but not in GNU C mode) a field whose type is an array of
+unspecified length is treated as a zero-length array.  As a consequence,
+such a field is not restricted to appearing as the last field of its class
+type.
+
+  struct S {
+    char a;
+    int b[];  // Accepted in GNU C++ mode (and treated as "int b[0];").
+    char c;
+  };
+
 10/17/02 Expression copy of throw for inlining, not full EH lowering
 
 The routine that copies expression trees did not copy one of the

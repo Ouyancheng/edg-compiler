@@ -2301,8 +2301,12 @@ declaration.
         /* Normal constant bound. */
         (*new_type_ptr)->variant.array.variant.number_of_elements =
                                                               num_of_elements;
-        if (gnu_mode && is_constant_bound && num_of_elements == 0) {
-          /* Record the fact that we saw a GNU C zero-length array. */
+        if (((gnu_mode && is_constant_bound) ||
+             (gpp_mode && top_level_field_decl)) &&
+             num_of_elements == 0) {
+          /* Record the fact that we saw a GNU C zero-length array.  GNU C++
+             compilers treat flexible array members ([]) as zero-length arrays
+             ([0]). */
           (*new_type_ptr)->variant.array.bound_is_zero = TRUE;
         }  /* if */
       }  /* if */
