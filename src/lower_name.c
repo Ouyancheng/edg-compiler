@@ -357,6 +357,7 @@ given coordinates.
   add_number_to_mangled_name((unsigned long)coordinate->position, mctl);
   if (coordinate->depth != 1) {
     /* Put out "_depth". */
+    add_to_mangled_name('_', mctl);
     add_number_to_mangled_name((unsigned long)coordinate->depth, mctl);
   }  /* if */
   /* Put out the final "Z". */
