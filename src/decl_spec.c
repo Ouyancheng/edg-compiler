@@ -1237,7 +1237,14 @@ caution when modifying this routine.
            of case:
              struct A { struct A { ... }; };
         */
-        tag_sym = NULL;
+        if (any_cfront_mode()) {
+          /* In Cfront mode, such a declaration is seen as a declaration of
+             the enclosing class. */
+          tag_sym = (a_symbol_ptr)(type_symbol_type(tag_sym)
+                                                  ->source_corresp.assoc_info);
+        } else {
+          tag_sym = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (is_tag_definition) {
