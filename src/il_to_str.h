@@ -39,9 +39,10 @@ typedef an_output_func_declarator_function
 typedef void an_output_expression_function(an_expr_node_ptr expr);
 typedef an_output_expression_function *an_output_expression_function_ptr;
 #if RECORD_FORM_OF_NAME_REFERENCE
-typedef void an_output_name_reference_function(a_name_reference_ptr,
-                                               a_source_correspondence*,
-                                               an_il_entry_kind);
+typedef void an_output_name_reference_function(
+                                            a_name_reference_ptr      name_ref,
+                                            a_source_correspondence*  scp,
+                                            an_il_entry_kind          kind);
 typedef an_output_name_reference_function
                                         *an_output_name_reference_function_ptr;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
