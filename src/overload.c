@@ -39,7 +39,6 @@ static a_boolean conversion_to_class_possible(
                                  a_boolean                is_initialization,
                                  a_boolean                try_bitwise_copy,
                                  a_boolean                is_explicit_cast,
-                                 a_boolean                need_lvalue_result,
                                  a_boolean                is_reference_binding,
                                  a_conv_descr             *conversion,
                                  a_conv_descr             *ctor_arg_conversion,
@@ -763,7 +762,6 @@ already set, with a value of NULL indicating a same-class copy.
                                      /*is_initialization=*/TRUE,
                                      /*try_bitwise_copy=*/TRUE,
                                      /*is_explicit_cast=*/FALSE,
-                                     /*need_lvalue_result=*/FALSE,
                                      /*is_reference_binding=*/FALSE,
                                      conversion, (a_conv_descr *)NULL,
                                      &ambiguous,
@@ -957,7 +955,9 @@ is TRUE.
     /* Note that, as of Feb. 1995, the WP does not require the test for
        const volatile here.  It's not clear whether that's an oversight or
        not. */
-    source_can_be_rvalue = ((param_type_qualifiers & TQ_CONST) != 0);
+    if (!any_cfront_mode() && !allow_anachronisms) {
+      source_can_be_rvalue = ((param_type_qualifiers & TQ_CONST) != 0);
+    }  /* if */
     /* Check the type qualifiers to see if they can be reconciled by
        trivial conversions. */
     if (param_type_qualifiers == arg_type_qualifiers) {
@@ -1168,7 +1168,9 @@ is TRUE.
        these tests, because the user-defined conversion routines may or
        may not want the transformations we've done. */
     check_assertion(orig_arg_operand != NULL);
-    if (param_is_class_type &&
+    /* We don't try the conversions to classes if we need an lvalue result,
+       since constructors don't yield lvalues. */
+    if (param_is_class_type && source_can_be_rvalue &&
         /* Bitwise copies are not tried here because they were considered
            above, and bitwise copies that drop type qualifiers under
            a reference would be allowed by here after we've gone to the
@@ -1177,8 +1179,6 @@ is TRUE.
                                       /*is_initialization=*/TRUE,
                                       /*try_bitwise_copy=*/FALSE,
                                       /*is_explicit_cast=*/FALSE,
-                                      /*need_lvalue_result=*/
-                                                         !source_can_be_rvalue,
                                       param_is_reference,
                                       &conversion, (a_conv_descr *)NULL,
                                       &ambiguous,
@@ -1222,8 +1222,7 @@ have_level:;
       arg_summary->conversion.std.type_qualifiers_added = TRUE;
     }  /* if */
     if (!source_can_be_rvalue &&
-        arg_operand != NULL && is_an_rvalue(arg_operand) &&
-        !any_cfront_mode() && !allow_anachronisms) {
+        arg_operand != NULL && is_an_rvalue(arg_operand)) {
       /* You can't bind a reference to non-const to an rvalue.  This was a
          post-ARM change (in the ARM, the binding would be okay in overload
          resolution and would get an error later if chosen). */
@@ -4894,7 +4893,6 @@ static a_boolean conversion_to_class_possible(
                                  a_boolean                is_initialization,
                                  a_boolean                try_bitwise_copy,
                                  a_boolean                is_explicit_cast,
-                                 a_boolean                need_lvalue_result,
                                  a_boolean                is_reference_binding,
                                  a_conv_descr             *conversion,
                                  a_conv_descr             *ctor_arg_conversion,
@@ -4909,10 +4907,8 @@ otherwise, it's for an assignment.  The result is always an rvalue.
 Bitwise copies are considered if try_bitwise_copy is TRUE.
 If is_explicit_cast is TRUE, this conversion is an explicit cast;
 allow user-defined conversions on constructor arguments.
-If need_lvalue_result is TRUE, the result must be an lvalue; this is
-quite unusual, and means only conversion functions should be
-considered.  is_reference_binding is TRUE if the returned value would
-be bound to a reference (some special derived --> base conversions
+is_reference_binding is TRUE if the returned value would be
+bound to a reference (some special derived --> base conversions
 are allowed in that case).  If ctor_arg_conversion is non-NULL,
 return a description of the conversion to be done on the constructor
 argument in *ctor_arg_conversion.  If more than one function matches,
@@ -4972,7 +4968,7 @@ because of an error.  This routine is only used in C++ mode.
     arg_operand_list = alloc_arg_operand();
     copy_operand(source_operand, &arg_operand_list->operand);
     constructor_symbol = cssp->constructor;
-    if (constructor_symbol != NULL && !need_lvalue_result) {
+    if (constructor_symbol != NULL) {
       /* The class has constructors. */
       /* Try all the constructors with that argument list. */
       try_overloaded_function_match(constructor_symbol,
@@ -4992,7 +4988,8 @@ because of an error.  This routine is only used in C++ mode.
          See if there is a conversion function that does the job. */
       try_conversion_function_match(source_operand, dest_type,
                                     (a_builtin_type_kind_set)BTK_NONE,
-                                    need_lvalue_result, is_reference_binding,
+                                    /*need_lvalue_result=*/FALSE,
+                                    is_reference_binding,
                                     &candidate_functions);
     }  /* if */
     /* If no functions are viable, check for the possibility of a bitwise
@@ -5275,13 +5272,15 @@ a reference type (the caller should have rewritten that case).
   }  /* if */
 #endif /* CHECKING */
   source_type = source_operand->type;
-  if (is_class_struct_union_type(dest_type)) {
+  if (!need_lvalue_result && is_class_struct_union_type(dest_type)) {
     /* The destination type is a class. */
+    /* We don't try this if we need an lvalue result, because constructors
+       don't yield lvalues.  If a conversion function applies it will
+       be picked up below. */
     if (conversion_to_class_possible(source_operand, dest_type,
                                      is_initialization,
                                      /*try_bitwise_copy=*/TRUE,
                                      is_explicit_cast,
-                                     need_lvalue_result,
                                      is_reference_binding,
                                      conversion, ctor_arg_conversion,
                                      &ambiguous, &ambiguity_list)) {
@@ -6538,7 +6537,7 @@ initializer has previously been found to be acceptable, and
   a_type_ptr unqual_dest_type, unqual_source_type;
   a_boolean  type_is_correct_or_derived, err = FALSE, dropping_qualifiers;
   a_boolean  direct_binding_possible, binding_to_rvalue_allowed;
-  a_boolean  ref_to_const_volatile;
+  a_boolean  ref_to_const_volatile, operand_was_rvalue;
   a_boolean  ref_to_const, temporary_used, warn = FALSE;
   an_operand orig_operand;
 
@@ -6584,7 +6583,7 @@ initializer has previously been found to be acceptable, and
       /* The type is a pointer type and is correct, except that the
          destination type has some qualifiers that are not present on
          the source type (at any level).  Standard C++ processing can
-         only add type qualifiers at the top level. */
+         only add type qualifiers in certain ways. */
       type_is_correct_or_derived = TRUE;
     }  /* if */
     direct_binding_possible = type_is_correct_or_derived;
@@ -6639,6 +6638,7 @@ initializer has previously been found to be acceptable, and
          message about taking the address of a bit field. */
       direct_binding_possible = FALSE;
     }  /* if */
+    operand_was_rvalue = is_an_rvalue(source_operand);
     if (direct_binding_possible && is_an_lvalue(source_operand)) {
       /* The initial value is an lvalue of the right type; the initialization
          can be done directly. */
@@ -6666,35 +6666,58 @@ initializer has previously been found to be acceptable, and
       /* The initial value is a function designator of the right type;
          the initialization can be done directly. */
       conv_function_designator_to_ptr_to_function(source_operand);
-    } else if (direct_binding_possible &&
-               is_class_struct_union_type(base_dest_type) &&
-               (binding_to_rvalue_allowed ||
-                (any_cfront_mode() ? (!initializing_variable ||
-                                      operand_is_temp_init(source_operand)) :
-                                     allow_anachronisms))) {
+    } else if ((direct_binding_possible || dropping_qualifiers) &&
+               is_class_struct_union_type(base_dest_type)) {
+      a_boolean operand_was_temp_init;
+      if (any_cfront_mode()) {
+        operand_was_temp_init = operand_is_temp_init(source_operand);
+      }  /* if */
       /* The source is a class rvalue but otherwise has the right type,
-         and the reference is to const non-volatile.  No temporary is
-         required.  Get the address of the rvalue, then cast the pointer
-         to the right type to handle the derived-class case.  The WP
-         allows but does not require a copy in this case; if a copy is
-         done, it must be a copy of the whole source object. */
-      /* In cfront mode we allow this also for a ref to non-const if
-         the source is already a temporary or if we're initializing
-         a non-variable (e.g., we're passing an argument). */
-      /* When anachronisms are allowed we allow this also for a ref to
-         non-const. */
+         so we can bind directly if the reference is to const non-volatile
+         (and in some other cases in cfront mode or when anachronisms
+         are allowed).  No temporary is required.  Get the address of
+         the rvalue, then cast the pointer to the right type to handle
+         the derived-class case.  We also allow some error cases (e.g.,
+         when the reference is to non-const) to come through here to
+         get better error messages. */
+      /* Also come here when the source is a class that's wrong only
+         because qualifiers are dropped.  That's an error except in
+         cfront mode, but it's better to handle it here rather than
+         later -- if we go on to the call of conv_operand_into_temp
+         we would be looking at copy constructors, which really isn't
+         appropriate and produces confusing error messages. */
       conv_class_operand_to_object_pointer(source_operand);
       /* Use a pointer type instead of a reference type on the
          destination. */
       dest_type = make_pointer_type(base_dest_type);
       cast_operand(dest_type, source_operand, /*is_implicit_cast=*/TRUE);
-      if (!binding_to_rvalue_allowed) {
-        /* In cfront mode or when anachronisms are allowed this can happen
-           for a ref to non-const.  Issue a warning in that case. */
-        pos_warning(ref_to_const_volatile ?
-                                       ec_const_volatile_ref_init_anachronism :
-                                       ec_nonconst_ref_init_anachronism,
-                    &source_operand->position);
+      if (dropping_qualifiers) {
+        /* Type qualifiers were dropped on this binding. */
+        pos_error(ec_qualifier_dropped_in_ref_init, &source_operand->position);
+      } else if (!binding_to_rvalue_allowed && operand_was_rvalue) {
+        /* Can't bind this reference to an rvalue. */
+        an_error_severity err_severity = es_error;
+        /* Some cases get only a warning. */
+        /* In cfront mode we allow this for a ref to non-const if
+           the source was already a temporary or if we're initializing
+           a non-variable (e.g., we're passing an argument). */
+        /* When anachronisms are allowed we allow this for a ref to
+           non-const. */
+        if (any_cfront_mode() ? (!initializing_variable ||
+                                 operand_was_temp_init) :
+                                allow_anachronisms) {
+          err_severity = es_warning;
+        } else if (ref_to_const_volatile &&
+                   (any_cfront_mode() || allow_anachronisms)) {
+          /* The reference to const volatile case gets only a warning in cfront
+             or anachronisms mode (it's a recent change to the language). */
+          err_severity = es_warning;
+        }  /* if */
+        pos_diagnostic(err_severity,
+                       ref_to_const_volatile ?
+                                       ec_const_volatile_ref_init_from_rvalue :
+                                       ec_nonconst_ref_init_from_rvalue,
+                       &source_operand->position);
       }  /* if */
     } else {
       /* The initialization cannot be done directly; a temporary must be
@@ -6705,24 +6728,23 @@ initializer has previously been found to be acceptable, and
         /* In a constant context (e.g., a nontype template argument),
            a temporary or conversion is not allowed. */
         error_in_operand(ec_init_needing_temp_not_allowed, source_operand);
-      } else if (dropping_qualifiers &&
-                 !(cfront_argument_case &&
-                   !is_class_struct_union_type(base_dest_type))) {
+      } else if (dropping_qualifiers && !cfront_argument_case) {
         /* Type qualifiers were dropped (and otherwise the type is okay).
            Note that testing this early means that an implicit conversion
            cannot be used to drop the qualifiers.  cfront allows dropping
-           qualifiers when passing nonclass arguments. */
+           qualifiers when passing nonclass arguments (class cases were
+           handled above). */
         error_in_operand(ec_qualifier_dropped_in_ref_init, source_operand);
       } else {
         /* Allocate a temporary and copy the operand into it, converting
            if necessary.  source_operand is set to the address of the
-           temporary. */
-        a_boolean operand_was_rvalue = is_an_rvalue(source_operand);
-        /* The temp has the same type as the operand, but without
-           type qualifiers. */
+           temporary.  Also check for the existence of a conversion function
+           that returns a reference of the right type; in that case no
+           temporary is needed. */
         convert_operand_into_temp(source_operand, base_dest_type, dest_type,
                                   try_user_conversions,
-                                  !binding_to_rvalue_allowed,
+                                  !binding_to_rvalue_allowed &&
+                                     !any_cfront_mode() && !allow_anachronisms,
                                   /*is_reference_binding=*/TRUE,
                                   conversion, incompatible_err, &err,
                                   &temporary_used);
