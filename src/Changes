@@ -1,5 +1,13 @@
 Version 3.2
 
+4/30/03  Abort in C-generating back end on GNU statement expression
+
+The C-generating back end aborted with the internal error "Routine
+assignment inits not dumped out" on processing a statement
+expression within an initializer, when the statement expression
+itself contains another dynamically-initialized variable.
+Now fixed.
+
 4/29/03  Boolean literals in #if and #elif expressions
 
 The front end used to treat the boolean literals "true" and "false" like any

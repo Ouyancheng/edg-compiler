@@ -7310,13 +7310,18 @@ statement expression, i.e., ({...}).
       dump_switch_statement(statement);
       break;
     case stmk_init:
-      /* Dynamic initialization. */
-      /* The executable code can be output directly to f_C_output instead
-         of to a temporary file, because we're in the executable code part of
-         the current routine. */
-      output_initializer_code_directly = TRUE;
-      dump_whole_variable_dynamic_init(statement->variant.dynamic_init);
-      output_initializer_code_directly = FALSE;
+      {
+        /* Dynamic initialization. */
+        /* The executable code can be output directly to f_C_output instead
+           of to a temporary file, because we're in the executable code part of
+           the current routine. */
+        a_boolean saved_output_initializer_code_directly =
+                                              output_initializer_code_directly;
+        output_initializer_code_directly = TRUE;
+        dump_whole_variable_dynamic_init(statement->variant.dynamic_init);
+        output_initializer_code_directly =
+                                        saved_output_initializer_code_directly;
+      }
       break;
     case stmk_asm:
       /* asm statement. */
