@@ -5842,11 +5842,6 @@ block.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (ns_sym == NULL) {
-      /* Create a namespace symbol. */
-      ns_sym = enter_symbol((a_symbol_kind)sk_namespace, &locator,
-                            depth_scope_stack, /*suppress_redecl_error=*/TRUE);
-    }  /* if */
   }  /* if */
   if (is_namespace_alias) {
     /* Bypass the "=". */
@@ -5865,7 +5860,8 @@ block.
           /* Either nothing was found or what was found was not a namespace. */
           error(ec_missing_namespace_name);
         } else {
-          if (ns_sym->variant.namespace_info.ptr != NULL) {
+          if (ns_sym != NULL &&
+              ns_sym->variant.namespace_info.ptr != NULL) {
             if (skip_namespace_aliases(ns_sym->variant.namespace_info.ptr) ==
                      skip_namespace_aliases(sym->variant.namespace_info.ptr)) {
               /* Redefining the alias to the same thing. */
@@ -5877,8 +5873,17 @@ block.
                            ns_sym);
             }  /* if */
           } else {
-            /* Create a namespace entry to represent the alias.  It will point
-               to the namespace entry that was just looked up. */
+            if (ns_sym == NULL) {
+              /* Create a namespace symbol to represent the alias.  Its
+                 creation was delayed till all the error cases had been
+                 dispensed with, to avoid creating a symbol with no namespace
+                 to bind to. */
+              ns_sym = enter_symbol((a_symbol_kind)sk_namespace, &locator,
+                                    depth_scope_stack,
+                                    /*suppress_redecl_error=*/TRUE);
+            }  /* if */
+            /* Now create a namespace entry.  It will point to the namespace
+               entry that was just looked up. */
             nsp = alloc_namespace(/*is_alias=*/TRUE);
             nsp->variant.assoc_namespace = sym->variant.namespace_info.ptr;
             set_source_corresp(&nsp->source_corresp, ns_sym);
@@ -5901,9 +5906,14 @@ block.
   } else {
     /* Namespace definition. */
     if (required_token(tok_lbrace, ec_exp_lbrace)) {
-      if (ns_sym->variant.namespace_info.ptr == NULL) {
+      if (ns_sym == NULL) {
         /* Original definition. */
         original_def = TRUE;
+        /* Create a namespace symbol. */
+        ns_sym = enter_symbol((a_symbol_kind)sk_namespace, &locator,
+                              depth_scope_stack,
+                              /*suppress_redecl_error=*/TRUE);
+        /* Allocate the namespace entry. */
         nsp = alloc_namespace(/*is_alias=*/FALSE);
         set_source_corresp(&nsp->source_corresp, ns_sym);
         if (is_unnamed_namespace) nsp->source_corresp.name = NULL;
