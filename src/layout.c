@@ -139,10 +139,9 @@ B.  Layout options
 
 /* Additional header files. */
 #include "layout.h"
-#if DEBUG
-/* For db_base_class: */
+#if DEBUG || IA64_ABI
 #include "class_decl.h"
-#endif /* DEBUG */
+#endif /* DEBUG || IA64_ABI */
 #if USER_CONTROL_OF_STRUCT_PACKING
 #include "pch.h"
 #include "pragma.h"
