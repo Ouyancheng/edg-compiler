@@ -2348,20 +2348,22 @@ FALSE otherwise.
   if (symbol_is_invisible_friend(function_symbol)) {
     visible = FALSE;
     goto end_of_function;
+  }  /* if */
+  /* Remove projection, if any. */
+  function_symbol = fundamental_symbol_of(function_symbol);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && microsoft_version >= 1310 &&
-             is_overloaded_operator &&
-             function_symbol->is_microsoft_invisible_operator &&
-             (!from_arg_dep_lookup || from_arg_dep_lookup_namespace)) {
+  /* Note that here we must test the fundamental symbol. */
+  if (microsoft_mode && microsoft_version >= 1310 &&
+      is_overloaded_operator &&
+      function_symbol->is_microsoft_invisible_operator &&
+      (!from_arg_dep_lookup || from_arg_dep_lookup_namespace)) {
     /* As of MSVC++ 7.1, certain operators defined as friends are
        not visible.  This is an approximation to eliminating friend
        injection, in some limited cases. */
     visible = FALSE;
     goto end_of_function;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-  /* Remove projection, if any. */
-  function_symbol = fundamental_symbol_of(function_symbol);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   function_template_case = (function_symbol->kind ==
                                           (a_symbol_kind)sk_function_template);
   if (do_dependent_name_processing && !from_arg_dep_lookup &&
