@@ -572,7 +572,7 @@ a structured statement has ended.
     if (is_infinite_loop(sssep->statement)) {
       /* An infinite loop.  The code after the loop is not reachable. */
       set_unreachable(curr_reachability);
-    } else if (kind == ssk_while || kind == ssk_do) {
+    } else if (kind == ssk_while || kind == ssk_for) {
       /* A top-test loop.  The code after the loop is reachable if the current
          location is reachable or if the start of the loop is reachable. */
       merge_reachability(&sssep->start_reachable, &curr_reachability);
