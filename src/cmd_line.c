@@ -1082,39 +1082,64 @@ processing routine to update the severity.
 static void set_microsoft_mode_flags(void)
 /*
 Set other options whose values should be changed when Microsoft mode
-is enabled.
+is enabled.  Only set the option values if they were not already set
+by a command line option.
 */
 {
-  /* The bool keyword is support by Microsoft Visual C++ 5.0. */
-  bool_is_keyword = microsoft_version >= 1100;
-  wchar_t_is_keyword = FALSE;
-  /* The explicit keyword is support by Microsoft Visual C++ 5.0. */
-  explicit_keyword_enabled = microsoft_version >= 1100;
+  if (!option_kind_used[(int)optk_bool_is_keyword]) {
+    /* The bool keyword is support by Microsoft Visual C++ 5.0. */
+    bool_is_keyword = microsoft_version >= 1100;
+  }  /* if */
+  if (!option_kind_used[(int)optk_wchar_t_is_keyword]) {
+    wchar_t_is_keyword = FALSE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_explicit]) {
+    /* The explicit keyword is support by Microsoft Visual C++ 5.0. */
+    explicit_keyword_enabled = microsoft_version >= 1100;
+  }  /* if */
 #if !RUNTIME_USES_TYPENAME
-  /* The typename keyword is support by Microsoft Visual C++ 5.0. */
-  typename_enabled = microsoft_version >= 1100;
+  if (!option_kind_used[(int)optk_typename]) {
+    /* The typename keyword is support by Microsoft Visual C++ 5.0. */
+    typename_enabled = microsoft_version >= 1100;
+  }  /* if */
 #endif /* !RUNTIME_USES_TYPENAME */
-  implicit_typename_enabled = TRUE;
-  guiding_decls_allowed = FALSE;
-  old_specializations_allowed = TRUE;
+  if (!option_kind_used[(int)optk_implicit_typename]) {
+    implicit_typename_enabled = TRUE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_guiding_decls]) {
+    guiding_decls_allowed = FALSE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_old_specializations]) {
+    old_specializations_allowed = TRUE;
+  }  /* if */
   c_and_cpp_function_types_are_distinct = FALSE;
-  extern_inline_allowed = TRUE;
+  if (!option_kind_used[(int)optk_extern_inline]) {
+    extern_inline_allowed = TRUE;
+  }  /* if */
   targ_enum_types_can_be_smaller_than_int = FALSE;
   stack_referenced_include_directories = TRUE;
   allow_copy_assignment_op_with_base_class_param = FALSE;
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   allow_nonstandard_anonymous_unions = TRUE;
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-  use_nonstandard_for_init_scope =
+  if (!option_kind_used[(int)optk_old_for_init]) {
+    use_nonstandard_for_init_scope =
                               MICROSOFT_DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE;
+  }  /* if */
   ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
   /* Exception specifications should be ignored in Microsoft bugs mode. */
   ignore_exception_specifications = microsoft_bugs;
-  /* Enum overloading is supported by Microsoft Visual C++ 4.x. */
-  operator_overloading_on_enums_enabled = microsoft_version >= 1000;
-  do_late_ovl_res_tiebreaker = microsoft_bugs;
+  if (!option_kind_used[(int)optk_enum_overloading]) {
+    /* Enum overloading is supported by Microsoft Visual C++ 4.x. */
+    operator_overloading_on_enums_enabled = microsoft_version >= 1000;
+  }  /* if */
+  if (!option_kind_used[(int)optk_late_tiebreaker]) {
+    do_late_ovl_res_tiebreaker = microsoft_bugs;
+  }  /* if */
   single_ref_qual_ovl_res_tiebreaker = microsoft_bugs;
-  allow_dollar_in_id_chars = TRUE;
+  if (!option_kind_used[(int)optk_allow_dollar_in_id_chars]) {
+    allow_dollar_in_id_chars = TRUE;
+  }  /* if */
 }  /* set_microsoft_mode_flags */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -1171,13 +1196,6 @@ Process the arguments on the command line that invoked the compiler.
   }
 #endif /* ifdef HOSTID */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
-    /* If Microsoft mode is enabled by default, set the flags for other
-       language features whose setting depends on the Microsoft mode flag. */
-    set_microsoft_mode_flags();
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Start with empty include file search paths.  Entries may be added
      because of command line options, and others will be added as defaults. */
   incl_search_path = end_incl_search_path = sys_incl_search_path = NULL;
@@ -1669,14 +1687,12 @@ enable_microsoft_mode:
         /* Enable or disable Microsoft extensions, in 32-bit mode. */
         microsoft_mode = opt_value;
         il_header.microsoft_16_mode = FALSE;
-        set_microsoft_mode_flags();
         break;
       case optk_microsoft_16_mode:
         /* Enable or disable Microsoft extensions, in 16-bit mode. */
         check_assertion(opt_value == TRUE);
         microsoft_mode = TRUE;
         il_header.microsoft_16_mode = TRUE;
-        set_microsoft_mode_flags();
         break;
       case optk_far_data_pointers:
         /* Set size of data pointers in Microsoft 16-bit mode. */
@@ -2000,6 +2016,12 @@ enable_microsoft_mode:
       address_of_ellipsis_allowed = TRUE;
       allow_ellipsis_only_param_in_C_mode = TRUE;
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Turn on features implied by Microsoft mode. */
+    if (microsoft_mode) {
+      set_microsoft_mode_flags();
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Turn off language features that must not be on in C mode, in case
        the default value is on. */
     exceptions_enabled = FALSE;

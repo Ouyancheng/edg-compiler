@@ -1,5 +1,14 @@
 Version 2.38
 
+12/3/97   Turning off Microsoft mode
+
+When Microsoft mode is enabled, either by default or by a command-line
+option, a number of other optional features are implicitly enabled
+or disabled.  For example, wchar_t_is_keyword is disabled and old-style
+specializations are enabled.  However, if Microsoft mode was disabled by
+a command-line option, the related features were still being set as if
+Microsoft mode were being used.  This has been fixed.
+
 12/2/97   C-generating back end, C++-generating back end: line correspondence
           when short include file contains no declarations
 
