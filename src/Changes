@@ -1,5 +1,14 @@
 Version 3.2
 
+2/3/03   GNU C++ mode: Exception specifications ignored when no support for
+         C++ exception handling
+
+When support for C++ exception handling is disabled, the front end normally
+ignores exception specifications on function declarations that aren't
+definitions, but exception specifications on function definitions are
+usually diagnosed as errors.  In GNU C++ mode, even the latter are now
+ignored.
+
 2/3/03   GNU C mode: Old-style vararg parameter declarations
 
 GNU C allows old-style parameter lists to be followed by an ellipsis to
