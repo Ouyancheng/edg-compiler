@@ -4058,7 +4058,8 @@ conversions.
           if (cast_to_func_ptr &&
               is_pointer_type(operand->type) &&
               is_function_type(type_pointed_to(operand->type))) {
-            pos_warning(ec_bound_function_cast_anachronism, start_position);
+            pos_diagnostic(anachronism_error_severity,
+                           ec_bound_function_cast_anachronism, start_position);
             conv_lvalue_to_rvalue(operand, expression_kind);
             if (operand->virtual_function) {
               /* The function is a virtual function, so use an
