@@ -10545,7 +10545,7 @@ Scan the variable specification in a __based specifier, e.g.,
 
 The variable must be a pointer variable.  A pointer to the variable is
 returned, or NULL if there is an error.  This is a Microsoft extension;
-this routien is called only when microsoft_mode is TRUE.
+this routine is called only when microsoft_mode is TRUE.
 */
 {
   an_operand              operand;
