@@ -13837,52 +13837,58 @@ needed_flag_bit_number plus bit_offset.
   a_byte        bit;
 #define BITS_PER_ENTRY (BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY*CHAR_BIT)
 
-  check_assertion_str(!in_secondary_trans_unit(scp),
-                      "set_instantiation_needed_flag: scp in sec trans unit");
-  /* Loop through the list of entries to find the one containing the
-     bit we want to test. */
-  for (prev_ptr = NULL,
-         ptr = scp->per_instantiation_needed_flags,
-         first_bit_this_segment = 1;
-       ;
-       prev_ptr = ptr,
-         ptr = ptr->next,
-         first_bit_this_segment += BITS_PER_ENTRY) {
-    if (ptr == NULL) {
-      /* Ran off the end of the list, so allocate another entry. */
-      ptr = alloc_per_instantiation_needed_flags_entry(in_file_scope(scp));
-      if (prev_ptr == NULL) {
-        scp->per_instantiation_needed_flags = ptr;
-      } else {
-        prev_ptr->next = ptr;
-      }  /* if */
-    }  /* if */
-    if ((first_bit_this_segment + BITS_PER_ENTRY) > bit_number) {
-      /* This segment contains the bit we want. */
-      break;
-    }  /* if */
-  }  /* for */
-  bit_number -= first_bit_this_segment;
-  byte_number = bit_number / CHAR_BIT;
-  bit_number  = bit_number % CHAR_BIT;
-  bit = (unsigned char)1 << bit_number;
-  if (new_value != 0) {
-    /* Set the bit. */
-    ptr->bytes[byte_number] |= bit;
+  if (in_secondary_trans_unit(scp)) {
+    /* This should only come up with errors (there remain some
+       pointers from the primary IL to the secondary IL because the
+       copy process was suppressed due to errors).  When it does,
+       ignore the call. */
+    check_assertion(total_errors != 0);
   } else {
-    /* Clear the bit. */
-    ptr->bytes[byte_number] &= ~bit;
-  }  /* if */
+    /* Loop through the list of entries to find the one containing the
+       bit we want to test. */
+    for (prev_ptr = NULL,
+           ptr = scp->per_instantiation_needed_flags,
+           first_bit_this_segment = 1;
+         ;
+         prev_ptr = ptr,
+           ptr = ptr->next,
+           first_bit_this_segment += BITS_PER_ENTRY) {
+      if (ptr == NULL) {
+        /* Ran off the end of the list, so allocate another entry. */
+        ptr = alloc_per_instantiation_needed_flags_entry(in_file_scope(scp));
+        if (prev_ptr == NULL) {
+          scp->per_instantiation_needed_flags = ptr;
+        } else {
+          prev_ptr->next = ptr;
+        }  /* if */
+      }  /* if */
+      if ((first_bit_this_segment + BITS_PER_ENTRY) > bit_number) {
+        /* This segment contains the bit we want. */
+        break;
+      }  /* if */
+    }  /* for */
+    bit_number -= first_bit_this_segment;
+    byte_number = bit_number / CHAR_BIT;
+    bit_number  = bit_number % CHAR_BIT;
+    bit = (unsigned char)1 << bit_number;
+    if (new_value != 0) {
+      /* Set the bit. */
+      ptr->bytes[byte_number] |= bit;
+    } else {
+      /* Clear the bit. */
+      ptr->bytes[byte_number] &= ~bit;
+    }  /* if */
 #undef BITS_PER_ENTRY
-  if (needed_flag_bit_number != 1 && new_value != 0 &&
-      (scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
-       /* When lowering extern inline, a function can be static, then
-          external, then static again.  Make sure it gets marked. */
-       scp->externalized)) {
-    /* This is a static entity that is needed from an instantiation.
-       Mark the entity so that it will be made external so it can be accessed
-       from the instantiation file. */
-    scp->static_used_by_instantiation = TRUE;
+    if (needed_flag_bit_number != 1 && new_value != 0 &&
+        (scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
+         /* When lowering extern inline, a function can be static, then
+            external, then static again.  Make sure it gets marked. */
+         scp->externalized)) {
+      /* This is a static entity that is needed from an instantiation.
+         Mark the entity so that it will be made external so it can be accessed
+         from the instantiation file. */
+      scp->static_used_by_instantiation = TRUE;
+    }  /* if */
   }  /* if */
 }  /* set_instantiation_needed_flag */
 
