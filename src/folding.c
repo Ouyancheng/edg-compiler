@@ -1917,7 +1917,7 @@ Do the negate operation on all types of complex.
             &err);
   accum_err |= err;
   if (accum_err) {
-    *err_code = ec_bad_float_operation_result;
+    *err_code = ec_bad_complex_operation_result;
     *err_severity = es_error;
   }  /* if */
 #if DEBUG
@@ -2849,7 +2849,7 @@ Do the addition operation on all types of complex.
   accum_err |= err;
   *depends_on_rounding_mode |= depends_on_rounding;
   if (accum_err) {
-    *err_code = ec_bad_float_operation_result;
+    *err_code = ec_bad_complex_operation_result;
     *err_severity = es_error;
   }  /* if */
 
@@ -2892,7 +2892,7 @@ Do the subtraction operation on all types of complex.
   accum_err |= err;
   *depends_on_rounding_mode |= depends_on_rounding;
   if (accum_err) {
-    *err_code = ec_bad_float_operation_result;
+    *err_code = ec_bad_complex_operation_result;
     *err_severity = es_error;
   }  /* if */
 
@@ -2966,7 +2966,7 @@ Do the multiplication operation on all types of complex.
   accum_err |= err;
   *depends_on_rounding_mode |= depends_on_rounding;
   if (accum_err) {
-    *err_code = ec_bad_float_operation_result;
+    *err_code = ec_bad_complex_operation_result;
     *err_severity = es_error;
   }  /* if */
 
@@ -3017,58 +3017,63 @@ Do the division operation on all types of complex.
          &err, &depends_on_rounding);
   accum_err |= err;
   *depends_on_rounding_mode |= depends_on_rounding;
-  /* Compute real part of the result. */
-  fp_multiply(float_kind,
-              &constant_1->variant.complex_value->real,
-              &constant_2->variant.complex_value->real,
-              &result->variant.complex_value->real, &err,
-              &depends_on_rounding);
-  accum_err |= err;
-  *depends_on_rounding_mode |= depends_on_rounding;
-  fp_multiply(float_kind,
-              &constant_1->variant.complex_value->imag,
-              &constant_2->variant.complex_value->imag,
-              &temp_value, &err,
-              &depends_on_rounding);
-  accum_err |= err;
-  *depends_on_rounding_mode |= depends_on_rounding;
-  fp_add(float_kind, &result->variant.complex_value->real, &temp_value,
-         &result->variant.complex_value->real,
-         &err, &depends_on_rounding);
-  accum_err |= err;
-  *depends_on_rounding_mode |= depends_on_rounding;
-  fp_divide(float_kind, &result->variant.complex_value->real, &quad_norm,
-            &result->variant.complex_value->real,
-            &err, &depends_on_rounding);
-  accum_err |= err;
-  *depends_on_rounding_mode |= depends_on_rounding;
-  /* Compute imaginary part of the result. */
-  fp_multiply(float_kind,
-              &constant_1->variant.complex_value->real,
-              &constant_2->variant.complex_value->imag,
-              &result->variant.complex_value->imag, &err,
-              &depends_on_rounding);
-  accum_err |= err;
-  *depends_on_rounding_mode |= depends_on_rounding;
-  fp_multiply(float_kind,
-              &constant_1->variant.complex_value->imag,
-              &constant_2->variant.complex_value->real,
-              &temp_value, &err, &depends_on_rounding);
-  accum_err |= err;
-  *depends_on_rounding_mode |= depends_on_rounding;
-  fp_subtract(float_kind, &temp_value, &result->variant.complex_value->imag,
+  if (fp_is_zero_constant(float_kind, &quad_norm)) {
+    *err_code = ec_divide_by_zero;
+    *err_severity = es_error;
+  } else {
+    /* Compute real part of the result. */
+    fp_multiply(float_kind,
+                &constant_1->variant.complex_value->real,
+                &constant_2->variant.complex_value->real,
+                &result->variant.complex_value->real, &err,
+                &depends_on_rounding);
+    accum_err |= err;
+    *depends_on_rounding_mode |= depends_on_rounding;
+    fp_multiply(float_kind,
+                &constant_1->variant.complex_value->imag,
+                &constant_2->variant.complex_value->imag,
+                &temp_value, &err,
+                &depends_on_rounding);
+    accum_err |= err;
+    *depends_on_rounding_mode |= depends_on_rounding;
+    fp_add(float_kind, &result->variant.complex_value->real, &temp_value,
+           &result->variant.complex_value->real,
+           &err, &depends_on_rounding);
+    accum_err |= err;
+    *depends_on_rounding_mode |= depends_on_rounding;
+    fp_divide(float_kind, &result->variant.complex_value->real, &quad_norm,
+              &result->variant.complex_value->real,
+              &err, &depends_on_rounding);
+    accum_err |= err;
+    *depends_on_rounding_mode |= depends_on_rounding;
+    /* Compute imaginary part of the result. */
+    fp_multiply(float_kind,
+                &constant_1->variant.complex_value->real,
+                &constant_2->variant.complex_value->imag,
+                &result->variant.complex_value->imag, &err,
+                &depends_on_rounding);
+    accum_err |= err;
+    *depends_on_rounding_mode |= depends_on_rounding;
+    fp_multiply(float_kind,
+                &constant_1->variant.complex_value->imag,
+                &constant_2->variant.complex_value->real,
+                &temp_value, &err, &depends_on_rounding);
+    accum_err |= err;
+    *depends_on_rounding_mode |= depends_on_rounding;
+    fp_subtract(float_kind, &temp_value, &result->variant.complex_value->imag,
+                &result->variant.complex_value->imag,
+                &err, &depends_on_rounding);
+    accum_err |= err;
+    *depends_on_rounding_mode |= depends_on_rounding;
+    fp_divide(float_kind, &result->variant.complex_value->imag, &quad_norm,
               &result->variant.complex_value->imag,
               &err, &depends_on_rounding);
-  accum_err |= err;
-  *depends_on_rounding_mode |= depends_on_rounding;
-  fp_divide(float_kind, &result->variant.complex_value->imag, &quad_norm,
-            &result->variant.complex_value->imag,
-            &err, &depends_on_rounding);
-  accum_err |= err;
-  *depends_on_rounding_mode |= depends_on_rounding;
-  if (accum_err) {
-    *err_code = ec_bad_float_operation_result;
-    *err_severity = es_error;
+    accum_err |= err;
+    *depends_on_rounding_mode |= depends_on_rounding;
+    if (accum_err) {
+      *err_code = ec_bad_complex_operation_result;
+      *err_severity = es_error;
+    }  /* if */
   }  /* if */
 
 #if DEBUG
@@ -3158,7 +3163,7 @@ Do the multiplication operation on two imaginary numbers (any precision).
             &result->variant.float_value, &err);
   accum_err |= err;
   if (accum_err) {
-    *err_code = ec_bad_float_operation_result;
+    *err_code = ec_bad_complex_operation_result;
     *err_severity = es_error;
   }  /* if */
 
