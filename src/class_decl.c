@@ -1804,6 +1804,8 @@ base class of new_class.
   /* Retain the access of the original derivation from this base class. */
   new_bcp->access = base_class_to_copy->access;
   new_bcp->is_virtual = base_class_to_copy->is_virtual;
+  new_bcp->any_virtual_steps_in_derivation =
+                         base_class_to_copy->any_virtual_steps_in_derivation;
   step = make_derivation_step(new_bcp, (a_derivation_step_ptr)NULL);
   new_bcp->derivation = copy_and_extend_path(path, step, new_bcp);
   /* Check for ambiguity. */
