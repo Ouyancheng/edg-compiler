@@ -342,7 +342,7 @@ Process the indicated scope.
 #endif  /* ifdef FFE */
 #ifdef CFE
     case sck_block:
-      /* No variant field, but see assoc_bloc below. */
+      /* No variant field, but see assoc_block below. */
 #endif  /* ifdef CFE */
       /* No pointers */
       break;
@@ -353,7 +353,7 @@ Process the indicated scope.
       break;
 #endif  /* ifdef CFE */
     case sck_function:
-      /* "ptr", which points to the routine associated with this scope is
+      /* "ptr", which points to the routine associated with this scope, is
          done after the declarations. */
       walk_list(ptr->variant.routine.parameters, a_variable_ptr,
                 iek_variable);
