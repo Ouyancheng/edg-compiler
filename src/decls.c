@@ -2111,19 +2111,21 @@ param type entry.
   a_variable_ptr    vp = param_list;
   a_param_type_ptr  ptp = param_type_list;
 
-  for (; vp != NULL; vp = vp->next, ptp = ptp->next) {
+  if (param_list != NULL) {
+    for (; vp != NULL; vp = vp->next, ptp = ptp->next) {
 #if CHECKING
-    if (ptp == NULL) {
-      internal_error("fixup_parameters: too few param type entries");
+      if (ptp == NULL) {
+        internal_error("fixup_parameters: too few param type entries");
+      }  /* if */
+#endif /* CHECKING */
+      vp->assoc_param_type = ptp;
+    }  /* for */
+#if CHECKING
+    if (ptp != NULL) {
+      internal_error("fixup_parameters: too many param type entries");
     }  /* if */
 #endif /* CHECKING */
-    vp->assoc_param_type = ptp;
-  }  /* for */
-#if CHECKING
-  if (ptp != NULL) {
-    internal_error("fixup_parameters: too many param type entries");
   }  /* if */
-#endif /* CHECKING */
 }  /* fixup_parameters */
 
 
@@ -6960,31 +6962,36 @@ explicitly specified (rather than defaulted to "int").
                                           rout_type, linked_redecl_error);
   } else {
     /* New-style (function prototype). */
-    a_param_type_ptr  ptp = extra_info->param_type_list;
-    if (func_info->any_prototype_names_omitted) {
-      /* At least one of the parameter names was omitted in the prototype.
-         This is not valid when there is a function definition (except in C++:
-         ARM 8.2.5, 8.3). */
-      if (C_dialect != C_dialect_cplusplus) {
-        error(ec_all_proto_params_must_be_named);
+    if (!top_declarator_type_is_function) {
+      /* There will be no parameter names to worry about, so skip over the
+         declarations. */
+    } else {
+      a_param_type_ptr  ptp = extra_info->param_type_list;
+      if (func_info->any_prototype_names_omitted) {
+        /* At least one of the parameter names was omitted in the prototype.
+           This is not valid when there is a function definition (except in
+           C++: ARM 8.2.5, 8.3). */
+        if (C_dialect != C_dialect_cplusplus) {
+          error(ec_all_proto_params_must_be_named);
+        }  /* if */
       }  /* if */
-    }  /* if */
-    param_id = func_info->param_id_list;
+      param_id = func_info->param_id_list;
 #if CHECKING
-    if ((param_id == NULL) != (ptp == NULL)) {
-      internal_error("function_definition: param_id and ptp out of sync");
-    }  /* if */
-#endif /* CHECKING */
-    for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
-      /* Declare each parameter identifier to have the associated type
-         from the parameter type list. */
-      decl_parameter(param_id, ptp, /*function_instantiation=*/FALSE);
-#if CHECKING
-      if ((param_id->next == NULL) != (ptp->next == NULL)) {
+      if ((param_id == NULL) != (ptp == NULL)) {
         internal_error("function_definition: param_id and ptp out of sync");
       }  /* if */
 #endif /* CHECKING */
-    }  /* while */
+      for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
+        /* Declare each parameter identifier to have the associated type
+           from the parameter type list. */
+        decl_parameter(param_id, ptp, /*function_instantiation=*/FALSE);
+#if CHECKING
+        if ((param_id->next == NULL) != (ptp->next == NULL)) {
+          internal_error("function_definition: param_id and ptp out of sync");
+        }  /* if */
+#endif /* CHECKING */
+      }  /* while */
+    }  /* if */
   }  /* if */
   /* Free the list of parameter ids, now that it is no longer needed. */
   free_param_id_list(&(func_info->param_id_list));
