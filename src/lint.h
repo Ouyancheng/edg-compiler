@@ -18,6 +18,9 @@ Included from basic_hdrs.h in every compilation.
 /* Options for FlexeLint. */
 /*lint -esym(767,fread_with_check)*/
 /*lint -esym(756,a*_dummy_typedef)*/
+/*lint -esym(755,typeref_is_const_qualified)*/
+/*lint -esym(755,typeref_is_volatile_qualified)*/
+/*lint -esym(755,typeref_is_restrict_qualified)*/
 /* Entities not used in certain configurations: */
 /*lint -esym(755,EXTERN_C)*/
 /*lint -esym(750,chdir_with_check)*/
