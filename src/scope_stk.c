@@ -5023,11 +5023,16 @@ the class symbol supplement points to the partial specialization).
 				    PS_MICROSOFT_SPECIALIZATION);
     scope_stack[depth_scope_stack].nested_instantiation = TRUE;
   } else {
+    a_push_scope_options_set		options;
+    options = PS_NO_OPTIONS;
+    if (is_prototype_instantiation_symbol(class_sym)) {
+      options |= PS_PROTOTYPE_INSTANTIATION;
+    }  /* if */
     push_template_instantiation_scope(decl_info, class_type,
                                       (a_routine_ptr)NULL, class_sym,
                                       template_sym, template_arg_list,
 				      /*push_stop_tokens=*/FALSE,
-				      PS_NO_OPTIONS);
+				      options);
   }  /* if */
 }  /* push_instantiation_scope_for_class */
 
@@ -5064,7 +5069,7 @@ extend_namespace).
      specialized classes.  But in Microsoft mode, an instantiation scope
      is pushed because the template parameters are visible, even in
      specializations. */
-  if (is_template_instance_class_symbol(class_sym)) {
+  if (is_any_template_instance_class_symbol(class_sym)) {
     is_template = ((!is_template_instance_specific_def_symbol(class_sym) &&
                   reactivate_template_params));
     if (microsoft_mode) {

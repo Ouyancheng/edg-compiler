@@ -1397,14 +1397,17 @@ nested class.
           curr_scope_class_type = rfp->class_type;
         }  /* if */
         if ((is_real_template_instantiation &&
-             !is_friend && !rfp->is_specialization) ||
-            (is_nonreal_template_instantiation &&
-             (is_friend || rfp->is_specialization))) {
+             !is_friend && !rfp->is_specialization)) {
           /* Discard the token cache for member functions of template
              classes -- instantiate_function_template does its thing based
-             on the tokens saved during prototype instantiation.  Also,
-             there is no reason to preserve the tokens for friend functions
-             during prototype instantiation. */
+             on the tokens saved during prototype instantiation. */
+          discard_token_cache(&rfp->function_body_token_cache);
+        } else if (!nonclass_prototype_instantiations &&
+                   is_nonreal_template_instantiation &&
+                   (is_friend || rfp->is_specialization)) {
+          /* During class prototype instantiations when not doing function
+             prototype instantiations, friend definitions and Microsoft
+             mode specializations are just discarded. */
           discard_token_cache(&rfp->function_body_token_cache);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_mode &&
@@ -1428,7 +1431,8 @@ nested class.
             function_prototype_instantiation(sym);
           }  /* if */
         } else if (is_nonreal_template_instantiation &&
-                   !scope_stack[depth_scope_stack].inside_local_class) {
+                   !scope_stack[depth_scope_stack].inside_local_class &&
+                   !is_friend && !rfp->is_specialization) {
           /* Prototype instantiation -- copy the cache for member functions.
              (Note that member functions of local classes of a function
              prototype instantiation are nonreal, but they are not themselves
