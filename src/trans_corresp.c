@@ -2259,9 +2259,11 @@ translation unit correspondence pointer if one is found.
                   a_routine_ptr  corresp_routine =
                                                   sub_sym->variant.routine.ptr;
                   a_type_ptr     sym_type = corresp_routine->type;
-                  if (routine != corresp_routine &&
-                      param_types_are_compatible(sym_type, routine->type,
-                                                 TCF_REDECLARATION)) {
+                  if (routine == corresp_routine) {
+                    /* Skip this symbol. */
+                  } else if (param_types_are_compatible(sym_type,
+                                                        routine->type,
+                                                        TCF_REDECLARATION)) {
                     /* Record the correspondence. */
                     record_trans_unit_corresp(routine,
                                               sub_sym->variant.routine.ptr);
