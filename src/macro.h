@@ -18,6 +18,10 @@ macro.h -- Declarations relating to macro.c (having to do with macro
 #ifndef MACRO_H
 #define MACRO_H 1
 
+#ifndef SYMBOL_TBL_H
+#include "symbol_tbl.h"
+#endif /* ifndef SYMBOL_TBL_H */
+
 EXTERN unsigned long
 		macro_depth;
 			/* Current number of levels of nesting of macro
@@ -65,6 +69,12 @@ extern void enter_assert_predicate(char *value,
 
 /* Scan a reference to an #assert predicate */
 extern a_boolean scan_assert_predicate_reference(void);
+
+extern a_symbol_ptr enter_predef_macro(char      *repl_text,
+			               char      *macro_name,
+				       a_boolean cannot_be_redefined);
+
+extern void init_predefined_macros(char  curr_date_time[26]);
 
 #if DEBUG
 /* Show and return the amount of space used by macro entries. */
