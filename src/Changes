@@ -5,7 +5,10 @@ Version 2.31
 A flag, generated_default_arg, has been added to an_expr_node to mark a
 node that is a copy of a default argument expression pointed to by a
 param-type entry.  Such copies are generated whenever a call makes use of
-an implicit argument.
+an implicit argument.  This is used by the C++-generating back end to
+suppress defaulted arguments on calls (that's necessary because the
+default argument expression might refer to things that are inaccessible
+at the point of call).
 
 12/20/95  IL CHANGE: anonymous union parent object
 
