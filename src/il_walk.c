@@ -578,12 +578,14 @@ otherwise changed (lowered, hidden name entries added) at a later stage
 shouldn't have their subtrees walked until after there is no longer the
 possibility of the subtree changing.  end_of_file_scope_needed_flags_phase is
 set to TRUE in a phase where subtrees should finally be walked (see
-set_needed_flags_at_end_of_file_scope).  is_class is TRUE if the entity is
-a class.
+set_needed_flags_at_end_of_file_scope).  Classes declared in function
+prototype scopes (which can happen only in C) are always processed
+immediately.  is_class is TRUE if the entity is a class.
 */
 #define should_walk_subtree(entry_ptr, entry_kind, is_class) \
  (end_of_file_scope_needed_flags_phase || \
-  !((is_class) || \
+  !(((is_class) && \
+     !((a_type_ptr)entry_ptr)->declared_in_function_prototype) || \
     ((entry_kind) == iek_variable && in_file_scope(entry_ptr)) || \
     ((entry_kind) == iek_routine)))
 
