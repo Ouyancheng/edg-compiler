@@ -8267,6 +8267,22 @@ Add the IL macro entry pointed to by mp to the list for the file scope.
 
 #endif /* RECORD_MACROS_IN_IL */
 
+a_namespace_ptr f_skip_namespace_aliases(a_namespace_ptr nsp)
+/*
+nsp points to either a namespace or a namespace alias.  If nsp is
+a namespace, the pointer to that namespace is returned.  If nsp
+is a namespace alias, a pointer to the real namespace is returned.
+*/
+{
+  while (nsp->is_namespace_alias) {
+    nsp = nsp->variant.assoc_namespace;
+    check_assertion_str2(nsp != NULL, "f_skip_namespace_aliases:",
+                         "NULL namespace pointer");
+  }  /* while */
+  return nsp;
+}  /* skip_namespace_aliases */
+
+
 #if DEBUG
 unsigned long show_il_space_used(void)
 /*

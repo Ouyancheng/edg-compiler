@@ -737,6 +737,15 @@ extern void add_scope_orphaned_il_lists(a_scope_ptr scope);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
+extern a_namespace_ptr f_skip_namespace_aliases(a_namespace_ptr nsp);
+
+/*
+Given a namespace pointer, return a pointer to the actual namespace,
+skipping any namespace aliases that might be present.
+*/
+#define skip_namespace_aliases(nsp)					\
+  ((nsp)->is_namespace_alias ? f_skip_namespace_aliases(nsp) : (nsp))
+
 extern void init_type_of_type_info(void);
 
 extern void il_reset(void);
