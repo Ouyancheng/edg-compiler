@@ -1,5 +1,15 @@
 Version 2.16
 
+4/2/93  Taking the address of a member function without "&"
+
+It is now legal (except in strict mode) to take the address of a member
+function without using "&", as in
+
+  struct A { int f(); };
+  int (A::*p)() = A::f;  // Now OK
+
+This extension is accepted by cfront and is widely used in code.
+
 4/2/93  Template specific definitions not at global scope
 
 We now issue an error for specific definitions of a class templates
