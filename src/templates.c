@@ -15243,11 +15243,17 @@ that follows.
   a_boolean                     first_decl = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean			microsoft_nonstd_specialization = FALSE;
+  an_attribute_ptr              *p_attributes = NULL;
+  an_attribute_ptr              attributes = NULL;
 
   db_enter(3, "full_specialization");
   decl_start_pos = pos_curr_token;
   clear_decl_pos_block(&decl_pos_block);
   /* First scan the decl-specifiers. */
+  if (gpp_mode) {
+    /* Recognize GNU attributes while scanning the decl-specifiers. */
+    p_attributes = &attributes;
+  }  /* if */
   (void)decl_specifiers((DSI_IS_SPECIALIZATION |
                          DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
                          DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER |
@@ -15258,7 +15264,7 @@ that follows.
 				    DSI_STORAGE_CLASS_SPECIFIER_ALLOWED
                                   : DSI_NO_INPUT_FLAGS)),
                         &dso_flags, &storage_class, &type, &qualifiers,
-                        (an_attribute_ptr *)NULL, (an_ms_attribute_ptr*)NULL, 
+                        p_attributes, (an_ms_attribute_ptr*)NULL, 
                         &decl_modifiers, &decl_pos_block,
                         (a_upc_block_size *)NULL);
   /* A storage class is not permitted on an explicit specialization,
@@ -15329,9 +15335,16 @@ that follows.
         qualifiers == TQ_NONE) {
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    if (attributes != NULL) {
+      /* Append any declarator attributes to the attributes provided in the
+         decl-specifier. */
+      p_attributes = last_attribute_link(p_attributes);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     declarator(di_flags, &do_flags, type, decl_state->class_declared_in,
                &locator, &type, &declarator_ssep, &func_info, &decl_pos_block,
-               (an_attribute_ptr *)NULL);
+               p_attributes);
     sym = NULL;
     has_parenthesized_initializer =
                               (do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
@@ -15549,6 +15562,11 @@ that follows.
           /* Inline may not be specified. */
           pos_error(ec_inline_and_nonfunction, &decl_start_pos);
         }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+        if (attributes != NULL) {
+          apply_attributes_to_variable(attributes, vp, is_definition);
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         /* Deal with initializer. */
         if (is_definition) {
           a_boolean  incomplete_type_error_reported = FALSE;
@@ -15570,6 +15588,17 @@ that follows.
                       /*is_old_style_param_decl=*/FALSE,
                       &incomplete_type_error_reported,
                       &decl_pos_block);
+#if GNU_EXTENSIONS_ALLOWED
+          if (gpp_mode && has_parenthesized_initializer) {
+            /* Scan any trailing attributes. */
+            an_attribute_ptr  trailing_attributes = scan_attributes();
+            /* Apply the attributes to the variable declaration. */
+            apply_attributes_to_variable(trailing_attributes, vp,
+                                         /*is_definition=*/TRUE);
+            /* Free up the list of attributes. */
+            free_attribute_list(trailing_attributes);
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         }  /* if */
       } else {
         /* Issue an error if the exception specification on the instance does
@@ -15647,6 +15676,12 @@ that follows.
           func_info.function_type_from_typedef = TRUE;
           type = skip_typerefs(type);
         }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+        if (attributes != NULL) {
+          /* Apply the attributes to the routine. */
+          apply_attributes_to_routine(attributes, rp);
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         if (is_definition) {
           /* This is a defining declaration of the function template. */
           func_info.is_definition = TRUE;
