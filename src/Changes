@@ -1,5 +1,14 @@
 Version 2.13
 
+12/16/92 Testing pointers to members in "if" statements etc.
+
+Pointers to members can now be used as boolean controlling expressions
+in "if", "while", "do-while", and "for" statements, and as the first
+operand of a "?" operator.  Conversion functions that will convert
+an operand in such a position to a pointer to member will also be
+found.  This is in accordance with the latest working paper from
+X3J16/WG21.
+
 12/16/92 Instantiation must be done to determine class relationships
 
 In the following, the class S<int> need not be instantiated simply because
