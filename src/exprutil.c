@@ -3087,10 +3087,15 @@ in pre-C99 C.  A diagnostic is issued in strict mode.
 }  /* handle_nonstandard_array_rvalue */
 
 
-void arg_default_promote_operand(an_operand *argument_operand)
+void arg_default_promote_operand(an_operand *argument_operand,
+                                 a_boolean  is_ellipsis)
 /*
 Do default argument promotions on an argument operand.  If the operand is
 an lvalue, it is converted to an rvalue before doing the promotions.
+is_ellipsis if the argument is being passed to an ellipsis.  If it's
+FALSE, we just have a case where we have no parameter information
+at all, which happens, for example, for an unprototyped function in
+C mode.
 */
 {
   a_type_ptr arg_type;
@@ -3113,7 +3118,7 @@ an lvalue, it is converted to an rvalue before doing the promotions.
   } else if (is_class_struct_union_type(arg_type)) {
     /* Class.  No promotion needed. */
     if (!C_mode()) {
-      if (!symbol_supplement_for_class(arg_type)->is_POD) {
+      if (is_ellipsis && !symbol_supplement_for_class(arg_type)->is_POD) {
         /* Warn on passing a non-POD class to an ellipsis. */
         pos_warning(ec_non_pod_passed_to_ellipsis,
                     &argument_operand->position);

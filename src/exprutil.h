@@ -929,7 +929,8 @@ extern void make_integer_constant_operand(an_operand		*operand,
 
 extern void promote_operand(an_operand *operand);
 
-extern void arg_default_promote_operand(an_operand *argument_operand);
+extern void arg_default_promote_operand(an_operand *argument_operand,
+                                        a_boolean  is_ellipsis);
 
 extern void make_constant_operand(a_constant *constant,
 			          an_operand *operand);
