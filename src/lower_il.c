@@ -29,6 +29,8 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 #include "exprutil.h"
 #include "lexical.h"
 #include "folding.h"
+#include "const_ints.h"
+#include "float_pt.h"
 #include "class_decl.h"
 #include "layout.h"
 #include "mem_manage.h"
@@ -1808,7 +1810,7 @@ The safe return value is FALSE.
     a_constant_ptr con = expr->variant.constant;
     if (con->kind == (a_constant_repr_kind)ck_integer) {
       /* An integer constant is non-NULL if it's non-zero. */
-      cannot_be = (con->variant.integer_value != 0);
+      cannot_be = !eqlit_integer_constant(con, 0L);
     } else if (con->kind == (a_constant_repr_kind)ck_address) {
       /* An address constant cannot be NULL. */
       cannot_be = TRUE;
@@ -2517,32 +2519,183 @@ and (always) return the length of the literal representation.  This is
 used to encode constants as part of the mangled names of template classes.
 */
 {
-  sizeof_t      literal_length, digits;
-  unsigned long int_value;
+  sizeof_t       literal_length, str_length, digits, temp;
+  char           *str;
+  a_constant_ptr str_con;
+  an_address_base_kind
+                 abkind;
+  a_targ_ptrdiff_t
+                 offset;
 
   switch (con->kind) {
     case ck_integer:
-      literal_length = 0;
-      if (is_signed_integral_type(con->type) &&
-          con->variant.integer_value < 0) {
-        /* Negative integer. */
-        literal_length++;
-        if (store_at != NULL) *store_at++ = 'n';
-        /* Negate the value in a way that avoids overflow on the smallest
-           integer on two's complement machines. */
-        int_value = (unsigned long)(-(con->variant.integer_value+1))+1;
-      } else {
-        /* Nonnegative integer. */
-        int_value = con->variant.integer_value;
-      }  /* if */
-      digits = digits_to_represent(int_value);
-      literal_length += digits;
+      /* Integer: the encoding is like
+           L3n12  <-- encoding for "-12"
+              ^^----- literal value
+             ^------- "n" indicates negative.
+            ^-------- Length of the literal.
+           ^--------- "L" indicates a number.
+         This is compatible with cfront 3.0.1. */
+      str = str_for_integer_constant(con);
+      str_length = strlen(str);  /* Includes "-" sign if any. */
+      digits = digits_to_represent(str_length);
+      literal_length = 1 + digits + str_length;
       if (store_at != NULL) {
-        (void)sprintf(store_at, "%lu", int_value);
+        *store_at++ = 'L';
+        (void)sprintf(store_at, "%lu", (unsigned long)str_length);
         store_at += digits;
+        (void)memcpy(store_at, str, (int)str_length);
+        /* Use "n" to represent a minus sign. */
+        if (*store_at == '-') *store_at = 'n';
+        store_at += str_length;
+      }  /* if */
+      break;
+    case ck_float:
+      /* Float: the encoding is like
+           L4n1p5 <-- encoding for "-1.5"
+              ^^^---- literal value ("p" for decimal point).
+             ^------- "n" indicates negative.
+            ^-------- Length of the literal.
+           ^--------- "L" indicates a number.
+         cfront 3.0.1 does not implement this, so we made it up. */
+      /* Note that the fp_to_string conversion is not compact, so this
+         makes a long name. */
+      str = fp_to_string(skip_typerefs(con->type)->variant.float_kind,
+                         &con->variant.float_value);
+      str_length = strlen(str);  /* Includes "-" sign if any. */
+      digits = digits_to_represent(str_length);
+      literal_length = 1 + digits + str_length;
+      if (store_at != NULL) {
+        *store_at++ = 'L';
+        (void)sprintf(store_at, "%lu", (unsigned long)str_length);
+        store_at += digits;
+        for (;str_length > 0; str_length--) {
+          /* Move the string and recode non-alphanumeric characters. */
+          char c = *str++;
+          /* Use "n" to represent a minus sign. */
+          if (c == '-') c = 'n';
+          /* Use "d" to represent a decimal point. */
+          if (c == '.') c = 'd';
+          /* Use "p" to represent a plus sign. */
+          if (c == '+') c = 'p';
+          *store_at++ = c;
+        }  /* for */
+      }  /* if */
+      break;
+    case ck_address:
+      /* Address.  For the address of a constant string, put out an encoded
+         version of the string itself.  For other cases, put out the
+         name of the entity whose address is involved. */
+      abkind = con->variant.address.kind;
+      if (abkind == (an_address_base_kind)abk_constant) {
+        str_con = con->variant.address.variant.constant;
+#if CHECKING
+        if (str_con->kind != (a_constant_repr_kind)ck_string) {
+          internal_error("literal_representation: addr of non-string const");
+        }  /* if */
+#endif /* CHECKING */
+        /* String: the encoding is like
+             S5a056b <-- encoding for "a.b"
+               ^^^^^---- literal value (non-alphabetic characters changed to
+                         octal)
+              ^--------- Length of the literal.
+             ^---------- "S" indicates a string.
+           cfront 3.0.1 does not implement this, so we made it up. */
+        str_length = str_con->variant.string.length;
+        str = str_con->variant.string.value;
+        /* Drop the final null if there is one. */
+        if (str_length != 0 && str[str_length-1] == '\0') str_length--;
+        /* Count two extra characters for the octal form for each
+           non-alphanumeric character. */
+        for (temp = str_length; temp > 0; temp--) {
+          if (!isalpha(str[temp-1])) str_length += 2;
+        }  /* for */
+        digits = digits_to_represent(str_length);
+        literal_length = 1 + digits + str_length;
+        if (store_at != NULL) {
+          *store_at++ = 'S';
+          (void)sprintf(store_at, "%lu", (unsigned long)str_length);
+          store_at += digits;
+          for (;str_length > 0; str_length--) {
+            /* Move the string and recode non-alphabetic characters. */
+            char c = *str++;
+            if (!isalpha(c)) {
+              /* Convert to octal.  Drop sign extension if any. */
+              int i = c & ((1<<TARG_CHAR_BIT)-1);
+#if TARG_CHAR_BIT > 9
+??=error -- code here does not handle TARG_CHAR_BIT > 9
+#endif /* TARG_CHAR_BIT > 9 */
+              *store_at++ = '0' + i/64;
+              i %= 64;
+              *store_at++ = '0' + i/8;
+              i %= 8;
+              *store_at++ = '0' + i;
+              str_length -= 2;
+            } else {
+              *store_at++ = c;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+      } else {
+        /* Address of something other than a constant, i.e., a variable or
+           routine. */
+        if (abkind == (an_address_base_kind)abk_variable) {
+          str = con->variant.address.variant.variable->source_corresp.name;
+        } else {
+#if CHECKING
+          if (abkind != (an_address_base_kind)abk_routine) {
+            internal_error("literal_representation: bad abkind");
+          }  /* if */
+#endif /* CHECKING */
+          str = con->variant.address.variant.routine->source_corresp.name;
+        }  /* if */
+#if CHECKING
+        if (str == NULL) {
+          internal_error("literal_representation: addr of unnamed");
+        }  /* if */
+#endif /* CHECKING */
+        /* The encoding is like
+             c4abcd <-- encoding for address of "abcd"
+               ^^^^---- name of entity.
+              ^-------- Length of the name.
+             ^--------- "c" indicates a constant address.
+           This is compatible with cfront 3.0.1. */
+        str_length = strlen(str);
+        digits = digits_to_represent(str_length);
+        literal_length = 1 + digits + str_length;
+        if (store_at != NULL) {
+          *store_at++ = 'c';
+          (void)sprintf(store_at, "%lu", (unsigned long)str_length);
+          store_at += digits;
+          (void)memcpy(store_at, str, (int)str_length);
+          store_at += str_length;
+        }  /* if */
+      }  /* if */
+      /* If the offset is non-zero, add it at the end, in a form similar
+         to the integer constant form, except using "O", e.g., O3n12
+         for -12. */
+      offset = con->variant.address.offset;
+      if (offset != 0) {
+        char buffer[30];
+        (void)sprintf(buffer, "%ld", (long)offset);
+        str = buffer;
+        str_length = strlen(str);  /* Includes "-" sign if any. */
+        digits = digits_to_represent(str_length);
+        literal_length += 1 + digits + str_length;
+        if (store_at != NULL) {
+          *store_at++ = 'O';
+          (void)sprintf(store_at, "%lu", (unsigned long)str_length);
+          store_at += digits;
+          (void)memcpy(store_at, str, (int)str_length);
+          /* Use "n" to represent a minus sign. */
+          if (*store_at == '-') *store_at = 'n';
+          store_at += str_length;
+        }  /* if */
       }  /* if */
       break;
 #if CHECKING
+    case ck_string:
+      /* Strings should be converted to addresses. */
     default:
       internal_error("literal_representation: bad constant kind");
 #endif /* CHECKING */
@@ -2642,7 +2795,8 @@ the name.
           if (pass == 1) {
             arg_length = 2; /* "XC" */
             arg_length += mangled_encoding_for_type(con->type, (char *)NULL);
-            arg_length += 1; /* "L" */
+            literal_length = literal_representation(con, (char *)NULL);
+            arg_length += literal_length;
           } else {
             mangled_name_length += 2;
             *store_at++ = 'X';
@@ -2650,18 +2804,7 @@ the name.
             type_length = mangled_encoding_for_type(con->type, store_at);
             mangled_name_length += type_length;
             store_at += type_length;
-            mangled_name_length++;
-            *store_at++ = 'L';
-          }  /* if */
-          literal_length = literal_representation(con, (char *)NULL);
-          digits = digits_to_represent((unsigned long)literal_length);
-          if (pass == 1) {
-            arg_length += digits + literal_length;
-          } else {
-            (void)sprintf(store_at, "%lu", (unsigned long)literal_length);
-            mangled_name_length += digits;
-            store_at += digits;
-            (void)literal_representation(con, store_at);
+            literal_length = literal_representation(con, store_at);
             mangled_name_length += literal_length;
             store_at += literal_length;
           }  /* if */
@@ -8319,6 +8462,8 @@ original expressions have not been lowered yet.
   a_constant         size_constant, null_constant;
   a_boolean          vec_new_can_do_allocation, preserve_size_node;
   a_variable_ptr     alloc_temp_var;
+  a_targ_size_t      con_for_size;
+  a_boolean          ovflo;
   
   /* Get the array element type. */
   elem_type = new_delete_elem_type_from_pointer_type(top_expr->type);
@@ -8437,11 +8582,16 @@ original expressions have not been lowered yet.
       internal_error("lower_array_new: size_constant not integral");
     }  /* if */
 #endif /* CHECKING */
+    con_for_size = unsigned_value_of_integer_constant(&size_constant, &ovflo);
+#if CHECKING
+    if (ovflo) {
+      internal_error("lower_array_new: ovflo on extraction of size");
+    }  /* if */
+#endif /* CHECKING */
     /* Note that we know the type is not incomplete, so the element size
        is not zero. */
-    size_constant.variant.integer_value /= elem_size;
-    if (nonconstant_node != NULL &&
-        size_constant.variant.integer_value == 1) {
+    con_for_size /= elem_size;
+    if (nonconstant_node != NULL && con_for_size == 1) {
       /* The constant can be eliminated altogether, i.e., there was a
          multiplication by the base element size which is now not needed. */
       /* Remove the multiplication, leaving the original first operand
@@ -8455,6 +8605,9 @@ original expressions have not been lowered yet.
     } else {
       /* The altered constant still figures in the number-of-elements
          expression. */
+      set_unsigned_value_of_integer_constant(&size_constant,
+                                             (unsigned long)con_for_size,
+                                             size_constant.type);
       if (preserve_size_node) {
         /* We need to preserve size_node, so make a new node for the
            constant. */
