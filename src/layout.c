@@ -875,6 +875,11 @@ bcp.
   a_targ_size_t      size;
   a_targ_alignment   alignment;
 
+#if CHECKING
+  if (bcp->pointer_offset_is_set) {
+    internal_error("pointer_offset_for_virtual_base_class: already set");
+  }  /* if */
+#endif /* CHECKING */
 #if TARG_ALL_POINTERS_SAME_SIZE
   /* All pointers are the same size. */
   alignment = (a_targ_alignment)TARG_ALIGNOF_POINTER;
@@ -883,6 +888,7 @@ bcp.
 ??=error pointer_offset_for_virtual_base_class: different sized pointers
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
   bcp->pointer_offset = set_offset_and_alignment(lob, size, alignment);
+  bcp->pointer_offset_is_set = TRUE;
 }  /* pointer_offset_for_virtual_base_class */
 
 
@@ -974,8 +980,7 @@ successors on the list, if any, are processed before the precessor.
         bcp = corresponding_base_class(base_class,
                                        /*old_type=*/(a_type_ptr)NULL,
                                        lob->class_type);
-        if (bcp->pointer_base_class == NULL && bcp->pointer_offset == 0 &&
-            !lob->any_overflow &&
+        if (bcp->pointer_base_class == NULL && !bcp->pointer_offset_is_set &&
             is_best_derivation(bcp, derived_bcp, lob->class_type)) {
           /* Allocate the pointer. */
           pointer_offset_for_virtual_base_class(lob, bcp);
@@ -1109,7 +1114,7 @@ base classes, direct and indirect, and allocate pointers as needed for them.
      that corresponds to base_class. */
   bcp = corresponding_base_class(base_class, (a_type_ptr)NULL,
                                  lob->class_type);
-  if (bcp->pointer_offset == 0) {
+  if (!bcp->pointer_offset_is_set) {
     /* Allocate a pointer to its data section.  The offset of the pointer will
        be recored in *bcp. */
     pointer_offset_for_virtual_base_class(lob, bcp);
@@ -1177,7 +1182,7 @@ is not shared (i.e., where the pointer from a base class is not used).
 #else /* i.e., #if !CFRONT_CLASS_LAYOUT_COMPATIBILITY */
     /* In normal layout mode we traverse the base classes list only once.
        The pointers are put out (when needed -- i.e., when the pointer base
-       class is NULL) in base classes order. */
+       class is NULL) in base class order. */
 
     for (; bcp != NULL; bcp = bcp->next) {
       /* For virtual base classes we only reserve enough space for a pointer
@@ -1651,11 +1656,12 @@ the layout.
 */
 {
   a_type_ptr        class_type = lob->class_type;
-#if 0
-  a_base_class_ptr  base_class_list;
-#endif /* if 0 */
 
   db_enter(3, "finish_laying_out_class");
+  /* Space for direct nonvirtual base classes was allocated right after the
+     base class specifiers were scanned.  In addition, space for nonstatic
+     data members was allocated as they were encountered (except in the
+     case where they were segregated by accessibility -- see below). */
   if (C_dialect == C_dialect_cplusplus) {
 #if !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
     /* Only public fields were given an offset in decl_nonstatic_data_member.
@@ -1664,17 +1670,32 @@ the layout.
        fields. */
     set_offsets_for_remaining_fields(lob);
 #endif /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
+    /* After the nonstatic data members allocate space for the virtual
+       function info block (typically a pointer to the virtual function
+       table. */
     set_offset_for_virtual_function_info(lob);
+    /* Next allocate space for pointers to the virtual base class data
+       sections. */
     set_offsets_for_virtual_base_class_pointers(lob);
+    /* Finally, allocate space for the virtual base class data sections
+       themselves. */
     set_offsets_for_virtual_base_classes(lob);
   }  /* if */
+  /* Adjust the total size of the class to be consistent with the
+     overall alignment required for the class. */
   if (!do_alignment(&lob->byte_offset, &lob->bit_offset, lob->alignment)) {
     if (!lob->any_overflow) error(ec_struct_too_large);
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
+    /* Go through all the indirect base classes and compute their
+       offsets within the current derived class. */
     set_offsets_for_indirect_base_classes(class_type);
+    /* Similarly go through all the virtual base classes and do any required
+       fixup on their pointer offsets and (in cfront compatibility mode)
+       their data section offsets. */
     fixup_shared_virtual_base_class_offsets(class_type);
   }  /* if */
+  /* Record the overall size and alignment in the class's type entry. */
   class_type->size = lob->byte_offset;
   class_type->alignment = lob->alignment;
   /* Avoid a zero-sized structure (as in "struct {int : 0;}" for C and in
