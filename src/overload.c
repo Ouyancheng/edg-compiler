@@ -10420,14 +10420,17 @@ static a_boolean conversion_possible(
                                  a_boolean         processed_arg,
                                  an_error_code     incompatible_err,
                                  a_source_position *err_pos,
-                                 a_conv_descr      *conversion)
+                                 a_conv_descr      *conversion,
+                                 a_conv_descr      *ctor_arg_conversion)
 /*
 Check whether or not the source operand can be converted to the
 destination type, implicitly in an initialization.  If so, set
-*conversion to describe the conversion, and return TRUE.  If not, issue
-the error incompatible_err at the position err_pos, change the operand
-to an error operand, and return FALSE.  The result of the conversion
-must be an lvalue if need_lvalue_result is TRUE.
+*conversion to describe the conversion (and if ctor_arg_conversion
+is non-NULL, set *ctor_arg_conversion to describe the conversion on
+the argument of a constructor, if applicable), and return TRUE.  If not,
+issue the error incompatible_err at the position err_pos, change the
+operand to an error operand, and return FALSE.  The result of the
+conversion must be an lvalue if need_lvalue_result is TRUE.
 initializing_return_value is TRUE if the initialization is being done
 to return a value in a return statement.  If is_copy_initialization
 is TRUE, this is copy-initialization ("="-form); otherwise,
@@ -10470,7 +10473,7 @@ is not a parameter.
                                        orig_is_copy_initialization,
                                        is_reference_binding,
                                        processed_arg,
-                                       conversion, (a_conv_descr *)NULL,
+                                       conversion, ctor_arg_conversion,
                                        &failed)) {
     /* A user-defined conversion can be done. */
     okay = TRUE;
@@ -11047,7 +11050,7 @@ For processed_arg, see conversion_to_class_possible.
                                    is_reference_binding,
                                    processed_arg,
                                    incompatible_err, err_pos,
-                                   *p_conversion);
+                                   *p_conversion, (a_conv_descr *)NULL);
   }  /* if */
   return possible;
 }  /* conversion_usable_or_possible */
@@ -11262,16 +11265,19 @@ is TRUE if the dynamic initialization should indicate destruction.
 
 
 static void determine_dynamic_init_for_class_init(
-                                          an_operand         *source_operand,
-                                          a_type_ptr         dest_type,
-                                          a_conv_descr       *conversion,
-                                          a_boolean          fill_in_dtor,
-                                          a_dynamic_init_ptr *p_dip,
-                                          an_expr_node_ptr   *p_temp_init_node)
+                                       an_operand         *source_operand,
+                                       a_type_ptr         dest_type,
+                                       a_conv_descr       *conversion,
+                                       a_conv_descr       *ctor_arg_conversion,
+                                       a_boolean          fill_in_dtor,
+                                       a_dynamic_init_ptr *p_dip,
+                                       an_expr_node_ptr   *p_temp_init_node)
 /*
 An entity of type dest_type (a class type) is being initialized from
 source_operand.  The constructor or conversion function required to do the
-copy and/or conversion is given by *conversion.  Create a dynamic
+copy and/or conversion is given by *conversion.  If ctor_arg_conversion
+is non-NULL, it gives the conversion on the first argument of the
+constructor (important only in some nonstandard modes).  Create a dynamic
 initialization entry to do the initialization (and any required
 destruction, if fill_in_dtor is TRUE) and return a pointer to
 it in *dip (or return *dip == NULL for an error).  If
@@ -11443,7 +11449,7 @@ happen only in C++ mode.
   } else if (conversion_routine != NULL) {
     /* conversion_routine is a constructor (copy or other). */
     set_up_for_constructor_call(source_operand, conversion_routine,
-                                (a_conv_descr *)NULL, &arg_expr_list);
+                                ctor_arg_conversion, &arg_expr_list);
     /* Use a dik_constructor entry to call the constructor. */
     dip = alloc_dynamic_init_possibly_with_dtor(
                                           (a_dynamic_init_kind)dik_constructor,
@@ -11514,7 +11520,7 @@ to do copy constructor elision in C++ mode.  This is an initialization
 with the "=" semantics (copy-initialization).
 */
 {
-  a_conv_descr conversion;
+  a_conv_descr conversion, ctor_arg_conversion;
   an_operand   orig_operand;
   a_boolean    is_copy_initialization = TRUE;
   a_boolean    orig_is_copy_initialization = is_copy_initialization;
@@ -11537,11 +11543,11 @@ with the "=" semantics (copy-initialization).
                           /*processed_arg=*/FALSE,
                           err_code,
                           &source_operand->position,
-                          &conversion)) {
+                          &conversion, &ctor_arg_conversion)) {
     /* The conversion is possible.  Determine the routine and argument
        list to return to the caller. */
     determine_dynamic_init_for_class_init(source_operand, dest_type,
-                                          &conversion,
+                                          &conversion, &ctor_arg_conversion,
                                           fill_in_dtor,
                                           dip, (an_expr_node_ptr *)NULL);
   }  /* if */
@@ -12694,7 +12700,7 @@ see conversion_to_class_possible.
        will initialize the temporary.  The temporary's address is passed
        to the called routine. */
     determine_dynamic_init_for_class_init(source_operand, param_type,
-                                          conversion,
+                                          conversion, (a_conv_descr *)NULL,
                                           /*fill_in_dtor=*/TRUE,
                                           &dip, &temp_init_node);
     make_expression_operand(temp_init_node, temp_init_node->type,

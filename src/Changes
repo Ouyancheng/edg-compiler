@@ -1,5 +1,21 @@
 Version 3.5
 
+7/12/04  Microsoft compatibility: Two constructor calls in copy-initialization
+
+The Microsoft extension that treats certain copy-initialization contexts
+as direct-initializations (see Changes entry of 1/18/98) did not work
+correctly when the initialization ended up calling two constructors
+(rather than a conversion function plus a constructor).  Such cases
+are now allowed in Microsoft bugs mode.
+
+  struct T {  T() {}  };
+  struct U {  U(T) {}  U() {}  };
+  struct V {  V(U) {}  V() {}  };
+  int main(void) {
+    T t;
+    V v2 = t;  // Now accepted in Microsoft bugs mode.
+  }
+
 7/9/04   Hidden local variables
 
 The front end now issues a remark when one local variable is hidden by
