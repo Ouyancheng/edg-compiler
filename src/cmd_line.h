@@ -473,6 +473,16 @@ EXTERN a_boolean
 			   of the class. */
 
 EXTERN a_boolean
+		pointer_to_member_call_optimization_allowed
+#if VAR_INITIALIZERS
+                         = DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* TRUE if optimized code can be generated for certain
+			   pointer to member calls.  The C++ standard disallows
+			   this optimization. */
+
+EXTERN a_boolean
 		special_subscript_cost
 #if VAR_INITIALIZERS
                                        = DEFAULT_SPECIAL_SUBSCRIPT_COST

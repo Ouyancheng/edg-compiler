@@ -7005,8 +7005,12 @@ the expression have already been lowered.
      "pmf" above is replaced by "(pmf_temp = pmf)", and the rest by
      "pmf_temp".  See ARM 8.1.2.c for some insight into the pointer-to-
       member-function data structure. */
-  /* If the class and its base classes have no virtual functions,
-     the following simpler version is used:
+  /* It used to be possible to generate an optimized code sequence if the
+     class and its base classes have no virtual functions.  However,
+     the C++ standards process made some changes to the definition of
+     pointers to members that precludes the optimization.  See the
+     paper WG21/N0644.  Now, the optimized code sequence is generated
+     only when a compatibility option is enabled.  The simpler code is:
        ((this_temp = (object_type *)((char *)object + pmf.d)),
         eok_call((function_type *)pmf.f,
                  this_temp,
@@ -7032,7 +7036,8 @@ the expression have already been lowered.
   this_temp_assign_node = make_var_assignment_expr(this_temp_var,
                                             (an_expr_operator_kind)eok_passign,
                                                    cast_node);
-  if (class_type->variant.class_struct_union.extra_info->assoc_scope != NULL &&
+  if (pointer_to_member_call_optimization_allowed &&
+      class_type->variant.class_struct_union.extra_info->assoc_scope != NULL &&
       !class_type->variant.class_struct_union.
                              any_virtual_functions_including_in_base_classes) {
     /* No virtual functions, so use the simpler form. */

@@ -1,5 +1,13 @@
 Version 2.41
 
+1/22/99   IL Lowering of pointer-to-member calls: no optimized code sequence
+
+IL lowering of pointer-to-member calls has used a simpler code sequence
+when the class involved has no virtual functions.  The C++ standard now
+disallows that optimization (see WG21/N0644), so it has been removed.
+The old behavior can be retained by setting
+DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED to TRUE.
+
 1/22/99   C-generating back end: bit field base types
 
 When ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C is TRUE, the

@@ -1040,6 +1040,17 @@ FALSE is the setting required for standard conformance.
 #define DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER FALSE
 #endif /* ifndef DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER */
 
+/*
+Flag that is TRUE if IL lowering can generate an optimized code sequence
+for certain pointer to member calls for classes that have no virtual
+functions.  The C++ standard disallows this optimization, but some
+older compilers have done it.  See the WG21 paper N0644 for a description
+of the disallowed optimization.
+*/
+#ifndef DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED
+#define DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED FALSE
+#endif /* ifndef DEFAULT_POINTER_TO_MEMBER_CALL_OPTIMIZATION_ALLOWED */
+
 #endif /* ifndef LANG_FEAT_H */
 
 /******************************************************************************
