@@ -624,6 +624,7 @@ back end is being used.
 /*
 Flag that is TRUE if source sequence lists are being generated and if they
 should include information about comments.
+Note: As of November 1996, this is not yet implemented.
 */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #ifndef COMMENTS_IN_SOURCE_SEQUENCE_LISTS
