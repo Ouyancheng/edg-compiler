@@ -2025,9 +2025,12 @@ the current function scope.
 */
 {
   if (!source_sequence_entries_disallowed) {
-    if (C_dialect == C_dialect_cplusplus &&
-        !(sp->kind == (a_statement_kind)stmk_block &&
-          sp->variant.block.extra_info->is_statement_expression)) {
+    if (C_dialect == C_dialect_cplusplus
+#if GNU_EXTENSIONS_ALLOWED
+        && !(sp->kind == (a_statement_kind)stmk_block &&
+             sp->variant.block.extra_info->is_statement_expression)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                                   ) {
       /* If the previous statement was a decl-statement, deactivate it. */
       wrapup_decl_statement();
     }  /* if */
