@@ -287,7 +287,7 @@ Return a pointer to the character position following the number.
 */
 {
   if (*p == '_') {
-    /* New encoding (not from front) -- the length is surrounded by
+    /* New encoding (not from cfront) -- the length is surrounded by
        underscores whether it's a single digit or several digits,
        e.g., "L_10_1234567890". */
     p++;
