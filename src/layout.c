@@ -1056,7 +1056,17 @@ there's no overflow TRUE is returned.
       /* If the alignment of this field was explicitly specified,
          honor that. */
       if (field->alignment != 0) {
-        field_alignment = field->alignment;
+        if (gcc_mode && field->alignment < field_alignment &&
+            !(field->is_packed ||
+              class_type->variant.class_struct_union.is_packed)) {
+          /* GNU C compilers ignore alignment directives that reduce the
+             alignment, unless the packed attribute was also specified. */
+          pos_warning(ec_alignment_reduction_ignored,
+                      &field->source_corresp.decl_position);
+          field->alignment = field_alignment;
+        } else {
+          field_alignment = field->alignment;
+        }  /* if */
       } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
