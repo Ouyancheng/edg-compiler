@@ -1088,6 +1088,9 @@ expressions should be folded (e.g., base class casts); if it is FALSE,
   err_code = ec_no_error;
   err_severity = es_warning;
   clear_constant(&new_constant, (a_constant_repr_kind)ck_error);
+  /* Preserve the null_pointer_constant_ruled_out flag. */
+  new_constant.null_pointer_constant_ruled_out =
+                                     constant->null_pointer_constant_ruled_out;
 
   /* Put the new type in the destination constant (preserving typedefs
      if any; that's important). */
@@ -1215,6 +1218,27 @@ expressions should be folded (e.g., base class casts); if it is FALSE,
   }  /* switch */
 
 exit:
+  /* Looks for casts that rule out use of a constant as part of a null
+     pointer constant.  In a null pointer constant, only casts from
+     arithmetic to integral types, or, in C, from integral to "void *",
+     are allowed.  This processing is to rule out things like
+     (int)(float)0, which are not valid null pointer constants.
+     Also really obscure things like (int)(float)2 - 2.  This
+     processing is more or less tracking whether a constant could
+     be an integral constant expression, even when it is scanned
+     in other modes. */
+  if (is_integral_type(new_type) &&
+      is_arithmetic_type(constant_type)) {
+    /* Arithmetic --> integral.  Okay. */
+  } else if (C_mode() &&
+             is_void_star_type(new_type) &&
+             is_integral_type(constant_type)) {
+    /* Integral --> void* in C mode, okay. */
+  } else {
+   /* Anything else: this constant cannot be part of a null pointer
+      constant. */
+    new_constant.null_pointer_constant_ruled_out = TRUE;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "type_change_constant of ");
@@ -1304,30 +1328,14 @@ a_boolean is_null_pointer_constant(a_constant *constant)
 Return TRUE if the given constant is a null pointer constant.
 */
 {
-  a_boolean  is_null_pointer = FALSE;
-  a_type_ptr ptr_type;
+  a_boolean is_null_pointer = FALSE;
 
   if (constant->kind == (a_constant_repr_kind)ck_integer) {
-    if (cmplit_integer_constant(constant, 0L) == 0) {
-      if (constant->implicit_cast) {
-        /* Must be cast to (void *) to be a null pointer constant.
-           Qualifiers are not allowed on the pointer or the void type
-           pointed to (see 3.2.2.3; it says "void *" without mentioning
-           the possibility of qualifiers). */
-        if (C_dialect == C_dialect_cplusplus) {
-          /* In C++ (void *)0 is not a null pointer constant. */
-        } else if (is_pointer_type(constant->type) &&
-                   !is_qualified_type(constant->type)) {
-          ptr_type = type_pointed_to(constant->type);
-	  if (is_void_type(ptr_type) && !is_qualified_type(ptr_type)) {
-	    is_null_pointer = TRUE;
-	  }  /* if */
-	}  /* if */
-      } else {
-	/* If not implicitly cast, it's just a plain integer zero, which is
-           also a null pointer constant. */
-	is_null_pointer = TRUE;
-      }  /* if */
+    /* A null pointer constant has the value zero, perhaps cast to "void *"
+       in C.  Only certain kinds of casts are allowed. */
+    if (!constant->null_pointer_constant_ruled_out &&
+        cmplit_integer_constant(constant, 0L) == 0) {
+      is_null_pointer = TRUE;
     }  /* if */
   }  /* if */
 
@@ -1559,6 +1567,11 @@ the reason is that the constant is a template parameter constant).
                                evaluated_context, did_not_fold,
                                err_pos, result);
     }  /* if */
+    /* If the source constant was formed using operations that are not allowed
+       in forming a null pointer constant, the result cannot be used as
+       a null pointer constant. */
+    result->null_pointer_constant_ruled_out =
+                                     constant->null_pointer_constant_ruled_out;
   }  /* if */
 
   db_exit();
@@ -2774,6 +2787,12 @@ as the position for any diagnostics issued.
                                err_pos, result);
       if (err_severity == es_error) depends_on_rounding_mode = FALSE;
     }  /* if */
+    /* If either constant was formed using operations that are not allowed
+       in forming a null pointer constant, the result cannot be used as
+       a null pointer constant. */
+    result->null_pointer_constant_ruled_out =
+                                 constant_1->null_pointer_constant_ruled_out ||
+                                 constant_2->null_pointer_constant_ruled_out;
     if (depends_on_rounding_mode && !constant_context) {
       /* In a non-constant context, leave an operation to be done at runtime
          if its result depends on the floating-point rounding mode. */
