@@ -1,5 +1,12 @@
 Version 2.11
 
+10/17/92 Warning on conditional test of constant address
+
+When the expression tested in an if, while, or the like is a constant
+address, a warning is now issued.  Formerly, this was a remark, which
+is appropriate when the expression is a constant integer.  However,
+a constant address case is much more suspect.
+
 10/17/92 cfront 2.1 compatible nested class name mangling 
 
 When running in cfront compatibility mode, the names of nested classes 

@@ -5356,6 +5356,7 @@ expression.
 */
 {
   a_boolean processed = FALSE;
+  a_boolean pointer_case;
 
   /* Convert from a class type to a scalar if necessary. */
   if (C_dialect == C_dialect_cplusplus &&
@@ -5373,6 +5374,10 @@ expression.
        case. */
     do_operand_transformations(result, TOPT_NO_OPTIONS, expression_kind);
   }  /* if */
+  /* Remember whether or not the expression has pointer type.  This is
+     needed later, and the check here standardizes the operation to
+     an integer result. */
+  pointer_case = is_pointer_type(result->type);
   /* Check that the operand is scalar.  Note that this is done even for the
      cases where a class type has been converted to a scalar, because the
      subroutine does some additional checking and some normalization of
@@ -5383,8 +5388,14 @@ expression.
        to issue diagnostics for things like "i = 1&&2;".  Do not issue
        the error in constant expressions (which can happen only for
        conditional operators, i.e., "?", not for statements). */
-    if (!is_const_expr_kind(expression_kind) && is_constant_operand(result)) {
-      pos_remark(ec_boolean_controlling_expr_is_constant, &result->position);
+    if (is_constant_operand(result)) {
+      if (pointer_case) {
+        /* A test of a constant address is always pretty suspicious. */
+        pos_warning(ec_boolean_controlling_expr_is_constant,
+                    &result->position);
+      } else if (!is_const_expr_kind(expression_kind)) {
+        pos_remark(ec_boolean_controlling_expr_is_constant, &result->position);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* process_boolean_controlling_expression */
