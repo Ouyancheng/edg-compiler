@@ -1,5 +1,12 @@
 Version 3.1
 
+12/16/02 Microsoft compatibility: conversions for "<" operator and MSVC++ 7.1
+
+MSVC++ 7.1 fixed a bug we have been emulating, related to using
+conversion functions to convert to a pointer type for an operand
+of a "<", ">", <=", or ">=" operator.  With microsoft_version >= 1310,
+we no longer emulate the bug.
+
 12/16/02 Type of argument passed to __vec_cctor runtime routine for
          number of elements
 

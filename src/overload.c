@@ -7284,8 +7284,10 @@ as its first operand.
           /* cfront 2.1 is confused and allows pointers to members on this
              case (they get rejected if chosen). */
           operand_type_pattern = "AA;=PP;=MM";
-        } else if (microsoft_bugs) {
-          /* Microsoft considers only arithmetic types, not pointers. */
+        } else if (microsoft_bugs &&
+                   microsoft_version < 1310) {
+          /* Microsoft considers only arithmetic types, not pointers.
+             This is fixed in MSVC++ 7.1. */
           if (operator_overloading_on_enums_enabled) {
             /* MSVC++ 6.0 does seem not to have enums in the set (MSVC++ 7.0
                does), but it has compensating bugs that make things act mostly
