@@ -49,8 +49,8 @@ static unsigned long
 		num_constants_allocated,
 		num_param_types_allocated,
 		num_routine_type_supplements_allocated,
-                num_access_adjustments_allocated;
-                num_class_list_entries_allocated;
+                num_access_adjustments_allocated,
+                num_class_list_entries_allocated,
 		num_class_type_supplements_allocated,
                 num_derivation_steps_allocated,
                 num_base_classes_allocated,
@@ -773,6 +773,14 @@ static void db_static_initializer(a_constant_ptr  con)
 }  /* db_static_initializer */
 
 
+db_destructor(a_routine_ptr  dtor)
+{
+  fputs("destructor: ", f_debug);
+  db_name(&dtor->source_corresp);
+  fputs("()", f_debug);
+}  /* db_destructor */
+
+
 static void db_constructor_initializer(a_dynamic_init_ptr  dip,
                                        int                 level)
 {
@@ -780,8 +788,6 @@ static void db_constructor_initializer(a_dynamic_init_ptr  dip,
   a_param_type_ptr  ptp;
 
   fputs("constructor ", f_debug);
-  db_name(&dip->variant.constructor.routine->source_corresp);
-  fputs("::", f_debug);
   db_name(&dip->variant.constructor.routine->source_corresp);
   fputc('(', f_debug);
   ptp = dip->variant.constructor.routine->type->
@@ -795,11 +801,21 @@ static void db_constructor_initializer(a_dynamic_init_ptr  dip,
   }  /* if */
   fputc(')', f_debug);
   if ((arg = dip->variant.constructor.args) == NULL) {
+    if (dip->destructor != NULL) {
+      fputs("; ", f_debug);
+      db_destructor(dip->destructor);
+    }  /* if */
     fputc('\n', f_debug);
   } else {
     fputs(", args =\n", f_debug);
     for (; arg != NULL; arg = arg->next) {
-      db_expr_node(arg, level);
+      db_expr_node(arg, level + 2);
+    }  /* if */
+    if (dip->destructor != NULL) {
+      int a;
+      for (a = 0; a < level; a++) fputs(" ", f_debug);
+      db_destructor(dip->destructor);
+      fputc('\n', f_debug);
     }  /* if */
   }  /* if */
 }  /* db_constructor_initializer */
@@ -816,6 +832,11 @@ static void db_nonconstant_aggregate(a_constant_ptr  con,
       switch (dip->kind) {
         case dik_expression:
           db_expr_node(dip->variant.expression, level);
+          if (dip->destructor != NULL) {
+            for (a = 0; a < level; a++) fputs(" ", f_debug);
+            db_destructor(dip->destructor);
+            fputc('\n', f_debug);
+          }  /* if */
           break;
         case dik_constructor:
           for (a = 0; a < level; a++) fputs(" ", f_debug);
@@ -862,31 +883,56 @@ static void db_nonconstant_aggregate(a_constant_ptr  con,
 static void db_dynamic_initializer(a_dynamic_init_ptr  dip,
                                    int                 level)
 {
+  int a;
+
   switch (dip->kind) {
     case dik_constant:
       db_static_initializer(dip->variant.constant);
+      if (dip->destructor != NULL) {
+        fputs("; ", f_debug);
+        db_destructor(dip->destructor);
+      }  /* if */
       fputc('\n', f_debug);
       break;
     case dik_expression:
       fputs("expression:\n", f_debug);
       db_expr_node(dip->variant.expression, level);
+      if (dip->destructor != NULL) {
+        for (a = 0; a < level; a++) fputs(" ", f_debug);
+        db_destructor(dip->destructor);
+        fputc('\n', f_debug);
+      }  /* if */
       break;
     case dik_aggregate:
       if (dip->variant.aggregate.dynamic_init_list == NULL) {
         db_static_initializer(dip->variant.aggregate.aggr_const);
+        if (dip->destructor != NULL) {
+          fputs("; ", f_debug);
+          db_destructor(dip->destructor);
+        }  /* if */
         fputc('\n', f_debug);
       } else {
         fputs("aggregate with non-constants:\n", f_debug);
         db_nonconstant_aggregate(dip->variant.aggregate.aggr_const->
                                           variant.aggregate.first_constant,
                                  level);
+        if (dip->destructor != NULL) {
+          for (a = 0; a < level; a++) fputs(" ", f_debug);
+          db_destructor(dip->destructor);
+          fputc('\n', f_debug);
+        }  /* if */
       }  /* if */
       break;
     case dik_constructor:
       db_constructor_initializer(dip, level);
       break;
     case dik_none:
-      fputs("<none>\n", f_debug);
+      fputs("<none>", f_debug);
+      if (dip->destructor != NULL) {
+        fputs(", ", f_debug);
+        db_destructor(dip->destructor);
+      }  /* if */
+      fputc('\n', f_debug);
       break;
   }  /* switch */
 }  /* db_dynamic_initializer */
