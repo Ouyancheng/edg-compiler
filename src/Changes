@@ -286,7 +286,7 @@ but they match the behavior of the Microsoft compilers.  For example, the
 following is accepted and prints "f(0)123".
 
   extern "C" int printf(char const*, ...);
-  int f(int i) { printf("f(%d)", i); }
+  int f(int i) { printf("f(%d)", i); return i; }
   int g = { 1, { 2 } };
   int h = { f(0), { 2 } };
   int main() {
