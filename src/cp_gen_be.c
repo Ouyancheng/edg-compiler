@@ -7249,7 +7249,8 @@ TRUE, "()" is put out.
           /* This is the copy constructor elision case -- we don't have to
              write the copy constructor because it's implied.  Just write the
              source argument. */
-          gen_argument_list(args, ctor->type, /*skip_num=*/0);
+          gen_argument_list(args, (ctor == NULL) ? NULL : ctor->type,
+                            /*skip_num=*/0);
         } else {
           /* This is the non-elision case. */
           if (parenthesized_init &&
@@ -7261,6 +7262,7 @@ TRUE, "()" is put out.
             if (!parenthesized_init) {
               /* For the non-parenthesized case, start with the name of the
                  class as the constructor name. */
+              check_assertion(ctor != NULL);
               gen_type_name(ctor->source_corresp.parent.class_type);
             }  /* if */
             /* Put out the argument list in parentheses. */
