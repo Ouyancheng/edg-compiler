@@ -1,16 +1,14 @@
 Version 2.46
 
-7/27/01  Microsoft/Cfront compatibility: visibility of variable declarations
+7/27/01  Microsoft compatibility: visibility of variable declarations
 
-In Cfront mode, a variable declaration is now invisible in its own initializer.
-In Microsoft bugs mode, the declaration is only invisible in parenthesized
-initializers.  For example:
+In Microsoft bugs mode, a variable declaration is now invisible in its
+own parenthesized initializer.  For example:
 
   int x = 7, y = 8;
   void f() {
-    int x = x;  // Same as "int x = ::x" in Cfront mode; undefined
-                //   value otherwise.
-    int y(y);   // Same as "int y(::y)" in Cfront and Microsoft bugs modes.
+    int x = x;  // x is assigned its own uninitialized value
+    int y(y);   // Same as "int y(::y)" in Microsoft bugs mode
   }
 
 7/27/01  Change in a_template entries for members of class templates

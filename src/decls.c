@@ -10668,9 +10668,8 @@ continue_with_declaration:
         /* If the variable had already been declared previously, old_type
            would be set. */
         a_boolean  decl_invisible_to_initializer =
-                        (!C_mode() && old_type == NULL &&
-                         ((microsoft_bugs && has_parenthesized_initializer) ||
-                          any_cfront_mode()));
+                        (microsoft_bugs && has_parenthesized_initializer &&
+                         old_type == NULL);
         /* Advance past the "=". */
         if (curr_token == tok_assign) (void)get_token();
         /* Now scan the initializer. */
@@ -10686,10 +10685,10 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
         if (decl_invisible_to_initializer && !symbol_ptr->is_error) {
-          /* In Cfront mode and (for parenthesized initializers) Microsoft
-             bugs mode, the declared variable is not visible until after the
-             initializer has been parsed.  To emulate this, we temporarily
-             mark the symbol as invisible. */
+          /* For parenthesized initializers in Microsoft bugs mode, the
+             declared variable is not visible until after the initializer
+             has been parsed.  To emulate this, we temporarily mark the
+             symbol as invisible. */
           symbol_ptr->is_invisible = TRUE;
         }  /* if */
         /* If the symbol is a parameter, the subroutine will generate the
