@@ -5019,12 +5019,11 @@ Return NULL if none is found.
   sym = locator->specific_symbol;
   if (sym != NULL) {
     /* Ignore the symbol (i.e., return NULL) if it is not a member function
-       or a projection symbol for using-declaration that refers to a member
+       or a projection symbol for a using-declaration that refers to a member
        function. */
     if (is_function_or_template_symbol(sym)) {
       /* Okay. */
     } else if (is_class_member_using_decl_symbol(sym)) {
-      /* Assume a nontype template parameter represents a function. */
       fund_sym = fundamental_symbol_of(sym);
       if (is_function_or_template_symbol(fund_sym)) {
         /* Okay. */
