@@ -81,6 +81,26 @@ language defined in the ARM, it is supported for cfront compatibility.
   return (*class_type != NULL);
 }  /* is_cfront_member_function_typedef */
 
+
+static a_type_qualifier_set collect_type_qualifiers(void)
+/*
+Call decl_specifiers to scan one or more type qualifiers, and return
+a bit vector describing what was found.
+*/
+{
+  a_decl_flag_set       dso_flags;
+  a_storage_class       dummy_storage_class;
+  a_type_ptr            dummy_type_ptr;
+  a_type_qualifier_set  qualifiers;
+
+  check_assertion(is_type_qualifier_token(curr_token));
+  (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,
+                        &dummy_storage_class, &dummy_type_ptr,
+                        &qualifiers);
+  check_assertion(qualifiers != TQ_NONE);
+  return qualifiers;
+}  /* collect_type_qualifiers */
+
 #if RESTRICT_ALLOWED
 
 a_boolean restrict_qualifier_is_allowed(a_type_ptr         type,
@@ -1280,15 +1300,11 @@ scope is that of a class definition.
     if (is_type_qualifier() && extra_info->prototyped) {
       /* In C++ the type of certain member functions may be qualified.  Scan
          for a const or volatile qualifier. */
-      a_storage_class    dummy_storage_class;
-      a_type_ptr         dummy_type_ptr;
       a_source_position  qualifier_pos;
       a_boolean          qualifier_err = FALSE;
 
       copy_source_position(pos_curr_token, qualifier_pos);
-      (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,
-                            &dummy_storage_class, &dummy_type_ptr,
-                            &qualifiers);
+      qualifiers = collect_type_qualifiers();
 #if RESTRICT_ALLOWED
       /* When a member function is declared with the restrict qualifier, the
          qualifier attaches to the this pointer, not to *this (as with const
@@ -1395,17 +1411,25 @@ If "restrict" is seen, set *restrict_seen to TRUE.
   (void)get_token();
   add_stop_token(tok_rbracket);
 #if RESTRICT_ALLOWED
-  if (curr_token == tok_restrict) {
+  if (is_type_qualifier_token(curr_token)) {
+    a_source_position     qualifier_pos;
+    a_type_qualifier_set  qualifiers;
+
+    qualifier_pos = pos_curr_token;
+    qualifiers = collect_type_qualifiers();
     if (restrict_allowed) {
       /* This must be a declaration of a function parameter type, and
          moreover it must be the top level declaration. */
-      *restrict_seen = TRUE;
+      *restrict_seen = ((qualifiers & TQ_RESTRICT) != 0);
+      if (qualifiers != TQ_RESTRICT) {
+        pos_warning(ec_const_volatile_not_allowed, &qualifier_pos);
+      }  /* if */
     } else {
       /* Issue an error. */
-      pos_error(ec_restrict_not_allowed, &pos_curr_token);
+      pos_error((qualifiers & TQ_RESTRICT) ?
+                   ec_restrict_not_allowed : ec_const_volatile_not_allowed,
+                &qualifier_pos);
     }  /* if */
-    /* Advance past it. */
-    (void)get_token();
   }  /* if */
 #endif /* RESTRICT_ALLOWED */
   if (curr_token == tok_rbracket) {
@@ -1592,16 +1616,10 @@ parameter controls the restrictions imposed by the context.
     /* Take a type qualifier list (const, volatile, or both) if one appears. */
     (void)get_token();
     if (is_type_qualifier()) {
-      a_decl_flag_set       dso_flags;
-      a_storage_class       dummy_storage_class;
-      a_type_ptr            dummy_type_ptr;
       a_type_qualifier_set  qualifiers;
 
       set_err_pos_to_curr_token();
-      (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,
-                            &dummy_storage_class, &dummy_type_ptr,
-                            &qualifiers);
-      check_assertion(qualifiers != TQ_NONE);
+      qualifiers = collect_type_qualifiers();
 #if RESTRICT_ALLOWED
       /* Check for invalid use of the restrict qualifier. */
       if (qualifiers & TQ_RESTRICT &&
