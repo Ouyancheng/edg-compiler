@@ -2150,6 +2150,8 @@ symbol must be added to the inactive list.
       redeclared_template_param = (depth_innermost_instantiation_scope !=
 				   NO_SCOPE_DEPTH) &&
 				  sym_name_space_kind == nsk_other &&
+                                  sym_ptr->kind !=
+                                                (a_symbol_kind)sk_undefined &&
 				  is_redeclared_template_param(sym_ptr);
       if (!suppress_error && redeclared_template_param &&
           (scope_stack[scope_depth].template_param_decl_scope ||
