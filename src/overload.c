@@ -3634,12 +3634,16 @@ checking error was detected and reported.
 
 void combine_unneeded_selector_with_operand(
                                            an_operand *bound_function_selector,
+                                           a_boolean  *is_arrow_operator,
                                            an_operand *operand)
 /*
 *operand is a reference to a static class member, and *bound_function_selector
 is an unneeded selector for that reference.  Save it by attaching it to
 *operand (it must be evaluated, even though its type only -- and not its
-value -- is used to select the member referenced).
+value -- is used to select the member referenced).  *is_arrow_operator is
+TRUE if the selector is a pointer, and FALSE if it is a class.  If the
+latter, and it is turned into a pointer, *is_arrow_operator will be set to
+TRUE.
 */
 {
   an_operand       orig_operand;
@@ -3654,6 +3658,8 @@ value -- is used to select the member referenced).
     discard_operand(bound_function_selector);
   } else {
     orig_operand = *operand;
+    conv_selector_to_object_pointer(bound_function_selector,
+                                    is_arrow_operator);
     selector_expr = make_node_from_operand(bound_function_selector);
     expr = make_node_from_operand(operand);
     selector_expr->next = expr;
@@ -3661,6 +3667,9 @@ value -- is used to select the member referenced).
     expr = make_operator_node((an_expr_operator_kind)eok_comma,
                               expr->type,
                               selector_expr);
+    if (saved_operand_state == (an_operand_state)os_lvalue) {
+      expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+    }  /* if */
     make_expression_operand(expr, operand->type, operand);
     operand->state = saved_operand_state;
     restore_operand_details(operand, &orig_operand);
@@ -3917,6 +3926,7 @@ case).  call_position gives the source position of the call.
   a_symbol_ptr base_function_symbol = fundamental_symbol_of(function_symbol);
   a_boolean    access_error_reported;
   a_type_ptr   routine_type;
+  a_boolean    is_arrow_operator = TRUE;
 
   /* Do whatever would have been done to the function had we known
      originally which specific function was intended. */
@@ -3978,7 +3988,6 @@ case).  call_position gives the source position of the call.
       }  /* if */
       *have_selector = TRUE;
     } else {
-      a_boolean is_arrow_operator = TRUE;
       /* We have a selector. */
       /* Cast the selector to the class of the member symbol. */
       /* Also do the ARM 11.5 access checking for the type of selector used
@@ -3998,6 +4007,7 @@ case).  call_position gives the source position of the call.
     if (*have_selector) {
       /* Attach the unneeded selector provided to the function operand. */
       combine_unneeded_selector_with_operand(bound_function_selector,
+                                             &is_arrow_operator,
                                              function_operand);
       *have_selector = FALSE;
     }  /* if */

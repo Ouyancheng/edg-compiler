@@ -2651,7 +2651,8 @@ qualified_name_check:
           make_lvalue_variable_operand(
                               member_sym->variant.static_data_member.variable,
                               result, rep);
-          combine_unneeded_selector_with_operand(operand_1, result);
+          combine_unneeded_selector_with_operand(operand_1, &is_arrow_operator,
+                                                 result);
           break;
         case sk_member_function:
           /* Member function (static or non-static). */
@@ -2700,7 +2701,9 @@ nonstatic_member_function:
                                              &member_position,
                                              rep,
                                              result);
-            combine_unneeded_selector_with_operand(operand_1, result);
+            combine_unneeded_selector_with_operand(operand_1,
+                                                   &is_arrow_operator,
+                                                   result);
           }  /* if */
           break;
         case sk_overloaded_function:
@@ -2720,7 +2723,8 @@ nonstatic_member_function:
         case sk_constant:
           /* Member constant (e.g., an enumerator). */
           make_sym_constant_operand(member_sym, result);
-          combine_unneeded_selector_with_operand(operand_1, result);
+          combine_unneeded_selector_with_operand(operand_1, &is_arrow_operator,
+                                                 result);
           break;
         case sk_type:
         case sk_class_or_struct_tag:
