@@ -9589,8 +9589,10 @@ typedef struct a_template {
 #if RECORD_TEMPLATE_STRINGS
   char		*text;
 			/* A null-terminated string representing the text of
-			   the template declaration, starting with the
-			   keyword "template". */
+			   the template declaration, starting with the keyword
+			   "template".  This pointer is NULL for an entry
+			   representing a nonstandard friend template of the
+			   form "friend class X;" (a Microsoft extension). */
 #endif /* RECORD_TEMPLATE_STRINGS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
@@ -9626,7 +9628,11 @@ typedef struct a_template {
 			/* A description of the template declaration header
 			   as used in this particular declaration.  (E.g.,
 			   template parameter names could differ from one
-			   declaration to the next.) */
+			   declaration to the next.)  Always NULL for
+			   nonstandard friend template declarations of the
+			   form "friend class X;" (a Microsoft extension),
+			   since there is no template declaration header in
+			   that case. */
   /* Information about the prototype instantiation of this template: */
   union {
     /* When kind == templk_function or templk_member_function: */
