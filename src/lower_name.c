@@ -840,19 +840,19 @@ entity processed.
         a_type_ptr type = (a_type_ptr)entity;
         /* Compare to ::std::string. */
         if (is_Ss_substitution(type)) {
-          add_str_to_mangled_name ("Ss", mctl);
+          add_str_to_mangled_name("Ss", mctl);
           result = TRUE;
           break;
         } else if (is_stream_substitution(type, "basic_istream")) {
-          add_str_to_mangled_name ("Si", mctl);
+          add_str_to_mangled_name("Si", mctl);
           result = TRUE;
           break;
         } else if (is_stream_substitution(type, "basic_ostream")) {
-          add_str_to_mangled_name ("So", mctl);
+          add_str_to_mangled_name("So", mctl);
           result = TRUE;
           break;
         } else if (is_stream_substitution(type, "basic_iostream")) {
-          add_str_to_mangled_name ("Sd", mctl);
+          add_str_to_mangled_name("Sd", mctl);
           result = TRUE;
           break;
         }  /* if */
@@ -917,48 +917,47 @@ entity processed.
 }  /* add_substitution_if_available */
 
 
-static void add_prefix_for_local_class(a_type_ptr               type,
-                                       a_mangling_control_block *mctl)
+static void add_prefix_for_local_entity(a_routine_ptr            routine,
+                                        a_mangling_control_block *mctl)
 /*
-Add a prefix indicating the routine containing type, which is a local class,
-for the IA-64 ABI.
+Add a prefix indicating the given routine as the containing function
+for a local entity, for the IA-64 ABI.
 */
 {
-  a_class_symbol_supplement_ptr ssp;
-
-  check_assertion(is_immediate_class_type(type) &&
-                  type->source_corresp.is_local_to_function);
-  ssp = symbol_supplement_for_class(type);
   add_to_mangled_name('Z', mctl);
-  mangled_function_name(ssp->enclosing_routine,
+  mangled_function_name(routine,
                         /*suppress_param_encoding=*/FALSE,
                         /*suppress_parent_encoding=*/FALSE,
                         /*base_name_offset=*/(sizeof_t *)NULL,
                         mctl);
   add_to_mangled_name('E', mctl);
-}  /* add_prefix_for_local_class */
+}  /* add_prefix_for_local_entity */
 
 
-static void add_prefix_for_local_class_if_necessary(
-                                                a_type_ptr               type,
-                                                a_mangling_control_block *mctl)
+static void add_prefix_for_local_type(a_type_ptr               type,
+                                      a_mangling_control_block *mctl)
 /*
-If type is a local type, or a member of a local class, output the prefix
-indicating the routine containing the type, for the IA-64 ABI.
+type is a local type.  Output the prefix indicating the routine containing
+the type, for the IA-64 ABI.
 */
 {
-  if (type->source_corresp.is_local_to_function) {
-    while (type->source_corresp.is_class_member) {
-      type = type->source_corresp.parent.class_type;
-    }  /* while */
-    if (is_enum_type(type)) {
-      /* We do not have any way of getting the containing function for
-         an enum at this point.  */
-    } else {
-      add_prefix_for_local_class(type, mctl);
-    }  /* if */
+  check_assertion(type->source_corresp.is_local_to_function);
+  /* For members of local classes, go up through all the containing
+     classes to get to the class declared directly in the function. */
+  while (type->source_corresp.is_class_member) {
+    type = type->source_corresp.parent.class_type;
+  }  /* while */
+  if (is_enum_type(type)) {
+    /* We do not have any way of getting the containing function for
+       an enum at this point.  */
+  } else {
+    /* Get the surrounding function for a class. */
+    a_class_symbol_supplement_ptr ssp;
+    check_assertion(is_immediate_class_type(type));
+    ssp = symbol_supplement_for_class(type);
+    add_prefix_for_local_entity(ssp->enclosing_routine, mctl);
   }  /* if */
-}  /* add_prefix_for_local_class_if_necessary */
+}  /* add_prefix_for_local_type */
 
 #endif /* IA64_ABI */
 
@@ -1599,7 +1598,7 @@ template classes.
   if (!is_reference_type(con->type)) {
     add_str_to_mangled_name("ad", mctl);
   }  /* if */
-  add_str_to_mangled_name("L", mctl);
+  add_to_mangled_name('L', mctl);
 #endif /* IA64_ABI */
   if (abkind == (an_address_base_kind)abk_variable) {
     a_variable_ptr variable = con->variant.address.variant.variable;
@@ -3150,10 +3149,20 @@ correspondence is pointed to by scp and whose kind is given by "kind".
 *need_nested_name_close is returned TRUE if a nested name has been
 started and must be closed later.  This routine is used at the top
 level for a complete name, and not recursively for each level of the
-parent qualifiers.
+parent qualifiers.  It also handles the qualifier for local
+entities that indicates the enclosing function.
 */
 {
   *need_nested_name_close = FALSE;
+  /* Add the encoding for the function if this is a local type or a
+     member of a local class. */
+  if (scp->is_local_to_function) {
+    if (kind == iek_type) {
+      add_prefix_for_local_type((a_type_ptr)scp, mctl);
+    } else if (scp->is_class_member) {
+      add_prefix_for_local_type(scp->parent.class_type, mctl);
+    }  /* if */
+  }  /* if */
   if (is_source_corresp_in_namespace_std(scp)) {
     /* Special encoding for "std::".*/
     add_str_to_mangled_name("St", mctl);
@@ -3162,11 +3171,6 @@ parent qualifiers.
                                    scp->parent.namespace_ptr != NULL)) {
     /* The entity is a class or namespace member and needs a parent
        qualifier. */
-    if (scp->is_class_member) {
-      /* Add the encoding for the function if this is a member of a local
-         class. */
-      add_prefix_for_local_class_if_necessary(scp->parent.class_type, mctl);
-    }  /* if */
     /* Mark the start of the nested name. */
     add_to_mangled_name('N', mctl);
     *need_nested_name_close = TRUE;
@@ -5695,12 +5699,7 @@ other mangled names.
     }
 #else /* IA64_ABI */
     add_mangled_name_prefix(&mctl);
-    add_str_to_mangled_name("Z", &mctl);
-    mangled_function_name(routine, /*suppress_param_encoding=*/FALSE,
-                          /*suppress_parent_encoding=*/FALSE,
-                          /*base_name_offset=*/(sizeof_t *)NULL,
-                          &mctl);
-    add_to_mangled_name('E', &mctl);
+    add_prefix_for_local_entity(routine, &mctl);
     mangled_name_with_length(scp->name, &mctl);
     add_discriminator_if_necessary(scp, &mctl);
 #endif /* !IA64_ABI */
