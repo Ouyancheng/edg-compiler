@@ -1875,12 +1875,8 @@ initial test for exact pointer equality.
                                      type_2->variant.array.element_type,
                                      flags)) {
             if (type_1->variant.array.is_variable_size_array) {
-              if (type_2->variant.array.is_variable_size_array) {
-                /* Both are variable size arrays. */
-                check_assertion(FALSE);
-              } else {
-                /* Not compatible. */
-              }  /* if */
+              check_assertion(!type_2->variant.array.is_variable_size_array);
+              /* Not compatible. */
             } else if (type_2->variant.array.is_variable_size_array) {
               /* Not compatible. */
             } else if (type_1->variant.array.variant.number_of_elements == 0 ||
