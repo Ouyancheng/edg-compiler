@@ -731,6 +731,17 @@ source file's compilation.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+  if (pp_output_file_needed) {
+    /* <stdarg.h> cannot be treated as a builtin if generating preprocessing
+       output. */
+    pass_stdarg_references_to_generated_code = FALSE;
+#if DO_IL_LOWERING
+  } else if (!C_mode() && make_all_functions_unprototyped) {
+    /* <stdarg.h> cannot be treated as a builtin if IL lowering will
+       eliminate ellipsis argument lists. */
+    pass_stdarg_references_to_generated_code = FALSE;
+#endif /* DO_IL_LOWERING */
+  }  /* if */
 #if COMPILE_MULTIPLE_SOURCE_FILES
   /* If more than one source file is being compiled, identify each
      source file as compilation starts. */
