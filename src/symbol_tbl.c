@@ -6655,6 +6655,8 @@ represents a using declaration or is or the projection of symbol that does.
     tag_sym = NULL;
     for (; sym != NULL; sym = sym->next) {
       if (sym->decl_scope == scope->number) {
+        /* Ignore sk_undefined symbols. */
+        if (sym->kind == (a_symbol_kind)sk_undefined) continue;
         /* Ignore this symbol if it doesn't match the lookup options
            specified by the caller. */
         if (!sym_matches_lookup_options(sym, options)) continue;

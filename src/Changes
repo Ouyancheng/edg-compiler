@@ -1,5 +1,21 @@
 Version 2.36
 
+4/17/97   Internal error on use of an undefined symbol created in a base class
+
+When an undefined name is referenced, an sk_undefined symbol is created
+to suppress diagnostics on subsequent uses of that undefined name.  An
+internal error would occur if a derived class made reference to a name
+associated with an sk_undefined symbol in one of its base classes.  This
+has been fixed.
+
+  struct B {
+    template < int I > class A ;
+    A < I >* a;
+  };
+  struct C : B {
+    A < I > a;
+  };
+
 4/16/97   Internal error on missing template argument list of member class
           template in field selection operator
 
