@@ -707,6 +707,16 @@ EXTERN an_integer_kind
 #endif /* GENERATE_EH_TABLES */
 #endif /* DO_IL_LOWERING */
 
+EXTERN a_boolean
+		remove_qualifiers_from_param_types
+#if VAR_INITIALIZERS
+                                = DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES
+#endif /* VAR_INITIALIZERS */
+                                                                            ;
+			/* True when type qualifiers should be removed from
+			   function parameter types (e.g., a "const int"
+			   parameter is seen simply as "int"). */
+
 /* Aside from occasional references in targ_def.h, the following values
    should be used *only* to initialize the variables declared in this file.
    To enforce this convention, they are undefined at this time.  (This is

@@ -1647,6 +1647,7 @@ common_cfront_mode_settings:
     special_subscript_cost = FALSE;  /* Not really needed. */
     use_nonstandard_for_init_scope = TRUE;  /* Not really needed. */
     warning_on_for_init_difference = FALSE;
+    remove_qualifiers_from_param_types = FALSE;
   } else {
     /* The dialect is C++. */
     /* Reset the SVR4 C compatibility flag just in case it is set by

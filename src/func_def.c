@@ -505,14 +505,13 @@ a new symbol is created and entered in the symbol table.
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
-#if REMOVE_QUALIFIERS_FROM_PARAM_TYPES
-  if (!C_mode()) {
+  if (remove_qualifiers_from_param_types) {
     /* A top-level type qualifier may have been stripped off.  Record the
        type qualification in the param type entry, based on the parameter
        variable's type qualifier. */
+    check_assertion(!C_mode());
     ptp->qualifiers = get_type_qualifiers(param_id->type);
   }  /* if */
-#endif /* REMOVE_QUALIFIERS_FROM_PARAM_TYPES */
   db_exit();
 }  /* decl_parameter */
 

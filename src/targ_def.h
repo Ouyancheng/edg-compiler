@@ -1039,17 +1039,18 @@ and "?" are eliminated.  For example, "1 ? i : j" becomes simply "i".
 This switch controls whether or not type qualifiers are removed from
 parameter types (e.g., a "const int" parameter is seen simply as "int").
 This may seem like a language feature, but it's an ABI issue, because the
-parameter type ends up in the mangled name of the function.
+parameter type ends up in the mangled name of the function.  This value is
+the default for global variable remove_qualifiers_from_param_types.
 */
-#ifndef REMOVE_QUALIFIERS_FROM_PARAM_TYPES
+#ifndef DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES
 /* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,
    but that produces a cfront-like ABI rather than a cfront-compatible ABI. */
 #if ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_OBJECT_CODE_COMPATIBILITY
-#define REMOVE_QUALIFIERS_FROM_PARAM_TYPES FALSE
+#define DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES FALSE
 #else /* ABI_COMPATIBILITY_VERSION > 228 && !CFRONT_... */
-#define REMOVE_QUALIFIERS_FROM_PARAM_TYPES TRUE
+#define DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES TRUE
 #endif /* ABI_COMPATIBILITY_VERSION <= 228 || CFRONT_... */
-#endif /* ifndef REMOVE_QUALIFIERS_FROM_PARAM_TYPES */
+#endif /* ifndef DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES */
 
 /*
 Flag that is TRUE if the runtime library uses namespaces.  This

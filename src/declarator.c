@@ -1102,17 +1102,16 @@ issue an error if a default argument expression is encountered.
         add_to_param_id_list(&param_locator, param_type_ptr,
                              &param_type_pos, param_storage_class,
                              func_info, param_ssep, &last_param_id);
-#if REMOVE_QUALIFIERS_FROM_PARAM_TYPES
-        /* Note: whether to remove top-level qualifiers is sensitive to the
-           ABI version because qualifiers are reflected in mangled names. */
-        if (!C_mode()) {
+        if (remove_qualifiers_from_param_types) {
           /* Strip off top-level type qualifiers.  They are not part of the
-             type signature of the function -- see 8.3.5 para 3.  However,
+             type signature of a C++ function -- see 8.3.5 para 3.  However,
              because they do belong to the type of the parameter variable,
              they were not removed before add_to_param_id_list was called. */
+          /* Note: whether to remove top-level qualifiers is sensitive to the
+             ABI version because qualifiers are reflected in mangled names. */
+          check_assertion(!C_mode());
           param_type_ptr = make_unqualified_type(param_type_ptr);
         }  /* if */
-#endif /* REMOVE_QUALIFIERS_FROM_PARAM_TYPES */
         /* Create a param-type entry and add it to the list of param-types
            associated with the routine type. */
         ptp = make_param_type(param_type_ptr, &param_type_pos);
