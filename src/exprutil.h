@@ -749,10 +749,6 @@ extern void conv_object_pointer_to_lvalue(an_operand *operand);
 
 extern void conv_class_operand_to_object_pointer(an_operand *operand);
 
-extern a_constant_ptr value_of_constant_var_lvalue_expr(
-                                                      an_expr_node_ptr node,
-                                                      a_variable_ptr   *p_var);
-
 extern a_constant_ptr value_of_constant_var_lvalue_operand(
                                                           an_operand *operand);
 

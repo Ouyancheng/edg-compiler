@@ -7370,8 +7370,9 @@ address of the temporary is returned.  This routine is only used in C++ mode.
 }  /* conv_class_operand_to_object_pointer */
 
 
-a_constant_ptr value_of_constant_var_lvalue_expr(an_expr_node_ptr node,
-                                                 a_variable_ptr   *p_var)
+static a_constant_ptr value_of_constant_var_lvalue_expr(
+                                                       an_expr_node_ptr node,
+                                                       a_variable_ptr   *p_var)
 /*
 node is an expression for the address of an lvalue.  If it is an lvalue
 for a constant-valued variable, return a pointer to the constant that is
