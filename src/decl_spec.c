@@ -3584,12 +3584,14 @@ Returns TRUE if there is an error in the specifiers.
             es = es_error;
           }  /* if */
           /* Put out the diagnostic. */
-          if (es > es_none) diagnostic(es, ec_storage_class_not_allowed);
+          if ((int)es != (int)es_none) {
+            diagnostic(es, ec_storage_class_not_allowed);
+          }  /* if */
           /* If an error was issued, set the flag; otherwise, set the bit in
              decl_specifiers_seen, so that the multiple-storage-class
              diagnostic will be put out if another storage class is
              specified. */
-          if (es > es_warning) {
+          if ((int)es > (int)es_warning) {
             err = TRUE;
           } else {
             decl_specifiers_seen |= DS_STORAGE_CLASS;
