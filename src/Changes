@@ -1,5 +1,14 @@
 Version 2.25
 
+7/28/94  New files symbol_ref.c and symbol_ref.h
+
+Routines dealing with symbol references (including the one that puts out
+cross reference information) have been moved from symbol_tbl.c to a new
+file symbol_ref.c.  Likewise the #defines for SRK_xxx values have been
+relocated to symbol_ref.h.  This repackaging should help clients who are
+customizing xref support (as well as reduce the size of symbol_tbl.c
+a little).
+
 7/27/94  Extra semicolon diagnostic now a discretionary error
 
 In strict ANSI (-A) mode, an extra semicolon is now a discretionary
