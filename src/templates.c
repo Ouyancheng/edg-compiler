@@ -81,10 +81,10 @@ typedef enum /* a_template_info_line_type */ {
   tilt_last
   /* Lint comments to disable warnings that the driver line types are
      not used. */
-  /*lint -esym(749,a_template_info_line_type::tilt_command_line)*/
-  /*lint -esym(749,a_template_info_line_type::tilt_curr_dir)*/
-  /*lint -esym(749,a_template_info_line_type::tilt_file_name)*/
-  /*lint -esym(749,a_template_info_line_type::tilt_instantiation_dir_name)*/
+  /*lint -esym(749,tilt_command_line)*/
+  /*lint -esym(749,tilt_curr_dir)*/
+  /*lint -esym(749,tilt_file_name)*/
+  /*lint -esym(749,tilt_instantiation_dir_name)*/
 } a_template_info_line_type;
 
 /*
