@@ -1,5 +1,24 @@
 Version 3.0
 
+4/6/02   Abort in copy_template_param_expr fixed
+
+An abort in copy_template_param_expr has been fixed.  It came up
+for complicated template cases, in particular ones involving
+arrays as nontype template parameters in parts of names qualified
+by nonreal class types, one example of which is the following:
+
+  template <class T> struct A {
+    template <unsigned int H[10]> struct N {};
+  };
+  unsigned int arr[10];
+  template <class T> struct B {
+    template<class P> typename A<P>::template N<arr> f(P);
+  };
+  int main() {
+    B<int> b;
+    b.f(1);
+  }
+
 4/4/02   explicit_cast_applied field in constant entry now set always
 
 The explicit_cast_applied field in the IL a_constant entry is now set in

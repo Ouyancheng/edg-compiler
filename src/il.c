@@ -8600,7 +8600,7 @@ to TRUE.  *source_pos gives the source position for errors.
 }  /* do_conversions_on_operands_of_copied_template_expr */
 
 
-/* Forward declaration needed because of mutual recursion. */
+/* Forward declarations needed because of mutual recursion. */
 static a_constant_ptr copy_template_param_con(
                                   a_constant_ptr           con,
                                   a_template_arg_ptr       template_arg_list,
@@ -8610,6 +8610,17 @@ static a_constant_ptr copy_template_param_con(
                                   a_ctws_options_set       options,
                                   a_boolean                *copy_error,
                                   a_constant_ptr           constant);
+static an_expr_node_ptr copy_template_param_expr(
+                                  an_expr_node_ptr         expr,
+                                  a_template_arg_ptr       template_arg_list,
+                                  a_template_param_ptr     template_param_list,
+                                  a_type_ptr               guide_type,
+                                  a_boolean                indef_lvalue,
+                                  a_source_position        *source_pos,
+                                  a_ctws_options_set       options,
+                                  a_boolean                *copy_error,
+                                  a_constant_ptr           constant,
+                                  a_constant_ptr           *alloc_con);
 
 
 static an_expr_node_ptr alloc_copied_template_param_expr(
@@ -8636,10 +8647,192 @@ to an already-allocated constant; otherwise, constant points to the
 }  /* alloc_copied_template_param_expr */
 
 
+static an_expr_node_ptr copy_template_param_eok_lvalue( 
+                                  an_expr_node_ptr         expr,
+                                  a_template_arg_ptr       template_arg_list,
+                                  a_template_param_ptr     template_param_list,
+                                  a_type_ptr               guide_type,
+                                  a_boolean                indef_lvalue,
+                                  a_source_position        *source_pos,
+                                  a_ctws_options_set       options,
+                                  a_boolean                *copy_error,
+                                  a_constant_ptr           constant,
+                                  a_constant_ptr           *alloc_con)
+/*
+Copy the expression expr, which has an eok_lvalue on top, and return a
+pointer to the copy.  The expression is part of a template argument
+expression.  See copy_template_param_expr for the parameter descriptions.
+*/
+{
+  an_expr_node_ptr expr_copy = NULL;
+  an_expr_node_ptr operand_1, new_operand_1;
+  a_constant       constant_1;
+  a_constant_ptr   alloc_con_1 = NULL;
+  a_type_ptr       new_type = NULL;
+
+  operand_1 = expr->variant.operation.operands;
+  if (indef_lvalue) {
+    a_type_ptr lvalue_type;
+    /* The caller can accept either an lvalue or an rvalue, so copy
+       the subtree and keep the eok_lvalue operation. */
+    new_operand_1 = copy_template_param_expr(operand_1,
+                                             template_arg_list,
+                                             template_param_list,
+                                             (a_type_ptr)NULL,
+                                             /*indef_lvalue=*/FALSE,
+                                             source_pos,
+                                             options,
+                                             copy_error,
+                                             &constant_1,
+                                             &alloc_con_1);
+    new_operand_1 = alloc_copied_template_param_expr(
+                                      new_operand_1, &constant_1, alloc_con_1);
+    if (is_template_param_type(operand_1->type)) {
+      lvalue_type = type_of_unknown_templ_param_nontype;
+    } else {
+      lvalue_type = type_pointed_to(operand_1->type);
+    }  /* if */
+    expr_copy = make_operator_node((an_expr_operator_kind)eok_lvalue,
+                                   lvalue_type, new_operand_1);
+  } else if (guide_type != NULL && is_reference_type(guide_type)) {
+    /* An lvalue is expected (the guide type is a reference), and we
+       have an lvalue.  Copy the underlying expression and return the
+       copy. */
+    expr_copy = copy_template_param_expr(operand_1,
+                                         template_arg_list,
+                                         template_param_list,
+                                         guide_type,
+                                         /*indef_lvalue=*/FALSE,
+                                         source_pos,
+                                         options,
+                                         copy_error,
+                                         constant,
+                                         alloc_con);
+    /* Change the expression to a reference type instead of a pointer
+       type if the value is represented as a constant. */
+    if (expr_copy == NULL) {
+      cast_copied_template_param_expr(&expr_copy, constant, alloc_con,
+                                      guide_type, source_pos);
+    }  /* if */
+  } else {
+    /* An rvalue is expected and we have an lvalue.  Copy the expression
+       and convert it to an rvalue. */
+    if (is_array_type(expr->type)) {
+      new_type = type_after_array_to_pointer_transformation(expr->type);
+    } else if (is_function_type(expr->type)) {
+      new_type = type_after_function_to_pointer_transformation(
+                                                           expr->type,
+                                                           (an_operand *)NULL);
+    }  /* if */
+    if (new_type != NULL) {
+      /* An array or function decays to a pointer.  No change of
+         representation is needed, just a cast. */
+      expr_copy = copy_template_param_expr(operand_1,
+                                           template_arg_list,
+                                           template_param_list,
+                                           guide_type,
+                                           /*indef_lvalue=*/FALSE,
+                                           source_pos,
+                                           options,
+                                           copy_error,
+                                           constant,
+                                           alloc_con);
+      cast_copied_template_param_expr(&expr_copy, constant, alloc_con,
+                                      new_type, source_pos);
+    } else {
+      /* Add an indirection to convert to an rvalue.  The result
+         is always an expression. */
+      new_type = rvalue_type(expr->type);
+      new_operand_1 = copy_template_param_expr(operand_1,
+                                               template_arg_list,
+                                               template_param_list,
+                                               guide_type,
+                                               /*indef_lvalue=*/FALSE,
+                                               source_pos,
+                                               options,
+                                               copy_error,
+                                               &constant_1,
+                                               &alloc_con_1);
+      new_operand_1 = alloc_copied_template_param_expr(
+                                      new_operand_1, &constant_1, alloc_con_1);
+      cast_copied_template_param_expr(&new_operand_1, &constant_1,
+                                      &alloc_con_1,
+                                      new_type, source_pos);
+      expr_copy = new_operand_1;
+    }  /* if */
+  }  /* if */
+  return expr_copy;
+}  /* copy_template_param_eok_lvalue */
+
+
+static an_expr_node_ptr copy_template_param_eok_rvalue( 
+                                  an_expr_node_ptr         expr,
+                                  a_template_arg_ptr       template_arg_list,
+                                  a_template_param_ptr     template_param_list,
+                                  a_type_ptr               guide_type,
+                                  a_boolean                indef_lvalue,
+                                  a_source_position        *source_pos,
+                                  a_ctws_options_set       options,
+                                  a_boolean                *copy_error,
+                                  a_constant_ptr           constant,
+                                  a_constant_ptr           *alloc_con)
+/*
+Copy the expression expr, which has an eok_rvalue on top, and return a
+pointer to the copy.  The expression is part of a template argument
+expression.  See copy_template_param_expr for the parameter descriptions.
+*/
+{
+  an_expr_node_ptr expr_copy = NULL;
+  an_expr_node_ptr operand_1, new_operand_1;
+  a_constant       constant_1;
+  a_constant_ptr   alloc_con_1 = NULL;
+
+  operand_1 = expr->variant.operation.operands;
+  if (indef_lvalue) {
+    /* The caller can accept either an lvalue or an rvalue, so copy
+       the subtree and keep the eok_rvalue operation. */
+    new_operand_1 = copy_template_param_expr(operand_1,
+                                             template_arg_list,
+                                             template_param_list,
+                                             (a_type_ptr)NULL,
+                                             /*indef_lvalue=*/FALSE,
+                                             source_pos,
+                                             options,
+                                             copy_error,
+                                             &constant_1,
+                                             &alloc_con_1);
+    new_operand_1 = alloc_copied_template_param_expr(
+                                      new_operand_1, &constant_1, alloc_con_1);
+    expr_copy = make_operator_node((an_expr_operator_kind)eok_rvalue,
+                                   new_operand_1->type, new_operand_1);
+  } else if (guide_type != NULL && is_reference_type(guide_type)) {
+    /* An lvalue is expected (the guide type is a reference), and we
+       have an rvalue.  This is an error that causes a deduction failure. */
+    *copy_error = TRUE;
+  } else {
+    /* An rvalue is expected and we have an rvalue.  Copy and return
+       the expression. */
+    expr_copy = copy_template_param_expr(operand_1,
+                                         template_arg_list,
+                                         template_param_list,
+                                         guide_type,
+                                         /*indef_lvalue=*/FALSE,
+                                         source_pos,
+                                         options,
+                                         copy_error,
+                                         constant,
+                                         alloc_con);
+  }  /* if */
+  return expr_copy;
+}  /* copy_template_param_eok_rvalue */
+
+
 static an_expr_node_ptr copy_template_param_expr(
                                   an_expr_node_ptr         expr,
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_param_ptr     template_param_list,
+                                  a_type_ptr               guide_type,
+                                  a_boolean                indef_lvalue,
                                   a_source_position        *source_pos,
                                   a_ctws_options_set       options,
                                   a_boolean                *copy_error,
@@ -8651,17 +8844,23 @@ is a constant expression that is part of a template argument expression.
 In the process of copying, replace any template parameters
 with the corresponding values from the template argument list
 template_arg_list.  template_param_list is the parameter list for which
-template_arg_list is an argument list.  source_pos provides the source
-position for any calls of copy_type_with_substitution.  If there is an
-error in the copying (specifically, if there is an error in doing
-substitution on a type), set *copy_error to TRUE.  If the expression
-after substitution is a constant, set *alloc_con to the address of the
-constant and return NULL.  If there is no allocated copy of the constant,
-set *alloc_con to NULL, set *constant to the constant value, and
-return NULL.  options is a set of name lookup options.
+template_arg_list is an argument list.  If guide_type is non-NULL, it
+is a "guide" type for the expression, either the type of the template
+parameter or the destination type of a cast above this constant.
+If indef_lvalue is TRUE, the expression appears in a context where
+either an lvalue or an rvalue is permitted (e.g., a sizeof).
+source_pos provides the source position for any calls of
+copy_type_with_substitution.  If there is an error in the copying
+(specifically, if there is an error in doing substitution on a type),
+set *copy_error to TRUE.  If the expression after substitution is a
+constant, set *alloc_con to the address of the constant and return
+NULL.  If there is no allocated copy of the constant, set *alloc_con
+to NULL, set *constant to the constant value, and return NULL.
+options is a set of name lookup options.
 */
 {
-  an_expr_node_ptr expr_copy = NULL;
+  an_expr_node_ptr      expr_copy = NULL;
+  an_expr_operator_kind op;
 
   *alloc_con = NULL;
   switch (expr->kind) {
@@ -8671,7 +8870,7 @@ return NULL.  options is a set of name lookup options.
       *alloc_con = copy_template_param_con(expr->variant.constant,
                                            template_arg_list,
                                            template_param_list,
-                                           (a_type_ptr)NULL,
+                                           guide_type,
                                            source_pos,
                                            options,
                                            copy_error,
@@ -8679,11 +8878,35 @@ return NULL.  options is a set of name lookup options.
       expr_copy = NULL;
       break;
     case enk_operation:
-      { an_expr_node_ptr operand_1 = expr->variant.operation.operands;
+      op = expr->variant.operation.kind;
+      if (op == (an_expr_operator_kind)eok_lvalue) {
+        /* Copy and fold an eok_lvalue node. */
+        expr_copy = copy_template_param_eok_lvalue(expr,
+                                                   template_arg_list,
+                                                   template_param_list,
+                                                   guide_type,
+                                                   indef_lvalue,
+                                                   source_pos,
+                                                   options,
+                                                   copy_error,
+                                                   constant,
+                                                   alloc_con);
+      } else if (op == (an_expr_operator_kind)eok_rvalue) {
+        /* Copy and fold an eok_rvalue node. */
+        expr_copy = copy_template_param_eok_rvalue(expr,
+                                                   template_arg_list,
+                                                   template_param_list,
+                                                   guide_type,
+                                                   indef_lvalue,
+                                                   source_pos,
+                                                   options,
+                                                   copy_error,
+                                                   constant,
+                                                   alloc_con);
+      } else {
+        an_expr_node_ptr operand_1 = expr->variant.operation.operands;
         an_expr_node_ptr operand_2 = operand_1->next;
         an_expr_node_ptr operand_3 = NULL;
-        an_expr_operator_kind
-                         op = expr->variant.operation.kind;
         an_expr_node_ptr new_operand_1, new_operand_2 = NULL;
         an_expr_node_ptr new_operand_3 = NULL;
         a_constant       constant_1, constant_2, constant_3;
@@ -8695,6 +8918,8 @@ return NULL.  options is a set of name lookup options.
         new_operand_1 = copy_template_param_expr(operand_1,
                                                  template_arg_list,
                                                  template_param_list,
+                                                 (a_type_ptr)NULL,
+                                                 /*indef_lvalue=*/FALSE,
                                                  source_pos,
                                                  options,
                                                  copy_error,
@@ -8704,6 +8929,8 @@ return NULL.  options is a set of name lookup options.
           new_operand_2 = copy_template_param_expr(operand_2,
                                                    template_arg_list,
                                                    template_param_list,
+                                                   (a_type_ptr)NULL,
+                                                   /*indef_lvalue=*/FALSE,
                                                    source_pos,
                                                    options,
                                                    copy_error,
@@ -8714,6 +8941,8 @@ return NULL.  options is a set of name lookup options.
             new_operand_3 = copy_template_param_expr(operand_3,
                                                      template_arg_list,
                                                      template_param_list,
+                                                     (a_type_ptr)NULL,
+                                                     /*indef_lvalue=*/FALSE,
                                                      source_pos,
                                                      options,
                                                      copy_error,
@@ -8732,11 +8961,7 @@ return NULL.  options is a set of name lookup options.
                   copy_error);
         if (new_operand_1 == NULL &&
             new_operand_2 == NULL &&
-            new_operand_3 == NULL &&
-            /* Don't try to fold eok_rvalue and eok_lvalue, which come
-               up in sizeof expressions. */
-            (op != (an_expr_operator_kind)eok_lvalue &&
-             op != (an_expr_operator_kind)eok_rvalue)) {
+            new_operand_3 == NULL) {
           /* All the operands are constant. */
           if (alloc_con_1 != NULL) copy_constant(alloc_con_1, &constant_1);
           if (alloc_con_2 != NULL) copy_constant(alloc_con_2, &constant_2);
@@ -8815,7 +9040,7 @@ return NULL.  options is a set of name lookup options.
           }  /* if */
           expr_copy = make_operator_node(op, operation_type, new_operand_1);
         }  /* if */
-      }
+      }  /* if */
       break;
     default:
       unexpected_condition_str("copy_template_param_expr: bad kind");
@@ -9142,6 +9367,8 @@ name lookup options.
             expr = copy_template_param_expr(expr,
                                             template_arg_list,
                                             template_param_list,
+                                            (a_type_ptr)NULL,
+                                            /*indef_lvalue=*/TRUE,
                                             source_pos,
                                             options,
                                             copy_error,
@@ -9172,8 +9399,8 @@ name lookup options.
               expr == con->variant.template_param.variant.templ_sizeof.expr) {
             /* No change in the type or the expression, so the original
                constant is still okay. */
-          } else if (is_or_contains_template_param(new_type)) {
-            /* Still a template parameter type, so still need a
+          } else if (is_template_dependent_type(new_type)) {
+            /* Still a template dependent type, so still need a
                tpck_sizeof/alignof/uuidof constant. */
             *constant = *con;
             constant->variant.template_param.variant.templ_sizeof.type =
@@ -9244,6 +9471,8 @@ name lookup options.
                                                          expr,
                                                          template_arg_list,
                                                          template_param_list,
+                                                         guide_type,
+                                                        /*indef_lvalue=*/FALSE,
                                                          source_pos,
                                                          options,
                                                          copy_error,
@@ -11315,7 +11544,7 @@ static a_boolean any_destruction_has_temp_lifetime(an_object_lifetime_ptr olp)
 Do through the destructions for lifetime *olp and return TRUE if any is
 marked as having "temporary lifetime" -- i.e., a lifetime (long or short)
 that is not governed by the lifetime of another entity to which it is
-bound (e.g., to variable of reference type).
+bound (e.g., to a variable of reference type).
 */
 {
   a_boolean           found = FALSE;
