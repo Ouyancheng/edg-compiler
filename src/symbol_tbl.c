@@ -2168,8 +2168,7 @@ indicated by class_type.
     /* There are scopes on the scope stack that affect access control.
        Look at each one and see if it confers member access to class_type. */
     ssep = &scope_stack[depth_of_innermost_scope_that_affects_access_control];
-    if (ssep->kind == (a_scope_kind)sck_function ||
-        ssep->kind == (a_scope_kind)sck_func_prototype) {
+    if (ssep->kind == (a_scope_kind)sck_function) {
       /* A function -- see if class_type is on its befriending list. */
       function_case = TRUE;
       scope_routine = ssep->il_scope->variant.routine.ptr;
@@ -2305,8 +2304,7 @@ Programming Language", 2nd Edition, and 11.5 in the ARM.
        Look at each one and see if it confers protected member access to
        class_type. */
     ssep = &scope_stack[depth_of_innermost_scope_that_affects_access_control];
-    if (ssep->kind == (a_scope_kind)sck_function ||
-        ssep->kind == (a_scope_kind)sck_func_prototype) {
+    if (ssep->kind == (a_scope_kind)sck_function) {
       /* A function. */
       function_case = TRUE;
       scope_routine = ssep->il_scope->variant.routine.ptr;
@@ -3430,7 +3428,6 @@ function).  Access control only exists in C++.
 #define is_scope_kind_that_affects_access_control(kind)               \
    ((kind) == (a_scope_kind)sck_class_struct_union ||                 \
     (kind) == (a_scope_kind)sck_class_reactivation ||                 \
-    (kind) == (a_scope_kind)sck_func_prototype ||                     \
     (kind) == (a_scope_kind)sck_function)
 
 
