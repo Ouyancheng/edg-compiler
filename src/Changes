@@ -1,5 +1,20 @@
 Version 2.35
 
+2/11/97 Namespace "std" is now predeclared
+
+Code has been added to predeclare namespace "std" -- that is, a namespace
+entry is created and added to the namespaces list of the file scope and
+the symbol associated with it is created.  However, the symbol is not
+added to the symbol table before it is explicitly declared in the source
+program; until then it will not be found by name lookup but is available
+through global variable symbol_for_namespace_std.
+
+Predeclaring namespace std means it is available for other predeclared
+symbols.  For example, an implementation may choose to predeclare as
+built-in functions entities that, according to the Working Paper, belong
+to namespace std.  See enter_system_specific_predeclared_symbols in
+sys_predef.c.
+
 2/11/97 INT_VALUE_PARTS_PER_INTEGER_VALUE when host and target byte sizes
         differ
 
