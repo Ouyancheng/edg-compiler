@@ -8728,7 +8728,11 @@ return NULL.  options is a set of name lookup options.
                   copy_error);
         if (new_operand_1 == NULL &&
             new_operand_2 == NULL &&
-            new_operand_3 == NULL) {
+            new_operand_3 == NULL &&
+            /* Don't try to fold eok_rvalue and eok_lvalue, which come
+               up in sizeof expressions. */
+            (op != (an_expr_operator_kind)eok_lvalue &&
+             op != (an_expr_operator_kind)eok_rvalue)) {
           /* All the operands are constant. */
           if (alloc_con_1 != NULL) copy_constant(alloc_con_1, &constant_1);
           if (alloc_con_2 != NULL) copy_constant(alloc_con_2, &constant_2);
