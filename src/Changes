@@ -1,5 +1,10 @@
 Version 3.4
 
+12/10/03 Compilation problem in lower_init.c, MAINTAIN_NEEDED_FLAGS FALSE
+
+Part of lower_init.c did not compile correctly when MAINTAIN_NEEDED_FLAGS
+is FALSE and GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED is TRUE.  Now fixed.
+
 12/10/03 C++-generating back end: Abort in tag_keyword on enum specifier
 
 In configurations where MICROSOFT_EXTENSIONS_ALLOWED is TRUE, the C++-
