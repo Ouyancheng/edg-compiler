@@ -2851,9 +2851,11 @@ of the function, and again overloading is a possibility.
           set_to_error_locator(*locator);
         } else {
           if (func_info->is_definition) {
-            mark_defined(sym, &locator->source_position);
+            mark_defined(sym, &locator->source_position,
+                         (a_decl_seq_info_ptr)NULL);
           } else {
-            mark_declared(sym, &locator->source_position);
+            mark_declared(sym, &locator->source_position,
+                          (a_decl_seq_info_ptr)NULL);
           }  /* if */
           /* Do throw specification compatibility checking. */
           check_throw_specification(func_info, sym->variant.routine.ptr);
@@ -3263,9 +3265,11 @@ special function kind (e.g., constructor, destructor), if any.
       rtn->compiler_generated = TRUE;
     } else {
       if (func_info->is_definition) {
-        mark_defined(sym, &locator->source_position);
+        mark_defined(sym, &locator->source_position,
+                     (a_decl_seq_info_ptr)NULL);
       } else {
-        mark_declared(sym, &locator->source_position);
+        mark_declared(sym, &locator->source_position,
+                      (a_decl_seq_info_ptr)NULL);
       }  /* if */
     }  /* if */
     add_throw_specification(func_info, rtn);
@@ -3526,7 +3530,7 @@ no other qualifier, and where the resulting type is a scalar type -- e.g.,
   cp->source_corresp.access = access;
   cp->source_corresp.class_of_which_a_member =
                           sym->class_of_which_a_member = class_type;
-  mark_defined(sym, &locator->source_position);
+  mark_defined(sym, &locator->source_position, (a_decl_seq_info_ptr)NULL);
   add_to_constants_list(cp, /*at_file_scope=*/FALSE);
   db_exit();
 }  /* decl_member_constant */
@@ -3573,7 +3577,7 @@ table.
   set_source_corresp(&var->source_corresp, sym);
   /* This is entered as a declaration rather than a definition, since the
      definition must appear outside the class definition. */
-  mark_declared(sym, &locator->source_position);
+  mark_declared(sym, &locator->source_position, (a_decl_seq_info_ptr)NULL);
   if (is_anonymous_union) {
     /* A static data members is not allowed to be an anonymous union.  An error
        will have been issued already, but promote the fields anyway. */
@@ -3948,7 +3952,8 @@ class, struct, or union.
       member_sym->class_of_which_a_member = class_type;
       member_sym->variant.field.ptr = field;
       set_source_corresp(&(field->source_corresp), member_sym);
-      mark_defined(member_sym, &locator->source_position);
+      mark_defined(member_sym, &locator->source_position,
+                   (a_decl_seq_info_ptr)NULL);
     }  /* if */
     field->source_corresp.class_of_which_a_member = class_type;
     field->source_corresp.access = access;
@@ -5448,7 +5453,8 @@ and "class_type" indicates the class in which the declaration occurs.
       aap->next = ctsp->access_adjustments;
       ctsp->access_adjustments = aap;
       /* Update cross-reference and source sequence info, if required. */
-      mark_declared(sym, &locator_for_curr_id.source_position);
+      mark_declared(sym, &locator_for_curr_id.source_position,
+                    (a_decl_seq_info_ptr)NULL);
     }  /* for */
   }  /* if */
 
@@ -7069,9 +7075,11 @@ skip_tag_scan:
       }  /* if */
     }  /* if */
     if (is_class_definition) {
-      mark_defined(tag_sym, &locator.source_position);
+      mark_defined(tag_sym, &locator.source_position,
+                   (a_decl_seq_info_ptr)NULL);
     } else {
-      mark_declared(tag_sym, &locator.source_position);
+      mark_declared(tag_sym, &locator.source_position,
+                    (a_decl_seq_info_ptr)NULL);
     }  /* if */
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
     /* Use of template parameter name as a proxy tag name during a
@@ -7082,9 +7090,11 @@ skip_tag_scan:
     /* Record cross-reference information. */
     if (is_class_definition) {
       if (is_template_class_instantiation) {
-        mark_declared(tag_sym, &locator.source_position);
+        mark_declared(tag_sym, &locator.source_position,
+                      (a_decl_seq_info_ptr)NULL);
       } else {
-        mark_defined(tag_sym, &locator.source_position);
+        mark_defined(tag_sym, &locator.source_position,
+                     (a_decl_seq_info_ptr)NULL);
       }  /* if */
       /* Allow for alternating between class and struct, but stay with the
          one associated with the definition.  The difference only affects

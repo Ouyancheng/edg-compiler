@@ -359,7 +359,8 @@ might not be able to if the template itself has not yet been defined.
         internal_error("f_instantiate_template_class: bad 1st token in cache");
       }  /* if */
 #endif /* CHECKING */
-      mark_defined(instance_sym, &instance_sym->decl_position);
+      mark_defined(instance_sym, &instance_sym->decl_position,
+                   (a_decl_seq_info_ptr)NULL);
       /* Scan the base specifiers list, if any, and the body of the class. */
       (void)scan_class_definition(class_type, DEPTH_OF_FILE_SCOPE,
                                   /*is_local_class=*/FALSE,
@@ -458,7 +459,8 @@ encountered.
     internal_error("instantiate_class_template: bad 1st token in cache");
   }  /* if */
 #endif /* CHECKING */
-  mark_defined(template_sym, &template_sym->decl_position);
+  mark_defined(template_sym, &template_sym->decl_position,
+               (a_decl_seq_info_ptr)NULL);
   /* Scan the base specifiers list, if any, and the body of the class. */
   (void)scan_class_definition(prototype_type, DEPTH_OF_FILE_SCOPE,
                               /*is_local_class=*/FALSE,
@@ -2674,7 +2676,8 @@ that make up the declaration and do a prototype instantiation.
       prototype_type->source_corresp.name_linkage =
                                            (a_name_linkage_kind)nlk_internal;
 #if 0
-      mark_defined(prototype_sym, &prototype_sym->decl_position);
+      mark_defined(prototype_sym, &prototype_sym->decl_position,
+                   (a_decl_seq_info_ptr)NULL);
 #else /* 0 */
       prototype_sym->defined = TRUE;
 #endif /* if 0 */
