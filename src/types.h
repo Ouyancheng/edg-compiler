@@ -148,8 +148,8 @@ not been specialized.
 */
 #define is_unspecialized_template_class(tp)				\
   (is_immediate_class_type(tp) &&					\
-   (!(tp)->variant.class_struct_union.is_template_class ||		\
-    ((tp)->variant.class_struct_union.is_specialized)))
+   (tp)->variant.class_struct_union.is_template_class &&		\
+   !(tp)->variant.class_struct_union.is_specialized)
 
 /*
 Return TRUE if a tk_typeref type represents a typedef name.  Note that this

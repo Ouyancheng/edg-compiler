@@ -1815,7 +1815,7 @@ lookup processing.
        are generated from templates. */
     lookup_state->look_for_projected_symbol = TRUE;
     lookup_state->look_in_dependent_bases =
-                             is_unspecialized_template_class(ssep->assoc_type);
+                            !is_unspecialized_template_class(ssep->assoc_type);
     lookup_state->add_to_active_list = TRUE;
     lookup_state->insert_sym = prev_active_sym;
   }  /* if */
@@ -1928,7 +1928,7 @@ that do normal id lookup processing.
            a generated template class. */
         lookup_state->look_for_projected_symbol = TRUE;
         lookup_state->look_in_dependent_bases =
-                             is_unspecialized_template_class(ssep->assoc_type);
+                            !is_unspecialized_template_class(ssep->assoc_type);
         lookup_state->add_to_active_list = FALSE;
         lookup_state->insert_sym = NULL;
       }  /* if */

@@ -8828,7 +8828,8 @@ created if a projected symbol cannot be found in any of the real bases.
       /* Mark projection symbols for names in dependent base classes as
          invisible.  Such projection symbols should not be found by normal
          lookup (because the underlying symbol would not be found). */
-      if (do_dependent_name_processing) {
+      if (do_dependent_name_processing &&
+          is_unspecialized_template_class(class_ptr)) {
         new_sym->is_invisible = found_in_dependent_base(path);
       }  /* if */
       if (new_sym->ambiguous) {

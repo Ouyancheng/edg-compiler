@@ -1,5 +1,23 @@
 Version 2.46
 
+1/15/01  Base classes are only dependent when the derived class is a template
+
+When looking up an unqualified name in a class context, a base class should
+only be considered dependent when the most-derived class from which the
+lookup is done is a class template.  Formerly, we would unconditionally
+treat such a base class as dependent, causing "f" to be undefined in the
+example below.
+
+  template <class T> struct A {
+    void f();
+  };
+  template <class T> struct B: A<T> { };
+  struct C: B<int> {
+    void g() {
+      f();  // A<int>::f is visible
+    }
+  };
+
 1/12/01  Microsoft compatibility: __declspec specifiers on enum definitions
 
 In Microsoft mode, the front end now accepts (but discards) the same
