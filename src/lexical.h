@@ -49,7 +49,7 @@ typedef enum /*a_token_kind*/ {
   tok_digit_sequence,
   tok_cpp_quote,
   tok_class_qualifier,	/* C++ only */
-  tok_ptr_to_memberr,	/* C++ only */
+  tok_ptr_to_member,	/* C++ only */
   /* Operators (standard, 3.1.5; sizeof appears with keywords): */
   tok_lbracket          /* [ */,    tok_rbracket           /* ] */,
   tok_lparen            /* ( */,    tok_rparen             /* ) */,
