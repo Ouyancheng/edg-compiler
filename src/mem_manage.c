@@ -675,7 +675,7 @@ is used for allocation of general front end memory (i.e., not IL).
     /* Not enough space remaining in current block.  Free any unused
        space at the end of the current last block, and start a new block. */
     trim_mem_block(hdr);
-    hdr = alloc_mem_block(region_number, size);
+    hdr = alloc_mem_block(region_number, size + HOST_ALIGNMENT_REQUIRED);
   }  /* for */
 
   /* Take the required space out of the current block. */
