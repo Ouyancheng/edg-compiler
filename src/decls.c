@@ -1966,14 +1966,7 @@ created; the caller must set it.
   if (ext_sym == NULL) {
     /* There is no (compatible) external symbol entry for the identifier.
        Create one. */
-    ext_sym = enter_symbol(ext_sym_kind, &ext_locator,
-                           depth_innermost_namespace_scope,
-                           /*suppress_error=*/TRUE);
-    if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
-      set_namespace_membership(ext_sym, (a_source_correspondence *)NULL,
-                               scope_stack[depth_innermost_namespace_scope].
-                                           il_scope->variant.assoc_namespace);
-    }  /* if */
+    ext_sym = enter_extern_symbol(ext_sym_kind, &ext_locator);
     esdp = ext_sym->variant.extern_symbol_descr;
     esdp->type = type_ptr;
     if (ext_sym_kind == (a_symbol_kind)sk_extern_routine) {
