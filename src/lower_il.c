@@ -1029,7 +1029,10 @@ inside other user-written structs.
 {
   type->next = il_header.primary_scope->types;
   il_header.primary_scope->types = type;
-  if (type->next == NULL) {
+  /* The in_front_end test deals with cases where this routine is
+     called from a back end, e.g., when make_typeinfo_type is called
+     from a back end. */
+  if (in_front_end && type->next == NULL) {
     /* There are no types on the file scope list, so this type is also the
        last type on the list. */
     curr_translation_unit->file_scope_pointers_block.last_type = type;
