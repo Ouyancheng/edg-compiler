@@ -4185,6 +4185,11 @@ cross-reference output describing this declaration.
     update_decl_pos_info(&variable_ptr->source_corresp, decl_pos_block);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Restore the scope stack.  (This is done prior to update secondary
+     source sequence entries because otherwise we might not find such an
+     entry for the case of a nondefining namespace-qualified variable
+     declaration (valid in Microsoft mode only). */
+  if (idlb.namespace_reactivated) pop_namespace_extension_scope();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Do fixup on the source sequence entry that was just created to
      represent the current declaration.  Note that declaration_ssep is not
@@ -4259,8 +4264,6 @@ cross-reference output describing this declaration.
     sym->variant.variable.used = TRUE;
     sym->variant.variable.value_has_been_set = TRUE;
   }  /* if */
-  /* Restore the scope stack. */
-  if (idlb.namespace_reactivated) pop_namespace_extension_scope();
   /* Do processing required for the rest of the pragmas, if any, that are
      bound to the current declaration.  Note that this has to be *after* the
      scope stack is restored, since processing depends on the pending_pragmas

@@ -1,5 +1,18 @@
 Version 2.45
 
+8/28/00  C++-generating back end: internal error on Microsoft-mode namespace-
+         qualified variable declaration
+
+In Microsoft mode, the front end accepts nondefining redeclarations of
+namespace variables outside of the namespace (see Changes entry of 8/14/97).
+However, the C++-generating back end would abort when attempting to
+regenerate such declarations.  For example:
+
+  namespace N { extern int i; }
+  extern int N::i;  // Used to abort in the C++-generating back end
+
+This is now fixed.
+
 8/27/00  C++-generating back end: avoid ambiguity on one-argument casts
 
 Casts with one argument are now put out as old-style casts, e.g.,
