@@ -9699,15 +9699,22 @@ eliminated, if appropriate.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (scope->kind == (a_scope_kind)sck_file) {
     /* Remove unneeded source-sequence entries. */
-    a_source_sequence_entry_ptr   ssep, next_ssep;
-    a_src_seq_secondary_decl_ptr  sssdp;
+    a_source_sequence_entry_ptr     ssep, next_ssep;
+    a_src_seq_secondary_decl_ptr    sssdp;
+    a_src_seq_end_of_construct_ptr  sseocp;
 
     for (ssep = scope->source_sequence_list; ssep != NULL; ssep = next_ssep) {
       next_ssep = ssep->next;
       /* The processing whereby the keep_in_il flag is set guarantees that
          the keep_in_il setting of the source sequence entry and that of the
          IL entry to which it corresponds will be the same. */
-      if (!il_entry_prefix_of(ssep).keep_in_il) {
+      if (!il_entry_prefix_of(ssep).keep_in_il
+#if 0
+#else
+          && ss_entry_kind(ssep) !=
+                           (an_il_entry_kind)iek_src_seq_end_of_construct
+#endif /* if 0 */
+                                              ) {
         a_byte_il_entry_kind  kind = ssep->entity.kind;
         check_assertion(!il_entry_prefix_of(ssep->entity.ptr).keep_in_il);
         if (kind == (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
@@ -9719,6 +9726,29 @@ eliminated, if appropriate.
             kind == (a_byte_il_entry_kind)iek_routine ||
             kind == (a_byte_il_entry_kind)iek_type) {
           next_ssep = drop_from_fs_src_seq_list(ssep);
+        }  /* if */
+      } else if (C_mode()) {
+        /* Special handling in C mode for cases like this:
+             static struct S { int i; } s;
+           where s can be eliminated but struct S must be kept.  Without s in
+           the IL we have to mark the entry for struct S as defined in an
+           autonomous declaration. */
+        if (next_ssep != NULL && !il_entry_prefix_of(next_ssep).keep_in_il &&
+            ss_entry_kind(ssep) ==
+                           (an_il_entry_kind)iek_src_seq_end_of_construct) {
+          /* The current source sequence entry is the end of a struct or enum
+             definition, and the next entry is not needed.  Mark the type
+             associated with the unneeded entry as autonomously declared;
+             if may already be -- there's no need to distinguish the example
+             given above from something like this:
+               struct S { int i; };
+               static struct S s;
+             (The only difference as far as source sequence lists are
+             concerned is how the autonomous_primary_tag_decl flag is set.) */
+          sseocp = ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
+          check_assertion(sseocp->entity.kind ==
+                                     (a_byte_il_entry_kind)iek_type);
+          ((a_type_ptr)sseocp->entity.ptr)->autonomous_primary_tag_decl = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
