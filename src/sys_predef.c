@@ -146,6 +146,9 @@ symbol for the function.
     rtsp = rout->type->variant.routine.extra_info;
     rtsp->has_ellipsis = TRUE;
   }  /* if */
+  /* Builtin functions have extern "C" name linkage by default. */
+  rout->source_corresp.name_linkage = (a_name_linkage_kind)nlk_external;
+  sym->explicit_linkage_specifier = !C_mode();
   return sym;
 }  /* enter_builtin_function */
 
@@ -1167,8 +1170,6 @@ Enter the predeclared functions for Microsoft mode.
                                  (a_type_ptr)NULL,
                                  /*is_varargs=*/FALSE);
     rout = sym->variant.routine.ptr;
-    /* The function is extern "C". */
-    rout->source_corresp.name_linkage = (a_name_linkage_kind)nlk_external;
     rtsp = rout->type->variant.routine.extra_info;
     rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_external;
   }  /* if */
