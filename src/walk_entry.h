@@ -569,9 +569,6 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* CHECKING */
         }  /* switch */
 #endif /* ifdef FFE */
-#ifdef CFE
-        remap_ptr(ptr->parent_block, a_statement_ptr, iek_statement);
-#endif /* ifdef CFE */
       }
       break;
     case iek_expr_node:
@@ -687,7 +684,6 @@ the file scope, do not process it (but record an orphan in the latter case).
            the pointer but do not walk the subtree. */
         remap_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
         remap_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
-        remap_ptr(ptr->parent_block, a_statement_ptr, iek_statement);
       }
 #endif /* ifdef CFE */
       break;

@@ -1558,9 +1558,6 @@ do_exec_stmt:
 #else /* !defined(FFE) */
   disp_ptr("exec_stmt", (char *)ptr->variant.exec_stmt, iek_statement);
 #endif /* ifdef FFE */
-#ifdef CFE
-  disp_ptr("parent_block", (char *)ptr->parent_block, iek_statement);
-#endif /* ifdef CFE */
 }  /* disp_label */
 
 
@@ -1984,7 +1981,6 @@ Display the indicated block.
 #ifdef CFE
   disp_ptr("assoc_scope", (char *)ptr->assoc_scope, iek_scope);
   disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
-  disp_ptr("parent_block", (char *)ptr->parent_block, iek_statement);
   disp_boolean("end_of_block_reachable",
                (a_boolean)ptr->end_of_block_reachable);
 #endif /* ifdef CFE */
