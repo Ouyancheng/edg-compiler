@@ -3198,7 +3198,7 @@ entry is pushed on the scope stack.
 */
 {
   a_template_param_ptr              tpp, template_param_list = NULL;
-  a_symbol_ptr                      sym, param_sym;
+  a_symbol_ptr                      sym, param_sym, instance_sym;
   a_template_symbol_supplement_ptr  tssp;
   a_boolean                         tag_resolution = FALSE;
   a_type_ptr                        prototype_type = NULL;
@@ -3474,14 +3474,33 @@ entry is pushed on the scope stack.
     /* Do a "prototype instantiation" of the class template -- i.e., parse
        the declarative information looking for gross syntax errors. */
     instantiate_class_template(sym, prototype_type);
-  }  /* if */
-  if (tag_resolution) {
-    /* This is the resolution of a previously incomplete template declaration;
-       if there are array types to be resolved, look to see if any of them are
-       arrays whose element type is an instantiation of this template.  (This
-       is by analogy with normal classes, for which an array of incomplete
-       class objects is allowed, pending completion.) */
-    check_fixup_list_for_array_types();
+    if (tag_resolution) {
+      /* This is the resolution of a previously incomplete template
+         declaration; it there were any incomplete instantiations that were
+         involved in array or function declarations, they may need to be
+         fixed up at this time. */
+      a_dependent_type_fixup_ptr  dtfp;
+      a_type_ptr                  class_type;
+
+      tssp = sym->variant.template_info;
+      for (instance_sym = tssp->variant.class_template.instantiations;
+           instance_sym != NULL;
+           instance_sym = instance_sym->next) {
+        if (instance_sym !=
+                  tssp->variant.class_template.prototype_instantiation) {
+          dtfp = instance_sym->variant.class_struct_union.extra_info->
+                                               dependent_type_fixup_list;
+          for (; dtfp != NULL; dtfp = dtfp->next) {
+            if (!dtfp->is_param_type && is_array_type(dtfp->variant.type)) {
+              class_type = instance_sym->variant.class_struct_union.type;
+              instantiate_template_class(class_type);
+              check_dependent_type_fixup_list(class_type);
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   /* If the declaration token cache is not needed, discard it. */
   if (!decl_token_cache_used) {

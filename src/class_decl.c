@@ -6850,6 +6850,11 @@ next_declaration:
     remove_stop_token(tok_rbrace);
     /* Check for and ignore the closing brace. */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
+    /* If this is the resolution of a previously incomplete tag, and there
+       is a list of array types to be resolved, look to see if any of them
+       are arrays whose element type is this struct/union type.  (This
+       handles an infrequently-used extension.) */
+    check_dependent_type_fixup_list(class_type);
     if (C_dialect == C_dialect_cplusplus) {
       /* Rescan tokens that were cached (inline function definitions, default
          arguments). */
@@ -7196,11 +7201,6 @@ skip_tag_scan:
                               is_local_class,
                               /*is_prototype_instantiation=*/FALSE)) {
       *defines_something = TRUE;
-      /* If this is the resolution of a previously incomplete tag, and there
-         is a list of array types to be resolved, look to see if any of them
-         are arrays whose element type is this struct/union type.  (This
-         handles an infrequently-used extension.) */
-      if (tag_resolution) check_fixup_list_for_array_types();
     } else {
       err = TRUE;
     }  /* if */
