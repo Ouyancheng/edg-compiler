@@ -22,7 +22,7 @@ header files.  Therefore, to emulate Sun CC compilers without support for
 link scope specifiers, a new command-line option --[no_]sun_linker_scope
 has been added to indicate explicitly whether link scope specifiers should
 be recognized.  (The default setting of this option is determined by the
-new configuration macro DEFAULT_SUN_LINKER_SCOPE allowed.)  Furthermore,
+new configuration macro DEFAULT_SUN_LINKER_SCOPE_ALLOWED.)  Furthermore,
 when these link scope specifiers are allowed, it is now possible to enable
 or disable them in the source using two new pragmas.  For example:
 
