@@ -120,6 +120,7 @@ static void scan_expr_full(an_operand               *result,
 #define scan_expr(result, prec_level, local_options)                  \
   scan_expr_full((result), (an_operand *)NULL, (prec_level),          \
                  (local_options))
+static void fix_up_dynamic_init_dtors(void);
 
 
 /*
@@ -7363,7 +7364,7 @@ See section 3.3.16 of the standard.
 static void build_accessible_base_class_list_for_throw(
                                                    an_expr_node_ptr throw_node)
 /*
-Add the list of accessible base classes to the thrown node throw_node
+Add the list of accessible base classes to the throw node throw_node
 (if necessary).
 */
 {
@@ -7448,8 +7449,16 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     expr_present = FALSE;
   } else {
     /* Scan the expression. */
+    a_boolean saved_in_cctor_elision_initializer =
+                                      expr_stack->in_cctor_elision_initializer;
+    /* Treat this expression as one subject to the copy constructor
+       elision optimization.  This necessitates a call to
+       fix_up_dynamic_init_dtors later. */
+    expr_stack->in_cctor_elision_initializer = TRUE;
     expr_present = TRUE;
     scan_expr(&operand, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
+    expr_stack->in_cctor_elision_initializer =
+                                            saved_in_cctor_elision_initializer;
     if (is_void_type(operand.type)) {
       /* Cannot throw a void expression. */
       error_in_operand(ec_void_throw, &operand);
@@ -7470,7 +7479,9 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
         /* For a class type operand, generate a dynamic initialization that
            copies the value to an undesignated location. */
         throw_type = operand.type;
-        prep_elision_initializer_operand(&operand, operand.type, &dip);
+        prep_elision_initializer_operand(&operand, operand.type,
+                                         /*fill_in_dtor=*/FALSE,
+                                         ec_bad_initializer_type, &dip);
       } else {
         /* For a nonclass operand, generate an expression and then make a
            dynamic initialization entry for the expression. */
@@ -7485,6 +7496,8 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
       throw_node->variant.throw_info->type = throw_type;
       /* Generate a list of accessible base classes. */
       build_accessible_base_class_list_for_throw(throw_node);
+      /* Fix up destructor references in the overall expression. */
+      fix_up_dynamic_init_dtors();
       /* Mark the type as having been used in an exception.  (Also, if it
          "contains" any classes, they are marked as requiring external
          linkage.) */
@@ -8762,13 +8775,13 @@ Process the fixup list of dynamic initializations attached to the current
 level of the expression stack.  The dynamic initializations on the list
 are ones whose destructor processing could not be completed when the
 dynamic init entry was created because the initialization occurs within
-the return expression in a routine that returns its value via a copy
-constructor.  The destructor call on the topmost initialization is
-optimized away, but there's no way to know that when it is generated,
-so all such initializations are put in the dynamic init entries but
-the destructor routines are not marked as referenced.  The dynamic
-init entries are placed on a list and here the remaining referenced
-destructor routines are marked as actually referenced.
+an expression that is subject to the copy constructor elision optimization.
+The destructor call on the topmost initialization is optimized away,
+but there's no way to know that when it is generated, so all such
+initializations are put in the dynamic init entries but the destructor
+routines are not marked as referenced.  The dynamic init entries are
+placed on a list and here the remaining referenced destructor routines
+are marked as actually referenced.
 */
 {
   a_dynamic_init_dtor_fixup_ptr didfp, didfp_next;
@@ -8907,7 +8920,7 @@ the appropriate dynamic initialization entry and return NULL.
   if (routine_type->variant.routine.extra_info->value_returned_by_cctor) {
     /* The current routine returns its value via a copy constructor. */
     return_by_cctor_case = TRUE;
-    expr_stack->in_return_by_cctor_expression = TRUE;
+    expr_stack->in_cctor_elision_initializer = TRUE;
   }  /* if */
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
@@ -8916,7 +8929,8 @@ the appropriate dynamic initialization entry and return NULL.
     /* Check for the possibility of the return value optimization. */
     check_return_value_optimization(&result);
     /* Build a dynamic initialization entry for the return statement. */
-    prep_return_by_cctor_operand(&result, required_type, err_code, dip);
+    prep_elision_initializer_operand(&result, required_type,
+                                     /*fill_in_dtor=*/FALSE, err_code, dip);
     wrap_up_dynamic_init_full_expression(*dip);
     /* Fix up destructor references in the overall expression. */
     fix_up_dynamic_init_dtors();
@@ -9384,6 +9398,7 @@ cases:
   A y[3] = {1, 2, 3}; // A::A(int) three times
   A z = x;            // A::A(const A&)
 
+As indicated, this is initialization with the "=" semantics.
 The dynamic initialization entry will also indicate a destructor if
 appropriate.
 */
@@ -9400,7 +9415,9 @@ appropriate.
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Find out whether or not the conversion is possible, and
      build a dynamic initialization entry to describe the initialization. */
-  prep_elision_initializer_operand(&result, required_type, dip);
+  prep_elision_initializer_operand(&result, required_type,
+                                   /*fill_in_dtor=*/TRUE,
+                                   ec_bad_initializer_type, dip);
   wrap_up_dynamic_init_full_expression(*dip);
   /* *dip == NULL means there was an error. */
   if (*dip == NULL) okay = FALSE;

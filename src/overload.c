@@ -5758,16 +5758,17 @@ returns the value or address of the temporary is immaterial.
 
 
 static a_boolean is_temp_init_usable_in_optimization(
-                                  an_operand         *source_operand,
-                                  a_boolean          initializing_return_value,
-                                  an_expr_node_ptr   *p_temp_init_node,
-                                  a_dynamic_init_ptr *p_dip)
+                                          an_operand         *source_operand,
+                                          a_boolean          suppress_dtor,
+                                          an_expr_node_ptr   *p_temp_init_node,
+                                          a_dynamic_init_ptr *p_dip)
 /*
 Determine whether or not source_operand is an enk_temp_init node that can be
 used in a copy constructor elision optimization.  Return TRUE if so, and
 also set *p_temp_init_node and *p_dip to the underlying expression node
-and dynamic initialization entry.  If initializing_return_value is TRUE,
-the initialization being done is for the value returned from a function.
+and dynamic initialization entry.  If suppress_dtor is TRUE, any destruction
+indicated in the initialization is cleared (this is used, for example,
+for a return, because the caller will do the destruction).
 */
 {
   a_boolean          is_usable_temp_init = FALSE;
@@ -5781,18 +5782,18 @@ the initialization being done is for the value returned from a function.
     is_usable_temp_init = TRUE;
     temp_init_node = source_operand->variant.expression;
     dip = temp_init_node->variant.init.dynamic_init;
-    /* Take the dynamic init off whatever destruction list it is on,
+    /* Take the dynamic init off whatever destruction list it is on, if any,
        because it will be given to the caller, who will put it on a
        list at that level. */
     remove_from_destruction_list(dip);
     temp_init_node->variant.init.static_temp = FALSE;
     dip->has_temporary_lifetime = TRUE;
-    if (initializing_return_value && dip->destructor != NULL) {
-      /* In a return, we don't want a dynamic initialization that specifies
-         a destructor call (the caller does the destruction);
-         clear the destructor field.  Note that even though the destructor
-         field is filled in, the destructor routine has not been marked as
-         referenced, because we're in a cctor return expression
+    if (suppress_dtor && dip->destructor != NULL) {
+      /* We don't want destruction indicated here (because someone else
+         will take care of the destruction), so clear the destructor pointer.
+         Note that in these cases the destructor field was filled in
+         but the destructor routine has not been marked as referenced,
+         because we're in a cctor elision initializer expression
          (see alloc_dtor_dynamic_init and fix_up_dynamic_init_dtors). */
       dip->destructor = NULL;
     }  /* if */
@@ -5804,23 +5805,21 @@ the initialization being done is for the value returned from a function.
 
 
 static a_dynamic_init_ptr alloc_dynamic_init_possibly_with_dtor(
-                                 a_dynamic_init_kind kind,
-                                 a_boolean           initializing_return_value,
-                                 a_type_ptr          temp_type,
-                                 a_source_position   *position)
+                                             a_dynamic_init_kind kind,
+                                             a_boolean           fill_in_dtor,
+                                             a_type_ptr          temp_type,
+                                             a_source_position   *position)
 /*
 Allocate a dynamic initialization entry of type kind and return a pointer
 to it.  The entity to be initialized is of type temp_type.  *position
-indicates the source position of the initialization.  initializing_return_value
-is TRUE if the dynamic initialization is initializing the return value of
-a function that returns its value via a copy constructor (the destructor
-is suppressed in that case).
+indicates the source position of the initialization.  fill_in_dtor
+is TRUE if the dynamic initialization should indicate destruction.
 */
 {
   a_dynamic_init_ptr dip;
 
-  if (initializing_return_value) {
-    /* No destructor call if this is a return statement. */
+  if (!fill_in_dtor) {
+    /* No destructor call wanted. */
     dip = alloc_expr_dynamic_init(kind);
   } else {
     dip = alloc_dtor_dynamic_init(kind, temp_type, position);
@@ -5830,19 +5829,19 @@ is suppressed in that case).
 
 
 static void determine_dynamic_init_for_class_init(
-                                  an_operand         *source_operand,
-                                  a_type_ptr         dest_type,
-                                  a_conv_descr       *conversion,
-                                  a_boolean          initializing_return_value,
-                                  a_dynamic_init_ptr *p_dip,
-                                  an_expr_node_ptr   *p_temp_init_node)
+                                          an_operand         *source_operand,
+                                          a_type_ptr         dest_type,
+                                          a_conv_descr       *conversion,
+                                          a_boolean          fill_in_dtor,
+                                          a_dynamic_init_ptr *p_dip,
+                                          an_expr_node_ptr   *p_temp_init_node)
 /*
 An entity of type dest_type (a class type) is being initialized from
 source_operand.  The constructor or conversion function required to do the
 copy and/or conversion is given by *conversion.  Create a dynamic
 initialization entry to do the initialization (and any required
-destruction, unless initializing_return_value is TRUE) and return a
-pointer to it in *dip (or return *dip == NULL for an error).  If
+destruction, if fill_in_dtor is TRUE) and return a pointer to
+it in *dip (or return *dip == NULL for an error).  If
 p_temp_init_node is non-NULL, create an enk_temp_init node (for the
 address of a temporary) pointing to that dynamic initialization entry,
 and return a pointer to it in *p_temp_init_node.  dest_type is allowed
@@ -5850,9 +5849,6 @@ to be a class having no constructors at all.  The initialization
 represented is an "=" initialization, i.e.,
 
   dest_type var = source_operand;
-
-If initializing_return_value is TRUE, the initialization is one that
-returns a value from a return statement.
 
 This routine does copy constructor elision, i.e., it checks for cases
 where a constructor or other routine can be called to generate its
@@ -5899,7 +5895,7 @@ happen only in C++ mode.
            If it is, the temporary and the copy constructor call can be
            optimized away. */
         if (is_temp_init_usable_in_optimization(source_operand,
-                                                initializing_return_value,
+                                                !fill_in_dtor,
                                                 &temp_init_node,
                                                 &dip)) {
           elision_done = TRUE;
@@ -5926,7 +5922,7 @@ happen only in C++ mode.
                            conversion, (a_conv_descr *)NULL);
       /* See if the result of the conversion is already in a temporary. */
       if (is_temp_init_usable_in_optimization(source_operand,
-                                              initializing_return_value,
+                                              !fill_in_dtor,
                                               &temp_init_node,
                                               &dip)) {
         elision_done = TRUE;
@@ -5957,7 +5953,7 @@ happen only in C++ mode.
     prep_class_bitwise_copy_operand(source_operand, dest_type);
     dip = alloc_dynamic_init_possibly_with_dtor(
                                           (a_dynamic_init_kind)dik_expression,
-                                          initializing_return_value,
+                                          fill_in_dtor,
                                           class_type,
                                           &source_operand->position);
     dip->variant.expression = make_node_from_operand(source_operand);
@@ -5968,7 +5964,7 @@ happen only in C++ mode.
     /* Use a dik_constructor entry to call the constructor. */
     dip = alloc_dynamic_init_possibly_with_dtor(
                                           (a_dynamic_init_kind)dik_constructor,
-                                          initializing_return_value,
+                                          fill_in_dtor,
                                           class_type,
                                           &source_operand->position);
     dip->variant.constructor.ptr = conversion_routine;
@@ -6002,36 +5998,44 @@ happen only in C++ mode.
 
 void prep_elision_initializer_operand(an_operand         *source_operand,
                                       a_type_ptr         dest_type,
+                                      a_boolean          fill_in_dtor,
+                                      an_error_code      err_code,
                                       a_dynamic_init_ptr *dip)
 /*
 An entity of (class) type dest_type is being initialized from source_operand.
 Convert it if necessary (issuing an error if the conversion cannot be done),
 and build a dynamic initialization entry to describe the initialization.
 The dynamic initialization entry will also indicate a destructor if
-appropriate.  Return a pointer to that entry in *dip (or NULL for an
-error).  source_operand may be changed by this routine.  This routine
-is used in both C and C++ mode, but it exists to do copy constructor
-elision in C++ mode.
+appropriate and if fill_in_dtor is TRUE.  Return a pointer to the dynamic
+initialization entry in *dip (or NULL for an error).  err_code is the error
+code to be used in case of error.  source_operand may be changed by this
+routine.  This routine is used in both C and C++ mode, but it exists to
+do copy constructor elision in C++ mode.  This is an initialization with
+the "=" semantics.
 */
 {
   a_conv_descr conversion;
+  an_operand   orig_operand;
 
+  orig_operand = *source_operand;
   *dip = NULL;
   /* Look for a constructor to convert the expression to the required
      class type. */
   if (conversion_possible(source_operand, dest_type, dest_type,
                           /*is_initialization=*/TRUE,
                           /*try_user_conversions=*/TRUE,
-                          ec_bad_initializer_type,  /* Arbitrary. */
+                          err_code,
                           &source_operand->position,
                           &conversion)) {
     /* The conversion is possible.  Determine the routine and argument
        list to return to the caller. */
     determine_dynamic_init_for_class_init(source_operand, dest_type,
                                           &conversion,
-                                          /*initializing_return_value=*/FALSE,
+                                          fill_in_dtor,
                                           dip, (an_expr_node_ptr *)NULL);
   }  /* if */
+  /* Restore the original source position, etc. */
+  restore_operand_details(source_operand, &orig_operand);
 }  /* prep_elision_initializer_operand */
 
 
@@ -6585,7 +6589,7 @@ to be acceptable, and *conversion describes it.
          to the called routine. */
       determine_dynamic_init_for_class_init(source_operand, formal_param->type,
                                             conversion,
-                                           /*initializing_return_value=*/FALSE,
+                                            /*fill_in_dtor=*/TRUE,
                                             &dip, &temp_init_node);
       make_expression_operand(temp_init_node, temp_init_node->type,
                               source_operand);
@@ -6601,40 +6605,6 @@ to be acceptable, and *conversion describes it.
                              err_code);
   }  /* if */
 }  /* prep_argument_operand */
-
-
-void prep_return_by_cctor_operand(an_operand         *source_operand,
-                                  a_type_ptr         required_type,
-                                  an_error_code      err_code,
-                                  a_dynamic_init_ptr *dip)
-/*
-*source_operand is an operand for the expression of a return statement
-in a routine that returns its value via a copy constructor.  The function
-return type is required_type.  Build a dynamic initialization entry
-to do the return, and return a pointer to it in *dip (or NULL if there is
-an error).  err_code is the error code to be used in case of error.
-*/
-{
-  an_operand   orig_operand;
-  a_conv_descr conversion;
-
-  orig_operand = *source_operand;
-  *dip = NULL;
-  /* See if the conversion is possible. */
-  if (conversion_possible(source_operand, required_type, required_type,
-                          /*is_initialization=*/TRUE,
-                          /*try_user_conversions=*/TRUE,
-                          err_code, &source_operand->position,
-                          &conversion)) {
-    /* Yes.  Build the dynamic init entry. */
-    determine_dynamic_init_for_class_init(source_operand, required_type,
-                                          &conversion,
-                                          /*initializing_return_value=*/TRUE,
-                                          dip, (an_expr_node_ptr *)NULL);
-  }  /* if */
-  /* Restore the original source position, etc. */
-  restore_operand_details(source_operand, &orig_operand);
-}  /* prep_return_by_cctor_operand */
 
 
 void prep_assignment_operand(an_operand        *source_operand,

@@ -290,12 +290,16 @@ typedef struct an_expr_stack_entry {
 			   argument, e.g., it's not TRUE inside a sizeof
 			   inside a template argument. */
   a_byte_boolean
-		in_return_by_cctor_expression;
-			/* TRUE if the expression is in a return statement in
-			   a routine that returns its value to the caller by
+		in_cctor_elision_initializer;
+			/* TRUE if the expression is or is inside of an
+			   initializer expression that is subject to
+			   the copy constructor elision optimization,
+			   for example in a return expression in a
+			   routine that returns its value to the caller by
 			   calling a copy constructor.  This has an effect
 			   on destructor calls noted in dynamic initialization
-			   entries for temporaries. */
+			   entries for temporaries.  See
+			   fix_up_dynamic_init_dtors. */
   a_byte_boolean
 		fold_constant_addr_exprs;
 			/* TRUE if constant addressing expressions should be
@@ -312,7 +316,7 @@ typedef struct an_expr_stack_entry {
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
 			   processing was delayed.  Only non-NULL when
-			   in_return_by_cctor_expression is TRUE. */
+			   in_cctor_elision_initializer is TRUE. */
   unsigned long	nested_construct_depth;
 			/* Number of nested constructs like parentheses
 			   begun within this major expression level. */

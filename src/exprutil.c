@@ -595,7 +595,7 @@ in a loop).
   new_entry->potentially_evaluated = TRUE;
   new_entry->is_default_arg_expression = FALSE;
   new_entry->is_template_arg_expression = FALSE;
-  new_entry->in_return_by_cctor_expression = FALSE;
+  new_entry->in_cctor_elision_initializer = FALSE;
   new_entry->fold_constant_addr_exprs = FALSE;
   new_entry->inside_conditional_expression = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
@@ -3771,13 +3771,13 @@ initialization entry.  *position gives the associated source position.
   if (C_dialect == C_dialect_cplusplus && is_class_struct_union_type(type)) {
     /* The type is a class.  If it has a destructor, indicate it in
        the dynamic initialization. */
-    if (!expr_stack->in_return_by_cctor_expression) {
+    if (!expr_stack->in_cctor_elision_initializer) {
       dip->destructor = select_destructor(type, type, position,
                                           /*honor_virtual=*/FALSE,
                                           curr_expr_is_potentially_evaluated(),
                                           /*suppress_access_check=*/FALSE);
     } else {
-      /* In a cctor return expression.  Put the destructor in the entry,
+      /* In a cctor elision expression.  Put the destructor in the entry,
          but do not do the access checking etc. at this time.  Build a fixup
          entry to remind us to do the check later, and put it on the list
          for the current expression. */
