@@ -2947,17 +2947,14 @@ typedef struct a_scope {
 			/* If the scope is for a C++ nonstatic member
 			   function, this field points to the implicit "this"
 			   parameter.  It is NULL in all other cases. */
-      a_routine_ptr
-		return_copy_constructor;
-			/* If non-NULL, the value returned by the routine
-			   must be copied back to the space provided by the
-			   caller by calling the indicated copy constructor.
-			   This will only be non-NULL when the routine type
-			   has caller_provides_place_to_put_return_value
-			   TRUE.  If caller_provides_place_to_put_return_value
-			   is TRUE and return_copy_constructor is NULL,
-			   the routine returns its value by C-style structure
-			   assignment. */
+      a_variable_ptr
+		return_value_pointer_variable;
+			/* If non-NULL, this points to the implicit parameter
+			   that provides a pointer to the location to which
+			   the return value of this function must be copied
+			   on return.  This is only used when the return type
+			   is a C++ class type, and is necessary (e.g.) when a
+			   copy constructor must be called. */
 #endif /* ifdef CIL */
 #ifdef FIL
       a_variable_ptr

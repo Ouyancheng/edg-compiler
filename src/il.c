@@ -3749,13 +3749,13 @@ points to the associated routine if the kind is sck_function.
       sp->variant.assoc_type = NULL;
       break;
     case sck_function:
-      sp->variant.routine.ptr                     = assoc_routine;
-      sp->variant.routine.parameters              = NULL;
-      sp->variant.routine.constructor_inits       = NULL;
-      sp->variant.routine.this_param_variable     = NULL;
-      sp->variant.routine.return_copy_constructor = NULL;
+      sp->variant.routine.ptr                 = assoc_routine;
+      sp->variant.routine.parameters          = NULL;
+      sp->variant.routine.constructor_inits   = NULL;
+      sp->variant.routine.this_param_variable = NULL;
+      sp->variant.routine.return_value_pointer_variable = NULL;
 #ifdef FIL
-      sp->variant.routine.function_result_var     = NULL;
+      sp->variant.routine.function_result_var = NULL;
 #endif /* ifdef FIL */
       break;
 #if CHECKING
