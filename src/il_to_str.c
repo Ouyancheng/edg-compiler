@@ -2908,7 +2908,7 @@ confusion.  Do the output in the way described by octl.
           if (constant->variant.template_param.variant.is_address) {
             octl->output_str("&");
           }  /* if */
-          /*FALLTHROUGH*/
+          goto name_cases;
         case tpck_unknown_function:
           if (constant->variant.template_param.variant.conversion_type!=NULL) {
             /* The associated function is a conversion function.  Generate
@@ -2918,8 +2918,9 @@ confusion.  Do the output in the way described by octl.
                       octl);
             break;
           }  /* if */
-          /*FALLTHROUGH*/
+          goto name_cases;
         case tpck_param:
+name_cases:
           form_name(&constant->source_corresp, iek_constant, octl);
           break;
         case tpck_expression:
