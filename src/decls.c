@@ -5759,8 +5759,11 @@ specifier is restored.
      sure to update the name linkage kind enumeration. */
   /* Save the current default linkage. */
   saved_linkage = def_external_linkage;
-  if (str != NULL) {
-    /* Look for a matching string. */
+  if (str == NULL) {
+    /* There must have been an error in scanning the string literal (e.g.,
+       no closing '"'. */
+  } else {
+    /* Look for the predefined string ("C++", "C", ...) which str matches. */
     for (kind = (a_name_linkage_kind)nlk_cplusplus_external;
          (int)kind < (int)nlk_last;
          kind = (a_name_linkage_kind)(kind + 1)) {
