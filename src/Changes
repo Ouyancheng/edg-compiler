@@ -1,5 +1,12 @@
 Version 3.3
 
+7/29/03  C++-generating back end: avoid putting out both inline and Microsoft
+         __forceinline
+
+The C++-generating back end now avoids putting out the "inline"
+specifier on a declaration if the Microsoft "__forceinline" specifier
+is also put out.  (See also the similar Changes entry of 4/18/03.)
+
 7/29/03  Symbol table performance improvement
 
 The size of the symbol table has been increased to improve performance when

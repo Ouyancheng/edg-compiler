@@ -10314,9 +10314,9 @@ TRUE if the declaration following this one is such a continuation.
       } else
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
-      if (rout->decl_modifiers & DM_MICROSOFT_INLINE) {
+      if (rout->decl_modifiers & (DM_MICROSOFT_INLINE | DM_FORCEINLINE)) {
         /* Suppress inline if we will be putting out the Microsoft
-           __inline later. */
+           __inline or __forceinline later. */
       } else
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
