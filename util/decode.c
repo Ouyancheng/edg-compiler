@@ -2870,6 +2870,9 @@ static char *demangle_unqualified_name(
                                  a_decode_control_block_ptr dctl);
 static char *demangle_template_param(char                       *ptr,
                                      a_decode_control_block_ptr dctl);
+static void output_cv_qualifiers(a_cv_qualifier_set         cv_quals,
+                                 a_boolean                  trailing_space,
+                                 a_decode_control_block_ptr dctl);
 
 
 static void clear_func_block(a_func_block *func_block)
@@ -3022,10 +3025,13 @@ of constructors and destructors.
       last_name = "13basic_ostream";
     } else if (ch2 == 'd') {
       str = "std::basic_iostream<char, std::char_traits<char>>";
-      last_name = "13basic_iostream";
+      last_name = "14basic_iostream";
     }  /* if */
     /* Output nothing if we want only the second-pass output. */
-    if (type_pass_num != 2) write_id_str(str, dctl);
+    if (type_pass_num != 2) {
+      output_cv_qualifiers(cv_quals, TRUE, dctl);
+      write_id_str(str, dctl);
+    }  /* if */
     ptr += 2;
     if (last_component_name != NULL) *last_component_name = last_name;
   } else {
@@ -3077,6 +3083,7 @@ of constructors and destructors.
           case subk_template_prefix:
             { a_boolean is_no_return_name, has_templ_arg_list;
               char      ctor_dtor_kind;
+              output_cv_qualifiers(cv_quals, TRUE, dctl);
               /* Take the right number of levels of the name.  Note that a
                  substitution counts as one level even if it represents
                  several. */

@@ -1,5 +1,15 @@
 Version 3.5
 
+10/27/04 IA-64 name demangling: cv-qualifier on substitution
+
+The IA-64 ABI demangler now correctly handles a cv-qualifier on a
+substitution.
+
+  _ZN1T1fEPKS_  --> T::f(const T*)
+  _ZN1T1fEPKSa  --> T::f(const std::allocator*)
+
+The "const" was missing on each of those previously.
+
 10/13/04 eccp: one-instantiation-per-object and --cpfe_only option
 
 If the --cpfe_only option was specified when using one-instantiation-per-object
