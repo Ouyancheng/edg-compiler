@@ -1,5 +1,11 @@
 Version 2.33
 
+9/26/96 Guard against _main being called more than once
+
+An explicit call of _main could result in an infinite loop during static
+destruction.  To prevent this, a second call of _main is now detected
+and results in an abort in __main_called_more_than_once.
+
 9/25/96 Scope of an uncaught exception now conforms to the Working Paper
 
 The Working Paper specifies that an exception is "uncaught" from the
