@@ -1237,6 +1237,10 @@ error code.
     case ec_delete_of_const_pointer:
       m = "a pointer to const may not be deleted";
       break;
+    case ec_no_matching_new_function:
+      m =
+       "none of the available operator new() functions matches these operands";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
