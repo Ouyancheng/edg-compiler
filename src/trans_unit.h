@@ -123,6 +123,33 @@ typedef struct a_translation_unit_stack_entry {
 } a_translation_unit_stack_entry;
 
 
+/*
+Entry pointed to by the trans_unit_corresp field of a_source_correspondence
+to describe a linkage-based correspondence between entities in different
+translation units.  Each entity with linkage will point to one of these
+entries, and that entry will also be pointed to by all equivalent entities
+in other translation units.
+*/
+typedef struct a_trans_unit_corresp *a_trans_unit_corresp_ptr;
+typedef struct a_trans_unit_corresp {
+  an_il_entry_kind
+                kind;   /* Kind of entity. */
+  char          *canonical;
+                        /* The instance of the entity that is considered the
+                           canonical one, which means the one with the most
+                           information.  Points to a definition if one is
+                           available, and to a specialization if one is
+                           available.  Always non-NULL. */
+  char          *primary;
+                        /* The instance of the entity in the primary IL, if
+                           there is one.  NULL otherwise. */
+#if CHECKING
+  unsigned int  count;
+                        /* The number of entities pointing to this entry. */
+#endif /* CHECKING */
+} a_trans_unit_corresp;
+
+
 extern void trans_unit_early_init(void);
 
 extern void process_translation_unit(
@@ -182,6 +209,7 @@ extern a_boolean push_translation_unit_if_needed(a_symbol_ptr	sym);
 extern void f_register_trans_unit_variable(a_void_ptr	var,
 					   sizeof_t	size);
 
+extern a_trans_unit_corresp_ptr alloc_trans_unit_corresp(void);
 
 /*
 Macro that returns whether a secondary translation unit has been seen.

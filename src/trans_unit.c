@@ -101,8 +101,31 @@ static a_boolean
 static unsigned long
 		num_translation_unit_stack_entries_allocated,
 		num_translation_units_allocated,
+                num_trans_unit_corresps_allocated,
 		num_variable_registrations_allocated;
 #endif /* DEBUG */
+
+
+a_trans_unit_corresp_ptr alloc_trans_unit_corresp(void)
+/*
+Allocate a translation unit correspondence entry, initialize its fields,
+and return a pointer to it.
+*/
+{
+  a_trans_unit_corresp_ptr tucp;
+
+  tucp = alloc_fe_of_type(a_trans_unit_corresp);
+#if DEBUG
+  num_trans_unit_corresps_allocated++;
+#endif /* DEBUG */
+  tucp->kind = iek_none;
+  tucp->canonical = NULL;
+  tucp->primary = NULL;
+#if CHECKING
+  tucp->count = 0;
+#endif /* CHECKING */
+  return tucp;
+}  /* alloc_trans_unit_corresp */
 
 
 static
@@ -612,6 +635,9 @@ routines is reported as part of the symbol table memory used.
   unsigned long	size;
   unsigned long	total;
 
+  db_space_used("trans. unit corresps",
+                num_trans_unit_corresps_allocated,
+                a_trans_unit_corresp);
   db_space_used_general("translation units",
                         num_translation_units_allocated,
                         a_translation_unit);
@@ -638,6 +664,7 @@ One-time initialization for trans_unit variables.
       pch_saved_var_array_elem(curr_translation_unit),
       pch_saved_var_array_elem(translation_units),
       pch_saved_var_array_elem(translation_units_tail),
+      pch_saved_var_array_elem(num_trans_unit_corresps_allocated),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -661,6 +688,9 @@ translation unit processing.
   translation_unit_needed_only_for_exported_templates = FALSE;
   curr_translation_unit_stack_entry = NULL;
   secondary_trans_units_on_stack = 0;
+#if DEBUG
+  num_trans_unit_corresps_allocated = 0;
+#endif /* DEBUG */
 }  /* trans_unit_init */
 
 

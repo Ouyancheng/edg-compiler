@@ -88,7 +88,6 @@ static unsigned long
 		num_scopes_allocated,
 		num_il_entry_prefixes_allocated,
 		string_literal_text_space_allocated,
-                num_trans_unit_corresps_allocated,
                 num_trans_unit_copy_address_pointers_allocated;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 static unsigned long
@@ -496,28 +495,6 @@ region if at_file_scope is TRUE.
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-a_trans_unit_corresp_ptr alloc_trans_unit_corresp(void)
-/*
-Allocate a translation unit correspondence entry, initialize its fields,
-and return a pointer to it.
-*/
-{
-  a_trans_unit_corresp_ptr tucp;
-
-  tucp = alloc_il_of_type(a_trans_unit_corresp);
-#if DEBUG
-  num_trans_unit_corresps_allocated++;
-#endif /* DEBUG */
-  tucp->kind = iek_none;
-  tucp->canonical = NULL;
-  tucp->primary = NULL;
-#if CHECKING
-  tucp->count = 0;
-#endif /* CHECKING */
-  return tucp;
-}  /* alloc_trans_unit_corresp */
-
-
 void set_template_param_constant_kind(a_constant                     *cp,
                                       a_template_param_constant_kind kind)
 /*
@@ -854,7 +831,7 @@ allocated.
     tap = avail_template_args;
     avail_template_args = avail_template_args->next;
   } else {
-    tap = (a_template_arg_ptr)alloc_il(sizeof(a_template_arg));
+    tap = alloc_il_of_type(a_template_arg);
 #if DEBUG
     num_template_args_allocated++;
 #endif /* DEBUG */
@@ -3283,9 +3260,6 @@ Display and return the amount of space used for various IL tables.
   db_space_used("template_decls", num_template_decls_allocated,
                 a_template_decl);
   db_space_used("templates", num_templates_allocated, a_template);
-  db_space_used("trans. unit corresps",
-                num_trans_unit_corresps_allocated,
-                a_trans_unit_corresp);
 #if RECORD_MACROS_IN_IL
   db_space_used("macros", num_macros_allocated, a_macro);
 #endif /* RECORD_MACROS_IN_IL */
@@ -3522,7 +3496,6 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_src_seq_sublists_allocated),
       pch_saved_var_array_elem(num_instantiation_directives_allocated),
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      pch_saved_var_array_elem(num_trans_unit_corresps_allocated),
       pch_saved_var_array_elem(num_trans_unit_copy_address_pointers_allocated),
 #if ORPHAN_PROCESSING_NEEDED
       pch_saved_var_array_elem(num_fs_orphan_pointers_allocated),
@@ -3683,7 +3656,6 @@ initializations that are done for each compilation.
   num_src_seq_sublists_allocated         = 0;
   num_instantiation_directives_allocated = 0;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  num_trans_unit_corresps_allocated      = 0;
   num_trans_unit_copy_address_pointers_allocated = 0;
 #if ORPHAN_PROCESSING_NEEDED
   num_fs_orphan_pointers_allocated       = 0;
