@@ -830,19 +830,22 @@ and thus is eligible for a special substitution.
 }  /* is_stream_substitution */
 
 
-static a_boolean add_substitution_if_available(
+static a_boolean add_substitution_if_available_full(
                                              char                     *entity,
                                              an_il_entry_kind         kind,
+                                             a_boolean                test,
                                              a_mangling_control_block *mctl)
 /*
 If there is a substitution available for entity, add it to the mangled name
 and return TRUE.  Otherwise return FALSE.  The kind indicates the kind of
-entity processed.
+entity processed.  If test is TRUE, just determine whether a substitution
+is available; do not put it out.
 */
 {
   a_substitution_ptr   sp;
   a_substitution_index index;
   a_boolean            result = FALSE;
+  char                 *str;
 
   /* See if the entity is one of the special entities for which an
      abbreviation exists. */
@@ -852,19 +855,19 @@ entity processed.
         a_type_ptr type = (a_type_ptr)entity;
         /* Compare to ::std::string. */
         if (is_Ss_substitution(type)) {
-          add_str_to_mangled_name("Ss", mctl);
+          str = "Ss";
           result = TRUE;
           break;
         } else if (is_stream_substitution(type, "basic_istream")) {
-          add_str_to_mangled_name("Si", mctl);
+          str = "Si";
           result = TRUE;
           break;
         } else if (is_stream_substitution(type, "basic_ostream")) {
-          add_str_to_mangled_name("So", mctl);
+          str = "So";
           result = TRUE;
           break;
         } else if (is_stream_substitution(type, "basic_iostream")) {
-          add_str_to_mangled_name("Sd", mctl);
+          str = "Sd";
           result = TRUE;
           break;
         }  /* if */
@@ -872,25 +875,28 @@ entity processed.
       break;
     case iek_template:
       if (is_Sa_substitution((a_template_ptr)entity)) {
-        add_str_to_mangled_name("Sa", mctl);
+        str = "Sa";
         result = TRUE;
       } else if (is_Sb_substitution((a_template_ptr)entity)) {
-        add_str_to_mangled_name("Sb", mctl);
+        str = "Sb";
         result = TRUE;
       }  /* if */
       break;
     case iek_namespace:
       if (is_namespace_std((a_namespace_ptr)entity)) {
-        add_str_to_mangled_name("St", mctl);
+        str = "St";
         result = TRUE;
       }  /* if */
       break;
     default:
       break;
   }  /* switch */
-  /* Otherwise, see if there is an existing substitution for something
-     that appears earlier in the mangled name. */
-  if (!result) {
+  if (result) {
+    /* There is a special substitution that applies. */
+    if (!test) add_str_to_mangled_name(str, mctl);
+  } else {
+    /* Otherwise, see if there is an existing substitution for something
+       that appears earlier in the mangled name. */
     for (sp = mctl->first_substitution, index = 0; 
          sp != NULL; 
          sp = sp->next, index++) {
@@ -919,13 +925,28 @@ entity processed.
       }  /* if */
       if (result) {
         /* We found a substitution for this entity. */
-        add_substitution_index_to_mangled_name(index, mctl);
+        if (!test) add_substitution_index_to_mangled_name(index, mctl);
         break;
       }  /* if */
     }  /* for */
   }  /* if */
 
   return result;
+}  /* add_substitution_if_available_full */
+
+
+static a_boolean add_substitution_if_available(
+                                             char                     *entity,
+                                             an_il_entry_kind         kind,
+                                             a_mangling_control_block *mctl)
+/*
+If there is a substitution available for entity, add it to the mangled name
+and return TRUE.  Otherwise return FALSE.  The kind indicates the kind of
+entity processed.
+*/
+{
+  return add_substitution_if_available_full(entity, kind,
+                                            /*test=*/FALSE, mctl);
 }  /* add_substitution_if_available */
 
 
@@ -3624,13 +3645,29 @@ and for unnamed classes and enums.  Nested types are encoded as such.
   tmpl = NULL;  
   if (is_immediate_class_type(type)) {
     tmpl = class_template_of(type);
-    if (tmpl != NULL && 
-        add_substitution_if_available((char *)tmpl, iek_template, mctl)) {
+    if (tmpl != NULL &&
+        /* Test done separately from output to allow the opportunity to
+           put out "N...E" below. */
+        add_substitution_if_available_full((char *)tmpl, iek_template,
+                                           /*test=*/TRUE, mctl)) {
+      a_boolean need_close = FALSE;
+      if ((tmpl->source_corresp.is_class_member ||
+           tmpl->source_corresp.parent.namespace_ptr != NULL) &&
+           !is_in_namespace_std(tmpl)) {
+        /* The template is nested, so put "N...E" around the substitution
+           and template arguments.  The ABI spec is ambiguous about this,
+           but g++ 3.2 does it this way, including the special case
+           of the "std" namespace. */
+        add_to_mangled_name('N', mctl);
+        need_close = TRUE;
+      }  /* if */
+      (void)add_substitution_if_available((char *)tmpl, iek_template, mctl);
       ctsp = type->variant.class_struct_union.extra_info;
       mangled_template_arguments(ctsp->template_arg_list,
                                  /*partial_spec=*/FALSE,
                                  /*old_form=*/FALSE,
                                  mctl);
+      if (need_close) add_to_mangled_name('E', mctl);
       goto done;
     }  /* if */
   }  /* if */
