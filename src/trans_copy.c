@@ -584,6 +584,8 @@ instance is the one in the secondary translation unit.
                                          instance->explicit_do_not_instantiate;
     corresp_instance->suppress_instantiation |=
                                          instance->suppress_instantiation;
+    corresp_instance->add_to_request_file |=
+                                         instance->add_to_request_file;
   }  /* if */
 }  /* merge_instantiation_flags */
 
@@ -1749,6 +1751,7 @@ associated symbol for the original primary IL entry.
     a_boolean               saved_already_instantiated;
     a_boolean               saved_explicit_do_not_instantiate;
     a_boolean               saved_suppress_instantiation;
+    a_boolean		    saved_add_to_request_file;
     /* The entity is a template instance. */
     if (overwrite) {
       /* There is already a copy of this instance in the primary IL,
@@ -1776,6 +1779,8 @@ associated symbol for the original primary IL entry.
                    copy_instance->explicit_do_not_instantiate;
       saved_suppress_instantiation =
                    copy_instance->suppress_instantiation;
+      saved_add_to_request_file =
+                   copy_instance->add_to_request_file;
     } else {
       /* This is a new instance, for which there is no copy in the primary
          IL.  Create a new instantiation list entry by making a copy of the
@@ -1803,6 +1808,8 @@ associated symbol for the original primary IL entry.
                             saved_explicit_do_not_instantiate;
       copy_instance->suppress_instantiation =
                             saved_suppress_instantiation;
+      copy_instance->add_to_request_file =
+                            saved_add_to_request_file;
     } else {
       /* The instance was newly created, not copied on top of an
          existing entry. */

@@ -16368,7 +16368,8 @@ and "do not instantiate" flags are set here.
     }  /* if */
 #endif /*  ONE_INSTANTIATION_PER_OBJECT */
   }  /* for */
-  if (any_instantiated_entities_added_to_request_file && total_errors == 0) {
+  if (any_instantiated_entities_added_to_request_file && total_errors == 0 &&
+      generate_template_files()) {
     /* This translation unit "adopted" some instantiations that were known
        not to be defined elsewhere.  Don't write the updated file if any
        errors occurred. */
@@ -17848,8 +17849,6 @@ One-time initialization for templates.c static variables.
   register_trans_unit_variable(f_instantiation_request);
   register_trans_unit_variable(f_template_info);
   register_trans_unit_array(instance_lookup_table);
-  register_trans_unit_variable(
-                              any_instantiated_entities_added_to_request_file);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if CHECKING
   register_trans_unit_variable(any_friend_state_changed);
@@ -17892,7 +17891,6 @@ given translation unit.
   f_exported_template = NULL;
   remove_exported_template_file = FALSE;
   memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
-  any_instantiated_entities_added_to_request_file = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 }  /* templates_trans_unit_init */
 
@@ -17914,6 +17912,7 @@ Initializations for template.
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   num_template_lookup_entries_allocated = 0;
   num_exported_template_files_allocated = 0;
+  any_instantiated_entities_added_to_request_file = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #endif /* DEBUG */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
