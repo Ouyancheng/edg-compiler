@@ -868,6 +868,8 @@ state.
         sym_ptr->variant.template.extra_info = tssp;
         /* Initialize fields in the template symbol supplement. */
         tssp->parameters = NULL;
+        tssp->innermost_instantiation_scope = NO_SCOPE_DEPTH;
+        tssp->declaration_scope = NO_SCOPE_NUMBER;
         if (sym_kind == sk_class_template) {
           tssp->variant.class.instantiations = NULL;
           tssp->variant.class.is_union       = FALSE;
@@ -3773,7 +3775,7 @@ C and C++.
   a_boolean               must_be_class = (options & IDL_MUST_BE_CLASS);
   a_boolean               must_be_tag   = (options & IDL_MUST_BE_TAG);
   a_boolean               must_be_type_name;
-  a_boolean               look_for_projected_symbol;
+  a_boolean               look_for_projected_symbol = FALSE;
   a_boolean               add_to_active_list;
   a_name_space_kind       required_name_space_kind =
                             (C_dialect != C_dialect_cplusplus && must_be_tag) ?
@@ -3942,7 +3944,15 @@ C and C++.
         }  /* if */
         /* End the loop when we reach the bottom of the scope stack. */
         if (ssep == &scope_stack[DEPTH_OF_FILE_SCOPE]) break;
-        ssep--;
+        /* If this scope is for a template instantiation, skip directly
+           to the file scope instead of processing the intervening
+           scopes.  Only file scope symbols, template parameters, and
+           symbols defined within the instantiation should be visable. */
+        if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+          ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+        } else {
+          ssep--;
+        }  /* if */
       }  /* for */
     }  /* if */
     if (sym == NULL) {
@@ -4271,28 +4281,30 @@ Only non-member functions will be found.
 
 
 
-static void update_template_param_symbols_for_instantiation
-                (a_type_ptr      type)
+static void update_template_param_symbols(a_type_ptr      type,
+                                          a_symbol_ptr    *ct_sym_param)
 /*
 Update the symbol entries for template formal parameters to reflect the
 values to be used for a given instantiation.  This routine is called by
 push_scope to update the parameters for a new instantiation and is called
 by pop_scope in the case of a recursive instantiation to recreate the
-values needed for the previous call.
+values needed for the previous call.  The symbol pointer of the class
+template is returned to the caller in *ct_sym.
 */
 {
-  a_symbol_ptr          ct_sym;
   a_symbol_ptr          tc_sym;
+  a_symbol_ptr          ct_sym;
   a_template_param_ptr  tpp;
   a_template_arg_ptr    tap;
 
-  db_enter(4, "update_template_param_symbols_for_instantiation");
+  db_enter(4, "update_template_param_symbols");
   /* Get pointers to the symbol of the class template and the
      template class. */
   tc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
 #if CHECKING
   if (tc_sym == NULL) {
-    internal_error("update_template_param...: assoc_type has null assoc_info");
+    internal_error
+        ("update_template_param_symbols: assoc_type has null assoc_info");
   }  /* if */
 #endif /* CHECKING */
   /* Get a pointer to the first template argument. */
@@ -4301,7 +4313,8 @@ values needed for the previous call.
   ct_sym = tc_sym->variant.class_struct_union.extra_info->class_template;
 #if CHECKING
   if (ct_sym == NULL) {
-    internal_error("update_template_param...:  null class_template symbol");
+    internal_error
+        ("update_template_param_symbols:  null class_template symbol");
   }  /* if */
 #endif /* CHECKING */
   /* Get a pointer to the first template parameter. */
@@ -4317,7 +4330,7 @@ values needed for the previous call.
 #if CHECKING
       if (param_symbol->kind != (a_symbol_kind)sk_type) {
         internal_error
-            ("update_template_param...: symbol type not sk_type");
+            ("update_template_param_symbols: symbol type not sk_type");
       }  /* if */
 #endif /* CHECKING */
       param_symbol->variant.type = tap->variant.type;
@@ -4325,7 +4338,7 @@ values needed for the previous call.
 #if CHECKING
       if (param_symbol->kind != (a_symbol_kind)sk_constant) {
         internal_error
-            ("update_template_param...: symbol type not sk_constant");
+            ("update_template_param_symbols: symbol type not sk_constant");
       }  /* if */
 #endif /* CHECKING */
       param_symbol->variant.constant = tap->variant.constant;
@@ -4333,8 +4346,47 @@ values needed for the previous call.
     tpp = tpp->next;
     tap = tap->next;
   }  /* while */
+ *ct_sym_param = ct_sym;
  db_exit();
-}  /* update_template_param_symbols_for_instantiation */
+}  /* update_template_param_symbols */
+
+
+static void restore_default_template_params(a_type_ptr      type,
+                                            a_symbol_ptr    *ct_sym_param)
+/*
+Update the symbol entries for template formal parameters to their
+"resting values".  These are the initial values supplied when the template
+declaration is scanned and are used as placeholders between instantiations.
+*/
+{
+  a_symbol_ptr          tc_sym;
+  a_symbol_ptr          ct_sym;
+  a_template_param_ptr  tpp;
+
+  db_enter(4, "restore_default_template_params");
+  /* Get pointers to the symbol of the class template and the
+     template class. */
+  tc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+  /* Get a pointer back to the class template. */
+  ct_sym = tc_sym->variant.class_struct_union.extra_info->class_template;
+  /* Get a pointer to the first template parameter. */
+  tpp = ct_sym->variant.template.extra_info->parameters;
+  /* Loop through the parameters and and set them to either the original
+     template type (as specified by the param_type field) or to an error
+     constant. */
+  while (tpp != NULL) {
+    register a_symbol_ptr  param_symbol = tpp->param_symbol;
+    if (param_symbol->kind != (a_symbol_kind)sk_type) {
+      param_symbol->variant.type = tpp->param_type;
+    } else {
+      param_symbol->variant.constant =
+                                 fs_constant((a_constant_repr_kind)ck_error);
+    }  /* if */
+    tpp = tpp->next;
+  }  /* while */
+ *ct_sym_param = ct_sym;
+ db_exit();
+}  /* restore_default_template_params */
 
 
 /*
@@ -4403,10 +4455,12 @@ must be NULL in other cases.
   /* Determine the scope number. */
   if ((kind == (a_scope_kind)sck_function &&
                                    scope_number_to_reuse != NO_SCOPE_NUMBER) ||
-      kind == (a_scope_kind)sck_class_reactivation) {
+      kind == (a_scope_kind)sck_class_reactivation ||
+      kind == (a_scope_kind)sck_template_instantiation) {
     /* For function scopes, reuse the scope used for the parameters
        in the function declarator. */
-    /* For class reactivations, re-establish the class scope. */
+    /* For class reactivations, re-establish the class scope and for template
+       instantiations re-establish the template declaration scope. */
     ssep->number       = scope_number_to_reuse;
   } else {
     /* Assign a new scope number for other kinds of scopes. */
@@ -4468,6 +4522,7 @@ must be NULL in other cases.
   ssep->first_scope              = NULL;
   ssep->last_scope               = NULL;
   ssep->last_dynamic_init        = NULL;
+  ssep->depth_of_previous_instantiation = NULL;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
@@ -4513,12 +4568,22 @@ must be NULL in other cases.
        template argument entries.  The old values do not need to be
        saved because they can be easily recreated by pop_scope. */
     if (kind == (a_scope_kind)sck_template_instantiation) {
+      a_symbol_ptr                      ct_sym;
+      a_template_symbol_supplement_ptr  tssp;
 #if CHECKING
       if (assoc_type == NULL || !is_template_class_type(assoc_type)) {
         internal_error("push_scope: bad assoc_type for instantiation scope.");
       }  /* if */
 #endif /* CHECKING */
-      update_template_param_symbols_for_instantiation(assoc_type);
+      update_template_param_symbols(assoc_type, &ct_sym);
+      /* Save the value of the innnermost instantiation for the current
+         class template in the scope stack.  This is used by pop_scope to
+         restore the parameter values in the case of a recursive
+         instantiation. */
+      tssp = ct_sym->variant.template.extra_info;
+      ssep->depth_of_previous_instantiation =
+          tssp->innermost_instantiation_scope;
+      tssp->innermost_instantiation_scope = depth_scope_stack;
     }  /* if */
   }  /* if */
   /* Maintain the depth of the innermost function scope. */
@@ -5026,6 +5091,31 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
     done_with_memory_region(old_memory_region_number);
   }  /* if */
+  /* For template instantiation scopes, restore the template parameters
+     to their previous state.  Normally this just involves setting the
+     parameters to point to the "resting " values assigned when the
+     template declaration is scanned. In the event of a recursive
+     instantiation, however, this requires restoring the values from the
+     previous instantiation. */
+  if (kind == (a_scope_kind)sck_template_instantiation) {
+    a_scope_depth                     prev_depth;
+    a_symbol_ptr                      ct_sym;
+    a_template_symbol_supplement_ptr  tssp;
+    prev_depth = ssep->depth_of_previous_instantiation;
+    if (prev_depth == NO_SCOPE_DEPTH) {
+      /* Restore the default values of the parameters. */
+      restore_default_template_params(ssep->assoc_type, &ct_sym);
+    } else {
+      /* Restore the values from the previous instantiation. */
+      /* Restore the parameters. */
+      update_template_param_symbols(scope_stack[prev_depth].assoc_type,
+                                    &ct_sym);
+    }  /* if */
+    /* Update the depth of the innermost instantiation in the template
+       symbol supplement. */
+    tssp = ct_sym->variant.template.extra_info; 
+    tssp->innermost_instantiation_scope = prev_depth;
+  }  /* if */
   /* Determine the memory region to restore for the outer scope. */
   new_memory_region_number = ssep->prev_il_memory_region;
   /* Pop the stack. */
@@ -5447,6 +5537,14 @@ Allocate a new template parameter list entry and return a pointer to it.
 }  /* alloc_template_param */
 
 
+/*
+Returns TRUE if the current scope is for a template declaration.
+*/
+#define in_template_declaration_scope()				\
+    (scope_stack[depth_scope_stack].kind ==			\
+                            (a_scope_kind)sck_template_declaration)
+
+
 
 a_symbol_ptr get_template_class(a_symbol_ptr  template_symbol)
 /*
@@ -5466,6 +5564,17 @@ an instance of the class template.
 
   db_enter(3, "get_template_class");
 
+  /* If we are scanning a template declaration don't expect to find a
+     template argument list -- this could be a duplicate declaration
+     such as:
+
+       template <class T> S;
+       template <class T> S;
+  */
+  if (in_template_declaration_scope()) {
+    new_sym = template_symbol;
+    goto normal_exit;
+  }  /* if */
   /* Save source position for error reporting. */
   copy_source_position(pos_curr_token, start_pos);
   /* Save the current locator. */
@@ -5475,6 +5584,7 @@ an instance of the class template.
   if (curr_token != tok_lt) {
     pos_sy_error(ec_missing_template_arg_list, &start_pos, template_symbol);
     any_errors = TRUE;
+    unget_token();
     goto error_exit;
   }  /* if */
   /* Get token following opening angle bracket. */
@@ -5568,12 +5678,15 @@ an instance of the class template.
 #endif /* DEBUG */
 
 #if 0
-  push_scope(sck_template_instantiation, NO_SCOPE_NUMBER,
+  /* Temporary debugging code use to test name lookup. */
+  push_scope(sck_template_instantiation,
+             template_symbol->variant.template.extra_info->declaration_scope,
              new_sym->variant.type, (a_routine_ptr)NULL);
 #endif
 
 error_exit:
   remove_stop_token(tok_gt);
+normal_exit:
   db_exit();
   return new_sym;
 }  /* get_template_class */
