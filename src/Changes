@@ -43,7 +43,7 @@ some cases.  Now fixed.
 12/6/99  Overload resolution gave incorrect ambiguity error
 
 In certain cases involving three or more viable functions, at least one
-of which is a template, overload resolution incorrect reported
+of which is a template, overload resolution incorrectly reported
 ambiguity instead of picking the best function.  Now fixed.
 
   template<class T> int getd(const T &);
