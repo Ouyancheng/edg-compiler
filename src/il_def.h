@@ -5571,6 +5571,11 @@ enum an_expr_operator_kind_tag {
                            operand is the routine and the rest are its
                            arguments. */
 #ifdef CIL
+			/* Note that the operand identifying the routine can
+			   be an expression (e.g., for a call through a
+			   pointer), or eok_points_to_static/
+			   eok_lvalue_dot_static/eok_rvalue_dot_static for
+			   a static member function call. */
 			/* For member functions, a compiler-generated argument
 			   for the object address follows the first
 			   argument. */
