@@ -597,8 +597,13 @@ original form used an expression, which expr points to.
        ^----------- "O" for operation.
      mangled_encoding_for_expression generates a compatible structure, so
      if you change this be sure to change that as well.
-     For an expression case, the type is omitted, the operation code is
-     followed by "e", the operand count is 1, and the expression follows that.
+     For an expression case, the type is replaced by "e"; there is still no
+     expression.  (This is potentially a violation of the standard, since
+     two templates that differ only in the expression under a sizeof could
+     be mangled to the same name; however, doing mangling for full
+     non-constant expressions -- think "delete[] x" -- would be quite
+     a lot of additional work for very little gain.  We'll take this
+     up with the standards committee.
   */
   /* Put out the initial "O". */
   add_to_mangled_name('O', mctl);
@@ -619,17 +624,14 @@ original form used an expression, which expr points to.
   /* The operator name is followed by the encoding for the type or the
      expression. */
   if (expr != NULL) {
-    /* The expression form. */
+    /* The expression form.  Put out "e" instead of the type. */
     add_to_mangled_name('e', mctl);
-    /* Put out the count of operands (1) and the expression. */
-    add_to_mangled_name('1', mctl);
-    mangled_encoding_for_expression(expr, mctl);
   } else {
     /* No expression, so put out the type. */
     mangled_encoding_for_type(type, mctl);
-    /* Put out the count of operands (zero). */
-    add_to_mangled_name('0', mctl);
   }  /* if */
+  /* Put out the count of operands (zero). */
+  add_to_mangled_name('0', mctl);
   /* Put out the final "O". */
   add_to_mangled_name('O', mctl);
 }  /* mangled_encoding_for_sizeof */
@@ -1094,8 +1096,9 @@ mangling for lengths of literals.
                of variable, etc.
        ^^----- Type of constant, with "const" added.
      If the constant is a template parameter constant, skip the "C" and
-     the type. */
-  if (con->kind != (a_constant_repr_kind)ck_template_param) {
+     the type.  Likewise for an address constant. */
+  if (con->kind != (a_constant_repr_kind)ck_template_param &&
+      con->kind != (a_constant_repr_kind)ck_address) {
     add_to_mangled_name('C', mctl);
     /* Put out the constant type. */
     mangled_encoding_for_type(con->type, mctl);

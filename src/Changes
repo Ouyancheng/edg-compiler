@@ -44,12 +44,18 @@ similarly:
          expression
 
 The existing mangling code for sizeof, "sz", has been extended so that
-it can deal with the case of sizeof(expression), which needs more
-information than sizeof(type) when the expression is in a nontype
-template argument.  The encoding uses "e" after the "sz" to indicate
-that the type is not present; following "e" is the standard sequence
-for an expression: number of operands (1), operand, closing "O" for
-the operation.  This extension also applies to alignof and uuidof.
+it can deal with the case of sizeof(expression), when it has a
+template-dependent type and and therefore can't be represented simply
+as sizeof(type).  We've chosen to use "e" instead of the type for this
+case, which solves the main problem without opening another problem,
+that of coming up with manglings to encode all possible non-constant
+expressions (think "sizeof(delete[] x)").  This solution has the
+drawback that templates that differ only in an expression under a
+sizeof could potentially be mangled to the same name, which is
+possibly a violation of the standard.  We'll take this up with
+the standards committee to see if it's really necessary to mangle
+all non-constant expressions.  This extension also applies to alignof
+and uuidof.
 
 4/3/02   Spurious "incomplete type not allowed" during automatic instantiation
 
