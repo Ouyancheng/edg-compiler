@@ -2719,9 +2719,9 @@ IA-64 ABI to distinguish function-local entities with the same name.
 */
 {
   a_discriminator discriminator = 0;
+  a_symbol_ptr  sym = (a_symbol_ptr)scp->assoc_info;
 
-  if (scp->is_local_to_function) {
-    a_symbol_ptr  sym = (a_symbol_ptr)scp->assoc_info;
+  if (scp->is_local_to_function && sym != NULL) {
     if (sym->kind == (a_symbol_kind)sk_constant &&
         is_enum_constant(sym->variant.constant)) {
       /* This is an enumerator constant.  The constant itself never appears
