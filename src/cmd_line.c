@@ -1411,8 +1411,8 @@ common_cfront_mode_settings:
         break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       case optk_alternative_tokens:
-        /* Operator keywords (e.g., "not", "and") and digraphs should or
-           should not be allowed. */
+        /* Digraphs should or should not be allowed.  This also controls
+           recognition of operator keywors (e.g., "not", "and") in C++. */
         alternative_tokens_allowed = opt_value;
         break;
 #if MINIMAL_INLINING
@@ -1547,9 +1547,6 @@ common_cfront_mode_settings:
     if (option_kind_used[(int)optk_bool_is_keyword]) {
       command_line_error(ec_cl_bool_option_only_in_cplusplus);
     }  /* if */
-    if (option_kind_used[(int)optk_alternative_tokens]) {
-      command_line_error(ec_cl_alternative_token_option_only_in_cplusplus);
-    }  /* if */
     if (option_kind_used[(int)optk_special_subscript_cost]) {
       command_line_error(
                         ec_cl_special_subscript_cost_option_only_in_cplusplus);
@@ -1573,7 +1570,10 @@ common_cfront_mode_settings:
     namespaces_enabled = FALSE;
     wchar_t_is_keyword = FALSE;
     bool_is_keyword = FALSE;
-    alternative_tokens_allowed = FALSE;
+    if (C_dialect == C_dialect_pcc) {
+      /* Alternative tokens are not recognized in PCC mode. */
+      alternative_tokens_allowed = FALSE;
+    }  /* if */
     special_subscript_cost = FALSE;  /* Not really needed. */
   } else {
     /* The dialect is C++. */
@@ -1628,7 +1628,11 @@ common_cfront_mode_settings:
 	SVR4_C_mode = FALSE;
       }  /* if */
     }  /* if */
-    if (!C_mode()) {
+    if (C_mode()) {
+      /* Set optional features to standard settings for strict C mode. */
+      /* Enable recognition of digraphs. */
+      alternative_tokens_allowed = TRUE;
+    } else {
       /* Set optional features to standard settings for strict C++ mode. */
       /* Enable recognition of operator keywords and digraphs. */
       alternative_tokens_allowed = TRUE;

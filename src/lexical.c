@@ -5120,7 +5120,8 @@ start_of_token_scan:  /* Restart here after scanning white space. */
         ctoken = tok_remainder_assign;
         goto two_char_token;
       } else if ((ch = *(curr_char_loc+1)) == ':' && digraphs_allowed()) {
-        if (*(curr_char_loc+2) == ':' && *(curr_char_loc+3) != ':') {
+        if (*(curr_char_loc+2) == ':' &&
+            *(curr_char_loc+3) != ':' && !C_mode()) {
           /* We have a construct like "%::I", which is invalid if we
              interpret "%:" as a digraph.  Issue a warning. */
           warning(ec_probable_inadvertent_sharp_digraph);

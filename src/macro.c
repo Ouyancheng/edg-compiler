@@ -3688,6 +3688,13 @@ command line -D options.
     (void)enter_predef_macro("1", "__STDC__", C_dialect == C_dialect_ANSI,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
+  if (C_dialect == C_dialect_ANSI) {
+    /* __STDC_VERSION__ is defined to 199409L in ANSI C mode and is undefined
+       in all other modes. */
+    (void)enter_predef_macro("199409L", "__STDC_VERSION__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
   /* __cplusplus is defined as 1 if we are compiling C++, left undefined
      otherwise.  For compatibility, c_plusplus is also defined. */
   if (C_dialect == C_dialect_cplusplus) {
