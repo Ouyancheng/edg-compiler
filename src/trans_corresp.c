@@ -2851,13 +2851,13 @@ way, determine to which other IL entry this might correspond.
                               (a_symbol_ptr)type->source_corresp.assoc_info);
             } else {
               find_type_correspondence((a_type_ptr)scp,
-                                       /*parent_found=*/scp->is_class_member);
+                                       (a_boolean)scp->is_class_member);
             }  /* if */
           }
           break;
         case iek_template:
           find_template_correspondence((a_template_ptr)scp,
-                                       /*parent_found=*/scp->is_class_member);
+                                       (a_boolean)scp->is_class_member);
           break;
         default:
           unexpected_condition_str("Unexpected IL entry kind");
