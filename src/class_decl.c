@@ -210,6 +210,10 @@ constructor initializer is present, a colon.
 
 
 void prescan_default_arg_expr(a_param_type_ptr  ptp)
+/*
+Place the tokens for a default argument expression into a token cache, to
+await actual processing at a later point.
+*/
 {
   a_delayed_scan_fixup_ptr  dsfp;
   a_stop_token_array        save_stop_token_array;
