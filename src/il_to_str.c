@@ -2438,7 +2438,6 @@ parentheses are not needed.
                                               (an_address_base_kind)abk_uuidof,
                           "form_lvalue_for_addressed_entity: bad kind");
       form_uuidof_reference(constant->variant.address.variant.type, octl);
-      octl->output_str(")");
     }  /* if */
   }  /* if */
   /* If the type is right and the offset is zero, we have what we need. */
@@ -3535,9 +3534,11 @@ precedence confusion.  Do the output in the way described by octl.
         case tpck_uuidof:
           /* The constant represents the address of the __uuidof, so add
              a "&". */
-          octl->output_str("(&");
+          if (need_parens) octl->output_str("(");
+          octl->output_str("&");
           form_uuidof_reference(constant->variant.template_param.variant.type,
                                 octl);
+          if (need_parens) octl->output_str(")");
           break;
         default:
           octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**");
