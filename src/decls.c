@@ -4156,6 +4156,53 @@ If an error occurs, the given locator may be changed to an error locator.
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
+#if NAMED_ADDRESS_SPACES_ALLOWED
+
+a_boolean curr_id_is_named_address_space(void)
+/*
+The current token is an identifier.  Return TRUE if and only if it stands for
+a named address space.
+*/
+{
+  a_boolean  result = FALSE;
+
+  check_assertion(curr_token == tok_identifier);
+  if (named_address_spaces_allowed) {
+    a_symbol_ptr  sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+    if (sym != NULL && sym->kind == (a_symbol_kind)sk_named_address_space) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* curr_id_is_named_address_space */
+
+
+static void check_named_address_space_constraints(
+                                              a_symbol_locator  *locator,
+                                              a_type_ptr        type_ptr,
+                                              a_storage_class   storage_class)
+/*
+A variable is being declared with the given type and storage class.  If the 
+type has a top-level named address space qualifier, verify that it has
+static storage duration.  If an error occurs, the given locator is changed
+to an error locator.
+*/
+{
+  if (named_address_spaces_allowed) {
+    if (!has_static_storage_duration(storage_class) &&
+        named_address_space_from_qualifier_set(
+                              get_top_level_type_qualifiers(type_ptr)) != 0) {
+      /* Only variables with static storage duration can have a named
+         address space qualifier (at the top level). */
+      pos_error(ec_bad_storage_class_for_named_address_space_variable,
+                &locator->source_position);
+      set_to_error_locator(*locator);
+    }  /* if */
+  }  /* if */
+}  /* check_named_address_space_constraints */
+
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+
 static void check_for_vla_inside_statement_expression(a_source_position *pos)
 /*
 A VLA is being declared at the indicated position.  If we are inside
@@ -4313,6 +4360,9 @@ declaration.
 #if UPC_EXTENSIONS_ALLOWED
   check_upc_variable_decl(locator, type_ptr, storage_class);
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  check_named_address_space_constraints(locator, type_ptr, storage_class);
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -9493,7 +9543,7 @@ instruction's operands.
     /* Skip past the "asm". */
     (void)get_token();
 #if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode && is_type_qualifier_token(curr_token)) {
+    if (gnu_mode && is_type_qualifier()) {
       /* Scan a volatile and/or const qualifier.  The const qualifier is
          ignored with a warning.  Type qualifiers other than volatile and
          const elicit an error. */

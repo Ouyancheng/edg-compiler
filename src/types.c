@@ -1024,6 +1024,32 @@ used instead of calling this routine directly.
   return qualifiers;
 }  /* f_get_type_qualifiers */
 
+#if NAMED_ADDRESS_SPACES_ALLOWED
+
+a_boolean first_address_space_encloses_second(a_type_qualifier_set  q1,
+                                              a_type_qualifier_set  q2)
+/*
+Return TRUE if and only if the address space embedded in q1 encloses the
+address space embedded in q2.  (An address space is consider to enclose
+itself.)
+*/
+{
+  a_named_address_space_id
+             nas_id_1 = named_address_space_from_qualifier_set(q1),
+             nas_id_2 = named_address_space_from_qualifier_set(q2);
+  a_boolean  result = FALSE;
+
+  do {
+    if (nas_id_2 == nas_id_1) {
+      result = TRUE;
+      break;
+    }  /* if */
+    nas_id_2 = named_address_spaces[nas_id_2].parent_id;
+  } while (nas_id_2 != -1);
+  return result;
+}  /* first_address_space_encloses_second */
+
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
 a_boolean f_any_qualifier_missing(a_type_ptr  tp1,
                                   a_type_ptr  tp2)
@@ -4363,7 +4389,8 @@ deprecated conversion from string literal to "char *"); the flag can
 be TRUE even when source_is_constant is FALSE, for an extension.  If
 allow_qualifier_or_eh_mismatch is TRUE, ignore cv-qualifier and exception
 specification mismatches (the two types are probably the types of the
-operands of an operation).  suppress_extensions is TRUE if conversions
+operands of an operation); mismatches in named address space qualifiers
+are not ignored, however.  suppress_extensions is TRUE if conversions
 that are extensions should not be allowed (what constitutes an
 extension depends on C_dialect, of course).  If the conversion is
 possible, *std_conv is filled out to describe the conversion.  In
@@ -4622,6 +4649,26 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       okay = check_implicit_upc_pointer_conversion(source_type, dest_type);
     }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+    if (named_address_spaces_allowed && okay && !qualifiers_checked) {
+      /* Check that any named address space qualifiers are compatible.  Note
+         that this is done even when allow_qualifier_or_eh_mismatch is TRUE. */
+      a_type_qualifier_set dest_type_qualifiers =
+                                     get_type_qualifiers(dest_type_pointed_to);
+      a_type_qualifier_set source_type_qualifiers =
+                                   get_type_qualifiers(source_type_pointed_to);
+      if (!first_address_space_encloses_second(dest_type_qualifiers,
+                                               source_type_qualifiers)) {
+        /* The destination space is either more restrictive or altogether
+           different: No conversion is possible. */
+        okay = FALSE;
+      } else if (dest_type_qualifiers != source_type_qualifiers) {
+        /* A conversion is possible but the destination address space is
+           less strict.  This is similar to adding qualifiers. */
+        std_conv->type_qualifiers_added = TRUE;
+      }  /* if */
+    }  /* if */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
     if (okay && !qualifiers_checked && !allow_qualifier_or_eh_mismatch) {
       /* The types pointed to must be such that the type pointed to by the
          left has all the qualifiers of the type pointed to by the right.

@@ -763,6 +763,10 @@ Do the output in the way described by octl.
 */
 {
   a_boolean qualifier_put_out = FALSE;
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  a_named_address_space_id
+            nas_id = named_address_space_from_qualifier_set(qualifiers);
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
 /* Local macro that determines whether a given qualifier is present,
    and if so outputs the appropriate string. */
@@ -834,6 +838,12 @@ Do the output in the way described by octl.
       }  /* if */
     }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+    if (nas_id != 0) {
+      octl->output_str(named_address_spaces[nas_id].name);
+      qualifier_put_out = TRUE;
+    }  /* if */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
     /* Put out a trailing space if required. */
     if (need_trailing_space && qualifier_put_out) octl->output_str(" ");
   }  /* if */

@@ -3473,11 +3473,13 @@ apply that would make one better than the other, and return
                                qualifiers2 = TQ_NONE;
           if (param1_is_ref) {
             base_param_type1 = type_pointed_to(param_type1);
-            qualifiers1 = get_type_qualifiers(base_param_type1);
+            qualifiers1 =
+                     simple_qualifiers(get_type_qualifiers(base_param_type1));
           }  /* if */
           if (param2_is_ref) {
             base_param_type2 = type_pointed_to(param_type2);
-            qualifiers2 = get_type_qualifiers(base_param_type2);
+            qualifiers2 =
+                     simple_qualifiers(get_type_qualifiers(base_param_type2));
           }  /* if */
           /* The tiebreaker for adding cv-qualifiers under a reference is
              applied only when both parameters are references, according to the

@@ -944,6 +944,11 @@ static void db_qualifiers(a_type_qualifier_set  qualifiers)
 Print the given qualifiers in human readable form.
 */
 {
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  a_named_address_space_id
+                  nas_id = named_address_space_from_qualifier_set(qualifiers);
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+
   if (qualifiers & TQ_CONST) fputs("const ", f_debug);
   if (qualifiers & TQ_VOLATILE) fputs("volatile ", f_debug);
   if (qualifiers & TQ_RESTRICT) fputs("restrict ", f_debug);
@@ -959,6 +964,12 @@ Print the given qualifiers in human readable form.
   if (qualifiers & TQ_UPC_STRICT) fputs("strict ", f_debug);
   if (qualifiers & TQ_UPC_RELAXED) fputs("relaxed ", f_debug);
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  if (nas_id != 0) {
+    /* A named address space qualifier. */
+    fprintf(f_debug, "%s ", named_address_spaces[nas_id].name);
+  }  /* if */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 }  /* db_qualifiers */
 
 

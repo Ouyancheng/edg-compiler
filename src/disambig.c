@@ -735,7 +735,7 @@ part of a function declarator is found, may_be_decl is set to FALSE.
   cache_curr_token(&state->cache);
   get_token_and_coalesce_if_identifier(flags);
   /* Skip past any cv-qualifiers associated with this function declarator. */
-  while (is_type_qualifier_token(curr_token) or_is_near_or_far()) {
+  while (is_type_qualifier() or_is_near_or_far()) {
     cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
   }  /* while */
@@ -801,11 +801,11 @@ part of a declarator is found, may_be_decl is set to FALSE.
     } else if (curr_token == tok_microsoft_w64) {
       /* Syntactically, __w64 is like a type qualifier, but semantically it
          doesn't affect the type (which is why it is not included in
-         "is_type_qualifier_token"). */
+         "is_type_qualifier"). */
       cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else if (is_type_qualifier_token(curr_token) ||
+    } else if (is_type_qualifier() ||
                curr_token == tok_ptr_to_member
                or_is_microsoft_declarator_keyword() or_is_near_or_far()) {
       /* Cache and bypass any cv-qualifiers (including near or far in

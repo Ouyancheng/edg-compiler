@@ -9353,6 +9353,12 @@ respectively.
   } else if (vla_enabled && is_variably_modified_type(field_type)) {
     pos_error(ec_field_cannot_involve_vla_type, &locator->source_position);
     field_type = error_type();
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  } else if (type_qualified_with_named_address_space(field_type)) {
+    pos_error(ec_field_type_cannot_be_qualified_with_named_address_space,
+              &locator->source_position);
+    field_type = error_type();
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
   } else if (is_incomplete_type(field_type)) {
     /* The member type is incomplete.  This is not necessarily an error:
        an array of unknown size is sometimes allowed as the last member. */

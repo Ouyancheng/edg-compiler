@@ -61,12 +61,12 @@ static a_boolean
 			   a global using-declaration has already been
 			   created as a result of an include of stdarg.h. */
 
-#if NAMED_MEMORY_REGIONS_ALLOWED
-static a_named_memory_region_id
-		next_named_memory_region_id;
-			/* The next unused id for named memory regions.  The
+#if NAMED_ADDRESS_SPACES_ALLOWED
+static a_named_address_space_id
+		next_named_address_space_id;
+			/* The next unused id for named address space.  The
 			   first id is one. */
-#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
 /*
 An empty symbol used to initialize newly allocated symbols.
@@ -1134,11 +1134,11 @@ do_variable:
       break;
     case sk_namespace_projection:
       break;
-#if NAMED_MEMORY_REGIONS_ALLOWED
-    case sk_named_memory_region:
-      fprintf(f_debug, " (id = %d)", sym->variant.named_memory_region.id);
+#if NAMED_ADDRESS_SPACES_ALLOWED
+    case sk_named_address_space:
+      fprintf(f_debug, " (id = %d)", sym->variant.named_address_space.id);
       break;
-#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if CHECKING
     default:
       put_string("UNEXPECTED SYMBOL KIND");
@@ -2740,11 +2740,11 @@ state.
     case sk_namespace_projection:
       sym_ptr->variant.namespace_projection.fundamental_symbol = NULL;
       break;
-#if NAMED_MEMORY_REGIONS_ALLOWED
-    case sk_named_memory_region:
-      sym_ptr->variant.named_memory_region.id = 0;
+#if NAMED_ADDRESS_SPACES_ALLOWED
+    case sk_named_address_space:
+      sym_ptr->variant.named_address_space.id = 0;
       break;
-#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if CHECKING
     default:
       internal_error("set_symbol_kind: bad symbol kind");
@@ -5148,27 +5148,31 @@ token that corresponds to it.
   sym_ptr->variant.keyword.token = (a_byte_token_kind)token;
 }  /* enter_keyword */
 
-#if NAMED_MEMORY_REGIONS_ALLOWED
+#if NAMED_ADDRESS_SPACES_ALLOWED
 
-a_symbol_ptr enter_named_memory_region(char                      *name,
-                                       a_named_memory_region_id  parent_id)
+a_symbol_ptr enter_named_address_space(char                      *name,
+                                       a_named_address_space_id  parent_id)
 /*
 Enter a new symbol for a memory region with the given name whose enclosing
 memory region is described by parent_id (if parent_id is zero, the memory
-region is not enclosed by any other named memory region).
+region is not enclosed by any other named address space).
 */
 {
   a_symbol_ptr  sym;
 
+  /* Verify that NUM_BITS_FOR_NAMED_ADDRESS_SPACE is configured with a
+     sufficiently high value. */
+  check_assertion_str(
+        next_named_address_space_id < (1 << NUM_BITS_FOR_NAMED_ADDRESS_SPACE),
+        "Too many named address spaces");
   sym = full_enter_symbol(name, (sizeof_t)(strlen(name)),
-                          (a_symbol_kind)sk_named_memory_region,
+                          (a_symbol_kind)sk_named_address_space,
                           DEPTH_OF_FILE_SCOPE);
-  /* FIXME: Record name and parent_id in region table. */
-  sym->variant.named_memory_region.id = next_named_memory_region_id++;
+  sym->variant.named_address_space.id = next_named_address_space_id++;
   return sym;
-}  /* enter_named_memory_region */
+}  /* enter_named_address_space */
 
-#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
 void enter_injected_class_name_symbol(a_symbol_ptr  tag_sym)
 /*
@@ -11053,9 +11057,9 @@ are handled in symbol_tbl_init.)
   name_space_for_symbol_kind[(int)sk_function_template]   = nsk_other;
   name_space_for_symbol_kind[(int)sk_namespace]           = nsk_other;
   name_space_for_symbol_kind[(int)sk_namespace_projection] = nsk_other;
-#if NAMED_MEMORY_REGIONS_ALLOWED
-  name_space_for_symbol_kind[(int)sk_named_memory_region] = nsk_other;
-#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  name_space_for_symbol_kind[(int)sk_named_address_space] = nsk_other;
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if CHECKING
   /* "undefined" and "routine" must be in the same name space.  See
       decl_default_function. */
@@ -11192,9 +11196,9 @@ are handled in symbol_tbl_init.)
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
       pch_saved_var_array_elem(last_ctor_or_dtor_sym),
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
-#if NAMED_MEMORY_REGIONS_ALLOWED
-      pch_saved_var_array_elem(next_named_memory_region_id),
-#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+      pch_saved_var_array_elem(next_named_address_space_id),
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if DEBUG
       pch_saved_var_array_elem(db_symbol_buffer_pointer),
       pch_saved_var_array_elem(num_access_error_descrs_allocated),
@@ -11256,9 +11260,9 @@ are handled in symbol_tbl_init.)
   register_trans_unit_variable(error_class_template_symbol);
   register_trans_unit_variable(file_scope_number);
   register_trans_unit_variable(locator_for_curr_id);
-#if NAMED_MEMORY_REGIONS_ALLOWED
-  register_trans_unit_variable(next_named_memory_region_id);
-#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  register_trans_unit_variable(next_named_address_space_id);
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 }  /* symbol_tbl_one_time_init */
 
 
@@ -11308,9 +11312,9 @@ given translation unit.
     source_sequence_entries_disallowed = TRUE;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if NAMED_MEMORY_REGIONS_ALLOWED
-  next_named_memory_region_id = 1;
-#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  next_named_address_space_id = 1;
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 }  /* symbol_tbl_trans_unit_init */
 
 

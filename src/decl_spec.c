@@ -4828,6 +4828,16 @@ from decl_specifiers only.
                                               (TQ_UPC_RELAXED | TQ_UPC_STRICT);
     }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+    if (named_address_spaces_allowed && *qualifiers != TQ_NONE &&
+        named_address_space_from_qualifier_set(*qualifiers) != 0 &&
+        is_function_type(*type_ptr)) {
+      /* Function types cannot be qualified with named address spaces. */
+      err = TRUE;
+      pos_error(ec_named_address_space_on_function_type, qualifier_pos);
+      *qualifiers = simple_qualifiers(*qualifiers);
+    }  /* if */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
     if ((*type_ptr)->kind == (a_type_kind)tk_typeref) {
       if (C_dialect == C_dialect_cplusplus) {
         /* In C++ adding a qualifier to a typedef name that is already
@@ -5399,6 +5409,119 @@ the current identifier is a class member and a template-id.
   return result;
 }  /* gpp_type_name_matches_class_name */
 
+
+#if !NAMED_ADDRESS_SPACES_ALLOWED
+/*ARGSUSED*/ /* <-- named_address_space is not used in some configurations. */
+#endif /* !NAMED_ADDRESS_SPACES_ALLOWED */
+static a_boolean process_nontype_identifier(
+                                a_decl_specifiers_set     decl_specifiers_seen,
+                                a_storage_class           storage_class,
+                                a_decl_flag_set           input_flags,
+                                a_basic_type              *basic_type,
+                                a_named_address_space_id  *named_address_space,
+                                a_decl_flag_set           *output_flags,
+                                a_boolean                 *err)
+/*
+The current token is an identifier or (in C++) a global qualification token
+("::") followed by an identifier.  If the name introduced by this token is
+a type name, it is normally part of the decl-specifier and handled: Those
+cases are handled by the called.  If the name is not a type name, the work
+is mostly done in this routine.  This includes named memory regions (part of
+the specifiers; an Embedded C/TR 18037 extension) and constructors (part of
+the declarator).
+decl_specifiers_seen describes some of the specifiers (virtual, inline, ...)
+that may have been seen already.  storage_class is the storage class that
+was specified explicitly (if any).  input_flags and output_flags are the
+flag sets passed into and out of decl_specifiers.  *basic_type represents
+the basic type specifier that was seen (if any) and may be set to bt_no_type
+if this is a constructor.  If the current token names an address space,
+*named_address_space is set to represent it; otherwise it is set to zero. 
+Unusual syntax errors (e.g., "::" followed by something unexpected) cause
+*err to be set to TRUE.
+*/
+{
+  a_boolean  result = FALSE;
+  a_boolean  identifier_names_address_space = FALSE;
+  a_boolean  is_member_decl = (input_flags & DSI_IS_MEMBER_DECLARATION);
+
+  if (C_dialect == C_dialect_cplusplus) {
+    an_identifier_options_set  options = GID_NO_OPTIONS;
+
+    /* In case the identifier has not yet been coalesced, do it now. */
+    if (input_flags & DSI_IS_NEW_TYPE_NAME) {
+      options |= GID_IS_NEW_TYPE_NAME;
+    }  /* if */
+    if (!is_generalized_identifier_start(options)) {
+      /* This could result from "::" followed by something strange. */
+      *err = TRUE;
+      result = TRUE;
+    }  /* if */
+    /* Check for a constructor declaration.  The following conditions
+       must be satisfied:  (1) we are inside a class definition;
+       (2) the current token is the name of the class being defined
+       (note that typedef names are not allowed); (3) the declaration
+       has no other specifiers besides "inline" and "explicit" (which
+       are legal) and "virtual" or "static" (which are not); (4) the
+       next token is a left parenthesis; (5) the token following the
+       left paren is a right paren or the start of a formal parameter
+       declaration. */
+    if (is_member_decl &&
+        !(decl_specifiers_seen & ~(DS_VIRTUAL | DS_STORAGE_CLASS |
+                                   DS_EXPLICIT | DS_INLINE |
+                                   DS_DECLSPEC | DS_MICROSOFT_INLINE |
+                                   DS_FORCEINLINE)) &&
+        (storage_class == (a_storage_class)sc_unspecified ||
+         storage_class == (a_storage_class)sc_static)) {
+      a_type_ptr  class_type = enclosing_class_type(input_flags);
+      if (class_type != NULL) {
+        /* The following test will not succeed if the constructor
+           declaration is parenthesized; in that case, the test is
+           repeated in scan_real_declarator_id. */
+        if (is_constructor_decl(class_type)) {
+          *basic_type = bt_no_type;
+          *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
+          /* Note that with a branch to exit_loop the get_token call
+             is bypassed.  This means curr_token will still represent
+             the constructor name (= class name) upon return to the
+             caller. */
+          result = TRUE;
+        } else if ((microsoft_bugs || any_cfront_mode()) &&
+                   !is_error_locator(locator_for_curr_id) &&
+                   implicit_int_member_with_name_of_type()) {
+          /* Microsoft and Cfront will accept:
+               struct X; struct Y { X(); }; */
+          *output_flags |= DSO_NO_DECL_SPECIFIERS;
+          result = TRUE;
+        }  /* if */              
+      }  /* if */              
+    }  /* if */
+  }  /* if */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  *named_address_space = 0;
+  if (!result && named_address_spaces_allowed) {
+    /* Check if the identifier corresponds to a named address space
+       qualifier. */
+    a_symbol_ptr  sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+    if (sym != NULL && sym->kind == (a_symbol_kind)sk_named_address_space) {
+      *named_address_space = sym->variant.named_address_space.id;
+      identifier_names_address_space = TRUE;
+    }  /* if */
+  }  /* if */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+  if (!result && *basic_type != bt_none && !identifier_names_address_space) {
+    /* There's already a basic type, so the identifier should be processed as
+       a declarator.  If it happens to be a type name, it is better to have a
+       invalid-redeclaration error later than a bad-combination-of-types error
+       here.  In addition, the following is permitted in C++:
+           struct S {...};
+           int S;
+       since tag names are not in the same name space with other objects. */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* process_nontype_identifier */
+
+
 #if !GNU_EXTENSIONS_ALLOWED || !UPC_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- attributes is only used when GNU extension are allowed.
                     upc_block_size is only used when UPC extensions are
@@ -5562,6 +5685,7 @@ Returns TRUE if there is an error in the specifiers.
   a_boolean                  microsoft_w64_seen = FALSE;
   a_source_position          microsoft_w64_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_named_address_space_id   named_address_space;
  
   db_enter(3, "decl_specifiers");
   *output_flags = DSO_NO_OUTPUT_FLAGS;
@@ -6605,58 +6729,6 @@ process_class_specifier:
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case QUALIFIED_NAME_START_CASE:  /* Identifier or "::". */
         /* Identifier. */
-        if (C_dialect == C_dialect_cplusplus) {
-          an_identifier_options_set  options = GID_NO_OPTIONS;
-
-          /* In case the identifier has not yet been coalesced, do it now. */
-          if (input_flags & DSI_IS_NEW_TYPE_NAME) {
-            options |= GID_IS_NEW_TYPE_NAME;
-          }  /* if */
-          if (!is_generalized_identifier_start(options)) {
-            /* This could result from "::" followed by something strange. */
-            goto something_unexpected;
-          }  /* if */
-          /* Check for a constructor declaration.  The following conditions
-             must be satisfied:  (1) we are inside a class definition;
-             (2) the current token is the name of the class being defined
-             (note that typedef names are not allowed); (3) the declaration
-             has no other specifiers besides "inline" and "explicit" (which
-             are legal) and "virtual" or "static" (which are not); (4) the
-             next token is a left parenthesis; (5) the token following the
-             left paren is a right paren or the start of a formal parameter
-             declaration. */
-          if (is_member_decl &&
-              !(decl_specifiers_seen & ~(DS_VIRTUAL | DS_STORAGE_CLASS |
-                                         DS_EXPLICIT | DS_INLINE |
-                                         DS_DECLSPEC | DS_MICROSOFT_INLINE |
-                                         DS_FORCEINLINE)) &&
-              (*storage_class == (a_storage_class)sc_unspecified ||
-               *storage_class == (a_storage_class)sc_static)) {
-            a_type_ptr  class_type = enclosing_class_type(input_flags);
-
-            if (class_type != NULL) {
-              /* The following test will not succeed if the constructor
-                 declaration is parenthesized; in that case, the test is
-                 repeated in scan_real_declarator_id. */
-              if (is_constructor_decl(class_type)) {
-                basic_type = bt_no_type;
-                *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
-                /* Note that with a branch to exit_loop the get_token call
-                   is bypassed.  This means curr_token will still represent
-                   the constructor name (= class name) upon return to the
-                   caller. */
-                goto exit_loop;
-              } else if ((microsoft_bugs || any_cfront_mode()) &&
-                         !is_error_locator(locator_for_curr_id) &&
-                         implicit_int_member_with_name_of_type()) {
-                /* Microsoft and Cfront will accept:
-                     struct X; struct Y { X(); }; */
-                *output_flags |= DSO_NO_DECL_SPECIFIERS;
-                goto exit_loop;
-              }  /* if */              
-            }  /* if */              
-          }  /* if */
-        }  /* if */
         /* The appearance of an identifier may mean that the specifiers
            are complete (the identifier is a declarator) or it may be another
            specifier.  First we look for conditions that will cause us to
@@ -6681,18 +6753,29 @@ process_class_specifier:
            K&R, we consider an identifier to be a typedef when there is
            just a sign or size (since these are "adjectives" to pcc), but
            not when there is a type specifier. */
-        if (basic_type != bt_none) {
-          /* There's already a basic type, so the identifier should be
-             processed as a declarator.  If it happens to be a type name,
-             it is better to have a invalid-redeclaration error later than
-             a bad-combination-of-types error here.  In addition, the
-             following is permitted in C++:
-                 struct S {...};
-                 int S;
-             since tag names are not in the same name space with other
-             objects. */
-          goto exit_loop;
-        }  /* if */
+        { a_boolean  unexpected_identifier = FALSE;
+          if (process_nontype_identifier(decl_specifiers_seen, *storage_class,
+                                         input_flags, &basic_type,
+                                         &named_address_space, output_flags,
+                                         &unexpected_identifier)) {
+            if (unexpected_identifier) {
+              goto something_unexpected;
+            } else {
+              goto exit_loop;
+            }  /* if */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+          } else if (named_address_space != 0) {
+            if (named_address_space_from_qualifier_set(*qualifiers) != 0) {
+              error(ec_multiple_named_address_spaces);
+            } else {
+              non_restrict_qualifier_pos = pos_curr_token;
+              set_named_address_space_in_qualifier_set(*qualifiers,
+                                                       named_address_space);
+            }  /* if */
+            break;
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+          }  /* if */
+        }
         if (sign != sign_none || size != size_none) {
           /* There is an indication of sign and/or size (but no indication
              of a basic type).  In ANSI C and C++, assume we're dealing with

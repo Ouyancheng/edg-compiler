@@ -3540,6 +3540,73 @@ orphan pointers and/or translation unit copy addresses).
            HOST_POINTER_ALIGNMENT
 #endif /* (HOST_IL_ENTRY_PREFIX_ALIGNMENT % HOST_POINTER_ALIGNMENT) != 0 */
 
+/*
+Named address space are identified using small integers of the following
+signed type.  Defined unconditionally because it is used in some function
+signatures.
+*/
+typedef int a_named_address_space_id;
+
+/*
+Number of bits needed to represent named address space ids.  This must be
+defined if NAMED_ADDRESS_SPACES_ALLOWED is TRUE.  Furthermore, the value
+must be at least 2 if INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES us TRUE, and
+at least 1 otherwise.
+*/
+#if NAMED_ADDRESS_SPACES_ALLOWED
+#ifndef NUM_BITS_FOR_NAMED_ADDRESS_SPACE
+ #error -- NUM_BITS_FOR_NAMED_ADDRESS_SPACE must be defined to a positive \
+           value
+#else /* defined(NUM_BITS_FOR_NAMED_ADDRESS_SPACE) */
+#ifndef INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES
+#if NUM_BITS_FOR_NAMED_ADDRESS_SPACE < 1
+ #error -- NUM_BITS_FOR_NAMED_ADDRESS_SPACE must be defined to a positive \
+           value
+#endif /* NUM_BITS_FOR_NAMED_ADDRESS_SPACE < 1 */
+#else /* defined(INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES) */
+#if NUM_BITS_FOR_NAMED_ADDRESS_SPACE < 2
+ #error -- NUM_BITS_FOR_NAMED_ADDRESS_SPACE must be at least 2
+#endif /* NUM_BITS_FOR_NAMED_ADDRESS_SPACE < 2 */
+#endif /* ifndef INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES */
+#endif /* ifndef NUM_BITS_FOR_NAMED_ADDRESS_SPACE */
+
+/*
+A structure describing a named address space.  The structure is primarily
+used to construct the array named_address_spaces (see below).
+*/
+typedef struct a_named_address_space_descr {
+  char  *name;
+		/* Pointer to null-terminated name.  TR 18037 ("Embedded C")
+		   requires that such memory regions have names in the
+		   implementation namespace. */
+  a_named_address_space_id
+	parent_id;
+		/* Id of the named address space enclosing this one, or -1
+		   if this named address space is not enclosed by any other
+		   address.  The "generic address space" has id zero. */
+} a_named_address_space_descr;
+
+
+/*
+A table describing the known named address spaces.  It can be indexed using
+a named address space id.  
+*/
+EXTERN a_named_address_space_descr
+	named_address_spaces[]
+#if VAR_INITIALIZERS
+= {
+/*  0: */ { "", -1 },	/* Placeholder for the "generic address space." */
+#if INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES
+/*  1: */ { "_EDG_NAS_A", 0 }, 
+/*  2: */ { "_EDG_NAS_B", 1 /* = _EDG_NAS_A */ }, 
+/*  3: */ { "_EDG_NAS_C", -1 }, 
+#endif /* INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES */
+/*  4: */ { NULL, 0 }	/* End-of-array marker. */
+}
+#endif /* VAR_INITIALIZERS */
+;
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+
 #endif /* !defined(TARG_DEF_H) */
 
 

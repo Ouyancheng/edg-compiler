@@ -1201,27 +1201,24 @@ Enter macros as requires by the UPC specification.  Called in UPC modes only.
 }  /* enter_upc_predefined_macros */
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if NAMED_MEMORY_REGIONS_ALLOWED
+#if NAMED_ADDRESS_SPACES_ALLOWED
 
-static void enter_predefined_named_memory_regions(void)
+static void enter_predefined_named_address_spaces(void)
 /*
-Enter any predefined named memory regions.  TR 18037 ("Embedded C") requires
+Enter any predefined named address spaces.  TR 18037 ("Embedded C") requires
 that such memory regions have names in the implementation namespace.
 */
 {
-#if INCLUDE_EDG_TEST_NAMED_MEMORY_REGIONS
-  a_symbol_ptr  edg_nmr_a;
-#endif /* INCLUDE_EDG_TEST_NAMED_MEMORY_REGIONS */
+  a_named_address_space_descr  *nas = &named_address_spaces[1];
 
-#if INCLUDE_EDG_TEST_NAMED_MEMORY_REGIONS
-  edg_nmr_a = enter_named_memory_region("_EDG_NMR_A", /*parent_id=*/0);
-  (void)enter_named_memory_region("_EDG_NMR_B",
-                                  edg_nmr_a->variant.named_memory_region.id);
-  (void)enter_named_memory_region("_EDG_NMR_C", /*parent_id=*/0);
-#endif /* INCLUDE_EDG_TEST_NAMED_MEMORY_REGIONS */
-}  /* enter_predefined_named_memory_regions */
+  for (;nas->name != NULL; ++nas) {
+    a_symbol_ptr  sym = enter_named_address_space(nas->name, nas->parent_id);
+    check_assertion(sym->variant.named_address_space.id == 
+                                                (nas - named_address_spaces));
+  }  /* while */
+}  /* enter_predefined_named_address_spaces */
 
-#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
 void enter_system_specific_predeclared_symbols(void)
 /*
@@ -1314,11 +1311,11 @@ Enter predeclared symbols as required by the implementation.
     enter_upc_predefined_macros();
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if NAMED_MEMORY_REGIONS_ALLOWED
-  if (named_memory_regions_allowed) {
-    enter_predefined_named_memory_regions();
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  if (named_address_spaces_allowed) {
+    enter_predefined_named_address_spaces();
   }  /* if */
-#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 }  /* enter_system_specific_predeclared_symbols */
 
 

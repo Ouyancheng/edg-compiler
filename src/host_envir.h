@@ -1235,6 +1235,15 @@ in the front end.
 #endif /* !defined(INCLUDE_EDG_TEST_ATTRIBUTES) */
 
 /*
+Flag that is TRUE to include a set of EDG provided named address spaces are
+provided for testing purposes.
+*/
+#ifndef INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES
+#define INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES FALSE
+#endif /* !defined(INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES) */
+
+
+/*
 Flag that is TRUE to enable a command-line option to test the compilation
 of multiple (possibly identical) translation units.
 */

@@ -1002,16 +1002,16 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
-#if NAMED_MEMORY_REGIONS_ALLOWED
-  add_option_description(optk_named_memory_regions,
-                         "named_memory_regions",
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  add_option_description(optk_named_address_spaces,
+                         "named_address_spaces",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_named_memory_regions,
-                         "no_named_memory_regions",
+  add_option_description(optk_named_address_spaces,
+                         "no_named_address_spaces",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 }  /* initialize_option_descriptions */
 
 
@@ -1995,13 +1995,13 @@ setting is used, and to set various unmentioned settings as needed.
   }  /* if */
   fixed_point_allowed = FALSE;
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
-#if NAMED_MEMORY_REGIONS_ALLOWED
-  /* Named memory regions are not currently supported in C++ modes. */
-  if (option_kind_used[(int)optk_named_memory_regions]) {
-    command_line_error(ec_cl_named_memory_regions_option_only_in_C);
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  /* Named address spaces are not currently supported in C++ modes. */
+  if (option_kind_used[(int)optk_named_address_spaces]) {
+    command_line_error(ec_cl_named_address_spaces_option_only_in_C);
   }  /* if */
-  named_memory_regions_allowed = FALSE;
-#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+  named_address_spaces_allowed = FALSE;
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
   /* "//" is allowed as a comment delimiter. */
   end_of_line_comments_allowed = TRUE;
   /* Universal character names are allowed. */
@@ -3736,12 +3736,12 @@ enable_microsoft_mode:
         fixed_point_allowed = opt_value;
         break;
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
-#if NAMED_MEMORY_REGIONS_ALLOWED
-      case optk_named_memory_regions:
-        /* Enable (or disable) support for named memory regions. */
-        named_memory_regions_allowed = opt_value;
+#if NAMED_ADDRESS_SPACES_ALLOWED
+      case optk_named_address_spaces:
+        /* Enable (or disable) support for named address spaces. */
+        named_address_spaces_allowed = opt_value;
         break;
-#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

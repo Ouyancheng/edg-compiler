@@ -160,11 +160,21 @@ specifier (except for the typedef and friend cases).  (3.5.2)
   curr_token == tok_enum      || curr_token == tok_typename        || \
   curr_token == tok_typeof)
 
+#if NAMED_ADDRESS_SPACES_ALLOWED
+extern a_boolean curr_id_is_named_address_space(void);
+#define or_is_named_address_space_qualifier()                                \
+  || (named_address_spaces_allowed && curr_token == tok_identifier &&        \
+      curr_id_is_named_address_space())
+#else /* !NAMED_ADDRESS_SPACES_ALLOWED */
+#define or_is_named_address_space_qualifier()  /* Nothing */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+
 /*
 Macro that is TRUE if the current token is the start of a type qualifier
 (3.5.3).
 */
-#define is_type_qualifier() is_type_qualifier_token(curr_token)
+#define is_type_qualifier()                                                  \
+  (is_type_qualifier_token(curr_token) or_is_named_address_space_qualifier())
 
 
 /*

@@ -9573,6 +9573,12 @@ to the compound literal.
     /* Variable-length arrays are not allowed. */
     pos_error(ec_vla_not_allowed, type_position);
     err = TRUE;
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  } else if (named_address_space_from_qualifier_set(
+                          get_type_qualifiers(literal_type)) != 0) {
+    pos_error(ec_type_with_named_address_space_not_allowed, type_position);
+    err = TRUE;
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
   } else if (is_error_type(literal_type)) {
     /* An error occurred earlier.  Suppress certain processing now. */
     err = TRUE;

@@ -2216,7 +2216,7 @@ expression can be a multiple of the special UPC THREADS constant.
      is restrict-qualified (e.g., "restrict pointer to int" in
      the first example above.  In C99, cv-qualifiers are also allowed
      inside the brackets. */
-  if (is_type_qualifier_token(curr_token)) {
+  if (is_type_qualifier()) {
     a_source_position     qualifier_pos;
 
     qualifier_pos = pos_curr_token;

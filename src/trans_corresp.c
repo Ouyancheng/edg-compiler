@@ -1165,9 +1165,9 @@ need to be determined.
         }  /* for */
       }
       break;
-#if NAMED_MEMORY_REGIONS_ALLOWED
-    case sk_named_memory_region:
-#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+    case sk_named_address_space:
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
     default:
       unexpected_condition_str("may_have_correspondence: bad symbol kind");
   }  /* switch */

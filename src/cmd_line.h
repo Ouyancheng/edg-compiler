@@ -222,9 +222,9 @@ typedef enum /*an_option_kind*/ {
 #if FIXED_POINT_EXTENSIONS_ALLOWED
   optk_fixed_point,
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
-#if NAMED_MEMORY_REGIONS_ALLOWED
-  optk_named_memory_regions,
-#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  optk_named_address_spaces,
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -703,18 +703,18 @@ EXTERN a_boolean
 			   (aka. "Embedded C") should be accepted. */
 
 EXTERN a_boolean
-		named_memory_regions_allowed
+		named_address_spaces_allowed
 #if VAR_INITIALIZERS
 		                    =
-#if NAMED_MEMORY_REGIONS_ALLOWED
-		                      DEFAULT_NAMED_MEMORY_REGIONS_ALLOWED
-#else /* !NAMED_MEMORY_REGIONS_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+		                      DEFAULT_NAMED_ADDRESS_SPACES_ALLOWED
+#else /* !NAMED_ADDRESS_SPACES_ALLOWED */
 		                      FALSE
-#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #endif /* VAR_INITIALIZERS */
                                                                           ;
 			/* TRUE if the extension of ISO TR 18037 (aka.
-			   "Embedded C") for named memory regions should be
+			   "Embedded C") for named address spaces should be
 			    accepted. */
 
 EXTERN a_boolean

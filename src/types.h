@@ -228,6 +228,11 @@ on the underlying element type of an array.
 #define is_volatile_qualified_type(tp)                                \
   ((get_type_qualifiers(tp) & TQ_VOLATILE) != 0)
 
+#if NAMED_ADDRESS_SPACES_ALLOWED
+#define type_qualified_with_named_address_space(tp)                   \
+  (named_address_space_from_qualifier_set(get_type_qualifiers(tp)) != 0)
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+
 /*
 Check for "top-level" type qualifiers -- i.e., don't look at the element
 type if tp is an array.
@@ -251,6 +256,26 @@ UPC block sizes must match too.)
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
 /*
+Mask off qualifiers that do not map on a single bit (e.g., named address space
+qualifiers).
+*/
+#if NAMED_ADDRESS_SPACES_ALLOWED
+#define simple_qualifiers(qualifiers)                                        \
+  ((qualifiers) &                                                            \
+   ~(((1 << NUM_BITS_FOR_NAMED_ADDRESS_SPACE) - 1)                           \
+                                     << (int)tqt_lsb_named_address_space))
+extern a_boolean first_address_space_encloses_second(a_type_qualifier_set  q1,
+                                                     a_type_qualifier_set  q2);
+#define or_disjunct_named_address_spaces(q1, q2)                             \
+|| (named_address_space_from_qualifier_set((q1)) !=                          \
+                            named_address_space_from_qualifier_set((q2)) &&  \
+   !first_address_space_encloses_second((q1), (q2)))
+#else /* !NAMED_ADDRESS_SPACES_ALLOWED */
+#define simple_qualifiers(qualifiers)  (qualifiers)
+#define or_disjunct_named_address_spaces(q1, q2)  /* Nothing */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+
+/*
 Return TRUE if tp1_qualifiers does not have some type qualifier that
 tp2_qualifiers has.
 */
@@ -258,10 +283,14 @@ tp2_qualifiers has.
 /* The "near" qualifier is backwards in that it's okay to remove it
    (producing "far") but not okay to add it, so flip it in the test. */
 #define any_qualifier_in_set_missing(tp1_qualifiers, tp2_qualifiers)  \
-  ((~((tp1_qualifiers) ^ TQ_NEAR) & ((tp2_qualifiers) ^ TQ_NEAR)) != 0)
+  ((~(simple_qualifiers((tp1_qualifiers)) ^ TQ_NEAR)                  \
+    & (simple_qualifiers((tp2_qualifiers)) ^ TQ_NEAR)) != 0           \
+   or_disjunct_named_address_spaces((tp1_qualifiers), (tp2_qualifiers)))
 #else /* !NEAR_AND_FAR_ALLOWED */
 #define any_qualifier_in_set_missing(tp1_qualifiers, tp2_qualifiers)  \
-  ((~(tp1_qualifiers) & (tp2_qualifiers)) != 0)
+  ((~simple_qualifiers((tp1_qualifiers))                              \
+    & simple_qualifiers((tp2_qualifiers))) != 0                       \
+   or_disjunct_named_address_spaces((tp1_qualifiers), (tp2_qualifiers)))
 #endif /* NEAR_AND_FAR_ALLOWED */
 
 /*

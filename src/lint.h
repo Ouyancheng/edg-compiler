@@ -374,11 +374,16 @@ extern int fileno(FILE *);
 /*lint -esym(759,mantissa_is_zero)*/
 /*lint -esym(765,mantissa_is_zero)*/
 #endif /* !FIXED_POINT_EXTENSIONS_ALLOWED */
-#if !NAMED_MEMORY_REGIONS_ALLOWED
-/*lint -esym(759,named_memory_regions_allowed)*/
-/*lint -esym(765,named_memory_regions_allowed)*/
-/*lint -esym(769,ec_cl_named_memory_regions_option_only_in_C)*/
-#endif /* !NAMED_MEMORY_REGIONS_ALLOWED */
+#if !NAMED_ADDRESS_SPACES_ALLOWED
+/*lint -esym(759,named_address_spaces_allowed)*/
+/*lint -esym(765,named_address_spaces_allowed)*/
+/*lint -esym(769,ec_cl_named_address_spaces_option_only_in_C)*/
+/*lint -esym(769,ec_multiple_named_address_spaces)*/
+/*lint -esym(769,ec_bad_storage_class_for_named_address_space_variable)*/
+/*lint -esym(769,ec_type_with_named_address_space_not_allowed)*/
+/*lint -esym(769,ec_named_address_space_on_function_type)*/
+/*lint -esym(769,ec_field_type_cannot_be_qualified_with_named_address_space)*/
+#endif /* !NAMED_ADDRESS_SPACES_ALLOWED */
 
 
 /******************************************************************************

@@ -2971,6 +2971,15 @@ enum a_type_qualifier_tag {
   tqt_upc_strict,	/* UPC strict */
   tqt_upc_relaxed,	/* UPC relaxed */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+  tqt_lsb_named_address_space,
+			/* Least significant bit of named address space
+			   representation. */
+  tqt_msb_named_address_space =
+	tqt_lsb_named_address_space + NUM_BITS_FOR_NAMED_ADDRESS_SPACE -1,
+			/* Most significant bit of named address space
+			   representation. */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
   tqt_last		/* Must be last. */
 };
 
@@ -3003,6 +3012,20 @@ Definitions of the bits in bit sets of type a_type_qualifier_set.
 #define TQ_UPC_RELAXED	(1 << (int)tqt_upc_relaxed)
 			/* This bit is set to represent UPC relaxed. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+
+#if NAMED_ADDRESS_SPACES_ALLOWED
+/*
+Macros to set and retrieve the named address space id in a type qualifier
+bit set.
+*/
+#define named_address_space_from_qualifier_set(tqs)                          \
+  (((tqs) >> (int)tqt_lsb_named_address_space) &                             \
+   ((1 << NUM_BITS_FOR_NAMED_ADDRESS_SPACE) - 1))
+
+#define set_named_address_space_in_qualifier_set(tqs, nas_id)                \
+  ((tqs) |= ((nas_id) << (int)tqt_lsb_named_address_space))
+
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
 /*
 The last type qualifier tag value is used as the number of bits required
@@ -4961,7 +4984,7 @@ typedef struct a_type {
 			   flag is initially set to TRUE, and then cleared
 			   when the size of the type is computed.)  For
 			   typerefs, the flag should be checked in the
-			   underlying type entry.) */
+			   underlying type entry. */
   a_bit_field	used_in_exception_or_rtti:1;
 			/* TRUE if this type appeared as (1) the type of an
 			   exception-declaration of a handler, (2) the type

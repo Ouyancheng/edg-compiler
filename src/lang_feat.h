@@ -1487,20 +1487,20 @@ or when Microsoft extensions (including Microsoft asms) are allowed.
 
 /*
 Flag that is TRUE if the IL and the front end code supporting Embedded C
-(TR 18037) named memory regions should be enabled.
+(TR 18037) named address spaces should be enabled.
 */
-#ifndef NAMED_MEMORY_REGIONS_ALLOWED
-#define NAMED_MEMORY_REGIONS_ALLOWED FALSE
-#endif /* NAMED_MEMORY_REGIONS_ALLOWED */
+#ifndef NAMED_ADDRESS_SPACES_ALLOWED
+#define NAMED_ADDRESS_SPACES_ALLOWED FALSE
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
 /*
-Flag that is true if Embedded C (TR 18037) named memory region specifiers
+Flag that is true if Embedded C (TR 18037) named address space specifiers
 should be recognized by default.  This is the default initial value of
-named_memory_regions_allowed.
+named_address_spaces_allowed.
 */
-#ifndef DEFAULT_NAMED_MEMORY_REGIONS_ALLOWED
-#define DEFAULT_NAMED_MEMORY_REGIONS_ALLOWED FALSE
-#endif /* DEFAULT_NAMED_MEMORY_REGIONS_ALLOWED */
+#ifndef DEFAULT_NAMED_ADDRESS_SPACES_ALLOWED
+#define DEFAULT_NAMED_ADDRESS_SPACES_ALLOWED FALSE
+#endif /* DEFAULT_NAMED_ADDRESS_SPACES_ALLOWED */
 
 /*
 Check that no mutually exclusive dialect emulations are simultaneously
