@@ -1075,6 +1075,9 @@ error code.
     case ec_missing_const_copy_constructor:
       m = "class \"%s\" has no copy constructor to copy a const object";
       break;
+    case ec_definition_of_implicitly_declared_function:
+      m = "defining an implicitly declared member function is not allowed";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
