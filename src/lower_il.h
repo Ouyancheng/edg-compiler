@@ -797,6 +797,11 @@ extern an_expr_node_ptr assign_expr_to_temp_and_make_expr_for_reuse(
 extern an_expr_node_ptr make_reusable_copy(an_expr_node_ptr expr,
                                            a_boolean        vars_can_change);
 
+extern an_expr_node_ptr make_lvalue_reusable_copy_full(
+                                             an_expr_node_ptr expr,
+                                             a_boolean        vars_can_change,
+                                             an_expr_node_ptr *temp_init_node);
+
 extern an_expr_node_ptr make_lvalue_reusable_copy(
                                              an_expr_node_ptr expr,
                                              a_boolean        vars_can_change);

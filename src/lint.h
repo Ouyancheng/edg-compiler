@@ -428,6 +428,8 @@ extern int fileno(FILE *);
 #if !LOWER_FIXED_POINT
 /*lint -esym(759, fixed_point_type_used_in_primary_IL)*/
 /*lint -esym(765, fixed_point_type_used_in_primary_IL)*/
+/*lint -esym(759, make_lvalue_reusable_copy_full)*/
+/*lint -esym(765, make_lvalue_reusable_copy_full)*/
 #endif /* !LOWER_FIXED_POINT */
 
 
