@@ -1287,6 +1287,58 @@ is not a routine symbol, return FALSE.
 }  /* is_special_function_symbol */
 
 
+a_type_ptr underlying_function_type(a_symbol_ptr  sym)
+/*
+If the given symbol refers to a function, a typedef, a variable or a data
+member, extract its type and see if it is a function type or a type composed
+from a function type.  If so, return the underlying function type; otherwise,
+return NULL.
+*/
+{
+  a_type_ptr  result;
+
+  /* First extract a type pointer: */
+  switch (sym->kind) {
+    case sk_routine:
+    case sk_member_function:
+      result = sym->variant.routine.ptr->type;
+      break;
+    case sk_function_template:
+      result = sym->variant.template_info->variant.function.routine->type;
+      break;
+    case sk_variable:
+      result = sym->variant.variable.ptr->type;
+      break;
+    case sk_type:
+      result = sym->variant.type.ptr;
+      break;
+    case sk_static_data_member:
+      result = sym->variant.static_data_member.variable->type;
+      break;
+    case sk_field:
+      result = sym->variant.field.ptr->type;
+      break;
+    default:
+      result = NULL;
+  }  /* switch */
+  /* Now peel off pointer and reference operators until we find a routine
+     type (if at all): */
+  while (result != NULL && !is_function_type(result)) {
+    result = skip_typerefs(result);
+    if (is_ptr_or_ref_type(result)) {
+      result = type_pointed_to(result);
+    } else if (is_ptr_to_member_type(result)) {
+      result = pm_member_type(result);
+    } else if (is_array_type(result)) {
+      result = array_element_type(result);
+    } else if (!is_function_type(result)) {
+      result = NULL;
+    }  /* if */
+  }  /* while */
+  return result;
+}  /* underlying_routine_type */
+
+
 a_boolean is_member_enum_symbol(a_symbol_ptr sym)
 /*
 Used in Microsoft mode to determine whether a symbol refers to an

@@ -3304,6 +3304,7 @@ extern a_boolean overload_set_contains_template(a_symbol_ptr sym);
 
 extern a_boolean is_special_function_symbol(a_symbol_ptr             sym,
                                             a_special_function_kind  kind);
+extern a_type_ptr underlying_function_type(a_symbol_ptr  sym);
 
 /* Return TRUE if a symbol is a constructor symbol. */
 #define is_constructor_symbol(sym)                                    \

@@ -1008,7 +1008,7 @@ Process the default argument expressions for the indicated class.
              (ARM 8.2.6). */
           (void)push_scope((a_scope_kind)sck_func_prototype,
                            rfp->func_info.scope_number,
-                           routine_symbol_type(rfp->symbol),
+                           underlying_function_type(rfp->symbol),
                            (a_routine_ptr)NULL);
           if (rfp->func_info.prototype_scope_symbols != NULL) {
             reactivate_prototype_scope_symbols(
