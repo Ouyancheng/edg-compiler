@@ -727,7 +727,6 @@ have been called on it at some previous point.
       vtbl_for_type_info =
                    make_var_for_virtual_function_table(user_type_info_type,
                                                        (a_base_class_ptr)NULL);
-      vtbl_for_type_info->source_corresp.referenced = TRUE;
       user_type_info_type->source_corresp.name = saved_name;
 #if RUNTIME_USES_NAMESPACES
       user_type_info_type->source_corresp.parent.namespace_ptr = NULL;
@@ -735,6 +734,7 @@ have been called on it at some previous point.
     }  /* if */
     set_variable_address_constant(vtbl_for_type_info, vptr_con,
                                   /*set_address_taken_flag=*/TRUE);
+    vtbl_for_type_info->source_corresp.referenced = TRUE;
     /* Do the array --> pointer decay. */
     implicit_cast(vptr_con, make_pointer_type(make_mptr_type()));
     /* Make the constant for the type_info. */
