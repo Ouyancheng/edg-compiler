@@ -54,6 +54,13 @@ extern a_boolean proc_debug_option(char *debug_option);
 }  /* db_space_used_general */
 
 
+#define db_space_used_nontype(name, counter, size_arg)                \
+{ num = counter; size = size_arg; total = num*size;                   \
+  fprintf(f_debug, "%25s %8lu %8lu %8lu\n", name, num, size, total);  \
+  grand_total += total;                                               \
+}  /* db_space_used_nontype */
+
+
 #define db_space_lost(avail_list, counter, type)                \
 { type          *ptr;                                                 \
   unsigned long count = 0;                                            \
