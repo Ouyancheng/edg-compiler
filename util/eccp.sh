@@ -312,10 +312,12 @@ prelink_options=
 # candidates for assignment of instantiations.  prelink_copy_if_nonlocal
 # is TRUE if the assignment of an instantiation to a nonlocal object file
 # should result in the object file being recompiled in the current
-# directory.
+# directory.  use_definition_list_file specifies whether a the prelinker
+# should use a definition list file when invoking the front end.
 #
 prelink_local_only=0
 prelink_copy_if_nonlocal=0
+use_definition_list_file=1
 #
 # Run the prelinker (but not the linker) on the object files.
 #
@@ -501,6 +503,7 @@ check_abbreviation()
 --no_bool
 --no_brief_diagnostics
 --no_code_gen
+--no_definition_list_file
 --no_distinct_template_signatures
 --no_enum_overloading
 --no_exceptions
@@ -790,6 +793,10 @@ process_option()
       arg_value=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
       instantiation_dir=$arg_value
       use_default_instantiation_dir=0
+      ;;
+    --no_definition_list_file)
+#     Tell the prelinker not to use a definition list file.
+      use_definition_list_file=0
       ;;
     --prelink_local_only)
 #     Only files compiled in the current directory may have instantiations
@@ -1307,6 +1314,12 @@ fi
 #
 if [ $one_instantiation_per_object -ne 0 ] ; then
   prelink_options=$prelink_options" -O"
+fi
+#
+# Convert --no_definition_list_file to the appropriate prelinker option.
+#
+if [ $use_definition_list_file -eq 0 ] ; then
+  prelink_options=$prelink_options" -a0"
 fi
 #
 # The old .ii format cannot be used with the new prelinker nonlocal file
