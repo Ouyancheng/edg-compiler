@@ -250,8 +250,8 @@ suffix list continues to include the null suffix so that header files
 without a suffix may also be used.
 
 If an implementation chooses to use (only) suffix-less names for headers,
-the include file suffix list can be changed to "::" to turn off the feature
-of adding suffixes to such file names.
+the include file suffix list can be changed to "" or "::" to turn off the
+feature of adding suffixes to such file names.
 
 See the include directory Changes file for more information about the
 header file changes.

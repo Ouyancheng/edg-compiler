@@ -1185,7 +1185,7 @@ The default setting of "::stdh:" permits include files to have no suffix,
 or to have the special suffix "stdh".
 
 If an implementation uses only header files with no suffixes (i.e., no
-suffix is to be added) this string should be set to "::" to avoid the
+suffix is to be added) this string should be set to "" or "::" to avoid the
 overhead of looking for files with the ".stdh" suffix.
 */
 #ifndef DEFAULT_INCLUDE_FILE_SUFFIX_LIST

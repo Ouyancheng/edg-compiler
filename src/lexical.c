@@ -12059,6 +12059,23 @@ to be displayed.
 
 #endif /* DEBUG */
 
+static void init_include_file_suffixes(void)
+/*
+Create the include file suffix list used for header files with no suffix.
+*/
+{
+  if (include_file_suffixes != NULL &&
+      *include_file_suffixes != '\0') {
+    include_file_suffix_list =
+                        conv_string_to_file_suffix_list(include_file_suffixes);
+  } else {
+    /* The list is empty.  The empty suffix should be included in such
+       cases. */
+    add_to_file_suffix_list(&include_file_suffix_list, "", 0);
+  }  /* if */
+}  /* init_include_file_suffixes */
+
+
 void lexical_one_time_init(void)
 /*
 Do one-time initialization of variables related to lexical processing.
@@ -12201,10 +12218,7 @@ are handled in lexical_init.)
   implicit_instantiation_file_suffix_list =
        conv_string_to_file_suffix_list(DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST);
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-  /* Create the include file suffix list used for header files with
-     no suffix. */
-  include_file_suffix_list =
-                        conv_string_to_file_suffix_list(include_file_suffixes);
+  init_include_file_suffixes();
   /* Save variables from lexical.h and lexical.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
