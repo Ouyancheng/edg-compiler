@@ -1,5 +1,14 @@
 Version 2.31
 
+11/1/95   No name mangling on extern "C" variables in namespaces
+
+extern "C" variables in a namespace were being mangled.  They shouldn't
+be.
+
+  namespace std {
+    extern "C" int errno;
+  }
+
 11/1/95   Initial value constants for static data member constants
 
 The initial value constants for initialized static data members should
