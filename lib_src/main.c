@@ -39,7 +39,7 @@ Note that this is not explicitly initialized.  This allows an alternate
 version of main to be supplied that does not initialize __head to be
 used without causing a linkage conflict.
 */
-struct __linkl	*__head;	/* Pointer to the head of the linked list
+struct __linkl	*__head = NULL;	/* Pointer to the head of the linked list
 				   of initialization and termination
 				   structures. */
 
