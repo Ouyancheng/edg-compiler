@@ -7631,7 +7631,7 @@ the expression have already been lowered.
   this_temp_node = add_cast_to_char_star(var_rvalue_expr(this_temp_var));
   this_temp_node->next = cast_node;
   padd_node = make_operator_node((an_expr_operator_kind)eok_padd,
-                                 this_temp_var->type, this_temp_node);
+                                 this_temp_node->type, this_temp_node);
   /* We now have a pointer to the virtual table pointer in the object.
      Cast it to a pointer to a pointer and indirect to get the value of 
      the pointer to the virtual function table. */
