@@ -1,5 +1,26 @@
 Version 2.13
 
+1/13/93 Loosening of matching on function template overload resolution
+
+Two cases:
+
+  (1)  Extra type qualifiers under a reference are allowed.
+
+         template <class T> void f(const T &p) {}
+         void m() {int i; f(i);}
+
+  (2)  Parameters that do not involve template types are allowed to
+       have trivial conversions and/or a cast to a base class.
+
+         struct A {};
+         struct B : public A {} *p;
+         template<class T> void f(T, A*);
+         void m() {f(1, p);}
+
+Both of these are forbidden by the ARM, and both are allowed by cfront
+3.0.1.  The second is required to make overloading of the iostream
+library work for template types.
+
 1/12/93 C-generating back end output of bit fields
 
 The C-generating back end now outputs all signed bit fields as "int"

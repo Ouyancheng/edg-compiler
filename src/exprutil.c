@@ -5407,8 +5407,11 @@ TRUE; that allows a different error message.
         }  /* if */
 #endif /* DEBUG */
       } else {
-        /* Both the actual argument and formal parameter are available. */
-        if (!function_template_case) {
+        /* Both the actual argument and formal parameter are available.
+           See how well they match.  Don't do this for arguments of
+           function templates that involve template types (that's handled
+           later by function_template_matches_operand_list). */
+        if (!function_template_case || !param->type_involves_template_param) {
           /* Compare their types. */
           determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
                                     param->type,
@@ -5805,6 +5808,7 @@ template has the right number of parameters.
   a_routine_type_supplement_ptr
                      rtsp;
   a_type_ptr         param_type, arg_type;
+  a_boolean          ref_type_qualifiers_dropped;
 
   db_enter(4, "function_template_matches_operand_list");
 #if CHECKING
@@ -5820,11 +5824,14 @@ template has the right number of parameters.
   for (;ptp != NULL && arg_operand != NULL;
        ptp = ptp->next, arg_operand = arg_operand->next) {
     /* Try to match up the parameter type and the argument type. */
-    /* Note that there's no support in the ARM for the concept of handling
-       references and array and function types specially here.  It just
-       seems to make sense. */
+    /* The ARM says the match must be exact, without even trivial conversions,
+       but we allow some trivial conversions anyway (involving references,
+       array and function type decay, and type qualifiers).  It seems to
+       be necessary, and cfront seems to allow those. */
+    /* The code here must match determine_arg_match_level. */
     param_type = ptp->type;
     arg_type = arg_operand->operand.type;
+    ref_type_qualifiers_dropped = FALSE;
     if (is_reference_type(param_type)) {
       /* For a reference type, the argument must be an lvalue or a function
          designator. */
@@ -5838,8 +5845,8 @@ template has the right number of parameters.
       } else if (any_qualifier_missing(param_type, arg_type)) {
         /* There are some type qualifiers on the argument type that do not
            appear on the parameter type, so some type qualifiers are being
-           dropped.  That will be dealt with (successfully or not) by
-           matches_template_type. */
+           dropped.  That will be dealt with (successfully or not) below. */
+        ref_type_qualifiers_dropped = TRUE;
       } else {
         /* Some type qualifiers are being added.  That's okay.
            This is a case like
@@ -5871,12 +5878,40 @@ template has the right number of parameters.
         arg_type = make_pointer_type(arg_type);
       }  /* if */
     }  /* if */
-    /* As the matching is attempted, templ_arg_list is filled in with
-       the bindings for the template arguments.  This is needed during the
-       matching process to ensure that each argument is used consistently
-       and also later in this routine to build the instantiation. */
-    if (!matches_template_type(arg_type, param_type, &templ_arg_list)) {
-      goto done;
+    if (!ptp->type_involves_template_param) {
+      /* This parameter does not involve a template parameter, so its
+         type should match without special handling.  The ARM requires
+         an exact type match.  However, we follow cfront in allowing
+         some trivial conversions (above) and a cast to a base class
+         (handled here, as an extension). */
+      if (ref_type_qualifiers_dropped) goto done;
+      if (!identical_types(arg_type, param_type)) {
+        a_boolean        downward_cast;
+        a_base_class_ptr bcp;
+
+        /* Note that the base class trick applies both to pointers and
+           to objects of the related classes. */
+        if (!strict_ansi_mode &&
+            ((related_class_pointers(arg_type, param_type, &downward_cast,
+                                     &bcp) && downward_cast) ||
+             (is_class_struct_union_type(arg_type) &&
+              is_class_struct_union_type(param_type) &&
+              find_base_class_of(arg_type, param_type) != NULL))) {
+            /* Okay. */
+        } else {
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else {
+      /* The parameter involves a template type, so special matching is
+         required. */
+      /* As the matching is attempted, templ_arg_list is filled in with
+         the bindings for the template arguments.  This is needed during the
+         matching process to ensure that each argument is used consistently
+         and also later in this routine to build the instantiation. */
+      if (!matches_template_type(arg_type, param_type, &templ_arg_list)) {
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* for */
 #if CHECKING
