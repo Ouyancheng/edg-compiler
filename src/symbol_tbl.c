@@ -1413,7 +1413,6 @@ state.
         cssp->construction_by_bitwise_copy_allowed = FALSE;
         cssp->target_of_conversion_function = FALSE;
         cssp->any_ref_member = FALSE;
-        cssp->any_nested_classes = FALSE;
         /* The is_class_aggregate flag is initialized to TRUE when we are not
            in C++ mode. */
         cssp->is_class_aggregate = (C_dialect != C_dialect_cplusplus);
@@ -7182,6 +7181,7 @@ specific version of the template.
   ssep->curr_scope_object_lifetime = NULL;
   ssep->object_lifetime_avail_list = NULL;
   ssep->saved_curr_object_lifetime = curr_object_lifetime;
+  ssep->templ_member_class_sym   = NULL;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */

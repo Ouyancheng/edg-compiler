@@ -6213,9 +6213,11 @@ a routine to lookup the appropriate instance (or generate one if needed).
        which is used when, for example, A<T> is a member of class template
        B.  We find the prototype instantiation unless we are currently
        inside the instantiation of a different class. */
-    a_boolean	prototype_allowed;
+    a_boolean			prototype_allowed;
+    a_scope_stack_entry_ptr	ssep;
+    ssep = &scope_stack[depth_scope_stack];
     prototype_allowed = class_is_being_instantiated ||
-                        depth_innermost_instantiation_scope == NO_SCOPE_DEPTH;
+                        ssep->templ_member_class_sym == template_sym;
     new_sym = find_template_class(template_sym, &arg_list, &start_position,
                                   prototype_allowed);
     arg_list_coalesced = TRUE;

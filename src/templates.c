@@ -25,6 +25,7 @@ templates.c -- Support for C++ templates.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
+#include "disambig.h"
 #include "lower_name.h"
 #include "statements.h"
 
@@ -4912,6 +4913,59 @@ declaration.
 }  /* function_template_declaration */
 
 
+static void prescan_template_declaration(a_token_cache *token_cache)
+/*
+This routine is called before scanning a template declaration to determine
+whether this is the definition of a member of a class template, and if so,
+which class template.  This is needed for cases like
+
+	template <class T> struct B {};
+	template <class T> struct A {
+          A<T> f();
+          B<T> g();
+	};
+	template <class T> A<T> A<T>::f(){}  // A<T> refers to prototype
+	template <class T> B<T> A<T>::f(){}  // B<T> refers to nonreal
+
+The problem is that until you have seen the declarator, you don't know
+the class associated with the template (if any), but you need to know
+whether template references earlier in the line refer to the prototype
+or a nonreal instantiation.  The difference becomes significant when
+the name being used is something like A<T>::X.  If A<T> is the
+prototype instantiation, then you know what X is, if it is a nonreal
+instantiation, then you don't know what X is.
+*/
+{
+  a_type_ptr			tp;
+  a_symbol_ptr			sym = NULL;
+  a_scope_stack_entry_ptr	ssep;
+
+  db_enter(4, "prescan_template_declaration");
+
+#if 0
+  /* This will need to be checked when member template classes are
+     implemented. */
+#endif /* 0 */  
+  ssep = &scope_stack[depth_scope_stack];
+  check_assertion(ssep->kind == (a_scope_kind)sck_template_declaration);
+  tp = prescan_and_find_declarator(token_cache);
+  if (tp != NULL) {
+    /* Skip out to the outermost nested class. */
+    while (tp != NULL && tp->source_corresp.class_of_which_a_member != NULL) {
+      tp = tp->source_corresp.class_of_which_a_member;
+    }  /* while */
+    sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+    check_assertion(sym != NULL);
+    sym = sym->variant.class_struct_union.extra_info->class_template;
+  }  /* if */
+  /* Save the symbol that points to the template whose member is being
+     instantiated.  This will be NULL if this is not a member
+     declaration. */
+  ssep->templ_member_class_sym = sym;
+  db_exit();
+}  /* prescan_template_declaration */
+
+
 a_symbol_ptr template_declaration(a_boolean  *defines_something,
                                   a_boolean  no_advance_past_final_token)
 /*
@@ -5041,80 +5095,89 @@ as the current token; otherwise, it is consumed.
       p_template_body_cache = &sym->variant.template_info->token_cache;
     }  /* if */
 #endif /* RECORD_TEMPLATES_IN_IL */
-  } else if (is_decl_start(/*expr_context=*/FALSE,
-                           /*real_declarator_allowed=*/TRUE) ||
-             is_declarator_start()) {
-    /* Not a class template declaration.  Check for a function template
-       declaration or a static data member template definition. */
-    a_type_ptr         type;
-    a_symbol_locator   locator;
-    a_decl_flag_set    do_flags;
-    a_decl_flag_set    dso_flags;
-    a_func_info_block  func_info;
-    a_storage_class    storage_class;
-    a_decl_modifier    decl_modifiers;
-
-    /* Scan the decl. specifiers and the declaration. */
-    clear_func_info(&func_info);
-    scan_template_declaration(/*is_initial_decl=*/TRUE, is_member_decl,
-			      invalid_decl_scope_err,
-                              &dso_flags, &do_flags, &locator, &type,
-                              &func_info, &storage_class, &decl_modifiers);
-    if (is_nonglobal_decl) {
-      /* If the current decl_scope_level is not the global scope then the
-         only valid template declaration is a template friend declaration.
-         If this is not a friend declaration, issue an error. */
-      if (is_member_decl && (dso_flags & DSO_FRIEND) != 0) {
-        is_template_friend = TRUE;
-      } else {
-	if (!invalid_decl_scope_err) {
-          /* Issue an invalid template scope error, if not already done. */
-          invalid_decl_scope_err = TRUE;
-	  pos_error(ec_bad_template_declaration_scope, &start_pos);
-	  set_to_named_error_locator(locator);
-	}  /* if */
-      }  /* if */
-    }  /* if */
-    if (!is_function_type(type) && 
-        (locator.specific_symbol != NULL ||
-         (is_error_locator(locator) && curr_token == tok_assign))) {
-      sym = template_static_data_member_declaration(&locator, do_flags, type,
-						    template_param_list,
-						    &tssp);
-#if RECORD_TEMPLATES_IN_IL
-      /* Save a pointer to the token cache for the initializer.  tssp may
-         be NULL in error cases. */
-      if (tssp != NULL) p_template_body_cache = &tssp->token_cache;
-#endif /* RECORD_TEMPLATES_IN_IL */
-    } else if (is_function_type(type)) {
-      sym = function_template_declaration(&locator, &func_info, storage_class,
-					  decl_modifiers, type,
-					  template_param_list,
-					  &decl_token_cache,
-					  &decl_token_cache_used,
-					  is_template_friend,
-					  class_declared_in,
-					  &tssp, defines_something);
-
-#if RECORD_TEMPLATES_IN_IL
-      if (*defines_something) {
-	/* Save a pointer to the token cache for function body.  tssp may
-           be NULL in error cases. */
-	if (tssp != NULL) p_template_body_cache = &tssp->token_cache;
-      } /* if */
-#endif /* RECORD_TEMPLATES_IN_IL */
-    } else {
-      /* Error -- not a class template, a function template, nor a static
-         data member template. */
-      if (!is_error_locator(locator)) {
-        pos_st_error(ec_bad_template_declaration, &locator.source_position,
-                     locator.symbol_header->identifier);
-      }  /* if */
-    }  /* if */
-    done_with_func_info(func_info);
   } else {
-    /* Template parameters are declared, but the declaration is missing. */
-    pos_error(ec_exp_declaration, &pos_curr_token);
+    /* Determine whether the thing being declared is a member of a
+       class template.  This is needed to know how references to the
+       parent class should be processed.  This must be done before 
+       is_decl_start is called, as is_decl_start will cause the initial
+       identifier (typically the return type) to be coalesced. */
+    prescan_template_declaration(&decl_token_cache);
+    if (is_decl_start(/*expr_context=*/FALSE,
+                      /*real_declarator_allowed=*/TRUE) ||
+                      is_declarator_start()) {
+      /* Not a class template declaration.  Check for a function template
+         declaration or a static data member template definition. */
+      a_type_ptr         type;
+      a_symbol_locator   locator;
+      a_decl_flag_set    do_flags;
+      a_decl_flag_set    dso_flags;
+      a_func_info_block  func_info;
+      a_storage_class    storage_class;
+      a_decl_modifier    decl_modifiers;
+
+      /* Scan the decl. specifiers and the declaration. */
+      clear_func_info(&func_info);
+      scan_template_declaration(/*is_initial_decl=*/TRUE, is_member_decl,
+                                invalid_decl_scope_err,
+                                &dso_flags, &do_flags, &locator, &type,
+                                &func_info, &storage_class, &decl_modifiers);
+      if (is_nonglobal_decl) {
+        /* If the current decl_scope_level is not the global scope then the
+           only valid template declaration is a template friend declaration.
+           If this is not a friend declaration, issue an error. */
+        if (is_member_decl && (dso_flags & DSO_FRIEND) != 0) {
+          is_template_friend = TRUE;
+        } else {
+          if (!invalid_decl_scope_err) {
+            /* Issue an invalid template scope error, if not already done. */
+            invalid_decl_scope_err = TRUE;
+            pos_error(ec_bad_template_declaration_scope, &start_pos);
+            set_to_named_error_locator(locator);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (!is_function_type(type) && 
+          (locator.specific_symbol != NULL ||
+           (is_error_locator(locator) && curr_token == tok_assign))) {
+        sym = template_static_data_member_declaration(&locator, do_flags, type,
+                                                      template_param_list,
+                                                      &tssp);
+#if RECORD_TEMPLATES_IN_IL
+        /* Save a pointer to the token cache for the initializer.  tssp may
+           be NULL in error cases. */
+        if (tssp != NULL) p_template_body_cache = &tssp->token_cache;
+#endif /* RECORD_TEMPLATES_IN_IL */
+      } else if (is_function_type(type)) {
+        sym = function_template_declaration(&locator, &func_info,
+                                            storage_class,
+  					    decl_modifiers, type,
+					    template_param_list,
+					    &decl_token_cache,
+					    &decl_token_cache_used,
+					    is_template_friend,
+					    class_declared_in,
+					    &tssp, defines_something);
+
+#if RECORD_TEMPLATES_IN_IL
+        if (*defines_something) {
+          /* Save a pointer to the token cache for function body.  tssp may
+             be NULL in error cases. */
+          if (tssp != NULL) p_template_body_cache = &tssp->token_cache;
+        } /* if */
+#endif /* RECORD_TEMPLATES_IN_IL */
+      } else {
+        /* Error -- not a class template, a function template, nor a static
+           data member template. */
+        if (!is_error_locator(locator)) {
+          pos_st_error(ec_bad_template_declaration, &locator.source_position,
+                       locator.symbol_header->identifier);
+        }  /* if */
+      }  /* if */
+      done_with_func_info(func_info);
+    } else {
+      /* Template parameters are declared, but the declaration is missing. */
+      pos_error(ec_exp_declaration, &pos_curr_token);
+    }  /* if */
   }  /* if */
   /* Check and/or advance past the terminating token of the declaration. */
   if (*defines_something && !is_class_template) {

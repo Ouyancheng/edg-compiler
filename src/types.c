@@ -4630,6 +4630,26 @@ its parameters?).
         tp = type_ptr->variant.typeref.type;
         status = traverse_type_tree(tp, func, flags);
 	break;
+      case tk_template_param:
+        /* "Member" template params (e.g., T::X) should have a pointer to a
+           parent class. */
+        tp = type_ptr->source_corresp.class_of_which_a_member;
+        check_assertion((tp != NULL) ==
+                        (type_ptr->variant.template_param.kind ==
+                                     (a_template_param_type_kind)tptk_member));
+        if (tp != NULL) {
+          tp = symbol_supplement_for_class(tp)->template_param_for_proxy_class;
+          if (tp != NULL) {
+            status = traverse_type_tree(tp, func, flags);
+          }  /* if */
+        }  /* if */
+        /* For cases where the template parameter is a member of another
+           class, check the enclosing classes too.  This is used for
+           cases like "template <class T> void f(A<T>::N)". */
+        if (type_ptr->source_corresp.class_of_which_a_member != NULL) {
+          goto check_enclosing_classes;
+        }  /* if */
+        break;
       case tk_class:
       case tk_struct:
       case tk_union:
@@ -4666,20 +4686,6 @@ check_enclosing_classes:
         if (!status) {
           tp = type_ptr->variant.ptr_to_member.type;
           status = traverse_type_tree(tp, func, flags);
-        }  /* if */
-        break;
-      case tk_template_param:
-        /* "Member" template params (e.g., T::X) should have a pointer to a
-           parent class. */
-        tp = type_ptr->source_corresp.class_of_which_a_member;
-        check_assertion((tp != NULL) ==
-                        (type_ptr->variant.template_param.kind ==
-                                     (a_template_param_type_kind)tptk_member));
-        if (tp != NULL) {
-          tp = symbol_supplement_for_class(tp)->template_param_for_proxy_class;
-          if (tp != NULL) {
-            status = traverse_type_tree(tp, func, flags);
-          }  /* if */
         }  /* if */
         break;
 #if CHECKING

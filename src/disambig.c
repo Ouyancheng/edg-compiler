@@ -285,7 +285,8 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
 static void prescan_declaration(a_token_cache       *token_cache_ptr,
                                 a_disambig_flag_set flags,
 			        a_boolean           is_top_level,
-                                a_boolean           *may_be_decl);
+                                a_boolean           *may_be_decl,
+                                a_type_ptr          *decl_class_type);
 
 
 static void prescan_function_declarator
@@ -309,7 +310,7 @@ part of a function declarator is found, may_be_decl is set to FALSE.
 			  (DFS_ABSTRACT_DECLARATOR_ALLOWED |
                            DFS_REAL_DECLARATOR_ALLOWED),
                           /*is_top_level=*/FALSE,
-                          may_be_decl);
+                          may_be_decl, (a_type_ptr*)NULL);
       if (!*may_be_decl) goto done;
     }  /* if */
     if (curr_token == tok_comma) {
@@ -364,7 +365,8 @@ static void prescan_declarator(a_token_cache       *token_cache_ptr,
 			       a_disambig_flag_set flags,
 			       a_boolean           paren_initializer_allowed,
 			       a_boolean           is_top_level,
-                               a_boolean           *may_be_decl)
+                               a_boolean           *may_be_decl,
+                               a_type_ptr          *decl_class_type)
 /*
 Scan and cache the tokens that comprise a declarator.  This routine
 is used by the disambiguation routines.  If a construct that cannot be
@@ -469,7 +471,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
     /* Get the nested declarator. */
     prescan_declarator(token_cache_ptr, flags,
                        /*paren_initializer_allowed=*/FALSE,
-                       /*is_top_level=*/FALSE, may_be_decl);
+                       /*is_top_level=*/FALSE, may_be_decl, decl_class_type);
     if (!*may_be_decl) goto done;
     /* The nested declarator must be followed by a ")". */
     if (curr_token != tok_rparen) {
@@ -498,6 +500,11 @@ part of a declarator is found, may_be_decl is set to FALSE.
     } else {
       cache_curr_token(token_cache_ptr);
       (void)get_token_and_coalesce_if_identifier();
+      if (decl_class_type != NULL) {
+        /* Return a pointer to the class of which a member (if any) of the
+           declarator. */
+        *decl_class_type = locator_for_curr_id.qualifier_class_type;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* The declarator can end at this point, or an array or function
@@ -568,8 +575,8 @@ done:;
 static void prescan_declaration(a_token_cache       *token_cache_ptr,
                                 a_disambig_flag_set flags,
 			        a_boolean           is_top_level,
-                                a_boolean           *may_be_decl)
-
+                                a_boolean           *may_be_decl,
+                                a_type_ptr          *decl_class_type)
 /*
 Scan a sequence of tokens and cache them for rescanning later.  The purpose
 of this prescan is to help determine whether this is a declaration or an
@@ -597,7 +604,8 @@ evidence to the contrary.
                                   !is_condition(flags);
       prescan_declarator(token_cache_ptr, flags,
                          paren_initializer_allowed,
-			 is_top_level && is_first_declarator, may_be_decl);
+			 is_top_level && is_first_declarator, may_be_decl,
+                         decl_class_type);
       if (!*may_be_decl) goto done;
       /* If we are not processing real declarators, or if we are processing
          a condition, don't look for additional declarators. */
@@ -711,7 +719,7 @@ types separated by commas (when single_type_required is FALSE).
        declaration.  Each token that is encountered is cached away, so that
        that they can be restored for the actual scan. */
     prescan_declaration(&token_cache, flags, /*is_top_level=*/TRUE,
-                        &may_be_decl);
+                        &may_be_decl, (a_type_ptr*)NULL);
     if (!may_be_decl) goto done;
     /* We should now be at either a comma separating two declarators or at
        the semicolon at the end of the declaration.  If not, assume that this
@@ -763,6 +771,37 @@ done:
   db_exit();
   return may_be_decl;
 }  /* f_is_decl_not_expr */
+
+
+a_type_ptr prescan_and_find_declarator(a_token_cache *decl_token_cache_ptr)
+/*
+Scan the declaration that follows "template <...>" and find the
+declarator.  Record the class of which a member of the declarator.
+The caller provides a token cache containing the tokens to be scanned.
+Consequently, the cache built by the prescan routines is not needed
+and is discarded.  After the scan is done, any tokens remaining in the
+cache passed by the caller are flushed.
+*/
+{
+  a_token_cache       token_cache;
+  a_boolean           may_be_decl = TRUE;
+  a_type_ptr	      decl_class_type = NULL;
+
+  /* Initialize the token cache. */
+  clear_token_cache(&token_cache, /*reusable=*/FALSE);
+  rescan_reusable_cache(decl_token_cache_ptr);
+  prescan_declaration(&token_cache, DFS_REAL_DECLARATOR_ALLOWED,
+                     /*is_top_level=*/TRUE,
+                      &may_be_decl, &decl_class_type);
+  /* Flush and remaining tokens from the reusable cache. */
+  while (curr_token != tok_end_of_source) (void)get_token();
+  /* Skip past the tok_end_of_source. */
+  (void)get_token();
+  /* Discard the cached token.  They are not needed because we were already
+     scanning from a cache. */
+  discard_token_cache(&token_cache);
+  return decl_class_type;
+}
 
 
 /******************************************************************************

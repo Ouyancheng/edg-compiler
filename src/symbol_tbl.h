@@ -639,8 +639,6 @@ typedef struct a_class_symbol_supplement {
   unsigned int  any_ref_member:1;
 			/* TRUE if this class has any fields of reference
 			   type. */
-  unsigned int  any_nested_classes:1;
-			/* TRUE if this class has any nested classes. */
   unsigned int  is_class_aggregate:1;
 			/* TRUE if the class has no constructors, no base
 			   classes, no private or protected members, and
@@ -1969,6 +1967,13 @@ typedef struct a_scope_stack_entry {
 			   available for reuse.  Only used for file and
 			   function scopes; the entries on the list belong to
 			   the memory region associated with the scope. */
+  a_symbol_ptr	templ_member_class_sym;
+			/* For sck_template_declaration scopes, this points
+			   to the symbol of the class of which the entity
+			   currently being defined is a member (e.g., if
+			   A<T>::f is being defined, this points to the
+			   class type of A<T>.  Contains NULL if the
+			   template is not a member. */
 } a_scope_stack_entry;
 
 

@@ -63,6 +63,9 @@ routine to do lookahead, etc.
 
 extern a_boolean f_is_decl_not_expr(a_disambig_flag_set flags);
 
+extern
+a_type_ptr prescan_and_find_declarator(a_token_cache *decl_token_cache_ptr);
+
 #endif /* DISAMBIG_H */
 
 /******************************************************************************
