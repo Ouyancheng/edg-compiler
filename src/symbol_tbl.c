@@ -26,9 +26,11 @@ symbol_tbl.c - Symbol table management routines.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #ifdef GUARD_MACRO_FOR_VA_LIST
 /* macro.h is needed for enter_predef_macro. */
 #include "macro.h"
