@@ -6792,15 +6792,16 @@ specification allow a variable-sized array as the top type.
          looking for a non-array operator new.  Do a tentative match
          on the array new, and if that fails fall back to the non-array
          new.*/
-      if (operator_new_symbol != NULL && !unknown_dependent_new &&
-          !overloaded_function_match_possible(
+      if (!unknown_dependent_new &&
+          (operator_new_symbol == NULL ||
+           !overloaded_function_match_possible(
                                       operator_new_symbol,
                                       /*is_template_id=*/FALSE,
                                       (a_template_arg_ptr)NULL,
                                       arg_operand_list,
                                       /*have_selector=*/FALSE,
                                       (an_operand *)NULL,
-                                      /*selector_is_object_pointer=*/TRUE)) {
+                                      /*selector_is_object_pointer=*/TRUE))) {
         opname_kind = (an_opname_kind)onk_new;
         operator_new_symbol = opname_function_symbol(opname_kind);
       }  /* if */
