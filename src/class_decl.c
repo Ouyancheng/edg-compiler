@@ -1303,6 +1303,11 @@ Dump a base class entry, for debug purposes.
     }  /* if */
     comma_needed = TRUE;
   }  /* if */
+  if (bcp->shares_virtual_function_info) {
+    if (comma_needed) fputs(", ", f_debug);
+    fputs("shares vtbl", f_debug);
+    comma_needed = TRUE;
+  }  /* if */
   if (bcp->ambiguous) {
     if (comma_needed) fputs(", ", f_debug);
     fputs("ambig", f_debug);
@@ -1921,6 +1926,8 @@ duplicate paths.  The copy will be a base class of new_class.
   new_bcp->derived_class = new_class;
   new_bcp->decl_position = directly_derived_bcp->decl_position;
   new_bcp->direct = FALSE;
+  new_bcp->shares_virtual_function_info =
+                            base_class_to_copy->shares_virtual_function_info;
   if (base_class_to_copy->is_virtual) new_bcp->is_virtual = TRUE;
   path = update_base_class_derivation(new_bcp, path, access);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
@@ -2447,10 +2454,12 @@ or struct definition.  The syntax is
             /* Refer to the same virtual_function_info_base_class as the
                direct base class does.  (In the above example, set the field
                to point to A.) */
-            ctsp->virtual_function_info_base_class =
-                            corresponding_base_class(bcp, type_ptr,
-                                                     (a_base_class_ptr)NULL);
+            bcp = corresponding_base_class(bcp, type_ptr,
+                                           (a_base_class_ptr)NULL);
+            check_assertion(bcp->shares_virtual_function_info);
+            ctsp->virtual_function_info_base_class = bcp;
           }  /* if */
+          new_direct_bcp->shares_virtual_function_info = TRUE;
           /* Advance the virtual function count so that any new virtual
              functions will be tacked on at the end of the shared virtual
              function info block.  (Redeclarations will use the slot

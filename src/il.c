@@ -3457,6 +3457,7 @@ to it.
   bcp->is_virtual                      = FALSE;
   bcp->direct                          = FALSE;
   bcp->ambiguous                       = FALSE;
+  bcp->shares_virtual_function_info    = FALSE;
   bcp->offset                          = 0;
   bcp->pointer_offset                  = 0;
   bcp->pointer_base_class              = NULL;

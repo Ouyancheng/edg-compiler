@@ -1639,6 +1639,16 @@ typedef struct a_base_class {
 			/* TRUE if a direct cast from derived_class to this
 			   base class would be ambiguous because it appears
 			   more than once in the derivation. */
+  unsigned int  shares_virtual_function_info:1;
+			/* TRUE if a class derived from this base class, either
+			   derived_class itself or an intermediate base class
+			   (one on the derivation path of this base class),
+			   shares its virtual function info with this base
+			   class.  This flag denotes sharing from the point
+			   of view of the base class in reference to a class
+			   derived from it; virtual_function_info_base_class,
+			   a pointer in a_class_type_supplement, denotes the
+			   sharing from the opposite point of view. */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
   unsigned int  complete_subobject:1;
 			/* TRUE if direct is TRUE and the subobject is
