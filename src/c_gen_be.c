@@ -5175,7 +5175,7 @@ if this routine has a body (dump nothing if it has no body).
     is_definition = (has_defn && dump_defn);
 #if SGIC
     /* The SGI compiler uses a pragma to indicate "inline". */
-    if (has_defn && !is_definition) {
+    if (rout->is_inline && has_defn && !is_definition) {
       unsigned long saved_indent = indent;
       end_output_line_if_begun();
       indent = 0;
