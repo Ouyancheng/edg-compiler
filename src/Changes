@@ -1,5 +1,20 @@
 Version 2.37
 
+8/12/97   Microsoft compatibility: accessibility of base classes
+
+In Microsoft mode, a base class is now considered accessible if one
+has member access to the base class.  (This is in addition to the other
+reasons for which it might be accessible.)
+
+  class A {
+    friend void f();
+  };
+  class B : private A {};
+  void f() {
+    B* p = 0;
+    A* q = p;  // Accepted in Microsoft mode
+  }
+
 8/11/97   Invalid IL for return in C function with cv-qualified class type
 
 A change in 2.36 introduced a bug in C mode: a return of a class value

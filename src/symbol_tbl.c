@@ -5890,6 +5890,15 @@ this one.
             /* We have member access to the viewpoint class, so the base class
                is accessible regardless of the type of derivation. */
             base_class_accessible = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (microsoft_mode &&
+                     have_member_access_privilege(bcp->type)) {
+            /* Microsoft considers a base class accessible if we have member
+               access to it.  This is presumably because of the WP wording
+               that says "A base class is said to be accessible if an invented
+               public member of the base class is accessible." */
+            base_class_accessible = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             /* See if special protected member access privilege applies.  This
                is only meaningful when the base class derivation is
@@ -6624,7 +6633,8 @@ the current point in the program, relative to viewpoint_class.
           /* Non-simple virtual base class, not last step. */
           is_accessible_virtual_base_class(base_class, curr_type) :
           /* Simple direct base class, or last step on derivation. */
-          is_accessible_direct_base_class_derivation(step_bcdp, curr_type)) {
+          is_accessible_direct_base_class_derivation(base_class, step_bcdp,
+                                                     curr_type)) {
         /* Base class is accessible, so keep going on the path for this
            derivation. */
       } else {

@@ -2635,17 +2635,31 @@ derivations of direct or simple virtual base classes.
 The function is_accessible_base_class should be used when it is
 not known that the base class is an immediate base class.
 */
-#define is_accessible_direct_base_class_derivation(bcdp, viewpoint_class) \
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/* The Microsoft version of this macro is different in that it considers
+   a base class accessible if we have member access to the base class.
+   This is probably based on the wording in 11.2 that says "A base class
+   is said to be accessible if an invented public member of the class
+   is accessible." */
+#define is_accessible_direct_base_class_derivation(bcp, bcdp, viewpoint_class)\
+  ((bcdp)->access == (an_access_specifier)as_public ||                \
+   have_member_access_privilege(viewpoint_class) ||                   \
+   ((bcdp)->access == (an_access_specifier)as_protected &&            \
+    have_protected_member_access_privilege(viewpoint_class)) ||       \
+   (microsoft_mode && have_member_access_privilege(bcp->type)))
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_accessible_direct_base_class_derivation(bcp, bcdp, viewpoint_class)\
   ((bcdp)->access == (an_access_specifier)as_public ||                \
    have_member_access_privilege(viewpoint_class) ||                   \
    ((bcdp)->access == (an_access_specifier)as_protected &&            \
     have_protected_member_access_privilege(viewpoint_class)))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_virtual_but_not_simple_direct_base_class(bcp)              \
   ((bcp)->is_virtual && (!(bcp)->direct || (bcp)->derivation->next != NULL))
 #define is_accessible_imm_base_class(bcp, viewpoint_class)            \
   (is_virtual_but_not_simple_direct_base_class(bcp) ?                 \
     is_accessible_virtual_base_class(bcp, viewpoint_class) :          \
-    is_accessible_direct_base_class_derivation(bcp->derivation,       \
+    is_accessible_direct_base_class_derivation(bcp, bcp->derivation,  \
                                                viewpoint_class))
 
 /*
