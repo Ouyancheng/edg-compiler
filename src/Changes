@@ -1,5 +1,20 @@
 Version 3.4
 
+3/1/04   Spurious remark concerning destructor in dependent base class
+
+When "remark" diagnostics are enabled, the front end issued a remark
+about a nonvirtual destructor in a dependent base class even when the
+destructor was in fact virtual.  For example:
+
+  template<typename T> struct B { virtual ~B(); };
+  template<typename T> struct D: public B<T> {  // Previous triggered a
+    virtual ~D();                               // spurious remark claiming
+  };                                            // a nonvirtual destructor
+                                                // for B<T>.
+
+This is now fixed (the remark is inhibited in all cases for dependent
+bases of a class template).
+
 3/1/04   GNU C mode allowed lvalue cast of struct/union to same-sized integer
 
 GNU C mode mistakenly allowed an lvalue cast of an object of

@@ -10360,7 +10360,10 @@ one of its direct base classes.
     } else {
       /* The derived class is not a mere wrapper. */
       for (; bcp != NULL; bcp = bcp->next) {
-        if (bcp->direct) {            
+        if (bcp->direct &&
+            /* Do not issue a remark for a dependent base. */
+            (!bcp->ignore_during_dependent_lookup ||
+             !is_template_dependent_type(bcp->type))) {            
           dtor_sym = symbol_supplement_for_class(bcp->type)->destructor;
           if (dtor_sym == NULL ||
               !dtor_sym->variant.routine.ptr->is_virtual) {
