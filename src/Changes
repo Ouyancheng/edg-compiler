@@ -1,5 +1,13 @@
 Version 2.45
 
+11/22/00 Duplicate const/volatile qualifiers in C99 mode
+
+In C99 const and volatile type qualifiers can be repeated (they are
+idempotent).  The front end emits a warning if they are explicitly
+duplicated.
+
+  const int const cic = 32; /* Error in C89; warning in C99. */
+
 11/21/00 Richer template representation (IL CHANGE)
 
 A number of additions were made to the representation of template entities

@@ -4601,14 +4601,17 @@ Returns TRUE if there is an error in the specifiers.
       case tok_const:
         /* const type qualifier (3.5.3). */
         if (*qualifiers & TQ_CONST) {
-          /* const may not appear more than once. */
-          es = (C_dialect == C_dialect_cplusplus) ?
+          /* const may not appear more than once (except in Microsoft and
+             C99 modes). */
+          if (c99_mode || microsoft_mode) {
+            /* In Microsoft and C99 mode, duplicate qualifiers result in a
+               warning. */
+            es = es_warning;
+          } else {
+            es = (C_dialect == C_dialect_cplusplus) ?
                  (strict_ansi_mode ? strict_ansi_error_severity : es_warning) :
                  es_error;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          /* In Microsoft mode, duplicate qualifiers result in a warning. */
-          if (microsoft_mode) es = es_warning;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          }  /* if */
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
@@ -4620,14 +4623,17 @@ Returns TRUE if there is an error in the specifiers.
       case tok_volatile:
         /* volatile type qualifier (3.5.3). */
         if (*qualifiers & TQ_VOLATILE) {
-          /* volatile may not appear more than once. */
-          es = (C_dialect == C_dialect_cplusplus) ?
+          /* volatile may not appear more than once (except in Microsoft and
+             C99 modes). */
+          if (c99_mode || microsoft_mode) {
+            /* In Microsoft and C99 mode, duplicate qualifiers result in a
+               warning. */
+            es = es_warning;
+          } else {
+            es = (C_dialect == C_dialect_cplusplus) ?
                  (strict_ansi_mode ? strict_ansi_error_severity : es_warning) :
                  es_error;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          /* In Microsoft mode, duplicate qualifiers result in a warning. */
-          if (microsoft_mode) es = es_warning;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          }  /* if */
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
