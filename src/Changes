@@ -11,19 +11,16 @@ programs such as this one.  A new configuration parameter called
 MAX_UNUSED_ALL_MODE_INSTANTIATIONS has been added to lang_feat.h to
 control this feature.
 
-template <int i> class A {
-public:
-  void f() {
-    A<i+1> a;
+  template <int i> class A {
+  public:
+    void f() {
+      A<i+1> a;
+    };
   };
-};
-
-void g()
-{
-  A<1> a;
-}
-
-
+  void g()
+  {
+    A<1> a;
+  }
 
 2/16/94  Separate file for system specific predefined macros and assertions
 
@@ -42,24 +39,6 @@ create predefined macros whose values can later be redefined.
 
 A bug has been fixed that allowed the -D command line option to
 redefine the value macros.
-
-2/16/94  Return type of function must be complete when function address taken
-
-It's always been the case that the return type of a function must be
-complete when it is called or defined.  We have now added a check when
-the address of the function is taken:
-
-  struct A;
-  extern struct A f();
-  struct B { int i; };
-  typedef struct B (*PF)();
-  void m () {
-    PF p = (PF)f;  // Error here now
-    p();
-  }
-
-We think this falls under the general requirement of the C standard
-that types must be complete where they're "used."
 
 2/15/94  Eliminated warnings from Novell/USL C compiler
 
