@@ -26,9 +26,6 @@ decls.c -- Scanning of declarations.
 
 /* Additional header files. */
 #include "statements.h"
-#if MAINTAIN_NEEDED_FLAGS
-#include "il_walk.h"
-#endif /* MAINTAIN_NEEDED_FLAGS */
 #if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -1110,9 +1107,11 @@ current scope.
       case sc_extern:
         /* Error, then default to automatic. */
         error(ec_anon_union_storage_class);
+        /*FALLTHROUGH*/
       case sc_unspecified:
         /* Default to automatic. */
         storage_class = (a_storage_class)sc_auto;
+        /*FALLTHROUGH*/
       case sc_static:
       case sc_auto:
       case sc_register:
@@ -1148,8 +1147,10 @@ current scope.
   /* Also put out a source sequence entry for the variable (even though the
      variable declaration doesn't actually appear). */
   vp->declared_type = anon_union_type;
-  update_source_sequence_list((char *)vp, (an_il_entry_kind)iek_variable,
-                              (a_source_sequence_entry_ptr)NULL);
+  if (!source_sequence_entries_disallowed) {
+    f_update_source_sequence_list((char *)vp, (an_il_entry_kind)iek_variable,
+                                  (a_source_sequence_entry_ptr)NULL);
+  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Promote symbols for anonymous unions members to the enclosing scope.
      Error checking is also done. */
@@ -1974,8 +1975,10 @@ cases.  Return TRUE if the two types are compatible by these relaxed rules.
     if (is_array_type(tp1)) {
       /* Array object types are "compatible" if they have the same element
          type. */
-      compat = identical_types(array_element_type(tp1),
-                               array_element_type(tp2));
+      tp1 = array_element_type(tp1);
+      check_assertion(is_array_type(tp2));
+      tp2 = array_element_type(tp2);
+      compat = identical_types(tp1, tp2);
     } else {
       /* Non-array object types are "compatible" if they are
          interchangeable. */
@@ -4385,14 +4388,14 @@ skip_overloading:;
       /* asm functions have internal linkage but do not conflict
          with previous declarations that are either extern or static. */
         routine_ptr->storage_class = storage_class = (a_storage_class)sc_asm;
-    } else {
+    } else
 #endif /* ASM_FUNCTION_ALLOWED */
+    /* Do not add code here. */
+    {
       check_for_linkage_conflict(&routine_ptr->storage_class, &linkage,
                                  &storage_class, &locator->source_position,
                                  suppress_diagnostic);
-#if ASM_FUNCTION_ALLOWED
     }  /* if */
-#endif /* ASM_FUNCTION_ALLOWED */
     if (is_function_def) {
       a_boolean      saved_referenced_flag;
       a_scope_depth  scope_depth = depth_innermost_namespace_scope;
@@ -6646,7 +6649,6 @@ clause is to be attached.  catch_pos is the source position of "catch".
           mark_variable_value_set(sym);
         }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        {
         /* Record additional source-range information in the variable entry
            for the handler parameter. */
         if (sym != NULL) {
@@ -6658,7 +6660,6 @@ clause is to be attached.  catch_pos is the source position of "catch".
           handler->parameter->source_corresp.decl_pos_info =
                           make_decl_pos_supplement(/*at_file_scope=*/FALSE,
                                                    &decl_pos_block);
-    }  /* if */
         }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         /* Set the is_local_to_function flag after returning from
@@ -6917,8 +6918,11 @@ make_asm_entry:
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* There's no name or symbol for the asm declaration, so call
          update_source_sequence_list directly. */
-      update_source_sequence_list((char *)ap, (an_il_entry_kind)iek_asm_entry,
-                                  (a_source_sequence_entry_ptr)NULL);
+      if (!source_sequence_entries_disallowed) {
+        update_source_sequence_list((char *)ap,
+                                    (an_il_entry_kind)iek_asm_entry,
+                                    (a_source_sequence_entry_ptr)NULL);
+      }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   }  /* if */
@@ -7079,9 +7083,11 @@ will be found during name lookup.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (nsp->source_corresp.name != NULL) {
     /* Not a compiler-generated using directive for an unnamed namespace. */
-    update_source_sequence_list((char *)udp,
-                                (an_il_entry_kind)iek_using_decl,
-                                (a_source_sequence_entry_ptr)NULL);
+    if (!source_sequence_entries_disallowed) {
+      update_source_sequence_list((char *)udp,
+                                  (an_il_entry_kind)iek_using_decl,
+                                  (a_source_sequence_entry_ptr)NULL);
+    }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* make_using_directive */
@@ -8590,7 +8596,7 @@ continue_with_declaration:
                                             !decl_specifiers_omitted);
             }  /* if */
           }  /* if */
-          remove_all_local_stop_tokens();
+          remove_all_local_stop_tokens();  /*lint !e774*/
           func_info.is_definition = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           func_info.declarator_ssep = declarator_ssep;
@@ -8860,12 +8866,10 @@ continue_with_declaration:
             free_vla_fixup_list(func_info.vla_fixup_list);
             func_info.vla_fixup_list = NULL;
           }  /* if */
-          if (!function_definition_allowed) {
-            /* A function declaration at function or block scope. */
-            if (is_variably_modified_type(local_type_ptr)) {
-              pos_error(ec_variably_modified_type_not_allowed,
-                        &locator.source_position);
-            }  /* if */
+          /* A function declaration at function or block scope. */
+          if (is_variably_modified_type(local_type_ptr)) {
+            pos_error(ec_variably_modified_type_not_allowed,
+                      &locator.source_position);
           }  /* if */
         }  /* if */          
         decl_routine(&locator, local_storage_class, local_type_ptr,

@@ -4276,7 +4276,7 @@ without it.
 */
 {
   a_boolean			 is_overloaded_function, match;
-  a_type_ptr                     orig_type, orig_this_type, new_this_type;
+  a_type_ptr                     orig_type, orig_this_type, new_this_type, tp;
   a_routine_type_supplement_ptr  orig_rts, new_rts;
   a_boolean                      orig_function_is_qualified;
   a_boolean                      new_function_is_qualified;
@@ -4293,9 +4293,9 @@ without it.
      on the return type and parameters. */
   new_rts = (skip_typerefs(new_type))->variant.routine.extra_info;
   new_this_type = new_rts->implicit_this_param_type;
-  new_function_is_qualified =
-               (new_this_type != NULL &&
-                is_qualified_type(type_pointed_to(new_this_type)));
+  new_function_is_qualified = (new_this_type != NULL &&
+                               (tp = type_pointed_to(new_this_type),
+                                is_top_level_qualified_type(tp)));
   /* Go through the symbol list and look for an instance in which the
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
@@ -4312,9 +4312,9 @@ without it.
     }  /* if */
     orig_rts = (skip_typerefs(orig_type))->variant.routine.extra_info;
     orig_this_type = orig_rts->implicit_this_param_type;
-    orig_function_is_qualified =
-               (orig_this_type != NULL &&
-                is_qualified_type(type_pointed_to(orig_this_type)));
+    orig_function_is_qualified = (orig_this_type != NULL &&
+                                  (tp = type_pointed_to(orig_this_type),
+                                   is_top_level_qualified_type(tp)));
     if (new_function_is_qualified != orig_function_is_qualified) {
       /* No match is possible.  Don't bother calling types_are_compatible. */
       continue;
@@ -5066,7 +5066,7 @@ function, set *ambiguous to TRUE.
 {
   a_symbol_ptr          sym;
   a_boolean             class_bitwise_copy, pass_by_value;
-  a_type_qualifier_set  qualifiers;
+  a_type_qualifier_set  qualifiers = TQ_NONE;
 
   if (is_incomplete_type(class_type) ||
       !is_immediate_class_type(class_type)) {
@@ -5081,9 +5081,8 @@ function, set *ambiguous to TRUE.
       a_type_ptr  tp = first_param->type;
       if (is_reference_type(tp)) {
         /* Reference argument. */
-        qualifiers = get_type_qualifiers(type_pointed_to(tp));
-      } else {
-        qualifiers = TQ_NONE;
+        tp = type_pointed_to(tp);
+        qualifiers = get_type_qualifiers(tp);
       }  /* if */
     }  /* if */
     switch (sfkind) {
@@ -5399,8 +5398,9 @@ Update the flags in the class symbol supplement accordingly.
   if (is_copy_constructor(rout_ptr, class_type, &qualifiers,
                           /*is_declarative_context=*/TRUE)) {
     cssp->has_copy_constructor = TRUE;
-    cssp->has_copy_constructor_for_const_object |= 
-                                               ((qualifiers & TQ_CONST) != 0);
+    if (qualifiers & TQ_CONST) {
+      cssp->has_copy_constructor_for_const_object = TRUE;
+    }  /* if */
     if (!compiler_generated) {
       /* If a user-defined copy constructor is declared for the class,
          construction by bitwise copying is not allowed.  (On the other
@@ -5569,8 +5569,8 @@ declared member functions.
          secondary-decl entry in the source sequence list.  Enter the
          current function type. */
       a_src_seq_secondary_decl_ptr  sssdp;
-      a_type_ptr                    tp = member_type;
 
+      tp = member_type;
       if (func_info->is_movable_member_or_friend_def) {
         /* Remove default arguments, if any, from the type associated with
            the secondary source-sequence entry; they will appear on the
@@ -8604,8 +8604,10 @@ or implicit) controlling the declaration.
             fund_sym->kind == (a_symbol_kind)sk_function_template) {
           /* When RECORD_TEMPLATES_IN_IL is FALSE there's no IL entry for the
              class-member-using-decl to point to, don't put out an entry. */
-        } else {
+        } else
 #endif /* !RECORD_TEMPLATES_IN_IL */
+        /* Do not add code here. */
+        {
           /* Create a class member using decl entry to represent this
              declaration in the IL. */
           udp = make_using_decl(fund_sym, &decl_pos);
@@ -8617,9 +8619,7 @@ or implicit) controlling the declaration.
           /* Update cross-reference and source-sequence info, if required. */
           record_using_decl(fund_sym, &decl_pos, udp, prev_udp);
           prev_udp = udp;
-#if !RECORD_TEMPLATES_IN_IL
         }  /* if */
-#endif /* !RECORD_TEMPLATES_IN_IL */
       }  /* if */
       if (!is_overloaded) break;
       if ((sym = sym->next) == NULL) break;

@@ -1473,7 +1473,6 @@ the template.
   }  /* if */
   if (tag_sym != NULL && C_dialect == C_dialect_cplusplus) {
     a_class_symbol_supplement_ptr	cssp;
-    a_type_ptr				class_type;
 
     cssp = tag_sym->variant.class_struct_union.extra_info;
     class_type = type_symbol_type(tag_sym);
@@ -1929,14 +1928,14 @@ the template.
   if (!is_class_definition && *declares_something &&
       tag_sym->kind != (a_symbol_kind)sk_type) {
     /* Update source range information in the secondary-decl entry. */
-    a_source_sequence_entry_ptr     ssep;
+    a_source_sequence_entry_ptr     class_ssep;
     a_src_seq_secondary_decl_ptr    sssdp;
     a_decl_position_supplement_ptr  dpsp;
 
-    ssep = last_matching_source_sequence_entry((char *)class_type);
-    if (ssep != NULL &&
-        ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
-      sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
+    class_ssep = last_matching_source_sequence_entry((char *)class_type);
+    if (class_ssep != NULL &&
+        ss_entry_kind(class_ssep) == iek_src_seq_secondary_decl) {
+      sssdp = (a_src_seq_secondary_decl_ptr)class_ssep->entity.ptr;
       check_assertion(sssdp->decl_pos_info == NULL);
       dpsp = alloc_decl_position_supplement(in_file_scope(sssdp));
       dpsp->specifiers_range = local_decl_pos_block.specifiers_range;
@@ -2017,7 +2016,6 @@ to indicate whether an enumeration is actually defined.
   a_boolean                done, min_max_set;
   a_source_position        pos_comma;
   a_memory_region_number   region_to_switch_back_to;
-  a_scope_stack_entry_ptr  ssep;
   a_type_ptr               class_of_which_a_member;
   an_access_specifier      access;
   a_scope_depth            effective_decl_level = decl_scope_level;
@@ -2030,8 +2028,8 @@ to indicate whether an enumeration is actually defined.
 
   *declares_something = FALSE;
   *defines_something = FALSE;
-  ssep = &scope_stack[decl_scope_level];
-  if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
+  if (scope_stack[decl_scope_level].kind ==
+                                     (a_scope_kind)sck_class_struct_union) {
     class_of_which_a_member = scope_stack[decl_scope_level].assoc_type;
     access = scope_stack[decl_scope_level].current_access;
   } else {
@@ -2164,9 +2162,11 @@ to indicate whether an enumeration is actually defined.
         /* An unnamed enum type.  mark_defined can't be called to put out a
            source sequence entry for it, but we need one anyway, so call
            the subroutine directly. */
-        update_source_sequence_list((char *)enum_type,
-                                    (an_il_entry_kind)iek_type,
-                                    (a_source_sequence_entry_ptr)NULL);
+        if (!source_sequence_entries_disallowed) {
+          f_update_source_sequence_list((char *)enum_type,
+                                        (an_il_entry_kind)iek_type,
+                                        (a_source_sequence_entry_ptr)NULL);
+        }  /* if */
       }  /* if */
 #endif  /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* set_source_corresp and mark_defined are not called, so clear the
@@ -3203,8 +3203,6 @@ from decl_specifiers only.
       if (is_function_type(*type_ptr) ||
           (is_array_type(*type_ptr) &&
            is_function_type(underlying_array_element_type(*type_ptr)))) {
-        an_error_severity  severity;
-
         /* Put out a remark instead of an error in Microsoft and cfront
            compatibility modes -- but don't add the qualifiers. */
         if (microsoft_mode || any_cfront_mode()) {

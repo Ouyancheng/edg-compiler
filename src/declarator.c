@@ -947,7 +947,7 @@ issue an error if a default argument expression is encountered.
 {
   a_param_type_ptr        ptp;
   a_storage_class         param_storage_class;
-  a_type_ptr              param_type_ptr, declared_type;
+  a_type_ptr              param_type_ptr, declared_type, tp;
   a_decl_flag_set         dso_flags;
   a_type_qualifier_set    qualifiers;
   a_decl_modifiers_block  decl_modifiers;
@@ -1438,8 +1438,8 @@ issue an error if a default argument expression is encountered.
              complicated.  (See ARM 12.1.) */
           if (extra_info->param_type_list->next == NULL) {
             /* This is the first item on the list. */
-            if (identical_types(member_function_parent_type,
-                                skip_typerefs(param_type_ptr))) {
+            tp = skip_typerefs(param_type_ptr);
+            if (identical_types(member_function_parent_type, tp)) {
               /* Type of the first parameter is identical to the type of the
                  parent class. */
               if (done) {
@@ -1460,13 +1460,14 @@ issue an error if a default argument expression is encountered.
             } else if (!done) {
               /* We're looking at the first parameter.  See if this may be a
                  copy constructor.  This will help find cases 3 and 4. */
-              if (is_reference_type(param_type_ptr) &&
-                  identical_types(member_function_parent_type,
-                                  f_skip_typerefs(type_pointed_to(
-                                                          param_type_ptr)))) {
-                /* Depending on whether the next parameter has a default
-                   argument, this may be a copy constructor. */
-                may_be_copy_constructor = TRUE;
+              if (is_reference_type(param_type_ptr)) {
+                tp = type_pointed_to(param_type_ptr);
+                tp = skip_typerefs(tp);
+                if (identical_types(member_function_parent_type, tp)) {
+                  /* Depending on whether the next parameter has a default
+                     argument, this may be a copy constructor. */
+                  may_be_copy_constructor = TRUE;
+                }  /* if */
               }  /* if */
             }  /* if */
           } else if (may_be_copy_constructor) {
@@ -1491,8 +1492,8 @@ issue an error if a default argument expression is encountered.
               }  /* if */
             }  /* if */
             if (may_be_copy_constructor) {
-              if (identical_types(member_function_parent_type,
-                                  skip_typerefs(ptp->type))) {
+              tp = skip_typerefs(ptp->type);
+              if (identical_types(member_function_parent_type, tp)) {
                 /* Type of this parameter is identical to the type of the
                    parent class (see cases 3 and 4 above).  Since this is a
                    copy constructor, an error is in order. */
@@ -1614,10 +1615,6 @@ issue an error if a default argument expression is encountered.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
     a_type_ptr            this_param_type = NULL;
-    a_type_qualifier_set  qualifiers;
-#if RESTRICT_ALLOWED
-    a_boolean             restrict_qualified = FALSE;
-#endif /* RESTRICT_ALLOWED */
 
     /* Create a pointer to the implicit "this" parameter.  This can be done
        for nonstatic function declarations within a class definition or
@@ -1640,10 +1637,8 @@ issue an error if a default argument expression is encountered.
       /* When a member function is declared with the restrict qualifier, the
          qualifier attaches to the this pointer, not to *this (as with const
          and volatile).  So save out the restrict qualifier. */
-      if (qualifiers & TQ_RESTRICT) {
-        restrict_qualified = TRUE;
-        qualifiers &= ~TQ_RESTRICT;
-      }  /* if */
+      restrict_qualified = ((qualifiers & TQ_RESTRICT) != 0);
+      qualifiers &= ~TQ_RESTRICT;
 #endif /* RESTRICT_ALLOWED */
       /* If this is not a member function or it is but it is a static member
          function declared within a class definition, a qualifier on the
@@ -1694,6 +1689,9 @@ issue an error if a default argument expression is encountered.
       /* This is a nonstatic member function declared within the definition
          of the class indicated. */
       this_param_type = member_function_parent_type;
+#if RESTRICT_ALLOWED
+      restrict_qualified = FALSE;
+#endif /* RESTRICT_ALLOWED */
     }  /* if */
     if (this_param_type != NULL) {
       /* The implicit "this" param type will be either "pointer to
@@ -2028,7 +2026,7 @@ information should be ignored or if an error should be issued.
 
         /* Skip past any typerefs.  See if any of them are typedefs. */
         while (tp->kind == (a_type_kind)tk_typeref) {
-          any_typedefs |= typeref_is_typedef(tp);
+          any_typedefs |= (int)(typeref_is_typedef(tp));
           tp = tp->variant.typeref.type;
         }  /* while */
         check_assertion(tp->kind == (a_type_kind)tk_routine);
