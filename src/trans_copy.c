@@ -548,18 +548,13 @@ set to TRUE if the body of a routine is eliminated.
       if (translation_unit_needed_only_for_exported_templates) {
         /* We're supposed to copy only generated templates.  Other routines
            are made external (if necessary) and their definitions are
-           dropped (the definition will be put out when the file
-           is compiled as a primary file). */
+           dropped. */
         if (!routine->is_template_function || routine->is_specialized) {
           /* The function is not a generated template. */
-          if (routine->assoc_scope != NULL_region_number) {
-            /* Eliminate the body of this function. */
-            a_scope_ptr routine_scope =
-                            il_header.region_scope_entry[routine->assoc_scope];
-            check_assertion(routine_scope != NULL);
-            clear_function_body(routine_scope);
-            *any_removed_function_bodies = TRUE;
-          }  /* if */
+          /* The definition should have been eliminated at pop_scope
+             time (the definition will be put out when the file is compiled
+             as a primary file). */
+          check_assertion(routine->assoc_scope == NULL_region_number);
           if (routine->storage_class == (a_storage_class)sc_static) {
             /* A static function referenced from a template is changed to an
                external declaration and copied over. */
