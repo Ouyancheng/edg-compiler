@@ -134,7 +134,7 @@ static a_boolean
 
 #ifdef NEED_LONG_DOUBLE_IS_FINITE
 
-a_boolean long_double_is_finite(long double value)
+static a_boolean long_double_is_finite(long double value)
 /*
 Test a long double to see whether it is finite (i.e., not a NaN or Infinity).
 Used only when standard approaches like the C99 macro isfinite are not
