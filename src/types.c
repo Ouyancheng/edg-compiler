@@ -1836,7 +1836,8 @@ promotions, default argument promotions, the usual arithmetic conversions,
 array --> pointer to element, and function --> pointer to function are
 handled in normal expression processing rather than here.  Reference
 conversions have been turned into pointer conversions by the time they
-get here.
+get here.  User-defined conversions (constructors and conversion functions)
+are not checked for here.
 
 See also 3.3.16.1 in the ANSI C standard (simple assignment).
 
