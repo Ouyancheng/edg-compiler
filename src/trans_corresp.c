@@ -3363,7 +3363,7 @@ are not checked.
               }  /* if */
             }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-            set_trans_unit_corresp(entry_kind, templ, corresp_templ);
+            set_trans_unit_corresp(iek_template, templ, corresp_templ);
             if (entry_kind == iek_template) {
               establish_instantiation_correspondences(templ, corresp_templ);
             }  /* if */
