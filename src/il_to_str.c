@@ -35,6 +35,10 @@ il_to_str.c -- Produce an external string-form representation for various
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 
+static void form_expression(an_expr_node_ptr                      expr,
+                            an_il_to_str_output_control_block_ptr octl);
+
+
 void clear_il_to_str_output_control_block(
                                     an_il_to_str_output_control_block_ptr octl)
 /*
@@ -1578,27 +1582,12 @@ the way described by octl.
       octl->output_str("*");
     } else {
       /* Variable-length array with an associated expression. */
-      if (octl->output_expression == NULL) {
-        /* No routine to do the expression output.  Do default
-           non-compilable output. */
-        check_assertion(!octl->gen_compilable_code);
-        octl->output_str("<variable>");
-      } else {
-        /* Output the expression using a special routine. */
-        a_vla_dimension_ptr vlap = find_vla_dimension(type);
-        octl->output_expression(vlap->dimension_expr);
-      }  /* if */
+      a_vla_dimension_ptr vlap = find_vla_dimension(type);
+      form_expression(vlap->dimension_expr, octl);
     }  /* if */      
   } else if (type->variant.array.is_variable_size_array) {
-    if (octl->output_expression == NULL) {
-      /* No routine to do the expression output.  Do default
-         non-compilable output. */
-      check_assertion(!octl->gen_compilable_code);
-      octl->output_str("<variable-sized>");
-    } else {
-      an_expr_node_ptr  count = type->variant.array.variant.element_count_expr;
-      octl->output_expression(count);
-    }  /* if */
+    an_expr_node_ptr count = type->variant.array.variant.element_count_expr;
+    form_expression(count, octl);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   } else if (type->variant.array.bound_constant != NULL &&
              !octl->c_generating_back_end) {
@@ -2356,14 +2345,18 @@ if given an empty union.
 
 
 void form_uuidof_reference(a_type_ptr                            uuid_type,
+                           an_expr_node_ptr                      uuid_expr,
                            an_il_to_str_output_control_block_ptr octl)
 /*
 Output a Microsoft __uuidof reference.  uuid_type is the type, or NULL
-to indicate the "0" case.  Do the output in the way described by octl.
-*/
+to indicate the "0" case.  uuid_expr is an expression for the entity,
+or NULL if the type should be used.  Do the output in the way described
+by octl. */
 {
   octl->output_str("__uuidof(");
-  if (uuid_type != NULL) {
+  if (uuid_expr != NULL) {
+    form_expression(uuid_expr, octl);
+  } else if (uuid_type != NULL) {
     form_type(uuid_type, octl);
   } else {
     /* Zero GUID. */
@@ -2504,7 +2497,8 @@ parentheses are not needed.
       check_assertion_str(constant->variant.address.kind ==
                                               (an_address_base_kind)abk_uuidof,
                           "form_lvalue_for_addressed_entity: bad kind");
-      form_uuidof_reference(constant->variant.address.variant.type, octl);
+      form_uuidof_reference(constant->variant.address.variant.type,
+                            (an_expr_node_ptr)NULL, octl);
     }  /* if */
   }  /* if */
   /* If the type is right and the offset is zero, we have what we need. */
@@ -3046,10 +3040,6 @@ K&R/pcc mode) determined by fkind.
 }  /* form_float_constant */
 
 
-static void form_expression(an_expr_node_ptr                      expr,
-                            an_il_to_str_output_control_block_ptr octl);
-
-
 static void form_dynamic_init(a_dynamic_init_ptr                    dip,
                               an_il_to_str_output_control_block_ptr octl)
 /*
@@ -3091,110 +3081,120 @@ static void form_expression(an_expr_node_ptr                      expr,
                             an_il_to_str_output_control_block_ptr octl)
 /*
 Output the indicated expression.  Do the output in the way described by
-octl.  This is used only for non-compilable output (e.g., for debug output),
-and it doesn't have to provide detailed information on every expression.
+octl.  When there is a user-provided output_expression routine, it is
+used.  Otherwise, this routine produces non-compilable output (e.g.,
+for debug output), and it doesn't have to provide detailed information
+on every expression.
 */
 {
-  switch (expr->kind) {
-    case enk_error:
-      octl->output_str("<error>");
-      break;
-    case enk_operation:
+  if (octl->output_expression != NULL) {
+    /* Output the expression using a special routine. */
+    octl->output_expression(expr);
+  } else {
+    /* No routine to do the expression output.  Do default
+       non-compilable output. */
+    check_assertion(!octl->gen_compilable_code);
+    switch (expr->kind) {
+      case enk_error:
+        octl->output_str("<error>");
+        break;
+      case enk_operation:
 #if DEBUG
-      { an_expr_node_ptr operand = expr->variant.operation.operands;
-        char *op_str = db_operator_names[expr->variant.operation.kind];
-        an_expr_operator_kind op = expr->variant.operation.kind;
-        octl->output_str("(");
-        if (op == (an_expr_operator_kind)eok_call ||
-            op == (an_expr_operator_kind)eok_virtual_call ||
-            op == (an_expr_operator_kind)eok_pm_call) {
-          /* Calls. */
-          form_expression(operand, octl);
+        { an_expr_node_ptr operand = expr->variant.operation.operands;
+          char *op_str = db_operator_names[expr->variant.operation.kind];
+          an_expr_operator_kind op = expr->variant.operation.kind;
           octl->output_str("(");
-          while ((operand = operand->next) != NULL) {
+          if (op == (an_expr_operator_kind)eok_call ||
+              op == (an_expr_operator_kind)eok_virtual_call ||
+              op == (an_expr_operator_kind)eok_pm_call) {
+            /* Calls. */
             form_expression(operand, octl);
-            if (operand->next != NULL) octl->output_str(", ");
-          }  /* while */
-          octl->output_str(")");
-        } else if (op == (an_expr_operator_kind)eok_subscript) {
-          /* Subscripting. */
-          form_expression(operand, octl);
-          octl->output_str("[");
-          form_expression(operand->next, octl);
-          octl->output_str("]");
-        } else if (op == (an_expr_operator_kind)eok_cast ||
-                   op == (an_expr_operator_kind)eok_bool_cast ||
-                   op == (an_expr_operator_kind)eok_base_class_cast ||
-                   op == (an_expr_operator_kind)eok_derived_class_cast ||
-                   op == (an_expr_operator_kind)eok_pm_base_class_cast ||
-                   op == (an_expr_operator_kind)eok_pm_derived_class_cast ||
-                   op == (an_expr_operator_kind)eok_lvalue_cast) {
-          /* Casts. */
-          octl->output_str("(");
-          form_type(expr->type, octl);
-          octl->output_str(")");
-          form_expression(operand, octl);
-        } else if (operand->next == NULL) {
-          /* Unary operators. */
-          octl->output_str(op_str);
-          octl->output_str(" ");
-          form_expression(operand, octl);
-        } else if (operand->next->next == NULL) {
-          /* Binary operators. */
-          form_expression(operand, octl);
-          octl->output_str(" ");
-          octl->output_str(op_str);
-          octl->output_str(" ");
-          form_expression(operand->next, octl);
-        } else {
-          /* Other operators, e.g., "?".  Use generic form. */
-          octl->output_str(op_str);
-          octl->output_str("(");
-          while (operand != NULL) {
+            octl->output_str("(");
+            while ((operand = operand->next) != NULL) {
+              form_expression(operand, octl);
+              if (operand->next != NULL) octl->output_str(", ");
+            }  /* while */
+            octl->output_str(")");
+          } else if (op == (an_expr_operator_kind)eok_subscript) {
+            /* Subscripting. */
             form_expression(operand, octl);
-            if (operand->next != NULL) octl->output_str(", ");
-            operand = operand->next;
-          }  /* while */
+            octl->output_str("[");
+            form_expression(operand->next, octl);
+            octl->output_str("]");
+          } else if (op == (an_expr_operator_kind)eok_cast ||
+                     op == (an_expr_operator_kind)eok_bool_cast ||
+                     op == (an_expr_operator_kind)eok_base_class_cast ||
+                     op == (an_expr_operator_kind)eok_derived_class_cast ||
+                     op == (an_expr_operator_kind)eok_pm_base_class_cast ||
+                     op == (an_expr_operator_kind)eok_pm_derived_class_cast ||
+                     op == (an_expr_operator_kind)eok_lvalue_cast) {
+            /* Casts. */
+            octl->output_str("(");
+            form_type(expr->type, octl);
+            octl->output_str(")");
+            form_expression(operand, octl);
+          } else if (operand->next == NULL) {
+            /* Unary operators. */
+            octl->output_str(op_str);
+            octl->output_str(" ");
+            form_expression(operand, octl);
+          } else if (operand->next->next == NULL) {
+            /* Binary operators. */
+            form_expression(operand, octl);
+            octl->output_str(" ");
+            octl->output_str(op_str);
+            octl->output_str(" ");
+            form_expression(operand->next, octl);
+          } else {
+            /* Other operators, e.g., "?".  Use generic form. */
+            octl->output_str(op_str);
+            octl->output_str("(");
+            while (operand != NULL) {
+              form_expression(operand, octl);
+              if (operand->next != NULL) octl->output_str(", ");
+              operand = operand->next;
+            }  /* while */
+            octl->output_str(")");
+          }  /* if */
           octl->output_str(")");
-        }  /* if */
-        octl->output_str(")");
-      }
+        }
 #else /* !DEBUG */
-      octl->output_str("<operation>");
+        octl->output_str("<operation>");
 #endif /* DEBUG */
-      break;
-    case enk_constant:
-      form_constant(expr->variant.constant, /*need_parens=*/TRUE, octl);
-      break;
-    case enk_variable:
-      form_name(&expr->variant.variable->source_corresp,
-                (an_il_entry_kind)iek_variable, octl);
-      break;
-    case enk_variable_address:
-      octl->output_str("(&");
-      form_name(&expr->variant.variable->source_corresp,
-                (an_il_entry_kind)iek_variable, octl);
-      octl->output_str(")");
-      break;
-    case enk_routine_address:
-      octl->output_str("(&");
-      form_name(&expr->variant.routine->source_corresp,
-                (an_il_entry_kind)iek_routine, octl);
-      octl->output_str(")");
-      break;
-    case enk_field:
-      form_name(&expr->variant.field->source_corresp,
-                (an_il_entry_kind)iek_field, octl);
-      break;
-    case enk_temp_init:
-      octl->output_str("temp-init(");
-      form_dynamic_init(expr->variant.init.dynamic_init, octl);
-      octl->output_str(")");
-      break;
-    default:
-      octl->output_str("<expression>");
-      break;
-  }  /* switch */
+        break;
+      case enk_constant:
+        form_constant(expr->variant.constant, /*need_parens=*/TRUE, octl);
+        break;
+      case enk_variable:
+        form_name(&expr->variant.variable->source_corresp,
+                  (an_il_entry_kind)iek_variable, octl);
+        break;
+      case enk_variable_address:
+        octl->output_str("(&");
+        form_name(&expr->variant.variable->source_corresp,
+                  (an_il_entry_kind)iek_variable, octl);
+        octl->output_str(")");
+        break;
+      case enk_routine_address:
+        octl->output_str("(&");
+        form_name(&expr->variant.routine->source_corresp,
+                  (an_il_entry_kind)iek_routine, octl);
+        octl->output_str(")");
+        break;
+      case enk_field:
+        form_name(&expr->variant.field->source_corresp,
+                  (an_il_entry_kind)iek_field, octl);
+        break;
+      case enk_temp_init:
+        octl->output_str("temp-init(");
+        form_dynamic_init(expr->variant.init.dynamic_init, octl);
+        octl->output_str(")");
+        break;
+      default:
+        octl->output_str("<expression>");
+        break;
+    }  /* switch */
+  }  /* if */
 }  /* form_expression */
 
 
@@ -3594,15 +3594,7 @@ precedence confusion.  Do the output in the way described by octl.
           }
           break;
         case tpck_expression:
-          if (octl->output_expression == NULL) {
-            /* No routine to do the expression output.  Do default
-               non-compilable output. */
-            check_assertion(!octl->gen_compilable_code);
-            octl->output_str("<template-expr>");
-          } else {
-            octl->output_expression(
-                               constant->variant.template_param.variant.expr);
-          }  /* if */
+          form_expression(constant->variant.template_param.variant.expr, octl);
           break;
         case tpck_cast:
           form_constant(constant->variant.template_param.variant.constant,
@@ -3617,21 +3609,30 @@ precedence confusion.  Do the output in the way described by octl.
           break;
         case tpck_sizeof:
           octl->output_str("sizeof(");
-          form_type(constant->variant.template_param.variant.type, octl);
-          octl->output_str(")");
-          break;
+          goto do_sizeof_cases;
         case tpck_alignof:
           octl->output_str("__ALIGNOF__(");
-          form_type(constant->variant.template_param.variant.type, octl);
-          octl->output_str(")");
+do_sizeof_cases:
+          if (constant->variant.template_param.variant.templ_sizeof.expr !=
+                                                                        NULL) {
+            form_expression(
+                    constant->variant.template_param.variant.templ_sizeof.expr,
+                    octl);
+          } else {
+            form_type(
+                    constant->variant.template_param.variant.templ_sizeof.type,
+                    octl);
+          }  /* if */
           break;
         case tpck_uuidof:
           /* The constant represents the address of the __uuidof, so add
              a "&". */
           if (need_parens) octl->output_str("(");
           octl->output_str("&");
-          form_uuidof_reference(constant->variant.template_param.variant.type,
-                                octl);
+          form_uuidof_reference(
+                    constant->variant.template_param.variant.templ_sizeof.type,
+                    constant->variant.template_param.variant.templ_sizeof.expr,
+                    octl);
           if (need_parens) octl->output_str(")");
           break;
         default:

@@ -4339,7 +4339,12 @@ Syntax:
         clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
         set_template_param_constant_kind(&constant,
                                   (a_template_param_constant_kind)tpck_sizeof);
-        constant.variant.template_param.variant.type = sizeof_type;
+        constant.variant.template_param.variant.templ_sizeof.type= sizeof_type;
+        if (!is_type) {
+          prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
+          constant.variant.template_param.variant.templ_sizeof.expr =
+                                              make_node_from_operand(&operand);
+        }  /* if */
         constant.type = integer_type(targ_size_t_int_kind);
       } else {
         /* Normal case; known constant sizeof. */
@@ -4392,8 +4397,8 @@ feature would be inappropriate, because the feature is probably used to
 implement <stdarg.h>, a standard feature.
 */
 {
-  a_source_position     start_position, type_position;
-  a_source_position     lparen_position;
+  a_source_position   start_position, type_position;
+  a_source_position   lparen_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position   end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -4521,7 +4526,12 @@ implement <stdarg.h>, a standard feature.
     clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
     set_template_param_constant_kind(&constant,
                                  (a_template_param_constant_kind)tpck_alignof);
-    constant.variant.template_param.variant.type = alignof_type;
+    constant.variant.template_param.variant.templ_sizeof.type = alignof_type;
+    if (!is_type) {
+      prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
+      constant.variant.template_param.variant.templ_sizeof.expr =
+                                              make_node_from_operand(&operand);
+    }  /* if */
     constant.type = integer_type(targ_size_t_int_kind);
 #if GNU_EXTENSIONS_ALLOWED
   } else if (alignment != 0) {
@@ -5544,6 +5554,7 @@ The value of the operation is an lvalue of type "const struct _GUID".
   an_operand        operand;
   a_type_ptr        uuidof_type;
   a_boolean         err = FALSE, template_case = FALSE;
+  a_boolean         is_type;
 
   db_enter(4, "scan_uuidof_operator");
   /* Save the position of the __uuidof keyword. */
@@ -5568,6 +5579,7 @@ The value of the operation is an lvalue of type "const struct _GUID".
   if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                        DFS_SINGLE_TYPE_REQUIRED)) {
     /* Scan a type name. */
+    is_type = TRUE;
     type_name(&uuidof_type);
     /* If the type is a reference, drop that. */
     if (is_reference_type(uuidof_type)) {
@@ -5583,6 +5595,7 @@ The value of the operation is an lvalue of type "const struct _GUID".
                     /*suppress_object_lifetime=*/FALSE);
     expr_stack_entry.evaluated = FALSE;
     expr_stack_entry.potentially_evaluated = FALSE;
+    is_type = FALSE;
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
     /* Rule out indefinite functions. */
     do_operand_transformations(&operand,
@@ -5636,7 +5649,12 @@ The value of the operation is an lvalue of type "const struct _GUID".
       clear_constant(&uuidof_con, (a_constant_repr_kind)ck_template_param);
       set_template_param_constant_kind(&uuidof_con,
                                   (a_template_param_constant_kind)tpck_uuidof);
-      uuidof_con.variant.template_param.variant.type = uuidof_type;
+      uuidof_con.variant.template_param.variant.templ_sizeof.type= uuidof_type;
+      if (!is_type) {
+        prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
+        uuidof_con.variant.template_param.variant.templ_sizeof.expr =
+                                              make_node_from_operand(&operand);
+      }  /* if */
       uuidof_con.type = make_pointer_type(const_guid_type);
     } else {
       /* Create an expression node that is the value of a ck_address/abk_uuidof

@@ -677,8 +677,10 @@ the file scope, do not process it (but record an orphan in the latter case).
               case tpck_sizeof:
               case tpck_alignof:
               case tpck_uuidof:
-                walk_ptr(ptr->variant.template_param.variant.type,
+                walk_ptr(ptr->variant.template_param.variant.templ_sizeof.type,
                          a_type_ptr, iek_type);
+                walk_ptr(ptr->variant.template_param.variant.templ_sizeof.expr,
+                         an_expr_node_ptr, iek_expr_node);
                 break;
               case tpck_template_ref:
                 walk_ptr(ptr->variant.template_param.variant.template_ref.con,

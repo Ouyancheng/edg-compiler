@@ -3917,7 +3917,8 @@ bucket of the shareable_constants_table to use for the constant.
       break;
   }  /* switch */
   if (cp->implicit_cast ||
-      cp->kind == (a_constant_repr_kind)ck_ptr_to_member) {
+      cp->kind == (a_constant_repr_kind)ck_ptr_to_member ||
+      cp->kind == (a_constant_repr_kind)ck_template_param) {
     /* Work the type into the hash.  This is important when you have lots of
        NULL pointer constants for a lot of different types. */
     hash_value += hash_type(cp->type);
@@ -4186,8 +4187,23 @@ nonidentical.
             case tpck_sizeof:
             case tpck_alignof:
             case tpck_uuidof:
-              eq = identical_types(cp1->variant.template_param.variant.type,
-                                   cp2->variant.template_param.variant.type);
+              eq = identical_types(
+                      cp1->variant.template_param.variant.templ_sizeof.type,
+                      cp2->variant.template_param.variant.templ_sizeof.type);
+              if (eq) {
+                an_expr_node_ptr expr1 =
+                         cp1->variant.template_param.variant.templ_sizeof.expr;
+                an_expr_node_ptr expr2 =
+                         cp2->variant.template_param.variant.templ_sizeof.expr;
+                if (expr1 == NULL && expr2 == NULL) {
+                  eq = TRUE;
+                } else if (expr1 == NULL || expr2 == NULL) {
+                  eq = FALSE;
+                } else {
+                  eq = compare_template_param_constant_expressions(expr1,
+                                                                   expr2);
+                } /* if */
+              }  /* if */
               break;
             case tpck_template_ref:
                eq = compare_constants(cp1->variant.template_param.variant.
@@ -4418,9 +4434,6 @@ region).
         case tpck_param:
         case tpck_member:
         case tpck_unknown_function:
-        case tpck_sizeof:
-        case tpck_alignof:
-        case tpck_uuidof:
         case tpck_template_ref:
           break;
         case tpck_expression:
@@ -4430,6 +4443,14 @@ region).
         case tpck_address:
           has_nfs_ref =
            has_non_file_scope_ref(cp->variant.template_param.variant.constant);
+          break;
+        case tpck_sizeof:
+        case tpck_alignof:
+        case tpck_uuidof:
+          { an_expr_node_ptr expr =
+                          cp->variant.template_param.variant.templ_sizeof.expr;
+            if (expr != NULL) has_nfs_ref = !in_file_scope(expr);
+          }
           break;
         default:
           unexpected_condition_str(
@@ -8427,19 +8448,16 @@ to TRUE.  *source_pos gives the source position for errors.
     /* One-operand operation. */
     /* Determine whether the integral promotions should be done for this
        operation. */
+    do_promotion = FALSE;
     switch (op) {
       case eok_inegate:
+      case eok_negate:
       case eok_unary_plus:
       case eok_complement:
         do_promotion = TRUE;
         break;
-      case eok_not:
-        do_promotion = FALSE;
-        break;
       default:
-        unexpected_condition_str2(
-                         "do_conversions_on_operands_of_copied_template_expr:",
-                         "bad unary operator");
+        break;
     }  /* switch */
     if (do_promotion) {
       result_type = type_after_integral_promotion(type_1);
@@ -8447,53 +8465,122 @@ to TRUE.  *source_pos gives the source position for errors.
                                       result_type, source_pos);
     }  /* if */
   } else if (!op_3_present) {
+    a_boolean assignment_case = FALSE;
     /* Two-operand operation. */
     do_usual_arith_conversions = do_promotion = FALSE;
     switch (op) {
-      case eok_imultiply:
-      case eok_idivide:
       case eok_iadd:
+      case eok_fadd:
+      case eok_add:
       case eok_isubtract:
-      case eok_igt:
-      case eok_ilt:
-      case eok_ige:
-      case eok_ile:
+      case eok_fsubtract:
+      case eok_subtract:
+      case eok_imultiply:
+      case eok_fmultiply:
+      case eok_multiply:
+      case eok_idivide:
+      case eok_fdivide:
+      case eok_divide:
       case eok_ieq:
+      case eok_feq:
+      case eok_eq:
       case eok_ine:
+      case eok_fne:
+      case eok_ne:
+      case eok_igt:
+      case eok_fgt:
+      case eok_gt:
+      case eok_ilt:
+      case eok_flt:
+      case eok_lt:
+      case eok_ige:
+      case eok_fge:
+      case eok_ge:
+      case eok_ile:
+      case eok_fle:
+      case eok_le:
       case eok_and:
       case eok_or:
       case eok_xor:
+      case eok_remainder:
         do_usual_arith_conversions = TRUE;
+        break;
+      case eok_iadd_assign:
+      case eok_fadd_assign:
+      case eok_add_assign:
+      case eok_isubtract_assign:
+      case eok_fsubtract_assign:
+      case eok_subtract_assign:
+      case eok_fmultiply_assign:
+      case eok_multiply_assign:
+      case eok_idivide_assign:
+      case eok_fdivide_assign:
+      case eok_divide_assign:
+      case eok_remainder_assign:
+      case eok_and_assign:
+      case eok_or_assign:
+        do_usual_arith_conversions = TRUE;
+        assignment_case = TRUE;
         break;
       case eok_shiftl:
       case eok_shiftr:
         do_promotion = TRUE;
         break;
-      case eok_land:
-      case eok_lor:
+      case eok_shiftl_assign:
+      case eok_shiftr_assign:
+        do_promotion = TRUE;
+        assignment_case = TRUE;
         break;
+#if GNU_EXTENSIONS_ALLOWED
+      case eok_binary_question:
+        do_usual_arith_conversions = TRUE;
+        /* This is not an assignment, but suppress the type change on the
+           first operand by setting the assignment flag. */
+        assignment_case = TRUE;
+        break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+      /* These are used only in C mode.  If they are added for GNU C++
+         mode, bear in mind that determine_arithmetic_conversions does
+         not do the whole job for imaginary types; see also
+         determine_imaginary_operation_type. */
+      case eok_xadd:
+      case eok_xsubtract:
+      case eok_xmultiply:
+      case eok_jmultiply:
+      case eok_xdivide:
+      case eok_jdivide:
+      case eok_xeq:
+      case eok_xne:
+      case eok_xadd_assign:
+      case eok_xsubtract_assign:
+      case eok_xmultiply_assign:
+      case eok_xdivide_assign:
+        unexpected_condition_str("complex operators not implemented");
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       default:
-        unexpected_condition_str2(
-                         "do_conversions_on_operands_of_copied_template_expr:",
-                         "bad binary operator");
+        break;
     }  /* switch */
     if (do_usual_arith_conversions) {
       result_type = usual_arithmetic_conversions(type_1, type_2);
-      cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
-                                      result_type, source_pos);
+      if (!assignment_case) {
+        cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
+                                        result_type, source_pos);
+      }  /* if */
       cast_copied_template_param_expr(operand_2, constant_2, alloc_con_2,
                                       result_type, source_pos);
     } else if (do_promotion) {
       result_type = type_after_integral_promotion(type_1);
-      cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
-                                      result_type, source_pos);
+      if (!assignment_case) {
+        cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
+                                        result_type, source_pos);
+      }  /* if */
       promoted_type_2 = type_after_integral_promotion(type_2);
       cast_copied_template_param_expr(operand_2, constant_2, alloc_con_2,
                                       promoted_type_2, source_pos);
     }  /* if */
-  } else {
+  } else if (op == (an_expr_operator_kind)eok_question) {
     /* Three-operand operation, i.e., "?" */
-    check_assertion(op == (an_expr_operator_kind)eok_question);
     /* If the operands have the same type, use that type.  Otherwise, do
        the usual arithmetic conversions. */
     if (!types_are_compatible(type_2, type_3)) {
@@ -8542,6 +8629,46 @@ to an already-allocated constant; otherwise, constant points to the
   }  /* if */
   return expr;
 }  /* alloc_copied_template_param_expr */
+
+
+static a_boolean operator_is_foldable(an_expr_operator_kind op)
+/*
+Return TRUE if the indicated operation should be folded when doing
+template argument substitution.
+*/
+{
+  a_boolean is_foldable = FALSE;
+
+  switch (op) {
+    case eok_inegate:
+    case eok_unary_plus:
+    case eok_complement:
+    case eok_not:
+    case eok_iadd:
+    case eok_isubtract:
+    case eok_imultiply:
+    case eok_idivide:
+    case eok_remainder:
+    case eok_shiftl:
+    case eok_shiftr:
+    case eok_ieq:
+    case eok_ine:
+    case eok_igt:
+    case eok_ilt:
+    case eok_ige:
+    case eok_ile:
+    case eok_and:
+    case eok_or:
+    case eok_xor:
+    case eok_land:
+    case eok_lor:
+      is_foldable = TRUE;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return is_foldable;
+}  /* operator_is_foldable */
 
 
 static an_expr_node_ptr copy_template_param_expr(
@@ -8640,7 +8767,8 @@ return NULL.  options is a set of name lookup options.
                   copy_error);
         if (new_operand_1 == NULL &&
             new_operand_2 == NULL &&
-            new_operand_3 == NULL) {
+            new_operand_3 == NULL &&
+            operator_is_foldable(op)) {
           /* All the operands are constant. */
           if (alloc_con_1 != NULL) copy_constant(alloc_con_1, &constant_1);
           if (alloc_con_2 != NULL) copy_constant(alloc_con_2, &constant_2);
@@ -8660,16 +8788,20 @@ return NULL.  options is a set of name lookup options.
             folded_to_constant = TRUE;
             if (operand_2 != NULL) {
               if (operand_3 != NULL) {
-                /* Three-operand operation, "?". */
-                check_assertion(op == (an_expr_operator_kind)eok_question);
-                if (is_false_constant(&constant_1)) {
-                  /* Operand 1 is false, so the result is operand 3. */
-                  *alloc_con = alloc_con_3;
-                  if (alloc_con_3 == NULL) *constant = constant_3;
+                if (op == (an_expr_operator_kind)eok_question) {
+                  /* Three-operand operation, "?". */
+                  if (is_false_constant(&constant_1)) {
+                    /* Operand 1 is false, so the result is operand 3. */
+                    *alloc_con = alloc_con_3;
+                    if (alloc_con_3 == NULL) *constant = constant_3;
+                  } else {
+                    /* Operand 1 is true, so the result is operand 2. */
+                    *alloc_con = alloc_con_2;
+                    if (alloc_con_2 == NULL) *constant = constant_2;
+                  }  /* if */
                 } else {
-                  /* Operand 1 is true, so the result is operand 2. */
-                  *alloc_con = alloc_con_2;
-                  if (alloc_con_2 == NULL) *constant = constant_2;
+                  /* Things like calls.  Cannot be folded to constants. */
+                  folded_to_constant = FALSE;
                 }  /* if */
               } else {
                 /* Two-operand operation. */
@@ -9036,22 +9168,53 @@ name lookup options.
         /* The template param represents sizeof(T), __ALIGNOF__(T), or
            __uuidof(T), where T is a type containing a template parameter.
            Determine the type of T after substitution. */
-        new_type = copy_type_with_substitution(con->variant.template_param.
-                                                                  variant.type,
-                                               template_arg_list,
-                                               template_param_list,
-                                               source_pos,
-                                               options,
-                                               copy_error);
-        if (same_entities(new_type,
-                          con->variant.template_param.variant.type)) {
-          /* No change in the type. */
-        } else {
-          if (is_or_contains_template_param(new_type)) {
+        { an_expr_node_ptr expr =
+                         con->variant.template_param.variant.templ_sizeof.expr;
+          if (expr != NULL) {
+            /* There's an associated expression.  Do substitution on it. */
+            a_constant       sizeof_expr_con;
+            a_constant_ptr   alloc_sizeof_expr_con;
+
+            expr = copy_template_param_expr(expr,
+                                            template_arg_list,
+                                            template_param_list,
+                                            source_pos,
+                                            options,
+                                            copy_error,
+                                            &sizeof_expr_con,
+                                            &alloc_sizeof_expr_con);
+            if (expr == NULL) {
+              /* The expression folds to a constant. */
+              if (alloc_sizeof_expr_con != NULL) {
+                expr= alloc_node_for_allocated_constant(alloc_sizeof_expr_con);
+              } else {
+                expr = alloc_node_for_constant(&sizeof_expr_con);
+              }  /* if */
+            }  /* if */
+            new_type = expr->type;
+          } else {
+            /* No associated expression, just a type. */
+            new_type = copy_type_with_substitution(con->variant.template_param.
+                                                     variant.templ_sizeof.type,
+                                                   template_arg_list,
+                                                   template_param_list,
+                                                   source_pos,
+                                                   options,
+                                                   copy_error);
+          }  /* if */
+          if (same_entities(
+                      new_type,
+                      con->variant.template_param.variant.templ_sizeof.type) &&
+              expr == con->variant.template_param.variant.templ_sizeof.expr) {
+            /* No change in the type or the expression, so the original
+               constant is still okay. */
+          } else if (is_or_contains_template_param(new_type)) {
             /* Still a template parameter type, so still need a
                tpck_sizeof/alignof/uuidof constant. */
             *constant = *con;
-            constant->variant.template_param.variant.type = new_type;
+            constant->variant.template_param.variant.templ_sizeof.type =
+                                                                      new_type;
+            constant->variant.template_param.variant.templ_sizeof.expr = expr;
             con_copy = NULL;
           } else {
             /* No longer a template parameter type, so the sizeof/alignof
@@ -9077,7 +9240,7 @@ name lookup options.
             }  /* if */
             con_copy = NULL;
           }  /* if */
-        }  /* if */
+        }
         break;
       case tpck_template_ref:
         /* The template param constant represents a function template with

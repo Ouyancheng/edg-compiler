@@ -591,7 +591,8 @@ ck_template_param constant.
     case tpck_sizeof:
     case tpck_alignof:
     case tpck_uuidof:
-      cp->variant.template_param.variant.type = NULL;
+      cp->variant.template_param.variant.templ_sizeof.type = NULL;
+      cp->variant.template_param.variant.templ_sizeof.expr = NULL;
       break;
     case tpck_template_ref:
       cp->variant.template_param.variant.template_ref.con = NULL;

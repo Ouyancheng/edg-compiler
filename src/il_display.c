@@ -716,15 +716,19 @@ Display a ck_template_param constant.
       break;
     case tpck_sizeof:
       (void)printf("tpck_sizeof\n");
-      goto do_type_cases;
+      goto do_sizeof_cases;
     case tpck_alignof:
       (void)printf("tpck_alignof\n");
-      goto do_type_cases;
+      goto do_sizeof_cases;
     case tpck_uuidof:
       (void)printf("tpck_uuidof\n");
-do_type_cases:
-      disp_ptr("type", (char *)ptr->variant.template_param.variant.type,
+do_sizeof_cases:
+      disp_ptr("type",
+               (char *)ptr->variant.template_param.variant.templ_sizeof.type,
                iek_type);
+      disp_ptr("expr",
+               (char *)ptr->variant.template_param.variant.templ_sizeof.expr,
+               iek_expr_node);
       break;
     case tpck_template_ref:
       (void)printf("tpck_template_ref\n");

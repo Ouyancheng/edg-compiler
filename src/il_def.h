@@ -2075,9 +2075,14 @@ typedef struct a_constant {
 			   constant. */
         /* When template param constant kind == tpck_sizeof, tpck_alignof,
            or tpck_uuidof: */
-        a_type_ptr
+        struct {
+          a_type_ptr
 		type;	/* The type whose sizeof, __ALIGNOF__, or __uuidof is
-			   represented. */
+			   represented.  NULL for __uuidof(0). */
+          an_expr_node_ptr
+		expr;	/* If the sizeof etc. was applied to an expression,
+			   this points to the expression.  NULL otherwise. */
+        } templ_sizeof;
         /* When template param constant kind == tpck_template_ref: */
         struct {
           a_constant_ptr

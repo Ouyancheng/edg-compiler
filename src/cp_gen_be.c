@@ -5391,8 +5391,10 @@ precedence confusion and need_parens is TRUE.
     } else if (tpkind == (a_template_param_constant_kind)tpck_uuidof) {
       /* A tpck_uuidof constant represents the address of the Microsoft
          __uuidof.  Drop the "&" to make an lvalue. */
-      form_uuidof_reference(constant->variant.template_param.variant.type,
-                            &octl);
+      form_uuidof_reference(
+                    constant->variant.template_param.variant.templ_sizeof.type,
+                    constant->variant.template_param.variant.templ_sizeof.expr,
+                    &octl);
       processed = TRUE;
     }  /* if */
   } else if (kind == (an_expr_node_kind)enk_constant &&
