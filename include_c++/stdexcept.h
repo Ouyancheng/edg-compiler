@@ -5,7 +5,7 @@ stdexcept.h -- Include file for exception handling (see 19.1.1)
 #ifndef _STDEXCEPT_H
 #define _STDEXCEPT_H
 
-/* This lets users disabled the EDG supplied exception classes. */
+/* This lets users disable the EDG supplied exception classes. */
 #ifndef __NO_EDG_EXCEPTION_CLASSES
 
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
