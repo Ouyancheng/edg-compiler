@@ -46,12 +46,6 @@ is C++, there are no errors, and lowering hasn't been suppressed.
   (C_dialect == C_dialect_cplusplus && !suppress_il_lowering &&       \
    total_errors == 0)
 
-
-static a_boolean
-		lowering_file_scope;
-			/* TRUE if lowering the file scope's IL, FALSE if
-			   lowering a routine scope's IL. */
-
 #if DEBUG
 /*
 Count of entries allocated, for debugging purposes.
@@ -63,7 +57,6 @@ static unsigned long
 #endif /* DEBUG */
 
 
-
 /*
 Macro used to test for crossing over into the file scope, i.e., a
 reference to a file-scope memory region entity from somewhere in a
@@ -72,13 +65,6 @@ function scope memory region.
 #define crossing_into_file_scope(entry_ptr)                           \
   (!lowering_file_scope && in_file_scope((char *)(entry_ptr)))
 
-/*
-Add an IL entry to the list of orphaned entries of its kind.  This is
-done so the entry can be found when traversing the file scope.
-*/
-#define record_orphaned_il_entry(entry_ptr, kind)                     \
-  add_orphaned_file_scope_il_entry((char *)(entry_ptr),               \
-                                   (an_il_entry_kind)(kind))
 
 static a_variable_ptr
 		return_value_pointer_variable;
@@ -87,7 +73,6 @@ static a_variable_ptr
 			   the parameter variable for the implicit parameter
 			   through which the caller sends the address
 			   at which the result will be stored. */
-
 
 static a_cleanup_action_ptr
 		avail_cleanup_actions;
@@ -114,7 +99,6 @@ static void change_node_to_operation(an_expr_node_ptr      node,
                                      a_type_ptr            type,
                                      an_expr_node_ptr      operand);
 static void lower_os_constant(a_constant_ptr constant);
-static void lower_type(a_type_ptr type);
 static void lower_variable(a_variable_ptr variable);
 
 static void lower_field_list(a_field_ptr field_list);
@@ -2683,7 +2667,8 @@ constants in other scopes.
 {
   if (crossing_into_file_scope(constant)) {
     /* Don't follow a pointer from the function scope into the file scope. */
-    record_orphaned_il_entry(constant, iek_constant);
+    add_orphaned_file_scope_il_entry((char *)constant,
+                                     (an_il_entry_kind)iek_constant)
   } else {
     lower_constant(constant);
   }  /* if */
@@ -3849,7 +3834,7 @@ not lowered at this time (see lower_destructor_code).
 }  /* lower_destructor_routine_type */
 
 
-static void lower_type(a_type_ptr type)
+void lower_type(a_type_ptr type)
 /*
 Do IL lowering of the indicated type and everything under it.
 */
@@ -4017,23 +4002,6 @@ Do IL lowering of the indicated type and everything under it.
     }  /* switch */
   }  /* if */
 }  /* lower_type */
-
-
-void lower_os_type(a_type_ptr type)
-/*
-A "possibly other scope" version of lower_type; does nothing for
-types in other scopes.
-*/
-{
-  if (crossing_into_file_scope(type)) {
-    /* Don't follow a pointer from the function scope into the file scope,
-       but record the file scope entry as a potential orphan so it will
-       be found later when lowering the file scope. */
-    record_orphaned_il_entry(type, iek_type);
-  } else {
-    lower_type(type);
-  }  /* if */
-}  /* lower_os_type */
 
 
 static void lower_variable_list(a_variable_ptr variable_list)

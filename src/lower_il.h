@@ -26,6 +26,11 @@ lower_il.h -- Declarations related to lower_il.c (having to do with
 #endif /* ifndef IL_DEF_H */
 
 
+EXTERN a_boolean
+		lowering_file_scope;
+			/* TRUE if lowering the file scope's IL, FALSE if
+			   lowering a routine scope's IL. */
+
 /*
 Access the il_lowering_flag in an IL entry.
 */
@@ -591,7 +596,24 @@ extern void lower_ptr_to_member_constant(a_constant_ptr constant);
 
 extern void lower_constant(a_constant_ptr constant);
 
-extern void lower_os_type(a_type_ptr type);
+extern void lower_type(a_type_ptr type);
+
+/*
+A "possibly other scope" version of lower_type; does nothing for
+types in other scopes.  Note that because all types are in the file
+scope, any reference to a type while lowering a function is a
+reference to another scope, and is recorded as a potential orphan
+to be processed later.
+*/
+#define lower_os_type(type)                                           \
+{ if (!lowering_file_scope) {                                         \
+    add_orphaned_file_scope_il_entry((char *)(type),                  \
+                                     (an_il_entry_kind)iek_type);     \
+  } else {                                                            \
+    lower_type(type);                                                 \
+  }  /* if */                                                         \
+}  /* lower_os_type */
+
 
 extern void lower_expr_list(an_expr_node_ptr expr_list,
                             unsigned int     is_lvalue_mask,
