@@ -272,12 +272,13 @@ the current class.  Otherwise free it for later use.
     /* If a source sequence entry to represent a partial instantiation needs
        to be added to the source sequence list, save the fixup entry for
        that, too. */
-    check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
-                    sym->kind == (a_symbol_kind)sk_member_function);
-    if (sym->variant.routine.instance_ptr != NULL &&
-        sym->variant.routine.instance_ptr->partial_instantiation != NULL) {
-      curr_routine_fixup->is_partial_instantiation = TRUE;
-      needed = TRUE;
+    if (sym->kind == (a_symbol_kind)sk_routine ||
+        sym->kind == (a_symbol_kind)sk_member_function) {
+      if (sym->variant.routine.instance_ptr != NULL &&
+          sym->variant.routine.instance_ptr->partial_instantiation != NULL) {
+        curr_routine_fixup->is_partial_instantiation = TRUE;
+        needed = TRUE;
+      }  /* if */
     }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
