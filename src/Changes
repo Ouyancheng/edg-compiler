@@ -1,6 +1,11 @@
 Version 2.24
 
-6/28/94 Support for elaborated type specifier using a typedef name
+6/28/94 Friend declaration of member function may not be a definition
+
+An error is now issued when a friend declaration of a member function
+provides a definition of the function (see WP 11.4 para 5).
+
+6/28/94 Fixed support for elaborated type specifier using a typedef name
 
 There was a bug in our support for using a typedef name in an elaborated
 type specifier (a "nonstandard" feature that is available in cfront mode

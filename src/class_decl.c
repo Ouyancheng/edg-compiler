@@ -3108,15 +3108,23 @@ of the function, and again overloading is a possibility.
         } else {
           a_routine_ptr  rp = sym->variant.routine.ptr;
 
+          if (func_info->is_definition) {
+            /* WP 11.4 para 5 prohibits defining a member function in a
+               friend declaration. */
+            pos_sy_error(ec_bad_scope_for_definition,
+                         &locator->source_position, sym);
+          }  /* if */
           record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                     declarator_ssep);
           /* Do throw specification compatibility checking. */
           check_throw_specification(func_info, rp);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-          /* Since this is a non-defining entry, it is represented by a
-             secondary-decl entry in the source sequence list.  Enter the
-             current function type. */
-          set_src_seq_secondary_decl_type((char *)rp, function_type);
+          if (!func_info->is_definition) {
+            /* Since this is a non-defining entry, it is represented by a
+               secondary-decl entry in the source sequence list.  Enter the
+               current function type. */
+            set_src_seq_secondary_decl_type((char *)rp, function_type);
+          }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
       }  /* if */
