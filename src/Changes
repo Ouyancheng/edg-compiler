@@ -15,27 +15,6 @@ being treated as an ill-formed object initializer.  This has been fixed.
   extern "C" int f3(void (f)(void)); // incorrectly considered an object in
                                      // cfront mode
 
-7/31/96 Diagnostic on omitted mem-initializer for const member
-
-If a mem-initializer for a const member with no constructor is omitted
-from the ctor-initializer list, a warning is now issued instead of a
-discretionary error.  For example,
-
-  struct S {
-    const int i;
-    S() { }             // Warning is now issued (instead of an error)
-  };
-
-Note: For an implicitly defined default constructor an error is still
-issued -- e.g.,
-
-  struct S {
-    const int i;
-    virtual void f();   // Force implicit declaration of nontrivial default
-  };                    //   constructor
-  S s;                  // Error is still issued on implicit definition of
-                        //   S::S() (see 12.1 [class.ctor])
-
 7/31/96 Default initialization of reference member
 
 An error is now issued on a mem-initializer for a reference member when
