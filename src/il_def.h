@@ -997,13 +997,12 @@ typedef struct a_per_instantiation_needed_flags_entry {
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-typedef struct a_name_qualifier *a_name_qualifier_ptr;
-
 #if RECORD_FORM_OF_NAME_REFERENCE
 
 /*
 Entry used to represent the qualifier portion of a qualified name.
 */
+typedef struct a_name_qualifier *a_name_qualifier_ptr;
 typedef struct a_name_qualifier {
   a_name_qualifier_ptr
 		next;	/* Pointer to the next name qualifier entry for
