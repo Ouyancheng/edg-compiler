@@ -2,9 +2,10 @@ Version 2.43
 
 9/16/99  Conversions and pointer-to-members
 
-The front end now accepts reinterpret_cast conversions on pointer-to-member
-constants, but the result is no longer a constant.  Static_cast conversions
-are allowed as part of pointer-to-member constant-expressions.
+The front end now accepts reinterpret_cast conversions of pointer-to-member
+constants to unrelated pointer-to-member types, but the result is no longer a
+constant.  static_cast conversions are allowed as part of pointer-to-member
+constant-expressions.
 
   struct A { void f(); };
   struct B {};
