@@ -3314,7 +3314,10 @@ typedef struct a_type {
 			/* Pointer to a list of entries that point to types
 			   based on this one, e.g., pointer-to-this-one;
 			   used to find those types for reuse.  NULL if
-			   the list is empty. */
+			   the list is empty.  Note that this is used as
+			   an optimization, to save space.  There is no
+			   guarantee that all based types are on this list,
+			   though most of them are. */
   a_targ_size_t	size;
                         /* sizeof() for this type, or 0 if the type is
                            incomplete.  Also 0 for typeref references, even
