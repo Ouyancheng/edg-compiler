@@ -694,14 +694,9 @@ class, too, and thus must be flagged as requiring qualification.
            create a new entry and copy the base class values to it. */
 
         a_hidden_name_ptr new_hnp = make_new_hidden_name(derived_scope);
-
-        new_hnp->entity = base_hnp->entity;
-        new_hnp->qualification_needed = base_hnp->qualification_needed;
-        new_hnp->elaborated_type_specifier_needed =
-                                    base_hnp->elaborated_type_specifier_needed;
-        new_hnp->partially_hidden_by_microsoft_injected_class_name =
-                   base_hnp->partially_hidden_by_microsoft_injected_class_name;
-        new_hnp->is_class_member = base_hnp->is_class_member;
+        a_hidden_name_ptr saved_next = new_hnp->next;
+        *new_hnp = *base_hnp;
+        new_hnp->next = saved_next;
       }  /* if */
     }  /* if */
   }  /* for */
