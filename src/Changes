@@ -1,5 +1,15 @@
 Version 2.40
 
+11/2/98   Set access in IL template entry for member templates
+
+When RECORD_TEMPLATES_IN_IL is configured to TRUE, the access field of an
+IL template entry is now being set correctly for member templates.  This
+affects the output of the C++-generating back end for cases like this:
+
+  class A {
+    template <class T> class N { };
+  };
+
 10/26/98  Parent namespace set incorrectly for certain qualified friend
           declarations
 

@@ -9282,6 +9282,8 @@ set, and its source sequence entry, if any, has been put out.)
                                    &il_template_entry->source_corresp,
                                    sym->parent.namespace_ptr);
         }  /* if */
+        /* Set the access. */
+        il_template_entry->source_corresp.access = decl_state->access;
         if (p_template_body_cache != NULL) {
           a_cached_token_ptr	first_token;
           first_token = p_template_body_cache->first_token;
