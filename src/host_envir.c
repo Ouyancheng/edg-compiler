@@ -2576,7 +2576,6 @@ current file position.
 #include "mman.h"
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
-
 static void svr4_trap_null_pointer_references(void)
 /*
 Some systems don't trap NULL pointer references.  This routine may
@@ -2594,6 +2593,29 @@ a memory fault.
   }  /* if */
 }  /* svr4_trap_null_pointer_references */
 #endif /* SVR4_TRAP_NULL_POINTER_REFERENCES */
+
+#if DEBUG
+#if !EDG_WIN32
+
+#if __BSD__
+#include <sys/time.h>
+#endif __BSD__
+#include <sys/resource.h>
+
+void set_cpu_time_limit(int	seconds)
+/*
+Set the maximum amount of CPU time that can be used by the compilation.
+Used for debugging purposes.
+*/
+{
+  struct rlimit	limit;
+  limit.rlim_cur = seconds;
+  limit.rlim_max = seconds;
+  (void)setrlimit(RLIMIT_CPU, &limit);
+}  /* set_cpu_time_limit */
+
+#endif /* !EDG_WIN32 */
+#endif /* DEBUG */
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 

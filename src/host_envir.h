@@ -1799,6 +1799,12 @@ extern unsigned long crc_32(char          *str,
 extern char *generate_instantiation_output_file_name(char *mangled_name);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+#if DEBUG
+#if !EDG_WIN32
+extern void set_cpu_time_limit(int	seconds);
+#endif /* !EDG_WIN32 */
+#endif /* DEBUG */
+
 EXTERN a_boolean
 		prototype_instantiations_in_il
 #if VAR_INITIALIZERS

@@ -349,6 +349,12 @@ Initialize the option information table.
   add_option_description(optk_debug, "db", 'd',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
+#if !EDG_WIN32
+  /* This option is only available on Unix. */
+  add_option_description(optk_time_limit, "time_limit", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
+#endif /* !EDG_WIN32 */
 #endif /* DEBUG */
   add_option_description(optk_diag_suppress, "diag_suppress", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
@@ -2307,6 +2313,16 @@ common_cfront_mode_settings:
 	}  /* if */
         init_debug_level = debug_level;
         break;
+#if !EDG_WIN32
+      case optk_time_limit:
+        /* Debugging option to limit the amount of CPU time used
+           during a compilation. */
+        { int time_limit;
+          time_limit = scan_opt_arg_number(opt_arg);
+          set_cpu_time_limit(time_limit);
+        }
+        break;
+#endif /* !EDG_WIN32 */
 #endif /* DEBUG */
       case optk_diag_suppress:
       case optk_diag_remark:
