@@ -3587,7 +3587,8 @@ to the IL operator to be used, and return TRUE.  Otherwise, return FALSE.
               /* Imaginary *= imaginary gives zero, so it's almost
                  surely wrong. */
               pos_warning(ec_imaginary_times_assign, &operand_1->position);
-              /* Use a comma expression to preserve side-effects. */
+              /* Change the expression to one with a value of zero.
+		 Use a comma expression to preserve side-effects. */
               { an_expr_node_ptr node2 = make_node_from_operand(operand_2);
                 a_constant       con;
                 make_zero_of_proper_type(node2->type, &con);
