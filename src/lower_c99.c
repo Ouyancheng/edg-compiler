@@ -153,29 +153,36 @@ Lower all VLA types that were recorded by record_vla_type_for_lowering.
 
 
 static a_variable_ptr vla_dimension_variable(a_type_ptr        tp,
-                                             an_expr_node_ptr  *inits)
+                                             an_expr_node_ptr  *inits,
+                                             a_boolean         *new_var)
 /*
-Create a temporary variable and assign to it the total number of elements
-of a VLA as represented by the given a_vla_dimension entry.  Return the
-variable and set *init to the assignment expression.
+Return a variable representing the total number of elements in the VLA type tp.
+If there is no such variable yet, create one, assign to it the expression
+recorded in the a_vla_dimension entry associated with tp, and add the
+assignment to the given expression tree (which could be NULL initially).
+*new_var is set to TRUE if a new variable was created and to FALSE otherwise.
 */
 {
   a_vla_dimension_ptr  vla_dim = find_vla_dimension(tp);
-  a_type_ptr           ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
-  an_expr_node_ptr     expr = vla_dim->dimension_expr, assign_ops;
 
-  check_assertion(vla_dim->total_number_of_elements == NULL);
-  /* Create a new temporary variable and assign to it the expression
-     computing the array length. */
-  vla_dim->total_number_of_elements = make_lowered_temporary(ptrdiff_type);
-  assign_ops = var_lvalue_expr(vla_dim->total_number_of_elements);
-  assign_ops->next = expr;
-  assign_ops = make_operator_node((an_expr_operator_kind)eok_iassign,
-                                  ptrdiff_type, assign_ops);
-  if (*inits == NULL) {
-    *inits = assign_ops;
+  if (vla_dim->total_number_of_elements == NULL) {
+    a_type_ptr        ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
+    an_expr_node_ptr  expr = vla_dim->dimension_expr, assign_ops;
+    /* Create a new temporary variable and assign to it the expression
+       computing the array length. */
+    vla_dim->total_number_of_elements = make_lowered_temporary(ptrdiff_type);
+    assign_ops = var_lvalue_expr(vla_dim->total_number_of_elements);
+    assign_ops->next = expr;
+    assign_ops = make_operator_node((an_expr_operator_kind)eok_iassign,
+                                    ptrdiff_type, assign_ops);
+    if (*inits == NULL) {
+      *inits = assign_ops;
+    } else {
+      *inits = make_comma_node(*inits, assign_ops);
+    }  /* if */
+    *new_var = TRUE;
   } else {
-    *inits = make_comma_node(*inits, assign_ops);
+    *new_var = FALSE;
   }  /* if */
   return vla_dim->total_number_of_elements;
 }  /* vla_dimension_variable */
@@ -213,6 +220,7 @@ variables also make indexing into the VLA arrays more efficient.
      The outer loop deals with that possibility. */
   while (is_variably_modified_type(tp)) {
     a_variable_ptr  dim_var;
+    a_boolean       dim_var_created;
     /* Skip over pointer and type qualifier components.  If we encounter a
        typedef we can stop since variably modified typedefs have their own
        stmk_decl that would have caused this processing for the underlying
@@ -241,17 +249,18 @@ variables also make indexing into the VLA arrays more efficient.
         }  /* if */
       }  /* if */
     }  /* for */
-    /* tp should now point to a VLA type. */
-    dim_var = vla_dimension_variable(tp, &inits);
-    tp = tp->variant.array.element_type;
-    do {
+    /* tp should now point to a VLA type: Create and initialize the variable
+       associated with the top-level dimension. */
+    dim_var = vla_dimension_variable(tp, &inits, &dim_var_created);
+    check_assertion(dim_var_created);
+    tp = skip_typerefs(tp->variant.array.element_type);
+    for (;;) {
+      /* Look for additional dimension and create/update dimension variables
+         accordingly. */
       a_targ_size_t  constant_factor = 1;
-      /* Part I: Create and initialize the dimension variable. */
-
-      /* Part II: Update the dimension variable. */
       while (tp->kind == (a_type_kind)tk_array && !tp->variant.array.is_vla) {
         constant_factor *= tp->variant.array.variant.number_of_elements;
-        tp = tp->variant.array.element_type;
+        tp = skip_typerefs(tp->variant.array.element_type);
       }  /* while */
       if (constant_factor == 1 && tp->kind != (a_type_kind)tk_array) {
         /* A bottom-level VLA (e.g., T[n]): No adjustment needed. */
@@ -265,8 +274,8 @@ variables also make indexing into the VLA arrays more efficient.
                                         targ_ptrdiff_t_int_kind);
         }  /* if */
         if (tp->kind == (a_type_kind)tk_array) {
-          dim_var = vla_dimension_variable(tp, &inits);
-          tp = tp->variant.array.element_type;
+          dim_var = vla_dimension_variable(tp, &inits, &dim_var_created);
+          tp = skip_typerefs(tp->variant.array.element_type);
           var_expr = var_rvalue_expr(dim_var);
         }  /* if */
         if (var_expr != NULL && const_expr != NULL) {
@@ -291,7 +300,15 @@ variables also make indexing into the VLA arrays more efficient.
           accums = make_comma_node(acc, accums);
         }  /* if */
       }  /* if */
-    } while (tp->kind == (a_type_kind)tk_array);
+      if (tp->kind != (a_type_kind)tk_array) {
+        break;
+      } else if (!dim_var_created) {
+        /* We ran into a VLA type that already has an updated variable.
+           (Presumably as part of a typedef.) No more components need
+           processing. */
+        goto done;
+      }  /* if */
+    }  /* for */
   }  /* while */
 done:
   if (inits != NULL) {
