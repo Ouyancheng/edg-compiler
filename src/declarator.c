@@ -363,7 +363,6 @@ decl-specifier (e.g., "array [1] of NULL").
       underlying_type = f_underlying_type_of_derived_type(underlying_type,
                                                           &is_derived_type);
     } while (underlying_type != NULL);
-done:
     result = (is_derived_type && underlying_type == NULL);
   }  /* if */
   return result;
