@@ -1,5 +1,18 @@
 Version 3.4
 
+11/11/03 Microsoft compatibility: use of ambiguous template name accepted
+
+If a scope contains a declaration of a class template and a using-directive
+would make the name ambiguous, the Microsoft compiler uses the class template
+in the scope.  We now emulate this behavior in Microsoft bugs mode.
+
+  namespace N {
+    template <int I> class X {};
+  }; 
+  using namespace N;
+  template <class T> class X {};
+  X<int> xi;  // uses ::X
+
 11/11/03 GNU mode: Loss of some attributes in some configurations
 
 In configurations with GNU_X86_ATTRIBUTES_ALLOWED set to FALSE, the

@@ -1797,6 +1797,16 @@ of the lookup is returned to the caller.
   a_symbol_ptr		sym = sym_from_scope;
 
   db_enter(4, "do_using_directive_lookup");
+  if (microsoft_bugs && sym_from_scope != NULL) {
+    /* In Microsoft bugs mode, a class template symbol found suppresses the
+       in a scope suppresses the using-directive lookup from that scope. */
+    a_symbol_ptr	fund_sym;
+    fund_sym = fundamental_symbol_of(sym_from_scope);
+    if (is_class_template_symbol(fund_sym)) {
+      sym = sym_from_scope;
+      goto done;
+    }  /* if */
+  }  /* if */
   /* Look through the inactive symbols for any symbols associated with
      one of the marked namespaces.  Note that we keep looking even if
      an ambiguity is detected.  The symbol pointed to by the ambiguous
@@ -1859,6 +1869,7 @@ of the lookup is returned to the caller.
       synth_sym = sym;
     }  /* if */
   }  /* for */
+done:
   db_exit();
   return sym;
 }  /* do_using_directive_lookup */
