@@ -1,5 +1,17 @@
 Version 2.45
 
+8/27/00  C++-generating back end: avoid ambiguity on one-argument casts
+
+Casts with one argument are now put out as old-style casts, e.g.,
+as (X)y rather than X(y).  This helps avoid ambiguities, for example
+in
+
+  struct A { A(int); A(const A&); };
+  int main() {
+    int x = 1;
+    A f((A)x);  // Should not be rewritten as int f(A(x))
+  }
+
 8/24/00  Overload resolution: conversion functions with bitwise copy
          constructor
 

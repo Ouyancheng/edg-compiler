@@ -7419,27 +7419,52 @@ Note that the destructor, if any, is implicit and need not be put out.
   a_boolean      using_old_style_cast = FALSE;
 
   if (dip->is_explicit_cast && !parenthesized_init) {
+    a_boolean has_one_argument = FALSE;
     /* An explicit cast.  Put out the name of the type, and then continue
        processing the initialization as a parenthesized_init.  That is,
        for "A(x, y)", put out the "A" here, and fall into the main code
        below to put out the "(x, y)". */
     /* Note that parentheses are not put around this, because that would
        make the expression look like a cast. */
+    if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+      /* See whether the initialization has one argument. */
+      an_expr_node_ptr cexpr = dip->variant.constructor.args;
+      if (cexpr != NULL &&
+          !cexpr->generated_default_arg &&
+          (cexpr->next == NULL || cexpr->next->generated_default_arg)) {
+        has_one_argument = TRUE;
+      }  /* if */
+    }  /* if */
     parenthesized_init = TRUE;
     force_parens = TRUE;
-    if (has_name_before_mangling(init_entity_type)) {
+    if (has_one_argument) {
+      /* Put out a cast that has one argument as an old-style cast.  This
+         avoids some ambiguities, e.g.,
+           int f((int)x);
+         shouldn't become
+           int f(int(x));
+         This will also catch casts to types that aren't named, e.g.,
+         (const X)y instead of the incorrect const X(y). */
+      using_old_style_cast = TRUE;
+    } else if (has_name_before_mangling(init_entity_type)) {
+      /* Normal case: functional notation cast, e.g., X(y). */
       gen_type(init_entity_type);
     } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
-      /* Zero initialization can't be put out as an old-style cast, so
-         drop cv-qualifiers on the type. */
+        /* This zero initialization can't be put out as an old-style cast
+           (it has zero arguments), but it can't be put out as a normal
+           cast because the type does not have a name, so drop cv-qualifiers
+           on the type. */
       gen_type(skip_typerefs(init_entity_type));
     } else {
-      /* A type without a name, e.g., a cv-qualified class type.
-         Use an old-style cast. */
-      write_tok_ch('(');
+      /* Unnamed type: put out as old-style cast.  Most cases of this
+         would have fallen out above; see note below. */
       using_old_style_cast = TRUE;
+    }  /* if */
+    if (using_old_style_cast) {
+      /* Put out an old-style cast, e.g., (X)y. */
+      write_tok_ch('(');
       gen_cast(init_entity_type);
-      if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+      if (!has_one_argument) {
         /* If the initialization doesn't have exactly one argument, use
            an unqualified functional-notation type conversion inside the
            old-style cast, e.g., ((const X)X(1, 2)).  This may modify the
@@ -7449,13 +7474,7 @@ Note that the destructor, if any, is implicit and need not be put out.
            cv-qualified and instantiations are put out.  The instantiation
            has no name for the cv-qualified type, whereas the original template
            source can use the name of the template parameter. */
-        an_expr_node_ptr cexpr = dip->variant.constructor.args;
-        if (cexpr == NULL ||
-            cexpr->generated_default_arg ||
-            (cexpr->next != NULL && !cexpr->next->generated_default_arg)) {
-          /* Use an inner cast. */
-          gen_type(skip_typerefs(init_entity_type));
-        }  /* if */
+        gen_type(skip_typerefs(init_entity_type));
       }  /* if */
     }  /* if */
   }  /* if */
