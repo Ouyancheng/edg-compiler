@@ -203,8 +203,10 @@ void db_name(a_source_correspondence *sc)
 Dump the name from a source correspondence (if any).
 */
 {
-  if (sc->class_of_which_a_member != NULL) {
-    db_type_name(sc->class_of_which_a_member);
+  a_type_ptr  tp = assoc_class_type(sc->scope_of_which_a_member);
+
+  if (tp != NULL) {
+    db_type_name(tp);
     fputs("::", f_debug);
   }  /* if */
   if (sc->name != NULL) {
@@ -2260,6 +2262,22 @@ and do the same processing.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #if !STANDALONE_UTILITY_PROGRAM
+
+
+a_type_ptr assoc_class_type(a_scope_ptr  sp)
+/*
+If is sp points to a class/struct/union scope, return a pointer to the
+associated class type; otherwise return NULL.
+*/
+{
+  a_type_ptr  class_type = NULL;
+
+  if (sp != NULL && sp->kind == (a_scope_kind)sck_class_struct_union) {
+    class_type = sp->variant.assoc_type;
+  }  /* if */
+  return class_type;
+}  /* assoc_class_type */
+
 
 void add_to_scopes_list(a_scope_ptr             scope_ptr,
                         a_scope_stack_entry_ptr ssep)
@@ -5925,7 +5943,7 @@ of compiler-generated function (e.g., a constructor).
      (which references the class at least in its "this" parameter) is
      marked referenced. */
   if (routine_type_is_nonstatic_member_function(routine->type)) {
-    routine->source_corresp.class_of_which_a_member->
+    assoc_class_type(routine->source_corresp.scope_of_which_a_member)->
                                               source_corresp.referenced = TRUE;
   }  /* if */
   /* If the routine is compiler-generated and its definition has not
@@ -6848,8 +6866,8 @@ with it.  Entries associated with scopes must also have no child entries.
                      sp->kind == (a_scope_kind)sck_function &&
                      sp->variant.routine.ptr->special_kind ==
                                     (a_special_function_kind)sfk_constructor &&
-                     sp->variant.routine.ptr->
-                                       source_corresp.class_of_which_a_member->
+                     assoc_class_type(sp->variant.routine.ptr->source_corresp.
+                                           scope_of_which_a_member)->
                                        variant.class_struct_union.extra_info->
                                           assoc_operator_new_routine != NULL) {
             /* When exceptions are enabled, a constructor with the allocation
