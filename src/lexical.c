@@ -7785,11 +7785,12 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
         a_type_ptr	qualifier_type;
         qualifier_type = type_symbol_type(qualifier_sym);
         if (!acceptable_dtor_type(field_sel_type, qualifier_type) &&
-            find_base_class_of(field_sel_type, qualifier_type) == NULL) {
+            (is_template_param_type(qualifier_type) ||
+             find_base_class_of(field_sel_type, qualifier_type) == NULL)) {
           pos_ty2_error(ec_destructor_qualifier_type_mismatch,
-                       &locator_for_curr_id.source_position,
-                       qualifier_type,
-                       field_sel_type);
+                        &locator_for_curr_id.source_position,
+                        qualifier_type,
+                        field_sel_type);
           set_to_error_locator(locator_for_curr_id);
           error_already_issued = TRUE;
         }  /* if */
@@ -7821,7 +7822,8 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
             destructor_okay = TRUE;
             locator_for_curr_id = normal_locator;
           } else {
-            if (find_base_class_of(field_sel_type, normal_tp) == NULL) {
+            if (is_template_param_type(normal_tp) ||
+                find_base_class_of(field_sel_type, normal_tp) == NULL) {
               normal_sym = NULL;
             }  /* if */
           }  /* if */
