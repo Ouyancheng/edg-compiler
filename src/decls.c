@@ -1705,19 +1705,21 @@ scope is that of a class definition.
                             &dummy_storage_class, &dummy_type_ptr);
       /* If this is not a member function or it is but it is a static member
          function declared within a class definition, a qualifier on the
-         function is illegal (ARM 8.2.5).  Further, a const or volatile
-         qualifier appearing on a constructor or destructor is not allowed
-         (ARM 9.3.1).  However, qualifiers on a pointer to member function
+         function is illegal (ARM 8.2.5)..  However, qualifiers on a pointer to member function
          are permitted. */
       if (member_function_parent_type == NULL ||
           (!is_nonstatic_member_function &&
            scope_stack[decl_scope_level].kind ==
-                                 (a_scope_kind)sck_class_struct_union) ||
-          is_constructor_or_destructor) {
+                                 (a_scope_kind)sck_class_struct_union)) {
         /* It is illegal to specify "const" or "volatile" on any function
            other than a nonstatic member function (ARM 8.2.5).  We just
            issue a warning since it is harmless. */
         pos_warning(ec_function_qualifier_not_allowed, &qualifier_pos);
+      } else if (is_constructor_or_destructor) {
+        /* A qualifier appearing on a constructor or destructor is not
+           allowed (ARM 9.3.1). */
+        pos_error(ec_function_qualifier_not_allowed, &qualifier_pos);
+        this_param_type = member_function_parent_type;
       } else {
         this_param_type =
                       make_qualified_type(member_function_parent_type,
@@ -4370,6 +4372,8 @@ function_lparen:
         }  /* if */
         func_info = NULL;
         is_constructor_or_destructor = FALSE;
+      } else if (is_constructor_or_destructor) {
+        is_nonstatic_member_function = TRUE;
       } else {
         if (input_flags & DI_NONSTATIC_MEMBER) {
           if (locator->is_operator_name &&
