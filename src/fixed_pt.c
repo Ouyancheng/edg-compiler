@@ -356,6 +356,24 @@ Create mantissa (mp), exponent, and is_negative from a_fixed_point_value
 }  /* load_hex_fxp_value */
 
 
+static void normalize_mantissa(a_mantissa_ptr	mp,
+			       long		*exponent)
+/*
+Normalize the mantissa value so that it occupies the high-order bits
+of "mp".  Adjust the exponent accordingly.
+*/
+{
+  if (!mantissa_is_zero(mp)) {
+    /* Adjust the mantissa so that it is normalized in the high-order bits
+       of the mantissa. */
+    while ((mp->parts[0] & 0x80000000) == 0) {
+      shift_left_mantissa(mp, 1);
+      (*exponent)--;
+    }  /* while */
+  }  /* if */
+}  /* normalize_mantissa */
+
+
 static void make_mantissa_from_integer_value(
 				an_integer_value		*value,
 				a_boolean			is_negative,
@@ -368,7 +386,6 @@ value is negative, is_negative will be TRUE.
 {
   int			parts_to_copy;
   an_integer_value	local_value;
-  int			bits;
 
   /* Make sure an_integer_value can be copied into a_mantissa. */
   check_assertion(sizeof(an_integer_value) <= sizeof(mp->parts));/*lint !e506*/
@@ -404,17 +421,10 @@ value is negative, is_negative will be TRUE.
     /* Copy the value from the high-order bytes of the mantissa. */
     memcpy((char*)&mp->parts[0], (char*)value, sizeof(an_integer_value));
   }  /* if */
-  if (!mantissa_is_zero(mp)) {
-    /* Adjust the mantissa so that it is normalized in the high-order bits
-       of the mantissa. */
-    bits = BITS_IN_AN_INTEGER_VALUE;
-    while ((mp->parts[0] & 0x80000000) == 0) {
-      shift_left_mantissa(mp, 1);
-      bits--;
-    }  /* while */
-    /* The number of bits shifted represents the associated exponent. */
-    *exponent = bits;
-  }  /* if */
+  *exponent = BITS_IN_AN_INTEGER_VALUE;
+  /* Adjust the mantissa so that it is normalized in the high-order bits
+     of the mantissa. */
+  normalize_mantissa(mp, exponent);
 }  /* make_mantissa_from_integer_value */
 
 
@@ -606,17 +616,17 @@ to be issued; otherwise set err_code to ec_no_error.
     /* The conversion to fixed-point does not fit in the result type. */
     *err_code = ec_integer_to_fixed_conversion;
     *err_severity = es_error;
+  } else if (is_negative && fxp_descr->is_unsigned) {
+    /* The conversion results in a negative value being converted to
+       unsigned. */
+    *err_code = ec_fixed_sign_change;
+    *err_severity = es_error;
   } else if (inexact) {
     /* The conversion loses precision.  This doesn't seem like it should be
        possible for an integer to fixed conversion, but is provided for
        in case there is some fixed format where this would be possible. */
     *err_code = ec_inexact_fixed_conversion;
     *err_severity = es_warning;
-  } else if (is_negative && fxp_descr->is_unsigned) {
-    /* The conversion results in a negative value being converted to
-       unsigned. */
-    *err_code = ec_fixed_sign_change;
-    *err_severity = es_error;
   }  /* if */
 }  /* conv_integer_to_fixed_point */
 
@@ -721,15 +731,15 @@ to be issued; otherwise set err_code to ec_no_error.
     /* The conversion to fixed-point does not fit in the result type. */
     *err_code = ec_float_to_fixed_conversion;
     *err_severity = es_error;
-  } else if (inexact) {
-    /* The conversion loses precision. */
-    *err_code = ec_inexact_fixed_conversion;
-    *err_severity = es_warning;
   } else if (is_negative && fxp_descr->is_unsigned) {
     /* The conversion results in a negative value being converted to
        unsigned. */
     *err_code = ec_fixed_sign_change;
     *err_severity = es_error;
+  } else if (inexact) {
+    /* The conversion loses precision. */
+    *err_code = ec_inexact_fixed_conversion;
+    *err_severity = es_warning;
   }  /* if */
 }  /* conv_float_to_fixed_point */
 
@@ -775,6 +785,58 @@ to be issued; otherwise set err_code to ec_no_error.
     *err_severity = es_error;
   }  /* if */
 }  /* conv_fixed_point_to_float */
+
+
+void conv_fixed_point_to_fixed_point(
+				a_constant_ptr		old_constant,
+				a_constant_ptr		new_constant,
+				an_error_code		*err_code,
+				an_error_severity	*err_severity)
+/*
+Convert the fixed-point constant "old_constant" to a fixed-point constant
+in "new_constant.  If, as a result of the conversion, a diagnostic should
+be issued, set err_code and err_severity to the values for the message
+to be issued; otherwise set err_code to ec_no_error.
+*/
+{
+  a_mantissa	mantissa;
+  long		exponent;
+  a_boolean	is_negative;
+  a_boolean	err;
+  a_boolean	inexact;
+  a_fixed_point_type_descr
+		*old_fxp_descr;
+  a_fixed_point_type_descr
+		*new_fxp_descr;
+
+  check_assertion(old_constant->kind == (a_constant_repr_kind)ck_fixed_point);
+  set_constant_kind(new_constant, (a_constant_repr_kind)ck_fixed_point);
+  *err_code = ec_no_error;
+  old_fxp_descr = fxp_descr_for_constant(old_constant);
+  new_fxp_descr = fxp_descr_for_constant(new_constant);
+  /* Convert the fixed-point value into the internal mantissa
+     representation. */
+  load_hex_fxp_value(&old_constant->variant.fixed_point_value,
+                     old_fxp_descr, &mantissa, &exponent, &is_negative);
+  /* Adjust the mantissa so that it is normalized in the high-order bits
+     of the mantissa. */
+  normalize_mantissa(&mantissa, &exponent);
+  /* Convert and store the mantissa as a fixed-point value. */
+  conv_mantissa_to_fixed_point(&mantissa, exponent, is_negative,
+                               new_fxp_descr, /*overflow=*/FALSE,
+                               &new_constant->variant.fixed_point_value,
+                               &err, &inexact);
+  if (err) {
+    /* The conversion to fixed-point does not fit in the result type. */
+    *err_code = ec_fixed_to_fixed_conversion;
+    *err_severity = es_error;
+  } else if (is_negative && new_fxp_descr->is_unsigned) {
+    /* The conversion results in a negative value being converted to
+       unsigned. */
+    *err_code = ec_fixed_sign_change;
+    *err_severity = es_error;
+  }  /* if */
+}  /* conv_fixed_point_to_fixed_point */
 
 
 void fxp_hex_string_to_fixed_point(a_fixed_point_type_descr  *fxp_descr,

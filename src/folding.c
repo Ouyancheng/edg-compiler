@@ -1687,12 +1687,15 @@ to the constant is maintained, by adding a cast if necessary.
           conv_fixed_point_to_float(constant, &new_constant,
                                     &err_code, &err_severity);
           break;
+        case tk_fixed_point:
+          /* Converting fixed-point to fixed-point. */
+          conv_fixed_point_to_fixed_point(constant, &new_constant,
+                                          &err_code, &err_severity);
+          break;
         case tk_imaginary:
           /* Fixed-point to imaginary.  Not folded at compile time. */
         case tk_complex:
           /* Fixed-point to complex.  Not folded at compile time. */
-        case tk_fixed_point:
-          /* Fixed-point to fixed-point.  Not folded at compile time. */
           *did_not_fold = TRUE;
           break;
         default:
