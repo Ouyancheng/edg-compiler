@@ -10702,10 +10702,12 @@ of which it is a member.
               &locator->source_position);
     result = TRUE;
   } else if (!is_definition && !out_of_class_partial_spec &&
-             !decl_state->is_specialization) {
+             !decl_state->is_specialization && !microsoft_mode && !gpp_mode) {
     /* A declaration using a qualified name.  This is only allowed if it
        is a friend declaration, or for the instantiation of an
-       out-of-class declaration of a partial specialization. */
+       out-of-class declaration of a partial specialization.  It is also
+       allowed in Microsoft and g++ mode, as those compilers accept such
+       redeclarations. */
     if (!decl_state->is_template_friend) {
       pos_sy_error(ec_bad_scope_for_redeclaration,
                    &locator->source_position, sym);

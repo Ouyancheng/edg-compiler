@@ -1,5 +1,16 @@
 Version 3.5
 
+7/6/04   Microsoft and GNU C++ compatibility: redeclaration of template
+
+The Microsoft and g++ compilers allow a template to be redeclared outside
+of its class or namespace.  We now emulate this behavior in Microsoft and
+g++ modes.
+
+  namespace N {
+    template< typename T > struct S {};
+  }
+  template< typename T > struct N::S;
+
 7/6/04   System header flag when compiling preprocessed source
 
 When compiling preprocessed source containing GNU line directives,
