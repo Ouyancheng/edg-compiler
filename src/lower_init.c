@@ -3656,6 +3656,25 @@ static a_routine_ptr
 		memzero_routine;
 
 
+static void insert_call_to_zero_entity(an_expr_node_ptr   entity_node,
+                                       an_expr_node_ptr   entity_size_node,
+                                       an_insert_location *insert_location)
+/*
+Create a runtime routine call to zero the entity whose address is given
+by entity_node, with size given by entity_size_node.  Insert the code at
+*insert_location.
+*/
+{
+  an_expr_node_ptr memzero_call;
+
+  entity_node = add_cast_if_necessary(entity_node, void_star_type());
+  entity_node->next = entity_size_node;
+  memzero_call = make_runtime_rout_call("__memzero", &memzero_routine,
+                                        void_type(), entity_node);
+  (void)insert_expr_statement(memzero_call, insert_location);
+}  /* insert_call_to_zero_entity */
+
+
 void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         an_init_pos_descr_ptr  ipdp,
                         an_expr_node_ptr       implied_arg_list,
@@ -3944,9 +3963,9 @@ C99 mode for the same reason.
         if (is_aggregate_or_union_type(entity_type) ||
             is_or_was_ptr_to_member_function_type(entity_type) ||
             ipdp->array_element_sequence) {
-          /* Aggregate.  Use a call __memzero(entity_node, size). */
-          an_expr_node_ptr memzero_call;
+          /* Aggregate.  Use a runtime routine call to zero it. */
           a_targ_size_t    entity_size;
+          an_expr_node_ptr entity_size_node;
           entity_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
                                               /*using_as_dest=*/TRUE);
           entity_size = f_skip_typerefs(entity_type)->size;
@@ -3957,13 +3976,10 @@ C99 mode for the same reason.
                       "lower_dynamic_init: dik_zero array_element_count <= 0");
             entity_size *= ipdp->array_element_count;
           }  /* if */
-          entity_node = add_cast_if_necessary(entity_node, void_star_type());
-          entity_node->next = node_for_host_large_integer(
+          entity_size_node = node_for_host_large_integer(
                       (a_host_large_integer)entity_size, targ_size_t_int_kind);
-          memzero_call = make_runtime_rout_call("__memzero", &memzero_routine,
-                                                void_type(), entity_node);
-          (void)insert_expr_statement_set_pos(memzero_call,
-                                              eff_insert_location);
+          insert_call_to_zero_entity(entity_node, entity_size_node,
+                                     eff_insert_location);
         } else {
           /* Setting a scalar to zero; can be done by an assignment. */
           goto do_assignment;
@@ -4528,7 +4544,7 @@ arrays with class elements.
   an_expr_node_ptr            entity_node, new_node, compare_node;
   an_expr_node_ptr            assign_node, num_elem_node, vec_new_node;
   a_constant                  null_constant;
-  a_variable_ptr              temp_var;
+  a_variable_ptr              temp_var, zero_temp_var;
   a_constant                  num_elem_constant;
   a_boolean                   preserve_size_node;
   a_targ_size_t               elem_size;
@@ -4749,13 +4765,13 @@ arrays with class elements.
   /* Here, num_elem_node is an expression for the number of elements in
      the array. */
   /* Determine the constructor routine (if any) to be called. */
-  if (dip != NULL) {
+  if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_zero) {
     /* There is a dynamic init entry to initialize the storage after it is
-       allocated. */
+       allocated.  dik_zero initialization is handled below. */
     /* Get a pointer to the dynamic init entry that applies to the array
        elements instead of the whole array. */
     elem_dip = elem_dynamic_init(dip);
-    check_assertion(elem_dip->kind == (a_dynamic_init_kind)dik_constructor) ;
+    check_assertion(elem_dip->kind == (a_dynamic_init_kind)dik_constructor);
     /* Get the constructor routine to call. */
     ctor_routine = elem_dip->variant.constructor.ptr;
     /* If the constructor has default arguments, make a routine that
@@ -4800,7 +4816,51 @@ arrays with class elements.
                                                  delete_routine, delete_args);
   }  /* if */
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
+  if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_zero) {
+    /* Add a runtime routine call to zero the allocated storage.  The
+       address has to be saved in a temporary and then returned after
+       the zeroing call. */
+    zero_temp_var = make_lowered_temporary(vec_new_node->type);
+    /* Assign the result of the "new" call to the temporary. */
+    vec_new_node = make_var_assignment_expr(zero_temp_var,
+                                            (an_expr_operator_kind)eok_last,
+                                            vec_new_node);
+  }  /* if */
   insert_expr(vec_new_node, &insert_location);
+  if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_zero) {
+    /* Continue generating the code for zeroing. */
+    an_expr_node_ptr entity_size_node;
+    if (array_type->size != 0) {
+      /* The array size is a known constant. */
+      entity_size_node = node_for_host_large_integer(
+                                        (a_host_large_integer)array_type->size,
+                                        targ_size_t_int_kind);
+    } else {
+      /* The array size is computed. */
+      entity_size_node = make_reusable_copy(num_elem_node,
+                                            /*vars_can_change=*/TRUE);
+      /* Cast to size_t. */
+      entity_size_node = add_cast_if_necessary(
+                                           entity_size_node,
+                                           integer_type(targ_size_t_int_kind));
+      /* Multiply by the element size if it's not 1. */
+      if (elem_size != 1) {
+        entity_size_node->next = 
+                   node_for_host_large_integer((a_host_large_integer)elem_size,
+                                               targ_size_t_int_kind);
+        entity_size_node = make_operator_node(
+                                          (an_expr_operator_kind)eok_imultiply,
+                                          entity_size_node->type,
+                                          entity_size_node);
+      }  /* if */
+    }  /* if */
+    insert_call_to_zero_entity(var_rvalue_expr(zero_temp_var),
+                               entity_size_node,
+                               &insert_location);
+    /* Insert the value of the temporary as the final value of the
+       expression. */
+    insert_expr(var_rvalue_expr(zero_temp_var), &insert_location);
+  }  /* if */
   vec_new_node = insert_location.variant.expr;
   if (ndsp->placement_new) {
     /* Placement new.  Add the "?" operator over the whole expression. */

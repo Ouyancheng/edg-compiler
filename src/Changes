@@ -1,5 +1,17 @@
 Version 2.46
 
+1/19/01  IL lowering: code to zero allocated array of classes
+
+IL lowering is now capable of generating code to zero an array allocated
+in a "new", when the array element type is a class with a destructor but
+no constructor and the explicit initialization "()" is specified.
+Previously, IL lowering aborted with an error in elem_dynamic_init.
+
+  struct T { int x,y; ~T(); };
+  int main() {
+    T *p = new T[7]();
+  }
+
 1/19/01  Linux configuration has incorrect alignment of long long
 
 The defines_linux.h file does not specify an alignment for long long.
@@ -53,7 +65,6 @@ that use the hidden name table.
 
   struct S2 { struct S3 { struct S4 { struct S5 { struct S6 {
     struct S7 { struct S8 { struct S9 { }; }; }; }; }; }; }; };
-
 
 1/17/01  #ident/#pragma ident string incorrectly rendered by C/C++-generating
          back ends
