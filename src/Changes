@@ -1,5 +1,18 @@
 Version 3.1
 
+9/24/02  Signedness of bool bit fields
+
+By default, the underlying type representation of "bool" is (plain) "char".
+When plain chars are signed, this used to cause 1-bit bool bit fields to be
+fairly useless and a warning was issued.  For example:
+
+  struct S {
+    bool b: 1;  // If treated as a signed quantity, this cannot represent
+  };            // both "0" and "1".
+
+Now, such situations are recognized and the field is forced to be unsigned
+("bit_field_is_signed" is set to FALSE in the field's IL entry).
+
 9/23/02  Visibility of "using operator="
 
 The front end used to ignore (with a warning) a using-declaration referring

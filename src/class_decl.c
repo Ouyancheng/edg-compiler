@@ -8662,9 +8662,13 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
           bit_field_type = integer_type(int_kind);
         }  /* if */
       } else if (bit_field_size == 1 &&
-                 targ_force_one_bit_bit_field_to_be_unsigned) {
+                 (targ_force_one_bit_bit_field_to_be_unsigned ||
+                  is_bool_type(bit_field_type))) {
         /* Force a one-bit bit field to be unsigned, because a bit field
-           consisting of only a sign is not very useful. */
+           consisting of only a sign is not very useful.  Also force one-bit
+           bool bit fields to have an unsigned underlying type (the bool type
+           itself is neither signed nor unsigned, but its underlying type is
+           often signed). */
         is_signed = FALSE;
       } else {
         /* The default for plain integral types in bit fields is signed. */
