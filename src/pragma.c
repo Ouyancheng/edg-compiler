@@ -658,7 +658,7 @@ there is additional processing to be done.
          pragma, associate it with the file scope; otherwise, it belongs to
          the local context. */
       if (is_global) {
-        scope_depth == DEPTH_OF_FILE_SCOPE;
+        scope_depth = DEPTH_OF_FILE_SCOPE;
         /* Force a change to the file-scope memory region, if needed. */
         in_fs_memory = TRUE;
       }  /* if */
@@ -740,7 +740,6 @@ or sp pointer must be supplied.  The IL entry is then added to the IL.
   char              		 *entity;
   an_il_entry_kind	 	 entity_kind;
   a_boolean	         	 is_global = FALSE;
-  a_boolean			 is_bound_to_il;
   a_pragma_kind_description_ptr	 pkdp;
 
   db_enter(5, "create_il_entry_for_pragma");
