@@ -1,5 +1,20 @@
 Version 3.5
 
+7/7/04   Sun compatibility: Out-of-class static member initializer ignored
+
+In Sun mode the front now mostly ignores out-of-class initializers for member
+constants of template classes (i.e., integral const static data members of
+class templates with an in-class initializer).  A warning is issued, and the
+initializer is fully parsed (which may result in other diagnostics).
+For example:
+
+  template<typename> struct S {
+    static int const c = 3;  // Member constant.
+  };
+  template<typename T> int const S<T>::c = 3;
+      // Normally a duplicate initialization error, but now ignored with a
+      // warning in Sun mode.
+
 7/7/04   Abort on designated initializer in g++ mode
 
 IL lowering aborted in lower_dynamic_init_aggregate_constant ("repeated con
