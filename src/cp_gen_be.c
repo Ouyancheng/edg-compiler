@@ -1755,7 +1755,7 @@ Routine to be called by the il_to_str routines to output a name.
     gen_type_reference((a_type_ptr)entry);
   } else {
     gen_name((a_source_correspondence *)entry, kind,
-             octl.force_qualified_name);
+             (a_boolean)octl.force_qualified_name);
   }  /* if */
 }  /* gen_name_reference */
 
