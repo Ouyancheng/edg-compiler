@@ -5143,10 +5143,17 @@ are handled in il_lower_init.)
   /* Save variables from that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
-      pch_saved_var_array_elem(vec_new_routine),
-      pch_saved_var_array_elem(vec_new_eh_routine),
+      pch_saved_var_array_elem(cleanup_actions_for_local_static_variables),
+      pch_saved_var_array_elem(dtor_wrapper_prologue_insert_location),
+      pch_saved_var_array_elem(end_cleanup_actions_for_local_static_variables),
+      pch_saved_var_array_elem(file_scope_init_routine),
+      pch_saved_var_array_elem(file_scope_init_routine_il_region),
+      pch_saved_var_array_elem(file_scope_term_routine),
+      pch_saved_var_array_elem(file_scope_term_routine_il_region),
       pch_saved_var_array_elem(vec_cctor_routine),
       pch_saved_var_array_elem(vec_delete_routine),
+      pch_saved_var_array_elem(vec_new_eh_routine),
+      pch_saved_var_array_elem(vec_new_routine),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
