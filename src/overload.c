@@ -1458,6 +1458,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
        we have only a type for the argument, and no arg_operand. */
     arg_type = type_after_array_to_pointer_transformation(arg_type);
     arg_operand = NULL;
+    arg_converted_to_rvalue = TRUE;
     /* arg_operand_is_simple_string_literal is left alone on purpose. */
   } else if ((arg_operand != NULL ?
                               (is_a_function_designator(arg_operand) &&
@@ -1473,6 +1474,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     arg_type = type_after_function_to_pointer_transformation(arg_type,
                                                              arg_operand);
     arg_operand = NULL;
+    arg_converted_to_rvalue = TRUE;
   }  /* if */
   if (param_is_reference) {
     a_type_qualifier_set param_type_qualifiers, arg_type_qualifiers;

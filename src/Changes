@@ -1,5 +1,19 @@
 Version 3.1
 
+7/31/02  Overload resolution: binding reference to non-constant to
+	 pointer produced by array-to-pointer decay
+
+Overload resolution incorrectly allowed an exact match on a case
+where an array decays to a pointer type and a reference to non-const
+parameter attempts to bind to the resulting pointer (it can't,
+because a reference to non-constant can bind only to an lvalue).
+
+  void f(wchar_t *&);		// Was selected, shouldn't be
+  void f(wchar_t const *);	// Can be called, wasn't selected
+  int main() {
+    f(L"");
+  }
+
 7/30/02  Uninitialized field in statement control flow block
 
 The any_vla_variables field of the statement control flow block
