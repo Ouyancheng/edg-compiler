@@ -166,12 +166,22 @@ typedef void (*a_cfront_constructor_ptr)(void*, void* b1, void* b2, void*b3,
 			   cfront mode. */
 #endif /* CFRONT_COMPATIBILITY_MODE */
 
+/*
+In the Cfront ABI, constructors return an object pointer.  In the
+IA-64 ABI, they return void.
+*/
+#ifdef __EDG_IA64_ABI
+typedef void a_ctor_return_type;
+#else /* ifndef __EDG_IA64_ABI */
+typedef void *a_ctor_return_type;
+#endif /* ifdef __EDG_IA64_ABI */
+
 #ifdef __EDG_IA64_ABI
 /* Explicit "C" linkage is required for compatibility with the declaration in
    cxxabi.h. */
 EXTERN_C
 #endif /* ifdef __EDG_IA64_ABI */
-typedef void (*a_constructor_ptr)(void*);
+typedef a_ctor_return_type (*a_constructor_ptr)(void*);
 			/* Type of a default constructor called from
 			   vec_new. */
 #ifdef __EDG_IA64_ABI
@@ -179,7 +189,7 @@ typedef void (*a_constructor_ptr)(void*);
    cxxabi.h. */
 EXTERN_C
 #endif /* ifdef __EDG_IA64_ABI */
-typedef void (*a_copy_constructor_ptr)(void*, void*);
+typedef a_ctor_return_type (*a_copy_constructor_ptr)(void*, void*);
 			/* Type of a copy constructor called from
 			   vec_cctor. */
 
