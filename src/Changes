@@ -7,7 +7,7 @@ permitted.  That has been fixed, and the following now gets an error:
 
   struct A {
     int i;
-    operator=(int ii) { i = ii; }
+    void operator=(int ii) { i = ii; }
   };
   struct B : public A { };
   void f() {
