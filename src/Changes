@@ -1,5 +1,24 @@
 Version 2.42
 
+7/9/99   Do not grant access to an nontemplate function when an instance is
+         nominated by a friend declaration
+
+Under certain circumstances the front end would ignore the fact that a friend
+declaration nominated a template instance, thereby granting access to a
+nontemplate function.  For example,
+
+  template<int N> class C;
+  template<int N> void f(C<N>&);
+  template<int N> class C {
+    friend void f<N>(C<N> &c);
+    int x;
+  };
+  void f(C<42> &c) { // Ordinary (nontemplate) function in strict mode
+    c.x = 42; // Error in strict mode (used to pass undiagnosed)
+  }
+
+This is now fixed.
+
 7/8/99   #include followed by non-trivial macro expansion
 
 A #include directive in which the file name is given by a non-trivial

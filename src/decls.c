@@ -1687,8 +1687,11 @@ called by id_linkage.
             function_template_seen = TRUE;
           }  /* if */
         } else {
-          if (idlbp->is_function_template) {
-            /* No match. */
+          /* The listed declaration is not a template or a using-decl. */
+          if (idlbp->is_function_template || locator->is_template_id) {
+            /* If we are matching a template or a template instance, we cannot
+               establish the match based on routine types.  That case will be
+               covered by going back to the original template below. */
           } else {
             /* Compare the routine type of the current declaration with that
                of the previous declaration.  other_decl may be a namespace
