@@ -236,6 +236,11 @@ extern void get_integer_size_and_alignment(an_integer_kind  ikind,
                                            a_targ_size_t    *p_size,
                                            a_targ_alignment *p_alignment);
 
+extern an_integer_kind int_kind_for_size_and_alignment(
+                                                a_targ_size_t    size,
+                                                a_targ_alignment alignment,
+                                                a_boolean        is_signed);
+
 #if DEBUG
 extern char* db_format_integer_value(an_integer_value  *value);
 #endif /* DEBUG */

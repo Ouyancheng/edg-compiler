@@ -8734,25 +8734,10 @@ of the front end.
      targ_sizeof_ptr_to_data_member.  That is, find the integer kind to be
      used for pointers to data members.  An unsigned type is always used.
      Note that cfront uses "int *". */
-  { an_integer_kind  int_kind;
-    a_targ_size_t    int_size;
-    a_targ_alignment int_alignment;
-    for (int_kind = (an_integer_kind)0;
-         (int)int_kind < (int)ik_last;
-         int_kind = (an_integer_kind)((int)int_kind + 1)) {
-      get_integer_size_and_alignment(int_kind, &int_size, &int_alignment);
-      if (int_size == targ_sizeof_ptr_to_data_member &&
-          int_alignment == targ_alignof_ptr_to_data_member &&
-          !int_kind_is_signed[(int)int_kind]) {
-        /* This is the kind to use. */
-        targ_ptr_to_data_member_int_kind = int_kind;
-        goto have_ptr_to_member_int_kind;
-      }  /* if */
-    }  /* for */
-    internal_error(
-             "il_lower_init: no integer of right size for ptr to data member");
-have_ptr_to_member_int_kind:;
-  }
+  targ_ptr_to_data_member_int_kind =
+               int_kind_for_size_and_alignment(targ_sizeof_ptr_to_data_member,
+                                               targ_alignof_ptr_to_data_member,
+                                               /*is_signed=*/FALSE);
   /* name_lower_init is called from fe_init.c because name mangling can
      be used separately from the rest of IL lowering. */
   /* Do lower_init.c initialization. */

@@ -1772,6 +1772,38 @@ of the indicated kind.
 }  /* get_integer_size_and_alignment */
 
 
+an_integer_kind int_kind_for_size_and_alignment(a_targ_size_t    size,
+                                                a_targ_alignment alignment,
+                                                a_boolean        is_signed)
+/*
+Return the integer kind that corresponds to the given size and alignment,
+signed if is_signed is TRUE, unsigned otherwise.  There must be such an
+integer kind -- an internal error is issued otherwise.
+*/
+{
+  an_integer_kind  int_kind;
+  a_targ_size_t    int_size;
+  a_targ_alignment int_alignment;
+  a_boolean        int_signed;
+
+  for (int_kind = (an_integer_kind)0;
+       (int)int_kind < (int)ik_last;
+       int_kind = (an_integer_kind)((int)int_kind + 1)) {
+    get_integer_size_and_alignment(int_kind, &int_size, &int_alignment);
+    int_signed = int_kind_is_signed[(int)int_kind];
+    if (int_size == size && int_alignment == alignment &&
+        int_signed == is_signed) {
+      /* This is the kind to use. */
+      goto have_kind;
+    }  /* if */
+  }  /* for */
+  internal_error(
+        "int_kind_for_size_and_alignment: no integer of right size/alignment");
+have_kind:;
+  return int_kind;
+}  /* int_kind_for_size_and_alignment */
+
+
 static void init_int_kind_min_max_values(an_integer_kind ikind)
 /*
 Initialize the elements of min_integer_value_of_kind and
