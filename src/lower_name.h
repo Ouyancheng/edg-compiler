@@ -18,6 +18,9 @@ lower_name.h -- Declarations related to lower_name.c (name mangling for
 #ifndef LOWER_NAME_H
 #define LOWER_NAME_H 1
 
+/* Only include this code if it is needed: */
+#if DO_IL_LOWERING
+
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */
@@ -36,6 +39,7 @@ extern void do_memory_region_name_mangling(a_scope_ptr scope);
 
 extern void name_lower_init(void);
 
+#endif /* DO_IL_LOWERING */
 #endif /* ifndef LOWER_NAME_H */
 
 /******************************************************************************
