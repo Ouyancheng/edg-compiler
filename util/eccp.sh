@@ -494,6 +494,7 @@ check_abbreviation()
 --cpfe_only
 --create_pch
 --db
+--db_name
 --debug
 --define_macro
 --definition_list_file
@@ -1188,6 +1189,7 @@ process_option()
          --template_directory | \
          --time_limit | \
          --incl_suffixes | \
+         --db_name | \
          --pack_alignment)
       feoptions=$feoptions" $curr_arg $curr_param"
       used_two_params=1
@@ -1250,6 +1252,7 @@ process_option()
           --sys_include=* | \
           --time_limit=* | \
           --incl_suffixes=* | \
+          --db_name=* | \
           --definition_list_file=* | \
           --pack_alignment=*)
       feoptions=$feoptions" $curr_arg"
