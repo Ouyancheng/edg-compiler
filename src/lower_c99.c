@@ -1433,8 +1433,8 @@ incremented or decremented will no longer be one.
       lval_copy->next = scale_factor;
       /* Save the original rvalue in a temporary that will be used to produce
          the result: */
-      result = assign_expr_to_temp_and_make_expr_for_reuse(
-                                                add_indirection_to_node(lval));
+      lval = add_indirection_to_node(lval);
+      result = assign_expr_to_temp_and_make_expr_for_reuse(lval);
       /* Adjust the type of the pointer operand to point to the underlying
          element type. */
       new_type = make_pointer_type(underlying_array_element_type(array_type));
@@ -1893,7 +1893,10 @@ in C99 mode to represent a compound literal.
                      &insert_location,
                      &keep_dynamic_init,
                      (a_constant **)NULL);
-
+#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
+  /* After lowering, the type will no longer be variably-modified. */
+  var->has_variably_modified_type = FALSE;
+#else /* !(VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS) */
   if (var->has_variably_modified_type) {
     /* If the variable has variably-modified type, put out an stmk_vla_decl
        for it. */
@@ -1902,11 +1905,8 @@ in C99 mode to represent a compound literal.
     stmk_vla_decl_stmt->variant.vla.is_typedef_decl = FALSE;
     stmk_vla_decl_stmt->variant.vla.variant.variable = var;
     add_to_end_of_temp_init_statements_list(stmk_vla_decl_stmt);
-#if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
-    /* After lowering, the type will no longer be variably-modified. */
-    var->has_variably_modified_type = FALSE;
-#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
   }  /* if */
+#endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
   if (keep_dynamic_init) {
     add_stmk_init_for_compound_literal(var, dip);
   }  /* if */
