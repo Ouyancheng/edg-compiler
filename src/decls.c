@@ -6775,7 +6775,7 @@ return a pointer to it in *symbol_ptr.
   a_namespace_ptr          nsp;
 
   db_enter(3, "decl_typedef");
-  sym = curr_scope_id_lookup(locator, IDL_NO_OPTIONS);
+  sym = curr_scope_id_lookup(locator, IDL_PROJ_SYMBOL_ALLOWED);
   if (microsoft_mode && sym == NULL &&
       ssep->kind == (a_scope_kind)sck_class_struct_union) {
     remove_any_inherited_type_synonym(locator);

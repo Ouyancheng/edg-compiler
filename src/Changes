@@ -1,5 +1,15 @@
 Version 2.46
 
+12/4/01  Spurious error on typedef to base class member
+
+A spurious error was issued on a typedef of a base class member named as
+a member of the current class and given the same name in the derived class.
+This has been fixed.
+
+  template <class T> struct A : public T {
+    typedef typename A::X X;
+  };
+
 12/4/01  Dependent base class lookup when not doing dependent name processing
 
 A variable has been added to make it possible to do the base class portion
