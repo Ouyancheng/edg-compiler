@@ -5220,7 +5220,7 @@ generated.
       check_assertion(template_sym->kind == (a_symbol_kind)sk_class_template);
       /* When a member class template is specialized, the list of partial
          specializations should be cleared because those partial
-         specialiations were associated with the prototype template. */
+         specializations were associated with the prototype template. */
       tssp->variant.class_template.partial_specializations = NULL;
       for (sym = tssp->variant.class_template.instantiations; sym != NULL;
            sym = sym->next) {
