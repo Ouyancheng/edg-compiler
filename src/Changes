@@ -1,5 +1,12 @@
 Version 2.31
 
+1/9/95    Support for #pragma pack() fixed
+
+When USER_CONTROL_OF_STRUCT_PACKING is TRUE, the use of the pack pragma
+with no arguments once again causes the packing alignment to revert to the
+value specified on the command line.  This was broken when support for
+"push" and "pop" was added (see Changes file entry of 4/5/95).
+
 1/8/96    --special_subscript_cost
 
 A new command-line option --special_subscript_cost restores the old
