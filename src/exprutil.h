@@ -479,6 +479,20 @@ extern void make_constructor_call(a_routine_ptr    ctor_routine,
                                   an_expr_node_ptr arg_expr_list,
                                   an_operand       *result);
 
+extern a_boolean user_defined_conversion_possible(
+                                  an_operand         *source_operand,
+                                  a_type_ptr         dest_type,
+                                  a_boolean          conv_into_init_target,
+                                  a_boolean          is_argument,
+                                  a_routine_ptr      *conversion_routine,
+                                  a_boolean          *cctor_elision_done,
+                                  a_boolean          *failed);
+
+extern void user_convert_operand(an_operand         *operand,
+                                 a_type_ptr         dest_type,
+                                 a_routine_ptr      conversion_routine,
+                                 an_expression_kind expression_kind);
+
 extern void prep_elision_initializer_operand(
                                       an_operand       *source_operand,
                                       a_type_ptr       class_type,
@@ -487,6 +501,7 @@ extern void prep_elision_initializer_operand(
 
 extern void prep_initializer_operand(an_operand         *source_operand,
                                      a_type_ptr         dest_type,
+                                     a_boolean          is_argument,
                                      an_expression_kind expression_kind,
                                      an_error_code      incompatible_err);
 
