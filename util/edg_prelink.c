@@ -516,7 +516,12 @@ exit status.
 */
 {
   fprintf(stderr, "%s: internal error: %s\n", message_prefix, error_string);
-  exit (RC_CATASTROPHE);
+#if EXIT_ON_INTERNAL_ERROR
+  exit(RC_CATASTROPHE);
+#else /* !EXIT_ON_INTERNAL_ERROR */
+  (void)fflush(stderr);
+  abort();
+#endif /* EXIT_ON_INTERNAL_ERROR */
 }  /* pl_internal_error */
 
 
