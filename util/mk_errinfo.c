@@ -35,22 +35,10 @@ Usage:
 #include "host_envir.h"
 
 #if __ANSIC__ || USING_ISO_C
-/* Get bsearch, qsort, and exit prototypes. */
+/* Get qsort, and exit prototypes. */
 #include <stdlib.h>
 typedef sizeof_t qsort_nmemb_type;
-#if defined(__SUNPRO_CC) && __BSD__
-/* Sun C++ on SunOS 4.1.3 uses const char * as the first argument of
-   bsearch. */
-typedef const char * a_bsearch_arg_type;
-#define BSEARCH_ARG_DEFINED
-#endif /* defined(__SUNPRO_CC) && __BSD__ */
 #else /* !(__ANSIC__ || USING_ISO_C) */
-EXTERN_C a_void_ptr bsearch(a_const_void_ptr key,
-                            a_const_void_ptr base,
-                            sizeof_t         nmemb,
-                            sizeof_t         size,
-                            int(*compar)(a_const_void_ptr,
-                                         a_const_void_ptr));
 #if __BSD__
 EXTERN_C int qsort(a_void_ptr       base,
                    int              nmemb,
@@ -74,11 +62,6 @@ EXTERN_C char *malloc(unsigned size);
 #include <malloc.h>
 #endif /* __BSD__ */
 #endif /* __ANSIC__ || USING_ISO_C */
-
-#ifndef BSEARCH_ARG_DEFINED
-typedef a_const_void_ptr a_bsearch_arg_type;
-#endif /* ifndef BSEARCH_ARG_DEFINED */
-
 
 /*
 Lines from "nm" are read into this buffer for analysis.
