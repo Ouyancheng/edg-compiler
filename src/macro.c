@@ -1381,6 +1381,7 @@ associated global variables will also have been set).
   a_boolean       at_end_of_source;
   a_boolean       delete_source_from_loc_was_set_on_entry = FALSE;
   a_boolean       token_pasting_off_end;
+  a_boolean       too_many_args_warning_given = FALSE;
   a_macro_arg_ptr map, prev_end_of_macro_arg_list = end_of_macro_arg_list;
 #define ARG_VALUES_SIZE 50
 			/* For parameter counts in the normal range, the
@@ -1648,9 +1649,17 @@ end_scan_for_macro_modifs:;
              the beginning and end of the argument is ignored. */
           if (pp == NULL) {
             /* Too many arguments. */
-            remove_stop_token(tok_comma);
-            syntax_error(ec_too_many_macro_args);
-            goto end_all_args_scan;
+            if (cfront_compatibility_mode) {
+              /* In cfront mode, this is only a warning. */
+              if (!too_many_args_warning_given) {
+                warning(ec_too_many_macro_args);
+                too_many_args_warning_given = TRUE;
+              }  /* if */
+            } else {
+              remove_stop_token(tok_comma);
+              syntax_error(ec_too_many_macro_args);
+              goto end_all_args_scan;
+            }  /* if */
           }  /* if */
           map = alloc_macro_arg();
           add_to_arg_values(map);
@@ -1798,7 +1807,9 @@ end_scan_for_macro_modifs:;
           /* Re-get the "," or ")" that is next. */
           (void)arg_get_token(&any_white_space_skipped);
 end_arg_expansion:;
-          pp = pp->next;
+          /* Advance to the next argument (unless we've given an error about
+             too many arguments). */
+          if (pp != NULL) pp = pp->next;
           /* Keep looping while a comma is the next token. */
           not_done = (curr_token == tok_comma);
           if (not_done) {
@@ -3254,7 +3265,8 @@ Display and return the amount of space used for various macro tables.
 
   db_space_used("macro param", num_macro_params_allocated, a_macro_param);
   db_space_used("macro def", num_macro_defs_allocated, a_macro_def);
-  db_space_used_general("macro arg", num_macro_args_allocated, a_macro_arg);
+  db_space_used_lost_general("macro arg", avail_macro_args,
+                             num_macro_args_allocated, a_macro_arg);
   db_space_used_general("Macro arg text", macro_arg_raw_text_space, char);
   db_space_used("Param name strings", param_name_string_space, char);
   db_space_used("Macro definition text", macro_definition_space, char);

@@ -1,5 +1,10 @@
 Version 2.19
 
+7/9/93   cfront compatibility: extra macro arguments are just a warning
+
+In cfront compatibility mode, extra arguments in a macro invocation
+are now a warning instead of an error.
+
 7/9/93   Internal error on cast to class type in constant expression
 
 An internal error is no longer issued on a cast to a class type that
