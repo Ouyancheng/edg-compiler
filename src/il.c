@@ -6620,6 +6620,8 @@ pointer to it.
 #else
     case pk_test_next_statement:
     case pk_test_next_decl:
+    case pk_test_immediate:
+    case pk_test_other:
       pp->variant.dummy = 0;
 #endif /* if 0 */
       break;
