@@ -1,6 +1,6 @@
 Version 2.44
 
-6/22/00  C++-generating back end -- output of extern "C" for static functions
+6/22/00  C++-generating back end: output of extern "C" for static functions
 
 The C++-generating back end failed to output extern "C" for the declaration of
 a static function with C linkage if that declaration was not a definition.
@@ -11,7 +11,7 @@ For example:
 
 This is now fixed.
 
-6/22/00  C++-generating back end -- improved output for class casts
+6/22/00  C++-generating back end: improved output for class casts
 
 Thanks to the addition of an "is_explicit_cast" flag to the
 enk_temp_init expression node (IL CHANGE), the C++-generating
@@ -41,7 +41,7 @@ and a typedef declaration.
 
 This is now fixed (see also related Changes entries of 11/1/99 and 11/8/99).
 
-6/21/00  Non-constant sizeofs -- SIZEOF_TYPE_IS_UNKNOWN
+6/21/00  Non-constant sizeofs: SIZEOF_TYPE_IS_UNKNOWN
 
 In some cases when using the C++ generating back end it is difficult
 or impossible to fully duplicate the layout algorithm of the target C/C++
