@@ -271,13 +271,6 @@ extern a_symbol_ptr find_addr_of_overloaded_function_match(
                                                a_std_conv_descr   *std_conv,
                                                a_boolean          *ambiguous);
 
-extern void determine_arg_match_level(
-                               an_operand           *arg_operand,
-                               a_type_ptr           arg_type,
-                               a_type_ptr           param_type,
-                               a_boolean            try_user_conversions,
-                               an_arg_match_summary *arg_summary);
-
 extern void selector_match_with_this_param(
                                an_operand           *bound_function_selector,
                                a_boolean            selector_is_object_pointer,
@@ -395,6 +388,7 @@ extern void prep_initializer_operand(
                                   a_type_ptr    dest_type,
                                   a_conv_descr  *conversion,
                                   a_boolean     initializing_return_value,
+                                  a_boolean     try_user_conversions,
                                   an_error_code incompatible_err);
 
 extern void prep_argument_operand(an_operand       *source_operand,

@@ -30,11 +30,12 @@ overload.c -- Expression processing overload resolution.
 #include "class_decl.h"
 
 /* Forward declarations required because of out-of-order references. */
-static void prep_conversion_operand(an_operand    *source_operand,
-                                    a_type_ptr    dest_type,
-                                    a_conv_descr  *conversion,
-                                    a_boolean     is_initialization,
-                                    an_error_code incompatible_err,
+static void prep_conversion_operand(an_operand        *source_operand,
+                                    a_type_ptr        dest_type,
+                                    a_conv_descr      *conversion,
+                                    a_boolean         is_initialization,
+                                    a_boolean         try_user_conversions,
+                                    an_error_code     incompatible_err,
                                     a_source_position *err_pos);
 static a_boolean conversion_to_class_possible(
                                   an_operand               *source_operand,
@@ -765,7 +766,8 @@ pointer transformation should be done.
 }  /* function_transformation_needed_on_reference_init */
 
 
-void determine_arg_match_level(an_operand           *arg_operand,
+static void determine_arg_match_level(
+                               an_operand           *arg_operand,
                                a_type_ptr           arg_type,
                                a_type_ptr           param_type,
                                a_boolean            try_user_conversions,
@@ -4302,6 +4304,7 @@ argument.  Adjust the operand type to match the type requirement.
       prep_conversion_operand(operand, pointer_type,
                               &arg_match->conversion,
                               /*is_initialization=*/TRUE,
+                              /*try_user_conversions=*/TRUE,
                               ec_no_error,
                               &operand->position);
     }  /* if */
@@ -5046,6 +5049,7 @@ static a_boolean conversion_possible(an_operand        *source_operand,
                                      a_type_ptr        dest_type,
                                      a_type_ptr        orig_dest_type,
                                      a_boolean         is_initialization,
+                                     a_boolean         try_user_conversions,
                                      an_error_code     incompatible_err,
                                      a_source_position *err_pos,
                                      a_conv_descr      *conversion)
@@ -5055,7 +5059,8 @@ destination type, implicitly, in an initialization (is_initialization ==
 TRUE) or assignment (is_initialization == FALSE).  If so, set
 *conversion to describe the conversion, and return TRUE.  If not, issue
 the error incompatible_err at the position err_pos, change the operand
-to an error operand, and return FALSE.  See 3.3.16.1 in the ANSI C
+to an error operand, and return FALSE.  Try user-defined conversions
+only if try_user_conversions is TRUE.  See 3.3.16.1 in the ANSI C
 standard and 12.3 in the ARM.  Note that this routine should only be
 called when the conversion must be done, not when we're just wondering
 if it can be done, because it does operand transformations on
@@ -5077,7 +5082,7 @@ in error messages.
     internal_error("conversion_possible: dest_type is reference");
   }  /* if */
 #endif /* CHECKING */
-  if (C_dialect == C_dialect_cplusplus &&
+  if (C_dialect == C_dialect_cplusplus && try_user_conversions &&
       user_defined_conversion_possible(source_operand, dest_type,
                                        is_initialization,
                                        /*need_lvalue_result=*/FALSE,
@@ -5455,6 +5460,7 @@ static a_boolean conversion_usable_or_possible(
                                     a_type_ptr        dest_type,
                                     a_type_ptr        orig_dest_type,
                                     a_boolean         is_initialization,
+                                    a_boolean         try_user_conversions,
                                     an_error_code     incompatible_err,
                                     a_source_position *err_pos,
                                     a_conv_descr      **p_conversion,
@@ -5465,7 +5471,8 @@ for details on the parameters).  Return TRUE if it can.  If *p_conversion
 is non-NULL, the feasibility of the conversion has previously been determined.
 Otherwise, set *p_conversion to point to *local_conversion (probably a
 local variable in the caller), and call conversion_possible to fill in
-the conversion information.  orig_dest_type is the destination type
+the conversion information.  Try user-defined conversions only if
+try_user_conversions is TRUE.  orig_dest_type is the destination type
 before any rewriting, for use in error messages.
 */
 {
@@ -5479,7 +5486,7 @@ before any rewriting, for use in error messages.
   } else {
     *p_conversion = local_conversion;
     possible = conversion_possible(source_operand, dest_type, orig_dest_type,
-                                   is_initialization,
+                                   is_initialization, try_user_conversions,
                                    incompatible_err, err_pos,
                                    *p_conversion);
   }  /* if */
@@ -5491,6 +5498,7 @@ static void prep_conversion_operand(an_operand        *source_operand,
                                     a_type_ptr        dest_type,
                                     a_conv_descr      *conversion,
                                     a_boolean         is_initialization,
+                                    a_boolean         try_user_conversions,
                                     an_error_code     incompatible_err,
                                     a_source_position *err_pos)
 /*
@@ -5499,8 +5507,9 @@ incompatible_err at *err_pos.  This routine is used for initialization
 (is_initialization == TRUE) and assignment (is_initialization == FALSE).
 source_operand may be an rvalue or an lvalue.  On return, it will
 always be an rvalue.  If conversion is non-NULL, the conversion
-has previously been found to be acceptable, and *conversion
-describes it.  dest_type must not be a reference type.
+has previously been found to be acceptable, and *conversion describes
+it.  dest_type must not be a reference type.  Try user-defined
+conversions only if try_user_conversions is TRUE. 
 */
 {
   a_conv_descr local_conversion;
@@ -5512,7 +5521,7 @@ describes it.  dest_type must not be a reference type.
 #endif /* CHECKING */
   /* See if the conversion is possible. */
   if (conversion_usable_or_possible(source_operand, dest_type, dest_type,
-                                    is_initialization,
+                                    is_initialization, try_user_conversions,
                                     incompatible_err, err_pos,
                                     &conversion,
                                     &local_conversion)) {
@@ -5846,6 +5855,7 @@ elision in C++ mode.
      class type. */
   if (conversion_possible(source_operand, dest_type, dest_type,
                           /*is_initialization=*/TRUE,
+                          /*try_user_conversions=*/TRUE,
                           ec_bad_initializer_type,  /* Arbitrary. */
                           &source_operand->position,
                           &conversion)) {
@@ -5939,6 +5949,7 @@ of the temporary.  Only used in C++ mode.
 static void convert_operand_into_temp(an_operand    *source_operand,
                                       a_type_ptr    dest_type,
                                       a_type_ptr    orig_dest_type,
+                                      a_boolean     try_user_conversions,
                                       a_conv_descr  *conversion,
                                       an_error_code incompatible_err,
                                       a_boolean     *err,
@@ -5950,7 +5961,8 @@ If the conversion is not possible, issue the error incompatible_err,
 convert source_operand to an error operand, and return *err TRUE.
 If a temporary is created or source_operand is already a temporary,
 return *temporary_used TRUE.  orig_dest_type is the destination type
-before any rewriting, for use in error messages.  If conversion
+before any rewriting, for use in error messages.  Try user-defined
+conversions only if try_user_conversions is TRUE.  If conversion
 is non-NULL, the conversion is already known to be possible, and
 *conversion describes it.  This routine is used to convert the
 initial value in a reference initialization to a temporary that
@@ -5974,7 +5986,7 @@ Only used in C++.
   /* See if the conversion is possible. */
   if (conversion_usable_or_possible(source_operand, dest_type, orig_dest_type,
                                     /*is_initialization=*/TRUE,
-                                    incompatible_err,
+                                    incompatible_err, try_user_conversions,
                                     &source_operand->position,
                                     &conversion,
                                     &local_conversion)) {
@@ -6064,13 +6076,15 @@ void prep_initializer_operand(an_operand    *source_operand,
                               a_type_ptr    dest_type,
                               a_conv_descr  *conversion,
                               a_boolean     initializing_return_value,
+                              a_boolean     try_user_conversions,
                               an_error_code incompatible_err)
 /*
 Check the operand for initializer compatibility against the type supplied.
 Cast the operand if required to make it the right type.  Convert the
 operand from an lvalue to an rvalue if necessary (it usually is).
 initializing_return_value is TRUE if the initialization is being done
-to return a value in a return statement.  If the operand and type are
+to return a value in a return statement.  Try user-defined conversions
+only if try_user_conversions is TRUE.  If the operand and type are
 incompatible, issue the error incompatible_err.  This routine is used for
 initialization, function call arguments, and return expressions, i.e.,
 for "="-type initializations.  It is not used when copy constructor
@@ -6241,6 +6255,7 @@ found to be acceptable, and *conversion describes it.
         /* The temp has the same type as the operand, but without
            type qualifiers. */
         convert_operand_into_temp(source_operand, unqual_dest_type, dest_type,
+                                  try_user_conversions,
                                   conversion, incompatible_err, &err,
                                   &temporary_used);
         if (err) {
@@ -6292,6 +6307,7 @@ found to be acceptable, and *conversion describes it.
     /* Normal case (not initializing a reference). */
     prep_conversion_operand(source_operand, dest_type, conversion,
                             /*is_initialization=*/TRUE,
+                            try_user_conversions,
                             incompatible_err,
                             &source_operand->position);
   }  /* if */
@@ -6322,6 +6338,7 @@ to be acceptable, and *conversion describes it.
     if (conversion_usable_or_possible(source_operand, formal_param->type,
                                       formal_param->type,
                                       /*is_initialization=*/TRUE,
+                                      /*try_user_conversions=*/TRUE,
                                       err_code, &source_operand->position,
                                       &conversion,
                                       &local_conversion)) {
@@ -6340,6 +6357,7 @@ to be acceptable, and *conversion describes it.
     prep_initializer_operand(source_operand, formal_param->type,
                              conversion,
                              /*initializing_return_value=*/FALSE,
+                             /*try_user_conversions=*/TRUE,
                              err_code);
   }  /* if */
 }  /* prep_argument_operand */
@@ -6365,6 +6383,7 @@ an error).  err_code is the error code to be used in case of error.
   /* See if the conversion is possible. */
   if (conversion_possible(source_operand, required_type, required_type,
                           /*is_initialization=*/TRUE,
+                          /*try_user_conversions=*/TRUE,
                           err_code, &source_operand->position,
                           &conversion)) {
     /* Yes.  Build the dynamic init entry. */
@@ -6395,6 +6414,7 @@ routine is only called for cases where bitwise copying applies.
   prep_conversion_operand(source_operand, dest_type,
                           (a_conv_descr_ptr)NULL,
                           /*is_initialization=*/FALSE,
+                          /*try_user_conversions=*/TRUE,
                           incompatible_err, err_pos);
 }  /* prep_assignment_operand */
 

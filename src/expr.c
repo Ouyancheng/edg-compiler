@@ -1317,7 +1317,8 @@ error err_code.
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */
   prep_initializer_operand(&result, dest_type, (a_conv_descr_ptr)NULL,
-                           /*initializing_return_value=*/FALSE, err_code);
+                           /*initializing_return_value=*/FALSE,
+                           /*try_user_conversions=*/TRUE, err_code);
    /* Check for the required closing parenthesis. */
   check_closing_paren_after_expr_list();
   remove_matching_stop_token(tok_rparen);
@@ -8732,6 +8733,7 @@ the appropriate dynamic initialization entry and return NULL.
       prep_initializer_operand(&result, required_type,
                                (a_conv_descr_ptr)NULL,
                                /*initializing_return_value=*/TRUE,
+                               /*try_user_conversions=*/TRUE,
                                err_code);
     }  /* if */
     expression = make_node_from_operand(&result);
@@ -8957,7 +8959,6 @@ Return the constant in *constant.
 {
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
-  a_std_conv_descr    std_conv;
 
   db_enter(3, "scan_template_argument_constant_expression");
 
@@ -8965,38 +8966,24 @@ Return the constant in *constant.
   expr_stack_entry.is_template_arg_expression = TRUE;
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  /* Check that its type is correct or can be converted without use
-     of user-defined conversions. */
-  if (impl_conversion_possible(result.type,
-                               is_constant_operand(&result),
-                               &result.variant.constant,
-                               param_type,
-                               /*suppress_extensions=*/FALSE,
-                               ec_bad_nontype_template_arg,
-                               &std_conv)) {
-    /* Convert to the required type.  Note that any suggested warning
-       from the above test will be re-discovered in the conversion. */
-    prep_initializer_operand(&result, param_type, (a_conv_descr_ptr)NULL,
-                             /*initializing_return_value=*/FALSE,
-                             ec_bad_nontype_template_arg);
-    /* Make a constant from the operand. */
-    extract_constant_from_operand(&result, constant);
-    /* If the template parameter has a reference type, give the constant
-       a reference type (instead of the pointer type it has). */
-    if (is_reference_type(param_type) && !is_error_operand(&result)) {
-      check_assertion(is_pointer_type(constant->type));
-      constant->type = param_type;
-    }  /* if */
-    /* Make the sure that the constant does not use any local variables,
-       etc., since the template will be created at the file scope. */
-    if (constant_references_non_external_entity(constant)) {
-      pos_error(ec_nonexternal_entity_in_template_arg, &result.position);
-      set_error_constant(constant);
-    }  /* if */
-  } else {
-    /* Some error. */
-    pos_ty2_error(ec_bad_nontype_template_arg, &result.position,
-                  result.type, param_type);
+  /* Convert to the required type if necessary.  Do not use user-defined
+     conversions. */
+  prep_initializer_operand(&result, param_type, (a_conv_descr_ptr)NULL,
+                           /*initializing_return_value=*/FALSE,
+                           /*try_user_conversions=*/FALSE,
+                           ec_bad_nontype_template_arg);
+  /* Make a constant from the operand. */
+  extract_constant_from_operand(&result, constant);
+  /* If the template parameter has a reference type, give the constant
+     a reference type (instead of the pointer type it has). */
+  if (is_reference_type(param_type) && !is_error_operand(&result)) {
+    check_assertion(is_pointer_type(constant->type));
+    constant->type = param_type;
+  }  /* if */
+  /* Make the sure that the constant does not use any local variables,
+     etc., since the template will be created at the file scope. */
+  if (constant_references_non_external_entity(constant)) {
+    pos_error(ec_nonexternal_entity_in_template_arg, &result.position);
     set_error_constant(constant);
   }  /* if */
   pop_expr_stack();
@@ -9031,6 +9018,7 @@ constant class members (an extension).
   /* Convert to the required type. */
   prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
                            /*initializing_return_value=*/FALSE,
+                           /*try_user_conversions=*/FALSE,
                            ec_bad_initializer_type);
   /* Make a constant from the operand. */
   extract_constant_from_operand(&result, constant);
@@ -9074,6 +9062,7 @@ copy constructor elision is possible; see scan_class_initializer_expression.
   /* Convert to the required type. */
   prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
                            /*initializing_return_value=*/FALSE,
+                           /*try_user_conversions=*/TRUE,
                            ec_bad_initializer_type);
   /* Return a constant or expression depending on what was scanned. */
   *is_constant = TRUE;
