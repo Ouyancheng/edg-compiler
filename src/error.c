@@ -2914,7 +2914,9 @@ and doing any required expansions, the diagnostic is written.
             curr_seg->kind != (a_message_segment_kind)msk_last;
          curr_seg = curr_seg->next ) {
       switch (curr_seg->kind) {
-        /* No processing is needed for msk_error_text_part. */
+        case msk_error_text_part:
+          /* No processing needed. */
+          break;
         case msk_user_string:
 #if CHECKING
           if (error_msg_strings[curr_seg->sequence_no] == NULL) {
