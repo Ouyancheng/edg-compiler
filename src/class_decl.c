@@ -9068,6 +9068,17 @@ following the member declaration.
                                         /*is_function=*/TRUE,
                                         function_def_present,
                                         !no_decl_specifiers);
+          /* Under most circumstances the implicit-int substitution will be
+             done in decl_specifiers.  An exception is a comma list that
+             includes a conversion operator declaration followed by another
+             declaration -- e.g.,
+               struct S { operator X(), i; };
+             for which the type returned by decl_specifiers an
+             unknown_type(). */
+          if (!decl_info.is_first_in_declarator_list) {
+            local_type->variant.routine.return_type =
+                                integer_type((an_integer_kind)ik_int);
+          }  /* if */
         }  /* if */
       }  /* if */
       if (local_type == member_type) {
@@ -9338,6 +9349,15 @@ following the member declaration.
                                       /*is_function=*/FALSE,
                                       /*is_function_def=*/FALSE,
                                       !no_decl_specifiers);
+        /* Under most circumstances the implicit-int substitution will be
+           done in decl_specifiers.  An exception is a comma list that
+           includes a conversion operator declaration followed by another
+           declaration -- e.g.,
+             struct S { operator X(), i; };
+           for which the type returned by decl_specifiers an unknown_type(). */
+        if (!decl_info.is_first_in_declarator_list) {
+          local_type = integer_type((an_integer_kind)ik_int);
+        }  /* if */
       }  /* if */
       if (decl_info.storage_class == (a_storage_class)sc_static) {
         /* Static data member. */
