@@ -1042,7 +1042,7 @@ caution when modifying this routine.
                   template<class T> struct S;
                   struct S; // ignored
             */
-            if (next_token() == tok_semicolon) {
+            if (next_token() == tok_semicolon && !is_ref_within_new_expr) {
               tag_sym = tag_sym->variant.template_info
                              ->variant.class_template.prototype_instantiation;
               warning(ec_not_a_class_or_struct_name);
@@ -1199,7 +1199,8 @@ caution when modifying this routine.
     /* Save the symbol locator for this identifier. */
     *locator = locator_for_curr_id;
     if (next_tok == tok_semicolon) {
-      if (*check_for_vacuous_decl && C_dialect != C_dialect_pcc) {
+      if (*check_for_vacuous_decl && C_dialect != C_dialect_pcc &&
+          !is_ref_within_new_expr) {
         /* This may be a "vacuous declaration" (e.g. "struct S;" or "enum E;").
            The effect of a vacuous declaration (unless we are in pcc mode) is
            to establish the name in the current scope, even if the tag name
