@@ -12582,7 +12582,8 @@ void scan_template_argument_constant_expression(a_type_ptr param_type,
 /*
 Scan a constant argument in a template reference.  Issue an error if it
 is incompatible with the corresponding parameter type, param_type.
-Return the constant in *constant.
+Return the constant in *constant.  If param_type is NULL, the
+parameter type is not known.
 */
 {
   an_operand          result;
@@ -12598,7 +12599,9 @@ Return the constant in *constant.
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type if necessary.  Do not use user-defined
      conversions. */
-  prep_nontype_template_argument_initializer(&result, param_type, constant);
+  if (param_type != NULL) {
+    prep_nontype_template_argument_initializer(&result, param_type, constant);
+  }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
