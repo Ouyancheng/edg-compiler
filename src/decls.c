@@ -3204,7 +3204,7 @@ diagnostics.
                                          (a_name_linkage_kind)nlk_none) {
               pos_error(ec_link_scope_requires_external_linkage, position);
             } else if ((new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) != 0) {
-              /* A redeclaraton cannot relax the link scope of a routine. */
+              /* A redeclaration cannot relax the link scope of a routine. */
               if (is_redecl &&
                   (new_modifiers->flags & DM_ANY_SUN_LINK_SCOPE) <
                           (routine->decl_modifiers & DM_ANY_SUN_LINK_SCOPE)) {
@@ -4225,6 +4225,10 @@ be a using-declaration.
 }  /* move_variable_to_end_of_list */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/* ARGSUSED */ /* The parameters are only used when Microsoft extensions are
+                  allowed. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean microsoft_for_init_hiding(a_symbol_locator  *loc,
                                            a_scope_depth     decl_level,
                                            a_boolean         *in_for_init)
