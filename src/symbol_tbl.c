@@ -5602,7 +5602,7 @@ an instance of the class template.
         internal_error("get_template_class: constant expected");
       }  /* if */
 #endif /* CHECKING */
-      constant = alloc_constant((a_constant_repr_kind)ck_error);
+      constant = fs_constant((a_constant_repr_kind)ck_error);
       scan_constant_initializer_expression(sym->variant.constant->type,
                                            constant);
       add_to_constants_list(constant);
