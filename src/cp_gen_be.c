@@ -1864,6 +1864,31 @@ Return a string that describes the tag kind for the indicated type, i.e.,
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
 
+static void gen_microsoft_decl_modifiers(a_decl_modifier decl_modifiers);
+
+static void gen_microsoft_inheritance_kind(an_inheritance_kind kind)
+/*
+Put out a Microsoft inheritance kind, e.g., __single_inheritance.
+*/
+{
+  switch (kind) {
+    case ihk_none:
+      break;
+    case ihk_single:
+      write_tok_str("__single_inheritance ");
+      break;
+    case ihk_multiple:
+      write_tok_str("__multiple_inheritance ");
+      break;
+    case ihk_virtual:
+      write_tok_str("__virtual_inheritance ");
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* gen_microsoft_inheritance_kind */
+
+
 static void gen_microsoft_uuid_declspec(char *uuid_string)
 /*
 Put out the Microsoft __declspec(uuid(...)) declaration modifier.
@@ -1878,6 +1903,23 @@ uuid_string is the GUID string, or NULL if the modifier does not apply.
     write_tok_str(")) ");
   }  /* if */
 }  /* gen_microsoft_uuid_declspec */
+
+
+static void gen_microsoft_class_decl_modifiers(a_type_ptr type)
+/*
+Put out declaration modifiers that apply to a class as a whole.
+These follow the tag kind, e.g., "struct __single_inheritance xxx".
+*/
+{
+  a_class_type_supplement_ptr ctsp=type->variant.class_struct_union.extra_info;
+
+  if (ctsp != NULL) {
+    gen_microsoft_inheritance_kind(ctsp->inheritance_kind);
+    gen_microsoft_decl_modifiers(ctsp->decl_modifiers);
+    gen_microsoft_uuid_declspec(ctsp->uuid_string);
+    form_type_qualifier(ctsp->qualifiers, /*need_trailing_space=*/TRUE, &octl);
+  }  /* if */
+}  /* gen_microsoft_class_decl_modifiers */
 
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1928,10 +1970,9 @@ or enum.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (il_header.source_language == sl_Cplusplus &&
           type->kind != (a_type_kind)tk_enum) {
-        /* Put out the Microsoft __declspec(uuid(...)) modifier on the
-           first declaration, if applicable. */
-        gen_microsoft_uuid_declspec(
-                     type->variant.class_struct_union.extra_info->uuid_string);
+        /* On the first declaration put out declaration modifiers that apply
+           to the class as a whole. */
+        gen_microsoft_class_decl_modifiers(type);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* The initial declaration of a tag cannot use a qualified name. */
@@ -2817,9 +2858,7 @@ is the one associated with the definition of the class.
   if (ctsp != NULL) {
     /* Put out modifiers that apply to the class as a whole, e.g.,
        "class __declspec(dllimport) A {...}". */
-    gen_microsoft_decl_modifiers(ctsp->decl_modifiers);
-    gen_microsoft_uuid_declspec(ctsp->uuid_string);
-    form_type_qualifier(ctsp->qualifiers, /*need_trailing_space=*/TRUE, &octl);
+    gen_microsoft_class_decl_modifiers(type);
   }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
