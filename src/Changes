@@ -4,9 +4,9 @@ Version 3.1
          versus pointer)
 
 In certain cases, overload resolution concluded that one or the
-other conversion was better when a reference to pointer and a pointer
-parameter are compared and one has more cv-qualifiers than the
-other.  They are now correctly treated as indistinguishable.
+other conversion was better when a reference to pointer parameter
+is compared against a pointer parameter and one has more cv-qualifiers
+than the other.  They are now correctly treated as indistinguishable.
 
   template <class T1> int f(T1 *p, double = 0.0) { return p->a; }
   template <class T2> int f(const T2 &p, float = 0.0f) { return p->b; }
@@ -14,12 +14,14 @@ other.  They are now correctly treated as indistinguishable.
 
 A related bug has also been corrected.  In determining whether a
 conversion for a parameter is possible in overload resolution,
-the front end mistakenly concluded that an argument of type P1
-could be used with a parameter of type P2& if P1 can be converted
-to P2.  This was incorrect.  A pointer to char, for example,
-cannot be passed to a reference to pointer to const char.  This
-mistake was generally hidden by the above problem, but can be
-seen in the difference in error messages on the following:
+the front end mistakenly concluded that an argument of pointer
+type P1 could be used with a parameter of type P2& (with P2 also
+a pointer type) if P1 can be converted to P2.  This was incorrect.
+A pointer to char, for example, cannot be passed to a reference to
+pointer to const char.  This mistake was generally hidden by the
+above problem, and by the fact that a check done after the best
+function was selected would catch the error, but it can be seen
+in the difference in error messages on the following:
 
   void foo(int);
   void foo(const char*&);
