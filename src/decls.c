@@ -7068,7 +7068,7 @@ the symbol and its linkage (which is always "none").
 static void remove_any_inherited_type_synonym(a_symbol_locator  *locator,
 					      a_symbol_ptr	sym)
 /*
-Microsoft compilers accept code like:
+Microsoft and g++ compilers accept code like:
   struct B { typedef int I; };
   struct D: B {
     typedef I J;      // Uses B::I
@@ -7182,7 +7182,7 @@ return a pointer to it in *symbol_ptr.
   sym = curr_scope_id_lookup(locator, IDL_PROJ_SYMBOL_ALLOWED);
   loc_sym = locator->specific_symbol;
   if (loc_sym != NULL && loc_sym->kind == (a_symbol_kind)sk_projection) {
-    if (microsoft_mode &&
+    if ((microsoft_mode || gpp_mode) &&
         ssep->kind == (a_scope_kind)sck_class_struct_union) {
       remove_any_inherited_type_synonym(locator, loc_sym);
       sym = NULL;

@@ -1,5 +1,18 @@
 Version 3.2
 
+5/8/03   GNU C++ compatibility: use and redeclaration of inherited type name
+
+The g++ compiler permits an inherited type name to be used in a derived
+class and then for the same name to be redeclared as a typedef in the
+derived class.  We now accept this in g++ mode.
+
+  struct A {
+    struct B { typedef int I; };
+  };
+  struct C : public A {
+    typedef B::I B;
+  };
+
 5/8/03   Microsoft compatibility: spurious ambiguity from overridden
          using-declaration
 
