@@ -1,5 +1,20 @@
 Version 2.32
 
+4/18/96 Invalid source-sequence entry when removing unneeded IL entries
+
+In the following case a class name is initially introduced in a parameter
+declaration of a member function:
+
+  class A {
+    void f(class B*);
+  };
+  class B { };
+  int A::f(class B*) { }
+
+There was a bug in generating source-sequence lists if unneeded IL entries
+were being removed, and as result incorrect code was put out by the
+C++-generating back end.  This has now been fixed.
+
 4/18/96 Conversions for class operands of the "?" operator
 
 As of the Santa Cruz X3J16/WG21 meeting (3/96), conversions are allowed
