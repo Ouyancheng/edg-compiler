@@ -18617,12 +18617,32 @@ the body should be emitted by the back end.
 #if MAINTAIN_NEEDED_FLAGS
     mark_as_needed((char*)rout_ptr, (an_il_entry_kind)iek_routine);
 #endif /* MAINTAIN_NEEDED_FLAGS */
+    if (rout_ptr->compiler_generated) {
+      /* If this is a compiler generated routine, make sure it has a body. */
+      force_definition_of_compiler_generated_routine(rout_ptr);
+      check_assertion(rout_ptr->assoc_scope != NULL_region_number);
+    }  /* if */
+#if IA64_ABI
   }  /* if */
-  if (emit_function && rout_ptr->compiler_generated) {
-    /* If this is a compiler generated routine, make sure it has a body. */
-    force_definition_of_compiler_generated_routine(rout_ptr);
-    check_assertion(rout_ptr->assoc_scope != NULL_region_number);
+  if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor ||
+      rout_ptr->special_kind == (a_special_function_kind)sfk_destructor) {
+    a_routine_list_entry_ptr rlep;
+    /* Mark any alternate entry points for a constructor or destructor
+       the same way as the underlying routine. */
+    for (rlep = rout_ptr->variant.ctor_dtor.alternate_entry_points;
+         rlep != NULL;
+         rlep = rlep->next) {
+      a_routine_ptr arout = rlep->routine;
+      arout->suppress_inline_body = !emit_function;
+      if (emit_function) {
+        arout->source_corresp.referenced = TRUE;
+#if MAINTAIN_NEEDED_FLAGS
+        mark_as_needed((char*)arout, (an_il_entry_kind)iek_routine);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+      }  /* if */
+    }  /* for */
   }  /* if */
+#endif /* IA64_ABI */
 }  /* set_body_needed_flag_for_inline_function */
 
 #endif /* INSTANTIATE_EXTERN_INLINE */
@@ -18688,9 +18708,24 @@ a body (if needed) for extern inline functions.
     /* Only generate the flags if the definition_needed flag is set.
        This is done to avoid problems caused by the removal from the IL
        of the routine entry or an enclosing class entry. */
-    if (!rout_ptr->definition_needed) {
-      instance_required = can_be_instantiated = FALSE;
-    }  /* if */
+    { a_boolean definition_needed = rout_ptr->definition_needed;
+#if IA64_ABI
+      if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor ||
+          rout_ptr->special_kind == (a_special_function_kind)sfk_destructor) {
+        /* For constructors and destructors, consider the entity needed if
+           any of the alternate entry points is needed. */
+        a_routine_list_entry_ptr rlep;
+        for (rlep = rout_ptr->variant.ctor_dtor.alternate_entry_points;
+             rlep != NULL && !definition_needed;
+             rlep = rlep->next) {
+          if (rlep->routine->definition_needed) definition_needed = TRUE;
+        }  /* for */
+      }  /* if */
+#endif /* IA64_ABI */
+      if (!definition_needed) {
+        instance_required = can_be_instantiated = FALSE;
+      }  /* if */
+    }
 #endif /* MAINTAIN_NEEDED_FLAGS */
     if (instance_required || can_be_instantiated) {
       if (instantiation_flags_in_template_info_file &&
