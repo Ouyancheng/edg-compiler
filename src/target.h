@@ -538,6 +538,16 @@ EXTERN a_float_kind
 			   jmp_buf array.  Initialized to the default value
 			   but reconfigurable. */
 
+#if GENERATE_EH_TABLES
+EXTERN an_integer_kind
+		targ_var_handle_int_kind
+#if VAR_INITIALIZERS
+                                         = TARG_VAR_HANDLE_INT_KIND
+#endif /* VAR_INITIALIZERS */
+                                                                   ;
+			/* Integer kind to be used for a "handle" in
+			   exception handling tables. */
+#endif /* GENERATE_EH_TABLES */
 #endif /* DO_IL_LOWERING */
 
 /* Aside from occasional references in targ_def.h, the following values
@@ -590,6 +600,7 @@ EXTERN a_float_kind
 #undef TARG_MINIMUM_STRUCT_ALIGNMENT
 #undef TARG_JMP_BUF_NUM_ELEMENTS
 #undef TARG_JMP_BUF_ELEMENT_INT_KIND
+#undef TARG_VAR_HANDLE_INT_KIND
 
 #ifndef MAKE_TARG_NAMES_REFER_TO_VARIABLES
 #define MAKE_TARG_NAMES_REFER_TO_VARIABLES 0
@@ -654,6 +665,7 @@ EXTERN a_float_kind
 #define TARG_MINIMUM_STRUCT_ALIGNMENT targ_minimum_struct_alignment
 #define TARG_JMP_BUF_NUM_ELEMENTS targ_jmp_buf_num_elements
 #define TARG_JMP_BUF_ELEMENT_INT_KIND targ_jmp_buf_element_int_kind
+#define TARG_VAR_HANDLE_INT_KIND targ_var_handle_int_kind
 #endif /* MAKE_TARG_NAMES_REFER_TO_VARIABLES */
 
 #if CHECKING
