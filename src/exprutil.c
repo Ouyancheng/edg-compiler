@@ -6604,8 +6604,8 @@ address of the temporary is returned.  This routine is only used in C++ mode.
 #endif /* DEBUG */
               internal_error(
               "conv_class_operand_to_object_pointer: couldn't convert to ptr");
-#endif /* CHECKING */
             }  /* if */
+#endif /* CHECKING */
             conv_to_error_operand(operand);
             optimized_case = TRUE;
           }  /* if */
