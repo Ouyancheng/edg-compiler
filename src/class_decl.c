@@ -5071,8 +5071,8 @@ The given symbol sym is a tpck_member constant created by the lookup of a
 qualified friend function declarator in a proxy class.  The type of the friend
 function is function_type and func_info provides additional information about
 the declaration.  If a source sequence entry is available for the declaration,
-then this function makes it refer to a new routine entry.  This routine entry is
-not put on any list.
+then this function makes it refer to a new routine entry.  This routine entry
+is not put on any list.
 */
 {
   if (func_info->declarator_ssep != NULL) {
@@ -5083,7 +5083,8 @@ not put on any list.
 
     switch_to_file_scope_region(&region_to_switch_back_to);
     /* Make a routine entry for this member: */
-    rp = make_routine(function_type, (a_storage_class)sc_extern, NO_SCOPE_DEPTH);
+    rp = make_routine(function_type, (a_storage_class)sc_extern,
+                      NO_SCOPE_DEPTH);
     set_source_corresp(&rp->source_corresp, sym);
     set_class_membership((a_symbol_ptr)NULL, &rp->source_corresp,
                          sym->parent.class_type);
@@ -5155,8 +5156,8 @@ of the function, and again overloading is a possibility.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (sym != NULL && sym->is_class_member &&
         !is_member_function_symbol(sym)) {
-      /* If sym represents a member of a class, but it is not a member function.
-         Issue an error. */
+      /* If sym represents a member of a class, but it is not a member
+         function.  Issue an error. */
       if (is_template_dependent_context() && is_proxy_member_symbol(sym)) {
         /* The nominated function is a member of a proxy class.  Such a member
            must be "made up" (but cannot be defined). */
@@ -5167,8 +5168,8 @@ of the function, and again overloading is a possibility.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
         } else {
           /* Create a routine entry for this friend, but don't place it on any
-             scope list.  Instead, it will be pointed to from a secondary source
-             sequence entry only. */
+             scope list.  Instead, it will be pointed to from a secondary
+             source sequence entry only. */
           check_assertion(prototype_instantiations_in_il);
           decl_proxy_member_friend(sym, function_type, func_info);
           goto done;
