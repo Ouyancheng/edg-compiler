@@ -4809,6 +4809,7 @@ make_new_comp_type:
     rtsp->calling_convention = comp_calling_convention;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (!C_mode()) {
+      /* Set the implicit-this-parameter type. */
       rtsp->implicit_this_param_type = rtsp1->implicit_this_param_type;
       /* If the two exception specifications are not identical, it is
          because of an error that will already have been reported. */
@@ -4827,6 +4828,10 @@ make_new_comp_type:
       } else {
         rtsp->routine_name_linkage = rtsp2->routine_name_linkage;
       }  /* if */
+      /* Pass a NULL source position to set_routine_calling_method_flag to
+         avoid inappropriate diagnostics on a type that doesn't correspond
+         directly to a source construct. */
+      set_routine_calling_method_flag(comp_type, &null_source_position);
     }  /* if */
   }  /* if */
   return comp_type;
@@ -6066,7 +6071,6 @@ a new tree is built.
   a_type_ptr              new_return_type, new_this_param_type;
   a_type_ptr              first_new_type_for_param_types_list;
   unsigned long           reusable_param_types;
-  a_source_position       dummy_decl_pos;
 
   /* Traverse the tree. */
   switch (type->kind) {
@@ -6139,11 +6143,6 @@ make_new_type:
       new_type->variant.routine.extra_info->assoc_routine = NULL;
       new_type->variant.routine.extra_info->implicit_this_param_type =
                                                      new_this_param_type;
-      /* Pass a NULL source position to make_param_type and to
-         set_routine_calling_method to avoid inappropriate diagnostics on
-         a type that doesn't correspond directly to a source construct. */
-      dummy_decl_pos.seq = 0;
-      dummy_decl_pos.column = SP_COL_UNKNOWN;
       /* Make copies of the entries on type's param types list, making the
          appropriate modifications. */
       prev_ptp = NULL;
@@ -6166,7 +6165,10 @@ make_new_type:
           (void)func(ptp->type, flags, &tp);
         }  /* if */
         /* Allocate the param type entry and copy default arg info. */
-        new_ptp = make_param_type(tp, &dummy_decl_pos);
+        /* Pass a NULL source position to make_param_type to avoid
+           inappropriate diagnostics on a type that doesn't correspond
+           directly to a source construct. */
+        new_ptp = make_param_type(tp, &null_source_position);
         if (ptp->has_default_arg) {
           new_ptp->has_default_arg = TRUE;
           if (ptp->default_arg_expr != NULL) {
@@ -6186,7 +6188,10 @@ make_new_type:
         }  /* if */
         prev_ptp = new_ptp;
       }  /* if */
-      set_routine_calling_method_flag(new_type, &dummy_decl_pos);
+      /* Pass a NULL source position to set_routine_calling_method_flag to
+         avoid inappropriate diagnostics on a type that doesn't correspond
+         directly to a source construct. */
+      set_routine_calling_method_flag(new_type, &null_source_position);
       break;
     case tk_array:
       /* Make an array type based on "type", making modifications as

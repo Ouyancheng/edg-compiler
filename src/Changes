@@ -1,3 +1,19 @@
+10/25/97  Internal error from failure to mark routine as returning value
+          by copy constructor
+
+An internal error has been fixed that was caused by sometimes failing to
+mark a redeclared but undefined routine as returning a value by copy
+constructor.  It could occur under various circumstances -- for instance,
+when it was necessary to merge default argument specifications:
+
+  struct S { S(const S&); };
+  S f(int, int=0);
+  S f(int=0, int);       // Bug in forming routine type for f
+  main() {
+    S s = f();           // Internal error appeared here
+  }
+
+-------------------------------------------------------------------------------
 Version 2.37, October 18, 1997
 
 10/18/97  IL version number changed to 2.29
