@@ -1027,8 +1027,8 @@ instantiation scope (the template parameters to be used, etc.).
                                     template_arg_list);
       ssep->template_decl_info = template_decl_info;
       /* The current stack state is suspended when an template instantiation
-         is done.  It will be restored in pop_scope. */
-      inside_local_class = ssep->inside_local_class = FALSE;
+         is done.  It will be restored in pop_scope.  inside_local_class
+         is reset by push_template_instantiation_scope. */
       depth_innermost_function_scope =
               ssep->depth_innermost_function_scope = NO_SCOPE_DEPTH;
       innermost_function_scope = NULL;
@@ -1628,6 +1628,11 @@ scopes.
   a_boolean			parent_instantiation_pushed = FALSE;
   a_boolean			nested_instantiation = FALSE;
 
+  /* Clear the flag that indicates that we are in a local class so that any
+     scopes pushed by this routine will not be indicated as being within
+     a local class.  This will be restored to the correct state when the
+     last scope pushed by this routine is popped. */
+  inside_local_class = FALSE;
   /* If the template was defined in a namespace, reactivate the namespace
      scope before pushing the instantiation scope. */
   get_parent_information_for_template(cache->decl_info->enclosing_scope,

@@ -1,5 +1,13 @@
 Version 2.32
 
+2/1/96    Instantiations of templates from namespaces not handled correctly
+          in certain cases
+
+Under certain circumstances, an instantiation that takes place while
+compiling a function body may improperly be marked as being local
+to a function.  This would result in the name being given an incorrect
+mangled name by IL lowering.  This has been fixed.
+
 1/31/96   Internal error on maintaining source-sequence list for
           old-style param list
 
