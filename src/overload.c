@@ -1648,7 +1648,9 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
         arg_summary->conversion.std.type_qualifiers_added = TRUE;
         if (param_is_reference) {
           /* This is a Microsoft bug extension.  Mark it as less desirable. */
-          arg_summary->anachronism_used = TRUE;
+          if (microsoft_version >= 1310) {
+            arg_summary->tiebreaker_anachronism_used = TRUE;
+          }  /* if */
         }  /* if */
         goto have_level;
       }  /* if */
@@ -1923,11 +1925,7 @@ with a const selector is enabled, allow that kind of mismatch here.
     if (match_summary->match_level != aml_none) {
       /* Anachronism -- calling non-const function with const object. */
       match_summary->const_anachronism = TRUE;
-      if (any_cfront_mode()) {
-        match_summary->tiebreaker_anachronism_used = TRUE;
-      } else {
-        match_summary->anachronism_used = TRUE;
-      }  /* if */
+      match_summary->tiebreaker_anachronism_used = TRUE;
     }  /* if */
   }  /* if */
 }  /* determine_selector_match_level */
@@ -3459,8 +3457,8 @@ apply that would make one better than the other, and return
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Use of a tiebreaker anachronism (e.g., dropping cv-qualifiers when
-     binding a reference) can break a tie. */
+  /* Use of an anachronism (e.g., calling a const function for a
+     non-const object) can break a tie. */
   if (cmp == 0 &&
       arg_match1->tiebreaker_anachronism_used !=
                                      arg_match2->tiebreaker_anachronism_used) {
