@@ -1412,7 +1412,7 @@ values needed for the previous call.
            argument. */
         param_tssp = param_symbol->variant.template_info;
         param_tssp->variant.class_template.argument_template =
-                                   symbol_for_template(tap->variant.templ.ptr);
+                                           symbol_for(tap->variant.templ.ptr);
         param_tssp->variant.class_template.substituted_param_template =
                                  tap->variant.templ.substituted_param_template;
       } else {

@@ -4532,7 +4532,7 @@ a template parameter.
     /* Look at the argument template, not the original symbol (which,
        unlike other template parameters, always points to the prototype
        argument symbol). */
-    templ_sym = symbol_for_template(templ_ptr);
+    templ_sym = symbol_for(templ_ptr);
     templ_sym = template_argument_if_template_template_param(templ_sym);
     tssp = templ_sym->variant.template_info;
     template_param_found = tssp->is_nonreal_member ||

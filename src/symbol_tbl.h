@@ -3736,6 +3736,9 @@ extern a_symbol_header_ptr find_symbol_header(char             *identifier,
 					      sizeof_t         length,
 					      a_symbol_locator	*locator);
 
+/* Return the symbol for a given IL entry. */
+#define symbol_for(entry)  ((a_symbol_ptr)(entry)->source_corresp.assoc_info)
+
 /*
 Return the master instance pointer of a template instance.
 */
@@ -4089,10 +4092,6 @@ supplement.
   /* } else { */							\
     NULL								\
   /* } */)
-
-/* Return the template symbol for a given IL template entry. */
-#define symbol_for_template(templ)					\
-  ((a_symbol_ptr)((templ)->source_corresp.assoc_info))
 
 /* If sym is a template template parameter, return the symbol for the template
    argument, otherwise return the original symbol. */
