@@ -785,6 +785,19 @@ than its type type would normally require.
 #endif /* !defined(TARG_MAXIMUM_PACK_ALIGNMENT) */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
+/*
+Value used to compute the maximum allowable size for a class object.  If
+TARG_MAX_CLASS_OBJECT_SIZE is nonzero, then it is the value to which global
+variable targ_max_class_object_size is set, except that in C++ mode a
+smaller value will be used, if necessary, to accommodate the maximum
+pointer-to-data-member offset (as implied by TARG_DELTA_INT_KIND).  If
+TARG_MAX_CLASS_OBJECT_SIZE is zero, then targ_max_class_object_size is set
+to targ_size_t_max.
+*/
+#ifndef TARG_MAX_CLASS_OBJECT_SIZE
+#define TARG_MAX_CLASS_OBJECT_SIZE TARG_SIZE_T_MAX
+#endif /* ifndef TARG_MAX_CLASS_OBJECT_SIZE */
+
 #if BACK_END_IS_C_GEN_BE
 /*
 Switch that is TRUE if the C-generating back end should generate code for
