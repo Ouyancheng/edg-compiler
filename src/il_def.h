@@ -8112,6 +8112,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "&T", "T.", "T->", "T.*", "T->*",
    "T.()", "T->()", "T.*()", "T->*()",
    "static cast", "const cast", "reinterpret cast",
+   "lvalue",
 #endif /* ifdef CIL */
    "error", "last"
 }
