@@ -4297,11 +4297,13 @@ The return expression is also set for a return from a constructor.
           internal_error("check_void_return_okay: unexpected NULL assoc_info");
       }  /* if */
 #endif /* CHECKING */
-      sym_diagnostic(no_returned_value_severity,
-                     is_implicit_return ?
-                       ec_implicit_return_from_non_void_function :
-                       ec_no_value_returned_in_non_void_function,
-                     function_name_symbol);
+      if (!function_name_symbol->is_error) {
+        sym_diagnostic(no_returned_value_severity,
+                       is_implicit_return ?
+                         ec_implicit_return_from_non_void_function :
+                         ec_no_value_returned_in_non_void_function,
+                       function_name_symbol);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* check_void_return_okay */

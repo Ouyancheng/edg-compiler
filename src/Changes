@@ -1,5 +1,18 @@
 Version 2.45
 
+8/16/00  Return diagnostics on invalid constructor and destructor definitions
+
+The front end used to diagnose a missing return statement in definitions of
+constructors that were not actually declared in the class definition.  For
+example:
+
+  struct S { S(); };
+  S::S(int) {}  // Used to report a missing return statement in addition to
+                // the fact that there is no S::S(int) declared in S.
+
+Such diagnostics are no longer emitted.  (The missing declaration in the
+function definition is still reported as an error.)
+
 8/15/00  Nested class redeclarations
 
 The redeclaration of a nested class inside the enclosing class is valid only
