@@ -3907,6 +3907,7 @@ void decl_var_or_routine(a_symbol_locator      *locator,
                          a_source_sequence_entry_ptr
                                                declarator_ssep,
                          a_boolean             is_variable_def,
+                         a_boolean             is_tentative_def,
                          a_symbol_ptr          *symbol_ptr,
                          an_id_linkage_kind    *linkage_ptr,
                          a_type_ptr            *old_type,
@@ -4050,6 +4051,11 @@ and entity pointer are updated.
              types. */
           variable_ptr->type = type_ptr = composite_type(type_ptr, *old_type);
         }  /* if */
+        /* If is_tentative_def is TRUE this looked like a tentative variable
+           declaration (C only); but now that that we know it to be a
+           redeclaration of a previously defined variable, the flag should be
+           set to FALSE. */
+        if (sym->defined) is_tentative_def = FALSE;
       }  /* if */
     } else if (linked_symbol->kind == (a_symbol_kind)sk_routine &&
                is_function) {
@@ -4511,7 +4517,7 @@ skip_overloading:;
   /* If cross-reference information is being issued, update the output.  If
      source sequence entries are being generated, update the declarator_ssep
      entry. */
-  if (is_variable_def || is_function_def) {
+  if (is_variable_def || is_function_def || is_tentative_def) {
     /* Also set the the defined flag in the symbol and update the source
        position in the IL entity. */
     f_mark_defined(sym, &locator->source_position, declarator_ssep);
@@ -5318,8 +5324,8 @@ symbol has already been entered as an undefined symbol.
   if (exceptions_enabled) func_info.throw_position = locator.source_position;
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
                       &func_info, (a_source_sequence_entry_ptr)NULL,
-                      /*is_variable_def=*/FALSE, &symbol_ptr,
-                      &linkage, &old_type, &ext_sym);
+                      /*is_variable_def=*/FALSE, /*is_tentative_def=*/FALSE,
+                      &symbol_ptr, &linkage, &old_type, &ext_sym);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
   symbol_ptr->variant.routine.ptr->source_corresp.referenced = TRUE;
@@ -9253,7 +9259,8 @@ specified (rather than defaulted to "int").
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     decl_var_or_routine(locator, storage_class, rout_type, func_info,
                         declarator_ssep, /*is_variable_def=*/FALSE,
-                        &symbol_ptr, &linkage, &old_type, &ext_sym);
+                        /*is_tentative_def=*/FALSE, &symbol_ptr, &linkage,
+                        &old_type, &ext_sym);
   }  /* if */
   routine_ptr = symbol_ptr->variant.routine.ptr;
   check_assertion(make_unqualified_type(routine_ptr->type) ==
@@ -10548,7 +10555,8 @@ continue_with_declaration:
         /* A function declaration with no body. */
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
                             &func_info, declarator_ssep,
-                            /*is_variable_def=*/FALSE, &symbol_ptr,
+                            /*is_variable_def=*/FALSE,
+                            /*is_tentative_def=*/FALSE, &symbol_ptr,
                             &linkage, &old_type, &ext_sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* The source sequence entry marking the end of the function prototype
@@ -10595,7 +10603,7 @@ continue_with_declaration:
         }  /* if */
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
                             (a_func_info_block *)NULL, declarator_ssep,
-                            is_variable_def || is_tentative_definition,
+                            is_variable_def, is_tentative_definition,
                             &symbol_ptr, &linkage, &old_type, &ext_sym);
         var_ptr = symbol_ptr->variant.variable.ptr;
         /* Fetch the type of the symbol again, since it might have been

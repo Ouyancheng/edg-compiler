@@ -203,6 +203,7 @@ extern void decl_var_or_routine(a_symbol_locator    *locator,
                                 a_source_sequence_entry_ptr
                                                     declarator_ssep,
                                 a_boolean           is_variable_def,
+                                a_boolean           is_tentative_def,
                                 a_symbol_ptr        *symbol_ptr,
                                 an_id_linkage_kind  *linkage_ptr,
                                 a_type_ptr          *old_type,

@@ -3066,8 +3066,8 @@ the compiler-generated flag should be cleared.
      in the current translation unit. */
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
                       &func_info, (a_source_sequence_entry_ptr)NULL,
-                      /*is_variable_def=*/FALSE, &sym, &linkage,
-                      &old_type, &ext_sym);
+                      /*is_variable_def=*/FALSE, /*is_tentative_def=*/FALSE,
+                      &sym, &linkage, &old_type, &ext_sym);
   sym->variant.routine.ptr->compiler_generated = TRUE;
   db_exit();
 }  /* make_global_operator_new_or_delete_symbol */
@@ -7946,12 +7946,22 @@ entry already created for this entity; otherwise, it is NULL.
          redundant. */
     } else {
       /* Issue a source sequence entry. */
+      a_boolean  is_primary_decl;
+
       /* A definition is ordinarily the primary declaration, but if it was
          previously defined and this is just a redefinition, this should be
          recorded as a secondary declaration. */
+      if (!sym_ptr->defined) {
+        is_primary_decl = TRUE;
+      } else if (C_mode() && sym_ptr->kind == (a_symbol_kind)sk_variable) {
+        /* This must be an initializing definition following a tentative
+           definition. */
+        is_primary_decl = TRUE;
+      } else {
+        is_primary_decl = FALSE;
+      }  /* if */
       sym_update_source_sequence_list(sym_ptr, source_position,
-                                      /*is_primary_decl=*/!sym_ptr->defined,
-                                      ssep);
+                                      is_primary_decl, ssep);
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */

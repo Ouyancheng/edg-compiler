@@ -2876,7 +2876,8 @@ of the function, and again overloading is a possibility.
       }  /* if */
       decl_var_or_routine(locator, storage_class, function_type,
                           func_info, (a_source_sequence_entry_ptr)NULL,
-                          /*is_variable_def=*/FALSE, &sym,
+                          /*is_variable_def=*/FALSE,
+                          /*is_tentative_def=*/FALSE, &sym,
                           &linkage, &old_type, &ext_sym);
       /* WP 11.4 para 5 prohibits defining a nonmember function in a local
          class friend declaration. */
