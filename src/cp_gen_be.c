@@ -7172,6 +7172,7 @@ TRUE if the declaration following this one is such a continuation.
       /* This is a declaration or definition of a member function inside
          its own class. */
       decl_within_class = TRUE;
+      decl_within_function = FALSE;
       if (rtsp->implicit_this_param_type == NULL) {
         /* Static member function. */
         storage_class = (a_storage_class)sc_static;
@@ -7242,7 +7243,7 @@ TRUE if the declaration following this one is such a continuation.
       gen_storage_class(storage_class);
     }  /* if */
     /* Generate other leading specifiers. */
-    if (rout->is_inline) write_tok_str("inline ");
+    if (rout->is_inline && !decl_within_function) write_tok_str("inline ");
     if (rout->is_virtual && decl_within_class) write_tok_str("virtual ");
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
