@@ -1,5 +1,18 @@
 Version 2.42
 
+8/9/99   Parenthesized declarators for cv-qualified member functions
+
+The front end used to complain about cv-qualifiers on a member function
+definition whose declarator was parenthesized (when that definition appeared
+outside a class definition).  For example:
+
+  struct S {
+    void f() const;
+  };
+  void (S::f)() const {} // Used to trigger unwarranted diagnostic.
+
+This is now fixed.
+
 8/5/99   Conversions for operands of "?" operator as required by standard
 
 The processing for the "?" operator in C++ mode now conforms more
