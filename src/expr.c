@@ -7467,6 +7467,7 @@ Return the constant in *constant.
   an_operand           result;
   an_expr_stack_entry  expr_stack_entry;
   an_arg_match_summary arg_summary;
+  a_boolean            okay;
 
   db_enter(3, "scan_template_argument_constant_expression");
 
@@ -7475,18 +7476,29 @@ Return the constant in *constant.
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_init_constant,
             EOPT_DISALLOW_COMMA_OPERATOR);
-  /* Check that its type is correct.  Only an "exact match" according
-     to the overloading resolution rules (ARM 14.2) is allowed, but that
-     does allow trivial conversions. */
+  /* Check that its type is correct. */
   determine_arg_match_level(&result, (a_type_ptr)NULL, param_type,
                             /*try_user_conversions=*/FALSE, &arg_summary);
-  /* In non-strict mode, we allow promotions and standard conversions
-     as an extension. */
-  if (arg_summary.match_level == aml_exact ||
-      (!strict_ansi_mode &&
-       (arg_summary.match_level == aml_promotion ||
-        arg_summary.match_level == aml_std_conversion))) {
-    /* Okay. */
+  okay = FALSE;
+  /* Only an "exact match" according to the overloading resolution rules
+     (ARM 14.2) is allowed, but that does allow trivial conversions. */
+  if (arg_summary.match_level == aml_exact) {
+    okay = TRUE;
+  } else if (arg_summary.match_level == aml_promotion ||
+             arg_summary.match_level == aml_std_conversion) {
+    /* In non-strict mode, allow promotions and standard conversions
+       as an extension. */
+    if (strict_ansi_mode) {
+      if (strict_ansi_error_severity != es_error) {
+        okay = TRUE;
+        pos_warning(ec_bad_nontype_template_arg, &result.position);
+      }  /* if */
+    } else {
+      okay = TRUE;
+      pos_remark(ec_bad_nontype_template_arg, &result.position);
+    }  /* if */
+  }  /* if */
+  if (okay) {
     /* Convert to the required type (i.e., do any required trivial
        conversions). */
     prep_initializer_operand(&result, param_type,
