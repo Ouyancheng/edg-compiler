@@ -7359,11 +7359,11 @@ next_declaration:
                                    (a_scope_kind)sck_template_declaration) {
       /* This is an error case -- a class definition within a template
          parameter declaration.  Don't try to enter the class in the IL. */
-    } else if (tag_sym->is_class_member &&
+    } else if (class_type->source_corresp.is_class_member &&
                (scope_stack[effective_decl_level].kind !=
                       (a_scope_kind)sck_class_struct_union ||
                 scope_stack[effective_decl_level].assoc_type !=
-                      tag_sym->parent.class_type)) {
+                      class_type->source_corresp.parent.class_type)) {
       /* This must be a definition of an anonymous union member type that
          appears outside the scope of the anonymous union.  It's already on
          a list. */
