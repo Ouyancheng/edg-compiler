@@ -1,5 +1,12 @@
 Version 2.22
 
+1/9/94   Diagnostics on type declaration within function prototype scope
+
+For old-style parameter lists, a change has been in how diagnostics are
+issued on declarations that do not declare a parameter in a function
+prototype scope.  This includes a slight rewording of the text for error
+code ec_decl_should_be_of_param.
+
 1/5/94   Access declarations involving hidden and ambiguous names
 
 An error is now issued on an access declaration for which the unqualified
