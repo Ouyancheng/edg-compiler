@@ -312,6 +312,8 @@ created for this entity; otherwise, it is NULL.
        specifiers and/or :: qualification to defeat name hiding. */
     a_boolean       is_local_to_function = FALSE;
     a_symbol_ptr    old_sym_ptr;
+    a_scope_ptr     sp;
+    a_namespace_ptr nsp;
 
     if (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
         sym_ptr->is_class_member) {
@@ -324,6 +326,8 @@ created for this entity; otherwise, it is NULL.
                (sym_ptr->is_class_member &&
                 is_template_class_type(sym_ptr->parent.class_type))) {
       /* We don't deal with templates yet. */
+    } else if (sym_ptr->is_error) {
+      /* Ignore error symbols. */
     } else {
       a_symbol_locator  locator;
       clear_locator(&locator, &sym_ptr->decl_position);
@@ -359,9 +363,51 @@ created for this entity; otherwise, it is NULL.
                                         (a_scope_ptr)NULL);
         }  /* if */
       }  /* if */
-      if (depth_scope_stack != DEPTH_OF_FILE_SCOPE &&
-          scope_depth_of(sym_ptr, &is_local_to_function) !=
+      if (depth_scope_stack == DEPTH_OF_FILE_SCOPE) {
+        /* This is a declaration at file scope.  Examine every declaration
+           of this name that has already appeared in a namespace or nonlocal
+           class scope -- the current declaration will be hidden in such a
+           scope, but the hiding can be defeated (in a reactivation of that
+           scope) by applying the :: qualifier. */
+        for (old_sym_ptr = sym_ptr->header->inactive_symbols;
+             old_sym_ptr != NULL;
+             old_sym_ptr = old_sym_ptr->next) {
+          if (old_sym_ptr->is_class_member) {
+            sp = old_sym_ptr->parent.class_type->
+                        variant.class_struct_union.extra_info->assoc_scope;
+            if (sp == NULL) {
+              /* This can happen if a name is a member of class that is
+                 a template parameter -- e.g.,
+                   template <class T> void f(T t, T::S s) { ... }
+                 In such a case, a class type for T is created to serve as the
+                 parent for S but it is undefined.  A similar case occurs with
+                 friend declarations within a class template:
+                   template <class T> class A {
+                     friend void T::f();
+                   };
+              */
+              continue;
+            }  /* if */
+          } else if ((nsp = old_sym_ptr->parent.namespace_ptr) != NULL) {
+            check_assertion(!nsp->is_namespace_alias &&
+                            nsp->variant.assoc_scope != NULL);
+            sp = nsp->variant.assoc_scope;
+          } else {
+            continue;
+          }  /* if */
+          if (is_tag_symbol(sym_ptr) && !is_tag_symbol(old_sym_ptr)) {
+            record_defeatable_name_hiding(sym_ptr,
+                                          /*tag_hidden_by_nontag=*/TRUE,
+                                          sp);
+          }  /* if */
+          record_defeatable_name_hiding(sym_ptr,
+                                        /*tag_hidden_by_nontag=*/FALSE,
+                                        sp);
+        }  /* for */
+      } else if (scope_depth_of(sym_ptr, &is_local_to_function) !=
                                                    DEPTH_OF_FILE_SCOPE) {
+        /* Not a file scope declaration, and the symbol does not itself belong
+           to the file scope, either (e.g., not a friend declaration). */
         clear_specific_symbol(locator);
         old_sym_ptr = file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
         if (old_sym_ptr != NULL) {
