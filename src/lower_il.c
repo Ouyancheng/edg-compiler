@@ -5478,7 +5478,7 @@ Lower comparison of two pointers to members.
     select2_node = node_to_select_field_from_rvalue(op2_node, mptr_f_field);
     select1_node->next = select2_node;
     compare_f_node = make_operator_node
-                       ((an_expr_operator_kind) (ne_case ? eok_ine : eok_ieq),
+                       ((an_expr_operator_kind) (ne_case ? eok_pne : eok_peq),
                         int_type, select1_node);
     /* Make "(op1.d == op2.d && op1.f == op2.f)" (or "||" for the ne_case). */
     compare_d_node->next = compare_f_node;
