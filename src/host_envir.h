@@ -867,6 +867,16 @@ would be less common.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 /*
+Flag that indicates whether friend and member definitions that appear inside
+classes may be moved outside those classes.  This flag is only applicable to
+configurations where TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is
+TRUE.
+*/
+#ifndef FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
+#define FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS TRUE
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
+
+/*
 Flag that is TRUE if name mangling is needed.  Automatically TRUE if
 IL lowering is used or if automatic template instantiation is selected.
 Enabling Microsoft extensions also requires mangling to support the special

@@ -348,7 +348,9 @@ in class contexts.
   rfp->is_specialization = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
   rfp->func_info.is_movable_member_or_friend_def = TRUE;
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   add_to_routine_fixup_list(rfp);
@@ -1487,6 +1489,7 @@ nested class.
             source_sequence_entries_disallowed = TRUE;
           }  /* if */
 #endif /* !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
           if (rfp->func_info.is_movable_member_or_friend_def &&
               !source_sequence_entries_disallowed) {
             /* Within the class definition a secondary-decl source sequence
@@ -1528,6 +1531,7 @@ nested class.
                declaration, that is no longer true. */
             rp->defined_in_friend_decl = FALSE;
           }  /* if */
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           /* Let get_token know about the cache. */
@@ -1555,6 +1559,7 @@ nested class.
           }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
           if (rfp->func_info.is_movable_member_or_friend_def &&
               !source_sequence_entries_disallowed) {
             if (curr_scope_class_type != NULL) {
@@ -1567,6 +1572,7 @@ nested class.
                            ss_list_instantiation_insert_point = insert_point;
             }  /* if */
           }  /* if */
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
 #if !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
           source_sequence_entries_disallowed =
                                     saved_source_sequence_entries_disallowed;
@@ -5295,11 +5301,14 @@ of the function, and again overloading is a possibility.
           set_to_named_error_locator(*locator);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-        } else {
+#if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
+        } else if (has_name(class_type)) {
           /* The primary source sequence entry will be deferred until the
              class definition has been completed; a secondary-decl entry
-             will be put out here. */
+             will be put out here.  (That is not possible with unnamed
+             classes.) */
           func_info->is_movable_member_or_friend_def = TRUE;
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
@@ -6432,6 +6441,7 @@ declared member functions.
          the declared type. */
       func_info->declared_type = rtn->declared_type;
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
       /* Unless this is a member of a local class, this inline member
          function definition will be represented in the source-sequence
          list as a non-defining declaration, and the source-sequence entry
@@ -6440,15 +6450,21 @@ declared member functions.
          function template instantiations are represented as explicit
          specializations and where, at the point of instantiation, the
          class is required to be complete. */
-      if (!class_type->source_corresp.is_local_to_function) {
+      if (!class_type->source_corresp.is_local_to_function &&
+          has_name(class_type)) {
         func_info->is_movable_member_or_friend_def = TRUE;
       }  /* if */
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     }  /* if */
-    if (!func_info->is_definition ||
-        func_info->is_movable_member_or_friend_def) {
+    if (!func_info->is_definition
+#if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
+        || func_info->is_movable_member_or_friend_def
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
+                                                  ) {
       /* A non-defining entry is represented by a
          secondary-decl entry in the source sequence list. */
+#if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
       if (func_info->is_movable_member_or_friend_def) {
         /* Set the flag that indicates the definition appears outside the
            class body -- it's used by the code that eliminates unneeded
@@ -6499,7 +6515,10 @@ declared member functions.
            then func_info->declared_type should be left pointing at
            rtn->declared_type; that way default-arg fixup will not affect the
            declared-type on the source sequence secondary-decl entry. */
-      } else {
+      } else
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
+      /* Do not insert code here. */
+      {
         /* Normal declaration.  If necessary, update the declared type,
            which was saved during function declarator processing, to make
            it consistent with the routine type. */

@@ -5609,7 +5609,11 @@ skip_overloading:;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
-  if (!is_function_def || func_info->is_movable_member_or_friend_def) {
+  if (!is_function_def
+#if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
+      || func_info->is_movable_member_or_friend_def
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
+                                                   ) {
     /* Set the type in the secondary declaration entry. */
     /* Note that the is_movable_member_or_friend_friend_def flag is set for
        non-member friend function definitions where the source-sequence
@@ -5619,6 +5623,7 @@ skip_overloading:;
     an_sssd_flag_set              flags = SSSD_NO_FLAGS;
     a_type_ptr                    declared_type;
 
+#if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
     if (func_info->is_movable_member_or_friend_def) {
       /* Remove default arguments, if any, from the type associated with
          the secondary source-sequence entry; they will appear on the
@@ -5626,7 +5631,10 @@ skip_overloading:;
          repeated the C++-generating back end would put out invalid code.) */
       declared_type =
              routine_type_without_default_args(routine_ptr->declared_type);
-    } else {
+    } else
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
+    /* Do not insert code here. */
+    {
       /* Normal case. */
       declared_type = func_info->declared_type;
     }  /* if */

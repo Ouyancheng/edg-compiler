@@ -1216,10 +1216,12 @@ created for this entity; otherwise, it is NULL.
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (sym_ptr->kind == (a_symbol_kind)sk_member_function ||
         sym_ptr->kind == (a_symbol_kind)sk_routine) {
+#if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
       if (is_definition && !C_mode() &&
           scope_stack[depth_scope_stack].kind ==
                                     (a_scope_kind)sck_class_struct_union &&
-          !scope_stack[depth_scope_stack].inside_local_class) {
+          !scope_stack[depth_scope_stack].inside_local_class &&
+          has_name(scope_stack[depth_scope_stack].assoc_type)) {
         /* This is a member or friend function definition inside the
            definition of a nonlocal class.  When template instantiations are
            put out in the source sequence list, it is necessary to move the
@@ -1228,6 +1230,7 @@ created for this entity; otherwise, it is NULL.
            should be put out here. */
         is_primary_decl = FALSE;
       }  /* if */
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     } else if (is_class_struct_union_symbol(sym_ptr) && !C_mode()) {
       if (is_definition) {

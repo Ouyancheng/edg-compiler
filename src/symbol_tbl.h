@@ -986,7 +986,9 @@ typedef struct a_func_info_block {
 			   asm specifier. */
 #endif /* ASM_FUNCTION_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
   a_bit_field	is_movable_member_or_friend_def:1;
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
 			/* TRUE if the function is defined inside a class
 			   definition but the source-sequence entry for its
 			   definition should make it appear to have been

@@ -9495,7 +9495,9 @@ Clear the fields of a function information block to default values.
   func_info->is_asm_function             = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
   func_info->is_movable_member_or_friend_def = FALSE;
+#endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
   func_info->declarator_ssep                = NULL;
   func_info->declared_type                  = NULL;
   func_info->prototype_scope_ss_entry_start = NULL;
