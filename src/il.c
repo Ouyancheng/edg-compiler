@@ -9631,6 +9631,76 @@ dependent on it.  The routine entry itself is dealt with later.
             sssdp->decl_position = rp->source_corresp.decl_position;
             sssdp->declared_type = rp->type;
             sssdp->friend_decl = rp->defined_in_friend_decl;
+            if (!C_mode() && sp->src_seq_sublist_list != NULL) {
+              /* If any tags were introduced in the parameter declarations for
+                 this function, the associated source-sequence entries need to
+                 be promoted from the function-scope list (they'd be on a
+                 sublist) to the file-scope list.  For example (assuming f's
+                 definition is unneeded but that S must be kept in the IL):
+                   void f(struct S *ps) { ... }
+                 the secondary-decl entry for S must be inserted immediately
+                 after the secondary-decl entry for f (i.e., the one just
+                 created). */
+              a_src_seq_sublist_ptr        sublist = sp->src_seq_sublist_list;
+              a_source_sequence_entry_ptr  insert_ssep = ssep;
+              a_source_sequence_entry_ptr  sublist_ssep, next_sublist_ssep;
+
+              for (; sublist != NULL; sublist = sublist->next) {
+                for (sublist_ssep = sublist->source_sequence_list;
+                     sublist_ssep != NULL;
+                     sublist_ssep = next_sublist_ssep) {
+                  next_sublist_ssep = sublist_ssep->next;
+                  if (ss_entry_kind(sublist_ssep) ==
+                                         (an_il_entry_kind)iek_pragma
+#if RECORD_MACROS_IN_IL
+                      || ss_entry_kind(sublist_ssep) ==
+                                         (an_il_entry_kind)iek_macro
+#endif /* RECORD_MACROS_IN_IL */
+                                                                    ) {
+                    /* Ignore entries representing macros and pragmas. */
+                    continue;
+                  }  /* if */
+                  if (ss_entry_kind(sublist_ssep) !=
+                             (an_il_entry_kind)iek_src_seq_secondary_decl) {
+                    goto done_with_func_prototype_decls;
+                  }  /* if */
+                  sssdp = ss_entry_ptr(sublist_ssep,
+                                       a_src_seq_secondary_decl_ptr);
+                  if (!sssdp->declared_in_func_prototype) {
+                    goto done_with_func_prototype_decls;
+                  }  /* if */
+                  if (il_entry_prefix_of(sssdp->entity.ptr).keep_in_il) {
+                    /* Be sure the keep-in-IL flags are set on the source
+                       sequence information that's being promoted to the file
+                       scope list. */
+                    il_entry_prefix_of(sublist_ssep).keep_in_il = TRUE;
+                    il_entry_prefix_of(sssdp).keep_in_il = TRUE;
+                    /* Remove the source sequence entry from the list in the
+                       function scope. */
+                    if (sublist_ssep->prev == NULL) {
+                      sublist->source_sequence_list = next_sublist_ssep;
+                    } else {
+                      sublist_ssep->prev->next = next_sublist_ssep;
+                    }  /* if */
+                    if (next_sublist_ssep != NULL) {
+                      next_sublist_ssep->prev = sublist_ssep->prev;
+                    }  /* if */
+                    /* Add it to the source sequence list of the file scope,
+                       inserting it immediately following insert_ssep. */
+                    sublist_ssep->next = insert_ssep->next;
+                    if (insert_ssep->next != NULL) {
+                      insert_ssep->next->prev = sublist_ssep;
+                    }  /* if */
+                    insert_ssep->next = sublist_ssep;
+                    sublist_ssep->prev = insert_ssep;
+                    /* Adjust insert_ssep to point to the entry just added, so
+                       that the next one will be added right after it. */
+                    insert_ssep = sublist_ssep;
+                  }  /* if */
+                }  /* while */
+              }  /* for */
+done_with_func_prototype_decls:;
+            }  /* if */
           }  /* if */
         }  /* if */
         rp->defined_outside_of_parent = FALSE;
@@ -9651,6 +9721,53 @@ dependent on it.  The routine entry itself is dealt with later.
 }  /* eliminate_bodies_of_unneeded_functions */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+
+static void mark_func_prototype_decl_tags_autonomous(
+                                             a_source_sequence_entry_ptr  ssep)
+/*
+ssep is a source sequence entry immediately following an entry representing
+a secondary routine declaration.  Moreover, ssep's predecessor and the
+associated routine entry have been eliminated, but tags introduced into the
+program by that declaration may have to be retained in the IL.  If so, they
+need to be marked as autonomous.  For instance:
+  void f(struct A *);
+  struct A * pa;
+Here we assume f is never called and that the associated routine entry is
+removed from the IL.  But A is still needed, so the source-sequence entry for
+it needs to be marked as autonomous.
+*/
+{
+  a_src_seq_secondary_decl_ptr  sssdp;
+
+  /* Loop through ssep and its successors, checking for secondary tag
+     declarations that are marked as having been declared in a function
+     prototype. */
+  for (; ssep != NULL; ssep = ssep->next) {
+     if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_pragma
+#if RECORD_MACROS_IN_IL
+         || ss_entry_kind(ssep) == (an_il_entry_kind)iek_macro
+#endif /* RECORD_MACROS_IN_IL */
+                                                                   ) {
+       /* Ignore entries representing macros and pragmas. */
+       continue;
+    }  /* if */
+    if (ss_entry_kind(ssep) != (an_il_entry_kind)iek_src_seq_secondary_decl) {
+      /* First entry that is not a secondary-decl entry -- we must be past the
+         function prototype declarations.  Stop looping. */
+      break;
+    }  /* if */
+    sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+    if (!sssdp->declared_in_func_prototype) {
+      /* Not a function prototype declaration.  Stop looping. */
+      break;
+    }  /* if */
+    /* A match.  Clear the one flag and set the other. */
+    sssdp->declared_in_func_prototype = FALSE;
+    sssdp->autonomous_tag_decl = TRUE;
+    ssep = ssep->next;
+  }  /* while */
+}  /* mark_func_prototype_decl_tags_autonomous */
+
 
 static a_source_sequence_entry_ptr src_seq_check_for_non_autonomous_tag(
                                              a_source_sequence_entry_ptr ssep)
@@ -10113,6 +10230,8 @@ eliminated, if appropriate.
           sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
           kind = sssdp->entity.kind;
           check_assertion(!il_entry_prefix_of(sssdp->entity.ptr).keep_in_il);
+        } else {
+          sssdp = NULL;
         }  /* if */
         if (kind == (a_byte_il_entry_kind)iek_variable ||
             kind == (a_byte_il_entry_kind)iek_routine ||
@@ -10124,6 +10243,14 @@ eliminated, if appropriate.
           }  /* if */
 #endif /* DEBUG */
           next_ssep = drop_from_fs_src_seq_list(ssep);
+          if (!C_mode() && sssdp != NULL &&
+              kind == (a_byte_il_entry_kind)iek_routine) {
+            /* ssep is a source-sequence entry representing a routine
+               declaration (not a definition).  If any tag was introduced in
+               its parameter list, it should be marked as autonomous.  Note
+               that this is done in C++ mode only, not in C mode. */
+            mark_func_prototype_decl_tags_autonomous(next_ssep);
+          }  /* if */
         } else {
           /* Not removed even though the keep_in_il flag is FALSE. */
           next_ssep = ssep->next;
