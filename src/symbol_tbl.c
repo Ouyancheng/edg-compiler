@@ -7577,8 +7577,9 @@ fundamental symbol.  Return the preferred derivation of that base class.
   a_base_class_ptr       bcp;
   a_derivation_step_ptr  path = NULL;
 
+  db_enter(4, "path_to_fundamental_symbol");
   /* Note that corresponding_base_class is not called, since it is hard to
-     compute a disambiguator that is a immediately derived from the base
+     compute a disambiguator that is immediately derived from the base
      class we're looking for. */
   tp = sym->variant.projection.extra_info->fundamental_base_class->type;
   bcp = base_classes_of(disambiguator->derived_class);
@@ -7592,21 +7593,9 @@ fundamental symbol.  Return the preferred derivation of that base class.
       }  /* if */
     }  /* if */
   }  /* for */
-#if CHECKING
-  if (path == NULL) {
-    /* We shouldn't fail to find a corresponding base class. */
-    internal_error("path_to_fundamental_symbol_base_class: not found");
-  } else if (bcp->ambiguous) {
-    /* Check to be sure the disambiguation was correct -- look at the rest of
-       the base classes to see if any would also qualify. */
-    for (bcp = bcp->next; bcp != NULL; bcp = bcp->next) {
-      if (bcp->type == tp && is_on_any_derivation_of(bcp, disambiguator)) {
-        internal_error(
-                    "path_to_fundamental_symbol_base_class: ambiguous deriv");
-      }  /* if */
-    }  /* for */
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion_str(path != NULL,
+                      "path_to_fundamental_base_class: not found");
+  db_exit();
   return path;
 }  /* path_to_fundamental_symbol_base_class */
 
