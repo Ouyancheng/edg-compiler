@@ -292,7 +292,7 @@ not need to be cached.
       if (done) break;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  }  /* if */
+  }  /* for */
 }  /* prescan_extended_decl_modifiers */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
