@@ -6587,13 +6587,10 @@ Make a copy of an expression tree and return a pointer to it.
   /* Copy the top node. */
   expr_copy = copy_node(expr);
   switch (expr->kind) {
-    case enk_variable:
-      break;
-    case enk_variable_address:
-      break;
-    case enk_constant:
-      break;
     case enk_error:
+    case enk_constant:
+    case enk_variable:
+    case enk_variable_address:
     case enk_field:
     case enk_routine_address:
     case enk_address_of_ellipsis:
