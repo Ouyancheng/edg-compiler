@@ -6049,13 +6049,11 @@ and *insert_location is updated.
                                 insert_location);
     }  /* if */
   }  /* for */
-  /* Visit all children of this lifetime.  Don't go into block or
-     block-after-label or try lifetimes, since they will be handled by another
-     call of this routine at some later time. */
+  /* Visit all children of this lifetime and process the expr-temporary
+     lifetimes.  Other children will be processed when the associated
+     block is entered. */
   for (olp = lifetime->child_lifetime; olp != NULL; olp = olp->next) {
-    if (olp->kind != (an_object_lifetime_kind)olk_block &&
-        olp->kind != (an_object_lifetime_kind)olk_block_after_label &&
-        olp->kind != (an_object_lifetime_kind)olk_try_block) {
+    if (olp->kind == (an_object_lifetime_kind)olk_expr_temporary) {
       begin_object_lifetime(olp, insert_location);
     }  /* if */
   }  /* for */
