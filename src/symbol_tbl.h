@@ -1021,7 +1021,6 @@ extern a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
                                             a_symbol_ptr     *overload_sym);
 
 extern a_symbol_ptr make_unnamed_class_symbol(a_symbol_kind      sym_kind,
-                                              a_type_ptr         class_type,
                                               a_source_position  *pos);
 
 extern a_boolean is_unnamed_class_symbol(a_symbol_ptr  sym);
