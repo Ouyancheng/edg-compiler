@@ -1673,7 +1673,10 @@ error code.
       m = "to many arguments for %nf";
       break;
     case ec_not_a_type_arg:
-      m = "only type arguments are allowed on a function template";
+      m = "template parameter for a function template must be a type";
+      break;
+    case ec_not_used_in_template_function_params:
+      m = "%n1 is not used in declaring the argument types of %n2";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
@@ -2491,7 +2494,11 @@ declaration position to eliminate redundant file names in a diagnostic.
       entity_kind = "label ";
       goto symbol_name;
     case sk_type:
-      entity_kind = "type ";
+      if (fund_sym->variant.type->kind == (a_type_kind)tk_template_param) {
+        entity_kind = "template parameter ";
+      } else {
+        entity_kind = "type ";
+      }  /* if */
       goto symbol_name;
     case sk_class_or_struct_tag:
       if (C_dialect == C_dialect_cplusplus) {
@@ -2562,7 +2569,7 @@ declaration position to eliminate redundant file names in a diagnostic.
          be expressed as a declaration. */
       goto symbol_name;
     case sk_function_template:
-      entity_kind = "class template";
+      entity_kind = "function template ";
       /* There is no specific type information available; this entity cannot
          be expressed as a declaration. */
       goto symbol_name;
@@ -4532,6 +4539,22 @@ indicated position.
   error_msg_syms[1] = symbol;
   diag_message(error_code, error_pos, es_error, dck_standalone);
 }  /* pos_sy_error */
+
+
+void pos_sy2_error(an_error_code     error_code,
+                   a_source_position *error_pos,
+                   struct a_symbol   *symbol1,
+                   struct a_symbol   *symbol2)
+/*
+Report the indicated error (with the indicated symbols) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_syms[1] = symbol1;
+  error_msg_syms[2] = symbol2;
+  diag_message(error_code, error_pos, es_error, dck_standalone);
+}  /* pos_sy2_error */
 
 
 void pos_syty_error(an_error_code     error_code,

@@ -484,7 +484,8 @@ typedef enum /*an_error_code*/ {
   ec_missing_template_arg_list,
   ec_too_few_template_args,
   ec_too_many_template_args,
-  ec_not_a_type_arg
+  ec_not_a_type_arg,
+  ec_not_used_in_template_function_params
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
@@ -674,6 +675,10 @@ extern void pos_stsy_error(an_error_code     error_code,
 extern void pos_sy_error(an_error_code     error_code,
                          a_source_position *error_pos,
                          struct a_symbol   *symbol);
+extern void pos_sy2_error(an_error_code     error_code,
+                          a_source_position *error_pos,
+                          struct a_symbol   *symbol1,
+                          struct a_symbol   *symbol2);
 extern void pos_syty_error(an_error_code     error_code,
                            a_source_position *error_pos,
                            struct a_symbol   *symbol,
