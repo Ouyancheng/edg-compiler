@@ -137,6 +137,8 @@ typedef enum /*a_token_kind*/ {
      to scan an integer address expression for offsetof): */
   tok_alignof,
   tok_intaddr,
+  /* Used when <stdarg.h> is treated as a builtin. */
+  tok_va_start, tok_va_arg, tok_va_end,
 #if RESTRICT_ALLOWED
   tok_restrict,
 #endif /* RESTRICT_ALLOWED */
@@ -225,6 +227,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "return", "short", "signed", "sizeof", "static", "struct",
    "switch", "typedef", "union", "unsigned", "void", "volatile",
    "while", "__ALIGNOF__", "__INTADDR__",
+   "va_start", "va_arg", "va_end",
 #if RESTRICT_ALLOWED
    "restrict",
 #endif /* RESTRICT_ALLOWED */
@@ -529,6 +532,9 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_while */
    (an_opname_kind)onk_none,          /* tok_alignof */
    (an_opname_kind)onk_none,          /* tok_intaddr */
+   (an_opname_kind)onk_none,          /* tok_va_start */
+   (an_opname_kind)onk_none,          /* tok_va_arg */
+   (an_opname_kind)onk_none,          /* tok_va_end */
 #if RESTRICT_ALLOWED
    (an_opname_kind)onk_none,          /* tok_restrict */
 #endif /* RESTRICT_ALLOWED */
