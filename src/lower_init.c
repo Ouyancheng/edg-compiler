@@ -539,6 +539,7 @@ generated, or NULL if no value needs to be returned.
                                 alloc_statement((a_statement_kind)stmk_return);
     if_stmt->next = return_stmt;
     if (return_var != NULL) return_stmt->expr = var_rvalue_expr(return_var);
+    add_to_return_memo_list(return_stmt);
   }  /* if */
 }  /* enclose_routine_in_if */
 
