@@ -423,7 +423,7 @@ past the number on return.
   temp |= *(a_byte *)rtp++ << CHAR_BIT;                               \
   temp |= *(a_byte *)rtp++ << CHAR_BIT*2;                             \
   num = temp;                                                         \
-}  /* put_macro_repl_text_number */
+}  /* get_macro_repl_text_number */
 
 
 /*
@@ -436,7 +436,7 @@ to the first byte of the number; it is advanced past the number on return.
   *(a_byte *)rtp++ =  temp                & PN_BYTE_MASK;             \
   *(a_byte *)rtp++ = (temp >> CHAR_BIT)   & PN_BYTE_MASK;             \
   *(a_byte *)rtp++ = (temp >> CHAR_BIT*2) & PN_BYTE_MASK;             \
-}  /* get_macro_repl_text_number */
+}  /* put_macro_repl_text_number */
 
 
 typedef struct a_conversion_list_entry *a_conversion_list_entry_ptr;
