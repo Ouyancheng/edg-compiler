@@ -546,7 +546,7 @@ ec_cfront_name_lookup_bug;;"global %n1 used instead of %n2 (cfront compatibility
 ec_redeclaration_of_template_param_name;;"template parameter %sq may not be redeclared in this scope"
 ec_decl_hides_template_parameter;;"declaration of %sq hides template parameter"
 ec_must_be_prototype_instantiation;;"template argument list must match the parameter list"
-ec_conversion_to_type_not_allowed;;"conversion function to convert from %t1 to %t2 is not allowed"
+REMOVED;ec_conversion_to_type_not_allowed;;"conversion function to convert from %t1 to %t2 is not allowed"
 ec_bad_extra_arg_for_postfix_operator;;"extra parameter of postfix \"operator%s\" must be of type \"int\""
 ec_function_type_required;;"an operator name must be declared as a function"
 ec_operator_name_not_allowed;;"operator name is not allowed"
