@@ -6,11 +6,17 @@ This flag may have been set incorrectly under certain circumstances
 for template functions and member functions of template classes.  The
 flag is now set correctly.
 
-4/14/93  dik_routine in IL dynamic initialization entry
+4/14/93  New kind of IL dynamic initialization entry
 
 A new kind of dynamic initialization entry (dik_call_returning_class_via_cctor)
 has been added to allow initialization by a routine that returns a class
-object via a copy constructor.
+object via a copy constructor.  This is now used in place of adding
+an explicit additional argument to the call in the unlowered IL.
+The enk_temp_init node has also been changed so that it returns the
+address or value of the temporary always instead of an arbitrary
+expression.  This avoids the need to name the class temporaries in
+unlowered IL.  All these changes are invisible to those using IL
+lowering.
 
 4/13/93  IL lowering for array initializations in aggregates
 
