@@ -125,7 +125,7 @@ Do required initialization for host-dependent things.
 
 #if CHAR_MAX-CHAR_MIN != ((1 << CHAR_BIT) - 1)
     /* Check that CHAR_MIN and CHAR_MAX add up to the right power of two. */
-??=error -- CHAR_MIN or CHAR_MAX in basics.h is set wrong
+ #error -- CHAR_MIN or CHAR_MAX in basics.h is set wrong
 #endif /* CHAR_MAX ... */
 
   /* Generate the object file name from the primary source file name.

@@ -126,7 +126,7 @@ CLOCK_FREQUENCY is defined properly below.
 #if __ANSIC__
 #include <time.h>
 #ifndef CLOCKS_PER_SEC
-??=error -- Compiling in __ANSIC__ mode but CLOCKS_PER_SEC is not
+ #error -- Compiling in __ANSIC__ mode but CLOCKS_PER_SEC is not
 	    defined in time.h.
 #endif /* defined(CLOCKS_PER_SEC) */
 #else /* !__ANSIC__ */

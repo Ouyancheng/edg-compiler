@@ -24,7 +24,7 @@ il_read.c -- Read the intermediate language.
 #if BACK_END_SHOULD_BE_CALLED || STANDALONE_UTILITY_PROGRAM
 
 #if !ORPHAN_PROCESSING_NEEDED
-??=error -- ORPHAN_PROCESSING_NEEDED must be set if IL reading is needed.
+ #error -- ORPHAN_PROCESSING_NEEDED must be set if IL reading is needed.
 #endif /* !ORPHAN_PROCESSING_NEEDED */
 
 #include "il_file.h"

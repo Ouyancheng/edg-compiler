@@ -27,7 +27,7 @@ instead of K&R C.
 /* We could just set the flag here for THIS compilation, but we want to
    ensure that it's set for the compilation of the OTHER files needed
    in the standalone program version of c_gen_be. */
-??=error -- BACK_END_IS_C_GEN_BE should be defined as 1 (on the command line)
+ #error -- BACK_END_IS_C_GEN_BE should be defined as 1 (on the command line)
 #endif /* !BACK_END_IS_C_GEN_BE */
 #endif /* ifdef STANDALONE_C_GEN_BE */
 
@@ -65,12 +65,12 @@ instead of K&R C.
 
 
 #if !LOWER_LVALUE_RETURNING_OPERATIONS
-??=error -- The C-generating back end requires \
+ #error -- The C-generating back end requires \
             LOWER_LVALUE_RETURNING_OPERATIONS TRUE
 #endif /* !LOWER_LVALUE_RETURNING_OPERATIONS */
 
 #if !SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-??=error -- The C-generating back end requires \
+ #error -- The C-generating back end requires \
             SCOPE_ORPHANED_LIST_PROCESSING_NEEDED TRUE
 #endif /* !SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 

@@ -56,7 +56,7 @@ be used.
 
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY && \
     CFRONT_3_0_OBJECT_CODE_COMPATIBILITY
-??=error -- Must select either 2.1 compatibility or 3.0 compatibility.
+ #error -- Must select either 2.1 compatibility or 3.0 compatibility.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY ... */
 
 /* The code that implements the cfront name lookup bug makes use of the
@@ -64,7 +64,7 @@ be used.
    2.1 compatibility mode is required to use the name lookup bug. */
 #if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY && \
     CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
-??=error -- cfront name lookup bug support requires cfront 2.1 compatibility
+ #error -- cfront name lookup bug support requires cfront 2.1 compatibility
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
 
 /*
@@ -165,12 +165,12 @@ Integer types:
 #if LONG_LONG_ALLOWED
 #define TARG_SIZEOF_LARGEST_INTEGER 8
 #if TARG_SIZEOF_LARGEST_INTEGER < TARG_SIZEOF_LONG_LONG
-??=error -- TARG_SIZEOF_LARGEST_INTEGER too small for TARG_SIZEOF_LONG_LONG
+ #error -- TARG_SIZEOF_LARGEST_INTEGER too small for TARG_SIZEOF_LONG_LONG
 #endif /* TARG_SIZEOF_LARGEST_INTEGER < TARG_SIZEOF_LONG_LONG */
 #else /* !LONG_LONG_ALLOWED */
 #define TARG_SIZEOF_LARGEST_INTEGER 4
 #if TARG_SIZEOF_LARGEST_INTEGER < TARG_SIZEOF_LONG
-??=error -- TARG_SIZEOF_LARGEST_INTEGER too small for TARG_SIZEOF_LONG
+ #error -- TARG_SIZEOF_LARGEST_INTEGER too small for TARG_SIZEOF_LONG
 #endif /* TARG_SIZEOF_LARGEST_INTEGER < TARG_SIZEOF_LONG */
 #endif /* LONG_LONG_ALLOWED */
 
@@ -307,11 +307,11 @@ errors are still generated for type mismatches.
 
 /* Check the value: */
 #if TARG_MAX_BIT_FIELD_SIZE > (TARG_SIZEOF_LARGEST_INTEGER*TARG_CHAR_BIT)
-??=error -- TARG_MAX_BIT_FIELD_SIZE is too big
+ #error -- TARG_MAX_BIT_FIELD_SIZE is too big
 #endif /* TARG_MAX_BIT_FIELD_SIZE ... */
 /* Bit field size is represented as a byte (see a_field in il_def.h). */
 #if BYTE_MAX < TARG_MAX_BIT_FIELD_SIZE
-??=error -- TARG_MAX_BIT_FIELD_SIZE is too big.
+ #error -- TARG_MAX_BIT_FIELD_SIZE is too big.
 #endif /* BYTE_MAX < TARG_MAX_BIT_FIELD_SIZE */
 
 /* Container size to be used for bit-fields.  If > 0, indicates the
@@ -518,10 +518,10 @@ to be folded into the constructor or destructor if possible.
 #endif /* ifndef DELETE_CAN_BE_FOLDED_INTO_DTOR */
 /* If assignment to "this" is allowed, the folding must be done. */
 #if ASSIGNMENT_TO_THIS_ALLOWED && !NEW_CAN_BE_FOLDED_INTO_CTOR
-??=error -- NEW_CAN_BE_FOLDED_INTO_CTOR set wrong.
+ #error -- NEW_CAN_BE_FOLDED_INTO_CTOR set wrong.
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED ... */
 #if ASSIGNMENT_TO_THIS_ALLOWED && !DELETE_CAN_BE_FOLDED_INTO_DTOR
-??=error -- DELETE_CAN_BE_FOLDED_INTO_DTOR set wrong.
+ #error -- DELETE_CAN_BE_FOLDED_INTO_DTOR set wrong.
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED ... */
 
 /*

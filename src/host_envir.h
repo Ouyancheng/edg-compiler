@@ -333,7 +333,7 @@ if the back end is being called).
 #endif /* ifndef BACK_END_IS_CP_GEN_BE */
 
 #if BACK_END_IS_C_GEN_BE && BACK_END_IS_CP_GEN_BE
-??=error -- BACK_END_IS_C_GEN_BE and BACK_END_IS_CP_GEN_BE cannot both be TRUE.
+ #error -- BACK_END_IS_C_GEN_BE and BACK_END_IS_CP_GEN_BE cannot both be TRUE.
 #endif /* BACK_END_IS_C_GEN_BE && BACK_END_IS_CP_GEN_BE */
 
 /*
@@ -413,10 +413,10 @@ with a C back end.
 #define DO_IL_LOWERING TRUE
 #endif /* ifndef DO_IL_LOWERING */
 #if BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING
-??=error -- IL lowering must be done for the C-generating back end.
+ #error -- IL lowering must be done for the C-generating back end.
 #endif /* BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION && !DO_IL_LOWERING
-??=error -- IL lowering must be done if automatic instantiation is allowed.
+ #error -- IL lowering must be done if automatic instantiation is allowed.
 /* This is because the name mangling routines are needed. */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION && !DO_IL_LOWERING */
 

@@ -3038,7 +3038,7 @@ arrays with class elements.
   ptr_elem_type = make_pointer_type(elem_type);
   /* Build the node for the address of the array (entity_node). */
 #if !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
-??=error -- NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE wrong
+ #error -- NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE wrong
 #endif /* !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
   if (ndsp->routine == NULL) {
     /* The __vec_new routine should do the allocation of the array (the normal
@@ -3474,7 +3474,7 @@ The subtree of the node has not yet been lowered.
 /* IL lowering requires that it be possible to fold the delete call into
    a destructor.  Without that, it has no way of getting the right size
    on a delete of a pointer to a class with a virtual destructor. */
-??=error -- DELETE_CAN_BE_FOLDED_INTO_DTOR set wrong.
+ #error -- DELETE_CAN_BE_FOLDED_INTO_DTOR set wrong.
 #endif /* !DELETE_CAN_BE_FOLDED_INTO_DTOR */
   } else if (ndsp->routine == NULL) {
     /* The "delete" call has been folded into the destructor call.

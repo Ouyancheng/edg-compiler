@@ -20,7 +20,7 @@ il_walk.c -- Routines to walk the intermediate language tree.
 #if IL_WALK_NEEDED
 
 #if !ORPHAN_PROCESSING_NEEDED
-??=error -- ORPHAN_PROCESSING_NEEDED must be set if IL walking is needed.
+ #error -- ORPHAN_PROCESSING_NEEDED must be set if IL walking is needed.
 #endif /* !ORPHAN_PROCESSING_NEEDED */
 
 #include "lang_feat.h"

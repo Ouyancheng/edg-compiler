@@ -973,7 +973,7 @@ bcp.
   alignment = (a_targ_alignment)targ_alignof_pointer;
   size = (a_targ_size_t)targ_sizeof_pointer;
 #else /* !TARG_ALL_POINTERS_SAME_SIZE */
-??=error pointer_offset_for_virtual_base_class: different sized pointers
+ #error pointer_offset_for_virtual_base_class: different sized pointers
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
   bcp->pointer_offset = set_offset_and_alignment(lob, size, alignment);
 #if DEBUG

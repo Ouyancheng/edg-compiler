@@ -665,7 +665,7 @@ type.
       *err_severity = es_error;
     }  /* if */
 #else /* !TARG_ALL_POINTERS_SAME_SIZE */
-??=error conv_pointer_to_whatever: different-sized pointers not implemented.
+ #error conv_pointer_to_whatever: different-sized pointers not implemented.
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
   } else if (related_class_pointers(old_type, new_type,
                                     &baseward_cast, &bcp)) {
