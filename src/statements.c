@@ -1753,7 +1753,8 @@ being created to surround a dependent statement in C++.
          associated object lifetime: anything constructed within the statement
          must also be destroyed therein. */
       block_stmt->dependent_statement = TRUE;
-      push_object_lifetime(iek_block, (char *)block, /*ctor_init=*/FALSE);
+      push_object_lifetime(iek_block, (char *)block, 
+                           (an_object_lifetime_kind)olk_local);
     }  /* if */
   }  /* if */
   /* Make the parent pointer in the block point to the nearest enclosing
