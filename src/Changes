@@ -1,5 +1,27 @@
 Version 2.31
 
+12/18/95  Calculating "reachability" at exit of switch statement
+
+In the following rather obscure case, "reachability" was computed
+incorrectly, and as a result a spurious statement-not-reached diagnostic
+was issued and, more seriously, the C-generating back end failed to put
+out code to call the destructor on "x".  Both problems have been fixed.
+
+  struct S {
+    S();
+    ~S();
+  };
+  void f(int i) {
+    S x;
+    switch(i) {
+    {
+      case 1:;
+      default:;
+    }
+    }  /* switch */
+    i++;                  // Spurious statement-not-reached warning no
+  }                       //   longer issued
+
 12/18/95  C++-generating back end: function-local anonymous union
 
 A function-local anonymous union is no longer put out as static.
