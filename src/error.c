@@ -3700,9 +3700,13 @@ return_point:
 
 /*
 Size of the local buffer used to buffer characters going to stderr.
-Should be comparable in size to a source line.
+Should be comparable in size to a source line.  The actual array is
+allocated with an extra element to be used to store a terminating
+character.  This is used to avoid a purify/clcc bug that causes
+purify to issue a spurious error.
 */
 #define MAX_PUTCBUFFER_CHARS 100
+#define PUTCBUFFER_ARRAY_SIZE (MAX_PUTCBUFFER_CHARS + 1)
 
 static void flush_putcbuffer(char *putcbuffer,
                              int  *num_putcbuffer_chars)
@@ -3716,9 +3720,7 @@ it is reset to 0.
      to avoid Purify errors from versions of fprintf that look one
      character beyond the specified precision specification.
      Specifically, the clcc runtime does this. */
-  if (*num_putcbuffer_chars < MAX_PUTCBUFFER_CHARS) {
-    putcbuffer[*num_putcbuffer_chars] = '\0';
-  }  /* if */
+  putcbuffer[*num_putcbuffer_chars] = '\0';
   if (*num_putcbuffer_chars > 0) {
      fprintf(stderr, "%.*s", *num_putcbuffer_chars, putcbuffer);
      *num_putcbuffer_chars = 0;
@@ -3788,7 +3790,7 @@ a blank line instead of the caret line.
   char                    ch;
   a_source_line_modif_ptr slmp;
   int                     i;
-  char                    putcbuffer[MAX_PUTCBUFFER_CHARS];
+  char                    putcbuffer[PUTCBUFFER_ARRAY_SIZE];
   int                     num_putcbuffer_chars = 0;
 
   /* Start by finding the right line.  The logical source line originally
@@ -3914,7 +3916,7 @@ instead of the caret line.
   a_boolean       pass_for_caret;
   a_column_number curr_column;
   int             i;
-  char            putcbuffer[MAX_PUTCBUFFER_CHARS];
+  char            putcbuffer[PUTCBUFFER_ARRAY_SIZE];
   int             num_putcbuffer_chars = 0;
 
   /* Take two passes -- the first to write the source line, the second to
