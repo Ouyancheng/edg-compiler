@@ -1,5 +1,12 @@
 Version 2.13
 
+1/12/93 C-generating back end output of bit fields
+
+The C-generating back end now outputs all signed bit fields as "int"
+and all unsigned bit fields as "unsigned int", instead of outputting
+the base type used in the declaration.  This is particularly important
+for enum bit fields.
+
 1/12/93 Bug in nested class name mangling
 
 Another bug in nested class name mangling has been fixed.  This one was
