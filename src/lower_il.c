@@ -6099,8 +6099,10 @@ the destructor calls at *insert_location.
   if (exceptions_enabled && any_calls_generated) {
     /* One or more calls was generated and exceptions are enabled.
        Reset eh_curr_region.   Do not do this if the context being exited
-       is the function context. */
-    if (outer_context != nearest_function_context) {
+       is the function context or if we're not inside a function (e.g.,
+       we're in a generated file-scope initialization routine). */
+    if (outer_context != nearest_function_context &&
+        outer_context->parent != NULL) {
       set_eh_curr_region(outer_context->parent, insert_location);
     }  /* if */
   }  /* if */
