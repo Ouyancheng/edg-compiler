@@ -8588,7 +8588,13 @@ TRUE if the declaration following this one is such a continuation.
     is_specialization = FALSE;
     /* See if the "template<>" specialization prefix should be put out. */
     if (rout->is_specialized) {
-      is_specialization = !rout->specialized_with_old_syntax;
+      /* Explicit template argument lists are only allowed on certain
+         declarations, including explicit specializations.  However, C++
+         compilers typically do not accept them on old-style specialization
+         declarations.  Hence, if we will issue an explicit template
+         argument list, we should also issue the "template<>" prefix.  */
+      is_specialization = !rout->specialized_with_old_syntax ||
+                          rout->expl_template_arg_list_used;
     } else if (rout->is_template_function &&
                !rout->is_prototype_instantiation) {
       /* A generated instance.  Use the "template<>" prefix if appropriate. */

@@ -1,5 +1,15 @@
 Version 2.46
 
+8/2/01   C++-generating back end: explicit specializations with explicit
+         template arguments
+
+The C++-generating back end now always generates a "template<>" prefix when
+regenerating an explicit function template specialization with explicit
+template arguments (even when the original source used the old specialization
+syntax).  This avoids errors due to C++ compilers (including the front end
+itself) not accepting old-style function template specializations with
+explicit template arguments.
+
 7/31/01  Spurious ambiguity when using nonstandard template lookup
 
 In default mode, the front end uses a nonstandard algorithm when looking
