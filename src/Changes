@@ -1,5 +1,14 @@
 Version 2.32
 
+6/25/95 Internal error in pcc mode fixed
+
+A bug introduce in version 2.31 produced an assertion failure in pcc mode
+-- now fixed.  Here's an example:
+
+  void f() {
+    void f();           // pcc mode internal error no longer occurs
+  }
+
 6/20/96 Pointer-to-member-function using typedef
 
 An error is now issued for declaring a pointer-to-member-function using a
