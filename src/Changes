@@ -1,12 +1,34 @@
 Version 2.23
 
+3/3/94  Class layout -- improved cfront compatibility
+
+A bug was fixed that resulted in an internal error while building the
+constructor wrapper for a class in cfront layout-compatibility mode.
+Here's the class declaration for the case -- it was in generating C::C()
+that the problem showed up:
+                                              //       Tv
+                                              //      / \
+  struct Tv {};                               //     L   Rv
+  struct L : virtual public Tv {};            //      \ /
+  struct Rv : virtual public Tv {};           //       A
+  struct A : public L, virtual public Rv {};  //       |
+  struct B : public A {};                     //       B
+  struct C : public B {};                     //       |
+                                              //       C
+
+In addition, several changes were made to improve compatibility with USL's
+cfront in the area of class layout.  These changes had mainly to do with
+how virtual base class data sections are laid out -- determining when they
+are embedded in other base classes and deciding which to use when there's
+a choice of several.  (Note that these changes are visible only when
+CFRONT_OBJECT_CODE_COMPATIBILITY is TRUE.)
+
 3/1/94  Missing diagnostic on incorrectly formed pointer to member declaration
 
 The front end failed to issue a diagnostic on this kind of usage.  This
 resulted in an internal error in IL lowering.  This has been corrected.
 
   int ::*x;
-
 
 3/1/94  Omission of the declarator on a field declaration
 
