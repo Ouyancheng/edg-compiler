@@ -1,5 +1,14 @@
 Version 2.22
 
+2/21/94  Display of underlying C compiler diagnostics
+
+Output from the underlying C compiler is bracketed by special messages
+from eccp so that the source of the messages is more clear.  This
+change was motivated by the fact that the C generating back end now
+issues #line directives so the file name used by the C compiler in
+diagnostics is now the original source file name instead of the
+.int.c file name.
+
 2/9/94   Purify option
 
 The "-purify" option has been added to eccp.  This allows you to link
