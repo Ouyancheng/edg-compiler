@@ -3700,6 +3700,11 @@ region).
       internal_error("has_non_file_scope_ref: bad constant kind");
 #endif /* CHECKING */
   }  /* switch */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  if (!has_nfs_ref && cp->expr != NULL && !in_file_scope((char*)cp->expr)) {
+    has_nfs_ref = TRUE;
+  }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   return has_nfs_ref;
 }  /* has_non_file_scope_ref */
 
