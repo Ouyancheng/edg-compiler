@@ -62,9 +62,10 @@ the two pointer types have different named address spaces.
 
 The C++-generating back end was recently changed to generate code as if the
 name of a class template instance were injected into the class and thus
-capable of hiding names from the surrounding context.  (See the Changes
-entry of 9/21/04.)  In certain cases, the resulting code triggered a bug in
-Microsoft compilers prior to version 7.1.  For example:
+capable of hiding names from the surrounding context, even though such names
+are not injected in Microsoft mode.  (See the Changes entry of 9/21/04.)  In
+certain cases, the resulting code triggered a bug in Microsoft compilers
+prior to version 7.1.  For example:
 
   template<typename T> struct X { };
   template<typename T>struct Outer { };
@@ -81,7 +82,8 @@ than to the base class ::X<int> of Outer<int>::inner.  If the generated code
 uses a qualified name, however, MSVC++ 7.0 reports an error on line #2 and
 MSVC++ 6.0 reports errors on both lines.  Now the C++-generating back end
 will use unqualified names in such cases when generating code for a
-Microsoft compiler (i.e., when msvc_is_generated_code_target is TRUE).
+Microsoft compiler (i.e., when msvc_is_generated_code_target is TRUE), as it
+did before the above-mentioned change.
 
 10/4/04  GNU mode: --gnu_version option
 
