@@ -6847,7 +6847,7 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     if (expr_present) {
       /* There is a throw expression. */
       if (is_class_struct_union_type(operand.type)) {
-        /* For a class type operand, generate a dynamic initalization that
+        /* For a class type operand, generate a dynamic initialization that
            copies the value to an undesignated location. */
         throw_type = operand.type;
         prep_elision_initializer_operand(&operand, operand.type, &dip);

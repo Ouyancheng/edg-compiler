@@ -231,7 +231,7 @@ recorded right away and no entry is created; NULL is returned.
   switch (fund_sym->kind) {
     case sk_constant:            /* Constant (enumerator). */
     case sk_variable:            /* Variable or parameter. */
-    case sk_field:               /* Noonstatic data member of a class. */
+    case sk_field:               /* Nonstatic data member of a class. */
     case sk_static_data_member:  /* Static data member of a class. */
     case sk_member_function:     /* Member function of a class. */
     case sk_routine:             /* Nonmember function. */
