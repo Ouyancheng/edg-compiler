@@ -5504,6 +5504,8 @@ function try block has to have been established first.
   add_to_control_flow_descr_list(cfdp);
   sp = alloc_statement((a_statement_kind)stmk_try_block);
   sp->variant.try_block->is_function_try_block = TRUE;
+  /* Record position information: */
+  set_stmt_source_position(sp->position, pos_curr_token);
   stmt_update_source_sequence_list(sp);
   /* Do additional initialization generic to scanning a try statement. */
   start_of_try_block(sp);
