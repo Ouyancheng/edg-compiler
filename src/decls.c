@@ -1500,19 +1500,22 @@ called by id_linkage.
         }  /* for */
       }  /* if */
     }  /* if */
-    if (other_decl != NULL &&
-        ((other_decl->kind == (a_symbol_kind)sk_variable) != is_function)) {
-      if (is_friend_decl) {
-        linked_symbol = other_decl;
-      } else if (decls_at_same_scope) {
+    if (decls_at_same_scope || is_friend_decl) {
+      /* The symbol was located in the current scope. If there there was an
+         exact type match of C++ functions, and in general otherwise, this
+         is a redeclaration, and if other_decl has linkage we can return in
+         *linked_symbol a pointer to the function or variable it represents. */
+      if (other_decl != NULL) {
         if (effective_decl_level == depth_innermost_namespace_scope) {
           /* Redeclaration at file or namespace scope. */
           linked_symbol = other_decl;
-        } else if (is_function ||
-                   !other_decl->variant.variable.ptr->
+        } else if (is_function_symbol(other_decl)) {
+          /* Functions always have linkage. */
+          linked_symbol = other_decl;
+        } else if (!other_decl->variant.variable.ptr->
                            source_corresp.is_local_to_function) {
-          /* Redeclaration at a local scope -- okay only if both declarations
-             are block-extern declarations. */
+          /* Variables at file scope always have linkage.  Automatic,
+             register, and static variables in local scopes do not. */
           linked_symbol = other_decl;
         }  /* if */
       }  /* if */
