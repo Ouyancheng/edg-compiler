@@ -2527,6 +2527,74 @@ and the length.
 
 #endif /* ifdef FFE */
 
+static a_boolean optimizable_rvalue_selection(an_expr_node_ptr expr)
+/*
+Return TRUE if the first operand of the given expression (an rvalue selection
+operation) has the form
+  (something, variable)
+This form can be optimized by dump_rvalue_selection.
+*/
+{
+  a_boolean        optimizable = FALSE;
+  an_expr_node_ptr struct_expr, comma_operand_2;
+
+  /* Check that the first operand is a comma expression. */
+  struct_expr = expr->variant.operation.operands;
+  if (struct_expr->kind == (an_expr_node_kind)enk_operation &&
+      struct_expr->variant.operation.kind ==(an_expr_operator_kind)eok_comma) {
+    /* Check that the second operand of the comma expression is the value
+       of a variable. */
+    comma_operand_2 = struct_expr->variant.operation.operands->next;
+    if (comma_operand_2->kind == (an_expr_node_kind)enk_variable) {
+      optimizable = TRUE;
+    }  /* if */
+  }  /* if */
+  return optimizable;
+}  /* optimizable_rvalue_selection */
+
+static void dump_rvalue_selection(an_expr_node_ptr expr)
+/*
+Dump an rvalue field selection, i.e., one where a field or bit field is
+selected from an rvalue struct or union.  Because pcc compilers do not
+allow selection of a field from an rvalue struct (which is allowed in
+ANSI C), copy the struct to a temp and select the field from the temp.
+*/
+{
+  an_expr_node_ptr struct_expr, comma_operand_1, comma_operand_2;
+
+  /* The overall code is
+       (_T123456 = expr, _T123456.field)
+     The temporary has been generated on a pre-scan of this code.
+     If the struct expression already looks like
+       (expr2, variable)
+     (which happens, for example, when a temporary is introduced to hold the
+     return value of a function returning a struct), the transformation is
+     done by changing that to
+       (expr2, variable.field)
+  */
+  struct_expr = expr->variant.operation.operands;
+  (void)fprintf(f_C_output, "(");
+  if (optimizable_rvalue_selection(expr)) {
+    /* This is the optimizable case.  Add the field selection to the existing
+       reference to a struct/union variable. */
+    comma_operand_1 = struct_expr->variant.operation.operands;
+    comma_operand_2 = comma_operand_1->next;
+    dump_expression(comma_operand_1, /*need_parens=*/TRUE);
+    (void)fprintf(f_C_output, ", ");
+    dump_expression(comma_operand_2, /*need_parens=*/TRUE);
+  } else {
+    /* Normal non-optimizable case.  Assign the struct/union value to
+       a temporary and select from the temporary. */
+    (void)fprintf(f_C_output, "%s = ", temp_name((char *)expr));
+    dump_expression(struct_expr, /*need_parens=*/TRUE);
+    (void)fprintf(f_C_output, ", %s", temp_name((char *)expr));
+  }  /* if */
+  (void)fprintf(f_C_output, ".");
+  dump_field_from_second_operand(expr);
+  (void)fprintf(f_C_output, ")");
+}  /* dump_rvalue_selection */
+
+
 #ifndef CFE
 /*ARGSUSED*/ /* <-- op is only used if CFE is defined. */
 #endif /* ifndef CFE */
@@ -2976,13 +3044,12 @@ expression, then the "right" side with the operator in between.
   an_expr_node_ptr               operand_1;
   an_expr_node_ptr               operand_2;
   a_type_ptr                     expr_type;
-  a_type_ptr                     return_type;
 #ifdef CFE
   a_field_ptr                    field;
-  a_boolean                      struct_func_call;
   a_boolean                      is_signed;
 #endif /* ifdef CFE */
 #ifdef FFE
+  a_type_ptr                     return_type;
   char                           *temp_str;
   int                            arg_count;
   char                           *float_name;
@@ -3478,9 +3545,7 @@ char_compare:
       fputc(')', f_C_output);
       break;
     case eok_value_field:
-      dump_expression(operand_1, /*need_parens=*/TRUE);
-      fputc('.', f_C_output);
-      dump_field_from_second_operand(expr);
+      dump_rvalue_selection(expr);
       break;
 #if CHECKING
     case eok_bit_field:
@@ -3503,12 +3568,12 @@ char_compare:
       if (expr->variant.operation.kind ==
           (an_expr_operator_kind)eok_extract_bit_field) {
         dump_lvalue(operand_1);
+        fputs(".", f_C_output);
+        dump_field_from_second_operand(expr);
       } else {
         /* eok_value_bit_field, extraction from rvalue struct/union. */
-        dump_expression(operand_1, /*need_parens=*/TRUE);
+        dump_rvalue_selection(expr);
       }  /* if */
-      fputs(".", f_C_output);
-      dump_field_from_second_operand(expr);
       if (is_signed) {
         (void)fprintf(f_C_output, ",%d))", field->bit_size);
       }  /* if */
@@ -3613,8 +3678,8 @@ char_compare:
       } else
 #endif /* ifdef FFE */
       {
-        return_type = skip_typerefs(expr->type);
 #ifdef FFE
+        return_type = skip_typerefs(expr->type);
         /* See if this call has any alternate return arguments. */
         any_alt_returns = FALSE;
         for (call_argument = operand_2;
@@ -3634,20 +3699,6 @@ char_compare:
         /* Pre-generate code for character concatenation and substring within
            the argument list. */
         start_difficult_char_ops(operand_2, &close_flag);
-#endif /* ifdef FFE */
-#ifdef CFE
-        /* If the return value is a struct, output the call as
-             ( *(_T12345 = func(arg1, arg2, ...), &_T12345) )
-           This avoids the problem of referencing the result of the
-           function call in a field selection.  The temporary will
-           have been generated on a pre-scan of this code. */
-        struct_func_call = (return_type->kind == (a_type_kind)tk_struct ||
-                            return_type->kind == (a_type_kind)tk_union);
-        if (struct_func_call) {
-          (void)fprintf(f_C_output, "(*(%s = ", temp_name((char *)expr));
-        }  /* if */
-#endif /* ifdef CFE */
-#ifdef FFE
         if (is_char_or_char_array(return_type)) {
           /* Call of a character function.  The result is stored in a
              temporary, which must then be referenced, as in
@@ -3727,13 +3778,6 @@ char_compare:
           */
           (void)fprintf(f_C_output, ",%s)", temp_name((char *)expr));
         }  /* if */
-#endif /* ifdef FFE */
-#ifdef CFE
-        if (struct_func_call) {
-          (void)fprintf(f_C_output, ", &%s))", temp_name((char *)expr));
-        }  /* if */
-#endif /* ifdef CFE */
-#ifdef FFE
         end_difficult_char_ops(close_flag);
         if (any_alt_returns) {
           /* This is a subroutine call with alternate return arguments.
@@ -7064,25 +7108,23 @@ Dump declarations for any temporaries required for the expression and
 its subtree.
 */
 {
-  a_type_ptr            node_type;
   an_expr_node_ptr      operand, op1;
   an_expr_operator_kind op;
-#ifdef FFE
   a_type_ptr            op1_type;
+#ifdef FFE
+  a_type_ptr            node_type;
   a_routine_ptr         rout;
   unsigned long         len;
 #endif /* ifdef FFE */
 
   if (node != NULL) {
     if (node->kind == (an_expr_node_kind)enk_operation) {
-      node_type = skip_typerefs(node->type);
       op = node->variant.operation.kind;
       op1 = node->variant.operation.operands;
-#ifdef FFE
       op1_type = op1->type;
-#endif /* ifdef FFE */
-      if (op == (an_expr_operator_kind)eok_call) {
 #ifdef FFE
+      node_type = skip_typerefs(node->type);
+      if (op == (an_expr_operator_kind)eok_call) {
         if (is_stmt_func_ref(op1)) {
           /* Statement function call; generate result variable temporary. */
           startline((a_seq_number)0);
@@ -7105,23 +7147,6 @@ its subtree.
           (void)fprintf(f_C_output, "char %s[%lu];", temp_name((char *)node),
                                     node_type->variant.fcharacter.length);
         }  /* if */
-#endif /* ifdef FFE */
-#ifdef CFE
-        if (node_type->kind == (a_type_kind)tk_struct ||
-            node_type->kind == (a_type_kind)tk_union) {
-          /* A function call returning a struct or union.  Declare a temporary
-             to hold the result. */
-          startline((a_seq_number)0);
-          start_comment();
-          (void)fprintf(f_C_output,
-                               " Temporary for a struct function call node. ");
-          end_comment();
-          startline((a_seq_number)0);
-          simple_type_reference(temp_name((char *)node), node_type);
-          (void)fprintf(f_C_output, ";");
-        }  /* if */
-#endif /* ifdef CFE */
-#ifdef FFE
         { an_expr_node_ptr operand;
           /* Look for an argument that is an intrinsic passed as an actual
              argument.  Put out an extern for the intrinsic routine in that
@@ -7144,8 +7169,6 @@ its subtree.
             }  /* if */
           }  /* for */
         }
-#endif /* ifdef FFE */
-#ifdef FFE
       } else if (op == (an_expr_operator_kind)eok_address_of_value) {
         /* Found an eok_address_of_value node.  Generate a declaration for
            the temporary it will need. */
@@ -7222,8 +7245,28 @@ its subtree.
           startline((a_seq_number)0);
           (void)fprintf(f_C_output, "char %s;", temp_name((char *)node));
         }  /* if */
-#endif /* ifdef FFE */
       }  /* if */
+#endif /* ifdef FFE */
+#ifdef CFE
+      if (op == (an_expr_operator_kind)eok_value_field ||
+          op == (an_expr_operator_kind)eok_value_bit_field) {
+        /* Selection of a field from an rvalue; need a temp for the
+           struct/union. */
+        if (optimizable_rvalue_selection(node)) {
+          /* The transformation can optimized and does not need the temp.
+             See dump_rvalue_selection. */
+        } else {
+          startline((a_seq_number)0);
+          start_comment();
+          (void)fprintf(f_C_output,
+                                 " Temporary for an rvalue field selection. ");
+          end_comment();
+          startline((a_seq_number)0);
+          simple_type_reference(temp_name((char *)node), op1_type);
+          (void)fprintf(f_C_output, ";");
+        }  /* if */
+      }  /* if */
+#endif /* ifdef CFE */
       for (operand = op1; operand != NULL; operand = operand->next) {
         dump_expr_prescan_temps(operand);
       }  /* for */
