@@ -2037,12 +2037,15 @@ end_arg_expansion:;
       if (rts_kind == rt_text) {
         sect_len = rts_number;
         rtp += sect_len;
+      } else if (rts_kind == rt_paste) {
+        /* Just a placeholder for "##"; it will not take up space in the
+           expansion. */
+        sect_len = 0;
       } else {
         /* Other section kinds have an associated parameter number. */
         get_arg_value(rts_number, map);
         switch (rts_kind) {
           case rt_raw_argument:
-          case rt_right_raw_argument:
             sect_len = map->raw_len;
             /* Don't count an LE_INERT_MACRO escape if present, since it
                will be removed. */
@@ -2099,12 +2102,13 @@ end_arg_expansion:;
         sect_len = rts_number;
         text_loc = rtp;
         rtp += sect_len;
+      } else if (rts_kind == rt_paste) {
+        sect_len = 0;
       } else {
         /* Other section kinds have an associated parameter number. */
         get_arg_value(rts_number, map);
         switch (rts_kind) {
           case rt_raw_argument:
-          case rt_right_raw_argument:
             sect_len = map->raw_len;
             text_loc = map->raw_text;
             /* Remove an LE_INERT_MACRO escape if present, since the token
@@ -2132,7 +2136,9 @@ end_arg_expansion:;
 #endif /* CHECKING */
         }  /* switch */
       }  /* if */
-      (void)memcpy(src_loc, text_loc, size_t_arg(sect_len));
+      if (sect_len != 0) {
+        (void)memcpy(src_loc, text_loc, size_t_arg(sect_len));
+      }
       if (rts_kind == rt_argument && map->modif_list != NULL) {
         /* If this is an expanded argument value, and there are any source
            modifications to the raw text to produce the expanded text
@@ -2516,7 +2522,6 @@ the macro definition.
   a_repl_text_seq_kind rts_kind;
   sizeof_t             rts_number;
   char                 *ptr;
-  a_boolean            suppress_paste;
 
   /* Make a string for the macro in temp_text_buffer, then copy it into
      the file-scope IL. */
@@ -2539,7 +2544,6 @@ the macro definition.
   put_ch_to_temp_text_buffer(' ');
   /* Put out the macro body, converting from the internal form to a plain
      string. */
-  suppress_paste = FALSE;
   for (ptr = mdp->repl_text; *ptr != (int)rt_null;) {
     rts_kind = (a_repl_text_seq_kind)*(ptr++);
     /* Extract the section length or argument number. */
@@ -2565,20 +2569,10 @@ the macro definition.
         /* parameter ## normal or parameter ## parameter, or pcc-mode
            parameter. */
         put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
-        if (!pcc_preprocessing_mode) {
-          put_str_to_temp_text_buffer("##");
-          /* If this is the parameter ## parameter case, suppress the "##"
-             when the second parameter is processed. */
-          if ((a_repl_text_seq_kind)*ptr == rt_right_raw_argument) {
-            suppress_paste = TRUE;
-          }  /* if */
-        }  /* if */
         break;
-      case rt_right_raw_argument:
-        /* ## parameter */
-        if (!suppress_paste) put_str_to_temp_text_buffer("##");
-        suppress_paste = FALSE;
-        put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
+      case rt_paste:
+        /* ## placeholder */
+        put_str_to_temp_text_buffer("##");
         break;
       case rt_stringized_raw_argument:
         /* #parameter */
@@ -2610,6 +2604,76 @@ the macro definition.
 }  /* make_il_macro_entry */
 
 #endif /* RECORD_MACROS_IN_IL */
+
+#if DEBUG
+static void db_dump_macro_def(a_symbol_ptr      assoc_symbol,
+                              a_boolean         object_like,
+                              a_macro_param_ptr param_list,
+                              char              *buffer_start)
+/*
+This function dumps information about a freshly scanned macro to f_debug.
+The symbol associated with the macro is *assoc_symbol.  If the macro is not
+function-like, object_like is TRUE.  If the macro is function-like, its
+parameters (if any) are pointed to by param_list.  buffer_start points to the
+beginning of the encoding of the replacement list.
+*/
+{
+  a_macro_param_ptr pp;
+  sizeof_t          param_num;
+
+  if (debug_level >= 3) {
+    char *temp_ptr;  /* Doesn't need to be registered. */
+    a_repl_text_seq_kind rts_kind;
+    sizeof_t             rts_number;
+    fprintf(f_debug, "Definition of macro %s:\n",
+                     assoc_symbol->header->identifier);
+    if (object_like) {
+      fprintf(f_debug, "object-like\n");
+    } else {
+      fprintf(f_debug, "function-like, parameter list:\n");
+      for (pp = param_list, param_num = 1; pp != NULL;
+           pp = pp->next, param_num++) {
+        fprintf (f_debug, "  (%d) %s\n", (int)param_num, pp->name);
+      }  /* for */
+    }  /* if */
+    fprintf(f_debug, "replacement text:\n");
+    for (temp_ptr = buffer_start; *temp_ptr != (int)rt_null;) {
+      rts_kind = (a_repl_text_seq_kind)*(temp_ptr++);
+      /* Extract the section length or argument number. */
+      get_macro_repl_text_number(rts_number, temp_ptr);
+      switch (rts_kind) {
+        case rt_text:
+          fputs("  raw text: \"", f_debug);
+          print_markered_text(temp_ptr, rts_number, FALSE);
+          fputs("\"\n", f_debug);
+          temp_ptr += rts_number;
+          break;
+        case rt_raw_argument:
+          fprintf(f_debug, "  raw argument %lu\n",
+                           (unsigned long)rts_number);
+          break;
+        case rt_paste:
+          fprintf(f_debug, "  ##\n");
+          check_assertion(rts_number == 0);
+          break;
+        case rt_stringized_raw_argument:
+          fprintf(f_debug, "  stringized raw argument %lu\n",
+                           (unsigned long)rts_number);
+          break;
+        case rt_argument:
+          fprintf(f_debug, "  expanded argument %lu\n",
+                           (unsigned long)rts_number);
+          break;
+#if CHECKING
+        default:
+          internal_error("proc_define: bad text section kind in macro def");
+#endif /* CHECKING */
+      }  /* switch */
+    }  /* for */
+    fprintf(f_debug, "  end\n");
+  }  /* if */
+}
+#endif /* DEBUG */
 
 void proc_define(void)
 /*
@@ -2811,16 +2875,21 @@ Scan and process a #define directive.
           if (mdefn_get_token(param_list, &param_num,
                               &any_white_space_skipped) == tok_newline) {
             error(ec_paste_cannot_be_last);
-          } else if (param_num != 0) {
-            /* The token following "##" is a parameter. */
-            put_start_of_non_text_section(rt_right_raw_argument, param_num);
-            need_end_of_token_marker = TRUE;
-            (void)mdefn_get_token(param_list, &param_num,
-                                  &any_white_space_skipped);
           } else {
-            /* Anything other than a parameter.  Delete any white space
-               preceding it. */
-            any_white_space_skipped = FALSE;
+            /* Insert a '##' placeholder so that the IL accurately reflects
+               the source. */
+            put_start_of_non_text_section(rt_paste, 0);
+            if (param_num != 0) {
+              /* The token following "##" is a parameter. */
+              put_start_of_non_text_section(rt_raw_argument, param_num);
+              need_end_of_token_marker = TRUE;
+              (void)mdefn_get_token(param_list, &param_num,
+                                    &any_white_space_skipped);
+            } else {
+              /* Anything other than a parameter.  Delete any white space
+                 preceding it. */
+              any_white_space_skipped = FALSE;
+            }  /* if */
           }  /* if */
         }  /* if */
       } else {
@@ -2934,57 +3003,7 @@ Scan and process a #define directive.
        unclosed string. */
     end_of_cpp_string = NULL;
 #if DEBUG
-    if (debug_level >= 3) {
-      char *temp_ptr;  /* Doesn't need to be registered. */
-      a_repl_text_seq_kind rts_kind;
-      sizeof_t             rts_number;
-      fprintf(f_debug, "Definition of macro %s:\n",
-                       assoc_symbol->header->identifier);
-      if (object_like) {
-        fprintf(f_debug, "object-like\n");
-      } else {
-        fprintf(f_debug, "function-like, parameter list:\n");
-        for (pp = param_list, param_num = 1; pp != NULL;
-             pp = pp->next, param_num++) {
-          fprintf (f_debug, "  (%d) %s\n", (int)param_num, pp->name);
-        }  /* for */
-      }  /* if */
-      fprintf(f_debug, "replacement text:\n");
-      for (temp_ptr = buffer_start; *temp_ptr != (int)rt_null;) {
-        rts_kind = (a_repl_text_seq_kind)*(temp_ptr++);
-        /* Extract the section length or argument number. */
-        get_macro_repl_text_number(rts_number, temp_ptr);
-        switch (rts_kind) {
-          case rt_text:
-            fputs("  raw text: \"", f_debug);
-            print_markered_text(temp_ptr, rts_number, FALSE);
-            fputs("\"\n", f_debug);
-            temp_ptr += rts_number;
-            break;
-          case rt_raw_argument:
-            fprintf(f_debug, "  raw argument %lu\n",
-                             (unsigned long)rts_number);
-            break;
-          case rt_right_raw_argument:
-            fprintf(f_debug, "  right raw argument %lu\n",
-                             (unsigned long)rts_number);
-            break;
-          case rt_stringized_raw_argument:
-            fprintf(f_debug, "  stringized raw argument %lu\n",
-                             (unsigned long)rts_number);
-            break;
-          case rt_argument:
-            fprintf(f_debug, "  expanded argument %lu\n",
-                             (unsigned long)rts_number);
-            break;
-#if CHECKING
-          default:
-            internal_error("proc_define: bad text section kind in macro def");
-#endif /* CHECKING */
-        }  /* switch */
-      }  /* for */
-      fprintf(f_debug, "  end\n");
-    }  /* if */
+    db_dump_macro_def(assoc_symbol, object_like, param_list, buffer_start);
 #endif /* DEBUG */
     mdp = NULL;
     if (redefinition) {

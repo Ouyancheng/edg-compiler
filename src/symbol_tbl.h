@@ -414,16 +414,18 @@ sequences are:
 */
 typedef enum /*a_repl_text_seq_kind*/ {
   rt_null,      	/* Equivalent to '\0' (null), marks end of string. */
-  rt_text,		/* Raw text.  Followed by 3 bytes containing a
+  rt_text,
+			/* Raw text.  Followed by 3 bytes containing a
 			   character count, and then that many characters
 			   of raw text. */
+  rt_paste,
+			/* "##" token. This is just a placeholder and not
+			   actual replacement text. */
   rt_raw_argument,
-  rt_right_raw_argument,
 			/* Raw string for argument.  Followed by 3 bytes
 			   containing the argument number (first argument is
-			   numbered 1).  "right" argument is one to the right
-			   of "##"; the normal form is used for an argument
-			   to the left of "##" and all arguments in pcc
+			   numbered 1).  "raw arguments" are used for arguments
+			   adjacent to "##" and all arguments in pcc
 			   mode. */
   rt_stringized_raw_argument,
 			/* Same as rt_raw_argument, but argument raw string is

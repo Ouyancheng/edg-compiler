@@ -1,5 +1,10 @@
 Version 2.42
 
+6/30/99 ## operator dropped in IL
+
+When the token pasting operator ("##") was not followed by a macro parameter,
+it did not appear in the IL.  This is now fixed.
+
 6/29/99 #line directives in preprocessed output in presence of line splices
 
 In some cases involving line splices (lines continued using "\"), the
