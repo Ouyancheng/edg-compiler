@@ -189,15 +189,21 @@ EXTERN a_mem_alloc_history_number
 			/* Number of array elements in the memory allocation
 			   history array. */
 
+/*
+TRUE if a new PCH may be created containing the information currently
+being constructed by the compilation.  This has an effect on how
+memory management is done.  The memory for regions that may need to be
+written out as part of the PCH cannot be freed until after the PCH is
+written.
+*/
+#if STANDALONE_UTILITY_PROGRAM
+#define may_be_building_new_pch() /* Nothing. */
+#else /* !STANDALONE_UTILITY_PROGRAM */
+#define may_be_building_new_pch() (header_stop_position_pending)
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
 EXTERN a_boolean
 		may_be_building_new_pch;
-			/* TRUE if a new PCH may be created containing the
-			   information currently being constructed by the
-			   compilation.  This has an effect on how memory
-			   management is done.  The memory for regions that
-			   may need to be written out as part of the PCH
-			   cannot be freed until after the PCH is written. */
-
 /*
 Macro that is TRUE if two memory allocation history entries are equivalent.
 */

@@ -822,7 +822,7 @@ done creating it.)  Save it if necessary, free the space if possible.
      then free its storage. */
   write_memory_region(region_number);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-  if (!may_be_building_new_pch) {
+  if (!header_stop_position_pending) {
     /* Only free the memory region if we know that we won't need to save
        it in a PCH file. */
     free_memory_region(region_number);
