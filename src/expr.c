@@ -4285,7 +4285,7 @@ static void scan_optional_type_generic_operator_expression(
 Scan an optional expression (beginning at the current token) that is an
 argument to a type-generic function.  Do not evaluate the expression; just
 determine its type, and adjust the composite type in *arg_type
-accordingly.  Set *err to TRUE is there is an error.
+accordingly.  Set *err to TRUE if there is an error.
 */
 {
   if (curr_token == tok_comma || curr_token == tok_rparen) {
