@@ -412,7 +412,8 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
 }  /* record_defeatable_name_hiding */
 
 
-static void check_name_unhiding(a_symbol_ptr sym_ptr, a_scope_ptr sp)
+static void check_name_unhiding(a_symbol_ptr sym_ptr,
+                                a_scope_ptr sp)
 /*
 Injected class names and block extern declarations enable unqualified access
 to entities that might have been previously hidden.  If sym_ptr is a symbol
@@ -420,7 +421,7 @@ for such an entity, we create a new hidden name entry for scope sp with all
 flags cleared.  Note that this happens even if no hiding had occurred.
 */
 {
-  a_hidden_name_ptr  hnp;
+  a_hidden_name_ptr  hnp = NULL;
   an_il_entry_kind   entity_kind;
 
   if (is_injected_class_symbol(sym_ptr)) {
@@ -452,6 +453,28 @@ flags cleared.  Note that this happens even if no hiding had occurred.
       }  /* if */
     }  /* if */
   }  /* if */
+#if DEBUG
+  if ((debug_level >= 4 || db_flag_is_set("dump_hidden")) && hnp != NULL) {
+    a_source_correspondence  *scp =
+               source_corresp_for_il_entry(hnp->entity.ptr, entity_kind);
+    fputs("    in ", f_debug);
+    db_scope(sp);
+    fprintf(f_debug, ": \"");
+    if (entity_kind == (an_il_entry_kind)iek_type) {
+      db_abbreviated_type((a_type_ptr)hnp->entity.ptr);
+    } else {
+      if (scp != NULL) {
+        db_name(scp);
+        if (entity_kind == (an_il_entry_kind)iek_routine) {
+          db_function_param_list(((a_routine_ptr)hnp->entity.ptr)->type);
+        }  /* if */
+      } else {
+        fprintf(f_debug, "\?\?\?");
+      }  /* if */
+    }  /* if */
+    fprintf(f_debug, "\" can be used as an unqualified name\n");
+  }  /* if */
+#endif /* DEBUG */
 }  /* check_name_unhiding */
 
 
