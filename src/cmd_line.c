@@ -3411,6 +3411,15 @@ enable_microsoft_mode:
       command_line_error(
                        ec_cl_pp_output_incompatible_with_multiple_trans_units);
     }  /* if */
+    if (option_kind_used[(int)optk_implicit_template_inclusion] &&
+        implicit_template_inclusion_mode) {
+      /* The option --implicit_include was used: it cannot be used when
+         compiling multiple translation units. */
+      command_line_error(
+                ec_cl_implicit_include_incompatible_with_multiple_trans_units);
+    }  /* if */
+    /* Disable implicit inclusion when using multiple translation units. */
+    implicit_template_inclusion_mode = FALSE;
   }  /* if */
 #endif /* COMPILE_MULTIPLE_TRANSLATION_UNITS */
 #else /* !(COMPILE_MULTIPLE_SOURCE_FILES ||
