@@ -1,5 +1,11 @@
 Version 3.1
 
+5/15/02  GNU C compatibility: Invalid asm operand validation code
+
+An error in the code that validates asm operand description could cause
+spurious diagnostics on some extended GNU C asm constructs.  This is
+now fixed.
+
 5/15/02  Copying of function-scope constants while inlining
 
 When the inlining process is copying the statements and expressions
@@ -10,7 +16,7 @@ but did arise more frequently when RECORD_CONSTANT_EXPRESSIONS_IN_IL
 is set and IL lowering/inlining is also done (an unusual
 combination).
 
-5/15/02  GNU C compatibility: spurious error when ellipsis in prototype
+5/15/02  GNU C compatibility: Spurious error when ellipsis in prototype
          declaration follows an unprototyped definition
 
 Mixing unprototyped definitions with prototype declarations that

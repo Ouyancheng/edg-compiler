@@ -460,9 +460,10 @@ even if they are invalid.
   memzero((char*)regs_used, sizeof regs_used);
   for (operand = operands; operand != NULL; operand = operand->next) {
     for (i = 0;
-         single_register_constraints[i].cons != (a_named_register)anr_last;
+         single_register_constraints[i].cons !=
+                                      (an_asm_operand_constraint_kind)aoc_last;
          i++) {
-      for (c = operands->constraints; c != NULL; c = c->next) {
+      for (c = operand->constraints; c != NULL; c = c->next) {
         if (c->kind == single_register_constraints[i].cons) {
           r = single_register_constraints[i].reg;
           /* Test used == 1 so the error is issued once per register. */
