@@ -166,16 +166,19 @@ is done according to the output control block octl.
   entry = il_entry_for_symbol(sym, &kind);
   if (entry != NULL) {
     scp = source_corresp_for_il_entry(entry, kind);
-    if (sym->is_class_member) {
-      if (scp->is_class_member &&
-          sym->parent.class_type == scp->parent.class_type) {
-        /* Use the IL entry to generate the name. */
+    if (scp != NULL) {
+      if (sym->is_class_member) {
+        if (scp->is_class_member &&
+            sym->parent.class_type == scp->parent.class_type) {
+          /* Use the IL entry to generate the name. */
+          form_name(scp, kind, octl);
+          goto done;
+        }  /* if */
+      } else {
+        /* Not a class member -- use the IL entry to generate the name. */
         form_name(scp, kind, octl);
         goto done;
       }  /* if */
-    } else /* if (sym->parent.namespace == scp->parent.namespace) */ {
-      form_name(scp, kind, octl);
-      goto done;
     }  /* if */
   }  /* if */
   /* No source correspondence entry, or else it has a different class
