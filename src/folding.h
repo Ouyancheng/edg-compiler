@@ -17,6 +17,10 @@ folding.h -- Declarations relating to folding operations.
 #ifndef FOLDING_H
 #define FOLDING_H 1
 
+#ifndef SYMBOL_TBL_H
+#include "symbol_tbl.h"
+#endif /* ifndef SYMBOL_TBL_H */
+
 extern void implicit_cast(a_constant_ptr cp,
                           a_type_ptr     new_type);
 
