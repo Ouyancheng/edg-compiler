@@ -664,48 +664,13 @@ Display a_param_type entry.
 
 static void disp_pragma_kind_name(a_pragma_kind  kind)
 /*
-Print the name of a pragma kind.
+Print the name of a pragma kind.  Actually, the pragma ID (the name
+used in the #pragma directive) is displayed.
 */
 {
   char *s;
 
-  switch (kind) {
-    case pk_none:                 s = "pk_none";                break;
-    case pk_printf_args:          s = "pk_printf_args";         break;
-    case pk_scanf_args:           s = "pk_scanf_args";          break;
-    case pk_lint_argsused:        s = "pk_lint_argsused";       break;
-    case pk_lint_varargs_count:   s = "pk_lint_varargs_count";  break;
-    case pk_lint_notreached:      s = "pk_lint_notreached";     break;
-    case pk_instantiate:          s = "pk_instantiate";         break;
-    case pk_do_not_instantiate:   s = "pk_do_not_instantiate";  break;
-    case pk_can_instantiate:      s = "pk_can_instantiate";     break;
-#if USER_CONTROL_OF_STRUCT_PACKING
-    case pk_pack:                 s = "pk_pack";                break;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-#if IDENT_DIRECTIVE_AND_PRAGMA
-    case pk_ident:                s = "pk_ident";               break;
-#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
-#if PRAGMA_WEAK_ALLOWED
-    case pk_weak:                 s = "pk_weak";                break;
-#endif /* PRAGMA_WEAK_ALLOWED */
-    case pk_define_type_info:     s = "pk_define_type_info";    break;
-#if INCLUDE_EDG_TEST_PRAGMAS
-    /* For testing purposes. */
-    case pk_test_next_statement:  s = "pk_test_next_statement"; break;
-    case pk_test_next_decl:       s = "pk_test_next_decl";      break;
-    case pk_test_immediate:       s = "pk_test_immediate";      break;
-    case pk_test_other:           s = "pk_test_other";          break;
-    case pk_test_bind_next_pass:  s = "pk_test_bind_next_pass"; break;
-#endif /* INCLUDE_EDG_TEST_PRAGMAS */
-#if EXPENSIVE_CHECKING
-    case pk_checking_pragma:      s = "pk_checking_pragma";     break;
-#endif /* EXPENSIVE_CHECKING */
-#if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
-    case pk_unrecognized:         s = "pk_unrecognized";	break;
-#endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
-    default:                      s = "**BAD PRAGMA KIND**";    break;
-  }  /* switch */
-
+  s = pragma_ids[(int)kind];
  (void) printf("%s\n", s);
 }  /* disp_pragma_kind_name */
 
