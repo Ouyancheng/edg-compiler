@@ -4002,7 +4002,7 @@ skip_overloading:;
        alone in set_source_corresp. */
     source_corresp_ptr->is_local_to_function = FALSE;
   }  /* if */
-  if (!C_mode() && !redeclaration) {
+  if (!C_mode() && !redeclaration && !template_function_specific_decl) {
     if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
       /* Set the namespace parent.  Note that for block-extern declarations,
          this is done only in the IL entry, not in the symbol. */
