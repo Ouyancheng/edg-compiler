@@ -467,6 +467,9 @@ and indentation is the indentation desired.
           put_string("aggregate");
         }  /* if */
         if (cssp->constructor != NULL) put_string("has ctor");
+        if (cssp->trivial_default_constructor != NULL) {
+          put_string("has trivial default-ctor");
+        }  /* if */
         if (cssp->has_nontrivial_default_constructor) {
           put_string("has default-ctor");
         }  /* if */
@@ -610,6 +613,9 @@ do_variable:
         }  /* if */
         if (rp->is_inline) put_string("inline");
         if (rp->compiler_generated) put_string("compiler generated");
+        if (rp->is_trivial_default_constructor) {
+          put_string("trivial default-ctor");
+        }  /* if */
         (void)sprintf(buffer, "sc_%s",
                       db_storage_class_names[(int)rp->storage_class]);
         put_string(buffer);

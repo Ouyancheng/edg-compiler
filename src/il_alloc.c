@@ -1342,6 +1342,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->defined                     = FALSE;
   rp->called                      = FALSE;
   rp->is_explicit_constructor     = FALSE;
+  rp->is_trivial_default_constructor = FALSE;
 #if ASSIGNMENT_TO_THIS_ALLOWED
   rp->assignment_to_this_done     = FALSE;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */

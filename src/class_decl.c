@@ -5184,6 +5184,7 @@ declared member functions.
            not added to the constructor set (which should be empty). */
         check_assertion(cssp->constructor == NULL);
         cssp->trivial_default_constructor = sym;
+        rtn->is_trivial_default_constructor = TRUE;
       } else {
         if (cssp->constructor == NULL) {
           cssp->constructor = sym;

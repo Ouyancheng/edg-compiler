@@ -1536,6 +1536,9 @@ Display the indicated routine.
   disp_boolean("called", ptr->called);
   if (ptr->special_kind == (a_special_function_kind)sfk_constructor) {
     disp_boolean("is_explicit_constructor", ptr->is_explicit_constructor);
+    if (ptr->is_trivial_default_constructor) {
+      disp_boolean("is_trivial_default_constructor", TRUE);
+    }  /* if */
   }  /* if */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   if (ptr->assignment_to_this_done) {
