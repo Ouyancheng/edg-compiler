@@ -9272,7 +9272,7 @@ returned to the caller.
 
       for (;;) {
         check_assertion(ctp->next != NULL);
-        next_tok = ctp->next->token;
+        next_tok = (a_token_kind)ctp->next->token;
         if (next_tok == tok_semicolon || next_tok == tok_end_of_source) {
           decl_state->decl_pos_block.var_init_range.end =
                                                 ctp->end_source_position;
