@@ -227,6 +227,31 @@ command-line options.
 #endif /* ifndef DEFAULT_IMPLICIT_TYPENAME_ENABLED */
 
 /*
+Flag that is TRUE if, in C++, an "inline" function is allowed to have
+external linkage.  It is the default value for global variable
+extern_inline_allowed, which can be modified by the "--extern_inline" and
+"--no_extern_inline" command-line options.  When it is TRUE it means
+(consistent with the current version of the standard)
+  -- for nonmember functions
+       the specifier sequence "extern inline" is permitted,
+       "inline" by itself implies external linkage, and
+       "inline static" must be used to specify internal linkage;
+  -- for member functions
+       an inline function, like noninline functions, takes the linkage of
+       the class of which it is a member (which is ususally external).
+When it is FALSE (consistent with the ARM and for cfront compatibility) it
+means
+  -- for nonmember functions:
+       "extern" and "inline" are incompatible specifiers, and
+       "inline" always implies "static" and internal linkage;
+  -- for member functions:
+       inline functions always have internal linkage.
+*/
+#ifndef DEFAULT_EXTERN_INLINE_ALLOWED
+#define DEFAULT_EXTERN_INLINE_ALLOWED TRUE
+#endif /* DEFAULT_EXTERN_INLINE_ALLOWED ifndef  */
+
+/*
 Flag that is TRUE if template nontype parameters with floating point
 types are allowed.  X3J16 made floating point template parameters
 ill-formed in 3/94 but they are allowed by some compilers (e.g.,
