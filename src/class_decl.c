@@ -9625,7 +9625,8 @@ moreover, several fields of *decl_info may be updated by this routine.
     }  /* if */
     if (dso_flags & DSO_FRIEND) {
       if ((dso_flags & DSO_ELABORATED_TYPE_SPECIFIER) &&
-          !is_enum_type(member_type)) {
+          !is_enum_type(member_type) &&
+          depth_template_declaration_scope == NO_SCOPE_DEPTH) {
         /* This is a friend class declaration, of the form:
                    friend class A;
            which is the only form the ARM (see 11.4) allows. */
@@ -10062,15 +10063,9 @@ to be returned to the caller.
   }  /* if */
   if (curr_token == tok_semicolon) {
     /* There's no declarator following the declaration specifier.  This may
-       be okay, but sometimes a diagnostic should be issued.  If we are in a
-       template declaration scope, something went wrong during earlier parsing
-       and an error will be issued elsewhere; do not invoke semantic checking
-       that expects real types.  Unless this is an anonymous union
-       declaration, skip to the next declaration. */
-    if (depth_template_declaration_scope == NO_SCOPE_DEPTH) {
-      check_missing_declarator_in_member_declaration(class_type, member_type,
-                                                     &decl_info);
-    }  /* if */
+       be okay, but sometimes a diagnostic should be issued. */
+    check_missing_declarator_in_member_declaration(class_type, member_type,
+                                                   &decl_info);
     if (decl_info.is_anonymous_union) {
       /* decl_nonstatic_data_member needs to be called. */
     } else {
