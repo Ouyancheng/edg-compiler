@@ -26,6 +26,7 @@ class_decl.c -- Scanning of class declarations.
 
 /* Additional header files. */
 #include "expr.h"
+#include "folding.h"
 #include "layout.h"
 #if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
