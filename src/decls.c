@@ -4122,16 +4122,22 @@ on a prior declaration.
 
   db_enter(3, "define_member_function");
   class_type = locator->specific_symbol->class_of_which_a_member;
-  if (!is_member_function_symbol(locator->specific_symbol)) {
+  sym = locator->specific_symbol;
+  if (!is_member_function_symbol(sym)) {
     /* We must have nonfunction class member.  This is an error, so set sym
        to NULL to force the creation of a fake member function symbol. */
-    pos_sy_error(ec_not_compatible_with_previous_decl,
-                 &locator->source_position, locator->specific_symbol);
+    if (sym->kind == (a_symbol_kind)sk_projection) {
+      /* A member of a base class. */
+      pos_error(ec_inherited_member_not_allowed, &locator->source_position);
+    } else {
+      pos_sy_error(ec_not_compatible_with_previous_decl,
+                   &locator->source_position, sym);
+    }  /* if */
     sym = NULL;
   } else {
     /* Look for a member function symbol of this type in the symbol table.
        It is an error if it is  not already there. */
-    sym = member_function_redecl_sym(locator->specific_symbol, type_ptr);
+    sym = member_function_redecl_sym(sym, type_ptr);
     if (sym == NULL) {
       /* No member function with a matching type was found.  Issue an error. */
       pos_sy_error(locator->specific_symbol->kind ==
