@@ -2002,9 +2002,11 @@ symbol.  Otherwise, return NULL.
       /* This must be a symbol for a template parameter, and we must be in
          the midst of a prototype instantiation.  Return the symbol that
          was found. */
-    } else if (assoc_symbol->kind != tag_kind) {
-      /* A tag, but the wrong kind of tag (e.g., struct when union is
-         required). */
+    } else if (assoc_symbol->kind != tag_kind &&
+               assoc_symbol->decl_scope !=
+                        scope_stack[decl_scope_level].number) {
+      /* A tag, but it's from another scope and it's the wrong kind of tag
+         (e.g., struct when union is required). */
       assoc_symbol = NULL;
     } else {
       if (locator->is_semivisible_nested_type) {
