@@ -400,6 +400,7 @@ values.
   amsp->anachronism_used           = FALSE;
   amsp->const_anachronism          = FALSE;
   amsp->is_match_for_this_param    = FALSE;
+  amsp->arg_is_constant            = FALSE;
   amsp->param_type                 = NULL;
   amsp->guide_type                 = NULL;
   clear_conv_descr(&amsp->conversion);
@@ -1330,6 +1331,25 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
   }  /* if */
   param_is_class_type = is_immediate_class_type(unqual_param_type);
   arg_is_class_type = is_immediate_class_type(unqual_arg_type);
+  /* Determine whether the argument is constant. */
+  arg_operand_is_constant = FALSE;
+  arg_operand_constant = NULL;
+  if (arg_operand != NULL && is_an_rvalue(arg_operand)) {
+    /* For a constant argument, get the constant value. */
+    arg_operand_is_constant = is_constant_operand(arg_operand);
+    if (arg_operand_is_constant) {
+      arg_operand_constant = &arg_operand->variant.constant;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode) {
+      /* Microsoft mode allows some expressions as null pointer constants. */
+      adjust_constant_operand_info_for_microsoft_null_pointer_test(
+                                                      arg_operand,
+                                                      &arg_operand_is_constant,
+                                                      &arg_operand_constant);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
+  }  /* if */
+  arg_summary->arg_is_constant = arg_operand_is_constant;
   /* If the type qualifiers are not okay, do not check for the simple
      matches; go directly to user-defined conversions (which do their own
      variety of checking of type qualifiers). */
@@ -1406,23 +1426,6 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
     /* Try a match involving standard conversions.  This is case [3] in
        the ARM.  As a subcase, some standard conversions are considered
        promotions (case [2] in the ARM). */
-    arg_operand_is_constant = FALSE;
-    arg_operand_constant = NULL;
-    if (arg_operand != NULL && is_an_rvalue(arg_operand)) {
-      /* For a constant argument, get the constant value. */
-      arg_operand_is_constant = is_constant_operand(arg_operand);
-      if (arg_operand_is_constant) {
-        arg_operand_constant = &arg_operand->variant.constant;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (microsoft_mode) {
-        /* Microsoft mode allows some expressions as null pointer constants. */
-        adjust_constant_operand_info_for_microsoft_null_pointer_test(
-                                                      arg_operand,
-                                                      &arg_operand_is_constant,
-                                                      &arg_operand_constant);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      }  /* if */
-    }  /* if */
     if (impl_conversion_possible(arg_type,
                                  arg_operand_is_constant,
                                  arg_operand_constant,
@@ -2649,7 +2652,10 @@ apply that would make one better than the other, and return
            at least one parameter is a reference. */
         if ((param1_is_ref && param2_is_ref) ||
             (single_ref_qual_ovl_res_tiebreaker &&
-             (param1_is_ref || param2_is_ref))) {
+             (param1_is_ref || param2_is_ref) &&
+             /* In Microsoft bugs mode, the tie-breaker applies only when the
+                argument is not a constant. */
+             (!microsoft_bugs || !arg_match1->arg_is_constant))) {
           /* The tiebreaker applies only when the qualifiers under the
              references are different. */
           if (qualifiers1 != qualifiers2) {

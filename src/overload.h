@@ -192,6 +192,10 @@ typedef struct an_arg_match_summary {
 		is_match_for_this_param;
 			/* TRUE if this entry describes the match for the
 			   "this" parameter. */
+  a_byte_boolean
+		arg_is_constant;
+			/* TRUE if the corresponding argument is a constant.
+			   This is used for a Microsoft-mode test. */
   a_type_ptr	param_type;
 			/* The type of the parameter.  Used in looking
 			   for conversion subsequences involving addition

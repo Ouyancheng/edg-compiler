@@ -1,5 +1,25 @@
 Version 2.40
 
+12/5/98   Microsoft compatibility: reference parameters, overload resolution
+
+In Microsoft bugs mode, the overload resolution tie-breaker behavior
+associated with single_ref_qual_ovl_res_tiebreaker is enabled (see
+lang_feat.h).  However, it turns out that for Microsoft compatibility
+the tie-breaker should apply only when the argument is not a constant:
+
+  void f(int, short) {}
+  void f(const int&, char);
+  int g() { return 0; }
+  int main () {
+    int i;
+    f(g(), 0);  // MSVC++ 6.0 says okay, picks f(int, short)
+    f(0, 0);    // MSVC++ 6.0 says ambiguous
+    return 0;
+  }
+
+Yes, this matters; some code in the Rogue Wave STL fails with the
+old behavior.
+
 12/4/98   Configurability of namespace for class type_info
 
 Whether class type_info is assumed to belong to namespace std is now
