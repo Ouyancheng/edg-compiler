@@ -1223,27 +1223,45 @@ Return the first field of a given class to be allocated.  By default this is
 the first declared field; if TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE is
 defined to be FALSE however, it is the first field with the most access (i.e.,
 public is preferred over protected, which is preferred over private).
+Also, in Microsoft mode we must skip over property fields.
 */
 {
 #if TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
-  return class_type->variant.class_struct_union.field_list;
-#else /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
-      /* Public fields are allocated first, then the protected ones and finally
-       the private ones; so fetch the first allocated one. */
-    an_access_specifier access = (an_access_specifier)as_inaccessible;
-    a_field_ptr         field =
-                            class_type->variant.class_struct_union.field_list;
-    a_field_ptr         result = field;
-    while (field) {
-      if (field->source_corresp.access == (an_access_specifier)as_public) {
-        break;
-      } else if (field->source_corresp.access < access) {
-        access = field->source_corresp.access;
-        result = field;
-      }  /* if */
-      field = field->next;
+  a_field_ptr  result = class_type->variant.class_struct_union.field_list;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    while (result && (result->get_property_name != NULL ||
+                      result->put_property_name != NULL)) {
+      result = result->next;
     }  /* while */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#else /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
+  /* Public fields are allocated first, then the protected ones and finally
+     the private ones; so fetch the first allocated one. */
+  an_access_specifier access = (an_access_specifier)as_inaccessible;
+  a_field_ptr         field =
+                            class_type->variant.class_struct_union.field_list;
+  a_field_ptr         result = field;
+  while (field) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && (field->get_property_name != NULL ||
+                           field->put_property_name != NULL)) {
+      /* Fields declared with __declspec(property(...)) do not take any
+         space. */
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    if (field->source_corresp.access == (an_access_specifier)as_public) {
+      break;
+    } else if (field->source_corresp.access < access) {
+      access = field->source_corresp.access;
+      result = field;
+    }  /* if */
+    field = field->next;
+  }  /* while */
 #endif /* TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
+  return result;
 }  /* first_allocated_field */
 
 
@@ -1406,6 +1424,53 @@ necessary.
     }  /* if */
   }  /* if */
 }  /* set_offsets_for_empty_nonvirtual_base_classes */
+
+
+static void check_if_last_empty_base_is_optimized(a_layout_block_ptr  lob)
+/*
+An empty base is said to be "optimized" if it is allocated at the same offset
+as another subobject.  That other subobject can be: another empty base, a
+field, a virtual function info block (typically: a pointer to a virtual
+function table) or a pointer to a virtual base.  The latter three cases only
+occur for the last declared empty base and can only reliably be determined
+after the corresponding subobjects have been allocated.  Hence this separate
+function to confirm the "is_optimized_empty_base" bit.
+*/
+{
+  a_type_ptr        type = lob->class_type;
+  a_base_class_ptr  last = 0, ebcp = next_empty_nonvirtual_direct_base(
+                                                       base_classes_of(type));
+
+  while (ebcp != NULL) {
+    last = ebcp;
+    ebcp = next_empty_nonvirtual_direct_base(ebcp->next);
+  }  /* while */
+  if (last && last->is_optimized_empty_base) {
+    a_field_ptr  first_field = first_allocated_field(type);
+
+    last->is_optimized_empty_base = FALSE;
+    if (first_field && first_field->offset == last->offset) {
+      /* The last base is allocated at the address of the first field, so
+         it is indeed optimized. */
+      last->is_optimized_empty_base = TRUE;
+    } else {
+      a_class_type_supplement_ptr ctsp =
+                                  type->variant.class_struct_union.extra_info;
+      if (ctsp->virtual_function_info_offset == last->offset) {
+        last->is_optimized_empty_base = TRUE;
+      } else if (type->variant.class_struct_union.any_virtual_base_classes) {
+        a_base_class_ptr  bcp = base_classes_of(type);
+
+        for (; bcp != NULL; bcp = bcp->next) {
+          if (bcp->is_virtual && bcp->pointer_offset == last->offset) {
+            last->is_optimized_empty_base = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_if_last_empty_base_is_optimized */
 
 
 static void set_offsets_for_fields(a_layout_block_ptr  lob)
@@ -1846,7 +1911,7 @@ is not shared (i.e., where the pointer from a base class is not used).
                                           lob, bcp, /*use_decl_order=*/TRUE);
       }  /* if */
     }  /* for */
-    /* Next we through the base classes list again to look for pointers that
+    /* Next we traverse the base classes list again to look for pointers that
        are still unaccounted for (i.e., have a NULL pointer base class and
        and still have a zero pointer offset).  Direct virtual base classes are
        put out in reverse declaration order, direct virtual base classes of
@@ -2521,9 +2586,11 @@ for handling virtual bases and functions.
     /* Finally, allocate space for the virtual base class data sections
        themselves. */
     set_virtual_base_class_offsets(&lob);
-    /* If the last things allocated was an empty base class, add a padding
-       byte to ensure that that base will not overlap with a subobject of
-       the same type in an adjacent object. */
+    /* Now verify if the last empty base really does overlap with a field,
+       a virtual function info block or a pointer to a virtual base. */
+    if (targ_optimize_empty_base_class_layout) {
+      check_if_last_empty_base_is_optimized(&lob);
+    }  /* if */
   }  /* if */
   /* Adjust the total size of the class to be consistent with the
      overall alignment required for the class. */
