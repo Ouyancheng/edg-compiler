@@ -3983,9 +3983,12 @@ Syntax:
     if (is_ptr_or_ref_type(cast_type)) {
       reference_case = is_reference_type(cast_type);
       underlying_cast_type = type_pointed_to(cast_type);
-      if (is_complete_class_struct_union_type(underlying_cast_type)) {
+      if (is_class_struct_union_type(underlying_cast_type)) {
         /* Casting to a pointer to a complete class type is okay. */
-        cast_type_okay = TRUE;
+        complete_class_type_is_needed(underlying_cast_type);
+        if (!is_incomplete_type(underlying_cast_type)) {
+          cast_type_okay = TRUE;
+        }  /* if */
       } else if (!reference_case && is_void_type(underlying_cast_type)) {
         /* Casting to void * is okay. */
         cast_type_okay = TRUE;
@@ -4016,8 +4019,11 @@ Syntax:
       underlying_operand_type = NULL;
       if (is_pointer_type(operand_type)) {
         underlying_operand_type = type_pointed_to(operand_type);
-        if (is_complete_class_struct_union_type(underlying_operand_type)) {
-          operand_type_okay = TRUE;
+        if (is_class_struct_union_type(underlying_operand_type)) {
+          complete_class_type_is_needed(underlying_operand_type);
+          if (!is_incomplete_type(underlying_operand_type)) {
+            operand_type_okay = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       if (!operand_type_okay) {
@@ -4034,8 +4040,13 @@ Syntax:
       operation_type = make_pointer_type(underlying_cast_type);
       /* The source operand must be an lvalue of a complete class type. */
       if (is_an_lvalue(&operand) &&
-          is_complete_class_struct_union_type(operand_type)) {
-        operand_type_okay = TRUE;
+          is_class_struct_union_type(operand_type)) {
+        complete_class_type_is_needed(operand_type);
+        if (!is_incomplete_type(operand_type)) {
+          operand_type_okay = TRUE;
+        }  /* if */
+      }  /* if */
+      if (operand_type_okay) {
         /* Turn the lvalue into an address so we can deal with it as a
            pointer. */
         take_address_of_lvalue(&operand);
