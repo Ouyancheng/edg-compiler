@@ -379,6 +379,17 @@ slower.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 /*
+A prototype instantiation results from parsing and analyzing a template
+without substituting actual template argument entities for the formal
+parameters.  This flag should be set to TRUE if such structured but abstract
+representations should be recorded in the IL.  (It is typically not needed
+for direct code generation.)
+*/
+#ifndef PROTOTYPE_INSTANTIATIONS_IN_IL
+#define PROTOTYPE_INSTANTIATIONS_IN_IL FALSE
+#endif /* ifndef PROTOTYPE_INSTANTIATIONS_IN_IL */
+
+/*
 Flag that is TRUE to enable automatic instantiation support for templates.
 This flag determines whether the code for automatic instantiation is
 to be compiled.
@@ -1788,6 +1799,14 @@ extern unsigned long crc_32(char          *str,
 extern char *generate_instantiation_output_file_name(char *mangled_name);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+EXTERN a_boolean
+		prototype_instantiations_in_il
+#if VAR_INITIALIZERS
+                                    = PROTOTYPE_INSTANTIATIONS_IN_IL
+#endif /* VAR_INITIALIZERS */
+                                                                          ;
+			/* If TRUE, prototype instantiations are recorded
+			   in the IL tree. */
 
 #endif /* ifndef HOST_ENVIR_H */
 
