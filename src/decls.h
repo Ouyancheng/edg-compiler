@@ -243,6 +243,9 @@ typedef int a_decl_flag_set;
 			/* If this bit is set an operator name (e.g.,
 			   "operator+" or "operator int") is allowed as the
 			   declarator identifier. */
+#define DI_IS_FRIEND_DECL 0x800
+			/* If this bit is set the declarator is part of a
+			   friend declaration. */
 /* Constants defining bits in the output bit vector used in calls to
    declarator. */
 #define DO_NO_OUTPUT_FLAGS 0x0
