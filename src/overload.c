@@ -8077,7 +8077,8 @@ because of an error.  This routine is used only in C++ mode.
        match. */
     conversion->class_identity_or_bitwise_copy = TRUE;
     okay = TRUE;
-  } else if (is_or_contains_template_param(source_type)) {
+  } else if (is_template_dependent_context() &&
+             is_or_contains_template_param(source_type)) {
     /* Assume we can convert from an unknown type in a prototype
        instantiation. */
     okay = TRUE;
@@ -8258,6 +8259,7 @@ C++ mode.
   /* This routine is similar to select_overloaded_function. */
   clear_conv_descr(conversion);
   if (dest_type != NULL &&
+      is_template_dependent_context() &&
       is_or_contains_template_param(dest_type)) {
     /* Assume a conversion to an unknown type in a prototype instantiation
        is allowed. */
@@ -9839,8 +9841,9 @@ direct binding is "possible" and not whether it is "valid".
     /* The type is correct, ignoring (first-level) qualifiers.
        Note that this handles qualified array cases. */
     type_is_correct_or_derived = TRUE;
-  } else if (is_or_contains_template_param(unqual_dest_type) ||
-             is_or_contains_template_param(unqual_source_type)) {
+  } else if (is_template_dependent_context() &&
+             (is_or_contains_template_param(unqual_dest_type) ||
+              is_or_contains_template_param(unqual_source_type))) {
     /* Assume a match for unknown template parameter types. */
     type_is_correct_or_derived = TRUE;
   } else if (is_class_struct_union_type(unqual_dest_type) &&

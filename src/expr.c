@@ -1251,7 +1251,9 @@ Syntax:
       overloaded_function_case = TRUE;
       overloaded_function_symbol = operand->variant.symbol;
       /* routine_type = NULL;  -- already set. */
-    } else if (is_or_contains_template_param(operand->type)) {
+    } else if (!C_mode() &&
+               is_template_dependent_context() &&
+               is_or_contains_template_param(operand->type)) {
       /* A call in a prototype instantiation. */
       routine_type = NULL;
     } else {

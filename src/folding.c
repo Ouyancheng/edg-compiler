@@ -1213,10 +1213,8 @@ casts between unrelated classes.
   }  /* if */
   if (!C_mode() &&
       (constant->kind == (a_constant_repr_kind)ck_template_param ||
-       is_or_contains_template_param(new_type) ||
-       /* On error cases for nontype template parameters, a template param
-          type can appear outside of a prototype instantiation. */
-       new_type->kind == (a_type_kind)tk_template_param)) {
+       (is_template_dependent_context() &&
+        is_or_contains_template_param(new_type)))) {
     /* Casting a template parameter constant, or casting to a template
        parameter type.  Use a special tpck_cast constant. */
     make_template_param_cast_constant(constant, &new_constant, new_type);
@@ -1709,7 +1707,8 @@ the reason is that the constant is a template parameter constant).
     set_error_constant(result);
   } else if (!C_mode() &&
              (constant->kind == (a_constant_repr_kind)ck_template_param ||
-              is_or_contains_template_param(result_type))) {
+              (is_template_dependent_context() &&
+               is_or_contains_template_param(result_type)))) {
     /* An operation on a template parameter constant cannot be folded. */
     *did_not_fold = TRUE;
     *template_constant = TRUE;
@@ -2891,7 +2890,8 @@ as the position for any diagnostics issued.
   } else if (!C_mode() &&
              (constant_1->kind == (a_constant_repr_kind)ck_template_param ||
               constant_2->kind == (a_constant_repr_kind)ck_template_param ||
-              is_or_contains_template_param(result_type))) {
+              (is_template_dependent_context() &&
+               is_or_contains_template_param(result_type)))) {
     /* An operation on a template parameter constant cannot be folded. */
     *did_not_fold = TRUE;
     *template_constant = TRUE;
