@@ -454,7 +454,10 @@ function-local entities in the IA-64 ABI.
   hash_index = (((unsigned)header) >> 3) % LOCAL_NAME_COLLISION_TABLE_SIZE;
   sep = ssep->local_name_collision_table->buckets[hash_index];
   for (; sep != NULL; sep = sep->next) {
-    if (sep->symbol->header == header && sep->symbol->kind == sym->kind) {
+    if (sep->symbol->header == header &&
+        (sep->symbol->kind == sym->kind ||
+         (is_tag_symbol_kind(sep->symbol->kind) &&
+          is_tag_symbol_kind(sym->kind)))) {
       /* A previous declaration does collide with the new one. */
       switch (sym->kind) {
         case sk_variable:
@@ -463,13 +466,26 @@ function-local entities in the IA-64 ABI.
           break;
         case sk_class_or_struct_tag:
         case sk_union_tag:
-          sym->variant.class_struct_union.extra_info->discriminator =
-                          sep->symbol->variant.class_struct_union.extra_info
-                                     ->discriminator+1;
+          /* Note that enumerations and class types uses the same numbering. */
+          if (sep->symbol->kind == (a_symbol_kind)sk_enum_tag) {
+            sym->variant.class_struct_union.extra_info->discriminator =
+                             sep->symbol->variant.enumeration.discriminator+1;
+          } else {
+            sym->variant.class_struct_union.extra_info->discriminator =
+                            sep->symbol->variant.class_struct_union.extra_info
+                                       ->discriminator+1;
+          }  /* if */
           break;
         case sk_enum_tag:
-          sym->variant.enumeration.discriminator =
-                          sep->symbol->variant.enumeration.discriminator+1;
+          /* Note that enumerations and class types uses the same numbering. */
+          if (sep->symbol->kind == (a_symbol_kind)sk_enum_tag) {
+            sym->variant.enumeration.discriminator =
+                            sep->symbol->variant.enumeration.discriminator+1;
+          } else {
+            sym->variant.enumeration.discriminator =
+                            sep->symbol->variant.class_struct_union.extra_info
+                                       ->discriminator+1;
+          }  /* if */
           break;
         case sk_type:
           sym->variant.type.discriminator =
