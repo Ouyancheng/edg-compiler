@@ -980,7 +980,7 @@ Macro that compares two file identifiers.
    as an initial test that eliminates the need to do a string comparison
    when the lengths are not the same. */
 #define file_ids_are_equal(name1, id1, name2, id2)			\
-  ((id1) == (id2) && (strcmp(name1, name2) == 0))
+  ((id1) == (id2) && (strcmp((name1), (name2)) == 0))
 #endif /* STAT_INFORMATION_INCLUDES_INODE */
 
 extern void get_file_identifier(char		      *file_name,

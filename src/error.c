@@ -833,7 +833,7 @@ symbol_name:
   seg_ptr->second_quote = seg_ptr->segment + seg_ptr->length - 1;
   /* If the name is based on template arguments, add a message to that
      effect. */
-  if (seg_ptr->variant.symbol.template_args != NULL) {
+  if (seg_ptr->variant.symbol.template_args) {
     a_scope_stack_entry_ptr  ssep = error_msg_scopes[seg_ptr->sequence_no];
     check_assertion(sym->kind == (a_symbol_kind)sk_function_template ||
                     sym->kind == (a_symbol_kind)sk_class_template);

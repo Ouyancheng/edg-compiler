@@ -1948,7 +1948,7 @@ the latter case.
        ifhp != NULL;
        prev_ifhp = ifhp, ifhp = ifhp->next) {
     if (file_ids_are_equal(ifhp->full_name, ifhp->file_id,
-                           fstate->full_name, fstate->file_id)) {
+                           full_name, fstate->file_id)) {
       /* We've found a match. */
       break;
     }  /* if */
