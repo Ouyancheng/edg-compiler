@@ -9469,8 +9469,9 @@ instantiation.
         /* Either a definition or a redeclaration.  Make sure the template
            parameters are compatible with the previous declaration. */
         if (sym->is_class_member &&
-           (decl_state->class_declared_in == NULL ||
-            decl_state->is_template_friend)) {
+            !decl_state->in_prototype_instantiation &&
+            (decl_state->class_declared_in == NULL ||
+             decl_state->is_template_friend)) {
           /* If this is a class member defined outside of its class or a friend
              function declaration in a class.  Make sure that the template
              parameters match those of the original class definition. */
@@ -11752,6 +11753,7 @@ caller.
      any previous declaration (i.e., the declaration of the class
      if this is a member function. */
   if (!err && sym->is_class_member &&
+      !decl_state->in_prototype_instantiation &&
       (decl_state->class_declared_in == NULL ||
        decl_state->is_template_friend)) {
     if (!member_template_param_list_matches_class(decl_state,
