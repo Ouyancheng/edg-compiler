@@ -509,7 +509,7 @@ extern void internal_error(char *error_message);
 typedef struct a_symbol a_symbol_dummy_typedef;
 typedef struct a_type a_type_dummy_typedef;
 extern char *format_type_string(struct a_type *type,
-                                int           *len_ptr);
+                                sizeof_t      *len_ptr);
 extern void command_line_error(char *error_message);
 extern void str_command_line_error(char *error_message,
                                    char *fill_in_string);
