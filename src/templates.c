@@ -866,7 +866,12 @@ tokens from the token cache and replaces them with a semicolon.
            conditions.  Simply skip this routine if there is no instance
            pointer.  If there is a template instance, remove the function's
            token's from the classes token cache.  */
-        extract_member_function_body(tssp, tip);
+        a_template_symbol_supplement_ptr	rout_tssp;
+        rout_tssp = tip->template_info;
+        if (rout_tssp->token_cache.first_token != NULL) {
+          /* Only do this for member functions that have definitions. */
+          extract_member_function_body(tssp, tip);
+        }  /* if */
       }  /* if */
       rout = rout->next;
     }  /* while */
@@ -5601,9 +5606,7 @@ as the current token; otherwise, it is consumed.
     /* When member function bodies are not extract above, they are done now
        that the template string for the class has been created. */
     if (member_bodies_need_extraction) {
-#if 0
       extract_member_bodies(prototype_type, tssp);
-#endif
     }  /* if */
   }
   /* If the declaration token cache is not needed, discard it. */
