@@ -1867,9 +1867,11 @@ setting is used, and to set various unmentioned settings as needed.
   if (option_kind_used[(int)optk_old_specializations]) {
     command_line_error(ec_cl_old_specializations_option_only_in_cplusplus);
   }  /* if */
+#if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
   if (option_kind_used[(int)optk_implicit_extern_c_type_conversion]) {
     command_line_error(ec_cl_impl_extern_c_conv_option_only_in_cplusplus);
   }  /* if */
+#endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
   if (option_kind_used[(int)optk_extern_inline]) {
     command_line_error(ec_cl_extern_inline_option_only_in_cplusplus);
   }  /* if */

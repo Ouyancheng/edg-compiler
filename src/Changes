@@ -1,5 +1,11 @@
 Version 3.4
 
+10/13/03 Build problem when IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
+         is FALSE
+
+The front end did not build properly (specifically, cmd_line.c did not compile)
+when IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE was FALSE. Now fixed.
+
 10/13/03 Spurious errors on certain uses of function name pseudo-macros
 
 The is_expr_start routine did not handle the special tokens associated
