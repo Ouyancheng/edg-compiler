@@ -1,5 +1,11 @@
 Version 2.23
 
+4/4/94   Reworking of disambiguation routines
+
+The routines used to resolve declaration vs. expression ambiguities
+have been reworked to better handle some unusual cases that were
+not previously handled correctly.
+
 4/1/94   Overflow check in constant pointer addition/subtraction
 
 In an example like the following:
