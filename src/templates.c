@@ -4546,7 +4546,7 @@ instantiation.
   if (!locator.is_qualified_name && sym != NULL) {
     /* Unless this is a friend declaration, an unquaified name must refer
        to a name from the current scope. */
-    check_assertion(is_template_friend || sym->decl_scope ==
+    check_assertion(sym->is_error || is_template_friend || sym->decl_scope ==
                                      scope_stack[effective_decl_level].number);
   } else if (locator.is_qualified_name && sym != NULL) {
 #if 0
