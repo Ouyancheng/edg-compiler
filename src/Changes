@@ -1,5 +1,12 @@
 Version 3.0
 
+2/27/02  Display of backslashes in error messages
+
+When a file name contains backslash characters (typically as a directory
+separator on Windows) the backslashes would be escaped if the file name
+was used in a diagnostic message, resulting in a double backslash in the
+diagnostic output.  This has been fixed.
+
 2/27/02  Microsoft compatibility: inline flag of in-class specializations
 
 When a function is specialized using a Microsoft in-class specialization,

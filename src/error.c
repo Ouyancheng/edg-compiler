@@ -2285,8 +2285,11 @@ the output.
         *line_len += fprintf(stderr, "Line %lu", *line_number);
       } else {
         *line_len += fprintf(stderr, "\"");
+        /* Don't convert '\' to '\\' in error message output.  The
+           name should be displayed as written by the user.  This also
+           prevents doubling of directory separators on Windows. */
         *line_len += write_file_name(*file_name, stderr,
-                                     /*process_escapes=*/TRUE);
+                                     /*process_escapes=*/FALSE);
         *line_len += fprintf(stderr, "\", line %lu", *line_number);
       }  /* if */
       if (column_needed) {
