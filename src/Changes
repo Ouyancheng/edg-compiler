@@ -1,5 +1,13 @@
 Version 2.39
 
+8/6/98    Internal error when base specifier triggers template class
+          instantiations
+
+When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS was configured
+to TRUE, an internal error could occur when a base specifier triggered
+a template class instantiation that in turn triggered additional
+instantiations.  Now fixed.
+
 8/6/98    Cast to reference type that can be done directly, versus using
           conversion function
 

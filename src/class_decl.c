@@ -3704,7 +3704,7 @@ or struct definition.  The syntax is
 
   db_enter(3, "scan_base_specifier_list");
 #if DEBUG
-  if (debug_level >= 3) {
+  if (debug_level >= 3 || db_flag_is_set("base_specifiers")) {
     fputs("scanning base classes for ", f_debug);
     db_abbreviated_type(type_ptr);
     fputc('\n', f_debug);
@@ -3970,6 +3970,14 @@ or struct definition.  The syntax is
       if (is_virtual) new_direct_bcp->is_virtual = TRUE;
       path = update_base_class_derivation(new_direct_bcp,
                                           (a_derivation_step_ptr)NULL, access);
+#if DEBUG
+      if (debug_level >= 3 || db_flag_is_set("base_specifiers")) {
+        db_abbreviated_type(base_class_type);
+        fputs(" is direct base class of ", f_debug);
+        db_abbreviated_type(type_ptr);
+        fputc('\n', f_debug);
+      }  /* if */
+#endif /* DEBUG */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
       /* When cfront lays out a class with base classes, the subobject for the
          first direct nonvirtual base class does not include the data sections
@@ -4156,43 +4164,20 @@ skip_base_class:
     }  /* for */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (!source_sequence_entries_disallowed) {
-    /* If a base specifier reference provokes an instantiation, the
-       entries representing it may end up in the wrong place -- after the
-       derived class instead of before it.  Move them to precede the
+    /* If a base specifier reference provokes an instantiation, the entries
+       representing it will end up in the wrong place -- after the entry for
+       the derived class instead of before it.  Move them to precede the
        entry for the class. */
     a_source_sequence_entry_ptr  ssep, prev, last;
     ssep = type_ptr->source_corresp.source_sequence_entry;
     if (ssep != NULL && ssep->next != NULL) {
-#if CHECKING
-      /* Confirm that the source sequence entry following that of the derived
-         class marks a template instance, and moreover one that does not
-         "float up" to before the class definition because of dependency on
-         a type declared within a class currently being defined. */
-      a_type_ptr  tp;
-      a_source_sequence_entry_ptr  next_ssep = ssep->next;
-
-      while (ss_entry_kind(next_ssep) != (an_il_entry_kind)iek_type) {
-        /* This can come up when the base class declaration triggers an
-           instantiation that itself triggers another instantiation -- e.g.,
-              class X : Y<Z<int> > { }
-           where both Z<int> and Y<Z<int>> have not yet been instantiated. */
-        check_assertion(ss_entry_kind(ssep->next) ==
-                          (an_il_entry_kind)iek_src_seq_secondary_decl);
-        next_ssep = next_ssep->next;
-        check_assertion(next_ssep != NULL);
-      }  /* while */
-      tp = ss_entry_ptr(next_ssep, a_type_ptr);
-      check_assertion(tp->variant.class_struct_union.is_template_class);
-      check_assertion(find_direct_base_class_of(type_ptr, tp) != NULL);
-      check_assertion(is_or_contains_member_of_uncompleted_class(tp));
-#endif /* CHECKING */
       /* Unlink the source sequence entry for the derived class. */
       prev = ssep->prev;
       check_assertion(prev != NULL);
-      ssep->prev->next = ssep->next;
-      ssep->next->prev = ssep->prev;
+      prev->next = ssep->next;
+      ssep->next->prev = prev;
       /* Reattach it to the end of the list. */
       last = scope_stack[DEPTH_OF_FILE_SCOPE].last_source_sequence_entry;
       last->next = ssep;
@@ -4201,19 +4186,21 @@ skip_base_class:
       /* Update the end-of-list pointer. */
       scope_stack[DEPTH_OF_FILE_SCOPE].last_source_sequence_entry = ssep;
 #if DEBUG
-      if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+      if (debug_level >= 4 ||
+          db_flag_is_set("dump_ss_full") ||
+          db_flag_is_set("base_specifiers")) {
         fputs("moved base class entries for \"", f_debug);
         db_type_name(type_ptr);
         fputs("\":\n", f_debug);
-        db_ss_list_for_scope(scope_stack[DEPTH_OF_FILE_SCOPE].il_scope);
+        db_source_sequence_list(prev->next);
       }  /* if */
 #endif /* DEBUG */
     }  /* if */
   }  /* if */
-#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DEBUG
-  if (debug_level >= 3) {
+  if (debug_level >= 3 || db_flag_is_set("base_specifiers")) {
     db_base_class_list(type_ptr);
   }  /* if */
 #if CHECKING
@@ -5162,11 +5149,11 @@ function, set *ambiguous to TRUE.
   a_boolean             class_bitwise_copy, pass_by_value;
   a_type_qualifier_set  qualifiers = TQ_NONE;
 
+  *ambiguous = FALSE;
   if (is_incomplete_type(class_type) ||
       !is_immediate_class_type(class_type)) {
     /* An error of some short. */
     sym = NULL;
-    *ambiguous = FALSE;
   } else {
     if (first_param != NULL) {
       /* A copy constructor or an assignment operator.  If the parameter is
@@ -5194,7 +5181,6 @@ function, set *ambiguous to TRUE.
       case sfk_destructor:
         /* Destructor. */
         sym = (symbol_supplement_for_class(class_type))->destructor;
-        *ambiguous = FALSE;
         break;
       case sfk_operator:
         /* Assignment operator. */
