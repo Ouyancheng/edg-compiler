@@ -830,11 +830,9 @@ extern void user_convert_operand(an_operand         *operand,
                                  a_user_conv_descr  *user_conversion);
 
 extern void prep_elision_initializer_operand(
-                                      an_operand       *source_operand,
-                                      a_type_ptr       class_type,
-                                      a_routine_ptr    *conversion_routine,
-                                      an_expr_node_ptr *arg_expr_list,
-                                      a_boolean        *class_bitwise_copy);
+                                            an_operand         *source_operand,
+                                            a_type_ptr         dest_type,
+                                            a_dynamic_init_ptr *dip);
 
 extern void prep_initializer_operand(
                                   an_operand         *source_operand,
@@ -848,9 +846,11 @@ extern void prep_argument_operand(an_operand         *source_operand,
                                   a_user_conv_descr  *user_conversion,
                                   an_error_code      err_code);
 
-extern void prep_return_operand(an_operand    *source_operand,
-                                a_type_ptr    required_type,
-                                an_error_code err_code);
+extern void prep_return_operand(an_operand         *source_operand,
+                                a_type_ptr         required_type,
+                                an_error_code      err_code,
+                                an_expr_node_ptr   *expression,
+                                a_dynamic_init_ptr *dip);
 
 extern void prep_assignment_operand(an_operand        *source_operand,
                                     a_type_ptr        dest_type,

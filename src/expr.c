@@ -1398,9 +1398,7 @@ a pointer to its routine entry.  Otherwise, return NULL.
 
   if (is_constant_operand(operand)) {
     con = &operand->variant.constant;
-    if (con->kind == (a_constant_repr_kind)ck_address &&
-        con->variant.address.kind == (an_address_base_kind)abk_routine &&
-        con->variant.address.offset == 0 && !con->implicit_cast) {
+    if (con_is_exact_addr_of_routine(con)) {
       routine = con->variant.address.variant.routine;
     }  /* if */
   }  /* if */
@@ -7416,13 +7414,15 @@ a prior error) just do the scan.
 }  /* scan_default_arg_expr */
 
 
-an_expr_node_ptr scan_return_expression(a_type_ptr    required_type,
-                                        an_error_code err_code)
+an_expr_node_ptr scan_return_expression(a_type_ptr         required_type,
+                                        an_error_code      err_code,
+                                        a_dynamic_init_ptr *dip)
 /*
 Scan an expression on a return statement and convert it to the type
 required_type; issue the error err_code if it cannot be converted to that
-type.  Return a pointer to the expression.  routine_type is the type of
-the current function.
+type.  Return a pointer to the expression.  If the current routine is
+one that returns its value via a copy constructor, set *dip to point to
+the appropriate dynamic initialization entry and return NULL.
 */
 {
   an_expr_node_ptr    expression;
@@ -7431,17 +7431,19 @@ the current function.
 
   db_enter(3, "scan_return_expression");
 
+  *dip = NULL;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   /* The required type can be void if we are in cfront mode.  If it is
      void just take the expression as we found it -- don't try to
      convert it to void. */
-  if (!is_void_type(required_type)) {
+  if (cfront_compatibility_mode && is_void_type(required_type)) {
+    expression = make_node_from_operand(&result);
+  } else {
     /* Convert to the required type. */
-    prep_return_operand(&result, required_type, err_code);
+    prep_return_operand(&result, required_type, err_code, &expression, dip);
   }  /* if */
-  expression = make_node_from_operand(&result);
   pop_expr_stack();
 
 #if DEBUG
@@ -7854,55 +7856,71 @@ an_expr_node_ptr scan_class_initializer_expression(
                                              a_routine_ptr *conversion_routine,
                                              a_boolean     *class_bitwise_copy)
 /*
+void scan_class_initializer_expression(a_type_ptr         required_type,
+                                       a_dynamic_init_ptr *dip)
+*/
+/*
 Scan an expression that is the initial value of an entity of class type.
 required_type indicates the class type (it may have some qualifiers on
-top of it).  Find a constructor (possibly a copy constructor; not a conversion
-routine) that will convert the expression scanned into the class type.
-Return a pointer to that conversion routine in *conversion_routine, or
-NULL if no such routine exists, or NULL plus *class_bitwise_copy TRUE if
-a bitwise copy can be done.  Return a pointer to the expression scanned.
-Actually, it's an argument list for the call of the conversion routine or
-for the bitwise copy; the caller must build the call of the conversion
-routine using the expression returned as the argument.  This routine is
-used in both C and C++ mode for initializers for classes.  It's particularly
-useful for C++ cases where copy constructor elision might be done:
+top of it).  Build a dynamic initialization entry that describes the
+initialization to be done, and return it in the space provided by
+the caller at *dip.  This routine is used in both C and C++, but
+it exists to allow copy constructor elision in C++ cases:
 
-  struct A { A(int) {...} A(A&) {...} };
+  struct A { A(int) {...} A(const A&) {...} };
   A x = 1;            // A::A(int)
   A y[3] = {1, 2, 3}; // A::A(int) three times
-  A z = x;            // A::A(A&)
+  A z = x;            // A::A(const A&)
 
-The expression scanned is considered an implicit argument of a constructor,
-and is therefore kept in lvalue form if possible.
-Basically, this routine determines that a type conversion can be done
-(and how), but leaves it to the caller to create the code that calls
-the conversion routine (which is likely to be a dynamic init entry instead
-of a statement).
+The dynamic initialization entry will also indicate a destructor if
+appropriate.
 */
 {
-  a_type_ptr          class_type = skip_typerefs(required_type);
-  an_expr_node_ptr    expression;
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
+  a_dynamic_init_ptr  local_dip;
+#if 0
+#else
+  an_expr_node_ptr    expression;
+#endif
 
   db_enter(3, "scan_class_initializer_expression");
-
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  /* Find out whether or not the conversion is possible, and if so,
-     what the proper conversion routine is. */
-  prep_elision_initializer_operand(&result, class_type, conversion_routine,
-                                   &expression, class_bitwise_copy);
-  pop_expr_stack();
-
-#if DEBUG
-  if (debug_level >= 3) {
-    db_expression(expression);
+  /* Find out whether or not the conversion is possible, and
+     build a dynamic initialization entry to describe the initialization. */
+  prep_elision_initializer_operand(&result, required_type, &local_dip);
+#if 0
+  /* Copy the dynamic init entry to the space provided by the caller. */
+  if (local_dip != NULL) {
+    **dip = *local_dip;
+  } else {
+    /* Some error. */
+    clear_dynamic_init(*dip, (a_dynamic_init_kind)dik_none);
   }  /* if */
-#endif /* DEBUG */
+#else
+  *conversion_routine = NULL;
+  *class_bitwise_copy = FALSE;
+  if (local_dip != NULL) {
+    if (local_dip->kind == (a_dynamic_init_kind)dik_constructor) {
+      *conversion_routine = local_dip->variant.constructor.ptr;
+      expression = local_dip->variant.constructor.args;
+    } else {
+      check_assertion(local_dip->kind == (a_dynamic_init_kind)dik_expression);
+      expression = local_dip->variant.expression;
+      *class_bitwise_copy = TRUE;
+    }  /* if */
+  } else {
+    expression = error_node();
+  }  /* if */
+#endif
+  pop_expr_stack();
   db_exit();
+#if 0
+#else
   return expression;
+#endif
 }  /* scan_class_initializer_expression */
 
 
