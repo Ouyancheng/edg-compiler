@@ -2191,6 +2191,7 @@ ambiguous symbol and return a pointer.  If no match is found, return NULL.
     a_type_ptr				return_type;
     a_template_param_ptr		param_list;
     sym = slep->symbol;
+    sym = fundamental_symbol_of(sym);
     tssp = template_supplement_for_symbol(sym);
     rout_ptr = sym->variant.template_info->variant.function.routine;
     rout_type = skip_typerefs(rout_ptr->type);
