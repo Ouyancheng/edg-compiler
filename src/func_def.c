@@ -835,7 +835,7 @@ and for the instantiation of template functions.
       } else {
         /* We only have the declared parameter types of the template, not the
            instance.  We'll instantiate each type later on. */
-        check_assertion(tip->is_guiding_decl);
+        check_assertion(tip->is_guiding_decl || total_errors != 0);
         orig_param_id = func_info->param_id_list;
         instantiate_param_declared_type = TRUE;
       }  /* if */

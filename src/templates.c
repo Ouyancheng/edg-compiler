@@ -2973,7 +2973,14 @@ Instantiate the body of the template function associated with tip.
                                                /*copy_default_args=*/TRUE);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  check_assertion(tip->declared_type != NULL);
+  if (tip->declared_type == NULL) {
+    /* The declared type info was lost.  This could happen in error recovery
+       mode (e.g., because the declaration was thought to be a typedef). 
+       Reconstruct the instantiated declared type from that of the template. */
+      check_assertion(total_errors != 0);
+      tip->declared_type = instantiate_type_for_template_function(
+                                      func_info_ptr->declared_type, rout_ptr);
+  }  /* if */
   set_routine_declared_type(rout_ptr, tip->declared_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Set the linkage and storage class. */
