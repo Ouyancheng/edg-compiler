@@ -175,6 +175,18 @@ By default, configure for ANSI C if __STDC__ is set, and for BSD4.n otherwise.
 #endif /* __ANSIC__ + ... */
 
 /*
+Definition of a generic byte.  Always "unsigned char".
+*/
+typedef unsigned char a_byte;
+#define BYTE_MAX UCHAR_MAX
+
+/* Simple boolean type: */
+typedef int	a_boolean;
+typedef a_byte	a_byte_boolean;
+#define FALSE 0
+#define TRUE 1
+
+/*
 USING_ISO_C is TRUE if the compiler being used to build the front end
 is an ISO C compiler or C++ compiler.  This is used to determine whether
 certain language features and preprocessing features are available.
@@ -187,6 +199,16 @@ certain language features and preprocessing features are available.
 #endif /* __STDC__ */
 #endif /* ifndef USING_ISO_C */
 
+/* Define typedefs to be used for "void *" and "const void *".  When
+   using an ANSI C compiler these are just typedefs to the appropriate
+   types.  When compiling with an old-style C compiler, "char *" is used. */
+#if USING_ISO_C
+typedef void * a_void_ptr;
+typedef const void * a_const_void_ptr;
+#else /* !USING_ISO_C */
+typedef char * a_void_ptr;
+typedef char * a_const_void_ptr;
+#endif /* USING_ISO_C */
 
 #include <stdio.h>
 #if __BSD__
@@ -233,14 +255,20 @@ EXTERN_C int memcmp(char *, char *, int);
 #if __BSD__
 #include <strings.h>
 /* Remap string and block functions that do not appear in BSD C. */
-EXTERN_C int bcopy(char *, char *, int);
-EXTERN_C int bcmp(char *, char *, int);
-EXTERN_C int bzero(char *, int);
+EXTERN_C void bcopy(a_const_void_ptr, a_void_ptr, int);
+EXTERN_C int bcmp(a_const_void_ptr, a_const_void_ptr, int);
+EXTERN_C void bzero(a_void_ptr, int);
 #define memcpy(dest, src, nbytes) bcopy(src, dest, nbytes)
 #define memcmp(src1, src2, nbytes) bcmp(src1, src2, nbytes)
 #define memzero(dest, nbytes) bzero(dest, nbytes)
+#ifdef sun
+/* SunOS 4.1.x uses the __BSD__ flag, but should use the System V-like
+strchr and strrchr routines. */
+#include <string.h>
+#else /* ifndef sun */
 #define strchr(str, c) index(str, c)
 #define strrchr(str, c) rindex(str, c)
+#endif /* ifdef sun */
 #endif /* __BSD__ */
 #endif /* __SYSV__ */
 #endif /* __ANSIC__ */
@@ -322,29 +350,6 @@ typedef true_size_t
    a_ptrdiff instead. */
 typedef int     a_ptrdiff;
 #endif /* __ANSIC__ */
-
-/* Define typedefs to be used for "void *" and "const void *".  When
-   using an ANSI C compiler these are just typedefs to the appropriate
-   types.  When compiling with an old-style C compiler, "char *" is used. */
-#if __ANSIC__
-typedef void * a_void_ptr;
-typedef const void * a_const_void_ptr;
-#else /* !__ANSIC__ */
-typedef char * a_void_ptr;
-typedef char * a_const_void_ptr;
-#endif /* __ANSIC__ */
-
-/*
-Definition of a generic byte.  Always "unsigned char".
-*/
-typedef unsigned char a_byte;
-#define BYTE_MAX UCHAR_MAX
-
-/* Simple boolean type: */
-typedef int	a_boolean;
-typedef a_byte	a_byte_boolean;
-#define FALSE 0
-#define TRUE 1
 
 /*
 EXTERN is defined usually as "extern"; in the translation unit that
