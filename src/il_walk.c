@@ -466,6 +466,17 @@ to be kept.
   } else {
     /* The flag is not set, so set it and keep walking. */
     il_entry_prefix_of(entry_ptr).keep_in_il = TRUE;
+    if (entry_kind == iek_routine) {
+      /* The entry is a routine.  If it has a definition and it is virtual,
+         mark the body to be kept too. */
+      a_routine_ptr rout = (a_routine_ptr)entry_ptr;
+      if (rout->defined && rout->is_virtual) {
+        a_scope_ptr scope = il_header.region_scope_entry[rout->assoc_scope];
+        check_assertion_str(scope != NULL,
+                  "prune_keep_in_il_walk: needed routine scope not in memory");
+        walk_tree_and_set_keep_in_il((char *)scope, iek_scope);
+      }  /* if */
+    }  /* if */
     /* If this is an entry that might be redeclared or redefined later,
        do not walk its subtree now. */
     if (should_not_walk_subtree(entry_ptr, entry_kind)) prune = TRUE;
