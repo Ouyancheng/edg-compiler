@@ -1,5 +1,12 @@
 Version 2.23
 
+3/16/94 C-generating back end output formatting
+
+The C-generating back end has been changed so that it does not begin
+a new line for an item with no known position (it continues on the
+current line instead).  Also, line wrapping is suppressed during generation
+of preprocessing directives (see disable_line_wrapping).
+
 3/16/94 Disambiguation regression
 
 Release 2.22 incorrectly tried to interpret the indicated line as a
