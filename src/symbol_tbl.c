@@ -368,6 +368,7 @@ and indentation is the indentation desired.
           }  /* if */
         }  /* if */
         if (rp->is_inline) put_string("inline");
+        if (rp->compiler_generated) put_string("compiler generated");
         (void)sprintf(buffer, "sc_%s",
                       db_storage_class_names[(int)rp->storage_class]);
         put_string(buffer);
