@@ -1155,11 +1155,6 @@ controls output of extra information on template parameters.
   /* Here, end_ptr indicates the character after the end of the initial
      part of the name. */
   if (!is_special_name) {
-    if (ptr == end_ptr ||
-        (nchars != 0 && (end_ptr - ptr) != nchars)) {
-      /* A zero-length name, or one with the wrong length; error. */
-      bad_mangled_name(dctl);
-    }  /* if */
     /* Output the characters of the base name. */
     for (p = ptr; p < end_ptr; p++) write_id_ch(*p, dctl);
   }  /* if */
@@ -1218,7 +1213,7 @@ controls output of extra information on template parameters.
     }  /* if */
   }  /* if */
   /* Check that we took exactly the characters we should have. */
-  if (get_char(end_ptr, ptr, nchars) == '\0' ||
+  if (((nchars != 0) ? (end_ptr-ptr == nchars) : (*end_ptr == '\0')) ||
       (stop_on_underscores &&
        get_char(end_ptr,   ptr, nchars) == '_' &&
        get_char(end_ptr+1, ptr, nchars) == '_')) {
