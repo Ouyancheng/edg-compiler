@@ -950,15 +950,6 @@ cannot be done.
        new_constant is already set appropriately. */
     goto exit;
   }  /* if */
-#if 0
-#else
-  if (constant->kind == (a_constant_repr_kind)ck_template_param) {
-    /* For now, an operation on a ck_template_param constant yields an
-       error constant. */
-    set_error_constant(&new_constant);
-    goto exit;
-  }  /* if */
-#endif /* 0 */  
   if (identical_types(constant_type, new_type)) {
     /* The current and new types are the same, so no change is required. */
     copy_constant(constant, &new_constant);
@@ -975,6 +966,11 @@ cannot be done.
     conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
                              constant_context,
                              did_not_fold, err_pos, &err_code, &err_severity);
+    goto exit;
+  } else if (constant->kind == (a_constant_repr_kind)ck_template_param) {
+    /* A template parameter constant is cast to a new type by setting the
+       implicit_cast flag. */
+    implicit_cast(constant, new_type);
     goto exit;
   }  /* if */
 
