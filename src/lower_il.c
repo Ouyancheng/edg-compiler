@@ -4584,6 +4584,36 @@ lowering process, but does not modify the class type.
 }  /* prelower_class_type */
 
 
+static void lower_template_arg(a_template_arg_ptr template_arg)
+/*
+Do IL lowering of the indicated template argument and everything under it.
+*/
+{
+  if (template_arg->is_type) {
+    lower_type(template_arg->variant.type);
+  } else {
+    lower_constant(template_arg->variant.constant);
+  }  /* if */
+}  /* lower_template_arg */
+
+
+static void lower_template_arg_list(a_template_arg_ptr template_arg_list)
+/*
+Do IL lowering of the indicated list of template arguments and everything
+under it.
+*/
+{
+  a_template_arg_ptr template_arg;
+
+  for (template_arg = template_arg_list;
+       template_arg != NULL;
+       template_arg = template_arg->next) {
+    lower_template_arg(template_arg);
+  }  /* for */
+}  /* lower_template_arg_list */
+
+
+
 static void promote_constants(a_scope_ptr scope)
 /*
 Promote the constants on the scope list to the file scope.
@@ -4709,6 +4739,8 @@ Do IL lowering on the indicated class/struct/union type.
       for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
         lower_type(bcp->type);
       }  /* for */
+      /* Lower the template arg list, if any. */
+      lower_template_arg_list(ctsp->template_arg_list);
       /* Lower the member functions, local types, etc. */
       lower_scope(ctsp->assoc_scope);
       /* Lower the type-as-subobject. */
