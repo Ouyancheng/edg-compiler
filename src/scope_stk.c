@@ -1027,11 +1027,6 @@ specific version of the template.
                                                 is_prototype_instantiation;
         }  /* if */
       }  /* if */
-      /* Because a template instantiation introduces a new context for
-         name lookup purposes, we need to clear the active using list
-         flags for any namespaces for which it is currently set. */
-      set_active_using_list_scope_depths(depth_scope_stack-1,
-                                         /*set_value=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       {
       /* Instantiations may be triggered almost anywhere, but the source
@@ -1446,6 +1441,11 @@ scopes.
      Only do the special namespace processing for the outer instantiation
      scope. */
   if (!nested_instantiation) {
+    /* Because a template instantiation introduces a new context for
+       name lookup purposes, we need to clear the active using list
+       flags for any namespaces for which it is currently set. */
+    set_active_using_list_scope_depths(depth_scope_stack,
+                                       /*set_value=*/FALSE);
     /* If the template was defined in a namespace, reactivate the namespace
        scope before pushing the instantiation scope. */
     if (!template_sym->is_class_member &&
@@ -1529,6 +1529,10 @@ Interface to pop_scope that is used for template instantiation scopes.
       pop_namespace_extension_for_instantiation(common_nsp);
     }  /* if */
   }  /* if */
+  /* Reset the active using list flags to the values specified by
+     the previous scope stack entries. */
+  set_active_using_list_scope_depths(depth_scope_stack,
+                                     /*set_value=*/TRUE);
 }  /* pop_template_instantiation_scope */
 
 
@@ -2508,11 +2512,8 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
     /* If the scope specified additional using directives, clear all of the
        active using list flags, and reset them to the values specified
-       by the previous scope stack entries.  This is also done for
-       template instantiation scopes because they begin a new
-       context. */
-    if (ssep->active_using_directives != NULL ||
-        kind == (a_scope_kind)sck_template_instantiation) {
+       by the previous scope stack entries. */
+    if (ssep->active_using_directives != NULL) {
       set_active_using_list_scope_depths(depth_scope_stack,
                                          /*set_value=*/FALSE);
       if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
