@@ -156,7 +156,7 @@ file.
   pep->ppd_kind = ppd_kind;
   if (value != NULL) {
     /* Copy the value string into PCH memory. */
-    pep->value = (char *)alloc_pch_memory(strlen(value) + 1);
+    pep->value = (char *)alloc_pch_memory((sizeof_t)(strlen(value) + 1));
     (void)strcpy(pep->value, value);
   }  /* if */
   pep->position = *position;
@@ -189,7 +189,6 @@ information.
      information.  This affects the way in which preprocessing directives
      are handled and the way end-of-file is processed. */
   building_pch_prefix = TRUE;
-  saved_input_stack_entry = *curr_ise;
   /* Simply do a get_token call.  This will return the first token
      of the file that is not a comment or a preprocessing directive.
      Because the prefix information includes only preprocessing directives,
