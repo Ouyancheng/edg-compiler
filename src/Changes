@@ -1,5 +1,11 @@
 Version 2.46
 
+10/11/01 Default temporary directory changed to /var/tmp
+
+On non-Windows systems the default temporary directory has been changed
+from /usr/tmp to /var/tmp, which is more commonly used on modern Unix
+systems.
+
 10/11/01 Spurious ambiguity between injected and non-injected name
 
 If a class inherited both the injected name of a class and the non-injected

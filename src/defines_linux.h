@@ -47,7 +47,6 @@ This is the version for Linux.
 #define MIN_INTEGER_VALUE (-MAX_INTEGER_VALUE-1)
 #define MAX_UNSIGNED_INTEGER_VALUE 18446744073709551615ULL
 #define HOST_ALIGNMENT_REQUIRED 8
-#define DEFAULT_TMPDIR "/var/tmp"
 
 
 /******************************************************************************

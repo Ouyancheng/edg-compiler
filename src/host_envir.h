@@ -1061,7 +1061,7 @@ Default temporary file directory.
 #endif /* ifndef DEFAULT_TMPDIR */
 #else /* !__MICROSOFT_OS__ */
 #ifndef DEFAULT_TMPDIR
-#define DEFAULT_TMPDIR "/usr/tmp"
+#define DEFAULT_TMPDIR "/var/tmp"
 #endif /* ifndef DEFAULT_TMPDIR */
 #endif /* !__MICROSOFT_OS__ */
 
