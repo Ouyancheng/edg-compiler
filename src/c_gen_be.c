@@ -2523,6 +2523,14 @@ final semicolon if output_final_semi is TRUE.
              initialization code rewritten as executable code by IL lowering
              can assign to this member and the overall struct. */
           char *type_str;
+          if (field->bit_field_alignment_type != NULL) {
+            /* Put out an alignment indication for a field that was declared
+               larger than the underlying base type. */
+            dump_type(field->bit_field_alignment_type,
+                      /*add_pointer_to=*/FALSE);
+            write_tok_str(": 0;");
+            write_space();
+          }  /* if */
 #if C_GEN_BE_GENERATES_ANSI_C
           /* If the field is signed, make that explicit, so the choice is
              not left to the underlying C compiler. */
@@ -2573,6 +2581,35 @@ final semicolon if output_final_semi is TRUE.
           write_field_attributes(field);
 #endif /* GNU_EXTENSIONS_ALLOWED */
           write_tok_ch(';');
+          if (field->declared_bit_size > field->bit_size) {
+            /* A bit field declared to be larger than the underlying type
+               (in C++).  Emit additional padding.  Finish the current
+               byte, then put out single bytes, then put out the bits
+               in the final byte.  Note that we can only put out unnamed
+               fields; we don't want to change the initialization order
+               of the struct. */
+            unsigned long padding = field->declared_bit_size - field->bit_size;
+            unsigned long bits = field->offset_bit_remainder + field->bit_size;
+            char *bf_type;
+#if ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C
+            bf_type = "char";
+#else /* !ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
+            bf_type = "int";
+#endif /* ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
+            bits = bits % targ_char_bit;
+            /* Bits in the first chunk, to finish out the current byte. */
+            bits = targ_char_bit - bits;
+            while (padding > 0) {
+              if (bits > padding) bits = padding;
+              write_space();
+              write_tok_str(bf_type);
+              write_tok_ch(':');
+              write_unsigned_num((a_host_large_unsigned)bits);
+              write_tok_ch(';');
+              padding -= bits;
+              bits = targ_char_bit;
+            }  /* while */
+          }  /* if */
         }
       }  /* if */
       if (annotate) {

@@ -811,6 +811,45 @@ targ_microsoft_bit_field_allocation is FALSE.)
          < 0  to indicate "use the base type from the declaration as
               the container type".
     */
+#if IA64_ABI
+   if (field->declared_bit_size != field->bit_size) {
+      unsigned long   declared_bit_size = field->declared_bit_size;
+      an_integer_kind int_kind = (an_integer_kind)ik_none;
+      a_type_ptr      int_type;
+      /* Handle alignment for bit fields that are too long for their
+         underlying types, for the IA-64 ABI.  Find the longest integral
+         type that is not longer than the bit field.  The bit field is
+         aligned the same as this integral type.  The signedness of the
+         integral type doesn't matter, because it's used for its alignment
+         only; the bit field does not get that type. */
+      check_assertion(targ_char_bit <= declared_bit_size);
+      int_kind = (an_integer_kind)ik_char;
+      if (targ_char_bit * targ_sizeof_short <= declared_bit_size) {
+        int_kind = (an_integer_kind)ik_short;
+      }  /* if */
+      if (targ_char_bit * targ_sizeof_int <= declared_bit_size) {
+        int_kind = (an_integer_kind)ik_int;
+      }  /* if */
+      if (targ_char_bit * targ_sizeof_long <= declared_bit_size) {
+        int_kind = (an_integer_kind)ik_long;
+      }  /* if */
+#if LONG_LONG_ALLOWED
+      if (targ_char_bit * targ_sizeof_long_long <= declared_bit_size) {
+        int_kind = (an_integer_kind)ik_long_long;
+      }  /* if */
+#endif /* LONG_LONG_ALLOWED */
+      int_type = integer_type(int_kind);
+      container_size = int_type->size;
+      container_alignment = int_type->alignment;
+#if BACK_END_IS_C_GEN_BE
+      field->bit_field_alignment_type = int_type;
+#endif /* BACK_END_IS_C_GEN_BE */
+      /* Force alignment. */
+      overflow = !do_alignment(&lob->byte_offset, &lob->bit_offset,
+                               container_alignment);
+    } else
+#endif /* IA64_ABI */
+    /* Do not insert code here. */
     if (targ_bit_field_container_size > 0) {
       /* Use a fixed size container.  targ_bit_field_container_size indicates
          the size in bytes. */
@@ -1090,22 +1129,25 @@ there's no overflow TRUE is returned.
       /* Increment the current offsets to account for the field. */
       if (field->is_bit_field) {
         /* For a bit-field. */
+        an_unnormalized_bit_offset bit_size =
+                                   (an_unnormalized_bit_offset)field->bit_size;
+        if (targ_pad_bit_fields_larger_than_base_type) {
+          bit_size = field->declared_bit_size;
+        }  /* if */
         overflow = !increment_field_offsets(
-                                 &lob->byte_offset, &lob->bit_offset,
-                                 (a_targ_size_t)0,
-                                 (an_unnormalized_bit_offset)field->bit_size);
+                        &lob->byte_offset, &lob->bit_offset,
+                        (a_targ_size_t)0,
+                        bit_size);
         if (targ_microsoft_bit_field_allocation &&
             lob->curr_container_type != NULL) {
           /* Update the number of bits that are available in the container
              after the bit field is allocated by subtracting from the number
              of bits available in the container the number that is now being
              allocated.  It ought not to be a negative value. */
-          check_assertion_str2(lob->curr_container_avail_bits >=
-                                  (an_unnormalized_bit_offset)field->bit_size,
+          check_assertion_str2(lob->curr_container_avail_bits >= bit_size,
                                "set_field_size_and_alignment:",
                                "bad curr_container_avail_bits adjustment");
-          lob->curr_container_avail_bits -=
-                                  (an_unnormalized_bit_offset)field->bit_size;
+          lob->curr_container_avail_bits -= bit_size;
           if (class_type->kind == (a_type_kind)tk_union) {
             /* Pad out the rest of the current container. */
             pad_ms_bit_field_container(lob);

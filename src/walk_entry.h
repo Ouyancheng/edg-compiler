@@ -1009,6 +1009,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_string_ptr(ptr->get_property_name, iek_other_text, 0);
         walk_string_ptr(ptr->put_property_name, iek_other_text, 0);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if BACK_END_IS_C_GEN_BE
+        walk_ptr(ptr->bit_field_alignment_type, a_type_ptr, iek_type);
+#endif /* BACK_END_IS_C_GEN_BE */
       }
       break;
     case iek_exception_specification:

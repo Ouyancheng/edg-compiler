@@ -8368,6 +8368,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
 */
 {
   unsigned long    bit_field_size, max_size_allowed;
+  unsigned long    declared_bit_field_size;
   a_type_ptr       base_type = *p_base_type;
   a_boolean        err = FALSE, is_signed = FALSE;
   a_constant       constant;
@@ -8395,12 +8396,12 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   if (is_error_constant(&constant)) {
     /* Use small value to avoid more errors, but not 1 which is special. */
-    bit_field_size = targ_char_bit;
+    declared_bit_field_size = bit_field_size = targ_char_bit;
     err = TRUE;
   } else if (constant.kind == (a_constant_repr_kind)ck_template_param) {
     /* A template parameter during the prototype instantiation.  The value
        is not known.  Use a small value that is not 1. */
-    bit_field_size = targ_char_bit;
+    declared_bit_field_size = bit_field_size = targ_char_bit;
   } else {
 #if CHECKING
     if (constant.kind != (a_constant_repr_kind)ck_integer) {
@@ -8433,6 +8434,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
     }  /* if */
     bit_field_size = (unsigned long)
                            unsigned_value_of_integer_constant(&constant, &err);
+    declared_bit_field_size = bit_field_size;
     /* Note that one reason for err to be TRUE is if the constant is
        less than zero. */
     if (err || bit_field_size > max_size_allowed) {
@@ -8547,6 +8549,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   }  /* if */
   *p_base_type = base_type;
   field->bit_size = (a_byte)bit_field_size;
+  field->declared_bit_size = declared_bit_field_size;
   field->bit_field_is_signed = is_signed;
 done:;
   db_exit();

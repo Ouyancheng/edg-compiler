@@ -1765,6 +1765,10 @@ to it.
   fp->get_property_name    = NULL;
   fp->put_property_name    = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  fp->declared_bit_size        = 0;
+#if BACK_END_IS_C_GEN_BE
+  fp->bit_field_alignment_type = NULL;
+#endif /* BACK_END_IS_C_GEN_BE */
 
   db_exit();
   return fp;

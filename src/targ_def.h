@@ -828,6 +828,22 @@ the container boundary/alignment at all times.
                                               USER_CONTROL_OF_STRUCT_PACKING
 #endif /* ifndef TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS */
 
+/*
+Flag that is TRUE if bit fields longer than their base types are
+padded out to the full declared length.  FALSE means allocate only as
+many bits as are in the base type.  In either case, the bit field
+itself has the same number of bits; the extra bits are padding bits.
+
+cfront did not allow such long bit fields, so the setting here is
+irrelevant for cfront object code compatibility.
+*/
+#ifndef TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE
+#if ABI_COMPATIBILITY_VERSION < 301
+#define TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE FALSE
+#else /* ABI_COMPATIBILITY_VERSION >= 301 */
+#define TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE TRUE
+#endif /* ABI_COMPATIBILITY_VERSION < 301 */
+#endif /* ifndef TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE */
 
 /*
 Wide character constant type (wchar_t, see stddef.h and stdlib.h).

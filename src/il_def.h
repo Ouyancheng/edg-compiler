@@ -5787,6 +5787,23 @@ typedef struct a_field {
 			   NULL otherwise.  Non-NULL only in Microsoft C++
 			   mode. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  unsigned long	declared_bit_size;
+			/* If is_bit_field is TRUE, the declared size of the
+			   bit field, which may be longer than the value given
+			   by bit_size (in C++ only).  For example, given 
+			     int i : 2043; 
+			   this field will contain 2043, and bit_size will
+			   be the number of bits in an int, which is the
+			   maximum permitted size for an int bit field. */
+#if BACK_END_IS_C_GEN_BE
+  a_type_ptr	bit_field_alignment_type;
+			/* For a bit field where the declared_bit_size is
+			   larger than bit_size, the integer type whose
+			   alignment is to be applied to the bit field, if
+			   that concept applies in the ABI (e.g., the IA-64
+			   ABI). NULL otherwise, and NULL until the containing
+			   class type has been laid out. */
+#endif /* BACK_END_IS_C_GEN_BE */
 } a_field;
 
 #endif /* ifdef CIL */

@@ -397,7 +397,17 @@ EXTERN int	targ_user_control_of_struct_packing_affects_bit_fields
 			   bit field containers (when bit fields straddle
 			   container alignment boundaries). */
 
-
+EXTERN int	targ_pad_bit_fields_larger_than_base_type
+#if VAR_INITIALIZERS
+                                  = TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE
+#endif /* VAR_INITIALIZERS */
+                                                                             ;
+			/* TRUE if bit fields longer than their base types are
+			   padded out to the full declared length.  FALSE
+			   means allocate only as many bits as are in the
+			   base type.  In either case, the bit field itself
+			   has the same number of bits; the extra bits are
+			   padding bits. */
 
 /*
 Pointer types:
@@ -1027,6 +1037,7 @@ EXTERN a_boolean
 #undef TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
 #undef TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT
 #undef TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS
+#undef TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE
 #if TARG_ALL_POINTERS_SAME_SIZE
 #undef TARG_SIZEOF_POINTER
 #undef TARG_ALIGNOF_POINTER
@@ -1122,6 +1133,8 @@ EXTERN a_boolean
                         targ_zero_width_bit_field_alignment
 #define TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS          \
                         targ_user_control_of_struct_packing_affects_bit_fields
+#define TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE \
+                        targ_pad_bit_fields_larger_than_base_type
 #if TARG_ALL_POINTERS_SAME_SIZE
 #define TARG_SIZEOF_POINTER targ_sizeof_pointer
 #define TARG_ALIGNOF_POINTER targ_alignof_pointer
