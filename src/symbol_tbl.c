@@ -440,17 +440,21 @@ and indentation is the indentation desired.
     case sk_function_template:
       {
         a_template_symbol_supplement_ptr  tssp;
-        a_template_param_ptr   tplep;
+        a_template_param_ptr              tplep;
         tssp = sym->variant.template.extra_info;
+        if (tssp->template_body.first_token != NULL) {
+          put_string("template body cached");
+        }  /* if */
+        if (sym->kind == (a_symbol_kind)sk_class_template) {
+          put_string(tssp->variant.class.is_union ?
+                     "is union" : "isn't union");
+        }  /* if */
         /* Output information from the template symbol supplement. */
         put_string("template parameters =\n");
         for (tplep = tssp->parameters; tplep != NULL; tplep = tplep->next) {
           fprintf(f_debug, "%*s", indentation, "");
           db_symbol(tplep->param_symbol, "", indentation + 2);
         }  /* for */
-        if (tssp->template_body.first_token != NULL) {
-          put_string("template body cached");
-        }  /* if */
       }
       break;
 #if CHECKING
@@ -821,11 +825,6 @@ state.
     case sk_function_template:
       {
         a_template_symbol_supplement_ptr  tssp;
-        if (sym_kind == sk_class_template) {
-          sym_ptr->variant.template.variant.class_instantiations = NULL;
-        } else {
-          sym_ptr->variant.template.variant.function_instantiations = NULL;
-        }  /* if */
         /* Allocate a template symbol supplement. */
         tssp = (a_template_symbol_supplement_ptr)
                    alloc_fe(sizeof(a_template_symbol_supplement));
@@ -835,6 +834,12 @@ state.
         sym_ptr->variant.template.extra_info = tssp;
         /* Initialize fields in the template symbol supplement. */
         tssp->parameters = NULL;
+        if (sym_kind == sk_class_template) {
+          tssp->variant.class.class_instantiations = NULL;
+          tssp->variant.class.is_union             = FALSE;
+        } else {
+          tssp->variant.function_instantiations = NULL;
+        }  /* if */
         clear_token_cache(&tssp->template_body);
       }
       break;
@@ -1623,6 +1628,35 @@ for old style parameter declaration.
 
   return sym;
 }  /* make_parameter_symbol */
+
+
+
+a_symbol_ptr make_template_class_symbol(a_symbol_ptr       ct_symbol,
+                                        a_source_position *pos)
+/*
+Create a symbol for an instance of a class template.  Link the symbol to
+the class template symbol but do not enter it into the symbol table.
+ct_symbol is the symbol of the class template.
+*/
+{
+  a_symbol_ptr  sym;
+  a_symbol_kind kind;
+
+  /* Determine kind of symbol to be entered.  It can be either a
+     class_or_struct or a union depending on the type of the class
+     template. */
+  kind = (ct_symbol->variant.template.extra_info->variant.class.is_union)
+         ? (a_symbol_kind)sk_class_or_struct_tag : (a_symbol_kind)sk_union_tag;
+  /* Create the symbol.  Use the current source position as the declaration
+     position. */
+  sym = alloc_symbol(kind, ct_symbol->header, pos);
+  mark_declared(sym, &ct_symbol->decl_position,
+                /*save_as_decl_position=*/TRUE);
+  /* Make the declaration scope the same as the class template's. */
+  sym->decl_scope = ct_symbol->decl_scope;
+
+  return sym;
+}  /* make_template_class_symbol */
 
 
 a_symbol_ptr make_unnamed_class_symbol(a_symbol_kind      sym_kind,
@@ -5271,6 +5305,35 @@ Allocate a new template parameter list entry and return a pointer to it.
   db_exit();
   return ptr;
 }  /* alloc_template_param */
+
+
+
+a_symbol_ptr get_template_class_symbol(a_symbol_ptr  template_symbol)
+/*
+The current identifier is a class template name.  It must be followed
+by a template argument list.  Scan the argument list and call
+a routine to lookup or create the symbol and type information for
+an instance of the class template.
+*/
+{
+  a_source_position  start_pos;
+
+  db_enter(3, "get_template_class_symbol");
+
+  /* Save source position for error reporting. */
+  copy_source_position(pos_curr_token, start_pos);
+  (void)get_token();
+  if (curr_token != tok_lt) {
+    pos_sy_error(ec_expected_template_arg_list, &start_pos, template_symbol);
+    goto error_exit;
+  }  /* if */
+  
+error_exit:
+
+  db_exit();
+
+  return NULL;
+}
 
 
 a_function_instantiation_entry_ptr alloc_function_instantiation_entry(void)

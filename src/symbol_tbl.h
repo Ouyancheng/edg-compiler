@@ -478,22 +478,6 @@ typedef struct a_template_param {
 } a_template_param;
 
 
-
-typedef struct a_template_symbol_supplement *a_template_symbol_supplement_ptr;
-typedef struct a_template_symbol_supplement {
-  /* Additional information about a C++ class or function template
-     supplementing the information residing in the class's symbol entry. */
-  a_template_param_ptr
-                parameters;
-			/* Symbol entries for formal parameters of the
-                           template. */
-  a_token_cache template_body;
-                        /* The body of the template is stored as a token
-                           cache which can be rescanned later during
-                           instantiation. */
-} a_template_symbol_supplement;
-
-
 typedef struct a_function_instantiation_entry
                    *a_function_instantiation_entry_ptr;
 
@@ -508,6 +492,41 @@ typedef struct a_function_instantiation_entry {
                         /* Pointer to the IL entry that describes this
                            template function instance. */
 } a_function_instantiation_entry;
+
+
+
+typedef struct a_template_symbol_supplement *a_template_symbol_supplement_ptr;
+typedef struct a_template_symbol_supplement {
+  /* Additional information about a C++ class or function template
+     supplementing the information residing in the class's symbol entry. */
+  a_template_param_ptr
+                parameters;
+			/* Symbol entries for formal parameters of the
+                           template. */
+  a_token_cache template_body;
+                        /* The body of the template is stored as a token
+                           cache which can be rescanned later during
+                           instantiation. */
+  union {
+    /* When kind = sk_class_template. */
+    struct {
+      a_symbol_ptr
+                class_instantiations;
+                        /* Pointer to a list of symbols describing template
+                           classes that have been instantiated from this
+                           class template. */
+      a_boolean is_union;
+                        /* TRUE if this class template is actually a
+                           union. */
+    } class;
+    /* When kind = sk_function_template. */
+    a_function_instantiation_entry_ptr
+                function_instantiations;
+                        /* Pointer to a list of entries describing template
+                           functions that have been instantiated from this
+                           function template. */
+  } variant;
+} a_template_symbol_supplement;
 
 
 typedef struct an_extern_symbol_descr *an_extern_symbol_descr_ptr;
@@ -702,20 +721,6 @@ typedef struct a_symbol {
                 extra_info;
 			/* Pointer to an entry providing additional info about
 			   a C++ class template or function template. */
-      union {
-        /* When kind = sk_class_template. */
-        a_symbol_ptr
-                class_instantiations;
-                        /* Pointer to a list of symbols describing template
-                           classes that have been instantiated from this
-                           class template. */
-        /* When kind = sk_function_template. */
-        a_function_instantiation_entry_ptr
-                function_instantiations;
-                        /* Pointer to a list of entries describing template
-                           functions that have been instantiated from this
-                           function template. */
-      } variant;
     } template;
   } variant;
 } a_symbol;
@@ -1100,6 +1105,9 @@ extern a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
 
 extern a_symbol_ptr make_parameter_symbol(a_symbol_locator  *locator);
 
+extern a_symbol_ptr make_template_class_symbol(a_symbol_ptr       ct_symbol,
+                                               a_source_position *pos);
+
 extern a_symbol_ptr make_unnamed_class_symbol(a_symbol_kind      sym_kind,
                                               a_source_position  *pos);
 
@@ -1302,6 +1310,8 @@ extern void reference_to_symbol(a_symbol_reference_kind kind,
                                 a_source_position       *source_position);
 extern void set_source_corresp(a_source_correspondence *sc,
                                a_symbol_ptr            sp);
+
+extern a_symbol_ptr get_template_class_symbol(a_symbol_ptr  template_symbol);
 /* Allocation */
 extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 extern a_conversion_list_entry_ptr alloc_conversion_list_entry(void);
