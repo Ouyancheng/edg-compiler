@@ -12228,7 +12228,9 @@ instance, a reference that forced instantiation was followed by a
 specific definition that made it unnecessary.
 */
 {
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_template_instance_ptr           tip;
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
   db_enter(3, "instantiation_wrapup");
   /* Now that all input has been processed including any instantiations that
