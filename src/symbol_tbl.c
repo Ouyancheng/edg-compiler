@@ -53,6 +53,7 @@ static unsigned long
 		num_class_symbol_supplements_allocated,
 		num_template_symbol_supplements_allocated,
                 num_template_params_allocated,
+                num_param_ids_allocated,
                 num_function_instantiation_entries_allocated,
                 num_conversion_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
@@ -5751,6 +5752,181 @@ should act like a stack if the same entity has several fixups).
 }  /* alloc_etype_fixup */
 
 
+a_param_id_ptr alloc_param_id(void)
+/*
+Allocate a parameter id block, set its fields to default values, and
+return a pointer to it.  The locator field of the entry is set to
+locator_for_curr_id.
+*/
+{
+  register a_param_id_ptr pip;
+
+  db_enter(5, "alloc_param_id");
+  if (avail_param_ids != NULL) {
+    /* Reuse a previously-freed entry. */
+    pip = avail_param_ids;
+    avail_param_ids = avail_param_ids->next;
+  } else {
+    /* Allocate a new entry. */
+    pip = (a_param_id_ptr)alloc_fe(sizeof(a_param_id));
+#if DEBUG
+    num_param_ids_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  /* Set the entry's fields to default values. */
+  pip->next = NULL;
+  pip->symbol = NULL;
+  pip->type = NULL;
+  pip->type_pos.seq = 0;
+  pip->type_pos.column = SP_COL_UNKNOWN;
+  pip->storage_class = (a_storage_class)sc_unspecified;
+  db_exit();
+  return(pip);
+}  /* alloc_param_id */
+
+
+void free_param_id(a_param_id_ptr *ppip)
+/*
+Free the parameter id block pointed to by *ppip, set *ppip to NULL.
+*/
+{
+  db_enter(5, "free_param_id");
+  (*ppip)->next = avail_param_ids;
+  avail_param_ids = *ppip;
+  *ppip = NULL;
+  db_exit();
+}  /* free_param_id */
+
+
+void free_param_id_list(a_param_id_ptr *pidlist)
+/*
+Free the list of parameter id blocks pointed to by *pidlist, and set
+*pidlist to NULL.
+*/
+{
+  a_param_id_ptr pip;
+
+  db_enter(5, "free_param_id_list");
+  while (*pidlist != NULL) {
+    pip = *pidlist;
+    *pidlist = pip->next;
+    free_param_id(&pip);
+  }  /* while */
+  db_exit();
+}  /* free_param_id_list */
+
+
+a_param_id_ptr param_id_on_list(a_symbol_locator *locator,
+                                a_param_id_ptr    param_id_list)
+/*
+Search the parameter id list given by param_id_list to see if the identifier
+given by *locator is on it.  If so, return a pointer to the entry; if not,
+return NULL.
+*/
+{
+  register a_param_id_ptr param_id = param_id_list;
+
+  while (param_id != NULL) {
+    if (param_id->symbol != NULL &&
+        param_id->symbol->header == locator->symbol_header) {
+      /* Found a match. */
+      break;
+    }  /* if */
+    /* Keep searching the param id list for this name. */
+    param_id = param_id->next;
+  }  /* while */
+  return(param_id);
+}  /* param_id_on_list */
+
+
+void add_to_param_id_list(a_symbol_locator      *locator,
+                          a_type_ptr            type_ptr,
+                          a_source_position     *type_pos,
+                          a_storage_class       storage_class,
+                          a_func_info_block_ptr func_info,
+                          a_param_id_ptr        *last_param_id)
+/*
+Add the indicated identifier to the parameter id list pointed to by
+func_info.  Do nothing if func_info == NULL.  If there is a parameter
+id list, *last_param_id points to the last entry on it.  type_ptr and
+storage_class are the type and storage class for the parameter.
+*/
+{
+  a_param_id_ptr  new_param_id;
+  a_symbol_ptr    sym;
+  a_boolean       unnamed_param = FALSE;
+  a_boolean       is_prototype_param_decl = (type_ptr != NULL);
+
+  if (func_info != NULL) {
+    /* See if this identifier name already appears on the list.  If so, issue
+       an error.  Create a param_id entry if this is a prototype parameter
+       list, but not otherwise. */
+    if (!is_error_locator(*locator)) {
+      if (param_id_on_list(locator, func_info->param_id_list) != NULL) {
+        error(ec_dupl_param_name);
+        set_to_error_locator(*locator);
+      } /* if */
+    } else if (is_prototype_param_decl) {
+      /* Assume that if an error locator is passed in and this is a prototype
+         parameter declaration that we have an unnamed parameter.  We'll need
+         a param_id entry to keep track of the type. */
+      unnamed_param = TRUE;
+    } /* if */
+    /* Create a param_id entry and enter it onto the param_id list.  Skip
+       this if we have an old-style param id list in which a duplicate was
+       encountered. */
+    if (is_prototype_param_decl || !is_error_locator(*locator)) {
+      new_param_id = alloc_param_id();
+      /* Save the type and storage class for the later declaration. */
+      if (is_prototype_param_decl) {
+        new_param_id->type = type_ptr;
+        copy_source_position(*type_pos, new_param_id->type_pos);
+        new_param_id->storage_class = storage_class;
+      }  /* if */
+      /* Create a parameter symbol.  It is used during parameter processing
+         only.  The corresponding symbol in the function scope itself is a
+         variable symbol for which the variable's is_parameter flag is set to
+         TRUE. */
+      if (unnamed_param) {
+        /* Create no symbol for an unnamed parameter. */
+        sym = NULL;
+      } else if (type_ptr != NULL) {
+        /* Prototyped parameter list.  The symbol is entered in the the
+           function prototype scope.  It will later be copied to the function
+           scope when it is changed to sk_variable. */
+        sym = enter_symbol((a_symbol_kind)sk_parameter, locator,
+                           depth_scope_stack, /*suppress_redecl_error=*/FALSE);
+      } else {
+        /* Must be an old-style parameter declaration.  The type and storage
+           class will be supplied later.  We won't actually enter this symbol
+           until the function scope is pushed. */
+        sym = make_parameter_symbol(locator);
+      }  /* if */
+      new_param_id->symbol = sym;
+      /* Put this entry on the end of the list of param ids. */
+      if (func_info->param_id_list == NULL) {
+        func_info->param_id_list = new_param_id;
+      } else {
+        (*last_param_id)->next = new_param_id;
+      }  /* if */
+      (*last_param_id) = new_param_id;
+    }  /* if */
+  }  /* if */
+}  /* add_to_param_id_list */
+
+
+void clear_func_info(a_func_info_block *func_info)
+/*
+Clear the fields of a function information block to default values.
+*/
+{
+  func_info->prototype_scope_symbols     = NULL;
+  func_info->param_id_list               = NULL;
+  func_info->scope_number                = NO_SCOPE_NUMBER;
+  func_info->any_prototype_names_omitted = FALSE;
+}  /* clear_func_info */
+
+
 a_template_param_ptr alloc_template_param(void)
 /*
 Allocate a new template parameter list entry and return a pointer to it.
@@ -6013,6 +6189,7 @@ for space tracking purposes.
             a_template_symbol_supplement);
   write_one("template params", num_template_params_allocated,
             a_template_param);
+  write_one("param ids", num_param_ids_allocated, a_param_id);
   write_one("func instantiation entry",
             num_function_instantiation_entries_allocated,
             a_function_instantiation_entry);
@@ -6149,6 +6326,7 @@ to avoid an 8-character external name clash with symbol_table.)
   num_class_symbol_supplements_allocated       = 0;
   num_template_symbol_supplements_allocated    = 0;
   num_template_params_allocated                = 0;
+  num_param_ids_allocated                      = 0;
   num_function_instantiation_entries_allocated = 0;
   num_conversion_list_entries_allocated        = 0;
   num_extern_symbol_descrs_allocated           = 0;

@@ -467,6 +467,77 @@ typedef struct a_class_symbol_supplement {
 } a_class_symbol_supplement;
 
 
+/*
+Data structure used to pass information about function declarations back
+from the scanning of the function declarator.
+*/
+typedef struct a_param_id *a_param_id_ptr;
+typedef struct a_param_id {
+  /* Entry giving the name of one parameter in a function declarator.
+     The type of the parameter does not appear here; it is in an
+     entry of type a_param_type attached to the type entry for the
+     function.  The present structure is used both for old-style
+     identifier lists and for the names of parameters in prototypes. */
+  a_param_id_ptr
+		next;
+			/* Next parameter id on the list, or NULL if this
+			   is the last parameter id. */
+  a_symbol_ptr	symbol;
+			/* Points to an sk_parameter symbol to represent a
+			   parameter name.  It is NULL when a name is omitted
+			   in a function prototype.  The symbol pointed to,
+			   when present, is transformed into an sk_variable
+			   symbol as part part of function definition
+			   processing. */
+  a_type_ptr	type;
+			/* For a new- or old-style function parameter, this
+			   is its type.  This is usually the same as the
+			   information in the function type parameter list,
+			   but is kept here also so we can be sure of
+			   associating the proper identifier and type
+			   in error cases. */
+  a_source_position
+		type_pos;
+			/* Source position of the start of the type
+			   specification of the parameter declaration. */
+  a_storage_class
+		storage_class;
+			/* For a new- or old-style style function parameter,
+			   this is the storage class to be associated with
+			   it when it is declared. */
+} a_param_id;
+
+typedef struct a_func_info_block *a_func_info_block_ptr;
+typedef struct a_func_info_block {
+  /* Information about the parameter list in a function declarator. */
+  a_symbol_ptr	prototype_scope_symbols;
+			/* List of symbols in the prototype scope, linked
+			   on the next_in_scope field.  NULL if none.
+			   Usually NULL.  Only named types (structs/unions/
+			   enums) declared within the prototype scope
+			   appear on this list. */
+  a_param_id_ptr
+		param_id_list;
+			/* List of entries giving parameter names, NULL if
+			   there were none.  Used for both old-style and
+			   new-style parameter names. */
+  a_scope_number
+		scope_number;
+			/* The scope number used for the function prototype
+			   scope for the parameters, to be reused for the
+			   function scope if a body is found. */
+  a_byte_boolean
+		any_prototype_names_omitted;
+			/* TRUE if the parameter list is a prototype list,
+			   and it includes at least one parameter with
+			   just a type and no name. */
+} a_func_info_block;
+
+
+EXTERN a_param_id_ptr
+		avail_param_ids;
+			/* List of parameter id entries freed and available
+			   for reuse. */
 
 typedef struct a_template_param *a_template_param_ptr;
 typedef struct a_template_param {
@@ -551,8 +622,10 @@ typedef struct a_template_symbol_supplement {
   a_token_cache body_token_cache;
                         /* The body of the template is stored as a token
                            cache which can be rescanned later during
-                           instantiation.  Begins with the left brace
-                           that begins the class or function body. */
+                           instantiation.  Typically begins with the left
+			   brace that begins the class or function body and
+                           extends to the right brace; for constructors it
+			   may begin at a colon. */
   a_scope_depth
                 innermost_instantiation_scope;
                         /* Contains the scope number of the most recent
@@ -595,6 +668,11 @@ typedef struct a_template_symbol_supplement {
                         /* Points to a routine entry for the function
                            template.  This is needed for function
                            matching. */
+      a_func_info_block
+		func_info;
+			/* Information about the prototype parameters
+			   in a function template declaration (the function
+			   parameters not the template parameters). */
     } function;
   } variant;
 } a_template_symbol_supplement;
@@ -1376,7 +1454,6 @@ public members are accessible, which means
    ((bcp)->access == (an_access_specifier)as_protected &&             \
     have_protected_member_access_privilege(derived_class)))
 
-
 extern a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                                      an_id_lookup_options_set options);
 
@@ -1433,6 +1510,19 @@ extern a_conversion_list_entry_ptr alloc_conversion_list_entry(void);
 extern a_template_param_ptr alloc_template_param(void);
 extern a_function_instantiation_entry_ptr
                                      alloc_function_instantiation_entry(void);
+extern a_param_id_ptr alloc_param_id(void);
+extern void free_param_id(a_param_id_ptr *ppip);
+extern void free_param_id_list(a_param_id_ptr *pidlist);
+extern void clear_func_info(a_func_info_block *func_info);
+
+extern void add_to_param_id_list(a_symbol_locator      *locator,
+                                 a_type_ptr            type_ptr,
+                                 a_source_position     *type_pos,
+                                 a_storage_class       storage_class,
+                                 a_func_info_block_ptr func_info,
+                                 a_param_id_ptr        *last_param_id);
+extern a_param_id_ptr param_id_on_list(a_symbol_locator *locator,
+                                       a_param_id_ptr    param_id_list);
 
 
 /* Examine the list of symbols with a given name, looking for an

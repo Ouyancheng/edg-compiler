@@ -40,77 +40,6 @@ typedef enum /*an_id_linkage_kind*/ {
 			   compilation and in other compilations for
 			   the same program */
 } an_id_linkage_kind;
-/*
-Data structure used to pass information about function declarations back
-from the scanning of the function declarator.
-*/
-typedef struct a_param_id *a_param_id_ptr;
-typedef struct a_param_id {
-  /* Entry giving the name of one parameter in a function declarator.
-     The type of the parameter does not appear here; it is in an
-     entry of type a_param_type attached to the type entry for the
-     function.  The present structure is used both for old-style
-     identifier lists and for the names of parameters in prototypes. */
-  a_param_id_ptr
-		next;
-			/* Next parameter id on the list, or NULL if this
-			   is the last parameter id. */
-  a_symbol_ptr	symbol;
-			/* Points to an sk_parameter symbol to represent a
-			   parameter name.  It is NULL when a name is omitted
-			   in a function prototype.  The symbol pointed to,
-			   when present, is transformed into an sk_variable
-			   symbol as part part of function definition
-			   processing. */
-  a_type_ptr	type;
-			/* For a new- or old-style function parameter, this
-			   is its type.  This is usually the same as the
-			   information in the function type parameter list,
-			   but is kept here also so we can be sure of
-			   associating the proper identifier and type
-			   in error cases. */
-  a_source_position
-		type_pos;
-			/* Source position of the start of the type
-			   specification of the parameter declaration. */
-  a_storage_class
-		storage_class;
-			/* For a new- or old-style style function parameter,
-			   this is the storage class to be associated with
-			   it when it is declared. */
-} a_param_id;
-
-typedef struct a_func_info_block *a_func_info_block_ptr;
-typedef struct a_func_info_block {
-  /* Information about the parameter list in a function declarator. */
-  a_symbol_ptr	prototype_scope_symbols;
-			/* List of symbols in the prototype scope, linked
-			   on the next_in_scope field.  NULL if none.
-			   Usually NULL.  Only named types (structs/unions/
-			   enums) declared within the prototype scope
-			   appear on this list. */
-  a_param_id_ptr
-		param_id_list;
-			/* List of entries giving parameter names, NULL if
-			   there were none.  Used for both old-style and
-			   new-style parameter names. */
-  a_scope_number
-		scope_number;
-			/* The scope number used for the function prototype
-			   scope for the parameters, to be reused for the
-			   function scope if a body is found. */
-  a_byte_boolean
-		any_prototype_names_omitted;
-			/* TRUE if the parameter list is a prototype list,
-			   and it includes at least one parameter with
-			   just a type and no name. */
-} a_func_info_block;
-
-
-EXTERN a_param_id_ptr
-		avail_param_ids;
-			/* List of parameter id entries freed and available
-			   for reuse. */
 
 EXTERN a_boolean
 		in_old_style_param_decl_list;
@@ -188,8 +117,6 @@ extern a_type_ptr type_keyword(void);
 extern void check_operator_function_params(a_routine_ptr      rout,
                                            a_source_position  *pos);
 
-extern void clear_func_info(a_func_info_block *func_info);
-
 extern void decl_default_function(a_symbol_ptr symbol_ptr);
 
 extern a_label_ptr scan_label(a_boolean is_definition);
@@ -197,8 +124,6 @@ extern a_label_ptr scan_label(a_boolean is_definition);
 extern void local_declaration(void);
 
 extern void translation_unit(void);
-
-extern void free_param_id_list(a_param_id_ptr *pidlist);
 
 extern a_boolean reconcile_external_symbol_types(
                             a_symbol_ptr          ext_sym,
