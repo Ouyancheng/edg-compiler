@@ -603,6 +603,10 @@ do
          --new_for_init | \
          --old_specializations | \
          --no_old_specializations | \
+         --implicit_extern_c_type_conversion | \
+         --no_implicit_extern_c_type_conversion | \
+         --long_preserving_rules | \
+         --no_long_preserving_rules | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Options that require additional processing
