@@ -4817,7 +4817,7 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
   orig_operand = *operand;
   check_assertion(!is_reference_type(dest_type) &&
                   is_template_dependent_context());
-  /* See whether we know that the operand will be used an an rvalue. */
+  /* See whether we know that the operand will be used as an rvalue. */
   if (!curr_expr_kind_is_const() &&
       (is_class_struct_union_type(dest_type) ||
        is_template_param_type(dest_type) ||
@@ -4832,7 +4832,9 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
       a_constant_ptr con = &operand->variant.constant;
       if (con->kind == (a_constant_repr_kind)ck_template_param &&
           con->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_address) {
+                                (a_template_param_constant_kind)tpck_address &&
+          /* Avoid problems with reference binding. */
+          !is_pointer_type(dest_type)) {
         /* The constant is the address of a member of a nonreal class.
            It won't matter whether this is considered an lvalue or an
            rvalue as an operand to the generic cast, so convert it to
