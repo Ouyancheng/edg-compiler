@@ -2567,7 +2567,7 @@ the address of the routine, e.g., a call).
 }  /* set_routine_address_constant */
 
 
-a_boolean set_variable_address_taken(a_variable_ptr variable)
+void set_variable_address_taken(a_variable_ptr variable)
 /*
 Set the address_taken flag on the indicated variable.
 */

@@ -111,7 +111,7 @@ extern void set_routine_address_constant(a_routine_ptr routine,
                                          a_constant    *con,
                                          a_boolean     set_address_taken_flag);
 
-extern a_boolean set_variable_address_taken(a_variable_ptr variable);
+extern void set_variable_address_taken(a_variable_ptr variable);
 
 extern void set_variable_address_constant(
                                         a_variable_ptr variable,
