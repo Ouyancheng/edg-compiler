@@ -1288,7 +1288,6 @@ enum a_storage_class_tag {
                            parameters declared "register". */
   sc_asm,               /* An asm function.  Only used if ASM_FUNCTION_ALLOWED
                            is TRUE. */
-  sc_inline,            /* A C++ inline function. */
 #endif /* ifdef CIL */
 #ifdef FIL
   sc_local,             /* Auto or static at back end's preference. */
@@ -1310,7 +1309,7 @@ EXTERN char     *db_storage_class_names[(int)sc_last + 1]
 #if VAR_INITIALIZERS
 = {"extern", "static", "auto", "unspecified",
 #ifdef CIL
-   "typedef", "register", "asm", "inline",
+   "typedef", "register", "asm",
 #endif /* ifdef CIL */
 #ifdef FIL
    "local", "common", "associated", "intrinsic", "pointer_based",
@@ -1598,6 +1597,13 @@ typedef struct a_routine {
 			/* TRUE for virtual member functions declared with a
 			   "pure" specifier (C++ only).  TRUE only if
 			   is_virtual is also TRUE. */
+  unsigned int  is_inline:1;
+			/* TRUE for C++ functions that were specified in the
+			   source as candidates for inlining (either by the
+			   "inline" keyword or definition within a class
+			   definition).  This flag is intended as a hint to
+			   the compiler and does not mean that inlining is
+			   required. */
   a_class_list_entry_ptr
                 befriending_classes;
                         /* A linked list of entries identifying classes that

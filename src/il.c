@@ -3079,6 +3079,7 @@ to it.
   rp->special_kind            = (a_special_function_kind)sfk_none;
   rp->is_virtual              = FALSE;
   rp->pure_virtual            = FALSE;
+  rp->is_inline               = FALSE;
   rp->befriending_classes     = NULL;
   rp->virtual_function_number = 0;
 #ifdef FIL
