@@ -3683,6 +3683,23 @@ Instantiate the body of the template function associated with tip.
     pos_error(ec_no_exception_support,
               &func_info_ptr->throw_position);
   }  /* if */
+  /* Set the defined_outside_of_parent flag based on the setting of the
+     template itself.  Note that this must be done before the function
+     is lowered. */
+  if (template_sym->kind == (a_symbol_kind)sk_function_template) {
+    /* For function templates, use the prototype template if there is one. */
+    a_symbol_ptr			proto_sym;
+    a_template_symbol_supplement_ptr	proto_tssp;
+    proto_sym = prototype_template_of(template_sym);
+    proto_tssp = template_supplement_for_symbol(proto_sym);
+    rout_sym->variant.routine.ptr->defined_outside_of_parent =
+               proto_tssp->variant.function.routine->defined_outside_of_parent;
+  } else {
+    /* A member function of a class template -- just use the template
+       supplement of the member function. */
+    rout_sym->variant.routine.ptr->defined_outside_of_parent =
+                     tssp->variant.function.routine->defined_outside_of_parent;
+  }
   /* Reactivate the tokens comprising the function body and scan them. */
   rescan_reusable_cache(&tcp->tokens);
   scan_function_body(rout_ptr, func_info_ptr,
@@ -3714,22 +3731,6 @@ Instantiate the body of the template function associated with tip.
        declarations. */
     check_for_definition_in_friend_declaration(tssp, rout_ptr);
   }  /* if */
-  /* Set the defined_outside_of_parent flag based on the setting of the
-     template itself. */
-  if (template_sym->kind == (a_symbol_kind)sk_function_template) {
-    /* For function templates, use the prototype template if there is one. */
-    a_symbol_ptr			proto_sym;
-    a_template_symbol_supplement_ptr	proto_tssp;
-    proto_sym = prototype_template_of(template_sym);
-    proto_tssp = template_supplement_for_symbol(proto_sym);
-    rout_sym->variant.routine.ptr->defined_outside_of_parent =
-               proto_tssp->variant.function.routine->defined_outside_of_parent;
-  } else {
-    /* A member function of a class template -- just use the template
-       supplement of the member function. */
-    rout_sym->variant.routine.ptr->defined_outside_of_parent =
-                     tssp->variant.function.routine->defined_outside_of_parent;
-  }
   /* Notify the correspondence routines that a definition of this function
      is now present. */
   establish_function_instantiation_corresp(rout_ptr);
