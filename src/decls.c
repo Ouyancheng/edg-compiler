@@ -5851,7 +5851,7 @@ recorded in the IL, the template header is passed via template_decl.
     redeclaration = TRUE;
 #endif /* DECL_MODIFIERS_IN_USE */
   }  /* if */
-  microsoft_out_of_class_redecl = sym->is_class_member &&
+  microsoft_out_of_class_redecl = microsoft_mode && sym->is_class_member &&
                                                     !func_info->is_definition;
   if (!is_error_locator(*locator)) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
