@@ -52,7 +52,7 @@ only a subset, the C and F suffixes identify the subset being used.
 /* This version of the IL uses only those features required for Fortran. */
 #define IL_VERSION_NUMBER "2.16F"
 #else /* !defined(FIL) */
-error -- at least one of "CIL" and "FIL" must be defined.
+ #error -- at least one of "CIL" and "FIL" must be defined.
 #endif /* ifdef FIL */
 #endif /* ifdef CIL */
 
