@@ -775,6 +775,7 @@ ec_namespace_def_not_allowed;;"namespace definition is not allowed"
 ec_missing_namespace_name;;"namespace name is required"
 ec_namespace_alias_def_not_allowed;;"namespace alias definition is not allowed"
 ec_bad_name_in_using_decl;;"invalid name in using declaration"
+ec_namespace_name_not_allowed;;"a namespace name is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
