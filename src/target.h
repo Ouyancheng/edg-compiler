@@ -491,7 +491,6 @@ EXTERN an_integer_kind
 
 #endif /* DO_IL_LOWERING */
 
-#if CHECKING
 /* Aside from occasional references in targ_def.h, the following values
    should be used *only* to initialize the variables declared in this file.
    To enforce this convention, they are undefined at this time.  (This is
@@ -543,8 +542,74 @@ EXTERN an_integer_kind
 #undef TARG_JMP_BUF_NUM_ELEMENTS
 #undef TARG_JMP_BUF_ELEMENT_INT_KIND
 
-void check_target_configuration(void);
+#ifndef REDEFINE_TARG_VALUE_NAMES
+#define REDEFINE_TARG_VALUE_NAMES 0
+#endif /* ifndef REDEFINE_TARG_VALUE_NAMES */
+/* The following macro name redefinitions are provided to help accommodate
+   implementations that have code of their own that depends on these names'
+   being defined.  These TARG_xxx names should not reappear in code supplied
+   by EDG. */
+#if REDEFINE_TARG_VALUE_NAMES
+#define TARG_LITTLE_ENDIAN targ_little_endian
+#define TARG_CHAR_BIT targ_char_bit
+#define TARG_HOST_STRING_CHAR_BIT targ_host_string_char_bit
+#define TARG_HAS_SIGNED_CHARS targ_has_signed_chars
+#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT                   \
+                        targ_char_constant_first_char_most_significant
+#define TARG_WCHAR_T_INT_KIND targ_wchar_t_int_kind
+#define TARG_SIZEOF_WCHAR_T targ_sizeof_wchar_t
+#define TARG_SIZEOF_SHORT targ_sizeof_short
+#define TARG_ALIGNOF_SHORT targ_alignof_short
+#define TARG_SIZEOF_INT targ_sizeof_int
+#define TARG_ALIGNOF_INT targ_alignof_int
+#define TARG_SIZEOF_LONG targ_sizeof_long
+#define TARG_ALIGNOF_LONG targ_alignof_long
+#if LONG_LONG_ALLOWED
+#define TARG_SIZEOF_LONG_LONG targ_sizeof_long_long
+#define TARG_ALIGNOF_LONG_LONG targ_alignof_long_long
+#endif /* LONG_LONG_ALLOWED */
+#define TARG_MAX_BIT_FIELD_SIZE targ_max_bit_field_size
+#define TARG_BIT_FIELD_CONTAINER_SIZE targ_bit_field_container_size
+#define TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED                            \
+                        targ_plain_int_bit_field_is_unsigned
+#define TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED                        \
+                        targ_enum_bit_fields_are_always_unsigned
+#define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT                             \
+                        targ_zero_width_bit_field_alignment
+#define TARG_SIZEOF_POINTER targ_sizeof_pointer
+#define TARG_ALIGNOF_POINTER targ_alignof_pointer
+#define TARG_PTRDIFF_T_MAX targ_ptrdiff_t_max
+#define TARG_PTRDIFF_T_MIN targ_ptrdiff_t_min
+#define TARG_PTRDIFF_T_INT_KIND targ_ptrdiff_t_int_kind
+#define TARG_SIZE_T_MAX targ_size_t_max
+#define TARG_SIZE_T_INT_KIND targ_size_t_int_kind
+#define TARG_SIZEOF_FLOAT targ_sizeof_float
+#define TARG_ALIGNOF_FLOAT targ_alignof_float
+#define TARG_SIZEOF_DOUBLE targ_sizeof_double
+#define TARG_ALIGNOF_DOUBLE targ_alignof_double
+#define TARG_SIZEOF_LONG_DOUBLE targ_sizeof_long_double
+#define TARG_ALIGNOF_LONG_DOUBLE targ_alignof_long_double
+#define TARG_SIZEOF_PTR_TO_DATA_MEMBER targ_sizeof_ptr_to_data_member
+#define TARG_ALIGNOF_PTR_TO_DATA_MEMBER targ_alignof_ptr_to_data_member
+#define TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION                              \
+                        targ_sizeof_ptr_to_member_function
+#define TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION                             \
+                        targ_alignof_ptr_to_member_function
+#define TARG_SIZEOF_VIRTUAL_FUNCTION_INFO                               \
+                        targ_sizeof_virtual_function_info
+#define TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO                              \
+                        targ_alignof_virtual_function_info
+#define TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT                         \
+                        targ_enum_types_can_be_smaller_than_int
+#define TARG_RIGHT_SHIFT_IS_ARITHMETIC targ_right_shift_is_arithmetic
+#define TARG_MINIMUM_STRUCT_ALIGNMENT targ_minimum_struct_alignment
+#define TARG_JMP_BUF_NUM_ELEMENTS targ_jmp_buf_num_elements
+#define TARG_JMP_BUF_ELEMENT_INT_KIND targ_jmp_buf_element_int_kind
+#endif REDEFINE_TARG_VALUE_NAMES
 
+
+#if CHECKING
+void check_target_configuration(void);
 #endif /* CHECKING */
 
 #endif /* ifndef TARGET_H */
