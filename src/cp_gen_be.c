@@ -8174,6 +8174,53 @@ instantiation is available.
 }  /* gen_template_from_prototype_instantiation */
 
 
+static a_boolean template_should_be_generated_from_prototype_instantiation(
+                                                           a_template_ptr  tp)
+/*
+Determine whether the given template should be generated from the IL of its
+prototype instantiation (if not, it is generated from its recorded textual
+representation).  If all prototype instantiations are available, the result
+is always TRUE.  In version that generated explicit specializations for
+implicit instantiations, it may also be necessary to generate a template
+from its prototype instantiation.  For example, the input
+    template<typename T> struct S {
+      template<typename U> T f();
+    };
+    S<int> x;
+would produce the following specialization if the member template is generated
+from text:
+    template<> struct S<int> {
+      template<typename U> T f();
+    };
+To avoid that problem, members of real class templates are generated from
+prototype instantiation in such configurations (when the prototype
+instantiation is available; see gen_template_from_prototype_instantiation).
+*/
+{
+  a_boolean  result = il_header.il_has_all_prototype_instantiations;
+
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  if (!result && prototype_instantiations_in_il &&
+      tp->source_corresp.is_class_member) {
+    /* Check if this is a member template of a real instantiation. */
+    a_type_ptr  parent_class = tp->source_corresp.parent.class_type;
+    do {
+      if (parent_class->variant.class_struct_union.is_template_class &&
+          !parent_class->variant.class_struct_union.is_nonreal_class &&
+          !parent_class->variant.class_struct_union.is_specialized) {
+        result = TRUE;
+        break;
+      }  /* if */
+      parent_class = parent_class->source_corresp.is_class_member ?
+                         parent_class->source_corresp.parent.class_type
+                       : (a_type_ptr)NULL;
+    } while (parent_class != NULL);
+  }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  return result;
+}  /* template_should_be_generated_from_prototype_instantiation */
+
+
 static void gen_template(void)
 /*
 Generate a declaration for a template.  The current source sequence entry
@@ -8220,8 +8267,9 @@ is the one associated with the template.
   } else {
       /* If all prototype instantiations are recorded in the IL, the templates
      will be generated from those. */
-    from_proto = il_header.il_has_all_prototype_instantiations &&
-                 gen_template_from_prototype_instantiation(tp);
+    from_proto =
+              template_should_be_generated_from_prototype_instantiation(tp) &&
+              gen_template_from_prototype_instantiation(tp);
     if (!from_proto) { /*lint !e774*/
       /* No prototype instantiation is available in the IL; generate the
          template from the stored text string. */

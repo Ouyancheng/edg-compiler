@@ -1,5 +1,29 @@
 Version 3.4
 
+11/10/03 C++-generating back end: Spurious references to template parameters
+
+When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS and/or
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the
+C++-generating back end sometimes produced specializations containing
+references to the parameters of the specialized template.  For example,
+the input
+
+  template<class T> struct S {
+    template<class U> T f() {}
+  };
+  S<int> x;
+
+produced the specialization
+
+  template<> struct S<int> {
+    template<class U> T f() {}
+  };
+
+To resolve this problem, the front end now generates member templates from
+prototype instantiations in such situations (provided the needed prototype
+instantiations are recorded in the IL, which requires the configuration flag
+PROTOTYPE_INSTANTIATIONS_IN_IL to be set to TRUE).
+
 11/12/03 GNU compatibility: const qualifier ignored on extended asm construct
 
 In GNU modes the front end now accepts and ignores (with a warning) a const
