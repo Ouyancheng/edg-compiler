@@ -3271,8 +3271,7 @@ function_lparen:
       if (is_error_locator(*locator)) {
         complete_type = error_type();
       } else {
-        if (!is_unknown_type(specifiers_type) &&
-            !(input_flags & DI_NO_TYPE_SPECIFIERS)) {
+        if (!(input_flags & DI_NO_TYPE_SPECIFIERS)) {
           pos_error(ec_return_type_not_allowed, &declarator_pos);
         } else if (derived_type == NULL || !is_function_type(derived_type)) {
           pos_error(ec_bad_destructor_decl, &declarator_pos);
