@@ -8177,7 +8177,7 @@ a_boolean find_projected_symbol(
                         an_id_lookup_options_set options,
                         a_boolean                tentative_type_lookup,
                         a_boolean                tentative_template_lookup,
-			a_boolean		 hidden_name_lookup,
+			a_boolean		 do_not_create_proj_sym,
                         a_boolean                add_to_active_list,
                         a_symbol_ptr             insert_sym,
                         a_symbol_ptr             *projected_symbol,
@@ -8200,7 +8200,7 @@ tentative_type_lookup is TRUE, a projection symbol is only created if
 the symbol returned by find_progenitor_symbol is a type.  Likewise, if
 tentative_template_lookup is TRUE, a projection symbol is only created
 if the symbol returned by find_progenitor_symbol is a template.  If
-hidden_name_lookup is TRUE the creation of a projection symbol is
+do_not_create_proj_sym is TRUE the creation of a projection symbol is
 unconditionally suppressed.  Note that "options" and
 tentative_type_lookup are handled differently: a symbol that fails the
 lookup options test does not hide symbols from deeper base classes,
@@ -8282,10 +8282,10 @@ created if a projected symbol cannot be found in any of the real bases.
     a_symbol_ptr	fund_progenitor_sym =
                                 fundamental_symbol_of(progenitor_sym);
     found = TRUE;
-    if (hidden_name_lookup) {
-      /* We are doing a lookup as part of hidden name processing.  Don't
-         create a projection symbol and return the progenitor symbols
-         as the result of the lookup. */
+    if (do_not_create_proj_sym) {
+      /* Don't create a projection symbol and return the progenitor symbols
+         as the result of the lookup (for hidden name lookups and other special
+         lookups). */
       new_sym = progenitor_sym;
     } else if (tentative_type_lookup && !is_type_symbol(fund_progenitor_sym)) {
       /* The symbol found is not a type name symbol, so do not create a

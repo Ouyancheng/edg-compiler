@@ -141,6 +141,10 @@ represented as a bit set:
 				   lookups, indicates that only members of the
 				   namespace, and not members made visible by
 				   using-directives, should be found. */
+#define IDL_DO_NOT_CREATE_PROJ_SYM 0x100000
+				/* If a name is found in a base class, return
+			           that name but do not create a projection
+				   symbol. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*

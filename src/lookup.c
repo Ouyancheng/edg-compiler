@@ -1186,6 +1186,9 @@ typedef struct a_lookup_state {
   a_boolean	hidden_name_lookup;
 			/* TRUE if the IDL_HIDDEN_NAME_LOOKUP option was
 			   specified for this lookup. */
+  a_boolean	do_not_create_proj_sym;
+			/* TRUE if the IDL_DO_NOT_CREATE_PROJ_SYM option was
+			   specified for this lookup. */
   a_boolean	skip_template_decl_scopes;
 			/* TRUE if the IDL_SKIP_TEMPLATE_DECL_SCOPES option
 			   was specified for this lookup. */
@@ -1275,6 +1278,7 @@ value.
   cleared_lookup_state.is_linkage_lookup             = FALSE;
   cleared_lookup_state.is_friend_lookup              = FALSE;
   cleared_lookup_state.hidden_name_lookup            = FALSE;
+  cleared_lookup_state.do_not_create_proj_sym        = FALSE;
   cleared_lookup_state.skip_template_decl_scopes     = FALSE;
   cleared_lookup_state.terminate_lookup              = FALSE;
   cleared_lookup_state.skip_curr_scope               = FALSE;
@@ -1646,7 +1650,8 @@ that do normal id lookup processing.
                             lookup_state->options,
                             lookup_state->tentative_type_lookup,
                             lookup_state->tentative_template_lookup,
-                            lookup_state->hidden_name_lookup,
+                            lookup_state->hidden_name_lookup ||
+                            lookup_state->do_not_create_proj_sym,
                             lookup_state->add_to_active_list,
                             lookup_state->insert_sym, &sym,
                             /*can_create_nonreal=*/FALSE)) {
@@ -2167,6 +2172,8 @@ C and C++.
     lookup_state.is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP) != 0;
     lookup_state.is_friend_lookup = (options & IDL_FRIEND_LOOKUP) != 0;
     lookup_state.hidden_name_lookup = (options & IDL_HIDDEN_NAME_LOOKUP) != 0;
+    lookup_state.do_not_create_proj_sym =
+                                    (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0;
     lookup_state.skip_template_decl_scopes =
                                 (options & IDL_SKIP_TEMPLATE_DECL_SCOPES) != 0;
     lookup_state.skip_curr_scope = (options & IDL_SKIP_CURR_SCOPE) != 0;
@@ -2710,7 +2717,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
         (void)find_projected_symbol(class_type, locator, options,
                                     /*tentative_type_lookup=*/FALSE,
                                     /*tentative_template_lookup=*/FALSE,
-                                    (options & IDL_HIDDEN_NAME_LOOKUP) != 0,
+                                    (options & IDL_HIDDEN_NAME_LOOKUP) != 0 ||
+                                    (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0,
                                     add_to_active_list, insert_sym, &sym,
                                     !(options &
                                              IDL_DO_NOT_ADD_TO_NONREAL_CLASS));

@@ -2398,7 +2398,7 @@ a_boolean find_projected_symbol(
                         an_id_lookup_options_set options,
                         a_boolean                tentative_type_lookup,
                         a_boolean                tentative_template_lookup,
-			a_boolean		 hidden_name_lookup,
+			a_boolean		 do_not_create_proj_sym,
                         a_boolean                add_to_active_list,
                         a_symbol_ptr             insert_sym,
                         a_symbol_ptr             *projected_symbol,
