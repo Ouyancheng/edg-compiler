@@ -2460,6 +2460,55 @@ if everything went fine.
 } /* do_pdiff */
 
 
+static a_boolean is_non_null_address_defined_in_this_compilation(
+                                                            a_constant_ptr con)
+/*
+con is a constant for an address.  Return TRUE if it is a non-null address
+defined in this compilation.  The point of testing for definition in this
+compilation is that such things are known to have non-null addresses.
+Things defined by externs might have null addresses if linker magic
+(like weak externals) is used.
+*/
+{
+  a_boolean      is_non_null_defined_here = FALSE;
+  a_routine_ptr  rout;
+  a_variable_ptr var;
+
+  /* Using is_false_constant instead of is_null_pointer_constant because
+     something like (int *)0 should be recognized as a null pointer. */
+  if (!is_false_constant(con)) {
+    if (con->kind != (a_constant_repr_kind)ck_address) {
+      /* For constants other than ck_address constants (e.g., integer values
+         used as addresses), we can't tell where they're defined. */
+    } else {
+      switch (con->variant.address.kind) {
+        case abk_routine:
+          /* Routines are defined in this compilation if they have a body. */
+          rout = con->variant.address.variant.routine;
+          is_non_null_defined_here = (rout->assoc_scope != NULL_region_number);
+          break;
+        case abk_variable:
+          /* Variables are defined in this compilation if they are not extern.
+             Note that automatic variables don't appear in ck_address
+             constants since their addresses are not static. */
+          var = con->variant.address.variant.variable;
+          is_non_null_defined_here =
+                            (var->storage_class != (a_storage_class)sc_extern);
+          break;
+        case abk_constant:
+          /* All constants have non-null addresses and are in the current
+             compilation. */
+          is_non_null_defined_here = TRUE;
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+    }  /* if */
+  }  /* if */
+  return is_non_null_defined_here;
+}  /* is_non_null_address_defined_in_this_compilation */
+
+
 static void do_pcompare(a_constant            *constant_1,
 			an_expr_operator_kind op,
 			a_constant            *constant_2,
@@ -2486,15 +2535,34 @@ set if the operation cannot be folded.
   /* The two pointers must be in the same base object, or the operation
      cannot be folded. */
   if (base_object(constant_1) != base_object(constant_2)) {
-    /* The pointers are in different objects.  There are some cases here
-       we might guess at folding, like
-         int i, j;
-         if (&i != &j) { ... }  <--- probably different
-       However, that seems pointless, and could actually cause problems
-       (maybe a smart compiler puts i and j at the same address because
-       their lifetimes are disjoint).  So we never fold cases involving
-       different base objects. */
-    *did_not_fold = TRUE;
+    /* The pointers are in different objects.  Check for null pointer cases. */
+    if ((op == (an_expr_operator_kind)eok_peq ||
+         op == (an_expr_operator_kind)eok_pne) &&
+        /* Using is_false_constant instead of is_null_pointer_constant because
+           something like (int *)0 should be recognized as a null pointer. */
+        ((is_false_constant(constant_2) &&
+          is_non_null_address_defined_in_this_compilation(constant_1)) ||
+         (is_false_constant(constant_1) &&
+          is_non_null_address_defined_in_this_compilation(constant_2)))) {
+      /* Comparison (== or !=) of a null pointer against something that is
+         defined in this compilation.  The two pointers cannot be the same.
+         Note that externals defined in another program might have a zero
+         address if special linker tricks are played. */
+      set_constant_kind(result, (a_constant_repr_kind)ck_integer);
+      set_integer_value(&result->variant.integer_value,
+                        (op == (an_expr_operator_kind)eok_peq) ? 0L : 1L);
+    } else {
+      /* No null pointers involved, or the comparison involves a greater
+         than or less than, and the pointers are in different objects.
+         There are some cases here we might guess at folding, like
+           int i, j;
+           if (&i != &j) { ... }  <--- probably different
+         However, that seems pointless, and could actually cause problems
+         (maybe a smart compiler puts i and j at the same address because
+         their lifetimes are disjoint).  So we never fold cases involving
+         different base objects. */
+      *did_not_fold = TRUE;
+    }  /* if */
   } else {
     /* The pointers are in the same base object, so they can be compared. */
     get_pointer_offset(constant_1, &offset_1);
