@@ -13110,6 +13110,26 @@ request file.
 }  /* init_auto_instantiation_information */
 
 
+static char *get_mangled_name_of_instance(a_symbol_ptr	sym)
+/*
+Return the mangled name of the variable or routine specified by "sym".
+*/
+{
+  char	*name;
+
+  if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+    a_variable_ptr	variable;
+    variable = sym->variant.static_data_member.variable;
+    name = get_mangled_static_data_member_name(variable);
+  } else {
+    a_routine_ptr	routine;
+    routine = sym->variant.routine.ptr;
+    name = get_mangled_function_name(routine);
+  }  /* if */
+  return name;
+}  /* get_mangled_name_of_instance */
+
+
 static void check_if_present_in_request_file(
 			a_template_instance_ptr		tip,
 			a_boolean			*instantiate,
@@ -13127,15 +13147,7 @@ object or library with which this file is being linked).
 
   *not_defined_elsewhere = FALSE;
   *instantiate = FALSE;
-  if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-    a_variable_ptr	variable;
-    variable = tip->instance_sym->variant.static_data_member.variable;
-    name = get_mangled_static_data_member_name(variable);
-  } else {
-    a_routine_ptr	routine;
-    routine = tip->instance_sym->variant.routine.ptr;
-    name = get_mangled_function_name(routine);
-  }  /* if */
+  name = get_mangled_name_of_instance(tip->instance_sym);
   ilp = find_instance(name, /*add=*/FALSE);
   if (ilp != NULL && ilp->in_request_file) {
     /* The entity was named in the instantiation request file. */
@@ -13527,7 +13539,7 @@ only if IL lowering is done.
 
 
 static void write_instantiation_flags_to_template_info_file(
-				a_source_correspondence *scp,
+				char			*name,
 				a_boolean		instance_required,
 				a_boolean		do_not_instantiate,
 				a_boolean		can_be_instantiated)
@@ -13554,7 +13566,7 @@ file that specifies the instantiation flags associated with the entity.
   *flag_ptr = '\0';
   if (flags[0] != '\0') {
     /* Only write the line if at least one flag is set. */
-    write_to_template_info_file(tilt_instantiation_flag, scp->name, flags);
+    write_to_template_info_file(tilt_instantiation_flag, name, flags);
   }  /* if */
 }  /* write_instantiation_flags_to_template_info_file */
 
@@ -13680,18 +13692,20 @@ and "do not instantiate" flags are set here.
          template information file or in the IL as variables.  If the
          flags are placed in the IL, this is only done if IL lowering is
          being done. */
-      a_source_correspondence	*scp;
-      scp = is_static_data_member ?
-                &variable->source_corresp : &routine->source_corresp;
       if (instantiation_flags_in_template_info_file &&
           generate_template_files()) {
         /* The flags are to be placed in the template information file. */
+        char	*name;
+        name = get_mangled_name_of_instance(instance_sym);
         write_instantiation_flags_to_template_info_file(
-             scp, instance_required, do_not_instantiate, can_be_instantiated);
+             name, instance_required, do_not_instantiate, can_be_instantiated);
 #if DO_IL_LOWERING
       } else {
         /* The flags are to be placed in the IL as special variables. */
         if (il_lowering_needed()) {
+          a_source_correspondence	*scp;
+          scp = is_static_data_member ?
+                          &variable->source_corresp : &routine->source_corresp;
           create_instantiation_flag_variables(
              scp, instance_required, do_not_instantiate, can_be_instantiated);
         }  /* if */
