@@ -1,5 +1,19 @@
 Version 2.46
 
+12/17/01 C++-generating back end: "extern" on const variable definition
+
+The C++-generating back used to systematically emit an explicit "extern" on
+definitions of const variables with external linkage.  However, that turns a
+definition into a declaration if the variable definition does not include an
+initializer.  For example:
+
+  struct S {};
+  extern const S c;  // Declaration.
+  S const c;         // Definition: used to be rendered "extern const S c;"
+                     //             which is not a definition anymore.
+
+This is now fixed.
+
 12/15/01 Spurious warning on use of template template parameter
 
 A spurious "template parameter not used" warning was sometimes issued

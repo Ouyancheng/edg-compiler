@@ -8416,76 +8416,95 @@ Note that the destructor, if any, is implicit and need not be put out.
 }  /* gen_dynamic_init */
 
 
+static a_boolean is_explicit_initializer(an_init_kind       init_kind,
+                                         an_initializer_ptr initializer)
+/*
+Return whether the given initializer was explicitly specified in the source.
+*/
+{
+  a_boolean  result, is_value_init;
+
+  if (init_kind == (an_init_kind)initk_none) {
+    result = FALSE;
+  } else if (init_kind == (an_init_kind)initk_dynamic) {
+    a_dynamic_init_ptr  dip = initializer->dynamic;
+    if (dip->kind == (a_dynamic_init_kind)dik_none) {
+      /* No initialization at all.  (The dynamic init is here because
+         there is a destructor, but it's implicit.) */
+      result = FALSE;
+    } else if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
+               (dip->variant.constructor.args == NULL ||
+                dip->variant.constructor.args->generated_default_arg)) {
+      /* This is default (implicit) initialization. */
+      result = FALSE;
+    } else if (default_class_array_initialization(dip, &is_value_init)) {
+      /* This is default initialization for a class array. */
+      result = FALSE;
+    } else {
+      result = TRUE;
+    }  /* if */
+  } else if (init_kind == (an_init_kind)initk_zero) {
+    /* initk_zero is only produced by IL lowering. */
+    result = FALSE;
+  } else {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_explicit_initializer */
+
+
 static void gen_initializer(a_variable_ptr var)
 /*
 Output the initializer, if any, for the indicated variable.
 */
 {
-  a_boolean          parenthesized_init, is_value_init;
-  a_dynamic_init_ptr dip;
+  a_boolean          parenthesized_init;
   an_init_kind       init_kind;
   an_initializer_ptr initializer;
 
   get_variable_initializer(var, curr_name_context->assoc_scope,
                            &init_kind, &initializer);
-  /* Push the name context for a class/namespace member. */
-  push_name_context_if_member(&var->source_corresp);
-  if (var->source_corresp.is_class_member &&
-      init_kind == (an_init_kind)initk_dynamic &&
-      initializer->dynamic->kind == (a_dynamic_init_kind)dik_constructor &&
-      !msvc_is_generated_code_target) {
-    /* cfront has a bug in initialization of static data members that are
-       classes with constructors: it fails to activate the member names for
-       the class.  For example:
-         struct A { A(int); };
-         struct B {
-           static A a;
-           static int i;
-         };
-         A B::a = i;  // cfront gives error: "i" is not found
-       Because of this, qualified names should be used for members in such
-       an initialization. */
-    curr_name_context->invisible_to_cfront = TRUE;
-  }  /* if */
-  switch (init_kind) {
-    case initk_none:
-      /* No initializer. */
-      break;
-    case initk_static:
-      write_tok_str(" = ");
-      gen_initializer_constant(initializer->constant, var->type);
-      break;
-    case initk_dynamic:
-      /* Dynamic initialization. */
-      dip = initializer->dynamic;
-      if (dip->kind == (a_dynamic_init_kind)dik_none) {
-        /* No initialization at all.  (The dynamic init is here because
-           there is a destructor, but it's implicit.) */
-      } else if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
-                 (dip->variant.constructor.args == NULL ||
-                  dip->variant.constructor.args->generated_default_arg)) {
-        /* This is default initialization.  Put out nothing. */
-      } else if (default_class_array_initialization(dip, &is_value_init)) {
-        /* This is default initialization for a class array, so put out
-           nothing. */
-      } else {
+  if (is_explicit_initializer(init_kind, initializer)) {
+    /* Push the name context for a class/namespace member. */
+    push_name_context_if_member(&var->source_corresp);
+    if (var->source_corresp.is_class_member &&
+        init_kind == (an_init_kind)initk_dynamic &&
+        initializer->dynamic->kind == (a_dynamic_init_kind)dik_constructor &&
+        !msvc_is_generated_code_target) {
+      /* cfront has a bug in initialization of static data members that are
+         classes with constructors: it fails to activate the member names for
+         the class.  For example:
+           struct A { A(int); };
+           struct B {
+             static A a;
+             static int i;
+           };
+           A B::a = i;  // cfront gives error: "i" is not found
+         Because of this, qualified names should be used for members in such
+         an initialization. */
+      curr_name_context->invisible_to_cfront = TRUE;
+    }  /* if */
+    switch (init_kind) {
+      case initk_static:
+        write_tok_str(" = ");
+        gen_initializer_constant(initializer->constant, var->type);
+        break;
+      case initk_dynamic:
         /* Put out the initialization, using the "()" form if it was that
            way in the source code. */
         parenthesized_init = var->has_parenthesized_initializer;
         if (!parenthesized_init) {
           write_tok_str(" = ");
         }  /* if */
-        gen_dynamic_init(dip, var->type, parenthesized_init,
+        gen_dynamic_init(initializer->dynamic, var->type, parenthesized_init,
                          /*force_parens=*/FALSE);
-      }  /* if */
-      break;
-    case initk_zero:
-      /* initk_zero is only produced by IL lowering. */
-    default:
-      unexpected_condition_str("gen_initializer: bad init kind");
-  }  /* switch */
-  /* Pop the name context for a class/namespace member. */
-  pop_name_context_if_member(&var->source_corresp);
+        break;
+      default:
+        unexpected_condition_str("gen_initializer: bad init kind");
+    }  /* switch */
+    /* Pop the name context for a class/namespace member. */
+    pop_name_context_if_member(&var->source_corresp);
+  }  /* if */
 }  /* gen_initializer */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -8641,9 +8660,13 @@ declaration following this one is such a continuation.
       } else if (storage_class == (a_storage_class)sc_unspecified &&
                  il_header.source_language == sl_Cplusplus &&
                  innermost_function_scope == NULL &&
-                 is_const_qualified_type(var->type)) {
+                 is_const_qualified_type(var->type) &&
+                 is_explicit_initializer(var->init_kind, &var->initializer)) {
         /* A const-qualified variable is "static" by default in C++.  Use an
-           explicit "extern". */
+           explicit "extern" if the variable has an initializer.  If it
+           doesn't have an initializer, we cannot use an explicit "extern"
+           because that wouldn't be a definition anymore (presumably the
+           "extern" was supplied on a previous (nondefining) declaration. */
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
     } else {
