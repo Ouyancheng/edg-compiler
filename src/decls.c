@@ -593,7 +593,33 @@ can be that both are TRUE.
       *may_be_decl = FALSE;
     } else {
       prescan_declarator(token_cache_ptr, abstract_declarator_allowed,
-                         real_declarator_allowed, may_be_decl, may_be_expr);
+                           real_declarator_allowed, may_be_decl, may_be_expr);
+      if (real_declarator_allowed && abstract_declarator_allowed) {
+        /* This may be an arg list and it may be a param list.  If the
+           ambiguity was not resolved by looking at the first item (arg or
+           param) in the list, look at the next item.  Note that the recursive
+           invocation of prescan_declaration has the effect of bumping down
+           the list till it ends or until the ambiguity is resolved. */
+        if (*may_be_decl && *may_be_expr) {
+          /* Ambiguity is still unresolved. */
+          if (curr_token == tok_rparen && next_token() == tok_comma) {
+            /* Advance past the right paren. */
+            cache_curr_token(token_cache_ptr);
+            (void)get_token();
+            /* Advance past the comma. */
+            cache_curr_token(token_cache_ptr);
+            (void)get_token();
+            if (!is_decl_start(/*expr_context=*/FALSE,
+                               /*real_declarator_allowed=*/TRUE)) {
+              *may_be_decl = FALSE;
+            } else {
+              prescan_declaration(token_cache_ptr, abstract_declarator_allowed,
+                                  real_declarator_allowed, may_be_decl,
+                                  may_be_expr);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
       if (*may_be_decl && *may_be_expr) {
         /* If this is not a rparen, can't we assume that we have an expression
            here.  For instance, int(*p + 1). */
@@ -684,13 +710,13 @@ distinguish statements and expressions from declarations -- for example:
          A a(int(1));         // initialize a by calling A::A() with arg 1
          A a(int(i));         // function a takes int arg, returns A
 
-The ARM discusses disambiguation in section 6.8.  In general, if a sequence
-of tokens looks like a declaration, then it is a declaration, even if it
-could also be an expression.  The technique used here involves assuming
+The ARM discusses disambiguation in sections 6.8 and 8.1.1.  In general, if a
+sequence of tokens looks like a declaration, then it is a declaration, even
+if it could also be an expression.  The technique used here involves assuming
 a declaration and looking ahead as many tokens as necessary to confirm or
 disprove the assumption or, in the case of a more persistent ambiguity, to
-decide on the basis of tokens following the "declaration".  Tokens are
-cached so that they can be rescanned by the caller.
+decide on the basis of tokens following the "declaration".  Tokens are cached
+so that they can be rescanned by the caller.
 
 The caller provides some information about the context, specifically whether,
 if it is a declaration, an abstract or real declarator is expected -- or
