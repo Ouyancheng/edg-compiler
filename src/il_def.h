@@ -5396,6 +5396,7 @@ typedef struct a_statement {
 			   generating thread-safe code, the "if" and the
 			   first initialization within it should be rendered
 			   as an atomic test-and-set. */
+  bitfield_to_avoid_codecenter_warnings()
   an_expr_node_ptr
                 expr;
                         /* The primary expression, if applicable

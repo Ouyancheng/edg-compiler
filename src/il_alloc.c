@@ -1811,6 +1811,9 @@ to it.  The statement kind is set as indicated.
   sp->next                  = NULL;
   sp->has_associated_pragma = FALSE;
   sp->is_initialization_guard = FALSE;
+#if CHECKING
+  sp->avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sp->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
