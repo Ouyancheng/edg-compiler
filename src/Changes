@@ -41,13 +41,13 @@ specification.  For example:
     char c; // Tail padding can be reused since this is a non-POD.
   };
   struct V: NP, virtual E {};  // The "size without virtual base classes"
-                               // erroneously included the tail adding of
+                               // erroneously included the tail padding of
                                // base NP.
   struct D: virtual V, E {};   // The size of D and offset of V were too
                                // large.
 
-This is now fixed when ABI_COMPATIBILITY_VERSION is at least 304.  The
-previous behavior remains in effect for smaller values of
+This ABI change is now fixed when ABI_COMPATIBILITY_VERSION is at least 304.
+The previous behavior remains in effect for smaller values of
 ABI_COMPATIBILITY_VERSION.
 
 
