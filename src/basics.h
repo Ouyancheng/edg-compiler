@@ -501,14 +501,16 @@ the macro, so one should not follow a reference to the macro.
 #endif /* CHECKING */
 
 /*
-Indication that a function does not return.  gcc recognizes a return
-type of "volatile void" as meaning that a function does not return.
+Indication that a function does not return.  Used as the return type
+of the function.  Usually expands to "void", but can be changed to
+something else if the host C compiler has some way of indicating a
+function that does not return.  Some versions of gcc, for example,
+recognized a return type of "volatile void" as meaning that a function
+does not return.
 */
-#ifdef __GNUC__
-#define DOES_NOT_RETURN volatile void
-#else /* !defined(__GNUC__) */
+#ifndef DOES_NOT_RETURN
 #define DOES_NOT_RETURN void
-#endif /* ifdef __GNUC__ */
+#endif /* ifndef DOES_NOT_RETURN */
 
 /*
 Data declarations pertaining to positions within source files.
