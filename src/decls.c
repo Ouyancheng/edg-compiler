@@ -2218,8 +2218,7 @@ scope is that of a class definition.
           pos_error(ec_abstract_class_object_not_allowed,
                     is_error_locator(param_locator) ?
                            &param_type_pos : &param_locator.source_position);
-        } else if (is_void_type(param_type_ptr) &&
-                   C_dialect == C_dialect_cplusplus) {
+        } else if (is_void_type(param_type_ptr)) {
           pos_error(ec_void_param_not_allowed, &param_type_pos);
           param_type_ptr = error_type();
         }  /* if */
@@ -7118,7 +7117,7 @@ Returns TRUE if there is an error in the specifiers.
                                  (is_inline ? 1 : 0)) {
               /* Issue a warning if the storage class is not the first
                  specifier (except for "inline" or "friend"). */
-              warning(ec_storage_class_not_first);
+              remark(ec_storage_class_not_first);
             }  /* if */
           }  /* if */
           switch (curr_token) {
