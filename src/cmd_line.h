@@ -679,24 +679,11 @@ EXTERN a_boolean
 			   defined. */
 
 EXTERN a_boolean
-		okay_to_eliminate_unneeded_il_entries;
-			/* When TRUE unneeded entities may be pruned from the
-			   IL tree; otherwise, pruning is suppressed even if
-			   entities are determined to be unneeded. Always
-			   FALSE when MAINTAIN_NEEDED_FLAGS is FALSE.
-			   Otherwise, controlled by command line option
-			   --[no_]remove_unneeded_entities; also FALSE if
-			   templates appear in the source program and
-			   template instantiation is not under the control
-			   of the front end (e.g., when the C++-generating
-			   back end is used).  */
-
-EXTERN a_boolean
 		remove_unneeded_entities
 #if VAR_INITIALIZERS
-                            = DEFAULT_REMOVE_UNNEEDED_ENTITIES
+                                         = DEFAULT_REMOVE_UNNEEDED_ENTITIES
 #endif /* VAR_INITIALIZERS */
-                                                              ;
+                                                                           ;
 			/* When TRUE unneeded entities may be pruned from the
 			   IL tree; otherwise, pruning is suppressed even if
 			   entities are determined to be unneeded. Always
