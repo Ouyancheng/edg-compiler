@@ -880,7 +880,7 @@ a_scope_depth scope_depth_of_symbol(a_symbol_ptr  sym,
 Given a symbol with a decl_scope (which is a scope number), search the
 scope stack for the scope stack entry that corresponds to it, and return
 the depth.  Also return TRUE in *is_local_to_function if the declaration
-is in within a function body.
+is within a function body.
 */
 {
   a_scope_depth  scope_depth;
