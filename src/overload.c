@@ -10633,7 +10633,7 @@ to be acceptable, and *conversion describes it.
     } else {
       /* Normal case (not an indefinite function). */
       if (exceptions_enabled) {
-        /* Check compatibility of exception specifications. Unlike the
+        /* Check compatibility of exception specifications.  Unlike the
            pointer-to-function case, the reference-to-function case must
            match exactly. */
         if (exception_spec_is_less_restrictive(source_operand->type,
