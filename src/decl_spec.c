@@ -1944,7 +1944,9 @@ new expression and should therefore not be treated as a declaration.
 #endif /* CHECKING */
         }  /* if */
       } else if (tag_sym->kind != tag_kind) {
+/*
 // FIXME: Isn't this already handled in scan_tag_name?
+*/
         /* Union/nonunion mismatch on a redeclaration. */
         if (is_nonreal_instance_class_symbol(tag_sym)) {
           /* Ignore a union/nonunion mismatch on nonreal classes. */
