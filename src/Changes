@@ -1,5 +1,15 @@
 Version 2.22
 
+2/14/94  Missing error on redefinition of hidden tag name
+
+An error is now diagnosed for this incorrect usage:
+
+struct A {
+  struct B {};
+  short B;
+  struct B {};  // Error
+};
+
 2/14/94  Scanning type conversion operator names
 
 When a type conversion operator appears as part of a qualified name,

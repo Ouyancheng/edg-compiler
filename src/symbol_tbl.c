@@ -1736,7 +1736,10 @@ scope.  old_sym is a symbol that is already on the list.  new_sym is
 a newly created symbol that is about to be added or a symbol for which
 a projection symbol will be created and added.  The tag symbol should
 follow the other in the list, so if the new symbol is a tag symbol, it
-must be inserted after the old.
+must be inserted after the old.  insert_sym points provides the location
+at which the new symbol should be entered.  This is used to make sure that
+a nontype symbol will be found instead of a type symbol when both exist.
+*insert_sym is only set if insert_sym is not NULL.
 
 In pcc mode and in cfront compatibility mode local variables of a
 function are allowed to hide function parameters.  A warning is
@@ -1755,7 +1758,7 @@ be issued by the caller.
       /* The old symbol is a non-type name.  Be sure the new symbol
          inserted into the list after the old one. */
       err = FALSE;
-      *insert_sym = old_sym;
+      if (insert_sym != NULL) *insert_sym = old_sym;
     }  /* if */
   } else if (C_dialect == C_dialect_cplusplus &&
              is_tag_symbol(fundamental_symbol_of(old_sym))) {
@@ -1880,6 +1883,7 @@ the proper insert location.
         pos_st_error(ec_redeclaration_of_template_param_name,
                      &(sym_ptr->decl_position), sym_ptr->header->identifier);
       } else {
+        a_boolean	first_trip = TRUE;
         if (redeclared_template_param) {
           /* A template parameter name has been reused in an inner scope
              of a template class or function.  Issue a warning that the
@@ -1898,7 +1902,7 @@ the proper insert location.
            when there has already been an error issued, so in practical terms
            the extra check costs nothing. */
         for (; old_sym_ptr != NULL && old_sym_ptr->decl_scope == scope_number;
-             old_sym_ptr = old_sym_ptr->next) {
+             old_sym_ptr = old_sym_ptr->next, first_trip = FALSE) {
           if (name_space_for_symbol_kind[(int)old_sym_ptr->kind] ==
                                                          sym_name_space_kind) {
             /* Two declarations in the same name space in the same scope:
@@ -1906,9 +1910,10 @@ the proper insert location.
                define a tag name and a non-type name in the same scope (see ARM
                3.2, 3.1c, and 7.1.3).  In cfront and pcc modes a variable is
                allowed to hide a function parameter. */
-            if (!symbols_may_coexist_in_curr_scope(old_sym_ptr, sym_ptr,
-                                                   &insert_after,
-                                                   suppress_error)) {
+            if (!symbols_may_coexist_in_curr_scope
+                            (old_sym_ptr, sym_ptr,
+                             first_trip ? &insert_after : (a_symbol_ptr*)NULL,
+                             suppress_error)) {
               /* Error, this identifier has already been declared. */
               if (!suppress_error) {
                 /* Note that we pass the identifier string to the error routine
@@ -1923,10 +1928,13 @@ the proper insert location.
                              &(sym_ptr->decl_position),
                              sym_ptr->header->identifier);
               }  /* if */
+              /* Only break out of the loop if an error occurred.  Otherwise
+                 check with other symbols to make sure that this symbol
+                 can coexist with an already hidden symbol. */
+              break;
             }  /* if */
             /* Go ahead and enter the symbol anyway.  Both symbols will be
                in the symbol table. */
-            break;
           }  /* if */
         }  /* for */
       }  /* if */
