@@ -3171,15 +3171,8 @@ including any class or enum defined within a local class).
 {
   a_boolean  is_local = FALSE;
 
-  if (is_immediate_class_type(type_ptr)) {
-    /* Local classes are easily recognizable from their name linkage; any
-       class declared at file scope must have either internal or external
-       name linkage. */
-    if (type_ptr->source_corresp.name_linkage ==
-                                          (a_name_linkage_kind)nlk_none) {
-      *force_end_of_traversal = is_local = TRUE;
-    }  /* if */
-  } else if (is_enum(type_ptr)) {
+  if ((skip_typerefs(type_ptr))->source_corresp.is_local_to_function) {
+    *force_end_of_traversal = is_local = TRUE;
   }  /* if */
   return is_local;
 }  /* ttt_is_local_type */
