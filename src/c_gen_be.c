@@ -2404,11 +2404,63 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
 }  /* dump_type_decl */
 
 
-static void dump_prototype_scope_types(a_scope_ptr proto_scope,
-                                       int         pass,
-                                       a_boolean   *any_found)
+static void adjust_promoted_local_type_name(a_type_ptr     type,
+                                            a_routine_ptr  rout,
+                                            a_scope_number scope_number)
+/*
+The indicated type is a local type of the indicated routine
+and is being promoted out of the routine and scope (number) indicated.
+Adjust its name so it will be unique at the file scope.
+*/
+{
+  sizeof_t mangled_name_length, alloc_length, name_length, routine_name_length;
+  char     *mangled_name, *store_at;
+  char     scope_num_buffer[50];
+
+  /* Leave the name alone if the type is unnamed. */
+  if (has_name(type)) {
+    /* The encoding is the original type name, two underscores, the
+       mangled name of the routine, and "__Lnn" where "nn" is the
+       scope number. */
+    /* The encoding here should match mangle_promoted_entity_name. */
+    name_length = strlen(type->source_corresp.name);
+    if (has_name(rout)) {
+      routine_name_length = strlen(rout->source_corresp.name);
+    } else {
+      routine_name_length = 0;
+    }  /* if */
+    (void)sprintf(scope_num_buffer, "__L%lu", (unsigned long)scope_number);
+    mangled_name_length = name_length + 2 + routine_name_length +
+                          strlen(scope_num_buffer);
+    /* Allocate space for the mangled name and build it.  The old name is
+       just thrown away. */
+    alloc_length = mangled_name_length + 1;
+    /* This space is not counted under any debug output.  There shouldn't
+       be too much of it. */
+    mangled_name = alloc_il(alloc_length);
+    (void)strcpy(mangled_name, type->source_corresp.name);
+    store_at = mangled_name + name_length;
+    *store_at++ = '_';
+    *store_at++ = '_';
+    if (routine_name_length > 0) {
+      (void)strcpy(store_at, rout->source_corresp.name);
+      store_at += routine_name_length;
+    }  /* if */
+    (void)strcpy(store_at, scope_num_buffer);
+    type->source_corresp.name = mangled_name;
+    type->source_corresp.name_has_been_mangled = TRUE;
+    type->source_corresp.is_local_to_function = FALSE;
+  }  /* if */
+}  /* adjust_promoted_local_type_name */
+
+
+static void dump_prototype_scope_types(a_scope_ptr   proto_scope,
+                                       a_routine_ptr rout,
+                                       int           pass,
+                                       a_boolean     *any_found)
 /*
 If the indicated prototype scope contains any types, output them.
+The prototype scope is part of the routine indicated by rout.
 pass is 1 or 2 (declarations are output on the first pass, full definitions
 on the second pass, to avoid ordering problems).  *any_found is set to
 TRUE if any prototype scope types are found.  This routine is only called
@@ -2420,49 +2472,19 @@ when the source language is C.
 
   for (type = proto_scope->types; type != NULL; type = type->next) {
     *any_found = TRUE;
+    if (pass == 1) {
+      /* Do some name mangling so that the name remains unique. */
+      adjust_promoted_local_type_name(type, rout, proto_scope->number);
+    }  /* if */
     dump_type_decl(type, pass);
   }  /* for */
   /* Process any nested prototype scopes. */
   for (sub_scope = proto_scope->scopes;
        sub_scope != NULL;
        sub_scope = sub_scope->next) {
-    dump_prototype_scope_types(sub_scope, pass, any_found);
+    dump_prototype_scope_types(sub_scope, rout, pass, any_found);
   }  /* for */
 }  /* dump_prototype_scope_types */
-
-
-static void adjust_promoted_local_type_name(a_type_ptr    type,
-                                            a_routine_ptr rout)
-/*
-The indicated type is a local type of the indicated template routine
-and is being promoted out of the routine.  Adjust its name so it will
-be unique at the file scope.  This is similar to the processing
-done by mangle_promoted_entity_name.  The caller has tested that both the
-routine and the type have a name.
-*/
-{
-  sizeof_t mangled_name_length, alloc_length, name_length, routine_name_length;
-  char     *mangled_name, *store_at;
-
-  /* The encoding is the original type name, two underscores, and the
-     mangled name of the routine. */
-  name_length = strlen(type->source_corresp.name);
-  routine_name_length = strlen(rout->source_corresp.name);
-  mangled_name_length = name_length + 2 + routine_name_length;
-  /* Allocate space for the mangled name and build it.  The old name is
-     just thrown away. */
-  alloc_length = mangled_name_length + 1;
-  /* This space is not counted under any debug output.  There shouldn't
-     be too much of it. */
-  mangled_name = alloc_il(alloc_length);
-  (void)strcpy(mangled_name, type->source_corresp.name);
-  store_at = mangled_name + name_length;
-  *store_at++ = '_';
-  *store_at++ = '_';
-  (void)strcpy(store_at, rout->source_corresp.name);
-  type->source_corresp.name = mangled_name;
-  type->source_corresp.name_has_been_mangled = TRUE;
-}  /* adjust_promoted_local_type_name */
 
 
 static void dump_scope_types(a_scope_ptr scope)
@@ -2521,7 +2543,7 @@ Dump all types declared within one scope.
           if (proto_scope != NULL) {
             /* This function has a prototype scope.  Output any types
                declared therein. */
-            dump_prototype_scope_types(proto_scope, pass, &any_found);
+            dump_prototype_scope_types(proto_scope, rout, pass, &any_found);
           }  /* if */
         }  /* if */
       }  /* for */
@@ -2535,17 +2557,13 @@ Dump all types declared within one scope.
     for (solhp = il_header.scope_orphaned_list_headers;
          solhp != NULL;
          solhp = solhp->next) {
-      /* When promoting a type out of a template function, do some name
-         mangling so that the name remains unique. */
-      a_routine_ptr rout = solhp->assoc_routine;
-      a_boolean     need_name_mangling = (pass == 1 &&
-                                          rout->is_template_function &&
-                                          has_name(rout));
       for (type = solhp->orphaned_types;
            type != NULL;
            type = type->next) {
-        if (need_name_mangling && has_name(type)) {
-          adjust_promoted_local_type_name(type, rout);
+        if (pass == 1) {
+          /* Do some name mangling so that the name remains unique. */
+          adjust_promoted_local_type_name(type, solhp->assoc_routine,
+                                          solhp->scope_number);
         }  /* if */
         dump_type_decl(type, pass);
       }  /* for */
