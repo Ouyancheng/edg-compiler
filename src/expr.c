@@ -1207,6 +1207,7 @@ Syntax:
   a_boolean         call_folded_to_constant = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean         call_may_be_folded = FALSE;
+  a_boolean         do_arg_dep_lookup = FALSE;
 
   db_enter(4, "scan_function_call");
 
@@ -1228,6 +1229,14 @@ Syntax:
                                 &call_position) < 0) ?
                                             bound_function_selector->position :
                                             call_position;
+  /* Argument-dependent lookup will be done if the function name is a
+     simple name followed by a left parenthesis (not, for example,
+     a name enclosed in parentheses as in "(f)(x)"). */
+  if (!C_mode() && arg_dependent_lookup_enabled &&
+      operand->is_routine_name_followed_by_left_paren &&
+      !operand->is_qualified_name) {
+    do_arg_dep_lookup = TRUE;
+  }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   call_may_be_folded = gnu_mode && !curr_expr_kind_is(ek_pp) &&
                        is_foldable_gnu_builtin_function_operand(operand);
@@ -1349,9 +1358,9 @@ Syntax:
       end_function_position = operand->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* In C++, it's an error, but not yet if argument-dependent lookup
-         is enabled -- in that case, a function might be found in an
+         will be done -- in that case, a function might be found in an
          argument-dependent class or namespace, and no error is issued. */
-      if (!C_mode() && arg_dependent_lookup_enabled) {
+      if (!C_mode() && do_arg_dep_lookup) {
         overloaded_function_case = TRUE;
         overloaded_function_symbol = func_sym;
         /* routine_type = NULL;  -- already set. */
@@ -1503,8 +1512,7 @@ Syntax:
                                                        try_surrogate_functions,
                                             bound_function_selector,
                                             arg_operand_list,
-                                            arg_dependent_lookup_enabled &&
-                                                   !operand->is_qualified_name,
+                                            do_arg_dep_lookup,
                                             try_surrogate_functions,
                                          (a_boolean)operand->is_qualified_name,
                                             ec_no_matching_function,
@@ -13304,7 +13312,8 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
       /* When argument-dependent lookup is enabled, even if the symbol
          is a simple routine name it might not be the routine that is
          called, so go to overload resolution and handle the reference
-         there. */
+         there.  Argument-dependent lookup applies only if the name
+         is immediately followed by a left parenthesis. */
       force_indefinite_routine_due_to_arg_dependent_lookup = TRUE;
       rep = NULL;
     } else {
@@ -13744,6 +13753,16 @@ overloaded_function:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (!C_mode() && arg_dependent_lookup_enabled &&
+      (is_undefined_symbol_operand(result) ||
+       is_indefinite_function_operand(result)) &&
+      next_token() == tok_lparen) {
+    /* If a routine name is immediately followed by a left parenthesis,
+       argument-dependent lookup may apply.  Note the code above that
+       forces non-overloaded functions to be represented as indefinite
+       functions when argument-dependent lookup may apply. */
+    result->is_routine_name_followed_by_left_paren = TRUE;
+  }  /* if */
   /* Advance past the identifier. */
   (void)get_token();
 after_advance_past_id:

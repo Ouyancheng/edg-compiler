@@ -293,6 +293,10 @@ typedef struct an_operand {
 			   This is used to suppress the warning that the
 			   code has no effect. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_bit_field	is_routine_name_followed_by_left_paren:1;
+			/* TRUE if this is a simple routine name followed by
+			   a left parenthesis (which enables argument-
+			   dependent lookup). */
 #if RECORD_FORM_OF_NAME_REFERENCE
   a_bit_field	name_reference_set:1;
 			/* TRUE if name_reference has been set. */

@@ -1,5 +1,24 @@
 Version 3.4
 
+1/6/04   Argument-dependent lookup was not suppressed by parentheses
+
+Argument-dependent lookup is supposed to be suppressed on a
+call in which the function name is surrounded by parentheses,
+as in (f)(x).  That was done correctly when the function is
+not overloaded, but when the function is overloaded
+argument-dependent lookup was done anyway.  Now fixed.
+
+  void f(...);  //1
+  void f();     //2
+  namespace N {
+    struct A {};
+    void f(A);  //3
+  }
+  int main() {
+    N::A a;
+    (f)(a);  //1 is called now; formerly, 3 was called
+  }
+
 1/6/04   GNU mode: Return type of certain built-in functions
 
 In GNU mode, built-in functions __builtin_creal, __builtin_crealf,
