@@ -4845,6 +4845,7 @@ it is an external definition).
     if ((var->storage_class == (a_storage_class)sc_unspecified
 #if DO_IL_LOWERING
          && !var->promoted_local_static
+         && !var->is_optional_vtable
 #endif /* DO_IL_LOWERING */
                                        ) ||
          var->init_kind == (an_init_kind)initk_dynamic) {

@@ -5044,6 +5044,7 @@ not to put out the definition; otherwise, it's set to NULL.
        constructor and destructor wrapper code), so if the referenced flag
        is FALSE the virtual function table is not referenced at all. */
     a_variable_ptr vtbl_var = ctsp->virtual_function_table_var;
+    vtbl_var->is_optional_vtable = vtable_is_optional;
 #if !IA64_ABI
     if (vtbl_var == NULL) {
       /* The class itself has no virtual function table, so look at the

@@ -1864,6 +1864,7 @@ to it.
 #endif /* MINIMAL INLINING */
   vp->promoted_local_static_init  = FALSE;
   vp->promoted_local_static       = FALSE;
+  vp->is_optional_vtable          = FALSE;
 #endif /* DO_IL_LOWERING */
   vp->is_compound_literal         = FALSE;
   vp->has_parenthesized_initializer = FALSE;
