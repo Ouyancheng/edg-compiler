@@ -179,6 +179,13 @@ extern a_boolean instantiation_needed_flag_is_set(
 #define needed_flag_is_set(scp) ((scp)->needed)
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+/* Test a routine to see whether it is inline.  When it is a template
+   instance, this may require looking at the template because the
+   is_inline flag is not recorded until the function is fully instantiated. */
+#define rout_is_inline(rout)						\
+  ((rout)->is_inline ||							\
+   ((rout)->is_template_function &&					\
+    rout_is_inline_template_function(rout)))
 /* Macro to determine whether a routine is to be treated as a static inline
    function.  This includes "extern inline" functions that are lowered to
    static functions. */
@@ -188,13 +195,13 @@ extern a_boolean instantiation_needed_flag_is_set(
    Those that really are static stay static (actually, they may get
    externalized if there are exported templates, then lowered to static
    again), and extern inline functions get lowered to static. */
-#define treat_as_static_inline(rout)					\
-  ((rout)->is_inline)
+#define treat_as_static_inline(rout) (rout_is_inline(rout))
 #else /* !LOWER_EXTERN_INLINE */
 /* When not lowering "extern inline" only those declared static are treated
    as static. */
 #define treat_as_static_inline(rout)					\
-  ((rout)->is_inline && ((rout)->storage_class == (a_storage_class)sc_static))
+  (rout_is_inline(rout) &&						\
+   ((rout)->storage_class == (a_storage_class)sc_static))
 #endif /* LOWER_EXTERN_INLINE */
 
 /*
