@@ -1,5 +1,20 @@
 Version 2.19
 
+8/9/93  IL lowering: rewriting of lvalue-returning operations
+
+IL lowering now correctly rewrites lvalue-returning operations (assignments,
+prefix ++/--, and "?" and "," operations) even when some of their operands
+are bit fields or have register storage class.  Rewriting these things
+in C terms requires duplicating parts of the expression tree.  Those who
+are ambitious and want to handle these things directly in a back end
+can disable this rewriting -- see LOWER_LVALUE_RETURNING_OPERATIONS
+in target.h.
+
+8/9/93  IL CHANGE: lvalue-returning "?" and "," operators
+
+Lvalue-returning "?" and "," operators now have the flag
+returns_lvalue_instead_of_usual_rvalue set.
+
 8/7/93  Cross-reference output
 
 Some minor bugs were fixed.  The symptom of the bug was that some
