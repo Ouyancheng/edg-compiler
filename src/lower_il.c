@@ -6500,6 +6500,9 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
 }  /* lower_expr */
 
 
+#if !MINIMAL_INLINING
+/*ARGSUSED*/  /* <-- statement is not used in that case. */
+#endif /* !MINIMAL_INLINING */
 void lower_full_expr(an_expr_node_ptr expr,
                      a_boolean        is_lvalue,
                      a_statement_ptr  statement)
