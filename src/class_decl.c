@@ -11108,10 +11108,10 @@ next_declaration:;
 }  /* class_member_declaration */
 
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+#if !(GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL)
 /*ARGSUSED*/ /* template_decl is used only when source sequence entries are
                 recorded for prototype instantiations. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
+#endif /* !(GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_...) */
 a_symbol_ptr class_member_template_declaration(
                                      a_type_ptr            class_type,
                                      a_template_param_ptr  templ_param_list,

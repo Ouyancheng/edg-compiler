@@ -5408,11 +5408,11 @@ skip_overloading:;
 
 
 #if !DECL_MODIFIERS_IN_USE || \
-    (GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL)
+    !(GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL)
 /* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
                /* template_decl is used only when source sequence entries are
                   recorded for prototype instantiations. */
-#endif /* !DECL_MODIFIERS_IN_USE || ... */
+#endif /* !DECL_MODIFIERS_IN_USE || !(GENERATE_SOURCE_SEQUENCE...) */
 void decl_function_template(a_symbol_locator            *locator,
                             a_type_ptr                  type_ptr,
                             a_func_info_block           *func_info,
