@@ -1153,7 +1153,7 @@ start of a sequence of declarations.
 static void wrapup_decl_statement(void)
 /*
 If there is a currently active decl-statement, terminate it by setting its
-last-declaration pointer and removing it from the structure statement stack
+last-declaration pointer and removing it from the structured statement stack
 entry.
 */
 {
@@ -2769,8 +2769,8 @@ See also 3.6.6.4.
   a_dynamic_init_ptr dip = NULL;
   a_routine_ptr      rout;
   a_type_ptr         return_type, routine_type;
-  a_boolean          void_return_used = FALSE;
-  a_source_position  return_pos, expr_pos;
+  a_boolean          cfront_void_return = FALSE, expr_present;
+  a_source_position  return_pos;
 
   db_enter(3, "return_statement");
   check_for_unreachable_code();
@@ -2784,10 +2784,27 @@ See also 3.6.6.4.
   return_pos = pos_curr_token;
   (void)get_token();
   add_stop_token(tok_semicolon);
-  /* Get a pointer to the current routine entry. */
+  /* Get a pointer to the current routine entry, and its return type. */
   rout = current_routine_entry();
+  routine_type = skip_typerefs(rout->type);
+  return_type = routine_type->variant.routine.return_type;
+  /* See if there is an expression after "return". */
+  expr_present = (curr_token != tok_semicolon);
+  /* Check for an odd cfront compatibility case: cfront allows "return expr;"
+     in a void function as long as the expression has void type.  For this
+     case, the return statement is allocated later so that the expression
+     can be put out first as a freestanding expression statement. */
+  if (cfront_compatibility_mode && expr_present && is_void_type(return_type)) {
+    warning(ec_value_returned_in_void_function);
+    cfront_void_return = TRUE;
+    sp = add_statement((a_statement_kind)stmk_expr);
+  } else {
+    /* Allocate the return statement. */
+    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return, &return_pos);
+    stmt_update_source_sequence_list(sp);
+  }  /* if */
   /* See if the optional expression is present. */
-  if (curr_token == tok_semicolon) {
+  if (!expr_present) {
     /* The expression is missing. */
     check_void_return_okay(/*is_implicit_return=*/FALSE, &return_expr);
     if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
@@ -2797,50 +2814,36 @@ See also 3.6.6.4.
     }  /* if */
   } else {
     /* The expression is present. */
-    /* Get the return type of the current routine entry. */
-    routine_type = skip_typerefs(rout->type);
-    return_type = routine_type->variant.routine.return_type;
     if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
         rout->special_kind == (a_special_function_kind)sfk_destructor) {
       /* Constructors and destructors may not return a value (ARM 6.6.3). */
       error(ec_value_returned_in_constructor);
       return_type = error_type();
     } else if (is_void_type(return_type)) {
-      /* A void function may not return a value.  Accept with a warning
-         in cfront compatibility mode. */
-      if (cfront_compatibility_mode) {
-        warning(ec_value_returned_in_void_function);
-        void_return_used = TRUE;
-      } else {
+      /* A void function may not return a value.  A warning has already been
+         issued for the cfront compatibility case (see above). */
+      if (!cfront_void_return) {
         error(ec_value_returned_in_void_function);
         return_type = error_type();
       }  /* if */
     }  /* if */
-    /* Save the position of the start of the expression.  This is used
-       if we need to create a new statement for the expression on
-       a return in a void function in cfront mode. */
-    expr_pos = pos_curr_token;
     /* Scan the return expression and convert it to the function type. */
     return_expr = scan_return_expression(return_type,
                                          ec_bad_return_value_type,
                                          &dip);
   }  /* if */
-  /* If a return expression was found in a void function (which is allowed
-     in cfront mode) generate an expression statement that is output
-     before the return statement.  This is done to prevent generating
-     a return statement in the IL that has a void type and yet contains
-     a return expression. */
-  if (void_return_used && return_expr != NULL) {
-    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_expr, &expr_pos);
-    sp->expr = return_expr;
-    set_expr_result_not_used(return_expr);
-    return_expr = NULL;
-  }  /* if */
-  /* Allocate the return statement. */
-  sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return, &return_pos);
-  stmt_update_source_sequence_list(sp);
+  /* Put the expression into the statement. */
   sp->expr = return_expr;
-  sp->variant.dynamic_init = dip;
+  if (!cfront_void_return) {
+    sp->variant.dynamic_init = dip;
+  } else {
+    /* The cfront compatibility case: "return expr" in a void function.
+       The statement already put out is an expression statement.  Follow it
+       now by a return statement with a null expression. */
+    set_expr_result_not_used(return_expr);
+    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return, &return_pos);
+    stmt_update_source_sequence_list(sp);
+  }  /* if */
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
