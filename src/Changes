@@ -1,5 +1,11 @@
 Version 2.26
 
+9/7/94   Storage class of static template functions
+
+A bug was introduced into version 2.17 that caused static (nonmember)
+template functions to be given a storage class of sc_unspecified instead
+of sc_static.  This has been fixed.
+
 9/7/94   Qualifiers on function types
 
 If a multiply declared function had a type with a top-level qualifier, the
