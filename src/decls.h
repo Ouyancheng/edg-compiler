@@ -349,7 +349,8 @@ void decl_function_template(a_symbol_locator            *locator,
                             a_storage_class             storage_class,
                             a_decl_modifiers_block_ptr  decl_modifiers,
                             a_template_decl_info_ptr	templ_decl_info,
-                            a_scope_depth               orig_decl_level);
+                            a_scope_depth               orig_decl_level,
+			    a_boolean			is_specialization);
 
 extern void handler_declaration(a_statement_ptr     sp,
                                 a_source_position*  catch_pos);

@@ -5170,7 +5170,8 @@ void decl_function_template(a_symbol_locator            *locator,
                             a_storage_class             storage_class,
                             a_decl_modifiers_block_ptr  decl_modifiers,
                             a_template_decl_info_ptr    templ_decl_info,
-                            a_scope_depth               orig_decl_level)
+                            a_scope_depth               orig_decl_level,
+			    a_boolean			is_specialization)
 /*
 Roughly speaking, this routine does for function templates what
 decl_routine does for ordinary functions.  Look up and reuse or else
@@ -5182,7 +5183,8 @@ if "inline" was specified in the declaration.  The function template may
 be part of an overload set, it may have been previously declared (but not
 defined), and it may be an out-of-line definition of a member function of a
 class template.  orig_decl_level is the nearest enclosing scope that
-is not a template declaration scope.
+is not a template declaration scope.  is_specialization is TRUE if this
+is a template specialization declaration.
 */
 {
   a_symbol_ptr                      sym = NULL;
@@ -5326,7 +5328,9 @@ is not a template declaration scope.
                                                     effective_decl_level])) {
       /* This member template is being defined in a scope that does not
          enclose the scope in which the parent class was defined. */
-      if (func_info->is_definition) {
+      if (is_specialization) {
+        sym_error(ec_bad_scope_for_specialization, sym);
+      } else if (func_info->is_definition) {
         sym_error(ec_bad_scope_for_definition, sym);
       } else {
         sym_error(ec_bad_scope_for_redeclaration, sym);
@@ -5524,7 +5528,7 @@ is not a template declaration scope.
       mark_defined(sym, &locator->source_position);
     } else {
       mark_declared(sym, &locator->source_position);
-      if (sym->is_class_member && !idlb.is_friend_decl) {
+      if (sym->is_class_member && !idlb.is_friend_decl && !is_specialization) {
         /* A non-defining declaration of a member function is not
            allowed. */
         pos_sy_error(ec_member_function_redecl_outside_class,

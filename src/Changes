@@ -1,5 +1,17 @@
 Version 2.42
 
+7/13/99  Spurious error on member of specialized member class template
+
+A spurious error was issued on the definition of a member function of
+a specialized member class template (e.g., on the declaration of
+A<int>::B<Y>::mg below).  Now fixed.
+
+  template <class T1> class A { 
+    template <class T2> class B { void mf(); };       
+  };       
+  template <> template <class X> struct A<int>::B { void mg(); }; 
+  template <> template <class Y> void A<int>::B<Y>::mg() {}; 
+
 7/12/99  Microsoft compatibility: allow most operators to be static members
 
 In Microsoft bugs mode, operators that can be declared in namespace scope can

@@ -9953,118 +9953,13 @@ caller.
 }  /* complete_function_template_decl */
 
 
-static a_symbol_ptr function_template_specialization(
-				a_tmpl_decl_state_ptr	decl_state,
-				a_symbol_locator	*locator,
-				a_type_ptr		type,
-				a_decl_flag_set		dso_flags,
-				a_source_position	*start_pos,
-                               a_func_info_block        *func_info)
-/*
-Given a declaration of a specialization of a function template, find the
-template that is being specialized.  Note that only member templates
-declared within class templates can be specialized.
-
-locator, type, and dso_flags are the values returned by declarator.
-start_pos is the source position of the beginning of the specialization
-declaration (following any template clauses).
-*/
-{
-  a_symbol_ptr		sym = NULL;
-  a_symbol_ptr		new_sym = NULL;
-
-  sym = locator->specific_symbol;
-  if (!is_error_locator(*locator)) {
-    /* Check for errors such as a missing type specifier. */
-    check_for_declaration_errors(dso_flags, type, locator, start_pos);
-  }  /* if */
-  if (is_error_locator(*locator)) {
-    /* Ignore it. */
-    sym = NULL;
-  } else if (sym == NULL) {
-    /* No symbol, which means the lookup failed. */
-    pos_st_error(ec_not_a_template_name, &locator->source_position,
-                 locator->symbol_header->identifier);
-  } else if (sym->kind == (a_symbol_kind)sk_projection) {
-    /* A member of a base class. */
-    pos_error(ec_inherited_member_not_allowed, &locator->source_position);
-    sym = NULL;
-    set_to_error_locator(*locator);
-  } else if (!is_function_or_template_symbol(sym)) {
-    /* We must have nonfunction class member.  This is an error, so set sym
-       to NULL to force the creation of a fake member function symbol. */
-    pos_sy_error(ec_not_compatible_with_previous_decl,
-                 &locator->source_position, locator->specific_symbol);
-    sym = NULL;
-    set_to_error_locator(*locator);
-  }  /* if */
-  if (sym != NULL) {
-    a_scope_stack_entry_ptr	ssep;
-    /* The symbol is a class member, find the symbol to which this
-       declaration refers. */
-    new_sym = member_function_redecl_sym(sym, type,
-                                         decl_state->decl_info->parameters);
-    /* Make sure that a matching symbol was found, and that it represents
-       a function template. */
-    if (new_sym == NULL ||
-        new_sym->kind != (a_symbol_kind)sk_function_template) {
-      pos_sy_error(sym->kind == (a_symbol_kind)sk_overloaded_function
-                                 ? ec_no_match_for_type_of_overloaded_function
-                                 : ec_not_compatible_with_previous_decl,
-                   &locator->source_position, sym);
-      new_sym = NULL;
-    }  /* if */
-    sym = new_sym;
-    check_assertion(sym == NULL || sym->is_class_member);
-    ssep = &scope_stack[decl_state->effective_decl_level];
-    if (sym != NULL && !namespace_is_enclosed_by_scope(sym, ssep)) {
-      /* Specializations of namespace members can only occur within the
-         namespace they belong to or a namespace that encloses it. */
-      if (!decl_state->decl_scope_err) {
-        pos_sy_error(ec_bad_scope_for_specialization,
-                     &locator->source_position, sym);
-        decl_state->decl_scope_err = TRUE;
-      }  /* if */
-      sym = NULL;
-    }  /* if */
-    if (sym != NULL) {
-      if (curr_token == tok_lbrace ||
-          curr_token == tok_try ||
-          (curr_token == tok_colon && sym != NULL &&
-           is_constructor_symbol(sym))) {
-        /* This is a defining declaration of the function template. */
-        func_info->is_definition = TRUE;
-        if (func_info->function_type_from_typedef) {
-          /* Just as it is an error when a normal function is defined for the
-             function type to come from a typedef, so too is that an error when
-             a function template is being defined. */
-          error(ec_function_type_must_come_from_declarator);
-        }  /* if */
-      }  /* if */
-      /* Check for a previous definition of this template. */
-      if (func_info->is_definition) {
-        if (sym->defined) {
-          pos_sy_error(ec_already_defined, &locator->source_position, sym);
-        } /* if */
-        mark_defined(sym, &locator->source_position);
-      } else {
-        mark_declared(sym, &locator->source_position);
-      } /* if */
-    } /* if */
-  }  /* if */
-  return sym;
-}  /* function_template_specialization */
-
-
 static a_symbol_ptr function_template_declaration(
                                a_tmpl_decl_state_ptr	   decl_state,
                                a_symbol_locator            *locator,
                                a_func_info_block           *func_info,
                                a_storage_class             storage_class,
                                a_decl_modifiers_block_ptr  decl_modifiers,
-                               a_type_ptr                  type,
-			       a_decl_flag_set		   dso_flags,
-			       a_source_position	   *start_pos)
+                               a_type_ptr                  type)
 /*
 Scan a function template declaration or the declaration of a member function
 of a class template.  locator identifies the function template being
@@ -10087,13 +9982,16 @@ information returned from decl_specifiers and declarator.
     func_info->is_inline = TRUE;
   }  /* if */
   /* Process a function template declaration. */
-  if (decl_state->is_specialization) {
-    sym = function_template_specialization(decl_state, locator, type,
-                                           dso_flags, start_pos, func_info);
-  } else {
-    decl_function_template(locator, type, func_info, &sym, storage_class,
-                           decl_modifiers, decl_state->decl_info,
-                           decl_state->effective_decl_level);
+  decl_function_template(locator, type, func_info, &sym, storage_class,
+                         decl_modifiers, decl_state->decl_info,
+                         decl_state->effective_decl_level,
+                         decl_state->is_specialization);
+  if (sym != NULL && sym->kind == (a_symbol_kind)sk_member_function &&
+      decl_state->is_specialization) {
+    /* Earlier, we thought this was a specialization but it turned out to
+       be a definition of a member of a class specialization. Reset
+       specialization flag now. */
+    decl_state->is_specialization = FALSE;
   }  /* if */
   db_exit();
   return sym;
@@ -10490,8 +10388,7 @@ any non-empty template parameter lists that were scanned.
       } else if (is_function_type(type)) {
         sym = function_template_declaration(
                  decl_state, &locator, &func_info, storage_class,
-                 &decl_modifiers, type,
-                 merge_declarator_flags(dso_flags, do_flags), &decl_start_pos);
+                 &decl_modifiers, type);
         complete_function_template_decl(decl_state, sym, &func_info,
                                         &tssp, &locator.source_position);
 #if RECORD_TEMPLATES_IN_IL
