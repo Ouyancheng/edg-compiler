@@ -114,8 +114,7 @@ extern
 a_symbol_ptr find_matching_template_instance(a_symbol_ptr      sym,
                                              a_type_ptr        type);
 
-extern
-a_boolean function_template_is_more_specialized(
+extern int compare_function_template_speciality(
 				a_symbol_ptr 		templ_sym1,
 				a_symbol_ptr		templ_sym2);
 

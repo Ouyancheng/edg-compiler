@@ -1,5 +1,21 @@
 Version 2.35
 
+1/30/97 Partial ordering of function templates
+
+Partial ordering of function templates is now implemented.  When several
+templates can produce equivalent function signatures, the partial ordering
+rules are used to select between the eligible templates.  Formerly, this
+example was ambiguous, but with the partial ordering rules, template
+#1 is used.
+
+  template <class T> struct A {};
+  template <class T> void f(A<T>){return 1;}  // #1
+  template <class T> void f(T){return 2;}     // #2
+  int main() {
+    A<int> a;
+    f(a);
+  }
+
 1/30/97 IL lowering: const qualifier on "this" parameter type in generated
         wrapper routine for virtual function with covariant return type
 

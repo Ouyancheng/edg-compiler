@@ -827,7 +827,39 @@ for each parameter.
 }  /* all_templ_params_have_values */
 
 
-a_boolean function_template_is_more_specialized(
+static a_boolean parameter_is_more_specialized(
+				a_type_ptr		param_type1,
+				a_type_ptr		param_type2,
+				a_template_arg_ptr	*templ_arg_list,
+				a_template_param_ptr	templ_param_list)
+/*
+This routine is used by function_template_is_more_specialized to call
+matches_template_type for each parameter of a function template.  Before
+calling matches_template_type some transformations are done to the parameter
+types to remove things that are not relevant to the partial ordering
+comparison (such as top level references).
+*/
+{
+  a_boolean	result;
+
+  /* Remove any top level references. */
+  if (is_reference_type(param_type1)) {
+    param_type1 = type_pointed_to(param_type1);
+  }  /* if */
+  if (is_reference_type(param_type2)) {
+    param_type2 = type_pointed_to(param_type2);
+  }  /* if */
+  /* Remove any qualifiers that are present. */
+  param_type1 = skip_typerefs(param_type1);
+  param_type2 = skip_typerefs(param_type2);
+  result = matches_template_type(param_type1, param_type2, templ_arg_list,
+                                 templ_param_list, MTT_NO_FLAGS,
+                                 (a_base_class_ptr*)NULL);
+  return result;
+}  /* parameter_is_more_specialized */
+
+
+static a_boolean function_template_is_more_specialized(
 				a_symbol_ptr 		templ_sym1,
 				a_symbol_ptr		templ_sym2)
 /*
@@ -837,9 +869,102 @@ an instance that matches both templates, templ_sym1 should be preferred
 over templ_sym2.
 */
 {
-  a_boolean	result = FALSE;
+  a_boolean				result = TRUE;
+  a_template_symbol_supplement_ptr	tssp1;
+  a_template_symbol_supplement_ptr	tssp2;
+  a_routine_ptr				rout1;
+  a_routine_ptr				rout2;
+  a_type_ptr				rout_type1;
+  a_type_ptr				rout_type2;
+  a_routine_type_supplement_ptr		rtsp1;
+  a_routine_type_supplement_ptr		rtsp2;
+  a_param_type_ptr			ptp1;
+  a_param_type_ptr			ptp2;
+  a_template_param_ptr			templ_param_list;
+  a_template_arg_ptr			dummy_arg_list = NULL;
+  a_boolean				is_conversion_operator;
+
+  check_assertion_str2(
+                  templ_sym1->kind == (a_symbol_kind)sk_function_template &&
+                  templ_sym2->kind == (a_symbol_kind)sk_function_template,
+                  "function_template_is_more_specialized:", "bad symbol kind");
+  tssp1 = template_supplement_for_symbol(templ_sym1);
+  tssp2 = template_supplement_for_symbol(templ_sym2);
+  rout1 = tssp1->variant.function.routine;
+  rout2 = tssp2->variant.function.routine;
+  rout_type1 = skip_typerefs(rout1->type);
+  rout_type2 = skip_typerefs(rout2->type);
+  rtsp1 = rout_type1->variant.routine.extra_info;
+  rtsp2 = rout_type2->variant.routine.extra_info;
+  /* Get the parameter list to be deduced.  This is the one for the second
+     template. */
+  templ_param_list = tssp2->variant.function.decl_cache.decl_info->parameters;
+  is_conversion_operator = is_conversion_function_symbol(templ_sym1);
+  if (is_conversion_operator) {
+    /* For conversion templates, the processing is only done on the return
+       type. */
+    result = parameter_is_more_specialized(
+                                      rout_type1->variant.routine.return_type,
+                                      rout_type2->variant.routine.return_type,
+                                      &dummy_arg_list, templ_param_list);
+  } else {
+    /* For normal functions, the processing is done for each parameter, but
+       not for the return type. */
+    ptp1 = rtsp1->param_type_list;
+    ptp2 = rtsp2->param_type_list;
+    /* Do the argument deduction on each function parameter. */
+    for (; ptp1 != NULL; ptp1 = ptp1->next, ptp2 = ptp2->next) {
+      if (!parameter_is_more_specialized(ptp1->type, ptp2->type,
+                                         &dummy_arg_list,
+                                         templ_param_list)) {
+        /* Stop when a mismatch is found. */
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (result) {
+    /* Each of the arguments match.  Now make sure that all arguments were
+       deduced, and that nontype arguments have the correct types. */
+    if (verify_template_nontype_args(
+                       dummy_arg_list, (a_symbol_ptr)NULL, templ_param_list)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Free the template argument list produced by the deduction process. */
+  if (dummy_arg_list != NULL) free_template_arg_list(dummy_arg_list);
   return result;
 }  /* function_template_is_more_specialized */
+
+
+int compare_function_template_speciality(
+				a_symbol_ptr 		templ_sym1,
+				a_symbol_ptr		templ_sym2)
+/*
+templ_sym1 and templ_sym2 are function template symbols.  Return 1 if
+templ_sym1 is more specialized than templ_sym2, return -1 if templ_sym2 is
+more specialized than templ_sym1, and return 0 if they are unordered.
+*/
+{
+  a_boolean	templ1_is_more_specialized;
+  a_boolean	templ2_is_more_specialized;
+  int		result;
+
+  templ_sym1 = fundamental_symbol_of(templ_sym1);
+  templ_sym2 = fundamental_symbol_of(templ_sym2);
+  templ1_is_more_specialized =
+                 function_template_is_more_specialized(templ_sym1, templ_sym2);
+  templ2_is_more_specialized =
+                 function_template_is_more_specialized(templ_sym2, templ_sym1);
+  if (templ1_is_more_specialized && !templ2_is_more_specialized) {
+    result = 1;
+  } else if (templ2_is_more_specialized && !templ1_is_more_specialized) {
+    result = -1;
+  } else {
+    result = 0;
+  }  /* if */
+  return result;
+}  /* compare_function_template_speciality */
 
 
 /* Forward declaration. */

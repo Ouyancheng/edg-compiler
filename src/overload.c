@@ -2847,18 +2847,11 @@ other.  Return
       /* cfp2 is a function template and cfp1 is not, so cfp1 is better. */
       cmp = 1;
     }  /* if */
-  } else if (cfp1->is_function_template && cfp2->is_function_template &&
-             function_template_is_more_specialized(cfp1->function_symbol,
-                                                   cfp2->function_symbol)) {
-    /* cfp1 and cfp2 are function templates and cfp1 is more specialized
-       than cfp2. */
-    cmp = 1;
-  } else if (cfp1->is_function_template && cfp2->is_function_template &&
-             function_template_is_more_specialized(cfp2->function_symbol,
-                                                   cfp1->function_symbol)) {
-    /* cfp2 and cfp1 are function templates and cfp2 is more specialized
-       than cfp1. */
-    cmp = -1;
+  } else if (cfp1->is_function_template && cfp2->is_function_template) {
+    /* cfp1 and cfp2 are function templates.  Determine whether either of
+       the templates is more specialized than the other. */
+    cmp = compare_function_template_speciality(cfp1->function_symbol,
+                                               cfp2->function_symbol);
   }  /* if */
   return cmp;
 }  /* compare_candidate_functions */
