@@ -5046,11 +5046,9 @@ branching into it is disallowed).
     /* Check for a lint-style "notreached" comment -- it will affect
        diagnostics in check_void_return_okay. */
     check_lint_notreached_state();
-    if (at_function_level) {
-      /* Issue diagnostics on pragmas that are trying to bind to the
-         implicit return. */
-      cannot_bind_to_curr_construct();
-    }  /* if */
+    /* Issue diagnostics on pragmas that are trying to bind to the closing
+       right brace of a compound statement or to an implicit return. */
+    cannot_bind_to_curr_construct();
   }  /* if */
   if (at_function_level) {
     /* We are at the right brace terminating a function definition.  If the
