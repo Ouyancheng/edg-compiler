@@ -7911,6 +7911,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       a_boolean                     autonomous = FALSE;
       a_boolean                     is_friend = FALSE;
       a_boolean                     is_implicit = FALSE;
+      a_boolean                     func_prototype_decl = FALSE;
       a_boolean                     other_scope_def = FALSE;
       a_type_ptr                    declared_type = NULL;
       a_boolean                     print_type = FALSE;
@@ -7929,6 +7930,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           if (sssdp->autonomous_tag_decl) autonomous = TRUE;
           if (sssdp->friend_decl) is_friend = TRUE;
           if (sssdp->implicit_decl) is_implicit = TRUE;
+          if (sssdp->declared_in_func_prototype) func_prototype_decl = TRUE;
         } else {
           scp = source_corresp_for_il_entry(
                                          ssep->entity.ptr,
@@ -7973,6 +7975,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         }  /* if */
         if (is_implicit) {
           fprintf(f_debug, "%simplicit decl",
+                           (lparen_printed ? ", " : " ("));
+          lparen_printed = TRUE;
+        }  /* if */
+        if (func_prototype_decl) {
+          fprintf(f_debug, "%sfunc-prototype decl",
                            (lparen_printed ? ", " : " ("));
           lparen_printed = TRUE;
         }  /* if */
@@ -9709,7 +9716,11 @@ returns the successor of ssep.
        autonomous declaration.  In C++ and usually in C, the entity is
        next in the list. */
     a_boolean  make_autonomous = FALSE;
-    a_boolean  okay_if_not_found = C_mode();
+#if CHECKING
+    a_boolean  okay_if_not_found = C_mode() ||
+                                   (sssdp != NULL &&
+                                    sssdp->declared_in_func_prototype);
+#endif /* CHECKING */
 
 #if DEBUG
     if (debug_level >= 4) {
@@ -9719,7 +9730,9 @@ returns the successor of ssep.
 #endif /* DEBUG */
     for (;;) {
       if (next_ssep == NULL) {
-        check_assertion(okay_if_not_found);
+        check_assertion_str2(okay_if_not_found,
+                             "src_seq_check_for_non_autonomous_tag:",
+                             "no next entry");
         make_autonomous = TRUE;
         break;
       } else if (ss_entry_kind(next_ssep) == (an_il_entry_kind)iek_pragma
@@ -9747,7 +9760,9 @@ returns the successor of ssep.
              quite right -- some weird cases in C mode, such as
                static void *x = (void *)(struct S { int i; }*)0;
              but it doesn't really make any difference. */
-          check_assertion(okay_if_not_found);
+          check_assertion_str2(okay_if_not_found,
+                               "src_seq_check_for_non_autonomous_tag:",
+                               "type of next entry does not match");
           make_autonomous = TRUE;
           break;
         } else if (il_entry_prefix_of(next_ssep).keep_in_il) {
@@ -9764,11 +9779,13 @@ returns the successor of ssep.
           /* We continue searching the source sequence list.  In a case like
                struct S { int i; } x, y, z;
              it may be that x and y are both eliminated but z is not.  It's
-             not necessary to set the autonomous flag in this case.  Note
-             that this can happen in C++ as well as C -- in C++
+             not necessary to set the autonomous flag in this case. */
+#if CHECKING
+          /* Note that this can happen in C++ as well as C -- in C++
              okay_if_not_found is FALSE only on the first iteration of the
              loop. */
           okay_if_not_found = TRUE;
+#endif /* CHECKING */
         }  /* if */
       }  /* if */
     }  /* for */        
@@ -9779,6 +9796,9 @@ returns the successor of ssep.
       } else {
         /* Not a definition -- set the flag in the secondary decl entry. */
         sssdp->autonomous_tag_decl = TRUE;
+        /* In case this was a function-prototype declaration, clear the
+           flag, since apparently the function has been removed. */
+        sssdp->declared_in_func_prototype = FALSE;
       }  /* if */
 #if DEBUG
       if (debug_level >= 4) {
