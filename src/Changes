@@ -1,5 +1,15 @@
 Version 2.46
 
+1/16/01  Support for complex unary minus in C++-generating back end
+
+Support for the complex unary minus operator had accidentally been left out
+of version 2.45 of the C++-generating back end.  This caused internal errors
+when the operator had to be rendered.
+
+  _Complex double a = __I__, b = -a;  // Used to trigger an internal error.
+
+This is now fixed.
+
 1/16/01  Errors on qualified references to names from base classes
          in templates
 

@@ -5416,6 +5416,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_negate:
         case eok_inegate:
         case eok_fnegate:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case eok_xnegate:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "-";
           break;
         case eok_unary_plus:
