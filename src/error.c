@@ -4766,6 +4766,7 @@ Write a command-line error message, and terminate the compilation.
 
 #if CHECKING
 
+/*ARGSUSED*/ /* <-- because "error_code" is not used in some versions. */
 static void check_if_fill_in_used(enum a_message_segment_kind_tag kind,
                                   int                             seq_no,
                                   an_error_code                   error_code)
