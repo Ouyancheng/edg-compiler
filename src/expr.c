@@ -6782,24 +6782,21 @@ standard.
     (void)check_boolean_controlling_expr(&operand_2);
     result_type = boolean_result_type();
 #if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
-    if (!known_result) {
+    if (!known_result || is_constant_operand(&operand_2)) {
 #endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
-      /* Normal case: the result is not known. */
+      /* Build the expression or fold it to a constant. */
       op = which_binary_operator(save_token, result_type);
       do_binary_operation(op, operand_1, &operand_2, result_type, result,
                           &operator_position);
 #if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
     } else {
-      /* The expression evaluates to a constant. */
+      /* The first operand is constant and the second isn't, but we
+         know the result value.  We can eliminate the dead second
+         expression. */
       make_integer_constant_operand(result, local_result);
       /* Cast if necessary (e.g., to bool). */
       cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);
-      if (!is_constant_operand(&operand_2) ||
-          operand_2.variant.constant.null_pointer_constant_ruled_out ||
-          operand_1->variant.constant.null_pointer_constant_ruled_out) {
-        /* The result is not a null pointer constant. */
-        result->variant.constant.null_pointer_constant_ruled_out = TRUE;
-      }  /* if */
+      result->variant.constant.null_pointer_constant_ruled_out = TRUE;
     }  /* if */
 #endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
   }  /* if */
@@ -7349,17 +7346,32 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 
   if (err || is_error_operand(operand_1)) {
     make_error_operand(result);
+  } else if (operand_1_is_const &&
+             is_constant_operand(&operand_2) &&
+             is_constant_operand(&operand_3)) {
+    /* All three operands are constant, so the result is constant. */
+    if (operand_1_is_false) {
+      /* The first operand is false; return the third operand as the result. */
+      copy_operand(&operand_3, result);
+    } else {
+      /* The first operand is true; return the second operand as the result. */
+      copy_operand(&operand_2, result);
+    }  /* if */
+    result->variant.constant.null_pointer_constant_ruled_out =
+                 operand_1->variant.constant.null_pointer_constant_ruled_out ||
+                 operand_2.variant.constant.null_pointer_constant_ruled_out ||
+                 operand_3.variant.constant.null_pointer_constant_ruled_out;
 #if ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
   } else if (operand_1_is_const) {
+    /* The first operand is constant, but at least one other operand is not.
+       The dead expression can be removed. */
     an_operand *other_operand;
     if (operand_1_is_false) {
-      /* The first operand is a zero constant; return the third operand as
-	 the result. */
+      /* The first operand is false; return the third operand as the result. */
       copy_operand(&operand_3, result);
       other_operand = &operand_2;
     } else {
-      /* The first operand is a non-zero constant; return the second operand
-	 as the result. */
+      /* The first operand is true; return the second operand as the result. */
       copy_operand(&operand_2, result);
       other_operand = &operand_3;
     }  /* if */
