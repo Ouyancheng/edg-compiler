@@ -3770,7 +3770,11 @@ Promote the indicated type out of the class indicated by type_promotion_class
     scope_stack[DEPTH_OF_FILE_SCOPE].last_type = type;
   }  /* if */
   /* Set the suggested insert location after the type just inserted. */
-  type_promotion_insert_location = type;
+  /* Again, don't let type_promotion_insert_location point at a type that
+     does not have an associated symbol. */
+  if (type->source_corresp.assoc_info != NULL) {
+    type_promotion_insert_location = type;
+  }  /* if */
 }  /* promote_type_out_of_class */
 
 
