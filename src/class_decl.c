@@ -5054,15 +5054,18 @@ static a_symbol_ptr special_function_symbol(
                                         a_type_ptr               class_type,
                                         a_special_function_kind  sfkind,
                                         a_param_type_ptr         first_param,
+                                        a_source_position        *source_pos,
                                         a_boolean                *ambiguous)
 /*
 Find a member function (a constructor, destructor, or assignment operator,
 as indicated by sfkind) whose parent class is class_type.  first_param, which
 will be non-NULL for copy constructors and assignment operators, represents
 the first parameter of the member function in a derived class to which the
-the sought-for function corresponds.  If the lookup is successful, return a
-pointer to the symbol; otherwise, return NULL.  If there is more than one
-matching function, set *ambiguous to TRUE.
+the sought-for function corresponds.  source_pos is a source position,
+used as the point of instantiation if a template ends up being
+instantiated.  If the lookup is successful, return a pointer to the
+symbol; otherwise, return NULL.  If there is more than one matching
+function, set *ambiguous to TRUE.
 */
 {
   a_symbol_ptr          sym;
@@ -5095,8 +5098,7 @@ matching function, set *ambiguous to TRUE.
         } else {
           /* Copy constructor. */
           sym = find_copy_constructor(class_type, qualifiers,
-                                      /*source_is_rvalue=*/FALSE,
-                                      ambiguous, (a_boolean *)NULL,
+                                      source_pos, ambiguous,
                                       &class_bitwise_copy);
         }  /* if */
         break;
@@ -5224,6 +5226,7 @@ when exception support is enabled.
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct) {
       sym = special_function_symbol(bcp->type, sfkind, first_param,
+                                    &rp->source_corresp.decl_position,
                                     &ambiguous);
       if (ambiguous) {
         /* If there's an ambiguity, assume anything might be thrown. */
@@ -5244,7 +5247,9 @@ when exception support is enabled.
       if (is_array_type(tp)) tp = underlying_array_element_type(tp);
       tp = skip_typedefs(tp);
       if (is_immediate_class_type(tp)) {
-        sym = special_function_symbol(tp, sfkind, first_param, &ambiguous);
+        sym = special_function_symbol(tp, sfkind, first_param,
+                                      &rp->source_corresp.decl_position,
+                                      &ambiguous);
         if (ambiguous) {
           /* If there's an ambiguity, assume anything might be thrown. */
           throw_any = TRUE;

@@ -156,6 +156,13 @@ extern a_variable_ptr based_variable(void);
 
 extern a_boolean in_expression_context(void);
 
+extern a_symbol_ptr find_copy_constructor(
+                                   a_type_ptr            class_type,
+                                   a_type_qualifier_set  required_qualifiers,
+                                   a_source_position     *pos,
+                                   a_boolean             *ambiguous,
+                                   a_boolean             *class_bitwise_copy);
+
 /*
 Macro that is TRUE if the node is an operation node.
 */

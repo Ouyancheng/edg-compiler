@@ -393,6 +393,12 @@ extern a_template_arg_ptr copy_template_arg_list(a_template_arg_ptr orig_list);
 extern a_boolean is_default_constructor(a_routine_ptr  ctor_rout,
                                         a_boolean      is_declarative_context);
 
+extern a_boolean is_copy_constructor_type(
+                                 a_type_ptr            routine_type,
+                                 a_type_ptr            class_of_which_a_member,
+                                 a_type_qualifier_set  *qualifiers,
+                                 a_boolean             is_declarative_context);
+
 extern a_boolean is_copy_constructor(
                                 a_routine_ptr         ctor_rout,
                                 a_type_ptr            class_of_which_a_member,

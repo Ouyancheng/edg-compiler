@@ -12562,6 +12562,44 @@ Return TRUE if we are currently inside an expression context.
 }  /* in_expression_context */
 
 
+a_symbol_ptr find_copy_constructor(a_type_ptr            class_type,
+                                   a_type_qualifier_set  required_qualifiers,
+                                   a_source_position     *pos,
+                                   a_boolean             *ambiguous,
+                                   a_boolean             *class_bitwise_copy)
+/*
+Find and return a pointer to a symbol representing a copy constructor for
+the class indicated by class_type and accepting a first parameter whose type
+is qualified as specified by required_qualifiers.  It is assumed that
+the object to be copied is not an rvalue.  If no acceptable copy
+constructor is found, return NULL.  If more than one acceptable copy
+constructor is found and only one of them is the best match, return
+that one; otherwise set *ambiguous to TRUE and return NULL.  If a
+bitwise copy is allowed, return NULL and *class_bitwise_copy TRUE.
+This routine is used only in C++ mode.
+*/
+{
+  a_symbol_ptr        cctor_sym;
+  an_expr_stack_entry expr_stack_entry;
+
+  /* Even though this is not an expression scan, make sure the expr_stack
+     has something on it.  Do not clear the stack, because we may already
+     be inside an expression and we don't want to push another object lifetime
+     for an expression if there's already one on the object lifetime stack. */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE);
+  cctor_sym = select_overloaded_copy_constructor(class_type,
+                                                 required_qualifiers,
+                                                 /*source_is_rvalue=*/FALSE,
+                                                 pos,
+                                                 ambiguous,
+                                                 (a_boolean *)NULL,
+                                                 class_bitwise_copy);
+  pop_expr_stack();
+  return cctor_sym;
+}  /* find_copy_constructor */
+
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *

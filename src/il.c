@@ -5715,30 +5715,29 @@ TRUE if this is a constructor declaration rather than a constructor reference.
 }  /* is_default_constructor */
 
 
-a_boolean is_copy_constructor(a_routine_ptr         ctor_rout,
-                              a_type_ptr            class_of_which_a_member,
-                              a_type_qualifier_set  *qualifiers,
-                              a_boolean             is_declarative_context)
+a_boolean is_copy_constructor_type(
+                                 a_type_ptr            routine_type,
+                                 a_type_ptr            class_of_which_a_member,
+                                 a_type_qualifier_set  *qualifiers,
+                                 a_boolean             is_declarative_context)
 /*
-Return TRUE if ctor_rout points to a copy constructor routine entry for
-class_of_which_a_member; if it does, also set and return *qualifiers to
-indicate the type qualifiers on the copy constructor's first parameter --
-this will show what restrictions are placed on the object being copied.
-is_declarative_context is TRUE if this is a constructor declaration rather
-than a constructor reference.
+Return TRUE if routine_type (a constructor's function type) is the type of a
+copy constructor for class class_of_which_a_member; if it is, also set and
+return *qualifiers to indicate the type qualifiers on the copy constructor's
+first parameter -- this will show what restrictions are placed on the object
+being copied.  is_declarative_context is TRUE if this is a constructor
+declaration rather than a constructor reference.
 */
 {
   a_param_type_ptr  ptp;
   a_type_ptr        tp;
   a_boolean         is_cctor = FALSE;
 
-  check_assertion(ctor_rout->special_kind ==
-                                  (a_special_function_kind)sfk_constructor);
   /* A constructor is deemed a copy constructor if (1) the type of the first
      parameter is reference-to-class or reference-to-qualified-class where
      "class" is the class of which it is a member function, and
      (2) the function can be called with only one argument. */
-  ptp = skip_typerefs(ctor_rout->type)->
+  ptp = skip_typerefs(routine_type)->
                                   variant.routine.extra_info->param_type_list;
   /* If the param type entry is non-NULL there is at least one argument.  If
      there is a second argument and it has a default expression, the function
@@ -5774,6 +5773,29 @@ than a constructor reference.
       }  /* if */
     }  /* if */
   }  /* if */
+  return is_cctor;
+}  /* is_copy_constructor_type */
+
+
+a_boolean is_copy_constructor(a_routine_ptr         ctor_rout,
+                              a_type_ptr            class_of_which_a_member,
+                              a_type_qualifier_set  *qualifiers,
+                              a_boolean             is_declarative_context)
+/*
+Return TRUE if ctor_rout points to a copy constructor routine entry for
+class_of_which_a_member; if it does, also set and return *qualifiers to
+indicate the type qualifiers on the copy constructor's first parameter --
+this will show what restrictions are placed on the object being copied.
+is_declarative_context is TRUE if this is a constructor declaration rather
+than a constructor reference.
+*/
+{
+  a_boolean is_cctor;
+
+  check_assertion(ctor_rout->special_kind ==
+                                  (a_special_function_kind)sfk_constructor);
+  is_cctor = is_copy_constructor_type(ctor_rout->type, class_of_which_a_member,
+                                      qualifiers, is_declarative_context);
   return is_cctor;
 }  /* is_copy_constructor */
 

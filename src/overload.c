@@ -1216,11 +1216,11 @@ Determine how well an actual argument matches a formal parameter with type
 param_type.  The actual argument is usually given by arg_operand, but
 if arg_type is non-NULL, it provides the argument type for an argument
 about which nothing else is known (and arg_operand is ignored; this can
-only be used for selector operands, i.e., those being matched up with
-a "this" parameter).  arg_summary is set to indicate the level of match.
-This is used in resolving overloaded function calls.  See ARM 13.2.
-User-defined conversions will be attempted only if try_user_conversions
-is TRUE; it must be FALSE if arg_type is non-NULL.
+only be used for operands that don't require user-defined conversions,
+e.g., those being matched up with a "this" parameter).  arg_summary is
+set to indicate the level of match.  This is used in resolving overloaded
+function calls.  See ARM 13.2.  User-defined conversions will be attempted
+only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
 */
 {
   an_operand        *orig_arg_operand;
@@ -1882,6 +1882,120 @@ templ_param_list is the template parameter list.
 }  /* function_transformation_needed_on_template_reference_init */
 
 
+static a_boolean deduce_one_parameter(a_type_ptr         param_type,
+                                      an_operand         *arg_operand,
+                                      a_type_ptr         arg_type,
+                                      a_symbol_ptr       template_sym,
+                                      a_template_arg_ptr *template_arg_list)
+/*
+Do template argument deduction on one parameter of a function template.
+param_type is the type of the parameter (and requires deduction).
+arg_operand is the argument; it can be NULL, in which case arg_type gives
+the argument type.  template_sym is the symbol for the function_template
+(not a projection symbol).  *template_arg_list points to the template
+argument list so far; anything deduced is added to that.  Return TRUE
+if the deduction succeeds, FALSE if it fails.
+*/
+{
+  a_template_symbol_supplement_ptr
+            tssp = template_sym->variant.template_info;
+  a_boolean param_is_reference = is_reference_type(param_type);
+  a_boolean deduction_okay = FALSE;
+
+  if (arg_operand != NULL) arg_type = arg_operand->type;
+  /* Certain top-level parts of the parameter type (e.g., references)
+     are processed here before going to the type deduction routine.
+     The code here must match determine_arg_match_level and
+     overload_distinguishable. */
+  if (arg_operand != NULL && is_indefinite_function_operand(arg_operand)) {
+    /* For an overloaded function, each possibility must be tried.
+       Only one is allowed to match. */
+    if (!indefinite_function_can_be_template_arg(arg_operand,
+                                                 param_type,
+                                                 &arg_type,
+                                                 template_sym)) goto done;
+  }  /* if */
+  /* See if any implicit transformations (e.g., array --> pointer) should
+     be done. */
+  if (is_array_type(arg_type) &&
+      (!param_is_reference ||
+       array_transformation_needed_on_template_reference_init(
+                   arg_type, param_type,
+                   tssp->variant.function.decl_cache.decl_info->parameters))) {
+    /* Simulate the array --> pointer transformation.  */
+    arg_type = type_after_array_to_pointer_transformation(arg_type);
+  } else if (is_function_type(arg_type) &&
+             (!param_is_reference ||
+              function_transformation_needed_on_template_reference_init(
+                                       arg_type, param_type,
+                                       tssp->variant.function.decl_cache.
+                                                     decl_info->parameters))) {
+    /* Simulate the function --> pointer transformation. */
+    arg_type = type_after_function_to_pointer_transformation(arg_type,
+                                                             arg_operand);
+  }  /* if */
+  if (param_is_reference) {
+    /* The parameter has a reference type. */
+    /* Drop the reference type. */
+    param_type = type_pointed_to(param_type);
+    /* Check and adjust the top-level type qualifiers. */
+    check_template_arg_type_qualifiers(&arg_type, &param_type);
+  } else {
+    /* Not a reference. */
+    /* The argument will be passed by copying it, so its cv-qualifiers
+       are not significant. */
+    arg_type = skip_typerefs(arg_type);
+    /* Top-level type qualifiers on the parameter type are also not
+       significant. */
+    param_type = skip_typerefs(param_type);
+    /* An incomplete type operand cannot be made to match anything.
+       This comes up for something like
+         struct A *p;
+         template<class T> void f(T);
+         void m() { f(*p); }
+    */
+    complete_type_is_needed(arg_type);
+    if (is_incomplete_type(arg_type)) goto done;
+  }  /* if */
+  if (is_pointer_type(arg_type) && is_pointer_type(param_type)
+#ifdef pointer_types_have_same_repr
+      && pointer_types_have_same_repr(arg_type, param_type)
+#endif /* ifdef pointer_types_have_same_repr */
+                                                           ) {
+    /* Check for cases where type qualifiers are being added down one
+       level (or deeper) in a pointer case, e.g., int * --> const int *.
+       This is another trivial conversion.
+       In general, remove one level of matching pointer types. */
+    arg_type = type_pointed_to(arg_type);
+    param_type = type_pointed_to(param_type);
+    /* Function types are not allowed to have type qualifiers, so
+       do not allow deduction that puts type qualifiers over them. */
+    if (!is_function_type(arg_type)) {
+      /* Check and adjust the top-level type qualifiers. */
+      check_template_arg_type_qualifiers(&arg_type, &param_type);
+    }  /* if */
+  }  /* if */
+  /* Do template argument deduction, trying to develop a list of
+     template arguments that will produce an instance that matches
+     the argument list. */
+  /* As the matching is attempted, template_arg_list is filled in with
+     the bindings for the template arguments.  This is needed during the
+     matching process to ensure that each argument is used consistently
+     and also later routine to build the instantiation.  The
+     MTT_ALLOW_CONVERSION option is used to allow an argument requiring
+     a conversion from Derived<T> to Base<T>.  This conversion was not
+     allowed by the ARM but has been blessed by the standards committee. */
+  if (matches_template_type(arg_type, param_type, template_arg_list,
+                            tssp->variant.function.decl_cache.
+                                                         decl_info->parameters,
+                            MTT_ALLOW_CONVERSION)) {
+    deduction_okay = TRUE;
+  }  /* if */
+done:
+  return deduction_okay;
+}  /* deduce_one_parameter */
+
+
 static a_type_ptr function_template_call_argument_deduction(
                                          a_symbol_ptr       template_sym,
                                          a_type_ptr         routine_type,
@@ -1899,18 +2013,13 @@ template arguments, or NULL if deduction failed.
 */
 {
   a_type_ptr         updated_routine_type = NULL;
-  a_template_symbol_supplement_ptr
-                     tssp;
   a_routine_type_supplement_ptr
                      rtsp;
   a_param_type_ptr   ptp;
   an_arg_operand_ptr arg_operand;
-  a_type_ptr         param_type, arg_type;
-  a_boolean          param_is_reference;
 
   db_enter(4, "function_template_call_argument_deduction");
   check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
-  tssp = template_sym->variant.template_info;
   check_assertion(routine_type->kind == (a_type_kind)tk_routine);
   rtsp = routine_type->variant.routine.extra_info;
   /* Look through the arguments/parameters to do template argument
@@ -1919,99 +2028,11 @@ template arguments, or NULL if deduction failed.
        ptp != NULL && arg_operand != NULL;
        ptp = ptp->next, arg_operand = arg_operand->next) {
     if (ptp->type_involves_deduced_template_param) {
-      /* A parameter that requires type deduction. */
-      /* Certain top-level parts of the parameter type (e.g., references)
-         are processed here before going to the type deduction routine.
-         The code here must match determine_arg_match_level and
-         overload_distinguishable. */
-      param_type = ptp->type;
-      param_is_reference = is_reference_type(param_type);
-      arg_type = arg_operand->operand.type;
-      if (is_indefinite_function_operand(&arg_operand->operand)) {
-        /* For an overloaded function, each possibility must be tried.
-           Only one is allowed to match. */
-        if (!indefinite_function_can_be_template_arg(&arg_operand->operand,
-                                                     param_type,
-                                                     &arg_type,
-                                                     template_sym)) goto done;
-      }  /* if */
-      /* See if any implicit transformations (e.g., array --> pointer) should
-         be done. */
-      if (is_array_type(arg_type) &&
-          (!param_is_reference ||
-           array_transformation_needed_on_template_reference_init(
-                   arg_type, param_type,
-                   tssp->variant.function.decl_cache.decl_info->parameters))) {
-        /* Simulate the array --> pointer transformation.  */
-        arg_type = type_after_array_to_pointer_transformation(arg_type);
-      } else if (is_a_function_designator(&arg_operand->operand) &&
-                 (!param_is_reference ||
-                  function_transformation_needed_on_template_reference_init(
-                                       arg_type, param_type,
-                                       tssp->variant.function.decl_cache.
-                                                     decl_info->parameters))) {
-        /* Simulate the function --> pointer transformation. */
-        arg_type = type_after_function_to_pointer_transformation(arg_type,
-                                                        &arg_operand->operand);
-      }  /* if */
-      if (param_is_reference) {
-        /* The parameter has a reference type. */
-        /* Drop the reference type. */
-        param_type = type_pointed_to(param_type);
-        /* Check and adjust the top-level type qualifiers. */
-        check_template_arg_type_qualifiers(&arg_type, &param_type);
-      } else {
-        /* Not a reference. */
-        /* The argument will be passed by copying it, so its cv-qualifiers
-           are not significant. */
-        arg_type = skip_typerefs(arg_type);
-        /* Top-level type qualifiers on the parameter type are also not
-           significant. */
-        param_type = skip_typerefs(param_type);
-        /* An incomplete type operand cannot be made to match anything.
-           This comes up for something like
-             struct A *p;
-             template<class T> void f(T);
-             void m() { f(*p); }
-        */
-        complete_type_is_needed(arg_type);
-        if (is_incomplete_type(arg_type)) goto done;
-      }  /* if */
-      if (is_pointer_type(arg_type) && is_pointer_type(param_type)
-#ifdef pointer_types_have_same_repr
-          && pointer_types_have_same_repr(arg_type, param_type)
-#endif /* ifdef pointer_types_have_same_repr */
-                                                               ) {
-        /* Check for cases where type qualifiers are being added down one
-           level (or deeper) in a pointer case, e.g., int * --> const int *.
-           This is another trivial conversion.
-           In general, remove one level of matching pointer types. */
-        arg_type = type_pointed_to(arg_type);
-        param_type = type_pointed_to(param_type);
-        /* Function types are not allowed to have type qualifiers, so
-           do not allow deduction that puts type qualifiers over them. */
-        if (!is_function_type(arg_type)) {
-          /* Check and adjust the top-level type qualifiers. */
-          check_template_arg_type_qualifiers(&arg_type, &param_type);
-        }  /* if */
-      }  /* if */
-      /* Note that we haven't checked that the underlying types are compatible.
-         That happens later. */
-      /* Do template argument deduction, trying to develop a list of
-         template arguments that will produce an instance that matches
-         the argument list. */
-      /* As the matching is attempted, template_arg_list is filled in with
-         the bindings for the template arguments.  This is needed during the
-         matching process to ensure that each argument is used consistently
-         and also later in this routine to build the instantiation.  The
-         MTT_ALLOW_CONVERSION option is used to allow an argument requiring
-         a conversion from Derived<T> to Base<T>.  This conversion was not
-         allowed by the ARM but has been blessed by the standards committee. */
-      if (!matches_template_type(arg_type, param_type, template_arg_list,
-                                 tssp->variant.function.decl_cache.
-                                                         decl_info->parameters,
-                                 MTT_ALLOW_CONVERSION)) {
-        /* Mismatch. */
+      /* A parameter that requires type deduction.  Do the deduction. */
+      if (!deduce_one_parameter(ptp->type, &arg_operand->operand,
+                                (a_type_ptr)NULL,
+                                template_sym, template_arg_list)) {
+        /* Deduction failed. */
         goto done;
       }  /* if */
     }  /* if */
@@ -7469,9 +7490,11 @@ mode) at *err_pos if not.
   /* The diagnostics here are issued only in strict mode. */
   /* Avoid problems when the source is an error. */
   if (strict_ansi_mode && !is_error_type(source_type)) {
-    cctor_sym = find_copy_constructor(class_type,
+    cctor_sym = select_overloaded_copy_constructor(
+                                      class_type,
                                       get_type_qualifiers(source_type),
                                       /*source_is_rvalue=*/TRUE,
+                                      err_pos,
                                       &ambiguous, &uncallable,
                                       &class_bitwise_copy);
     if (class_bitwise_copy) {
@@ -8844,6 +8867,200 @@ if so.
   compatible = (arg_summary.match_level != aml_none);
   return compatible;
 }  /* nontype_template_arg_conversion_possible */
+
+
+a_symbol_ptr select_overloaded_copy_constructor(
+                                   a_type_ptr            class_type,
+                                   a_type_qualifier_set  required_qualifiers,
+                                   a_boolean             source_is_rvalue,
+                                   a_source_position     *pos,
+                                   a_boolean             *ambiguous,
+                                   a_boolean             *uncallable,
+                                   a_boolean             *class_bitwise_copy)
+/*
+Find and return a pointer to a symbol representing a copy constructor for
+the class indicated by class_type and accepting a first parameter whose type
+is qualified as specified by required_qualifiers, and an rvalue if
+source_is_rvalue is TRUE (source_is_rvalue FALSE should be used if the
+rvalueness of the source is irrelevant).  pos is a source position,
+used if a template needs to be instantiated.  If no acceptable copy
+constructor is found, return NULL.  If more than one acceptable copy
+constructor is found and only one of them is the best match, return
+that one; otherwise set *ambiguous to TRUE and return NULL.  If no
+acceptable copy constructor is found but one would have been
+acceptable except that it's uncallable, return that one and set
+*uncallable to TRUE.  uncallable can be NULL if that feature is not
+wanted.  If a bitwise copy is allowed, return NULL and
+*class_bitwise_copy TRUE.  This routine is used only in C++ mode.
+*/
+{
+  a_symbol_ptr                   sym, cctor_sym = NULL, uncallable_sym = NULL;
+  a_boolean                      is_overloaded_function;
+  a_type_qualifier_set           qualifiers;
+  a_boolean                      multiple_uncallable = FALSE;
+  a_class_symbol_supplement_ptr  cssp;
+  a_routine_ptr                  routine;
+  a_type_ptr                     routine_type, arg_type, param_type;
+  a_routine_type_supplement_ptr  rtsp;
+  a_template_arg_ptr             template_arg_list;
+  a_param_type_ptr               ptp;
+  an_arg_match_summary_ptr       arg_match;
+  a_candidate_function_ptr       candidate_functions;
+  a_boolean                      undecidable_because_of_error;
+
+  /* This routine is similar to select_overloaded_function. */
+  if (uncallable != NULL) *uncallable = FALSE;
+  *class_bitwise_copy = FALSE;
+  class_type = skip_typerefs(class_type);
+  cssp = symbol_supplement_for_class(class_type);
+  if (cssp->construction_by_bitwise_copy_allowed) {
+    /* A bitwise copy is allowed. */
+    cctor_sym = NULL;
+    *class_bitwise_copy = TRUE;
+  } else {
+    arg_type = make_qualified_type(class_type, required_qualifiers);
+    sym = cssp->constructor;
+#if CHECKING
+    if (sym == NULL) {
+      internal_error("select_overloaded_copy_constructor: NULL constructor");
+    }  /* if */
+#endif /* CHECKING */
+    /* If sym is an overloaded function symbol we need to go through the whole
+       list. */
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      is_overloaded_function = TRUE;
+      sym = sym->variant.overloaded_function.symbols;
+    } else {
+      is_overloaded_function = FALSE;
+    }  /* if */
+    /* Examine each constructor for this class to find a copy constructor.
+       There may be more than one.  For instance, there may be a copy
+       constructor that can copy a const object and another that cannot. */
+    candidate_functions = NULL;
+    for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
+#if DEBUG
+      if (debug_level >= 4) {
+        db_symbol(sym, "select_overloaded_copy_constructor: considering ", 2); 
+      }  /* if */
+#endif /* DEBUG */
+      arg_match = NULL;
+      template_arg_list = NULL;
+      if (sym->kind == (a_symbol_kind)sk_function_template) {
+        /* Try type deduction on a template. */
+        routine = sym->variant.template_info->variant.function.routine;
+        routine_type = skip_typerefs(routine->type);      
+        rtsp = routine_type->variant.routine.extra_info;
+        ptp = rtsp->param_type_list;
+        if (!deduce_one_parameter(ptp->type, (an_operand *)NULL, arg_type,
+                                  sym, &template_arg_list)) {
+          /* Deduction failed. */
+          goto reject_function;
+        }  /* if */
+        routine_type = wrapup_function_template_argument_deduction(
+                                                   template_arg_list,
+                                                   sym,
+                                                   (a_template_param_ptr)NULL);
+        if (routine_type == NULL) {
+          /* Deduction failed. */
+          goto reject_function;
+        }  /* if */
+      } else {
+        /* Not a template. */
+        routine = sym->variant.routine.ptr;
+        routine_type = routine->type;
+      }  /* if */
+      routine_type = skip_typerefs(routine_type);
+      if (!is_copy_constructor_type(routine_type, class_type, &qualifiers,
+                                   /*is_declarative_context=*/FALSE)) {
+        /* Not a copy constructor. */
+        goto reject_function;
+      }  /* if */
+      /* This is a copy constructor.  See if it is callable. */
+      rtsp = routine_type->variant.routine.extra_info;
+      ptp = rtsp->param_type_list;
+      param_type = ptp->type;
+      check_assertion(is_reference_type(param_type));
+      arg_match = alloc_arg_match_summary();
+      determine_arg_match_level((an_operand *)NULL, arg_type,
+                                param_type, /*try_user_conversions=*/FALSE,
+                                arg_match);
+      if (arg_match->match_level == aml_none) {
+        /* This copy constructor cannot be used. */
+        goto reject_function;
+      }  /* if */
+      qualifiers = get_type_qualifiers(type_pointed_to(param_type));
+      if (source_is_rvalue && 
+          ((qualifiers & TQ_CONST) == 0 ||
+           (qualifiers & (TQ_CONST | TQ_VOLATILE)) ==
+                         (TQ_CONST | TQ_VOLATILE))) {
+        /* A copy constructor whose input parameter is a reference to
+           non-const or a reference to const volatile cannot copy an
+           rvalue.  Keep looking for a suitable copy constructor, but
+           remember this one in case it's the best we find. */
+        if (uncallable_sym != NULL) {
+          /* There's more than one uncallable copy constructor, so we
+             can't return just one. */
+          multiple_uncallable = TRUE;
+        } else {
+          uncallable_sym = sym;
+        }  /* if */
+        goto reject_function;
+      }  /* if */
+      /* sym represents a suitable copy constructor.  Add it to the
+         list of viable functions. */
+      if (sym->kind == (a_symbol_kind)sk_function_template) {
+        /* The symbol is a function template. */
+        add_function_template_to_candidate_functions_list(
+                                         sym,
+                                         /*expl_template_arg_list_used=*/FALSE,
+                                         template_arg_list,
+                                         arg_match,
+                                         &candidate_functions);
+      } else {
+        /* The symbol is a normal function. */
+        add_function_to_candidate_functions_list(sym,
+                                                 arg_match,
+                                                 &candidate_functions);
+      }  /* if */
+      goto next_function;
+reject_function:
+      /* The function is not viable. */
+      /* Free any argument match summary entry built for it. */
+      free_arg_match_summary_list(arg_match);
+      /* Free any template argument list built for it. */
+      free_template_arg_list(template_arg_list);
+next_function:;
+      /* Keep looping to try all the functions in the overload set. */
+    }  /* for */
+    /* Pick the best copy constructor. */
+    select_best_candidate_functions(&candidate_functions, pos,
+                                    &undecidable_because_of_error);
+    *ambiguous = FALSE;
+    cctor_sym = NULL;
+    if (undecidable_because_of_error) {
+      *ambiguous = TRUE;
+    } else if (candidate_functions == NULL) {
+      /* There are no viable conversion functions. */
+    } else if (candidate_functions->next != NULL) {
+      /* There are several equally desirable functions. */
+      *ambiguous = TRUE;
+    } else {
+      /* There is exactly one best function. */
+      cctor_sym = candidate_functions->function_symbol;
+    }  /* if */
+    /* Free the candidate functions list. */
+    free_candidate_function_list(candidate_functions);
+    if (cctor_sym == NULL && uncallable_sym != NULL && !multiple_uncallable &&
+        uncallable != NULL) {
+      /* We have no copy constructor that is suitable, but we did find
+         exactly one copy constructor that would have been suitable except
+         that it's not callable. */
+      cctor_sym = uncallable_sym;
+      *uncallable = TRUE;
+    }  /* if */
+  }  /* if */
+  return cctor_sym;
+}  /* select_overloaded_copy_constructor */
 
 
 void overload_init(void)

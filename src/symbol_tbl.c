@@ -5031,134 +5031,6 @@ suppress_access_check is TRUE, no access checking is done.
 }  /* select_destructor */
 
 
-a_symbol_ptr find_copy_constructor(a_type_ptr            class_type,
-                                   a_type_qualifier_set  required_qualifiers,
-                                   a_boolean             source_is_rvalue,
-                                   a_boolean             *ambiguous,
-                                   a_boolean             *uncallable,
-                                   a_boolean             *class_bitwise_copy)
-/*
-Find and return a pointer to a symbol representing a copy constructor for
-the class indicated by class_type and accepting a first parameter whose type
-is qualified as specified by required_qualifiers, and an rvalue if
-source_is_rvalue is TRUE (source_is_rvalue FALSE should be used if the
-rvalueness of the source is irrelevant).  If no acceptable copy constructor
-is found, return NULL.  If more than one acceptable copy constructor is
-found and only one of them is an exact match on qualifiers, return that
-one; otherwise set *ambiguous to TRUE and return one of the matching
-constructors.  If no acceptable copy constructor was found but one would
-have been acceptable except that it's uncallable, return that one and
-set *uncallable to TRUE.  uncallable can be NULL if that feature is
-not wanted.  If a bitwise copy is allowed, return NULL and
-*class_bitwise_copy TRUE.  This routine is only used in C++ mode.
-*/
-{
-  a_symbol_ptr                   sym, cctor_sym = NULL, uncallable_sym = NULL;
-  a_boolean                      is_overloaded_function;
-  a_type_qualifier_set           qualifiers;
-  a_boolean                      sym_matches_exactly;
-  a_boolean                      multiple_uncallable = FALSE;
-  a_boolean                      cctor_sym_matches_exactly = FALSE;
-  a_class_symbol_supplement_ptr  cssp;
-
-  /* This routine is similar to select_overloaded_function. */
-  *ambiguous = FALSE;
-  if (uncallable != NULL) *uncallable = FALSE;
-  *class_bitwise_copy = FALSE;
-  class_type = skip_typerefs(class_type);
-  cssp = symbol_supplement_for_class(class_type);
-  if (cssp->construction_by_bitwise_copy_allowed) {
-    /* A bitwise copy is allowed. */
-    cctor_sym = NULL;
-    *class_bitwise_copy = TRUE;
-  } else {
-    sym = cssp->constructor;
-#if CHECKING
-    if (sym == NULL) {
-      internal_error("find_copy_constructor: NULL constructor");
-    }  /* if */
-#endif /* CHECKING */
-    /* If sym is an overloaded function symbol we need to go through the whole
-       list. */
-    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      is_overloaded_function = TRUE;
-      sym = sym->variant.overloaded_function.symbols;
-    } else {
-      is_overloaded_function = FALSE;
-    }  /* if */
-    /* Examine each constructor for this class to find a copy constructor.
-       There may be more than one.  For instance, there may be a copy
-       constructor that can copy a const object and another that cannot. */
-    for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-      if (sym->kind == (a_symbol_kind)sk_function_template) {
-        /* Function templates are not considered. */
-      } else if (is_copy_constructor(sym->variant.routine.ptr,
-                                     sym->parent.class_type, &qualifiers,
-                                     /*is_declarative_context=*/FALSE)) {
-        if ((required_qualifiers & qualifiers) != required_qualifiers) {
-          /* A copy constructor was found that cannot copy the sort of object
-             that we need to be able to copy.  Keep looking for a suitable copy
-             constructor. */
-        } else if (source_is_rvalue && 
-                   ((qualifiers & TQ_CONST) == 0 ||
-                    (qualifiers & (TQ_CONST | TQ_VOLATILE)) ==
-                                  (TQ_CONST | TQ_VOLATILE))) {
-          /* A copy constructor whose input parameter is a reference to
-             non-const or a reference to const volatile cannot copy an
-             rvalue.  Keep looking for a suitable copy constructor. */
-          if (uncallable_sym != NULL) {
-            /* There's more than one uncallable copy constructor, so we
-               can't return just one. */
-            multiple_uncallable = TRUE;
-          } else {
-            uncallable_sym = sym;
-          }  /* if */
-        } else {
-          /* sym represents a suitable copy constructor. */
-          sym_matches_exactly = (required_qualifiers == qualifiers);
-          if (cctor_sym != NULL) {
-            /* A suitable copy constructor had already been found, so there's
-               more than one.  We may have an ambiguous reference.  We give
-               preference to a perfect match over the case in which the
-               required and provided qualifiers do not match up exactly. */
-            if (!cctor_sym_matches_exactly && sym_matches_exactly) {
-              /* cctor_sym was not a perfect match but sym is, so sym is
-                 preferred.  Fall through to override the previous settings of
-                 cctor_sym and related variables. */
-            } else {
-              if (cctor_sym_matches_exactly == sym_matches_exactly) {
-                /* Both constructors match up exactly with the const and
-                   volatile requirements or neither does.  In either case
-                   there's no reason to prefer one over the other. */
-                *ambiguous = TRUE;
-              } else {
-                /* cctor_sym is an exact match and sym is not.  Ignore sym. */
-              }  /* if */
-              /* Skip to the end of the loop. */
-              continue;
-            }  /* if */
-          }  /* if */
-          /* We've found one.  Record it, but keep looking.  If there's an
-             ambiguity we need to report it. */
-          cctor_sym = sym;
-          cctor_sym_matches_exactly = sym_matches_exactly;
-          *ambiguous = FALSE;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    if (cctor_sym == NULL && uncallable_sym != NULL && !multiple_uncallable &&
-        uncallable != NULL) {
-      /* We have no copy constructor that is suitable, but we did find
-         exactly one copy constructor that would have been suitable except
-         that it's not callable. */
-      cctor_sym = uncallable_sym;
-      *uncallable = TRUE;
-    }  /* if */
-  }  /* if */
-  return cctor_sym;
-}  /* find_copy_constructor */
-
-
 a_routine_ptr select_copy_constructor(
                                   a_type_ptr            class_type,
                                   a_type_qualifier_set  qualifiers_required,
@@ -5187,9 +5059,7 @@ If suppress_access_check is TRUE, no access checking is done.
   a_boolean     ambiguous;
 
   cctor_sym = find_copy_constructor(class_type, qualifiers_required,
-                                    /*source_is_rvalue=*/FALSE,
-                                    &ambiguous, (a_boolean *)NULL,
-                                    class_bitwise_copy);
+                                    err_pos, &ambiguous, class_bitwise_copy);
   if (*class_bitwise_copy) {
     /* A bitwise copy is allowed. */
   } else if (ambiguous) {

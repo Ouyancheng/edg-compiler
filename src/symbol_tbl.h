@@ -2499,14 +2499,6 @@ extern a_routine_ptr select_destructor(a_type_ptr       class_type,
                                        a_boolean        evaluated,
                                        a_boolean        suppress_access_check);
 
-extern a_symbol_ptr find_copy_constructor(
-                                   a_type_ptr            class_type,
-                                   a_type_qualifier_set  required_qualifiers,
-                                   a_boolean             source_is_rvalue,
-                                   a_boolean             *ambiguous,
-                                   a_boolean             *uncallable,
-                                   a_boolean             *class_bitwise_copy);
-
 extern a_routine_ptr select_copy_constructor(
                                   a_type_ptr            class_type,
                                   a_type_qualifier_set  required_qualifiers,
