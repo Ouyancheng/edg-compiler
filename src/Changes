@@ -1,5 +1,11 @@
 Version 2.32
 
+3/26/96   Partially-lowered EH instructions: loop on needed-flag IL walk
+
+The code for the partially-lowered exception handling instructions
+(leck_...) in walk_entry.h has been fixed.  Formerly, the needed flag
+walk could get into an infinite loop.
+
 3/26/96   Loop in IL lowering on local nested class definition outside of
           parent
 
