@@ -1,3 +1,12 @@
+Version 2.46
+
+11/9/00 C99 complex support
+
+The file c99_complex.c has been added.  It contains a sample implementation
+of the runtime routines called when C99 complex and imaginary operations
+are lowered to runtime calls.
+
+-------------------------------------------------------------------------------
 Version 2.44, August 1, 2000
 
 6/11/00  Eliminated casts of pointer-to-function to pointer-to-object
