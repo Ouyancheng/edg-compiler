@@ -66,6 +66,11 @@ extern void free_def_arg_expr_fixup(a_def_arg_expr_fixup_ptr  daefp);
 
 extern void def_arg_init(void);
 
+#if DEBUG
+extern unsigned long db_show_def_arg_expr_fixups_used(
+                                                   unsigned long  grand_total);
+#endif /* DEBUG */
+
 #endif /* DEF_ARG_H */
 
 /******************************************************************************

@@ -16,6 +16,7 @@ def_arg.c -- Processing of default arguments
 #include "basics.h"
 #include "def_arg.h"
 #include "class_decl.h"
+#include "debug.h"
 #include "mem_manage.h"
 #include "il.h"
 #include "symbol_tbl.h"
@@ -23,6 +24,24 @@ def_arg.c -- Processing of default arguments
 
 /* Previously allocated fixup entries available for reuse. */
 static a_def_arg_expr_fixup_ptr avail_def_arg_expr_fixup;
+
+
+#if DEBUG
+/*
+Counter to track use of memory.
+*/
+static unsigned long
+		num_def_arg_expr_fixups_allocated;
+
+unsigned long db_show_def_arg_expr_fixups_used(unsigned long grand_total)
+{
+  unsigned long  num, size, total;
+
+  db_space_used_lost("def arg expr fixups", avail_def_arg_expr_fixup,
+                     num_def_arg_expr_fixups_allocated, a_def_arg_expr_fixup);
+  return grand_total;
+}  /* db_show_routine_fixups_used */
+#endif /* DEBUG */
 
 
 static a_def_arg_expr_fixup_ptr alloc_def_arg_expr_fixup(void)
@@ -40,11 +59,9 @@ entry and initialize it.
   } else {
     /* Allocate memory for a new entity. */
     daefp = (a_def_arg_expr_fixup_ptr)alloc_fe(sizeof(a_def_arg_expr_fixup));
-#if 0
 #if DEBUG
     num_def_arg_expr_fixups_allocated++;
 #endif /* DEBUG */
-#endif /* if 0 */
   }  /* if */
   /* Clear the entity. */
   daefp->next = NULL;
@@ -223,6 +240,9 @@ Initializations for class declaration processing.
 {
   /* Initialize the list of freed delayed-scan-fixup entries. */
   avail_def_arg_expr_fixup = NULL;
+#if DEBUG
+  num_def_arg_expr_fixups_allocated = 0;
+#endif /* DEBUG */
   return;
 }  /* def_arg_init */
 
