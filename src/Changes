@@ -1,5 +1,12 @@
 Version 2.12
 
+11/20/92 Subscript checking made more discriminating
+
+Subscript checking is now done only when the object underlying a
+pointer is clearly discernible.  That is, even if the array type is
+known, no subscript-out-of-range warnings are generated unless the
+underlying object is known.
+
 11/18/92 Folding of 64-bit integers
 
 const_ints.c has been fleshed out with a full set of routines for

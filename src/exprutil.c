@@ -2341,7 +2341,7 @@ value is used).
   a_boolean        valid = TRUE;
   an_expr_node_ptr lhs_node, rhs_node;
   a_type_ptr       ptr_type, underlying_type, array_type, element_type;
-  a_type_ptr       ptr_element_type, operand_type;
+  a_type_ptr       ptr_element_type;
   a_constant_ptr   rhs_con, con;
   a_targ_size_t    num_elements;
   int              cmp;
@@ -2362,27 +2362,33 @@ value is used).
         if (is_pointer_type(ptr_type)) {
           /* See if we can find the array type "array of x" underneath
              that. */
-          underlying_type = NULL;
-          if (is_operation_node(lhs_node)) {
-            /* The left side is an operator.  See if it is a cast, in which
-               case we have the underlying type. */
-            if (lhs_node->variant.operation.kind ==
+          /* Drop one or more casts. */
+          while (is_operation_node(lhs_node) &&
+                 lhs_node->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_cast) {
-              operand_type = lhs_node->variant.operation.operands->type;
-              if (is_pointer_type(operand_type)) {
-                underlying_type = type_pointed_to(operand_type);
-              }  /* if */
-            }  /* if */
-          } else if (is_constant_node(lhs_node)) {
-            /* The left side is a constant.  See if it is the address of
-               a variable implicitly cast to another type, in which case
-               we have the underlying type. */
-            con = lhs_node->variant.constant;
-            if (con->kind == (a_constant_repr_kind)ck_address &&
-                con->variant.address.kind ==
+            lhs_node = lhs_node->variant.operation.operands;
+          }  /* if */
+          underlying_type = NULL;
+          if (is_pointer_type(lhs_node->type)) {
+            if (is_constant_node(lhs_node)) {
+              /* The left side is a constant.  See if it is the address of
+                 a variable implicitly cast to another type, in which case
+                 we have the underlying type. */
+              con = lhs_node->variant.constant;
+              if (con->kind == (a_constant_repr_kind)ck_address &&
+                  con->variant.address.kind ==
                                           (an_address_base_kind)abk_variable &&
-                con->implicit_cast && con->variant.address.offset == 0) {
-              underlying_type = con->variant.address.variant.variable->type;
+                  con->implicit_cast && con->variant.address.offset == 0) {
+                underlying_type = con->variant.address.variant.variable->type;
+              }  /* if */
+            } else if (is_variable_address_node(lhs_node)) {
+              /* Address of a variable. */
+              underlying_type = lhs_node->variant.variable->type;
+            } else if (is_operation_node(lhs_node) &&
+                       lhs_node->variant.operation.kind ==
+                                            (an_expr_operator_kind)eok_field) {
+              /* Field selection. */
+              underlying_type = type_pointed_to(lhs_node->type);
             }  /* if */
           }  /* if */
           if (underlying_type != NULL) {
