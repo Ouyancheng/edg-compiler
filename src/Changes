@@ -1,5 +1,18 @@
 Version 3.2
 
+4/1/03   C++-generating back end, GNU C++ mode: 0 put out as __null
+
+The C++-generating back end incorrectly put out a constant 0 as
+__null after a use of __null in the source code in GNU C++ mode.
+Now fixed.
+
+  #define NULL __null
+  void f(char *tmp) {}
+  int g() {
+    f(NULL);
+    return 0;  // Incorrectly put out as return __null;
+  }
+
 3/31/03  Improved error message for invalid diagnostic option
 
 The messages issued for an invalid operand to the --diag_suppress, etc.

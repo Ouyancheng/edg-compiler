@@ -4328,6 +4328,10 @@ nonidentical.
 #endif /* UPC_EXTENSIONS_ALLOWED */
       case ck_integer:
         eq = (cmp_integer_constants(cp1, cp2) == 0);
+#if GNU_EXTENSIONS_ALLOWED
+        if (strictly_identical &&
+            cp1->null_keyword != cp2->null_keyword) eq = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
         break;
       case ck_string:
         if (cp1->variant.string.length == cp2->variant.string.length) {
