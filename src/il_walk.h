@@ -105,7 +105,7 @@ EXTERN a_boolean
 			/* TRUE during the phase at the end of the file scope
 			   that deals with walking the subtrees of variables
 			   and classes to set needed flags. */
-#endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
+#endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
 
 #if REMAP_ONLY_ROUTINES_NEEDED
 extern void remap_pointers_in_il_entry(char             *entry_ptr,
