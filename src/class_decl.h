@@ -76,10 +76,6 @@ extern void force_definition_of_compiler_generated_routine(a_routine_ptr rp);
 extern a_symbol_ptr member_function_redecl_sym(a_symbol_ptr  sym,
                                                a_type_ptr    type);
 
-extern a_boolean check_for_dominance(a_symbol_ptr          sym1,
-                                     a_symbol_ptr          sym2,
-                                     a_derivation_step_ptr path_to_sym2);
-
 extern a_derivation_step_ptr make_derivation_step(
                                             a_base_class       *base_class,
                                             a_derivation_step  *existing_step);
