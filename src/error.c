@@ -1275,6 +1275,9 @@ error code.
       m =
     "single-argument function used for postfix \"++\" or \"--\" (anachronism)";
       break;
+    case ec_null_reference:
+      m = "NULL reference is not allowed";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
