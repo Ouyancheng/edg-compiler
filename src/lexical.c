@@ -397,7 +397,7 @@ static a_pragma_description_ptr add_pragma_description
 		       a_boolean	     may_bind_to_stmt,
 		       a_boolean	     global,
 		       a_boolean	     include_in_il,
-		       a_boolean	     pass_thru_only,
+		       a_boolean	     pass_through_only,
 		       a_boolean	     expand_macros,
 		       a_boolean	     processing_C_code_in_pragma,
 		       an_error_severity     error_severity)
@@ -430,7 +430,7 @@ but cannot be referenced by name in a pragma directive.
   pdp->may_bind_to_stmt = may_bind_to_stmt;
   pdp->global = global;
   pdp->include_in_il = include_in_il;
-  pdp->pass_thru_only = pass_thru_only;
+  pdp->pass_through_only = pass_through_only;
   pdp->expand_macros = expand_macros;
   pdp->processing_C_code_in_pragma = processing_C_code_in_pragma;
   pdp->error_severity = error_severity;
@@ -475,6 +475,7 @@ possible.
   ppp->descr_ptr = pdp;
   ppp->discard_cache_when_done = TRUE;
   ppp->has_been_scanned = FALSE;
+  ppp->pragma_text = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   ppp->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -7284,7 +7285,7 @@ Initialize the pragma description table.
 			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*pass_thru_only=*/FALSE,
+                               /*pass_through_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_error);
@@ -7296,7 +7297,7 @@ Initialize the pragma description table.
 			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*pass_thru_only=*/FALSE,
+                               /*pass_through_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_error);
@@ -7311,7 +7312,7 @@ Initialize the pragma description table.
 			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*pass_thru_only=*/FALSE,
+                               /*pass_through_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_warning);
@@ -7323,7 +7324,7 @@ Initialize the pragma description table.
 			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*pass_thru_only=*/FALSE,
+                               /*pass_through_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_warning);
@@ -7335,7 +7336,7 @@ Initialize the pragma description table.
 			       /*may_bind_to_stmt=*/TRUE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*pass_thru_only=*/FALSE,
+                               /*pass_through_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_warning);
@@ -7347,7 +7348,7 @@ Initialize the pragma description table.
 			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*pass_thru_only=*/FALSE,
+                               /*pass_through_only=*/FALSE,
                                /*expand_macros=*/TRUE,
                                /*processing_C_code_in_pragma=*/TRUE,
                                es_error);
@@ -7359,7 +7360,7 @@ Initialize the pragma description table.
 			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*pass_thru_only=*/FALSE,
+                               /*pass_through_only=*/FALSE,
                                /*expand_macros=*/TRUE,
                                /*processing_C_code_in_pragma=*/TRUE,
                                es_error);
@@ -7371,7 +7372,7 @@ Initialize the pragma description table.
 			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*pass_thru_only=*/FALSE,
+                               /*pass_through_only=*/FALSE,
                                /*expand_macros=*/TRUE,
                                /*processing_C_code_in_pragma=*/TRUE,
                                es_error);
@@ -7385,7 +7386,7 @@ Initialize the pragma description table.
 			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*pass_thru_only=*/FALSE,
+                               /*pass_through_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_error);
@@ -7397,7 +7398,7 @@ Initialize the pragma description table.
 			       /*may_bind_to_stmt=*/TRUE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*pass_thru_only=*/FALSE,
+                               /*pass_through_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_error);
@@ -7409,7 +7410,7 @@ Initialize the pragma description table.
 			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*pass_thru_only=*/FALSE,
+                               /*pass_through_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_error);
@@ -7421,7 +7422,7 @@ Initialize the pragma description table.
 			       /*may_bind_to_stmt=*/FALSE,
                                /*global=*/FALSE,
                                /*include_in_il=*/FALSE,
-                               /*pass_thru_only=*/FALSE,
+                               /*pass_through_only=*/FALSE,
                                /*expand_macros=*/FALSE,
                                /*processing_C_code_in_pragma=*/FALSE,
                                es_error);

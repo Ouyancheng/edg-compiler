@@ -345,7 +345,7 @@ typedef struct a_pragma_description {
 			   in the IL by the front end but can still be
 			   made part of the IL by user written code to
 			   explicitly link the pragma into the IL. */
-  unsigned int	pass_thru_only:1;
+  unsigned int	pass_through_only:1;
 			/* TRUE if this pragma should not scanned into a
 			   token cache but rather should be preserved as
 			   a string that can be passed to a back end.
@@ -413,6 +413,12 @@ typedef struct a_pending_pragma {
 			/* TRUE if the pragma tokens have been scanned
 			   at least once.  Used to diagnose unprocessed
 			   pbk_other pragmas. */
+  char		*pragma_text;
+			/* For pragmas that are passed through to the
+			   back end as an uninterpretted character string,
+			   this points to the null terminated string.  The
+			   string begins with the token immediately following
+			   the #pragma keyword. */
 
   /* Pragma-specific information.  This union contains other information
      about the pragma and may be used to preserve information about the
@@ -423,8 +429,6 @@ typedef struct a_pending_pragma {
      information between different instantiations of the template by
      using this union. */
   union {
-    /* When there is no pragma-specific information. */
-    int		dummy;
     /* When descr_ptr->kind == pk_lint_varargs_count */
     short	lint_varargs_count;
   } variant;
