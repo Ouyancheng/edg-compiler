@@ -1972,6 +1972,7 @@ it.  The entry is allocated in the file scope memory region.
 #if DEBUG
   num_namespaces_allocated++;
 #endif /* DEBUG */
+  set_default_source_corresp(nsp->source_corresp);
   nsp->next = NULL;
   nsp->is_namespace_alias = is_alias;
   if (is_alias) {
@@ -2022,6 +2023,7 @@ Initialize the variable fields of the scope entry pointed to by sp.
       break;
     case sck_namespace:
       sp->variant.assoc_namespace = NULL;
+      break;
 #if CHECKING
     default:
       internal_error("set_scope_kind: bad scope kind");
