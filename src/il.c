@@ -9038,7 +9038,6 @@ may do fixup on entities pointed to by source-sequence entries it removes.
         } else {
           /* A secondary-decl source sequence entry. */
           is_primary_decl = FALSE;
-#if CHECKING
           check_assertion_str2(ss_entry_kind(ssep) ==
                                  (an_il_entry_kind)iek_src_seq_secondary_decl,
                                "drop_tag_def_from_src_seq_list:",
@@ -9047,7 +9046,21 @@ may do fixup on entities pointed to by source-sequence entries it removes.
           check_assertion(sssdp->entity.kind ==
                                           (a_byte_il_entry_kind)iek_type);
           tp = (a_type_ptr)sssdp->entity.ptr;
-#endif /* CHECKING */
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+          if (tp->kind == (a_type_kind)tk_typeref) {
+            check_assertion(is_class_struct_union_type(tp));
+            /* No need to keep this entry in the IL.  This is a nonstandard
+               case in which a struct is incorporated into another by
+               means of a typeref reference -- e.g.,
+                 typedef struct { int i,j } S;
+                 struct X {
+                   S;       // has the effect of making i and j members of X
+                 };
+               Reference to it may be removed from the source-sequence list. */
+            ssep = ssep->next;
+            continue;
+          }  /* if */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
         }  /* if */
         check_assertion_str(is_immediate_class_type(tp) ||
                             is_immediate_enum_type(tp),
