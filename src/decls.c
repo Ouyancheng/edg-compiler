@@ -479,6 +479,9 @@ we keep scanning till the end of the declarator and return leaving both
          brackets can't help resolve the ambiguity, so we can ignore it. */
       a_stop_token_array  save_stop_token_array;
 
+      /* Bypass and cache the "[". */
+      cache_curr_token(token_cache_ptr);
+      (void)get_token();
       /* Save the current stop token state, and reinitialize it. */
       copy_stop_tokens(stop_token_array, save_stop_token_array);
       clear_stop_tokens();
