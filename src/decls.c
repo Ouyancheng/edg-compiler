@@ -6053,15 +6053,16 @@ to a class, it is FALSE if parent points to a namespace or if there
 is no parent.
 */
 {
-  a_storage_class             storage_class;
-  a_decl_flag_set             dso_flags;
-  a_type_qualifier_set        qualifiers;
-  a_decl_modifiers_block      decl_modifiers;
-  a_type_ptr                  specifiers_type, complete_type;
-  a_source_position           type_pos;
-  a_boolean                   is_conversion_operator;
-  a_boolean		      class_reactivated = FALSE;
-  a_boolean		      namespace_reactivated = FALSE;
+  a_storage_class         storage_class;
+  a_decl_flag_set         dso_flags;
+  a_type_qualifier_set    qualifiers;
+  a_decl_modifiers_block  decl_modifiers;
+  a_type_ptr              specifiers_type, complete_type;
+  a_source_position       type_pos;
+  a_boolean               is_conversion_operator;
+  a_boolean               class_reactivated = FALSE;
+  a_boolean               namespace_reactivated = FALSE;
+  a_decl_pos_block        decl_pos_block;
 
   db_enter(3, "scan_conversion_operator");
   /* Push a class or namespace reactivation scope if the class or namespace
@@ -6097,9 +6098,10 @@ is no parent.
     is_conversion_operator = TRUE;
     set_err_pos_to_curr_token();
     copy_source_position(pos_curr_token, type_pos);
+    clear_decl_pos_block(&decl_pos_block);
     (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                           &storage_class, &specifiers_type, &qualifiers,
-                          &decl_modifiers, (a_decl_pos_block_ptr)NULL);
+                          &decl_modifiers, &decl_pos_block);
     if (dso_flags & DSO_DEFINES_SOMETHING) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
       pos_error(ec_type_definition_not_allowed, &type_pos);
@@ -6109,11 +6111,11 @@ is no parent.
     }  /* if */
     complete_type = pointer_declarator(specifiers_type,
                                        /*reference_allowed=*/TRUE,
-				       (a_call_conv_descr_ptr)NULL,
-				       (a_call_conv_descr_ptr)NULL,
+                                       (a_call_conv_descr_ptr)NULL,
+                                       (a_call_conv_descr_ptr)NULL,
                                        (a_type_qualifier_set *)NULL,
                                        (a_type_qualifier_set *)NULL,
-                                       (a_decl_pos_block_ptr)NULL);
+                                       &decl_pos_block);
     if (any_cfront_mode() &&
         check_member_function_typedef(complete_type, &type_pos)) {
       /* The type is a cfront-style member function typedef -- it is an error
@@ -6123,6 +6125,14 @@ is no parent.
     unget_token();
     curr_token = tok_identifier;
     pos_curr_token = error_position = *id_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* After backing up one token, the end position needs to be reset too. */
+    if (decl_pos_block.declarator_range.end.seq != 0) {
+      end_pos_curr_token = decl_pos_block.declarator_range.end;
+    } else {
+      end_pos_curr_token = decl_pos_block.specifiers_range.end;
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     make_type_conversion_locator(complete_type, &locator_for_curr_id, id_pos);
   } else {
     is_conversion_operator = FALSE;
