@@ -364,7 +364,7 @@ example, A<int> was not being instantiated.  This has been corrected.
   template <class T> const A<T> B<T>::ca;
   B<int> b;
 
-5/30/95  Internal on access determination for virtual base class
+5/30/95  Internal error on access determination for virtual base class
 
 An internal error could result on access determination for a virtual
 base class where different derivation paths give different access and the
