@@ -944,13 +944,13 @@ do_struct_union:
 #endif /* DO_IL_LOWERING */
       if (ptr->variant.typeref.is_placeholder_for_file_scope_type) {
         disp_boolean("is_placeholder_for_file_scope_type", TRUE);
-      } else if (ptr->variant.typeref.qualifier != TQ_NONE) {
+      } else if (ptr->variant.typeref.qualifiers != TQ_NONE) {
         disp_name("qualifier");
-        if (ptr->variant.typeref.qualifier & TQ_CONST) {
-          (void)printf("%s", "const ");
+        if (ptr->variant.typeref.qualifiers & TQ_CONST) {
+          (void)printf("const ");
         }  /* if */
-        if (ptr->variant.typeref.qualifier & TQ_VOLATILE) {
-          (void)printf("%s", "volatile ");
+        if (ptr->variant.typeref.qualifiers & TQ_VOLATILE) {
+          (void)printf("volatile ");
         }  /* if */
         /* Additional implementation-defined qualifiers, if any, may be put
            out here. */
@@ -3114,11 +3114,24 @@ Display the name for the indicated source language name.
 }  /* disp_source_language_name */
 
 
+static void init_for_il_to_str_output(void)
+/*
+Set up for use of the il_to_str routines.
+*/
+{
+  clear_il_to_str_output_control_block(&octl);
+  octl.output_str = put_str_to_stdout;
+  octl.gen_pcc_code = il_header.pcc_compatibility_mode;
+}  /* init_for_il_to_str_output */
+
+
 void disp_file_scope_il(void)
 /*
 Display the IL for the file scope in human-readable form.
 */
 {
+  /* Set up for use of the il_to_str routines. */
+  init_for_il_to_str_output();
   (void)printf(
             "\n\nIntermediate language for memory region 1 (file scope):\n");
 
@@ -3170,6 +3183,8 @@ form.
   a_routine_ptr rp;
   char          *fname = NULL;
 
+  /* Set up for use of the il_to_str routines. */
+  init_for_il_to_str_output();
   /* Extract the associated function name. */
   sp = il_header.region_scope_entry[region_number];
   if (sp != NULL) {
@@ -3247,10 +3262,6 @@ where file.cil specifies the IL file.  Output is to stdout.
   (void)printf(
           "Display of IL file \"%s\", produced by the compilation of \"%s\"\n",
           file_name, primary_source_file_name);
-  /* Set up for use of the il_to_str routines. */
-  clear_il_to_str_output_control_block(&octl);
-  octl.output_str = put_str_to_stdout;
-  octl.gen_pcc_code = il_header.pcc_compatibility_mode;
   /* Display the file scope IL. */
   disp_file_scope_il();
   /* Read and display the IL for each function scope. */
