@@ -1,5 +1,26 @@
 Version 3.4
 
+11/20/03 Abort in inline_function_fixup_for_class
+
+When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
+the front end would sometimes trigger an internal error in function
+inline_function_fixup_for_class for some situations where a function
+template instance was only referenced as a friend declaration.
+For example:
+
+  template<typename T> void f(T&) {}
+  template<typename T> struct S {
+    friend void f<>(S&);
+  };
+  template<typename T> void f(S<T>&) {}
+  struct X {
+    struct N {};
+    friend void f<N>(S<N>&);
+    S<N> m;
+  };
+
+This is now fixed.
+
 11/19/03 GNU mode: built-in functions in constant-expressions
 
 In GNU modes, the front end now evaluates certain calls to built-in functions

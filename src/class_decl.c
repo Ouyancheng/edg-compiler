@@ -1423,13 +1423,21 @@ nested class.
           a_source_sequence_entry_ptr  ssep;
 
           tip = rfp->symbol->variant.routine.instance_ptr;
-          check_assertion(tip != NULL && tip->partial_instantiation != NULL);
+          check_assertion(tip != NULL);
           ssep = tip->partial_instantiation;
-          check_assertion(scope_depth != NO_SCOPE_DEPTH);
-          tip->partial_instantiation = NULL;
-          insert_src_seq_list(ssep, ssep, scope_depth, insert_point);
-          rfp->symbol->variant.routine.ptr->
-                         source_corresp.source_sequence_entry = ssep;
+          if (ssep == NULL) {
+            /* This can happen when the routine has only been referenced
+               through friend declarations (see add_source_sequence_entry_-
+               for_partial_instantiation). */
+            check_assertion(rfp->symbol->variant.routine.ptr
+                                       ->declared_only_as_friend);
+          } else {
+            check_assertion(scope_depth != NO_SCOPE_DEPTH);
+            tip->partial_instantiation = NULL;
+            insert_src_seq_list(ssep, ssep, scope_depth, insert_point);
+            rfp->symbol->variant.routine.ptr
+                       ->source_corresp.source_sequence_entry = ssep;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
