@@ -15,6 +15,11 @@ For example:
   S<int> s;  // Does not report a duplicate definition error when
              // microsoft_version < 1310.
 
+Note that when emulating the Microsoft bug (i.e., when microsoft_version is
+less than 1310), the EDG front end discards the non-friend definition, whereas
+Visual C++ discards the friend definition.  Since normally the two definitions
+are identical, this is not usually a problem.
+
 10/17/03 GNU mode: Declaration of __builtin_abort
 
 In GNU C and C++ modes, the built-in function __builtin_abort (see the Changes
