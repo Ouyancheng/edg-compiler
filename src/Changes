@@ -1,5 +1,30 @@
 Version 2.32
 
+2/14/96   Conflict between user-declared and predeclared class type_info
+
+When ABI_CHANGES_FOR_RTTI is configured to TRUE and the user program
+declares class type_info in namespace std (or in the global namespace if
+RUNTIME_USES_NAMESPACES is FALSE), an error is now issued if the
+declaration is not preceded by "#pragma define_type_info".
+
+  namespace std {
+    class type_info { ... };      // Error -- not recognized as predeclared
+  }                               //   type_info because #pragma is missing
+
+This corrects an bug whereby IL lowering created two classes with the same
+name.
+
+2/14/96   Defining predeclared class type_info in the wrong namespace
+
+We now issue an error on code that attempts to provide a definition of
+the predeclared class type_info in a namespace other than std (or the
+global namespace if RUNTIME_USES_NAMESPACES is TRUE).  For instance,
+
+  namespace N {
+    #pragma define_type_info      // Error -- this pragma may only be used
+    class type_info { ... };      //   with std::type_info
+  }
+
 2/14/96   IL lowering: problem with template from one namespace instantiated
           first in class in another namespace
 
