@@ -3852,6 +3852,25 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
       curr_reachability = save_reachability;
       merge_reachability(&prev_reachability, &curr_reachability);
     }  /* if */
+    if (!C_mode() && long_lifetime_temps) {
+      /* Create a block-after-label lifetime to deal with long lifetime
+         temporaries. */
+      char              *entity_ptr;
+      an_il_entry_kind  entity_kind;
+
+      if (label_directly_in_switch) {
+        /* When the case clause is "top level", make the new lifetime point
+           to the switch clause. */
+        entity_kind = (an_il_entry_kind)iek_switch_clause;
+        entity_ptr = (char *)scp;
+      } else {
+        /* Otherwise, make it point to the label statement. */
+        entity_kind = (an_il_entry_kind)iek_statement;
+        entity_ptr = (char *)label->variant.exec_stmt;
+      }  /* if */
+      push_object_lifetime(entity_kind, entity_ptr,
+                         (an_object_lifetime_kind)olk_block_after_label);
+    }  /* if */
   }  /* if */
 routine_exit:
   db_exit();
