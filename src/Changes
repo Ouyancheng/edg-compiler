@@ -1,5 +1,38 @@
 Version 3.5
 
+11/2/04  GNU and Microsoft compatibility: Extraneous qualification on
+         namespace member declarations
+
+In GNU and Microsoft C++ modes, the front end already accepted (with a
+warning) namespace member declarations appearing in their parent namespace
+with an extraneous qualifier.  For example:
+
+  namespace N {
+    void f();    // Okay in all modes.
+    void N::f();  // Accepted with a warning in GNU and Microsoft modes.
+  }               // (Otherwise a discretionary error.)
+
+In Microsoft mode, this is now accepted only if the identifier was already
+present in the namespace (i.e., without the first declaration of f in the
+example above, an error would now be issued) and the diagnostic has been
+reduced to a remark in that case.  This Microsoft extension is now also
+accepted in nonstrict C++ modes.  These behaviors have also been extended
+to file scope declarations.  For example:
+
+  void f();    // Okay in all modes.
+  void ::f();  // Accepted with a remark in nonstrict modes, but non-GNU
+               // modes will issue an error if no ::f is visible yet.
+
+Finally, in GNU C++ mode, namespace-qualified friend declarations of members
+in the innermost enclosing namespace are now treated as unqualified friend
+declarations.  For example:
+
+  struct S {
+    friend int ::f();  // Accepted in GNU C++ mode (same as "friend int f()";
+  };                   // an error in all other modes.
+
+(See also: Changes entry of 11/3/03.)
+
 11/02/04 Spurious error on call of base class destructor
 
 A spurious error was issued on a call of a base class destructor when
@@ -68,38 +101,6 @@ automatically redefine the LDBL... macros to the correct values.
 The assertion checks in float_pt.c have been made more robust to detect
 cases where LDBL_MANT_DIG is set to a size that is inconsistent with
 the setting of targ_sizeof_long_double.
-
-10/28/04 GNU and Microsoft compatibility: Extraneous qualification on
-         namespace member declarations
-
-In GNU and Microsoft C++ modes, the front end already accepted (with a
-warning) namespace member declarations appearing in their parent namespace
-with an extraneous qualifier.  For example:
-
-  namespace N {
-    void f();    // Okay in all modes.
-    void ::f();  // Accepted with a warning in GNU and Microsoft modes.
-  }              // (Otherwise a discretionary error.)
-
-In Microsoft mode, this is now accepted only if the identifier was already
-present in the namespace (i.e., without the first declaration of f in the
-example above, an error would now be issued).  This Microsoft extensions is
-now also accepted in nonstrict C++ modes.  These behaviors have now been
-extended to file scope declarations.  For example:
-
-  void f();    // Okay in all modes.
-  void ::f();  // Accepted with a warning in nonstrict modes, but non-GNU
-               // modes will issue an error if no ::f is visible yet.
-
-Finally, in GNU C++ mode, namespace-qualified friend declarations of members
-in the innermost enclosing namespace are now treated as unqualified friend
-declarations.  For example:
-
-  struct S {
-    friend int ::f();  // Accepted in GNU C++ mode (same as "friend int f()";
-  };                   // an error in all other modes.
-
-(See also: Changes entry of 11/3/03.)
 
 10/27/04 address_taken flag not set on variable passed to runtime zeroing
          routine
