@@ -255,7 +255,8 @@ typedef struct an_exception_type_specification {
 enum an_eh_stack_entry_kind_tag {
   ehsek_try_block,
   ehsek_function,
-  ehsek_throw_spec
+  ehsek_throw_spec,
+  ehsek_throw_processing_marker
 };
 
 typedef a_byte an_eh_stack_entry_kind;

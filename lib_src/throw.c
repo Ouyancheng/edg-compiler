@@ -693,6 +693,7 @@ a try block with a catch that matches the type of the object thrown.
   void*				object_ptr;
   a_typeinfo_ptr		thrown_typeinfo;
   a_boolean			is_pointer;
+  an_eh_stack_entry		throw_processing_marker;
 
   /* Get the information about the current thrown object from the
      throw stack. */
@@ -739,12 +740,25 @@ a try block with a catch that matches the type of the object thrown.
         destination_ehsep = ehsep;
         break;
       }  /* if */
+    } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_processing_marker) {
+      /* This entry is put on the stack before object cleanup begins.  If
+         we find this marker it means that a destructor threw an
+         exception that was not handled within the destructor. */
+      __call_terminate();
     } else {
       unexpected_condition();
     }  /* if */
     ehsep = ehsep->next;
   }  /* while */
 
+  /* Link the throw processing marker onto the throw stack.  This is used
+     to detect throws done by destructors called during cleanup.  This
+     entry will be removed automatically when __curr_eh_stack_entry is set
+     to destinataion_ehsep below. */
+  throw_processing_marker.kind = ehsek_throw_processing_marker;
+  throw_processing_marker.next = __curr_eh_stack_entry;
+  __curr_eh_stack_entry = &throw_processing_marker;
+  /* Go through the EH stack again and do any necessary cleanup. */
   ehsep = __curr_eh_stack_entry;
   while (ehsep != destination_ehsep) {
     an_eh_stack_entry_kind	kind = ehsep->kind;
@@ -771,6 +785,8 @@ a try block with a catch that matches the type of the object thrown.
         tsep->discard_entry = TRUE;
       }  /* if */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_spec) {
+      /* Do nothing. */
+    } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_processing_marker) {
       /* Do nothing. */
     } else {
       unexpected_condition();
