@@ -369,6 +369,28 @@ Set the fields of the indicated mangling control block to default values.
 
 #if IA64_ABI
 
+static char *change_proxy_class_to_template_param(char             *entity,
+                                                  an_il_entry_kind kind)
+/*
+If entity, of type kind, is a proxy class for a template parameter,
+return the template parameter type as the entity.  Otherwise return
+entity unchanged.
+*/
+{
+  if (kind == iek_type) {
+    a_type_ptr type = (a_type_ptr)entity;
+    if (is_immediate_class_type(type) &&
+        type->source_corresp.assoc_info != NULL) {
+      /* If this class is a proxy class for a template parameter,
+         use the template parameter as the entity. */
+      type = symbol_supplement_for_class(type)->template_param_for_proxy_class;
+      if (type != NULL) entity = (char *)type;
+    }  /* if */
+  }  /* if */
+  return entity;
+}  /* change_proxy_class_to_template_param */
+
+
 /* Pointer to a list of available (freed) substitutions. */
 static a_substitution_ptr
 		avail_substitutions;
@@ -385,6 +407,9 @@ mctl->first_substitution/mctl->last_substitution.
 {
   a_substitution_ptr sp;
 
+  /* If the entity is a proxy class for a template parameter, use the
+     template parameter. */
+  entity = change_proxy_class_to_template_param(entity, kind);
   if (avail_substitutions != NULL) {
     sp = avail_substitutions;
     avail_substitutions = sp->next;
@@ -847,16 +872,9 @@ is available; do not put it out.
   a_boolean            result = FALSE;
   char                 *str;
 
-  if (kind == iek_type) {
-    a_type_ptr type = (a_type_ptr)entity;
-    if (is_immediate_class_type(type) &&
-        type->source_corresp.assoc_info != NULL) {
-      /* If this class is a proxy class for a template parameter,
-         use the template parameter as the entity. */
-      type = symbol_supplement_for_class(type)->template_param_for_proxy_class;
-      if (type != NULL) entity = (char *)type;
-    }  /* if */
-  }  /* if */
+  /* If the entity is a proxy class for a template parameter, use the
+     template parameter. */
+  entity = change_proxy_class_to_template_param(entity, kind);
   /* See if the entity is one of the special entities for which an
      abbreviation exists. */
   switch (kind) {
