@@ -3374,6 +3374,45 @@ the current scope.
 }  /* add_to_dynamic_inits_list */
 
 
+static a_dynamic_init_ptr copy_temp_init_dynamic_init(a_dynamic_init_ptr dip)
+/*
+Make a copy of a dynamic initialization entry and return a pointer to the copy.
+This is not a general-purpose routine -- it is meant to be called from
+copy_expr_tree for the kinds of dynamic initializations done under an
+enk_temp_init node.
+*/
+{
+  a_dynamic_init_ptr new_dip;
+
+  new_dip = alloc_dynamic_init(dip->kind);
+  *new_dip = *dip;
+  switch (dip->kind) {
+    case dik_none:
+      break;
+    case dik_expression:
+      new_dip->variant.expression = copy_expr_tree(dip->variant.expression);
+      break;
+    case dik_constructor:
+      new_dip->variant.constructor.args =
+                        copy_list_of_expr_trees(dip->variant.constructor.args);
+      break;
+#if CHECKING
+    case dik_member_copy:
+    case dik_base_class_copy:
+    case dik_constant:
+    case dik_nonconstant_aggregate:
+      /* These kinds are not expected under enk_temp_init nodes. */
+      /* To implement the constant cases, one would have to copy the constants,
+         because they are unshared. */
+      internal_error("set_dynamic_init_kind: unimplemented kind");
+    default:
+      internal_error("set_dynamic_init_kind: bad kind");
+#endif /* CHECKING */
+  }  /* switch */
+  return new_dip;
+}  /* copy_temp_init_dynamic_init */
+
+
 a_variable_ptr alloc_variable(void)
 /*
 Allocate a variable entry, clear it to default values, and return a pointer
@@ -3468,21 +3507,19 @@ Make a temporary variable whose type is temp_type.  Return a pointer to it.
 
   temp_var = alloc_variable();
   temp_var->type = temp_type;
+  /* Name linkage stays nlk_none. */
   /* Use auto storage class in functions, static elsewhere. */
   scope_kind = scope_stack[scope_depth].kind;
-  /* If necessary, pop out to the containing scope -- file scope, function
-     scope, or block scope. */
-  while (scope_kind != (a_scope_kind)sck_file &&
-         scope_kind != (a_scope_kind)sck_function &&
-         scope_kind != (a_scope_kind)sck_block) {
-    scope_kind = scope_stack[--scope_depth].kind;
-  }  /* while */
-  if (scope_kind == (a_scope_kind)sck_file) {
-    temp_var->storage_class = (a_storage_class)sc_static;
-  } else {
+  if (scope_kind == (a_scope_kind)sck_function ||
+      scope_kind == (a_scope_kind)sck_block) {
     temp_var->storage_class = (a_storage_class)sc_auto;
+  } else {
+    /* If not inside a function, use the file scope.  This is important
+       when inside a class -- the class goes into the file scope, so the
+       temporary must also. */
+    temp_var->storage_class = (a_storage_class)sc_static;
+    scope_depth = DEPTH_OF_FILE_SCOPE;
   }  /* if */
-  /* Name linkage stays nlk_none. */
   add_to_variables_list(temp_var, scope_depth);
   return temp_var;
 }  /* alloc_temporary_variable */
@@ -3912,6 +3949,12 @@ Make a copy of an expression tree and return a pointer to it.
     /* Copy the operands of the operation. */
     expr_copy->variant.operation.operands =
                      copy_list_of_expr_trees(expr->variant.operation.operands);
+  } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+    /* Copy the subtree and dynamic init for a temp init. */
+    expr_copy->variant.temp_init.expr =
+                                  copy_expr_tree(expr->variant.temp_init.expr);
+    expr_copy->variant.temp_init.dynamic_init =
+             copy_temp_init_dynamic_init(expr->variant.temp_init.dynamic_init);
   }  /* if */
   return expr_copy;
 }  /* copy_expr_tree */
