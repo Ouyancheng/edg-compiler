@@ -1,5 +1,12 @@
 Version 2.40
 
+9/2/98    Compilation errors in types.c
+
+Several compilation errors occurred in types.c when
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS and
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS were not
+configured identically.  Now fixed.
+
 9/2/98    Microsoft compatibility: allow __uuidof of template parameter
 
 The processing for __uuidof did not deal correctly with a template

@@ -5450,7 +5450,7 @@ from which a template parameter value can be deduced.
 }  /* ttt_is_or_contains_deduced_template_param */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
 static a_boolean ttt_is_uncompleted_class_type(
                                        a_type_ptr  type_ptr,
@@ -5499,7 +5499,7 @@ is the same as the type pointed to by specified_class_type.
   return found;
 }  /* ttt_is_specific_class_type */
     
-#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 static a_boolean ttt_set_force_external_linkage_flag(
