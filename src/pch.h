@@ -9,13 +9,17 @@
 ******************************************************************************/
 /*
 
-pch.c -- Precompiled header declarations
+pch.h -- Precompiled header declarations
 
 */
 
 #ifndef PREPROC_H
 #include "preproc.h"
 #endif /* ifndef PREPROC_H */
+
+#ifndef CMD_LINE_H
+#include "cmd_line.h"
+#endif /* ifndef CMD_LINE_H */
 
 /*
 Enumeration used to specify the kinds of precompiled header events that
@@ -26,14 +30,8 @@ typedef enum /* a_pch_event_kind */ {
   pchek_none,
 			/* The event kind is not yet known, or there is
                            no event. */
-  pchek_misc_unordered,
-			/* Information such as compiler version and
-			   command line information.  The sequence in
-			   which these are encountered is not significant. */
-  pchek_misc_ordered,
-			/* Information, such as command line options, for
-                           which the sequence is important (such as -I
-                           command line options). */
+  pchek_command_line,
+			/* Command line option information. */
   pchek_pp_directive,
 			/* A preprocessing directive. */
   pchek_sequence_marker,
@@ -49,9 +47,8 @@ Table of names of PCH event kinds.
 */
 char		*pch_event_kind_names[(int)pchek_last+1]
 #if VAR_INITIALIZERS
-= { "unknown",
-    "misc_unordered",
-    "misc_ordered",
+= { "none",
+    "command_line",
     "pp_directive",
     "sequence_marker",
     "last"
@@ -76,10 +73,21 @@ typedef struct a_pch_event {
   a_pch_event_kind
 		kind;
 			/* The event kind for this entry. */
-  a_pp_directive_kind
+  union {
+    /* When kind == pchek_pp_directive */
+    a_pp_directive_kind
 		ppd_kind;
-			/* When kind == pchek_pp_directive, this indicates the
-			   kind of preprocessing directive. */
+			/* The kind of preprocessing directive. */
+    struct {
+      an_option_kind
+		kind;
+			/* The command line option kind. */
+      a_byte_boolean
+		opt_value;
+			/* Specifies whether the option is to be turned on
+			   or off. */
+    } cl_option;
+  } variant;
   char		*value;
 			/* An optional character string that provides specific
 			   information about the event.  For example, if
@@ -125,6 +133,12 @@ void add_pch_event(a_pch_event_kind	kind,
 		   a_pp_directive_kind	ppd_kind,
 		   char			*value,
 		   a_source_position	*position);
+
+extern
+void add_command_line_pch_event(a_pch_event_kind	kind,
+                                an_option_kind		opt_kind,
+				a_boolean		opt_value,
+				char			*optarg);
 
 extern void precompiled_header_processing(void);
 

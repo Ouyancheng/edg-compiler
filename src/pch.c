@@ -44,6 +44,16 @@ static a_pch_event_ptr
 			/* Pointer to the end of the list of precompiled
                            header events for the current primary input file. */
 
+static a_pch_event_ptr
+		pch_cmd_line_event_list_head;
+			/* List of precompiled header events associated with
+			   the command line. */
+
+static a_pch_event_ptr
+		pch_cmd_line_event_list_tail;
+			/* Pointer to the end of the list of precompiled
+                           header events associated with the command line. */
+
 static char	*pch_file_name;
 			/* Name of the precompiled header file being written
 			   or read. */
@@ -123,7 +133,7 @@ worry about the prospect of running out of memory.
 }  /* alloc_pch_memory */
 
 
-static a_pch_event_ptr alloc_pch_event(void)
+static a_pch_event_ptr alloc_pch_event(a_pch_event_kind kind)
 /*
 Allocate and initialize a precompiled header event record.
 */
@@ -134,13 +144,31 @@ Allocate and initialize a precompiled header event record.
 #if 0
   /* Special handling needed for command line events? */
 #endif /* 0 */
-  pep = (a_pch_event_ptr)alloc_pch_memory(sizeof(a_pch_event));
+  if (kind == pchek_command_line) {
+    /* Command line events are reused for multiple source files so
+       must be allocated in general memory. */
+    pep = (a_pch_event_ptr)alloc_general(sizeof(a_pch_event));
+  } else {
+    pep = (a_pch_event_ptr)alloc_pch_memory(sizeof(a_pch_event));
+  }  /* if */
 #if DEBUG
   num_pch_events_allocated++;
 #endif /* DEBUG */
   pep->next = NULL;
-  pep->kind = pchek_none;
-  pep->ppd_kind = ppd_not_valid;
+  pep->kind = kind;
+  switch (kind) {
+    case pchek_command_line:
+      pep->variant.cl_option.kind = optk_none;
+      pep->variant.cl_option.opt_value = FALSE;
+      break;
+    case pchek_pp_directive:
+      pep->variant.ppd_kind = ppd_not_valid;
+      break;
+    case pchek_sequence_marker:
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
   pep->value = NULL;
   pep->position = null_source_position;
   return pep;
@@ -159,9 +187,10 @@ file.
   a_pch_event_ptr	pep;
 
   db_enter(4, "add_pch_event");
-  pep = alloc_pch_event();
-  pep->kind = kind;
-  pep->ppd_kind = ppd_kind;
+  pep = alloc_pch_event(kind);
+  if (kind == pchek_pp_directive) {
+    pep->variant.ppd_kind = ppd_kind;
+  }  /* if */
   if (value != NULL) {
     /* Copy the value string into PCH memory. */
     pep->value = (char *)alloc_pch_memory((sizeof_t)(strlen(value) + 1));
@@ -174,15 +203,57 @@ file.
   pch_event_list_tail = pep;
 #if DEBUG
   if (debug_level >= 0) {
-    fprintf(f_debug, "Added PCH event: %s, %s, value=%s, line %0d, col %0d\n",
+    fprintf(f_debug, "Added PCH event: %s, value=%s, line %0d, col %0d\n",
             pch_event_kind_names[(int)pep->kind],
-            pp_directive_kind_names[(int)pep->ppd_kind],
             pep->value == NULL ? "(NULL)" : pep->value,
             pep->position.seq, pep->position.column);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
 }  /* add_pch_event */
+
+
+void add_command_line_pch_event(a_pch_event_kind	kind,
+                                an_option_kind		opt_kind,
+				a_boolean		opt_value,
+				char			*optarg)
+/*
+Add a precompiled header event to the list of events associated with
+the command line.
+*/
+{
+  a_pch_event_ptr	pep;
+
+  db_enter(4, "add_command_line_pch_event");
+  check_assertion_str2(kind == pchek_command_line,
+                       "add_command_line_pch_event:",
+                       "invalid pch event kind");
+  pep = alloc_pch_event(kind);
+  pep->variant.cl_option.kind = opt_kind;
+  pep->variant.cl_option.opt_value = opt_value;
+  if (optarg != NULL) {
+    /* Command line events are reused for multiple source files so
+       the value string must be allocated in general memory. */
+    pep->value = (char *)alloc_general((sizeof_t)(strlen(optarg) + 1));
+    (void)strcpy(pep->value, optarg);
+  }  /* if */
+  /* Add this entry to the list. */
+  if (pch_cmd_line_event_list_head == NULL) {
+    pch_cmd_line_event_list_head = pep;
+  }  /* if */
+  if (pch_cmd_line_event_list_tail != NULL) {
+    pch_cmd_line_event_list_tail->next = pep;
+  }  /* if */
+  pch_cmd_line_event_list_tail = pep;
+#if DEBUG
+  if (debug_level >= 0) {
+    fprintf(f_debug, "Added PCH event: %s, value=%s\n",
+            pch_event_kind_names[(int)pep->kind],
+            pep->value == NULL ? "(NULL)" : pep->value);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+}  /* add_command_line_pch_event */
 
 
 static void build_prefix_information(void)
@@ -287,18 +358,30 @@ Both the length and the actual string include the null terminator.
 }  /* pch_write_string */
 
 
-static void write_pch_events(void)
+static void write_pch_events(a_pch_event_ptr list)
 /*
-Write the list of precompiled header events to the PCH output file.
+Write a list of precompiled header events to the PCH output file.
 */
 {
   a_pch_event_ptr	pep;
   a_pch_event_kind	dummy_pchek;
 
-  for (pep = pch_event_list_head; pep != NULL; pep = pep->next) {
+  for (pep = list; pep != NULL; pep = pep->next) {
     check_assertion(pep->kind != pchek_none);
     pch_write_value(pep->kind);
-    pch_write_value(pep->ppd_kind);
+    switch (pep->kind) {
+      case pchek_command_line:
+        pch_write_value(pep->variant.cl_option.kind);
+        pch_write_value(pep->variant.cl_option.opt_value);
+        break;
+      case pchek_pp_directive:
+        pch_write_value(pep->variant.ppd_kind);
+        break;
+      case pchek_sequence_marker:
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
     pch_write_string(pep->value);
     pch_write_value(pep->position);
   }  /* for */
@@ -318,7 +401,8 @@ current point.
   /* Write the string that identifies this file as a precompiled header
      file. */
   (void)fputs(pch_id_string, f_pch_output);
-  write_pch_events();
+  write_pch_events(pch_cmd_line_event_list_head);
+  write_pch_events(pch_event_list_head);
   (void)fclose(f_pch_output);
 }  /* write_precompiled_header_file */
 
@@ -329,6 +413,9 @@ Initialize variables used by the precompiled header routines.
 */
 {
   db_enter(4, "pch_init");
+#if DEBUG
+  check_assertion(strcmp(pch_event_kind_names[(int)pchek_last], "last") == 0);
+#endif /* DEBUG */
   alloc_pch_memory_block();
   initialize_pch_id_string();
   cannot_do_pch_processing = FALSE;

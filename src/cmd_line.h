@@ -35,6 +35,72 @@ typedef enum /*a_C_dialect*/ {
   C_dialect_cplusplus	/* C++. */
 } a_C_dialect;
 
+/*
+List of possible option kinds.
+*/
+typedef enum /*an_option_kind*/ {
+  optk_none,
+  optk_strict_ansi_error,
+  optk_strict_ansi_warning,
+  optk_preprocess_only_no_line_dirs,
+  optk_preprocess_only_emit_line_dirs,
+  optk_keep_comments_in_pp_output,
+  optk_C_dialect_pcc,
+  optk_list_makefile_dependencies,
+  optk_list_include_files,
+#if DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE
+  optk_write_unlowered_il,
+#endif /* DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE */
+  optk_cplusplus_anachronisms,
+  optk_cfront_2_1_mode,
+  optk_cfront_3_0_mode,
+  optk_front_end_only,
+  optk_use_signed_chars,
+  optk_template_instantiation_mode,
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  optk_automatic_template_instantiation,
+#endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+  optk_implicit_template_inclusion,
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  optk_virtual_function_table_definition,
+  optk_allow_dollar_in_id_chars,
+  optk_display_compilation_time,
+  optk_display_compiler_version,
+  optk_suppress_warnings,
+  optk_enable_remarks,
+  optk_C_dialect_ANSI,
+  optk_C_dialect_cplusplus,
+  optk_exception_handling,
+  optk_suppress_used_before_set_warnings,
+  optk_include_directory,
+  optk_define_macro,
+  optk_undefine_macro,
+  optk_set_error_limit,
+  optk_generate_raw_listing,
+  optk_generate_cross_reference,
+  optk_stderr_file_name,
+  optk_output_file_name,
+#if BACK_END_IS_C_GEN_BE
+  optk_module_list_for_union_init,
+#endif /* !BACK_END_IS_C_GEN_BE */
+#if DEBUG
+  optk_debug,
+#endif /* DEBUG */
+  optk_diag_suppress,
+  optk_diag_remark,
+  optk_diag_warning,
+  optk_diag_error,
+  optk_display_error_number,
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+  optk_gen_c_file_name,
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+  optk_create_pch,
+  optk_use_pch,
+  optk_pch,
+  optk_last		/* Must be last. */
+} an_option_kind;
+
 EXTERN a_C_dialect
 		C_dialect
 #if VAR_INITIALIZERS

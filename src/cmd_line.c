@@ -23,6 +23,7 @@ cmd_line.c -- Command-line parsing.
 #include "mem_manage.h"
 #include "il.h"
 #include "debug.h"
+#include "pch.h"
 #include "version.h"
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
@@ -38,71 +39,6 @@ extern long gethostid(void);
 #endif /* HOSTID */
 
 
-
-/*
-List of possible option kinds.
-*/
-typedef enum /*an_option_kind*/ {
-  optk_strict_ansi_error,
-  optk_strict_ansi_warning,
-  optk_preprocess_only_no_line_dirs,
-  optk_preprocess_only_emit_line_dirs,
-  optk_keep_comments_in_pp_output,
-  optk_C_dialect_pcc,
-  optk_list_makefile_dependencies,
-  optk_list_include_files,
-#if DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE
-  optk_write_unlowered_il,
-#endif /* DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE */
-  optk_cplusplus_anachronisms,
-  optk_cfront_2_1_mode,
-  optk_cfront_3_0_mode,
-  optk_front_end_only,
-  optk_use_signed_chars,
-  optk_template_instantiation_mode,
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-  optk_automatic_template_instantiation,
-#endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
-  optk_implicit_template_inclusion,
-#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
-  optk_virtual_function_table_definition,
-  optk_allow_dollar_in_id_chars,
-  optk_display_compilation_time,
-  optk_display_compiler_version,
-  optk_suppress_warnings,
-  optk_enable_remarks,
-  optk_C_dialect_ANSI,
-  optk_C_dialect_cplusplus,
-  optk_exception_handling,
-  optk_suppress_used_before_set_warnings,
-  optk_include_directory,
-  optk_define_macro,
-  optk_undefine_macro,
-  optk_set_error_limit,
-  optk_generate_raw_listing,
-  optk_generate_cross_reference,
-  optk_stderr_file_name,
-  optk_output_file_name,
-#if BACK_END_IS_C_GEN_BE
-  optk_module_list_for_union_init,
-#endif /* !BACK_END_IS_C_GEN_BE */
-#if DEBUG
-  optk_debug,
-#endif /* DEBUG */
-  optk_diag_suppress,
-  optk_diag_remark,
-  optk_diag_warning,
-  optk_diag_error,
-  optk_display_error_number,
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-  optk_gen_c_file_name,
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
-  optk_create_pch,
-  optk_use_pch,
-  optk_pch,
-  optk_last		/* Must be last. */
-} an_option_kind;
 
 
 /*
@@ -135,6 +71,11 @@ typedef struct an_option_description {
   a_boolean	arg_required;
 			/* TRUE if this option requires that an argument be
 			   specified. */
+  a_pch_event_kind
+		pch_event_kind;
+			/* Indicates how a given command line is to be
+			   handled for purposes of precompiled header
+			   prefix matching. */
 } an_option_description;
 
 static an_option_description_ptr
@@ -153,7 +94,8 @@ static void add_option_description(an_option_kind	kind,
 				   char			*keyword,
 				   char			letter,
 				   a_boolean		value,
-				   a_boolean		arg_required)
+				   a_boolean		arg_required,
+				   a_pch_event_kind	pch_event_kind)
 /*
 Add an entry to the linked list of option descriptions.  "keyword" is
 the string to be used as the keyword form of the option and may be
@@ -163,7 +105,9 @@ the null character (\0) if no letter form of the option exists.
 "value" indicates whether this option is used to turn the option
 on (TRUE) or off (FALSE).  "arg_required" indicates whether an
 option must be followed by an argument.  Note that optional arguments
-are not supported.
+are not supported.  "pch_event_kind" specifies how this argument should
+be compared with a similar argument for precompiled header prefix
+matching.
 */
 {
   an_option_description_ptr	odp;
@@ -190,6 +134,7 @@ are not supported.
   odp->letter = letter;
   odp->value = value;
   odp->arg_required = arg_required;
+  odp->pch_event_kind = pch_event_kind;
 }  /* add_option_description */
 
 
@@ -199,129 +144,181 @@ Initialize the option information table.
 */
 {
   add_option_description(optk_strict_ansi_error, "strict", 'A',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_strict_ansi_warning, "strict_warnings", 'a',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_preprocess_only_no_line_dirs, "no_line_commands",
-                         'P', /*value=*/TRUE, /*arg_required=*/FALSE);
+                         'P', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
   add_option_description(optk_preprocess_only_emit_line_dirs, "preprocess",
-                         'E', /*value=*/TRUE, /*arg_required=*/FALSE);
+                         'E', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
   add_option_description(optk_keep_comments_in_pp_output, "comments", 'C',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
   add_option_description(optk_C_dialect_pcc, "old_c", 'K',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_list_makefile_dependencies, "dependencies", 'M',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
   add_option_description(optk_list_include_files, "trace_includes", 'H',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
 #if DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE
   add_option_description(optk_write_unlowered_il, "no_il_lowering", 'N',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE */
   add_option_description(optk_cplusplus_anachronisms, "anachronisms", '\0',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_cplusplus_anachronisms, "no_anachronisms", '\0',
-                         /*value=*/FALSE, /*arg_required=*/FALSE);
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_cfront_2_1_mode, "cfront_2.1", 'b',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_cfront_3_0_mode, "cfront_3.0", '\0',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_front_end_only, "no_code_gen", 'n',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_use_signed_chars, "signed_chars", 's',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_use_signed_chars, "unsigned_chars", 'u',
-                         /*value=*/FALSE, /*arg_required=*/FALSE);
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_template_instantiation_mode, "instantiate", 't',
-                         /*value=*/TRUE, /*arg_required=*/TRUE);
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   add_option_description(optk_automatic_template_instantiation,
                          "auto_instantiation", 'T',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_automatic_template_instantiation,
                          "no_auto_instantiation", '\0',
-                         /*value=*/FALSE, /*arg_required=*/FALSE);
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* !AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   add_option_description(optk_implicit_template_inclusion,
                          "implicit_include", 'B',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_implicit_template_inclusion,
                          "no_implicit_include", '\0',
-                         /*value=*/FALSE, /*arg_required=*/FALSE);
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   add_option_description(optk_virtual_function_table_definition,
                          "suppress_vtbl", 'V',
-                         /*value=*/FALSE, /*arg_required=*/FALSE);
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_virtual_function_table_definition,
                          "force_vtbl", '\0',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_allow_dollar_in_id_chars,
                          "dollar", '$',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_display_compilation_time, "timing", '#',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
   add_option_description(optk_display_compiler_version, "version", 'v',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
   add_option_description(optk_suppress_warnings, "no_warnings", 'w',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
   add_option_description(optk_enable_remarks, "remarks", 'r',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
   add_option_description(optk_C_dialect_ANSI, "c", 'm',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_C_dialect_cplusplus, "c++", 'p',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_exception_handling, "exceptions", 'x',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_exception_handling, "no_exceptions", '\0',
-                         /*value=*/FALSE, /*arg_required=*/FALSE);
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_suppress_used_before_set_warnings,
                          "no_use_before_set_warnings", 'j',
-                         /*value=*/TRUE, /*arg_required=*/FALSE);
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_include_directory, "include_directory", 'I',
-                         /*value=*/TRUE, /*arg_required=*/TRUE);
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
   add_option_description(optk_define_macro, "define_macro", 'D',
-                         /*value=*/TRUE, /*arg_required=*/TRUE);
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
   add_option_description(optk_undefine_macro, "undefine_macro", 'U',
-                         /*value=*/TRUE, /*arg_required=*/TRUE);
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
   add_option_description(optk_set_error_limit, "error_limit", 'e',
-                         /*value=*/TRUE, /*arg_required=*/TRUE);
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
   add_option_description(optk_generate_raw_listing, "list", 'L',
-                         /*value=*/TRUE, /*arg_required=*/TRUE);
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
   add_option_description(optk_generate_cross_reference, "xref", 'X',
-                         /*value=*/TRUE, /*arg_required=*/TRUE);
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
   add_option_description(optk_stderr_file_name, "error_output", '\0',
-                         /*value=*/TRUE, /*arg_required=*/TRUE);
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
   add_option_description(optk_output_file_name, "output", 'o',
-                         /*value=*/TRUE, /*arg_required=*/TRUE);
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
 #if BACK_END_IS_C_GEN_BE
   add_option_description(optk_module_list_for_union_init, "module_init", 'i',
-                         /*value=*/TRUE, /*arg_required=*/TRUE);
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
 #endif /* !BACK_END_IS_C_GEN_BE */
 #if DEBUG
   add_option_description(optk_debug, "db", 'd',
-                         /*value=*/TRUE, /*arg_required=*/TRUE);
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
 #endif /* DEBUG */
   add_option_description(optk_diag_suppress, "diag_suppress", '\0',
-                         /*value=*/TRUE, /*arg_required=*/TRUE);
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
   add_option_description(optk_diag_remark, "diag_remark", '\0',
-                         /*value=*/TRUE, /*arg_required=*/TRUE);
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
   add_option_description(optk_diag_warning, "diag_warning", '\0',
-                         /*value=*/TRUE, /*arg_required=*/TRUE);
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
   add_option_description(optk_diag_error, "diag_error", '\0',
-                         /*value=*/TRUE, /*arg_required=*/TRUE);
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
   add_option_description(optk_display_error_number, "display_error_number",
-                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE);
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   add_option_description(optk_gen_c_file_name, "gen_c_file_name",
-                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE);
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   add_option_description(optk_create_pch, "create_pch",
-                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE);
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
   add_option_description(optk_use_pch, "use_pch",
-                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE);
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
   add_option_description(optk_pch, "pch",
-                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE);
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
 }  /* initialize_option_descriptions */
 
 
@@ -694,6 +691,12 @@ Process the arguments on the command line that invoked the compiler.
   while ((odp = get_option(argc, argv)) != NULL) {
     an_option_kind	kind = odp->kind;
     a_boolean		opt_value = odp->value;
+    /* Record information about this option for precompiled header
+       processing. */
+    if (odp->pch_event_kind != pchek_none) {
+      add_command_line_pch_event(odp->pch_event_kind, kind, opt_value,
+                                 optarg);
+    }  /* if */
     switch (kind) {
       case optk_strict_ansi_error:
       case optk_strict_ansi_warning:
