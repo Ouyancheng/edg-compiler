@@ -348,7 +348,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_integer_may_not_fit_in_fixed_point_result)*/
 /*lint -esym(769,ec_bad_fixed_point_value)*/
 /*lint -esym(769,ec_inexact_fxp_conversion)*/
-
+/*lint -esym(769,ec_operation_may_not_fit_in_fixed_point_result)*/
 #endif /* !FIXED_POINT_EXTENSIONS_ALLOWED */
 
 
