@@ -506,9 +506,6 @@ in the cache, nothing is done.
     clear_lint_and_pragma_state(&laps);
     set_globals_from_lint_and_pragma_state(&laps);
     /* Fetch the first cached token. */
-#if DEBUG
-    if (debug_level >= 3) fputs("from cache ", f_debug);
-#endif /* DEBUG */
     (void)get_token();
   }  /* if */
   db_exit();
@@ -3329,10 +3326,16 @@ If in_asm_function_body is TRUE, return tok_newline for ends of lines.
   a_symbol_kind		id_kind;
   a_boolean		rescan;
   a_token_kind          compound_token;
+#if DEBUG
+  a_boolean             gotten_from_cache = FALSE;
+#endif /* DEBUG */
 
   /* If there are cached tokens to be rescanned, take the first on the list. */
   if (cached_token_rescan_list != NULL) {
     ctoken = get_token_from_cached_token_rescan_list();
+#if DEBUG
+    gotten_from_cache = TRUE;
+#endif /* DEBUG */
     goto return_from_token_scan;
   }  /* if */
 rescan_token:
@@ -3897,7 +3900,8 @@ return_from_token_scan:
 #if DEBUG
   if (debug_level >= 3) {
     /* Write out the current token. */
-    fprintf(f_debug, "get_token: pos = %lu/%2d, %-10s",
+    fprintf(f_debug, "get_token%s: pos = %lu/%2d, %-10s",
+                     gotten_from_cache ? " (from cache)" : "",
                      pos_curr_token.seq, pos_curr_token.column,
                      token_names[(int)ctoken]);
     if (start_of_curr_token != NULL) {
