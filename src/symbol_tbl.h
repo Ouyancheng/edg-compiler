@@ -1541,6 +1541,13 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if kind is sck_template_instantiation and
 			   what is being instantiated is the prototype for a
 			   class template. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  unsigned int	source_sequence_entries_disallowed:1;
+			/* TRUE if the current scope establishes or belongs to
+			   a context in which source sequence entries should
+			   not be issued -- e.g. a template declaration, a
+			   a template instantiation, or a pragma. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_symbol_ptr	symbols,
 		last_symbol;
 			/* First/last pointers to the list of all symbols
@@ -1678,9 +1685,8 @@ typedef struct a_scope_stack_entry {
 			   to by il_scope; NULL if none. */
   a_scope_depth depth_innermost_ss_list_scope;
 			/* Depth of the innermost scope on the scope stack
-			   with a source sequence list (= DEPTH_OF_FILE_SCOPE,
-			   depth_innermost_function_scope, or, in C++ only,
-			   the depth of the innermost class scope). */
+			   with a source sequence list (= DEPTH_OF_FILE_SCOPE
+			   or depth_innermost_function_scope). */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_scope_depth depth_template_declaration_scope;
 			/* Depth of the sck_template_declaration scope entry,
@@ -1795,9 +1801,14 @@ EXTERN a_scope_depth
 EXTERN a_scope_depth
 		depth_innermost_ss_list_scope;
 			/* Depth of the innermost scope on the scope stack
-			   with a source sequence list (= DEPTH_OF_FILE_SCOPE,
-			   depth_innermost_function_scope, or, in C++ only,
-			   the depth of the innermost class scope). */
+			   with a source sequence list (= DEPTH_OF_FILE_SCOPE
+			   or depth_innermost_function_scope). */
+EXTERN a_boolean
+		source_sequence_entries_disallowed;
+			/* TRUE if the current scope establishes or belongs to
+			   a context in which source sequence entries should
+			   not be issued -- e.g. a template declaration, a
+			   a template instantiation, or a pragma. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 EXTERN a_boolean

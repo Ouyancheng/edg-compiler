@@ -6691,6 +6691,8 @@ of the template.
   ssep->source_sequence_avail_list = NULL;
   ssep->last_src_seq_sublist     = NULL;
   ssep->depth_innermost_ss_list_scope = depth_innermost_ss_list_scope;
+  ssep->source_sequence_entries_disallowed =
+                                       source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   ssep->depth_template_declaration_scope = depth_template_declaration_scope;
   ssep->depth_innermost_instantiation_scope =
@@ -6845,6 +6847,18 @@ of the template.
              kind == (a_scope_kind)sck_file) {
     ssep->depth_innermost_ss_list_scope =
       depth_innermost_ss_list_scope = DEPTH_OF_FILE_SCOPE;
+  }  /* if */
+  /* The creation of source sequence entries is suppressed in certain
+     contexts. */
+#if 0
+  /* This is subject to reconsideration, especially in connection with
+     templates. */
+#endif /* if 0 */
+  if (kind == (a_scope_kind)sck_template_instantiation ||
+      kind == (a_scope_kind)sck_template_declaration ||
+      kind == (a_scope_kind)sck_pragma) {
+    ssep->source_sequence_entries_disallowed =
+      source_sequence_entries_disallowed = TRUE;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DEBUG
@@ -7695,6 +7709,8 @@ End a name scope by popping an entry off the scope stack.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     depth_innermost_ss_list_scope =
              scope_stack[depth_scope_stack].depth_innermost_ss_list_scope;
+    source_sequence_entries_disallowed =
+             scope_stack[depth_scope_stack].source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
@@ -7971,8 +7987,9 @@ secondary status.
   a_boolean                     force_alloc_in_filescope;
   a_memory_region_number        region_to_switch_back_to;
 
-  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
-      depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+  if (!source_sequence_entries_disallowed) {
+    /* We are in a context in which source sequence entries are being
+       generated. */
     if ((il_entry_ptr = il_entry_for_symbol(sym, &kind)) != NULL) {
       if (pos->seq == 0 ||
           (kind == iek_routine &&
@@ -8126,17 +8143,12 @@ created for this entity; otherwise, it is NULL.
     write_xref_entry(srk_flags, sym_ptr, source_position);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
-    if (sym_ptr->kind == (a_symbol_kind)sk_label) {
-      /* Don't issue a source sequence entry for a label definition --
-         a label is always defined by an stmk_label statement, for which
-         a source sequence entry will be put out.  Putting out both would be
-         redundant. */
-    } else {
-      /* Issue a source sequence entry. */
-      sym_update_source_sequence_list(sym_ptr, source_position,
-                                      is_primary_decl, ssep);
-    }  /* if */
+  /* Issue a source sequence entry -- unless this is a label definition.  (A
+     label is always defined by an stmk_label statement, for which a source
+     sequence entry will be put out.  Putting out both would be redundant. */
+  if (sym_ptr->kind != (a_symbol_kind)sk_label) {
+    sym_update_source_sequence_list(sym_ptr, source_position,
+                                    is_primary_decl, ssep);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (is_primary_decl) {
@@ -8374,9 +8386,9 @@ update the cross reference and source sequence output.
     write_xref_entry(SRK_DECLARATION, sym, pos);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  f_update_source_sequence_list((char *)aap,
-                                (an_il_entry_kind)iek_access_adjustment,
-                                pos, (a_source_sequence_entry_ptr)NULL);
+  update_source_sequence_list((char *)aap,
+                              (an_il_entry_kind)iek_access_adjustment,
+                              pos, (a_source_sequence_entry_ptr)NULL);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* record_access_adjustment */
 
@@ -8955,6 +8967,7 @@ to avoid an 8-character external name clash with symbol_table.)
   depth_template_declaration_scope = NO_SCOPE_DEPTH;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   depth_innermost_ss_list_scope = NO_SCOPE_DEPTH;
+  source_sequence_entries_disallowed = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   inside_local_class = FALSE;
   next_scope_number = FILE_SCOPE_NUMBER;
