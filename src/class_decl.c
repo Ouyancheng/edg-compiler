@@ -6637,7 +6637,9 @@ class of which the function is a member, and member_type points to the type
 entry of the function itself.  *class_state and *decl_info track general
 information about the class definition and specific information about the
 member declaration, respectively.  compiler_generated is TRUE for implicitly
-declared member functions.
+declared member functions.  attributes and asm_name describe the GNU
+attributes and GNU asm-name specified on the member declaration (if any;
+otherwise these are NULL).
 */
 {
   a_symbol_ptr                  sym, overload_sym;
@@ -7512,7 +7514,9 @@ table.  *locator is the symbol-locator for the current declaration, class_type
 is the class of which it is a member, and *p_member_type is the type with
 which the member was declared.  *class_state and *decl_info track general
 information about the class definition and specific information about the
-member declaration, respectively.
+member declaration, respectively.  attributes and asm_name describe the GNU
+attributes and GNU asm-name specified on the member declaration (if any;
+otherwise these are NULL).
 */
 {
   a_symbol_ptr          sym, prototype_tag_sym;
