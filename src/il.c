@@ -8610,48 +8610,50 @@ in il_init.)
       pch_saved_var_array_elem(last_macro),
 #endif /* RECORD_MACROS_IN_IL */
 #if DEBUG
-      pch_saved_var_array_elem(num_source_files_allocated),
-      pch_saved_var_array_elem(num_constants_allocated),
-      pch_saved_var_array_elem(num_param_types_allocated),
-      pch_saved_var_array_elem(num_routine_type_supplements_allocated),
-      pch_saved_var_array_elem(num_based_type_list_members_allocated),
-      pch_saved_var_array_elem(num_class_type_supplements_allocated),
       pch_saved_var_array_elem(num_access_adjustments_allocated),
-      pch_saved_var_array_elem(num_class_list_entries_allocated),
-      pch_saved_var_array_elem(num_routine_list_entries_allocated),
-      pch_saved_var_array_elem(num_derivation_steps_allocated),
+      pch_saved_var_array_elem(num_accessible_base_classes_allocated),
+      pch_saved_var_array_elem(num_asm_entries_allocated),
       pch_saved_var_array_elem(num_base_class_derivations_allocated),
       pch_saved_var_array_elem(num_base_classes_allocated),
+      pch_saved_var_array_elem(num_based_type_list_members_allocated),
+      pch_saved_var_array_elem(num_blocks_allocated),
+      pch_saved_var_array_elem(num_class_list_entries_allocated),
+      pch_saved_var_array_elem(num_class_type_supplements_allocated),
+      pch_saved_var_array_elem(num_compares_for_shareable_constants),
+      pch_saved_var_array_elem(num_constants_allocated),
+      pch_saved_var_array_elem(num_constructor_inits_allocated),
+      pch_saved_var_array_elem(num_derivation_steps_allocated),
+      pch_saved_var_array_elem(num_dynamic_inits_allocated),
+      pch_saved_var_array_elem(num_exception_specification_types_allocated),
+      pch_saved_var_array_elem(num_exception_specifications_allocated),
+      pch_saved_var_array_elem(num_expr_nodes_allocated),
+      pch_saved_var_array_elem(num_fields_allocated),
+      pch_saved_var_array_elem(num_for_loops_allocated),
+      pch_saved_var_array_elem(num_func_shareable_constants),
+      pch_saved_var_array_elem(num_get_based_type_calls),
+      pch_saved_var_array_elem(num_handlers_allocated),
+      pch_saved_var_array_elem(num_il_entry_prefixes_allocated),
+      pch_saved_var_array_elem(num_labels_allocated),
+      pch_saved_var_array_elem(num_new_delete_supplements_allocated),
+      pch_saved_var_array_elem(num_overriding_virtual_functions_allocated),
+      pch_saved_var_array_elem(num_param_types_allocated),
+      pch_saved_var_array_elem(num_pragmas_allocated),
+      pch_saved_var_array_elem(num_routine_list_entries_allocated),
+      pch_saved_var_array_elem(num_routine_type_supplements_allocated),
+      pch_saved_var_array_elem(num_routines_allocated),
+      pch_saved_var_array_elem(num_scopes_allocated),
+      pch_saved_var_array_elem(num_searches_for_shareable_constants),
+      pch_saved_var_array_elem(num_shareable_constants),
+      pch_saved_var_array_elem(num_source_files_allocated),
+      pch_saved_var_array_elem(num_statements_allocated),
+      pch_saved_var_array_elem(num_switch_clauses_allocated),
       pch_saved_var_array_elem(num_template_args_allocated),
       pch_saved_var_array_elem(num_template_param_type_descrs_allocated),
-      pch_saved_var_array_elem(num_types_allocated),
-      pch_saved_var_array_elem(num_dynamic_inits_allocated),
-      pch_saved_var_array_elem(num_variables_allocated),
-      pch_saved_var_array_elem(num_fields_allocated),
-      pch_saved_var_array_elem(num_routines_allocated),
-      pch_saved_var_array_elem(num_exception_specifications_allocated),
-      pch_saved_var_array_elem(num_exception_specification_types_allocated),
-      pch_saved_var_array_elem(num_asm_entries_allocated),
-      pch_saved_var_array_elem(num_labels_allocated),
-      pch_saved_var_array_elem(num_expr_nodes_allocated),
-      pch_saved_var_array_elem(num_new_delete_supplements_allocated),
       pch_saved_var_array_elem(num_throw_supplements_allocated),
-      pch_saved_var_array_elem(num_accessible_base_classes_allocated),
-      pch_saved_var_array_elem(num_switch_clauses_allocated),
-      pch_saved_var_array_elem(num_blocks_allocated),
-      pch_saved_var_array_elem(num_for_loops_allocated),
-      pch_saved_var_array_elem(num_statements_allocated),
-      pch_saved_var_array_elem(num_constructor_inits_allocated),
-      pch_saved_var_array_elem(num_pragmas_allocated),
-      pch_saved_var_array_elem(num_scopes_allocated),
-      pch_saved_var_array_elem(num_il_entry_prefixes_allocated),
-      pch_saved_var_array_elem(string_literal_text_space_allocated),
-      pch_saved_var_array_elem(num_shareable_constants),
-      pch_saved_var_array_elem(num_func_shareable_constants),
+      pch_saved_var_array_elem(num_types_allocated),
       pch_saved_var_array_elem(num_used_shareable_constant_buckets),
-      pch_saved_var_array_elem(num_searches_for_shareable_constants),
-      pch_saved_var_array_elem(num_compares_for_shareable_constants),
-      pch_saved_var_array_elem(num_get_based_type_calls),
+      pch_saved_var_array_elem(num_variables_allocated),
+      pch_saved_var_array_elem(string_literal_text_space_allocated),
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       pch_saved_var_array_elem(num_source_sequence_entries_allocated),
       pch_saved_var_array_elem(num_src_seq_secondary_decls_allocated),
@@ -8722,6 +8724,8 @@ of the front end.
   num_access_adjustments_allocated       = 0;
   num_class_list_entries_allocated       = 0;
   num_routine_list_entries_allocated     = 0;
+  num_overriding_virtual_functions_allocated
+                                         = 0;
   num_derivation_steps_allocated         = 0;
   num_base_class_derivations_allocated   = 0;
   num_base_classes_allocated             = 0;
@@ -8743,6 +8747,7 @@ of the front end.
   num_throw_supplements_allocated        = 0;
   num_accessible_base_classes_allocated  = 0;
   num_switch_clauses_allocated           = 0;
+  num_handlers_allocated                 = 0;
   num_blocks_allocated                   = 0;
   num_for_loops_allocated                = 0;
   num_statements_allocated               = 0;
