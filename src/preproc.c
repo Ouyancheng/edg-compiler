@@ -1948,6 +1948,9 @@ Push an entry onto the top of the stack.
     upsep = avail_upc_pragma_stack_entries;
     avail_upc_pragma_stack_entries = upsep->next;
   } else {
+#if DEBUG
+    ++num_upc_pragma_stack_entries_allocated;
+#endif /* DEBUG */
     upsep = (a_upc_pragma_stack_entry_ptr)alloc_fe(
                                             sizeof(a_upc_pragma_stack_entry));
   }  /* if */
