@@ -1183,7 +1183,7 @@ targ_microsoft_bit_field_allocation is FALSE.)
 #if IA64_ABI
       && !(emulate_gnu_abi_bugs && field->bit_size == 0)
 #endif /* IA64_ABI */
-                             ) {
+                                                        ) {
     adjust_alignment_for_packing(&container_alignment, lob->class_type);
   }  /* if */
 #if IA64_ABI
@@ -2141,9 +2141,11 @@ of any trailing base class.  *offset is incremented by the offset of the field
         }  /* if */
         bcp = bcp->next;
       }  /* while */
-      /* Look for a trailing field in this base. */
-      result = trailing_nonclass_field(skip_typerefs(last_bcp->type),
-                                       &base_offset);
+      if (!last_bcp->is_virtual) {
+        /* Look for a trailing field in this base. */
+        result = trailing_nonclass_field(skip_typerefs(last_bcp->type),
+                                         &base_offset);
+      }  /* if */
       if (result != NULL) {
         *offset += base_offset;
       }  /* if */
@@ -2268,8 +2270,8 @@ base class ends with a bit field.
         symbol_supplement_for_class(bcp->type)->is_POD)) {
     a_targ_size_t  offset = bcp->offset;
     a_type_ptr     btp = bcp->type;
-    /* The call to trailing_nonclass_field set offset to the offset of the last
-       field. */
+    /* The call to trailing_nonclass_field sets offset to the offset of the
+       last field. */
     a_field_ptr    last_field = trailing_nonclass_field(btp, &offset);
     if (last_field != NULL && last_field->is_bit_field &&
         (last_field->offset_bit_remainder + last_field->bit_size) %
