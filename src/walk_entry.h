@@ -861,7 +861,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_initializer(ptr->init_kind, ptr->initializer);
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
         walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
-        walk_ptr(ptr->assoc_template, a_variable_ptr, iek_variable);
+        remap_ptr(ptr->assoc_template, a_variable_ptr, iek_variable);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
@@ -957,7 +957,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                   iek_template_arg);
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
         walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
-        walk_ptr(ptr->assoc_template, a_routine_ptr, iek_routine);
+        remap_ptr(ptr->assoc_template, a_routine_ptr, iek_routine);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* Note that we do not test "defined" here because defined gets cleared
@@ -1161,6 +1161,7 @@ do_set_proper_definition_needed_flag:
             break;
           case enk_runtime_sizeof:
             walk_ptr(ptr->variant.runtime_sizeof.type, a_type_ptr, iek_type);
+            definition_needed_if_class(ptr->variant.runtime_sizeof.type);
             walk_ptr(ptr->variant.runtime_sizeof.expr, an_expr_node_ptr,
                      iek_expr_node);
             break;
@@ -2178,7 +2179,7 @@ after_entry_from_class:
            not to be processed: */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
         walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
-        walk_ptr(ptr->assoc_template, a_type_ptr, iek_type);
+        remap_ptr(ptr->assoc_template, a_type_ptr, iek_type);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         walk_list(ptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
