@@ -1287,6 +1287,14 @@ else
 fi
 default_include_dirs=${EDG_DEFAULT_INCLUDE_DIRS-$default_include_dirs}
 #
+# Versions 2.42 and higher use the --sys_include for the default include
+# directories.
+#
+include_option=--sys_include=
+if [ $driver_version -lt 242 ] ; then
+  include_option=-I
+fi
+#
 # Add the -I before each element of a colon separated list.  Note that
 # an empty list element is converted to a ".".
 #
@@ -1295,7 +1303,7 @@ if [ "$default_include_dirs" != "" ] ; then
                         sed -e "s/::/:.:/g" \
                             -e "s/::/:.:/g" \
                             -e 's/:$//' -e s"/^:/.:/" \
-                            -e "s/^/:/" -e "s/:/ -I/g"`
+                            -e "s/^/:/" -e "s/:/ $include_option/g"`
 fi
 #
 # Add the proper include directory.
