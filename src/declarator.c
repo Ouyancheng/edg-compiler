@@ -1513,7 +1513,6 @@ otherwise it is NULL.  The syntax is:
   a_type_ptr      bottom_pointer_derived_type;
   a_source_position
                   declarator_pos;
-  a_boolean       is_member_def = FALSE;
   a_boolean       real_declarator_allowed;
   a_boolean       abstract_declarator_allowed;
   a_boolean       is_name_start;
@@ -1523,6 +1522,7 @@ otherwise it is NULL.  The syntax is:
   a_boolean       nonconstant_dimension_allowed;
   a_boolean       parenthesized_initializer_allowed;
   a_boolean       is_friend_decl = FALSE;
+  a_boolean       class_scope_deactivation_required = FALSE;
 
   db_enter(3, "declarator");
   set_err_pos_to_curr_token();
@@ -1592,10 +1592,16 @@ otherwise it is NULL.  The syntax is:
     if (local_do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
       *output_flags |= DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
       cfront_member_function_typedef = TRUE;
-       /* Force function_declarator to add an implicit-this-param pointer
-          to the routine type. */
-       check_assertion(locator->qualifier_class_type != NULL);
-       member_parent_type = locator->qualifier_class_type;
+      /* Force function_declarator to add an implicit-this-param pointer
+         to the routine type. */
+      check_assertion(locator->qualifier_class_type != NULL);
+      member_parent_type = locator->qualifier_class_type;
+    }  /* if */
+    if (local_do_flags & DO_CLASS_SCOPE_DEACTIVATION_REQUIRED) {
+      /* A class scope was reactivated to scan a static data member or a
+         member function.  It will have to be deactivated when the scanning
+         of the top-level declarator is complete. */
+      class_scope_deactivation_required = TRUE;
     }  /* if */
     /* A nonconstant dimension, if allowed at all, is allowed only on the
        topmost type (an interpretation of the language specification in ARM
@@ -1701,15 +1707,16 @@ otherwise it is NULL.  The syntax is:
           if (locator_for_curr_id.is_qualified_name) {
             member_parent_type = locator_for_curr_id.qualifier_class_type;
             if (member_parent_type != NULL) {
-              a_symbol_ptr sym = locator_for_curr_id.specific_symbol;
+              a_symbol_ptr  sym = locator_for_curr_id.specific_symbol;
+              a_boolean     reactivate_scope = FALSE;
+
               /* See if the name is the name of a member function. */
               if (sym->kind == (a_symbol_kind)sk_member_function ||
                   sym->kind == (a_symbol_kind)sk_overloaded_function ||
                   sym->kind == (a_symbol_kind)sk_function_template) {
-                /* It is a member function.  Save information about the class
-                   needed to reopen the class scope if a function declarator
-                   is scanned. */
-                is_member_def = TRUE;
+                /* It is a member function.  Its parameters should be scanned
+                   with the original class reactivated. */
+                reactivate_scope = TRUE;
                 parenthesized_initializer_allowed = FALSE;
                 if (is_constructor_symbol(sym)) {
                   is_constructor = TRUE;
@@ -1725,7 +1732,15 @@ otherwise it is NULL.  The syntax is:
                   }  /* if */
                 }  /* if */
               } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-                is_member_def = TRUE;
+                /* The dimensions of static data members (if any) are scanned
+                   with the original class reactivated. */
+                reactivate_scope = TRUE;
+              }  /* if */
+              if (reactivate_scope) {
+                /* Reactivate the scope of the parent class.  It will be
+                   deactivated once the entire declarator has been scanned. */
+                push_class_reactivation_scope(member_parent_type);
+                class_scope_deactivation_required = TRUE;
               }  /* if */
             }  /* if */
           }  /* if */
@@ -1971,11 +1986,6 @@ otherwise it is NULL.  The syntax is:
         }  /* if */
       }  /* if */
 function_lparen:
-      if (is_member_def) {
-        /* The parameters of member functions are scanned with the original
-           class reactivated. */
-        push_class_reactivation_scope(member_parent_type);
-      }  /* if */
       /* For function types as the top type, fetch the extra function info
          as well.  For non-top types, do not. */
       if (C_dialect == C_dialect_cplusplus) {
@@ -2031,15 +2041,7 @@ function_lparen:
         func_info->declarator_ssep = *declarator_ssep;
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      if (is_member_def) {
-        pop_class_reactivation_scope();
-      }  /* if */
     } else {
-      if (is_member_def) {
-        /* The dimensions of static data members are scanned with the original
-           class reactivated. */
-        push_class_reactivation_scope(member_parent_type);
-      }  /* if */
       /* Left bracket, indicating array declarator. */
       array_declarator(&new_type_ptr, nonconstant_dimension_allowed);
       if (nonconstant_dimension_allowed) {
@@ -2047,9 +2049,6 @@ function_lparen:
            expression may have a nonconstant expression in the first
            dimension (ARM 5.3.3).  Subsequent dimension must be constants. */
         nonconstant_dimension_allowed = FALSE;
-      }  /* if */
-      if (is_member_def) {
-        pop_class_reactivation_scope();
       }  /* if */
     }  /* if */
     /* Add the new type to the bottom of the existing derived type list.
@@ -2120,6 +2119,17 @@ function_lparen:
       pos_error(ec_function_type_required, &locator->source_position);
       set_to_error_locator(*locator);
       complete_type = bottom_derived_type = error_type();
+    }  /* if */
+  }  /* if */
+  if (class_scope_deactivation_required) {
+    /* A class scope was reactivated when a qualified name was seen. */
+    if (specifiers_type != NULL) {
+      /* This is a top-level call to declarator, so the class scope can now
+         be deactivated. */
+      pop_class_reactivation_scope();
+    } else {
+      /* Pass the information up to the caller. */
+      *output_flags |= DO_CLASS_SCOPE_DEACTIVATION_REQUIRED;
     }  /* if */
   }  /* if */
   *p_complete_type = complete_type;
