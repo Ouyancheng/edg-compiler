@@ -10177,6 +10177,8 @@ by the options.  Returns TRUE if any errors were diagnosed.
 
 #if RECORD_FORM_OF_NAME_REFERENCE
 
+#if DEBUG
+
 void db_name_qualifier(a_name_qualifier_ptr	nqp)
 /*
 Display a name qualifier, for debugging purposes.
@@ -10215,6 +10217,7 @@ Display a name reference, for debugging purposes.
   fprintf(f_debug, "\n");
 }  /* db_name_reference */
 
+#endif /* DEBUG */
 
 static void make_name_qualifier(a_name_qualifier_ptr	*nqp,
 				a_symbol_ptr		qualifier_sym,
