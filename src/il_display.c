@@ -276,7 +276,6 @@ be written.
 {
   char        *name = NULL;
   a_type_ptr  type_name_type = NULL;
-  a_type_ptr  tp;
 
   disp_name(ptr_name);
   disp_ptr_value(entry_ptr, entry_kind);
@@ -314,19 +313,6 @@ be written.
          name.  If a label, put "label". */
       (void)printf(": ");
       if (type_name_type != NULL) {
-        if (entry_kind == iek_type) {
-          a_type_kind tkind = type_name_type->kind;
-          if (tkind == (a_type_kind)tk_struct ) {
-            (void)printf("struct ");
-          } else if (tkind == (a_type_kind)tk_union) {
-            (void)printf("union ");
-          } else if (tkind == (a_type_kind)tk_integer &&
-                     type_name_type->variant.integer.enum_type) {
-            (void)printf("enum ");
-          } else if (tkind == (a_type_kind)tk_class) {
-            (void)printf("class ");
-          }  /* if */
-        }  /* if */
         summarize_type(type_name_type);
         if (entry_kind == iek_base_class) {
           (void)printf(" (in ");
@@ -347,12 +333,11 @@ be written.
       } else if (entry_kind == iek_type) {
         a_type_ptr type = (a_type_ptr)entry_ptr;
         (void)printf(": ");
-        if (type->variant.typeref.is_placeholder_for_class_instantiation) {
-          (void)printf("placeholder for instantiation of ");
-        } else if (type->variant.typeref.is_placeholder_for_namespace_type) {
-          (void)printf("placeholder for namespace type ");
-        } else if (type->variant.typeref.is_placeholder_for_nested_class_def) {
-          (void)printf("nested-class-def placeholder for ");
+        if (type->kind == (a_type_kind)tk_typeref &&
+            (type->variant.typeref.is_placeholder_for_class_instantiation ||
+             type->variant.typeref.is_placeholder_for_namespace_type ||
+             type->variant.typeref.is_placeholder_for_nested_class_def)) {
+          (void)printf("placeholder for ");
         }  /* if */
         summarize_type(type);
       } else if (entry_kind == iek_source_file) {
