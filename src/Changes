@@ -1,5 +1,11 @@
 Version 2.36
 
+4/3/97    Cfront 3.0 mode should not be permitted with strict mode
+
+Cfront mode is not compatible with strict mode.  An error was issued
+if cfront 2.1 mode and strict mode were both specified, but not when
+cfront 3.0 mode and strict mode were both specified.  This has been fixed.
+
 4/3/97    Microsoft compatibility: empty macro arguments ignored
 
 Microsoft-compatibility mode now treats empty macro arguments like

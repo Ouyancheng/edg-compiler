@@ -1845,7 +1845,7 @@ common_cfront_mode_settings:
     /* Strict ANSI mode is incompatible with cfront compatibility mode. */
     if (any_cfront_mode()) {
       if (option_kind_used[(int)optk_cfront_2_1_mode] ||
-          option_kind_used[(int)optk_cfront_2_1_mode]) {
+          option_kind_used[(int)optk_cfront_3_0_mode]) {
         /* cfront mode was enabled by a command line option. */
         command_line_error(ec_cl_strict_ansi_incompatible_with_cfront);
       } else {
