@@ -2053,6 +2053,7 @@ static void determine_function_viability(
                  a_type_ptr               implicit_selector_type,
                  a_boolean                ctor_conversion_case,
                  a_boolean                effects_copy_initialization,
+                 a_boolean                from_arg_dep_lookup,
                  a_candidate_function_ptr *candidate_functions,
                  a_boolean                *matched_except_for_missing_selector)
 /*
@@ -2084,7 +2085,8 @@ is set in any candidate function entries created.
 effects_copy_initialization is TRUE if this call is the user-defined
 conversion in a copy-initialization; user-defined conversions are not
 tried on argument matches, and constructors that are marked "explicit"
-are ignored.
+are ignored.  from_arg_dep_lookup is TRUE if the function was found by
+argument-dependent lookup.
 */
 {
   a_symbol_ptr             function_symbol;
@@ -2124,7 +2126,7 @@ are ignored.
          and cause the overload resolution to be ambiguous. */
       goto accept_function;
     }  /* if */
-    if (do_dependent_name_processing &&
+    if (do_dependent_name_processing && !from_arg_dep_lookup &&
         depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
         !function_symbol->is_class_member &&
         function_symbol->decl_seq > get_effective_decl_seq()) {
@@ -2425,6 +2427,7 @@ static void try_overloaded_function_match(
                  a_boolean                selector_is_object_pointer,
                  a_boolean                ctor_conversion_case,
                  a_boolean                effects_copy_initialization,
+                 a_boolean                from_arg_dep_lookup,
                  a_candidate_function_ptr *candidate_functions,
                  a_boolean                *matched_except_for_missing_selector)
 /*
@@ -2449,7 +2452,8 @@ to a class type: the functions are constructors, have_selector is FALSE
 is set in any candidate function entries created.  effects_copy_initialization
 is TRUE if this call is the user-defined conversion in a copy-initialization;
 user-defined conversions are not tried on argument matches, and constructors
-that are marked "explicit" are ignored.
+that are marked "explicit" are ignored.  from_arg_dep_lookup is TRUE if
+the function was found by argument-dependent lookup.
 */
 {
   a_boolean     overloaded_function_case;
@@ -2538,6 +2542,7 @@ that are marked "explicit" are ignored.
                                  implicit_selector_type,
                                  ctor_conversion_case,
                                  effects_copy_initialization,
+                                 from_arg_dep_lookup,
                                  candidate_functions,
                                  matched_except_for_missing_selector);
   }  /* for */
@@ -2573,6 +2578,7 @@ are viable functions, FALSE if not.  Issues no errors.
                                 selector_is_object_pointer,
                                 ctor_conversion_case,
                                 effects_copy_initialization,
+                                /*from_arg_dep_lookup=*/FALSE,
                                 &candidate_functions,
                                 &matched_except_for_missing_selector);
   possible = (candidate_functions != NULL);
@@ -2659,6 +2665,7 @@ arguments of the call (given by arg_operand_list).
                                        (a_type_ptr)NULL,
                                        /*ctor_conversion_case=*/FALSE,
                                        /*effects_copy_initialization=*/FALSE,
+                                       /*from_arg_dep_lookup=*/FALSE,
                                        candidate_functions,
                                        &matched_except_for_missing_selector);
         }  /* if */
@@ -3866,6 +3873,7 @@ and return NULL.  This routine is called only in C++ mode.
                                     /*selector_is_object_pointer=*/TRUE,
                                     /*ctor_conversion_case=*/FALSE,
                                     /*effects_copy_initialization=*/FALSE,
+                                    /*from_arg_dep_lookup=*/FALSE,
                                     &candidate_functions,
                                     &matched_except_for_missing_selector);
       some_function_tried = TRUE;
@@ -3877,6 +3885,7 @@ and return NULL.  This routine is called only in C++ mode.
       a_symbol_locator        locator;
       an_arg_operand_ptr      arg_operand;
       a_symbol_list_entry_ptr symbol_list, slep;
+      a_symbol_ptr            normal_lookup_function_symbol;
 
       /* Accumulate the types used in the arguments. */
       for (arg_operand = arg_operand_list;
@@ -3888,8 +3897,11 @@ and return NULL.  This routine is called only in C++ mode.
       /* Do argument-dependent lookup, producing a list of symbols to
          be considered as candidate functions. */
       make_locator_for_symbol(overloaded_function_symbol, &locator);
-      function_symbol = sym_is_undefined ? NULL : overloaded_function_symbol;
-      symbol_list = argument_dependent_lookup(function_symbol, &locator,
+      normal_lookup_function_symbol = sym_is_undefined ?
+                                                    NULL :
+                                                    overloaded_function_symbol;
+      symbol_list = argument_dependent_lookup(normal_lookup_function_symbol,
+                                              &locator,
                                               &type_list);
       if (single_function != NULL && symbol_list != NULL) {
         /* If the function is a single non-overloaded function, overload
@@ -3922,6 +3934,9 @@ and return NULL.  This routine is called only in C++ mode.
                                       /*selector_is_object_pointer=*/TRUE,
                                       /*ctor_conversion_case=*/FALSE,
                                       /*effects_copy_initialization=*/FALSE,
+                                      /*from_arg_dep_lookup=*/
+                                               (function_symbol !=
+                                                normal_lookup_function_symbol),
                                       &candidate_functions,
                                       &matched_except_for_missing_selector);
         some_function_tried = TRUE;
@@ -7472,6 +7487,7 @@ functions could still apply).
                                          /*selector_is_object_pointer=*/FALSE,
                                          /*ctor_conversion_case=*/FALSE,
                                          /*effects_copy_initialization=*/FALSE,
+                                         /*from_arg_dep_lookup=*/FALSE,
                                          &candidate_functions,
                                          &matched_except_for_missing_selector);
           }  /* if */
@@ -7527,6 +7543,9 @@ functions could still apply).
                                          /*selector_is_object_pointer=*/TRUE,
                                          /*ctor_conversion_case=*/FALSE,
                                          /*effects_copy_initialization=*/FALSE,
+                                         /*from_arg_dep_lookup=*/
+                                                 (nonmember_functions_symbol !=
+                                                  normal_sym),
                                          &candidate_functions,
                                          &matched_except_for_missing_selector);
           }  /* for */
@@ -7883,6 +7902,7 @@ because of an error.  This routine is used only in C++ mode.
                                     /*ctor_conversion_case=*/TRUE,
                                     /*effects_copy_initialization=*/
                                                         is_copy_initialization,
+                                    /*from_arg_dep_lookup=*/FALSE,
                                     &candidate_functions,
                                     &matched_except_for_missing_selector);
     }  /* if */
