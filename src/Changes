@@ -54,10 +54,10 @@ is promoted to file scope unless a type of the same name already exists at
 file scope, has been added.  This affects name mangling and also restricts
 the way in which that name can be used later on in a program.
 
-To support this a new field named "is_semivisible_nested_type" has been
-added to the IL type structure.  Two new configuration switches have been
-added to specify the version of cfront with which the generated object code
-should be compatible: CFRONT_2_1_OBJECT_CODE_COMPATIBILITY and
+To support this the field "use_cfront_transitional_nested_type_name_mangling"
+has been added to the IL type structure.  Two new configuration switches
+have been added to specify the version of cfront with which the generated
+object code should be compatible: CFRONT_2_1_OBJECT_CODE_COMPATIBILITY and
 CFRONT_3_0_OBJECT_CODE_COMPATIBILITY.  The existing switch is now set
 to the logical OR of these two switches.
 
