@@ -112,6 +112,10 @@ address of a const and taking the address of a nonconst object).
   (SRK_USE | SRK_MODIFICATION | SRK_ADDRESS_TAKEN | SRK_ERROR)
 			/* All types of references.  Used to mask off those
 			   bits. */
+#define SRK_ALL_VARIABLE_USES \
+  (SRK_USE | SRK_ADDRESS_TAKEN)
+			/* All reference kinds that constitute "use" of a
+			   variable's value in one way or another. */
 
 
 /* Record use information (for cross-reference, etc.). */

@@ -502,7 +502,7 @@ symbol "used" or "set", if appropriate.
        are diagnostics issued here. */
     a_scope_stack_entry_ptr  ssep;
     a_variable_ptr  vp;
-    if ((kind & SRK_USE) || (kind & SRK_ADDRESS_TAKEN) || (kind & SRK_ERROR)) {
+    if ((kind & SRK_ALL_VARIABLE_USES) || (kind & SRK_ERROR)) {
       if (sym_ptr->variant.variable.used) {
         /* This is not the first use. */
         vp = sym_ptr->variant.variable.ptr;
