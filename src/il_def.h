@@ -915,7 +915,7 @@ typedef struct a_base_class {
 		overriding_virtual_functions;
 			/* Pointer to a linked list of entries representing
 			   functions declared in derived classes that
-                           overriding virtual functions declared in the
+                           override virtual functions declared in the
                            current base class. */
 } a_base_class;
 
@@ -966,7 +966,7 @@ typedef struct a_class_type_supplement {
                            members of base classes, reflecting access
                            declarations in the current class; NULL if the
 			   current class is not a derived class (i.e., if
-			   bases_classes is NULL). */
+			   base_classes is NULL). */
   a_class_list_entry_ptr
                 befriending_classes;
                         /* A linked list of entries identifying classes that
