@@ -14,6 +14,7 @@ The demangling is intended to work only on names of external entities.
 There is some name mangling done for internal entities, or by the
 C-generating back end, that this program does not try to decode.
 */
+
 #include "basics.h"
 #include "host_envir.h"
 #include "decode.h"
@@ -150,7 +151,7 @@ Return a pointer to the character position following the number.
 {
   unsigned long n = 0;
 
-  if (!isdigit(*p)) {
+  if (!isdigit((unsigned char)*p)) {
     bad_mangled_name();
     goto end_of_routine;
   }  /* if */
@@ -163,7 +164,7 @@ Return a pointer to the character position following the number.
       goto end_of_routine;
     }  /* if */
     p++;
-  } while (isdigit(*p));
+  } while (isdigit((unsigned char)*p));
 end_of_routine:
   *num = n;
   return p;
@@ -179,7 +180,7 @@ following the number.
 */
 {
   *num = 0;
-  if (!isdigit(*p)) {
+  if (!isdigit((unsigned char)*p)) {
     bad_mangled_name();
     goto end_of_routine;
   }  /* if */
@@ -199,7 +200,8 @@ Return a pointer to the character position following the number.
 */
 {
   /* Interpret "multi-digit" as "2-digit" because it's ambiguous otherwise. */
-  if (isdigit(p[0]) && isdigit(p[1]) && p[2] == '_') {
+  if (isdigit((unsigned char)p[0]) && isdigit((unsigned char)p[1]) &&
+      p[2] == '_') {
     /* Multi-digit number followed by underscore. */
     p = get_number(p, num);
     p = advance_past_underscore(p);
@@ -263,7 +265,7 @@ demangled.
                    correspond to the triplet of values in the __mptr
                    data structure.
   */
-  if (isdigit(*p)) {
+  if (isdigit((unsigned char)*p)) {
     /* A name preceded by its length, e.g., "3abc".  Put out "&name". */
     p = get_number(p, &nchars);
     write_id_ch('&');
@@ -325,7 +327,7 @@ demangled.
       /* Advance past the "LM". */
       p += 2;
       /* Advance over the first component, ignoring it. */
-      while (isdigit(*p)) p++;
+      while (isdigit((unsigned char)*p)) p++;
       p = advance_past_underscore(p);
       /* The index component should be next. */
       if (*p != 'L') {
@@ -342,7 +344,7 @@ demangled.
       /* Remember the start of the index. */
       index = p;
       /* Skip the rest of the index. */
-      while (isdigit(*p) || (*p == 'n')) p++;
+      while (isdigit((unsigned char)*p) || (*p == 'n')) p++;
       p = advance_past_underscore(p);
       /* If the index number starts with 'n', this is a non-virtual
          function. */
@@ -781,7 +783,7 @@ to the character position following what was demangled.
 
   /* Process type qualifiers. */
   p = demangle_type_qualifiers(p);
-  if (isdigit(*p) || *p == 'Q') {
+  if (isdigit((unsigned char)*p) || *p == 'Q') {
     /* Named type, like class or enum, e.g., "3abc". */
     p = demangle_type_name(p, /*base_name_only=*/FALSE);
   } else {
@@ -975,7 +977,7 @@ not empty, because it contains a name or a derived type).
     /* Array type, e.g., "A10_i" is array[10] of int. */
     p++;
     /* Skip the array size. */
-    while (isdigit(*p)) p++;
+    while (isdigit((unsigned char)*p)) p++;
     p = advance_past_underscore(p);
     p = demangle_type_first_part(p, /*under_lhs_declarator=*/FALSE,
                                  /*need_trailing_space=*/TRUE);
@@ -1052,7 +1054,7 @@ use of parentheses around parts of the declarator.)
       p++;
     } else {
       /* Put out the array size. */
-      while (isdigit(*p)) write_id_ch(*p++);
+      while (isdigit((unsigned char)*p)) write_id_ch(*p++);
     }  /* if */
     p = advance_past_underscore(p);
     write_id_ch(']');
@@ -1159,6 +1161,46 @@ end_of_routine:
 }  /* demangle_identifier */
 
 
+static char *demangle_local_name(char *ptr)
+/*
+Demangle the local name at ptr and output the demangled form.  Return
+a pointer to the character position following what was demangled.
+This demangles the "__nn_mm_name" form produced by the C-generating
+back end.  This is not something visible unless the C-generating back end
+is used, and it's a local name, which is ordinarily outside the charter
+of these demangling routines, but it's an easy and common case, so...
+*/
+{
+  char *p = ptr+2;
+
+  /* Check for the initial two numbers and underscores.  The caller checked
+     for the two initial underscores and the digit following that. */
+  do { p++; } while (isdigit((unsigned char)*p));
+  if (*p != '_') {
+    bad_mangled_name();
+    goto end_of_routine;
+  }  /* if */
+  p++;
+  if (!isdigit((unsigned char)*p)) {
+    bad_mangled_name();
+    goto end_of_routine;
+  }  /* if */
+  do { p++; } while (isdigit((unsigned char)*p));
+  if (*p != '_') {
+    bad_mangled_name();
+    goto end_of_routine;
+  }  /* if */
+  p++;
+  /* Copy the rest of the string to output. */
+  while (*p != '\0') {
+    write_id_ch(*p);
+    p++;
+  }  /* while */
+end_of_routine:
+  return p;
+}  /* demangle_local_name */
+
+
 void decode_identifier(char      *id,
                        char      *output_buffer,
                        sizeof_t  output_buffer_size,
@@ -1221,6 +1263,10 @@ is set to the size of buffer required to do the demangling.
   } else if (start_of_id_is("__Q", id)) {
     /* Nested class name. */
     end_ptr = demangle_type_name(id+2, /*base_name_only=*/FALSE);
+  } else if (start_of_id_is("__", id) && isdigit((unsigned char)id[2])) {
+    /* Local variable mangled by the C-generating back end: __nn_mm_name,
+       where "nn" and "mm" are decimal integers. */
+    end_ptr = demangle_local_name(id);
   } else {
     /* Normal case: function name, static data member name, or
        name of type or variable promoted out of function. */
