@@ -133,19 +133,19 @@ extern a_boolean impl_pointer_conversion(
                                 a_boolean     suppress_extensions,
                                 an_error_code default_warning_code,
                                 an_error_code *warning_suggested);
-extern a_boolean impl_conversion(a_type_ptr    source_type,
-                                 a_boolean     source_is_constant,
-                                 a_constant    *source_constant,
-                                 a_type_ptr    dest_type,
-                                 a_boolean     suppress_extensions,
-                                 an_error_code default_warning_code,
-                                 an_error_code *warning_suggested);
-extern a_boolean expl_conversion(a_type_ptr    source_type,
-                                 a_boolean     source_is_constant,
-                                 a_constant    *source_constant,
-                                 a_type_ptr    dest_type,
-                                 an_error_code default_warning_code,
-                                 an_error_code *warning_suggested);
+extern a_boolean impl_conversion_possible(a_type_ptr    source_type,
+                                          a_boolean     source_is_constant,
+                                          a_constant    *source_constant,
+                                          a_type_ptr    dest_type,
+                                          a_boolean     suppress_extensions,
+                                          an_error_code default_warning_code,
+                                          an_error_code *warning_suggested);
+extern a_boolean expl_conversion_possible(a_type_ptr    source_type,
+                                          a_boolean     source_is_constant,
+                                          a_constant    *source_constant,
+                                          a_type_ptr    dest_type,
+                                          an_error_code default_warning_code,
+                                          an_error_code *warning_suggested);
 extern a_type_ptr composite_type(a_type_ptr type_1,
                                  a_type_ptr type_2);
 extern a_boolean overload_distinguishable(a_symbol_ptr  old_sym_ptr,

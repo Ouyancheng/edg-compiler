@@ -1783,13 +1783,13 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 }  /* impl_pointer_conversion */
 
 
-a_boolean impl_conversion(a_type_ptr    source_type,
-                          a_boolean     source_is_constant,
-                          a_constant    *source_constant,
-                          a_type_ptr    dest_type,
-                          a_boolean     suppress_extensions,
-                          an_error_code default_warning_code,
-                          an_error_code *warning_suggested)
+a_boolean impl_conversion_possible(a_type_ptr    source_type,
+                                   a_boolean     source_is_constant,
+                                   a_constant    *source_constant,
+                                   a_type_ptr    dest_type,
+                                   a_boolean     suppress_extensions,
+                                   an_error_code default_warning_code,
+                                   an_error_code *warning_suggested)
 /*
 Return TRUE if it is okay to implicitly convert something of type source_type
 to something of type dest_type.  If source_is_constant is TRUE, the source
@@ -1816,10 +1816,10 @@ See also 3.3.16.1 in the ANSI C standard (simple assignment).
   a_boolean      pointer_normalization_needed;
   a_constant_ptr dest_enum_list, source_enum_list;
 
-  db_enter(4, "impl_conversion");
+  db_enter(4, "impl_conversion_possible");
 #if DEBUG
   if (debug_level >= 4) {
-    fprintf(f_debug, "impl_conversion: source_type = ");
+    fprintf(f_debug, "impl_conversion_possible: source_type = ");
     db_type(source_type);
     fprintf(f_debug, ", dest_type = ");
     db_type(dest_type);
@@ -1904,20 +1904,21 @@ See also 3.3.16.1 in the ANSI C standard (simple assignment).
 
 #if DEBUG
   if (debug_level >= 4) {
-    fprintf(f_debug, "impl_conversion: %s\n", okay ? "okay" : "not okay");
+    fprintf(f_debug, "impl_conversion_possible: %s\n",
+                     okay ? "okay" : "not okay");
   }  /* if */
 #endif /* DEBUG */
   db_exit();
   return okay;
-}  /* impl_conversion */
+}  /* impl_conversion_possible */
 
 
-a_boolean expl_conversion(a_type_ptr    source_type,
-                          a_boolean     source_is_constant,
-                          a_constant    *source_constant,
-                          a_type_ptr    dest_type,
-                          an_error_code default_warning_code,
-                          an_error_code *warning_suggested)
+a_boolean expl_conversion_possible(a_type_ptr    source_type,
+                                   a_boolean     source_is_constant,
+                                   a_constant    *source_constant,
+                                   a_type_ptr    dest_type,
+                                   an_error_code default_warning_code,
+                                   an_error_code *warning_suggested)
 /*
 Return TRUE if it is okay to explicitly convert something of type source_type
 to something of type dest_type.  If source_is_constant is TRUE, the source
@@ -1930,7 +1931,7 @@ default_warning_code will be copied into *warning_suggested when no
 specific message applies.  In strict ANSI mode, if a conversion flagged with
 *warning_suggested is done, the warning is required.
 
-Any implicit conversion is allowed (see impl_conversion).  Also, the
+Any implicit conversion is allowed (see impl_conversion_possible).  Also, the
 explicit conversions allowed in casts (ARM 5.2.3 and 5.4; ANSI C 3.3.4)
 are allowed.
 */
@@ -1938,10 +1939,10 @@ are allowed.
   a_boolean     okay = FALSE, impl_okay;
   an_error_code impl_warning_suggested;
 
-  db_enter(4, "expl_conversion");
+  db_enter(4, "expl_conversion_possible");
 #if DEBUG
   if (debug_level >= 4) {
-    fprintf(f_debug, "expl_conversion: source_type = ");
+    fprintf(f_debug, "expl_conversion_possible: source_type = ");
     db_type(source_type);
     fprintf(f_debug, ", dest_type = ");
     db_type(dest_type);
@@ -1954,9 +1955,12 @@ are allowed.
   dest_type = skip_typerefs(dest_type);
 
   /* See if there is an implicit conversion between the types. */
-  impl_okay = impl_conversion(source_type, source_is_constant, source_constant,
-                              dest_type, /*suppress_extensions=*/FALSE,
-                              default_warning_code, &impl_warning_suggested);
+  impl_okay = impl_conversion_possible(source_type,
+                                       source_is_constant, source_constant,
+                                       dest_type,
+                                       /*suppress_extensions=*/FALSE,
+                                       default_warning_code,
+                                       &impl_warning_suggested);
   if (impl_okay && impl_warning_suggested == ec_no_error) {
     /* There is an implicit conversion, and it's not questionable. */
     okay = TRUE;
@@ -2030,12 +2034,13 @@ are allowed.
 
 #if DEBUG
   if (debug_level >= 4) {
-    fprintf(f_debug, "expl_conversion: %s\n", okay ? "okay" : "not okay");
+    fprintf(f_debug, "expl_conversion_possible: %s\n",
+                     okay ? "okay" : "not okay");
   }  /* if */
 #endif /* DEBUG */
   db_exit();
   return okay;
-}  /* expl_conversion */
+}  /* expl_conversion_possible */
 
 
 a_type_ptr composite_type(a_type_ptr type_1,
@@ -2638,9 +2643,9 @@ points to the constant value.
   }  /* if */
   /* Try a match involving standard conversions.  This is case [3] in
      the ARM. */
-  if (impl_conversion(arg_type, arg_is_constant, arg_constant, param_type,
-                      /*suppress_extensions=*/TRUE,
-                      ec_incompatible_param, &warning_suggested)) {
+  if (impl_conversion_possible(arg_type, arg_is_constant, arg_constant,
+                               param_type, /*suppress_extensions=*/TRUE,
+                               ec_incompatible_param, &warning_suggested)) {
     /* Match with standard conversions. */
     arg_match->match_level = aml_std_conversion;
     arg_match->warning_suggested = warning_suggested;
