@@ -232,7 +232,8 @@ typedef struct a_pending_pragma {
      using this union. */
   union {
     /* When descr_ptr->kind == pk_lint_varargs_count */
-    short	lint_varargs_count;
+    a_lint_varargs_count
+		lint_varargs_count;
   } variant;
 } a_pending_pragma;
 
