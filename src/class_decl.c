@@ -1098,10 +1098,10 @@ when the enclosing class is instantiated.
 {
   a_routine_ptr                rp = rfp->symbol->variant.routine.ptr;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_scope_depth                scope_depth = NO_SCOPE_DEPTH;
   a_source_sequence_entry_ptr  insert_point;
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "microsoft_friend_function_fixup");
