@@ -4051,6 +4051,10 @@ typedef struct a_type {
 			/* TRUE if the variable length array has an associated
 			   vla_dimension entry.  FALSE for cases like [*].
 			   (C mode only, and only when is_vla is TRUE.)  */
+      a_bit_field
+		put_out_unknown_bound_as_zero:1;
+			/* Indication that an unknown bound [] should be
+			   put out as [0] in generated code. */
       union {
         /* When is_variable_size_array and is_template_dependent_size_array
            are FALSE: */

@@ -2015,12 +2015,23 @@ final semicolon if output_final_semi is TRUE.
       set_output_position(&field->source_corresp.decl_position);
       dump_decl_associated_pragmas(&field->source_corresp);
       if (!field->is_bit_field) {
+        a_type_ptr field_type = field->type;
         /* Not a bit field. */
+#if GCC_IS_C_GEN_BE_TARGET
+        /* Check for a flexible array member and put out its bound as [0]
+           instead of [] because gcc accepts it that way. */
+        if (type->variant.class_struct_union.contains_flexible_array_member &&
+            is_array_type(field_type) &&
+            is_incomplete_type(field_type)) {
+          skip_typerefs(field_type)->variant.array.
+                                          put_out_unknown_bound_as_zero = TRUE;
+        }  /* if */
+#endif /* GCC_IS_C_GEN_BE_TARGET */
         /* Note that a name will be generated for an anonymous union in C++. */
         /* Note that "const" is dropped; that's important so that
            initialization code rewritten as executable code by IL lowering
            can assign to this member and the overall struct. */
-        dump_general_declaration_using_type(field->type,
+        dump_general_declaration_using_type(field_type,
                                             &field->source_corresp,
                                             NO_VARIABLE, NO_TEMP, NO_NAME,
                                             TQ_NONE,
