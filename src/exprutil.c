@@ -8202,6 +8202,13 @@ intended to be called from outside of the expression routines.
     curr_object_lifetime = lifetime;
     expr_stack->lifetime = lifetime;
     source = source->variant.object_lifetime.expr;
+  } else {
+    /* Add an object lifetime to capture any temp-init needed on the
+       return of the call.  If it's not used, it will simply be deleted
+       on the pop_expr_stack below. */
+    push_object_lifetime(iek_none, (char *)NULL,
+                         (an_object_lifetime_kind)olk_expr_temporary);
+    expr_stack->lifetime = curr_object_lifetime;
   }  /* if */
   /* Make a node for the address of the function. */
   func_addr_node = function_addr_expr(rout, /*set_address_taken_flag=*/FALSE);

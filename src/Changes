@@ -1,5 +1,30 @@
 Version 3.6
 
+1/25/05  Temporary destroyed wrong in generated operator= function
+
+The code generated for an operator= function in a class
+incorrectly reused a temporary before destroying it and then
+destroyed it more than once.  This problem came up only if
+the class has at least two fields of a given class type and
+that class's operator= function returns its result by value
+(which is unusual).  Now fixed.
+
+  struct B {
+    B();
+    B(const B&);
+    ~B();
+    B operator=(const B &);  // Returns result by value, not reference
+  };
+  struct A {
+    B ivA;  // Two instances of class B.  Generated code for A::operator=
+    B ivB;  //   reused a temporary too soon and then destroyed it twice.
+  };
+  int main() {
+    A a1;
+    A a2;
+    a1 = a2;
+  }
+
 1/24/05  GNU C++ compatibility: implicit typename and g++ 3.4 mode
 
 The implicit typename feature is usually enabled in g++ mode, but should
