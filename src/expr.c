@@ -12263,6 +12263,8 @@ and scan_aggregate_class_initializer_expression.
           orig_result = result;
           make_constant_operand(expr->variant.constant, &result);
           restore_operand_details(&result, &orig_result);
+          pos_ty2_warning(ec_bad_initializer_type, &result.position,
+                          orig_result.type, required_type);
         }  /* if */
       }  /* if */
     }  /* if */
