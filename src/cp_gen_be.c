@@ -369,12 +369,68 @@ Free the hidden-name fixup entry given.
 }  /* free_hidden_name_fixup */
 
 
+static void push_scope_hidden_names(a_scope_ptr scope)
+/*
+Activate the hidden name information associated with the indicated scope,
+thereby marking some names as hidden while inside that scope.  This routine
+is called only for C++ (there are no source mechanisms for referring to
+hidden names in C, so there's no point in maintaining this information).
+*/
+{
+  a_hidden_name_ptr hnp;
+
+  if (scope->kind == (a_scope_kind)sck_class_struct_union) {
+    /* The scope is for a class.  Push the hidden name information for its
+       base classes as well. */
+    a_type_ptr       class_type = scope->variant.assoc_type;
+    a_base_class_ptr bcp;
+    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+      push_scope_hidden_names(bcp->type->variant.class_struct_union.
+                                                      extra_info->assoc_scope);
+    }  /* for */
+  }  /* if */
+  for (hnp = scope->hidden_names; hnp != NULL; hnp = hnp->next) {
+    a_boolean fixup_created = FALSE;
+    if (hnp->global_qualification_needed) {
+      /* The entity needs a leading "::" in the inner scopes. */
+      a_source_correspondence *scp =
+                                  (a_source_correspondence *)(hnp->entity.ptr);
+      if (!scp->global_qualification_needed) {
+        /* The global_qualification_needed flag needs to be set.  Also
+           arrange for it to be reset at the end of the current name
+           context. */
+        if (!fixup_created) {
+          alloc_hidden_name_fixup(hnp->entity);
+          fixup_created = TRUE;
+        }  /* if */
+        scp->global_qualification_needed = TRUE;
+      }  /* if */
+    }  /* if */
+    if (hnp->elaborated_type_specifier_needed) {
+      /* The entity must be referenced via an elaborated type specifier
+         (e.g., "class X" rather than just "X") in the inner scopes. */
+      a_type_ptr type = (a_type_ptr)(hnp->entity.ptr);
+      if (!type->elaborated_type_specifier_needed) {
+        /* The elaborated_type_specifier_needed flag needs to be
+           set.  Also arrange for it to be reset at the end of the current
+           name context. */
+        if (!fixup_created) {
+          alloc_hidden_name_fixup(hnp->entity);
+          fixup_created = TRUE;
+        }  /* if */
+        type->elaborated_type_specifier_needed = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* push_scope_hidden_names */
+
+
 static void push_name_context(a_scope_ptr scope)
 /*
 Push a new context entry onto the name context stack, and fill
 in that entry to indicate the given scope.  The name context stack is used
 to avoid class qualifiers on names when inside those classes.
-scope is NULL for a block without an associated scope.
+This routine is called for both C and C++.
 */
 {
   a_name_context_ptr ncp;
@@ -397,43 +453,10 @@ scope is NULL for a block without an associated scope.
   /* Put the entry on the stack. */
   ncp->next = curr_name_context;
   curr_name_context = ncp;
-  if (scope != NULL) {
+  if (il_header.source_language == sl_Cplusplus) {
     /* Go through the hidden names list and mark the hidden entities so
        they will be accessed specially in this and inner scopes. */
-    a_hidden_name_ptr hnp;
-    for (hnp = scope->hidden_names; hnp != NULL; hnp = hnp->next) {
-      a_boolean fixup_created = FALSE;
-      if (hnp->global_qualification_needed) {
-        /* The entity needs a leading "::" in the inner scopes. */
-        a_source_correspondence *scp =
-                                  (a_source_correspondence *)(hnp->entity.ptr);
-        if (!scp->global_qualification_needed) {
-          /* The global_qualification_needed flag needs to be set.  Also
-             arrange for it to be reset at the end of the current name
-             context. */
-          if (!fixup_created) {
-            alloc_hidden_name_fixup(hnp->entity);
-            fixup_created = TRUE;
-          }  /* if */
-          scp->global_qualification_needed = TRUE;
-        }  /* if */
-      }  /* if */
-      if (hnp->elaborated_type_specifier_needed) {
-        /* The entity must be referenced via an elaborated type specifier
-           (e.g., "class X" rather than just "X") in the inner scopes. */
-        a_type_ptr type = (a_type_ptr)(hnp->entity.ptr);
-        if (!type->elaborated_type_specifier_needed) {
-          /* The elaborated_type_specifier_needed flag needs to be
-             set.  Also arrange for it to be reset at the end of the current
-             name context. */
-          if (!fixup_created) {
-            alloc_hidden_name_fixup(hnp->entity);
-            fixup_created = TRUE;
-          }  /* if */
-          type->elaborated_type_specifier_needed = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* for */
+    push_scope_hidden_names(scope);
   }  /* if */
 }  /* push_name_context */
 
@@ -447,6 +470,8 @@ Pop the top entry off the name context stack.
   a_hidden_name_fixup_ptr hnfp, hnfp_next;
 
   /* Process the hidden-name fixup list. */
+  /* Note that if the scope pushed was a class, fixups for its base class
+     hidden names are on this list as well. */
   for (hnfp = ncp->fixups; hnfp != NULL; hnfp = hnfp_next) {
     hnfp_next = hnfp->next;
     hnfp->next = NULL;
@@ -4005,7 +4030,7 @@ Generate code for the indicated switch statement.
   a_statement_ptr saved_switch_statement = curr_switch_statement;
   a_statement_ptr body_statement;
   a_scope_ptr     scope = NULL;
-  a_boolean       need_pop_context = FALSE;
+  a_boolean       need_context_pop = FALSE;
 
   write_tok_str("switch (");
   gen_condition(statement);
@@ -4020,8 +4045,10 @@ Generate code for the indicated switch statement.
   if (body_statement != NULL &&
       body_statement->kind == (a_statement_kind)stmk_block) {
     scope = body_statement->variant.block.extra_info->assoc_scope;
-    push_name_context(scope);
-    need_pop_context = TRUE;
+    if (scope != NULL) {
+      push_name_context(scope);
+      need_context_pop = TRUE;
+    }  /* if */
   }  /* if */
   if (body_statement != NULL ||
       statement->variant.switch_stmt.clause_list == NULL) {
@@ -4040,7 +4067,7 @@ Generate code for the indicated switch statement.
       unexpected_condition_str("gen_switch_statement: missing switch clause");
     }  /* if */
   }  /* if */
-  if (need_pop_context) pop_name_context();
+  if (need_context_pop) pop_name_context();
   curr_switch_statement = saved_switch_statement;
   num_curr_switch_statements--;
 }  /* gen_switch_statement */
@@ -4344,9 +4371,9 @@ static void gen_block_statement(a_statement_ptr statement)
 Generate code for a block statement ("{ ... }").
 */
 {
-  a_block_ptr     block = statement->variant.block.extra_info;
-  a_scope_ptr     scope;
-  a_boolean       top_statement_of_switch;
+  a_block_ptr block = statement->variant.block.extra_info;
+  a_scope_ptr scope;
+  a_boolean   top_statement_of_switch, need_context_pop = FALSE;
 
   /* See if this block is the top-level statement of a switch statement.
      If so, we will look for places where switch clauses should be inserted. */
@@ -4359,12 +4386,15 @@ Generate code for a block statement ("{ ... }").
   write_tok_str("{ ");
   scope = block->assoc_scope;
   /* The block defines a scope if scope != NULL. */
-  push_name_context(scope);
+  if (scope != NULL) {
+    push_name_context(scope);
+    need_context_pop = TRUE;
+  }  /* if */
   /* Generate the statements inside the block. */
   gen_statement_list(statement->variant.block.statements,
                      top_statement_of_switch);
   /* End of the scope defined by the block. */
-  pop_name_context();
+  if (need_context_pop) pop_name_context();
   /* See if there's an end-of-construct entry for the block (compiler-generated
      blocks don't have one).  If so, advance past it. */
   if (ss_entry_kind(curr_source_sequence_entry) ==
