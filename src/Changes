@@ -1,5 +1,11 @@
 Version 2.33
 
+7/18/96 Precompiled header creation
+
+Precompiled headers were not being created when the last declaration
+preceding the header-stop point was a namespace declaration, a using
+directive, or a using declaration.  Now fixed.
+
 7/17/96 C++-generating back end: bug in is_autonomous_decl
 
 The code in is_autonomous_decl in cp_gen_be.c was missing a test to
