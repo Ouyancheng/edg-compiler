@@ -12019,10 +12019,10 @@ continue_with_declaration:
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (ms_attributes != NULL) {
-        pos_error(ec_ms_attr_not_allowed, &decl_start_pos);
-        /* The attributes are not applied to entities associated with
-           subsequent declarators. */
-        ms_attributes = NULL;
+        /* Microsoft attributes were specified, but they were not applicable
+           to this declaration.  Issue an error and clean up as needed. */
+        dispose_of_unapplied_attributes(&ms_attributes,
+                                        ec_ms_attr_not_allowed);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Keep scanning the list of declarators. */
@@ -12079,9 +12079,9 @@ return_point:
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ms_attributes != NULL) {
-    /* Attributes were specified on a declaration without a declarator,
-       but the attributes were not consumed. */
-    pos_error(ec_ms_attr_not_allowed, &decl_start_pos);
+    /* Microsoft attributes were specified, but they were not applicable
+       to this declaration.  Issue an error and clean up as needed. */
+    dispose_of_unapplied_attributes(&ms_attributes, ec_ms_attr_not_allowed);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED

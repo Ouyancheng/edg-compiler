@@ -11826,10 +11826,9 @@ passed via template_decl.
   if (ms_attributes != NULL &&
       (is_member_template || is_member_template_rescan)) {
     /* Microsoft attributes cannot be specified on templates. */
-    if (is_member_template) {
-      pos_error(ec_ms_attr_not_allowed, &decl_start_pos);
-    }  /* if */
-    ms_attributes = NULL;
+    dispose_of_unapplied_attributes(&ms_attributes,
+                                    is_member_template ? ec_ms_attr_not_allowed
+                                                       : ec_no_error);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   decl_info.dso_flags = dso_flags;
@@ -12598,11 +12597,8 @@ passed via template_decl.
     if (!is_nonstatic_data_member) {
       any_decl_other_than_nonstatic_data_member = TRUE;
     }  /* if */
-    if (ms_attributes != NULL && !is_error_locator(locator)) {
-      pos_error(ec_ms_attr_not_allowed, &decl_start_pos);
-      /* The attributes are not applied to entities associated with
-         subsequent declarators. */
-      ms_attributes = NULL;
+    if (ms_attributes != NULL) {
+      dispose_of_unapplied_attributes(&ms_attributes, ec_ms_attr_not_allowed);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     remove_stop_token(tok_comma);
@@ -12629,9 +12625,7 @@ next_declaration:;
        among the decl-specifiers. */
     if (dso_flags & DSO_LINKAGE_SPEC_DECL) pop_name_linkage();
     if (ms_attributes != NULL) {
-      /* Attributes were specified on a declaration without a declarator,
-         but the attributes were not consumed. */
-      pos_error(ec_ms_attr_not_allowed, &decl_start_pos);
+      dispose_of_unapplied_attributes(&ms_attributes, ec_ms_attr_not_allowed);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13367,9 +13361,7 @@ classes.
 #endif /* !ASM_FUNCTION_ALLOWED */
         if (C_dialect == C_dialect_cplusplus) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          a_source_position    pos_ms_attributes;
           if (microsoft_mode && curr_token == tok_lbracket) {
-            pos_ms_attributes = pos_curr_token;
             /* A Microsoft attribute of the form "[ ... ]". */
             ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
             if (curr_token == tok_semicolon) {
@@ -13422,7 +13414,8 @@ classes.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
             if (ms_attributes != NULL) {
-              pos_error(ec_ms_attr_not_allowed, &pos_ms_attributes);
+              dispose_of_unapplied_attributes(&ms_attributes,
+                                              ec_ms_attr_not_allowed);
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             if (curr_token == tok_extern) {
