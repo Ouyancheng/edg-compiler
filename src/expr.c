@@ -4470,6 +4470,14 @@ implement <stdarg.h>, a standard feature.
     set_unsigned_integer_constant(&constant, (a_host_large_unsigned)alignment,
                                   targ_size_t_int_kind);
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode && is_incomplete_type(alignof_type) &&
+             !is_void_type(alignof_type)) {
+    /* In Microsoft mode __alignof results in zero for non-void incomplete
+       types. */
+    set_unsigned_integer_constant(&constant, (a_host_large_unsigned)0,
+                                  targ_size_t_int_kind);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     set_unsigned_integer_constant(
                      &constant, (a_host_large_unsigned)alignof_type->alignment,
