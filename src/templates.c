@@ -3124,7 +3124,8 @@ included in the search.
   if (tssp->is_nonreal_member) eta_options |= ETA_IS_NONREAL_MEMBER;
   sym = NULL;
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
-  prototype_type = prototype_sym->variant.class_struct_union.type;
+  prototype_type = prototype_sym == NULL ?
+                        NULL : prototype_sym->variant.class_struct_union.type;
   if (prototype_allowed) {
     if (prototype_sym != NULL) {
       /* Old list is the template argument list from the prototype
@@ -3261,7 +3262,8 @@ included in the search.
     class_type->source_corresp.name_linkage =
                              tssp->variant.class_template.name_linkage;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    { a_class_type_supplement_ptr	prototype_ctsp;
+    if (prototype_type != NULL) {
+      a_class_type_supplement_ptr	prototype_ctsp;
       a_decl_modifiers_block		decl_modifiers;
       clear_decl_modifiers_block(&decl_modifiers);
       prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
@@ -3274,7 +3276,7 @@ included in the search.
           &decl_modifiers, prototype_ctsp->qualifiers,
           prototype_ctsp->inheritance_kind, &class_template_sym->decl_position,
           &class_template_sym->decl_position);
-    }
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (sym->variant.class_struct_union.extra_info->is_nonreal_class) {
       class_type->size = 1;
