@@ -857,6 +857,7 @@ class_struct_union:
     case tk_template_param:
       fputs("template-param ", f_debug);
       db_name(&tp->source_corresp);
+      fprintf(f_debug, " (%d)", tp->variant.list_position);
       break;
     default:
       fputs("<bad type>", f_debug);
@@ -2887,7 +2888,6 @@ to default values.
     case tk_error:
     case tk_unknown:
     case tk_void:
-    case tk_template_param:
       /* No variant fields to set. */
       break;
     case tk_integer:
@@ -2953,6 +2953,9 @@ to default values.
     case tk_ptr_to_member:
       pte->variant.ptr_to_member.class_of_which_a_member = FALSE;
       pte->variant.ptr_to_member.type                    = FALSE;
+      break;
+    case tk_template_param:
+      pte->variant.list_position = 0;
       break;
 #if CHECKING
     default:

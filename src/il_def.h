@@ -1329,8 +1329,7 @@ typedef struct a_type {
                            used as a type name at the file scope. */
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
   union {
-    /* When kind == tk_error, tk_unknown, tk_void, or tk_template_param,
-       no variant fields. */
+    /* When kind == tk_error, tk_unknown, or tk_void, no variant fields. */
 #ifdef FIL
     /* Likewise, when kind == tk_stmt_label, tk_format, tk_association,
        tk_unspec_routine, or tk_blockdata. */
@@ -1477,6 +1476,11 @@ typedef struct a_type {
 		type;
 			/* Type of the member pointed to. */
     } ptr_to_member;
+    /* When kind = tk_template_param: */
+    int		list_position;
+			/* Ordinal value indicating the position of the
+			   template parameter in its declaration list (1 is
+			   first param declared, 2 is second, etc.). */
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == tk_fcharacter: */
