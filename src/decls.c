@@ -2549,7 +2549,7 @@ incompatible_severity.  Return FALSE if there is some error.
           */
           if (is_routine &&
               incompatible_types_are_SVR4_compatible(old_type, type_ptr)) {
-            severity = (severity>es_warning) ? es_warning : severity;
+            severity = ((int)severity>(int)es_warning) ? es_warning : severity;
             /* Record the most recent type as the external symbol's type. */
             esdp->type = type_ptr;
             goto issue_diagnostic;
@@ -2558,7 +2558,7 @@ incompatible_severity.  Return FALSE if there is some error.
           /* Array types are compatible when the element types are the same
              no matter what the visibility constraints are. */
           if (incompatible_types_are_SVR4_compatible(old_type, type_ptr)) {
-            severity = (severity>es_warning) ? es_warning : severity;
+            severity = ((int)severity>(int)es_warning) ? es_warning : severity;
             goto issue_diagnostic;
           }  /* if */
         } else {
@@ -2580,7 +2580,7 @@ incompatible_severity.  Return FALSE if there is some error.
             /* Either there was no other declaration in scope (e.g., when the
                external symbol records another block extern declaration) or
                else there was an intervening declaration.  Issue a warning. */
-            severity = (severity>es_warning) ? es_warning : severity;
+            severity = ((int)severity>(int)es_warning) ? es_warning : severity;
             if (incompatible_types_are_SVR4_compatible(old_type, type_ptr)) {
               /* If this is a variable, record the most recent type as the
                  external symbol's type. */
@@ -2639,7 +2639,7 @@ incompatible_severity.  Return FALSE if there is some error.
           /* In Microsoft C++ mode extern "C" routine declarations are
              allowed to have incompatible types when they appear in
              different namespaces. */
-          severity = (severity>es_warning) ? es_warning : severity;
+          severity = ((int)severity>(int)es_warning) ? es_warning : severity;
           goto issue_diagnostic;
         }  /* if */
       }  /* if */
