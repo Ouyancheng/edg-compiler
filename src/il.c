@@ -2343,7 +2343,7 @@ a pointer to it.
   ctsp->virtual_function_count            = 0;
   ctsp->virtual_function_info_offset      = 0;
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
-  ctsp->anonymous_union.variable          = NULL;
+  ctsp->anonymous_union_field             = NULL;
   ctsp->access_adjustments                = NULL;
   ctsp->befriending_classes               = NULL;
   ctsp->assoc_scope                       = NULL;

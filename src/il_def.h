@@ -1068,17 +1068,10 @@ typedef struct a_class_type_supplement {
 			/* Indication of whether this class is an anonymous
 			   union, and if so whether it is a field of some
 			   other class or a variable. */
-  union {
-    /* When anonymous_union_kind is auk_variable: */
-    a_variable_ptr
-		variable;
-			/* Pointer to the unnamed variable entry whose type
-			   is the anonymous union. */
-    /* When anonymous_union_kind is auk_field: */
-    a_field_ptr field;
-			/* Pointer to the unnamed field entry whose type
-			   is the anonymous union. */
-  } anonymous_union;
+  a_field_ptr   anonymous_union_field;
+			/* When anonymous_union_kind is auk_field, a pointer
+			   to the unnamed field entry whose type is the
+			   anonymous union; otherwise NULL. */
   an_access_adjustment_ptr
                 access_adjustments;
                         /* A list of entries adjusting access control on
