@@ -177,8 +177,6 @@ extern void decl_typedef(a_symbol_locator   *locator,
 extern void inline_function_definition(a_routine_ptr     routine_ptr,
                                        a_func_info_block *func_info);
 
-#if ASM_FUNCTION_ALLOWED
-/* Routine is only needed externally when asm functions are allowed. */
 extern void decl_var_or_routine(a_symbol_locator   *locator,
                                 a_storage_class    storage_class,
                                 a_type_ptr         type_ptr,
@@ -188,7 +186,6 @@ extern void decl_var_or_routine(a_symbol_locator   *locator,
                                 an_id_linkage_kind *linkage_ptr,
                                 a_type_ptr         *old_type,
                                 a_symbol_ptr       *ext_sym);
-#endif /* ASM_FUNCTION_ALLOWED */
 
 /* Bit vector used to pass flags into declarator and into and out of
    decl_specifiers.  Each bit represents a flag. */
