@@ -30,6 +30,7 @@ error.c -- Error reporting routines.
 #if ASM_FUNCTION_ALLOWED
 #include "asm_func.h"
 #endif /* ASM_FUNCTION_ALLOWED */
+#include "pch.h"
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if __ANSIC__
@@ -1038,6 +1039,26 @@ Clear the file index list.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if !STANDALONE_UTILITY_PROGRAM
+
+void error_one_time_init(void)
+/*
+Do one-time initialization of variables related to the error routines.
+(Variables that need to be reinitialized with each new translation unit
+are handled in error_init.)
+*/
+{
+  /* Save variables from error.h and error.c that are needed for
+     precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(head_of_file_index_list),
+      pch_saved_var_array_elem(tail_of_file_index_list),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+}  /* error_one_time_init */
+
 
 void error_init(void)
 /*

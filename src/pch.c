@@ -107,15 +107,8 @@ static struct il_header
 
 static a_seq_number
 		saved_curr_seq_number;
-			/* Saved value of curr_seq_number, used to restore
-			   the value after skipping over the part of the
-			   primary source file that was replaced by the
-			   information from the PCH. */
-
-static a_seq_number
-		saved_seq_number_last_read;
-			/* Similiar to saved_curr_seq_number, but used to
-			   save seq_number_last_read. */
+			/* Saved value of curr_seq_number, used to fix up
+			   the source file sequence number information. */
 
 /*
 Macro to write a value to the PCH output file.
@@ -550,6 +543,9 @@ information.
   header_stop_source_position = pos_curr_token;
   /* Reset the state information maintained by the lexical routines. */
   lexical_reset();
+  /* Clear the primary source file pointer, otherwise, push_input_stack
+     will try to use the old source file as the parent. */
+  il_header.primary_source_file = NULL;
   /* Update curr_char_loc to point to the end of the current line.  This
      will force the next token to begin on a new line. */
   building_pch_prefix = FALSE;
@@ -1533,10 +1529,6 @@ directory.  Return TRUE if an applicable PCH was found.
   a_boolean		is_applicable;
   a_boolean		result = FALSE;
 
-#if 0
-#else
-  debug_level=1;
-#endif
   db_enter(3, "find_applicable_pch");
   best_result_so_far = null_source_position;
   for (first = TRUE;
@@ -1593,10 +1585,6 @@ directory.  Return TRUE if an applicable PCH was found.
   pos_of_last_event_from_pch = best_result_so_far;
   (void)strcpy(pch_input_file_name, file_name_buffer);
   db_exit();
-#if 0
-#else
-  debug_level=0;
-#endif
   return result;
 }  /* find_applicable_pch */
 
@@ -1662,8 +1650,10 @@ may be used.
     done_with_memory_region(n);
   }  /* for */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  /* Clear the primary source file pointer, otherwise, push_input_stack
+     will try to use the old source file as the parent. */
+  il_header.primary_source_file = NULL;
   /* Save the sequence number as of this point. */
-  saved_seq_number_last_read = seq_number_last_read;
   saved_curr_seq_number = curr_seq_number;
 }  /* restore_precompiled_header_information */
 
@@ -1719,10 +1709,16 @@ the source file being compiled.
   next_event_resumes_compilation = FALSE;
   sfp = il_header.primary_source_file;
   orig_sfp = il_header_from_pch.primary_source_file;
-  sfp->first_child_file = orig_sfp->first_child_file;
-  sfp->last_child_file = orig_sfp->last_child_file;
-  curr_seq_number = saved_curr_seq_number;
-  seq_number_last_read = saved_seq_number_last_read;
+  /* Make the source file pointer for the file that created the
+     precompiled header file the first child file of the new source
+     file.  This allows diagnostics that reference lines that come
+     from the precompiled header to work properly. */
+  sfp->first_child_file = orig_sfp;
+  sfp->last_child_file = orig_sfp;
+  sfp->first_seq_number = 1;
+  /* Set the ending sequence number for what was the primary source
+     file when the precompiled header was generated. */
+  orig_sfp->last_seq_number = saved_curr_seq_number;
   il_header.primary_scope = il_header_from_pch.primary_scope;
   il_header.main_routine = il_header_from_pch.main_routine;
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
