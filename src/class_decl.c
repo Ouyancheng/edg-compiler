@@ -1069,6 +1069,12 @@ nested class.
             update_source_sequence_list((char *)rp,
                                         (an_il_entry_kind)iek_routine,
                                         (a_source_sequence_entry_ptr)NULL);
+            /* Since a source-sequence entry for the member function is being
+               inserted immediately after the end-of-construct-entry for the
+               class, mark this as an autonomous class definition (even if
+               it wasn't); otherwise, invalid code may be put out by the
+               C++-generating back end. */
+            class_type->autonomous_primary_tag_decl = TRUE;
           }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
