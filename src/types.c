@@ -2481,6 +2481,7 @@ Clear a standard conversion description to default values.
   std_conv->type_qualifiers_added = FALSE;
   std_conv->pointer_normalization_needed = FALSE;
   std_conv->nontrivial_conversion = FALSE;
+  std_conv->ptr_or_pm_to_bool = FALSE;
   std_conv->warning_suggested = ec_no_error;
 }  /* clear_std_conv_descr */
 
