@@ -715,6 +715,12 @@ might not be able to if the template itself has not yet been defined.
       (void)scan_class_definition(class_type, DEPTH_OF_FILE_SCOPE,
                                   /*is_local_class=*/FALSE);
       set_instantiation_required_for_template_class_members(class_type);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* A template instantiation is considered to always be "autonomous",
+         even if its instantiation happens to be triggered by a reference
+         in the declaration of another entity. */
+      set_autonomous_tag_decl_flag(class_type, /*is_definition=*/TRUE);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Process any pragmas that are to be bound to this instance. */
       process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
       pop_scope();
