@@ -1294,7 +1294,7 @@ created for this entity; otherwise, it is NULL.
       if (is_definition && !C_mode() &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
           /* Selective overrider definitions should not be moved outside a
-             a class (there is no way to write their declarator there). */
+             class (there is no way to write their declarator there). */
           sym_ptr->variant.routine.ptr->overridden_function == NULL &&
           /* In-class specializations cannot be defined out-of-class. */
           !sym_ptr->variant.routine.ptr->is_specialized &&
