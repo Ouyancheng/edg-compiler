@@ -557,7 +557,7 @@ unknown_option:
     } else if (strcmp(instantiation_mode_string, "all") == 0) {
       instantiation_mode = tim_all;
     } else if (strcmp(instantiation_mode_string, "used") == 0) {
-      instantiation_mode = tim_all;
+      instantiation_mode = tim_used;
     } else if (strcmp(instantiation_mode_string, "local") == 0) {
       instantiation_mode = tim_local;
     } else {
