@@ -92,6 +92,18 @@ extern void add_integer_values(an_integer_value *op_1,
 			       a_boolean	 is_signed,
 			       a_boolean	 *err);
 
+extern void add_mixed_signed_integer_values(an_integer_value *op_1,
+				            a_boolean	      op_1_signed,
+				            an_integer_value *op_2,
+				            a_boolean	      op_2_signed,
+				            a_boolean	      *err);
+
+extern void subtract_mixed_signed_integer_values(an_integer_value *op_1,
+					         a_boolean	   op_1_signed,
+					         an_integer_value *op_2,
+					         a_boolean	   op_2_signed,
+					         a_boolean	   *err);
+
 extern void or_integer_values(an_integer_value *op_1,
 		              an_integer_value *op_2);
 
