@@ -754,7 +754,7 @@ ec_exp_declarator_in_condition_decl;;"expected a declarator in condition declara
 ec_redeclaration_of_condition_decl_name;;"%sq, declared in condition, may not be redeclared in this scope"
 ec_default_template_arg_not_allowed;;"default template arguments are not allowed for function templates"
 ec_exp_comma_or_gt;;"expected a \",\" or \">\""
-ec_missing_template_param_list;;"expected a template parameter list"
+REMOVED;ec_missing_template_param_list;;"expected a template parameter list"
 ec_incr_of_bool_deprecated;;"incrementing a bool value is deprecated"
 ec_bool_type_not_allowed;;"bool type is not allowed"
 ec_base_class_offset_too_large;;"offset of base class %no1 within class %no2 is too large"
