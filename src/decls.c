@@ -3212,7 +3212,7 @@ not be TRUE.
     /* The type of the routine should be the composite of the two types. */
     if (!preserve_rout_type && !preserve_type_ptr) {
       /* Simple case -- no required result type location. */
-      routine_ptr->type = composite_type(type_ptr, rout_type);
+      routine_ptr->type = composite_type(rout_type, type_ptr);
     } else {
       /* Some requirement on where the result ends up.  Favor the type we'd
          like by passing it first to composite_type. */

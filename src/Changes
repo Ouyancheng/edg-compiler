@@ -1,5 +1,17 @@
 Version 2.44
 
+6/22/00  Position information for redeclared function prototypes
+
+When processing a function prototype redeclaration, the front end used to
+record the position information for the initial declaration on the routine
+IL entry, but the position information of the last declaration on its
+parameters (pointed to by the routine type).  For example:
+
+  void f(void*);  // This position recorded for "f"
+  void f(void*);  // This position recorded for the specifier "void*"
+
+This has been changed to consitently record the first declaration.
+
 6/22/00  Abort on using-declaration of overloaded delete operators
 
 The front end used to abort when processing a class that imports a set of
