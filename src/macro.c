@@ -4838,13 +4838,12 @@ from the front end to the runtime.
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #if IA64_ABI
-#if IA64_ABI_USE_VARIANT_ARRAY_COOKIES
   /* Are we using the variant form of array cookies for the IA-64 ABI? */
-  (void)enter_predef_macro("1",
+  (void)enter_predef_macro(conv_unsigned_long_to_str(
+                            (unsigned long)IA64_ABI_USE_VARIANT_ARRAY_COOKIES),
 			   "__EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-#endif /* IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
 #endif /* IA64_ABI */
 }  /* init_runtime_macros */
 
