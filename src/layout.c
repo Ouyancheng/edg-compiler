@@ -1170,7 +1170,7 @@ base classes, direct and indirect, and allocate pointers as needed for them.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
 
-static void set_offsets_for_virtual_base_class_pointers(a_layout_block_ptr lob)
+static void set_virtual_base_class_pointer_offsets(a_layout_block_ptr lob)
 /*
 Set the pointer_offset fields in direct virtual base classes where the pointer
 is not shared (i.e., where the pointer from a base class is not used).
@@ -1178,7 +1178,7 @@ is not shared (i.e., where the pointer from a base class is not used).
 {
   a_base_class_ptr   bcp;
   
-  db_enter(4, "set_offsets_for_virtual_base_class_pointers");
+  db_enter(4, "set_virtual_base_class_pointer_offsets");
 
   if (lob->class_type->variant.class_struct_union.any_virtual_base_classes) {
     bcp = base_classes_of(lob->class_type);
@@ -1230,7 +1230,7 @@ is not shared (i.e., where the pointer from a base class is not used).
 #endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
   }  /* if */
   db_exit();
-}  /* set_offsets_for_virtual_base_class_pointers */
+}  /* set_virtual_base_class_pointer_offsets */
 
 
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
@@ -1275,10 +1275,9 @@ static void set_offsets_for_corresponding_virtual_base_classes(
 }  /* set_offsets_for_corresponding_virtual_base_classes */
 
 
-static void cfc_set_offsets_for_virtual_base_classes(
-                                             a_layout_block_ptr lob,
-                                             a_base_class_ptr   base_class,
-                                             a_boolean          use_decl_order)
+static void cfc_set_virtual_base_class_offsets(a_layout_block_ptr lob,
+                                               a_base_class_ptr   base_class,
+                                               a_boolean        use_decl_order)
 /*
 base_class is a direct or indirect base class of class_type for which
 the complete_subobject flag is FALSE and whose virtual base classes, therefore,
@@ -1289,7 +1288,7 @@ base class of class_type, and allocate space for the latter.
 {
   a_base_class_ptr  base_class_list, bcp;
 
-  db_enter(4, "cfc_set_offsets_for_virtual_base_classes");
+  db_enter(4, "cfc_set_virtual_base_class_offsets");
   if (base_class == NULL) {
     base_class_list = base_classes_of(lob->class_type);
     for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
@@ -1313,7 +1312,7 @@ base class of class_type, and allocate space for the latter.
   }  /* if */
   for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct && !bcp->complete_subobject) {
-      cfc_set_offsets_for_virtual_base_classes(lob, bcp, !use_decl_order);
+      cfc_set_virtual_base_class_offsets(lob, bcp, !use_decl_order);
       break;
     }  /* if */
   }  /* for */
@@ -1322,11 +1321,11 @@ base class of class_type, and allocate space for the latter.
                                                        use_decl_order);
   }  /* if */
   db_exit();
-}  /* cfc_set_offsets_for_virtual_base_classes */
+}  /* cfc_set_virtual_base_class_offsets */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
 
-static void set_offsets_for_virtual_base_classes(a_layout_block_ptr  lob)
+static void set_virtual_base_class_offsets(a_layout_block_ptr  lob)
 /*
 Reserve space at the end of the class object for virtual base classes.
 */
@@ -1334,7 +1333,7 @@ Reserve space at the end of the class object for virtual base classes.
   a_class_type_supplement_ptr	ctsp;
   int                           zero = 0;
   
-  db_enter(4, "set_offsets_for_virtual_base_classes");
+  db_enter(4, "set_virtual_base_class_offsets");
 
   ctsp = lob->class_type->variant.class_struct_union.extra_info;
   /* Record the size and alignment of the class before space is added for
@@ -1356,7 +1355,7 @@ Reserve space at the end of the class object for virtual base classes.
        since at the very least a virtual base class pointer will have been
        allocated. */
     if (lob->class_type->variant.class_struct_union.any_virtual_base_classes) {
-      internal_error("set_offsets_for_virtual_base_classes: offset is zero");
+      internal_error("set_virtual_base_class_offsets: offset is zero");
     }  /* if */
 #endif /* CHECKING */
     /* An empty class must occupy at lease one byte of memory. */
@@ -1385,8 +1384,8 @@ Reserve space at the end of the class object for virtual base classes.
     /* In cfront compatibility layout mode all virtual base classes that
        are not embedded in another class have space reserved for them.  The
        order in which cfront puts them out is emulated. */
-    cfc_set_offsets_for_virtual_base_classes(lob, (a_base_class_ptr)NULL,
-                                             /*use_decl_order=*/FALSE);
+    cfc_set_virtual_base_class_offsets(lob, (a_base_class_ptr)NULL,
+                                       /*use_decl_order=*/FALSE);
 #else
     /* In normal layout mode all virtual base classes have space reserved at
        this point in the layout.  The order in which they are put out is
@@ -1417,7 +1416,7 @@ Reserve space at the end of the class object for virtual base classes.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   }  /* if */
   db_exit();
-}  /* set_offsets_for_virtual_base_classes */
+}  /* set_virtual_base_class_offsets */
 
 
 static void set_base_class_offsets(a_base_class_ptr       proximate_derivation,
@@ -1705,10 +1704,10 @@ the layout.
     set_offset_for_virtual_function_info(lob);
     /* Next allocate space for pointers to the virtual base class data
        sections. */
-    set_offsets_for_virtual_base_class_pointers(lob);
+    set_virtual_base_class_pointer_offsets(lob);
     /* Finally, allocate space for the virtual base class data sections
        themselves. */
-    set_offsets_for_virtual_base_classes(lob);
+    set_virtual_base_class_offsets(lob);
   }  /* if */
   /* Adjust the total size of the class to be consistent with the
      overall alignment required for the class. */
