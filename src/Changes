@@ -1,5 +1,16 @@
 Version 3.0
 
+4/3/02   Name mangling for sizeof(expression) in nontype template argument
+         expression
+
+The existing mangling code for sizeof, "sz", has been extended so that
+it can deal with the case of sizeof(expression), which needs more
+information than sizeof(type) when the expression is in a nontype
+template argument.  The encoding uses "e" after the "sz" to indicate
+that the type is not present; following "e" is the standard sequence
+for an expression: number of operands (1), operand, closing "O" for
+the operation.  This extension also applies to alignof and uuidof.
+
 4/3/02   Non-constant expressions not allowed inside sizeof in nontype template
          argument expression
 
