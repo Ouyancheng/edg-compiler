@@ -5579,12 +5579,6 @@ as the error position.
                inherited member. */
             pos_sy_error(ec_cannot_change_access, pos,
                          fundamental_symbol_of(sym));
-          } else if (strict_ansi_mode) {
-            /* WP 7.3.3 para 7 currently requires an error, but we believe
-               this restriction will (or at least should) be removed -- issue
-               a warning in strict mode. */
-            pos_sy_warning(ec_member_function_redeclaration, pos,
-                           fundamental_symbol_of(sym));
           }  /* if */
           conflicts = TRUE;
           break;
@@ -8686,6 +8680,44 @@ destination type is not yet on the current class's conversion list.
 }  /* project_base_class_conversion_functions */
 
 
+static a_boolean is_duplicate_member_using_decl(a_symbol_ptr       sym,
+                                                a_source_position  *err_pos)
+/*
+Check for a duplicate class member using declaration.  sym represents the
+base-class member resulting from the current using declaration.  If this
+declaration does duplicate a previous using declaration, issue a diagnostic
+(using err_pos as the position at which to report the problem) and return
+TRUE.
+*/
+{
+  a_using_decl_ptr         udp;
+  a_scope_ptr              sp = scope_stack[depth_scope_stack].il_scope;
+  a_boolean                is_duplicate = FALSE;
+  a_source_correspondence  *scp;
+
+  check_assertion(sp != NULL &&
+                  sp->kind == (a_scope_kind)sck_class_struct_union);
+  /* Using declarations are recorded in the scope for the class. */
+  udp = sp->using_decls;
+  /* Traverse the list looking for a name and qualifier match. */
+  for (; udp != NULL; udp = udp->next) {
+    if (udp->qualifier.class_type == sym->parent.class_type) {
+      scp = source_corresp_for_il_entry(udp->entity.ptr, udp->entity.kind);
+      if (((a_symbol_ptr)scp->assoc_info)->header == sym->header) {
+        /* This must be a duplicate.  In strict mode issue an error (see
+           7.3.3 para 8); otherwise issue a lesser diagnostic. */
+        pos_sy_diagnostic(strict_ansi_mode ?
+                            strict_ansi_discretionary_severity : es_warning,
+                          ec_duplicate_using_decl, err_pos, sym);
+        is_duplicate = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return is_duplicate;
+}  /* is_duplicate_member_using_decl */
+
+
 static void member_using_declaration(a_type_ptr           class_type,
                                      an_access_specifier  access)
 /*
@@ -8703,10 +8735,11 @@ or implicit) controlling the declaration.
   a_boolean          is_overloaded;
   a_symbol_locator   locator;
   a_using_decl_ptr   udp, prev_udp = NULL;
-  a_source_position  decl_pos;
+  a_source_position  decl_pos, using_pos;
 
   db_enter(3, "member_using_declaration");
   add_stop_token(tok_semicolon);
+  using_pos = pos_curr_token;
   if (curr_token == tok_using) {
     /* A using-declaration is outside the "Embedded C++" subset. */
     feature_is_not_part_of_embedded_cplusplus_subset(
@@ -8852,7 +8885,7 @@ or implicit) controlling the declaration.
   } else {
     discard_curr_construct_pragmas();
   }  /* if */
-  if (!err) {
+  if (!err && !is_duplicate_member_using_decl(declared_sym, &using_pos)) {
     /* No error so far, so enter the using-declaration symbol. */
     other_sym = NULL;
     sym = declared_sym;

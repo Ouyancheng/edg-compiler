@@ -1,5 +1,11 @@
 Version 2.40
 
+9/18/98   Duplicate class member using declaration
+
+Duplicate using declarations in a class definition are now reported (see
+7.3.3 para 8).  A discretionary error is issued in -A mode, a warning
+otherwise, and the redundant declaration is ignored.
+
 9/17/98   Internal error in make_qualified_type
 
 An internal error in make_qualified_type has been fixed; it was caused by

@@ -988,6 +988,7 @@ ec_qualified_name_required;;"a class or namespace qualified name is required"
 ec_implicit_int_on_main;;"return type \"int\" omitted in declaration of function \"main\""
 ec_invalid_inheritance_kind_for_class;;"pointer-to-member representation %sq is too restrictive for %n"
 ec_implicit_return_from_non_void_function;;"missing return statement at end of non-void %n"
+ec_duplicate_using_decl;;"duplicate using-declaration of %no ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
