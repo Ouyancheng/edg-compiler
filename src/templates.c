@@ -164,7 +164,7 @@ static FILE	*f_template_info;
 			   information file. */
 
 static a_boolean
-		any_instantiated_entitites_added_to_request_file;
+		any_instantiated_entities_added_to_request_file;
 			/* TRUE if any instances have had their add to
 			   request flag set and have also been instantiated.
 			   This is used to determine whether a list of
@@ -11961,13 +11961,49 @@ and "do not instantiate" flags are set here.
     }  /* if */
 #endif /*  ONE_INSTANTIATION_PER_OBJECT */
   }  /* for */
-  if (any_instantiated_entitites_added_to_request_file) {
+  if (any_instantiated_entities_added_to_request_file) {
     /* This translation unit "adopted" some instantiations that were known
        not to be defined elsewhere. */
     add_entities_to_request_file();
   }  /* if */
   db_exit();
 }  /* update_auto_instantiation_flags */
+
+
+static void do_automatic_instantiation_of_entity(a_template_instance_ptr tip)
+/*
+Do the automatic instantiation of the function or static data member
+specified by tip.
+*/
+{
+  a_template_instantiation_mode	saved_instantiation_mode;
+  /* Set the instantiation mode to tim_none.  This is done to ensure that
+     only the instantiations explicitly requested in the list file are
+     performed.  We don't want a mode like "used" or "all" to cause
+     other instantiations to happen as a consequence of the requested
+     instantiations that are performed. */
+  saved_instantiation_mode = instantiation_mode;
+  instantiation_mode = tim_none;
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "Automatic instantiation processing for:\n");
+    db_symbol(tip->instance_sym, "", 0);
+  }  /* if */
+#endif /* DEBUG */
+  /* Do the instantiation. */
+  instantiate_entity(tip);
+  if (tip->add_to_request_file) {
+    /* This flag is set once we know we have instantiated something that
+       is to be added to the request file.  This triggers the generation
+       of a list of added entities at the end of the compilation. */
+    any_instantiated_entities_added_to_request_file = TRUE;
+  }  /* if */
+  /* Restore the original instantiation mode.  This is needed because it
+     is used later on in the front end wrapup process when assigning
+     linkage class members. */
+  instantiation_mode = saved_instantiation_mode;
+}  /* do_automatic_instantiation_of_entity */
+
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 
@@ -12012,41 +12048,6 @@ as requiring instantiations.
   }  /* while */
   db_exit();
 }  /* delayed_processing_of_can_instantiate_class_pragmas */
-
-
-static void do_automatic_instantiation_of_entity(a_template_instance_ptr tip)
-/*
-Do the automatic instantiation of the function or static data member
-specified by tip.
-*/
-{
-  a_template_instantiation_mode	saved_instantiation_mode;
-  /* Set the instantiation mode to tim_none.  This is done to ensure that
-     only the instantiations explicitly requested in the list file are
-     performed.  We don't want a mode like "used" or "all" to cause
-     other instantiations to happen as a consequence of the requested
-     instantiations that are performed. */
-  saved_instantiation_mode = instantiation_mode;
-  instantiation_mode = tim_none;
-#if DEBUG
-  if (debug_level >= 4) {
-    fprintf(f_debug, "Automatic instantiation processing for:\n");
-    db_symbol(tip->instance_sym, "", 0);
-  }  /* if */
-#endif /* DEBUG */
-  /* Do the instantiation. */
-  instantiate_entity(tip);
-  if (tip->add_to_request_file) {
-    /* This flag is set once we know we have instantiated something that
-       is to be added to the request file.  This triggers the generation
-       of a list of added entities at the end of the compilation. */
-    any_instantiated_entitites_added_to_request_file = TRUE;
-  }  /* if */
-  /* Restore the original instantiation mode.  This is needed because it
-     is used later on in the front end wrapup process when assigning
-     linkage class members. */
-  instantiation_mode = saved_instantiation_mode;
-}  /* do_automatic_instantiation_of_entity */
 
 
 static void do_any_needed_instantiations(void)
@@ -13072,7 +13073,7 @@ Initializations for template.
   f_template_info = NULL;
   memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
   request_file_check_needed = FALSE;
-  any_instantiated_entitites_added_to_request_file = FALSE;
+  any_instantiated_entities_added_to_request_file = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   /* Allocate a type to be used for template parameter constants whose
      real types cannot be known.  This type will be used for all such
