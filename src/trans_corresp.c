@@ -671,6 +671,7 @@ this routine will create such a correspondence entry.
     tcp2 = &trans_unit_corresp_of_unknown_entry(entity2);
   }  /* if */
   if (*tcp2 == NULL) {
+    trace_corresp_check(entity2);
     /* Presumably, no entity corresponding to entity1 has been processed yet.
        Allocate a correspondence entry to start a correspondence set with
        entity2. */
@@ -4266,8 +4267,9 @@ static void establish_instantiation_correspondences(
                                                 a_template_ptr  templ,
                                                 a_template_ptr  corresp_templ)
 /*
-Find correspondences for every instantiation of the given template (for class
-templates the actual search is delayed until all templates are processed).
+Find correspondences for every instantiation of the given template (for
+non-prototype instantiations, the actual search is delayed until all
+templates are processed).
 This routine should only be called for templates that have an associated
 sk_class_template or sk_function_template symbol.  Other template entries
 correspond to class members (e.g., a member function of a class template)
@@ -4276,30 +4278,40 @@ instantiation should match that of templ (the canonical entry of templ may
 be templ itself and therefore unusable).
 */
 {
-  a_symbol_ptr    templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
+  a_symbol_ptr
+         templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info,
+         corresp_sym = (a_symbol_ptr)corresp_templ->source_corresp.assoc_info;
   a_template_symbol_supplement_ptr
-                  tssp = templ_sym->variant.template_info;
+         tssp = templ_sym->variant.template_info,
+         corresp_tssp = corresp_sym->variant.template_info;
 
   if (templ != tssp->il_template_entry) {
     /* There can be multiple a_template entries for the same template.  Only
        process the instantiations when encountering the a_template entry that
        is recorded in the template symbol supplement. */
   } else if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
+    /* Record the instantiations for later processing to avoid infinite
+       recursion. */
     a_symbol_ptr  inst = tssp->variant.class_template.instantiations;
     for (; inst != NULL; inst = next_instance_sym(inst)) {
-      /* Record the instantiations for later processing to avoid infinite
-         recursion. */
-      add_pending_instantiation(inst);
+      if (!has_correspondence(inst->variant.class_struct_union.type)) {
+        add_pending_instantiation(inst);
+      }  /* if */
     }  /* for */
-    /* Also process the prototype instantiation. */
+    inst = corresp_tssp->variant.class_template.instantiations;
+    for (; inst != NULL; inst = next_instance_sym(inst)) {
+      if (!has_correspondence(inst->variant.class_struct_union.type)) {
+        add_pending_instantiation(inst);
+      }  /* if */
+    }  /* for */
+    /* Also process the prototype instantiations. */
     if (tssp->variant.class_template.prototype_instantiation != NULL) {
       a_type_ptr    class_type = tssp
                               ->variant.class_template.prototype_instantiation
                               ->variant.class_struct_union.type;
       a_symbol_ptr  corresp_proto;
-      corresp_proto = ((a_symbol_ptr)corresp_templ->source_corresp.assoc_info)
-                        ->variant.template_info
-                        ->variant.class_template.prototype_instantiation;
+      corresp_proto = corresp_tssp
+                             ->variant.class_template.prototype_instantiation;
       /* For instantiations from template template parameters corresp_proto
          will be NULL.  It will also be NULL for nonprototype templates (the
          prototype instantiation is attached to the corresponding prototype
@@ -4313,13 +4325,21 @@ be templ itself and therefore unusable).
       }  /* if */
     }  /* if */
   } else if (templ_sym->kind == (a_symbol_kind)sk_function_template) {
+    /* Record the instantiations for later processing to avoid infinite
+       recursion. */
     a_template_instance_ptr  inst = tssp->variant.function.instantiations;
     for (; inst != NULL; inst = inst->next) {
-      /* Record the instantiations for later processing to avoid infinite
-         recursion. */
-      add_pending_instantiation(inst->instance_sym);
+      if (!has_correspondence(inst->instance_sym->variant.routine.ptr)) {
+        add_pending_instantiation(inst->instance_sym);
+      }  /* if */
     }  /* for */
-    /* Also process prototype instantiation. */
+    inst = corresp_tssp->variant.function.instantiations;
+    for (; inst != NULL; inst = inst->next) {
+      if (!has_correspondence(inst->instance_sym->variant.routine.ptr)) {
+        add_pending_instantiation(inst->instance_sym);
+      }  /* if */
+    }  /* for */
+    /* Also process prototype instantiations. */
     if (corresp_templ->canonical_template != templ->canonical_template) {
       set_trans_unit_corresp(iek_routine,
                              tssp->variant.function.routine,
@@ -5005,13 +5025,11 @@ correspondences with other translation units.)
 {
   a_namespace_ptr  result = nsp;
 
-  if (nsp != NULL) {
+  if (nsp != NULL && secondary_translation_unit_seen()) {
     /* If we're in the process of establishing correspondences, this particular
        entry may need to be processed now.  Otherwise, it should already have
        been done or no correspondence can be expected. */
-    if (in_secondary_trans_unit(nsp)) {
-      determine_correspondence(&nsp->source_corresp, iek_namespace);
-    }  /* if */
+    determine_correspondence(&nsp->source_corresp, iek_namespace);
     result = (a_namespace_ptr)canonical_il_entry_of(nsp);
   }  /* if */
   return result;
@@ -5027,13 +5045,11 @@ entry.
 {
   a_field_ptr  result = field;
 
-  if (field != NULL) {
+  if (field != NULL && secondary_translation_unit_seen()) {
     /* If we're in the process of establishing correspondences, this particular
        entry may need to be processed now.  Otherwise, it should already have
        been done or no correspondence can be expected. */
-    if (in_secondary_trans_unit(field)) {
-      determine_correspondence(&field->source_corresp, iek_field);
-    }  /* if */
+    determine_correspondence(&field->source_corresp, iek_field);
     result = (a_field_ptr)canonical_il_entry_of(field);
   }  /* if */
   return result;
@@ -5049,10 +5065,8 @@ entry.
 {
   a_routine_ptr  result = routine;
 
-  if (routine != NULL) {
-    if (in_secondary_trans_unit(routine)) {
-      determine_correspondence(&routine->source_corresp, iek_routine);
-    }  /* if */
+  if (routine != NULL && secondary_translation_unit_seen()) {
+    determine_correspondence(&routine->source_corresp, iek_routine);
     result = (a_routine_ptr)canonical_il_entry_of(routine);
   }  /* if */
   return result;
@@ -5068,10 +5082,8 @@ entry.
 {
   a_variable_ptr  result = var;
 
-  if (var != NULL) {
-    if (in_secondary_trans_unit(var)) {
-      determine_correspondence(&var->source_corresp, iek_variable);
-    }  /* if */
+  if (var != NULL && secondary_translation_unit_seen()) {
+    determine_correspondence(&var->source_corresp, iek_variable);
     result = (a_variable_ptr)canonical_il_entry_of(var);
   }  /* if */
   return result;
@@ -5087,7 +5099,7 @@ canonical entry.
 {
   a_type_ptr  result = type;
 
-  if (type != NULL &&
+  if (type != NULL && secondary_translation_unit_seen() &&
       /* Do not attempt to find a match for a type instantiated from a
          template template parameter. */
       !(is_immediate_class_type(type) &&
@@ -5095,9 +5107,7 @@ canonical entry.
         assoc_template_of(type) != NULL &&
         assoc_template_of(type)->kind ==
                            (a_template_kind)templk_template_template_param)) {
-    if (in_secondary_trans_unit(type)) {
-      determine_correspondence(&type->source_corresp, iek_type);
-    }  /* if */
+    determine_correspondence(&type->source_corresp, iek_type);
     result = (a_type_ptr)canonical_il_entry_of(type);
   }  /* if */
   return result;
@@ -5113,10 +5123,8 @@ canonical entry.
 {
   a_template_ptr  result = templ;
 
-  if (templ != NULL) {
-    if (in_secondary_trans_unit(templ)) {
-      determine_correspondence(&templ->source_corresp, iek_template);
-    }  /* if */
+  if (templ != NULL && secondary_translation_unit_seen()) {
+    determine_correspondence(&templ->source_corresp, iek_template);
     result = (a_template_ptr)canonical_il_entry_of(templ);
   }  /* if */
   return result;
