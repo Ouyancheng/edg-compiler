@@ -97,9 +97,9 @@ member declarator (class-name :: *).
   if (get_class_qualifier(&class_type, &is_file_scope_qualifier,
                           &has_global_qualifier, &next_token_is_star, &err)) {
     /* A class qualifier is present.  Note that file scope qualifiers are not
-       permitted.  This is a pointer-to-member declarator if the current token
+       permitted.  This is a pointer-to-member declarator if the next token
        is a "*". */
-    if (next_token_is_star) {
+    if (!is_file_scope_qualifier && next_token_is_star) {
       is_start = TRUE;
     }  /* if */
   }  /* if */
