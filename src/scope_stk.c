@@ -4745,12 +4745,6 @@ be delayed until the end of the compilation.
        externalized too, and we can't generate the externalized name
        now because we don't have the module id yet. */
     delay_lowering = TRUE;
-  } else if (may_be_building_new_pch()) {
-    /* While building a precompiled header, don't lower.  This helps
-       customers who generate debug information right before lowering,
-       because without this they have to figure out a way to save their
-       debug information in the PCH file. */
-    delay_lowering = TRUE;
   }  /* if */
   if (delay_lowering) {
     function_body_processing_delayed_on_some_func_in_primary_il = TRUE;
