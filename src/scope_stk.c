@@ -3814,8 +3814,14 @@ End a name scope by popping an entry off the scope stack.
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (kind == (a_scope_kind)sck_file) {
-    /* Set the IL flags used to pass automatic instantiation information
-       to the link-time instantiation processor. */
+    /* Set the IL flags used to pass automatic instantiation information to
+       the link-time instantiation processor.  The timing of this call is
+       important.  It must follow the call to eliminate_unneeded_il_entries,
+       which may clear the instantiation_required flag in the associated
+       template instance entry.  And it must precede the call to
+       check_for_done_with_memory_region, since it modifies IL entries and
+       (if DO_IL_LOWERING is TRUE) may allocate variables that are added to
+       the IL. */
     update_auto_instantiation_flags();
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
