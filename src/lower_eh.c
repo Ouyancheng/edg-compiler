@@ -431,6 +431,10 @@ match the runtime's definition.
 #define BCS_LAST		0x02
 			/* TRUE if this is the last base class specification
 			   in the array. */
+#if ABI_CHANGES_FOR_RTTI
+#define BCS_PUBLIC		0x04
+			/* TRUE if the base class is public. */
+#endif /* ABI_CHANGES_FOR_RTTI */
 
 
 static a_type_ptr make_base_class_spec_type(void)
@@ -537,6 +541,14 @@ allocated in the file scope memory region.
         /* Non-virtual base class.  The offset is to the data. */
         offset = bcp->offset;
       }  /* if */
+#if ABI_CHANGES_FOR_RTTI
+      if (bcp->direct) {
+        a_base_class_derivation_ptr bcdp = preferred_derivation_of(bcp);
+        if (bcdp->access == (an_access_specifier)as_public) {
+          flags_value |= BCS_PUBLIC;
+        }  /* if */
+      }  /* if */
+#endif /* ABI_CHANGES_FOR_RTTI */
       offset_con = alloc_constant((a_constant_repr_kind)ck_integer);
       set_integer_constant_with_overflow_check(offset_con,
                                                (long)offset,
