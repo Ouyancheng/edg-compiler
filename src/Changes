@@ -16,9 +16,11 @@ is set to 0.  This problem was introduced in 2.42.  Now fixed.
 
 8/12/99  Keep function bodies in IL even when the declarator is qualified
 
-The front end used to too eagerly remove function bodies when the definition
-is a redeclaration with a function declarator that is qualified with a
-namespace name or the global qualifier.  For example:
+When the removal of unneeded entities was enabled, the front end used to
+remove the body of a function definition that is a redeclaration with a
+function declarator that is qualified with a namespace name or the global
+qualifier.  This occurred even when the function has external linkage.
+For example:
 
   extern void f();
   extern void ::f() {}  // Used to remove the body of f from the IL
