@@ -4034,7 +4034,7 @@ class, struct, or union.
 */
 {
   a_targ_size_t                  local_byte_offset;
-  int                            local_bit_offset;
+  unsigned int                   local_bit_offset;
   a_type_ptr                     class_type = lob->class_type;
   long                           bit_field_size = 0;
   a_field_ptr		         field;

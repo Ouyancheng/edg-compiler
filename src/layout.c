@@ -1529,7 +1529,7 @@ Reserve space at the end of the class object for virtual base classes.
 */
 {
   a_class_type_supplement_ptr	ctsp;
-  int                           zero = 0;
+  unsigned int                  zero = 0;
   
   db_enter(4, "set_virtual_base_class_offsets");
 
