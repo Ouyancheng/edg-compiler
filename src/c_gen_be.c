@@ -4308,7 +4308,7 @@ the "routine" is a block.
       startline((a_seq_number)0);
       /* See also the C++-specific processing in c_gen_be that will call
          the init routine.  The name there must match the name here. */
-      (void)fprintf(f_C_output, "__%s_file_scope_inits();", module_name);
+      (void)fprintf(f_C_output, "__x%s_file_scope_inits();", module_name);
       file_scope_init_routine_called = TRUE;
     }  /* if */
   }  /* if */
@@ -8271,7 +8271,7 @@ Generate old-style (K&R/pcc) C from the intermediate language.
     /* Generate the routine called to do file-scope dynamic initializations.
        The routine is always generated, but it's usually empty. */
     startline((a_seq_number)0);
-    (void)fprintf(f_C_output, "__%s_file_scope_inits() {", module_name);
+    (void)fprintf(f_C_output, "__x%s_file_scope_inits() {", module_name);
     if (f_file_scope_inits != NULL) {
       if (!file_scope_init_routine_called) missing_call_of_init_routine = TRUE;
       copy_and_delete_file(&f_file_scope_inits);
@@ -8288,7 +8288,7 @@ Generate old-style (K&R/pcc) C from the intermediate language.
         (void)fprintf(f_C_output, "\nstatic struct __linkl {\n");
         (void)fprintf(f_C_output,
                    "struct __linkl *next; void (*ctor)(); void (*dtor)();}\n");
-        (void)fprintf(f_C_output, "__link = {0, __%s_file_scope_inits, 0};\n",
+        (void)fprintf(f_C_output, "__link = {0, __x%s_file_scope_inits, 0};\n",
                                   module_name);
       } else {
         /* The file-scope-init routine was not called from anywhere in
