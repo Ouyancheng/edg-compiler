@@ -777,43 +777,45 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
         done = TRUE;
         break;
       case cfdk_init:
-        /* An initialization.  Always issue a diagnostic; initializations
-           for which a diagnostic should not be issued will not be
-           found, since we stop searching the block once its last case
+        /* An initialization.  Issue a diagnostic for automatic variables;
+           initializations for which a diagnostic should not be issued will
+           not be found, since we stop searching the block once its last case
            label has been seen. */
         vp = cfdp->variant.init_statement->variant.dynamic_init->variable;
-        severity = es_warning;
-        if (!C_mode() && !cfront_2_1_mode) {
-          tp = vp->type;
-          if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-          tp = skip_typerefs(tp);
-          if (is_class_struct_union_type(tp) &&
-              symbol_supplement_for_class(tp)->destructor != NULL) {
-            severity = es_error;
-          } else if (strict_ansi_mode) {
-            severity = strict_ansi_error_severity;
+        if (!has_static_storage_duration(vp->storage_class)) {
+          severity = es_warning;
+          if (!C_mode() && !cfront_2_1_mode) {
+            tp = vp->type;
+            if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+            tp = skip_typerefs(tp);
+            if (is_class_struct_union_type(tp) &&
+                symbol_supplement_for_class(tp)->destructor != NULL) {
+              severity = es_error;
+            } else if (strict_ansi_mode) {
+              severity = strict_ansi_error_severity;
+            }  /* if */
           }  /* if */
+          if (severity != *prev_severity) {
+            if (*prev_severity != es_none) end_error();
+            /* This is the first initializing declaration seen.  Issue the
+               header diagnostic. */
+            /* We need the switch block itself for the error position. */
+            parent = cfdp->parent;
+            while (parent->variant.block.is_switch_subblock) {
+              parent = parent->parent;
+            }  /* while */
+            check_assertion(parent->variant.block.is_switch_block);
+            /* Issue a warning in C mode or for compatibility with cfront 2.1.
+               Otherwise, issue an error. */
+            pos_start_diagnostic(severity, ec_branch_past_initialization,
+                                 &parent->source_pos);
+            *prev_severity = severity;
+          }  /* if */
+          /* Issue the diagnostic addendum that identifies this particular
+             variable. */
+          sym_add_diag_info(ec_name_at_decl_position,
+                            (a_symbol_ptr)vp->source_corresp.assoc_info);
         }  /* if */
-        if (severity != *prev_severity) {
-          if (*prev_severity != es_none) end_error();
-          /* This is the first initializing declaration seen.  Issue the
-             header diagnostic. */
-          /* We need the switch block itself for the error position. */
-          parent = cfdp->parent;
-          while (parent->variant.block.is_switch_subblock) {
-            parent = parent->parent;
-          }  /* while */
-          check_assertion(parent->variant.block.is_switch_block);
-          /* Issue a warning in C mode or for compatibility with cfront 2.1.
-             Otherwise, issue an error. */
-          pos_start_diagnostic(severity, ec_branch_past_initialization,
-                               &parent->source_pos);
-          *prev_severity = severity;
-        }  /* if */
-        /* Issue the diagnostic addendum that identifies this particular
-           variable. */
-        sym_add_diag_info(ec_name_at_decl_position,
-                          (a_symbol_ptr)vp->source_corresp.assoc_info);
         /* Fall through. */
       default:
         /* Advance to the next entry in the list. */
@@ -3314,29 +3316,33 @@ issue a diagnostic complaining about skipping over an initialization.
       a_type_ptr         tp;
 
       vp = cfdp->variant.init_statement->variant.dynamic_init->variable;
-      if (!C_mode()) {
-        tp = vp->type;
-        if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-        tp = skip_typerefs(tp);
-        if (is_class_struct_union_type(tp) &&
-            symbol_supplement_for_class(tp)->destructor != NULL) {
-          severity = es_error;
-        } else if (strict_ansi_mode) {
-          severity = strict_ansi_error_severity;
+      /* We only issue a diagnostic for jumping over an initialization of
+         an automatic variable (see [stmt.decl], para 3). */
+      if (!has_static_storage_duration(vp->storage_class)) {
+        if (!C_mode()) {
+          tp = vp->type;
+          if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+          tp = skip_typerefs(tp);
+          if (is_class_struct_union_type(tp) &&
+              symbol_supplement_for_class(tp)->destructor != NULL) {
+            severity = es_error;
+          } else if (strict_ansi_mode) {
+            severity = strict_ansi_error_severity;
+          }  /* if */
         }  /* if */
+        if (severity != *prev_severity) {
+          if (*prev_severity != es_none) end_error();
+          /* This is the first initializing declaration seen.  Issue the
+             header diagnostic. */
+          pos_start_diagnostic(severity, ec_branch_past_initialization,
+                               error_pos);
+          *prev_severity = severity;
+        }  /* if */
+        /* Issue the diagnostic addendum that identifies this particular
+           variable. */
+        sym_add_diag_info(ec_name_at_decl_position,
+                          (a_symbol_ptr)vp->source_corresp.assoc_info);
       }  /* if */
-      if (severity != *prev_severity) {
-        if (*prev_severity != es_none) end_error();
-        /* This is the first initializing declaration seen.  Issue the
-           header diagnostic. */
-        pos_start_diagnostic(severity, ec_branch_past_initialization,
-                             error_pos);
-        *prev_severity = severity;
-      }  /* if */
-      /* Issue the diagnostic addendum that identifies this particular
-         variable. */
-      sym_add_diag_info(ec_name_at_decl_position,
-                        (a_symbol_ptr)vp->source_corresp.assoc_info);
     }  /* if */
     if (cfdp == end_cfdp) break;
     if (cfdp->kind == (a_control_flow_descr_kind)cfdk_block) {
