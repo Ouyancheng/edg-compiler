@@ -1,5 +1,21 @@
 Version 3.2
 
+2/1/03   Abort in src_seq.c in C mode
+
+An abort in src_seq.c (in src_seq_check_for_non_autonomous_tag) has
+been corrected.  This could come up in some versions that use source
+sequence entries (e.g., C++-generating back end versions), with
+an attempt to declare a nested class in C mode.
+
+  struct named1 {
+    int aa;
+    int bb;
+    struct named2 {
+      int mm;
+      int nn;
+    }; 
+  } var_named;
+
 1/30/03  Abort on __INTADDR__ of reference eliminated
 
 Use of a field selection for a field of a reference type inside

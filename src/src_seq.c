@@ -2570,8 +2570,9 @@ check_next_ssep:
          with which it was declared. */
       a_type_ptr  bottom_of_tp;
       tp = type_from_src_seq_declaration(next_ssep);
-      bottom_of_tp = find_bottom_of_type(tp);
-      if (tp == NULL || !same_entities(bottom_of_tp, tag_type)) {
+      if (tp == NULL ||
+          (bottom_of_tp = find_bottom_of_type(tp),
+           !same_entities(bottom_of_tp, tag_type))) {
         /* This is not an entity that was declared with the tag; the tag
            should be marked as autonomous.  Sometimes this will not be
            quite right -- some weird cases in C mode, such as
@@ -2580,7 +2581,7 @@ check_next_ssep:
         /* This situation can also occur when a non-autonomous tag appears as
            a template argument of a class template (e.g., vector<class X>). */
         check_assertion_str2(okay_if_not_found ||
-                             is_template_class_type(tp),
+                             (tp != NULL && is_template_class_type(tp)),
                              "src_seq_check_for_non_autonomous_tag:",
                              "type of next entry does not match");
         make_autonomous = TRUE;
