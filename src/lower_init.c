@@ -9587,7 +9587,7 @@ constructor, but may instead be after an assignment to "this".
                                           compare_node,
                                           insert_location);
 #if DO_FULL_PORTABLE_EH_LOWERING
-    if (exceptions_enabled) {
+    if (exceptions_enabled && scope->lifetime != NULL) {
       an_init_pos_descr ipd;
       /* Assign the object address table slot for the conditional
          variable. */

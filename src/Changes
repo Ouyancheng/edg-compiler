@@ -1,5 +1,27 @@
 Version 3.4
 
+4/13/04  Incorrect fully-lowered EH code for almost-trivial constructor
+         when NEW_CAN_BE_FOLDED_INTO_CTOR is FALSE
+
+In configurations with NEW_CAN_BE_FOLDED_INTO_CTOR set to FALSE
+(e.g., IA-64 ABI configurations) and DO_FULL_PORTABLE_EH_LOWERING
+set to TRUE, the code generated for a constructor having virtual
+base classes but no destructible base classes, members, or local
+variables was incorrect.  Code was generated to initialize an
+element of the object address table to the address of the complete
+object, but the object address table was never used.  More
+significantly, the size of the array variable for that was never
+set (it remained zero), which could give back ends problems.
+Other than that, the extra code is superfluous but otherwise
+harmless.
+
+  struct A {
+    A();
+  };
+  struct B : virtual public A {
+    B() : A() {}
+  } b;
+
 4/10/04  GNU/Microsoft compatibility: Explicit instantiation directive
          in incorrect namespace
 
