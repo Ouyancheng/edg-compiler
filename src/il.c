@@ -2663,6 +2663,12 @@ to delay linking them.
 a_type_ptr alloc_local_scope_type(a_type_kind    kind,
                                   a_scope_depth  scope_level,
                                   a_boolean      in_old_style_param_decl_list)
+/*
+Allocate and initialize a new type entry of the specified kind and add it
+to the types list of the scope specified by scope_level.  Except when the
+current scope is a function prototype scope, allocate the entry in the memory
+region corresponding to scope_level.
+*/
 {
   a_type_ptr tp;
 
