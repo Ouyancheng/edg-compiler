@@ -2502,6 +2502,7 @@ A pointer to the expression node is returned.
   /* Allocate an expression node indicating that this is a condition
      declaration. */
   node = alloc_expr_node((an_expr_node_kind)enk_condition);
+  node->variant.condition->scope = scope;
   /* Scan the variable declaration.  Unless there was an error, it will have
      been initialized. */
   vp = condition_declaration();
