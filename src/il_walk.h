@@ -18,15 +18,23 @@ il_walk.h -- Declarations related to il_walk.c (walking the intermediate
 #ifndef IL_WALK_H
 #define IL_WALK_H 1
 
-/* None of this is needed if not writing IL to a file. */
-#if IL_WALK_NEEDED
-
 #ifndef HOST_ENVIR_H
 #include "host_envir.h"
 #endif /* ifndef HOST_ENVIR_H */
+
+/* None of this is needed if not writing IL to a file. */
+#if IL_WALK_NEEDED
+
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */
+
+/*
+If this flag is TRUE, the routines that allow remapping of the pointers
+in an entry in isolation (i.e., not as part of an IL tree walk) are
+compiled.
+*/
+#define REMAP_ONLY_ROUTINES_NEEDED ALTERNATE_IL_FILE_FORMAT
 
 #ifdef FFE
 /*
@@ -38,8 +46,8 @@ make the current index in the array of bound info entries available
 so that one can tell which entry one is dealing with.  num_walk_array_bounds
 indicates the total number of entries.
 */
-EXTERN int	array_bound_walk_index;
-EXTERN int	num_walk_array_bounds;
+EXTERN unsigned long array_bound_walk_index;
+EXTERN unsigned long num_walk_array_bounds;
 #endif /* ifdef FFE */
 
 
@@ -71,21 +79,19 @@ extern void walk_routine_scope_il(
              a_string_entry_process_function_ptr string_entry_process_function,
              a_remap_function_ptr                remap_function);
 
+#if REMAP_ONLY_ROUTINES_NEEDED
 extern void remap_pointers_in_il_entry(char                 *entry_ptr,
                                        an_il_entry_kind     entry_kind,
                                        a_remap_function_ptr remap_function);
 
 extern void remap_il_header_pointers(a_remap_function_ptr remap_function);
 
-#if ORPHAN_PROCESSING_NEEDED
-extern void remap_orphaned_file_scope_entry_array_ptrs(
-                                       a_remap_function_ptr remap_function);
+extern void remap_first_ptr_of_orphaned_file_scope_entry_array(
+                                          a_remap_function_ptr remap_function);
+#endif /* REMAP_ONLY_ROUTINES_NEEDED */
 
-#if !ALTERNATE_IL_FILE_FORMAT
-extern void remap_orphaned_il_list_next_pointers(
-                                       a_remap_function_ptr remap_function);
-#endif /* !ALTERNATE_IL_FILE_FORMAT */
-#endif /* ORPHAN_PROCESSING_NEEDED */
+extern void remap_last_ptr_of_orphaned_file_scope_entry_array(
+                                          a_remap_function_ptr remap_function);
 
 extern char *retrieve_il_entry_kind_name(an_il_entry_kind entry_kind);
 

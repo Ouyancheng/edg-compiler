@@ -1528,7 +1528,7 @@ can be NULL to indicate that the corresponding function is unnecessary.
   db_exit();
 }  /* walk_routine_scope_il */
 
-#if ALTERNATE_IL_FILE_FORMAT
+#if REMAP_ONLY_ROUTINES_NEEDED
 
 void remap_pointers_in_il_entry(char                 *entry_ptr,
                                 an_il_entry_kind     entry_kind,
@@ -1564,8 +1564,8 @@ subtree of the entry is not processed.
   walk_subtree = prev_walk_subtree;
 }  /* remap_pointers_in_il_entry */
 
-#endif /* ALTERNATE_IL_FILE_FORMAT */
-#if ALTERNATE_IL_FILE_FORMAT
+#endif /* REMAP_ONLY_ROUTINES_NEEDED */
+#if REMAP_ONLY_ROUTINES_NEEDED
 
 void remap_il_header_pointers(a_remap_function_ptr remap_function)
 /*
@@ -1590,40 +1590,24 @@ The subtree is not processed.
   remap_func = prev_remap_func;
 }  /* remap_il_header_pointers. */
 
-#endif /* ALTERNATE_IL_FILE_FORMAT */
+#endif /* REMAP_ONLY_ROUTINES_NEEDED */
+#if REMAP_ONLY_ROUTINES_NEEDED
 
+void remap_first_ptr_of_orphaned_file_scope_entry_array(
+                                           a_remap_function_ptr remap_function)
 /*
-Macros to facilitate remapping the pointers to IL entries in the orphaned
-file-scope IL entry table.
-*/
-#define remap_orphan_entry_first(kind) \
-  remap_orphan_ptr(orphaned_file_scope_il_entries[(int)(kind)].first_entry, \
-                   (kind))
-#define remap_orphan_entry_last(kind) \
-  remap_orphan_ptr(orphaned_file_scope_il_entries[(int)(kind)].last_entry, \
-                   (kind))
-
-void remap_orphaned_file_scope_entry_array_ptrs(
-                               a_remap_function_ptr remap_function)
-/*
-Remap the pointers in the orphaned_file_scope_il_entries array by running
-them through remap_function.
+Remap the "first" pointers in the orphaned_file_scope_il_entries array by
+running them through remap_function.
 */
 {
   a_remap_function_ptr prev_remap_func = remap_func;
 
   remap_func = remap_function;
-#if !ALTERNATE_IL_FILE_FORMAT
-  /* In the non-alternate file format, walk_orphaned_file_scope_il_entries
-     will be called during the tree walk of the file-scope IL.  It will
-     remap not only the pointers and entries on the orphan list, but also
-     the pointer in the header array.  Therefore, that pointer should not
-     be remapped here. */
-#else /* ALTERNATE_IL_FILE_FORMAT */
-  /* In the alternate file format, the IL tree is not walked on the reading
-     end -- each IL entry's pointers as remapped as the entry is read.
-      Therefore header pointers (like these) are remapped as a separate
-      step here. */
+
+#define remap_orphan_entry_first(kind) \
+  remap_orphan_ptr(orphaned_file_scope_il_entries[(int)(kind)].first_entry, \
+                   (kind))
+
   remap_orphan_entry_first(iek_source_file);
   remap_orphan_entry_first(iek_constant);
   remap_orphan_entry_first(iek_param_type);
@@ -1673,10 +1657,29 @@ them through remap_function.
   remap_orphan_entry_first(iek_template_arg);
   remap_orphan_entry_first(iek_new_delete_supplement);
 #endif /* ifdef CFE */
-#endif /* !ALTERNATE_IL_FILE_FORMAT */
 
-  /* The "last" pointers are remapped regardless of the IL file format,
-     since they are never walked as a list from elsewhere. */
+  /* Restore the previous value of the remap function pointer. */
+  remap_func = prev_remap_func;
+#undef remap_orphan_entry_first
+}  /* remap_first_ptr_of_orphaned_file_scope_entry_array */
+
+#endif /* REMAP_ONLY_ROUTINES_NEEDED */
+
+void remap_last_ptr_of_orphaned_file_scope_entry_array(
+                                           a_remap_function_ptr remap_function)
+/*
+Remap the "last" pointers in the orphaned_file_scope_il_entries array by
+running them through remap_function.
+*/
+{
+  a_remap_function_ptr prev_remap_func = remap_func;
+
+  remap_func = remap_function;
+
+#define remap_orphan_entry_last(kind) \
+  remap_orphan_ptr(orphaned_file_scope_il_entries[(int)(kind)].last_entry, \
+                   (kind))
+
   remap_orphan_entry_last(iek_source_file);
   remap_orphan_entry_last(iek_constant);
   remap_orphan_entry_last(iek_param_type);
@@ -1729,10 +1732,9 @@ them through remap_function.
 
   /* Restore the previous value of the remap function pointer. */
   remap_func = prev_remap_func;
-}  /* remap_orphaned_file_scope_entry_array_ptrs */
-
-#undef remap_orphan_entry_first
 #undef remap_orphan_entry_last
+}  /* remap_last_ptr_of_orphaned_file_scope_entry_array */
+
 
 char *retrieve_il_entry_kind_name(an_il_entry_kind entry_kind)
 /*
