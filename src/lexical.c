@@ -5578,6 +5578,16 @@ constant_accumulated:
       error_at_line_pos(err_code, err_pos);
     }  /* if */
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("scan_number")) {
+    db_constant(&const_for_curr_token);
+    if (const_for_curr_token.type != NULL) {
+      fprintf(f_debug, ", type: ");
+      db_type(const_for_curr_token.type);
+    }  /* if */
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   return (ctoken);
 }  /* scan_number */
 
