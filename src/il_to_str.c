@@ -2057,13 +2057,22 @@ precedence confusion.  Do the output in the way described by octl.
     }  /* if */
     if (need_char_star_cast) final_cast_needed = TRUE;
   }  /* if */
-  if (constant->implicit_cast && achieved_type != desired_type) {
-    /* The proper type couldn't be achieved with address operators, so we
-       need a final cast to adjust the type.  One important category of cases
-       this handles is cases that require just qualification adjustments.
-       The test of implicit_cast allows a category of function-pointer
-       cases to be put out without casts. */
-    final_cast_needed = TRUE;
+  /* See if we need a final cast to the desired type. */
+  if (achieved_type != desired_type) {
+    if (!constant->implicit_cast &&
+        constant->variant.address.kind == (an_address_base_kind)abk_routine) {
+      /* Function declarators don't get shared, so a pointer equality test
+         doesn't work well.  We also can't use a routine like
+         types_are_compatible to do a full test because those routines are
+         not available in standalone utility programs.  It's okay to err on
+         the side of putting out the cast, but in the most common case we
+         can know that no cast is needed. */
+    } else {
+      /* The proper type couldn't be achieved with address operators, so we
+         need a final cast to adjust the type.  One important category of cases
+         this handles is cases that require just qualification adjustments. */
+      final_cast_needed = TRUE;
+    }  /* if */
   }  /* if */
   if (final_cast_needed) {
     /* Generate a final cast to the constant type. */
