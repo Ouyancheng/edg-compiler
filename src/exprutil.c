@@ -4375,6 +4375,24 @@ or eok_rvalue node to the operand to mark it as an lvalue or rvalue.
 }  /* prep_generic_operand */
 
 
+void generic_cast_operand(an_operand *operand,
+                          a_type_ptr dest_type)
+/*
+Add a generic cast that casts the given operand to dest_type.  This is used
+in prototype instantiations to represent conversions to unknown types.
+*/
+{
+  prep_generic_operand(operand);
+  if (!il_identical_types(operand->type, dest_type)) {
+    an_expr_node_ptr expr = make_node_from_operand(operand);
+    expr = make_operator_node((an_expr_operator_kind)eok_cast, dest_type,
+                              expr);
+    expr->variant.operation.compiler_generated = TRUE;
+    make_expression_operand(expr, dest_type, operand);
+  }  /* if */
+}  /* generic_cast_operand */
+
+
 void template_binary_operation(an_expr_operator_kind op,
                                an_operand            *operand_1,
                                an_operand            *operand_2,
