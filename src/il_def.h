@@ -445,6 +445,7 @@ typedef enum /*an_il_entry_kind*/ {
   iek_decl_position_supplement,
 			/* a_decl_position_supplement */
   iek_switch_case_entry,
+			/* a_switch_case_entry */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
