@@ -37,22 +37,6 @@ error -- DEPTH_OF_FILE_SCOPE is not defined correctly.
 #endif /* DEPTH_OF_FILE_SCOPE != 0 */
 #endif /* ifndef DEPTH_OF_FILE_SCOPE */
 
-/*
-Numbering for scopes.  Each new scope is given a number by incrementing
-next_scope_number.  These numbers are unique identifiers for each scope,
-not simply the nesting level of the scope.  Also, each struct or union
-has a unique scope number for its member fields, even though no true
-scope with that number is created.  In C++, a class/struct/union has a
-true scope associated with it.
-*/
-typedef short a_scope_number;
-#define MAX_SCOPE_NUMBER SHRT_MAX
-#define NO_SCOPE_NUMBER (-1)
-			/* Scope number used for things without scope,
-			   like keywords. */
-#define FILE_SCOPE_NUMBER 0
-			/* Scope number for the file scope. */
-
 #ifndef LEXICAL_H
 #include "lexical.h"
 #endif /* ifndef LEXICAL_H */
@@ -479,27 +463,6 @@ typedef struct an_extern_type_fixup {
 
 
 /* Scope stack, containing an entry for each currently-active scope. */
-typedef enum /*a_scope_kind*/ {
-  /* Kinds of name scopes. */
-  sck_file,		/* File scope. */
-  sck_function,		/* Function scope. */
-  sck_func_prototype,   /* Function prototype scope, used also during
-			   function declarators that are part of a
-			   function definition (since we don't know at
-			   that point whether or not a body will follow). */
-  sck_block,		/* Block scope, for blocks other than the topmost
-			   in a function. */
-  sck_class_struct_union,
-			/* In C, pseudo-scope for fields of a struct or
-			   union; in C++, real scope for members of a
-			   class/struct/union. */
-  sck_class_reactivation
-			/* In C++, reactivation of a class scope, making
-			   the class members visible without qualification.
-			   This is used, for example, when processing a
-			   member function definition. */
-} a_scope_kind;
-
 typedef struct a_scope_stack_entry *a_scope_stack_entry_ptr;
 typedef struct a_scope_stack_entry {
   a_scope_number
@@ -507,7 +470,8 @@ typedef struct a_scope_stack_entry {
 			/* Scope number (unique identifier) for this scope. */
   a_scope_kind	kind;
 			/* Kind of scope (file, function, block, function
-			   prototype). */
+			   prototype, etc.).  See the definition of
+			   a_scope_kind in il_def.h. */
   a_symbol_ptr	symbols,
 		last_symbol;
 			/* First/last pointers to the list of all symbols
@@ -767,7 +731,7 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 /* Return a pointer to the current routine entry (only usable when within
    a routine definition). */
 #define current_routine_entry()                                       \
-  (scope_stack[depth_innermost_function_scope].il_scope->assoc_routine)
+  (scope_stack[depth_innermost_function_scope].il_scope->variant.routine.ptr)
 
 
 #if DEBUG
