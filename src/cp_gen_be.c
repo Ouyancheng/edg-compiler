@@ -3667,40 +3667,44 @@ Generate code for the indicated "for" statement.
                           init_stmt->next->kind == (a_statement_kind)stmk_init,
                           "gen_for_statement: unexpected init block");
     }  /* if */
-    check_assertion(init_stmt->kind == (a_statement_kind)stmk_decl);
-    /* Process the declaration/initialization.  If there are several, they
-       must be put out as a comma-separated list. */
-    decl_after_first = FALSE;
-    for (;;) {
-      check_assertion_str(curr_source_sequence_entry != NULL &&
-                          ss_entry_kind(curr_source_sequence_entry) ==
+    if (init_stmt->kind != (a_statement_kind)stmk_decl) {
+      /* Anything other than a declaration, e.g., all C cases. */
+      gen_statement(init_stmt);
+    } else {
+      /* Process the declaration/initialization.  If there are several, they
+         must be put out as a comma-separated list. */
+      decl_after_first = FALSE;
+      for (;;) {
+        check_assertion_str(curr_source_sequence_entry != NULL &&
+                            ss_entry_kind(curr_source_sequence_entry) ==
                                                                   iek_variable,
-                          "gen_for_statement: bad decl in for-init");
-      gen_variable_decl(/*gen_final_semicolon=*/FALSE,
-                        /*suppress_specifiers=*/decl_after_first);
-      /* Stop on an end-of-construct entry for the stmk_decl. */
-      if (ss_entry_kind(curr_source_sequence_entry) ==
+                            "gen_for_statement: bad decl in for-init");
+        gen_variable_decl(/*gen_final_semicolon=*/FALSE,
+                          /*suppress_specifiers=*/decl_after_first);
+        /* Stop on an end-of-construct entry for the stmk_decl. */
+        if (ss_entry_kind(curr_source_sequence_entry) ==
                                                 iek_src_seq_end_of_construct) {
-        /* Found the end-of-construct entry. */
+          /* Found the end-of-construct entry. */
 #if CHECKING
-        a_src_seq_end_of_construct_ptr ssecp =
+          a_src_seq_end_of_construct_ptr ssecp =
                                   ss_entry_ptr(curr_source_sequence_entry,
                                                a_src_seq_end_of_construct_ptr);
-        check_assertion_str(ss_entry_kind(ssecp) == iek_statement &&
-                            ss_entry_ptr(ssecp, a_statement_ptr) == init_stmt,
-                            "gen_for_statement: bad end-of-construct");
+          check_assertion_str(ss_entry_kind(ssecp) == iek_statement &&
+                             ss_entry_ptr(ssecp, a_statement_ptr) == init_stmt,
+                              "gen_for_statement: bad end-of-construct");
 #endif /* CHECKING */
-        adv_curr_source_sequence_entry();
-        break;
-      }  /* if */
-      /* Loop for declarations of additional variables. */
-      write_tok_ch(',');
+          adv_curr_source_sequence_entry();
+          break;
+        }  /* if */
+        /* Loop for declarations of additional variables. */
+        write_tok_ch(',');
+        write_space();
+        decl_after_first = TRUE;
+      }  /* for */
+      /* Finish the declaration. */
+      write_tok_ch(';');
       write_space();
-      decl_after_first = TRUE;
-    }  /* for */
-    /* Finish the declaration. */
-    write_tok_ch(';');
-    write_space();
+    }  /* if */
   }  /* if */
   /* Generate the termination-test expression if there is one. */
   if (statement->expr != NULL) {
