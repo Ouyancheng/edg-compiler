@@ -1883,7 +1883,7 @@ the proper insert location.
         pos_st_error(ec_redeclaration_of_template_param_name,
                      &(sym_ptr->decl_position), sym_ptr->header->identifier);
       } else {
-        a_boolean	first_trip = TRUE;
+        a_boolean	set_insert_after = TRUE;
         if (redeclared_template_param) {
           /* A template parameter name has been reused in an inner scope
              of a template class or function.  Issue a warning that the
@@ -1902,7 +1902,7 @@ the proper insert location.
            when there has already been an error issued, so in practical terms
            the extra check costs nothing. */
         for (; old_sym_ptr != NULL && old_sym_ptr->decl_scope == scope_number;
-             old_sym_ptr = old_sym_ptr->next, first_trip = FALSE) {
+             old_sym_ptr = old_sym_ptr->next) {
           if (name_space_for_symbol_kind[(int)old_sym_ptr->kind] ==
                                                          sym_name_space_kind) {
             /* Two declarations in the same name space in the same scope:
@@ -1912,7 +1912,8 @@ the proper insert location.
                allowed to hide a function parameter. */
             if (!symbols_may_coexist_in_curr_scope
                             (old_sym_ptr, sym_ptr,
-                             first_trip ? &insert_after : (a_symbol_ptr*)NULL,
+                             set_insert_after ? &insert_after :
+                                                (a_symbol_ptr*)NULL,
                              suppress_error)) {
               /* Error, this identifier has already been declared. */
               if (!suppress_error) {
@@ -1934,7 +1935,12 @@ the proper insert location.
               break;
             }  /* if */
             /* Go ahead and enter the symbol anyway.  Both symbols will be
-               in the symbol table. */
+               in the symbol table.  The insert position should only be set
+               by the first symbols_may_coexist_in_curr_scope call.
+               Subsequent calls are only for error detection purposes and
+               should not affect the position of the new symbol in the symbol
+               table. */
+            set_insert_after = FALSE;
           }  /* if */
         }  /* for */
       }  /* if */
