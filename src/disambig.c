@@ -203,6 +203,7 @@ When this routine is called, the current token must be the __declspec
 keyword.
 */
 {
+  int	paren_count = 0;
   check_assertion_str2(curr_token == tok_declspec,
                        "prescan_microsoft_extended_decl_modifiers:",
                        "curr_token not tok_declspec");
@@ -210,12 +211,27 @@ keyword.
   cache_curr_token(&state->cache);
   (void)get_token();
   if (curr_token == tok_lparen) {
-    cache_curr_token(&state->cache);
-    get_token_and_coalesce_if_identifier(flags);
-    while (curr_token == tok_identifier) {
+    /* The syntax within the parentheses of the __declspec specifier is
+       not tested by this routine, except that the parentheses are expected
+       to be properly nested (the same number of opening and closing
+       parentheses), and to improve error recovery, it is not expected to
+       include a semicolon, left brace, or end-of-source token. */
+    for (;;) {
       cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
-    }  /* while */
+      if (curr_token == tok_rparen) {
+        /* A right parenthesis.  Break out of this is a zero level
+           parenthesis. */
+        if (paren_count == 0) break;
+        paren_count--;
+      } else if (curr_token == tok_lparen) {
+        paren_count++;   
+      } else if (curr_token == tok_semicolon ||
+                 curr_token == tok_end_of_source ||
+                 curr_token == tok_lbrace) {
+        break;
+      }  /* if */
+    }  /* for */
     if (curr_token == tok_rparen) {
       cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
