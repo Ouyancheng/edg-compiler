@@ -2112,13 +2112,14 @@ for the class to which they belong.
 
 static void copy_virtual_function_override_list(a_base_class_ptr  old_bcp,
                                                 a_base_class_ptr  new_bcp,
-                                                a_type_ptr        old_class,
+                                                a_base_class_ptr  new_direct_bcp,
                                                 a_type_ptr        new_class)
 /*
 Copy the list of overriding virtual functions associated with old_bcp and add
 each of the copies to the list belonging to new_bcp.  The entries are
-being copied from a base class of old_class to a base class of new_class.
-new_bcp is the base class being created in new_class.
+being copied from a base class of new_direct_bcp to a base class of new_class.
+new_bcp is the base class being created in new_class under the direct base
+new_direct_bcp.
 */
 {
   an_overriding_virtual_function_ptr  ovfp_to_copy, new_ovfp;
@@ -2142,22 +2143,15 @@ new_bcp is the base class being created in new_class.
       /* The base class of the overriding function must be translated into
          the new class. */
       if (ovfp_to_copy->base_class == NULL) {
-        new_ovfp_base_class = find_direct_base_class_of(new_class,
-                                                        old_class);
+        /* The overriding function was declared in new_direct_bcp->type
+           (rather than in a base class thereof). */
+        new_ovfp_base_class = new_direct_bcp;
       } else {
         /* Be sure to select the right base class (its type could appear
            multiple times in the object hierarchy). */
-        a_base_class_ptr  disambiguator = NULL;
-        if (!new_bcp->is_virtual &&
-            !new_bcp->derivation->path->base_class->is_virtual) {
-          /* If the base class is virtual (or the base of a virtual base
-             class), no disambiguator is needed.
-             Otherwise, there is only one derivation path and we can search
-             for a disambiguator along that path. */
-          disambiguator = find_disambiguator(
-                                        new_bcp->derivation->path->base_class,
-                                        ovfp_to_copy->base_class);
-        }  /* if */
+        a_base_class_ptr  disambiguator;
+        disambiguator = find_disambiguator(new_direct_bcp,
+                                           ovfp_to_copy->base_class);
         new_ovfp_base_class = 
                  corresponding_base_class(ovfp_to_copy->base_class, new_class,
                                           disambiguator);
@@ -2169,7 +2163,8 @@ new_bcp is the base class being created in new_class.
           if (ovfp_from_new_list->primary_function ==
                                             ovfp_to_copy->primary_function) {
             if (ovfp_from_new_list->overriding_function ==
-                                         ovfp_to_copy->overriding_function) {
+                                         ovfp_to_copy->overriding_function &&
+                ovfp_from_new_list->base_class == ovfp_to_copy->base_class) {
               /* This override is already recorded.  No copy is needed. */
               goto next_entry_from_old_list;
             } else if (is_on_any_derivation_of(new_ovfp_base_class,
@@ -3254,6 +3249,10 @@ Dump a base class entry, for debug purposes.
   a_base_class_derivation_ptr  bcdp;
   a_boolean                    comma_needed = FALSE;
 
+  if (bcp == NULL) {
+    fprintf(f_debug, "<NULL>\n");
+    goto done;
+  }  /* if */
   (void)fputc('"', f_debug);
   db_type_name(bcp->type);
   if (bcp->derived_class != NULL) {
@@ -3317,6 +3316,7 @@ Dump a base class entry, for debug purposes.
     db_access_control(bcdp->access);
     fputs(")\n", f_debug);
   }  /* if */
+done:;
 }  /* db_base_class */
 
 
@@ -4952,7 +4952,7 @@ or struct definition.  The syntax is
                corresponding copied base class new_bcp (which is on the base
                bases list for type_ptr). */
             copy_virtual_function_override_list(bcp, new_bcp,
-                                                base_class_type, type_ptr);
+                                                new_direct_bcp, type_ptr);
 #if DEBUG
             if (debug_level >= 4) {
               fputs("new base class ", f_debug);

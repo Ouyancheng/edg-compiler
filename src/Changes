@@ -1,5 +1,19 @@
 Version 3.1
 
+12/10/02 Ambiguous virtual function overrider not diagnosed
+
+In some cases involving virtual functions declared in virtual base classes,
+the front end failed to issue a required diagnostic for ambiguously
+overridden virtual functions.  For example:
+
+  struct A { virtual void f() {} };
+  struct B: virtual A { virtual void f() {} };
+  struct C: B {};
+  struct D: B, C {};  // Front end failed to diagnose that A::f is not
+                      // uniquely overridden.
+
+This is now fixed.
+
 12/10/02 Access set incorrectly for non-member class prototype instantiations
 
 The access field in the source correspondence entry of non-member class
