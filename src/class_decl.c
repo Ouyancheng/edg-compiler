@@ -6926,7 +6926,7 @@ function or NULL if none can be found.
       if (is_member_function_symbol(sym)) {
         sym = member_function_redecl_sym_with_template_flag(
                                                     sym, member_type,
-                                                    /*templ_param_list=*/NULL,
+                                                    (a_template_param_ptr)NULL,
                                                     /*templates_only=*/FALSE);
       } else {
         sym = NULL;
@@ -12678,7 +12678,7 @@ is the template parameter list for the function template.
   check_assertion(scope_level != NO_SCOPE_DEPTH);
   class_state_ptr = scope_stack[scope_level].class_def_state;
   sym = class_member_declaration(class_type, class_state_ptr,
-                                 /*ms_attributes=*/NULL,
+                                 (an_ms_attribute_ptr)NULL,
                                  /*is_member_template=*/TRUE,
                                  templ_param_list, &skip_semicolon_check,
                                  &dummy_type, (a_template_instance_ptr)NULL,
@@ -12723,7 +12723,7 @@ instance record associated with this instantiation.
   saved_routine_fixup = curr_routine_fixup;
   curr_routine_fixup = NULL;
   (void)class_member_declaration(class_type, &class_state,
-                                 /*ms_attributes=*/NULL,
+                                 (an_ms_attribute_ptr)NULL,
                                  /*is_member_template=*/FALSE,
                                  (a_template_param_ptr)NULL,
                                  &skip_semicolon_check,
