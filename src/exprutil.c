@@ -5942,7 +5942,9 @@ to (or a function designator).
 {
   /* Leave an error operand alone. */
   if (!is_error_operand(operand)) {
-    if (operand->type != type_of_unknown_templ_param_nontype) {
+    if (is_template_param_type(operand->type)) {
+      operand->type = type_of_unknown_templ_param_nontype;
+    } else {
       operand->type = type_pointed_to(operand->type);
     }  /* if */
     if (is_function_type(operand->type)) {
@@ -6304,7 +6306,9 @@ non-NULL return *con_value == NULL.
     }  /* if */
   } else if (optimized_case) {
     /* For the optimized cases, set the node type to the type pointed to. */
-    if (node->type != type_of_unknown_templ_param_nontype) {
+    if (is_template_param_type(node->type)) {
+      node->type = type_of_unknown_templ_param_nontype;
+    } else {
       node->type = type_pointed_to(node->type);
       /* Drop type qualifiers as appropriate for an rvalue.  Note that no
          cast is needed to drop the qualifiers: an IL shorthand applies in

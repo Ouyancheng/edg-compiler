@@ -8273,7 +8273,9 @@ the same effect), and return a pointer to the new expression.
                                   (an_expr_operator_kind)eok_extract_bit_field;
       }  /* if */
     }  /* if */
-    if (node->type != type_of_unknown_templ_param_nontype) {
+    if (is_template_param_type(node->type)) {
+      new_type = type_of_unknown_templ_param_nontype;
+    } else {
       /* The new type for the node is the type pointed to. */
       new_type = type_pointed_to(node->type);
       /* Drop type qualifiers as appropriate on rvalues.  Note that no cast
@@ -8282,9 +8284,6 @@ the same effect), and return a pointer to the new expression.
       if (is_qualified_type(new_type)) {
         new_type = rvalue_type(new_type);
       }  /* if */
-    } else {
-      /* The type is an unknown template parameter type.  It stays the same. */
-      new_type = type_of_unknown_templ_param_nontype;
     }  /* if */
     if (optimized_case) {
       /* For the optimized cases, just set the node type. */
