@@ -5306,7 +5306,7 @@ and if so, change *operand to indicate the address.  If not, return FALSE.
       /* Cast the field selection to the right pointer type. */
       cast_node(&node, ptr_type, /*check_cast_access=*/TRUE,
                 /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
-                &operand->position);
+                /*reinterpret_semantics=*/FALSE, &operand->position);
       /* Make an rvalue operand for the address. */
       make_expression_operand(node, ptr_type, operand);
     }  /* if */
