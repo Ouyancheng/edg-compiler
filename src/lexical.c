@@ -4671,9 +4671,9 @@ the error on the final identifier not being found on lookup.
             error(ec_exp_identifier);
           } else if (!qualifier_err) {
             /* The final identifier is present. */
+            suppress_error = (options &
+                              IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR);
             if (is_file_scope_qualifier) {
-              suppress_error = (options &
-                                IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR);
               /* Look up the id in the file scope. */
               if (file_scope_id_lookup(&locator_for_curr_id,
                                        options) != NULL) {
