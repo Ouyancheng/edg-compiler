@@ -126,11 +126,12 @@ do nothing.
          conversion would cause a float exception. */
       static a_boolean init_done = FALSE;
       static double    double_flt_max;
+      static float     float_flt_max;
       /* Initialize double_flt_max to FLT_MAX converted as a double.  This
          might be slightly larger than FLT_MAX evaluated as a float (because
          of greater precision), but it's what the conversion of the actual
          FLT_MAX will yield, so it's the right value to use for the overflow
-         comparison. */
+         comparison.  float_flt_max is that value converted to float. */
       if (!init_done) {
         init_done = TRUE;
         /* Macros to turn FLT_MAX into a string: */
@@ -141,10 +142,19 @@ do nothing.
 #undef str1_flt_max
         check_assertion_str(errno == 0,
                             "store_double: error on conversion of FLT_MAX");
+        float_flt_max = (float)double_flt_max;
       }  /* if */
       if ((temp >= 0.0) ? temp > double_flt_max : temp < -double_flt_max) {
-        /* Overflow. */
-        *err = TRUE;
+        float float_temp = (float)temp;
+        if ((temp >= 0.0) ? (float_temp == float_flt_max) :    /*lint !e777*/
+                            (float_temp == -float_flt_max)) {  /*lint !e777*/
+          /* The number is slightly larger than the official maximum float, but
+             on conversion to float it rounds to the maximum float, so it's
+             okay. */
+        } else {
+          /* Overflow. */
+          *err = TRUE;
+        }  /* if */
       }  /* if */
 #endif /* CAN_DO_FLT_MAX_TEST */
       if (!*err) {

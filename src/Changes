@@ -1,5 +1,11 @@
 Version 2.39
 
+6/9/98    Conversion of numbers near FLT_MAX
+
+Floating-point constants with an "f" suffix whose values as written are
+slightly larger than FLT_MAX, but which round to FLT_MAX, are now accepted.
+Likewise for constants slightly smaller than -FLT_MAX.
+
 6/5/98    Microsoft compatibility: pure specifier on function definition
 
 In Microsoft compatibility mode a pure specifier may appear on a virtual
