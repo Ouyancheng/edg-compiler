@@ -1492,45 +1492,49 @@ allocated immediately preceding the entry.
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #if ORPHAN_PROCESSING_NEEDED
 
-void add_orphaned_file_scope_il_list (char             *entry_ptr,
-                                      an_il_entry_kind entry_kind)
+void add_orphaned_file_scope_il_list(a_type_ptr     types,
+                                     a_variable_ptr variables)
 /*
-Link the specified file scope IL entry list onto the 
-orphaned_file_scope_il_lists linked list for the designated IL entry
-kind.  At present the only entry kinds expected are iek_type and
-iek_variable.  Only IL entries in the file scope memory region have
-the necessary additional pointer space allocated immediately preceding
-the entry.
+Create an_orphaned_il_list IL entry to track of local types and local static
+variable IL lists in a function scope IL entry.  Each list, connected by
+their respective "next" pointers, will have been allocated in the
+file scope memory region.  This IL entry, part of a chain pointed to by 
+"il_header", will be used later to remap the "next" pointer in the type
+list and static variable list, as needed.  Each IL entry will be individually
+added to the orphaned_file_scope_il_entries array.
 */
 {
-  char **last_entry_ptr;
+  an_orphaned_il_list_ptr
+		oil_ptr;
+  a_type_ptr	local_type;
+  a_variable_ptr
+		local_static_variable;
 
-  if (entry_ptr != NULL) {
-#if CHECKING
-    if (!in_file_scope(entry_ptr)) {
-      internal_error(
- "add_orphaned_file_scope_il_list: IL entry not in file scope memory region");
-    }  /* if */
-    if (entry_kind != iek_type && entry_kind != iek_variable) {
-      internal_error("add_orphaned_file_scope_il_list: IL entry kind not iek_type or iek_variable as expected.");
-    }  /* if */
-#endif /* CHECKING */
-    /* Check if this IL entry is already on the orphaned entry list. */
-    last_entry_ptr = &orphaned_file_scope_il_lists[(int)entry_kind].last_entry;
-    if (*(char **)(entry_ptr - sizeof(char *)) == NULL &&
-        entry_ptr != *last_entry_ptr) {
-      /* This entry is not in the existing list; add it to the end of the
-         list. */
-      if (*last_entry_ptr == NULL) {
-        /* This is the first entry on this list */
-        orphaned_file_scope_il_lists[(int)entry_kind].first_entry = 
-                                                               entry_ptr;
-      } else {
-        /* Add to the tail of the existing list. */
-        *(char **)(*last_entry_ptr - sizeof (char *)) = entry_ptr;
-      }  /* if */
-      *last_entry_ptr = entry_ptr;
-    }  /* if */
+  if (types != NULL || variables != NULL) {
+    /* At least one of the IL pointers is not NULL; create an_orphaned_il_list
+       entry in the file scope region. */
+    oil_ptr = (an_orphaned_il_list_ptr)alloc_il(sizeof(an_orphaned_il_list));
+    oil_ptr->orphaned_types = types;
+    oil_ptr->orphaned_variables = variables;
+    oil_ptr->next = il_header.orphaned_il_list;
+    il_header.orphaned_il_list = oil_ptr;
+
+    /* Add each type IL entry on the "types" list to the
+       orphaned_file_scope_il_entries array. */
+    for (local_type = types;
+         local_type != NULL;
+         local_type = local_type->next) {
+      add_orphaned_file_scope_il_entry((char *)local_type, iek_type);
+    }  /* for */
+
+    /* Add each variable IL entry on the "variables" list to the
+       orphaned_file_scope_il_entries array. */
+    for (local_static_variable = variables;
+         local_static_variable != NULL;
+         local_static_variable = local_static_variable->next) {
+      add_orphaned_file_scope_il_entry((char *)local_static_variable,
+                                       iek_variable);
+    }  /* for */
   }  /* if */
 }  /* add_orphaned_file_scope_il_list */
 
