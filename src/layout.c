@@ -922,8 +922,11 @@ targ_microsoft_bit_field_allocation is FALSE.)
       container_alignment = (a_targ_alignment)1;
     } else {
       /* targ_zero_width_bit_field_alignment < 0 */
-      /* Use the base type alignment. */
-      container_alignment = field_alignment_for(base_type);
+      /* Use the base type alignment.  Note that GNU compilers do not consider
+         the alternative field alignment in this case.  We therefore do not
+         use "field_alignment_for" here, and instead we access the type's
+         intrinsic alignment directly. */
+      container_alignment = base_type->alignment;
     }  /* if */
     if (targ_microsoft_bit_field_allocation) {
       /* Special handling of zero-width bit fields in Microsoft mode,

@@ -636,7 +636,7 @@ of "cc" (condition codes) in an extended asm clobber list.  (The similar
 
 A new configuration macro TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES causes the
 front end to consider an alternative alignment for builtin types when a field
-of such appears in a class type (including structs and unions).  These
+of such a type appears in a class type (including structs and unions).  These
 alternative alignments are configured through macros of the form
 TARG_<XYZ>_FIELD_ALIGNMENT (where <XYZ> can be SHORT, INT, LONG, LONG_LONG,
 FLOAT, DOUBLE, and LONG_DOUBLE).  This allows the front end to emulate more
