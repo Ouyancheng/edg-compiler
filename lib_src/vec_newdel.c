@@ -9,10 +9,11 @@
 ******************************************************************************/
 /*
 
-_vec_newdel.C -- C++ runtime routines for vector new() and delete() which
-                 precedes the adds a header in front of the allocation to
-                 track the array size.  The array size is later used by
-                 _vec_dtor to call destructors for undimensioned array
+_vec_newdel.C -- C++ runtime routines for to provide vector new() and 
+                 delete() functionality.  The memory allocated for an
+                 array is preceded by a header which provides space for
+                 the array size.  The array size is later used by
+                 _vec_dtor() to call destructors for undimensioned array
                  deletes.
 
 */
@@ -21,30 +22,43 @@ _vec_newdel.C -- C++ runtime routines for vector new() and delete() which
 #include "_newdel.h"
 
 
-typedef void *(*ptr_to_new_func) (size_t);
 typedef void (*ptr_to_delete_func) (void *);
 
 extern "C" {
-	void *_vec_new(size_t, ptr_to_new_func);
-	void _vec_delete(char *, ptr_to_delete_func);
+	size_t	_vec_new_size(size_t);
+	void	*_vec_new_init(char *, size_t);
+	void 	_vec_delete(char *, ptr_to_delete_func);
 }
 
 
-void *_vec_new(size_t             array_size,
-               ptr_to_new_func    new_func)
+size_t _vec_new_size(size_t array_size)
 /*
-Using the specified operator new(), allocate the requested storage with a
-header to track the size of the array.
+Increment to requested array size by the length of the memory header that
+precedes that user memory.
 */
 {
-  char *ptr;
-  ptr = (char *)(*new_func)(array_size + sizeof(new_header));
-  ((new_header *)ptr)->requested_size = array_size;
+  return array_size + sizeof(new_header);
+}  /* _vec_new_size */
+
+
+void *_vec_new_init(char     *new_ptr,
+                    size_t   array_size)
+
+/*
+Initialize the memory header preceding the user array memory area with the
+array_size.  Return a pointer to the beginning of the user array.
+*/
+{
+  if (new_ptr == NULL) {
+    /* Do nothing with a NULL pointer. */
+    return (void *)NULL;
+  }  /* if */
+
+  ((new_header *)new_ptr)->requested_size = array_size;
 #if DEBUG
-  ((new_header *)ptr)->magic_number = MAGIC_NUMBER;
+  ((new_header *)new_ptr)->magic_number = MAGIC_NUMBER;
 #endif /*DEBUG */
-  ptr += sizeof(new_header);
-  return (void *)ptr;
+  return (void *)(new_ptr + sizeof(new_header));
 }  /* _vec_new */
 
 
