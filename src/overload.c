@@ -11387,24 +11387,39 @@ if so.
 
 a_boolean conditional_operator_conversion_possible(an_operand   *op1,
                                                    an_operand   *op2,
-                                                   a_conv_descr *conv)
+                                                   a_conv_descr *conv,
+                                                   a_boolean    *ambiguous)
 /*
 Determine whether op1 can be converted to match op2 in the sense
 defined in the C++ standard, 5.16 [expr.cond] paragraph 3.  This is
 used in attempting to convert between the second and third operands
 of a "?" operator.  If the conversion is possible, set *conv to
 describe the conversion and return TRUE.  If the conversion is ambiguous,
-return TRUE.  One or the other of the operands must have a class type.
-This is used only in C++ mode.
+set *ambiguous to TRUE and return TRUE.  However, if ambiguous == NULL
+in that case, issue the ambiguity error (and still return TRUE).
+One or the other of the operands must have a class type.  This is
+used only in C++ mode.
 */
 {
-  a_boolean        possible = FALSE, ambiguous = FALSE;
+  a_boolean        possible = FALSE, local_ambiguous = FALSE;
   a_boolean        related_classes = FALSE;
   a_base_class_ptr bcp = NULL;
   a_type_ptr       op1_type = op1->type;
   a_type_ptr       op2_type = op2->type;
+  a_type_ptr       conv_dest_type = NULL;
+  a_candidate_function_ptr
+                   ambiguity_list = NULL;
+  a_candidate_function_ptr
+                   *p_ambiguity_list = NULL;
+  a_boolean        error_issued = FALSE;
 
   check_assertion(!C_mode());
+  if (ambiguous == NULL) {
+    /* Ambiguity errors are to be issued by this routine, so ask the
+       conversion routines to pass back a list of the candidates if
+       there is an ambiguity. */
+    p_ambiguity_list = &ambiguity_list;
+  }  /* if */
   clear_conv_descr(conv);
   if (is_an_lvalue(op2)) {
     a_boolean ref_to_const, ref_to_const_volatile;
@@ -11412,10 +11427,10 @@ This is used only in C++ mode.
     /* op2 is an lvalue.  Attempt to convert op1 to an lvalue of the type
        of op2.  The standard defines this in terms of a notional
        conversion to "reference to op2_type". */
-    a_type_ptr ref_op2_type = make_reference_type(op2_type);
+    conv_dest_type = make_reference_type(op2_type);
     if (direct_reference_binding_possible(op1,
                                           (a_type_ptr)NULL,
-                                          ref_op2_type,
+                                          conv_dest_type,
                                           &ref_to_const,
                                           &ref_to_const_volatile,
                                           &binding_to_rvalue_allowed,
@@ -11431,11 +11446,11 @@ This is used only in C++ mode.
          the result. */
       if (conversion_for_direct_reference_binding_possible(
                                            op1,
-                                           ref_op2_type,
+                                           conv_dest_type,
                                            conv,
-                                           &ambiguous,
-                                           (a_candidate_function_ptr *)NULL) ||
-          ambiguous) {
+                                           &local_ambiguous,
+                                           p_ambiguity_list) ||
+          local_ambiguous) {
         possible = TRUE;
       }  /* if */
     }  /* if */
@@ -11471,6 +11486,15 @@ This is used only in C++ mode.
         /* Check for an ambiguous base class. */
         if (bcp != NULL && bcp->ambiguous) {
           conv->unusable = TRUE;
+          local_ambiguous = TRUE;
+          if (ambiguous == NULL) {
+            /* Issue the ambiguity error.  Note that the base class is
+               always the underlying type of op2, never of op1, in this
+               case. */
+            pos_ty_error(ec_ambiguous_base_class, &op1->position,
+                         skip_typerefs(op2->type));
+            error_issued = TRUE;
+          }  /* if */
         }  /* if */
         /* Set *conv to indicate the related-class conversion. */
         conv->std.cast_base_class = bcp;
@@ -11480,35 +11504,48 @@ This is used only in C++ mode.
     } else {
       /* Not related classes.  See whether op1 can be converted to the
          type of op2 as an rvalue. */
-      a_type_ptr op2_rvalue_type = rvalue_type(op2_type);
+      conv_dest_type = rvalue_type(op2_type);
       if (is_class_struct_union_type(op2_type)) {
         if (conversion_to_class_possible(op1,
-                                         op2_rvalue_type,
+                                         conv_dest_type,
                                          /*try_bitwise_copy=*/TRUE,
                                          /*is_copy_initialization=*/TRUE,
                                          /*is_reference_binding=*/FALSE,
                                          conv, (a_conv_descr *)NULL,
-                                         &ambiguous,
-                                         (a_candidate_function_ptr *)NULL) ||
-            ambiguous) {
+                                         &local_ambiguous,
+                                         p_ambiguity_list) ||
+            local_ambiguous) {
           possible = TRUE;
         }  /* if */
       } else {
         check_assertion(is_class_struct_union_type(op1_type));
         if (conversion_from_class_possible(op1,
-                                           op2_rvalue_type,
+                                           conv_dest_type,
                                            (a_builtin_type_kind_set)BTK_NONE,
                                            /*need_lvalue_result=*/FALSE,
                                            /*is_copy_initialization=*/TRUE,
                                            /*is_reference_binding=*/FALSE,
                                            conv,
-                                           &ambiguous,
-                                           (a_candidate_function_ptr *)NULL) ||
-            ambiguous) {
+                                           &local_ambiguous,
+                                           p_ambiguity_list) ||
+            local_ambiguous) {
           possible = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (ambiguous != NULL) {
+    *ambiguous = local_ambiguous;
+  } else if (local_ambiguous) {
+    /* The conversion is ambiguous.  Issue an error. */
+    if (!error_issued) {
+      pos_ty2_start_error(ec_ambiguous_user_defined_conversion,
+                          &op1->position, op1->type, conv_dest_type);
+      diagnose_overload_ambiguity(ambiguity_list, (an_arg_operand_ptr)NULL,
+                                  (an_opname_kind)onk_none);
+      free_candidate_function_list(ambiguity_list);
+    }  /* if */
+    conv_to_error_operand(op1);
   }  /* if */
   return possible;
 }  /* conditional_operator_conversion_possible */

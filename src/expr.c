@@ -10261,15 +10261,19 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
          other.  See 5.16 paragraph 3 in the C++ standard. */
       a_conv_descr conv_2_to_3, conv_3_to_2;
       a_boolean    conv_2_to_3_possible, conv_3_to_2_possible;
+      a_boolean    ambig_2_to_3, ambig_3_to_2;
       conv_2_to_3_possible =
-                        conditional_operator_conversion_possible(&operand_2,
-                                                                 &operand_3,
-                                                                 &conv_2_to_3);
+                       conditional_operator_conversion_possible(&operand_2,
+                                                                &operand_3,
+                                                                &conv_2_to_3,
+                                                                &ambig_2_to_3);
       conv_3_to_2_possible =
-                        conditional_operator_conversion_possible(&operand_3,
-                                                                 &operand_2,
-                                                                 &conv_3_to_2);
-      if (microsoft_bugs && conv_2_to_3_possible && conv_3_to_2_possible) {
+                       conditional_operator_conversion_possible(&operand_3,
+                                                                &operand_2,
+                                                                &conv_3_to_2,
+                                                                &ambig_3_to_2);
+      if (microsoft_bugs && conv_2_to_3_possible && conv_3_to_2_possible &&
+          !ambig_2_to_3 && !ambig_3_to_2) {
         /* The Microsoft compiler prefers a conversion using a constructor
            to one that uses a conversion function. */
         a_boolean conv_func_2_to_3 = (conv_2_to_3.routine != NULL &&
@@ -10294,16 +10298,38 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       } else if (conv_2_to_3_possible || conv_3_to_2_possible) {
         if (conv_2_to_3_possible) {
           /* Operand 2 can be converted to the type of operand 3.  Do so. */
-          user_convert_operand(&operand_2, operand_3.type, &conv_2_to_3,
-                               (a_conv_descr *)NULL,
-                               /*force_temp_for_class_bitwise_copy=*/FALSE,
-                               /*is_explicit_cast=*/FALSE);
+          if (!ambig_2_to_3) {
+            user_convert_operand(&operand_2, operand_3.type, &conv_2_to_3,
+                                 (a_conv_descr *)NULL,
+                                 /*force_temp_for_class_bitwise_copy=*/FALSE,
+                                 /*is_explicit_cast=*/FALSE);
+          } else {
+            /* The conversion is ambiguous.  Do the test again and this
+               time issue an error. */
+            conv_2_to_3_possible =
+                   conditional_operator_conversion_possible(&operand_2,
+                                                            &operand_3,
+                                                            &conv_2_to_3,
+                                                            (a_boolean *)NULL);
+            check_assertion(conv_2_to_3_possible);
+          }  /* if */
         } else {
           /* Operand 3 can be converted to the type of operand 2.  Do so. */
-          user_convert_operand(&operand_3, operand_2.type, &conv_3_to_2,
-                               (a_conv_descr *)NULL,
-                               /*force_temp_for_class_bitwise_copy=*/FALSE,
-                               /*is_explicit_cast=*/FALSE);
+          if (!ambig_3_to_2) {
+            user_convert_operand(&operand_3, operand_2.type, &conv_3_to_2,
+                                 (a_conv_descr *)NULL,
+                                 /*force_temp_for_class_bitwise_copy=*/FALSE,
+                                 /*is_explicit_cast=*/FALSE);
+          } else {
+            /* The conversion is ambiguous.  Do the test again and this
+               time issue an error. */
+            conv_3_to_2_possible =
+                   conditional_operator_conversion_possible(&operand_3,
+                                                            &operand_2,
+                                                            &conv_3_to_2,
+                                                            (a_boolean *)NULL);
+            check_assertion(conv_3_to_2_possible);
+          }  /* if */
         }  /* if */
         /* Determine if the types are the same after any conversions.*/
         types_are_the_same = same_types_for_question_operator(&operand_2,

@@ -678,9 +678,11 @@ extern a_boolean nontype_template_arg_conversion_possible(
                                                         an_operand *operand,
                                                         a_type_ptr param_type);
 
-extern a_boolean conditional_operator_conversion_possible(an_operand   *op1,
-                                                          an_operand   *op2,
-                                                          a_conv_descr *conv);
+extern a_boolean conditional_operator_conversion_possible(
+                                                   an_operand   *op1,
+                                                   an_operand   *op2,
+                                                   a_conv_descr *conv,
+                                                   a_boolean    *ambiguous);
 
 extern a_symbol_ptr select_overloaded_copy_constructor
                                   (a_type_ptr            class_type,
