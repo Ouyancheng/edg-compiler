@@ -9255,8 +9255,9 @@ the initializer has previously been found to be acceptable, and
 {
   a_type_ptr base_dest_type, base_source_type;
   a_type_ptr unqual_dest_type, unqual_source_type;
+  a_type_ptr underlying_dest_type, underlying_source_type;
   a_boolean  type_is_correct_or_derived, err = FALSE, dropping_qualifiers;
-  a_boolean  conversion_to_temp_done, ref_to_nonconst, warn = FALSE;
+  a_boolean  conversion_to_temp_done, ref_to_const, warn = FALSE;
   an_operand orig_operand;
 
   orig_operand = *source_operand;
@@ -9273,10 +9274,46 @@ the initializer has previously been found to be acceptable, and
               and the reference points to the temporary.
     */
     base_dest_type = type_pointed_to(dest_type);
+    /* The "unqual" types are the unqualified versions of the base types. */
     unqual_source_type = skip_typerefs(base_source_type);
     unqual_dest_type = skip_typerefs(base_dest_type);
+    /* The "underlying" types are the same as the base types except in the
+       array case, where they are the underlying array element types. */
+    underlying_source_type = base_source_type;
+    underlying_dest_type = base_dest_type;
+    /* See if the types are correct without conversion. */
     type_is_correct_or_derived = FALSE;
-    if (types_are_compatible(unqual_dest_type, unqual_source_type)) {
+    if (is_array_type(base_dest_type)) {
+      /* Initializing a reference to an array.  Special rules apply.
+         Specifically, one wants to be able to do
+           typedef float Mat[3];
+           Mat b;
+           const Mat &a = b;
+         which is complicated by the fact that the const type goes on the
+         array element type rather than the array type. */
+      /* Compare the array types step by step to get down to the underlying
+         type.  We need to go all the way on the dest type even if the
+         match fails because we need to know if the reference is to a
+         const type (which is determined from the underlying type). */
+      type_is_correct_or_derived = TRUE;  /* Assume for the moment. */
+      do {
+        /* Step through the source type only as long as things match up. */
+        if (type_is_correct_or_derived) {
+          /* Drop typedefs (there shouldn't be any typerefs). */
+          underlying_source_type = skip_typerefs(underlying_source_type);
+          underlying_dest_type = skip_typerefs(underlying_dest_type);
+          if (is_array_type(underlying_source_type) &&
+              identical_array_type_level(underlying_dest_type,
+                                         underlying_source_type)) {
+            underlying_source_type= array_element_type(underlying_source_type);
+          } else {
+            /* Mismatch. */
+            type_is_correct_or_derived = FALSE;
+          }  /* if */
+        }  /* if */
+        underlying_dest_type = array_element_type(underlying_dest_type);
+      } while (is_array_type(underlying_dest_type));
+    } else if (types_are_compatible(unqual_dest_type, unqual_source_type)) {
       /* The type is correct. */
       type_is_correct_or_derived = TRUE;
     } else if (is_class_struct_union_type(unqual_dest_type) &&
@@ -9297,12 +9334,13 @@ the initializer has previously been found to be acceptable, and
          only add type qualifiers at the top level. */
       type_is_correct_or_derived = TRUE;
     }  /* if */
-    ref_to_nonconst = !is_const_qualified_type(base_dest_type);
+    /* Determine whether or not the reference is to a const type. */
+    ref_to_const = is_const_qualified_type(underlying_dest_type);
     /* The destination type must have no fewer type qualifiers than the source
        type to be usable without conversion (ARM 8.4.3). */
     dropping_qualifiers = type_is_correct_or_derived &&
-                          any_qualifier_missing(base_dest_type,
-                                                base_source_type);
+                          any_qualifier_missing(underlying_dest_type,
+                                                underlying_source_type);
     if (dropping_qualifiers) {
       /* There are fewer qualifiers on the destination than on the source,
          so the initialization would involve dropping qualifiers. */
@@ -9319,7 +9357,7 @@ the initializer has previously been found to be acceptable, and
            A &rr = pb->a;  // okay according to cfront, warning
       */
       if (cfront_compatibility_mode &&
-          ref_to_nonconst && is_const_qualified_type(base_source_type) &&
+          !ref_to_const && is_const_qualified_type(base_source_type) &&
           is_field_selection_lvalue_operand(source_operand)) {
         /* Okay.  Note that a temporary will not be used in these cases. */
         pos_warning(ec_cfront_nonconst_ref_init, &source_operand->position);
@@ -9388,7 +9426,7 @@ the initializer has previously been found to be acceptable, and
           /* Type qualifiers were dropped. */
           error_in_operand(ec_qualifier_dropped_in_ref_init, source_operand);
           err = TRUE;
-        } else if (ref_to_nonconst) {
+        } else if (!ref_to_const) {
           /* The reference must be to a const object (otherwise the user might
              change the temporary thinking he is changing the original
              object). */
