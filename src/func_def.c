@@ -535,6 +535,7 @@ and for the instantiation of template functions.
   a_struct_stmt_stack_state      saved_sss_state;
   a_boolean                      is_instantiation;
   a_param_type_ptr               ptp;
+  a_namespace_ptr                nsp = NULL;
 
   db_enter(3, "scan_function_body");
   if (rout_ptr->source_corresp.is_class_member) {
@@ -552,14 +553,31 @@ and for the instantiation of template functions.
      just in case. */
   rout_type = skip_typerefs(rout_ptr->type);
   rtsp = rout_type->variant.routine.extra_info;
-  if (class_type != NULL) {
-    /* Member function -- either an inline or "out-of-line" definition. */
-    if (flags & SFB_NO_CLASS_REACTIVATION) {
-      /* Inline.  Class has already been reactivated. */
+  if (!C_mode()) {
+    if (class_type != NULL) {
+      /* Member function -- either an inline or "out-of-line" definition. */
+      if (flags & SFB_NO_CLASS_REACTIVATION) {
+        /* Inline.  Class has already been reactivated. */
+      } else {
+        /* Push a class symbol reactivation scope, to make class member names
+           visible for processing the function definition. */
+        push_class_reactivation_scope(class_type);
+      }  /* if */
     } else {
-      /* Push a class symbol reactivation scope, to make class member names
-         visible for processing the function definition. */
-      push_class_reactivation_scope(class_type);
+      nsp = rout_ptr->source_corresp.parent.namespace_ptr;
+      if (nsp != NULL) {
+        a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
+        if ((ssep->kind != (a_scope_kind)sck_namespace &&
+             ssep->kind != (a_scope_kind)sck_namespace_extension) ||
+            nsp != ssep->il_scope->variant.assoc_namespace) {
+          /* Push a namespace reactivation scope. */
+          push_namespace_reactivation_scope(nsp);
+        } else {
+          /* Set the pointer to NULL to indicate there's no stack entry to
+             pop. */
+          nsp = NULL;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   is_instantiation = (flags & SFB_IS_INSTANTIATION) != 0;
@@ -765,9 +783,13 @@ and for the instantiation of template functions.
        wrapup_control_flow_processing. */
     restore_struct_stmt_stack(&saved_sss_state);
   }  /* if */
-  if (class_type != NULL && !(flags & SFB_NO_CLASS_REACTIVATION)) {
-    /* Pop the class symbol reactivation scope. */
-    pop_class_reactivation_scope();
+  if (class_type != NULL) {
+    if (!(flags & SFB_NO_CLASS_REACTIVATION)) {
+      /* Pop the class symbol reactivation scope. */
+      pop_class_reactivation_scope();
+    }  /* if */
+  } else if (nsp != NULL) {
+    pop_namespace_reactivation_scope();
   }  /* if */  
   /* Check for the closing "}", not done in compound_statement.  Note that
      required_token is not called; if compound_statement returned on
