@@ -1348,18 +1348,75 @@ corresponding entry is removed from the registry.
 }  /* update_override_registry */
 
 
+static a_boolean type_is_catchable_by_handler_for_other_type(
+                                                      a_type_ptr  type,
+                                                      a_type_ptr  other_type)
+/*
+Return TRUE if an object of type "type" is catchable by a handler whose
+handler-parameter is of type "other_type".
+*/
+{
+  a_boolean                    match;
+  a_base_class_ptr             bcp;
+  a_base_class_derivation_ptr  preferred_derivation;
+
+  /* Return TRUE if the types are identical. */
+  match = identical_types(type, other_type);
+  if (!match) {
+    /* if type is an unambiguous and public base class of other_type,
+       a handler for other_type will catch type. */
+    if (is_pointer_type(type) && is_pointer_type(other_type)) {
+      /* The same goes if both are pointer types. */
+      type = type_pointed_to(type);
+      other_type = type_pointed_to(other_type);
+    }  /* if */
+    type = skip_typerefs(type);
+    other_type = skip_typerefs(other_type);
+    if (is_immediate_class_type(type) && is_immediate_class_type(other_type)) {
+      /* bcp will come back non-NULL if type is a base class of other_type. */
+      bcp = find_base_class_of(other_type, type);
+      /* now be sure bcp is unambiguous and public. */
+      if (bcp != NULL && !bcp->ambiguous) {
+        /* Be sure bcp points to a public base class of other_type. */
+        preferred_derivation = preferred_derivation_of(bcp);
+        if (access_to_end_of_path((an_access_specifier)as_public,
+                                  preferred_derivation->path,
+                                  preferred_derivation) ==
+                                             (an_access_specifier)as_public) {
+          match = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* type_is_catchable_by_handler_for_other_type */
+
+
 static a_boolean exception_spec_is_less_restrictive(a_type_ptr  type1,
                                                     a_type_ptr  type2)
 /*
 Compare the exception specifications associated with function types type1
 and type2.  Return TRUE if the exception specification on the former is less
-restrictive than that on the latter.  "Less restrictive" means more types
-are allowed to be thrown.  For example, the following are in order from most
-restrictive to least restrictive:
+restrictive than that on the latter.  The exception specification for one
+function is considered "less restrictive" than that of another if at least
+one type may be thrown from the former that cannot be caught by the minimal
+set of handlers that will catch the types thrown by the latter.  For example,
+the following are in order from most restrictive to least restrictive:
+
   void f1() throw();              // Nothing will be thrown
   void f2() throw(T);
   void f3() throw(T,U);
   void f4();                      // Anything might be thrown
+
+Moreover:
+
+  struct T : public U { ... };
+  void g1() throw(T);
+  void g2() throw(U);
+
+If U is a public and unambiguous base class of T, g2 is less restrictive than
+g1, because a handler for T can also catch a U, but a handler for U cannot
+catch a T.
 */
 {
   a_boolean                            is_less_restrictive = FALSE;
@@ -1379,14 +1436,14 @@ restrictive to least restrictive:
       is_less_restrictive = TRUE;
     } else {
       /* If any type on the exception specification list of type1's function
-         does not appear on the list of type2, the former is less restrictive.
-         Corollary 1: if the list of the type1's function is empty (i.e., if
-         its exception specification is maximally restrictive), there is no
-         way it can be less restrictive; in this case, the outer loop stops
-         before it even gets started.  Corollary 2:  if there is anything on
-         the list for type1 and the list for type2 is empty, type1 has to be
-         less restrictive; in this case it is the inner loop that doesn't
-         run. */
+         does not match a type on the list of type2, the former is less
+         restrictive. Corollary 1: if the list of the type1's function is
+         empty (i.e., if its exception specification is maximally
+         restrictive), there is no way it can be less restrictive; in this
+         case, the outer loop stops before it even gets started.  Corollary 2:
+         if there is anything on the list for type1 and the list for type2 is
+         empty, type1 has to be less restrictive; in this case it is the inner
+         loop that doesn't run. */
       /* The outer loop traverses the types specified for type1. */
       estp1 = esp1->exception_specification_type_list;
       for (; estp1 != NULL; estp1 = estp1->next) {
@@ -1400,7 +1457,10 @@ restrictive to least restrictive:
           /* Ignore entries marked "redundant" -- the type has already been
              seen on the list. */
           if (estp2->redundant) continue;
-          if (identical_types(estp1->type, estp2->type)) {
+          /* The types "match" if a handler for estp1->type can catch
+             estp2->type. */
+          if (type_is_catchable_by_handler_for_other_type(estp2->type,
+                                                          estp1->type)) {
             /* Match. */
             goto continue_outer_loop;
           }  /* if */
