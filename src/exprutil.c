@@ -2612,7 +2612,11 @@ The operands can be lvalues or rvalues.
         result_type = integer_type((an_integer_kind)ik_unsigned_long);
       } else if (is_long(ikind_1) || is_long(ikind_2)) {
         /* At least one operand has type "long". */
-        if (targ_sizeof_long == targ_sizeof_int) {
+        if (long_preserving_rules) {
+          /* In K&R I, Appendix A, 6.6, there is no special case based on
+             the size of long vs. int, so "long + unsigned int" has a
+             result type of long even if long and int have the same size. */
+        } else if (targ_sizeof_long == targ_sizeof_int) {
           /* A "long" cannot represent all "unsigned int" values, so check for
              "unsigned int" values. */
           if (is_unsigned_int(ikind_1) || is_unsigned_int(ikind_2)) {

@@ -620,6 +620,14 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_none);
 #endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
+  add_option_description(optk_long_preserving_rules,
+                         "long_preserving_rules",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_long_preserving_rules,
+                         "no_long_preserving_rules",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_none);
 }  /* initialize_option_descriptions */
 
 
@@ -1609,6 +1617,9 @@ common_cfront_mode_settings:
         impl_conv_between_c_and_cpp_function_ptrs_allowed = opt_value;
         break;
 #endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
+      case optk_long_preserving_rules:
+        long_preserving_rules = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

@@ -634,6 +634,21 @@ IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE is TRUE).
 #endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
 #endif /* DEFAULT_IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_ALLOWED */
 
+/*
+Flag that is TRUE if, by default, the K&R usual arithmetic conversion rules
+with respect to "long" should be used.  This means the rules of K&R I,
+Appendix A, 6.6, not the rules used by the pcc compiler.
+The significant difference is in the handling of "long op unsigned int" when
+int and long are the same size.  The ANSI/ISO/pcc rules say the result is
+unsigned long, but K&R I says the result is long (unsigned long did not
+exist in K&R I).  This is the initial value of the variable
+long_preserving_rules, which is also controlled by the command-line
+options --[no_]long_preserving_rules.  This feature is independent of
+pcc mode.
+*/
+#ifndef DEFAULT_LONG_PRESERVING_RULES
+#define DEFAULT_LONG_PRESERVING_RULES FALSE
+#endif /* ifndef DEFAULT_LONG_PRESERVING_RULES */
 
 #endif /* ifndef LANG_FEAT_H */
 

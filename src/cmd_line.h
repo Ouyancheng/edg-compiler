@@ -145,6 +145,7 @@ typedef enum /*an_option_kind*/ {
 #if IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE
   optk_implicit_extern_c_type_conversion,
 #endif /* IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE */
+  optk_long_preserving_rules,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -376,6 +377,17 @@ EXTERN a_boolean
 			   conversion in overload resolution.  This is
 			   nonstandard, but a fair number of programs
 			   depend on it. */
+
+EXTERN a_boolean
+		long_preserving_rules
+#if VAR_INITIALIZERS
+                                      = DEFAULT_LONG_PRESERVING_RULES
+#endif /* VAR_INITIALIZERS */
+                                                                     ;
+			/* TRUE if the K&R rules for usual arithmetic
+			   conversions involving "long" should be used.
+			   This means the rules described in the K&R I book,
+			   not the rules used by the pcc compiler. */
 
 EXTERN an_integer_kind
 		plain_char_int_kind;
