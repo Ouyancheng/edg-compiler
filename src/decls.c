@@ -7018,8 +7018,7 @@ of local variables (and types, etc.) of functions and in blocks.
       /* Do the processing required for a template declaration.  If this is
          a top level declaration, the subroutine should not advance past the
          final token of the declaration. */
-      template_directive_or_declaration(&defines_something,
-                                        is_top_level_declaration);
+      template_directive_or_declaration(is_top_level_declaration);
       if (is_top_level_declaration) {
          /* Advance past the final declaration, doing special processing
             if required. */
