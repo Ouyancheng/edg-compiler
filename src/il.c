@@ -4606,12 +4606,7 @@ discarding typedefs.
   a_boolean  is_const, is_volatile;
   a_type_ptr  tp1 = *type1, tp2 = *type2;
 
-#if 0
-#else
-  /* Okay??? */
-  check_assertion(!is_array_type(tp1) && !is_array_type(tp2));
-#endif /* if 0 */
-  if (is_top_level_qualified_type(tp1) && is_top_level_qualified_type(tp2)) {
+  if (is_qualified_type(tp1) && is_qualified_type(tp2)) {
     /* Both types have type qualifiers.  Record exactly how they are
        qualified. */
     type1_is_const = is_top_level_const_qualified_type(tp1);
