@@ -160,7 +160,7 @@ Flags to be set when using the KAI inliner.
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
 
 #ifndef RUNTIME_USES_NAMESPACES
-#define RUNTIME_USES_NAMESPACES 0
+#define RUNTIME_USES_NAMESPACES 1
 #endif /* ifndef RUNTIME_USES_NAMESPACES */
 
 
