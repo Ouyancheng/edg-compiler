@@ -6306,7 +6306,7 @@ a_type_ptr remove_assoc_vla_dimensions(a_type_ptr  type)
 If type contains one or more arrays with associated VLA dimension entries,
 return a new type without such arrays.  Traverse the type tree and turn VLAs
 with associated VLA dimension entries into VLAs with unspecified bounds --
-i.e., rewrite tham as though they had been declared with [*].
+i.e., rewrite them as though they had been declared with [*].
 */
 {
   a_type_ptr  new_type;

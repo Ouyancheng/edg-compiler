@@ -794,7 +794,7 @@ hiding.
                 continue;
               }  /* if */
               /* Look for an intervening declaration that would make it
-                 unnecesary to record sym_ptr in the hidden name table for
+                 unnecessary to record sym_ptr in the hidden name table for
                  the scope to which old_sym_ptr belongs. */
               while (tp->source_corresp.is_class_member) {
                 a_symbol_ptr  sym;
@@ -815,7 +815,7 @@ hiding.
                   /* We must have found an intervening declaration. */
                   continue;
                 } else {
-                  /* No intevening declaration -- set up for checking
+                  /* No intervening declaration -- set up for checking
                      enclosing namespaces, if any. */
                   nsp = parent_namespace_for_symbol(old_sym_ptr);
                   check_assertion(nsp ==
