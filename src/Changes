@@ -1,5 +1,26 @@
 Version 3.6
 
+3/28/05  Microsoft compatibility: Type of *this in selective overriders
+
+In Microsoft mode, the front end accepts declarations of virtual member
+functions with a class qualifier to indicate that only the virtual member
+in the indicated class is overridden by the qualified declaration (see
+Changes entry of 7/18/03).  However, the type of *this was mistakenly
+recorded as being the type of the indicated base class instead of the
+parent type of the member function.  This could manifest itself as spurious
+errors when attempting to access other members of the parent type.
+For example:
+
+  struct B { virtual void f() = 0; };
+  struct D: B {
+    void d();
+    void B::f() {  // Selective overrider syntax (Microsoft mode).
+      d();         // Previously a spurious error.
+    }
+  }
+
+This is now fixed.
+
 3/27/05  C++-generating back end: Microsoft compatibility for the scope of
          names in the initializer of a namespace member
 

@@ -6215,13 +6215,19 @@ was used).
       } else {
         /* The routine overload_distinguishable returns TRUE if the
            routine types are candidates for overloading; if it returns FALSE
-           it also returns the error code for a diagnostic explaining why. */
+           it also returns the error code for a diagnostic explaining why.
+           Note that overload_distinguishable only handles the function types
+           without considering the Microsoft-specific case of a selective
+           overrider (characterized by make_new_sym_ambiguous == TRUE). */
         /* The templ_param_list is NULL in the following call because
            although member functions of class templates have template types
            in their parameters, they are not called using the template
            overload resolution mechanism. */
-        if (!overload_distinguishable(sym, type,
-                                      (a_template_param_ptr)NULL,
+        if (
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            !make_new_sym_ambiguous &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            !overload_distinguishable(sym, type, (a_template_param_ptr)NULL,
                                       &error_code)) {
           pos_error(error_code, &locator->source_position);
           suppress_redecl_error = TRUE;
