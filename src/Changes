@@ -1,5 +1,21 @@
 Version 2.23
 
+4/21/94  Name mangling for local nested types
+
+Name mangling for local nested types now avoids a double mangling problem:
+
+  void f() {
+    struct A {
+      struct B { int i; };
+    };
+    A::B ab;
+    extern void g(A::B); // Was g__FQ2_5A__L113__Q2_5A__L11B
+                         // Now g__FQ2_5A__L11B
+
+    g(ab);
+  }
+
+
 4/20/94  Empty initializer list
 
 Formerly treated as an extension in C++, an empty initializer list in
