@@ -1233,13 +1233,6 @@ associated with the function is returned.
                  decl_modifiers, &symbol_ptr, &linkage, &old_type, &ext_sym);
   }  /* if */
   routine_ptr = symbol_ptr->variant.routine.ptr;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* The following check cannot be done, since the type may end up being
-     copied. */
-#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-  check_assertion(make_unqualified_type(routine_ptr->type) ==
-                                                      unqualified_rout_type);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Scan the function body. */
   flags = SFB_NO_FLAGS;
   if (!has_explicit_type_specifier) {
