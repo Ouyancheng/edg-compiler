@@ -2048,6 +2048,19 @@ scan_paren:
               }  /* if */
             }  /* if */
           }  /* if */
+          if (exceptions_enabled && cssp != NULL &&
+              cssp->destructor != NULL && new_cip != NULL &&
+              new_cip->initializer != NULL) {
+            /* If exception handling is enabled, record the destructor in the
+               constructor initializer.  This is required if an exception
+               occurs in the middle of constructing an object of this type --
+               the information is used to register which destructors need to be
+               called for a partially constructed object. */
+            new_cip->initializer->destructor =
+                       select_destructor(init_type, init_type, &error_position,
+                                         /*honor_virtual=*/FALSE,
+                                         /*evaluated=*/TRUE);
+          }  /* if */
         }  /* if */
       }  /* if */
       remove_stop_token(tok_comma);
