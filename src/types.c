@@ -5652,6 +5652,11 @@ static a_constant_ptr
 static a_boolean
 		deduced_contexts_only;
 
+/* TRUE if nonreal classes should be found in addition to
+   template parameters. */
+static a_boolean
+		find_all_dependent_types;
+
 
 /* A pointer to the specific template template parameter to be found by
    ttt_contains_specific_template_template_param. */
@@ -5686,7 +5691,7 @@ based on the specified template parameter constant.
       }  /* if */
     }  /* if */
   } else if (is_class_struct_union(type_ptr)) {
-    /* Examing each template argument, if any. */
+    /* Examine each template argument, if any. */
     for (tap = type_ptr->variant.class_struct_union.extra_info->
                                                          template_arg_list;
          tap != NULL;
@@ -5784,6 +5789,8 @@ This is a service function designed to be called from traverse_type_tree
 returns TRUE if type_ptr is a template parameter type or is based on a
 template parameter constant.  If specific_template_param_type is non-NULL,
 it returns TRUE if type_ptr is the specified template parameter type.
+If find_all_dependent_types is TRUE, return TRUE for any dependent
+types, i.e., also for nonreal classes.
 */
 {
   a_boolean  found = FALSE;
@@ -5793,6 +5800,11 @@ it returns TRUE if type_ptr is the specified template parameter type.
         identical_types(type_ptr, specific_template_param_type)) {
       *force_end_of_traversal = found = TRUE;
     }  /* if */
+  } else if (find_all_dependent_types &&
+             is_immediate_class_type(type_ptr) &&
+             type_ptr->variant.class_struct_union.is_nonreal_class) {
+    /* A nonreal class is a dependent type. */
+    *force_end_of_traversal = found = TRUE;
   } else {
     if (specific_template_param_type == NULL) {
       /* We are not looking for a specific template param type, so any
@@ -6420,6 +6432,34 @@ or is a type tree containing such a type.
 }  /* is_or_contains_error_type */
 
 
+a_boolean is_template_dependent_type(a_type_ptr  type_ptr)
+/*
+Return TRUE if the type pointed to by type_ptr is template-dependent, i.e.,
+it is or contains a tk_template_param type entry or a nonreal class.
+*/
+{
+  a_boolean result = FALSE;
+
+  /* Template parameter types come up only in C++ mode. */
+  if (!C_mode()) {
+    a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                                 TTT_THIS_PARAM_TYPE |
+                                                 TTT_PARAM_TYPES |
+                                                 TTT_TEMPLATE_ARGS);
+
+    /* Setting these pointers to NULL indicates that any template param type
+       or constant will do. */
+    specific_template_param_type = NULL;
+    specific_template_param_constant = NULL;
+    deduced_contexts_only = FALSE;
+    find_all_dependent_types = TRUE;
+    result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
+                                ttt_flags);
+  }  /* if */
+  return result;
+}  /* is_template_dependent_type */
+
+
 a_boolean is_or_contains_template_param(a_type_ptr  type_ptr)
 /*
 Return TRUE if the type pointed to by type_ptr is itself a tk_template_param
@@ -6429,7 +6469,7 @@ a template parameter constant.
 {
   a_boolean result = FALSE;
 
-  /* Template parameter types come up only in C++mode. */
+  /* Template parameter types come up only in C++ mode. */
   if (!C_mode()) {
     a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                  TTT_PARAM_TYPES |
@@ -6440,6 +6480,7 @@ a template parameter constant.
     specific_template_param_type = NULL;
     specific_template_param_constant = NULL;
     deduced_contexts_only = FALSE;
+    find_all_dependent_types = FALSE;
     result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
                                 ttt_flags);
   }  /* if */
@@ -6467,6 +6508,7 @@ parameter can be deduced.
   specific_template_param_type = NULL;
   specific_template_param_constant = NULL;
   deduced_contexts_only = TRUE;
+  find_all_dependent_types = FALSE;
   return (traverse_type_tree(type_ptr,
                              ttt_is_or_contains_deduced_template_param,
                              ttt_flags));
@@ -6511,6 +6553,7 @@ containing such a reference to the type.
   specific_template_param_type = tparam_type;
   specific_template_param_constant = NULL;
   deduced_contexts_only = FALSE;
+  find_all_dependent_types = FALSE;
   return (traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
           ttt_flags));
 }  /* is_or_contains_specific_template_param */
@@ -6552,6 +6595,7 @@ in the type tree represented by tp.
   specific_template_param_constant = cp;
   specific_template_param_type = NULL;
   deduced_contexts_only = FALSE;
+  find_all_dependent_types = FALSE;
   return (traverse_type_tree(tp, ttt_contains_template_param_constant,
                              ttt_flags));
 }  /* type_contains_specific_template_param_constant */

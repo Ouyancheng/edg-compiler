@@ -265,7 +265,7 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
   if (!has_side_effects && !C_mode() &&
       /* No test of is_template_dependent_context here on purpose, because
          this function is used outside of the front end proper. */
-      is_or_contains_template_param(node->type)) {
+      is_template_dependent_type(node->type)) {
     /* A node with a template parameter type is considered to have
        side effects.  This is because it's possible that when the type
        is actually known an overloaded operator function would be chosen,
@@ -608,8 +608,8 @@ Syntax:
     operand_will_not_be_used_because_of_error(operand_1);
     operand_will_not_be_used_because_of_error(&operand_2);
   } else if (!C_mode() && is_template_dependent_context() &&
-             (is_or_contains_template_param(operand_1->type) ||
-              is_or_contains_template_param(operand_2.type))) {
+             (is_template_dependent_type(operand_1->type) ||
+              is_template_dependent_type(operand_2.type))) {
     /* If either operand has a template parameter type, we cannot
        check the operand types.  Just produce an expression with
        a generic operator. */
@@ -1267,7 +1267,7 @@ Syntax:
       /* routine_type = NULL;  -- already set. */
     } else if (!C_mode() &&
                is_template_dependent_context() &&
-               is_or_contains_template_param(operand->type)) {
+               is_template_dependent_type(operand->type)) {
       /* A call in a prototype instantiation. */
       routine_type = NULL;
       prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
@@ -2528,8 +2528,8 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
     operand_will_not_be_used_because_of_error(operand_1);
     operand_will_not_be_used_because_of_error(&operand_2);
   } else if (is_template_dependent_context() &&
-             (is_or_contains_template_param(operand_1->type) ||
-              is_or_contains_template_param(operand_2.type))) {
+             (is_template_dependent_type(operand_1->type) ||
+              is_template_dependent_type(operand_2.type))) {
     /* If either operand has a template parameter type, we cannot
        check the operand types.  Just produce an expression with
        a generic operator. */
@@ -2842,7 +2842,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand);
   } else if (!C_mode() && is_template_dependent_context() &&
-             is_or_contains_template_param(operand->type)) {
+             is_template_dependent_type(operand->type)) {
     /* The operand has a template parameter type, so we cannot
        check its type.  Just produce an expression with a generic
        operator. */
@@ -3110,7 +3110,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(&operand);
   } else if (!C_mode() && is_template_dependent_context() &&
-             is_or_contains_template_param(operand.type)) {
+             is_template_dependent_type(operand.type)) {
     /* The operand has a template parameter type, so we cannot
        check its type.  Just produce an expression with a generic
        operator. */
@@ -3343,7 +3343,7 @@ operation is a pointer-to-member (see ARM 5.3).
     } else if (!C_mode() && is_template_dependent_context() &&
                /* Avoid pointer-to-member constants. */
                !is_sym_for_member_operand(&operand) &&
-               is_or_contains_template_param(operand.type)) {
+               is_template_dependent_type(operand.type)) {
       /* The operand has a template parameter type, so we cannot
          check its type.  Just produce an expression with a generic
          operator.  (Note that there is a generic "&" operator, but
@@ -3488,7 +3488,7 @@ See section 3.3.3.2 of the standard.
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(&operand);
   } else if (!C_mode() && is_template_dependent_context() &&
-             is_or_contains_template_param(operand.type)) {
+             is_template_dependent_type(operand.type)) {
     /* The operand has a template parameter type, so we cannot
        check its type.  Just produce an expression with a generic
        operator. */
@@ -3628,7 +3628,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
       unexpected_condition_str("scan_arith_prefix_operator: bad operator");
   }  /* switch */
   if (!C_mode() && is_template_dependent_context() &&
-      is_or_contains_template_param(operand.type)) {
+      is_template_dependent_type(operand.type)) {
     /* The operand has a template parameter type, so we cannot
        check its type.  Just produce an expression with a generic
        operator. */
@@ -3891,7 +3891,7 @@ Syntax:
     if (is_error_type(sizeof_type)) {
       set_error_constant(&constant);
     } else if (!C_mode() && is_template_dependent_context() &&
-               is_or_contains_template_param(sizeof_type)) {
+               is_template_dependent_type(sizeof_type)) {
       /* For the size of a template type, use a ck_template_param. */
       clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
       set_template_param_constant_kind(&constant,
@@ -3975,7 +3975,7 @@ be inappropriate, because the feature is probably used to implement
   if (is_error_type(alignof_type)) {
     set_error_constant(&constant);
   } else if (!C_mode() && is_template_dependent_context() &&
-             is_or_contains_template_param(alignof_type)) {
+             is_template_dependent_type(alignof_type)) {
     /* For __ALIGNOF__ of a template type, use a ck_template_param. */
     clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
     set_template_param_constant_kind(&constant,
@@ -4521,7 +4521,7 @@ The value of the operation is an lvalue of type "const struct _GUID".
     }  /* if */
     uuidof_type = skip_typerefs(uuidof_type);
     if (is_template_dependent_context() &&
-        is_or_contains_template_param(uuidof_type)) {
+        is_template_dependent_type(uuidof_type)) {
       /* A template parameter type.  We must be in a prototype
          instantiation. */
       template_case = TRUE;
@@ -4721,7 +4721,7 @@ Syntax:
     operand_type = operand.type;
     operand_type_okay = FALSE;
     if (is_template_dependent_context() &&
-        is_or_contains_template_param(operand_type)) {
+        is_template_dependent_type(operand_type)) {
       /* An operand of unknown type, in a prototype instantiation. */
       operand_type_okay = TRUE;
       template_param_case = TRUE;
@@ -5700,7 +5700,7 @@ specification allow a variable-sized array as the top type.
       needs_initialization = (ctor_routine != NULL ||
                               unknown_dependent_ctor);
     } else if (is_template_dependent_context() &&
-               is_or_contains_template_param(new_type)) {
+               is_template_dependent_type(new_type)) {
       /* A "new" of a template-dependent type, in a prototype instantiation. */
       scan_dependent_parenthesized_initializer(&dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -7177,7 +7177,7 @@ Syntax:
     } else {
       /* The type cast to is okay. */
       if (is_template_dependent_context() && !template_param_case &&
-          is_or_contains_template_param(underlying_cast_type)) {
+          is_template_dependent_type(underlying_cast_type)) {
         /* Casting to an unknown type in a prototype instantiation. */
         template_param_case = TRUE;
       }  /* if */
@@ -7190,7 +7190,7 @@ Syntax:
       }  /* if */
       operand_type = operand.type;
       if (is_template_dependent_context() &&
-          is_or_contains_template_param(operand_type)) {
+          is_template_dependent_type(operand_type)) {
         /* An operand of unknown type in a prototype instantiation. */
         template_param_case = TRUE;
       } else if (reference_case) {
@@ -7363,8 +7363,8 @@ Syntax:
             pos_warning(warning_suggested, &start_position);
           }  /* if */
           if (is_template_dependent_context() &&
-              (is_or_contains_template_param(source_type) ||
-               is_or_contains_template_param(type_cast_to))) {
+              (is_template_dependent_type(source_type) ||
+               is_template_dependent_type(type_cast_to))) {
             /* Put out a generic operator for a case involving template
                parameter types. */
             generic_cast_operand(result, type_cast_to,
@@ -7488,8 +7488,8 @@ Syntax:
           pos_warning(warning_suggested, &start_position);
         }  /* if */
         if (is_template_dependent_context() &&
-            (is_or_contains_template_param(source_type) ||
-             is_or_contains_template_param(type_cast_to))) {
+            (is_template_dependent_type(source_type) ||
+             is_template_dependent_type(type_cast_to))) {
           /* Put out a generic operator for a case involving template parameter
              types. */
           generic_cast_operand(result, type_cast_to,
@@ -7879,7 +7879,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
     }  /* if */
   } else if (!curr_expr_kind_is_const() &&
              is_template_dependent_context() &&
-             is_or_contains_template_param(type_cast_to)) {
+             is_template_dependent_type(type_cast_to)) {
     /* A cast to an unknown type in a prototype instantiation.  This is
        handled specially because it may have more than one argument.
        In a constant expression, a cast to a class type is not allowed,
@@ -8061,8 +8061,8 @@ be of integral type.  See section 3.3.5 of the standard.
   scan_expr(&operand_2, PREC_MULT_DIV, EOPT_NO_OPTIONS);
 
   if (!C_mode() && is_template_dependent_context() &&
-      (is_or_contains_template_param(operand_1->type) ||
-       is_or_contains_template_param(operand_2.type))) {
+      (is_template_dependent_type(operand_1->type) ||
+       is_template_dependent_type(operand_2.type))) {
     /* If either operand has a template parameter type, we cannot
        check the operand types.  Just produce an expression with
        a generic operator. */
@@ -8173,8 +8173,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
   scan_expr(&operand_2, PREC_PLUS_MINUS, EOPT_NO_OPTIONS);
 
   if (!C_mode() && is_template_dependent_context() &&
-      (is_or_contains_template_param(operand_1->type) ||
-       is_or_contains_template_param(operand_2.type))) {
+      (is_template_dependent_type(operand_1->type) ||
+       is_template_dependent_type(operand_2.type))) {
     /* If either operand has a template parameter type, we cannot
        check the operand types.  Just produce an expression with
        a generic operator. */
@@ -8394,8 +8394,8 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
   scan_expr(&operand_2, PREC_SHIFT, EOPT_NO_OPTIONS);
 
   if (!C_mode() && is_template_dependent_context() &&
-      (is_or_contains_template_param(operand_1->type) ||
-       is_or_contains_template_param(operand_2.type))) {
+      (is_template_dependent_type(operand_1->type) ||
+       is_template_dependent_type(operand_2.type))) {
     /* If either operand has a template parameter type, we cannot
        check the operand types.  Just produce an expression with
        a generic operator. */
@@ -8582,8 +8582,8 @@ standard.
   scan_expr(&operand_2, PREC_RELATIONAL, EOPT_NO_OPTIONS);
 
   if (!C_mode() && is_template_dependent_context() &&
-      (is_or_contains_template_param(operand_1->type) ||
-       is_or_contains_template_param(operand_2.type))) {
+      (is_template_dependent_type(operand_1->type) ||
+       is_template_dependent_type(operand_2.type))) {
     /* If either operand has a template parameter type, we cannot
        check the operand types.  Just produce an expression with
        a generic operator. */
@@ -8747,8 +8747,8 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   scan_expr(&operand_2, PREC_EQ_NE, EOPT_NO_OPTIONS);
 
   if (!C_mode() && is_template_dependent_context() &&
-      (is_or_contains_template_param(operand_1->type) ||
-       is_or_contains_template_param(operand_2.type))) {
+      (is_template_dependent_type(operand_1->type) ||
+       is_template_dependent_type(operand_2.type))) {
     /* If either operand has a template parameter type, we cannot
        check the operand types.  Just produce an expression with
        a generic operator. */
@@ -8908,8 +8908,8 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
   scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
 
   if (!C_mode() && is_template_dependent_context() &&
-      (is_or_contains_template_param(operand_1->type) ||
-       is_or_contains_template_param(operand_2.type))) {
+      (is_template_dependent_type(operand_1->type) ||
+       is_template_dependent_type(operand_2.type))) {
     /* If either operand has a template parameter type, we cannot
        check the operand types.  Just produce an expression with
        a generic operator. */
@@ -9086,8 +9086,8 @@ standard.
   expr_stack->evaluated = saved_evaluated;
 
   if (!C_mode() && is_template_dependent_context() &&
-      (is_or_contains_template_param(operand_1->type) ||
-       is_or_contains_template_param(operand_2.type))) {
+      (is_template_dependent_type(operand_1->type) ||
+       is_template_dependent_type(operand_2.type))) {
     /* If either operand has a template parameter type, we cannot
        check the operand types.  Just produce an expression with
        a generic operator. */
@@ -9466,9 +9466,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     /* Checks specific to C++ mode: */
     types_are_the_same = types_are_compatible(operand_2.type, operand_3.type);
     if (is_template_dependent_context() &&
-        (is_or_contains_template_param(operand_1->type) ||
-         is_or_contains_template_param(operand_2.type) ||
-         is_or_contains_template_param(operand_3.type))) {
+        (is_template_dependent_type(operand_1->type) ||
+         is_template_dependent_type(operand_2.type) ||
+         is_template_dependent_type(operand_3.type))) {
       /* If either operand has a template parameter type, we cannot
          check the operand types.  Just produce an expression with
          a generic operator. */
@@ -9965,8 +9965,8 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
     operand_will_not_be_used_because_of_error(operand_1);
     operand_will_not_be_used_because_of_error(&operand_2);
   } else if (!C_mode() && is_template_dependent_context() &&
-             (is_or_contains_template_param(operand_1->type) ||
-              is_or_contains_template_param(operand_2.type))) {
+             (is_template_dependent_type(operand_1->type) ||
+              is_template_dependent_type(operand_2.type))) {
     /* If either operand has a template parameter type, we cannot
        check the operand types.  Just produce an expression with
        a generic operator. */
@@ -10160,8 +10160,8 @@ See section 3.3.16 of the standard.
     operand_will_not_be_used_because_of_error(operand_1);
     operand_will_not_be_used_because_of_error(&operand_2);
   } else if (!C_mode() && is_template_dependent_context() &&
-             (is_or_contains_template_param(operand_1->type) ||
-              is_or_contains_template_param(operand_2.type))) {
+             (is_template_dependent_type(operand_1->type) ||
+              is_template_dependent_type(operand_2.type))) {
     /* If either operand has a template parameter type, we cannot
        check the operand types.  Just produce an expression with
        a generic operator. */
@@ -10668,8 +10668,8 @@ EOPT_DISALLOW_COMMA_OPERATOR).
     operand_will_not_be_used_because_of_error(operand_1);
     operand_will_not_be_used_because_of_error(&operand_2);
   } else if (!C_mode() && is_template_dependent_context() &&
-             (is_or_contains_template_param(operand_1->type) ||
-              is_or_contains_template_param(operand_2.type))) {
+             (is_template_dependent_type(operand_1->type) ||
+              is_template_dependent_type(operand_2.type))) {
     /* If either operand has a template parameter type, just produce
        an expression with a generic operator. */
     template_binary_operation((an_expr_operator_kind)eok_comma,

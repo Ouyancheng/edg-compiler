@@ -99,7 +99,7 @@ cast.
   *ambiguous = FALSE;
   *unknown_dependent_function = FALSE;
   if (is_template_dependent_context() &&
-      (is_or_contains_template_param(dest_type) ||
+      (is_template_dependent_type(dest_type) ||
        (is_template_id &&
         template_arg_list_involves_template_param(template_arg_list)))) {
     /* The destination type is not fully known, or the template argument
@@ -3967,7 +3967,7 @@ and return NULL.  This routine is called only in C++ mode.
         for (arg_operand = arg_operand_list;
              arg_operand != NULL;
              arg_operand = arg_operand->next) {
-          if (is_or_contains_template_param(arg_operand->operand.type)) {
+          if (is_template_dependent_type(arg_operand->operand.type)) {
             any_dependent_arg = TRUE;
             break;
           }  /* if */
@@ -3975,8 +3975,8 @@ and return NULL.  This routine is called only in C++ mode.
         if (!any_dependent_arg &&
             overloaded_function_symbol->is_class_member &&
             ((have_selector && bound_function_selector != NULL) ?
-                 is_or_contains_template_param(bound_function_selector->type) :
-                 TRUE)) {
+                    is_template_dependent_type(bound_function_selector->type) :
+                    TRUE)) {
           /* The selector object is dependent.  An implicit selector is
              always dependent in a prototype instantiation. */
           any_dependent_arg = TRUE;
@@ -7755,11 +7755,10 @@ the operator.
             /* In a prototype instantiation.  If the operands are dependent,
                the caller should have spotted that and generated a generic
                expression operator. */
-            check_assertion_str(
-                            !is_or_contains_template_param(operand_1->type) &&
-                            (unary_operator ||
-                             !is_or_contains_template_param(operand_2->type)),
-                            "check_for_operator_overloading: dep operand");
+            check_assertion_str(!is_template_dependent_type(operand_1->type) &&
+                                (unary_operator ||
+                                 !is_template_dependent_type(operand_2->type)),
+                                "check_for_operator_overloading: dep operand");
           } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
             /* In a real (not prototype) instantiation.  Look up this call to
                see whether it was a dependent call in the prototype
@@ -8236,7 +8235,7 @@ because of an error.  This routine is used only in C++ mode.
     conversion->class_identity_or_bitwise_copy = TRUE;
     okay = TRUE;
   } else if (is_template_dependent_context() &&
-             (is_or_contains_template_param(source_type) ||
+             (is_template_dependent_type(source_type) ||
               class_type->variant.class_struct_union.is_nonreal_class)) {
     /* Assume we can convert to or from an unknown type in a prototype
        instantiation. */
@@ -8420,7 +8419,7 @@ C++ mode.
   if (is_template_dependent_context() &&
       (f_skip_typerefs(source_operand->type)->
                                  variant.class_struct_union.is_nonreal_class ||
-       (dest_type != NULL && is_or_contains_template_param(dest_type)))) {
+       (dest_type != NULL && is_template_dependent_type(dest_type)))) {
     /* Assume a conversion to or from an unknown type in a prototype
        instantiation is allowed. */
     okay = TRUE;
@@ -10027,8 +10026,8 @@ direct binding is "possible" and not whether it is "valid".
        Note that this handles qualified array cases. */
     type_is_correct_or_derived = TRUE;
   } else if (is_template_dependent_context() &&
-             (is_or_contains_template_param(unqual_dest_type) ||
-              is_or_contains_template_param(unqual_source_type))) {
+             (is_template_dependent_type(unqual_dest_type) ||
+              is_template_dependent_type(unqual_source_type))) {
     /* Assume a match for unknown template parameter types. */
     type_is_correct_or_derived = TRUE;
     template_case = TRUE;
@@ -10268,8 +10267,8 @@ to be acceptable, and *conversion describes it.
     direct_binding_conversion_possible = TRUE;
     if (conversion->unknown_dependent_conversion) template_case = TRUE;
   } else if (is_template_dependent_context() &&
-             (is_or_contains_template_param(dest_type) ||
-              is_or_contains_template_param(orig_source_type))) {
+             (is_template_dependent_type(dest_type) ||
+              is_template_dependent_type(orig_source_type))) {
     /* When dealing with unknown types in a prototype instantiation,
        assume a match. */
     template_case = TRUE;

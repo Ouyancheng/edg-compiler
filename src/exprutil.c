@@ -5163,7 +5163,7 @@ issue an error.
   member_class = member_sym->parent.class_type;
   constant.type = ptr_to_member_type(member_type, member_class);
   if (is_template_dependent_context() &&
-      is_or_contains_template_param(constant.type)) {
+      is_template_dependent_type(constant.type)) {
     /* In a prototype instantiation, a member of the current class is
        template-dependent.  Make a template param constant by adding a
        do-nothing cast. */
@@ -5579,7 +5579,7 @@ in *result.
        member-function in a case like (p->*pmf)(). */
     function_node = make_node_from_operand(function_operand);
     if (is_template_dependent_context() &&
-        is_or_contains_template_param(function_node->type)) {
+        is_template_dependent_type(function_node->type)) {
       /* Call in a prototype instantiation. */
       function_type = NULL;
     } else if (is_ptr_to_member_type(function_node->type)) {
