@@ -15,7 +15,7 @@ no matter what the order of declaration.  For example:
 
   class A {
     int f() { return g(); }        // Error no longer issued on calling g
-                                   //   without no arguments
+                                   //   with no arguments
     int g(int i = 1) { return i; }
   };
 
