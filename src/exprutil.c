@@ -4495,9 +4495,15 @@ be used (e.g., eok_negate, not eok_inegate).
     /* The current expression is not a constant expression. */
     prep_generic_operand(operand);
   }  /* if */
-  do_unary_operation(op, op_token, operand,
-                     type_of_unknown_templ_param_nontype,
-                     result, start_position);
+  if (op == (an_expr_operator_kind)eok_address) {
+    /* There's no IL equivalent of the "&" operator, so do that specially. */
+    copy_operand(operand, result);
+    take_address_of_lvalue(result);
+  } else {
+    do_unary_operation(op, op_token, operand,
+                       type_of_unknown_templ_param_nontype,
+                       result, start_position);
+  }  /* if */
 }  /* template_unary_operation */
 
 
@@ -6041,6 +6047,18 @@ not an lvalue, it is left alone.
               operand->variant.constant.expr = constant_expr;
             }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+            constant_case = TRUE;
+          } else if (variable->type == type_of_unknown_templ_param_nontype) {
+            /* A member of a proxy class.  Switch to the corresponding
+               constant, which is the value of the member. */
+            a_symbol_ptr sym =
+                           (a_symbol_ptr)(variable->source_corresp.assoc_info);
+            check_assertion(sym != NULL &&
+                            sym->kind == (a_symbol_kind)sk_static_data_member);
+            sym = create_alternate_nontype_nonreal_member(
+                                                   sym,
+                                                   (a_symbol_kind)sk_constant);
+            make_sym_constant_operand(sym, operand);
             constant_case = TRUE;
           } else {
             /* Not constant-valued; the rvalue is the value of the variable. */

@@ -1952,7 +1952,7 @@ qualified_name_check:
              union. */
           member_sym = class_qualified_id_lookup(&locator_for_curr_id,
                                                  class_struct_union_type,
-                                                 IDL_NO_OPTIONS);
+                                                 IDL_IS_EXPR_CONTEXT);
           if (member_sym == NULL && locator_for_curr_id.is_destructor_name) {
             /* This is a case like p->~A where the class has no destructor.
                This is a vacuous destructor case if the types match.
@@ -3280,15 +3280,6 @@ operation is a pointer-to-member (see ARM 5.3).
                                         result);
           /* Change the kind in the reference entries to address-taken. */
           change_ref_kinds(operand.ref_entries_list, SRK_ADDRESS_TAKEN);
-        } else if (is_template_param_constant_operand(&operand) &&
-                   operand.variant.constant.variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_member) {
-          /* Something like &T::x, where T is a template parameter.
-             Since T::x might be a static data member or a function, taking
-             its address is okay.  The operand is not changed (for one
-             thing, if T::f is a function, &T::f is basically the same
-             thing). */
-          copy_operand(&operand, result);
         } else {
           /* "&" applied to something that is not an lvalue or a function
              designator or another permitted case. */
@@ -10786,6 +10777,10 @@ variable:
                 /* The value of the variable is used. */
                 change_ref_kinds(rep, SRK_USE);
               }  /* if */
+            } else if (var_ptr->type == type_of_unknown_templ_param_nontype) {
+              /* A reference to a member of a proxy class.  Allow through.
+                 Will be converted to a constant if converted to an rvalue. */
+              make_lvalue_variable_operand(var_ptr, result, rep);
             } else {
               /* All other cases are not allowed. */
               error_and_make_error_operand(ec_expr_not_constant, result);
