@@ -1,5 +1,26 @@
 Version 2.44
 
+3/16/00  Abort in pm_class_type on pointer-to-member constant in
+         local static initializer, after lowering
+
+When LOWER_EXTERN_INLINE is TRUE, IL lowering promotes local static
+variables to external and initializes them with code instead of
+statically.  In some cases, it failed to lower pointer-to-member
+constants in the initializer, which caused aborts later.
+
+  template <class T> struct A {
+    void (T::*pfn)();
+  };
+  struct B {
+    void f() {
+      static A<B> a = {0};  // Initializer was not lowered
+    }
+  };
+  int main () {
+    B x;
+    x.f();
+  }
+
 3/15/00  Detection of loop in operator-> sequence
 
 The front end looped when given a source program containing an

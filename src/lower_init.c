@@ -4287,6 +4287,9 @@ scope is the scope in which the variable's definition appears.
   code_pos_for_lowering = error_position =
                                         variable->source_corresp.decl_position;
   constant = variable->initializer.constant;
+  /* Make sure pointers-to-members in the constant get lowered when the
+     file scope is lowered. */
+  add_orphaned_file_scope_il_entry((char *)constant, iek_constant);
   variable->init_kind = (an_init_kind)initk_none;
   /* The general strategy is to add an assignment that copies the constant
      value into the variable. */
@@ -4304,7 +4307,7 @@ scope is the scope in which the variable's definition appears.
        IL (except for string literals). */
     a_variable_ptr temp_var = make_file_scope_temporary(variable->type);
     temp_var->init_kind = (an_init_kind)initk_static;
-    temp_var->initializer.constant = variable->initializer.constant;
+    temp_var->initializer.constant = constant;
     op = (an_expr_operator_kind)eok_bassign;
     source_node = var_lvalue_expr(temp_var);
   }  /* if */
