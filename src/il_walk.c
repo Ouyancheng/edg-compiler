@@ -2510,14 +2510,30 @@ it's the initializer for an aggregate.
       goto end_of_routine;
     }  /* if */
   }  /* if */
-  if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
-    traverse_constant_list(constant->variant.aggregate.first_constant,
-                           tblock);
-  } else if (constant->kind == (a_constant_repr_kind)ck_init_repeat) {
-    traverse_constant(constant->variant.init_repeat.constant, tblock);
-  } else if (constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
-    traverse_dynamic_init(constant->variant.dynamic_init, tblock);
-  }  /* if */
+  switch (constant->kind) {
+    case ck_aggregate:
+      traverse_constant_list(constant->variant.aggregate.first_constant,
+                             tblock);
+      break;
+    case ck_init_repeat:
+      traverse_constant(constant->variant.init_repeat.constant, tblock);
+      break;
+    case ck_dynamic_init:
+      traverse_dynamic_init(constant->variant.dynamic_init, tblock);
+      break;
+    case ck_address:
+      if (tblock->process_non_dynamic_constants) {
+        if (constant->variant.address.kind ==
+                                          (an_address_base_kind)abk_constant) {
+          /* The address of another constant, e.g., a string. */
+          traverse_constant(constant->variant.address.variant.constant,
+                            tblock);
+        }  /* if */
+      }  /* if */
+      break;
+    default:
+      break;
+  }  /* switch */
 end_of_routine:;
 }  /* traverse_constant */
 
