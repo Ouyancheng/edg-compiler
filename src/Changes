@@ -1,5 +1,25 @@
 Version 3.3
 
+7/16/03  GNU IA-64 ABI: Offset of virtual empty bases
+
+The IA-64 ABI specifies that a virtual empty base should be placed at
+offset zero in its containing object if doing so does not cause a
+conflict with another subobject of the same type at that zero offset.
+However, it appears GNU compilers do not consider offset zero for a
+virtual base of type E in a complete type X if a virtual base of type E
+had been placed at a nonzero offset during the layout of a direct base
+of X.  For example:
+
+  struct E {};
+  struct B: E { virtual f(); };
+  struct D: B, virtual E {};  // Virtual base E cannot be allocated at
+                              // offset 0 in D.
+  struct P { virtual g()l };
+  struct X: P, D, virtual E {};  // Virtual base E should go at offset 0,
+                                 // but GNU compilers do not do so.
+
+This behavior is now imitated when emulating GNU IA-64 bugs.
+
 7/15/03  Enabling GNU mode when Microsoft mode is the default
 
 In a version that supports both Microsoft and GNU modes and in which

@@ -1919,6 +1919,19 @@ allocated at that offset.  This function returns TRUE in that case.
         }  /* for */
       }  /* if */
     }  /* if */
+    /* If this is a virtual base that was allocated at a nonzero
+       offset in the layout of one of the direct base types, then it won't
+       be allocated at offset zero in this layout either. */
+    if (!result && ebcp->is_virtual) {
+      a_base_class_ptr  sub_bcp = base_classes_of(bcp->type);
+      for (; sub_bcp != NULL; sub_bcp = sub_bcp->next) {
+        if (sub_bcp->is_virtual && sub_bcp->offset != 0 &&
+            same_entities(sub_bcp->type, ebcp->type)) {
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* for */
   return result;
 }  /* gnu_leading_empty_base_conflict */
