@@ -1400,7 +1400,10 @@ dumping other structures to which the node belongs.
         fprintf(f_debug, " (lowered eh construct)");
         break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-       default:;
+      case enk_condition:
+        fprintf(f_debug, " (condition)");
+        break;
+      default:;
    }  /* switch */
   }  /* if */
 }  /* db_expr_summary */
