@@ -4791,12 +4791,13 @@ The return expression is also set for a return from a constructor.
            reduced diagnostics.  An explicit return from main (i.e.,
            "main () {return;}") doesn't get special consideration. */
         if (is_implicit_return) {
-          if (C_mode()) {
-            /* In C, falling off the end of main merits a remark. */
-            no_returned_value_severity = es_remark;
-          } else {
-            /* In C++, falling off the end of main is fully standard. */
+          if (!C_mode() || c99_mode) {
+            /* In C++ and C99, falling off the end of main is fully
+               standard. */
             issue_no_value_returned_diag = FALSE;
+          } else {
+            /* In pre-C99 C, falling off the end of main merits a remark. */
+            no_returned_value_severity = es_remark;
           }  /* if */
         }  /* if */
       } else {
