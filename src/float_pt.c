@@ -1696,7 +1696,7 @@ Initialize static variables related to float_pt.c.
      For example, the Intel long double uses only 10 bytes (80 bits) of
      the 12 bytes of allocated space. */
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-  data_size_of_host_fp_value = (LDBL_MANT_DIG == 64 /*lint !e506*/
+  data_size_of_host_fp_value = /*lint --e(506)*/ (LDBL_MANT_DIG == 64
                               ? ((LDBL_MANT_DIG + 16) / CHAR_BIT)
                               : sizeof(a_host_fp_value));
   /* The routines that handle hex floating point constants must know the
