@@ -9661,7 +9661,8 @@ selection operator, in which case it points to the type of the left operand.
         qualifier_sym = look_up_qualifier_start(
                                    lookup_kind, field_sel_type,
                                    might_be_vacuous_dtor, &is_vacuous_dtor,
-				   /*might_be_template=*/next_tok == tok_lt);
+				   /*might_be_template=*/next_tok == tok_lt ||
+                                                         follows_template);
         if (locator_for_curr_id.is_semivisible_nested_type) {
           /* The symbol in the locator is a nested class that is not visible
              according to the ARM lookup rules but is returned in support of

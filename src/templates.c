@@ -3014,15 +3014,15 @@ equivalent template parameter lists.
     a_template_ptr	templ1 = tssp1->il_template_entry;
     a_template_ptr	templ2 = tssp2->il_template_entry;
     must_be_identical = FALSE;
+    /* Nonreal templates have no parameter lists. */
+    compare_parameters = FALSE;
     if (strcmp(templ1->source_corresp.name,
                templ2->source_corresp.name) == 0) {
       /* They have the same names. */
-      if (identical_types(templ1->source_corresp.parent.class_type,
+      if (!identical_types(templ1->source_corresp.parent.class_type,
                           templ2->source_corresp.parent.class_type)) {
-        /* Their parent types are the same. */
-        okay_so_far = TRUE;
-        /* Nonreal templates have no parameter lists. */
-        compare_parameters = FALSE;
+        /* Their parent types are the different. */
+        okay_so_far = FALSE;
       }  /* if */
     }  /* if */
   } else if (tssp1->variant.class_template.template_template_param &&
@@ -3289,7 +3289,9 @@ prototype instantiation is considered as a potential match.
   class_template_sym =
               template_argument_if_template_template_param(class_template_sym);
   tssp = class_template_sym->variant.template_info;
-  if (tssp->is_nonreal_member) eta_options |= ETA_IS_NONREAL_MEMBER;
+  if (tssp->is_nonreal_member || tssp->is_error) {
+    eta_options |= ETA_IS_NONREAL_MEMBER;
+  }  /* if */
   if (microsoft_bugs && microsoft_version <= 1100) {
     eta_options |= ETA_MS_IGNORE_QUALIFIERS;
   }  /* if */
@@ -8557,6 +8559,12 @@ instantiation.
       if (sym != NULL && sym->is_template_param &&
           sym->kind == (a_symbol_kind)sk_class_template) {
         sym = NULL;
+      } else if (sym != NULL && !decl_state->in_prototype_instantiation &&
+                 sym->kind == (a_symbol_kind)sk_class_template &&
+                 sym->variant.template_info->is_nonreal_member) {
+        /* A template friend declaration that refers to a nonreal template
+           is not allowed. */
+        pos_error(ec_friend_is_nonreal_template, &locator.source_position);
       }  /* if */
       /* Adjust the effective declaration level.  Friend declarations
          are added to the nearest enclosing namespace scope. */
@@ -8756,9 +8764,12 @@ instantiation.
             err = TRUE;
           } /* if */
         }  /* if */
-        if (!err && sym->kind == (a_symbol_kind)sk_class_template) {
+        if (!err && sym->kind == (a_symbol_kind)sk_class_template &&
+            !tssp->is_nonreal_member) {
           /* If this is a class template, make sure the template parameters
-             match a previous declaration of the class. */
+             match a previous declaration of the class.  This test is not
+             done if the template found is a nonreal template (that has no
+             template parameter list). */
           if (microsoft_bugs && sym->defined) {
             /* The Microsoft compiler does not check the parameter list
                of a template that is redeclared after it has been defined. */
