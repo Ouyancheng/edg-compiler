@@ -1,5 +1,11 @@
 Version 2.30
 
+9/7/95   Avoiding trigraphs in generated string and character literals
+
+The il_to_str routines have been changed to avoid accidental output
+of trigraphs in string and character literals.  This done by escaping
+each "?" character as "\?".  This is not done when generating pcc code.
+
 9/6/95   Condition, object lifetime, and continue statement
 
 A bug has been fixed when a condition declared a destructible object
