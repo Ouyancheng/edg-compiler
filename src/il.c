@@ -4197,20 +4197,23 @@ scope depth.
 #endif /* CHECKING */
   } else {
     ssep = &scope_stack[decl_scope_level];
-    /* Create the IL scope if necessary (for block scopes). */
-    sp = ensure_il_scope_exists(ssep);
-  }  /* if */
-  if (sp == NULL) {
-    /* This can happen for the error case in which a variable is created
-       in an old-style param declaration for which there was no corresponding
-       param-id declaration.  Such variables should not be added to the
-       variables list anyway. */
+    if (ssep->kind == (a_scope_kind)sck_func_prototype) {
+      /* This is an error case in which a variable is created in an old-style
+         param declaration for which there was no corresponding param-id
+         declaration.  Such variables should not be added to the variables
+         list anyway. */
+      sp = NULL;
+    } else {
+      /* Create the IL scope if necessary (for block scopes). */
+      sp = ensure_il_scope_exists(ssep);
 #if CHECKING
-    if (ssep->kind != (a_scope_kind)sck_func_prototype) {
-      internal_error("add_to_variables_list: NULL IL scope");
-    }  /* if */
+      if (sp == NULL) {
+        internal_error("add_to_variables_list: NULL IL scope");
+      }  /* if */
 #endif /* CHECKING */
-  } else {
+    }  /* if */
+  }  /* if */
+  if (sp != NULL) {
     /* Variables requiring static allocation go on one list, those for stack
        and register allocation on another. */
     if (at_file_scope ||
@@ -4232,9 +4235,11 @@ scope depth.
       ssep->last_variable = var_ptr;
     } else {
 #if CHECKING
-      /* Variables with nonstatic storage will never be allocated in file scope
-         memory region. */
-      if (in_file_scope(var_ptr)) {
+      /* Variables with nonstatic storage will be allocated in the file scope
+         memory region only when the scope is function prototype scope (i.e.,
+         in an error case). */
+      if (ssep->kind != (a_scope_kind)sck_func_prototype &&
+          in_file_scope(var_ptr)) {
         internal_error("add_to_variables_list: var in file scope region");
       }  /* if */
 #endif /* CHECKING */
