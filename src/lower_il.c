@@ -5016,6 +5016,7 @@ not include the function scope memory region, if any.
     /* "lower_os_type" not needed; the routine and the type must both be
        in the file scope. */
     lower_type(routine->type);
+    lower_template_arg_list(routine->template_arg_list);
 #if LOWER_EXTERN_INLINE
     if (routine->is_inline &&
         routine->storage_class == (a_storage_class)sc_unspecified) {
