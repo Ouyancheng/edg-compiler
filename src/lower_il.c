@@ -3897,13 +3897,13 @@ have_vtbl_var:;
 #endif /* ABI_CHANGES_FOR_RTTI */
   /* Remember the variable in the class type supplement or the base class
      entry so it can be found when constructor/destructor lowering is done. */
-  if (bcp == NULL) {
+  if (ctor_bcp != NULL) {
+    /* This is a special construction virtual function table that gets
+       recorded elsewhere. */
+  } else if (bcp == NULL) {
     a_class_type_supplement_ptr ctsp =
                              class_type->variant.class_struct_union.extra_info;
     ctsp->virtual_function_table_var = vtbl_var;
-  } else if (ctor_bcp != NULL) {
-    /* This is a special virtual function table that gets recorded elsewhere,
-       not in the base class entry. */
   } else {
 #if !IA64_ABI
     bcp->virtual_function_table_var = vtbl_var;
@@ -4035,7 +4035,7 @@ outer_loop:;
 static a_base_class_ptr find_base_sharing_virtual_function_table(
                                                           a_base_class_ptr bcp)
 /* 
-bcp is base class for which shares_virtual_function_info is TRUE.  Find the
+bcp is a base class for which shares_virtual_function_info is TRUE.  Find the
 most derived class with which the virtual function table in bcp is shared
 and return that base class, or NULL if the base class shares its virtual
 function table with bcp->derived_class.
@@ -4089,9 +4089,6 @@ construction virtual function table.
 {
   a_virtual_table_index       index;
 
-  if (is_complete && bcp != NULL && bcp->shares_virtual_function_info) {
-    bcp = find_base_sharing_virtual_function_table(bcp);
-  }  /* if */
   index = num_negative_vtable_entries(class_type, bcp);
   if (bcp != NULL && is_complete) {
     check_assertion(bcp->virtual_function_table_offset != -1);
@@ -4104,58 +4101,82 @@ construction virtual function table.
 
 static void make_construction_vtbl(
                        a_type_ptr                      class_type,
+                       a_base_class_ptr                ctor_bcp,
                        a_base_class_ptr                bcp,
-                       a_base_class_ptr                sub_bcp,
                        a_construction_vtbl_ptr         *construction_vtbls,
                        a_construction_vtbl_ptr         *end_construction_vtbls,
                        a_construction_vtbl_array_index *index,
                        a_construction_vtbl_array_index *first_index)
 /*
-Create a construction virtual function table entry for sub_bcp in bcp in
-class_type.  If bcp is NULL, it is considered to be the same as class_type; if
-sub_bcp is NULL, it is considered to be the same as bcp.  The
-*construction_vtbls and *end_construction_vtbls pointers bracket the list of
-construction vtables created so far for class_type; *index points to the next
-available entry.  *first_index is set to the index for this entry, unless it
-is already non-zero.
+Create a construction virtual function table entry for bcp in ctor_bcp in
+class_type.  The virtual function table is for the class of bcp, for use
+while a constructor is building a subobject of the type of ctor_bcp in
+a complete object of type class_type.  bcp is NULL for the ctor_bcp
+class itself.  ctor_bcp is NULL for the complete class_type class.
+The *construction_vtbls and *end_construction_vtbls pointers bracket the
+list of construction vtables created so far for class_type; *index points
+to the next available entry.  *first_index is set to the index for this
+entry, unless it is already non-zero.
 */
 {
   a_type_ptr                  vtbl_class;
   a_construction_vtbl_ptr     cvp;
   a_variable_ptr              vtbl_var;
   a_construction_vtbl_ptr     old_cvp;
+  a_base_class_ptr            eff_bcp = bcp;
 #if IA64_ABI
   a_class_type_supplement_ptr ctsp;
   a_virtual_table_index       vtbl_index = 0;
   a_boolean                   is_subobject;
 #endif /* IA64_ABI */
 
-  if (bcp != NULL) {
-    vtbl_class = bcp->type;
+  if (ctor_bcp != NULL) {
+    vtbl_class = ctor_bcp->type;
   } else {
     vtbl_class = class_type;
   }  /* if */
 #if IA64_ABI
-  if (sub_bcp && sub_bcp != bcp && sub_bcp->shares_virtual_function_info) {
-    sub_bcp = find_base_sharing_virtual_function_table(sub_bcp);
-    if (sub_bcp == NULL) sub_bcp = bcp;
+  if (eff_bcp != NULL && eff_bcp->shares_virtual_function_info) {
+    /* For a base class that shares its virtual table pointer, find the
+       most derived base class that shares that same pointer, so that
+       when we look for matches (versions of virtual function tables
+       already generated) we will recognize all the bases that use
+       the same virtual function table as equivalent and when we generate
+       the table we generate the whole thing. */
+    /* The structure of the low-level routines (set up for the Cfront-like
+       ABI) requires that the vtable be generated for the most-derived
+       class that shares a virtual table pointer, whereas the test
+       in make_construction_vtbls (in accordance with the algorithm
+       in the IA-64 ABI spec) requires that VTT entries be generated for
+       the most-basic class.  Here, we're translating between the IA-64
+       view of the world and the lower-level routines' view of the world
+       by converting from the base to the most-derived class. */
+    eff_bcp = find_base_sharing_virtual_function_table(eff_bcp);
   }  /* if */
-  is_subobject = (bcp != sub_bcp);
+  while (eff_bcp != NULL && !base_class_has_vtbl(eff_bcp)) {
+    /* For a base class that has no virtual function table by the
+       IA-64 definition, go down into the primary base class. */
+    eff_bcp = eff_bcp->primary_base_class;
+    check_assertion(eff_bcp != NULL);
+  }  /* while */
+  is_subobject = (eff_bcp != NULL);
   ctsp = vtbl_class->variant.class_struct_union.extra_info;
 #endif /* IA64_ABI */
   cvp = alloc_construction_vtbl();
-  cvp->ctor_base_class = bcp;
+  cvp->ctor_base_class = ctor_bcp;
   /* Assign the next index number to this entry. */
   ++(*index);
   if (*first_index == 0) *first_index = *index;
-  if (bcp == NULL && sub_bcp != NULL) {
-    sub_bcp->index_in_construction_vtbl_array = *index;
+  if (ctor_bcp == NULL && bcp != NULL) {
+    bcp->index_in_construction_vtbl_array = *index;
   }  /* if */
 #if IA64_ABI
   if (!is_subobject) {
     cvp->is_subobject = FALSE;
     cvp->variant.derived_class = vtbl_class;
-    if (bcp == NULL) {
+    if (ctor_bcp == NULL) {
+      /* This is the standard virtual function table for the complete
+         class, which has already been created. */
       vtbl_var = ctsp->virtual_function_table_var;
       vtbl_index = vptr_index(vtbl_class, (a_base_class_ptr)NULL,
                               /*is_complete=*/TRUE);
@@ -4165,15 +4186,15 @@ is already non-zero.
 #endif /* IA64_ABI */
   /* Do not insert code here. */
   {
-    cvp->variant.base_class = sub_bcp;
-    if (bcp == NULL) {
-      /* This is the standard virtual function table for the base class, which
-         has already been created. */
+    cvp->variant.base_class = eff_bcp;
+    if (ctor_bcp == NULL) {
+      /* This is the standard virtual function table for the base class,
+         which has already been created. */
 #if !IA64_ABI
-      vtbl_var = sub_bcp->virtual_function_table_var;
+      vtbl_var = eff_bcp->virtual_function_table_var;
 #else /* IA64_ABI */
       vtbl_var = ctsp->virtual_function_table_var;
-      vtbl_index = vptr_index(vtbl_class, sub_bcp, /*is_complete=*/TRUE);
+      vtbl_index = vptr_index(vtbl_class, eff_bcp, /*is_complete=*/TRUE);
 #endif /* IA64_ABI */              
       check_assertion(vtbl_var != NULL);
       goto have_vtbl_var;
@@ -4201,11 +4222,10 @@ is already non-zero.
       goto have_vtbl_var;
     }  /* if */
   }  /* for */
-  vtbl_var = make_var_for_virtual_function_table(vtbl_class, sub_bcp, bcp);
+  vtbl_var = make_var_for_virtual_function_table(vtbl_class, eff_bcp,
+                                                 ctor_bcp);
 #if IA64_ABI
-  vtbl_index = vptr_index(vtbl_class, 
-                          is_subobject ? sub_bcp : (a_base_class_ptr)NULL, 
-                          /*is_complete=*/FALSE);
+  vtbl_index = vptr_index(vtbl_class, eff_bcp, /*is_complete=*/FALSE);
 #endif /* IA64_ABI */
 have_vtbl_var:;
   cvp->virtual_function_table_var = vtbl_var;
@@ -4258,7 +4278,7 @@ index number of the first entry, or 0 if no entries were created.
     ctsp = vtbl_class->variant.class_struct_union.extra_info;
 #if IA64_ABI
     /* Add an entry for the primary virtual pointer. */
-    make_construction_vtbl(class_type, bcp, bcp,
+    make_construction_vtbl(class_type, bcp, (a_base_class_ptr)NULL,
                            construction_vtbls,
                            end_construction_vtbls, index, &first_index);
 #endif /* IA64_ABI */
@@ -4332,10 +4352,10 @@ index number of the first entry, or 0 if no entries were created.
                constructed for the class. */
             eff_bcp->base_subarray_index_in_construction_vtbl_array =
                                 make_construction_vtbls(class_type,
-                                                       eff_bcp,
-                                                       construction_vtbls,
-                                                       end_construction_vtbls,
-                                                       index);
+                                                        eff_bcp,
+                                                        construction_vtbls,
+                                                        end_construction_vtbls,
+                                                        index);
             if (first_index == 0) {
               first_index =
                       eff_bcp->base_subarray_index_in_construction_vtbl_array;
@@ -4384,26 +4404,18 @@ index number of the first entry, or 0 if no entries were created.
                                                any_virtual_base_classes ||
              sub_bcp->type->variant.class_struct_union.
                            any_virtual_functions_including_in_base_classes) &&
-            (sub_bcp->is_virtual || !sub_bcp->shares_virtual_function_info) &&
+            /* IA-64 ABI spec, 2.6.2 paragraph 3: "For each base class X
+               which (a) has virtual bases or is reachable along a virtual
+               path from D, ..." */
             (sub_bcp->type->variant.class_struct_union.
                                                    any_virtual_base_classes ||
-             any_virtual_steps_in_derivation(sub_bcp))
+             any_virtual_steps_in_derivation(sub_bcp)) &&
+            /* " ... and (b) is not a non-virtual primary base, ..." */
+            (sub_bcp->is_virtual || !sub_bcp->shares_virtual_function_info)
 #endif /* IA64_ABI */
-                                                                            ) {
-          a_base_class_ptr            eff_bcp = sub_bcp;
-#if IA64_ABI
-          a_class_type_supplement_ptr eff_ctsp = 
-                          eff_bcp->type->variant.class_struct_union.extra_info;
-          if (eff_ctsp->virtual_function_info_base_class != NULL) {
-            a_base_class_ptr vfibc, disambiguator;
-            vfibc = eff_ctsp->virtual_function_info_base_class;
-            disambiguator = find_disambiguator(sub_bcp, vfibc);
-            eff_bcp = corresponding_base_class(vfibc, vtbl_class, 
-                                               disambiguator);
-          }  /* if */
-#endif /* IA64_ABI */
+                                                                           ) {
           /* Needs a special virtual function table. */
-          make_construction_vtbl(class_type, bcp, eff_bcp,
+          make_construction_vtbl(class_type, bcp, sub_bcp,
                                  construction_vtbls, 
                                  end_construction_vtbls, index,
                                  &first_index);
@@ -5657,7 +5669,8 @@ table.
     /* If the virtual base is also a base of the base class with which we
        share a vtable, there is already an entry there. */
     if (sharing_bcp != NULL) {
-      for (b2 = base_classes_of(sharing_bcp->type); b2 != NULL; 
+      for (b2 = base_classes_of(sharing_bcp->type);
+           b2 != NULL; 
            b2 = b2->next) {
         if (b2->is_virtual && same_entities(imm_bcp->type, b2->type)) break;
       }  /* for */

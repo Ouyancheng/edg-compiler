@@ -8899,84 +8899,80 @@ constructor, but may instead be after an assignment to "this".
   /* Loop through the base classes of the current class. */
   for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
     /* Set the pointer if there is one. */
-#if !IA64_ABI
-    vtbl_var = bcp->virtual_function_table_var;
-#else /* IA64_ABI */
-    if (needs_virtual_function_table(bcp->type)) {
-      vtbl_var = ctsp->virtual_function_table_var;
-    } else {
-      vtbl_var = NULL;
-    }  /* if */
-#endif /* IA64_ABI */
-    if (vtbl_var != NULL) {
-      /* The base class's virtual function table pointer must be set to
-         reflect the fact that it exists as a subobject inside the current
-         class. */
-      vtbl_addr_node = NULL;
+    vtbl_addr_node = NULL;
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
-      if (bcp->index_in_construction_vtbl_array != 0) {
-        /* The virtual function table to use is specified by an element of the
-           array of construction virtual function table pointers. */
-        vtbl_addr_node = vtbl_addr_from_construction_vtbls_array(
+    if (bcp->index_in_construction_vtbl_array != 0) {
+      /* Set the virtual function table pointer to an element from the
+         array of construction virtual function table pointers. */
+      vtbl_addr_node = vtbl_addr_from_construction_vtbls_array(
                                         construction_vtbls_var,
                                         /*var_is_array=*/FALSE,
                                         bcp->index_in_construction_vtbl_array);
-        vtbl_addr_node = add_indirection_to_node(vtbl_addr_node);
-      } else
+      vtbl_addr_node = add_indirection_to_node(vtbl_addr_node);
+    } else
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
-      /* Do not insert code here; this is the "else" of an "if". */
-#if IA64_ABI
-      if (base_class_has_vtbl(bcp))
+    /* Do not insert code here; this is the "else" of an "if". */
+    {
+#if !IA64_ABI
+      vtbl_var = bcp->virtual_function_table_var;
+#else /* IA64_ABI */
+      if (base_class_has_vtbl(bcp)) {
+        vtbl_var = ctsp->virtual_function_table_var;
+      } else {
+        vtbl_var = NULL;
+      }  /* if */
 #endif /* IA64_ABI */
-      {
+      if (vtbl_var != NULL) {
+        /* Set the virtual function table from the standard virtual function
+           table for this base class. */
         vtbl_addr_node = make_vtbl_address_node(vtbl_var, class_type, bcp);
       }  /* if */
-      if (vtbl_addr_node != NULL) {
+    }  /* if */
+    if (vtbl_addr_node != NULL) {
 #if !IA64_ABI
-        if (bcp->is_virtual) {
-          /* For virtual base classes, access the class by using the implicit
-             parameter.  That works even when the current class is not a
-             complete object, and is a little better than the general code. */
-          vbase_param_var = implicit_virtual_base_parameter(class_type,
-                                                            bcp->type,
-                                                            this_param_var);
-          vptr_node = var_rvalue_expr(vbase_param_var);
-        } else 
+      if (bcp->is_virtual) {
+        /* For virtual base classes, access the class by using the implicit
+           parameter.  That works even when the current class is not a
+           complete object, and is a little better than the general code. */
+        vbase_param_var = implicit_virtual_base_parameter(class_type,
+                                                          bcp->type,
+                                                          this_param_var);
+        vptr_node = var_rvalue_expr(vbase_param_var);
+      } else 
 #endif /* !IA64_ABI */
-        /* Do not insert code here. */
-        {
-          /* Use the usual code.  Note that if the base class here is
-             non-virtual itself but is inside a virtual base class, the code
-             will use a pointer to get to the virtual base class and then
-             field selection(s) to get to the non-virtual base class within
-             that.  It would be possible to use the implicit parameter for the
-             virtual base class to do better, but this code works (the virtual
-             base class pointers are all set by this point). */
-          vptr_node = make_base_class_lvalue_from_var(
+      /* Do not insert code here. */
+      {
+        /* Use the usual code.  Note that if the base class here is
+           non-virtual itself but is inside a virtual base class, the code
+           will use a pointer to get to the virtual base class and then
+           field selection(s) to get to the non-virtual base class within
+           that.  It would be possible to use the implicit parameter for the
+           virtual base class to do better, but this code works (the virtual
+           base class pointers are all set by this point). */
+        vptr_node = make_base_class_lvalue_from_var(
                                                    this_param_var, bcp,
                                                    /*complete_object=*/FALSE);
-        }  /* if */
-        vptr_node = make_vptr_field_lvalue(vptr_node);
-        /* Make and insert the assignment statement. */
-        (void)insert_assignment_statement(vptr_node,
-                                          (an_expr_operator_kind)eok_passign,
-                                          vtbl_addr_node,
-                                          insert_location);
-#if IA64_ABI
-        if (bcp->is_virtual &&
-            is_direct_or_indirect_virtual_primary_base(bcp)) {
-          /* If a primary virtual base is located at the origin of the
-             subobject being constructed, we should not have clobbered its
-             virtual table pointer.  We could devise a run-time test to
-             detect such cases, but it's simpler and probably just as
-             efficient to reload the primary virtual table pointer of the
-             subobject being constructed. */
-          insert_primary_vtbl_assignment(class_type, this_param_var,
-                                         construction_vtbls_var,
-                                         insert_location);
-        }  /* if */
-#endif /* IA64_ABI */
       }  /* if */
+      vptr_node = make_vptr_field_lvalue(vptr_node);
+      /* Make and insert the assignment statement. */
+      (void)insert_assignment_statement(vptr_node,
+                                        (an_expr_operator_kind)eok_passign,
+                                        vtbl_addr_node,
+                                        insert_location);
+#if IA64_ABI
+      if (bcp->is_virtual &&
+          is_direct_or_indirect_virtual_primary_base(bcp)) {
+        /* If a primary virtual base is located at the origin of the
+           subobject being constructed, we should not have clobbered its
+           virtual table pointer.  We could devise a run-time test to
+           detect such cases, but it's simpler and probably just as
+           efficient to reload the primary virtual table pointer of the
+           subobject being constructed. */
+        insert_primary_vtbl_assignment(class_type, this_param_var,
+                                       construction_vtbls_var,
+                                       insert_location);
+      }  /* if */
+#endif /* IA64_ABI */
     }  /* if */
   }  /* for */
   /* Generate initialization for each data member that appears on the
