@@ -3091,9 +3091,13 @@ static void redecl_member_function(a_symbol_ptr         sym,
 /*
 The current member function redeclares the function to which sym refers.
 Parameters member_type, access, is_inline, and is_virtual indicate
-specifications of the current declaration.  Although the ARM (9.2) disallows
-the redeclaration of member functions, we allow it (as an extension), but only
-if access, static-ness, and virtual-ness are unchanged.  A warning is issued.
+specifications of the current declaration.  The ARM (9.2) disallows the
+redeclaration of member functions, so issue an error, but if access,
+static-ness, and virtual-ness are unchanged, merge the two declarations.
+(This routine was originally written to support an extension to allow
+member function redeclarations, as long as the second declaration was not
+too different from the first.  Changing it back to support such behavior
+is just a matter of changing where and how diagnostics are issued.)
 */
 {
   a_routine_ptr             rp = sym->variant.routine;
@@ -3101,17 +3105,23 @@ if access, static-ness, and virtual-ness are unchanged.  A warning is issued.
   a_def_arg_expr_fixup_ptr  daefp;
 
   db_enter(3, "redecl_member_function");
-  /* Let the current access override the original access specification, but
-     if there's a difference, issue an error. */
+  /* Issue the error.  Then, if the declarations are close enough, proceed
+     as if function redeclaration were permitted. */
   pos_sy_error(ec_member_function_redeclaration, err_pos, sym);
   if (access != rp->source_corresp.access ||
       (is_virtual && !rp->is_virtual) ||
       (routine_type_is_nonstatic_member_function(rp->type) !=
          routine_type_is_nonstatic_member_function(member_type))) {
+    /* The two declarations differ with respect to access specifier, virtual
+       vs. nonvirtual, and/or static vs. nonstatic.  Rather than trying to
+       resolve such differences, we just through the second declaration
+       away. */
   } else {
+    /* In the interests of better error recovery, merge the declarations. */
     /* If the new declaration specifies "inline", keep it, even if the
        previous declaration did not. */
     if (is_inline) rp->is_inline = TRUE;
+    /* Reconcile the types. */
     reconcile_routine_types(rp, member_type, /*preserve_rout_type=*/TRUE,
                             /*preserve_type_ptr=*/FALSE);
     /* If any default arguments were encountered in the second declaration,
@@ -3199,9 +3209,9 @@ special function kind (e.g., constructor, destructor), if any.
   /* Look for a prior declaration or function overloading. */
   sym = symbol_for_member_function(locator, member_type, &overload_sym);
   if (sym->variant.routine != NULL) {
-    /* symbol_for_member_function has returned a symbol that has already
-       been declared.  ARM 9.2 prohibits redeclaration of member functions.
-       We allow it as an extension, with certain restrictions. */
+    /* symbol_for_member_function has returned a symbol that has already been
+       declared.  It is an error to redeclare a member function, but we try
+       merge the declarations anyway. */
     redecl_member_function(sym, member_type, access, is_inline, is_virtual,
                            &locator->source_position);
   } else {
