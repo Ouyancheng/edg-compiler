@@ -1,5 +1,13 @@
 Version 3.5
 
+7/21/04  Embedded C: Spurious error on smallest _Accum value
+
+A spurious error was issued if the result of a constant operation
+was the smallest value that can be represented in a given _Accum type.
+Now fixed.
+
+  short _Accum b = -128.0k - 128.0k;
+
 7/21/04  Spurious error on class template with conversion operator
 
 The front end sometimes issued a spurious correspondence error on two

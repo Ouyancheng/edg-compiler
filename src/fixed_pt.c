@@ -506,9 +506,13 @@ the value is already known to be too large.  Set *err on overflow.  Set
   if (overflow) {
     /* On overflow, return an error flag and set the result value to a
        saturated value. */
-    if (mantissa_bits == 1 && exponent == 1 && fxp_descr->is_fract_type) {
+    if (fxp_descr->is_fract_type && mantissa_bits == 1 && exponent == 1) {
       /* The input value is 1 or -1.  Return the saturated value, but don't
          set the error flag. */
+    } else if (!fxp_descr->is_fract_type && is_negative &&
+               mantissa_bits == 1 && exponent == nonfract_bits) {
+      /* The input is the smallest value of an _Accum type.  Also return
+         the saturated value without setting the error flag. */
     } else if (fxp_descr->saturating) {
       /* If this is a saturating type, silently saturate. */
     } else {
