@@ -7542,11 +7542,9 @@ Note that the destructor, if any, is implicit and need not be put out.
 }  /* gen_dynamic_init */
 
 
-static void gen_initializer(a_variable_ptr var,
-                            a_boolean      is_condition)
+static void gen_initializer(a_variable_ptr var)
 /*
-Output the initializer, if any, for the indicated variable.  The variable
-is a condition variable if is_condition is TRUE.
+Output the initializer, if any, for the indicated variable.
 */
 {
   a_boolean          parenthesized_init;
@@ -7835,7 +7833,7 @@ declaration following this one is such a continuation.
      the definition. */
   consider_initialization = is_definition;
   if (var->is_member_constant) consider_initialization = !is_definition;
-  if (consider_initialization) gen_initializer(var, is_condition);
+  if (consider_initialization) gen_initializer(var);
   /* Output the semicolon or comma at the end of the declaration, but not
      for a condition. */
   if (!is_condition) {
