@@ -1782,8 +1782,12 @@ determine_linkage:
       /* The current declaration is a variable and the declaration it links
          to is a function. */
       if (local_storage_class == (a_storage_class)sc_static ||
-          scope_stack[depth_innermost_namespace_scope].
-                                        within_unnamed_namespace) {
+          (scope_stack[depth_innermost_namespace_scope].
+                                        within_unnamed_namespace &&
+           scope_stack[decl_scope_level].default_name_linkage !=
+                                        (a_name_linkage_kind)nlk_external)) {
+        /* Either "static" was explicit or this is a declaration within an
+           unnamed namespace without an extern "C" linkage specifier. */
         idlbp->linkage = idl_internal;
       } else {
         idlbp->linkage = idl_external;
@@ -1839,14 +1843,16 @@ determine_linkage:
         goto determine_linkage;
       }  /* if */
       /* No visible declaration found, so the linkage is usually external. */
-      if (!scope_stack[depth_innermost_namespace_scope].
-                                        within_unnamed_namespace) {
-        idlbp->linkage = idl_external;
-      } else {
-        /* The declaration is within the scope of an unnamed namespace, so
-           give the entity internal linkage. */
+      if (scope_stack[depth_innermost_namespace_scope].
+                                        within_unnamed_namespace &&
+          scope_stack[decl_scope_level].default_name_linkage !=
+                                        (a_name_linkage_kind)nlk_external) {
+        /* This is a declaration within an unnamed namespace without an
+           extern "C" linkage specifier. */
         idlbp->linkage = idl_internal;
         idlbp->storage_class = (a_storage_class)sc_static;
+      } else {
+        idlbp->linkage = idl_external;
       }  /* if */
     } else if (is_object && at_file_or_namespace_scope &&
                local_storage_class == (a_storage_class)sc_unspecified) {
@@ -3678,6 +3684,10 @@ cross-reference output describing this declaration.
                                  &locator->source_position, redeclaration);
   set_name_linkage(linkage, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
+  if (source_corresp_ptr->name_linkage == (a_name_linkage_kind)nlk_external) {
+    /* An extern "C" declaration.  Clear the namespace parent pointer. */
+      source_corresp_ptr->parent.namespace_ptr = NULL;
+  }  /* if */
   /* If cross-reference information is being issued, update the output.  If
      source sequence entries are being generated, update the declarator_ssep
      entry. */
@@ -4696,6 +4706,10 @@ skip_overloading:;
   }  /* if */
   set_name_linkage(linkage, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
+  if (source_corresp_ptr->name_linkage == (a_name_linkage_kind)nlk_external) {
+    /* An extern "C" declaration.  Clear the namespace parent pointer. */
+      source_corresp_ptr->parent.namespace_ptr = NULL;
+  }  /* if */
   if (overload_symbol != NULL) {
     /* If a using-declaration has introduced a function name into this
        scope that has the same type as the current function, it is an error.
