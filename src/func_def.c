@@ -1156,11 +1156,11 @@ member declaration (allowed in Microsoft mode only).
     }  /* if */
     sym = NULL;
   } else if (!namespace_is_enclosed_by_scope(sym, ssep) &&
-             !microsoft_out_of_class_redecl) {
-    /* This member function is being defined in a scope that does not
-       enclose the scope in which the parent class was defined.  (Except
-       Microsoft mode out-of-class member function redeclarations, which
-       can appear in function scope.) */
+             !gpp_mode && !microsoft_out_of_class_redecl) {
+    /* This member function is being defined in a scope that does not enclose
+       the scope in which the parent class was defined.  (This is not required
+       in GNU C++ mode.  Neither is it required for Microsoft mode out-of-class
+       member function redeclarations, which can appear in function scope.) */
     sym_error(ec_bad_scope_for_definition, sym);
     sym = NULL;
   } else {

@@ -1,5 +1,16 @@
 Version 3.6
 
+1/12/05  GNU C++ compatibility: Location of member function definitions
+
+In GNU C++ mode, the front end now accepts a member function definition in a
+namespace that does not enclose the namespace of the parent class.  For
+example:
+
+  struct S { void f(); };
+  namespace N {
+    void S::f() {}  // Now accepted in GNU C++ mode.
+  }
+
 1/12/05  GNU C compatibility: Field conflicts with nonstandard anonymous unions
 
 In GNU C mode with gnu_version < 30300 the front end accepts nonstandard
