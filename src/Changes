@@ -1,5 +1,12 @@
 Version 2.46
 
+7/12/01  assoc_template not set for function template prototype instantiation
+
+The assoc_template field was not set properly for most function templates.
+This has been fixed.
+
+  template <class T> void f(T){}
+
 7/12/01  Sun compatibility: typename is ignored in most contexts
 
 The Sun compiler ignores the typename keyword in most contexts.  It

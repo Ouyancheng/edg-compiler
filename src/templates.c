@@ -12497,9 +12497,6 @@ caller.
                               &decl_state->decl_token_cache,
                               decl_state->decl_info);
       decl_state->decl_token_cache_used = TRUE;
-      /* Set the assoc_template field of the prototype instantiation routine
-         entry. */
-      tssp->variant.function.routine->assoc_template = tssp->il_template_entry;
     }  /* if */
     if (decl_state->defines_something || 
         tssp->cache.decl_info == NULL) {
@@ -12551,6 +12548,9 @@ caller.
   if (sym != NULL) {
     /* Save the IL template entry pointer for this symbol. */
     set_il_template_entry(decl_state, sym, tssp);
+    /* Set the assoc_template field of the prototype instantiation routine
+       entry. */
+    tssp->variant.function.routine->assoc_template = tssp->il_template_entry;
     /* Update the exported flag, if necessary. */
     update_export_flag_for_function(decl_state, rout_ptr, sym, tssp);
   }  /* if */
