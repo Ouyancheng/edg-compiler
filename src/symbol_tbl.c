@@ -2053,6 +2053,8 @@ the latter will be NULL for variables.
         if (rout_type == NULL || C_dialect != C_dialect_cplusplus) {
           /* A name match is enough. */
           break;
+        } else if (is_error_type(sym_ptr->variant.extern_symbol_descr->type)) {
+          /* Assume this is not a match.  Keep looking. */
         } else {
           /* In C++ the function's type signature is effectively part of the
              name.  Therefore we check for parameter type compatibility (the
