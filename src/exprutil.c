@@ -3914,23 +3914,31 @@ invalid (i.e., incomplete); an error node is returned for that case.
   if (function_node->kind == (an_expr_node_kind)enk_routine_address) {
     /* We know which routine is being called. */
     a_routine_ptr rp = function_node->variant.routine;
-    if (curr_expr_is_potentially_evaluated() && !rp->called) {
-      /* It is being called -- set the flag. */
-      rp->called = TRUE;
-      /* Special checking is required for operator-> functions. */
-      if (rp->special_kind == (a_special_function_kind)sfk_operator &&
-          rp->opname_kind == (an_opname_kind)onk_arrow) {
-        /* This is an operator-> function that has never before been called.
-           If it is a member of a template class, be sure it has a valid
-           return type.  (Note:  template classes may define operator->
-           functions that return invalid types as long as they are never
-           called. */
-        if (symbol_supplement_for_class(rp->source_corresp.
-                          class_of_which_a_member)->class_template != NULL) {
-          /* If the return type is invalid, change the return type to an
-             error_type and issue a diagnostic. */
-          check_operator_arrow_return_type(rp, /*is_expr_use=*/TRUE, err_pos);
+    if (curr_expr_is_potentially_evaluated()) {
+      /* It is being called. */
+      if (!rp->called) {
+        /* First call; set the flag. */
+        rp->called = TRUE;
+        /* Special checking is required for operator-> functions. */
+        if (rp->special_kind == (a_special_function_kind)sfk_operator &&
+            rp->opname_kind == (an_opname_kind)onk_arrow) {
+          /* This is an operator-> function that has never before been called.
+             If it is a member of a template class, be sure it has a valid
+             return type.  (Note:  template classes may define operator->
+             functions that return invalid types as long as they are never
+             called. */
+          if (symbol_supplement_for_class(rp->source_corresp.
+                            class_of_which_a_member)->class_template != NULL) {
+            /* If the return type is invalid, change the return type to an
+               error_type and issue a diagnostic. */
+            check_operator_arrow_return_type(rp, /*is_expr_use=*/TRUE,
+                                             err_pos);
+          }  /* if */
         }  /* if */
+      }  /* if */
+      if (rp->pure_virtual && !is_virtual) {
+        /* Non-virtual call of a pure virtual function. */
+        pos_warning(ec_call_of_pure_virtual, err_pos);
       }  /* if */
     }  /* if */
   }  /* if */

@@ -709,6 +709,7 @@ ec_template_missing_closing_brace;;"closing brace of %nd not found"
 ec_cl_wchar_t_option_only_in_cplusplus;;"wchar_t keyword option can be used only when compiling C++"
 ec_bad_pack_alignment;;"invalid packing alignment value"
 ec_exp_int_constant;;"expected an integer constant"
+ec_call_of_pure_virtual;;"call of pure virtual function"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
