@@ -1,5 +1,10 @@
 Version 3.6
 
+3/8/05   Pragma at the end of an implicitly included file not processed
+
+A pragma at the end of an implicitly included file was silently discarded.
+Now fixed.
+
 3/8/05   Generated copy constructor call as bitwise copy with direct-
          initialization
 

@@ -13262,6 +13262,7 @@ scanning a translation-unit, except there's no diagnostic on the empty file.
                 /*marked_as_gnu_extension=*/FALSE,
                 (a_param_id_ptr)NULL, (a_source_range *)NULL);
   }  /* if */
+  process_pragmas_at_end_of_source();
 }  /* scan_implicitly_included_template_definition_file */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
