@@ -299,11 +299,12 @@ Dump a base class entry, for debug purposes.
 
   fputs("\n    [[ ", f_debug);
   if (bcp->virtual) {
-    fputs("pointer to virtual ", f_debug);
+    fputs("(virtual) ", f_debug);
   }  /* if */
   db_access_control(bcp->access);
-  fprintf(f_debug, " base class %s (offset = %lu)",
-		   tp->source_corresp.name, bcp->offset);
+  fprintf(f_debug, " base class %s (%soffset = %lu)",
+		   tp->source_corresp.name, bcp->virtual ? "pointer " : "",
+                   bcp->offset);
   if (!bcp->virtual) {
     bcp = tp->variant.class_struct_union.extra_info->base_classes;
     while (bcp != NULL) {
@@ -329,7 +330,7 @@ Dump a virtual base class entry, for debug purposes.
   a_field      *fp;
   a_base_class *bcp;
 
-  fprintf(f_debug, "    [[ virtual base class %s (offset = %lu)",
+  fprintf(f_debug, "    [( virtual base class %s (offset = %lu)",
 		   tp->source_corresp.name, vbcp->data_section_offset);
   bcp = tp->variant.class_struct_union.extra_info->base_classes;
   while (bcp != NULL) {
@@ -341,7 +342,7 @@ Dump a virtual base class entry, for debug purposes.
     db_base_class_field(fp, tp);
     fp = fp->next;
   }  /* while */
-  fputs(" ]]\n", f_debug);
+  fputs(" )]\n", f_debug);
 }  /* db_virtual_base_class */
 
 
