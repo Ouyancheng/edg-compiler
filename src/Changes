@@ -8,8 +8,8 @@ __asm statements).  Now fixed.
 8/25/99  Stricter checking of catch types
 
 The front end now checks whether a catch type is an abstract class (an error)
-or a reference or pointer to an incomplete type (an error in strict mode, a
-warning otherwise).  For example:
+or a reference or pointer to a nonvoid incomplete type (a warning in Microsoft
+mode, a discretionary error otherwise).  For example:
 
   struct I;
   struct A { virtual ~A() = 0; };
