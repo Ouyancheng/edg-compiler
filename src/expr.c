@@ -4374,12 +4374,17 @@ type conversions.
          X& if a pointer to that object may be explicitly converted
          to an X*" (ARM 5.4).  Rewrite the cast in that form.  Note that
          type_cast_to is already set to the proper pointer type. */
-      /* The expression must be an lvalue (that term in C++ includes function
-         designators). */
+      /* It's not entirely clear what the ARM means about "a pointer
+         to an object".  One interpretation would be that the expression
+         must be an lvalue (that term in C++ includes function designators).
+         We broaden that slightly by allowing class rvalues to be used
+         as well. */
       if (is_an_lvalue(operand)) {
         take_address_of_lvalue(operand);
       } else if (is_a_function_designator(operand)) {
         conv_function_designator_to_ptr_to_function(operand);
+      } else if (is_class_struct_union_type(operand->type)) {
+        conv_operand_to_object_pointer(operand);
       } else {
         if (!is_error_operand(operand)) {
           error_in_operand(ec_expr_not_an_lvalue, operand);
