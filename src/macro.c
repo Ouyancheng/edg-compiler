@@ -82,6 +82,15 @@ static a_symbol_ptr
 			   macro "__pragma", which is used in Microsoft
 			   mode. */
 
+static a_symbol_ptr
+		counter_macro_symbol;
+			/* Pointer to the symbol entry for the Microsoft
+			   __COUNTER__ macro. */
+static unsigned long
+		counter_macro_number;
+			/* The current value for the Microsoft __COUNTER__
+			   macro. */
+
 /*
 Maximum nesting depth of calls of a single macro in pcc mode.  Used to
 catch recursion, but crudely, because a general recursion check is
@@ -2230,6 +2239,11 @@ end_scan_for_macro_modifs:;
         repl_text = "";
         repl_text_len = 0;
         special_repl_text = FALSE;
+      } else if (macro_symbol == counter_macro_symbol) {
+        /* The Microsoft __COUNTER__ macro.  This returns a different
+           integer value each time it is used, starting with zero. */
+        /* We assume we don't need to call ensure_arg_raw_text_space. */
+        (void)sprintf(repl_text, "%lu", counter_macro_number++);
 #if CHECKING
       } else {
         internal_error("macro_invocation: unknown special predefined macro");
@@ -4962,6 +4976,10 @@ command line -D options.
                                             (char *)NULL, "__pragma",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
+    counter_macro_symbol = enter_predef_macro(
+                                            (char *)NULL, "__COUNTER__",
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
   /* Enter system specific macros and assertions. */
   enter_system_specific_predefined_macros_and_assertions();
@@ -5085,6 +5103,8 @@ Do one-time initialization of variables related to macro processing.
       pch_saved_var_array_elem(defined_macro_symbol),
       pch_saved_var_array_elem(Pragma_macro_symbol),
       pch_saved_var_array_elem(microsoft_pragma_macro_symbol),
+      pch_saved_var_array_elem(counter_macro_symbol),
+      pch_saved_var_array_elem(counter_macro_number),
       pch_saved_var_array_elem(date_macro_symbol),
       pch_saved_var_array_elem(time_macro_symbol),
       pch_saved_var_array_elem(base_file_macro_symbol),
@@ -5108,6 +5128,8 @@ Do one-time initialization of variables related to macro processing.
   register_trans_unit_variable(defined_macro_symbol);
   register_trans_unit_variable(Pragma_macro_symbol);
   register_trans_unit_variable(microsoft_pragma_macro_symbol);
+  register_trans_unit_variable(counter_macro_symbol);
+  register_trans_unit_variable(counter_macro_number);
   register_trans_unit_variable(date_macro_symbol);
   register_trans_unit_variable(time_macro_symbol);
   register_trans_unit_variable(base_file_macro_symbol);
@@ -5137,6 +5159,8 @@ after this function.
   defined_macro_symbol = NULL;
   Pragma_macro_symbol = NULL;
   microsoft_pragma_macro_symbol = NULL;
+  counter_macro_symbol = NULL;
+  counter_macro_number = 0;
   date_macro_symbol = NULL;
   time_macro_symbol = NULL;
   base_file_macro_symbol = NULL;

@@ -1,5 +1,11 @@
 Version 3.3
 
+6/27/03  Microsoft __COUNTER__ macro
+
+The Microsoft __COUNTER__ macro, which returns an incrementing
+integer value each time it is used, is now implemented in Microsoft
+C and C++ modes.
+
 6/27/03  Microsoft compatibility: __debugbreak
 
 In Microsoft C and C++ modes with microsoft_version 1300 or greater,
