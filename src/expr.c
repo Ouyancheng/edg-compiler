@@ -420,7 +420,18 @@ current expression (used to decide how a comma should be treated).
     case tok_or_assign:
       /* Note that assignment operators are recognized but not legal in
          constant expressions.  This produces clearer error messages. */
-      new_prec = PREC_ASSIGNMENT;
+      /* The precedence is PREC_PREFIX rather than PREC_ASSIGNMENT because
+         the syntax rule is
+           assignment-expression:
+                conditional-expression
+                unary-expression assignment-op assignment-expression
+                ^^^^^^^^^^^^^^^^
+      */
+      if (cfront_compatibility_mode || C_dialect == C_dialect_pcc) {
+        new_prec = PREC_ASSIGNMENT;
+      } else {
+        new_prec = PREC_PREFIX;  /* sic! */
+      }  /* if */
       new_assoc = RIGHT_ASSOC;
       break;
     case tok_comma:

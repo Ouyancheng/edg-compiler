@@ -1,5 +1,19 @@
 Version 2.19
 
+6/21/93  Change of precedence for left operand of assignment operators
+
+The left operand of assignment operators is now parsed with a different
+precedence than previously.  The syntax rules for assignment are
+
+  assignment-expression:
+    conditional-expression
+    unary-expression assignment-operator assignment-expression
+
+The term to the left of the assignment-operator was formerly being
+parsed as an assignment-expression; now it is being parsed as a
+unary-expression.  In pcc mode and cfront compatibility mode, the
+old precedence is retained.
+
 6/21/93  FULL_SOURCE_POS_IN_IL_STATEMENT
 
 A new configuration flag FULL_SOURCE_POS_IN_IL_STATEMENT has been added
