@@ -1221,30 +1221,25 @@ Make a call statement that invokes a constructor as required in the dynamic
 initialization entry pointed to by dip.  entity_node is an expression
 that gives the address of the entity to be initialized.  If source_node
 is non-NULL, it points to an expression that is the source for a copy
-constructor call (of the same type as the entity node, modulo
-type-as-subobject differences).  implied_arg_list is a list of implied
-extra virtual base class pointer arguments for the constructor, or NULL
-if this routine should generate them if required.  Insert the statement
-at *insert_location and update *insert_location.  The additional-arguments
-list given by dip->variant.constructor.args has already been lowered.
+constructor call.  Both entity_node and source_node have already been
+cast to the proper type for the corresponding parameter to eliminate
+qualifier and type-as-subobject differences.  implied_arg_list is a
+list of implied extra virtual base class pointer arguments for the
+constructor, or NULL if this routine should generate them if required.
+Insert the statement at *insert_location and update *insert_location.
+The additional-arguments list given by dip->variant.constructor.args has
+already been lowered.
 */
 {
   a_routine_ptr    ctor_routine = dip->variant.constructor.ptr;
   an_expr_node_ptr last_node;
   a_statement_ptr  call_stmt;
-  a_type_ptr       class_type, this_param_type;
 
 #if CHECKING
   if (dip->kind != (a_dynamic_init_kind)dik_constructor) {
     internal_error("add_constructor_call: bad kind");
   }  /* if */
 #endif /* CHECKING */
-  /* Cast the entity node pointer to the right type.  It might be a pointer
-     to the class type-as-subobject. */
-  class_type = ctor_routine->source_corresp.class_of_which_a_member;
-  this_param_type = implicit_this_param_type_of(ctor_routine->type);
-  entity_node = add_cast_if_necessary(entity_node,
-                                      f_skip_typerefs(this_param_type));
   /* If no implied_arg_list is supplied and the constructor needs one
      (because it initializes a class that has virtual base classes), make
      the implied_arg_list (all entries are NULL pointer values). */
@@ -1260,12 +1255,6 @@ list given by dip->variant.constructor.args has already been lowered.
     last_node = end_implied_arg_list;
   }  /* if */
   if (source_node != NULL) {
-    /* Cast the source node to the right type.  This is necessary if its
-       type is presently a pointer to the class type-as-subobject.
-       Note that when source_node is non-NULL, it is an object of the same
-       type as the destination class. */
-    source_node = add_cast_if_necessary(source_node,
-                                        make_pointer_type(class_type));
     last_node->next = source_node;
     last_node = source_node;
   }  /* if */
@@ -2635,6 +2624,9 @@ be kept, FALSE if it should be deleted.
   a_constant_ptr    simple_constant;
   a_source_position saved_error_position, saved_code_pos;
   a_statement_ptr   expr_stmt;
+  a_type_ptr        ctor_routine_type;
+  a_type_ptr        this_param_type;
+  a_param_type_ptr  param;
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
   a_boolean         is_template_static_data_member_init = FALSE;
   a_variable_ptr    template_static_data_member_init_guard_var = NULL;
@@ -2778,12 +2770,29 @@ do_assignment:;
       /* Make a node for the entity to be initialized. */
       entity_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
                                           /*using_as_dest=*/TRUE);
+      /* Cast the entity node pointer to the right type to eliminate
+         qualifier and type-as-subobject differences. */
+      ctor_routine_type = dip->variant.constructor.ptr->type;
+      this_param_type = implicit_this_param_type_of(ctor_routine_type);
+      entity_node = add_cast_if_necessary(entity_node,
+                                          f_skip_typerefs(this_param_type));
       source_node = NULL;
+      param = NULL;
       if (dip->variant.constructor.is_copy_constructor_with_implied_source) {
         /* The constructor is a copy constructor, and the source of the
            copy is implied.  Determine the source location. */
         source_node = implied_source_of_copy(ctor_init, ipdp,
                                              /*using_as_address=*/TRUE);
+        /* Cast the expression to the right type to eliminate qualifier and
+           type-as-subobject differences.  Use the pointer version of
+           the parameter reference type. */
+        param = unlowered_param_type_list(ctor_routine_type);
+        source_node = add_cast_if_necessary(source_node,
+                                            make_pointer_type(
+                                                type_pointed_to(param->type)));
+        /* Leave the parameter pointer set for lowering any additional
+           arguments below. */
+        param = param->next;
       }  /* if */
       if (ipdp->whole_array) {
         /* Construct an array. */
@@ -2799,19 +2808,9 @@ do_assignment:;
                                    insert_location);
       } else {
         /* Construct a simple entity (not an array). */
-        a_type_ptr       ctor_routine_type= dip->variant.constructor.ptr->type;
-        an_expr_node_ptr ctor_args = dip->variant.constructor.args;
         /* Lower any added arguments. */
-        if (ctor_args != NULL) {
-          a_param_type_ptr param = NULL;
-          if (dip->variant.constructor.
-                                is_copy_constructor_with_implied_source) {
-            /* With a copy constructor, start after the source parameter. */
-            param = unlowered_param_type_list(ctor_routine_type);
-            param = param->next;
-          }  /* if */
-          lower_arg_expr_list(ctor_args, ctor_routine_type, param);
-        }  /* if */
+        lower_arg_expr_list(dip->variant.constructor.args, ctor_routine_type,
+                            param);
         /* Generate the constructor call. */
         add_constructor_call(dip, entity_node, source_node,
                              implied_arg_list, end_implied_arg_list,
