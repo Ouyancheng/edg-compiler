@@ -158,9 +158,11 @@ typedef struct a_source_correspondence {
   char          *name;
                         /* Pointer to null-terminated name, or NULL if
                            there is no corresponding source entity. */
+#ifdef CIL
   a_type_ptr    class_of_which_a_member;
 			/* For class members a pointer to the parent class;
 			   NULL for nonmembers. */ 
+#endif /* ifdef CIL */
   a_source_position
                 decl_position;
                         /* The source position at which this entity is
@@ -2670,7 +2672,10 @@ typedef struct a_statement {
                            statement if there are several dependent
                            statements. */
     } if_stmt;
-    /* When kind == stmk_while or stmk_end_test_while: */
+    /* When kind == stmk_while */
+#ifdef CIL
+    /* When kind == stmk_end_test_while: */
+#endif /* ifdef CIL */
     a_statement_ptr
                 loop_statement;
                         /* The statement that is the body of the loop.
@@ -2945,7 +2950,7 @@ typedef struct a_scope {
   union {
     /* When kind == sck_file, no variant fields. */
 #ifdef FIL
-    /* When kind == sck_statement_func, no variant fields. */
+    /* When kind == sck_stmt_function, no variant fields. */
 #endif /* ifdef FIL */
 #ifdef CIL
     /* When kind == sck_block, no variant fields (but see assoc_block
