@@ -145,6 +145,12 @@ extern void free_derivation_step(a_derivation_step_ptr  step);
 extern a_boolean congruent_paths(a_derivation_step_ptr  dsp1,
                                  a_derivation_step_ptr  dsp2);
 
+#if IA64_ABI
+
+extern a_base_class_ptr nominal_primary_base(a_base_class_ptr  bcp);
+
+#endif /* IA64_ABI */
+
 extern void check_class_linkage(void);
 
 extern void class_decl_one_time_init(void);

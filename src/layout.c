@@ -3647,49 +3647,28 @@ of nonzero size (such classes actually have size zero).
 
 #if IA64_ABI
 
-static void compute_primary_base_classes(a_type_ptr       class_type,
-                                         a_base_class_ptr bcp)
-/* 
-Set the primary_base_class for bcp and its bases.  The most derived type is
-class_type.  If bcp is NULL, do all of the bases of class_type.  The
-primary base class of class_type was already determined during class
-scanning (see set_virtual_function_info_base_class); this code
-propagates that decision into the base classes of class_type.
+static void compute_primary_base_classes(a_type_ptr class_type)
+/*
+Set the primary_base_class for the bases of class_type.  The primary base
+class of class_type was already determined during class scanning (see
+set_virtual_function_info_base_class); this code propagates that decision 
+into the base classes of class_type.
 */
 {
-  a_type_ptr                  base_type;
   a_class_type_supplement_ptr ctsp;
-  a_base_class_ptr            base_bcp, disambiguator, eff_bcp;
+  a_base_class_ptr            bcp, primary;
 
-  if (bcp != NULL) {
-    base_type = bcp->type;
-  } else {
-    base_type = class_type;
-  }  /* if */
-  ctsp = base_type->variant.class_struct_union.extra_info;
+  ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp->primary_base_class != NULL) {
-    if (bcp != NULL) {
-      disambiguator = find_disambiguator(bcp, ctsp->primary_base_class);
-      eff_bcp = corresponding_base_class(ctsp->primary_base_class,
-                                         class_type, disambiguator);
-      if (!eff_bcp->offset_is_set) {
-        bcp->primary_base_class = eff_bcp;
-        eff_bcp->offset_is_set = TRUE;
-      }  /* if */
-    } else {
-      ctsp->primary_base_class->offset_is_set = TRUE;
-    }  /* if */
+    ctsp->primary_base_class->offset_is_set = TRUE;
   }  /* if */
-  for (base_bcp = base_classes_of(base_type); 
-       base_bcp != NULL; 
-       base_bcp = base_bcp->next) {
-    if (base_bcp->direct) {
-      if (bcp != NULL) {
-        eff_bcp = corresponding_base_class(base_bcp, class_type, bcp);
-      } else {
-        eff_bcp = base_bcp;
-      }  /* if */
-      compute_primary_base_classes(class_type, eff_bcp);
+  for (bcp = preorder_base_classes_of(class_type);
+       bcp != NULL;
+       bcp = bcp->next_preorder) {
+    primary = nominal_primary_base(bcp);
+    if (primary != NULL && !primary->offset_is_set) {
+      bcp->primary_base_class = primary;
+      primary->offset_is_set = TRUE;
     }  /* if */
   }  /* for */
 }  /* compute_primary_base_classes */
@@ -3736,7 +3715,7 @@ for handling virtual bases and functions.
     a_base_class_ptr            bcp;
     a_class_type_supplement_ptr ctsp;
     /* Identify all of the primary base classes. */
-    compute_primary_base_classes(class_type, (a_base_class_ptr)NULL);
+    compute_primary_base_classes(class_type);
     /* Clear the offset_is_set flag which is used both by
        compute_primary_base_classes and by other parts of the layout code. */
     for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {

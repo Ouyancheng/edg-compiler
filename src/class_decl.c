@@ -2470,6 +2470,30 @@ more work needs to be done.
   return disambiguator;
 }  /* find_disambiguator */
 
+#if IA64_ABI
+
+a_base_class_ptr nominal_primary_base(a_base_class_ptr bcp)
+/*
+Return the base of bcp that would be the primary base if bcp were the complete
+object.  Return NULL if bcp->type has no primary base.
+*/
+{
+  a_base_class_ptr            primary, disambiguator;
+  a_class_type_supplement_ptr ctsp;
+
+  ctsp = bcp->type->variant.class_struct_union.extra_info;
+  if (ctsp->primary_base_class != NULL) {
+    disambiguator = find_disambiguator(bcp, ctsp->primary_base_class);
+    primary = corresponding_base_class(ctsp->primary_base_class,
+                                       bcp->derived_class,
+                                       disambiguator);
+  } else {
+    primary = NULL;
+  }  /* if */
+  return primary;
+}  /* nominal_primary_base */
+
+#endif /* IA64_ABI */
 
 static a_boolean shares_virtual_function_info(a_type_ptr        class_type,
                                               a_base_class_ptr  base_class)
@@ -2481,6 +2505,19 @@ TRUE.
 */
 {
   a_boolean         shares = FALSE;
+#if IA64_ABI
+  a_base_class_ptr  primary;
+
+  for (primary = class_type->variant.class_struct_union.extra_info->
+                                                            primary_base_class;
+       primary != NULL;
+       primary = nominal_primary_base(primary)) {
+    if (primary == base_class) {
+      shares = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+#else /* !IA64_ABI */
   a_base_class_ptr  virtual_function_info_base_class, bcp, disambiguator;
 
   virtual_function_info_base_class =
@@ -2506,6 +2543,7 @@ TRUE.
       }  /* if */
     }  /* if */
   }  /* if */
+#endif /* !IA64_ABI */
   return shares;
 }  /* shares_virtual_function_info */
 
