@@ -1625,9 +1625,9 @@ Output the indicated constant.
                  is_character_type(con_type)) {
         /* In C++, character constants have char type. */
         a_boolean ovflo;
-        write_tok_ch('\'');
+        write_ch('\'');
         gen_char((char)value_of_integer_constant(constant, &ovflo));
-        write_tok_ch('\'');
+        write_ch('\'');
       } else {
         /* A normal integer constant. */
         gen_integer_constant(constant, /*suppress_cast=*/FALSE);
