@@ -195,7 +195,13 @@ secondary translation units will have already been copied over.
      one-instantiation-per-object mode must be made external so that
      they can be referenced from the instantiation object files.
      Likewise for statics referenced from exported templates. */
+#if MAINTAIN_NEEDED_FLAGS
+  end_of_file_scope_needed_flags_phase = TRUE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
   make_statics_referenced_from_instantiations_external();
+#if MAINTAIN_NEEDED_FLAGS
+  end_of_file_scope_needed_flags_phase = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #endif /* DO_IL_LOWERING */
 #if MAINTAIN_NEEDED_FLAGS
   /* Don't bother pruning the IL of unneeded entries if errors were seen. */
