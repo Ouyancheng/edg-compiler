@@ -1756,6 +1756,9 @@ associated symbol for the original primary IL entry.
       copy_instance = alloc_template_instance();
     }  /* if */
     *copy_instance = *instance;
+    copy_instance->next = NULL;
+    copy_instance->next_in_instantiation_list = NULL;
+    copy_instance->referencing_namespace = NULL;
     if (overwrite) {
       /* Restore certain values from the original instance entry in the
          primary translation unit. */
@@ -1773,7 +1776,6 @@ associated symbol for the original primary IL entry.
                             saved_explicit_do_not_instantiate;
       copy_instance->suppress_instantiation =
                             saved_suppress_instantiation;
-      copy_instance->referencing_namespace = NULL;
     } else {
       /* The instance was newly created, not copied on top of an
          existing entry. */
