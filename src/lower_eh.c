@@ -1910,22 +1910,22 @@ void make_dyn_init_region_table_entry(a_dynamic_init_ptr dip,
 /*
 Add an entry to the region table (which describes destructible objects)
 for the initialization described by dip.  The entry will point to
-next_dip as its next region.  The initialization must have an attached
-destructible entity description, and the conditional_flag_var field of
-that entry must be filled in if appropriate (if a conditional flag
-variable is indicated, a region table entry will be created for it as
-well).  Also insert (at *insert_location) initialization code for the
-proper entry in the object address table.  The region table variable
-is created if necessary.
+next_dip/curr_cleanup_region_number as its next region.  The initialization
+must have an attached destructible entity description, and the
+conditional_flag_var field of that entry must be filled in if
+appropriate (if a conditional flag variable is indicated, a region
+table entry will be created for it as well).  Also insert (at
+*insert_location) initialization code for the proper entry in the
+object address table.  The region table variable is created if
+necessary.
 */
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
-  a_cleanup_region_number         next_region_number;
 	
   check_assertion(dedp != NULL);
   dedp->next_in_region_table = next_dip;
-  dedp->region_number_to_set_when_starting_destruction = next_region_number =
-                                               cleanup_region_number(next_dip);
+  dedp->region_number_to_set_when_starting_destruction =
+                                                    curr_cleanup_region_number;
   dedp->region_table_entry =
              make_region_table_entry(&dedp->init_pos_descr,
                                      dip->destructor,
@@ -1933,7 +1933,7 @@ is created if necessary.
                                             is_freeing_of_storage_on_exception,
                                      dedp->conditional_flag_var,
                                      dedp->conditional_flag_handle,
-                                     next_region_number,
+                                     curr_cleanup_region_number,
                                      &dedp->region_number,
                                      insert_location);
   if (dip->unordered) {
