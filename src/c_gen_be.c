@@ -2528,6 +2528,45 @@ Return the byte offset following the end of the indicated field.
 }  /* offset_after_field */
 
 
+static void dump_field_padding(a_field_ptr      field,
+                               a_targ_size_t    next_offset,
+                               a_targ_alignment next_alignment)
+/*
+Dump out any padding required after the field "field".  The next field
+begins at next_offset and has alignment next_alignment.
+*/
+{
+  a_targ_size_t after_field;
+  a_targ_size_t excess_bytes;
+  a_targ_size_t rounded_after_field;
+  a_targ_size_t padding;
+
+  /* The offset after the field, rounded up for the alignment of the
+     following field, should give the offset of the following field. */
+  after_field = offset_after_field(field);
+  excess_bytes = after_field % next_alignment;
+  rounded_after_field = after_field;
+  if (excess_bytes != 0) {
+    rounded_after_field += next_alignment - excess_bytes;
+  }  /* if */
+  padding = (next_offset - rounded_after_field);
+  if (padding > 0) {
+    /* Some padding is required. */  
+    if (padding > 1) {
+      write_tok_str("char __dummy");
+      write_unsigned_num((a_host_large_unsigned)after_field);
+      write_tok_ch('[');
+      write_unsigned_num((a_host_large_unsigned)padding);
+      write_tok_str("];");
+    } else {
+      write_tok_str("char __dummy");
+      write_unsigned_num((a_host_large_unsigned)after_field);
+      write_tok_ch(';');
+    }  /* if */
+  }  /* if */
+}  /* dump_field_padding */
+
+
 static void dump_struct_union_definition(a_type_ptr type,
                                          a_boolean  output_final_semi)
 /*
@@ -2723,6 +2762,12 @@ final semicolon if output_final_semi is TRUE.
         if (offset_after_field(last_field) < offset_after_field(field)) {
           last_field = field;
         }  /* if */
+      }  /* if */
+      if (type->kind != (a_type_kind)tk_union && !field->is_bit_field &&
+          field->next != NULL) {
+        /* Add any required padding between fields. */
+        dump_field_padding(field, field->next->offset,
+                           f_skip_typerefs(field->next->type)->alignment);
       }  /* if */
     }  /* for */
     if (union_alignment_needed) {
