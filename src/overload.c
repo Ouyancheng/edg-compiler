@@ -11412,7 +11412,9 @@ true answer cannot be determined, the safe answer is FALSE.
                  op == (an_expr_operator_kind)eok_fgnu_min ||
                  op == (an_expr_operator_kind)eok_fgnu_max ||
                  op == (an_expr_operator_kind)eok_pgnu_min ||
-                 op == (an_expr_operator_kind)eok_pgnu_max) {
+                 op == (an_expr_operator_kind)eok_pgnu_max ||
+                 op == (an_expr_operator_kind)eok_gnu_min ||
+                 op == (an_expr_operator_kind)eok_gnu_max) {
         entity_is_auto = underlying_entity_is_auto(operands, is_temp);
         if (!entity_is_auto) {
           entity_is_auto = underlying_entity_is_auto(operands->next, is_temp);
