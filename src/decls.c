@@ -2802,6 +2802,10 @@ declaration of this symbol.
     if (kind == (a_symbol_kind)sk_variable) {
       /* A variable declared in a function prototype scope is the result of
          an error in an old-style param list. */
+    } else if (C_dialect == C_dialect_cplusplus) {
+      /* We can't get here in C++ in a legal program.  If there was some
+         sort of error, just go ahead and enter the symbol in the current
+         scope. */
     } else {
       /* Any other declaration expected in a prototype scope is that of a
          type or an enumeration constant. */
@@ -2810,11 +2814,7 @@ declaration of this symbol.
                       kind == (a_symbol_kind)sk_enum_tag ||
                       kind == (a_symbol_kind)sk_type ||
                       kind == (a_symbol_kind)sk_constant);
-      if (C_dialect == C_dialect_cplusplus) {
-        /* We can't get here in C++ in a legal program.  If there was some
-           sort of error, just go ahead and enter the symbol in the current
-           scope. */
-      } else if (C_dialect == C_dialect_pcc) {
+      if (C_dialect == C_dialect_pcc) {
         /* In pcc a type declared in a parameter declaration belongs to the
            file scope.  For example:
                void f(a) struct s { int i; }; s a; { ... }
@@ -4860,7 +4860,7 @@ a pointer to it in *symbol_ptr.
       }  /* if */
     } else {
       /* Either the symbol was not declared in the current scope, in which
-         case a redefinition here is legal, or else it is not type name
+         case a redefinition here is legal, or else it is not a type name
          symbol, in which case the error message will be issued by
          enter_symbol. */
     }  /* if */
