@@ -1419,6 +1419,7 @@ ec_multiple_link_scope_specifiers;;"multiple link scope specifiers"
 ec_link_scope_requires_external_linkage;;"link scope specifiers can only appear on functions and variables with external linkage"
 ec_link_scope_relaxation;;"a redeclaration cannot weaken a link scope"
 ec_invalid_link_scope;;"link scope specifier not allowed on this declaration"
+ec_nonstd_qualifier_in_global_scope_decl;;"nonstandard qualified name in global scope declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

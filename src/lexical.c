@@ -12546,7 +12546,7 @@ wrapup:
     /* Perform error checks as specified in "options". */
     err |= check_for_generalized_identifier_errors(options, &pos_curr_token);
   }  /* if */
-
+  locator_for_curr_id.is_error = err;
 exit:
   db_exit();
   return result;
