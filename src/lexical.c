@@ -3830,8 +3830,9 @@ set to NULL and return FALSE.
 */
 {
   a_boolean      is_qualified_name = FALSE;
-  a_symbol_ptr   class_symbol, name_symbol, inactive_symbol_list;
+  a_symbol_ptr   class_symbol, name_symbol;
   a_scope_number class_scope;
+  a_symbol_ptr   first_symbol_in_class;
 
   if (C_dialect == C_dialect_cplusplus) {
     if (curr_token == tok_identifier) {
@@ -3850,47 +3851,59 @@ set to NULL and return FALSE.
         if (class_symbol->kind == (a_symbol_kind)sk_class_or_struct_tag ||
             class_symbol->kind == (a_symbol_kind)sk_union_tag) break;
       }  /* for */
-      if (class_symbol != NULL) {
-        /* The identifier could be a class name.  See if it is followed by
-           a "::". */
-        if (next_token() == tok_colon_colon) {
+      if (class_symbol != NULL && next_token() == tok_colon_colon) {
+        /* This is a qualified name. */
+        /* Keep looping while there are more levels of class qualification.
+           Stop on something that is not a class name followed by "::". */
+        do {
           /* Skip over the "class-name ::". */
           (void)get_token();
           (void)get_token();
-#if 0
-#else
-          /* Temporary code to get scope number. */
-          class_scope = class_symbol->variant.class_struct_union.symbols->
-                                                                    decl_scope;
-#endif /* 0 */
-          if (curr_token != tok_identifier) {
-            syntax_error(ec_exp_identifier);
-          } else {
+          /* Determine the scope number for the class. */
+          first_symbol_in_class =
+                              class_symbol->variant.class_struct_union.symbols;
+          class_symbol = NULL;
+          if (first_symbol_in_class == NULL) {
+            /* There are no members of the class, so we cannot determine the
+               scope number */
+            class_scope = NO_SCOPE_NUMBER;
+            break;
+          }  /* if */
+          class_scope = first_symbol_in_class->decl_scope;
+          if (curr_token == tok_identifier) {
+            /* The next thing is an identifier (it must be, but if it's not,
+               the error is given later).  See if the identifier could be a
+               class name, indicating further qualification, as in A::B::x. */
             /* Search for the identifier in the given scope. */
-            /* First, search the list of inactive class members. */
-            inactive_symbol_list =
-                        inactive_symbol_list_from_locator(locator_for_curr_id);
-            for (name_symbol = inactive_symbol_list;
-                 name_symbol != NULL;
-                 name_symbol = name_symbol->next) {
-              if (name_symbol->decl_scope == class_scope) goto found_name;
-            }  /* for */
-            /* The name was not found on the inactive symbols list.
-               Try the active symbols list.  This would come up when a
-               qualified name is used when it's not really necessary, i.e.,
-               we're inside the class mentioned in the qualifier. */
-            for (name_symbol = symbol_list_for_curr_id;
-                 name_symbol != NULL;
-                 name_symbol = name_symbol->next) {
-              if (name_symbol->decl_scope == class_scope) goto found_name;
-            }  /* for */
-            internal_error("get_qualified_name: name not found unimplemented");
-found_name:
+            class_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
+                                                     class_scope,
+                                                     /*must_be_class=*/TRUE);
+          }  /* if */
+        } while (class_symbol != NULL && next_token() == tok_colon_colon);
+        /* The current token must now be the final identifier of the qualified
+           name, e.g., "x" in "A::B::x". */
+        if (curr_token != tok_identifier) {
+          syntax_error(ec_exp_identifier);
+        } else if (class_scope != NO_SCOPE_NUMBER) {
+          /* There was a valid class qualifier.  Look up the identifier in
+             the scope. */
+          name_symbol = scope_qualified_id_lookup(&locator_for_curr_id,
+                                                  class_scope,
+                                                  /*must_be_class=*/FALSE);
+          if (name_symbol != NULL) {
+            /* The name was found. */
             is_qualified_name = TRUE;
             locator_for_curr_id.qualified_name_symbol = name_symbol;
             /* Clear the symbol list to be neat. */
             symbol_list_for_curr_id = NULL;
           }  /* if */
+        }  /* if */
+        if (!is_qualified_name) {
+          /* There was an error of some kind. */
+          internal_error("get_qualified_name: name not found");
+#if 0
+          make_error_symbol here.
+#endif
         }  /* if */
       }  /* if */
     }  /* if */
