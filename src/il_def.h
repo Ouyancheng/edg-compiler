@@ -1149,7 +1149,9 @@ typedef struct a_source_correspondence {
 #if NEED_NAME_MANGLING
   char		*unmangled_name;
 			/* If name_has_been_mangled is TRUE, points to the
-			   original name before mangling.  Otherwise, NULL. */
+			   original name before mangling (which might be
+			   NULL, if the entity was unnamed).  Otherwise,
+			   NULL. */
 #endif /* NEED_NAME_MANGLING */
   struct a_trans_unit_corresp
 		*trans_unit_corresp;
