@@ -676,10 +676,13 @@ do_variable:
       { a_projection_descr_ptr pdp = sym->variant.projection.extra_info;
         if (pdp->fundamental_base_class != NULL &&
             pdp->fundamental_base_class->derivation != NULL) {
-          put_string(str_path(buffer,
-                              preferred_derivation_of(
-                                           pdp->fundamental_base_class)->path,
-                              "path = ==>", "==>"));
+          a_derivation_step_ptr  step;
+          step = pdp->fundamental_base_class->derivation->path;
+          if (pdp->fundamental_base_class->is_virtual) {
+            /* For virtual base classes show just the last "hop". */
+            while (step->next != NULL) step = step->next;
+          }  /* if */
+          put_string(str_path(buffer, step, "path = ==>", "==>"));
         }  /* if */
       }
       break;
