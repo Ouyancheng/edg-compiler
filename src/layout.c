@@ -1303,7 +1303,7 @@ address); FALSE otherwise.
 #if CHECKING
   check_assertion(is_empty_class_type(etype));
 #endif /* CHECKING */
-  if (etype == atype) {
+  if (same_entities(etype, atype)) {
     /* Is there a direct type conflict? */
     result = TRUE;
   } else {
@@ -1311,7 +1311,7 @@ address); FALSE otherwise.
        are by definition also empty)? */
     a_base_class_ptr bcp = base_classes_of(etype);
     for (; bcp != NULL; bcp = bcp->next) {
-      if (bcp->type == atype) {
+      if (same_entities(bcp->type, atype)) {
         result = TRUE;
         break;
       }  /* if */

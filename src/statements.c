@@ -1138,7 +1138,7 @@ them out and then remove them if they prove superfluous.)
         while (is_array_type(tp) &&
                !(tp->kind == (a_type_kind)tk_typeref &&
                  typeref_is_typedef(tp))) {
-          if (vdp->type == skip_typerefs(tp)) {
+          if (same_entities(vdp->type, skip_typerefs(tp))) {
             match = TRUE;
             break;
           }  /* if */

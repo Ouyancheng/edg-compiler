@@ -309,7 +309,8 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           if (sssdp->entity.kind != (a_byte_il_entry_kind)iek_namespace) {
             declared_type = sssdp->declared_type;
             if (type_entry_type == NULL ||
-                (declared_type != NULL && declared_type != type_entry_type)) {
+                (declared_type != NULL &&
+                 !same_entities(declared_type, type_entry_type))) {
               print_type = TRUE;
             }  /* if */
           }  /* if */
@@ -2561,7 +2562,7 @@ check_next_ssep:
       /* See what kind of entity follows the tag definition; get the type
          with which it was declared. */
       tp = type_from_src_seq_declaration(next_ssep);
-      if (tp == NULL || find_bottom_of_type(tp) != tag_type) {
+      if (tp == NULL || !same_entities(find_bottom_of_type(tp), tag_type)) {
         /* This is not an entity that was declared with the tag; the tag
            should be marked as autonomous.  Sometimes this will not be
            quite right -- some weird cases in C mode, such as

@@ -2146,7 +2146,7 @@ Do the output in the way described by octl.
              This test is done with a pointer comparison so as not to
              drag in front-end only routines, but that means it probably
              does nothing for pointers to functions. */
-          if (member_type == new_member_type) member_type = NULL;
+          if (same_entities(member_type, new_member_type)) member_type = NULL;
         }  /* if */
         /* No cast is needed for a null pointer-to-member constant. */
         if (member_type != NULL) {
@@ -2191,7 +2191,7 @@ and standalone utility programs.
 
   type_1 = skip_typerefs(type_1);
   type_2 = skip_typerefs(type_2);
-  if (type_1 == type_2) {
+  if (same_entities(type_1, type_2)) {
     types_match = TRUE;
   } else if (type_1->kind != type_2->kind) {
     /* Type kinds do not match, so types do not match. */
@@ -2205,7 +2205,7 @@ and standalone utility programs.
     types_match = types_match_ignoring_qualifiers(type_pointed_to(type_1),
                                                   type_pointed_to(type_2));
   } else if (type_1->kind == (a_type_kind)tk_ptr_to_member &&
-             pm_class_type(type_1) == pm_class_type(type_2)) {
+             same_entities(pm_class_type(type_1), pm_class_type(type_2))) {
     /* Continue at the next level for pointers to members. */
     types_match = types_match_ignoring_qualifiers(pm_member_type(type_1),
                                                   pm_member_type(type_2));
@@ -2725,7 +2725,8 @@ precedence confusion.  Do the output in the way described by octl.
   }  /* if */
   /* See if we need a final cast to the desired type. */
   if (desired_type == NULL ||
-      skip_typedefs(achieved_type) != skip_typedefs(desired_type)) {
+      !same_entities(skip_typedefs(achieved_type),
+                     skip_typedefs(desired_type))) {
     if (!constant->implicit_cast &&
         constant->variant.address.kind == (an_address_base_kind)abk_routine) {
       /* Function declarators don't get shared, so a pointer equality test
@@ -3673,9 +3674,10 @@ way described by octl.
                                              (a_constant_repr_kind)ck_string &&
         constant->variant.address.offset == 0 &&
         is_pointer_type(constant->type) &&
-        type_pointed_to(constant->type) ==
+        same_entities(
+                type_pointed_to(constant->type),
                 array_element_type(
-                          constant->variant.address.variant.constant->type))) {
+                         constant->variant.address.variant.constant->type)))) {
     /* An address constant (the usual case).  Drop one level of "&". */
     form_address_constant(constant, /*form_lvalue=*/TRUE, need_parens, octl);
   } else if (constant->kind == (a_constant_repr_kind)ck_template_param &&

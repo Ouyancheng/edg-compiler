@@ -3018,7 +3018,7 @@ returned set to TRUE.
         if (!var_err) {
           /* Copy the type back into the variable.  It might have been changed
              if vp is an incomplete array. */
-          if (vp != NULL && vp_type != vp->type) {
+          if (vp != NULL && !same_entities(vp_type, vp->type)) {
             put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
                                         vp_type);
           }  /* if */
@@ -3384,7 +3384,7 @@ the default constructor (if one exists) is called.
           /* A user defined default constructor may have default args that
              should be incorporated into the constructor call. */
           copy_ctor_default_args_to_dynamic_init(init_dip);
-          if (var_type != tp) {
+          if (!same_entities(var_type, tp)) {
             /* The object has an array type.  We need to build an aggregate
                initialization on top of the other dynamic init entry. */
             /* Save a pointer to init_dip, since it will be modified for
@@ -3497,7 +3497,7 @@ determination.
   for (;;) {
     a_type_ptr class2 = field2->source_corresp.parent.class_type;
     for (;;) {
-      if (class2 == class1) {
+      if (same_entities(class2, class1)) {
         /* We've found the innermost class/struct/union that the
            fields have in common.  If it is a union, they conflict. */
         are_disjoint_members = (class1->kind == (a_type_kind)tk_union);
@@ -3834,7 +3834,8 @@ initialized.  These are addressed in the course of the processing.
               /* A class that's on the base-classes list. */
               check_base_classes = FALSE;
             } else if (is_class_symbol(member_or_base_sym) &&
-                       member_or_base_sym->parent.class_type == class_type) {
+                       same_entities(member_or_base_sym->parent.class_type,
+                                     class_type)) {
               /* A member of the current class. */
               check_base_classes = FALSE;
             } else {
@@ -3874,7 +3875,7 @@ initialized.  These are addressed in the course of the processing.
                                 member_or_base_sym, &error_position,
                                 /*update_il_entry=*/FALSE);
         if (member_or_base_sym->kind == (a_symbol_kind)sk_field &&
-            member_or_base_sym->parent.class_type == class_type) {
+            same_entities(member_or_base_sym->parent.class_type, class_type)) {
           /* This is a field of the current class and may be mentioned in the
              constructor's initializer list.  But it's an error to refer to
              it by a qualified name. */
@@ -4030,7 +4031,7 @@ initialized.  These are addressed in the course of the processing.
                that only direct and virtual base classes can be specified. */
             bcp = ctsp->base_classes;
             for (; bcp != NULL; bcp = bcp->next) {
-              if (bcp->type == init_type) {
+              if (same_entities(bcp->type, init_type)) {
                 if (bcp->direct || bcp->is_virtual) {
                   if (found_bcp == NULL) {
                     found_bcp = bcp;

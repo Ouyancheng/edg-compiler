@@ -197,13 +197,13 @@ derived type to remove the restrict qualifier.
        Go through the derived type list looking for restrict qualifier that
        applies to the pointer type. */
     for (tp = *derived_type, prev_tp = NULL;
-         tp != *bottom_derived_type;
+         !same_entities(tp, *bottom_derived_type);
          prev_tp = tp, tp = underlying_type_of_derived_type(tp)) {
       if (tp->kind == (a_type_kind)tk_typeref) {
         /* Check for qualifiers on a typeref. */
         qualifiers = get_top_level_type_qualifiers(tp);
         tp = skip_typerefs(tp);
-        if (tp == *bottom_derived_type) {
+        if (same_entities(tp, *bottom_derived_type)) {
           if (qualifiers & TQ_RESTRICT) {
             /* A restrict qualifier was found and it applies to the pointer
                type that is going to be set to point to the function type.
@@ -707,7 +707,7 @@ property fields).
           if (is_error_type(temp_type)) *bottom_derived_type = temp_type;
           /* Find the derived type above this one, and see if it needs to
              have its size computed.  If so, continue looping. */
-          if (temp_type == *derived_type) {
+          if (same_entities(temp_type, *derived_type)) {
             /* We have reached the top of the derived type list; stop. */
             break;
           } else {
@@ -718,7 +718,7 @@ property fields).
               tp = underlying_type_of_derived_type(prev_temp_type);
               check_assertion_str(tp != NULL,
                                  "add_to_derived_type_list: bad type in list");
-              if (tp == temp_type) break;
+              if (same_entities(tp, temp_type)) break;
               prev_temp_type = tp;
             }  /* for */
             /* Found the previous type entry.  Keep looping. */
@@ -1083,7 +1083,7 @@ type.  For templates, use the class template scope.
      member declared inside a class. */
   if ((ssep->kind == (a_scope_kind)sck_class_struct_union ||
        (instance && ssep->kind == (a_scope_kind)sck_class_reactivation)) &&
-      ssep->assoc_type == type) {
+      same_entities(ssep->assoc_type, type)) {
     result = TRUE;
   } else {
     result = FALSE;
@@ -2857,7 +2857,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
         a_boolean     is_member_function_typedef = FALSE;
 
         temp_type = skip_typerefs(complete_type);
-        if (temp_type != complete_type) {
+        if (!same_entities(temp_type, complete_type)) {
           if (any_cfront_mode()) {
             /* Check for a special form of member function typedef that is
                an extension in cfront mode. */
@@ -3035,7 +3035,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
   }  /* for */
 #if DEBUG
   if (debug_level >= 4) {
-    if (complete_type != specifiers_type) {
+    if (!same_entities(complete_type, specifiers_type)) {
       fputs("pointer/reference type: ", f_debug);
       db_type(complete_type);
       (void)fputc('\n', f_debug);

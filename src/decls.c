@@ -2495,7 +2495,7 @@ issued a similar error).  Return FALSE if there is some error.
   old_type = esdp->type;
   /* If the old and new types are the same, no checking or processing is
      required. */
-  if (old_type != type_ptr) {
+  if (!same_entities(old_type, type_ptr)) {
     /* Use a special comparison for routine types, to ignore calling
        convention differences.  In C mode, overloading is not possible, so
        allow error type mismatches on routine types. */
@@ -2864,7 +2864,7 @@ created; the caller must set it.
          will fail to match.  One of the issues that deals with is routine
          types with associated routine pointers -- the associated routine
          pointer needs to be preserved. */
-      if (type_ptr != preexisting_type) {
+      if (!same_entities(type_ptr, preexisting_type)) {
         /* The type has been changed.  See if the pre-existing type will
            have to be restored at the end of the current scope.  If so,
            create a fixup entry that will be processed by pop_scope.  The
@@ -3357,8 +3357,8 @@ not be TRUE.
         /* rout_type must be preserved. */
         comp_type = composite_type(rout_type, type_ptr);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        if (comp_type != rout_type &&
-            routine_ptr->declared_type == rout_type) {
+        if (!same_entities(comp_type, rout_type) &&
+            same_entities(routine_ptr->declared_type, rout_type)) {
           /* The declared type, which was saved when the routine was defined,
              points to a type entry that is going to be modified, so change
              it to point to a copy. */
@@ -3374,7 +3374,7 @@ not be TRUE.
       }  /* if */
       /* If rout_type is not what was returned, copy the composite
          type on top of the existing rout_type. */
-      if (comp_type != rout_type) {
+      if (!same_entities(comp_type, rout_type)) {
         comp_type = skip_typerefs(comp_type);
         comp_rtsp = comp_type->variant.routine.extra_info;
         rout_type = skip_typerefs(rout_type);
@@ -4499,7 +4499,7 @@ type entry if appropriate, otherwise using the indicated declared_type.
   /* Make the declared type consistent with the routine type. */
   rtsp1 = skip_typerefs(rout_type)->variant.routine.extra_info;
   rtsp2 = skip_typerefs(declared_type)->variant.routine.extra_info;
-  if (rtsp1->this_class != rtsp2->this_class ||
+  if (!same_entities(rtsp1->this_class, rtsp2->this_class) ||
       rtsp1->qualifiers != rtsp2->qualifiers ||
       rtsp1->routine_name_linkage != rtsp2->routine_name_linkage) {
     if (declared_type->kind == (a_type_kind)tk_typeref) {
@@ -4683,7 +4683,7 @@ declaration.
        declared_type now (i.e., before composite_type is called). */
     if (!is_function_def && source_sequence_entries_disallowed) {
       /* The declared_type is not used. */
-    } else if (func_info->declared_type == type_ptr) {
+    } else if (same_entities(func_info->declared_type, type_ptr)) {
       /* No fixup required.  (This can happen when type_ptr is a typedef.) */
     } else if (func_info->declared_type != NULL &&
                skip_typerefs(func_info->declared_type)->
@@ -7275,7 +7275,8 @@ nonstandard, but it is allowed by cfront.
   if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
       is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL) &&
       locator_for_curr_id.is_qualified_name) {
-    if (qualifier_class_type(locator_for_curr_id) == ssep->assoc_type &&
+    if (same_entities(qualifier_class_type(locator_for_curr_id),
+                      ssep->assoc_type) &&
         locator_for_curr_id.is_global_qualified_name == FALSE) {
       is_member_id = TRUE;
       /* Reset the fields in the locator to make it appear as if the
@@ -8389,7 +8390,7 @@ clause is to be attached.  catch_pos is the source position of "catch".
         } else if (masked) {
           /* One "masking" diagnostic has already been issued -- there's no
              point in putting out another. */
-        } else if (type_ptr == error_type()) {
+        } else if (type_ptr->kind == (a_type_kind)tk_error) {
           /* No need to check for masking in this case. */
         } else if (prev_handler->parameter == NULL) {
           /* Default handler has already been declared.  If it's the last on
@@ -8403,7 +8404,8 @@ clause is to be attached.  catch_pos is the source position of "catch".
         } else if (handler->parameter == NULL) {
           /* Current handler is a default handler -- it can only be masked by
              another default handler. */
-        } else if (prev_handler->parameter->type == error_type()) {
+        } else if (prev_handler->parameter->type->kind ==
+                                                      (a_type_kind)tk_error) {
           /* No need to check for masking in this case. */
         } else if (type_masks_handler_param_type(prev_handler->parameter->type,
                                                  type_ptr)) {

@@ -697,8 +697,8 @@ type specifier when put out by the C++-generating back end.
        same or a containing scope. */
     if (sym_ptr->kind == (a_symbol_kind)sk_type &&
         typeref_is_typedef(sym_ptr->variant.type.ptr) &&
-        skip_typerefs(sym_ptr->variant.type.ptr) ==
-                        old_sym_ptr->variant.class_struct_union.type) {
+        same_entities(skip_typerefs(sym_ptr->variant.type.ptr),
+                      old_sym_ptr->variant.class_struct_union.type)) {
       /* sym_ptr is a typedef that refers the type represented by
          old_sym_ptr -- something like "typedef struct S { ... } S;"
          There's no need to generate hidden-name info for this common
@@ -1778,7 +1778,7 @@ the condition in which the access error should be suppressed.
 {
   a_boolean  result = FALSE;
   if (rp->special_kind == (a_special_function_kind)sfk_destructor &&
-      sym->parent.class_type != class_of_object &&
+      !same_entities(sym->parent.class_type, class_of_object) &&
       class_of_object != NULL) {
     result = TRUE;
   }  /* if */

@@ -1272,7 +1272,7 @@ member declaration (allowed in Microsoft mode only).
        only by the presence of a top-level type qualifiers.  These will only
        appear on a function type when support for near and far is enabled. */
 #if CHECKING
-    if (rout_type == type_ptr) {
+    if (same_entities(rout_type, type_ptr)) {
       /* Okay. */
 #if NEAR_AND_FAR_ALLOWED
     } else if (near_and_far_enabled()) {
@@ -1787,7 +1787,7 @@ Return TRUE if base_class_type is a virtual base class of derived_type.
 
   /* Loop through the base classes. */
   for (bcp = base_classes_of(derived_type); bcp != NULL; bcp = bcp->next) {
-    if (bcp->type == base_class_type) {
+    if (same_entities(bcp->type, base_class_type)) {
       /* Found it if it's virtual. */
       if (!bcp->is_virtual) bcp = NULL;
       break;

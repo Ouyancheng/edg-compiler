@@ -791,7 +791,7 @@ C mode.
 
   for (depth = depth_scope_stack ;depth != DEPTH_OF_FILE_SCOPE; depth--) {
     if (scope_stack[depth].kind == (a_scope_kind)sck_class_struct_union) {
-      if (scope_stack[depth].assoc_type == tag_type) {
+      if (same_entities(scope_stack[depth].assoc_type, tag_type)) {
         result = TRUE;
         break;
       }  /* if */
@@ -1767,8 +1767,8 @@ new expression and should therefore not be treated as a declaration.
         if (locator.is_class_member && locator.is_qualified_name &&
             locator.specific_symbol != NULL &&
             is_template_instance_class_symbol(locator.specific_symbol) &&
-            locator.specific_symbol->parent.class_type !=
-                                           locator.parent.class_type) {
+            !same_entities(locator.specific_symbol->parent.class_type,
+                           locator.parent.class_type)) {
           /* Specifying an inherited name in an explicit instantiation
              directive or in a template specialization declaration is
              disallowed. */
@@ -1826,7 +1826,8 @@ new expression and should therefore not be treated as a declaration.
           set_to_named_error_locator(locator);
           error_tag_sym = tag_sym;
           tag_sym = NULL;
-        } else if (type_symbol_type(tag_sym) == type_of_type_info) {
+        } else if (same_entities(type_symbol_type(tag_sym),
+                                 type_of_type_info)) {
           /* Error -- tag-kind mismatch in type_info. */
           pos_sy_error(ec_union_nonunion_mismatch, &decl_start_pos, tag_sym);
           set_to_named_error_locator(locator);
@@ -2081,7 +2082,7 @@ new expression and should therefore not be treated as a declaration.
       } else {
         /* Nested class. */
         if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
-            tag_sym->parent.class_type == ssep->assoc_type) {
+            same_entities(tag_sym->parent.class_type, ssep->assoc_type)) {
           /* Possible redeclaration of nested class name inside the body of
              the class of which it is a member. Note that if the elaborated
              type-specifier does not introduce a definition and is not
@@ -2669,7 +2670,8 @@ to indicate whether an enumeration is actually defined.
       /* This is a definition of an enumeration that has previously been
          declared. */
       if (tag_sym->is_class_member) {
-        if (tag_sym->parent.class_type != class_of_which_a_member) {
+        if (!same_entities(tag_sym->parent.class_type,
+                           class_of_which_a_member)) {
           /* This is an attempt to define a member enum outside the class of
              which it is a member. */
           pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
@@ -2695,7 +2697,7 @@ to indicate whether an enumeration is actually defined.
          definition.  For error recovery, return an error type. */
       *type_ptr = error_type();
       goto return_point;
-    } else if (tag_sym == NULL && class_of_which_a_member &&
+    } else if (tag_sym == NULL && class_of_which_a_member != NULL &&
                effective_decl_level != decl_scope_level) {
       /* This is a (non-standard) forward declaration of a nonclass that
          appears inside a class definition. */
@@ -3482,7 +3484,7 @@ is a that of a constructor.
         /* The type specified matches the class type symbol. */
       } else if (ctor_type_sym->kind == (a_symbol_kind)sk_type &&
                  ctor_type_sym->variant.type.is_injected_class_name &&
-                 ctor_type_sym->variant.type.ptr == class_type) {
+                 same_entities(ctor_type_sym->variant.type.ptr, class_type)) {
         /* The type specified is the injected class symbol.  This is okay. */
       } else {
         /* The names match, but the types don't.  This happens in templates
@@ -3549,7 +3551,7 @@ is a that of a constructor.
                              IDL_DO_NOT_ADD_TO_NONREAL_CLASS |
                              IDL_DO_NOT_CREATE_PROJ_SYM);
       if (sym != NULL && sym->kind == (a_symbol_kind)sk_type &&
-          skip_typerefs(sym->variant.type.ptr) == class_type &&
+          same_entities(skip_typerefs(sym->variant.type.ptr), class_type) &&
           !sym->ambiguous) {
         /* Note that qualifiers on the typedef name are ignored -- this
            corresponds to MSVC++ behavior. */
@@ -3576,7 +3578,8 @@ is a that of a constructor.
           if (is_constructor_symbol(sym)) {
             /* Okay. */
           } else if (sym->kind == (a_symbol_kind)sk_type &&
-                     f_skip_typerefs(sym->variant.type.ptr) == class_type) {
+                     same_entities(f_skip_typerefs(sym->variant.type.ptr),
+                                   class_type)) {
             /* There is a typedef for the class type with the same name as
                the class.  It was found instead of the class on the lookup.
                That's okay. */
@@ -5546,7 +5549,8 @@ process_class_specifier:
             a_symbol_ptr  sym = symbol_supplement_for_class(tp)->constructor;
 
             if (sym != NULL &&
-                skip_typerefs(locator_for_curr_id.parent.class_type) == tp) {
+                same_entities(
+                  skip_typerefs(locator_for_curr_id.parent.class_type), tp)) {
               *output_flags |= DSO_CONSTRUCTOR;
               if (!any_decl_specifiers_seen) {
                 *output_flags |= DSO_NO_DECL_SPECIFIERS;

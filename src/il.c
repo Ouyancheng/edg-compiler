@@ -3873,7 +3873,7 @@ nonidentical.
   }  /* if */
   /* If strict identity is required, the types must be pointer-identical.
      Otherwise, it is sufficient that they be identical. */
-  if (strictly_identical ? (cp1_type == cp2_type) :
+  if (strictly_identical ? same_entities(cp1_type, cp2_type) :
                            identical_types(cp1_type, cp2_type)) {
     switch (cp1->kind) {
       case ck_error:
@@ -4967,7 +4967,8 @@ it's to be moved to another position in the list.
         may_be_added = FALSE;
       } else if (type_ptr->source_corresp.is_class_member) {
         if (ssep->kind != (a_scope_kind)sck_class_struct_union ||
-            ssep->assoc_type != type_ptr->source_corresp.parent.class_type) {
+            !same_entities(ssep->assoc_type,
+                           type_ptr->source_corresp.parent.class_type)) {
           /* May be an out-of-class definition of a C++ nested class.  It's
              already on the list. */
           may_be_added = FALSE;
@@ -5066,8 +5067,8 @@ instantiations) below that on the scope stack.
       /* A placeholder is not needed for an instantiation within a
          function definition. */
     } else if (type_ptr->source_corresp.is_class_member &&
-               type_ptr->source_corresp.parent.class_type ==
-                                                    ssep->assoc_type) {
+               same_entities(type_ptr->source_corresp.parent.class_type,
+                             ssep->assoc_type)) {
       /* Nor is a placeholder needed within the class to which a member
          template class instance belongs. */
     } else {
@@ -5185,13 +5186,13 @@ removed from the list.
     /* May be an error case. */
   } else {
     check_assertion(pointers_block != NULL);
-    if (pointers_block->last_type == type_ptr) {
+    if (same_entities(pointers_block->last_type, type_ptr)) {
       /* It's already the last entry on the list. */
     } else {
       /* Scan the list until a match is found. */
       prev_tp = NULL;
       tp = sp->types;
-      while (tp != type_ptr) {
+      while (!same_entities(tp, type_ptr)) {
         prev_tp = tp;
         tp = tp->next;
         check_assertion_str2(tp != NULL, "move_to_end_of_types_list:",
@@ -5843,7 +5844,7 @@ that points to base_type.  If none is found, create one and add it to the list.
     prev_btfp = NULL;
     for (btfp = trans_unit->based_type_fixup_list;
          btfp != NULL; btfp = btfp->next) {
-      if (btfp->base_type == base_type) {
+      if (same_entities(btfp->base_type, base_type)) {
         /* The specified base type is already represented on the fixup list.
            Unless it's already there, move the entry to the head of the
            list (as an optimization for subsequent traversals of the list). */
@@ -5912,7 +5913,8 @@ list.
     if (btlmp->kind == kind) {
       ptr = btlmp->based_type;
       if (kind == (a_based_type_kind)btk_ptr_to_member &&
-          ptr->variant.ptr_to_member.class_of_which_a_member != class_type) {
+          !same_entities(ptr->variant.ptr_to_member.class_of_which_a_member,
+                         class_type)) {
         /* Pointer-to-member parent class does not match class type -- keep
            looking. */
         ptr = NULL;
@@ -6146,7 +6148,7 @@ return the original member type.
     /* A function type under a pointer-to-member must be a member function
        and therefore must have a "this" parameter type. */
     check_assertion(old_this_class != NULL);
-    if (old_this_class != class_type) {
+    if (!same_entities(old_this_class, class_type)) {
       /* Make a new function type with the right "this" class.  Note that
          there is no sharing of types going on here, so this may be
          wasteful if called a lot. */
@@ -6926,7 +6928,7 @@ declaration rather than a constructor reference.
   if (ptp != NULL && is_reference_type(ptp->type) &&
       (ptp->next == NULL || ptp->next->has_default_arg)) {
     tp = type_pointed_to(ptp->type);
-    if (skip_typerefs(tp) == class_of_which_a_member) {
+    if (same_entities(skip_typerefs(tp), class_of_which_a_member)) {
       /* It is probably a copy constructor. */
       is_cctor = TRUE;
       if (!is_declarative_context) {
@@ -8723,7 +8725,7 @@ name lookup options.
                                  options,
                                  copy_error,
                                  constant);
-        if (new_type == con->type &&
+        if (same_entities(new_type, con->type) &&
             other_con == con->variant.template_param.variant.constant) {
           /* No change in the type or constant. */
         } else if (is_incomplete_type(new_type) ||
@@ -8778,7 +8780,8 @@ name lookup options.
                                                source_pos,
                                                options,
                                                copy_error);
-        if (new_type == con->variant.template_param.variant.type) {
+        if (same_entities(new_type,
+                          con->variant.template_param.variant.type)) {
           /* No change in the type. */
         } else {
           if (is_or_contains_template_param(new_type)) {
@@ -11596,7 +11599,7 @@ cleared.
       clep = friend_ctsp->befriending_classes;
       for (; clep != NULL; clep = next_clep) {
         next_clep = clep->next;
-        if (clep->class_type == class_type) {
+        if (same_entities(clep->class_type, class_type)) {
 #if DEBUG
           if (debug_level >= 4 ||
               db_trace("dump_elim", friend_class, iek_type)) {
@@ -11647,7 +11650,7 @@ cleared.
     clep = friend_rout->befriending_classes;
     for (; clep != NULL; clep = next_clep) {
       next_clep = clep->next;
-      if (clep->class_type == class_type) {
+      if (same_entities(clep->class_type, class_type)) {
         /* A match -- link around it. */
 #if DEBUG
           if (debug_level >= 4 ||
@@ -11734,7 +11737,7 @@ too.
 {
   eliminate_default_arg_object_lifetimes(rout->type);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (rout->declared_type != rout->type) {
+  if (!same_entities(rout->declared_type, rout->type)) {
     eliminate_default_arg_object_lifetimes(rout->declared_type);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
