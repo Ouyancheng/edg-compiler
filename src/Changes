@@ -1,5 +1,10 @@
 Version 2.08
 
+7/20/92  Handling of assignment-suppressing character "*" in scanf
+
+The "*" assignment-suppression character in scanf strings is now
+correctly handled.
+
 7/17/92  Correct type output for member function types.
 
 The type formatting in error.c was corrected to display "const" or

@@ -569,7 +569,7 @@ See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
   a_type_ptr          required_type;
   char                *fmt_string = *fmt_string_ptr;
   a_printf_scan_state pss = *pss_ptr;
-  a_boolean           l_size, L_size, h_size, add_pointer;
+  a_boolean           l_size, L_size, h_size, add_pointer, suppress_assignment;
 
   /* Pick up in the middle if the previous call returned a field width
      or precision. */
@@ -578,6 +578,7 @@ See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
 
   /* Look for the next "%" in the string, or the null that terminates it. */
 another_specifier:;
+  suppress_assignment = FALSE;
   while (*fmt_string != '%' && *fmt_string != '\0') fmt_string++;
   /* If the null was found, there is no next argument. */
   if (*fmt_string == '\0') {
@@ -593,7 +594,10 @@ another_specifier:;
     /* For printf, ignore a sequence of flags (-, +, space, #, or 0).
        For scanf, ignore the assignment-suppressing character "*". */
     if (is_scanf) {
-      if (*fmt_string == '*') fmt_string++;
+      if (*fmt_string == '*') {
+        fmt_string++;
+        suppress_assignment = TRUE;
+      }  /* if */
     } else {
       while (*fmt_string == '-' || *fmt_string == '+' || *fmt_string == ' ' ||
              *fmt_string == '#' || *fmt_string == '0') fmt_string++;
@@ -749,6 +753,9 @@ default_case:;
   }  /* if */
   /* Next time around, look for a new specifier. */
   pss = pss_new_specifier;
+  /* If there was an assignment-suppressing character "*" in a scanf, go
+     get the next specifier. */
+  if (suppress_assignment) goto another_specifier;
 end_of_scan:;
   *fmt_string_ptr = fmt_string;
   *pss_ptr = pss;
