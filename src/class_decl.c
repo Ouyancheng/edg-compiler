@@ -2014,6 +2014,10 @@ or struct definition.  The syntax is
       if (bcp_cssp->destructor != NULL) {
         cssp->destructor_required = TRUE;
       }  /* if */
+      /* Indicate whether an operator new or operate delete is inherited into
+         the current derived class. */
+      if (bcp_cssp->has_operator_new) cssp->has_operator_new = TRUE;
+      if (bcp_cssp->has_operator_delete) cssp->has_operator_delete = TRUE;
       /* The current derived class cannot be copy-constructed or assigned by
          bitwise copying if the base class does not allow it or is a virtual
          base class. */
@@ -2841,6 +2845,10 @@ special function kind (e.g., constructor, destructor), if any.
           /* The overloaded function symbol was just created. */
           cssp->assignment_operator = overload_sym;
         }  /* if */
+      } else if (rtn->opname_kind == (an_opname_kind)onk_new) {
+        cssp->has_operator_new = TRUE;
+      } else if (rtn->opname_kind == (an_opname_kind)onk_delete) {
+        cssp->has_operator_delete = TRUE;
       }  /* if */
     } else if (locator->is_conversion_name) {
       /* User-defined conversion function. */
@@ -6395,6 +6403,14 @@ next_declaration:
          "aggregate" objects (ARM 8.4.1). */
       if (!class_aggregate_ruled_out && cssp->constructor == NULL) {
         cssp->is_class_aggregate = TRUE;
+      }  /* if */
+      /* Issue a warning on a class with an operator new() but no operator
+         delete() or vice versa. */
+      if (cssp->has_operator_new != cssp->has_operator_delete) {
+        str_warning(cssp->has_operator_new ?
+                      ec_class_with_op_new_but_no_op_delete :
+                      ec_class_with_op_delete_but_no_op_new,
+                    class_type->source_corresp.name);
       }  /* if */
     }  /* if */
     /* Pop the pseudo-scope created for the fields. */
