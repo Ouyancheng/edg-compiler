@@ -2894,8 +2894,10 @@ Return the template nesting depth of the specified template parameter.
 
 
 static a_template_arg_ptr create_initial_template_arg_list(
-			a_template_param_ptr      templ_param_list,
-			a_template_arg_ptr        partial_arg_list)
+			a_template_param_ptr		templ_param_list,
+			a_template_arg_ptr		partial_arg_list,
+			a_template_nesting_depth	depth,
+			a_source_position		*source_pos)
 /*
 Create a template argument list that corresponds in kind with the template
 parameter list specified by templ_param_list.  Each template argument in the
@@ -2906,7 +2908,12 @@ supply the values for the specified arguments.  This is only done if the
 arguments specified by partial_arg_list match in kind the parameter list
 that was specified (i.e., type parameters correspond with type arguments).
 If the supplied partial_arg_list does not match the parameter list, no
-new argument list is created and a NULL pointer is returned.
+new argument list is created and a NULL pointer is returned.  depth and
+source_pos are only supplied when a partial_arg_list is provided.  depth
+is the nesting depth of the template parameter list being used.  source_pos
+is a position passed to copy_type_with_substitution, which is called when
+an explicitly specified template argument has a type that depends on
+another template parameter.
 */
 {
   a_template_arg_ptr	tap;
@@ -2925,18 +2932,6 @@ new argument list is created and a NULL pointer is returned.
       if (is_type_param != tap->is_type) {
         arg_kind_mismatch = TRUE;
         break;
-      }  /* if */
-      if (!is_type_param) {
-        a_type_ptr	constant_type;
-        check_assertion(tap->constant_is_an_arg_operand);
-        /* Verify that the constant value can be converted to the type of the
-           corresponding template parameter. */
-        constant_type = tpp->param_symbol->variant.constant->type;
-        if (!nontype_template_arg_is_compatible_with_param_type(
-                                    tap->variant.arg_operand, constant_type)) {
-          arg_kind_mismatch = TRUE;
-          break;
-        }  /* if */
       }  /* if */
     }  /* for */
     if (!arg_kind_mismatch && tap != NULL && tpp == NULL) {
@@ -2969,8 +2964,26 @@ new argument list is created and a NULL pointer is returned.
              parameter. */
           a_type_ptr		constant_type;
           a_constant_ptr	constant;
+          a_boolean		copy_error = FALSE;
+          check_assertion(specified_tap->constant_is_an_arg_operand);
           constant = fs_constant((a_constant_repr_kind)ck_error);
           constant_type = tpp->param_symbol->variant.constant->type;
+          constant_type = copy_type_with_substitution(
+                                    constant_type, new_list, depth, source_pos,
+                                    CTWS_NO_OPTIONS, &copy_error);
+          if (copy_error) {
+            /* The substitution of the type of the nontype parameter
+               resulted in an invalid type. */
+            arg_kind_mismatch = TRUE;
+            break;
+          }  /* if */
+          /* Verify that the constant value can be converted to the type of the
+             corresponding template parameter. */
+          if (!nontype_template_arg_is_compatible_with_param_type(
+                         specified_tap->variant.arg_operand, constant_type)) {
+            arg_kind_mismatch = TRUE;
+            break;
+          }  /* if */
           conv_nontype_template_arg_to_param_type(
                   specified_tap->variant.arg_operand, constant_type, constant);
           tap->constant_is_an_arg_operand = FALSE;
@@ -2986,6 +2999,12 @@ new argument list is created and a NULL pointer is returned.
       }  /* if */
       prev_tap = tap;
     }  /* for */
+  }  /* if */
+  if (arg_kind_mismatch && new_list != NULL) {
+    /* A mismatch was found after part of the list was created.  Free the
+       list and set the new list pointer to NULL. */
+    free_template_arg_list(new_list);
+    new_list = NULL;
   }  /* if */
   return new_list;
 }  /* create_initial_template_arg_list */
@@ -3010,7 +3029,8 @@ are deduced.
     /* The template argument list does not exist yet.  Create an
        argument list with NULL type/constant pointers. */
     *templ_arg_list = create_initial_template_arg_list(
-				templ_param_list, (a_template_arg_ptr)NULL);
+				templ_param_list, (a_template_arg_ptr)NULL,
+                                /*depth=*/0, (a_source_position*)NULL);
   }  /* if */
   /* For the nth template parameter find the nth template argument. */
   for (tap = *templ_arg_list; pos > 1; pos--, tap = tap->next);
@@ -4315,6 +4335,14 @@ make_new_type:
             /* The type is not the one originally pointed to.  Adjust
                the parameter type, if needed. */
             adjust_parameter_type(&tp, /*restrict_qualified=*/FALSE);
+            if (remove_qualifiers_from_param_types) { /* Strip off
+                 top-level type qualifiers.  They are not part of the
+                 type signature of a C++ function -- see 8.3.5 para 3.
+                 However, because they do belong to the type of the
+                 parameter variable, they were not removed before
+                 add_to_param_id_list was called. */
+               tp = make_unqualified_type(tp);
+            }  /* if */
           }  /* if */
           /* Allocate the param type entry and copy default arg info. */
           new_ptp = alloc_param_type(tp);
@@ -4470,8 +4498,9 @@ the field in the template symbol supplement has been set.
        list that is returned is NULL, the explicit argument list didn't
        match the template parameter list, so no further processing of this
        template should be done. */
-    templ_arg_list = create_initial_template_arg_list(templ_param_list,
-                                                      templ_arg_list);
+    templ_arg_list = create_initial_template_arg_list(
+                                           templ_param_list, templ_arg_list,
+                                           depth, &templ_sym->decl_position);
     *new_arg_list = templ_arg_list;
   }  /* if */
   if (templ_arg_list != NULL) {
@@ -5889,6 +5918,11 @@ structure.
         } else if (is_unnamed) {
           pos_error(ec_unnamed_type_in_template_arg, source_pos);
         }  /* if */
+      }  /* if */
+    } else {
+      if (constant_references_non_external_entity(tap->variant.constant)) {
+        pos_error(ec_nonexternal_entity_in_template_arg, source_pos);
+        set_error_constant(tap->variant.constant);
       }  /* if */
     }  /* if */
     tap = tap->next;
