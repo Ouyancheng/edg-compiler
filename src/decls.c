@@ -491,6 +491,10 @@ type is legal.
              temp_type->variant.array.number_of_elements != 0) ||
             temp_type->kind == (a_type_kind)tk_pointer) {
           /* Okay. */
+        } else if (temp_type->kind == (a_type_kind)tk_ptr_to_member &&
+                   temp_type->variant.ptr_to_member.type == NULL) {
+          /* This is an incomplete ptr-to-member type, presumably an
+             pointer to member function.  Okay. */
         } else if (is_class_struct_union_type(temp_type)) {
           /* As an extension, allow arrays of incomplete struct or union
              types.  Obviously, these have to be completed before they
@@ -6737,11 +6741,12 @@ continue_with_declaration:
               /* We are not at file scope, so an unspecified storage class
                  means auto. */
               local_storage_class = (a_storage_class)sc_auto;
-            } else if (C_dialect == C_dialect_cplusplus &&
-                       is_const_qualified_type(local_type_ptr)) {
-              /* In C++ all const qualified objects at file scope are
-                 internally linked  by default (ARM 7.1.1). */
-              local_storage_class = (a_storage_class)sc_static;
+            } else if (C_dialect == C_dialect_cplusplus) {
+              if (type_or_element_type_is_const_qualified(local_type_ptr)) {
+                /* In C++ all const qualified objects at file scope are
+                   internally linked  by default (ARM 7.1.1). */
+                local_storage_class = (a_storage_class)sc_static;
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
@@ -6828,7 +6833,8 @@ continue_with_declaration:
               /* Non-extern reference variables must be initialized
                  (ARM 8.4.3). */
               error(ec_missing_initializer_on_reference);
-            } else if (is_const_qualified_type(local_type_ptr)) {
+            } else if (
+                     type_or_element_type_is_const_qualified(local_type_ptr)) {
               /* Uninitialized const variable.  In C++ this is permitted only
                  for externally linked variables.  In ordinary C we issue a
                  warning for local variables (both static and automatic) here,
@@ -6858,7 +6864,6 @@ continue_with_declaration:
                  ought to be initialized.  Issue a warning in such cases. */
               a_type_ptr  tp = local_type_ptr;
               if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-              tp = skip_typerefs(tp);
               if (is_class_struct_union_type(tp)) {
                 /* The variable is a class-struct-union type or an array
                    whose element type is a class-struct-union type.  Issue
@@ -6870,6 +6875,7 @@ continue_with_declaration:
                    class declarations that contain nonstatic const or reference
                    members and no constructor, but this seems to introduce an
                    unnecessary incompatibility with C. */
+                tp = skip_typerefs(tp);
                 if (tp->variant.class_struct_union.any_const_member) {
                   pos_warning(ec_uninitialized_const_member,
                               &declarator_pos);
