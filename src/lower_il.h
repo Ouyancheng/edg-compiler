@@ -637,7 +637,7 @@ extern void lower_expr_list(an_expr_node_ptr expr_list,
 extern void lower_expr(an_expr_node_ptr expr,
                        a_boolean        is_lvalue);
 
-#define lower_normal_expr(expr) lower_expr(expr, /*is_lvalue=*/FALSE)
+#define lower_normal_expr(expr) lower_expr((expr), /*is_lvalue=*/FALSE)
 
 extern a_param_type_ptr unlowered_param_type_list(a_type_ptr routine_type);
 
