@@ -357,6 +357,7 @@ static an_id_lookup_options_set idl_options_for_lookup_mode[(int)ilm_last+1]= {
   /* ilm_linkage */  	        IDL_LINKAGE_LOOKUP,
   /* ilm_using_declaration */  	IDL_USING_DECLARATION,
   /* ilm_using_typename */      IDL_USING_DECLARATION | IDL_TYPENAME_LOOKUP,
+  /* ilm_expr */		IDL_IS_EXPR_CONTEXT,
   /* ilm_last */		IDL_NO_OPTIONS
 };
 
@@ -9961,6 +9962,10 @@ selection operator, in which case it points to the type of the left operand.
               if (next_tok == tok_lt || is_template) {
                 lookup_options |= IDL_TREAT_AS_TEMPLATE_ID;
               }  /* if */
+            } else if ((options & GID_IS_EXPR_CONTEXT) != 0) {
+              /* Pass in a special flag for expression contexts.  This controls
+                 the type of nonreal class member created. */
+              lookup_options |= IDL_IS_EXPR_CONTEXT;
             }  /* if */
             if (qualifier_is_type) {
               if (qualifier_is_enum) {

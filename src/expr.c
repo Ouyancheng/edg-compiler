@@ -1893,7 +1893,7 @@ bound with the function in *bound_function_selector.
     /* Leading "::" is allowed as of the Portland X3J16/WG21 meeting;
        cfront always allowed it. */
     is_qualified_name = coalesce_and_lookup_qualified_name(gid_flags,
-                                                           ilm_normal,
+                                                           ilm_expr,
                                                            &local_err);
     err |= local_err;
     /* If the member is something like "A::x", member_position will give
@@ -1977,7 +1977,7 @@ qualified_name_check:
             if (is_generalized_identifier_start(gid_flags)) {
               member_sym = coalesce_and_lookup_generalized_identifier(
                                                                    gid_flags,
-                                                                   ilm_normal,
+                                                                   ilm_expr,
                                                                    &local_err);
               projection_member_sym = locator_for_curr_id.specific_symbol;
               if (local_err) {
@@ -10628,7 +10628,7 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
      also handles operator names. */
   sym_ptr = coalesce_and_lookup_generalized_identifier
                                             (GID_IS_EXPR_CONTEXT,
-                                             ilm_normal, &err);
+                                             ilm_expr, &err);
   if (locator_for_curr_id.is_semivisible_nested_type) {
     /* The symbol in the locator is a nested class that is not visible
        according to the ARM lookup rules but is returned in support of the

@@ -151,6 +151,10 @@ represented as a bit set:
 				   declaration sequence number during
 				   instantiation lookups.  This is used
 				   for argument-dependent lookups. */
+#define IDL_IS_EXPR_CONTEXT 0x400000
+				/* Flag that indicates a lookup in an
+				   expression context.  Controls the kind
+				   of nonreal member created. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*
@@ -233,6 +237,10 @@ a_symbol_ptr create_proxy_or_nonreal_class_member
 					(a_type_ptr	          class_type,
 					 an_id_lookup_options_set options,
 					 a_symbol_locator         *locator);
+
+extern a_symbol_ptr create_alternate_nontype_nonreal_member(
+					a_symbol_ptr	orig_sym,
+					a_symbol_kind	kind);
 
 extern
 a_type_ptr proxy_class_for_template_param(a_type_ptr   templ_param_type);

@@ -529,41 +529,36 @@ template or a type, then it is created as a constant.
        !(locator)->is_destructor_name && !(locator)->is_conversion_name &&   \
        !(locator)->is_operator_name) \
         ? sk_type						\
-        : sk_constant))
+        :							\
+         (options & IDL_IS_EXPR_CONTEXT) ? sk_static_data_member	\
+                                         : sk_constant))
 
 
-a_symbol_ptr create_proxy_or_nonreal_class_member
-					(a_type_ptr	          class_type,
-					 an_id_lookup_options_set options,
-					 a_symbol_locator         *locator)
+static a_symbol_ptr create_proxy_or_nonreal_class_member_of_kind(
+				a_type_ptr		class_type,
+				a_source_position	*decl_pos,
+				a_symbol_kind		kind,
+				a_symbol_header		*symbol_header)
 /*
-This routine is called by class_qualified_id_lookup when the name
-being looked up is not found in the proxy class associated with a
-template parameter type or in a class that is a nonreal instantiation.
-We don't know anything about the name that is being looked up except
-whether or not it is a type (inferred from the lookup options).  If
-the name is a type, we create a member of class_type that is a
-tk_template_param; otherwise, we create a member of class_type that is
-a ck_template_param.
+Create a proxy or nonreal member with the specified symbol kind.
+
+class_type is the nonreal class in which the member is to be created.
+decl_pos is the source position to be used for the declaration
+position.  symbol_header is the symbol header to be used.
 
 The member that is created is not added to the inactive list by this
 routine.
 */
 {
-  a_symbol_kind                 kind;
   a_class_symbol_supplement_ptr cssp;
   a_scope_depth                 depth = NO_SCOPE_DEPTH;
   a_symbol_ptr                  sym;
   a_source_correspondence       *scp = NULL;
 
-  db_enter(4, "create_proxy_or_nonreal_class_member");
-  /* Determine the symbol kind to be created.  The symbol can be a
-     type, constant, or class template, depending on the kind of
-     lookup being done. */
-  kind = nonreal_member_symbol_kind(locator, options);
+  db_enter(4, "create_proxy_or_nonreal_class_member_of_kind");
   /* Create a symbol for the member.  mark_declared is not called
      because this symbol is not visible to the user. */
-  sym = alloc_symbol(kind, locator->symbol_header, &locator->source_position);
+  sym = alloc_symbol(kind, symbol_header, decl_pos);
   /* Get the scope number from the symbol supplement.  The scope depth
      will be the scope depth of the class plus one. */
   cssp = symbol_supplement_for_class(class_type);
@@ -595,6 +590,17 @@ routine.
       sym->variant.constant = constant;
       constant->type = type_of_unknown_templ_param_nontype;
       scp = &constant->source_corresp;
+      break;
+    }
+    case sk_static_data_member:
+    {
+      /* Create a static data member whose type is the unknown nontype
+         type. */
+      a_variable_ptr	var;
+      var = alloc_variable((a_storage_class)sc_extern);
+      sym->variant.static_data_member.variable = var;
+      var->type = type_of_unknown_templ_param_nontype;
+      scp = &var->source_corresp;
       break;
     }
     case sk_class_template:
@@ -629,6 +635,69 @@ routine.
     db_symbol(sym, "", 0);
   }  /* if */
 #endif /* DEBUG */
+  db_exit();
+  return sym;
+}  /* create_proxy_or_nonreal_class_member_of_kind */
+
+
+a_symbol_ptr create_alternate_nontype_nonreal_member(
+					a_symbol_ptr	orig_sym,
+					a_symbol_kind	kind)
+/*
+orig_sym is a static data member symbol that is a member of a proxy
+or nonreal class.  Create an alternate nontype symbol of the specified
+kind if one does not already exist.  When a new symbol is created, it
+is linked using the next_in_scope pointer of the symbol.  A previously
+created symbol is found by searching this list.
+*/
+{
+  a_symbol_ptr	sym;
+
+  /* Look for a previously created symbol of the desired kind. */
+  for (sym = orig_sym->next_in_scope; sym != NULL; sym = sym->next_in_scope) {
+    if (sym->kind == kind) break;
+  }  /* for */
+  if (sym == NULL) {
+    /* No symbol was found.  Create a new one and link it into the list. */
+    sym = create_proxy_or_nonreal_class_member_of_kind(
+                       orig_sym->parent.class_type, &orig_sym->decl_position,
+                       kind, orig_sym->header);
+    sym->next_in_scope = orig_sym->next_in_scope;
+    orig_sym->next_in_scope = sym;
+  }  /* if */
+  return sym;
+}  /* create_alternate_nontype_nonreal_member */
+
+
+a_symbol_ptr create_proxy_or_nonreal_class_member
+					(a_type_ptr	          class_type,
+					 an_id_lookup_options_set options,
+					 a_symbol_locator         *locator)
+/*
+This routine is called by class_qualified_id_lookup when the name
+being looked up is not found in the proxy class associated with a
+template parameter type or in a class that is a nonreal instantiation.
+We don't know anything about the name that is being looked up except
+whether or not it is a type (inferred from the lookup options).  If
+the name is a type, we create a member of class_type that is a
+tk_template_param; otherwise, we create a member of class_type that is
+a ck_template_param.
+
+The member that is created is not added to the inactive list by this
+routine.
+*/
+{
+  a_symbol_kind                 kind;
+  a_symbol_ptr                  sym;
+
+  db_enter(4, "create_proxy_or_nonreal_class_member");
+  /* Determine the symbol kind to be created.  The symbol can be a
+     type, constant, or class template, depending on the kind of
+     lookup being done. */
+  kind = nonreal_member_symbol_kind(locator, options);
+  sym = create_proxy_or_nonreal_class_member_of_kind(
+                                       class_type, &locator->source_position,
+                                       kind, locator->symbol_header);
   db_exit();
   return sym;
 }  /* create_proxy_or_nonreal_class_member */
