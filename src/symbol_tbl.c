@@ -6386,6 +6386,12 @@ NULL.
       } else if (storage_class == (a_storage_class)sc_extern) {
         /* No warning for unused "extern" variables; this is a long-standing
            C convention. */
+      } else if (storage_class == (a_storage_class)sc_static &&
+                 is_const_qualified_type(var_ptr->type) &&
+                 depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+                 seq_is_in_include_file(sym->decl_position.seq)) {
+        /* Since a const variable defined in a header is the C++ idiom
+           corresponding to #define, issue no diagnostic on not using it. */
       } else if (var_ptr->is_parameter) {
         if (!sym->referenced) {
           /* An unreferenced parameter.  Warn unless a lint-style "argsused"
@@ -6509,6 +6515,10 @@ NULL.
         } else if (storage_class == (a_storage_class)sc_extern) {
           /* No warning on unused "extern" routines; this is a
              long-standing C tradition. */
+        } else if (rout_ptr->is_inline && sym->defined &&
+                   seq_is_in_include_file(sym->decl_position.seq)) {
+          /* No diagnostic on inline non-member functions defined in a header
+             file. */
 #if ASM_FUNCTION_ALLOWED
         } else if (storage_class == (a_storage_class)sc_asm) {
           /* "asm" functions don't generate any code unless referenced,
