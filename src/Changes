@@ -1,5 +1,26 @@
 Version 3.6
 
+12/10/04 Microsoft compatibility: lookup of nontype names in base classes
+
+The Microsoft compiler ignores nontype names from base classes for
+certain lookups.  Version 3.5 changed the way in which this lookup
+is done to match a change made in MSVC++ 7.1, but did not emulate the
+Microsoft behavior completely.  An additional change has now been
+made to more closely emulate the Microsoft behavior.
+
+  struct A { int Y; };
+  template <class T> struct Y : public A {
+   Y* p; // ::Y not A::Y
+   void f() {
+     Y* p2;  // A::Y (and an error) in 7.0, ::Y in 7.1
+     p2 = p;
+   }
+  };
+  int main() {
+    Y<int> y;
+    y.f();
+  } 
+
 12/8/04  GNU compatibility: Rendering of attribute "packed" on fields
 
 The C- and C++-generating back ends previously did not render the GNU attribute

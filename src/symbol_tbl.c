@@ -9717,7 +9717,8 @@ a symbol that should be ignored in favor of a template to be found later.
 }  /* check_for_microsoft_template_lookup_bug */
 
 
-static a_boolean check_for_microsoft_type_lookup_bug(a_symbol_ptr sym)
+static a_boolean check_for_microsoft_type_lookup_bug(a_type_ptr   class_ptr,
+						     a_symbol_ptr sym)
 /*
 The Microsoft compiler (as of version 6.0) includes a bug in the lookup
 of type names in class definitions.  The caller is responsible for verifying
@@ -9739,8 +9740,9 @@ names from base classes (i.e., it ignores nontypes):
     Y* p;  // ::Y not A::Y
   };
 
-sym is the symbol found from a base class.  Return TRUE if this is a
-symbol that should be ignored as a result of the Microsoft bug.
+sym is the symbol found from a base class.  class_ptr is the class in which
+the lookup is being done.  Return TRUE if this is a symbol that should
+be ignored as a result of the Microsoft bug.
 
 This bug was fixed in version 7.1 of the Microsoft compiler.
 */
@@ -9749,8 +9751,14 @@ This bug was fixed in version 7.1 of the Microsoft compiler.
   a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
 
   if (!is_type_symbol(fund_sym)) {
-    /* Not a type -- should always be ignored. */
-    result = TRUE;
+    /* Not a type.  See if the symbol has the same name as the current
+       class. */
+    a_symbol_ptr	class_sym;
+    class_sym = (a_symbol_ptr)class_ptr->source_corresp.assoc_info;
+    if (class_sym != NULL &&
+        class_sym->header == sym->header) {
+      result = TRUE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* check_for_microsoft_type_lookup_bug */
@@ -9841,24 +9849,25 @@ created if a projected symbol cannot be found in any of the real bases.
                                             &path, &access, &ambiguous,
                                             &any_using_decl,
                                             &unambiguous_injected_template);
-    if (microsoft_bugs && progenitor_sym != NULL &&
-        scope_stack[depth_scope_stack].kind ==
-                                        (a_scope_kind)sck_class_struct_union) {
-      /* Check for cases in which Microsoft ignores certain names in class
-         scopes. */
-      if (tentative_template_lookup) {
+    if (microsoft_bugs && progenitor_sym != NULL) {
+      a_boolean	is_class_scope =
+          scope_stack[depth_scope_stack].kind ==
+                                        (a_scope_kind)sck_class_struct_union;
+      /* Check for cases in which Microsoft ignores certain names. */
+      if (tentative_template_lookup && is_class_scope) {
         /* In Microsoft bugs mode, if the progenitor symbol is for a nonstatic
            member (data or function), and we are doing a tentative template
-           lookup, ignore this symbol. */
+           lookup in a class scope, ignore this symbol. */
         if (check_for_microsoft_template_lookup_bug(progenitor_sym)) {
           progenitor_sym = NULL;
         }  /* if */
-      } else if (tentative_type_lookup) {
+      } else if (tentative_type_lookup &&
+                 (microsoft_version >= 1310 || is_class_scope)) {
         /* In Microsoft bugs mode, ignore non-types found by a tentative
            type lookup and continue looking for the symbol in enclosing
-           scopes. */
-        if (microsoft_version < 1310 &&
-            check_for_microsoft_type_lookup_bug(progenitor_sym)) {
+           scopes.  This test is done in class scopes for Microsoft versions
+           prior to 1310 and in all scopes thereafter. */
+        if (check_for_microsoft_type_lookup_bug(class_ptr, progenitor_sym)) {
           progenitor_sym = NULL;
         }  /* if */
       }  /* if */
