@@ -1,5 +1,23 @@
 Version 2.30
 
+10/9/95  Default name-linkage assigned to classes
+
+It used to be that a file-scope class was given internal name-linkage when
+it was created, and it (along with its members) was fixed up at the end of
+compilation -- based, among other things, on whether it was used in
+declaring a function or other entity with external linkage.  This was
+consistent with requirements of the ARM, but now the language dictates that
+all classes declared at file scope and most declared at namespace scope
+have external linkage.  We have changed the default (except in cfront mode)
+to be consistent with the following rules:
+  -- local classes have no linkage
+  -- classes declared inside an unnamed namespace have internal linkage
+  -- all other classes have external linkage
+The linkage of a class member can now be set as soon as it is declared,
+determined in part by the linkage of the class of which it is a member.
+The fixup-routine, check_class_linkage, is now called only in
+cfront-compatibility mode.
+
 10/9/95  Error recovery problem on cast to class type in constant expression
 
 A cast to a class type in a constant expression no longer produces an
