@@ -261,11 +261,13 @@ in the cleanup entry.
 #endif /* DEBUG */
   }  /* if */
   cap->next = NULL;
+  cap->next_exception_cleanup = NULL;
   cap->applies_on_block_exit = applies_on_block_exit;
   cap->applies_on_exception_cleanup = applies_on_exception_cleanup;
+  cap->constructor_wrapper_cleanup = FALSE;
   cap->destructor_wrapper_cleanup = FALSE;
   cap->region_number = NULL_EH_REGION_NUMBER;
-  cap->prev_cleanup_region_constant = NULL;
+  cap->region_table_entry = NULL;
   cap->kind = kind;
   switch (kind) {
     case cak_catch:
@@ -427,6 +429,9 @@ subscope_region is TRUE.
   context->assoc_expr = NULL;
   context->assoc_switch_clause = NULL;
   context->cleanup_actions = NULL;
+  context->exception_cleanup_actions = (parent_context != NULL) ? 
+                                    parent_context->exception_cleanup_actions :
+                                    NULL;
   context->latest_label_statement_processed = NULL;
   context->any_conditional_flag_var_initializations_deferred = FALSE;
   /* Keep track of the innermost function context/scope. */
@@ -434,6 +439,8 @@ subscope_region is TRUE.
     nearest_function_context = curr_context;
     nearest_function_scope = scope;
     nearest_this_param_variable = scope->variant.routine.this_param_variable;
+    /* Don't link cleanups inside a function to those in the file scope. */
+    context->exception_cleanup_actions = NULL;
   }  /* if */
 }  /* push_context */
 
@@ -5892,39 +5899,6 @@ there are no statements on the list.
 }  /* lower_statement_list */
 
 
-static void remove_temp_cleanup_actions(void)
-/*
-Remove any cleanup actions in the current context that are related to
-compiler-generated expression temporaries.  (Such temporaries have shorter
-lifetimes than normal variables.)
-*/
-{
-  a_cleanup_action_ptr cap, prev_cap, next_cap;
-
-  /* Go through the list of cleanup actions, find the ones for temporaries,
-     and unlink them. */
-  for (prev_cap = NULL, cap = curr_context->cleanup_actions;
-       cap != NULL;
-       cap = next_cap) {
-    next_cap = cap->next;
-    if (cap->kind == cak_destruction &&
-        cap->variant.object.is_expr_temporary) {
-      /* Remove this entry from the list. */
-      if (prev_cap == NULL) {
-        curr_context->cleanup_actions = cap->next;
-      } else {
-        prev_cap->next = cap->next;
-      }  /* if */
-      cap->next = NULL;
-      free_cleanup_action_list(cap);
-    } else {
-      /* Keep this entry. */
-      prev_cap = cap;
-    }  /* if */
-  }  /* for */
-}  /* remove_temp_cleanup_actions */
-
-
 void remove_cleanup_action(a_cleanup_action_ptr cap_to_remove)
 /*
 Remove the cleanup action cap_to_remove from the current context.
@@ -5932,27 +5906,48 @@ Remove the cleanup action cap_to_remove from the current context.
 {
   a_cleanup_action_ptr cap, prev_cap;
 
-  /* Find the entry on the list. */
+  if (cap_to_remove->applies_on_exception_cleanup) {
+    /* Remove the entry from the exception-cleanup-order list. */
+    remove_from_exception_cleanup_list(cap_to_remove);
+  }  /* if */
+  /* Find the entry on the block-exit-order list. */
   for (prev_cap = NULL, cap = curr_context->cleanup_actions;
        cap != cap_to_remove;
        prev_cap = cap, cap = cap->next) {
     check_assertion_str(cap != NULL, "remove_cleanup_action: entry not found");
   }  /* for */
-  /* Remove this entry from the list. */
+  /* Remove the entry from the block-exit-order list. */
   if (prev_cap == NULL) {
     curr_context->cleanup_actions = cap->next;
   } else {
-#if 0
-#else /* 0 */
-    /* For now, cannot handle this case. */
-    unexpected_condition_str(
-                           "remove_cleanup_action: not implemented: not last");
-#endif /* 0 */
     prev_cap->next = cap->next;
   }  /* if */
+  /* Free the entry. */
   cap->next = NULL;
   free_cleanup_action_list(cap);
 }  /* remove_cleanup_action */
+
+
+static void remove_temp_cleanup_actions(void)
+/*
+Remove any cleanup actions in the current context that are related to
+compiler-generated expression temporaries.  (Such temporaries have shorter
+lifetimes than normal variables.)
+*/
+{
+  a_cleanup_action_ptr cap, next_cap;
+
+  /* Go through the list of cleanup actions, find the ones for temporaries,
+     and remove them. */
+  for (cap = curr_context->cleanup_actions; cap != NULL; cap = next_cap) {
+    next_cap = cap->next;
+    if (cap->kind == cak_destruction &&
+        cap->variant.object.is_expr_temporary) {
+      /* Remove this entry from the list. */
+      remove_cleanup_action(cap);
+    }  /* if */
+  }  /* for */
+}  /* remove_temp_cleanup_actions */
 
 
 static void lower_switch_clause_list(a_switch_clause_ptr clause_list,
