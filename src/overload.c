@@ -786,38 +786,6 @@ pointer transformation should be done.
 }  /* function_transformation_needed_on_reference_init */
 
 
-static a_type_ptr type_after_function_to_pointer_transformation(
-                                                       a_type_ptr arg_type,
-                                                       an_operand *arg_operand)
-/*
-Determine the type of an argument of type arg_type (a function type) after
-the function --> pointer transformation.  Return the resulting pointer type.
-If arg_operand is non-NULL, it points to an operand for the argument.
-*/
-{
-  a_type_ptr ptr_type;
-
-  if (arg_operand != NULL && is_sym_for_member_operand(arg_operand)) {
-    /* Member function, so the pointer is a pointer to member.
-       This is actually an extension -- the ARM doesn't allow
-       a member function reference to decay to a pointer to
-       member implicitly.  No warning is needed here, even in
-       strict mode; the diagnostic is issued later. */
-    a_symbol_ptr  func_sym = arg_operand->variant.symbol;
-    a_symbol_ptr  fund_sym = fundamental_symbol_of(func_sym);
-    a_routine_ptr rout;
-    check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function);
-    rout = fund_sym->variant.routine.ptr;
-    ptr_type = ptr_to_member_type(rout->type,
-                                 rout->source_corresp.class_of_which_a_member);
-  } else {
-    /* Nonmember function. */
-   ptr_type = make_pointer_type(arg_type);
-  }  /* if */
-  return ptr_type;
-}  /* type_after_function_to_pointer_transformation */
-
-
 void determine_arg_match_level(an_operand           *arg_operand,
                                a_type_ptr           arg_type,
                                a_type_ptr           param_type,
@@ -897,7 +865,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
        array_transformation_needed_on_reference_init(arg_type, param_type))) {
     /* Simulate the array --> pointer transformation.  After the transformation
        we have only a type for the argument, and no arg_operand. */
-    arg_type = make_pointer_type(array_element_type(arg_type));
+    arg_type = type_after_array_to_pointer_transformation(arg_type);
     arg_operand = NULL;
   } else if ((arg_operand != NULL ?
                               (is_a_function_designator(arg_operand) &&
@@ -1939,7 +1907,7 @@ evaluated (but not checked to see if the match is good enough).
            array_transformation_needed_on_reference_init(arg_type,
                                                          param_type))) {
         /* Simulate the array --> pointer transformation.  */
-        arg_type = make_pointer_type(array_element_type(arg_type));
+        arg_type = type_after_array_to_pointer_transformation(arg_type);
       } else if (is_a_function_designator(&arg_operand->operand) &&
                  (!param_is_reference ||
                   function_transformation_needed_on_reference_init(arg_type,
@@ -3915,6 +3883,9 @@ pointer type).
            would require just making up a pointer type out of nowhere --
            there's no other operand that provides guidance on which pointer
            type is required. */
+        /* Do array --> pointer and function --> pointer transformations. */
+        operand_type = do_implicit_type_transformations(operand_type,
+                                                        &arg_operand->operand);
 #if 0
         /* Enum? */
 #endif
@@ -3957,6 +3928,9 @@ pointer type).
         }  /* if */
       } else {
         /* A non-class operand. */
+        /* Do array --> pointer and function --> pointer transformations. */
+        operand_type = do_implicit_type_transformations(operand_type,
+                                                        &arg_operand->operand);
         /* If this operand is the one that suggested this pointer type,
            we already know it is compatible.  This is a speed optimization. */
         if (pointer_type_pattern_position == type_pattern_position ||
@@ -4124,6 +4098,9 @@ that must have the same type.
       /* The operand requires a pointer and the value supplied does not
          have a class type.  If it has a pointer type try that type as the
          target type. */
+      /* Do array --> pointer and function --> pointer transformations. */
+      operand_type = do_implicit_type_transformations(operand_type,
+                                                      &arg_operand->operand);
       if (is_pointer_type(operand_type)) {
         pointer_type = operand_type;
         /* If the type has been previously handled, ignore it. */
