@@ -9318,7 +9318,7 @@ an explicit cast.
     if (dest_type == NULL) dest_type = type_of_unknown_templ_param_nontype;
     generic_cast_operand(operand, dest_type,
                          (an_expr_operator_kind)eok_cast,
-                         /*is_implicit_cast=*/TRUE);
+                         !is_explicit_cast);
   } else if (conversion_routine->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
     /* Conversion function. */
