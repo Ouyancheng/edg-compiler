@@ -672,18 +672,8 @@ requires cleanup.
       dtor_ptr = (a_destructor_ptr)ehrdp->destructor_or_delete_routine;
       if (flags & RDF_ARRAY) {
         an_element_count	elements = ehasp->array_size;
-	if (elements == 0) {
-          /* An element count of zero indicates that this is not actually
-	     an array but rather an object that needs to be deleted using
-             the two operand form of the delete operator. */
-          a_two_operand_delete_ptr	delete_ptr;
-          delete_ptr =
-                (a_two_operand_delete_ptr)ehrdp->destructor_or_delete_routine;
-          (delete_ptr)(obj_addr, ehasp->element_size);
-        } else {
-          __vec_delete(obj_addr, elements, ehasp->element_size, dtor_ptr,
-		       /*delete_flag=*/FALSE, /*unused_arg=*/0);
-        }  /* if */
+        __vec_delete(obj_addr, elements, ehasp->element_size, dtor_ptr,
+                    /*delete_flag=*/FALSE, /*unused_arg=*/0);
       } else {
         /* Not an array.  Just destroy the object. */
         (dtor_ptr)(obj_addr, 2);
@@ -692,9 +682,18 @@ requires cleanup.
       /* A new allocation region.  Call the delete operator to free the
          space. */
       if (obj_addr != NULL) {
-        a_delete_ptr	delete_ptr;
-        delete_ptr = (a_delete_ptr)ehrdp->destructor_or_delete_routine;
-        (delete_ptr)(obj_addr);
+        if (flags & RDF_ARRAY) {
+          /* The array flag indicates that this is the two operand form of
+             the delete operation. */
+          a_two_operand_delete_ptr	delete_ptr;
+          delete_ptr =
+                (a_two_operand_delete_ptr)ehrdp->destructor_or_delete_routine;
+          (delete_ptr)(obj_addr, ehasp->element_size);
+        } else {
+          a_delete_ptr	delete_ptr;
+          delete_ptr = (a_delete_ptr)ehrdp->destructor_or_delete_routine;
+          (delete_ptr)(obj_addr);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
