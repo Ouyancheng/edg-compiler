@@ -113,13 +113,12 @@ Do any processing required at the end of execution of the front end.
   }  /* if */
 #endif /* DEBUG */
 
-#if BACK_END_SHOULD_BE_CALLED || COMPILE_MULTIPLE_SOURCE_FILES
-  /* Free front-end-only storage if calling a back end in the same program,
-     or if compiling multiple source files.  If not, the storage will be
-     freed anyway when the front end terminates, so there's no point in
-     freeing it explicitly (and it's faster not to). */
+  /* Free front-end-only storage. */
   free_memory_region(NULL_region_number);
-#endif /* BACK_END_SHOULD_BE_CALLED || COMPILE_MULTIPLE_SOURCE_FILES */
+
+  /* Clear the file index list maintained by the error routines (they were
+     allocated in front-end storage. */
+  clear_file_index_list();
 
   db_exit();
 }  /* fe_wrapup */

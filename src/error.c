@@ -1940,11 +1940,6 @@ Add the first of possibly two parts of a type reference.
     /* Print out the star for this indirection. */
     if (skip_typerefs(type)->variant.pointer.is_reference) {
       /* This is a C++ reference type */
-      if (seg_ptr->length > 0 &&
-          seg_ptr->segment[seg_ptr->length - 1] == ' ') {
-        /* Back up the one blank space. */
-        seg_ptr->length--;
-      }  /*  if */
       add_string_to_segment("&", seg_ptr);
     } else {
       add_string_to_segment("*", seg_ptr);
@@ -2553,14 +2548,25 @@ text_segment:
 
 #if !STANDALONE_UTILITY_PROGRAM
 
+void clear_file_index_list(void)
+/*
+Clear the file index list.
+*/
+{
+  head_of_file_index_list = NULL;
+  tail_of_file_index_list = NULL;
+}  /* clear_file_index_list */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+#if !STANDALONE_UTILITY_PROGRAM
+
 void error_init(void)
 /*
 Perform any initializations necessary for error.c functions at the beginning
 of each compilation.
 */
 {
-  head_of_file_index_list = NULL;
-  tail_of_file_index_list = NULL;
+  clear_file_index_list();
 }  /* error_init */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -2766,10 +2772,12 @@ error_source_line for later use by diagnostic output functions.
                                      &at_end_of_source);
   if (physical_line == 0 ||
       at_end_of_source ||
-      strcmp(src_file->full_name, FILE_NAME_FOR_STDIN) == 0) {
+      strcmp(src_file->full_name, FILE_NAME_FOR_STDIN) == 0 ||
+      head_of_file_index_list == NULL) {
     /* Either the file position is strange or unknown, we are at the end of
-       the primary source file or the input is from stdin.  The original
-       source line cannot be recovered. */
+       the primary source file, the input is from stdin, or there is no
+       file index information (for example, because we are currently in the
+       back end).  The original source line cannot be recovered. */
     goto return_point;
   } else {
     /* Determine the optimum starting position in the file to read the desired
