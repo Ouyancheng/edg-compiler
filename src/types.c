@@ -2037,6 +2037,9 @@ for exact pointer equality.
   register a_boolean            compat = FALSE;
   a_routine_type_supplement_ptr rtsp1, rtsp2;
   a_boolean                     ignore_type_qualifiers = FALSE;
+#if MICROSOFT_KEYWORDS_ALLOWED
+  a_boolean                     ignore_calling_conventions = FALSE;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
   a_boolean                     error_matches_anything = 
                         (flags & TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) != 0;
 
@@ -2049,6 +2052,13 @@ for exact pointer equality.
     ignore_type_qualifiers = TRUE;
     flags &= ~TCF_IGNORE_TYPE_QUALIFIERS;
   }  /* if */
+#if MICROSOFT_KEYWORDS_ALLOWED
+  /* Ditto for TCF_IGNORE_CALLING_CONVENTIONS. */
+  if (flags & TCF_IGNORE_CALLING_CONVENTIONS) {
+    ignore_calling_conventions = TRUE;
+    flags &= ~TCF_IGNORE_CALLING_CONVENTIONS;
+  }  /* if */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
   /* Although the macros do the type_1 == type_2 test, repeat it here
      so it's present for the recursive calls. */
   if (type_1 == type_2) {
@@ -2171,8 +2181,9 @@ for exact pointer equality.
                                           rtsp2->implicit_this_param_type,
                                           flags)))
 #if MICROSOFT_KEYWORDS_ALLOWED
-              && calling_conventions_are_compatible(rtsp1->calling_convention,
-                                                    rtsp2->calling_convention)
+              && (ignore_calling_conventions ||
+                  calling_conventions_are_compatible(rtsp1->calling_convention,
+                                                    rtsp2->calling_convention))
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
                                                   ) {
             compat = TRUE;
