@@ -71,6 +71,29 @@ things following in the mangled name.
 }  /* digits_to_represent_with_underscore */
 
 
+static sizeof_t mangled_encoding_for_type_qualifiers(
+                                               a_type_qualifier_set qualifiers,
+                                               char                 *store_at)
+/*
+Determine the mangled encoding for the type qualifiers (if any) in the
+set "qualifiers".  Place the encoded form at *store_at if store_at != NULL,
+and (always) return the length of the encoding.
+*/
+{
+  sizeof_t mangled_name_length = 0;
+
+  if (qualifiers & TQ_CONST) {
+    mangled_name_length++;
+    if (store_at != NULL) *store_at++ = 'C';
+  }  /* if */
+  if (qualifiers & TQ_VOLATILE) {
+    mangled_name_length++;
+    if (store_at != NULL) *store_at++ = 'V';
+  }  /* if */
+  return mangled_name_length;
+}  /* mangled_encoding_for_type_qualifiers */
+
+
 static sizeof_t mangled_encoding_for_parameter_types(a_type_ptr type,
                                                      char       *store_at)
 /*
@@ -198,7 +221,7 @@ member function type "type".  Place the encoded form at *store_at if
 store_at != NULL, and (always) return the length of the encoding.
 */
 {
-  sizeof_t              mangled_name_length = 0;
+  sizeof_t              mangled_name_length = 0, section_length;
   a_type_ptr            this_param_type;
   a_type_qualifier_set  qualifiers;
 
@@ -210,13 +233,11 @@ store_at != NULL, and (always) return the length of the encoding.
     /* Add any qualifiers on the "this" parameter type (actually, the type
        pointed to by the "this" parameter). */
     qualifiers = get_top_level_type_qualifiers(this_param_type);
-    if (qualifiers & TQ_CONST) {
-      mangled_name_length++;
-      if (store_at != NULL) *store_at++ = 'C';
-    }  /* if */
-    if (qualifiers & TQ_VOLATILE) {
-      mangled_name_length++;
-      if (store_at != NULL) *store_at++ = 'V';
+    if (qualifiers != 0) {
+      section_length = mangled_encoding_for_type_qualifiers(qualifiers,
+                                                            store_at);
+      mangled_name_length += section_length;
+      if (store_at != NULL) store_at += section_length;
     }  /* if */
   } else {
     /* Static member function. */
@@ -898,30 +919,27 @@ See ARM 7.2.1c for name encoding.
   a_type_ptr named_type, named_typedef, pm_base_type;
   sizeof_t   mangled_name_length, section_length;
   char       *s;
-  a_boolean  is_const, is_volatile;
+  a_type_qualifier_set
+             qualifiers;
 
   mangled_name_length = 0;
   /* Walk through any typerefs above the type.  Remember type qualifiers,
      remember the bottommost named typedef, and skip down to the "real"
      underlying type. */
   named_typedef = NULL;
-  is_const = is_volatile = FALSE;
+  qualifiers = 0;
   for (; type->kind == (a_type_kind)tk_typeref;
        type = type->variant.typeref.type) {
     /* Remember type qualifiers encountered. */
-    if (typeref_is_const_qualified(type))    is_const = TRUE;
-    if (typeref_is_volatile_qualified(type)) is_volatile = TRUE;
+    qualifiers |= type->variant.typeref.qualifiers;
     /* Remember the bottommost named typedef encountered. */
     if (type->source_corresp.name != NULL) named_typedef = type;
   }  /* for */
   /* Put out type qualifiers, if any. */
-  if (is_const) {
-    mangled_name_length += 1;
-    if (store_at != NULL) *store_at++ = 'C';
-  }  /* if */
-  if (is_volatile) {
-    mangled_name_length += 1;
-    if (store_at != NULL) *store_at++ = 'V';
+  if (qualifiers != 0) {
+    section_length= mangled_encoding_for_type_qualifiers(qualifiers, store_at);
+    mangled_name_length += section_length;
+    if (store_at != NULL) store_at += section_length;
   }  /* if */
   /* See if the type is a named class or enum. */
   named_type = NULL;
