@@ -2534,7 +2534,8 @@ static void dump_field_padding(a_field_ptr      field,
                                a_targ_alignment next_alignment)
 /*
 Dump out any padding required after the field "field".  The next field
-begins at next_offset and has alignment next_alignment.
+begins at next_offset and has alignment next_alignment.  "field" may be
+NULL, in which case the padding starts at offset zero.
 */
 {
   a_targ_size_t after_field;
@@ -2544,7 +2545,7 @@ begins at next_offset and has alignment next_alignment.
 
   /* The offset after the field, rounded up for the alignment of the
      following field, should give the offset of the following field. */
-  after_field = offset_after_field(field);
+  after_field = (field != NULL) ? offset_after_field(field) : 0;
   excess_bytes = after_field % next_alignment;
   rounded_after_field = after_field;
   if (excess_bytes != 0) {
@@ -2553,9 +2554,11 @@ begins at next_offset and has alignment next_alignment.
 #if CHECKING
   if (next_offset < rounded_after_field) {
 #if DEBUG
-    fprintf(f_debug, "curr field     %s\n", field->source_corresp.name);
-    fprintf(f_debug, "curr offset    %lu\n", (unsigned long)field->offset);
-    fprintf(f_debug, "after_field    %lu\n", (unsigned long)after_field);
+    if (field != NULL) {
+      fprintf(f_debug, "curr field     %s\n", field->source_corresp.name);
+      fprintf(f_debug, "curr offset    %lu\n", (unsigned long)field->offset);
+      fprintf(f_debug, "after_field    %lu\n", (unsigned long)after_field);
+    }  /* if */
     fprintf(f_debug, "next_offset    %lu\n", (unsigned long)next_offset);
     fprintf(f_debug, "next_alignment %lu\n", (unsigned long)next_alignment);
 #endif /* DEBUG */
@@ -2579,6 +2582,32 @@ begins at next_offset and has alignment next_alignment.
 }  /* dump_field_padding */
 
 
+static void dump_field_annotation_comment(a_field_ptr  field)
+/*
+Emit a comment describing the layout of the given field.
+*/
+{
+  a_host_large_unsigned temp = field->offset;
+
+  write_space();
+  start_comment();
+  write_tok_str(" offset = ");
+  write_unsigned_num(temp);
+  write_tok_str((char*)((temp == 1) ? " byte" : " bytes"));
+  temp = field->offset_bit_remainder;
+  if (temp != 0) {
+    write_tok_str(", ");
+    write_unsigned_num(temp);
+    write_tok_str((char *)((temp == 1) ? " bit" : " bits"));
+  }  /* if */
+  write_tok_str(", type alignment = ");
+  write_unsigned_num((unsigned long)skip_typerefs(field->type)->alignment);
+  write_space();
+  end_comment();
+  write_space();
+}  /* dump_field_annotation_comment */
+
+
 static void dump_struct_union_definition(a_type_ptr type,
                                          a_boolean  output_final_semi)
 /*
@@ -2586,7 +2615,7 @@ Output the definition of the indicated struct or union type.  Output the
 final semicolon if output_final_semi is TRUE.
 */
 {
-  a_field_ptr field, last_field = NULL;
+  a_field_ptr field, prev_field, last_field = NULL;
   a_boolean   union_alignment_needed = FALSE;
 
   if (start_unreferenced_bracket(&type->source_corresp)) {
@@ -2632,9 +2661,35 @@ final semicolon if output_final_semi is TRUE.
       write_space();
     }  /* if */
     indent += 2;
+    prev_field = NULL;
     for (field = type->variant.class_struct_union.field_list;
          field != NULL;
          field = field->next) {
+      if (!C_mode() && type->kind != (a_type_kind)tk_union &&
+          (prev_field == NULL || !field->is_bit_field)) {
+        /* Add any required padding before the field.  This only comes
+           up for empty base class layout, so check this only when the
+           field has a class type.  Note that one reason to avoid the
+           check for fields of builtin types is that when the GNU dual-
+           alignment option is in effect the alignment of the field's
+           type is not necessarily the alignment that was used to place
+           the field. */
+        a_type_ptr field_type = field->type;
+        if (is_array_type(field_type)) {
+          /* Arrays of class type have to be checked as well. */
+          field_type = underlying_array_element_type(field_type);
+        }  /* if */
+        field_type = skip_typerefs(field_type);
+        if (is_immediate_class_type(field_type)) {
+          a_targ_alignment alignment = f_skip_typerefs(field->type)->alignment;
+#if USER_CONTROL_OF_STRUCT_PACKING
+          if (pack_alignment != 0 && pack_alignment < alignment) {
+            alignment = pack_alignment;
+          }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+          dump_field_padding(prev_field, field->offset, alignment);
+        }  /* if */
+      }  /* if */
       set_output_position(&field->source_corresp.decl_position);
       dump_decl_associated_pragmas(&field->source_corresp);
       if (!field->is_bit_field) {
@@ -2761,24 +2816,7 @@ final semicolon if output_final_semi is TRUE.
       }  /* if */
       if (annotate) {
         /* Display the offset in an annotation comment. */
-        a_host_large_unsigned temp = field->offset;
-        write_space();
-        start_comment();
-        write_tok_str(" offset = ");
-        write_unsigned_num(temp);
-        write_tok_str((char*)((temp == 1) ? " byte" : " bytes"));
-        temp = field->offset_bit_remainder;
-        if (temp != 0) {
-          write_tok_str(", ");
-          write_unsigned_num(temp);
-          write_tok_str((char *)((temp == 1) ? " bit" : " bits"));
-        }  /* if */
-        write_tok_str(", type alignment = ");
-        write_unsigned_num((unsigned long)skip_typerefs(field->type)->
-                                                                    alignment);
-        write_space();
-        end_comment();
-        write_space();
+        dump_field_annotation_comment(field);
       }  /* if */
       if (type->kind != (a_type_kind)tk_union || last_field == NULL) {
         last_field = field;
@@ -2788,33 +2826,7 @@ final semicolon if output_final_semi is TRUE.
           last_field = field;
         }  /* if */
       }  /* if */
-      if (!C_mode() &&
-          type->kind != (a_type_kind)tk_union && !field->is_bit_field &&
-          field->next != NULL) {
-        /* Add any required padding between fields.  This only comes
-           up for empty base class layout, so check this only when
-           the next field has a class type.  Note that one reason to
-           avoid the check for fields of builtin types is that
-           when the GNU dual-alignment option is in effect the alignment
-           of the field's type is not necessarily the alignment that
-           was used to place the field. */
-        a_type_ptr next_type = field->next->type;
-        if (is_array_type(next_type)) {
-          /* Arrays of class type have to be checked as well. */
-          next_type = underlying_array_element_type(next_type);
-        }  /* if */
-        next_type = skip_typerefs(next_type);
-        if (is_immediate_class_type(next_type)) {
-          a_targ_alignment alignment =
-                                 f_skip_typerefs(field->next->type)->alignment;
-#if USER_CONTROL_OF_STRUCT_PACKING
-          if (pack_alignment != 0 && pack_alignment < alignment) {
-            alignment = pack_alignment;
-          }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-          dump_field_padding(field, field->next->offset, alignment);
-        }  /* if */
-      }  /* if */
+      prev_field = field;
     }  /* for */
     if (union_alignment_needed) {
       /* Put out extra fields to force alignment for the struct when
