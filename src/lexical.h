@@ -207,6 +207,7 @@ typedef enum /*a_token_kind*/ {
   tok_const_cast,
   tok_dynamic_cast,
   tok_explicit,
+  tok_export,
   tok_mutable,
   tok_namespace,
   tok_reinterpret_cast,
@@ -267,7 +268,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "::", ".*", "->*", "asm", "catch", "class", "delete", "friend",
    "inline", "new", "operator", "private", "protected", "public",
    "template", "this", "throw", "try", "virtual", "wchar_t",
-   "const_cast", "dynamic_cast", "explicit", "mutable", "namespace",
+   "const_cast", "dynamic_cast", "explicit", "export", "mutable", "namespace",
    "reinterpret_cast", "static_cast", "typeid", "using",
    "bool", "false", "true", "typename", "overload", "unimplemented", "error",
    "removed default arg",
@@ -631,6 +632,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_const_cast */
    (an_opname_kind)onk_none,          /* tok_dynamic_cast */
    (an_opname_kind)onk_none,          /* tok_explicit */
+   (an_opname_kind)onk_none,          /* tok_export */
    (an_opname_kind)onk_none,          /* tok_mutable */
    (an_opname_kind)onk_none,          /* tok_namespace */
    (an_opname_kind)onk_none,          /* tok_reinterpret_cast */

@@ -1373,6 +1373,14 @@ EXTERN a_boolean
 			/* TRUE if the use of exported templates
 			   is permitted. */
 
+EXTERN a_boolean
+		export_keyword_enabled;
+			/* TRUE if the export keyword is recognized.  This
+			   can be TRUE even if export_template_allowed is
+			   FALSE.  In such cases, the syntax is be accepted
+			   but a diagnostic is given indicating that the
+			   feature is not enabled. */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES
@@ -1382,6 +1390,8 @@ extern a_boolean get_next_source_file(void);
 #if COMPILE_MULTIPLE_TRANSLATION_UNITS
 extern void proc_secondary_translation_units(void);
 #endif /* COMPILE_MULTIPLE_TRANSLATION_UNITS */
+
+extern void cmd_line_early_init(void);
 
 #endif /* ifndef CMD_LINE_H */
 

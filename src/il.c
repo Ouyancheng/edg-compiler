@@ -2926,9 +2926,7 @@ not.
 #if RECORD_MACROS_IN_IL
     case iek_macro:
 #endif /* RECORD_MACROS_IN_IL */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
     case iek_template_parameter:
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       scp = &((a_constant_ptr)entity_ptr)->source_corresp;
       break;
     default:
@@ -11030,7 +11028,6 @@ Add the IL template entry pointed to by tp to the indicated scope.
   a_scope_pointers_block_ptr  pointers_block;
 
   ssep = &scope_stack[scope_depth];
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (ssep->in_prototype_instantiation && !prototype_instantiations_in_il) {
     /* We are not going to record the indicated scope (because it belongs to
        a prototype instantiation), but the given template must go on a list
@@ -11038,7 +11035,6 @@ Add the IL template entry pointed to by tp to the indicated scope.
        Add it to the file scope (arbitrary). */
     ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
   }  /* if */
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   sp = ensure_il_scope_exists(ssep);
   check_assertion_str(sp != NULL, "add_to_templates_list: NULL IL scope");
   pointers_block = assoc_pointers_block_of(ssep);

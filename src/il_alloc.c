@@ -109,12 +109,10 @@ static unsigned long
 static unsigned long
 		num_hidden_names_allocated;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 static unsigned long
 		num_template_decls_allocated;
 static unsigned long
 		num_template_parameters_allocated;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 static unsigned long
 		num_templates_allocated;
 #if RECORD_MACROS_IN_IL
@@ -981,9 +979,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->friend_routines                   = NULL;
   ctsp->friend_classes                    = NULL;
   ctsp->assoc_scope                       = NULL;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   ctsp->assoc_template                    = NULL;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   ctsp->template_arg_list                 = NULL;
   ctsp->partial_spec_template_arg_list    = NULL;
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
@@ -1454,9 +1450,7 @@ to it.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   vp->initializer_range           = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   vp->assoc_template              = NULL;
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #ifdef CIL
   vp->referenced_non_locally      = FALSE;
   vp->modified_within_try_block   = FALSE;
@@ -1539,9 +1533,9 @@ to it.
 #if CHECKING
   fp->avoid_codecenter_warnings = 0;
 #endif /*CHECKING */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_EXPRESSIONS_IN_IL
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   fp->bit_size_constant    = NULL;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_... */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   fp->get_property_name    = NULL;
   fp->put_property_name    = NULL;
@@ -1685,9 +1679,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->virtual_function_number     = 0;
   rp->befriending_classes         = NULL;
   rp->template_arg_list           = NULL;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   rp->assoc_template              = NULL;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   rp->declared_type               = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2831,7 +2823,6 @@ fields, and return a pointer to it.
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 
 a_template_parameter_ptr alloc_template_parameter(void)
 /*
@@ -2874,7 +2865,6 @@ initialize its fields, and return a pointer to it.
   return tdp; 
 }  /* alloc_template_decl */
 
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 a_template_ptr alloc_template(void)
 /*
@@ -2891,21 +2881,21 @@ fields, and return a pointer to it.
   set_default_source_corresp(tp->source_corresp);
   tp->next = NULL;
   tp->kind = (a_template_kind)templk_none;
+  tp->is_exported = FALSE;
 #if RECORD_TEMPLATE_STRINGS
   tp->text = NULL;
 #endif /* RECORD_TEMPLATE_STRINGS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+  tp->export_position = null_source_position;
   tp->definition_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   tp->template_info = NULL;
   tp->coordinates.position = 0;
   tp->coordinates.depth = NO_NESTING_DEPTH;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   tp->template_decl = NULL;
   tp->prototype_instantiation.type = NULL;
   tp->canonical_template = NULL;
   tp->definition_template = NULL;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   return tp;
 }  /* alloc_template */
 
@@ -3087,12 +3077,10 @@ Display and return the amount of space used for various IL tables.
 #if RECORD_HIDDEN_NAMES_IN_IL
   db_space_used("hidden names", num_hidden_names_allocated, a_hidden_name);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   db_space_used("template_parameters", num_template_parameters_allocated,
                 a_template_parameter);
   db_space_used("template_decls", num_template_decls_allocated,
                 a_template_decl);
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   db_space_used("templates", num_templates_allocated, a_template);
 #if RECORD_MACROS_IN_IL
   db_space_used("macros", num_macros_allocated, a_macro);
@@ -3280,10 +3268,8 @@ in il_alloc_init.)
 #if RECORD_HIDDEN_NAMES_IN_IL
       pch_saved_var_array_elem(num_hidden_names_allocated),
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
       pch_saved_var_array_elem(num_template_parameters_allocated),
       pch_saved_var_array_elem(num_template_decls_allocated),
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       pch_saved_var_array_elem(num_templates_allocated),
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(num_macros_allocated),
@@ -3413,10 +3399,8 @@ initializations that are done for each compilation.
 #if RECORD_HIDDEN_NAMES_IN_IL
   num_hidden_names_allocated             = 0;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   num_template_parameters_allocated      = 0;
   num_template_decls_allocated           = 0;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   num_templates_allocated                = 0;
 #if RECORD_MACROS_IN_IL
   num_macros_allocated                   = 0;

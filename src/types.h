@@ -682,13 +682,19 @@ may be called only for class, struct, and union types and only in C++ mode.
 #define base_classes_of(tp) \
   ((tp)->variant.class_struct_union.extra_info->base_classes)
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 /*
 Extract the pointer to the template that generated a class type.
 */
 #define assoc_template_of(tp) \
   ((tp)->variant.class_struct_union.extra_info->assoc_template)
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+
+/*
+Return TRUE if "tp" is the prototype instantiation of a class template
+that was declared as exported.
+*/
+#define class_is_exported(tp)						\
+  (tp->variant.class_struct_union.is_prototype_instantiation &&		\
+   tp->variant.class_struct_union.extra_info->assoc_template->is_exported)
 
 /*
 Macro that extracts the underlying enum type from an integral type,

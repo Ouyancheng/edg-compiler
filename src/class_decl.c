@@ -6321,30 +6321,6 @@ declared member functions.
   set_source_corresp(&rtn->source_corresp, sym);
   set_class_membership(sym, &rtn->source_corresp, class_type);
   rtn->source_corresp.access = class_state->access;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-  if (scope_stack[decl_scope_level].in_prototype_instantiation &&
-      !decl_info->is_trivial_default_constructor) {
-    /* This is a member function of a prototype instantiation.  Although it is
-       not a template, it is an instantiatable function and hence we create a
-       placeholder a_template entry for it.  (Trivial default constructors are
-       not linked in the IL and hence do no need that information.) */
-    a_template_ptr  templ = alloc_template();
-    templ->kind = (a_template_kind)templk_member_function;
-    set_source_corresp(&templ->source_corresp, sym);
-    set_class_membership((a_symbol_ptr)NULL, &templ->source_corresp,
-                         class_type);
-    templ->source_corresp.access = class_state->access;
-    add_to_templates_list(templ, decl_scope_level);
-    if (prototype_instantiations_in_il) {
-      templ->prototype_instantiation.routine = rtn;
-    }  /* if */
-    templ->canonical_template = templ;
-    if (func_info->is_definition) {
-      templ->definition_template = templ;
-    }  /* if */
-    rtn->assoc_template = templ;
-  }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   /* The routine name linkage on the function type is also required to be
      C++ no matter what the name linkage of the routine turns out to be. */
   rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
@@ -6569,6 +6545,33 @@ declared member functions.
     rtn->is_prototype_instantiation = TRUE;
     rtn->is_template_function = TRUE;
     tip->prototype_scope_symbols = func_info->prototype_scope_symbols;
+    if (!decl_info->is_trivial_default_constructor) {
+    /* Although it is not a template, it is an instantiatable function
+       and hence we create a placeholder a_template entry for it.  (Trivial
+       default constructors are not linked in the IL and hence do no need
+       that information.) */
+      a_template_ptr  templ = alloc_template();
+      templ->kind = (a_template_kind)templk_member_function;
+      set_source_corresp(&templ->source_corresp, sym);
+      set_class_membership_for_template((a_symbol_ptr)NULL, templ,
+                                        class_type);
+      /* Update the IL template pointer in the template symbol supplement. */
+      tssp->il_template_entry = templ;
+      templ->source_corresp.access = class_state->access;
+      /* A member function of a class template is exported if the enclosing
+         class is declared as exported and the function is not inline. */
+      templ->is_exported = class_is_exported(class_type) &&
+                           !func_info->is_inline;
+      if (prototype_instantiations_in_il) {
+        add_to_templates_list(templ, decl_scope_level);
+        templ->prototype_instantiation.routine = rtn;
+      }  /* if */
+      templ->canonical_template = templ;
+      if (func_info->is_definition) {
+        templ->definition_template = templ;
+      }  /* if */
+      rtn->assoc_template = templ;
+    }  /* if */
   }  /* if */
   if (!is_error_locator(*locator)) {
     /* Do processing for special member functions, including assignment
@@ -6837,11 +6840,9 @@ in-class member function declarations.)
     rtn->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
     rtn->storage_class = (a_storage_class)sc_extern;
   }  /* if */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (prototype_instantiations_in_il && !sym->is_error) {
     add_to_routines_list(rtn, NO_SCOPE_DEPTH);
   }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (!is_error_locator(*locator)) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Prevent the generation of a source sequence entry for the a_template
@@ -7238,23 +7239,25 @@ member declaration, respectively.
         tip->template_info = alloc_template_symbol_supplement(
                                        (a_symbol_kind)sk_static_data_member);
         tip->template_info->token_sequence_number = curr_token_sequence_number;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
         /* Although this is not a template, it is an instantiatable variable
            and hence we create a placeholder a_template entry for it. */
         var->assoc_template = alloc_template();
         var->assoc_template->kind = (a_template_kind)templk_static_data_member;
         set_source_corresp(&var->assoc_template->source_corresp, sym);
-        set_class_membership((a_symbol_ptr)NULL,
-                             &var->assoc_template->source_corresp,
-                             class_type);
+        set_class_membership_for_template((a_symbol_ptr)NULL,
+                                          var->assoc_template,
+                                          class_type);
         var->assoc_template->source_corresp.access =
                                                     var->source_corresp.access;
+        /* Update the IL template pointer in the template symbol supplement. */
+        tip->template_info->il_template_entry = var->assoc_template;
+        /* It is exported if the enclosing class template is exported. */
+        var->assoc_template->is_exported = class_is_exported(class_type);
         add_to_templates_list(var->assoc_template, decl_scope_level);
         if (prototype_instantiations_in_il) {
           var->assoc_template->prototype_instantiation.variable = var;
         }  /* if */
         var->assoc_template->canonical_template = var->assoc_template;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       } else {
         /* We must be in the midst of a template class instantiation.  We need
            to bind this static data member to the static data member template
@@ -8207,9 +8210,9 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   (void)get_token();
   /* Scan the integral size in bits of the bit-field. */
   scan_fs_integral_constant_expression(&constant);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_EXPRESSIONS_IN_IL
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   field->bit_size_constant = alloc_shareable_constant(&constant);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_... */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   if (is_error_constant(&constant)) {
     /* Use small value to avoid more errors, but not 1 which is special. */
     bit_field_size = targ_char_bit;
@@ -10580,12 +10583,10 @@ member.  Determine whether a diagnostic is actually required and put it out.
 }  /* report_missing_constructor */
 
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS || !PROTOTYPE_INSTANTIATIONS_IN_IL
-/*ARGSUSED*/ /* instance is not used unless source sequence lists are
-                generated.  Similarly, template_decl is not used unless
-                source sequence entries are generated and prototype
-                instantiations are recorded in the IL. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS || !PROTOTYPE_INSTANTIATIONS_IN_IL */
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
+/*ARGSUSED*/ /* instance and template_decl is not used unless source
+                sequence lists are generated. */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 static a_symbol_ptr class_member_declaration(
                       a_type_ptr               class_type,
                       a_class_def_state_ptr    class_state,
@@ -11757,12 +11758,10 @@ bits of information that were acquired while parsing.
 }  /* complete_class_definition */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL || !PROTOTYPE_INSTANTIATIONS_IN_IL
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
-             /* il_template_entry is not used unless prototype instantiations
-                are recorded in the IL. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !PROTOTYPE_INSTANTIATIONS_IN_IL */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 a_boolean scan_class_definition(a_type_ptr       class_type,
                                 a_scope_depth    effective_decl_level,
                                 a_scope_depth    orig_decl_level,
@@ -12118,7 +12117,7 @@ template entry for the class template definition; otherwise it is NULL. */
             goto next_declaration;
           }  /* if */
           /* Check for template declaration. */
-          if (curr_token == tok_template) {
+          if (curr_token == tok_template || curr_token == tok_export) {
             /* A template declaration in a class may be a member template
                declaration or a friend declaration.  Explicit instantiations
                are not permitted in a class context.  The error for an
@@ -12200,14 +12199,12 @@ next_declaration:
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry marking the end of the class definition. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (il_template_entry != NULL) {
       /* This is a prototype instantiation of a class template. */
       add_end_of_construct_source_sequence_entry(
                                         (char *)il_template_entry,
                                         (a_byte_il_entry_kind)iek_template);
     } else
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     /* Do not insert code here. */
     {
       add_end_of_construct_source_sequence_entry(

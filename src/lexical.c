@@ -7509,6 +7509,29 @@ is saved for use when the stack is popped.
   curr_stop_token_stack_entry = stsep;
 }  /* push_stop_token_stack */
 
+#if DEBUG
+
+void db_stop_tokens(void)
+/*
+Display the current stop token array.
+*/
+{
+  int				token;
+  a_token_set_array_element	*stop_tokens;
+
+  stop_tokens = curr_stop_token_stack_entry->stop_tokens;
+  for (token = 0; token != (int)tok_last; token++) {
+    if (stop_tokens[token] != 0) {
+      if (debug_level != 0) {
+        fprintf(f_debug, "stop_tokens[\"%s\"] = %d\n", 
+                token_names[token], stop_tokens[token]);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* db_stop_tokens */
+
+#endif /* DEBUG */
+
 
 #if CHECKING
 void check_all_stop_token_entries_are_reset(a_token_set_array stop_tokens)

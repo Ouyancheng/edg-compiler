@@ -173,7 +173,7 @@ optimization is suppressed.
   if (is_storage_class()) {
     /* A storage-class-specifier. */
     is_start = TRUE;
-  } else if (curr_token == tok_template) {
+  } else if (curr_token == tok_template || curr_token == tok_export) {
     /* Probably an error. */
     is_start = TRUE;
   } else if (is_type_start(expr_context)) {
@@ -6017,7 +6017,6 @@ is a template specialization declaration.
                           (storage_class == (a_storage_class)sc_extern) ?
                                 (a_name_linkage_kind)nlk_cplusplus_external :
                                 (a_name_linkage_kind)nlk_internal;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (prototype_instantiations_in_il && !locator->is_error) {
       /* Normally, we let add_to_routines_list determine which scope to add
          the routine to, but for proxy members nominated in friends, that
@@ -6027,7 +6026,6 @@ is a template specialization declaration.
                            proxy_member_friend ? DEPTH_OF_FILE_SCOPE :
                                                  NO_SCOPE_DEPTH);
     }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   } else {
     if (func_info->is_inline) {
       if (!rout_ptr->is_inline) {
@@ -9597,6 +9595,7 @@ of local variables (and types, etc.) of functions and in blocks.
                             is_top_level_declaration, param_id_list);
       goto return_point;
     } else if (curr_token == tok_template ||
+               curr_token == tok_export ||
                (microsoft_mode && curr_token == tok_extern &&
                 next_token() == tok_template)) {
       /* Do the processing required for a template declaration.  If this is

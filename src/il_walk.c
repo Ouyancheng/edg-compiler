@@ -1623,10 +1623,8 @@ running them through walk_remap_func.
   remap_orphan_entry_first(iek_eh_prologue_supplement);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* ifdef CFE */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   remap_orphan_entry_first(iek_template_parameter);
   remap_orphan_entry_first(iek_template_decl);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   /* Note that nothing is needed for iek_source_sequence_entry nor for its
      subordinate entries like iek_src_seq_secondary_decl and
      iek_src_seq_end_of_construct, since such entries will never appear on an
@@ -1721,10 +1719,8 @@ running them through walk_remap_func.
   remap_orphan_entry_last(iek_eh_prologue_supplement);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* ifdef CFE */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   remap_orphan_entry_last(iek_template_parameter);
   remap_orphan_entry_last(iek_template_decl);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   /* Note that nothing is needed for iek_source_sequence_entry nor for its
      subordinate entries like iek_src_seq_secondary_decl and
      iek_src_seq_end_of_construct, since such entries will never appear on an

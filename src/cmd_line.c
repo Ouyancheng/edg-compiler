@@ -1346,6 +1346,7 @@ by a command line option.
     }  /* if */
     if (!option_kind_used[(int)optk_export_template]) {
       export_template_allowed = FALSE;
+      export_keyword_enabled = FALSE;
     }  /* if */
     if (!option_kind_used[(int)optk_late_tiebreaker]) {
       do_late_ovl_res_tiebreaker = microsoft_bugs;
@@ -1451,6 +1452,7 @@ by a command line option.
   }  /* if */
   if (!option_kind_used[(int)optk_export_template]) {
     export_template_allowed = FALSE;
+    export_keyword_enabled = FALSE;
   }  /* if */
   if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
     nonclass_prototype_instantiations = FALSE;
@@ -3106,6 +3108,9 @@ enable_microsoft_mode:
       case optk_export_template:
         /* Enable use of exported templates. */
         export_template_allowed = opt_value;
+        /* Make sure the keyword is enabled if export support is being
+           enabled. */
+        if (export_template_allowed) export_keyword_enabled = TRUE;
         break;
       case optk_stdarg_builtin:
         /* Enable passing of references to stdarg.h macros to the output
@@ -3409,6 +3414,11 @@ enable_microsoft_mode:
       error_threshold = es_discretionary_error;
     }  /* if */
   }  /* if */
+#if DO_IL_LOWERING
+  /* Prototype instantiations cannot be lowered, so make sure that they are
+     not generated when doing IL lowering. */
+  prototype_instantiations_in_il = FALSE;
+#endif /* DO_IL_LOWERING */
   /* If the -o option appeared, its file should have been taken for
      something. */
   if (ofile_name != NULL) {
@@ -3482,6 +3492,16 @@ proc_command_line handles the first file directly.
 }  /* get_next_source_file */
 
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
+
+void cmd_line_early_init(void)
+/*
+One time initialization that must take place early on in the front end.
+This is done before command line processing.
+*/
+{
+  export_keyword_enabled = TRUE;
+  curr_command_line_macro_def = NULL;
+}  /* cmd_line_early_init */
 
 
 /******************************************************************************

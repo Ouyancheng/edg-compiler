@@ -318,9 +318,7 @@ be written.
 #ifdef FFE
       case iek_namelist_group:
 #endif /* ifdef FFE */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
       case iek_template_parameter:
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         /* Entry has a source correspondence field. */
         name = ((a_constant_ptr)entry_ptr)->source_corresp.name;
         break;
@@ -1608,11 +1606,9 @@ Display the indicated variable.
     disp_boolean("is_parameter", TRUE);
   }  /* if */
   disp_initializer(ptr->init_kind, &ptr->initializer);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (ptr->assoc_template != NULL) {
     disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
   }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("initializer_range", &ptr->initializer_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -1733,10 +1729,10 @@ Display the indicated field.
     disp_unsigned_long("offset_bit_remainder",
                        (unsigned long)ptr->offset_bit_remainder);
     disp_unsigned_long("bit_size", (unsigned long)ptr->bit_size);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_EXPRESSIONS_IN_IL
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     disp_ptr("bit_size_constant", (char *)ptr->bit_size_constant,
              iek_constant);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_... */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     disp_boolean("bit_field_is_signed", (a_boolean)ptr->bit_field_is_signed);
   }  /* if */
   if (ptr->is_anonymous_parent_object) {
@@ -2100,11 +2096,9 @@ Display the indicated routine.
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);
   }  /* if */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (ptr->assoc_template != NULL) {
     disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
   }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (ptr->template_arg_list != NULL) {
     disp_template_arg_list("template_arg_list", ptr->template_arg_list);
   }  /* if */
@@ -3186,7 +3180,6 @@ Display the indicated hidden-name entry.
 
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 
 static void disp_template_parameter(a_template_parameter_ptr  ptr)
 /*
@@ -3248,7 +3241,6 @@ Display the indicated template declaration information.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_template_decl */
 
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 static void disp_template(a_template_ptr  ptr)
 /*
@@ -3284,7 +3276,9 @@ Display the indicated template.
     default:
       (void)printf("**BAD TEMPLATE KIND**\n");
   }  /* switch */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (ptr->is_exported) {
+    disp_boolean("is_exported", (a_boolean)ptr->is_exported);
+  }  /* if */
   if (ptr->template_decl != NULL) {
     disp_ptr("template_decl", (char *)ptr->template_decl, iek_template_decl);
   }  /* if */
@@ -3313,8 +3307,8 @@ Display the indicated template.
      disp_ptr("definition_template", (char*)ptr->definition_template,
               iek_template);
   }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_source_position("export_position", &ptr->export_position);
   disp_source_range("definition_range", &ptr->definition_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if RECORD_TEMPLATE_STRINGS
@@ -4157,11 +4151,9 @@ Display the indicated class type supplement entry.
     disp_class_list("friend_classes", ptr->friend_classes);
   }  /* if */
   disp_ptr("assoc_scope", (char * )ptr->assoc_scope, iek_scope);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (ptr->assoc_template != NULL) {
     disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
   }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (ptr->template_arg_list != NULL) {
     disp_template_arg_list("template_arg_list", ptr->template_arg_list);
   }  /* if */
@@ -4475,14 +4467,12 @@ This routine is called during IL walking.
           disp_hidden_name((a_hidden_name_ptr)entry_ptr);
           break;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
         case iek_template_parameter:
           disp_template_parameter((a_template_parameter_ptr)entry_ptr);
           break;
         case iek_template_decl:
           disp_template_decl((a_template_decl_ptr)entry_ptr);
           break;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         case iek_template:
           disp_template((a_template_ptr)entry_ptr);
           break;

@@ -385,7 +385,9 @@ A prototype instantiation results from parsing and analyzing a template
 without substituting actual template argument entities for the formal
 parameters.  This flag should be set to TRUE if such structured but abstract
 representations should be recorded in the IL.  (It is typically not needed
-for direct code generation.)
+for direct code generation.)  It is the default value of the variable
+prototype_instantiations_in_il.  Note that prototype instantiations cannot
+be generated when doing IL lowering.
 */
 #ifndef PROTOTYPE_INSTANTIATIONS_IN_IL
 #define PROTOTYPE_INSTANTIATIONS_IN_IL FALSE

@@ -82,9 +82,7 @@ typedef struct a_namespace   *a_namespace_ptr;
 typedef struct a_scope       *a_scope_ptr;
 typedef struct a_routine_fixup
                              a_routine_fixup_dummy_typedef;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 typedef struct a_template_decl *a_template_decl_ptr;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 typedef struct a_template *a_template_ptr;
 #if DO_IL_LOWERING
 typedef struct a_destructible_entity_descr
@@ -462,11 +460,9 @@ typedef enum /*an_il_entry_kind*/ {
   iek_switch_case_entry,
 			/* a_switch_case_entry */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   iek_template_decl,	/* a_template_decl */
   iek_template_parameter,
 			/* a_template_parameter */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -585,10 +581,8 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_decl_position_supplement */	"decl-position-supplement",
 /* iek_switch_case_entry */		"switch-case-entry",
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 /* iek_template_decl */			"template-decl",
 /* iek_template_parameter */		"template-parameter",
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -3579,13 +3573,11 @@ typedef struct a_class_type_supplement {
 			   within the scope of the class, including nested
 			   classes.  This pointer is NULL when the class
 			   has been declared but not defined. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   a_template_ptr
 		assoc_template;
 			/* For instantiated entities, this points to the
 			   the template from which they were generated;
 			   otherwise, this is NULL. */
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   a_template_arg_ptr
 		template_arg_list;
 			/* For classes that are instantiations of a class
@@ -4838,13 +4830,11 @@ typedef struct a_variable {
 			   construct (i.e, including "=" or "(" and ")").
 			   May be null_source_range. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   a_template_ptr
 		assoc_template;
 			/* For instantiated entities, this points to the
 			   the template from which they were generated;
 			   otherwise, this is NULL. */
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
 			/* The type as it actually appears in the declaration
@@ -4952,12 +4942,12 @@ typedef struct a_field {
 			   declaration of this nonstatic data member (C++
 			   only). */
   bitfield_to_avoid_codecenter_warnings()
-#if PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_EXPRESSIONS_IN_IL
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   a_constant_ptr
 		bit_size_constant;
 			/* An IL constant representing the size of the bit
 			   field.  (NULL if this is not a bit field.) */ 
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_... */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   char		*get_property_name,
 		*put_property_name;
@@ -5420,13 +5410,11 @@ typedef struct a_routine {
 			   templates and member function templates (i.e.,
 			   this pointer is NULL for member functions of
 			   class templates and other nontemplate functions). */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   a_template_ptr
 		assoc_template;
 			/* For instantiated entities, this points to the
 			   the template from which they were generated;
 			   otherwise, this is NULL. */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
@@ -7649,7 +7637,6 @@ typedef struct a_hidden_name {
 } a_hidden_name;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 
 /* Kind of template parameter. */
 enum a_template_parameter_kind_tag {
@@ -7736,7 +7723,6 @@ typedef struct a_template_decl {
 			/* The position of the "template" keyword. */
 } a_template_decl;
 
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 /*
 The kind of template that is recorded in the IL template representation
@@ -7781,6 +7767,13 @@ typedef struct a_template {
   a_template_kind
 		kind;
 			/* The kind of template represented. */
+  a_byte_boolean
+		is_exported;
+			/* TRUE if the template was declared as exported,
+			   either because the declaration included the
+			   export keyword, or because it is a member of
+			   a class declared export.  This is set only on
+			   the canonical entry. */
 #if RECORD_TEMPLATE_STRINGS
   char		*text;
 			/* A null-terminated string representing the text of
@@ -7788,6 +7781,11 @@ typedef struct a_template {
 			   keyword "template". */
 #endif /* RECORD_TEMPLATE_STRINGS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		export_position;
+			/* The position of the export keyword or
+			   null_source_position if no export keyword is
+			   present. */
   a_source_range
 		definition_range;
 			/* When the template is a class template, the source
@@ -7811,7 +7809,6 @@ typedef struct a_template {
 			/* For a class template associated with a template
 			   template parameter, provides the list position and
 			   nesting depth of the parameter. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   a_template_decl_ptr
 		template_decl;
 			/* A description of the template declaration header
@@ -7847,7 +7844,6 @@ typedef struct a_template {
 			   the definition of this template (NULL if no
 			   definition appears in this translation unit).
 			   NULL for non-canonical entries. */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 } a_template;
 
 #if RECORD_MACROS_IN_IL
@@ -8515,7 +8511,6 @@ EXTERN struct il_header_tag {
 			   and IL lowering is being done, each name must
 			   be inspected when special processing is done
 			   for the mangling of names containing UCNs. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   a_byte_boolean
 		il_has_all_prototype_instantiations;
 			/* TRUE if if both class and nonclass prototype
@@ -8526,7 +8521,6 @@ EXTERN struct il_header_tag {
 			   be regenerated from strings, since in-class member
 			   definitions would not have their prototype
 			   instantiation recorded. */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT
   char		*instantiation_dir_name;
 			/* When each instantiation is placed in its own object

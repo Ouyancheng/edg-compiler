@@ -3135,6 +3135,10 @@ extern void set_class_membership(a_symbol_ptr             sym,
                                  a_source_correspondence  *scp,
                                  a_type_ptr               class_type);
 
+extern void set_class_membership_for_template(a_symbol_ptr	sym,
+					      a_template_ptr	templ,
+					      a_type_ptr	class_type);
+
 extern void set_namespace_membership(a_symbol_ptr             sym,
                                      a_source_correspondence  *scp,
                                      a_namespace_ptr          nsp);

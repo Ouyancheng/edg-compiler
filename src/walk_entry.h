@@ -891,9 +891,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr_not_needed(ptr->assoc_param_type, a_param_type_ptr,
                              iek_param_type);
         walk_initializer(ptr->init_kind, ptr->initializer);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
         remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -915,9 +913,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_field_ptr, iek_field);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
         definition_needed_if_class(ptr->type);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_EXPRESSIONS_IN_IL
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
         walk_ptr(ptr->bit_size_constant, a_constant_ptr, iek_constant);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_... */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_string_ptr(ptr->get_property_name, iek_other_text, 0);
         walk_string_ptr(ptr->put_property_name, iek_other_text, 0);
@@ -986,9 +984,7 @@ the file scope, do not process it (but record an orphan in the latter case).
 #ifdef CFE
         walk_list(ptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
         remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* Note that we do not test "defined" here because defined gets cleared
            before some calls to walk the IL. */
@@ -1083,14 +1079,10 @@ the file scope, do not process it (but record an orphan in the latter case).
                 case eok_padd_assign:
                 case eok_psubtract_assign:
                   /* First operand is an lvalue for a pointer. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
                   /* Avoid problems in prototype instantiations. */
                   if (!is_pointer_type(op1_type)) break;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
                   optype = type_pointed_to(op1_type);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
                   if (!is_pointer_type(optype)) break;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
                   optype = type_pointed_to(optype);
                   goto do_definition_needed_if_class;
                 case eok_subscript:
@@ -1100,9 +1092,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                 case eok_pdiff:
                   /* First operand is a pointer. */
                   /* Avoid problems in prototype instantiations. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
                   if (!is_pointer_type(op1_type)) break;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
                   optype = type_pointed_to(op1_type);
 do_definition_needed_if_class:
                   definition_needed_if_class(optype);
@@ -1112,9 +1102,7 @@ do_definition_needed_if_class:
                      complete.  Watch out for the case where the result type
                      is "void *", and watch out for prototype instantiation
                      cases. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
                   if (is_pointer_type(ptr->type))
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
                   {
                     optype = type_pointed_to(ptr->type);
                     definition_needed_if_class(optype);
@@ -1122,12 +1110,10 @@ do_definition_needed_if_class:
                   /* Source type must also be complete, but watch out for
                      prototype instantiation cases where the first operand
                      isn't a pointer to class. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
                   if (!is_pointer_type(op1_type) ||
                       !is_class_struct_union_type(type_pointed_to(op1_type))) {
                     break;
                   }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
                   goto cast_source_type_must_be_pointer_to_complete_class;
                 case eok_base_class_cast:
 cast_source_type_must_be_pointer_to_complete_class:
@@ -1236,16 +1222,12 @@ do_set_proper_definition_needed_flag:
               { a_type_ptr sizeof_type =
                                 ptr->variant.runtime_sizeof.variant.expr->type;
                 if (ptr->variant.runtime_sizeof.is_lvalue) {
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
                   /* Watch out for prototype instantiations. */
                   if (!is_pointer_type(sizeof_type)) goto end_sizeof;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
                   sizeof_type = type_pointed_to(sizeof_type);
                 }  /* if */
                 definition_needed_if_class(sizeof_type);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 end_sizeof:;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
               }
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
             }  /* if */
@@ -1621,7 +1603,6 @@ end_sizeof:;
       break;
 #endif /* !NEEDED_FLAG_WALK */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
     case iek_template_parameter:
       {
         a_template_parameter_ptr ptr = (a_template_parameter_ptr)entry_ptr;
@@ -1661,7 +1642,6 @@ end_sizeof:;
                   iek_template_parameter);
       }
       break;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     case iek_template:
       {
         a_template_ptr ptr = (a_template_ptr)entry_ptr;
@@ -1670,7 +1650,6 @@ end_sizeof:;
 #if RECORD_TEMPLATE_STRINGS
         walk_string_ptr(ptr->text, iek_other_text, 0);
 #endif /* RECORD_TEMPLATE_STRINGS */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
         walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
         switch (ptr->kind) {
           case templk_none:
@@ -1700,7 +1679,6 @@ end_sizeof:;
         }  /* switch */
         remap_ptr(ptr->canonical_template, a_template_ptr, iek_template);
         remap_ptr(ptr->definition_template, a_template_ptr, iek_template);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         /* The template_info pointer should be NULL for any entry actually
            written and read. */
         clear_pointer_if_remapping(ptr->template_info);
@@ -2293,9 +2271,7 @@ after_entry_from_class:
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
         /* Fields to be processed even if the definition of the class is
            not to be processed: */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
         remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         walk_list(ptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
         walk_list(ptr->partial_spec_template_arg_list, a_template_arg_ptr,
@@ -2409,15 +2385,10 @@ after_entry_from_class:
         switch (ptr->kind) {
           case cik_virtual_base_class:
           case cik_direct_base_class:
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
             /* With prototype instantiations, there can be generated base
                class entries. */
             walk_ptr(ptr->variant.base_class, a_base_class_ptr,
                      iek_base_class);
-#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
-            remap_ptr(ptr->variant.base_class, a_base_class_ptr,
-                      iek_base_class);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
             break;
           case cik_field:
             remap_ptr(ptr->variant.field, a_field_ptr, iek_field);
@@ -2821,12 +2792,10 @@ of each kind.
                                         iek_eh_prologue_supplement);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* ifdef CFE */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   walk_orphan_entry_list_for_entry_kind(a_template_parameter_ptr,
                                         iek_template_parameter);
   walk_orphan_entry_list_for_entry_kind(a_template_decl_ptr,
                                         iek_template_decl);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   /* Note that no orphan list walking is needed for iek_source_sequence_entry
      nor for its subordinate entries like iek_src_seq_secondary_decl
      and iek_src_seq_end_of_construct, since such entries will

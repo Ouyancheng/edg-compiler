@@ -258,14 +258,11 @@ extern void form_lvalue_address_constant(
                           a_boolean                             need_parens,
                           an_il_to_str_output_control_block_ptr octl);
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 
 extern void remap_template_param(a_template_param_coordinate_ptr  coord,
                                  a_source_correspondence_ptr      scp);
 
 extern void unmap_template_param(a_template_param_coordinate_ptr  coord);
-
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 #endif /* ifndef IL_TO_STR_H */
 

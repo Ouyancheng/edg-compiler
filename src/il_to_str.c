@@ -141,10 +141,8 @@ Output an unsigned number in hexadecimal form, as indicated by octl.
 
 #endif /* DEBUG */
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 static a_source_correspondence_ptr source_corresp_for_template_param(
                                         a_template_param_coordinate_ptr coord);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 static void form_template(a_template_ptr	tp,
                           an_il_to_str_output_control_block_ptr octl)
@@ -157,7 +155,6 @@ by octl.
   a_source_correspondence_ptr scp = &tp->source_corresp;
   an_il_entry_kind            kind = iek_template;
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   /* See whether the template parameter name is remapped in the current
      context. */
   { a_source_correspondence_ptr new_scp;
@@ -167,7 +164,6 @@ by octl.
       kind = iek_template_parameter;
     }  /* if */
   }
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   /* If there is a special output routine for template names, use that.
      Otherwise go through the normal processing. */
   if (octl->output_template_name != NULL) {
@@ -850,7 +846,6 @@ end_of_routine:;
 
 #endif /* ifdef FFE */
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 /*
 Template parameters are primarily characterized by their coordinates: the
 template nesting depth at which they are introduced and the position in the
@@ -982,7 +977,6 @@ in the current context.
   return result;
 }  /* source_corresp_for_template_param */
 
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 static void form_type_specifier(a_type_ptr                            type,
                                 an_il_to_str_output_control_block_ptr octl)
@@ -1068,7 +1062,6 @@ by octl.
       {
         a_source_correspondence_ptr scp = &type->source_corresp;
         an_il_entry_kind            scp_kind = iek_type;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
         /* See whether the template parameter name is remapped in the current
            context. */
         if (type->variant.template_param.kind ==
@@ -1081,7 +1074,6 @@ by octl.
             scp_kind = iek_template_parameter;
           }  /* if */
         }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         form_name(scp, scp_kind, octl);
       }
       break;
@@ -3457,7 +3449,6 @@ precedence confusion.  Do the output in the way described by octl.
           {
             a_source_correspondence_ptr scp = &constant->source_corresp;
             an_il_entry_kind            scp_kind = iek_constant;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
             /* See whether the template parameter name is remapped in the
                current context. */
             if (constant->variant.template_param.kind ==
@@ -3470,7 +3461,6 @@ precedence confusion.  Do the output in the way described by octl.
                 scp_kind = iek_template_parameter;
               }  /* if */
             }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
             form_name(scp, scp_kind, octl);
           }
           break;

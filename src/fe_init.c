@@ -420,6 +420,10 @@ Install the keywords in the symbol table.
     if (explicit_keyword_enabled) {
       enter_keyword((a_token_kind)tok_explicit, "explicit");
     }  /* if */
+    /* Recognition of "export" as a keyword is disabled in certain modes. */
+    if (export_keyword_enabled) {
+      enter_keyword((a_token_kind)tok_export, "export");
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* keyword_init */
@@ -589,7 +593,7 @@ line processing is done.
   /* Do host-specific initialization.  This must be done first in this
      routine. */
   host_envir_early_init();
-  curr_command_line_macro_def = NULL;
+  cmd_line_early_init();
   depth_scope_stack = NO_SCOPE_DEPTH;
 #if NEAR_AND_FAR_ALLOWED
   il_header.near_and_far_are_enabled = DEFAULT_NEAR_AND_FAR_ENABLED;
@@ -804,11 +808,9 @@ source file's compilation.
      initialized in fe_early_init and changed if necessary in cmd_line.c. */
 #endif /* NEAR_AND_FAR_ALLOWED */
   il_header.UCN_identifiers_used = FALSE;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   il_header.il_has_all_prototype_instantiations =
                                             prototype_instantiations_in_il &&
                                             nonclass_prototype_instantiations;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT
   il_header.number_of_external_nonclass_template_entities = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */

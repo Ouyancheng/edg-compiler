@@ -195,9 +195,6 @@ Included from basic_hdrs.h in every compilation.
 extern int fileno(FILE *);
 /*lint -esym(526,fileno)*/
 #endif /* ifdef SOLARIS */
-#if !PROTOTYPE_INSTANTIATIONS_IN_IL
-/*lint -esym(756,a_source_correspondence_ptr)*/
-#endif /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -1114,6 +1114,11 @@ ec_det_during_compilation_of_secondary_trans_unit;INTERNAL;"detected during comp
 ec_compilation_of_secondary_trans_unit_context;INTERNAL;"compilation of secondary translation unit %sq"
 ec_field_cannot_involve_vla_type;;"a field declaration cannot have a type involving a variable length array"
 ec_entity_differs_in_other_trans_unit;;"declaration of %n had a different meaning during compilation of %sq"
+ec_exp_template;;"expected \"template\""
+ec_export_on_instantiation;;"\"export\" cannot be used on an explicit instantiation"
+ec_bad_decl_for_export;;"\"export\" cannot be used on this declaration"
+ec_exported_member_decl;;"a member declaration cannot be declared \"export\""
+ec_exported_in_unnamed_namespace;;"a member of an unnamed namespace cannot be declared \"export\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

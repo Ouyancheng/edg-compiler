@@ -339,6 +339,13 @@ typedef struct a_tmpl_decl_state {
   a_boolean	decl_scope_err;
 			/* TRUE if the template declaration is invalid in the
 			   current scope. */
+  a_boolean	export_present;
+			/* TRUE if the "export" keyword was used on the
+			   declaration. */
+  a_source_position
+		export_position;
+			/* If export_present is TRUE, the position of the
+			   export keyword. */
   an_access_specifier
 		access;
 			/* When the declaration appears in a class scope,
@@ -416,12 +423,10 @@ typedef struct a_tmpl_decl_state {
 			/* Source range information for the template
 			   definition (if any). */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   a_template_decl_ptr
 		template_decl;
 			/* IL representation of the template parameterization
 			   of the entity being declared. */
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 } a_tmpl_decl_state;
 
 /* Forward declaration. */
@@ -442,6 +447,8 @@ Initialize a template declaration state block.
   tdsp->defines_something = FALSE;
   tdsp->in_prototype_instantiation = FALSE;
   tdsp->decl_scope_err = FALSE;
+  tdsp->export_present = FALSE;
+  tdsp->export_position = null_source_position;
   tdsp->access = (an_access_specifier)as_public;
   tdsp->nesting_depth = 0;
   tdsp->final_token_ptr = NULL;
@@ -462,9 +469,7 @@ Initialize a template declaration state block.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   tdsp->definition_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   tdsp->template_decl = NULL;
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 }  /* init_templ_decl_state */
 
 
@@ -603,20 +608,21 @@ the "text" field of *template_ptr to point to it.
 
 #endif /* RECORD_TEMPLATE_STRINGS */
 
-static a_template_ptr make_il_template_entry(a_source_position *start_pos)
+static a_template_ptr make_il_template_entry(a_tmpl_decl_state_ptr decl_state)
 /*  
-Allocate an IL template entry.  The source position specified by start_pos
-(which should be the first tok_template keyword of the declaration) serves
-as the decl_position of the template declaration as a whole.  Don't add the
-entry to the templates list of its scope: the appropriate scope is not known
-for sure yet, since this may be a friend template.
+Allocate an IL template entry.  Don't add the entry to the templates list
+of its scope: the appropriate scope is not known for sure yet, since this
+may be a friend template.
 */
 {
   a_template_ptr  tp;
 
   db_enter(3, "make_il_template_entry");
   tp = alloc_template();
-  tp->source_corresp.decl_position = *start_pos;
+  tp->source_corresp.decl_position = decl_state->start_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  tp->export_position = decl_state->export_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (depth_scope_stack == depth_innermost_namespace_scope) {
     /* Set the source-sequence insert point for instantiations to NULL -- no
@@ -2633,9 +2639,9 @@ user later during real instantiations.
 }  /* function_prototype_instantiation */
 
 
-#if !(PROTOTYPE_INSTANTIATIONS_IN_IL && GENERATE_SOURCE_SEQUENCE_LISTS)
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* update_declared_type is not used in this case. */
-#endif /* !(PROTOTYPE_INSTANTIATIONS_IN_IL && GENERATE_...) */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 void default_arg_prototype_instantiation(
 	a_symbol_ptr				template_sym,
 	a_def_arg_expr_fixup_ptr		def_arg_list,
@@ -2703,7 +2709,7 @@ user later during real instantiations.
     /* The routine that rescans the default argument ensures that we have
        reached the end of the token cache. */
   }  /* for */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL && GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   if (update_declared_type && prototype_instantiations_in_il &&
       def_arg_list != NULL) {
     /* The IL representation for the default arguments should be added to
@@ -2726,7 +2732,7 @@ user later during real instantiations.
                          tssp->variant.function.routine->type, declared_type);
     }  /* if */
   }  /* if */
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL && GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif  /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
 }  /* default_arg_prototype_instantiation */
 
@@ -3335,9 +3341,7 @@ and the class instantiation will detect the runaway case.
   var_ptr->is_template_static_data_member = TRUE;
   /* Note that Microsoft decl_modifiers are not processed on static
      data member definitions.  Microsoft does not allow this either. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   var_ptr->assoc_template = tssp->il_template_entry;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 done:
   /* The already instantiated flag is set even if certain error conditions
      exist (such as runaway instantiation), to prevent the compiler from
@@ -3873,7 +3877,6 @@ prototype instantiation is considered as a potential match.
        pop_scope, as with ordinary classes. */
     ctsp = class_type->variant.class_struct_union.extra_info;
     ctsp->template_arg_list = *new_list;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
     {
       /* For certain classes (like X<int>::Y<T>) the prototype instantiation
          must be fetched from the prototype template (e.g., X<T>::Y).  Hence
@@ -3882,7 +3885,6 @@ prototype instantiation is considered as a potential match.
       ctsp->assoc_template =
                       proto_template->variant.template_info->il_template_entry;
     }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     set_source_corresp(&(class_type->source_corresp), sym);
     set_membership_in_source_corresp(&(class_type->source_corresp), sym);
     if (sym->is_class_member) {
@@ -6987,9 +6989,7 @@ type based on the template argument list and the template parameter list
     rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
     rp->source_corresp.access = templ_rout->source_corresp.access;
     rp->template_arg_list = templ_arg_list;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
     rp->assoc_template = tssp->il_template_entry;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if DECL_MODIFIERS_IN_USE
     {
     a_decl_modifiers_block  decl_modifiers;
@@ -7708,12 +7708,10 @@ and create a function instantiation entry to bind the two symbols together.
     rout_sym->variant.routine.instance_ptr = tip;
     /* Mark the routine entry as an instance of a member function template. */
     rout_sym->variant.routine.ptr->is_template_function = TRUE;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
     /* A placeholder a_template entry was created in the prototype
        instantiation.  It serves as the associated "template". */
     rout_sym->variant.routine.ptr->assoc_template =
                                      sym->variant.routine.ptr->assoc_template;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }
 error_exit:
   db_exit();
@@ -7806,12 +7804,10 @@ Also, add the instance to the definitions list for the template.
     /* Mark the variable entry as an instance of a static data member
        template. */
     vp->is_template_static_data_member = TRUE;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
     /* A placeholder a_template entry was created in the prototype
        instantiation.  It serves as the associated "template". */
     vp->assoc_template =
                      sym->variant.static_data_member.variable->assoc_template;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   db_exit();
 }  /* find_static_data_member_template */
@@ -8493,25 +8489,26 @@ any classes that declared the nested class as a template friend.
         /* Update the friend information associated with this template.
            These are the classes that declared this template as a friend. */
         update_befriending_classes_for_class(tssp, class_type);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
         /* A placeholder a_template entry was created in the prototype
            instantiation.  It serves as the associated "template". */
         class_type->variant.class_struct_union.extra_info->assoc_template =
              ct_symbol->variant.class_struct_union.type
                       ->variant.class_struct_union.extra_info->assoc_template;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       } /* if */
     } else {
       /* A nested class within a prototype instantiation. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
       /* Although this is not a template, it is an instantiatable class and
          hence we create a placeholder a_template entry for it. */
-      a_template_ptr  templ = alloc_template();
+      a_template_symbol_supplement_ptr	tssp;
+      a_type_ptr			parent_class;
+      a_template_ptr			templ = alloc_template();
+      parent_class = class_type->source_corresp.parent.class_type;
       templ->kind = (a_template_kind)templk_member_class;
       set_source_corresp(&templ->source_corresp, sym);
-      set_class_membership((a_symbol_ptr)NULL, &templ->source_corresp,
-                           class_type->source_corresp.parent.class_type);
+      set_class_membership_for_template((a_symbol_ptr)NULL, templ,
+                                        parent_class);
       templ->source_corresp.access = class_type->source_corresp.access;
+      templ->is_exported = class_is_exported(parent_class);
       add_to_templates_list(templ, depth_scope_stack);
       if (prototype_instantiations_in_il) {
         templ->prototype_instantiation.type = class_type;
@@ -8522,10 +8519,12 @@ any classes that declared the nested class as a template friend.
       }  /* if */
       class_type->variant.class_struct_union.extra_info->assoc_template =
                                                                         templ;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       /* A nested class within a prototype instantiation.  Create the
          template symbol supplement for this class. */
       make_nested_class_template_supplement(sym, type_kind);
+      tssp = template_supplement_for_symbol(sym);
+      /* A NULL template supplement can be returned in certain error cases. */
+      if (tssp != NULL) tssp->il_template_entry = templ;
     }  /* if */
   }  /* if */
 }  /* set_nested_template_class_symbol_info */
@@ -8822,12 +8821,10 @@ initially used when processing the declaration of a partial specialization.
     set_membership_in_source_corresp(&(prototype_type->source_corresp),
                                      prototype_sym);
     prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (prototype_instantiations_in_il) {
       add_to_types_list(prototype_type, NO_SCOPE_DEPTH);
     }  /* if */
     prototype_ctsp->assoc_template = decl_state->il_template_entry;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     /* Use the name linkage saved at the point of the original template
        declaration. */
     prototype_type->source_corresp.name_linkage =
@@ -9222,6 +9219,57 @@ done:;
 }  /* skip_illegal_class_template_decl_specifiers */
 
 
+static void set_il_template_entry(
+			a_tmpl_decl_state_ptr			decl_state,
+			a_symbol_ptr				sym,
+			a_template_symbol_supplement_ptr	tssp)
+/*
+If this is the initial declaration, save a pointer to the IL template
+entry in the template symbol supplement of sym.
+*/
+{
+
+  if (sym != NULL) {
+    check_assertion(decl_state->il_template_entry != NULL);
+    if (decl_state->il_template_entry->source_corresp.assoc_info == NULL) {
+      /* Set the source correspondence if it has not already been set. */
+      set_source_corresp(&decl_state->il_template_entry->source_corresp, sym);
+    }  /* if */
+    /* If this is initial declaration, update the template symbol supplement
+       to point to the IL entry . */
+    if (tssp->il_template_entry == NULL) {
+      tssp->il_template_entry = decl_state->il_template_entry;
+    }  /* if */
+  }  /* if */
+}  /* set_il_template_entry */
+
+
+static void update_export_flag_for_class(
+			a_tmpl_decl_state_ptr			decl_state,
+			a_template_symbol_supplement_ptr	tssp)
+/*
+tssp is the template symbol supplement for a class template or a nested
+class of a class template.  Its is_exported flag may or may not have
+been set by a previous declaration.  Update it to reflect an export
+keyword present on the current declaration or an export keyword that
+may have been present when the enclosing class was declared.
+*/
+{
+  if (tssp != NULL && !tssp->il_template_entry->is_exported) {
+    /* A class template or nested class is exported if declared as
+       exported or if the enclosing class was declared as exported. */
+    a_boolean	new_value = FALSE;
+    if (decl_state->class_declared_in != NULL) {
+      if (class_is_exported(decl_state->class_declared_in)) {
+        new_value = TRUE;
+      }  /* if */
+    }  /* if */
+    if (decl_state->export_present) new_value = TRUE;
+    tssp->il_template_entry->is_exported = new_value;
+  }  /* if */
+}  /* update_export_flag_for_class */
+
+
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
 		         a_symbol_ptr          *p_sym_ptr,
@@ -9264,9 +9312,9 @@ instantiation.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_extended_decl_info_block       extended_decl_info;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                         saved_sses_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "class_template_declaration");
   if (curr_token == tok_typedef || curr_token == tok_auto ||
@@ -9731,8 +9779,12 @@ instantiation.
     /* Normally, a template has C++ linkage. */
     tssp->variant.class_template.name_linkage =
                             (a_name_linkage_kind)nlk_cplusplus_external;
+    /* Save the IL template entry pointer for this symbol. */
+    set_il_template_entry(decl_state, sym, tssp);
     is_redecl = FALSE;
   }  /* if */
+  /* Make sure the is_exported flag is set properly. */
+  update_export_flag_for_class(decl_state, tssp);
   if (is_definition) {
     /* Save the type kind (corresponding to the class/struct/union token)
        in the class template symbol's supplement -- it will be needed when
@@ -9801,14 +9853,14 @@ instantiation.
        partial specialization template argument list. */
     check_partial_spec_template_param_usage(decl_state, sym);
   }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   if (prototype_instantiations_in_il) {
     /* Prevent the generation of a source sequence entry for the a_template
        entry since we have one for the recorded prototype instantiation. */
     saved_sses_disallowed = source_sequence_entries_disallowed;
     source_sequence_entries_disallowed = TRUE;
   }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (is_definition) {
     a_token_sequence_number   first_token_number = curr_token_sequence_number;
     a_token_sequence_number   last_token_number = NO_TOKEN_SEQUENCE_NUMBER;
@@ -9890,13 +9942,13 @@ instantiation.
     /* This is not a class template definition, so we have no need to
        cache the tokens. */
   }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   if (prototype_instantiations_in_il) {
     /* Restore the previous state wrt. the generation of source sequence
        entries. */
     source_sequence_entries_disallowed = saved_sses_disallowed;
   }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (sym != NULL) {
     if (sym->kind == (a_symbol_kind)sk_class_template &&
         is_definition && tssp->cache.decl_info != NULL) {
@@ -10655,13 +10707,11 @@ parameter entry for the parameter.
   templ_ptr = alloc_template();
   set_source_corresp(&templ_ptr->source_corresp, sym);
   templ_ptr->kind = (a_template_kind)templk_template_template_param;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (prototype_instantiations_in_il) {
     /* Keep a record of the parameterization structure.  (Needed, e.g., in the
        C++-generating back end.) */
     templ_ptr->template_decl = local_decl_state.template_decl;
   }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (!is_named) {
     /* Reset the name in the source correspondence entry.  An unnamed
        parameter is represented by NULL, not "<unnamed>" as indicated
@@ -11245,10 +11295,8 @@ set, and its source sequence entry, if any, has been put out.)
 {
   a_boolean       err = FALSE;
   a_template_ptr  il_template_entry = decl_state->il_template_entry;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   a_symbol_ptr                      proto_sym = NULL;
   a_template_symbol_supplement_ptr  tssp = NULL;
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
   if (il_template_entry != NULL) {
     if (sym != NULL) {
@@ -11256,7 +11304,6 @@ set, and its source sequence entry, if any, has been put out.)
       switch (sym->kind) {
         case sk_class_template:
           il_template_entry->kind = (a_template_kind)templk_class;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
           proto_sym = prototype_template_of(sym);
           tssp = template_supplement_for_symbol(proto_sym);
           if (prototype_instantiations_in_il) {
@@ -11273,11 +11320,9 @@ set, and its source sequence entry, if any, has been put out.)
                but only the first one is a true prototype instantiation. */
             tssp->il_template_entry->definition_template = il_template_entry;
           }  /* if */
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case sk_function_template:
           il_template_entry->kind = (a_template_kind)templk_function;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
           proto_sym = prototype_template_of(sym);
           tssp = template_supplement_for_symbol(proto_sym);
           if (prototype_instantiations_in_il) {
@@ -11291,11 +11336,9 @@ set, and its source sequence entry, if any, has been put out.)
           if (decl_state->defines_something) {
             tssp->il_template_entry->definition_template = il_template_entry;
           }  /* if */
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case sk_member_function:
           il_template_entry->kind = (a_template_kind)templk_member_function;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
           if (prototype_instantiations_in_il) {
             il_template_entry->prototype_instantiation.routine =
                                                      sym->variant.routine.ptr;
@@ -11308,11 +11351,9 @@ set, and its source sequence entry, if any, has been put out.)
             il_template_entry->canonical_template->definition_template =
                                                             il_template_entry;
           }  /* if */
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case sk_static_data_member:
           il_template_entry->kind = (a_template_kind)templk_static_data_member;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
           if (prototype_instantiations_in_il) {
             il_template_entry->prototype_instantiation.variable =
                                      sym->variant.static_data_member.variable;
@@ -11325,13 +11366,11 @@ set, and its source sequence entry, if any, has been put out.)
                      sym->variant.static_data_member.variable->assoc_template;
           il_template_entry->canonical_template->definition_template =
                                                             il_template_entry;
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case sk_class_or_struct_tag:
         case sk_union_tag:
           check_assertion(sym->is_class_member);
           il_template_entry->kind = (a_template_kind)templk_member_class;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
           if (prototype_instantiations_in_il) {
             il_template_entry->prototype_instantiation.type =
                                                         type_symbol_type(sym);
@@ -11345,7 +11384,6 @@ set, and its source sequence entry, if any, has been put out.)
             il_template_entry->canonical_template->definition_template =
                                                             il_template_entry;
           }  /* if */
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         default:
           /* There must have been an error.  Do the check because we don't
@@ -11356,16 +11394,9 @@ set, and its source sequence entry, if any, has been put out.)
       if (!err || sym->is_error) {
         /* Set parent information in the IL entry. */
         if (sym->is_class_member) {
-          if (!sym->parent.class_type->
-                                variant.class_struct_union.is_nonreal_class ||
-             prototype_instantiations_in_il) { 
-            /* The parent pointer is not set for prototype instantiation
-               members because the parent class will not be written to the
-               IL file. */
-            set_class_membership((a_symbol_ptr)NULL,
-                                 &il_template_entry->source_corresp,
-                                 sym->parent.class_type);
-          }  /* if */
+          set_class_membership_for_template((a_symbol_ptr)NULL,
+                                            il_template_entry,
+                                            sym->parent.class_type);
         } else if (sym->parent.namespace_ptr != NULL) {
           set_namespace_membership((a_symbol_ptr)NULL,
                                    &il_template_entry->source_corresp,
@@ -11428,16 +11459,10 @@ set, and its source sequence entry, if any, has been put out.)
           default:;
         }  /* switch */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-
-#if !PROTOTYPE_INSTANTIATIONS_IN_IL
-        if (!decl_state->in_prototype_instantiation)
-#endif  /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
-        {
-          /* Add the IL template entry to the templates list of the
-             appropriate scope. */
-          add_to_templates_list(il_template_entry,
-                                decl_state->effective_decl_level);
-        }  /* if */
+        /* Add the IL template entry to the templates list of the
+           appropriate scope. */
+        add_to_templates_list(il_template_entry,
+                              decl_state->effective_decl_level);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -11618,6 +11643,10 @@ returned to the caller.
     set_template_cache_info(&tssp->cache, p_token_cache,
                             decl_state->decl_info);
     mark_defined(sym, &locator->source_position);
+    check_assertion(tssp->il_template_entry != NULL);
+    if (decl_state->export_present) {
+      tssp->il_template_entry->is_exported = TRUE;
+    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Restore the previous state wrt. the generation of source sequence
        entries. */
@@ -11948,6 +11977,7 @@ caller.
   a_template_symbol_supplement_ptr tssp = NULL;
   a_template_param_ptr             template_param_list =
                                            decl_state->decl_info->parameters;
+  a_routine_ptr			   rout_ptr = NULL;
 
   if (!err && !is_function_or_template_symbol(sym)) {
     /* The symbol is something other than a function symbol.  Issue
@@ -11960,7 +11990,10 @@ caller.
   /* If some kind of error has occurred, set the decl_scope_err flag
      to suppress subsequent errors. */
   if (err) decl_state->decl_scope_err = TRUE;
-  if (sym != NULL) tssp = template_supplement_for_symbol(sym);
+  if (sym != NULL) {
+    tssp = template_supplement_for_symbol(sym);
+    rout_ptr = tssp->variant.function.routine;
+  }  /* if */
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_function_template) {
     if (sym->is_class_member && !decl_state->is_template_friend) {
       if (decl_state->in_prototype_instantiation) {
@@ -11984,6 +12017,19 @@ caller.
       /* Information about friend declarations is saved during the prototype
          instantiation of a class and reused during real instantiations. */
       set_or_find_prototype_friend_info(decl_state, sym, tssp);
+    }  /* if */
+  }  /* if */
+  if (sym != NULL) {
+    /* Save the IL template entry pointer for this symbol. */
+    set_il_template_entry(decl_state, sym, tssp);
+    /* Update the exported flag, if necessary. */
+    if (rout_ptr->is_inline) {
+      /* An inline function cannot be exported.  Clear the flag if it was
+         set earlier. */
+      tssp->il_template_entry->is_exported = FALSE;
+    } else if (decl_state->export_present) {
+      /* Export was specified on this declaration.  Set the flag. */
+      tssp->il_template_entry->is_exported = TRUE;
     }  /* if */
   }  /* if */
   /* Make sure that the template parameter list is compatible with
@@ -12043,14 +12089,12 @@ caller.
                               &decl_state->decl_token_cache,
                               decl_state->decl_info);
       decl_state->decl_token_cache_used = TRUE;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
       /* Set the assoc_template field of the prototype instantiation routine
          entry. */
       { a_template_ptr	templ;
         templ = decl_state->il_template_entry;
         tssp->variant.function.routine->assoc_template = templ;
       }
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     }  /* if */
     if (decl_state->defines_something || 
         tssp->cache.decl_info == NULL) {
@@ -12334,7 +12378,6 @@ instantiation, then you don't know what X is.
   db_exit();
 }  /* prescan_nonclass_template_declaration */
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
 
 static a_template_decl_ptr make_template_decl(a_template_param_ptr tp_list)
 /*
@@ -12387,7 +12430,6 @@ information gathered in the front end structures.
   return result;
 }  /* make_template_decl */
 
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 static void scan_template_param_clauses(
 				a_tmpl_decl_state_ptr	decl_state,
@@ -12415,10 +12457,8 @@ information).  See the definition of a_tmpl_decl_state for details.
   a_template_decl_info_ptr	    prev_template_decl_info = NULL;
   a_template_decl_info_ptr	    template_decl_info = NULL;
   a_boolean                    param_list_seen = FALSE;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   a_source_position            template_pos;
   a_template_decl_ptr          template_decl;
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
   /* Loop until there are no more template parameter clauses.  Note that
      this routine is not called for explicit instantiations, in which
@@ -12431,9 +12471,7 @@ information).  See the definition of a_tmpl_decl_state for details.
     /* Bypass "template".  The next token should be "<".  This is done
        before the scope is pushed so that any pragma associated with the
        tok_template token will be processed in the current scope. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
     template_pos = pos_curr_token;
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     (void)get_token();
     if (curr_token == tok_lt) {
       /* Bypass the "<". */
@@ -12465,7 +12503,6 @@ information).  See the definition of a_tmpl_decl_state for details.
         /* Record that a template parameter list has been seen.  A
            subsequent missing parameter list is an error. */
         param_list_seen = TRUE;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
         if (prototype_instantiations_in_il) {
           template_decl =
                         make_template_decl(decl_state->decl_info->parameters);
@@ -12477,7 +12514,6 @@ information).  See the definition of a_tmpl_decl_state for details.
           }  /* if */
           decl_state->template_decl = template_decl;
         }  /* if */
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       } else if (is_template_param) {
         /* A template parameter declaration with a missing template
            parameter list. */
@@ -12495,7 +12531,6 @@ information).  See the definition of a_tmpl_decl_state for details.
         }  /* if */
         /* Bypass the ">". */
         (void)get_token();
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
         if (prototype_instantiations_in_il) {
           template_decl = make_template_decl(/*tp_list=*/NULL);
           template_decl->template_pos = template_pos;
@@ -12506,7 +12541,6 @@ information).  See the definition of a_tmpl_decl_state for details.
           }  /* if */
           decl_state->template_decl = template_decl;
         }  /* if */
-#endif  /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       }  /* if */
     } else {
       error(ec_missing_template_param_list);
@@ -12755,15 +12789,12 @@ any non-empty template parameter lists that were scanned.
       free_pending_pragma_list(decl_state->pragmas_bound_to_template);
     }  /* if */
   }
-  if (tssp != NULL ) {
-    check_assertion(decl_state->il_template_entry != NULL);
-    set_source_corresp(&decl_state->il_template_entry->source_corresp, sym);
-    /* If this is initial declaration, update the template symbol supplement
-       to point to the IL entry . */
-    if (tssp->il_template_entry == NULL) {
-      tssp->il_template_entry = decl_state->il_template_entry;
-    }  /* if */
-  }  /* if */
+  check_assertion_str2(tssp == NULL || tssp->il_template_entry != NULL,
+                       "template_declaration:", "il_template_entry not set");
+  /* The IL template entry should already be set to point to the initial
+     declaration.  In case this is a redeclaration, set the source
+     correspondence for this template entry. */
+  set_il_template_entry(decl_state, sym, tssp);
   if (is_class_template) {
     if (!decl_state->decl_scope_err && decl_state->defines_something) {
       a_type_ptr	prototype_type;
@@ -12778,9 +12809,7 @@ any non-empty template parameter lists that were scanned.
         /* Do a "prototype instantiation" of the class template -- i.e., parse
            the declarative information looking for gross syntax errors. */
         prototype_okay = TRUE;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
         assoc_template_of(prototype_type) = tssp->il_template_entry;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         instantiate_class_template(sym, prototype_type,
                                    &class_templ_cache_segments, decl_state);
         prototype_type->source_corresp.decl_position = sym->decl_position;
@@ -13632,7 +13661,10 @@ differs between function and nonfunction declarations.
 }  /* decl_level_of_template */
 
 
-static void template_or_specialization_declaration(a_token_kind  *final_token)
+static void template_or_specialization_declaration(
+				a_token_kind		*final_token,
+				a_boolean		export_present,
+				a_source_position	*export_pos)
 /*
 Scan a template declaration of a template specialization declaration.
 
@@ -13642,6 +13674,10 @@ a real function or class and not a template.  In a full specialization
 all of the template parameter clauses contain empty template parameter
 lists (e.g., "template <>").  Declarations that are not full specializations
 are either the specialization of a template or a template declaration.
+
+export_present is TRUE if the template keyword was preceded by "export".
+If export_present is TRUE, export_pos is the position of the export
+keyword.
 */
 {
   a_tmpl_decl_state		decl_state;
@@ -13658,6 +13694,8 @@ are either the specialization of a template or a template declaration.
      list will later be associated with the template and applied to
      each instance generated from the template. */
   decl_state.pragmas_bound_to_template = extract_curr_construct_pragmas();
+  decl_state.export_present = export_present;
+  decl_state.export_position = *export_pos;
   saved_curr_default_args = curr_default_args;
   curr_default_args = NULL;
   decl_state.start_pos = pos_curr_token;
@@ -13690,6 +13728,15 @@ are either the specialization of a template or a template declaration.
        of the processing. */
     decl_state.effective_decl_level = depth_scope_stack;
   }  /* if */
+  if (export_present) {
+    if (decl_state.is_member_decl) {
+      /* Member declarations cannot be declared export. */
+      pos_error(ec_exported_member_decl, export_pos);
+    } else if (scope_stack[depth_scope_stack].within_unnamed_namespace) {
+      /* A template in an unnamed namespace cannot be declared export. */
+      pos_error(ec_exported_in_unnamed_namespace, export_pos);
+    }  /* if */
+  }  /* if */
   if (decl_state.is_full_specialization) {
     /* No IL template entry required. */
   } else {
@@ -13698,8 +13745,7 @@ are either the specialization of a template or a template declaration.
        IL entries are usually not created for templates found during prototype
        instantiation of other templates because they will be included in
        the template string of the enclosing template. */
-    decl_state.il_template_entry =
-                               make_il_template_entry(&decl_state.start_pos);
+    decl_state.il_template_entry = make_il_template_entry(&decl_state);
   }  /* if */
   /* Scan one or more template parameter lists.  Each template parameter
      list looks like "template < param-list >".  The param-list is
@@ -13726,6 +13772,10 @@ are either the specialization of a template or a template declaration.
   }  /* if */
   if (decl_state.is_full_specialization) {
     /* The entity being declared is a full specialization. */
+    if (export_present) {
+      /* A full specialization cannot be exported. */
+      pos_error(ec_bad_decl_for_export, export_pos);
+    }  /* if */
     full_specialization(&decl_state);
   } else {
     /* The entity being declared is a template. */
@@ -16547,8 +16597,11 @@ caller.  For diagnostics, the kind of token expected (semicolon or right
 brace) is returned in *final_token.  options is a bit set of option flags.
 */
 {
+  a_boolean		export_present = FALSE;
+  a_source_position	export_pos = null_source_position;
+
   db_enter(3, "template_directive_or_declaration");
-  check_assertion(curr_token == tok_template);
+  check_assertion(curr_token == tok_template || curr_token == tok_export);
   /* Templates are outside the "Embedded C++" subset. */
   feature_is_not_part_of_embedded_cplusplus_subset(
                                           &pos_curr_token,
@@ -16556,7 +16609,26 @@ brace) is returned in *final_token.  options is a bit set of option flags.
   /* Caller should have initialized *final_token; it is changed to tok_rbrace
      if appropriate. */
   check_assertion(*final_token == tok_semicolon);
-  if (next_token() == tok_lt) {
+  /* Check for the presence of the "export" keyword. */
+  if (curr_token == tok_export) {
+    export_present = TRUE;
+    export_pos = pos_curr_token;
+    (void)get_token();
+  }  /* if */
+  if (curr_token != tok_template) {
+    /* An export keyword not followed by "template". */
+    add_stop_token(tok_semicolon);
+    add_stop_token(tok_rbrace);
+    syntax_error(ec_exp_template);
+    remove_stop_token(tok_rbrace);
+    remove_stop_token(tok_semicolon);
+    /* If we stopped on a right brace, but it is followed by a semicolon,
+       advance to the semicolon. */
+    if (curr_token == tok_rbrace && next_token() == tok_semicolon) {
+      (void)get_token();
+    }  /* if */
+    *final_token = curr_token;
+  } else if (next_token() == tok_lt) {
     /* The template keyword is followed by a template parameter list.
        This is a template declaration or a specialization using the new
        specialization syntax. */
@@ -16580,7 +16652,8 @@ brace) is returned in *final_token.  options is a bit set of option flags.
       ssep->name_linkage_is_explicit = FALSE;
     }  /* if */
     /* Scan the declaration. */
-    template_or_specialization_declaration(final_token);
+    template_or_specialization_declaration(final_token, export_present,
+                                           &export_pos);
     if (err) {
       /* Restore the linkage. */
       ssep->default_name_linkage = saved_name_linkage;
@@ -16589,6 +16662,10 @@ brace) is returned in *final_token.  options is a bit set of option flags.
   } else {
     /* There is no template parameter list, this must be an explicit
        instantiation. */
+    if (export_present) {
+      /* An explicit instantiation cannot be exported. */
+      pos_error(ec_export_on_instantiation, &export_pos);
+    }  /* if */
     explicit_instantiation(options);
   }  /* if */
   db_exit();
