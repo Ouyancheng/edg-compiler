@@ -6284,8 +6284,11 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
          dropped. */
       result_type = make_unqualified_type(operand_1->type);
       /* It's okay for operand_2 to be an indefinite function. */
+      /* Do not force operand_2 to an rvalue; in C++ there are cases where
+         a conversion might apply and might require an lvalue. */
       do_operand_transformations(&operand_2,
-                                 TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION,
+                                 TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION |
+                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION,
                                  expression_kind);
       prep_assignment_operand(&operand_2, result_type, expression_kind,
                               ec_incompatible_operands, &operator_position);
