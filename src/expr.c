@@ -5242,11 +5242,16 @@ and type is the type of the argument to be extracted.
   /* Scan the type. */
   type_position = pos_curr_token;
   type_name(&type);
-  /* The type is not allowed to be an array, function, or reference type. */
   if (is_function_type(type) ||
       is_array_type(type) ||
       is_reference_type(type)) {
+    /* The type is not allowed to be an array, function, or reference type. */
     pos_error(ec_bad_va_arg, &type_position);
+    err = TRUE;
+  } else if (!identical_types(type, default_argument_promotion(type))) {
+    /* The type must possibly be obtained after default promotion. */
+    pos_ty2_error(ec_va_arg_would_have_been_promoted, &type_position,
+                  type, default_argument_promotion(type));
     err = TRUE;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
