@@ -1342,6 +1342,9 @@ values.
   operand->is_simple_string_literal = FALSE;
   operand->is_cfront_null_pointer_constant = FALSE;
   operand->is_using_decl_name = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  operand->is_microsoft_noop = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if RECORD_FORM_OF_NAME_REFERENCE
   operand->name_reference_set = FALSE;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */

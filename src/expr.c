@@ -525,6 +525,11 @@ transformations are done in all cases.
                operand->variant.constant.kind ==
                                      (a_constant_repr_kind)ck_template_param) {
       suppress_warning = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (operand->is_microsoft_noop) {
+      /* No warning for __noop(...), which does nothing by definition. */
+      suppress_warning = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   } else {
     /* For an expression, traverse the tree to see if it has side effects
@@ -1281,8 +1286,10 @@ Syntax:
                     opening_paren_tok_seq_number;
   a_boolean         unknown_dependent_function = FALSE;
   a_symbol_ptr      member_func_sym = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean         ignore_call = FALSE;
   a_boolean         saved_evaluated, saved_potentially_evaluated;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_function_call");
 
@@ -1491,6 +1498,7 @@ Syntax:
         routine_type = NULL;
         routine = NULL;
         unknown_dependent_function = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (!C_mode() && microsoft_mode &&
                  is_constant_operand(operand) &&
                  is_zero_constant(&operand->variant.constant)) {
@@ -1503,6 +1511,7 @@ Syntax:
         saved_potentially_evaluated = expr_stack->potentially_evaluated;
         expr_stack->evaluated = FALSE;
         expr_stack->potentially_evaluated = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (check_function_pointer_operand(operand)) {
         routine_type = type_pointed_to(operand->type);
         /* If we can tell which routine is being called, set routine to
@@ -1706,11 +1715,14 @@ Syntax:
                                    type_of_unknown_templ_param_nontype,
                                    function_node);
     make_expression_operand(call_node, call_node->type, result);
+#if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (ignore_call) {
     /* Ignore a call of the form 0(x) -- copy the zero to the result. */
     copy_operand(operand, result);
+    result->is_microsoft_noop = TRUE;
     expr_stack->evaluated = saved_evaluated;
     expr_stack->potentially_evaluated = saved_potentially_evaluated;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Build the call node and an operand for it. */
     assemble_function_call(operand, bound_function_selector, argument_list,
@@ -5206,6 +5218,7 @@ not evaluated.  This is used for disabled debug functions, e.g.,
 
   dbprint("%d", i);
 
+This is allowed in both Microsoft C and C++ modes.
 */
 {
   a_source_position   start_position;
@@ -5239,6 +5252,7 @@ not evaluated.  This is used for disabled debug functions, e.g.,
   }  /* if */
   /* The value of __noop is an int 0. */
   make_integer_constant_operand(result, (a_host_large_integer)0L);
+  result->is_microsoft_noop = TRUE;
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
   pop_expr_stack();

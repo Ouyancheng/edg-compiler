@@ -287,6 +287,12 @@ typedef struct an_operand {
   a_bit_field	is_using_decl_name:1;
 			/* TRUE if the operand was generated from a name
 			   that was declared in a using-declaration. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	is_microsoft_noop:1;
+			/* TRUE if the operand came from a Microsoft __noop.
+			   This is used to suppress the warning that the
+			   code has no effect. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if RECORD_FORM_OF_NAME_REFERENCE
   a_bit_field	name_reference_set:1;
 			/* TRUE if name_reference has been set. */
