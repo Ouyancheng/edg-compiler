@@ -234,6 +234,11 @@ static void gen_cast(a_type_ptr type);
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens);
 /* Interfaces to gen_expr for the usual cases. */
+/* Note that gen_expr_with_parens does not force parentheses around the
+   expression; it puts them there if there's some possibility of
+   precedence confusion.  gen_expression never puts parentheses
+   around the expression (it's used in contexts that have already
+   provided parentheses or the like). */
 #define gen_expr_with_parens(expr) gen_expr(expr, /*need_parens=*/TRUE)
 #define gen_expression(expr)       gen_expr(expr, /*need_parens=*/FALSE)
 static void gen_boolean_controlling_expression(an_expr_node_ptr expr);
@@ -1037,17 +1042,48 @@ Write a temporary name generated from the given IL pointer.
 }  /* gen_temp_name */
 
 
-/* Interface routines to gen_name. */
-#define gen_routine_name(routine) gen_name(&(routine)->source_corresp)
-#define gen_constant_name(constant) gen_name(&(constant)->source_corresp)
-#define gen_type_name(type) gen_name(&(type)->source_corresp)
-#define gen_field_name(field) gen_name(&(field)->source_corresp)
+static void gen_unqualified_name(a_source_correspondence *scp)
+/*
+Output the name of the entity whose source correspondence information
+is given by scp.  If the entity is unnamed, generate a name.  Never
+generate a qualified name.
+*/
+{
+  char *name = scp->name;
+
+  if (name == NULL) {
+    /* For entities without names, create a name. */
+    gen_temp_name((char *)scp);
+  } else {
+    m_write_tok_str(name);
+  }  /* if */
+}  /* gen_unqualified_name */
+
+
+static void gen_class_qualifier(a_type_ptr class_type)
+/*
+Generate a class qualifier (e.g., "A::B::") that identifies the indicated
+class type.
+*/
+{
+  a_type_ptr parent_class = class_type->source_corresp.class_of_which_a_member;
+
+  /* Use recursion to handle multiple levels of nesting. */
+  if (parent_class != NULL) {
+    gen_class_qualifier(parent_class);
+  }  /* if */
+  /* Do the last level. */
+  gen_unqualified_name(&class_type->source_corresp);
+  write_tok_str("::");
+}  /* gen_class_qualifier */
 
 
 static void gen_name(a_source_correspondence *scp)
 /*
 Output the name of the entity whose source correspondence information
-is given by scp.  If the entity is unnamed, generate a name.
+is given by scp.  If the entity is unnamed, generate a name.  If the
+entity is a class member, generate a qualified name (if required in the
+current name context).
 */
 {
   char       *name = scp->name;
@@ -1061,10 +1097,7 @@ is given by scp.  If the entity is unnamed, generate a name.
     if (curr_name_context_is_class(class_type)) {
       qualifier_needed = FALSE;
     }  /* if */
-    if (qualifier_needed) {
-      gen_type_name(class_type);
-      write_tok_str("::");
-    }  /* if */
+    if (qualifier_needed) gen_class_qualifier(class_type);
   }  /* if */
   if (name == NULL) {
     /* For entities without names, create a name. */
@@ -1073,6 +1106,13 @@ is given by scp.  If the entity is unnamed, generate a name.
     m_write_tok_str(name);
   }  /* if */
 }  /* gen_name */
+
+
+/* Interface routines to gen_name. */
+#define gen_routine_name(routine) gen_name(&(routine)->source_corresp)
+#define gen_constant_name(constant) gen_name(&(constant)->source_corresp)
+#define gen_type_name(type) gen_name(&(type)->source_corresp)
+#define gen_field_name(field) gen_unqualified_name(&(field)->source_corresp)
 
 
 static void gen_variable_name(a_variable_ptr var)
@@ -2797,6 +2837,33 @@ Generate code for a new or delete operation.
 }  /* gen_new_delete */
 
 
+static void gen_bound_function(an_expr_node_ptr object_expr,
+                               an_expr_node_ptr func_expr,
+                               a_boolean        suppress_virtual)
+/*
+Generate "object->function", a bound function expression.
+If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
+*/
+{
+  a_routine_ptr rout;
+
+  check_assertion(func_expr->kind == (an_expr_node_kind)enk_routine_address);
+  rout = func_expr->variant.routine;
+  gen_expr_with_parens(object_expr);
+  write_tok_str("->");
+  if (suppress_virtual && rout->is_virtual) {
+    /* The routine being called is a virtual function, and we're supposed
+       to suppress its virtual-ness in this call, so use a qualified name. */
+    gen_class_qualifier(rout->source_corresp.class_of_which_a_member);
+    gen_unqualified_name(&rout->source_corresp);
+  } else {
+    /* Otherwise, use an unqualified name (the selector pointer indicates
+       the class). */
+    gen_unqualified_name(&rout->source_corresp);
+  }  /* if */
+}  /* gen_bound_function */
+
+
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens)
 /*
@@ -2805,8 +2872,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 */
 {
   char             *opstr;
-  an_expr_node_ptr operand_1, operand_2;
+  an_expr_node_ptr operand_1, operand_2, args;
   a_boolean        operand_1_is_lvalue = FALSE;
+  a_routine_ptr    rout;
 
   check_assertion_str(expr != NULL, "gen_expr: NULL expression");
   switch (expr->kind) {
@@ -2838,6 +2906,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           gen_boolean_controlling_expression(operand_1);
           goto done_with_operation;
         case eok_cast:
+        case eok_base_class_cast:
+        case eok_derived_class_cast:
+        case eok_pm_base_class_cast:
+        case eok_pm_derived_class_cast:
           gen_cast(expr->type);
           gen_expr_with_parens(operand_1);
           goto done_with_operation;
@@ -2897,11 +2969,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_ieq:
         case eok_feq:
         case eok_peq:
+        case eok_pmeq:
           opstr = "==";
           break;
         case eok_ine:
         case eok_fne:
         case eok_pne:
+        case eok_pmne:
           opstr = "!=";
           break;
         case eok_igt:
@@ -2931,6 +3005,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_fassign:
         case eok_passign:
         case eok_sassign:
+        case eok_pmassign:
           opstr = "=";
           operand_1_is_lvalue = TRUE;
           break;
@@ -3011,6 +3086,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_ch('.');
           gen_field_reference(operand_2);
           goto done_with_operation;
+        case eok_pm_field:
+          /* C++ "->*" operator. */
+          opstr = "->*";
+          break;
         case eok_shiftl:
           opstr = "<<";
           break;
@@ -3062,11 +3141,75 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           }  /* if */
           goto done_with_operation;
         case eok_call:
-          /* N operand operator. */
+          /* Call (nonvirtual). */
+          args = operand_2;
           /* Put out the function to call. */
-          gen_lvalue(operand_1);
-          gen_argument_list(operand_2, type_pointed_to(operand_1->type),
+          if (operand_1->kind == (an_expr_node_kind)enk_routine_address) {
+            /* We can tell which routine is being called. */
+            a_type_ptr rout_type;
+            rout = operand_1->variant.routine;
+            rout_type = skip_typerefs(rout->type);
+            if (rout_type->variant.routine.extra_info->
+                                            implicit_this_param_type != NULL) {
+              /* Nonstatic member function call, so put out the selector object
+                 first. */
+              gen_bound_function(args, operand_1, /*suppress_virtual=*/TRUE);
+              args = args->next;
+            } else {
+              /* Nonmember function or static member function. */
+              gen_routine_name(rout);
+            }  /* if */
+          } else {
+            /* Specific routine is not known (e.g., call through a pointer). */
+            /* Note that this can't be a member function. */
+            gen_lvalue(operand_1);
+          }  /* if */
+          /* Put out the arguments. */
+          gen_argument_list(args, type_pointed_to(operand_1->type),
                             /*skip_num=*/0);
+          goto done_with_operation;
+        case eok_virtual_call:
+          /* Call (virtual). */
+          gen_bound_function(operand_2, operand_1, /*suppress_virtual=*/FALSE);
+          gen_argument_list(operand_2->next, type_pointed_to(operand_1->type),
+                            /*skip_num=*/0);
+          goto done_with_operation;
+        case eok_pm_call:
+          /* Call of a function identified by a "->*" operation.  First
+             operand is the pointer-to-member; the second is the object. */
+          write_tok_ch('(');
+          gen_expr_with_parens(operand_2);
+          write_tok_str(" ->* ");
+          gen_expr_with_parens(operand_1);
+          write_tok_ch(')');
+          /* Get the routine type from the pointer-to-member type of the
+             first operand. */
+          { a_type_ptr type = operand_1->type;
+            type = skip_typerefs(type);
+            check_assertion(type->kind == (a_type_kind)tk_ptr_to_member);
+            type = type->variant.ptr_to_member.type;
+            /* Generate the argument list. */
+            gen_argument_list(operand_2->next, type, /*skip_num=*/0);
+          }
+          goto done_with_operation;
+        case eok_virtual_function_ptr:
+          /* Used for anachronism of casting a bound function pointer to
+             a normal function pointer.  First operand is the address of
+             a virtual function, the second is a pointer to a class object. */
+          gen_bound_function(operand_2, operand_1, /*suppress_virtual=*/FALSE);
+          goto done_with_operation;
+        case eok_vacuous_destructor_call:
+          /* Explicit call of a destructor for a type that doesn't have one,
+             e.g., "p->int::~int()". */
+          gen_expr_with_parens(operand_1);
+          write_tok_str("->");
+          /* Use the type name to create a "destructor" name. */
+          { a_type_ptr type = type_pointed_to(operand_1->type);
+            gen_type(type, NO_NAME);
+            write_str("::~");
+            gen_type(type, NO_NAME);
+          }
+          write_tok_str("()");
           goto done_with_operation;
         default:
           unexpected_condition_str("gen_expr: bad expression operator");
@@ -4039,7 +4182,7 @@ declaration or definition.
 */
 {
   a_routine_ptr                rout;
-  a_type_ptr                   rout_type, rout_class_type;
+  a_type_ptr                   rout_type, unqual_rout_type, rout_class_type;
   a_src_seq_secondary_decl_ptr sec_decl;
   a_boolean                    is_definition = FALSE;
   a_boolean                    decl_within_class = FALSE;
@@ -4059,6 +4202,7 @@ declaration or definition.
     is_definition = (rout->assoc_scope != NULL_region_number);
   }  /* if */
   rout_type = rout->type;
+  unqual_rout_type = skip_typerefs(rout_type);
   /* Advance past the source sequence entry for the routine. */
   adv_curr_source_sequence_entry();
   /* Position the output file to the declaration position. */
@@ -4097,9 +4241,16 @@ declaration or definition.
   /* Determine the proper storage class to display. */
   if (rout_class_type != NULL) {
     /* Member function. */
-    /* Suppress the storage class. "static" means something else within
-       the class, and we don't want to use "extern" ever. */
-    storage_class = (a_storage_class)sc_unspecified;
+    if (unqual_rout_type->variant.routine.extra_info->
+                                            implicit_this_param_type == NULL) {
+      /* Static member function. */
+      storage_class = (a_storage_class)sc_static;
+    } else {
+      /* Nonstatic member function. */
+      /* Suppress the storage class. "static" means something else within
+         the class, and we don't want to use "extern" ever. */
+      storage_class = (a_storage_class)sc_unspecified;
+    }  /* if */
   } else {
     /* Nonmember function. */
     if (!is_definition) {
