@@ -10,6 +10,14 @@ A warning is issued.
 In Microsoft-compatibility mode a warning is now issued (instead of an
 error) when an unrecognized __declspec attribute is encountered.
 
+12/8/97   IL CHANGE: additional source position information
+
+When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, additional source position
+information is now maintained in the IL.  This includes range information
+on expressions (the start and end positions of each expression node) and
+declarations (the start and end positions of declaration-specifier
+tokens, of declarators, and of initializers).
+
 12/4/97   Comments in Microsoft asm statements
 
 Comments in Microsoft asm statements are now discarded.  Previously,
