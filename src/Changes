@@ -1,5 +1,21 @@
 Version 2.14
 
+1/29/93 Fixed bug in disambiguation algorithm
+
+A bug has been fixed in the code that determines whether to interpret
+a declaration as the declaration of an object with a parenthesized
+initializer or as a function declaration.  The problem appeared in
+rather obscure cases involving typedefs and pointer or reference
+types.  We now handle this case correctly:
+
+  typedef int T[1];
+  T a;
+  T &b(a);
+
+Before b was taken to be a function taking an integer argument and
+returning a ref-T; now it is interpreted a variable of type ref-T with
+an initializer.  (See ARM 8.1.1, 6.8.)
+
 1/29/93 Conversion of pointers to more-qualified version
 
 The conversion of a pointer type to another pointer type that has more
