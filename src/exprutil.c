@@ -4234,6 +4234,7 @@ on function_type.  *call_pos gives the source position of the call.
 */
 {
   an_expr_node_ptr call_node;
+  a_type_ptr       return_type;
 
   function_type = skip_typerefs(function_type);
   /* Make the function call expression node. */
@@ -4243,9 +4244,18 @@ on function_type.  *call_pos gives the source position of the call.
   make_expression_operand(call_node, call_node->type, result);
   result->position = *call_pos;
   /* A function call returning a reference is an lvalue. */
-  if (is_reference_type(function_type->variant.routine.return_type)) {
+  return_type = function_type->variant.routine.return_type;
+  if (is_reference_type(return_type)) {
     conv_object_pointer_to_lvalue(result);
     call_node->implicit_reference_indirection = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode && !C_mode() &&
+             is_class_struct_union_type(return_type)) {
+    /* In Microsoft mode, a function that returns a class type is considered
+       to return an lvalue. */
+    conv_class_operand_to_object_pointer(result);
+    conv_object_pointer_to_lvalue(result);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* make_function_call */
 
