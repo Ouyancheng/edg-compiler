@@ -8044,11 +8044,6 @@ operator (an extension).  Its definition is
 }  /* make_guid_type */
 
 
-/* Convert a character hex digit to the associated hex digit value. */
-#define hexvalue(ch) ((ch) - (isdigit((unsigned char)ch) ? '0' : \
-                             (islower((unsigned char)ch) ? 'a'-0xa : 'A'-0xA)))
-
-
 static a_constant_ptr conv_uuid_constant(char            **ptr,
                                          int             ndigits,
                                          an_integer_kind ikind)
