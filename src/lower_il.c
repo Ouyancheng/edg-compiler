@@ -11820,13 +11820,10 @@ code.
                  "gen_cleanup_actions_...: missing destructible entity descr");
         if (dip->has_temporary_lifetime && skip_temporaries) {
           /* Skipping temporaries, so skip this destruction. */
-        } else if (dip->is_constructor_init ||
-                   dip->destruction_is_for_partially_constructed_aggregate) {
+        } else if (dip->is_constructor_init) {
           /* Also skip entries for constructor inits (in constructors and
              destructors).  They apply for exception cleanup but not on
-             exit via branch.  Ditto for partial aggregate cleanup,
-             if an exception is thrown before the initialization is
-             completed. */
+             exit via branch. */
           if (exceptions_enabled) {
             /* When exceptions are enabled, the cleanup state does need to
                be updated. */
@@ -11834,6 +11831,11 @@ code.
                                 cleanup_state_to_set_when_starting_destruction;
             state_set_pending = TRUE;
           }  /* if */
+        } else if (dip->destruction_is_for_partially_constructed_aggregate) {
+          /* Also skip entries for partial aggregate cleanup,
+             if an exception is thrown before the initialization is
+             completed.  They apply for exception cleanup but not on
+             exit via branch. */
         } else if (dip->is_guard_var_for_local_static_var_init ||
                    dip->is_freeing_of_storage_on_exception) {
           /* Remove the cleanup entry that requests clearing the guard
