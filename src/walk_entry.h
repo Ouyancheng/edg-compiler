@@ -984,9 +984,9 @@ do_set_proper_definition_needed_flag:
           case enk_lowered_eh_construct:
             switch (ptr->variant.lowered_eh.kind) {
               case leck_caught_object_address:
-                remap_ptr(ptr->variant.lowered_eh.variant.
+                remap_ptr_not_needed(ptr->variant.lowered_eh.variant.
                                                          caught_object_handler,
-                          a_handler_ptr, iek_handler);
+                                     a_handler_ptr, iek_handler);
                 break;
               case leck_thrown_object_address:
                 /* No pointers. */
@@ -1004,15 +1004,18 @@ do_set_proper_definition_needed_flag:
                          iek_eh_prologue_supplement);
                 break;
               case leck_function_epilogue:
-                remap_ptr(ptr->variant.lowered_eh.variant.epilogue_routine,
+                remap_ptr_not_needed(
+                          ptr->variant.lowered_eh.variant.epilogue_routine,
                           a_routine_ptr, iek_routine);
                 break;
               case leck_catch_epilogue:
-                remap_ptr(ptr->variant.lowered_eh.variant.epilogue_handler,
+                remap_ptr_not_needed(
+                          ptr->variant.lowered_eh.variant.epilogue_handler,
                           a_handler_ptr, iek_handler);
                 break;
               case leck_try_epilogue:
-                remap_ptr(ptr->variant.lowered_eh.variant.epilogue_try_block,
+                remap_ptr_not_needed(
+                          ptr->variant.lowered_eh.variant.epilogue_try_block,
                           a_try_supplement_ptr, iek_try_supplement);
                 break;
               default:
