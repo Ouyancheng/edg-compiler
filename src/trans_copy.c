@@ -2617,57 +2617,6 @@ therefore will not be copied.
 }  /* copy_secondary_trans_unit_IL_to_primary */
 
 
-/*
-Flag used by mark_secondary_termination_test.
-*/
-static a_boolean
-		mark_secondary_first_pass;
-
-
-#if !MAINTAIN_NEEDED_FLAGS
-/*ARGSUSED*/  /* <-- "kind" is not used in that case. */
-#endif /* !MAINTAIN_NEEDED_FLAGS */
-static a_boolean mark_secondary_termination_test(char             *ptr,
-                                                 an_il_entry_kind kind)
-/*
-Called during the IL walk for
-mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed.
-If ptr points to a secondary translation unit entry, mark that entry
-as needed and prune the walk.
-*/
-{
-  a_boolean prune;
-
-  if (in_secondary_trans_unit(ptr)) {
-#if MAINTAIN_NEEDED_FLAGS
-    if (mark_secondary_first_pass) {
-      mark_as_needed(ptr, kind);
-      /* If the entity is a class type with a definition, mark its definition
-         as needed as well.  We don't actually know whether it is needed,
-         so we have to assume it is. */
-      if (kind == iek_type) {
-        a_type_ptr type = (a_type_ptr)ptr;
-        if (is_immediate_class_type(type) &&
-            class_type_has_body(type)) {
-          set_class_keep_definition_in_il(type);
-          set_class_definition_needed(type);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
-    prune = TRUE;
-  } else if (il_entry_prefix_of(ptr).il_walk_flag ==
-                                                  flag_value_meaning_visited) {
-    /* This entry has already been visited on this walk. */
-    prune = TRUE;
-  } else {
-    il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited;
-    prune = FALSE;
-  }  /* if */
-  return prune;
-}  /* mark_secondary_termination_test */
-
-
 static a_boolean mem_region_is_primary_func_scope(
                                                  a_memory_region_number number)
 /*
@@ -2694,6 +2643,90 @@ region of the primary IL.
   return result;
 }  /* mem_region_is_primary_func_scope */
 
+#if MAINTAIN_NEEDED_FLAGS
+
+static void mark_secondary_il_entry_as_needed(char             *ptr,
+                                              an_il_entry_kind kind)
+/*
+Mark the indicated entry of the indicated kind as needed.  It is
+an entry in the secondary translation unit IL and it is referenced
+from a primary IL entry.
+*/
+{
+  mark_as_needed(ptr, kind);
+  /* If the entity is a class type with a definition, mark its definition
+     as needed as well.  We don't actually know whether it is needed,
+     so we have to assume it is.  For routines, marking the entry as
+     needed automatically marks the definition as needed. */
+  if (kind == iek_type) {
+    a_type_ptr type = (a_type_ptr)ptr;
+    if (is_immediate_class_type(type) &&
+        class_type_has_body(type)) {
+      set_class_keep_definition_in_il(type);
+      set_class_definition_needed(type);
+    }  /* if */
+  }  /* if */
+} /* mark_secondary_il_entry_as_needed */
+
+
+static char *remap_secondary_pointer_for_mark(char             *ptr,
+                                              an_il_entry_kind kind)
+/*
+Called as part of the IL walk for
+mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed.
+Doesn't actually do any pointer remapping, but does mark entries
+in secondary translation units as needed.  That is done here instead
+of the termination-test routine because even pointers in remap_ptr
+calls are passed to the remap routine.
+*/
+{
+  if (ptr == NULL) {
+    /* Ignore NULL pointers. */
+  } else if (in_secondary_trans_unit(ptr)) {
+    /* An entity in the secondary IL -- mark it as needed. */
+    mark_secondary_il_entry_as_needed(ptr, kind);
+  } else {
+    /* An entity in the primary IL. */
+    /* If the entry has linkage and its canonical entry is in a secondary
+       translation unit, mark it as needed. */
+    a_source_correspondence_ptr scp = source_corresp_for_il_entry(ptr, kind);
+    if (scp != NULL && scp->trans_unit_corresp != NULL) {
+      char *canonical = scp->trans_unit_corresp->canonical;
+      if (in_secondary_trans_unit(canonical)) {
+        mark_secondary_il_entry_as_needed(canonical, kind);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return ptr;
+}  /* remap_secondary_pointer_for_mark */
+
+
+/*ARGSUSED*/ /* <-- "kind" is not used. */
+static a_boolean mark_secondary_termination_test(char             *ptr,
+                                                 an_il_entry_kind kind)
+/*
+Called during the IL walk for
+mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed
+to do the termination test.
+*/
+{
+  a_boolean prune;
+
+  if (in_secondary_trans_unit(ptr)) {
+    prune = TRUE;
+  } else if (il_entry_prefix_of(ptr).il_walk_flag ==
+                                                  flag_value_meaning_visited) {
+    /* This entry has already been visited on this walk. */
+    prune = TRUE;
+  } else {
+    /* This entry has not been visited previously. */
+    il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited;
+    prune = FALSE;
+  }  /* if */
+  return prune;
+}  /* mark_secondary_termination_test */
+
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 void mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed(void)
 /*
@@ -2704,17 +2737,19 @@ entities as needed, so that they will be copied to the primary IL later.
 primary IL.)
 */
 {
-  a_memory_region_number n;
-
   db_enter(1,
           "mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed");
-  if (primary_il_may_reference_other_trans_units) {
+#if MAINTAIN_NEEDED_FLAGS
+  if (secondary_translation_unit_seen()) {
+    a_memory_region_number n;
+    a_boolean              first_pass = TRUE;
     /* Do two passes so that the il_walk_flag returns to its original value. */
-    mark_secondary_first_pass = TRUE;
     for (;;) {
+      a_remap_function_ptr remap_func = NULL;
+      if (first_pass) remap_func = remap_secondary_pointer_for_mark;
       walk_file_scope_il((an_entry_process_function_ptr)NULL,
                          (a_string_entry_process_function_ptr)NULL,
-                         (a_remap_function_ptr)NULL,
+                         remap_func,
                          mark_secondary_termination_test,
                          /*clear_fe_pointers=*/FALSE);
       /* Loop through the memory regions looking for functions in the
@@ -2726,22 +2761,22 @@ primary IL.)
           walk_routine_scope_il(n,
                                 (an_entry_process_function_ptr)NULL,
                                 (a_string_entry_process_function_ptr)NULL,
-                                (a_remap_function_ptr)NULL,
+                                remap_func,
                                 mark_secondary_termination_test,
                                 /*clear_fe_pointers=*/FALSE);
         }  /* if */
       }  /* for */
-      if (!mark_secondary_first_pass) break;
-      mark_secondary_first_pass = FALSE;
+      if (!first_pass) break;
+      first_pass = FALSE;
     }  /* for */
   }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
   db_exit();
 }  /* mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed */
 
 
-/*ARGSUSED*/ /* <-- "kind" is not used. */
-static char *remap_secondary_pointer(char             *old_ptr,
-                                     an_il_entry_kind kind)
+static char *remap_secondary_pointer_for_rewrite(char             *old_ptr,
+                                                 an_il_entry_kind kind)
 /*
 Called as part of the IL walk for 
 rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary to
@@ -2756,7 +2791,7 @@ primary IL.
     /* Leave a NULL pointer alone. */
   } else if (in_secondary_trans_unit(old_ptr)) {
     check_assertion_str(in_file_scope(old_ptr),
-                        "remap_secondary_pointer: not in file scope");
+                     "remap_secondary_pointer_for_rewrite: not in file scope");
     if (trans_unit_copy_address_of(old_ptr) != NULL) {
       /* The entry already has a copy address assigned. */
       new_ptr = transitive_copy_address_of(old_ptr);
@@ -2766,8 +2801,7 @@ primary IL.
          Other things we can copy.  However, we can't copy things
          that go on lists, because we won't get a chance to link
          them on the lists.  For example, the type "pointer to int"
-         wouldn't necessarily have a copy address here, but A<int>
-         must. */
+         need not have a copy address here, but A<int> must. */
       /* Basically, primary_il_entry_of can do the copy, but we
          do some extra checking here to make sure that we're not
          copying things that should have been copied already. */
@@ -2787,7 +2821,7 @@ primary IL.
                               (!in_secondary_trans_unit(tucp->canonical) ||
                                checked_trans_unit_copy_address_of(
                                                     tucp->canonical) != NULL),
-                  "remap_secondary_pointer: canonical copy addr not assigned");
+      "remap_secondary_pointer_for_rewrite: canonical copy addr not assigned");
         } else {
           /* Entity does not have a linkage correspondence. */
           switch (kind) {
@@ -2811,7 +2845,7 @@ primary IL.
           }  /* switch */
           if (err) {
             unexpected_condition_str(
-                 "remap_secondary_pointer: missing primary IL correspondence");
+     "remap_secondary_pointer_for_rewrite: missing primary IL correspondence");
           }  /* if */
         }  /* if */
       }
@@ -2820,7 +2854,7 @@ primary IL.
     }  /* if */
   }  /* if */
   return new_ptr;
-}  /* remap_secondary_pointer */
+}  /* remap_secondary_pointer_for_rewrite */
 
 
 /*ARGSUSED*/ /* <-- "kind" is not used. */
@@ -2869,7 +2903,7 @@ before lowering and needed flag marking of the primary IL.
     /* Do two passes so that the il_walk_flag returns to its original value. */
     for (;;) {
       a_remap_function_ptr remap_func = NULL;
-      if (first_pass) remap_func = remap_secondary_pointer;
+      if (first_pass) remap_func = remap_secondary_pointer_for_rewrite;
       walk_file_scope_il((an_entry_process_function_ptr)NULL,
                          (a_string_entry_process_function_ptr)NULL,
                          remap_func,

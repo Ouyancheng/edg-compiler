@@ -1110,7 +1110,7 @@ memory or with an IL file.
        written the PCH or decided not to write one.  We can still trim the
        unused portion of the memory block at this time, though. */
     keep_memory = TRUE;
-  } else if (!is_primary_translation_unit) {
+  } else if (in_secondary_trans_unit(scope)) {
     /* In a secondary translation unit, hold on to all memory regions
        for further processing.  Note that functions that are supposed
        to be discarded (such as non-templates in a translation unit
@@ -1151,7 +1151,7 @@ memory or with an IL file.
 #endif /* DEBUG */
   if (!keep_memory) {
     /* Write the region to the file and free it. */
-    check_assertion(is_primary_translation_unit);
+    check_assertion(!in_secondary_trans_unit(scope));
     write_memory_region(region_number);
   }  /* if */
 #endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */

@@ -770,12 +770,12 @@ C) are always walked immediately.  is_class is TRUE if the entity is a class.
 
 #if DO_IL_LOWERING
 /*
-Macro that returns TRUE if the class parent information in an entry of kind
-entry_kind will remain after IL lowering is done.  Note that lowering
+Macro that returns TRUE if the class parent information in an entry (of kind
+entry_kind) will remain after IL lowering is done.  Note that lowering
 is never done in secondary translation units.
 */
-#define parent_will_exist_after_lowering(entry_kind) \
-  (suppress_il_lowering || !is_primary_translation_unit || \
+#define parent_will_exist_after_lowering(entry_ptr, entry_kind) \
+  (suppress_il_lowering || in_secondary_trans_unit(entry_ptr) || \
    (entry_kind) == iek_field)
 #endif /* DO_IL_LOWERING */
 
@@ -858,7 +858,7 @@ as needed.
 #if DO_IL_LOWERING
             /* Do not process parent information that will be removed by
                IL lowering. */
-            && parent_will_exist_after_lowering(entry_kind)
+            && parent_will_exist_after_lowering(entry_ptr, entry_kind)
 #endif /* DO_IL_LOWERING */
                                                            ) {
           /* When the subtree is not going to be walked now and the entity is
@@ -1211,7 +1211,7 @@ want that to happen before the "needed" flag is set.
        no point in looking for them. */
     if (!suppress_il_lowering &&
         /* Lowering is not done in secondary translation units. */
-        is_primary_translation_unit) {
+        !in_secondary_trans_unit(scope)) {
       there_might_be_virtual_functions = FALSE;
     }  /* if */
 #endif /* DO_IL_LOWERING */
@@ -1473,7 +1473,7 @@ to be kept.
 #if DO_IL_LOWERING
         /* Do not process parent information that will be removed by
            IL lowering. */
-      if (parent_will_exist_after_lowering(entry_kind))
+      if (parent_will_exist_after_lowering(entry_ptr, entry_kind))
 #endif /* DO_IL_LOWERING */
       /* Do not insert code here. */
       { a_source_correspondence *scp =
