@@ -804,9 +804,13 @@ Do the output in the way described by octl.
     /* Suppress "restrict" in generated compilable code. */
     if (octl->gen_compilable_code) qualifiers &= ~TQ_RESTRICT;
 #endif /* SUPPRESS_RESTRICT_IN_GENERATED_CODE */
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
     if (gcc_is_generated_code_target) {
       output_qualifier(TQ_RESTRICT, "__restrict__");
-    } else {
+    } else
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+    /* DO not insert code here. */
+    {
       output_qualifier(TQ_RESTRICT, "restrict");
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED

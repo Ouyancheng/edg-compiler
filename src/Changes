@@ -1,5 +1,10 @@
 Version 3.4
 
+8/18/03  Compilation problem in il_to_str.c with BACK_END_IS_C_GEN_BE FALSE
+
+il_to_str.c did not compile correctly when both BACK_END_IS_C_GEN_BE
+and BACK_END_IS_CP_GEN_BE were FALSE.  Now fixed.
+
 8/17/03  Microsoft compatibility: value-initialization for versions < 7.1
 
 The MSVC++ compiler did not implement value-initialization before
