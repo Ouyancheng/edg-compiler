@@ -1,5 +1,13 @@
 Version 3.3
 
+7/18/03  Demangling for Microsoft explicit overriding extension
+
+The name demangler (in both Cfront-like and IA-64 ABI modes)
+has been enhanced to understand and demangle the encoding for
+an explicitly overridden function for the Microsoft extension
+that allows explicit specification of overriding.  See the
+primary Changes file for details.
+
 7/16/03  IA-64 ABI demangling, predefined substitutions as types
 
 The IA-64 ABI demangler did not correctly demangle predefined

@@ -1,5 +1,42 @@
 Version 3.3
 
+7/18/03  Microsoft mode: explicit overriding
+
+A name mangling change has also been made, because with examples
+like the following it is possible to end up with two member functions
+with the same name and signature in a class, each overriding a
+different base class member.
+
+  struct A {
+    virtual void f() { }
+  };
+  struct B {
+    virtual void f() { }
+  };
+  struct D: A, B {
+    virtual void A::f() { }
+    virtual void B::f() { }
+  };
+
+The overridden function information must be added to the mangled name
+to make the names unique.  In the Cfront-like ABI, the sequence
+
+  O class-type-encoding
+
+is added after the member function class and before the "F", e.g.
+a member D::f that explicitly overrides B::f is encoded as f__1DO1BFv.
+In the IA-64 ABI, the sequence
+
+  O <nested-name>
+
+where the <nested-name> encodes the overriden function, is added to
+an <encoding>:
+
+  <encoding> = <function name> O <nested-name> <bare-function-type>
+
+So, for example, a member D::f that explicitly overrides B::f is
+encoded as _ZN1D1fEON1B1fEv.
+
 7/18/03  Microsoft mode: Exception specifications and virtual overriders
 
 In Microsoft mode (with exceptions enabled and microsoft_version >= 1300),

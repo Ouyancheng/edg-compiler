@@ -2168,7 +2168,7 @@ information.
 {
   char          *p = ptr, *pname, *end_ptr, *function_local_end_ptr = NULL;
   char          *final_specialization, *end_ptr_first_scan, *prev_end = NULL;
-  char          ch;
+  char          ch, *oname;
   a_boolean     is_function = TRUE;
   a_template_param_block
                 temp_par_info;
@@ -2282,9 +2282,20 @@ information.
       }  /* if */
     }  /* if */
     if (suppress_parent_and_local_info) dctl->suppress_id_output--;
+    oname = NULL;
     if (is_function) {
       /* "S" here means a static member function (ignore). */
       if (get_char(end_ptr, dctl) == 'S') end_ptr++;
+      /* "O" here means the base class of a function that this function
+         explicitly overrides (a Microsoft extension) is next. */
+      if (get_char(end_ptr, dctl) == 'O') {
+        /* Skip over the class name, producing no output.  Remember its
+           position for later output. */
+        oname = ++end_ptr;
+        dctl->suppress_id_output++;
+        end_ptr = demangle_type_name(oname, dctl);
+        dctl->suppress_id_output--;
+      }  /* if */
       /* Write the specifier part of the type. */
       end_ptr_first_scan =
                   demangle_type_first_part(end_ptr,
@@ -2311,6 +2322,13 @@ information.
     (void)demangle_name(ptr, nchars, /*stop_on_underscores=*/TRUE,
                         (unsigned long *)NULL,
                         pname, &temp_par_info, dctl);
+    if (oname != NULL) {
+      /* Put out the name of the class of the function explicitly overridden,
+         if noted above. */
+      write_id_str(" [overriding function in ", dctl);
+      (void)demangle_type_name(oname, dctl);
+      write_id_str("] ", dctl);
+    }  /* if */
     if (is_function) {
       /* Write the declarator part of the type. */
       demangle_type_second_part(end_ptr, /*under_lhs_declarator=*/FALSE,
@@ -4833,6 +4851,14 @@ Do not output function parameters if include_func_params is FALSE.
     ptr = demangle_name(ptr, &func_block, dctl);
     /* If there's more, it's the <bare-function-type>. */
     if (*ptr != '\0' && *ptr != 'E') {
+      /* O <nested-name> indicates a function that is explicitly
+         overriden.  This is an extension over the IA-64 ABI spec. */
+      if (*ptr == 'O') {
+        a_func_block dummy_func_block;
+        write_id_str(" [overriding ", dctl);
+        ptr = demangle_name(ptr+1, &dummy_func_block, dctl);
+        write_id_str("] ", dctl);
+      }  /* if */
       if (!include_func_params) dctl->suppress_id_output++;
       ptr = demangle_bare_function_type(ptr, func_block.no_return_type, dctl);
       if (include_func_params && func_block.cv_quals != 0) {
