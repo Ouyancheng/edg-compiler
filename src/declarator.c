@@ -2765,8 +2765,12 @@ The syntax is:
                                      &unbound_qualifiers);
   derived_type = NULL;
   bottom_derived_type = NULL;
-  clear_call_conv_descr(&inner_left_call_conv);
-  inner_left_qualifiers = TQ_NONE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    clear_call_conv_descr(&inner_left_call_conv);
+    inner_left_qualifiers = TQ_NONE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* The next thing is an identifier, or a parenthesis that begins a
      nested declarator.  For the abstract declarator case, the
      identifier is omitted. */
