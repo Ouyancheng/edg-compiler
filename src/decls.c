@@ -2902,7 +2902,8 @@ skip_overloading:;
              void f(int i) { { extern int i; } }
            where the second declaration of i has an incompatible type, yet
            no error is issued. */
-        check_assertion_str2(storage_class == (a_storage_class)sc_extern,
+        check_assertion_str2((storage_class == (a_storage_class)sc_extern) &&
+                               !is_variable_def,
                              "decl_var_or_routine:",
                              "can't set superseded_external");
         variable_ptr->superseded_external = TRUE;
