@@ -2082,10 +2082,6 @@ might not be able to if the template itself has not yet been defined.
   class_type = skip_typerefs(class_type);
   is_class_member = class_type->source_corresp.is_class_member;
   instance_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
-  /* Make sure the class being instantiated is in the current translation
-     unit. */
-  check_assertion(symbol_is_from_trans_unit(instance_sym,
-                                            curr_translation_unit));
   cssp = instance_sym->variant.class_struct_union.extra_info;
   /* Record the namespace that is the "referencing context" namespace for
      this instantiation. */
@@ -2102,6 +2098,11 @@ might not be able to if the template itself has not yet been defined.
        the class definition.  Simply ignore the instantiation request. */
   } else {
     a_template_cache_ptr	body_cache;
+    /* Make sure the class being instantiated is in the current translation
+       unit. */
+    check_assertion(instance_sym->decl_scope == NO_SCOPE_NUMBER ||
+                    symbol_is_from_trans_unit(instance_sym,
+                                              curr_translation_unit));
     tssp = template_supplement_for_symbol(template_sym);
     /* Check whether this particular instance should be generated from a
        partial specialization.  This is only done for class templates, not
