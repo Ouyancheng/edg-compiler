@@ -171,6 +171,74 @@ it needs to be executed after all templates have been instantiated.
   }  /* if */
 }  /* file_scope_il_wrapup_part_1 */
 
+#if DO_IL_LOWERING
+
+static void set_statics_used_by_instantiation(a_scope_ptr scope);
+
+
+static void set_type_list_statics_used_by_instantiation(a_type_ptr type_list)
+/*
+Mark all static entities under types on the indicated type list as potentially
+referenced by exported templates.
+*/
+{
+  a_type_ptr type;
+
+  for (type = type_list; type != NULL; type = type->next) {
+    if (is_immediate_class_type(type)) {
+      a_scope_ptr scope =
+                      type->variant.class_struct_union.extra_info->assoc_scope;
+      if (scope != NULL) {
+        set_statics_used_by_instantiation(scope);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* set_type_list_statics_used_by_instantiation */
+
+
+static void set_variable_list_statics_used_by_instantiation(
+                                                       a_variable_ptr var_list)
+/*
+Mark all variables on the indicated variable list as potentially
+referenced by exported templates.
+*/
+{
+  a_variable_ptr var;
+
+  for (var = var_list; var != NULL; var = var->next) {
+    var->source_corresp.static_used_by_instantiation = TRUE;
+  }  /* for */
+}  /* set_variable_list_statics_used_by_instantiation */
+
+
+static void set_statics_used_by_instantiation(a_scope_ptr scope)
+/*
+Mark all statics in the indicated scope and its subscopes as potentially
+referenced by exported templates.
+*/
+{
+  a_routine_ptr   rout;
+  a_namespace_ptr nsp;
+  a_scope_ptr     subscope;
+
+  set_type_list_statics_used_by_instantiation(scope->types);
+  set_variable_list_statics_used_by_instantiation(scope->variables);
+  for (rout = scope->routines; rout != NULL; rout = rout->next) {
+    if (rout->storage_class == (a_storage_class)sc_static) {
+      rout->source_corresp.static_used_by_instantiation = TRUE;
+    }  /* if */
+  }  /* for */
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      set_statics_used_by_instantiation(nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
+  for (subscope = scope->scopes; subscope != NULL; subscope = subscope->next) {
+    set_statics_used_by_instantiation(subscope);
+  }  /* for */
+}  /* set_statics_used_by_instantiation */
+
+#endif /* DO_IL_LOWERING */
 
 static void file_scope_il_wrapup_needed_flag_processing(void)
 /*
@@ -179,6 +247,23 @@ Do the needed-flag processing for the current translation unit
 mark external entities and the things they reference as "needed".
 */
 {
+#if DO_IL_LOWERING
+  if (any_exported_templates() && il_lowering_needed()) {
+    a_scope_orphaned_list_header_ptr solhp;
+    /* In a compilation with exported templates, all statics are potentially
+       referenced from templates.  Set a flag in each static entity to
+       indicate that. */
+    set_statics_used_by_instantiation(curr_translation_unit->primary_scope);
+    /* Visit orphan lists to get local types and local static variables. */
+    for (solhp = curr_translation_unit->il_header.scope_orphaned_list_headers;
+         solhp != NULL;
+         solhp = solhp->next) {
+      set_type_list_statics_used_by_instantiation(solhp->orphaned_types);
+      set_variable_list_statics_used_by_instantiation(
+                                                  solhp->orphaned_variables);
+    }  /* for */
+  }  /* if */
+#endif /* DO_IL_LOWERING */
 #if MAINTAIN_NEEDED_FLAGS
   /* Set the "needed" flag in defined variables with external linkage --
      both in the file scope and in each of the namespace scopes. */

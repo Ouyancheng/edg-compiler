@@ -4378,11 +4378,9 @@ been completed.
     is_needed = (vp->source_corresp.needed ||
                  variable_needed_even_if_unreferenced(vp));
 #if DO_IL_LOWERING
-    if (any_exported_templates() &&
-        vp->storage_class == (a_storage_class)sc_static) {
-      /* In translation units with exported templates, all statics have
-         to be considered potentially referenced from a template. */
-      vp->source_corresp.static_used_by_instantiation = TRUE;
+    /* In translation units with exported templates, all statics have
+       to be considered potentially referenced from a template. */
+    if (vp->source_corresp.static_used_by_instantiation) {
       is_needed = TRUE;
     }  /* if */
 #endif /* DO_IL_LOWERING */
@@ -4401,11 +4399,9 @@ been completed.
        not the body, which is handled elsewhere. */
     a_boolean saved_defined = rp->defined;
 #if DO_IL_LOWERING
-    if (any_exported_templates() &&
-        rp->storage_class == (a_storage_class)sc_static) {
-      /* In translation units with exported templates, all statics have
-         to be considered potentially referenced from a template. */
-      rp->source_corresp.static_used_by_instantiation = TRUE;
+    /* In translation units with exported templates, all statics have
+       to be considered potentially referenced from a template. */
+    if (rp->source_corresp.static_used_by_instantiation) {
       mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
     }  /* if */
 #endif /* DO_IL_LOWERING */
