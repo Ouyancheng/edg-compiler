@@ -23,6 +23,11 @@ typedef struct a_symbol_header *a_symbol_header_ptr;
 typedef struct a_macro_param   *a_macro_param_ptr;
 typedef struct a_macro_def     *a_macro_def_ptr;
 
+/* The pointer to a_routine_fixup is declared here even though the struct
+   itself is defined in class_decl.c.  This allows the pointer to be made
+   available to symbol_tbl.h without creating recursive reference problems. */
+typedef struct a_routine_fixup *a_routine_fixup_ptr;
+
 /* Some other things declared up front to avoid mutual recursion problems. */
 
 /*
