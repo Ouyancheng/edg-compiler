@@ -117,6 +117,10 @@ extern a_type_ptr type_keyword(void);
 extern void check_operator_function_params(a_routine_ptr      rout,
                                            a_source_position  *pos);
 
+extern void decl_parameter(a_param_id_ptr    param_id,
+                           a_param_type_ptr  ptp,
+                           a_boolean         function_instantiation);
+
 extern void decl_default_function(a_symbol_ptr symbol_ptr);
 
 extern a_label_ptr scan_label(a_boolean is_definition);
@@ -156,6 +160,12 @@ extern a_variable_ptr make_parameter(a_type_ptr       type,
 extern a_routine_ptr make_routine(a_type_ptr      type_ptr,
                                   a_storage_class storage_class,
                                   a_boolean       at_file_scope);
+
+extern void fixup_parameters(a_variable_ptr    param_list,
+                             a_param_type_ptr  param_type_list);
+
+extern void make_return_value_pointer_variable(a_type_ptr  rout_type,
+                                               a_scope_ptr scope_ptr);
 
 extern a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
                                        a_symbol_locator *locator,

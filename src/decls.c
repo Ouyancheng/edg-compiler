@@ -2101,8 +2101,8 @@ symbol sym.
 }  /* make_parameter */
 
 
-static void fixup_parameters(a_variable_ptr    param_list,
-                             a_param_type_ptr  param_type_list)
+void fixup_parameters(a_variable_ptr    param_list,
+                      a_param_type_ptr  param_type_list)
 /*
 Set each variable in a linked list of parameters to point to the corresponding
 param type entry.
@@ -2127,8 +2127,8 @@ param type entry.
 }  /* fixup_parameters */
 
 
-static void make_return_value_pointer_variable(a_type_ptr  rout_type,
-                                               a_scope_ptr scope_ptr)
+void make_return_value_pointer_variable(a_type_ptr  rout_type,
+                                        a_scope_ptr scope_ptr)
 /*
 If required, allocate a variable with type pointer-to-function-return-type
 that will point to the storage provided by the caller for returning a
@@ -3962,13 +3962,14 @@ return_point:
 }  /* decl_typedef */
 
 
-static void decl_parameter(a_param_id_ptr    param_id,
-                           a_param_type_ptr  ptp)
+void decl_parameter(a_param_id_ptr    param_id,
+                    a_param_type_ptr  ptp,
+                    a_boolean         function_instantiation)
 /*
-Enter the declaration of an identifier for a parameter.  *locator gives
-the symbol locator (and thus its name and its declaration position).
-Under ordinary circumstances, create and enter a symbol entry, and return
-a pointer to it in *symbol_ptr.
+Enter the declaration of an identifier for a parameter.  The param_id
+points to an sk_parameter symbol, which under ordinary circumstances, is
+turned into an sk_variable symbol; but if function_instantiation is TRUE,
+a new symbol is created and entered in the symbol table.
 */
 {
   a_symbol_ptr   sym;
@@ -3988,11 +3989,19 @@ a pointer to it in *symbol_ptr.
     /* This param_id entry represents an unnamed parameter (which is legal
        in function definitions in C++). */
   } else {
-    remove_symbol(sym);
-    set_symbol_kind(sym, (a_symbol_kind)sk_variable);
+    if (function_instantiation) {
+      a_symbol_locator  locator;
+      make_locator_for_symbol(sym, &locator);
+      sym = enter_local_symbol((a_symbol_kind)sk_variable, &locator,
+                               decl_scope_level,
+                               /*suppress_redecl_error=*/FALSE);
+    } else {
+      remove_symbol(sym);
+      set_symbol_kind(sym, (a_symbol_kind)sk_variable);
+      reenter_symbol(sym, decl_scope_level, /*suppress_error=*/TRUE);
+    }  /* if */
     sym->variant.variable = vp;
     set_source_corresp(&(vp->source_corresp), sym);
-    reenter_symbol(sym, decl_scope_level, /*suppress_error=*/TRUE);
     sym->defined = TRUE;
 #if DEBUG
     if (debug_level >= 3) {
@@ -6892,7 +6901,7 @@ explicitly specified (rather than defaulted to "int").
            list rather than the order in which they appear in the
            declarations.  Note that the variable entry is allocated
            in the current (function) scope, not at the file scope. */
-        decl_parameter(param_id, ptp);
+        decl_parameter(param_id, ptp, /*function_instantiation=*/FALSE);
         /* Now build the list of parameter types that is attached to the 
            routine type (needed for checking type compatibility -- see
            types_are_compatible). */
@@ -6969,7 +6978,7 @@ explicitly specified (rather than defaulted to "int").
     for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
-      decl_parameter(param_id, ptp);
+      decl_parameter(param_id, ptp, /*function_instantiation=*/FALSE);
 #if CHECKING
       if ((param_id->next == NULL) != (ptp->next == NULL)) {
         internal_error("function_definition: param_id and ptp out of sync");
@@ -7128,7 +7137,7 @@ processing of function definition.
          param_id = param_id->next, ptp = ptp->next) {
     /* Declare each parameter identifier to have the associated type
        from the parameter type list. */
-    decl_parameter(param_id, ptp);
+    decl_parameter(param_id, ptp, /*function_instantiation=*/FALSE);
 #if CHECKING
     if ((param_id->next == NULL) != (ptp->next == NULL)) {
       internal_error(
