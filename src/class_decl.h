@@ -81,7 +81,9 @@ extern void define_special_member_function(a_routine_ptr      rout_ptr,
 extern void reference_to_implicitly_invoked_function
 					(a_symbol_ptr       sym,
                                          a_source_position  *pos,
-					 a_type_ptr         class_of_object);
+					 a_type_ptr         class_of_object,
+                                         a_boolean          honor_virtual,
+                                         a_boolean          evaluated);
 
 extern void f_force_definition_of_compiler_generated_routine(
                                                   a_routine_ptr     routine,
