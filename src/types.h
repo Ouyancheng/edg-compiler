@@ -23,6 +23,9 @@ types.h -- Declarations related to types.c (having to do with types).
 #ifndef SYMBOL_TBL_H
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
+#ifndef EXPR_H
+#include "expr.h"
+#endif /* ifndef EXPR_H */
 
 /* There are copies of this macro in il_display.c and in c_gen_be.c;
    if you change this, you should probably change those definitions
@@ -110,6 +113,15 @@ extern a_type_ptr composite_type(a_type_ptr type_1,
 extern a_boolean overload_distinguishable(a_symbol_ptr old_sym_ptr,
                                           a_type_ptr   new_type,
                                           a_symbol_ptr *exact_match_symbol);
+extern void determine_argument_match_level(
+                                    a_type_ptr                arg_type,
+                                    a_boolean                 arg_is_constant,
+                                    a_constant                *arg_constant,
+                                    a_type_ptr                param_type,
+                                    an_argument_match_summary *arg_match);
+extern int compare_argument_match_levels(
+                                        an_argument_match_summary *arg_match1,
+                                        an_argument_match_summary *arg_match2);
 extern a_type_ptr make_file_scope_type(a_type_ptr old_type);
 
 /*
