@@ -9397,6 +9397,34 @@ instantiation.
     create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
                           is_partial_specialization);
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (prototype_instantiations_in_il) {
+    a_symbol_ptr  proto_sym = tssp->variant.class_template.
+                                                      prototype_instantiation;
+    a_type_ptr  proto_type = type_symbol_type(proto_sym);
+    a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
+    a_source_sequence_entry_ptr  ssep;
+    a_scope_depth  saved_depth = depth_scope_stack;
+
+    depth_scope_stack = decl_state->effective_decl_level;
+    ssep = add_empty_source_sequence_entry();
+    depth_scope_stack = saved_depth;
+    if (is_definition) srk_flags |= SRK_DEFINITION;
+    if (decl_state->is_template_friend) srk_flags |= SRK_FRIEND;
+    record_symbol_declaration(srk_flags, proto_sym, &locator.source_position,
+                              ssep);
+    if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+      a_src_seq_secondary_decl_ptr sssdp =
+                             ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+      sssdp->template_decl = decl_state->template_decl;
+      sssdp->autonomous_tag_decl = TRUE;
+    } else {
+      proto_type->variant.class_struct_union.extra_info->template_decl =
+                                                    decl_state->template_decl;
+      proto_type->autonomous_primary_tag_decl = TRUE;
+    }  /* if */
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     if (tssp->prototype_template == NULL || tssp->is_specific_definition) {
@@ -9838,6 +9866,13 @@ depends on a template parameter type, return TRUE in *template_dependent
     /* Return a flag indicating whether the parameter is unnamed. */
     *is_unnamed = (do_flags & DO_REAL_DECLARATOR_SCANNED) == 0;
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (declarator_ssep != NULL) {
+    /* Declarators appearing in template parameter list need not be recorded
+       in the source sequence entry lists. */
+    remove_from_src_seq_list(declarator_ssep);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (template_dependent != NULL) {
     /* Check whether the type depends on a template parameter.  This is
        done before the parameter type is adjusted below because certain
@@ -11593,6 +11628,9 @@ information returned from decl_specifiers and declarator.
   decl_function_template(locator, type, func_info, &sym, storage_class,
                          decl_modifiers, decl_state->decl_info,
                          decl_state->effective_decl_level,
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+                         decl_state->template_decl,
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
                          decl_state->is_specialization);
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_member_function &&
       decl_state->is_specialization) {
@@ -12295,7 +12333,7 @@ any non-empty template parameter lists that were scanned.
                                                 /*keep_default_args=*/TRUE);
   } /* if */
   complete_il_template_entry(decl_state, sym, p_template_body_cache);
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
+#if 0 /*FIXME*/ && PROTOTYPE_INSTANTIATIONS_IN_IL
   attach_template_decl_structure(decl_state, sym);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   if (class_templ_cache_segments != NULL) {

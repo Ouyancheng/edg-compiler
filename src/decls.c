@@ -5418,7 +5418,10 @@ void decl_function_template(a_symbol_locator            *locator,
                             a_decl_modifiers_block_ptr  decl_modifiers,
                             a_template_decl_info_ptr    templ_decl_info,
                             a_scope_depth               orig_decl_level,
-			    a_boolean			is_specialization)
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+                            a_template_decl_ptr         template_decl,
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
+                            a_boolean                   is_specialization)
 /*
 Roughly speaking, this routine does for function templates what
 decl_routine does for ordinary functions.  Look up and reuse or else
@@ -5820,6 +5823,28 @@ is a template specialization declaration.
     redeclaration = TRUE;
 #endif /* DECL_MODIFIERS_IN_USE */
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (prototype_instantiations_in_il) {
+    a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
+    if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
+    if (idlb.is_friend_decl) srk_flags |= SRK_FRIEND;
+    record_symbol_declaration(srk_flags,
+                              (a_symbol_ptr)rout_ptr->
+                                                    source_corresp.assoc_info,
+                              &locator->source_position,
+                              func_info->declarator_ssep);
+    if (ss_entry_kind(func_info->declarator_ssep) ==
+                                                 iek_src_seq_secondary_decl) {
+      a_src_seq_secondary_decl_ptr sssdp =
+       ss_entry_ptr(func_info->declarator_ssep, a_src_seq_secondary_decl_ptr);
+      sssdp->declared_type = func_info->declared_type;
+      sssdp->template_decl = template_decl;
+    } else {
+      set_routine_declared_type(rout_ptr, func_info->declared_type);
+      rout_ptr->template_decl = template_decl;
+    }  /* if */
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
   update_routine_decl_modifiers(rout_ptr, decl_modifiers,
                                 &locator->source_position, redeclaration,
                                 (a_boolean)func_info->is_definition,

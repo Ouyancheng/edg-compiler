@@ -11840,16 +11840,10 @@ next_declaration:
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (!(cssp->is_prototype_instantiation &&
-          prototype_instantiations_in_il)) {
-      /* Add a source sequence entry marking the end of the class definition.
-         If prototype instantiations are recorded in the IL, and this is a
-         prototype instantiation, the source sequence entry for the class was
-         omitted and hence this one should too.  (FIXME: This will most likely
-         not be needed with the new template representation.) */
-      add_end_of_construct_source_sequence_entry(
-                          (char *)class_type, (a_byte_il_entry_kind)iek_type);
-    }  /* if */
+    /* Add a source sequence entry marking the end of the class
+       definition. */
+    add_end_of_construct_source_sequence_entry(
+                         (char *)class_type, (a_byte_il_entry_kind)iek_type);
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   /* Clear the modified the ss-list instantiation insert point for the scope
      to which the class being defined belongs.  This has to be done before

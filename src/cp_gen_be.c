@@ -270,13 +270,13 @@ typedef int a_gen_name_options_set;
 			/* gen_name is invoked to emit the name of a member
 			   function or field.  In Microsoft mode, such a
 			   name cannot be qualified with a namespace name. */
-#ifdef PARSED_TEMPLATES_IN_IL
+#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
 #define GN_DEPENDENT 0x20
 			/* The name to generate depends on a template
 			   parameter. */
 #define GN_NO_TEMPLATE_ARGS 0x40
 			/* Do not generate the template arguments. */
-#endif /* PARSED_TEMPLATES_IN_IL */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 
 /* Needed because of forward references: */
@@ -291,6 +291,7 @@ static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type);
 static a_boolean process_preprocessing_directives(void);
 static void gen_pragma(void);
+static void gen_template_header(a_template_decl_ptr);
 static void gen_template(void);
 static void gen_lvalue_full(an_expr_node_ptr node,
                             a_boolean        need_parens);
@@ -1731,14 +1732,14 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
            hiding was effective only if the name was used as a qualifier. */
       } else {
         /* Use a qualified name. */
-#ifdef PARSED_TEMPLATES_IN_IL
+#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
         if (entry_kind == iek_type &&
             !(options & GN_QUALIFIER) && (options & GN_DEPENDENT)) {
           /* Emit a "typename" preceding a dependent qualified name (but not
              preceding every qualifier). */
           write_tok_str("typename ");
         }  /* if */
-#endif /* PARSED_TEMPLATES_IN_IL */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         gen_class_qualifier(class_type,
                             options & GN_PARENS_IF_GLOBAL_QUALIFIER,
                             need_closing_paren);
@@ -1774,7 +1775,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       write_tok_str("::");
     }  /* if */
   }  /* if */
-#ifdef PARSED_TEMPLATES_IN_IL
+#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
   /* Finally, emit the unqualified part of the name, with or without
      template arguments. */
   if (options & GN_NO_TEMPLATE_ARGS) {
@@ -1782,9 +1783,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
   } else {
     gen_unqualified_name(scp, entry_kind);
   }  /* if */
-#else /* !PARSED_TEMPLATES_IN_IL */
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
   gen_unqualified_name(scp, entry_kind);
-#endif /* PARSED_TEMPLATES_IN_IL */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 }  /* gen_name */
 
 
@@ -1792,17 +1793,17 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 #define gen_routine_name(routine)                                     \
   gen_name(&(routine)->source_corresp, iek_routine, GN_NO_OPTIONS,    \
            (a_boolean *)NULL)
-#ifdef PARSED_TEMPLATES_IN_IL
+#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
 #define gen_type_name(type)                                           \
   gen_name(&(type)->source_corresp, iek_type,                         \
            !C_mode() && is_or_contains_template_param(type) ?         \
                                      GN_DEPENDENT : GN_NO_OPTIONS,    \
            (a_boolean *)NULL)
-#else /* !PARSED_TEMPLATES_IN_IL */
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
 #define gen_type_name(type)                                           \
   gen_name(&(type)->source_corresp, iek_type, GN_NO_OPTIONS,          \
            (a_boolean *)NULL)
-#endif /* PARSED_TEMPLATES_IN_IL */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #define gen_field_name(field)                                         \
   gen_unqualified_name(&(field)->source_corresp, iek_field)
 
@@ -3248,7 +3249,7 @@ Print a set of Microsoft declaration modifiers.
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#ifdef PARSED_TEMPLATES_IN_IL
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
 
 static void gen_class_decl_name(a_type_ptr type)
 /*
@@ -3259,7 +3260,7 @@ with the declaration of a partial specialization).
 */
 {
   a_gen_name_options_set  options = GN_DECLARATION;
-  if (type->variant.class_struct_union.is_template_class &&
+  if (type->variant.class_struct_union.is_nonreal_class &&
       type->variant.class_struct_union.extra_info->
                                      partial_spec_template_arg_list == NULL) {
     /* For a primary template definition, we should not issue the template
@@ -3272,7 +3273,7 @@ with the declaration of a partial specialization).
   write_space();
 }  /* gen_class_decl_name */
 
-#endif /* PARSED_TEMPLATES_IN_IL */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 static void gen_class_definition(a_type_ptr type)
 /*
@@ -3303,20 +3304,9 @@ is the one associated with the definition of the class.
     }  /* if */
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-#ifdef PARSED_TEMPLATES_IN_IL
-  if (type->source_corresp.source_sequence_entry != NULL) {
-    /* Advance past the source sequence entry for the class itself. */
-    check_for_and_take_source_seq_entry(
-                                   type->source_corresp.source_sequence_entry);
-  } else {
-    /* Presumably a class template (prototype instantiation). */
-    adv_curr_source_sequence_entry();
-  }  /* if */
-#else /* !PARSED_TEMPLATES_IN_IL */
   /* Advance past the source sequence entry for the class itself. */
   check_for_and_take_source_seq_entry(
                                    type->source_corresp.source_sequence_entry);
-#endif /* PARSED_TEMPLATES_IN_IL */
   /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
   /* Put out the tag kind, e.g., "class". */
@@ -3348,13 +3338,13 @@ is the one associated with the definition of the class.
   } else {
     /* Put out the name.  Note that a name will be generated for an
        unnamed class, which can be useful for casts. */
-#ifdef PARSED_TEMPLATES_IN_IL
+#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
     gen_class_decl_name(type);
-#else /* !PARSED_TEMPLATES_IN_IL */
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
     gen_name(&type->source_corresp, iek_type, GN_DECLARATION,
              (a_boolean *)NULL);
     write_space();
-#endif /* PARSED_TEMPLATES_IN_IL */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   /* Put out the class definition. */
   if (il_header.source_language == sl_Cplusplus) {
@@ -3737,6 +3727,9 @@ this one is such a continuation.
   a_template_arg_ptr           template_arg_list = NULL;
   a_scope_ptr                  common_scope, orig_scope = NULL;
   a_boolean                    need_extern_C_closing_brace = FALSE;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  a_template_decl_ptr          template_decl;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
   *another_decl_in_comma_list = FALSE;
   /* Deal with the primary/secondary declaration difference. */
@@ -3744,6 +3737,9 @@ this one is such a continuation.
     type = ss_entry_ptr(sec_decl, a_type_ptr);
     friend_decl = sec_decl->friend_decl;
     is_specialization = sec_decl->specialized_with_new_syntax;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    template_decl = sec_decl->template_decl;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   } else {
     type = ss_entry_ptr(curr_source_sequence_entry, a_type_ptr);
     is_definition = TRUE;
@@ -3755,11 +3751,18 @@ this one is such a continuation.
       if (type->variant.class_struct_union.is_specialized) {
         is_specialization =
                  !type->variant.class_struct_union.specialized_with_old_syntax;
-      } else if (type->variant.class_struct_union.is_template_class) {
+      } else if (type->variant.class_struct_union.is_template_class &&
+                 !type->variant.class_struct_union.is_nonreal_class) {
         /* A generated instance.  Use the "template<>" prefix if
            appropriate. */
         is_specialization = !old_specializations_for_generated_instances;
       }  /* if */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      if (type->variant.class_struct_union.extra_info != NULL) {
+        template_decl = type->variant.class_struct_union.extra_info
+                                                              ->template_decl;
+      }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     }  /* if */
   }  /* if */
   kind = type->kind;
@@ -3775,6 +3778,12 @@ this one is such a continuation.
     /* If generating a member of a class within the class, set the right access
        mode for the member. */
     gen_member_access_specifier_for_decl_of(&type->source_corresp);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (template_decl != NULL) {
+      gen_template_header(template_decl);
+    } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+    /* Do not insert code here. */
     if (is_specialization) {
       /* A specialization. */
       template_arg_list = type->variant.class_struct_union.
@@ -3858,7 +3867,17 @@ this one is such a continuation.
       adv_curr_source_sequence_entry();
       /* For a friend, put out the "friend" prefix. */
       if (friend_decl) write_tok_str("friend ");
-      gen_tag_reference(type);
+      if (!prototype_instantiations_in_il || kind == (a_type_kind)tk_enum) {
+        /* Don't take this route if the type may be a prototype instantiation.
+           In that case, we may have to inhibit the template argument list. */
+        gen_tag_reference(type);
+#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
+      } else {
+        write_tok_str(tag_kind(type->kind));
+        write_space()
+        gen_class_decl_name(type);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+      }  /* if */
     } else if (kind == (a_type_kind)tk_enum) {
       /* An enum type definition. */
       gen_enum_definition(type);
@@ -4488,7 +4507,7 @@ precedence confusion and need_parens is TRUE.
           break;
       }  /* switch */
     }  /* if */
-#ifdef PARSED_TEMPLATES_IN_IL
+#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
   } else if (kind == (an_expr_node_kind)enk_constant) {
     a_constant_ptr  constant = node->variant.constant;
     if (constant->kind == (a_constant_repr_kind)ck_address) {
@@ -4505,14 +4524,14 @@ precedence confusion and need_parens is TRUE.
         processed = TRUE;
       }  /* if */
     }  /* if */
-#else /* !PARSED_TEMPLATES_IN_IL */
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
   } else if (kind == (an_expr_node_kind)enk_constant &&
              node->variant.constant->kind == (a_constant_repr_kind)ck_address){
     /* Using an address constant as the lvalue address. */
     form_lvalue_address_constant(node->variant.constant, /*need_parens=*/TRUE,
                                  &octl);
     processed = TRUE;
-#endif /* PARSED_TEMPLATES_IN_IL */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   } else if (kind == (an_expr_node_kind)enk_temp_init &&
              node->variant.init.result_is_addr) {
     /* A temporary initialization with the address of the temporary used as
@@ -6099,34 +6118,66 @@ characters in the string indicate new source lines.
   write_str(p);
 }  /* write_code_string */
 
-#ifdef PARSED_TEMPLATES_IN_IL
 
 static void write_tok_str_if_nonnull(char *str)
 {
   if (str != NULL) write_tok_str(str);
 }  /* write_tok_str_if_nonnull */
 
+#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
 
-static void gen_template_header(a_template_symbol_supplement_ptr tssp)
+static void gen_template_header(a_template_decl_ptr tdp)
+/*
+Generate a "template<...>" header from the given IL entry.  This also installs
+a mapping of template parameter coordinates to the source sequence entries
+recorded with this particular header.
+*/
 {
-  a_template_param_ptr  param = tssp->cache.decl_info->parameters;
+  a_template_parameter_ptr  param = tdp->param_list;
 
+  set_output_position(&tdp->template_pos);
   write_tok_str("template<");
   for (; param != NULL; param = param->next) {
-    a_symbol_ptr  param_sym = param->param_symbol;
-    if (param_sym->kind == (a_symbol_kind)sk_constant) {
-      gen_type(param->variant.constant.ptr->type);
-      write_tok_str(" ");
-      write_tok_str_if_nonnull(
-                            param->variant.constant.ptr->source_corresp.name);
-    } else if  (param_sym->kind == (a_symbol_kind)sk_type) {
+    if (param->kind == (a_template_parameter_kind)tpk_nontype) {
+      a_constant_ptr  cp = param->variant.nontype.constant;
+
+      /* Remap the source correspondence entry for output: */
+      remap_template_param(&cp->variant.template_param.variant.coordinates,
+                           &param->source_corresp);
+      /* Emit the parameter declaration: */
+      form_type_first_part(cp->type,
+                           /*under_lhs_declarator=*/FALSE,
+                           /*need_trailing_space=*/TRUE,
+                           TQ_NONE, FTO_NO_OPTIONS, &octl);
+      /* Set the source position for the name. */
+      set_output_position(&param->source_corresp.decl_position);
+      /* Write the name. */
+      gen_unqualified_name(&cp->source_corresp, iek_constant);
+      /* Write the second part of the declarator. */
+      form_type_second_part_simple(cp->type, /*under_lhs_declarator=*/FALSE,
+                                   &octl);
+      if (param->variant.nontype.default_arg_constant != NULL) {
+        a_constant_ptr  dac = param->variant.nontype.default_arg_constant;
+        write_tok_str(" = ");
+        gen_constant(dac, /*need_parens=*/FALSE);
+      }  /* if */  
+    } else if  (param->kind == (a_template_parameter_kind)tpk_type) {
+      /* Remap the source correspondence entry for output: */
+      remap_template_param(&param->variant.type.ptr
+                              ->variant.template_param.extra_info
+                              ->coordinates,
+                           &param->source_corresp);
       write_tok_str("typename ");
-      write_tok_str_if_nonnull(param->variant.type->source_corresp.name);
+      /* Set the source position for the name. */
+      set_output_position(&param->source_corresp.decl_position);
+      write_tok_str_if_nonnull(param->source_corresp.name);
+      if (param->variant.type.default_arg_type != NULL) {
+        a_type_ptr  dat = param->variant.type.default_arg_type;
+        write_tok_str(" = ");
+        gen_type(dat);
+      }  /* if */  
     } else {
-      gen_template_header(param->variant.templ);
-      write_tok_str("class ");
-      write_tok_str_if_nonnull(
-                param->variant.templ->il_template_entry->source_corresp.name);
+      unexpected_condition_str("Not yet implemented");
     }  /* if */
     if (param->next != NULL) write_tok_str(", ");
   }  /* for */
@@ -6134,55 +6185,31 @@ static void gen_template_header(a_template_symbol_supplement_ptr tssp)
 }  /* gen_template_header */
 
 
-static void gen_template(void)
+void unmap_template_parameters(a_template_decl_ptr  tdp)
 /*
-Generate a declaration for a template.  The current source sequence entry
-is the one associated with the template.
+Deactivate the mapping of template parameter coordinates recorded with this
+particular header.
 */
 {
-  a_template_ptr tp = ss_entry_ptr(curr_source_sequence_entry, a_template_ptr);
+  a_template_parameter_ptr  param = tdp->param_list;
 
-  set_output_position(&tp->source_corresp.decl_position);
-  gen_member_access_specifier_for_decl_of(&tp->source_corresp);
-  if (!nonclass_prototype_instantiations) {
-    /* Advance past the source sequence entry for the template. */
-    adv_curr_source_sequence_entry();
-    /* Write the template string. */
-    write_code_string(tp->text);
-  } else {
-    a_boolean     another_decl_in_comma_list;
-    a_symbol_ptr  type_sym;
+  for (; param != NULL; param = param->next) {
+    if (param->kind == (a_template_parameter_kind)tpk_nontype) {
+      a_constant_ptr  cp = param->variant.nontype.constant;
+      unmap_template_param(&cp->variant.template_param.variant.coordinates);
+    } else if  (param->kind == (a_template_parameter_kind)tpk_type) {
+      /* Remap the source correspondence entry for output: */
+      remap_template_param(&param->variant.type.ptr
+                              ->variant.template_param.extra_info
+                              ->coordinates,
+                           &param->source_corresp);
+    } else {
+      unexpected_condition_str("Not yet implemented");
+    }  /* if */
+  }  /* for */
+}  /* unmap_template_parameters */
 
-    gen_template_header(tp->template_info);
-    switch (tp->kind) {
-      case templk_function:
-        gen_routine_decl(/*suppress_specifiers=*/FALSE,
-                         &another_decl_in_comma_list);
-        break;
-      case templk_class:
-        type_sym =
-            tp->template_info->variant.class_template.prototype_instantiation;
-        if (tp->definition_range.start.seq != 0) {
-          /* A class template definition. */
-          gen_class_definition(type_sym->variant.class_struct_union.type);
-        } else {
-          /* A class template declaration that is not a definition. */
-          /* Advance past the source sequence entry for the template. */
-          adv_curr_source_sequence_entry();
-          write_tok_str(
-               tag_kind(tp->template_info->variant.class_template.type_kind));
-          write_space();
-          gen_class_decl_name(type_sym->variant.class_struct_union.type);
-          write_end_of_declaration_punctuation(/*another_decl=*/FALSE);
-        }  /* if */
-        break;
-      default:
-        unexpected_condition_str("gen_template: bad template kind");
-    }  /* switch */
-  }  /* if */
-}  /* gen_template */
-
-#else /* !PARSED_TEMPLATES_IN_IL */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 static void gen_template(void)
 /*
@@ -6194,13 +6221,16 @@ is the one associated with the template.
   
   /* Advance past the source sequence entry for the template. */
   adv_curr_source_sequence_entry();
-  set_output_position(&tp->source_corresp.decl_position);
-  gen_member_access_specifier_for_decl_of(&tp->source_corresp);
-  /* Write the template string. */
-  write_code_string(tp->text);
+  if (!prototype_instantiations_in_il) {
+    /* If prototype instantiations are recorded in the IL, the templates will
+       be generated from those. */
+    set_output_position(&tp->source_corresp.decl_position);
+    gen_member_access_specifier_for_decl_of(&tp->source_corresp);
+    /* Write the template string. */
+    write_code_string(tp->text);
+  }  /* if */
 }  /* gen_template */
 
-#endif /* PARSED_TEMPLATES_IN_IL */
 
 static void gen_namespace(void)
 /*
@@ -7117,7 +7147,7 @@ TRUE, "()" is put out.
               gen_type_name(ctor->source_corresp.parent.class_type);
             }  /* if */
             /* Put out the argument list in parentheses. */
-#ifdef PARSED_TEMPLATES_IN_IL
+#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
             if (ctor != NULL) {
               gen_argument_list(args, ctor->type, /*skip_num=*/0);
             } else {
@@ -7131,9 +7161,9 @@ TRUE, "()" is put out.
               }  /* for */
               write_tok_ch(')');
             }  /* if */
-#else /* !PARSED_TEMPLATES_IN_IL */
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
             gen_argument_list(args, ctor->type, /*skip_num=*/0);
-#endif /* PARSED_TEMPLATES_IN_IL */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           }  /* if */
         }  /* if */
       }
@@ -7518,13 +7548,13 @@ a constructor.
         case cik_direct_base_class:
           /* Initializing a base class. */
           type = ctor_init->variant.base_class->type;
-#ifdef PARSED_TEMPLATES_IN_IL
+#ifdef PROTOTYPE_INSTANTIATIONS_IN_IL
           /* Don't use "gen_type_name" to avoid "typename" keywords. */
           gen_name(&type->source_corresp, iek_type,
                    GN_NO_OPTIONS, (a_boolean *)NULL);
-#else /* !PARSED_TEMPLATES_IN_IL */
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
           gen_type_name(type);
-#endif /* PARSED_TEMPLATES_IN_IL */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case cik_field:
           /* Initializing a nonstatic data member. */
@@ -7743,6 +7773,9 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     need_to_unset_typedefs = FALSE;
   a_scope_ptr                   common_scope, orig_scope = NULL;
   a_boolean                     need_extern_C_closing_brace = FALSE;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  a_template_decl_ptr           template_decl;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
   *another_decl_in_comma_list = FALSE;
   /* Note that compiler-generated routines don't appear on the source sequence
@@ -7755,25 +7788,18 @@ TRUE if the declaration following this one is such a continuation.
        different typedefs, default arguments). */
     rout_type = sec_decl->declared_type;
     friend_decl = sec_decl->friend_decl;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    template_decl = sec_decl->template_decl;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     is_specialization = sec_decl->specialized_with_new_syntax;
   } else {
-#ifdef PARSED_TEMPLATES_IN_IL
-    if (curr_source_sequence_entry->entity.kind ==
-                                             (an_il_entry_kind)iek_template) {
-      a_template_ptr tp =
-                     ss_entry_ptr(curr_source_sequence_entry, a_template_ptr);
-      rout = tp->template_info->variant.function.routine;
-      rout_type = rout->type;
-    } else {
-      rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
-      rout_type = rout->declared_type;
-    }  /* if */
-#else /* !PARSED_TEMPLATES_IN_IL */
     rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
     rout_type = rout->declared_type;
-#endif /* PARSED_TEMPLATES_IN_IL */
     is_definition = TRUE;
     friend_decl = rout->defined_in_friend_decl;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    template_decl = rout->template_decl;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     is_specialization = FALSE;
     /* See if the "template<>" specialization prefix should be put out. */
     if (rout->is_specialized) {
@@ -7783,19 +7809,9 @@ TRUE if the declaration following this one is such a continuation.
       is_specialization = !old_specializations_for_generated_instances;
     }  /* if */
     if (rout->assoc_scope == NULL_region_number) {
-#ifdef PARSED_TEMPLATES_IN_IL
-      /* A member function of a template class might not be instantiated or
-         we might be dealing with a function template declaration (for which
-         we have a template source sequence entry instead of a secondary
-         routine source sequence entry). */
-      check_assertion_str(rout->is_template_function ||
-                          rout->is_prototype_instantiation,
-                          "gen_routine_decl: missing definition");
-#else /* !PARSED_TEMPLATES_IN_IL */
       /* A member function of a template class might not be instantiated. */
       check_assertion_str(rout->is_template_function,
                           "gen_routine_decl: missing definition");
-#endif /* PARSED_TEMPLATES_IN_IL */
       is_definition = FALSE;
     }  /* if */
   }  /* if */
@@ -7805,6 +7821,11 @@ TRUE if the declaration following this one is such a continuation.
   rtsp = unqual_rout_type->variant.routine.extra_info;
   /* Advance past the source sequence entry for the routine. */
   adv_curr_source_sequence_entry();
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (template_decl != NULL) {
+    gen_template_header(template_decl);
+  }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   /* Position the output file to the declaration position. */
   set_decl_position(&rout->source_corresp, sec_decl);
   if (!suppress_specifiers) {

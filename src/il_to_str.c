@@ -784,6 +784,133 @@ end_of_routine:;
 
 #endif /* ifdef FFE */
 
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+/*
+Template parameters are primarily characterized by their coordinates: the
+template nesting depth at which they are introduced and the position in the
+associated template declaration clause.  Such parameters are represented by
+a_constant or a_type entries whose source_correspondence entry may not always
+contain the correct name, since the name can vary for a given coordinate set.
+For example:
+   template<int I> struct A {};
+   template<int I> struct B { A<I> *a; };  // (1)
+   template<int K> struct C { A<K> *a; };  // (2)
+Only one type entry represents the type A<#1> in (1) and (2).  The source
+correspondence entry for the first argument "#1" will name "I" because that
+was the name used at the first point of instantiation of A<#1>.  However,
+the C++ generating back (for example) needs to produce a name that is valid in
+the context of use.  To achieve this, we establish a mapping from coordinates
+to source correspondence entries, and we consult the map prior to emitting
+a_type or a_constant entries that stand for template parameters.
+*/
+
+typedef struct a_template_param_map_level *a_template_param_map_level_ptr;
+typedef struct a_template_param_map_level {
+  /* A growable structure mapping (for a certain template nesting depth) the
+     position of a template parameter to its current name. */
+  a_template_param_list_pos
+		max_position;
+			/* The largest position ordinal for which a mapping is
+			   stored at this depth. */
+  a_source_correspondence_ptr
+		*source_corresp;
+			/* Points to an array of max_position possibly NULL
+			   pointers to source correspondence entries. */
+} a_template_param_map_level;
+
+
+static a_template_param_map_level_ptr template_param_map = NULL;
+			/* A pointer to the two-level lookup structure. */
+
+static a_template_nesting_depth template_param_map_max_level = 0;
+			/* The size of the first level (i.e., the maximum
+			   template nesting depth for which a parameter
+			   coordinate has been mapped. */
+
+void remap_template_param(a_template_param_coordinate_ptr  coord,
+                          a_source_correspondence_ptr      scp)
+/*
+Associate the give template parameter coordinate with the given source
+correspondence entry.
+*/
+{
+  a_template_param_map_level_ptr  level;
+
+  /* First find/create the appropriate depth/level: */
+  if (template_param_map == NULL) {
+    template_param_map_max_level = (coord->depth > 5) ? 2*coord->depth : 10;
+    template_param_map = (a_template_param_map_level_ptr)alloc_general(
+            sizeof(a_template_param_map_level[template_param_map_max_level]));
+    memzero(template_param_map,
+            sizeof(a_template_param_map_level[template_param_map_max_level]));
+  } else if (coord->depth > template_param_map_max_level) {
+    a_template_nesting_depth new_max_level = 2*coord->depth;
+    template_param_map =
+        (a_template_param_map_level_ptr)realloc_general(
+             (char*)template_param_map,
+             sizeof(a_template_param_map_level[template_param_map_max_level]),
+             sizeof(a_template_param_map_level[new_max_level]));
+    memzero(&template_param_map[template_param_map_max_level],
+            sizeof(a_template_param_map_level[new_max_level]) -
+            sizeof(a_template_param_map_level[template_param_map_max_level]));
+    template_param_map_max_level = new_max_level;
+  }  /* if */
+  level = &template_param_map[coord->depth-1];
+  /* Then add the new mapping at the right position: */
+  if (level->max_position == 0) {
+    level->max_position = (coord->position > 5) ? 2*coord->position : 10;
+    level->source_corresp = (a_source_correspondence_ptr*)alloc_general(
+                    sizeof(a_source_correspondence_ptr[level->max_position]));
+    memzero(level->source_corresp,
+            sizeof(a_source_correspondence_ptr[level->max_position]));
+  } else if (coord->position > level->max_position) {
+    a_template_param_list_pos new_max_pos = 2*coord->position;
+    level->source_corresp = (a_source_correspondence_ptr*)realloc_general(
+                     (char*)level->source_corresp,
+                     sizeof(a_source_correspondence_ptr[level->max_position]),
+                     sizeof(a_source_correspondence_ptr[new_max_pos]));
+    memzero(&level->source_corresp[level->max_position],
+            sizeof(a_source_correspondence_ptr[new_max_pos]) -
+                    sizeof(a_source_correspondence_ptr[level->max_position]));
+  }  /* if */
+  level->source_corresp[coord->position-1] = scp;
+}  /* remap_template_param */
+
+
+void unmap_template_param(a_template_param_coordinate_ptr  coord)
+/*
+Uninstall any mapping for the given template parameter coordinate.  Presumably
+this will cause the source correspondence of the a_type or a_constant entry
+for the template parameter to be used.
+*/
+{
+  remap_template_param(coord, /*scp=*/NULL);
+}  /* a_template_param_coordinate_ptr */
+
+
+static a_source_correspondence_ptr source_corresp_for_template_param(
+                                        a_template_param_coordinate_ptr coord)
+/*
+Look up the given template parameter coordinates in the template parameter map
+to find a source correspondence entry that will produce a meaningful name in
+the current context.
+*/
+{
+  a_source_correspondence_ptr     result;
+
+  if (template_param_map == NULL ||
+      coord->depth > template_param_map_max_level ||
+      coord->position > template_param_map[coord->depth - 1].max_position) {
+    result = NULL;
+  } else {
+    result = template_param_map[coord->depth - 1].
+                                          source_corresp[coord->position - 1];
+  }  /* if */
+  return result;
+}  /* source_corresp_for_template_param */
+
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+
 static void form_type_specifier(a_type_ptr                            type,
                                 an_il_to_str_output_control_block_ptr octl)
 /*
@@ -857,7 +984,23 @@ by octl.
       form_name(&type->source_corresp, iek_type, octl);
       break;
     case tk_template_param:
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      {
+        a_source_correspondence_ptr scp =
+           source_corresp_for_template_param(
+                       &type->variant.template_param.extra_info->coordinates);
+        if (scp != NULL) {
+          /* scp is preferred over the source correspondence stored in the
+             type (presumably because the template parameter name is different
+             in this context). */
+          form_name(scp, iek_type, octl);
+        } else {
+          form_name(&type->source_corresp, iek_type, octl);
+        }  /* if */
+      }
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
       form_name(&type->source_corresp, iek_type, octl);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -2900,9 +3043,8 @@ confusion.  Do the output in the way described by octl.
       break;
 #ifdef CFE
     case ck_template_param:
-#ifndef DO_NONCLASS_PROTOTYPE_INSTANTIATIONS
-      check_assertion(!octl->gen_compilable_code);
-#endif /* DO_NONCLASS_PROTOTYPE_INSTANTIATIONS */
+      check_assertion(!octl->gen_compilable_code ||
+                      prototype_instantiations_in_il);
       switch (constant->variant.template_param.kind) {
         case tpck_member:
           if (constant->variant.template_param.variant.is_address) {
@@ -2921,7 +3063,26 @@ confusion.  Do the output in the way described by octl.
           goto name_cases;
         case tpck_param:
 name_cases:
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+          {
+            a_source_correspondence_ptr scp = NULL;
+            if (constant->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_param) {
+              scp = source_corresp_for_template_param(
+                       &constant->variant.template_param.variant.coordinates);
+            }  /* if */
+            if (scp != NULL) {
+              /* scp is preferred over the source correspondence stored in the
+                 constant (presumably because the template parameter name is
+                 different in this context). */
+              form_name(scp, iek_constant, octl);
+            } else {
+              form_name(&constant->source_corresp, iek_constant, octl);
+            }  /* if */
+          }
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
           form_name(&constant->source_corresp, iek_constant, octl);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           break;
         case tpck_expression:
           if (octl->output_expression == NULL) {

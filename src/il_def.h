@@ -728,6 +728,14 @@ typedef struct a_src_seq_secondary_decl {
 			   needn't be.  It appears on secondary declarations
 			   for typedefs, but NULL for secondary declarations
 			   of class, struct, union, and enum types. */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  a_template_decl_ptr
+		template_decl;
+			/* A description of the template declaration header
+			   as used in this particular declaration.  (E.g.,
+			   template parameter names could differ from those
+			   in the primary declaration.) */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   a_bit_field	autonomous_tag_decl:1;
 			/* If entity refers to a type entry representing a
 			   class, struct, union, or enum, this flag is TRUE if
@@ -932,6 +940,7 @@ typedef struct a_per_instantiation_needed_flags_entry {
 
 #endif /* ifdef CIL */
 
+typedef struct a_source_correspondence *a_source_correspondence_ptr;
 typedef struct a_source_correspondence {
   /* Structure placed within several IL constructs to tie the IL construct
      instance back to a corresponding source construct instance. */
@@ -7462,11 +7471,9 @@ typedef struct a_template_decl {
 		param_list;
 			/* The list of template parameters for this template
 			   entity (not including enclosing parameters). */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
 		template_pos;
 			/* The position of the "template" keyword. */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_template_decl;
 
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
