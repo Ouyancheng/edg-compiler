@@ -999,7 +999,14 @@ otherwise, allocate it in the current file-scope memory region.
     a_translation_unit_ptr tup;
     a_symbol_ptr           sym = (a_symbol_ptr)(scp->assoc_info);
     check_assertion(sym != NULL);
-    tup = trans_unit_for_symbol(sym);
+    if (sym->decl_scope == NO_SCOPE_NUMBER) {
+      /* There must be some previous error. */
+      check_assertion(total_errors != NULL);
+      /* Pick an arbitrary secondary translation unit. */
+      tup = translation_units->next;
+    } else {
+      tup = trans_unit_for_symbol(sym);
+    }  /* if */
     clep = (a_class_list_entry_ptr)
                       alloc_secondary_file_scope_il(sizeof(a_class_list_entry),
                       tup);
