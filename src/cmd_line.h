@@ -144,14 +144,6 @@ EXTERN an_integer_kind
 		plain_char_int_kind;
 			/* Integer kind for a "plain" char, dependent on
 			   the setting of targ_has_signed_chars. */
-EXTERN long	targ_min_char,
-		targ_max_char;
-			/* Minimum and maximum values for values of type char,
-			   dependent on the setting of
-			   targ_has_signed_chars.  The more obvious names
-			   targ_CHAR_MIN and targ_CHAR_MAX were not used
-			   because they conflict with one another as
-			   8-character external names. */
 EXTERN a_boolean
 		enum_types_can_be_smaller_than_int
 #if VAR_INITIALIZERS
