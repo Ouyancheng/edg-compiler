@@ -241,6 +241,20 @@ this version of the runtime, then simply abort.
 }  /* __throw_bad_cast */
 
 
+void __throw_bad_typeid(void)
+/*
+Throw a bad typeid exception.  If exception handling is not supported in
+this version of the runtime, then simply abort.
+*/
+{
+#if EXCEPTION_HANDLING
+  throw bad_typeid();
+#else /* !EXCEPTION_HANDLING */
+  abort();
+#endif /* EXCEPTION_HANDLING */
+}  /* __throw_bad_typeid */
+
+
 EXTERN_C void *__dynamic_cast_ref(void                  *class_ptr,
 			          a_vtbl_entry_ptr      vtbl_ptr,
 			          a_type_info_impl_ptr  tiip)
@@ -261,10 +275,14 @@ __dynamic_cast and throws an exception if the cast failed.
 
 EXTERN_C void *__get_typeid(a_vtbl_entry_ptr	vtbl_ptr)
 /*
+Return the user type_info pointer from the specified virtual function
+table.  If the pointer to the vtable is NULL, throw a bad_typeid
+execption.
 */
 {
   a_type_info_impl_ptr	tiip;
 
+  if (vtbl_ptr == NULL) __throw_bad_typeid();
   /* Get the pointer to the type_info_impl associated with the source object. 
      This is stored in the function pointer field of the vtbl entry. */
   tiip = (a_type_info_impl_ptr)vtbl_ptr->function;
