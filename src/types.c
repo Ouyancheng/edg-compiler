@@ -3312,12 +3312,16 @@ its parameters?).
     switch (type_ptr->kind) {
       case tk_error:
       case tk_void:
-      case tk_integer:
       case tk_float:
       case tk_template_param:
       case tk_unknown:
         /* Leaf nodes -- no further traversal required. */
         break;
+      case tk_integer:
+	/* Integer type -- if this is an enumeration we need to check
+	   enclosing classes. */
+        if (type_ptr->variant.integer.enum_type) goto check_enclosing_classes;
+	break;
       case tk_pointer:
         tp = type_ptr->variant.pointer.type;
         status = traverse_type_tree(tp, func, flags);
@@ -3355,9 +3359,18 @@ its parameters?).
         tp = type_ptr->variant.array.element_type;
         if (tp != NULL) status = traverse_type_tree(tp, func, flags);
         break;
+      case tk_typeref:
+        tp = type_ptr->variant.typeref.type;
+        status = traverse_type_tree(tp, func, flags);
+	break;
       case tk_class:
       case tk_struct:
       case tk_union:
+#if 0
+        /* Any code for the general class/struct/union case should go
+	   here. */
+#endif /* 0 */
+check_enclosing_classes:
         /* Conditional traversal of contained types. */
         if (flags & TTT_TEMPLATE_ARGS) {
 	  /* For nested classes only the outermost class can have
@@ -3382,15 +3395,7 @@ its parameters?).
               }  /* if */
             }  /* if */
           }  /* for */
-#if 0
-        } else {
-        /* To be implemented when needed. */
-#endif /* if 0 */
         }  /* if */
-        break;
-      case tk_typeref:
-        tp = type_ptr->variant.typeref.type;
-        status = traverse_type_tree(tp, func, flags);
         break;
       case tk_ptr_to_member:
         tp = type_ptr->variant.ptr_to_member.class_of_which_a_member;
