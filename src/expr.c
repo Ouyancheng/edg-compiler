@@ -4609,6 +4609,11 @@ because the feature is used to implement offsetof, a standard feature.
   cast_operand(integer_type(targ_size_t_int_kind), result,
                /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
                /*is_reinterpret_cast=*/FALSE);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  /* There is no IL operator for __INTADDR__; so we cannot really record the
+     expression that formed the resulting constant. */
+  result->variant.constant.expr = NULL;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
