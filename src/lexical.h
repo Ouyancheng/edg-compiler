@@ -29,6 +29,8 @@ typedef struct a_source_line_modif *a_source_line_modif_ptr;
 #include "error.h"
 #endif /* ifndef ERROR_H */
 
+/* There are more #includes later in this file. */
+
 /*
 Token kinds.  See 3.1, 3.1.1, 3.1.5, 3.1.6 in standard.
 If this enumeration is changed, be sure to change db_token_names below.
