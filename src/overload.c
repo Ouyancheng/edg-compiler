@@ -2155,7 +2155,7 @@ templ_param_list is the template parameter list.
   a_type_ptr base_param_type = f_skip_typerefs(type_pointed_to(param_type));
 
   /* The array --> pointer transformation is done except if the template
-     parameter is explicitly a reference to an array and it it can be
+     parameter is explicitly a reference to an array and if it can be
      made to match. */
   if (is_array_type(base_param_type) &&
       tentatively_matches_template_type(arg_type, base_param_type,
@@ -2182,7 +2182,7 @@ templ_param_list is the template parameter list.
   a_type_ptr base_param_type = f_skip_typerefs(type_pointed_to(param_type));
 
   /* The function --> pointer transformation is done except if the template
-     parameter is explicitly a reference to a function and it it can be
+     parameter is explicitly a reference to a function and if it can be
      made to match. */
   if (is_function_type(base_param_type) &&
       tentatively_matches_template_type(arg_type, base_param_type,
