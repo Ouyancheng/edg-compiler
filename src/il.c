@@ -472,7 +472,7 @@ pointer_or_reference:
       break;
     case tk_array:
       fputc('(', f_debug);
-      db_type(tp->variant.array.element_type);
+      db_abbreviated_type(tp->variant.array.element_type);
       fprintf(f_debug, ")[%lu]", tp->variant.array.number_of_elements);
       break;
     case tk_struct:
@@ -561,7 +561,7 @@ class_struct_union:
       comma_required = FALSE;
       while (ptp != NULL) {
 	if (comma_required) fputs(", ", f_debug);
-        db_type(ptp->type);
+        db_abbreviated_type(ptp->type);
 	comma_required = TRUE;
         ptp = ptp->next;
       }  /* while */
@@ -570,13 +570,13 @@ class_struct_union:
         fputs("...", f_debug);
       }  /* if */
       fputs(") returning ", f_debug);
-      db_type(tp->variant.routine.return_type);
+      db_abbreviated_type(tp->variant.routine.return_type);
       break;
     case tk_typeref:
       fputs("typeref ", f_debug);
       if (tp->variant.typeref.is_const) fputs("const ", f_debug);
       if (tp->variant.typeref.is_volatile) fputs("volatile ", f_debug);
-      db_type(tp->variant.typeref.type);
+      db_abbreviated_type(tp->variant.typeref.type);
       break;
     default:
       fputs("<bad type>", f_debug);
@@ -676,7 +676,7 @@ Dump the contents of the indicated variable, for debug purposes.
   fputs("name = ", f_debug);
   db_name(&var_ptr->source_corresp);
   fputs(", type = ", f_debug);
-  db_type(var_ptr->type);
+  db_abbreviated_type(var_ptr->type);
 }  /* db_variable */
 
 
@@ -693,7 +693,7 @@ static void db_expr_node(an_expr_node_ptr node,
       fprintf(f_debug, "operator: %s",
               db_operator_names[(int)node->variant.operation.kind]);
       fputs(", result type: ", f_debug);
-      db_type(node->type);
+      db_abbreviated_type(node->type);
       fputs("\n", f_debug);
       operand = node->variant.operation.operands;
       while (operand != NULL) {
@@ -704,22 +704,22 @@ static void db_expr_node(an_expr_node_ptr node,
     case enk_constant:
       const_ptr = node->variant.constant;
       if (const_ptr->source_corresp.name == NULL) {
-        fputs("constant: value=", f_debug);
+        fputs("constant: value = ", f_debug);
       } else {
-	fprintf(f_debug, "constant (%s): value=",
+	fprintf(f_debug, "constant (%s): value = ",
 		const_ptr->source_corresp.name);
       }  /* if */
       db_constant(const_ptr);
       fputs("\n", f_debug);
       break;
     case enk_variable_address:
-      fputs("address of - ", f_debug);
+      fputs("address of variable: ", f_debug);
       db_variable(node->variant.variable);
       fputs("\n", f_debug);
       break;
     case enk_variable:
       /* For now. */
-      fputs("variable - ", f_debug);
+      fputs("variable: ", f_debug);
       db_variable(node->variant.variable);
       fputs("\n", f_debug);
       break;
@@ -747,6 +747,144 @@ void db_expression(an_expr_node_ptr node)
   db_expr_node(node, 0);
   fputs("*** end of expression ***\n", f_debug);
 }  /* db_expression */
+
+
+static void db_static_initializer(a_constant_ptr  con)
+{
+  if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+    fputs("{ ", f_debug);
+    con = con->variant.aggregate.first_constant;
+    for (; con != NULL; con = con->next) {
+      db_static_initializer(con);
+      if (con->next != NULL) fputs(", ", f_debug);
+    }  /* for */
+    fputs(" }", f_debug);
+  } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
+    fprintf(f_debug, "%d reps of [[ ", con->variant.init_repeat.count);
+    db_static_initializer(con->variant.init_repeat.constant);
+    fputs(" ]]", f_debug);
+  } else {
+    db_constant(con);
+  }  /* if */
+}  /* db_static_initializer */
+
+
+static void db_constructor_initializer(a_dynamic_init_ptr  dip,
+                                       int                 level)
+{
+  an_expr_node_ptr  arg;
+  a_param_type_ptr  ptp;
+
+  fputs("constructor ", f_debug);
+  db_name(&dip->variant.constructor.routine->source_corresp);
+  fputs("::", f_debug);
+  db_name(&dip->variant.constructor.routine->source_corresp);
+  fputc('(', f_debug);
+  ptp = dip->variant.constructor.routine->type->
+                          variant.routine.extra_info->param_type_list;
+  if (ptp != NULL) {
+    db_abbreviated_type(ptp->type);
+    for (ptp = ptp->next; ptp != NULL; ptp = ptp->next) {
+      fputs(", ", f_debug);
+      db_abbreviated_type(ptp->type);
+    }  /* for */
+  }  /* if */
+  fputc(')', f_debug);
+  if ((arg = dip->variant.constructor.args) == NULL) {
+    fputc('\n', f_debug);
+  } else {
+    fputs(", args =\n", f_debug);
+    for (; arg != NULL; arg = arg->next) {
+      db_expr_node(arg, level);
+    }  /* if */
+  }  /* if */
+}  /* db_constructor_initializer */
+
+
+static void db_nonconstant_aggregate(a_constant_ptr  con,
+                                     int             level)
+{
+  int  a;
+
+  for (; con != NULL; con = con->next) {
+    if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+      a_dynamic_init_ptr  dip = con->variant.dynamic_init;
+      switch (dip->kind) {
+        case dik_constant:
+          for (a = 0; a < level; a++) fputs(" ", f_debug);
+          db_static_initializer(dip->variant.constant);
+          fputc('\n', f_debug);
+          break;
+        case dik_expression:
+          db_expr_node(dip->variant.expression, level);
+          break;
+        case dik_aggregate:
+          fputs("aggregate with non-constants:\n", f_debug);
+          db_nonconstant_aggregate(dip->variant.aggregate.aggr_const->
+                                            variant.aggregate.first_constant,
+                                   level + 2);
+          break;
+        case dik_constructor:
+          for (a = 0; a < level; a++) fputs(" ", f_debug);
+          db_constructor_initializer(dip, level + 2);
+          break;
+      }  /* switch */
+    } else {
+      for (a = 0; a < level; a++) fputs(" ", f_debug);
+      db_static_initializer(con);
+      fputc('\n', f_debug);
+    }  /* if */
+  }  /* for */
+}  /* db_nonconstant_aggregate */
+
+
+static void db_dynamic_initializer(a_dynamic_init_ptr  dip,
+                                   int                 level)
+{
+  switch (dip->kind) {
+    case dik_constant:
+      db_static_initializer(dip->variant.constant);
+      fputc('\n', f_debug);
+      break;
+    case dik_expression:
+      fputs("expression:\n", f_debug);
+      db_expr_node(dip->variant.expression, level + 2);
+      break;
+    case dik_aggregate:
+      if (dip->variant.aggregate.dynamic_init == NULL) {
+        db_static_initializer(dip->variant.aggregate.aggr_const);
+        fputc('\n', f_debug);
+      } else {
+        fputs("aggregate with non-constants:\n", f_debug);
+        db_nonconstant_aggregate(dip->variant.aggregate.aggr_const->
+                                          variant.aggregate.first_constant,
+                                 level + 2);
+      }  /* if */
+      break;
+    case dik_constructor:
+      db_constructor_initializer(dip, level);
+      break;
+  }  /* switch */
+}  /* db_dynamic_initializer */
+
+
+void db_initializer(a_variable_ptr  var,
+                    int             level)
+{
+  int  a;
+
+  if (var->init_kind != (an_init_kind)initk_none) {
+    for (a = 0; a < level; a++) fputs(" ", f_debug);
+    if (var->init_kind == (an_init_kind)initk_static) {
+      fputs("static init: ", f_debug);
+      db_static_initializer(var->initializer.constant);
+      fputc('\n', f_debug);
+    } else {
+      fputs("dynamic init: ", f_debug);
+      db_dynamic_initializer(var->initializer.dynamic, level + 2);
+    }  /* if */
+  }  /* if */
+}  /* db_initializer */
 #endif /* DEBUG */
 
 

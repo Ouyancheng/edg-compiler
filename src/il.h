@@ -217,6 +217,9 @@ extern void db_variable(a_variable_ptr var_ptr);
 
 extern void db_expression(an_expr_node_ptr node);
 
+extern void db_initializer(a_variable_ptr  var_ptr,
+                           int             level);
+
 extern unsigned long show_il_space_used(void);
 #endif /* DEBUG */
 
