@@ -319,7 +319,7 @@ Those using IL lowering with full or partial lowering of EH features
 will not have to change their code; the code and data structures after
 lowering is done are upward-compatible with previous versions.
 
-5/31/96 Windows-NT portability issues
+5/31/96 Windows NT portability issues
 
 The code in host_envir.c that reads directory entries has been changed
 to use names that available on a wider variety of NT compilers.
@@ -1300,10 +1300,12 @@ fixed.
 3/25/96   Include search path bug when using implicit inclusion
 
 The include search path entry that represents the directory of the primary
-source file was not being updated properly when using implicit inclusion.
-This could result in the failure to find a file to be implicitly included
-when that file is located in the same directory as the primary source
-file.
+source file was not being updated properly when using implicit inclusion
+to include files from both the current directory and one or more other
+directories.  This could result in the failure to find a file to be
+implicitly included when that file is located in the same directory as
+the primary source file, and when a file from another directory was
+implicitly included previously.
 
 3/25/96   Support for new for-init declaration scoping rules
 
