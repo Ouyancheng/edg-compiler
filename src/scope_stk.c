@@ -1481,11 +1481,16 @@ to the declaration information for the template declaration scope being pushed.
                                     source_sequence_entries_disallowed) {
       check_assertion(source_sequence_entries_disallowed == TRUE);
     } else {
-      /* If they are allowed at file scope, them may be permitted for a
+      /* If they are allowed at file scope, they may be permitted for a
          template instantiation. */
       if (assoc_type != NULL) {
-        /* We are pushing the scope for a class template instantiation. */
+        /* We are pushing the scope for a class template instantiation.
+           Source sequence entries are normally disallowed for instantiations,
+           but should not be disallowed for the instantiation scope pushed
+           around a template class specialization in Microsoft mode. */
         source_sequence_entries_disallowed =
+        !(microsoft_mode &&
+          assoc_type->variant.class_struct_union.is_specialized) &&
         !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS; /*lint !e506*/
       } else {
         /* We are pushing the scope for a function template instantiation
