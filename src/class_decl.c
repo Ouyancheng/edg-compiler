@@ -344,7 +344,7 @@ routine recursively for each nested class.
           } else {
             /* The default arg token cache is discarded for declarations
                that are not for member functions of the current class -- this
-               includes friend delcarations. */
+               includes friend declarations. */
             for (; daefp != NULL; daefp = daefp->next) {
               discard_token_cache(&daefp->token_cache);
             }  /* for */
@@ -1056,7 +1056,7 @@ more work needs to be done.
   a_derivation_step_ptr  step;
 
   if (bcp2->is_virtual) {
-    /* No disambuator is required for virtual base classes. */
+    /* No disambiguator is required for virtual base classes. */
     disambiguator = NULL;
   } else {
     /* Try bcp1 itself to start with. */
