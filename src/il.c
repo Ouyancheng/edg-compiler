@@ -3687,6 +3687,11 @@ it's to be moved to another position in the list.
       /* Except for member types, the type entries created for a class
          template are not added to the types list. */
       may_be_added = FALSE;
+    } else if (is_template_class_type(type_ptr) &&
+               ((a_symbol_ptr)type_ptr->source_corresp.assoc_info)->is_error) {
+      /* This type was created despite an error in its specialization.  Don't
+         add it to the types list. */
+      may_be_added = FALSE;
     }  /* if */
   }  /* if */
   return may_be_added;
