@@ -4182,14 +4182,22 @@ and pm_expr is a pointer to member.  The caller will put parentheses around
 this selection.
 */
 {
+  an_expr_node_ptr test_expr = object_expr;
+
   /* Generally, it's better to use the "->*" form, because it avoids
      putting an extra "*" on top of an expression, which might refer
      to an overloaded "operator*".  Use the ".*" form for simple variables
      and cases with an implied reference indirection. */
   /* Also note that only "->*" can be overloaded, so if there are implicit
      conversions involved we want to go with "->*". */
+  while (is_operation_node(test_expr) &&
+         test_expr->variant.operation.kind ==
+                                  (an_expr_operator_kind)eok_base_class_cast) {
+    test_expr = test_expr->variant.operation.operands;
+  }  /* while */
   if (object_expr->implicit_reference_indirection ||
-      is_variable_address_node(object_expr)) {
+      is_variable_address_node(test_expr) ||
+      test_expr->kind == (an_expr_node_kind)enk_temp_init) {
     /* ".*" case. */
     gen_lvalue(object_expr);
     write_tok_str(".*");
