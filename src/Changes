@@ -5,7 +5,7 @@ Version 2.31
 When using implicit inclusion with source code that was not structured
 with implicit inclusion in mind, it was possible to create an
 inclusion loop when doing makefile dependency processing using
-the implicit inclusion option.
+the implicit inclusion option.  This has been corrected.
 
 10/23/95  Abort in template function declaration containing elaborated type
 
