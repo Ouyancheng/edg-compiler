@@ -931,7 +931,7 @@ See also 3.6.5.1.
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
   /* Scan the dependent statement. */
-  statement();
+  dependent_statement();
   /* Define the "continue" label, if it is needed. */
   define_continue_label();
   /* Pop the structured statement stack. */
@@ -968,7 +968,7 @@ See also 3.6.5.2.
   (void)get_token();
   /* Scan the dependent statement. */
   add_stop_token(tok_while);
-  statement();
+  dependent_statement();
   /* Define the "continue" label, if it is needed. */
   define_continue_label();
   /* Check for and skip the keyword "while". */
@@ -1111,7 +1111,7 @@ either an expression statement or a declaration statement.
   remove_stop_token(tok_rparen);
 
   /* Scan the dependent statement. */
-  statement();
+  dependent_statement();
 
   /* Define the "continue" label, if it is needed. */
   define_continue_label();
