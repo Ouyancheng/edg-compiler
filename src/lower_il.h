@@ -176,10 +176,12 @@ typedef struct a_destructible_entity_descr {
 			   construction of the entity has been finished.
 			   Usually, this is set when the region table entry
 			   is created, but for constructor-inits in a
-			   destructor it is preassigned.  Note that if the
-			   initialization/destruction is part of an unordered
-			   set, this number will be the number of the first
-			   member of the set. */
+			   destructor it is preassigned. */
+#if DO_UNORDERED_EH_PROCESSING
+			/* Note that if the initialization/destruction is part
+			   of an unordered set, this number will be the number
+			   of the first member of the set. */
+#endif /* DO_UNORDERED_EH_PROCESSING */
   a_cleanup_region_number
 		region_number_to_set_when_starting_destruction;
 			/* When destroying this entity when exceptions are
@@ -198,21 +200,21 @@ typedef struct a_destructible_entity_descr {
 			   initialization that follows this one in destruction
 			   order.  Usually, this is the same as the
 			   next_in_destruction_list pointer in the dynamic
-			   initialization itself, but in the presence of
-			   unordered initializations the IL, lowering traversal
-			   order (reflected by this pointer) might be
-			   slightly different than the front end order
-			   (reflected by the dynamic init
-			   next_in_destruction_list pointer).  Also different
-			   when region table entries are cloned because of
-			   long lifetime temporaries.  Also, this is not
-			   always the same as the value in the "next"
-			   field in the constant pointed to by
-			   region_table_entry, when unordered entries are
-			   involved.  Also, this does not leave a lifetime,
-			   whereas the previous entry in the region table
-			   might be from a previous lifetime. */
-			   
+			   initialization itself, but different when region
+			   table entries are cloned because of long lifetime
+			   temporaries.  Also, this is not always the same
+			   as the value in the "next" field in the constant
+			   pointed to by region_table_entry.  For one thing,
+			   this does not leave a lifetime, whereas the
+			   previous entry in the region table might be from
+			   a previous lifetime. */
+#if DO_UNORDERED_EH_PROCESSING
+			/* In the presence of unordered initializations in the
+			   IL, lowering traversal order (reflected by this
+			   pointer) might be slightly different than the
+			   front end order (reflected by the dynamic init
+			   next_in_destruction_list pointer). */
+#endif /* DO_UNORDERED_EH_PROCESSING */
 } a_destructible_entity_descr;
 
 EXTERN a_destructible_entity_descr_ptr

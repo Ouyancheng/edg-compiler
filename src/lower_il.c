@@ -6030,17 +6030,24 @@ and *insert_location is updated.
     dip->destructible_entity_descr = alloc_destructible_entity_descr();
     if (dip->inside_conditional_expression ||
         (exceptions_enabled &&
-         (dip->unordered || dip->is_freeing_of_storage_on_exception))) {
+         (dip->is_freeing_of_storage_on_exception
+#if DO_UNORDERED_EH_PROCESSING
+          || dip->unordered
+#endif /* DO_UNORDERED_EH_PROCESSING */
+                                                 ))) {
       /* This destruction requires a conditional flag that indicates that
          the construction was done; add one and initialize it to zero.
-         The conditional flag is used for the unordered case if we can't
+         This normally comes up for conditionally-executed parts of
+         expressions, but it's also used for the cleanup for a new-allocation,
+         which frees the storage if an exception is thrown before the storage
+         is initialized. */
+#if DO_UNORDERED_EH_PROCESSING
+      /* A conditional flag is used for the unordered case if we can't
          predict the order in which certain initializations will be
          done (because the C language leaves evaluation order weakly
          defined; a real back end could figure out the actual evaluation
-         order and would not need the flags for this case).  Also use
-         a conditional flag for the cleanup for a new-allocation, which
-         frees the storage if an exception is thrown before the storage
-         is initialized. */
+         order and would not need the flags for this case). */
+#endif /* DO_UNORDERED_EH_PROCESSING */
       add_conditional_flag(dip);
       init_conditional_flag_var(dip->destructible_entity_descr->
                                                           conditional_flag_var,

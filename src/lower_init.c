@@ -1962,6 +1962,7 @@ and not for constructor_init entries in destructors.
     effective_insert_loc = &insert_location2;
   }  /* if */
   if (exceptions_enabled) {
+#if DO_UNORDERED_EH_PROCESSING
     if (dip->unordered) {
       /* For unordered destructions, clear the associated conditional flag
          to indicate that the destruction has been done.  That's necessary
@@ -1977,6 +1978,7 @@ and not for constructor_init entries in destructors.
                                    effective_insert_loc);
       }  /* if */
     }  /* if */
+#endif /* DO_UNORDERED_EH_PROCESSING */
   }  /* if */
   add_destructor_call(dip->destructor,
                       &dedp->init_pos_descr,

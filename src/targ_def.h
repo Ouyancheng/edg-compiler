@@ -872,6 +872,44 @@ enabled.
 #endif /* SUPPRESS_LOWERING_OF_EXCEPTION_HANDLING */
 
 /*
+This switch, which affects the portable implementation of exception
+handling, controls generation of extra code and extra conditional
+flags to ensure that all appropriate expression temporaries are destroyed
+on the occurrence of an exception in an expression that includes unordered
+construction of temporaries.  "Unordered" temporaries are constructed
+in parts of an expression that are, by C/C++ language rules, unordered
+with respect to one another.  For example, in "A(1) + A(2)" the temporary
+for A(1) could be constructed before or after the temporary for A(2).
+The problem for a portable implementation of exception handling is that
+is it necessary when indicating the cleanup to be done at the point of
+construction of A(1) or A(2) to indicate that the other temporary might
+or might not already have been constructed.  This is done by adding a
+conditional flag for each temporary that indicates whether or not the
+construction has been done, and having the cleanup position in the
+cleanup region table include destructions for both temporaries.  The
+runtime then tests the conditional flags to indicate whether the
+destructions should actually be done.  This method, of course, involves
+a time and space overhead, so the present flag is provided as a way to
+switch it off.  It can be switched off if the back end will do the
+constructions in the canonical order indicated by the IL, or if the
+next_in_destruction_list linkage of the initializations is changed before
+IL lowering to match the order that will actually be used by the back end,
+or if the back end will use some different technique to accomplish the
+same result.  Note that when using the C-generating back end, the
+order in which temporaries are constructed depends on the C compiler
+that will be used, so if one has detailed information about the order
+in which it will evaluate expressions, one may be able to switch off
+this processing.
+*/
+#ifndef DO_UNORDERED_EH_PROCESSING
+#if SUPPRESS_LOWERING_OF_EXCEPTION_HANDLING
+#define DO_UNORDERED_EH_PROCESSING FALSE /* Do not change this. */
+#else /* !SUPPRESS_LOWERING_OF_EXCEPTION_HANDLING */
+#define DO_UNORDERED_EH_PROCESSING TRUE
+#endif /* SUPPRESS_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* ifndef DO_UNORDERED_EH_PROCESSING */
+
+/*
 Integer kind to use for an offset into a class.  Its size must match
 TARG_SIZEOF_PTR_TO_DATA_MEMBER.
 */

@@ -1857,6 +1857,7 @@ to the aggregate constant for the region table entry.
   return region_table_entry;
 }  /* make_region_table_entry */
 
+#if DO_UNORDERED_EH_PROCESSING
 
 static void maintain_unordered_destructions_set(a_dynamic_init_ptr dip)
 /*
@@ -1903,6 +1904,7 @@ required for unordered destructions.
   }  /* if */
 }  /* maintain_unordered_destructions_set */
 
+#endif /* DO_UNORDERED_EH_PROCESSING */
 
 void make_dyn_init_region_table_entry(a_dynamic_init_ptr dip,
                                       a_dynamic_init_ptr next_dip,
@@ -1936,11 +1938,13 @@ necessary.
                                      curr_cleanup_region_number,
                                      &dedp->region_number,
                                      insert_location);
+#if DO_UNORDERED_EH_PROCESSING
   if (dip->unordered) {
     /* The destruction is unordered with respect to some surrounding
        destructions, so do some extra processing. */
     maintain_unordered_destructions_set(dip);
   }  /* if */
+#endif /* DO_UNORDERED_EH_PROCESSING */
 }  /* make_dyn_init_region_table_entry */
 
 
@@ -2011,11 +2015,13 @@ next_in_region_table pointer), stopping before the entry stop_before.
   next_region_number = cleanup_region_number(next_dip);
   set_next_region_number(dip, next_region_number);
   dedp->region_number_to_set_when_starting_destruction = next_region_number;
+#if DO_UNORDERED_EH_PROCESSING
   if (dip->unordered) {
     /* The destruction is unordered with respect to some surrounding
        destructions, so do some extra processing. */
     maintain_unordered_destructions_set(dip);
   }  /* if */
+#endif /* DO_UNORDERED_EH_PROCESSING */
 }  /* clone_region_table_entry_list */
 
 
