@@ -490,6 +490,10 @@ this flag defaults to TRUE.
 #endif /* GNU_EXTENSIONS_ALLOWED && defined(__i386) */
 #endif /* ifndef GNU_X86_ASM_EXTENSIONS_ALLOWED */
 
+#if !GNU_EXTENSIONS_ALLOWED && GNU_X86_ASM_EXTENSIONS_ALLOWED
+ #error -- GNU_X86_ASM_EXTENSIONS_ALLOWED requires GNU_EXTENSIONS_ALLOWED
+#endif /* !GNU_EXTENSIONS_ALLOWED && GNU_X86_ASM_EXTENSIONS_ALLOWED */
+
 /*
 Flag that is TRUE if unrecognized extended asm operands should be
 accepted.  This lets the front end process source files with asm
@@ -499,6 +503,11 @@ is not provided.
 #ifndef ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
 #define ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS FALSE
 #endif /* ifndef ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
+
+#if !GNU_EXTENSIONS_ALLOWED && ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
+ #error -- ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS requires GNU_EXTENSIONS_ALLOWED
+#endif /* !GNU_EXTENSIONS_ALLOWED && ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
+
 /*
 Flag that is TRUE if x86-specific attributes should be recognized (and
 recorded in the IL).  This includes the stdcall and cdecl attributes.
@@ -511,6 +520,10 @@ recorded in the IL).  This includes the stdcall and cdecl attributes.
 #endif /* GNU_EXTENSIONS_ALLOWED && defined(__i386) */
 #endif /* ifndef GNU_X86_ATTRIBUTES_ALLOWED */
 
+#if !GNU_EXTENSIONS_ALLOWED && GNU_X86_ATTRIBUTES_ALLOWED
+ #error -- GNU_X86_ATTRIBUTES_ALLOWED requires GNU_EXTENSIONS_ALLOWED
+#endif /* !GNU_EXTENSIONS_ALLOWED && GNU_X86_ATTRIBUTES_ALLOWED */
+
 /*
 Flag that is TRUE if the "naked" attribute should be recognized (and
 recorded in the IL).
@@ -518,6 +531,10 @@ recorded in the IL).
 #ifndef GNU_NAKED_ATTRIBUTE_ALLOWED
 #define GNU_NAKED_ATTRIBUTE_ALLOWED FALSE
 #endif /* ifndef GNU_NAKED_ATTRIBUTE_ALLOWED */
+
+#if !GNU_EXTENSIONS_ALLOWED && GNU_NAKED_ATTRIBUTE_ALLOWED
+ #error -- GNU_NAKED_ATTRIBUTE_ALLOWED requires GNU_EXTENSIONS_ALLOWED
+#endif /* !GNU_EXTENSIONS_ALLOWED && GNU_NAKED_ATTRIBUTE_ALLOWED */
 
 /*
 Flag that is TRUE if the GNU "init_priority" attribute should be 
@@ -532,6 +549,10 @@ recognized (and recorded in the IL).
 	  GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
 #endif /* ifndef DEFAULT_GNU_INIT_PRIORITY_ATTRIBUTE_ENABLED */
 
+#if !GNU_EXTENSIONS_ALLOWED && GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+ #error -- GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED requires GNU_EXTENSIONS_ALLOWED
+#endif /* !GNU_EXTENSIONS_ALLOWED && GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+
 /*
 Flag that is TRUE if the GNU "visibility" attribute should be 
 recognized (and recorded in the IL).
@@ -544,6 +565,10 @@ recognized (and recorded in the IL).
 #define DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ENABLED \
 	  GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 #endif /* ifndef DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ENABLED */
+
+#if !GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+ #error -- GNU_VISIBILITY_ATTRIBUTE_ALLOWED requires GNU_EXTENSIONS_ALLOWED
+#endif /* !GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 /*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
