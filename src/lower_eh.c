@@ -2708,7 +2708,7 @@ Do IL lowering for an stmk_try_block statement.
                                                    ehse_variant_field),
                        ehse_try_field),
                      ehse_try_setjmp_buffer_field),
-                   make_pointer_type(make_jmp_buf_type()));
+                   make_pointer_type(array_element_type(make_jmp_buf_type())));
   /* Make the setjmp call. */
 #if 0
   /* We shouldn't assume setjmp is a routine. */
