@@ -12133,29 +12133,27 @@ continue_with_declaration:
         mark_variable_value_set(symbol_ptr);
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode &&
-          (decl_modifiers.flags &
-           ~(local_decl_modifiers.flags) & DM_SELECTANY)) {
-        /* Checking for the "selectany" decl-modifier was deferred until
+      if (microsoft_mode && (decl_modifiers.flags & DM_SELECTANY)) {
+        /* Checking the "selectany" decl-modifier was deferred until
            after the initializer (if any) was scanned. */
-        if (var_ptr->init_kind == (an_init_kind)initk_static ||
-            (var_ptr->init_kind == (an_init_kind)initk_none &&
-             has_static_storage_duration(var_ptr->storage_class))) {
-          /* Flag the variable. */
-          var_ptr->decl_modifiers |= DM_SELECTANY;
-        } else if (var_ptr->init_kind == (an_init_kind)initk_dynamic) {
+        if (!(var_ptr->storage_class == (a_storage_class)sc_unspecified ||
+              var_ptr->storage_class == (a_storage_class)sc_extern)) {
+          /* The "selectany" specifier requires external linkage. */
+          pos_st_error(ec_decl_modifiers_invalid_for_this_decl,
+                       &locator.source_position,
+                       decl_modifier_names[(int)dmt_selectany]);
+        } else if (var_ptr->init_kind == (an_init_kind)initk_dynamic ||
+                   (var_ptr->init_kind == (an_init_kind)initk_none &&
+                    has_static_storage_duration(var_ptr->storage_class))) {
           /* The "selectany" decl-modifier cannot appear with a dynamic
-             initialization in Microsoft versions prior to 1300. */
-          if (microsoft_version >= 1300) {
-            var_ptr->decl_modifiers |= DM_SELECTANY;
-          } else {
+             initialization in Microsoft versions prior to 1300.  The same
+             thing applies for variables with no initializer. */
+          if (microsoft_version < 1300) {
             pos_st_diagnostic(es_discretionary_error,
-                            ec_decl_modifiers_invalid_for_this_decl,
-                            &locator.source_position,
-                            decl_modifier_names[(int)dmt_selectany]);
+                              ec_decl_modifiers_invalid_for_this_decl,
+                              &locator.source_position,
+                              decl_modifier_names[(int)dmt_selectany]);
           }  /* if */
-        } else {
-          /* Error in initializer. */
         }  /* if */        
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
