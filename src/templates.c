@@ -2436,6 +2436,7 @@ that make up the declaration and do a prototype instantiation.
       case tok_class:  type_kind = (a_type_kind)tk_class;  break;
       case tok_struct: type_kind = (a_type_kind)tk_struct; break;
       case tok_union:  type_kind = (a_type_kind)tk_union;  break;
+      default:;  /* Avoid gcc warnings. */
     }  /* switch */
     /* This appears to be a class template declaration -- though it could
        be a function template declaration with a return type using one of
