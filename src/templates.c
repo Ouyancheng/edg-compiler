@@ -3939,6 +3939,16 @@ points to the template parameter list.
      this parameter checks. */
   new_flags = MTT_NO_FLAGS;
   templ_type = skip_typedefs(templ_type);
+  if (is_class_struct_union_type(templ_type)) {
+    /* If the template type is a proxy class for a template parameter,
+       substitute the underlying template parameter for the deduction
+       process. */
+    a_class_symbol_supplement_ptr	cssp;
+    cssp = symbol_supplement_for_class(templ_type);
+    if (cssp->template_param_for_proxy_class != NULL) {
+      templ_type = cssp->template_param_for_proxy_class;
+    }  /* if */
+  }  /* if */
   if (is_template_param_type(templ_type)) {
     if (is_qualified_type(templ_type)) {
       /* If the template parameter has any type qualifiers, the argument type
@@ -4893,6 +4903,13 @@ make_new_type:
         if (!cssp->is_nonreal_class) {
           /* Reuse the current type. */
           new_type = type;
+        } else if (cssp->template_param_for_proxy_class != NULL) {
+          /* The proxy class for a template parameter.  Use the substituted
+             template parameter type. */
+            type = cssp->template_param_for_proxy_class;
+            new_type = copy_type_with_substitution(type, templ_arg_list,
+                                                   depth, source_pos, options,
+                                                   copy_error);
         } else {
           a_symbol_ptr		new_sym;
  
