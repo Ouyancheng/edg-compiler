@@ -2941,7 +2941,6 @@ message appears by itself on a separate line.
   return result;
 } /* include_in_context_output */
 
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static int bucket_for_diag(an_error_code		error_code,
 			   an_error_severity	severity,
@@ -3059,7 +3058,6 @@ Return TRUE if the diagnostic should be suppressed.
   return suppress_diagnostic;
 }  /* diagnostic_already_issued_for_prototype */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
 /* Forward declaration. */
 static void diag_message(an_error_code              error_code,
@@ -3148,13 +3146,23 @@ and doing any required expansions, the diagnostic is written.
 {
   a_msg_segment_ptr  curr_seg;
   char               *msg_template;
+  a_boolean	     diag_should_be_issued;
 #if CHECKING
   int                i;
 #endif /* CHECKING */
 
-  if (check_severity(error_code, &error_pos, &severity, diag_kind) &&
-      !diagnostic_already_issued_for_prototype(error_code, severity,
-                                               error_pos, diag_kind)) {
+  diag_should_be_issued = check_severity(error_code, &error_pos,
+                                         &severity, diag_kind);
+#if !STANDALONE_UTILITY_PROGRAM
+   if (diag_should_be_issued) {
+     /* Suppress the diagnostic if it has already been issued during the
+        prototype instantiation. */
+     diag_should_be_issued =
+                 diagnostic_already_issued_for_prototype(error_code, severity,
+                                                         error_pos, diag_kind);
+  }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+  if (diag_should_be_issued) {
 #if !STANDALONE_UTILITY_PROGRAM
     if (curr_command_line_macro_def != NULL) {
       /* An error occurred while scanning a command-line macro definition.

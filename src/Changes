@@ -1,5 +1,12 @@
 Version 2.46
 
+8/17/01  Internal error in diagnostics in standalone program
+
+An internal error could result when a diagnostic was issued from a
+front end component compiled with STANDALONE_UTILITY_PROGRAM set to TRUE.
+The internal error occurred in alloc_in_region called from
+record_prototype_diagnostic.  This has been fixed.
+
 8/9/01   Spurious error on qualified template friend declaration in a
          class template
 
