@@ -1012,8 +1012,9 @@ issue an error if a default argument expression is encountered.
     if (any_params && !disallow_default_args) {
       /* In C++ mode a default argument may be declared with the parameter
          unless the function is a user-defined overloaded operator (except
-         operator()(), as an extension) or a user-defined conversion.  Note
-         that locator may be NULL (e.g., with abstract declarators). */
+         operator()(), for which a default argument is allowed) or a
+         user-defined conversion.  Note that locator may be NULL (e.g., with
+         abstract declarators). */
       /* operator new(), new[](), delete(), and delete[]() can also take
          default arguments in the second and successive arguments -- this
          is implied by ARM 13.4, which excludes those operators from the
@@ -1192,21 +1193,6 @@ issue an error if a default argument expression is encountered.
 
           if (!default_arg_expr_allowed) {
             pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
-          } else if (locator->is_operator_name &&
-                     locator->variant.opname ==
-                                         (an_opname_kind)onk_function_call) {
-            /* According to the ARM a default argument is not allowed for
-               any overloaded operators, but operator()() is an exception
-               in common use. Accept this silently in cfront compatibility
-               mode. Otherwise produce at least a warning and possibly an
-               error in strict ANSI mode.  */
-            if (!any_cfront_mode()) {
-              an_error_severity    severity;
-              severity = strict_ansi_mode ? strict_ansi_error_severity :
-                                            es_warning;
-              pos_diagnostic(severity, ec_nonstd_default_arg,
-                             &pos_curr_token);
-            }  /* if */
           }  /* if */
           /* Advance past the equal sign. */
           (void)get_token();

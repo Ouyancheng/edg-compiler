@@ -1,5 +1,10 @@
 Version 2.34
 
+11/25/96 Default argument on operator()() declaration
+
+The function call operator is now permitted to have default arguments in
+strict mode, and so a diagnostic is no longer issued for such cases.
+
 11/20/96 Name mangling problem on nontype template arguments
 
 With the new mangling scheme for template names, there were cases where
