@@ -2414,6 +2414,15 @@ not be TRUE.
             rout_type_ptp->next = next_rout_type_ptp;
           }  /* for */
         }  /* if */
+        if (exceptions_enabled) {
+          /* Preserve the exception specification -- the pointer will have
+             been copied into comp_type by composite_type.  (Note that we
+             just copy the pointer, so that two routine types may end up
+             pointing to the same exception specification entry.  This
+             should be okay.) */
+          rout_type->variant.routine.extra_info->exception_specification =
+               comp_type->variant.routine.extra_info->exception_specification;
+        }  /* if */
         /* has_ellipsis need not be copied -- it will be the same in all of
            the types, since the original two types are compatible. */
         /* Likewise, the implicit_this_param_type pointers should be identical
