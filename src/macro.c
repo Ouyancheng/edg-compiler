@@ -1903,7 +1903,8 @@ end_all_args_scan:;
         /* Other section kinds have an associated parameter number. */
         get_arg_value(rts_number, map);
         switch (rts_kind) {
-          case rt_raw_argument:
+          case rt_left_raw_argument:
+          case rt_right_raw_argument:
             sect_len = map->raw_len;
             break;
           case rt_stringized_raw_argument:
@@ -1959,7 +1960,8 @@ end_all_args_scan:;
         /* Other section kinds have an associated parameter number. */
         get_arg_value(rts_number, map);
         switch (rts_kind) {
-          case rt_raw_argument:
+          case rt_left_raw_argument:
+          case rt_right_raw_argument:
             sect_len = map->raw_len;
             text_loc = map->raw_text;
             break;
@@ -2357,6 +2359,137 @@ section, if there is one, or a new text section will be begun if necessary.
 #define put_text_to_macro_buffer(str, length)                         \
 { put_raw_text(str, length, &curr_text_section); }
 
+#if RECORD_MACROS_IN_IL
+
+static void put_string_into_temp_buffer(char     *str,
+                                        sizeof_t *pos)
+/*
+Put the indicated string into temp_text_buffer at the offset indicated
+by *pos, and update *pos.
+*/
+{
+  sizeof_t len = strlen(str), offset = *pos;
+
+  ensure_temp_text_buffer_space(offset + len);
+  (void)strcpy(temp_text_buffer + offset, str);
+  *pos = offset + len;
+}  /* put_string_into_temp_buffer */
+
+
+static char *macro_param_name(sizeof_t        number,
+                              a_macro_def_ptr mdp)
+/*
+Return a pointer to a null-terminated string for the name of the number-th
+parameter of the indicated macro (1-origined).
+*/
+{
+  a_macro_param_ptr pp;
+  for (pp = mdp->param_list; --number > 0; pp = pp->next) {}
+  return pp->name;
+}  /* macro_param_name */
+
+
+static void make_il_macro_entry(a_symbol_ptr macro_sym)
+/*
+Create an IL entry for the macro described by macro_sym.
+*/
+{
+  a_macro_def_ptr      mdp = macro_sym->variant.macro_def;
+  a_macro_ptr          mp;
+  sizeof_t             pos = 0;
+  a_macro_param_ptr    pp;
+  a_repl_text_seq_kind rts_kind;
+  sizeof_t             rts_number;
+  char                 *ptr;
+  a_boolean            suppress_paste;
+
+  /* Make a string for the macro in temp_text_buffer, then copy it into
+     the file-scope IL. */
+  /* Put out #define. */
+  put_string_into_temp_buffer("#define ", &pos);
+  /* Put out the macro name. */
+  put_string_into_temp_buffer(macro_sym->header->identifier, &pos);
+  /* If the macro is function-like, put out the parameters. */
+  if (!mdp->object_like) {
+    put_string_into_temp_buffer("(", &pos);
+    for (pp = mdp->param_list;;) {
+      /* Put out a macro parameter name. */
+      put_string_into_temp_buffer(pp->name, &pos);
+      pp = pp->next;
+      if (pp == NULL) break;
+      /* There are more parameters, so put out a comma separator. */
+      put_string_into_temp_buffer(",", &pos);
+    }  /* for */
+    put_string_into_temp_buffer(")", &pos);
+  }  /* if */
+  put_string_into_temp_buffer(" ", &pos);
+  /* Put out the macro body. */
+  suppress_paste = FALSE;
+  for (ptr = mdp->repl_text; *ptr != (int)rt_null;) {
+    rts_kind = (a_repl_text_seq_kind)*(ptr++);
+    /* Extract the section length or argument number. */
+    get_macro_repl_text_number(rts_number, ptr);
+    switch (rts_kind) {
+      case rt_text:
+        /* Raw text.  rts_number gives its length.  Copy the text, ignoring
+           end-of-token markers. */
+        for (; rts_number > 0; rts_number--) {
+          char ch = *ptr++;
+          if (ch != END_OF_TOKEN_MARKER) {
+            ensure_temp_text_buffer_space(pos + 1);
+            temp_text_buffer[pos++] = ch;
+          }  /* for */
+        }  /* for */
+        break;
+      case rt_left_raw_argument:
+        /* parameter ## normal or parameter ## parameter. */
+        put_string_into_temp_buffer(macro_param_name(rts_number, mdp), &pos);
+        put_string_into_temp_buffer("##", &pos);
+        /* If this is the parameter ## parameter case, suppress the "##"
+           when the second parameter is processed. */
+        if ((a_repl_text_seq_kind)*ptr == rt_right_raw_argument) {
+          suppress_paste = TRUE;
+        }  /* if */
+        break;
+      case rt_right_raw_argument:
+        /* ## parameter */
+        if (!suppress_paste) put_string_into_temp_buffer("##", &pos);
+        suppress_paste = FALSE;
+        put_string_into_temp_buffer(macro_param_name(rts_number, mdp), &pos);
+        break;
+      case rt_stringized_raw_argument:
+        /* #parameter */
+        put_string_into_temp_buffer("#", &pos);
+        put_string_into_temp_buffer(macro_param_name(rts_number, mdp), &pos);
+        break;
+      case rt_argument:
+        /* Simple parameter name. */
+        put_string_into_temp_buffer(macro_param_name(rts_number, mdp), &pos);
+        break;
+      default:
+        unexpected_condition_str(
+                    "make_il_macro_entry: bad text section kind in macro def");
+    }  /* switch */
+  }  /* for */
+  /* Allocate an IL area of the right size and copy the string into it. */
+  ptr = alloc_il((sizeof_t)(pos + 1));
+  (void)memcpy(ptr, temp_text_buffer, size_t_arg(pos));
+  /* Add a terminating null. */
+  ptr[pos] = '\0';
+  /* Allocate and fill in the IL macro entry. */
+  mp = alloc_macro();
+  mp->text = ptr;
+  mp->source_corresp.decl_position = pos_curr_token;
+  /* Add the macro to the IL list. */
+  add_to_macros_list(mp);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Add a source sequence entry for the macro. */
+  update_source_sequence_list((char *)mp, (an_il_entry_kind)iek_macro,
+                              (a_source_sequence_entry_ptr)NULL);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+}  /* make_il_macro_entry */
+
+#endif /* RECORD_MACROS_IN_IL */
 
 void proc_define(void)
 /*
@@ -2535,23 +2668,26 @@ Scan and process a #define directive.
           error(ec_paste_cannot_be_first);
           (void)mdefn_get_token(param_list, &param_num,
                                 &any_white_space_skipped);
-        } else if (mdefn_get_token(param_list, &param_num,
-                                   &any_white_space_skipped) == tok_newline) {
-          error(ec_paste_cannot_be_last);
-        } else if (param_num != 0) {
+        } else {
           /* If the token following the "##" is a parameter, put it out
              as a raw-text substitution.  Otherwise, just let the next
              token be processed on the next iteration of the loop.
              The "##" itself does not appear in the replacement text
              string. */
-          put_start_of_non_text_section(rt_raw_argument, param_num);
-          need_end_of_token_marker = TRUE;
-          (void)mdefn_get_token(param_list, &param_num,
-                                &any_white_space_skipped);
-        } else {
-          /* Anything other than a parameter.  Delete any white space
-             preceding it. */
-          any_white_space_skipped = FALSE;
+          if (mdefn_get_token(param_list, &param_num,
+                              &any_white_space_skipped) == tok_newline) {
+            error(ec_paste_cannot_be_last);
+          } else if (param_num != 0) {
+            /* The token following "##" is a parameter. */
+            put_start_of_non_text_section(rt_right_raw_argument, param_num);
+            need_end_of_token_marker = TRUE;
+            (void)mdefn_get_token(param_list, &param_num,
+                                  &any_white_space_skipped);
+          } else {
+            /* Anything other than a parameter.  Delete any white space
+               preceding it. */
+            any_white_space_skipped = FALSE;
+          }  /* if */
         }  /* if */
       } else {
         if (need_end_of_token_marker) {
@@ -2622,7 +2758,8 @@ Scan and process a #define directive.
           if (mdefn_get_token(param_list, &param_num,
                               &any_white_space_skipped) == tok_paste ||
               pcc_preprocessing_mode) {
-            put_start_of_non_text_section(rt_raw_argument, save_param_num);
+            put_start_of_non_text_section(rt_left_raw_argument,
+                                          save_param_num);
           } else {
             /* Not "##", so put expanded version of argument into string. */
             put_start_of_non_text_section(rt_argument, save_param_num);
@@ -2688,8 +2825,12 @@ Scan and process a #define directive.
             fputs("\"\n", f_debug);
             temp_ptr += rts_number;
             break;
-          case rt_raw_argument:
-            fprintf(f_debug, "  raw argument %lu\n",
+          case rt_left_raw_argument:
+            fprintf(f_debug, "  left raw argument %lu\n",
+                             (unsigned long)rts_number);
+            break;
+          case rt_right_raw_argument:
+            fprintf(f_debug, "  right raw argument %lu\n",
                              (unsigned long)rts_number);
             break;
           case rt_stringized_raw_argument:
@@ -2765,6 +2906,10 @@ redef_error:
 			= constant_token_kind;
     /* Put the macro def block pointer into the symbol entry. */
     assoc_symbol->variant.macro_def = mdp;
+#if RECORD_MACROS_IN_IL
+    /* Make an IL entry for the macro. */
+    make_il_macro_entry(assoc_symbol);
+#endif /* RECORD_MACROS_IN_IL */
 def_done:;
     mark_defined(assoc_symbol, &assoc_symbol->decl_position);
   }  /* if */
