@@ -69,9 +69,13 @@ the "patch"/"munch" destructions will be handled.
       while (_dtors[pos]) pos++;
       while (pos--) (_dtors[pos])();
     }  /* if */
-    /* Do the destructions specified by the needed destructions list. */
-    __process_needed_destructions();
   }  /* if */
+  /* Do the destructions specified by the needed destructions list.
+     This is not done unconditionally (i.e., not based on dtors_done),
+     because when using EH it is actually possible for exit to be
+     called more than once, and there is no ill effect of calling
+     __process_needed_destructions multiple times.  */
+  __process_needed_destructions();
 }  /* __call_dtors */
 
 

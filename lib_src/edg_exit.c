@@ -15,6 +15,7 @@ Exit processing.
 
 #include "basics.h"
 #include "config.h"
+#include "static_init.h"
 
 /* The version of exit to be called must be the system exit routine not the
    interface routine in the runtime that has C++ linkage. */
@@ -37,6 +38,12 @@ system exit routine to complete the exit processing.
 #if EXCEPTION_HANDLING
   __eh_exit_processing();
 #endif /* EXCEPTION_HANDLING */
+  /* __call_dtors is called here and is also registered as an atexit
+     function that will be called by the system exit routine.  This means
+     that it will be called twice when the EDG C++ linkage version of
+     exit is being used.  This is intended.  There is no ill effect of
+     calling __call_dtors more than once. */
+  __call_dtors();
   exit(val);
 }
 
