@@ -737,6 +737,11 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 #if DEBUG
 /* Show and return the amount of memory used by symbol table entries. */
 extern unsigned long show_symbol_space_used(void);
+/* Display a symbol table entry. */
+extern void db_symbol(a_symbol_ptr	sym,
+                      char		*string,
+                      int		indentation);
+
 #endif /* DEBUG */
 
 extern void sym_tbl_init(void);
