@@ -2606,6 +2606,8 @@ created; the caller must set it.
     /* Ignore the presence of an external symbol with which the current
        symbol is compatible. */
     ext_sym = NULL;
+    ext_locator = *locator;
+    ext_locator.specific_symbol = NULL;
   } else {
     /* Look up the external name of the identifier (i.e., the name after
        any truncation, etc.). */
@@ -4186,9 +4188,6 @@ symbol has already been entered as an undefined symbol.
   } else {
     /* Making the return type an error type prevents cascading errors. */
     rout_type->variant.routine.return_type = error_type();
-    /* Pretend there has been an actual definition.  This avoids some
-       inconsistencies in param_types_are_compatible. */
-    rout_type->variant.routine.extra_info->old_style_params_scanned = TRUE;
   }  /* if */
   make_locator_for_symbol(symbol_ptr, &locator);
   /* Declare the function identifier. */
