@@ -9786,7 +9786,8 @@ Scan a default argument expression on a formal parameter declaration, change
 its type as required by the type of the formal parameter, and attach the
 expression node to the param type entry.  If an error is detected in the
 expression scan, an error node is assigned.  If ptp is NULL (as the result of
-a prior error) just do the scan.
+a prior error, or when passing over a default argument expression, e.g.,
+in a template instantiation) just do the scan.
 */
 {
   an_operand              result;
@@ -9813,6 +9814,7 @@ a prior error) just do the scan.
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
   }  /* if */
   node = make_node_from_operand(&result);
+  if (ptp == NULL) discard_curr_expr_object_lifetime();
   node = wrap_up_full_expression(node);
   if (ptp != NULL) ptp->default_arg_expr = node;
   pop_expr_stack();
