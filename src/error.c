@@ -2685,6 +2685,8 @@ do_tag_name:
           C_dialect != C_dialect_cplusplus) {
         add_string_to_segment(tag_kind, seg_ptr);
       }  /* if */
+      form_class_qualifier(type->source_corresp.class_of_which_a_member,
+                           seg_ptr);
       form_type_name(type, seg_ptr);
       break;
     case tk_typeref:
@@ -4725,7 +4727,7 @@ An assertion has failed.  Abort the compilation.
     sprintf(buffer, "assertion failed at: \"%s\", line %0d\n",
             filename, line_number);
   } else {
-    sprintf(buffer, "assertion \"%s\" failed at: \"%s\", line %0d\n", string,
+    sprintf(buffer, "assertion failed: %s (%s, line %0d)\n", string,
             filename, line_number);
   }  /* if */
   internal_error(buffer);
