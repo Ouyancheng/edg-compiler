@@ -1010,7 +1010,7 @@ error code.
       m = "cannot overload functions distinguished by return type alone";
       break;
     case ec_no_conversion_constructor:
-      m = "there is no constructor that can do this conversion";
+      m = "expression conversion cannot be done -- no appropriate constructor";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
