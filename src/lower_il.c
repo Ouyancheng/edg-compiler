@@ -5427,7 +5427,10 @@ static void prelower_class_type(a_type_ptr class_type)
 /*
 Do processing that is required early in lowering for the indicated class
 type.  Such processing builds information that is necessary during the
-lowering process, but does not modify the class type.
+lowering process, but does not modify the class type.  Note that this
+routine assumes the class type is as complete as it will ever get; if
+the prelowering should not be done if the type is currently incomplete, call
+prelower_class_type_if_complete instead.
 */
 {
   a_class_type_supplement_ptr ctsp;
@@ -5532,6 +5535,20 @@ lowering process, but does not modify the class type.
     }  /* if */
   }  /* if */
 }  /* prelower_class_type */
+
+
+static void prelower_class_type_if_complete(a_type_ptr class_type)
+/*
+Do pre-lowering of a class type, but only if the class type is complete.
+*/
+{
+  a_class_type_supplement_ptr ctsp;
+
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  if (ctsp != NULL && ctsp->assoc_scope != NULL) {
+    prelower_class_type(class_type);
+  }  /* if */
+}  /* prelower_class_type_if_complete */
 
 
 static void lower_template_arg(a_template_arg_ptr template_arg)
@@ -5675,30 +5692,26 @@ Do IL lowering on the indicated class/struct/union type.
   a_source_position           saved_error_position;
 
   saved_error_position = error_position;
+  prelower_class_type(class_type);
   /* Lower the nonstatic data members. */
   lower_field_list(class_type->variant.class_struct_union.field_list);
   error_position = class_type->source_corresp.decl_position;
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp != NULL) {
     if (ctsp->assoc_scope != NULL) {
-#if CHECKING
-      if (ctsp->type_as_subobject == NULL) {
-        internal_error("lower_class_struct_union_type: class not pre-lowered");
-      }  /* if */
-#endif /* CHECKING */
       /* Lower the base classes. */
       for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
         lower_type(bcp->type);
       }  /* for */
-      /* Lower the template arg list, if any. */
-      lower_template_arg_list(ctsp->template_arg_list);
       /* Lower the member functions, local types, etc. */
       lower_scope(ctsp->assoc_scope);
-      /* Lower the type-as-subobject. */
-      lower_type(ctsp->type_as_subobject);
       /* Promote members into the file scope. */
       promote_class_members(class_type);
     }  /* if */
+    /* Lower the template arg list, if any. */
+    lower_template_arg_list(ctsp->template_arg_list);
+    /* Lower the type-as-subobject. */
+    lower_type(ctsp->type_as_subobject);
   }  /* if */
   if (class_type->kind == (a_type_kind)tk_class) {
     class_type->kind = (a_type_kind)tk_struct;
@@ -5876,7 +5889,7 @@ Do IL lowering of the indicated type and everything under it.
       case tk_union:
         /* Classes are lowered by lower_class_struct_union_type in a separate
            pass through the data structure.  Here, just do pre-lowering. */
-        prelower_class_type(type);
+        prelower_class_type_if_complete(type);
         break;
       case tk_typeref:
         lower_type(type->variant.typeref.type);
