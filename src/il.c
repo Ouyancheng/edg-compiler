@@ -3313,8 +3313,9 @@ for making NULL pointer constants.
   set_integer_constant(zero_constant, 0L, (an_integer_kind)ik_int);
   type_change_constant(zero_constant, desired_type,
                        /*is_implicit_cast=*/TRUE,
-                       /*constant_context=*/TRUE, &did_not_fold,
-                       &error_position);
+                       /*constant_context=*/TRUE,
+                       /*evaluated_context=*/TRUE,
+                       &did_not_fold, &error_position);
 }  /* make_zero_of_proper_type */
 
 

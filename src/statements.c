@@ -3108,8 +3108,9 @@ Scan a case label definition.  The syntax is:
     if (sssep != NULL) {
       type_change_constant(&constant, sssep->switch_selector_type,
                            /*is_implicit_cast=*/TRUE,
-                           /*constant_context=*/TRUE, &did_not_fold,
-                           &error_position);
+                           /*constant_context=*/TRUE,
+                           /*evaluated_context=*/TRUE,
+                           &did_not_fold, &error_position);
     }  /* if */
     /* Allocate a copy of the case constant. */
     constant_ptr = alloc_unshared_constant(&constant);
