@@ -4494,7 +4494,7 @@ is not a template declaration scope.
       check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
       tssp = template_supplement_for_symbol(sym);
       rout_ptr = tssp->variant.function.routine;
-      /* Declaring a default argument on a function template reclaration is
+      /* Declaring a default argument on a function template redeclaration is
          nonstandard.  Issue at least a warning, and always an error if the
          template has already been instantiated. */
       for (ptp = type_ptr->variant.routine.extra_info->param_type_list;
