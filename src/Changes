@@ -79,7 +79,7 @@ thereof.
 6/16/04  C++-generating back end: Address expression not treated as constant
          by Microsoft C compiler
 
-The C++-generating back end previous rendered an expression of the form
+The C++-generating back end previously rendered an expression of the form
 "&((X*)0)->i" as "&(*((X*)0)).i".  However, MSVC++ 6.0 does not treat the
 latter as a constant (in its C language mode) whereas it does so treat the
 former.  To avoid this issue, the C++-generating back end now generates the
