@@ -3461,14 +3461,18 @@ for making NULL pointer constants.
 
 a_boolean is_enum_constant(a_constant_ptr con)
 /*
-Return TRUE if the indicated constant is an enum constant, i.e., it is
-a constant that appears on the constant list of an enum type.
+Return TRUE if the indicated constant is an enum constant.  Note that if
+you want to know if the enum constant is one that appears on the constant
+list of an enum type, you must also test for it having a name; there are
+copies of enum constants in initializer lists, and constants formed by
+casting integral constants to an enum type, which do not correspond to
+any enum constant.
 */
 {
   a_boolean is_enum = FALSE;
 
-  if (con->kind == (a_constant_repr_kind)ck_integer && has_name(con)) {
-    /* The constant is a named constant with an integral representation. */
+  if (con->kind == (a_constant_repr_kind)ck_integer) {
+    /* The constant has an integral representation. */
     a_type_ptr con_type = con->type;
     if (con_type->kind == (a_type_kind)tk_integer) {
       /* The constant has an integral or enum type. */

@@ -1747,6 +1747,52 @@ in the way described by octl.
 }  /* form_address_constant */
 
 
+static a_boolean is_enum_constant_equivalent(a_constant_ptr constant,
+                                             a_constant_ptr *equiv_constant)
+/*
+Given a constant for which is_enum_constant is TRUE, see if it is
+an equivalent of a named enum constant.  If it is, set *equiv_constant to
+point to the enum constant and return TRUE.  An equivalent of an enum constant
+is a copy of the enum constant made to be used in an initializer (because
+an initializer requires an unshared copy of the constant).  It can be put
+out as the original enum constant.
+*/
+{
+  a_boolean      is_enum_equiv = FALSE;
+  a_type_ptr     con_type = constant->type, enum_type;
+  a_constant_ptr con;
+
+  *equiv_constant = NULL;
+  con_type = skip_typerefs(con_type);
+  /* Get the enum type. */
+  if (il_header.source_language == sl_Cplusplus) {
+    enum_type = con_type;
+  } else {
+    /* In C, enum constants have type int but an affiliated type that is the
+       enum type. */
+    enum_type = con_type->variant.integer.enum_info.affiliated_type;
+  }  /* if */
+  check_assertion(enum_type->kind == (a_constant_repr_kind)tk_integer &&
+                  enum_type->variant.integer.enum_type);
+  /* Go through the list of enum constants and compare each one to the
+     constant we want. */
+  for (con = enum_type->variant.integer.enum_info.constant_list;
+       con != NULL;
+       con = con->next) {
+    /* Compare the constant on the list to the one we want. */
+    if (cmp_integer_constants(con, constant) == 0) {
+      /* Equal, so we found the constant we want. */
+      is_enum_equiv = TRUE;
+      *equiv_constant = con;
+      break;
+    }  /* if */
+    /* Keep looking.  Note that there is no guarantee that the constants are
+       in ascending order, so we can't stop on a too-large constant. */
+  }  /* for */
+  return is_enum_equiv;
+}  /* is_enum_constant_equivalent */
+
+
 void form_constant(a_constant_ptr                        constant,
                    a_boolean                             need_parens,
                    an_il_to_str_output_control_block_ptr octl)
@@ -1759,7 +1805,8 @@ confusion.  Do the output in the way described by octl.
   a_constant_repr_kind kind = constant->kind;
   a_float_kind         fkind;
   a_type_ptr           con_type = NULL, orig_type;
-  a_boolean            need_cast_close_paren = FALSE;
+  a_boolean            need_cast_close_paren = FALSE, is_enum;
+  a_constant_ptr       equiv_constant;
 
   orig_type = constant->type;
   /* Watch out for constants (like ck_init_repeat) that have no type. */
@@ -1798,12 +1845,19 @@ confusion.  Do the output in the way described by octl.
       octl->output_str("<error-constant>");
       break;
     case ck_integer:
-      if (is_enum_constant(constant) &&
-          /* Don't emit enum constants when generating K&R C from the
-             C-generating back end. */
-          !(octl->c_generating_back_end && octl->gen_pcc_code)) {
+      /* See if the constant is an enum constant, but don't emit enum
+         constants when generating K&R C from the C-generating back end. */
+      is_enum = !(octl->c_generating_back_end && octl->gen_pcc_code) &&
+                is_enum_constant(constant);
+      if (is_enum && has_name(constant)) {
         /* An enum constant. */
         form_name(&constant->source_corresp, iek_constant, octl);
+      } else if (is_enum && il_header.source_language == sl_Cplusplus &&
+                 is_enum_constant_equivalent(constant, &equiv_constant)) {
+        /* The equivalent of an enum constant (an enum constant used in
+           an initializer; it's a nonshared constant with the same value as
+           the named enumeration constant). */
+        form_name(&equiv_constant->source_corresp, iek_constant, octl);
       } else if (!octl->c_generating_back_end &&
                  il_header.source_language == sl_Cplusplus &&
                  is_bool_type(con_type)) {
