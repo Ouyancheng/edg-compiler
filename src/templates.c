@@ -8045,6 +8045,7 @@ and create the template symbol supplement for the class.
     cssp->is_prototype_instantiation = TRUE;
     class_type->variant.class_struct_union.is_nonreal_class =
                       parent_type->variant.class_struct_union.is_nonreal_class;
+    class_type->variant.class_struct_union.is_template_class = TRUE;
     /* During the prototype instantiation save the token sequence number
        associated with this position in the class symbol supplement
        this will be used during real instantiations to determine which
@@ -8055,6 +8056,7 @@ and create the template symbol supplement for the class.
                              parent_tssp->variant.class_template.name_linkage;
     tssp->variant.class_template.type_kind = type_kind;
     cssp->template_info = tssp;
+    cssp->corresp_prototype_sym = sym;
   }  /* if */
 }  /* make_nested_class_template_supplement */
 
