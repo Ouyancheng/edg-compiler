@@ -1685,10 +1685,6 @@ scope is that of a class definition.
         if (defines_something && C_dialect == C_dialect_cplusplus) {
           pos_error(ec_type_definition_not_allowed, &param_type_pos);
           param_type_ptr = error_type();
-        } else if (is_void_type(param_type_ptr) &&
-                   C_dialect == C_dialect_cplusplus) {
-          pos_error(ec_void_param_not_allowed, &param_type_pos);
-          param_type_ptr = error_type();
         } else {
           /* Mark the type as referenced.  This is important for a
              parameter declaration like "struct s {int a;} p;" --
@@ -1742,6 +1738,10 @@ scope is that of a class definition.
           pos_error(ec_abstract_class_object_not_allowed,
                     is_error_locator(param_locator) ?
                            &param_type_pos : &param_locator.source_position);
+        } else if (is_void_type(param_type_ptr) &&
+                   C_dialect == C_dialect_cplusplus) {
+          pos_error(ec_void_param_not_allowed, &param_type_pos);
+          param_type_ptr = error_type();
         }  /* if */
         /* See if any type qualifiers were specified, and if they are
            okay. */
