@@ -3545,6 +3545,7 @@ on for use in generating cross-reference output describing this declaration.
   a_boolean                namespace_reactivated = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr               declared_type = type_ptr;
+  a_boolean                first_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "decl_routine");
@@ -3977,6 +3978,9 @@ skip_overloading:;
          no error is issued. */
       routine_ptr->superseded_external = TRUE;
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    first_decl = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else {
     /* There is an existing IL entry that we are reusing. */
     /* Check for internal linkage on the old but not the new, or
@@ -4179,6 +4183,7 @@ skip_overloading:;
     if (sssdp != NULL) {
       if (is_friend_decl) sssdp->friend_decl = TRUE;
       if (func_info->is_implicit_declaration) sssdp->implicit_decl = TRUE;
+      if (first_decl) sssdp->first_declaration = TRUE;
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
