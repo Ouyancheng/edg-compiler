@@ -1069,8 +1069,8 @@ common_cfront_mode_settings:
 #endif /* !RUNTIME_USES_NAMESPACES */
 #if !RUNTIME_USES_TYPENAME
         typename_enabled = FALSE;
-        implicit_typename_enabled = TRUE;
 #endif /* !RUNTIME_USES_TYPENAME */
+        implicit_typename_enabled = TRUE;
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
@@ -1634,6 +1634,16 @@ common_cfront_mode_settings:
         /* If namespaces_enabled was not explicitly set by a command line
            option, set it now. */
         namespaces_enabled = TRUE;
+      }  /* if */
+      if (!(option_kind_used[(int)optk_implicit_typename])) {
+        /* If implicit_typename was not explicitly set by a command line
+           option, set it now. */
+        implicit_typename_enabled = FALSE;
+      }  /* if */
+      if (!(option_kind_used[(int)optk_typename])) {
+        /* If typename_enabled was not explicitly set by a command line
+           option, set it now. */
+        typename_enabled = TRUE;
       }  /* if */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the

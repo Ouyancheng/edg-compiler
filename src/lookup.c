@@ -473,6 +473,18 @@ needs to be done using the template parameter as the class type.
 }  /* create_proxy_class */
 
 
+/*
+Macro that returns TRUE if the lookup options being used require that
+a nonreal class member returned by the lookup must be a type.  If the
+macro returns FALSE then the noreal class member must not be a type.
+*/
+#define nonreal_member_must_be_type(options)			\
+  ((options & IDL_MUST_BE_CLASS_OR_NAMESPACE ||			\
+    options & IDL_MUST_BE_TAG ||				\
+    options & IDL_TYPENAME_LOOKUP) ||				\
+   (implicit_typename_enabled && (options & IDL_TENTATIVE_TYPE_LOOKUP)))
+
+
 static a_symbol_ptr add_member_to_proxy_or_nonreal_class
 					(a_type_ptr	          class_type,
 					 an_id_lookup_options_set options,
@@ -502,12 +514,7 @@ class_type that is a ck_template_param.
      if "implicit typename" is enabled, we also force the member to be
      a type when doing a "tentative type" lookup.  Implicit typename mode
      is used to compile code that was not written using "typename". */
-  is_type = options & IDL_MUST_BE_CLASS_OR_NAMESPACE ||
-            options & IDL_MUST_BE_TAG ||
-            options & IDL_TYPENAME_LOOKUP;
-  if (implicit_typename_enabled) {
-    is_type = is_type || options & IDL_TENTATIVE_TYPE_LOOKUP;
-  }  /* if */
+  is_type = nonreal_member_must_be_type(options);
   /* Create a symbol for the member.  mark_declared is not called
      because this symbol is not visible to the user. */
   kind = (a_symbol_kind)(is_type ? sk_type : sk_constant);
@@ -2179,13 +2186,19 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
          sym = sym->next) {
       if (is_acceptable_symbol(sym)) {
         /* Found an acceptable symbol. */
-        /* If the symbol is a tag symbol, there's the possibility that
-           there is a non-type symbol in the same scope later in the list
-           (because the inactive list is not ordered in any way).  Save the
-           tag symbol and keep looking.  If nothing else turns up,
-           use the tag symbol. */
-        if (!is_tag_symbol(sym)) goto end_lookup;
-        tag_symbol = sym;
+        if (is_proxy_or_nonreal_class_lookup && !implicit_typename_enabled &&
+            is_type_symbol(sym) != nonreal_member_must_be_type(options)) {
+          /* The nonreal class member found is a type when a nontype is
+             expected or vice-versa.  Ignore this symbol. */
+        } else {
+          /* If the symbol is a tag symbol, there's the possibility that
+             there is a non-type symbol in the same scope later in the list
+             (because the inactive list is not ordered in any way).  Save the
+             tag symbol and keep looking.  If nothing else turns up,
+             use the tag symbol. */
+          if (!is_tag_symbol(sym)) goto end_lookup;
+          tag_symbol = sym;
+        }  /* if */
       }  /* if */
     }  /* for */
     /* We reached the end of the list.  If there is a tag symbol saved

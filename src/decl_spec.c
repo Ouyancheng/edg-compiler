@@ -1778,6 +1778,10 @@ otherwise a diagnostic is issued.  The type is returned in *type_ptr.
 
   /* Skip over "typename". */
   check_assertion(curr_token == tok_typename);
+  /* The typename keyword may only be used within a template. */
+  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
+    diagnostic(es_discretionary_error, ec_typename_not_in_template);
+  }  /* if */
   (void)get_token();
   if (!is_generalized_identifier_start(GID_IS_TYPENAME)) {
     syntax_error(ec_exp_identifier);

@@ -1,5 +1,15 @@
 Version 2.31
 
+01/03/96  "typename" recognized as a keyword
+
+The typename keyword is now recognized.  The feature is enabled by
+--typename and disabled by --no_typename; the default is established by
+DEFAULT_TYPENAME_IS_ENABLED.  Because existing code does not make use
+of typename, "implicit typename" processing can be enabled for compatibility
+purposes.  Implicit typename is enabled by --implicit_typename and
+disabled by --no_implicit_typename; the default is established by
+DEFAULT_IMPLICIT_TYPENAME_ENABLED.
+
 12/29/95  Overloading operator delete
 
 In accord with recent Working Paper changes, deallocation operators may now
