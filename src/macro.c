@@ -3985,7 +3985,14 @@ from the front end to the runtime.
 }  /* init_runtime_macros */
 
 
-void process_command_line_macro_definitions(a_def_undef_string_ptr  du_ptr)
+static void process_command_line_macro_definitions(
+                                               a_def_undef_string_ptr  du_ptr)
+/*
+Process a list of macro definitions as requested by "-D" options on the
+command line.  du_ptr points the first element of a linked list describing
+the options passed (each element in the list points to the string following
+the "-D").
+*/
 {
   in_preprocessing_directive = TRUE;
   for (; du_ptr != NULL; du_ptr = du_ptr->next) {
@@ -3996,7 +4003,7 @@ void process_command_line_macro_definitions(a_def_undef_string_ptr  du_ptr)
       /* Definition contains a newline character, which cannot be allowed
          (it would be confused with a lexical escape character). */
       str_command_line_error(ec_cl_invalid_macro_definition, du_str);
-      continue;
+      /* Should not reach here. */
     }  /* if */
     /* Turn "-D" options into equivalent define directives so that we can
        leave the processing to proc_define.  Allocate an extra 2 bytes for
@@ -4010,7 +4017,8 @@ void process_command_line_macro_definitions(a_def_undef_string_ptr  du_ptr)
     /* Ensure the buffer holding the logical source line is large enough to
        hold the synthetic line we are going to create. */
     line_length = du_len+2+2*LE_ESCAPE_LEN;
-    while (line_length > after_end_of_curr_source_line - curr_source_line) {
+    while (line_length >
+               (sizeof_t)(after_end_of_curr_source_line - curr_source_line)) {
       expand_curr_source_line();
     }  /* while */
     strcpy(curr_source_line, du_str);
