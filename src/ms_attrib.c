@@ -631,6 +631,12 @@ are accepted.
 			     "soap_method", MSAT_METHOD);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name", /*is_unnamed=*/FALSE, NULL);
+  /* [source] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "source",
+                             MSAT_CLASS | MSAT_STRUCT | MSAT_INTERFACE);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "interfaces", /*is_unnamed=*/TRUE, NULL);
   /* [string] */
   /* The Microsoft documentation does not have the correct target. */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
