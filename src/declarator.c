@@ -2600,6 +2600,8 @@ to FALSE if the entity being declared is not initializable.
   a_symbol_ptr              sym;
   a_namespace_ptr           nsp;
   a_boolean		    is_in_class_specialization = FALSE;
+  a_boolean		    is_specialization_or_instantiation;
+  a_boolean		    explicit_template_args_allowed = FALSE;
 
   db_enter(3, "scan_real_declarator_id");
   declarator_pos = pos_curr_token;
@@ -2612,6 +2614,8 @@ to FALSE if the entity being declared is not initializable.
      will be coalesced by is_generalized_identifier_start.  The qualifier
      will then be discarded by simplify_curr_class_qualified_name resulting
      in an unqualified destructor that has already been coalesced. */
+  is_specialization_or_instantiation =
+    (input_flags & (DI_IS_SPECIALIZATION | DI_IS_EXPLICIT_INSTANTIATION)) != 0;
   options = GID_DTOR_RECOGNIZED;
   if (!(input_flags & DI_QUALIFIED_NAME_ALLOWED)) {
     options |= GID_DISALLOW_QUALIFIED_NAME | GID_DISALLOW_GLOBAL_QUALIFIER;
@@ -2627,8 +2631,7 @@ to FALSE if the entity being declared is not initializable.
        with the model of friend/namespace interaction the EDG front end has
        implemented (as of version 2.30), pending clarification of the language
        definition.  A diagnostic is issued (later) in strict ANSI mode. */
-  } else if (input_flags & (DI_IS_SPECIALIZATION |
-                            DI_IS_EXPLICIT_INSTANTIATION)) {
+  } else if (is_specialization_or_instantiation) {
     /* Global qualifier is permitted on a template reference in an explicit
        specialization or an instantiation directive. */
   } else {
@@ -2639,6 +2642,11 @@ to FALSE if the entity being declared is not initializable.
     if (input_flags & DI_IS_SPECIALIZATION) {
       options |= GID_IS_TEMPLATE_SPECIALIZATION;
     }  /* if */
+  }  /* if */
+  if (is_specialization_or_instantiation ||
+      ((input_flags & DI_IS_FRIEND_DECL) &&
+       !(options & GID_IS_TEMPLATE_DECLARATION))) {
+    explicit_template_args_allowed = TRUE;
   }  /* if */
   if (*p_member_parent_type != NULL && (input_flags & DI_IS_SPECIALIZATION)) {
     /* When a member parent type is provided and the specialization flag is
@@ -2854,6 +2862,16 @@ to FALSE if the entity being declared is not initializable.
       locator->specific_symbol->kind == (a_symbol_kind)sk_namespace) {
     /* A namespace name cannot be a declarator. */
     pos_error(ec_namespace_name_not_allowed, &declarator_pos);
+    set_to_error_locator(*locator);
+  }  /* if */
+  if (!explicit_template_args_allowed && locator->is_template_id) {
+    /* An explicit template argument list is only permitted on explicit
+       specializations, explicit instantiations, and friend declarations.
+       Other declarations that appear to include an explicit argument list,
+       such as a destructor declaration of the form ~A<T>(), will have
+       already been transformed to a form where they are no longer considered
+       to be template-ids. */
+    pos_error(ec_explicit_template_args_not_allowed, &declarator_pos);
     set_to_error_locator(*locator);
   }  /* if */
   if (locator->is_operator_name) {
