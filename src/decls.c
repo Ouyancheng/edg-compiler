@@ -4476,12 +4476,11 @@ on for use in generating cross-reference output describing this declaration.
        to which this declaration is linked. */
     if (linked_symbol->kind == (a_symbol_kind)sk_routine &&
         linked_symbol->variant.routine.instance_ptr != NULL) {
-      if (is_friend_decl && (locator->is_template_id ||
-                             locator->is_qualified_name)) {
-        /* If the declarator-id of a friend declaration is a template-id
-           (i.e., mentions explicit template arguments) or a qualified name,
-           then it references a previous declaration rather than being a
-           declaration itself. */
+      if (locator->is_template_id ||
+          (locator->is_qualified_name && is_friend_decl)) {
+        /* This is either a friend declaration that nominates an instance of a
+           previously declared template, or it is an old-style specialization
+           with explicit template arguments. */
         explicit_template_reference = TRUE;
       } else if (!locator->is_qualified_name) {
         /* This is not actually a redeclaration -- linked_symbol refers to a
@@ -4822,8 +4821,9 @@ on for use in generating cross-reference output describing this declaration.
       first_decl = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
     } else if (explicit_template_reference) {
-      /* A reference to a template instance in a friend declaration.
-         Such a declaration cannot be a definition. */
+      /* A reference to a template instance in a friend declaration or an
+         old-style specialization.  Such a declaration cannot be a definition
+         unless we're in Microsoft mode. */
       sym = linked_symbol;
       routine_ptr = sym->variant.routine.ptr;
       if (is_function_def && !microsoft_mode) {
@@ -4853,6 +4853,24 @@ on for use in generating cross-reference output describing this declaration.
       check_exception_specification(type_ptr, linked_symbol,
                                     &func_info->throw_position,
                                     /*is_redecl=*/TRUE);
+      if (!is_friend_decl && !is_error_locator(*locator)) {
+        /* This is an old-style specialization (using explicit template
+           arguments). */
+        /* Update the linkage information in the routine to reflect
+           this declaration instead of the information inherited from
+           the template. */
+        routine_ptr->storage_class = storage_class;
+        if (func_info->is_inline && !routine_ptr->is_inline) {
+          changed_to_inline = TRUE;
+        }  /* if */
+        routine_ptr->is_inline = func_info->is_inline;
+        routine_ptr->source_corresp.name_linkage =
+                          (storage_class == (a_storage_class)sc_static) ?
+                                (a_name_linkage_kind)nlk_internal :
+                                (a_name_linkage_kind)nlk_cplusplus_external;
+        routine_ptr->is_specialized = TRUE;
+        routine_ptr->specialized_with_old_syntax = TRUE;
+      }  /* if */
     } else if (symbol_for_overloading != NULL) {
       /* Overloaded function.  Create the new symbol, which will be on the
          list of functions connected to an sk_overloaded symbol. */
