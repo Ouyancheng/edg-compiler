@@ -137,6 +137,8 @@ extern void set_scope_kind(a_scope_ptr    sp,
                            a_scope_kind   kind,
                            a_routine_ptr  assoc_routine);
 
+extern a_namespace_ptr alloc_namespace(void);
+
 extern a_scope_ptr alloc_scope(a_scope_kind   kind,
                                a_scope_number number,
                                a_routine_ptr  assoc_routine);

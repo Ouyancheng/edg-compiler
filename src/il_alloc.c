@@ -78,6 +78,7 @@ static unsigned long
 		num_constructor_inits_allocated,
 		num_pragmas_allocated,
 		num_object_lifetimes_allocated,
+		num_namespaces_allocated,
 		num_scopes_allocated,
 		num_il_entry_prefixes_allocated,
 		string_literal_text_space_allocated;
@@ -1958,6 +1959,26 @@ to it.
 }  /* alloc_object_lifetime */
 
 
+a_namespace_ptr alloc_namespace(void)
+/*
+Allocate a namespace entry, initialize its fields, and return a pointer to
+it.  The entry is allocated in the file scope memory region.
+*/
+{
+  a_namespace_ptr nsp;
+
+  db_enter(5, "alloc_namespace");
+  nsp = (a_namespace_ptr)alloc_il(sizeof(a_namespace));
+#if DEBUG
+  num_namespaces_allocated++;
+#endif /* DEBUG */
+  nsp->next        = NULL;
+  nsp->assoc_scope = NULL;
+  db_exit();
+  return nsp;
+}  /* alloc_namespace */
+
+
 void set_scope_kind(a_scope_ptr    sp,
                     a_scope_kind   kind,
                     a_routine_ptr  assoc_routine)
@@ -2355,6 +2376,7 @@ Display and return the amount of space used for various IL tables.
   db_space_used("pragma", num_pragmas_allocated, a_pragma);
   db_space_used("object lifetime", num_object_lifetimes_allocated,
                 an_object_lifetime);
+  db_space_used("namespace", num_namespaces_allocated, a_namespace);
   db_space_used("scope", num_scopes_allocated, a_scope);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   db_space_used("source sequence entry", num_source_sequence_entries_allocated,
@@ -2518,6 +2540,7 @@ in il_init.)
       pch_saved_var_array_elem(num_routine_type_supplements_allocated),
       pch_saved_var_array_elem(num_routines_allocated),
       pch_saved_var_array_elem(num_object_lifetimes_allocated),
+      pch_saved_var_array_elem(num_namespaces_allocated),
       pch_saved_var_array_elem(num_scopes_allocated),
       pch_saved_var_array_elem(num_source_files_allocated),
       pch_saved_var_array_elem(num_statements_allocated),
@@ -2624,6 +2647,7 @@ of the front end.
   num_constructor_inits_allocated        = 0;
   num_pragmas_allocated                  = 0;
   num_object_lifetimes_allocated         = 0;
+  num_namespaces_allocated               = 0;
   num_scopes_allocated                   = 0;
   num_il_entry_prefixes_allocated        = 0;
   string_literal_text_space_allocated    = 0;
