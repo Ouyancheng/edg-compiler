@@ -470,6 +470,28 @@ is NULL, allocate a message seqment.
 }  /* establish_first_segment */
 
 
+static void put_str_to_curr_output_msg_segment(char *str)
+/*
+Output the indicated string to the current output message segment.  This is
+used as an output routine when using the il_to_str routines.
+*/
+{
+  add_string_to_segment(str, curr_output_msg_segment);
+}  /* put_str_to_curr_output_msg_segment */
+
+
+static void set_up_output_control_block(void)
+/*
+Set up the output control block octl so that the il_to_str routines can be
+called.
+*/
+{
+  clear_il_to_str_output_control_block(&octl);
+  octl.output_str = put_str_to_curr_output_msg_segment;
+  octl.gen_pcc_code = (C_dialect == C_dialect);
+}  /* set_up_output_control_block */
+
+
 static void form_type_summary(a_type_ptr        tp,
                               a_msg_segment_ptr seg_ptr)
 /*
@@ -505,6 +527,8 @@ string immediately into whichever memory region is appropriate.
      empty string. */
   add_string_to_segment("", curr_segment);
   curr_output_msg_segment = curr_segment;
+  /* Set up for use of the il_to_str routines. */
+  set_up_output_control_block();
   form_type(tp, &octl);
   /* Provide the length of the string and the address of the string
      buffer to the caller. */
@@ -1714,16 +1738,6 @@ start_line_and_indent:
 }  /* write_message_part */
 
 
-static void put_str_to_curr_output_msg_segment(char *str)
-/*
-Output the indicated string to the current output message segment.  This is
-used as an output routine when using the il_to_str routines.
-*/
-{
-  add_string_to_segment(str, curr_output_msg_segment);
-}  /* put_str_to_curr_output_msg_segment */
-
-
 static void init_error_params(void)
 /*
 Initialize the array of user string, types and symbols to be inserted into
@@ -1743,9 +1757,7 @@ a diagnostic message.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   }  /* for */
   /* Set up for use of the il_to_str routines. */
-  clear_il_to_str_output_control_block(&octl);
-  octl.output_str = put_str_to_curr_output_msg_segment;
-  octl.gen_pcc_code = (C_dialect == C_dialect);
+  set_up_output_control_block();
 }  /* init_error_params */
 
 
