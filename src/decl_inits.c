@@ -2972,6 +2972,9 @@ scan_paren:
         /* Advance past the identifier. */
         (void)get_token();
         copy_source_position(pos_curr_token, lparen_pos);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        if (new_cip != NULL) new_cip->ctor_init_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         if (required_token(tok_lparen, ec_exp_lparen)) {
           if (is_class_struct_union_type(init_type) &&
               (array_type == NULL || curr_token == tok_rparen)) {
@@ -3008,6 +3011,11 @@ scan_paren:
                                            &lparen_pos,
                                            /*fill_in_dtor=*/exceptions_enabled,
                                            &dip);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+            if (new_cip != NULL) {
+              new_cip->ctor_init_range.end = curr_construct_end_position;
+            }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
             if (dip == NULL) {
               /* Create a fake initializer to represent the error. */
               a_constant_ptr  cp;
@@ -3040,6 +3048,9 @@ scan_paren:
                class.  No call is actually made, but the constructor
                definition is triggered (in case there are side-effects). */
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+            if (new_cip != NULL) new_cip->ctor_init_range.end = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
             /* Bypass the right paren. */
             (void)get_token();
           } else {
@@ -3066,6 +3077,11 @@ scan_paren:
                    (8.5 [dcl.init]). */
                 dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
               }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+              if (new_cip != NULL) {
+                new_cip->ctor_init_range.end = pos_curr_token;
+              }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
               /* Bypass the right paren. */
               (void)get_token();
             } else {
@@ -3093,6 +3109,11 @@ scan_paren:
                    expression, remove it temporarily from the object lifetime
                    tree and restore it in the correct position later. */
                 detach_from_object_lifetime_tree(init_expr_lifetime_of(dip));
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+                if (new_cip != NULL && curr_token == tok_rparen) {
+                  new_cip->ctor_init_range.end = pos_curr_token;
+                }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
                 if (!required_token(tok_rparen, ec_exp_rparen)) {
                   /* Special code to avoid poor error recovery in cases where
                      a comma-list appears between the parens in what is taken
