@@ -1931,7 +1931,7 @@ fields, and return a pointer to it.
   tdip->name_linkage = (a_name_linkage_kind)nlk_none;
   tdip->decl_seq = 0;
   tdip->nondependent_calls = NULL;
-  tdip->last_nondependent_call = NULL;
+  tdip->last_entry_added = NULL;
 #if DEBUG
   num_template_decl_info_allocated++;
 #endif /* DEBUG */
@@ -2029,15 +2029,40 @@ entry can be found during a real instantiation.
   ssep = &scope_stack[depth_to_use];
   tdip = ssep->template_decl_info;
   check_assertion(tdip != NULL);
-  /* Create a nondependent call entry and add it to the end of the list. */
+  /* Create a nondependent call entry. */
   ndcip = alloc_nondependent_call_info();
   ndcip->symbol = symbol;
   ndcip->token_sequence_number = tsn;
-  if (tdip->nondependent_calls == NULL) tdip->nondependent_calls = ndcip;
-  if (tdip->last_nondependent_call != NULL) {
-    tdip->last_nondependent_call->next = ndcip;
+  /* Add the entry to the appropriate point in the list.  This is usually
+     immediately after the last entry added, but in certain cases we need
+     to locate the appropriate insertion point. */
+  if (tdip->nondependent_calls == NULL ||
+      tdip->nondependent_calls->token_sequence_number > tsn) {
+    /* Either the list is entry, or the token sequence number of this entry
+       precedes the previous start of the list. */
+    ndcip->next = tdip->nondependent_calls;
+    tdip->nondependent_calls = ndcip;
+  } else {
+    /* The new entry does not go at the start of the list.  See if the
+       last_entry_added points to the right insert location. */
+    a_nondependent_call_info_ptr	insert_loc;
+    insert_loc = tdip->last_entry_added;
+    /* If the token sequence number of the insert location is after the
+       desired location, restart the search from the beginning of the list. */
+    if (insert_loc->token_sequence_number > tsn) {
+      insert_loc = tdip->nondependent_calls;
+    }  /* if */
+    /* Find an entry with a token sequence number greater than the one we
+       are inserting, or the end of the list.  We are usually at the
+       right place (i.e., nothing needs to be done). */
+    while (insert_loc->next != NULL &&
+           insert_loc->next->token_sequence_number < tsn) {
+      insert_loc = insert_loc->next;
+    }  /* while */
+    ndcip->next = insert_loc->next;
+    insert_loc->next = ndcip;
   }  /* if */
-  tdip->last_nondependent_call = ndcip;
+  tdip->last_entry_added = ndcip;
 }  /* record_nondependent_call */
 				
 

@@ -1044,11 +1044,15 @@ typedef struct a_template_decl_info {
 		nondependent_calls;
 			/* A list of entries that describe the nondependent
 			   calls within this template.  NULL is no such list
-			   exists. */
+			   exists.  The list is maintained in token sequence
+			   number order.  For class templates, this includes
+			   the nondependent calls for default argument
+			   expressions and bodies of nontemplate member
+			   functions. */
   a_nondependent_call_info_ptr
-		last_nondependent_call;
-			/* Pointer to the end of the list of nondependent
-			   calls. */
+		last_entry_added;
+			/* Pointer to the entry most recently added to the
+			   list. */
 } a_template_decl_info;
 
 
@@ -1059,6 +1063,9 @@ The list is traversed during a real instantiation, and a matching
 entry is returned if a given call is nondependent.  Entries are
 matched using a token sequence number.  The list is maintained in
 token sequence number order.
+
+For class templates, the list includes nondependent call entries for
+default arguments and bodies of nontemplate member functions.
 */
 typedef struct a_nondependent_call_info {
   a_nondependent_call_info_ptr
