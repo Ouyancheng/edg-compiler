@@ -1203,6 +1203,14 @@ typedef struct a_scope_stack_entry {
 			   classes with base classes.  In either case,
 			   symbols on a symbol header's inactive list may be
 			   visible from the current scope. */
+  unsigned int  inside_local_class:1;
+			/* TRUE if the current scope level is that of a local
+			   class or is (logically) within the scope of a local
+			   class.  Once this flag is set it is usually
+			   propagated each time a new scope is pushed onto
+			   the stack; the exception is when a template
+			   instantiation scope is pushed, in which case the
+			   flag is cleared. */
   a_symbol_ptr	symbols,
 		last_symbol;
 			/* First/last pointers to the list of all symbols
@@ -1351,6 +1359,12 @@ typedef struct a_scope_stack_entry {
 		source_position;
 			/* The source position when the scope was pushed
 			   onto the stack. */
+  a_scope_depth depth_of_innermost_function_scope;
+			/* The scope depth of the containing function scope,
+			   or NO_SCOPE_DEPTH if there is no containing
+			   function scope or if the scope of a local class or
+			   template instantiation intervenes between the
+			   current scope and the containting function scope. */
 } a_scope_stack_entry;
 
 
