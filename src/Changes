@@ -1,5 +1,15 @@
 Version 3.1
 
+11/5/02  GNU C++ compatibility: New expressions
+
+In standard C++, when the type specified in a new expression starts with a
+(left) parenthesis, the whole type must be enclosed in parentheses.  That
+means that in "new (int)[2]" only "new (int)" is treated as a new expression,
+and the trailing "[2]" should be parsed as a subscript operation.
+However, GNU C++ compilers will attempt to parse a type past the closing
+parenthesis (i.e., "new (int)[2]" is treated as "new (int[2])").  This
+behavior is now emulated in GNU C++ mode.
+
 11/5/02  GNU C compatibility: Local declaration can hide parameter
 
 In GNU C mode (but not in GNU C++ mode) a local declaration can hide a
