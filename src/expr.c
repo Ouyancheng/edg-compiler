@@ -8244,6 +8244,7 @@ See section 3.3.16 of the standard.
   db_exit();
 }  /* scan_compound_assignment_operator */
 
+#if !ABI_CHANGES_FOR_RTTI
 
 static void build_accessible_base_class_list_for_throw(
                                                    an_expr_node_ptr throw_node)
@@ -8280,6 +8281,7 @@ Add the list of accessible base classes to the throw node throw_node
   }  /* if */
 }  /* build_accessible_base_class_list_for_throw */
 
+#endif /* !ABI_CHANGES_FOR_RTTI */
 
 static void scan_throw_operator(an_operand *result)
 /*
@@ -8387,8 +8389,10 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
       }  /* if */
       throw_node->variant.throw_info->dynamic_init = dip;
       throw_node->variant.throw_info->type = throw_type;
+#if !ABI_CHANGES_FOR_RTTI
       /* Generate a list of accessible base classes. */
       build_accessible_base_class_list_for_throw(throw_node);
+#endif /* !ABI_CHANGES_FOR_RTTI */
       /* Fix up destructor references in the overall expression. */
       fix_up_dynamic_init_dtors();
       /* Mark the type as having been used in an exception.  (Also, if it

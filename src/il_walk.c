@@ -242,8 +242,10 @@ of each kind.
                                         iek_new_delete_supplement);
   walk_orphan_entry_list_for_entry_kind(a_throw_supplement_ptr,
                                         iek_throw_supplement);
+#if !ABI_CHANGES_FOR_RTTI
   walk_orphan_entry_list_for_entry_kind(an_accessible_base_class_ptr,
                                         iek_accessible_base_class);
+#endif /* !ABI_CHANGES_FOR_RTTI */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   walk_orphan_entry_list_for_entry_kind(an_eh_prologue_supplement_ptr,
                                         iek_eh_prologue_supplement);
@@ -461,7 +463,9 @@ running them through walk_remap_func.
   remap_orphan_entry_first(iek_template_arg);
   remap_orphan_entry_first(iek_new_delete_supplement);
   remap_orphan_entry_first(iek_throw_supplement);
+#if !ABI_CHANGES_FOR_RTTI
   remap_orphan_entry_first(iek_accessible_base_class);
+#endif /* !ABI_CHANGES_FOR_RTTI */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   remap_orphan_entry_first(iek_eh_prologue_supplement);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
@@ -550,7 +554,9 @@ running them through walk_remap_func.
   remap_orphan_entry_last(iek_template_arg);
   remap_orphan_entry_last(iek_new_delete_supplement);
   remap_orphan_entry_last(iek_throw_supplement);
+#if !ABI_CHANGES_FOR_RTTI
   remap_orphan_entry_last(iek_accessible_base_class);
+#endif /* !ABI_CHANGES_FOR_RTTI */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   remap_orphan_entry_last(iek_eh_prologue_supplement);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */

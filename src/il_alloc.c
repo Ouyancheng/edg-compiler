@@ -62,7 +62,9 @@ static unsigned long
 		num_new_delete_supplements_allocated,
 		num_throw_supplements_allocated,
 		num_condition_supplements_allocated,
+#if !ABI_CHANGES_FOR_RTTI
 		num_accessible_base_classes_allocated,
+#endif /* !ABI_CHANGES_FOR_RTTI */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
 		num_eh_prologue_supplements_allocated,
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
@@ -1467,7 +1469,9 @@ fields to default values.
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
       tsp->expr         = NULL;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if !ABI_CHANGES_FOR_RTTI
       tsp->accessible_base_classes = NULL;
+#endif /* !ABI_CHANGES_FOR_RTTI */
       break;
     case enk_condition:
       csp = (a_condition_supplement_ptr)
@@ -1638,6 +1642,7 @@ to it.
   return scp;
 }  /* alloc_switch_clause */
 
+#if !ABI_CHANGES_FOR_RTTI
 
 an_accessible_base_class_ptr alloc_accessible_base_class(a_base_class_ptr bcp)
 /*
@@ -1658,6 +1663,7 @@ base class to bcp, and return a pointer to it.
   return abcp;
 }  /* alloc_accessible_base_class */
 
+#endif /* !ABI_CHANGES_FOR_RTTI */
 
 a_handler_ptr alloc_handler(void)
 /*
@@ -2402,8 +2408,10 @@ Display and return the amount of space used for various IL tables.
                 a_throw_supplement);
   db_space_used("condition supplement", num_condition_supplements_allocated,
                 a_condition_supplement);
+#if !ABI_CHANGES_FOR_RTTI
   db_space_used("accessible base class", num_accessible_base_classes_allocated,
                 an_accessible_base_class);
+#endif /* !ABI_CHANGES_FOR_RTTI */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   db_space_used("eh prologue supplement",
                 num_eh_prologue_supplements_allocated,
@@ -2531,7 +2539,9 @@ in il_init.)
       pch_saved_var_array_elem(avail_template_args),
 #if DEBUG
       pch_saved_var_array_elem(num_class_member_using_decls_allocated),
+#if !ABI_CHANGES_FOR_RTTI
       pch_saved_var_array_elem(num_accessible_base_classes_allocated),
+#endif /* !ABI_CHANGES_FOR_RTTI */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
       pch_saved_var_array_elem(num_eh_prologue_supplements_allocated),
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
@@ -2659,7 +2669,9 @@ of the front end.
   num_new_delete_supplements_allocated   = 0;
   num_throw_supplements_allocated        = 0;
   num_condition_supplements_allocated    = 0;
+#if !ABI_CHANGES_FOR_RTTI
   num_accessible_base_classes_allocated  = 0;
+#endif /* !ABI_CHANGES_FOR_RTTI */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   num_eh_prologue_supplements_allocated  = 0;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */

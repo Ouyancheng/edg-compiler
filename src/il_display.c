@@ -1846,6 +1846,7 @@ Display the indicated new/delete supplement to an expression node.
            iek_dynamic_init);
 }  /* disp_new_delete_supplement */
 
+#if !ABI_CHANGES_FOR_RTTI
 
 static void disp_accessible_base_classes(an_accessible_base_class_ptr abcp)
 /*
@@ -1864,6 +1865,7 @@ Display the indicated accessible base class entry.
   }  /* if */
 }  /* disp_accessible_base_class */
 
+#endif /* !ABI_CHANGES_FOR_RTTI */
 
 static void disp_throw_supplement(a_throw_supplement_ptr tsp)
 /*
@@ -1875,11 +1877,13 @@ Display the indicated throw supplement to an expression node.
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   if (tsp->expr != NULL) disp_ptr("expr", (char *)tsp->expr, iek_expr_node);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if !ABI_CHANGES_FOR_RTTI
   if (tsp->type->kind == (a_type_kind)tk_class ||
       tsp->type->kind == (a_type_kind)tk_struct ||
       tsp->type->kind == (a_type_kind)tk_union) {
     disp_accessible_base_classes(tsp->accessible_base_classes);
   }  /* if */
+#endif /* !ABI_CHANGES_FOR_RTTI */
 }  /* disp_throw_supplement */
 
 
@@ -3405,7 +3409,9 @@ This routine is called during IL walking.
     case iek_new_delete_supplement:
     case iek_throw_supplement:
     case iek_condition_supplement:
+#if !ABI_CHANGES_FOR_RTTI
     case iek_accessible_base_class:
+#endif /* !ABI_CHANGES_FOR_RTTI */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     case iek_eh_prologue_supplement:
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */

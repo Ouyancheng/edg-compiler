@@ -1,5 +1,12 @@
 Version 2.30
 
+10/2/95  IL CHANGE: Removal of accessible base class IL entry
+
+The accessible base class IL entry is vestigial when ABI_CHANGES_FOR_RTTI
+is enabled, because the access for throws is determined at runtime
+instead of compile time.  Accordingly, it has been removed in that
+configuration.
+
 10/2/95  Casts of bit fields to same type preserved
 
 Previously, a cast of a bit field to the type of the bit field was

@@ -335,8 +335,10 @@ typedef enum /*an_il_entry_kind*/ {
   iek_throw_supplement,	/* a_throw_supplement */
   iek_condition_supplement,
 			/* a_condition_supplement */
+#if !ABI_CHANGES_FOR_RTTI
   iek_accessible_base_class,
 			/* an_accessible_base_class */
+#endif /* !ABI_CHANGES_FOR_RTTI */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   iek_eh_prologue_supplement,
 			/* an_eh_prologue_supplement */
@@ -450,7 +452,9 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_new_delete_supplement */		"new-delete-supplement",
 /* iek_throw_supplement */		"throw-supplement",
 /* iek_condition_supplement */		"condition-supplement",
+#if !ABI_CHANGES_FOR_RTTI
 /* iek_accessible_base_class */		"accessible-base-class",
+#endif /* !ABI_CHANGES_FOR_RTTI */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
 /* iek_eh_prologue_supplement */	"eh-prologue-supplement",
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
@@ -4524,6 +4528,9 @@ enum an_expr_operator_kind_tag {
 typedef a_byte an_expr_operator_kind;
 
 
+#if !ABI_CHANGES_FOR_RTTI
+/* This became unnecessary when the language definition was changed
+   to allow more static checking of access on throws. */
 /* Entry in a linked list identifying the accessible base classes of the
    class of a thrown object; C++ only. */
 typedef struct an_accessible_base_class *an_accessible_base_class_ptr;
@@ -4537,6 +4544,7 @@ typedef struct an_accessible_base_class {
 			/* Pointer to an accessible base class of the class
 			   of the thrown object. */
 } an_accessible_base_class;
+#endif /* !ABI_CHANGES_FOR_RTTI */
 
 
 /* Description of a C++ "throw" operation. */
@@ -4556,12 +4564,14 @@ typedef struct a_throw_supplement {
 			   this points to the lowered code that implements
 			   the dynamic initialization. */
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if !ABI_CHANGES_FOR_RTTI
   an_accessible_base_class_ptr
 		accessible_base_classes;
 			/* If type is a class with base classes, a pointer
 			   to a linked list of entries identifying those
 			   base classes that are accessible at the point of
 			   the throw; NULL otherwise. */
+#endif /* !ABI_CHANGES_FOR_RTTI */
 } a_throw_supplement;
 
 

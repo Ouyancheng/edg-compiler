@@ -1477,8 +1477,10 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
         walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if !ABI_CHANGES_FOR_RTTI
         walk_list(ptr->accessible_base_classes, an_accessible_base_class_ptr,
                   iek_accessible_base_class);
+#endif /* !ABI_CHANGES_FOR_RTTI */
       }
       break;
     case iek_condition_supplement:
@@ -1490,6 +1492,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
       }
       break;
+#if !ABI_CHANGES_FOR_RTTI
     case iek_accessible_base_class:
       {
         an_accessible_base_class_ptr ptr =
@@ -1500,6 +1503,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->base_class, a_base_class_ptr, iek_base_class);
       }
       break;
+#endif /* !ABI_CHANGES_FOR_RTTI */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     case iek_eh_prologue_supplement:
       {

@@ -116,8 +116,10 @@ extern an_expr_node_ptr alloc_lowered_eh_construct_node(
 
 extern a_switch_clause_ptr alloc_switch_clause(void);
 
+#if !ABI_CHANGES_FOR_RTTI
 extern an_accessible_base_class_ptr alloc_accessible_base_class(
                                                          a_base_class_ptr bcp);
+#endif /* !ABI_CHANGES_FOR_RTTI */
 
 extern a_handler_ptr alloc_handler(void);
 
