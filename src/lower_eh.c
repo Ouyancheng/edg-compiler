@@ -1240,7 +1240,7 @@ is needed, return NULL.
     pstr = alloc_text_of_string_literal(curr_size_access_string_buffer);
     (void)strcpy(pstr, access_string_buffer);
     clear_constant(&constant, (a_constant_repr_kind)ck_string);
-    constant.type = string_type(curr_size_access_string_buffer);
+    constant.type = string_type((a_targ_size_t)curr_size_access_string_buffer);
     constant.variant.string.length = curr_size_access_string_buffer;
     constant.variant.string.value  = pstr;
     string_con = alloc_shareable_constant(&constant);
