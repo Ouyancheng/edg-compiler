@@ -284,8 +284,6 @@ those containing source correspondence information.)
 
 /* Declarations needed because of forward references: */
 static void dump_constant(a_constant_ptr constant);
-static void dump_enum_definition(a_type_ptr type);
-static void dump_struct_union_definition(a_type_ptr type);
 static void dump_cast(a_type_ptr type);
 static void dump_declaration_using_type(a_type_ptr              type,
                                         a_source_correspondence *scp);
@@ -1698,40 +1696,6 @@ or enum.  This is always a reference/declaration, never a definition.
 }  /* dump_tag_reference */
 
 
-static void dump_tag_use(a_type_ptr type)
-/*
-Generate a reference to the indicated type, which is a class, struct, union,
-or enum.  This is a reference as part of a type specifier list, and in some
-cases the definition of the type is generated (rather than just a reference).
-*/
-{
-  /* The size != 0 check is to avoid problems with structs for which there
-     is no definition. */
-  if (type->declared_in_function_prototype &&
-      !type->definition_put_out && type->size != 0) {
-    /* Put out the definition on the first use if it has not yet been
-       put out.  This happens inside function prototypes that aren't
-       simply part of function declarations, e.g.,
-         typedef int (*f)(struct A {int i;} p);
-    */
-    /* Types inside function prototypes attached to function definitions
-       are supposed to get put out outside the function declaration. */
-    check_assertion_str(!processing_declaration_of_defined_function,
-                        "dump_tag_use: prototype scope type not caught");
-    /* Note that when types are put out here any pragmas associated with
-       them are not put out. */
-    if (type->kind == (a_type_kind)tk_enum) {
-      dump_enum_definition(type);
-    } else {
-      dump_struct_union_definition(type);
-    }  /* if */
-  } else {
-    /* Generate a reference to or declaration of the tag name. */
-    dump_tag_reference(type);
-  }  /* if */
-}  /* dump_tag_use */
-
-
 /*
 Return TRUE if the indicated typeref is "invisible" now because (a) it's
 local to a function and we're processing the file scope, or (b) if
@@ -1770,7 +1734,7 @@ of "const" in ANSI C mode.
           /* Empty enums (valid in C++ but not C) are put out as integers. */
           type->variant.integer.enum_info.constant_list != NULL) {
         /* Enum type. */
-        dump_tag_use(type);
+        dump_tag_reference(type);
       } else
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
       {
@@ -1789,7 +1753,7 @@ of "const" in ANSI C mode.
     case tk_class:
     case tk_struct:
     case tk_union:
-      dump_tag_use(type);
+      dump_tag_reference(type);
       break;
     case tk_typeref:
       if (is_immediate_type_qualifier(type)) {
@@ -1948,9 +1912,18 @@ is non-NULL, in which case that is the function scope.
   /* A routine is put out as unprototyped if its interface is unprototyped
      or if this is the definition and the definition is old-style (i.e.,
      there was a prototyped declaration and then an old-style definition). */
+  /* If the prototype is attached to a function, its prototype scope if
+     any will have been processed to promote the types out into the file
+     scope.  If the prototype appears in some other weird context, e.g.,
+       long *(*p) (struct { int i; }) = {0};
+     the prototype will not have been processed and should be put out
+     here as an old-style function declarator.  That avoids problems
+     with constants cast to prototype scope types elsewhere (like, for
+     example, the constant 0 in the above). */
   /* When generating K&R C, a definition of a prototyped function is put
      out as an old-style function. */
   if (!rtsp->prototyped ||
+      !type->prototype_scope_types_if_any_promoted ||
       (scope != NULL
 #if C_GEN_BE_GENERATES_ANSI_C
                      && rtsp->old_style_params_scanned
@@ -2261,7 +2234,6 @@ static void dump_typedef_decl(a_type_ptr type)
 Print a typedef declaration.
 */
 {
-  type->definition_put_out = TRUE;
   if (start_unreferenced_bracket(&type->source_corresp)) {
     /* Dump any pragmas associated with the type. */
     dump_decl_associated_pragmas(&type->source_corresp);
@@ -2277,8 +2249,7 @@ Print a typedef declaration.
 
 static void dump_enum_definition(a_type_ptr type)
 /*
-Output the definition of the indicated enum type, as a type specifier (no
-final ";").
+Output the definition of the indicated enum type.
 */
 {
   a_constant_ptr enum_con;
@@ -2287,12 +2258,23 @@ final ";").
   check_assertion_str(type->kind == (a_type_kind)tk_enum &&
                       type->variant.integer.enum_type,
                       "dump_enum_definition: not an enum type");
-  type->definition_put_out = TRUE;
   enum_con = type->variant.integer.enum_info.constant_list;
   /* Empty enumerations are legal in C++ but not in C.  They are supposed
      to be output as the corresponding integral type, but higher up; they
      shouldn't get here. */
   check_assertion_str(enum_con != NULL, "dump_enum_definition: empty enum");
+  /* start_unreferenced_bracket is not used here because the enumerator
+     constants might be referenced even though the enum type itself is
+     not. */
+#if !C_GEN_BE_GENERATES_ANSI_C
+  /* Enum types are rendered as integers in K&R C, so this definition is
+     not needed when generating K&R C, except as an annotation. */
+  if (!annotate) goto done;
+  /* As an annotation, put out the enum inside a #if 0. */
+  write_if_0_directive();
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+  /* Dump any pragmas associated with the type. */
+  dump_decl_associated_pragmas(&type->source_corresp);
   set_output_position(&type->source_corresp.decl_position);
   /* Generate "enum <name>". */
   write_tok_str("enum ");
@@ -2322,140 +2304,149 @@ final ";").
     write_tok_ch(',');
     incr_integer_value(&next_enum_value.variant.integer_value);
   }  /* for */
-  write_tok_ch('}');
+  write_tok_str("};");
+#if !C_GEN_BE_GENERATES_ANSI_C
+  /* Close the #if 0 started above. */
+  write_endif_0_directive();
+done:;
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
 }  /* dump_enum_definition */
 
 
 static void dump_struct_union_definition(a_type_ptr type)
 /*
-Output the definition of the indicated struct or union type, as a type
-specifier (no final ";").
+Output the definition of the indicated struct or union type.
 */
 {
   a_field_ptr field;
 
-  type->definition_put_out = TRUE;
-  set_output_position(&type->source_corresp.decl_position);
-  write_tok_str(tag_kind(type->kind));
-  write_space();
-  dump_type_name(type);
-  write_tok_str(" {");
-  indent += 2;
-  for (field = type->variant.class_struct_union.field_list;
-       field != NULL;
-       field = field->next) {
-    set_output_position(&field->source_corresp.decl_position);
-    if (!field->is_bit_field) {
-      /* Not a bit field. */
-      /* Note that a name will be generated for an anonymous union in C++. */
-      /* Note that "const" is dropped; that's important so that
-         initialization code rewritten as executable code by IL lowering
-         can assign to this member and the overall struct. */
-      dump_general_declaration_using_type(field->type,
-                                          &field->source_corresp,
-                                          NO_VARIABLE, NO_TEMP,
-                                          /*suppress_const=*/TRUE);
-      write_tok_ch(';');
-    } else {
-      /* Bit field. */
-#if !C_GEN_BE_GENERATES_ANSI_C
-      if (type->kind == (a_type_kind)tk_union) {
-        /* When generating K&R C, don't generate bit fields in unions
-           because pcc doesn't allow them. */
-        /* Don't put out unnamed bit fields.  That's important to keep
-           the first initializable field first. */
-        if (has_name(field)) {
-          a_type_ptr       eff_type = field->type;
-          a_type_ptr       under_type = skip_typerefs(eff_type);
-          a_targ_size_t    union_size = type->size;
-          a_targ_alignment union_alignment = type->alignment;
-          a_type           local_type;
-          /* If the underlying type is bigger than the size allocated for
-             the union, use a smaller integral type. */
-          if (under_type->size > union_size ||
-              under_type->alignment > union_alignment) {
-            /* Find the largest integral type with the right signedness that
-               will fit in the union. */
-            an_integer_kind  ikind, eff_ikind;
-            a_targ_size_t    int_size;
-            a_targ_alignment int_alignment;
-            for (ikind = (an_integer_kind)ik_unsigned_int; ; ikind--) {
-              get_integer_size_and_alignment(ikind, &int_size, &int_alignment);
-              if (int_size <= union_size &&
-                  int_alignment <= union_alignment &&
-                  int_kind_is_signed[(int)ikind] ==
-                                                  field->bit_field_is_signed) {
-                /* This size is okay. */
-                eff_ikind = ikind;
-                break;
-              }  /* if */
-            }  /* for */
-            /* Make a local type (not allocated in the IL) that is the right
-               integer type.  We can't use integer_type in a "back end". */
-            local_type = *under_type;
-            eff_type = &local_type;
-            check_assertion(local_type.kind == (a_type_kind)tk_integer);
-            local_type.variant.integer.int_kind = eff_ikind;
-          }  /* if */
-          dump_general_declaration_using_type(eff_type,
-                                              &field->source_corresp,
-                                              NO_VARIABLE, NO_TEMP,
-                                              /*suppress_const=*/TRUE);
-          write_tok_ch(';');
-        }  /* if */
-      } else
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-      {
-        /* Put out a bit field declaration. */
-        /* Generate the bit field type to match the signedness. */
+  if (start_unreferenced_bracket(&type->source_corresp)) {
+    /* Dump any pragmas associated with the type. */
+    dump_decl_associated_pragmas(&type->source_corresp);
+    set_output_position(&type->source_corresp.decl_position);
+    write_tok_str(tag_kind(type->kind));
+    write_space();
+    dump_type_name(type);
+    write_tok_str(" {");
+    indent += 2;
+    for (field = type->variant.class_struct_union.field_list;
+         field != NULL;
+         field = field->next) {
+      set_output_position(&field->source_corresp.decl_position);
+      if (!field->is_bit_field) {
+        /* Not a bit field. */
+        /* Note that a name will be generated for an anonymous union in C++. */
         /* Note that "const" is dropped; that's important so that
            initialization code rewritten as executable code by IL lowering
            can assign to this member and the overall struct. */
-        write_tok_str(field->bit_field_is_signed ?
-#if C_GEN_BE_GENERATES_ANSI_C
-                                     "signed int" : "unsigned int"
-#else /* !C_GEN_BE_GENERATES_ANSI_C */
-                                     "int" : "unsigned int"
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-                     );
-        /* Write the name if the field is named. */
-        if (has_name(field)) {
-          write_space();
-          dump_field_name(field);
-        }  /* if */
-        write_tok_str(": ");
-        write_unsigned_num((unsigned long)field->bit_size);
+        dump_general_declaration_using_type(field->type,
+                                            &field->source_corresp,
+                                            NO_VARIABLE, NO_TEMP,
+                                            /*suppress_const=*/TRUE);
         write_tok_ch(';');
-      }
-    }  /* if */
-    if (annotate) {
-      /* Display the offset in an annotation comment. */
-      unsigned long temp = field->bit_offset / targ_char_bit;
-      write_space();
-      start_comment();
-      write_tok_str(" offset = ");
-      write_unsigned_num(temp);
-      write_tok_str((temp == 1) ? " byte" : " bytes");
-      temp = field->bit_offset % targ_char_bit;
-      if (temp != 0) {
-        write_tok_str(", ");
-        write_unsigned_num(temp);
-        write_tok_str((temp == 1) ? " bit" : " bits");
+      } else {
+        /* Bit field. */
+#if !C_GEN_BE_GENERATES_ANSI_C
+        if (type->kind == (a_type_kind)tk_union) {
+          /* When generating K&R C, don't generate bit fields in unions
+             because pcc doesn't allow them. */
+          /* Don't put out unnamed bit fields.  That's important to keep
+             the first initializable field first. */
+          if (has_name(field)) {
+            a_type_ptr       eff_type = field->type;
+            a_type_ptr       under_type = skip_typerefs(eff_type);
+            a_targ_size_t    union_size = type->size;
+            a_targ_alignment union_alignment = type->alignment;
+            a_type           local_type;
+            /* If the underlying type is bigger than the size allocated for
+               the union, use a smaller integral type. */
+            if (under_type->size > union_size ||
+                under_type->alignment > union_alignment) {
+              /* Find the largest integral type with the right signedness that
+                 will fit in the union. */
+              an_integer_kind  ikind, eff_ikind;
+              a_targ_size_t    int_size;
+              a_targ_alignment int_alignment;
+              for (ikind = (an_integer_kind)ik_unsigned_int; ; ikind--) {
+                get_integer_size_and_alignment(ikind, &int_size,
+                                               &int_alignment);
+                if (int_size <= union_size &&
+                    int_alignment <= union_alignment &&
+                    int_kind_is_signed[(int)ikind] ==
+                                                  field->bit_field_is_signed) {
+                  /* This size is okay. */
+                  eff_ikind = ikind;
+                  break;
+                }  /* if */
+              }  /* for */
+              /* Make a local type (not allocated in the IL) that is the right
+                 integer type.  We can't use integer_type in a "back end". */
+              local_type = *under_type;
+              eff_type = &local_type;
+              check_assertion(local_type.kind == (a_type_kind)tk_integer);
+              local_type.variant.integer.int_kind = eff_ikind;
+            }  /* if */
+            dump_general_declaration_using_type(eff_type,
+                                                &field->source_corresp,
+                                                NO_VARIABLE, NO_TEMP,
+                                                /*suppress_const=*/TRUE);
+            write_tok_ch(';');
+          }  /* if */
+        } else
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+        {
+          /* Put out a bit field declaration. */
+          /* Generate the bit field type to match the signedness. */
+          /* Note that "const" is dropped; that's important so that
+             initialization code rewritten as executable code by IL lowering
+             can assign to this member and the overall struct. */
+          write_tok_str(field->bit_field_is_signed ?
+#if C_GEN_BE_GENERATES_ANSI_C
+                                       "signed int" : "unsigned int"
+#else /* !C_GEN_BE_GENERATES_ANSI_C */
+                                       "int" : "unsigned int"
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
+                       );
+          /* Write the name if the field is named. */
+          if (has_name(field)) {
+            write_space();
+            dump_field_name(field);
+          }  /* if */
+          write_tok_str(": ");
+          write_unsigned_num((unsigned long)field->bit_size);
+          write_tok_ch(';');
+        }
       }  /* if */
-      write_space();
-      end_comment();
-      write_space();
-    }  /* if */
-  }  /* for */
-  if (next_initializable_field(type->variant.class_struct_union.field_list)==
+      if (annotate) {
+        /* Display the offset in an annotation comment. */
+        unsigned long temp = field->bit_offset / targ_char_bit;
+        write_space();
+        start_comment();
+        write_tok_str(" offset = ");
+        write_unsigned_num(temp);
+        write_tok_str((temp == 1) ? " byte" : " bytes");
+        temp = field->bit_offset % targ_char_bit;
+        if (temp != 0) {
+          write_tok_str(", ");
+          write_unsigned_num(temp);
+          write_tok_str((temp == 1) ? " bit" : " bits");
+        }  /* if */
+        write_space();
+        end_comment();
+        write_space();
+      }  /* if */
+    }  /* for */
+    if (next_initializable_field(type->variant.class_struct_union.field_list)==
                                                                         NULL) {
-    /* Avoid a zero-sized struct for the bizarre case "struct {int :0;}"
-       (which is undefined behavior) and for fieldless classes from C++
-       passed through IL lowering. */
-    write_tok_str("char __dummy;");
+      /* Avoid a zero-sized struct for the bizarre case "struct {int :0;}"
+         (which is undefined behavior) and for fieldless classes from C++
+         passed through IL lowering. */
+      write_tok_str("char __dummy;");
+    }  /* if */
+    indent -= 2;
+    write_tok_str("};");
+    end_unreferenced_bracket(&type->source_corresp);
   }  /* if */
-  indent -= 2;
-  write_tok_ch('}');
 }  /* dump_struct_union_definition */
 
 
@@ -2477,26 +2468,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
          types, so nothing need be put out here. */
       if (type->variant.integer.enum_info.constant_list == NULL) break;
       /* Output enums only on the first pass. */
-      if (pass == 1) {
-        /* start_unreferenced_bracket is not used here because the enumerator
-           constants might be referenced even though the enum type itself is
-           not. */
-#if !C_GEN_BE_GENERATES_ANSI_C
-        /* Enum types are rendered as integers in K&R C, so this definition is
-           not needed when generating K&R C, except as an annotation. */
-        if (!annotate) break;
-        /* As an annotation, put out the enum inside a #if 0. */
-        write_if_0_directive();
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-        /* Dump any pragmas associated with the type. */
-        dump_decl_associated_pragmas(&type->source_corresp);
-        dump_enum_definition(type);
-        write_tok_ch(';');
-#if !C_GEN_BE_GENERATES_ANSI_C
-        /* Close the #if 0 started above. */
-        write_endif_0_directive();
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-      }  /* if */
+      if (pass == 1) dump_enum_definition(type);
       break;
     case tk_struct:
     case tk_union:
@@ -2516,13 +2488,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
           end_unreferenced_bracket(&type->source_corresp);
         }  /* if */
       } else if (type->size != 0) {
-        if (start_unreferenced_bracket(&type->source_corresp)) {
-          /* Dump any pragmas associated with the type. */
-          dump_decl_associated_pragmas(&type->source_corresp);
-          dump_struct_union_definition(type);
-          write_tok_ch(';');
-          end_unreferenced_bracket(&type->source_corresp);
-        }  /* if */
+        dump_struct_union_definition(type);
       }  /* if */
       break;
     case tk_typeref:
@@ -2683,6 +2649,7 @@ scope types, the two instances of the type would not be compatible.
            therein. */
         dump_prototype_scope_types(proto_scope, rout, pass, any_found);
       }  /* if */
+      type->prototype_scope_types_if_any_promoted = TRUE;
     }  /* if */
     /* Move down to the underlying type.  Stop on a non-derived type. */
   } while ((type = underlying_type_of_derived_type(type)) != NULL);
@@ -2724,10 +2691,6 @@ Dump all types declared within one scope.
        is possible to call those functions (e.g., with a 0 to match a
        pointer) and the types would get referenced in the cast of
        the argument. */
-    /* Initialized variables must also be processed, because they also
-       are put out twice and can involve prototype scopes:
-         long *(*p) (struct { int i; }) = { 0 };
-    */
 #if 0
     /* These prototype scope types should really be merged with the types
        from the top level of the function, since there can be references
@@ -2743,33 +2706,15 @@ Dump all types declared within one scope.
     if (il_header.source_language == sl_C && !suppress_prototype_scope_pass) {
       a_boolean      any_found = FALSE;
       a_routine_ptr  rout;
-      a_variable_ptr variable;
       for (rout = scope->routines; rout != NULL; rout = rout->next) {
-        /* Only functions with definitions are put out twice, so only they
-           need this processing. */
-        if (rout->assoc_scope != NULL_region_number) {
-          dump_prototype_scope_types_within_type(rout->type, pass, &any_found);
-        }  /* if */
-      }  /* for */
-      for (variable = scope->variables;
-           variable != NULL;
-           variable = variable->next) {
-        /* Only initialized variables are put out twice, so only they need
-           this processing. */
-        if (variable->init_kind != (an_init_kind)initk_none) {
-          dump_prototype_scope_types_within_type(variable->type, pass,
-                                                 &any_found);
-        }  /* if */
-      }  /* for */
-      for (variable = scope->nonstatic_variables;
-           variable != NULL;
-           variable = variable->next) {
-        /* Only initialized variables are put out twice, so only they need
-           this processing. */
-        if (variable->init_kind != (an_init_kind)initk_none) {
-          dump_prototype_scope_types_within_type(variable->type, pass,
-                                                 &any_found);
-        }  /* if */
+        /* This processing is needed even for functions without definitions
+           because it's possible to call the function in some cases:
+             void f(struct A { int i; } *);
+             void m() { f(0) }
+           We want to promote the prototype scope types so the cast on the
+           call can be written.
+        */
+        dump_prototype_scope_types_within_type(rout->type, pass, &any_found);
       }  /* for */
       /* If no types were found in prototype scopes on the first pass,
          there's no need for the second pass. */
