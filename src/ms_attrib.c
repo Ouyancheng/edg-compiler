@@ -1555,14 +1555,19 @@ attributes are added to the appropriate IL list.
 }  /* verify_standalone_attributes */
 
 
-void dispose_of_unapplied_attributes(an_ms_attribute_ptr	*attributes)
+void dispose_of_unapplied_attributes(an_ms_attribute_ptr	*attributes,
+				     an_error_code		error_code)
 /*
 "attributes" is a list of attributes that could not be applied to an entity.
 Issue an error and do any cleanup needed to dispose of the attributes.
+"error_code" identifies the message to be issued.  The error is suppressed
+if it is ec_no_error.
 */
 {
   check_assertion(*attributes != NULL);
-  pos_error(ec_ms_attr_not_allowed, &(*attributes)->position);
+  if (error_code != ec_no_error) {
+    pos_error(error_code, &(*attributes)->position);
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Remove the empty source sequence entries previously created for these
      attributes. */

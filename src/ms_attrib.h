@@ -133,7 +133,8 @@ void apply_microsoft_attributes(an_ms_attribute_ptr	*attributes,
 
 extern void verify_standalone_attributes(an_ms_attribute_ptr	*attributes);
 
-extern void dispose_of_unapplied_attributes(an_ms_attribute_ptr	*attributes);
+extern void dispose_of_unapplied_attributes(an_ms_attribute_ptr	*attributes,
+					    an_error_code	error_code);
 
 extern an_ms_attribute_ptr duplicate_ms_attributes(an_ms_attribute_ptr  orig);
 
