@@ -2378,27 +2378,49 @@ static void allocate_empty_base(a_layout_block_ptr lob,
 Allocate bcp (an empty base class).
 */
 {
-  a_targ_size_t              offset = (a_targ_size_t)0, size;
-  an_unnormalized_bit_offset dummy = 0;
+  a_targ_size_t               offset = (a_targ_size_t)0, size;
+  an_unnormalized_bit_offset  dummy = 0;
 
   /* Attempt to allocate the base at offset zero.  Some GNU compilers do not
-     always use offset zero for the initial attempt at placing an empty
+     always use offset zero for the initial attempt at placing a direct empty
      virtual base: Instead they may use an offset computed for the virtual
      base in one of the direct base types. */
   if (emulate_gnu_abi_bugs && bcp->is_virtual) {
     offset = virtual_base_offset_computed_for_last_direct_base_type(bcp);
+    if (offset != 0) {
+      /* If offset corresponds to the offset of the first significant field of
+         the complete object type, no further conflict checking is needed. */
+      a_field_ptr  gnu_first_field = get_gnu_first_field(lob->class_type);
+      if ((gnu_first_field != NULL && gnu_first_field->offset == offset) ||
+          !base_subobject_conflict(bcp, offset)) {
+        /* Carry over the offset computed for a direct base. */
+        bcp->offset = offset;
+        goto done;
+      } else if (!bcp->direct) {
+        /* Indirect virtual bases can with an offset larger than the size of
+           a class.  This is a dangerous GNU layout bug and we therefore do
+           not emulate it.  By setting offset to zero, we return to the
+           normal layout rules. */
+        offset = 0;
+      }  /* if */
+    }  /* if */
   }  /* if */
-  if (!(base_subobject_conflict(bcp, offset) ||
+  if (offset == 0 &&
+      !(base_subobject_conflict(bcp, 0) ||
         (emulate_gnu_abi_bugs &&
          gnu_leading_empty_base_conflict(lob->class_type, bcp)))) {
-    bcp->offset = offset;
+    bcp->offset = 0;
   } else {
     /* It didn't work at offset zero; try putting it at the end of the object 
        as created so far. */
-    if (emulate_gnu_abi_bugs && offset != (a_targ_size_t)0) {
+    if (offset != 0) {
       /* If a GNU compiler initially tried a nonzero offset it effectively
          adds that offset to the current end of the object (thereby creating
-         a "gap" in the layout). */
+         a "gap" in the layout).  However, if the virtual base is not also a
+         direct base, GNU C++ will not update the object size.  We do not
+         attempt to emulate the latter bug since it can cause a virtual base
+         to end up at an offset larger than the size of the class.  In such
+         cases, offset will have been set to zero above. */
       lob->byte_offset += offset;
     }  /* if */
     offset = lob->byte_offset;
@@ -2419,6 +2441,7 @@ Allocate bcp (an empty base class).
     }  /* while */
     bcp->offset = offset;
   }  /* if */
+done:
   bcp->is_optimized_empty_base = TRUE;
 }  /* allocate_empty_base */
 
