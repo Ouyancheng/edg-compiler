@@ -763,6 +763,7 @@ Clear an initialization position description entry to default values.
   ipdp->indirect_through_variable = FALSE;
   ipdp->array_element_sequence    = FALSE;
   ipdp->base_class_subobject      = FALSE;
+  ipdp->base_of_complete_object   = FALSE;
   ipdp->base_type                 = NULL;
   ipdp->modifiers                 = NULL;
   ipdp->array_element_count       = 0;
@@ -1119,8 +1120,18 @@ TRUE, the entity is the destination of an initialization operation.
     entity_node = drop_const_on_init_entity_node(entity_node, ipdp);
   }  /* if */
   /* Add the modifiers to the base address. */
-  entity_node = modify_init_entity_node(entity_node, ipdp->modifiers,
-                                        using_as_dest);
+  if (ipdp->base_of_complete_object) {
+    /* A base class of a complete object can be addressed more efficiently. */
+    check_assertion(ipdp->modifiers != NULL &&
+                    ipdp->modifiers->curr_base != NULL);
+    entity_node = make_base_class_lvalue(entity_node,
+                                         ipdp->modifiers->curr_base,
+                                         /*complete_object=*/TRUE);
+  } else {
+    /* Normal case. */
+    entity_node = modify_init_entity_node(entity_node, ipdp->modifiers,
+                                          using_as_dest);
+  }  /* if */
   return entity_node;
 }  /* make_init_entity_node */
 
@@ -8951,21 +8962,18 @@ under dip or generate code.
 #if !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 /*ARGSUSED*/ /* <-- construction_vtbls_var is not used in that case. */
 #endif /* !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
-#if IA64_ABI
-/*ARGSUSED*/ /* <-- use_implicit_param is not used in that case. */
-#endif /* IA64_ABI */
 static void lower_ctor_init(a_constructor_init_ptr ctor_init,
                             a_variable_ptr         this_param_var,
-                            a_boolean              use_implicit_param,
+                            a_boolean              base_of_complete_object,
                             a_variable_ptr         construction_vtbls_var,
                             an_insert_location_ptr insert_location)
 /*
 Generate code to implement the constructor_init entry pointed to by ctor_init.
 this_param_var is the "this" parameter variable for the overall object
 being initialized.  Implicit parameters for virtual base classes, if any,
-follow the this_param_var (Cfront-like ABI only).  If use_implicit_param
+follow the this_param_var (Cfront-like ABI only).  If base_of_complete_object
 is TRUE, the entity being initialized is a virtual base class and its
-address is available in an implicit parameter.  If this initialization
+derived class is known to be a complete object.  If this initialization
 is for a base class whose constructor needs to be passed an array of
 special virtual function table addresses, generate code to do that;
 construction_vtbls_var provides the variable for the complete class
@@ -8980,33 +8988,19 @@ array if necessary.  The statement(s) created are inserted at
   an_init_pos_modifier ipm;
 
   dip = ctor_init->initializer;
+  /* Develop a position description for the entity to initialize. */
+  develop_ctor_init_pos_descr(ctor_init, this_param_var, &ipd, &ipm);
+  if (base_of_complete_object) ipd.base_of_complete_object = TRUE;
   if (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class ||
       ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class) {
     /* Initializing a base class. */
     a_base_class_ptr base_class = ctor_init->variant.base_class;
-#if !IA64_ABI
-    a_variable_ptr   param_var;
-    a_type_ptr       base_class_type = base_class->type;
-    a_base_class_ptr bcp;
-    /* Develop a position description for the entity to initialize. */
-    if (use_implicit_param) {
-      /* The sub-entity is a virtual base class and there is a parameter
-         pointing to it. */
-      param_var = implicit_virtual_base_parameter(base_class->derived_class,
-                                                  base_class_type,
-                                                  this_param_var);
-      set_var_indirect_init_pos_descr(param_var, &ipd);
-      ipd.base_class_subobject = TRUE;
-    } else 
-#endif /* !IA64_ABI */
-    /* Do not add code here. */
-    {
-      /* Simple case; develop the entity position description. */
-      develop_ctor_init_pos_descr(ctor_init, this_param_var, &ipd, &ipm);
-    }  /* if */
     if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
       /* A base class initialized by a constructor call. */
 #if !IA64_ABI
+      a_type_ptr       base_class_type = base_class->type;
+      a_variable_ptr   param_var;
+      a_base_class_ptr bcp;
       /* Build a list of implicit virtual base class pointer arguments.
          The required entries are expressions providing the value of the
          associated virtual base class pointer parameter for each virtual
@@ -9057,10 +9051,6 @@ array if necessary.  The statement(s) created are inserted at
 #endif /* IA64_ABI */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
     }  /* if */
-  } else {
-    /* Initializing something other than a base class. */
-    /* Develop a position description for the entity to initialize. */
-    develop_ctor_init_pos_descr(ctor_init, this_param_var, &ipd, &ipm);
   }  /* if */
   /* Generate the code to do the initialization. */
   lower_dynamic_init(dip, &ipd,
@@ -9385,14 +9375,8 @@ constructor, but may instead be after an assignment to "this".
         }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
       }  /* if */
-#if IA64_ABI
-      /* Set the virtual table pointer for the complete object so that we 
-         can find the virtual base. */
-      insert_primary_vtbl_assignment(class_type, this_param_var,
-                                     construction_vtbls_var,
-                                     &insert_location2);
-#endif /* IA64_ABI */
-      lower_ctor_init(ctor_init, this_param_var, /*use_implicit_param=*/TRUE,
+      lower_ctor_init(ctor_init, this_param_var,
+                      /*base_of_complete_object=*/TRUE,
                       construction_vtbls_var, &insert_location2);
     }  /* for */
     /* Inserting under else_insert_location, in the "else" of the "if"
@@ -9448,7 +9432,8 @@ constructor, but may instead be after an assignment to "this".
   for (; ctor_init != NULL &&
           ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class;
        ctor_init = ctor_init->next) {
-    lower_ctor_init(ctor_init, this_param_var, /*use_implicit_param=*/FALSE,
+    lower_ctor_init(ctor_init, this_param_var,
+                    /*base_of_complete_object=*/FALSE,
                     construction_vtbls_var, insert_location);
   }  /* for */
   /* If the current class has any virtual functions, generate code to
@@ -9525,7 +9510,8 @@ constructor, but may instead be after an assignment to "this".
   /* Generate initialization for each data member that appears on the
      ctor_init list. */
   for (; ctor_init != NULL; ctor_init = ctor_init->next) {
-    lower_ctor_init(ctor_init, this_param_var, /*use_implicit_param=*/FALSE,
+    lower_ctor_init(ctor_init, this_param_var,
+                    /*base_of_complete_object=*/FALSE,
                     (a_variable_ptr)NULL, insert_location);
   }  /* for */
   error_position = saved_error_position;
@@ -9760,6 +9746,7 @@ constructor scope, and also lower the user code.
 static void lower_dtor_init(a_constructor_init_ptr ctor_init,
                             a_variable_ptr         this_param_var,
                             a_boolean              have_complete_object,
+                            a_boolean              base_of_complete_object,
                             a_variable_ptr         destruction_vtbls_var,
                             an_insert_location_ptr insert_location)
 /*
@@ -9767,12 +9754,14 @@ Generate code to implement the constructor_init entry pointed to by ctor_init,
 one that appears on the constructor_init list for a destructor.
 this_param_var is the "this" parameter variable for the overall object
 being destroyed.  If have_complete_object is TRUE, the entity being
-destroyed is a complete object.  If this destruction is for a base
-class whose destructor needs to be passed an array of special virtual
-function table addresses, generate code to do that; destruction_vtbls_var
-provides the variable for the complete class array if necessary.
-The statements created are inserted at *insert_location, and
-*insert_location is updated.
+destroyed is a complete object.  If base_of_complete_object is TRUE,
+the entity being destroyed is a virtual base class and its derived
+class is known to be a complete object.  If this destruction is for a
+base class whose destructor needs to be passed an array of special
+virtual function table addresses, generate code to do that;
+destruction_vtbls_var provides the variable for the complete class
+array if necessary.  The statements created are inserted at
+*insert_location, and *insert_location is updated.
 */
 {
   an_init_pos_descr    ipd;
@@ -9783,6 +9772,7 @@ The statements created are inserted at *insert_location, and
 
   /* Develop a position description for the entity to destroy. */
   develop_ctor_init_pos_descr(ctor_init, this_param_var, &ipd, &ipm);
+  if (base_of_complete_object) ipd.base_of_complete_object = TRUE;
   dip = ctor_init->initializer;
   if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
     /* Odd case: destructor for an array.  The top level looks like an
@@ -10073,7 +10063,9 @@ insert_dtor_member_and_base_destructions.
        ctor_init != NULL &&
                          ctor_init->kind == (a_constructor_init_kind)cik_field;
        ctor_init = ctor_init->next) {
-    lower_dtor_init(ctor_init, this_param_var, /*have_complete_object=*/TRUE,
+    lower_dtor_init(ctor_init, this_param_var,
+                    /*have_complete_object=*/TRUE,
+                    /*base_of_complete_object=*/FALSE,
                     (a_variable_ptr)NULL, insert_location);
   }  /* for */
   /* Generate a destructor call for each non-virtual direct base class
@@ -10083,6 +10075,7 @@ insert_dtor_member_and_base_destructions.
        ctor_init = ctor_init->next) {
     lower_dtor_init(ctor_init, this_param_var,
                     /*have_complete_object=*/FALSE,
+                    /*base_of_complete_object=*/FALSE,
                     dtor_info->destruction_vtbls_var,
                     insert_location);
   }  /* for */
@@ -10117,15 +10110,9 @@ insert_dtor_member_and_base_destructions.
                         &insert_location2, (an_insert_location *)NULL);
     /* Destroy any virtual base classes on the ctor_init list. */
     for (; ctor_init != NULL; ctor_init = ctor_init->next) {
-#if IA64_ABI
-      /* Set the virtual table pointer for the complete object so that we 
-         can find the virtual base. */
-      insert_primary_vtbl_assignment(class_type, this_param_var,
-                                     dtor_info->destruction_vtbls_var, 
-                                     &insert_location2);
-#endif /* IA64_ABI */
       lower_dtor_init(ctor_init, this_param_var,
                       /*have_complete_object=*/FALSE,
+                      /*base_of_complete_object=*/TRUE,
                       dtor_info->destruction_vtbls_var,
                       &insert_location2);
     }  /* for */

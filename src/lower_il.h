@@ -156,6 +156,12 @@ typedef struct an_init_pos_descr {
 		base_class_subobject;
 			/* TRUE if the entity is a base class of an object,
 			   and therefore not a complete object. */
+  a_byte_boolean
+		base_of_complete_object;
+			/* When base_class_subobject is TRUE, this is TRUE
+			   to indicate that the derived class is a complete
+			   object, which allows more efficient addressing of
+			   virtual base classes. */
   a_type_ptr	base_type;
 			/* Base entity type. */
   an_init_pos_modifier_ptr
