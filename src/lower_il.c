@@ -4297,7 +4297,7 @@ class to the class of node in *offset.
          simple offset. */
       source_class = pm_class_type_possibly_lowered((*underlying_node)->type);
       bcp = find_virtual_base_class_of(source_class, dest_class);
-      *offset = -bcp->offset;
+      *offset = -(a_targ_ptrdiff_t)(bcp->offset);
     } else {
       /* Non-virtual base class.  Subtract the offset from the running
          total. */

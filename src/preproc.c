@@ -347,7 +347,7 @@ static void push_pp_if_stack(void)
 Push a new entry on the preprocessing-if stack (pp_if_stack).
 */
 {
-  if (pp_if_stack_depth+1 == size_pp_if_stack) {
+  if (pp_if_stack_depth+1 == (int)size_pp_if_stack) {
     /* Stack is full; expand it. */
     sizeof_t new_size = size_pp_if_stack + PP_IF_STACK_INCREMENTAL_ALLOCATION;
     pp_if_stack = (a_pp_if_stack_entry_ptr)realloc_general(

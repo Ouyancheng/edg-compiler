@@ -428,7 +428,9 @@ from db_symbol.
 
 
 #define put_access(access)                                      \
-{ (void)str_access(buffer, (access)); put_string(buffer); }
+{									\
+  (void)str_access(buffer, (an_access_specifier)(access)); put_string(buffer);\
+}
 
 #define put_qualified_name(class_name, name)                    \
 { (void)str_qualfied_name(buffer, (class_name), (name));        \
@@ -477,7 +479,7 @@ and indentation is the indentation desired.
     col += strlen(str) + 6;
   }  /* if */
 
-  (void)sprintf(buffer, "(%lu/%lu)", sym->decl_position.seq,
+  (void)sprintf(buffer, "(%lu/%u)", sym->decl_position.seq,
 		sym->decl_position.column);
   put_separator("", strlen(buffer));
   fputs(buffer, f_debug);
@@ -523,7 +525,7 @@ and indentation is the indentation desired.
         if (cssp->constructor_required) put_string("ctor req'd");
         if (cssp->destructor_required) put_string("dtor req'd");
         if (cssp->constructor != NULL) put_string("has ctor");
-        if (cssp->has_default_constructor != NULL) {
+        if (cssp->has_default_constructor) {
           put_string("has default-ctor");
         }  /* if */
         if (cssp->has_copy_constructor_for_const_object) {
@@ -556,7 +558,7 @@ and indentation is the indentation desired.
         if (C_dialect == C_dialect_cplusplus) {
           put_access(sym->variant.field.ptr->source_corresp.access);
         }  /* if */
-        (void)sprintf(buffer, "offset = %ul",
+        (void)sprintf(buffer, "offset = %lu",
                       (unsigned long)sym->variant.field.ptr->bit_offset);
         put_string(buffer);
 		 type = sym->variant.field.ptr->type;
@@ -1003,7 +1005,7 @@ have to set it directly.
 {
   register unsigned            hash_value = 0;
   register char                *ptr;
-  register int                 a;
+  register sizeof_t            a;
   register a_symbol_header_ptr hdr_ptr;
   a_symbol_header_ptr	       prev_hdr_ptr;
   a_symbol_ptr                 sym_ptr    = NULL;
@@ -5503,7 +5505,7 @@ of the template.
   a_boolean		  reactivate_template_params = FALSE;
 
   db_enter(3, "push_scope");
-  if (depth_scope_stack+1 == size_scope_stack) {
+  if (depth_scope_stack+1 == (int)size_scope_stack) {
     /* The stack is full; expand it by reallocating. */
     sizeof_t new_size = size_scope_stack + SCOPE_STACK_INCREMENTAL_ALLOCATION;
     scope_stack = (a_scope_stack_entry_ptr)realloc_general(

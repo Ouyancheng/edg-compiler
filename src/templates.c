@@ -842,7 +842,8 @@ If it involves no template-parameter type, simply return "type".
 */
 {
   a_type_ptr                     new_type, tp, tp2;
-  int                            i, reusable_param_types;
+  unsigned long                  i;
+  int                            reusable_param_types;
   a_template_arg_ptr             tap;
   a_type_ptr                     new_return_type;
   a_type_ptr                     this_param_type, new_this_param_type;
@@ -1207,7 +1208,7 @@ whether a conversion was performed.
   a_boolean                      match = FALSE;
   a_type_ptr                     tp, ttp;
   a_param_type_ptr               ptp, tptp;
-  int                            i;
+  unsigned long                  i;
   a_template_arg_ptr             tap, prev_tap;
 
   db_enter(5, "matches_template_type");

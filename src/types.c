@@ -3127,12 +3127,12 @@ is allocated, it is allocated in the file scope.
                  type.  Stop if it is no longer true that one of the original
                  parameter lists can serve as the composite list. */
               if (comp_param_type != param1->type ||
-		  comp_has_default_arg != param1->has_default_arg ||
+		  comp_has_default_arg != (a_boolean)param1->has_default_arg ||
                   comp_default_arg_expr != param1->default_arg_expr) {
                 comp_equals_list1 = FALSE;
               }  /* if */
               if (comp_param_type != param2->type ||
-		  comp_has_default_arg != param2->has_default_arg ||
+		  comp_has_default_arg != (a_boolean)param2->has_default_arg ||
                   comp_default_arg_expr != param2->default_arg_expr) {
                 comp_equals_list2 = FALSE;
               }  /* if */
@@ -3203,13 +3203,13 @@ is allocated, it is allocated in the file scope.
           if (base_type_1->variant.routine.return_type == comp_elem &&
               base_type_1->variant.routine.extra_info->param_type_list ==
                                                              comp_param_list &&
-              base_type_1->variant.routine.extra_info->prototyped ==
+              (a_boolean)base_type_1->variant.routine.extra_info->prototyped ==
                                                              comp_prototyped) {
             comp_type = base_type_1;
           } else if (base_type_2->variant.routine.return_type == comp_elem &&
               base_type_2->variant.routine.extra_info->param_type_list ==
                                                              comp_param_list &&
-              base_type_2->variant.routine.extra_info->prototyped ==
+              (a_boolean)base_type_2->variant.routine.extra_info->prototyped ==
                                                              comp_prototyped) {
             comp_type = base_type_2;
           } else {
