@@ -1,0 +1,70 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C Front End                            - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+il_read.h -- Declarations relating to il_read.c (having to do with
+             reading the intermediate language).
+
+*/
+
+/* Avoid including these declarations more than once. */
+#ifndef IL_READ_H
+#define IL_READ_H 1
+
+#ifndef HOST_ENVIR_H
+#include "host_envir.h"
+#endif /* ifndef HOST_ENVIR_H */
+
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+
+#ifndef MEM_TABLES_H
+#include "mem_tables.h"
+#endif /* ifndef MEM_TABLES_H */
+#ifndef IL_FILE_H
+#include "il_file.h"
+#endif /* ifndef IL_FILE_H */
+#ifndef IL_WALK_H
+#include "il_walk.h"
+#endif /* ifndef IL_WALK_H */
+
+#if ALTERNATE_IL_FILE_FORMAT
+EXTERN char	*entry_array_base_array[(int)iek_last],
+		*fs_entry_array_base_array[(int)iek_last];
+			/* For each IL entry kind, a pointer to an array
+			   of entries of that kind, which is the full
+			   set of entries.  One can convert an entry number
+			   to an entry address by multiplying the entry
+			   number by the entry size and adding the base address
+			   from this array.  The "fs_" array is for the file
+			   scope, the other is for a function scope. */
+
+extern sizeof_t entry_length_with_prefix(an_il_entry_kind entry_kind,
+                                         a_boolean        is_in_file_scope,
+                                         sizeof_t         *offset_to_entry);
+#endif /* ALTERNATE_IL_FILE_FORMAT */
+
+/* Read the intermediate language for the file scope. */
+extern void il_read(FILE *f_il_input);
+/* Read the intermediate language for one memory region. */
+extern void read_memory_region(a_memory_region_number region_number);
+
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+
+#endif /* ifndef IL_READ_H */
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C Front End                            - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 1988-1991 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
