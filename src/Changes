@@ -1,5 +1,27 @@
 Version 3.4
 
+10/20/03 GNU mode: #pragma pack(n) behavior
+
+Some changes were made to the behavior of the "#pragma pack(n)" construct
+in GNU C and C++ modes.  Among them:
+  - "#pragma pack(0)" is equivalent to "#pragma pack()".
+  - "#pragma pack(n)" clips the value of any "__attribute__((aligned(x))"
+    construct applied to a field.  I.e., if x > n, x is replaced by n.
+  - If a "#pragma pack (n)" with nonzero n is in effect, bit fields are
+    not aligned to n (i.e., bit fields are still packed maximally) but
+    the alignment of the enclosing class is updated if needed.
+
+For example (assuming 32-bit ints aligned on 4-byte boundaries):
+
+  #pragma pack(4)
+  struct S {
+    short f1;      // Size 2, alignment 2.
+    int   f2: 17;  // Not aligned on 4-byte boundary; starts at offset 2.
+    int   f3: 17;  // Not aligned on 4-byte boundary; immediately follows f2.
+    int   f4: 30;  // Not aligned on 4-byte boundary; immediately follows f3.
+    short f5;      // Starts at       offset 10.
+  };  // Size 12, alignment 4
+
 10/20/03 Spurious error on template static data member with ":" in initializer
 
 A spurious error would result during the instantiation (or, in some modes,

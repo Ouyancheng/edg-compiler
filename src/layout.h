@@ -58,6 +58,8 @@ a_boolean check_pack_alignment_value(a_host_large_integer value,
 extern void pack_pragma(a_pending_pragma_ptr ppp);
 
 extern a_targ_alignment current_max_alignment_for_class_members(void);
+
+extern a_targ_alignment current_pack_pragma_value(void);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 extern void do_class_layout(a_type_ptr  class_type);

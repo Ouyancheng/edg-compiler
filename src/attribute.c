@@ -1401,9 +1401,17 @@ messages about any invalid attributes.
         break;
 #if USER_CONTROL_OF_STRUCT_PACKING
       case ak_aligned:
-        /* Apply the specified alignment (which may be an increase or a
-           decrease). */
-        fp->alignment = ap->variant.alignment;
+        {
+          /* Apply the specified alignment.  This may be an increase or a
+             decrease compared to the natural alignment of the type, but
+             a lower #pragma pack setting will take precedence. */
+          a_targ_alignment  eff_alignment = ap->variant.alignment;
+          if (current_pack_pragma_value() != 0 &&
+              ap->variant.alignment > current_pack_pragma_value()) {
+            eff_alignment = current_pack_pragma_value();
+          }  /* if */
+          fp->alignment = eff_alignment;
+        }
         break;
       case ak_packed:
         /* If a field is declared to be "packed", then it is aligned on

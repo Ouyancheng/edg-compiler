@@ -667,6 +667,10 @@ curr_max_member_alignment.
     val = value_of_integer_constant(&const_for_curr_token, &err);
     if (is_show && microsoft_mode) {
       /* Ignore the constant. */
+    } else if (gnu_mode && val == 0) {
+      /* In GNU modes, "#pragma pack(0)" is equivalent to "#pragma pack()". */
+      curr_max_member_alignment = 0;
+      updated = TRUE;
     } else if (err ||
                !check_pack_alignment_value(val, &curr_max_member_alignment)) {
       diagnostic(microsoft_mode ? es_warning : es_error,
@@ -754,6 +758,15 @@ is non-zero and default_max_member_alignment otherwise.
   return (curr_max_member_alignment > 0) ? curr_max_member_alignment :
                                            default_max_member_alignment;
 }  /* current_max_alignment_for_class_members */
+
+
+a_targ_alignment current_pack_pragma_value(void)
+/*
+Return curr_max_member_alignment.
+*/
+{
+  return curr_max_member_alignment;
+}  /* current_pack_pragma_value */
 
 
 static void adjust_alignment_for_packing(a_targ_alignment *alignment,
@@ -1163,6 +1176,25 @@ targ_microsoft_bit_field_allocation is FALSE.)
   if (targ_user_control_of_struct_packing_affects_bit_fields) {
     adjust_alignment_for_packing(&container_alignment, lob->class_type);
   }  /* if */
+  /* In GNU mode, when #pragma pack(n) is in effect (with a nonzero n) a bit
+     field is not aligned, but the overall alignment of the enclosing class
+     is updated if needed. */ 
+  if (gnu_mode && !targ_microsoft_bit_field_allocation &&
+      !is_union_type(lob->class_type)) {
+    a_targ_alignment declared_alignment = field_alignment_for(field->type);
+    if (container_alignment <= declared_alignment) {
+      if (curr_max_member_alignment > 0 && 
+          curr_max_member_alignment < declared_alignment) {
+        container_alignment = curr_max_member_alignment;
+      }  else {
+        container_alignment = declared_alignment;
+      } /* if */
+      if (container_alignment > lob->alignment) {
+        lob->alignment = container_alignment;
+      }  /* if */
+      goto done;
+    }  /* if */
+  }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   /* We want to make sure that the bit field can be grabbed using one
      load of the size of the container aligned the way the container
@@ -1238,6 +1270,9 @@ targ_microsoft_bit_field_allocation is FALSE.)
       lob->alignment = container_alignment;
     }  /* if */
   }  /* if */
+#if USER_CONTROL_OF_STRUCT_PACKING
+done:
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   db_exit();
   return !overflow;
 }  /* align_offsets_for_bit_field */
@@ -2289,7 +2324,7 @@ there's no overflow TRUE is returned.
     if (field->is_bit_field) {
       /* Do any necessary alignment for a bit-field. */
 #if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
-      if (field->is_packed) {
+      if (field->is_packed && curr_max_member_alignment == 0) {
         /* No alignment to perform. */
       } else
 #endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
