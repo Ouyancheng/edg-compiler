@@ -34,7 +34,7 @@ expr.c -- Expression scanning routines.
 /* Forward declarations. */
 static void fix_up_dynamic_init_dtors(void);
 static a_boolean cast_type_pre_check(a_type_ptr *type_cast_to,
-                                     a_boolean  explicit_cv_qualifiers);
+                                     a_boolean  has_explicit_cv_qualifiers);
 static void process_boolean_controlling_expression(an_operand *result);
 static void scan_expr_full(an_operand              *result,
                            an_operand              *bound_function_selector,
@@ -6335,7 +6335,7 @@ only done in C mode, and it's an extension.
 
 
 static a_boolean cast_type_pre_check(a_type_ptr *p_type_cast_to,
-                                     a_boolean  explicit_cv_qualifiers)
+                                     a_boolean  has_explicit_cv_qualifiers)
 /*
 Do a first check on the destination type of a cast to see if it is legal.
 This is very top-level checking applicable to all casts.  Return TRUE if
@@ -6399,7 +6399,7 @@ be set to the source position of the type.
   }  /* if */
   if (!err) {
     /* Casting to a qualified type, though valid, is pointless. */
-    if (explicit_cv_qualifiers) {
+    if (has_explicit_cv_qualifiers && is_qualified_type(type_cast_to)) {
       if (!C_mode() && is_class_struct_union_type(type_cast_to)) {
         /* In C++ class rvalues can have qualifiers, so casting to a
            cv-qualified class type is okay. */
