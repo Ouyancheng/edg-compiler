@@ -5710,6 +5710,10 @@ Scan the body of a class definition, including the base classes list.
      virtual base classes, virtual functions, or base classes or fields
      for which bitwise copy is not allowed. */
   cssp->assignment_by_bitwise_copy_allowed = TRUE;
+#if USER_CONTROL_OF_STRUCT_PACKING
+  /* Determine the alignment adjustment required for packing. */
+  set_max_member_alignment_for_class(class_type);
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   if (curr_token == tok_colon && C_dialect == C_dialect_cplusplus) {
     /* Scan the list of base specifiers. */
     add_stop_token(tok_lbrace);
