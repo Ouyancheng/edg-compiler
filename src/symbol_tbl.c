@@ -851,6 +851,7 @@ state.
         cssp->target_of_user_defined_conversion = FALSE;
         cssp->any_ref_member = FALSE;
         cssp->any_nested_classes = FALSE;
+        cssp->is_class_aggregate = (C_dialect != C_dialect_cplusplus);
       }
       break;
     case sk_variable:

@@ -440,6 +440,10 @@ typedef struct a_class_symbol_supplement {
 			   type. */
   unsigned int  any_nested_classes:1;
 			/* TRUE if this class has any nested classes. */
+  unsigned int  is_class_aggregate:1;
+			/* TRUE if the class has no constructors, no base
+			   classes, no private or protected members, and
+			   no virtual functions (ARM 8.4.1). */
 } a_class_symbol_supplement;
 
 
@@ -566,7 +570,7 @@ typedef struct a_symbol {
 			/* TRUE for variables and routines for which an
 			   explicit external linkage was specified (e.g.,
 			   ``extern "C"'' -- C++ only). */
-  unsigned int	reentered_from_prototype_scope:1;
+  unsigned int  reentered_from_prototype_scope:1;
 			/* TRUE if symbol was originally declared in a
 			   function prototype scope and was subsequently
 			   reentered in the function scope. */
