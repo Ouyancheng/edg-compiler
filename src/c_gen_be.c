@@ -3919,9 +3919,9 @@ by parentheses.
 /*
 Type used to track current position in an initializer list:
 */
-typedef struct an_init_pos_descr *an_init_pos_descr_ptr;
-typedef struct an_init_pos_descr {
-  an_init_pos_descr_ptr
+typedef struct a_gen_init_pos_descr *a_gen_init_pos_descr_ptr;
+typedef struct a_gen_init_pos_descr {
+  a_gen_init_pos_descr_ptr
 		prev,
 		next;
 			/* Pointers to the similar entries at the next
@@ -3934,7 +3934,7 @@ typedef struct an_init_pos_descr {
   a_field_ptr	curr_field;
 			/* If the entity is a struct or union, this points
 			   to the field currently being initialized. */
-} an_init_pos_descr;
+} a_gen_init_pos_descr;
 
 
 static void copy_and_delete_file(FILE **f_ptr)
@@ -4088,8 +4088,8 @@ Clear the flags that control dump_initializer output.
 }  /* clear_initialization_flags */
 
 
-static void dump_var_for_init(a_variable_ptr        variable,
-                              an_init_pos_descr_ptr ipdp)
+static void dump_var_for_init(a_variable_ptr           variable,
+                              a_gen_init_pos_descr_ptr ipdp)
 /*
 Dump a C reference to the position in the variable "variable" described by
 the list pointed to by "ipdp".
@@ -4165,9 +4165,9 @@ file indicated by *prev_f_C_output.
 }  /* unset_init_file */
 
 
-static void dump_init_assignment(a_variable_ptr        variable,
-                                 an_init_pos_descr_ptr ipdp,
-                                 a_constant_ptr        constant)
+static void dump_init_assignment(a_variable_ptr           variable,
+                                 a_gen_init_pos_descr_ptr ipdp,
+                                 a_constant_ptr           constant)
 /*
 Generate an assignment statement to set the part of the variable "variable"
 described by the list pointed to by "ipdp" to the constant pointed to by
@@ -4459,11 +4459,11 @@ to saved_list, the saved value from the scope surrounding the current one.
 }  /* unbind_wide_string_constants */
 
 
-static void dump_initializer_part(a_variable_ptr        variable,
-                                  a_type_ptr            type,
-                                  a_constant_ptr        constant,
-                                  a_boolean             *gen_assignments,
-                                  an_init_pos_descr_ptr outer_level_pos)
+static void dump_initializer_part(a_variable_ptr           variable,
+                                  a_type_ptr               type,
+                                  a_constant_ptr           constant,
+                                  a_boolean                *gen_assignments,
+                                  a_gen_init_pos_descr_ptr outer_level_pos)
 /*
 Dump out an initializer for part of a variable.  The variable being
 initialized is "variable"; the piece of it being initialized has type
@@ -4479,10 +4479,10 @@ in an initializer).  The statements are written to f_C_output or a
 temporary file (see start_initializer_assignments).
 */
 {
-  an_init_pos_descr ipd, *ipdp = &ipd;
-  a_constant_ptr    elem_con;
-  a_type_ptr        elem_type;
-  a_boolean         need_close_brace = FALSE;
+  a_gen_init_pos_descr ipd, *ipdp = &ipd;
+  a_constant_ptr       elem_con;
+  a_type_ptr           elem_type;
+  a_boolean            need_close_brace = FALSE;
 
   type = skip_typerefs(type);
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -4736,7 +4736,7 @@ it will be rendered as executable code.
   clear_initialization_flags();
   /* Generate the initialization (constants and/or assignments). */
   dump_initializer_part(variable, type, constant, &gen_assignments,
-                        (an_init_pos_descr_ptr)NULL);
+                        (a_gen_init_pos_descr_ptr)NULL);
   /* If any assignments were generated, do any wrapup required. */
   end_initializer_assignments(variable);
 }  /* dump_initializer */
@@ -5338,7 +5338,7 @@ handled in declaration processing in dump_variable_decl.
     /* Aggregate initialization.  Only comes up in C++, for aggregate
        initializations to constants done in the middle of blocks. */
     dump_initializer_part(variable, variable->type, dip->variant.constant,
-                          &gen_assignments, (an_init_pos_descr_ptr)NULL);
+                          &gen_assignments, (a_gen_init_pos_descr_ptr)NULL);
   } else {
     set_output_position(&variable->source_corresp.decl_position);
     switch (dip->kind) {

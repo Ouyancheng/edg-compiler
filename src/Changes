@@ -1,5 +1,13 @@
 Version 2.39
 
+3/23/98   an_init_pos_descr in c_gen_be renamed
+
+The local structure in c_gen_be.c called an_init_pos_descr has been
+renamed a_gen_init_pos_descr because there is an IL lowering data
+structure with the name an_init_pos_descr and some source-analysis
+tools complain about the use of the same name for two different
+local structures.
+
 3/20/98   Microsoft compatibility, C++-generating back end: namespace
           qualified names in bound function reference
 
