@@ -48,6 +48,7 @@ static unsigned long
 		num_constants_allocated,
 		num_param_types_allocated,
 		num_routine_type_supplements_allocated,
+		num_class_type_supplements_allocated,
 		num_types_allocated,
 		num_variables_allocated,
 		num_fields_allocated,
@@ -175,6 +176,48 @@ Dump a field entry, for debug purposes.
 }  /* db_field */
 
 
+static void db_base_class_field(a_field *fp,
+				a_type *tp)
+/*
+Dump field *fp derived from base class *tp, for debug purposes.
+*/
+{
+  fprintf(f_debug, "\n\tfield %s::", tp->source_corresp.name);
+  db_name(&fp->source_corresp);
+  fputs(", type = ", f_debug);
+  db_type(fp->type);
+  fprintf(f_debug, ", bit_offset = %lu, bit_size = %d",
+                   fp->bit_offset, fp->bit_size);
+}  /* db_base_class_field */
+
+
+static void db_base_class(a_base_class *bcp)
+/*
+Dump a base class entry, for debug purposes.
+*/
+{
+  a_type     *tp = bcp->base_class;
+  a_field    *fp;
+
+  fputs("\n    [[ ", f_debug);
+  db_access_control(bcp->access);
+  if (bcp->virtual) fputs(" virtual");
+  fprintf(f_debug, " base class %s (offset = %lu)",
+		   tp->source_corresp.name, bcp->offset);
+  bcp = tp->variant.class.extra_info->base_classes;
+  while (bcp != NULL) {
+    db_base_class(bcp);
+    bcp = bcp->next;
+  }  /* while */
+  fp = tp->variant.class.field_list;
+  while (fp != NULL) {
+    db_base_class_field(fp, tp);
+    fp = fp->next;
+  }  /* while */
+  fputs(" ]]", f_debug);
+}  /* db_base_class */
+
+
 void db_type(a_type *tp)
 /*
 Dump the contents of the indicated type entry, for debug purposes.
@@ -182,6 +225,8 @@ Dump the contents of the indicated type entry, for debug purposes.
 {
   a_field_ptr      fp;
   a_param_type_ptr ptp;
+  a_base_class_ptr bcp;
+  a_boolean	   comma_required;
 
   switch (tp->kind) {
     case tk_error:
@@ -202,17 +247,33 @@ Dump the contents of the indicated type entry, for debug purposes.
       break;
     case tk_pointer:
       fputs("ptr(", f_debug);
-      /* Dump structs/unions specially to avoid recursive loops when structs
-         contain pointers to themselves. */
-      if (tp->variant.pointer_type_pointed_to->kind ==
-          (a_type_kind)tk_struct) {
-        fputs("struct", f_debug);
-      } else if (tp->variant.pointer_type_pointed_to->kind ==
-                 (a_type_kind)tk_union) {
-        fputs("union", f_debug);
-      } else {
-        db_type(tp->variant.pointer_type_pointed_to);
-      }  /* if */
+      goto pointer_or_reference;
+    case tk_reference:
+      fputs("ref(", f_debug);
+pointer_or_reference:
+      /* Dump classes/structs/unions specially to avoid recursive loops
+         when then contain pointers to themselves. */
+      {
+	a_type_ptr ptp = tp->variant.pointer_type_pointed_to;
+	switch (ptp->kind) {
+	  case tk_class:
+	    fputs("class", f_debug);
+	    goto print_name;
+	  case tk_struct:
+	    fputs("struct", f_debug);
+	    goto print_name;
+	  case tk_union:
+	    fputs("union", f_debug);
+print_name:
+	    if (ptp->source_corresp.name != NULL) {
+	      fprintf(f_debug, " %s", ptp->source_corresp.name);
+	    }  /* if */
+	    break;
+	  default:
+            db_type(tp->variant.pointer_type_pointed_to);
+	    break;
+        }  /* switch */
+      }
       fputc(')', f_debug);
       break;
     case tk_array:
@@ -220,14 +281,21 @@ Dump the contents of the indicated type entry, for debug purposes.
       db_type(tp->variant.array.element_type);
       fprintf(f_debug, ")[%lu]", tp->variant.array.number_of_elements);
       break;
+    case tk_class:
+      fputs("class {", f_debug);
+      bcp = tp->variant.class.extra_info->base_classes;
+      while (bcp != NULL) {
+        db_base_class(bcp);
+        bcp = bcp->next;
+      }  /* while */
+      goto class_struct_union;
     case tk_struct:
-      fputs("struct", f_debug);
-      goto struct_union;
+      fputs("struct {", f_debug);
+      goto class_struct_union;
     case tk_union:
-      fputs("union", f_debug);
-struct_union:
-      fputc('{', f_debug);
-      fp = tp->variant.struct_union.field_list;
+      fputs("union {", f_debug);
+class_struct_union:
+      fp = tp->variant.class.field_list;
       while (fp != NULL) {
         db_field(fp);
         fp = fp->next;
@@ -246,15 +314,22 @@ struct_union:
         fputs(" old-style", f_debug);
       }  /* if */
       fputs("(", f_debug);
-      for (ptp = tp->variant.routine.extra_info->param_type_list;
-           ptp != NULL;){
+      if (tp->variant.routine.extra_info->implicit_this_param_type != NULL) {
+	fputs("(\"this\":) ", f_debug);
+        db_type(tp->variant.routine.extra_info->implicit_this_param_type);
+	comma_required = TRUE;
+      } else {
+	comma_required = FALSE;
+      }  /* if */
+      ptp = tp->variant.routine.extra_info->param_type_list;
+      while (ptp != NULL) {
+	if (comma_required) fputs(", ", f_debug);
         db_type(ptp->type);
+	comma_required = TRUE;
         ptp = ptp->next;
-        if (ptp != NULL || tp->variant.routine.extra_info->has_ellipsis) {
-          fputs(", ", f_debug);
-        }  /* if */
-      }  /* for */
+      }  /* while */
       if (tp->variant.routine.extra_info->has_ellipsis) {
+	if (comma_required) fputs(", ", f_debug);
         fputs("...", f_debug);
       }  /* if */
       fputs(") returning ", f_debug);
@@ -779,14 +854,17 @@ Set the given source correspondence struct to default values.
   sc->name                 = NULL;
   sc->decl_position.seq    = 0;
   sc->decl_position.column = SP_COL_UNKNOWN;
+  /* access is set to "public" because "no access restriction" is the default
+     for everything except class members.  For the latter the field must be
+     set manually. */
+  sc->access               = as_public;
   /* referenced is set TRUE because so far this is an entity not associated
-     with one in the source program.  All unassociated entities are
-     assumed to be referenced (otherwise, they wouldn't be created).  This
-     does away with the difficult job of setting the referenced flag
-     in a lot a different places for unassociated entities. 
-     set_source_corresp resets the flag to FALSE for associated entities,
-     for which the flag is then set to TRUE (for an actual reference)
-     by mark_referenced. */
+     with one in the source program.  All unassociated entities are assumed
+     to be referenced (otherwise, they wouldn't be created).  This does away
+     with the difficult job of setting the referenced flag in a lot of
+     different places for unassociated entities. set_source_corresp resets
+     the flag to FALSE for associated entities, for which the flag is then
+     set to TRUE (for an actual reference) by mark_referenced. */
   sc->referenced           = TRUE;
   sc->il_walk_flag         = INITIAL_IL_WALK_FLAG_SETTING;
   sc->scope_depth          = IL_NO_SCOPE;
@@ -1433,16 +1511,37 @@ to default values.
       pte->variant.float_kind = (a_float_kind)fk_float;
       break;
     case tk_pointer:
+    case tk_reference:
       pte->variant.pointer_type_pointed_to = NULL;
       break;
     case tk_array:
       pte->variant.array.element_type = NULL;
       pte->variant.array.number_of_elements = 0;
       break;
+    case tk_class:
     case tk_struct:
     case tk_union:
-      pte->variant.struct_union.field_list       = NULL;
-      pte->variant.struct_union.any_const_member = FALSE;
+      pte->variant.class.field_list       = NULL;
+      pte->variant.class.any_const_member = FALSE;
+      if (kind == tk_class) {
+        a_class_type_supplement_ptr	ctsp;
+
+        pte->variant.class.extra_info = ctsp =
+			(a_class_type_supplement_ptr)alloc_cil(
+					      sizeof(a_class_type_supplement));
+#if DEBUG
+        num_class_type_supplements_allocated++;
+#endif /* DEBUG */
+	ctsp->static_data_members           = NULL;
+	ctsp->member_functions              = NULL;
+	ctsp->base_classes                  = NULL;
+	ctsp->access_adjustments            = NULL;
+	ctsp->befriending_classes           = NULL;
+	ctsp->types                         = NULL;
+	ctsp->template_args                 = NULL;
+      } else {
+        pte->variant.class.extra_info       = NULL;
+      }  /* if */
       break;
     case tk_routine:
       pte->variant.routine.return_type = NULL;
@@ -1452,14 +1551,15 @@ to default values.
 #if DEBUG
       num_routine_type_supplements_allocated++;
 #endif /* DEBUG */
-      rtsp->param_type_list       = NULL;
-      rtsp->prototype_scope       = NULL;
-      rtsp->assoc_routine         = NULL;
-      rtsp->prototyped            = FALSE;
-      rtsp->has_ellipsis          = FALSE;
-      rtsp->lint_argsused_flag    = FALSE;
-      rtsp->lint_varargs_count    = NOT_LINT_VARARGS;
-      rtsp->arg_pragma            = (an_arg_pragma_kind)apk_none;
+      rtsp->param_type_list          = NULL;
+      rtsp->implicit_this_param_type = NULL;
+      rtsp->prototype_scope          = NULL;
+      rtsp->assoc_routine            = NULL;
+      rtsp->prototyped               = FALSE;
+      rtsp->has_ellipsis             = FALSE;
+      rtsp->lint_argsused_flag       = FALSE;
+      rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
+      rtsp->arg_pragma               = (an_arg_pragma_kind)apk_none;
       break;
     case tk_typeref:
       pte->variant.typeref.type        = NULL;
@@ -1923,7 +2023,7 @@ to it.
   fp->type             = NULL;
   fp->bit_offset       = 0;
   fp->bit_size         = 0;
-  fp->assoc_struct_union_type = NULL;
+  fp->assoc_class_type = NULL;
 
   db_exit();
   return (fp);
@@ -2392,6 +2492,8 @@ Display and return the amount of space used for various IL tables.
   write_one("param type", num_param_types_allocated, a_param_type);
   write_one("routine type supplement", num_routine_type_supplements_allocated,
                                        a_routine_type_supplement);
+  write_one("class type supplement", num_class_type_supplements_allocated,
+                                     a_class_type_supplement);
   write_one("type", num_types_allocated, a_type);
   write_one("variable", num_variables_allocated, a_variable);
   write_one("field", num_fields_allocated, a_field);
@@ -2465,6 +2567,7 @@ of the front end.
   num_constants_allocated                = 0;
   num_param_types_allocated              = 0;
   num_routine_type_supplements_allocated = 0;
+  num_class_type_supplements_allocated   = 0;
   num_types_allocated                    = 0;
   num_variables_allocated                = 0;
   num_fields_allocated                   = 0;
