@@ -6298,8 +6298,8 @@ e.g., ({ ... }).
   /* It is also the only place where a GNU C local label can be declared.
      Normally, such labels should only appear in statement expressions. */
   while (gcc_mode && curr_token == tok_identifier &&
-         same_string_ignoring_underscores(
-                    "label", locator_for_curr_id.symbol_header->identifier)) {
+         strcmp("__label__",
+                locator_for_curr_id.symbol_header->identifier) == 0) {
     local_label_declaration(is_statement_expr);
   }  /* if */
 
