@@ -849,7 +849,13 @@ and for the instantiation of template functions.
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Be sure param-id and param-type lists are in sync. */
-    check_assertion((param_id == NULL) == (ptp == NULL));
+    if ((param_id == NULL) != (ptp == NULL)) {
+      /* This can happen when the param_id list is discarded because severe
+         syntax errors made it look like the declarator did not appear at
+         the top level. */
+      check_assertion(total_errors != 0 && param_id == NULL);
+      ptp = NULL;
+    }  /* if */
     for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
