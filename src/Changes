@@ -1,11 +1,11 @@
 Version 3.1
 
-11/1/02  GNU compatibility: Use of __FUNCTION__ in outside a function
+11/1/02  GNU compatibility: Use of __FUNCTION__ outside a function
 
 In GNU C and C++ mode, the reserved identifiers __FUNCTION__ and
-__PRETTY_FUNCTION__ now expand to the empty string literal ("").
-In GNU C++ mode, however, the result is not considered for concatenation
-with other literals.
+__PRETTY_FUNCTION__ now expand to the empty string literal ("")
+when they appear outside of functions.  In GNU C++ mode, however,
+the result is not considered for concatenation with other literals.
 
   char const *p1 = __FUNCTION__;    // Now accepted (previously an error).
   char const *p2 = ""__FUNCTION__;  // Now accepted in GNU C mode, but an
