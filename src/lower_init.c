@@ -1781,6 +1781,7 @@ termination.
          {NULL, __sti__module_id, __std__module_id}
        If either routine does not exist, use a NULL instead. */
     aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+    aggr_con->type = struct_type;
     link_var->init_kind = (an_init_kind)initk_static;
     link_var->initializer.constant = aggr_con;
     /* Zero for "next" field. */
