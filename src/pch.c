@@ -114,8 +114,16 @@ Macro to read a value from the PCH input file.
 Macro to perform an fread with an error check.
 */
 #define fread_with_check(value, length, file)				\
-  if (fread((a_void_ptr)(value), (length), 1, (file)) != 1) {		\
+  if (fread((a_void_ptr)(value), size_t_arg((length)), 1, (file)) != 1) { \
     unexpected_condition_str("PCH read error");				\
+  }  /* if */
+
+/*
+Macro to perform an fwrite with an error check.
+*/
+#define fwrite_with_check(value, length, file)				\
+  if (fwrite((a_void_ptr)(value), size_t_arg((length)), 1, (file)) != 1) { \
+    unexpected_condition_str("PCH write error");			\
   }  /* if */
 
 #if DEBUG
@@ -570,7 +578,7 @@ Both the length and the actual string include the null terminator.
   if (str != NULL) {
     length = strlen(str) + 1;
     pch_write_value(length);
-    (void)fwrite((a_void_ptr)str, length, 1, f_pch_output);
+    fwrite_with_check(str, length, f_pch_output);
   } else {
     /* The string pointer is null.  Represent this as a zero length
        string. */
@@ -785,8 +793,7 @@ variable lists.
                   : psvp->var_name);
       }  /* if */
 #endif /* DEBUG */
-      (void)fwrite((a_void_ptr)psvp->var_address, psvp->var_size, 1,
-                   f_pch_output);
+      fwrite_with_check(psvp->var_address, psvp->var_size, f_pch_output);
     }  /* for */
   }  /* for */
   db_exit();
@@ -834,9 +841,10 @@ file.
   db_enter(4, "write_mem_alloc_history");
   pch_write_value(size_of_mem_alloc_history);
   pch_write_value(num_of_mem_alloc_history_entries);
-  fwrite((a_void_ptr)mem_alloc_history,
-         sizeof(a_mem_alloc_history) * num_of_mem_alloc_history_entries, 1,
-         f_pch_output);
+  fwrite_with_check(mem_alloc_history,
+                    sizeof(a_mem_alloc_history) *
+                                            num_of_mem_alloc_history_entries,
+                    f_pch_output);
   db_exit();
 }  /* write_mem_alloc_history */
 
@@ -923,7 +931,7 @@ in exactly the same manner as that in which they were created.
     size = mbhp->next_avail_in_block - (char *)mbhp;
     pch_write_value(size);
     pch_write_value(mbhp);
-    fwrite((a_void_ptr)mbhp, size, 1, f_pch_output);
+    fwrite_with_check(mbhp, size, f_pch_output);
 #if DEBUG
     if (debug_level >= 0) {
       fprintf(f_debug, "Writing %lu bytes from %p\n", size,
@@ -982,17 +990,17 @@ header information about the memory regions such as the memory_region_table.
 #if DEBUG
   pch_write_value(size_of_allocated_in_region);
 #endif /* DEBUG */
-  fwrite((a_void_ptr)mem_region_table,
-         sizeof(a_mem_block_header_ptr) * mem_regions_used, 1,
-         f_pch_output);
-  fwrite((a_void_ptr)il_header.region_scope_entry,
-         sizeof(a_mem_block_header_ptr) * mem_regions_used, 1,
-         f_pch_output);
+  fwrite_with_check(mem_region_table,
+                    sizeof(a_mem_block_header_ptr) * mem_regions_used,
+                    f_pch_output);
+  fwrite_with_check(il_header.region_scope_entry,
+                    sizeof(a_mem_block_header_ptr) * mem_regions_used,
+                    f_pch_output);
 #if DEBUG
   /* Write the allocated_in_region information. */
-  fwrite((a_void_ptr)allocated_in_region,
-         sizeof(unsigned long) * mem_regions_used, 1,
-         f_pch_output);
+  fwrite_with_check(allocated_in_region,
+                    sizeof(unsigned long) * mem_regions_used,
+                    f_pch_output);
 #endif /* DEBUG */
   for (n = 0; n < mem_regions_used; ++n) {
     write_a_memory_region(n);
@@ -1051,8 +1059,7 @@ current point.
   open_pch_output_file();
   /* Write the string that identifies this file as a precompiled header
      file. */
-  (void)fwrite((a_void_ptr)pch_id_string, pch_id_string_length, 1,
-               f_pch_output);
+  fwrite_with_check(pch_id_string, pch_id_string_length, f_pch_output);
   /* Current directory name. */
   pch_write_string(curr_dir_name);
   /* Write the event list that will be used for PCH file matching. */
@@ -1393,7 +1400,8 @@ directory.  Return TRUE if an applicable PCH was found.
     (void)fclose(f_pch_input);
   }  /* for */
   /* Save a copy of the precompiled header file name to be used. */
-  pch_input_file_name = (char *)alloc_general(strlen(file_name_buffer) + 1);
+  pch_input_file_name = (char *)alloc_general
+                                     ((sizeof_t)strlen(file_name_buffer) + 1);
   (void)strcpy(pch_input_file_name, file_name_buffer);
   db_exit();
 #if 0
@@ -1547,7 +1555,7 @@ void pch_one_time_init(void)
   size_file_name_buffer = PCH_BUFFER_INITIAL_ALLOCATION;
   /* Get the current directory name. */
   ptr = get_curr_dir_name();
-  curr_dir_name = (char *)alloc_general(strlen(ptr) + 1);
+  curr_dir_name = (char *)alloc_general((sizeof_t)strlen(ptr) + 1);
   (void)strcpy(curr_dir_name, ptr);
 }  /* pch_one_time_init */
 
