@@ -11820,6 +11820,11 @@ this is the template parameter list of a template template parameter.
       default_arg_constant = fs_constant((a_constant_repr_kind)ck_error);
       scan_template_argument_constant_expression(param_type_ptr,
   					         default_arg_constant);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      /* If the constant has an associated expression, eliminate it so
+         we do not end up pointing to it from different places. */
+      default_arg_constant->expr = NULL;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       if (default_arg_constant->kind ==
                                      (a_constant_repr_kind)ck_template_param) {
         def_arg_involves_template_param = TRUE;
