@@ -493,11 +493,11 @@ typedef struct a_src_seq_end_of_construct {
 			   that marks the end of the construct. */
   a_tagged_pointer
 		entity;
-			/* Entry identifying the entity (a class, enum, or
-			   function type or a block statement) for which this
-			   is the terminating token.  (Note that the end of a
-			   function prototype is associated with a function
-			   type, not a routine entry.) */
+			/* Entry identifying the entity (a class or enum type,
+			   a routine entry, or a block statement) for which
+			   this is the terminating token.  (Note that the
+			   end-of-construct for a routine is actually the
+			   end of its function prototype scope.) */
 } a_src_seq_end_of_construct;
 
 
