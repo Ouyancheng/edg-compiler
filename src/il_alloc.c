@@ -1404,6 +1404,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->definition_needed           = FALSE;
   rp->keep_definition_in_il       = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
+  rp->expl_template_arg_list_used = FALSE;
 #if CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

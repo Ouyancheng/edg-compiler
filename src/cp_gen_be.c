@@ -1545,18 +1545,26 @@ entity is a template class, add the template arguments.
   } else {
     m_write_tok_str(name);
   }  /* if */
-  /* Check for template arguments on a class name. */
-  if (il_header.source_language == sl_Cplusplus && entry_kind == iek_type) {
-    a_type_ptr  type = (a_type_ptr)scp;
-    a_type_kind kind = type->kind;
-    if (is_class_type_kind(kind)) {
-      a_template_arg_ptr tap =
-                type->variant.class_struct_union.extra_info->template_arg_list;
-      if (tap != NULL) {
-        /* This is a template class name.  Put out the template argument
-           list, e.g., "<int, float>". */
-        form_template_args(tap, &octl);
+  if (il_header.source_language == sl_Cplusplus) {
+    a_template_arg_ptr tap = NULL;
+    if (entry_kind == iek_type) {
+      /* Check for template arguments on a class name. */
+      a_type_ptr type = (a_type_ptr)scp;
+      if (is_class_type_kind(type->kind)) {
+        tap = type->variant.class_struct_union.extra_info->template_arg_list;
       }  /* if */
+    } else if (entry_kind == iek_routine) {
+      /* Check for template arguments on a routine, but put them out only if
+         explicit template arguments (e.g., f<int>) were used with the name
+         at some point in the program. */
+      a_routine_ptr rout = (a_routine_ptr)scp;
+      if (rout->expl_template_arg_list_used) {
+        tap = rout->template_arg_list;
+      }  /* if */
+    }  /* if */
+    if (tap != NULL) {
+      /* Put out the template argument list, e.g., "<int, float>". */
+      form_template_args(tap, &octl);
     }  /* if */
   }  /* if */
 }  /* gen_unqualified_name */

@@ -229,6 +229,11 @@ cast.
                                                  /*is_decl_context=*/FALSE);
           *match_level = aml_exact;
           number_of_matches = 1;
+          if (is_template_id) {
+            /* Mark the routine entry to indicate that an explicit template
+               argument list was used. */
+            match_sym->variant.routine.ptr->expl_template_arg_list_used = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -520,6 +525,7 @@ are used in resolving calls to overloaded functions.
   cfp->next = NULL;
   cfp->function_symbol = NULL;
   cfp->is_function_template = FALSE;
+  cfp->expl_template_arg_list_used = FALSE;
   cfp->template_arg_list = NULL;
   cfp->operand_type_pattern = NULL;
   cfp->is_user_conversion = FALSE;
@@ -671,16 +677,18 @@ the operands we have match the operator's required operand types.
 
 
 static void add_function_template_to_candidate_functions_list(
-                             a_symbol_ptr             function_symbol,
-                             a_template_arg_ptr       template_arg_list,
-                             an_arg_match_summary_ptr arg_matches,
-                             a_candidate_function_ptr *candidate_functions)
+                          a_symbol_ptr             function_symbol,
+                          a_boolean                expl_template_arg_list_used,
+                          a_template_arg_ptr       template_arg_list,
+                          an_arg_match_summary_ptr arg_matches,
+                          a_candidate_function_ptr *candidate_functions)
 /*
 Add the function template identified by function_symbol to the front of the
 candidate_functions list.  If template_arg_list is non-NULL, it gives a
-list of explicit template arguments.  arg_matches gives information about
-how well the actual arguments we have match the function's formal
-parameters.
+list of explicit template arguments.  Some part of the argument list was
+explicitly specified if expl_template_arg_list_used is TRUE.
+arg_matches gives information about how well the actual arguments we
+have match the function's formal parameters.
 */
 {
   a_candidate_function_ptr candidate;
@@ -688,6 +696,7 @@ parameters.
   candidate = alloc_candidate_function();
   candidate->function_symbol = function_symbol;
   candidate->is_function_template = TRUE;
+  candidate->expl_template_arg_list_used = expl_template_arg_list_used;
   candidate->template_arg_list = template_arg_list;
   candidate->arg_matches = arg_matches;
   candidate->next = *candidate_functions;
@@ -2385,6 +2394,7 @@ that are marked "explicit" are ignored.
       /* The symbol is a function template. */
       add_function_template_to_candidate_functions_list(
                                                proj_function_symbol,
+                                               is_template_id,
                                                local_template_arg_list,
                                                arg_match_list,
                                                candidate_functions);
@@ -3271,15 +3281,19 @@ create_final_list:
          so the ambiguity error can be put out. */
     } else {
       reduce_projection_symbol_to_fundamental_symbol(sym);
-      candidates->function_symbol =
+      candidates->function_symbol = sym =
                          find_template_function(sym,
                                                 &candidates->template_arg_list,
                                                 source_pos);
+      if (candidates->expl_template_arg_list_used) {
+        /* Mark the IL routine entry to indicate that an explicit
+           template argument list was used. */
+        sym->variant.routine.ptr->expl_template_arg_list_used = TRUE;
+      }  /* if */
       candidates->is_function_template = FALSE;
       if (candidates->is_user_conversion) {
-        candidates->conversion.routine =
-                              candidates->function_symbol->variant.routine.ptr;
-        candidates->conversion.routine_symbol = candidates->function_symbol;
+        candidates->conversion.routine = sym->variant.routine.ptr;
+        candidates->conversion.routine_symbol = sym;
       } /* if */
     }  /* if */
   }  /* if */
@@ -4600,10 +4614,12 @@ This routine is only used in C++ mode.
     this_match_ptr = alloc_arg_match_summary();
     *this_match_ptr = this_match;
     if (function_template_case) {
-      add_function_template_to_candidate_functions_list(conversion_symbol,
-                                                        template_arg_list,
-                                                        this_match_ptr,
-                                                        candidate_functions);
+      add_function_template_to_candidate_functions_list(
+                                         conversion_symbol,
+                                         /*expl_template_arg_list_used=*/FALSE,
+                                         template_arg_list,
+                                         this_match_ptr,
+                                         candidate_functions);
       /* candidate->conversion.routine and
          candidate->conversion.routine_symbol are not set now.
          They are set later if the function is instantiated. */

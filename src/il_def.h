@@ -4574,6 +4574,9 @@ typedef struct a_routine {
 			   the IL is passed to the back end).  It is for
 			   front-end use only. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
+  a_bit_field	expl_template_arg_list_used:1;
+			/* TRUE if an explicit template argument list was ever
+			   used in naming this (template) function. */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
