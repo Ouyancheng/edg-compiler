@@ -1,5 +1,11 @@
 Version 2.33
 
+9/23/96 Exception specifications added to new routines
+
+The default operator new, placement operator new, and nothrow operator new
+routines (and the array versions) now have exception specifications as
+described in the Working Paper.
+
 8/15/96 Linkage of function passed to atexit
 
 The 2.33 front end now includes a function's linkage as part of its
