@@ -2819,7 +2819,10 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
        switch, also change curr_switch_clause in the switch entry so that code
        will be added there. */
     top_sssep->curr_switch_clause = scp;
-    if (label_directly_in_switch) sssep->curr_switch_clause = scp;
+    if (label_directly_in_switch) {
+      sssep->curr_switch_clause = scp;
+      end_stmt_sequence(sssep);
+    }  /* if */
     /* Start a new clause. */
     start_stmt_clause(sssep);
     if (label != NULL) {
