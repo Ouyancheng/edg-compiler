@@ -9,23 +9,40 @@ are bound to various IL entities including:
      file, function, or block scope.  (Lifetime entries for static local
      variables require special handling -- see the new field in a_scope,
      lifetime_of_local_static_vars.)
-  -- an_expr_node (of kind enk_expr_lifetime), for temporaries whose
-     lifetime is that of a full expression.
+  -- an_expr_node of kind enk_object_lifetime; such an expression node
+     can appear (only) as the top node of a full expression.
   -- a_dynamic_init, for temporaries created in dynamic initializations
-     involving constructor calls (only when exception handling support is
-     enabled).
-(This is a partial list; for additional details, please refer to references
-in il_def.h.)
+     involving constructor calls.
+(This is a partial list; for additional details, please refer to il_def.h.)
 
-The object lifetime's destructions field is a pointer to a linked list of
-dynamic init entries; the latter are linked by the next_in_destructions_list
-pointer (a new field in a_dynamic_init).  The entries on the destructions
-list identify destructions that should be done when the lifetime terminates.
+Each dynamic initialization that requires a destruction is entered
+on the destructions list of an appropriate object lifetime, thus indicating
+that the destruction should be done at the end of that lifetime or on
+exit from that lifetime.  That is the point of this change: where before
+the IL indicated destructions but gave no indication of when they should
+be done (leaving it up to IL lowering or a back end to apply the language
+rules), the new representation indicates explicitly the point of
+destruction in each case.  This fits better with the general IL principle
+that back ends should not have to understand much of the language rules.
 
-No object lifetimes survive IL lowering, so this change will be transparent
-to implementations that only make use of lowered IL.  It has been added to
-the high-level IL especially for implementations that need to write their
-own code to deal with object cleanup in exception handling.
+Because the front end indicates the time of destruction for all entities,
+it now also controls the lifetime of temporaries explicitly.  The short-
+lifetime temporaries of the Working Paper are now implemented.  The
+old long-lifetime temporaries are still used in cfront compatiblity
+mode and when --long_lifetime_temps is specified.  --short_lifetime_temps
+is also available to request the standard (and, usually, the default)
+behavior.
+
+This change was motivated by a desire to provide the information that
+formerly was recorded in the cleanup action lists in IL lowering in a
+more implementation-independent way, one more suitable for use in
+code generation in back ends that want to do a "real" implementation
+of exception handling.  See SUPPRESS_LOWERING_OF_EXCEPTION_HANDLING.
+
+Those who use the unlowered IL may have to make some small changes (notably,
+ignoring the enk_object_lifetime expression nodes).  Those using
+IL lowering in the default configuration will not, as the object lifetimes
+and enk_object_lifetime nodes are used and then removed by IL lowering.
 
 12/10/94 Setting virtual_function_info_base_class with ambiguous base class
 
