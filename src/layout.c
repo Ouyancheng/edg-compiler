@@ -1008,6 +1008,17 @@ bcp.
 
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
 
+static a_boolean first_is_direct(a_base_class_ptr  bcp)
+/*
+*/
+{
+  a_virtual_derivation_ptr  vdp = bcp->paths_to_virtual_base_class;
+
+  while (!vdp->first) vdp = vdp->next;
+  return vdp->direct;
+}  /* if */
+
+
 /* This is a set of routines that allocate space for pointers to virtual
    base class data sections in cfront compatibility mode.  It is much more
    complicated that what is provided for normal mode because we have had
@@ -1017,8 +1028,9 @@ static a_boolean is_best_derivation(a_base_class_ptr  bcp,
                                     a_base_class_ptr  derived_bcp,
                                     a_type_ptr        class_type)
 {
-  a_boolean              is_best_path;
-  a_derivation_step_ptr  step;
+  a_boolean                 is_best_path;
+  a_virtual_derivation_ptr  vdp;
+  a_derivation_step_ptr     step, path;
 
   if (derived_bcp == NULL) {
 #if CHECKING
@@ -1031,16 +1043,38 @@ static a_boolean is_best_derivation(a_base_class_ptr  bcp,
   } else {
     bcp = corresponding_base_class(bcp, class_type, (a_base_class_ptr)NULL);
     if (bcp->direct &&
-        (!bcp->is_virtual || !is_surrogate_direct_base_class(bcp))) {
+        (!bcp->is_virtual || first_is_direct(bcp))) {
       is_best_path = FALSE;
     } else {
       derived_bcp = corresponding_base_class(derived_bcp, class_type,
                                              (a_base_class_ptr)NULL);
+      /* Return TRUE if a step pointing to derived_bcp is on the derivation
+         for bcp. */
+      path = bcp->derivation;
+      is_best_path = FALSE;
+      do {
+        for (step = path; step != NULL; step = step->next) {
+          if (step->base_class == bcp) {
+            is_best_path = TRUE;
+            goto done;
+          }  /* if */
+        }  /* for */
+        if (!path->base_class->is_virtual ||
+            first_is_direct(path->base_class)) {
+          goto done;
+        }  /* if */
+        vdp = path->base_class->paths_to_virtual_base_class;
+        while (!vdp->first) vdp = vdp->next;
+        path = vdp->derivation;
+      } while (!vdp->direct);
 #if 0
       /* Checking based on the derivation path is not really right.  If the
          need arises we'll have to beef this up. */
-#endif /* if 0 */
-      step = bcp->derivation;
+      if (bcp->is_virtual) {
+        step = bcp->paths_to_virtual_base_class->derivation;
+      } else {
+        step = bcp->derivation;
+      }  /* if */
       for(;;) {
         if (step->base_class == derived_bcp) {
           is_best_path = TRUE;
@@ -1051,8 +1085,10 @@ static a_boolean is_best_derivation(a_base_class_ptr  bcp,
         }  /* if */
         step = step->next;
       }  /* if */
+#endif /* if 0 */
     }  /* if */
   }  /* if */
+done:
   return is_best_path;
 }  /* is_best_derivation */
 
@@ -1080,8 +1116,7 @@ successors on the list, if any, are processed before the predecessor.
   db_enter(4, "set_pointer_offsets_for_corresponding_virtual_base_classes");
   for (; base_class != NULL; base_class = base_class->next) {
     if (base_class->direct &&
-        (!base_class->is_virtual ||
-         !is_surrogate_direct_base_class(base_class))) {
+        (!base_class->is_virtual || first_is_direct(base_class))) {
       /* We are only interested in direct base classes. */
       if (!use_decl_order) {
         /* We should use reverse declaration order, so do the successors
@@ -1268,8 +1303,7 @@ is not shared (i.e., where the pointer from a base class is not used).
        are put out in declaration order. */
 
     for (; bcp != NULL; bcp = bcp->next) {
-      if (bcp->direct && bcp->is_virtual &&
-          !is_surrogate_direct_base_class(bcp) &&
+      if (bcp->direct && bcp->is_virtual && first_is_direct(bcp) &&
           bcp->pointer_base_class == NULL &&
           has_virtual_base_class_with_null_pointer_base_class(
                                                     bcp, lob->class_type)) {
@@ -1372,27 +1406,6 @@ algorithm.
 }  /* fixup_embedded_virtual_base_classes */
 
 
-static a_boolean is_embedded_virtual_base_class(a_base_class_ptr  bcp)
-/*
-*/
-{
-  a_boolean         is_embedded = FALSE;
-  a_base_class_ptr  dupl;
-
-  if (bcp->data_section_base_class) {
-    is_embedded = TRUE;
-  } else {
-    for (dupl = bcp->duplicate_entries; dupl != NULL; dupl = dupl->next) {
-      if (dupl->derivation->base_class->complete_subobject) {
-        is_embedded = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  return is_embedded;
-}  /* is_embedded_virtual_base_class */
-
-
 static void set_offsets_for_corresponding_virtual_base_classes(
                                              a_layout_block_ptr lob,
                                              a_base_class_ptr   base_class,
@@ -1405,7 +1418,7 @@ static void set_offsets_for_corresponding_virtual_base_classes(
   db_enter(4, "set_offsets_for_corresponding_virtual_base_classes");
   for (; base_class != NULL; base_class = base_class->next) {
     if (base_class->is_virtual && base_class->direct &&
-        !is_surrogate_direct_base_class(base_class) &&
+        first_is_direct(base_class) &&
         base_class->data_section_base_class == NULL) {
       if (!use_decl_order) {
         set_offsets_for_corresponding_virtual_base_classes(
@@ -1413,7 +1426,7 @@ static void set_offsets_for_corresponding_virtual_base_classes(
       }  /* if */
       bcp = corresponding_base_class(base_class, lob->class_type,
                                      (a_base_class_ptr)NULL);
-      if (!is_embedded_virtual_base_class(bcp) && bcp->offset == 0 &&
+      if (bcp->data_section_base_class == NULL && bcp->offset == 0 &&
           !lob->any_overflow) {
 #if CHECKING
         /* All virtual base classes should be marked as "complete
@@ -1469,9 +1482,9 @@ base class of class_type, and allocate space for the latter.
     }  /* for */
     for (bcp = base_class_list; bcp != NULL; bcp = bcp->next) {
       if (bcp->direct && bcp->is_virtual &&
-          !is_surrogate_direct_base_class(bcp) &&
+          first_is_direct(bcp) &&
           bcp->type->variant.class_struct_union.any_virtual_base_classes &&
-          !is_embedded_virtual_base_class) {
+          bcp->data_section_base_class == NULL) {
         /* Record the current offset in the data_section_offset of the
            virtual base class entry.  This allows for direct access of
            its fields (rather than through a pointer) as an optimization
@@ -1746,8 +1759,7 @@ addressed to indirect base classes.
      defined for the class, but ignore all but the direct base classes.  The
      rest are handled by recursively scanning the base class tree. */
   for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct &&
-        (!bcp->is_virtual || !is_surrogate_direct_base_class(bcp))) {
+    if (bcp->direct && (!bcp->is_virtual || first_is_direct(bcp))) {
       set_base_class_offsets(bcp);
     }  /* if */
   }  /* for */
