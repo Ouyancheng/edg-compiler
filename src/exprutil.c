@@ -7619,8 +7619,10 @@ not an lvalue, it is left alone.
 
 a_type_ptr type_after_array_to_pointer_transformation(a_type_ptr type)
 /*
-Do the array --> pointer type transformation and return the transformed
-type.
+Do the array --> pointer type transformation and return the transformed type.
+Note that the qualifiers field of tk_array types does not participate since
+only top-level function parameter types can have such qualifiers and those
+types are adjusted to pointer types early on (see adjust_parameter_type).
 */
 {
   /* The array --> pointer transformation converts "array of X" to
