@@ -1481,6 +1481,11 @@ the expression doing nothing should be suppressed.
     has_side_effects =
                    init_con_has_side_effects(con->variant.init_repeat.constant,
                                              &suppress);
+  } else if (con->kind == (a_constant_repr_kind)ck_error) {
+    /* An error constant could have been anything, including something
+       with side effects. */
+    has_side_effects = TRUE;
+    suppress = TRUE;
   }  /* if */
   *suppress_warning = suppress;
   return has_side_effects;
@@ -1505,8 +1510,15 @@ should be suppressed.
     switch (dip->kind) {
       case dik_none:
       case dik_zero:
-      case dik_constant:
         /* No side effects. */
+        break;
+      case dik_constant:
+        if (dip->variant.constant->kind == (a_constant_repr_kind)ck_error) {
+          /* An error constant could have been anything, including something
+             with side effects. */
+          has_side_effects = TRUE;
+          suppress = TRUE;
+        }  /* if */
         break;
       case dik_expression:
       case dik_call_returning_class_via_cctor:
