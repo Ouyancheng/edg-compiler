@@ -2319,6 +2319,10 @@ symbol must be added to the inactive list.
          for keywords and command-line -D options, for example.  No error
          check is done. */
     } else {
+      check_assertion_str2(scope_stack[scope_depth].kind !=
+                                                   (a_scope_kind)sck_pragma,
+                           "link_symbol_into_symbol_table:",
+                           "attemping to add symbol to pragma scope");
       if (scope_stack[scope_depth].kind ==
                                       (a_scope_kind)sck_namespace_extension) {
         /* Once the initial namespace definition has been closed, additional
