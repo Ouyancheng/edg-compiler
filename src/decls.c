@@ -1241,27 +1241,19 @@ new fields are set properly.
     /* Nothing to do. */
   } else if (locator->is_conversion_name) {
     check_assertion(class_type != NULL);
-    /* Any parameter is too many for a conversion function. */
-    if (rout_type->variant.routine.extra_info->param_type_list != NULL) {
-      pos_error(ec_too_many_args_for_conversion, &locator->source_position);
-      err = TRUE;
-    }  /* if */
     /* Check the target type of the conversion -- which is the return type
        of rout_type. */
-    tp = skip_typerefs(rout_type->variant.routine.return_type);
-    if (is_reference_type(tp)) {
-      tp = skip_typerefs(type_pointed_to(tp));
-    }  /* if */
-    if (tp == class_type || is_void_type(tp) ||
-        (is_class_struct_union_type(tp) &&
-         find_base_class_of(class_type, tp) != NULL)) {
-      /* Conversion to the same type or to a reference to the same type
-         or to base class or to reference to base class is not allowed
-         (WP 12.3.2).  Conversion to void type is not allowed (Boston
-         X3J16). */
+    if (is_void_type(rout_type->variant.routine.return_type)) {
+      /* Conversion operators specifying conversion to void type are not
+         allowed (Boston X3J16). */
       pos_ty2_error(ec_conversion_to_type_not_allowed,
                     &locator->source_position, class_type,
                     rout_type->variant.routine.return_type);
+      err = TRUE;
+    }  /* if */
+    /* Any parameter is too many for a conversion function. */
+    if (rout_type->variant.routine.extra_info->param_type_list != NULL) {
+      pos_error(ec_too_many_args_for_conversion, &locator->source_position);
       err = TRUE;
     }  /* if */
   } else if (locator->is_operator_name) {
