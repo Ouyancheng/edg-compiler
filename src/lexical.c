@@ -894,7 +894,9 @@ be copies to the new cache.
   a_token_sequence_number	first_tsn = curr_token_sequence_number;
   a_token_sequence_number	last_tsn;
   a_token_sequence_number	last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_token_kind			prev_token = tok_error;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "cache_token_stream_with_coalesce_flag");
   if (coalesce_ids) {
@@ -970,8 +972,8 @@ be copies to the new cache.
       fetch_pp_tokens = FALSE;
       if (one_line_asm && stop_tokens[(int)curr_token] != 0) break;
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     prev_token = curr_token;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
   }  /* while */
   /* Leave error_position associated with what is now curr_token. */
