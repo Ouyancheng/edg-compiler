@@ -5710,8 +5710,12 @@ otherwise it is NULL.  The syntax is:
           }  /* if */
           parenthesized_initializer_allowed = FALSE;
         } else {
+          add_stop_token(tok_lparen);
+          add_stop_token(tok_lbracket);
           copy_source_position(pos_curr_token, locator->source_position);
           syntax_error(ec_exp_identifier);
+          remove_stop_token(tok_lparen);
+          remove_stop_token(tok_lbracket);
           parenthesized_initializer_allowed = FALSE;
         }  /* if */
       }  /* if */
