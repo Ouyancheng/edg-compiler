@@ -1164,7 +1164,8 @@ static void gen_unqualified_name(a_source_correspondence *scp,
 /*
 Output the name of the entity whose source correspondence information
 is given by scp.  entry_kind indicates the IL entry kind.  If the entity
-is unnamed, generate a name.  Never generate a qualified name.
+is unnamed, generate a name.  Never generate a qualified name.  If the
+entity is a template class, add the template arguments.
 */
 {
   char *name = scp->name;
@@ -3416,7 +3417,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           { a_type_ptr type = type_pointed_to(operand_1->type);
             gen_type(type);
             write_str("::~");
-            gen_type(type);
+            /* Don't use gen_type here, because we don't want the template
+               arguments, if any, listed.  Also, we want to output a
+               partial token. */
+            write_str(type->source_corresp.name);
           }
           write_tok_str("()");
           goto done_with_operation;
