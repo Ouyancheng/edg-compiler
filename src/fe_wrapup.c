@@ -176,9 +176,8 @@ and after the back end (if any) is executed.
     }  /* for */
   }
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-
-    /* Write a signoff message (with count of errors) if necessary. */
-    write_signoff();
+  /* Write a signoff message (with count of errors) if necessary. */
+  write_signoff();
 }  /* fe_wrapup_part_2 */
 
 
