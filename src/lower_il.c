@@ -2639,6 +2639,9 @@ static a_routine_ptr
 		pure_virtual_called_routine;
 
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+/*ARGSUSED*/ /* <-- first_virtual is not used if no automatic instantiation. */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 static void add_vtbl_entry_init(a_targ_ptrdiff_t delta,
                                 a_routine_ptr    func_to_call,
                                 a_constant_ptr   aggr_con,
@@ -2976,9 +2979,12 @@ class_type if any are needed.
 {
   a_class_type_supplement_ptr ctsp;
   a_base_class_ptr            bcp;
-  a_boolean                   need_determined = FALSE, any_vtbl_ref = FALSE;
+  a_boolean                   need_determined = FALSE;
   a_boolean                   definition_needed, force_static;
   a_routine_ptr               first_virtual;
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  a_boolean                   any_vtbl_ref = FALSE;
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
   /* Make sure the class type has been pre-lowered. */
   prelower_class_type(class_type);
@@ -2996,11 +3002,13 @@ class_type if any are needed.
       define_one_virtual_function_table(class_type, (a_base_class_ptr)NULL,
                                         definition_needed, force_static,
                                         first_virtual);
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
       /* Remember whether or not there's any reference to a virtual function
          table. */
       if (ctsp->virtual_function_table_var->source_corresp.referenced) {
         any_vtbl_ref = TRUE;
       }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
     }  /* if */
     /* Generate the virtual function table for each base class when it
        is contained within a complete object of the primary class. */
@@ -3020,11 +3028,13 @@ class_type if any are needed.
           define_one_virtual_function_table(class_type, bcp,
                                             definition_needed, force_static,
                                             first_virtual);
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
           /* Remember whether or not there's any reference to a virtual
              function table. */
           if (bcp->virtual_function_table_var->source_corresp.referenced) {
             any_vtbl_ref = TRUE;
           }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
         }  /* if */
       }  /* for */
     }  /* if */
@@ -6849,8 +6859,10 @@ Display and return the amount of space used for various IL lowering tables.
   db_space_used_lost("required dtor call", avail_required_destructor_calls,
                      num_required_destructor_calls_allocated,
                      a_required_destructor_call);
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
   db_space_used_general_buffer("mangled name buffer",
                                size_mangled_name_buffer);
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
   db_space_used_total();
 

@@ -260,10 +260,12 @@ EXTERN unsigned long
 		count_of_refs_to_destructor_epilogue_label;
 			/* Number of returns converted to branches as above. */
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
 EXTERN sizeof_t	size_mangled_name_buffer /* = 0*/;
 			/* Current allocated size of mangled_name_buffer.
 			   Not per-file.  See lower_name.c for the definition
 			   of mangled_name_buffer. */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 #if DEBUG
 /*

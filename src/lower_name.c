@@ -36,6 +36,7 @@ static sizeof_t mangled_static_data_member_name(a_variable_ptr variable,
                                                 char           *store_at);
 
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
 /*
 Dynamically allocated buffer used to contain transient mangled names,
 those created to find out the mangled name of an entity without recording
@@ -51,7 +52,9 @@ static char	*mangled_name_buffer = NULL;
 			   accepted (so that the realloc is hardly ever
 			   needed). */
 /* See lower_il.h for size_mangled_name_buffer. */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 static void expand_mangled_name_buffer(sizeof_t size_needed)
 /*
@@ -82,6 +85,7 @@ If not, expand mangled_name_buffer by reallocating it.
   }  /* if */                                                         \
 }  /* ensure_mangled_name_buffer_space */
 
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 static sizeof_t digits_to_represent(unsigned long value)
 /*
