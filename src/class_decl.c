@@ -6574,10 +6574,11 @@ next_declaration:
          destructor. */
       if (class_type->variant.class_struct_union.
                                  extra_info->virtual_function_count > 0) {
-        if (cssp->destructor == NULL ||
+        if (cssp->destructor != NULL &&
             !cssp->destructor->variant.routine->is_virtual) {
-          /* Either there's no destructor or there is but it isn't virtual. */
-          str_warning(ec_class_with_virtual_func_but_no_virtual_dtor,
+          /* The class has virtual functions and a destructor, but the latter
+             isn't virtual. */
+          str_warning(ec_class_with_virtual_func_but_nonvirtual_dtor,
                       class_type->source_corresp.name);
         }  /* if */
       }  /* if */

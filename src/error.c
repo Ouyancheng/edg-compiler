@@ -1292,8 +1292,8 @@ error code.
     case ec_class_with_op_delete_but_no_op_new:
       m = "class \"%s\" has an operator delete() but no operator new()";
       break;
-    case ec_class_with_virtual_func_but_no_virtual_dtor:
-      m = "class \"%s\" has virtual functions but no virtual destructor";
+    case ec_class_with_virtual_func_but_nonvirtual_dtor:
+      m = "class \"%s\" has virtual functions but destructor is nonvirtual";
       break;
     case ec_no_access_to_constructors:
       m = "there is no access to the constructors for class \"%s\"";
