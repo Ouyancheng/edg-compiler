@@ -3969,6 +3969,11 @@ Otherwise, return FALSE.
     /* If the type names differ, they can certainly not correspond. */
   } else if (!il_entries_have_known_same_parents(type_1, type_2)) {
     /* If the types have different parents, they cannot correspond. */
+  } else if (type_1->source_corresp.is_class_member ||
+             type_2->source_corresp.is_class_member) {
+    /* Member types should already have had their correspondence set if their
+       parents are known to correspond.  So these two types cannot
+       correspond. */
   } else if (total_errors != 0) {
     /* If correspondence errors already occurred, an attempt to compare
        the structure of type_1 and type_2 may end up being meaningless. */

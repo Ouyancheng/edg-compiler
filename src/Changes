@@ -1,5 +1,21 @@
 Version 3.6
 
+3/1/05   Internal error on unnamed class member types across translation units
+
+When simultaneously processing multiple translation units containing a class
+type with multiple unnamed member types, the front end sometimes aborted with
+an internal error.  The problem occurred, for example, when simultaneously
+compiling two identical translation units with the following content:
+
+  struct S {
+    typedef enum { e1 } E1;
+    typedef enum { e2 } E2;
+  };
+  void f(S, S::E1);
+  void f(S, S::E2);
+
+This is now fixed.
+
 3/1/05   Microsoft compatibility: copy constructor versus template
 
 The Microsoft compiler prefers a non-template copy constructor over a
