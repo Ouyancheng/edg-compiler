@@ -33,7 +33,7 @@ extern void lower_throw(an_expr_node_ptr expr);
 
 extern void add_eh_function_prologue(a_scope_ptr scope);
 
-extern void il_eh_lower_init(void);
+extern void eh_lower_init(void);
 
 #endif /* DO_IL_LOWERING */
 #endif /* ifndef LOWER_EH_H */
