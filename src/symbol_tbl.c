@@ -1411,7 +1411,6 @@ Initialize the fields in a scope-pointers-block substructure.
 }  /* clear_scope_pointers_block */
 
 
-static
 a_boolean namespace_is_enclosed_by_scope(a_symbol_ptr            sym,
                                          a_scope_stack_entry_ptr ssep)
 /*
@@ -1456,15 +1455,6 @@ within the scope specified by ssep.  Return TRUE if it is, FALSE otherwise.
     }  /* if */
   }  /* if */
   return result;
-}  /* namespace_is_enclosed_by_curr_scope */
-
-
-a_boolean namespace_is_enclosed_by_curr_scope(a_symbol_ptr sym)
-/*
-Calls namespace_is_enclosed_by_scope for the current scope.
-*/
-{
-  return namespace_is_enclosed_by_scope(sym, &scope_stack[depth_scope_stack]);
 }  /* namespace_is_enclosed_by_curr_scope */
 
 
