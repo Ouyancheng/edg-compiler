@@ -795,6 +795,20 @@ EXTERN an_error_code
 			   TRUE, since no diagnostic was put out in that
 			   case. */
 
+/* Contains a description of an access error that has been detected
+   for which an error may need to be issued later. */
+typedef struct an_access_error_descr *an_access_error_descr_ptr;
+typedef struct an_access_error_descr {
+  an_access_error_descr_ptr
+		next;	/* Pointer to the next error description record. */
+  a_symbol_ptr	sym;
+			/* Symbol that the program was trying to access
+			   that should be included in the error message. */
+  a_source_position
+		position;
+			/* Position to be used when the error is issued. */
+} an_access_error_descr;
+
 
 /* Contains a description of a class qualifier or pointer to member. */
 typedef struct a_class_qualifier *a_class_qualifier_ptr;
@@ -802,23 +816,27 @@ typedef struct a_class_qualifier {
   a_type_ptr    class_type;
                         /* Points to the class type described by the class
                            qualifier.  NULL for file scope qualifiers. */
-  a_boolean     has_qualifier;
+  unsigned      has_qualifier:1;
 			/* TRUE if there was a qualifier. */
-  a_boolean     has_global_qualifier;
+  unsigned      has_global_qualifier:1;
                         /* TRUE if the qualifier begins with a unary "::". */
-  a_boolean     is_file_scope_qualifier;
+  unsigned      is_file_scope_qualifier:1;
                         /* TRUE for file scope qualifiers. */
-  a_boolean     is_identifier;
+  unsigned      is_identifier:1;
 			/* TRUE if the thing that follows the class qualifier
 			   is an identifier including "operator +",
 			   "operator int" and, if GID_DTOR_RECOGNIZED was
 			   specified, destructor names (i.e., ~A). */
-  a_boolean     err;
+  unsigned      err:1;
                         /* TRUE if there was an error while scanning the
                            qualifier. */
   a_source_position
                 source_position;
                         /* The position of the start of the qualifier. */
+  an_access_error_descr_ptr
+		access_errors;
+			/* Points to a linked list of access errors that
+			   occurred while scanning the class qualifier. */
 } a_class_qualifier;
 
 
@@ -1078,6 +1096,8 @@ extern a_symbol_ptr coalesce_template_class_reference
 			(a_symbol_ptr		   template_symbol,
 			 an_identifier_options_set options,
 			 a_boolean		   *err);
+
+extern an_access_error_descr_ptr alloc_access_error_descr(void);
 
 /* Macro to check prevent calling the error checking function unless some
    error flags have been specified. */
