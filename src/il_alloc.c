@@ -786,6 +786,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->orig_type_kind                    = (a_type_kind)tk_error;
   ctsp->qualifiers                        = TQ_NONE;
   ctsp->inheritance_kind                  = (an_inheritance_kind)ihk_none;
+  ctsp->uuid_string                       = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
@@ -804,6 +805,9 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
 #if DO_IL_LOWERING
   ctsp->virtual_function_table_var        = NULL;
   ctsp->type_as_subobject                 = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ctsp->uuid_variable                     = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   ctsp->promoted_local_types              = NULL;
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */

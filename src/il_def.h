@@ -2908,6 +2908,9 @@ typedef struct a_class_type_supplement {
 			   Microsoft ABI compatibility.  An inheritance kind
 			   of ihk_none means no specific inheritance kind
 			   has been set. */
+  char		*uuid_string;
+			/* Pointer to a character string representing the
+			   argument of a uuid decl-modifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_anonymous_union_kind
 		anonymous_union_kind;
@@ -3002,6 +3005,14 @@ typedef struct a_class_type_supplement {
 			   virtual base classes.  NULL until set; in fact,
 			   non-NULL is used as an indication that certain
 			   lowering steps have already been done. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_variable_ptr
+		uuid_variable;
+			/* When IL lowering is done and field uuid_string is
+			   non-NULL, this points to a variable of type _GUID
+			   that is initialized to reflect the value of the
+			   string. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   a_type_ptr	promoted_local_types;
 			/* List of types local to member functions promoted

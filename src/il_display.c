@@ -3326,6 +3326,10 @@ Display the indicated class type supplement entry.
       default:            (void)printf("**BAD INHERITANCE KIND**\n");
     }  /* switch */
   }  /* if */
+  if (ptr->uuid_string != NULL) {
+    disp_string_ptr("uuid_string", ptr->uuid_string, iek_other_text,
+                    (sizeof_t)0);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     disp_name("anonymous_union_kind");
@@ -3373,6 +3377,9 @@ Display the indicated class type supplement entry.
 #if DO_IL_LOWERING
   /* Do not print out ptr->virtual_function_table_var and
      ptr->type_as_subobject, which are used only during IL lowering. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Likewise ptr->uuid_variable. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   /* Likewise ptr->promoted_local_types. */
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */

@@ -1955,6 +1955,9 @@ after_entry_from_class:
            not to be processed: */
         walk_list(ptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        walk_string_ptr(ptr->uuid_string, iek_other_text, 0);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !NEEDED_FLAG_WALK
 #if KEEP_IN_IL_WALK
         /* Visit befriending classes for the "keep_in_il" sweep. */
@@ -2011,6 +2014,9 @@ after_entry_from_class:
 #if DO_IL_LOWERING
           clear_pointer_if_remapping(ptr->virtual_function_table_var);
           clear_pointer_if_remapping(ptr->type_as_subobject);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          clear_pointer_if_remapping(ptr->uuid_variable);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
           clear_pointer_if_remapping(ptr->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
