@@ -5513,9 +5513,11 @@ character in Annex E of the C++ standard.
 */
 {
   a_UCN_range *range;
-  range = (a_UCN_range *)bsearch(&uchar, UCN_table,
-                                 sizeof(UCN_table) / sizeof(a_UCN_range),
-                                 sizeof(a_UCN_range), UCN_char_is_in_range);
+  range = (a_UCN_range *)bsearch(
+			  (a_bsearch_arg_type)&uchar,
+			  (a_bsearch_arg_type)UCN_table,
+                          size_t_arg(sizeof(UCN_table) / sizeof(a_UCN_range)),
+                          sizeof(a_UCN_range), UCN_char_is_in_range);
   return range != NULL;
 }  /* is_valid_UCN_identifier_char */
 

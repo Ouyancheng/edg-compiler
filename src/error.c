@@ -31,23 +31,6 @@ error.c -- Error reporting routines.
 #include "pch.h"
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-#ifndef STDLIB_H_INCLUDED
-EXTERN_C a_void_ptr bsearch(a_const_void_ptr key,
-                            a_const_void_ptr base,
-                            sizeof_t         nmemb,
-                            sizeof_t         size,
-                            int(*compar)(a_const_void_ptr,
-                                         a_const_void_ptr));
-#endif /* ifndef STDLIB_H_INCLUDED */
-
-#if defined(__SUNPRO_CC) && __BSD__
-/* Sun C++ on SunOS 4.1.3 uses const char * as the first argument of
-   bsearch. */
-typedef const char * a_bsearch_arg_type;
-#else /* !(defined(__SUNPRO_CC) && __BSD__) */
-typedef a_const_void_ptr a_bsearch_arg_type;
-#endif /* defined(__SUNPRO_CC) && __BSD__ */
-
 /*
 Static variable set when a catastrophe occurs, to catch catastrophe loops.
 */

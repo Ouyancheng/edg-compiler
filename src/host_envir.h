@@ -1706,6 +1706,26 @@ Define a macro that can be used to compare two file names.
 #define compare_file_names(s1, s2) strcmp((s1), (s2))
 #endif /* __MICROSOFT_OS__ */
 
+#ifndef STDLIB_H_INCLUDED
+/*
+When stdlib.h is not used, provide a declaration for bsearch.
+*/
+EXTERN_C a_void_ptr bsearch(a_const_void_ptr key,
+                            a_const_void_ptr base,
+                            sizeof_t         nmemb,
+                            sizeof_t         size,
+                            int(*compar)(a_const_void_ptr,
+                                         a_const_void_ptr));
+#endif /* ifndef STDLIB_H_INCLUDED */
+
+#if defined(__SUNPRO_CC) && __BSD__
+/* Sun C++ on SunOS 4.1.3 uses const char * as the first argument of
+   bsearch. */
+typedef const char * a_bsearch_arg_type;
+#else /* !(defined(__SUNPRO_CC) && __BSD__) */
+typedef a_const_void_ptr a_bsearch_arg_type;
+#endif /* defined(__SUNPRO_CC) && __BSD__ */
+
 #if EDG_WIN32
 extern void open_mapped_input_file(char *file_name);
 extern void close_mapped_input_file(void);
