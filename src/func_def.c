@@ -1324,20 +1324,20 @@ on a prior declaration.
     copy_source_position(locator->source_position,
                          rp->source_corresp.decl_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    {
-    a_decl_position_supplement_ptr  dpsp = rp->source_corresp.decl_pos_info;
-    if (dpsp != NULL) {
-      dpsp->identifier_range = decl_pos_block->identifier_range;
-      dpsp->specifiers_range = decl_pos_block->specifiers_range;
-      dpsp->declarator_range = decl_pos_block->declarator_range;
+    if (decl_pos_block != NULL) {
+      a_decl_position_supplement_ptr  dpsp = rp->source_corresp.decl_pos_info;
+      if (dpsp != NULL) {
+        dpsp->identifier_range = decl_pos_block->identifier_range;
+        dpsp->specifiers_range = decl_pos_block->specifiers_range;
+        dpsp->declarator_range = decl_pos_block->declarator_range;
 #if DEBUG
-      if (debug_level >= 3 || db_flag_is_set("dump_decl_pos_info")) {
-        fprintf(f_debug, "decl-pos info for member function def\n");
-        db_decl_pos_info(sym);
-      }  /* if */
+        if (debug_level >= 3 || db_flag_is_set("dump_decl_pos_info")) {
+          fprintf(f_debug, "decl-pos info for member function def\n");
+          db_decl_pos_info(sym);
+        }  /* if */
 #endif /* DEBUG */
+      }  /* if */
     }  /* if */
-  }
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   if (!exceptions_enabled && !func_info->is_inline &&

@@ -1970,7 +1970,9 @@ returned set to TRUE.
 #else /* if !0 */
 /* Temporary!  But it works sometimes. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    decl_pos_block->var_init_range.end = end_pos_curr_token;
+    if (decl_pos_block != NULL) {
+      decl_pos_block->var_init_range.end = end_pos_curr_token;
+    }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* if 0 */
     /* Scan the initializer.  Either a constant pointer is returned or else
@@ -1988,13 +1990,15 @@ returned set to TRUE.
        place). */
     if (brace_flag && curr_token == tok_comma) (void)get_token();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (brace_flag && curr_token == tok_rbrace && decl_pos_block != NULL) {
-      decl_pos_block->var_init_range.end = pos_curr_token;
-    } else if (init_con == NULL) {
-      check_assertion(init_dip != NULL);
-      if (init_dip->kind == (a_dynamic_init_kind)dik_expression) {
-        decl_pos_block->var_init_range.end =
+    if (decl_pos_block != NULL) {
+      if (brace_flag) {
+        decl_pos_block->var_init_range.end = pos_curr_token;
+      } else if (init_con == NULL) {
+        check_assertion(init_dip != NULL);
+        if (init_dip->kind == (a_dynamic_init_kind)dik_expression) {
+          decl_pos_block->var_init_range.end =
                          init_dip->variant.expression->expr_range.end;
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

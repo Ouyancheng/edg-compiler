@@ -1562,7 +1562,9 @@ issue an error if a default argument expression is encountered.
     } while (loop_token(tok_comma));
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  decl_pos_block->declarator_range.end = pos_curr_token;
+  if (decl_pos_block != NULL) {
+    decl_pos_block->declarator_range.end = pos_curr_token;
+  }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for closing right parenthesis.  We temporarily clear the stop
      token array values for tok_comma and tok_assign, in order to flush past
@@ -1900,7 +1902,9 @@ nonstatic data member of a class.
        add_to_derived_type_list. */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  decl_pos_block->declarator_range.end = end_pos_curr_token;
+  if (decl_pos_block != NULL) {
+    decl_pos_block->declarator_range.end = end_pos_curr_token;
+  }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for closing right bracket. */
   (void)required_token(tok_rbracket, ec_exp_rbracket);
@@ -2200,7 +2204,9 @@ encountered, they are scanned and thrown away with a warning.
       /* Calling conventions like __cdecl. */
       call_conv->position = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      decl_pos_block->declarator_range.end = end_pos_curr_token;
+      if (decl_pos_block != NULL) {
+        decl_pos_block->declarator_range.end = end_pos_curr_token;
+      }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       scan_microsoft_calling_convention(&call_conv->call_conv);
     } else if (curr_token == tok_based) {
@@ -2238,7 +2244,9 @@ encountered, they are scanned and thrown away with a warning.
          declarator processing.  Issue a warning and continue. */
       warning(ec_mutable_not_allowed);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      decl_pos_block->declarator_range.end = end_pos_curr_token;
+      if (decl_pos_block != NULL) {
+        decl_pos_block->declarator_range.end = end_pos_curr_token;
+      }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (void)get_token();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2575,7 +2583,9 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
       }  /* if */
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    decl_pos_block->declarator_range.end = end_pos_curr_token;
+    if (decl_pos_block != NULL) {
+      decl_pos_block->declarator_range.end = end_pos_curr_token;
+    }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Advance past the "*", "&", or "Name::*". */
     (void)get_token();
@@ -2723,7 +2733,9 @@ to FALSE if the entity being declared is not initializable.
   db_enter(3, "scan_real_declarator_id");
   declarator_pos = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  decl_pos_block->identifier_range.start = pos_curr_token;
+  if (decl_pos_block != NULL) {
+    decl_pos_block->identifier_range.start = pos_curr_token;
+  }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Process the identifier.  This is done if we are at the beginning of a
      qualified name.  A special test is done to exclude a destructor name
@@ -2912,8 +2924,10 @@ to FALSE if the entity being declared is not initializable.
     /* Save information on the identifier to be declared. */
     *locator = locator_for_curr_id;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    decl_pos_block->identifier_range.end = end_pos_curr_token;
-    decl_pos_block->declarator_range.end = end_pos_curr_token;
+    if (decl_pos_block != NULL) {
+      decl_pos_block->identifier_range.end = end_pos_curr_token;
+      decl_pos_block->declarator_range.end = end_pos_curr_token;
+    }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
   } else {
@@ -2953,8 +2967,10 @@ to FALSE if the entity being declared is not initializable.
         }  /* if */
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      decl_pos_block->identifier_range.end = end_pos_curr_token;
-      decl_pos_block->declarator_range.end = end_pos_curr_token;
+      if (decl_pos_block != NULL) {
+        decl_pos_block->identifier_range.end = end_pos_curr_token;
+        decl_pos_block->declarator_range.end = end_pos_curr_token;
+      }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Advance past the destructor. */
       (void)get_token();
@@ -3398,7 +3414,9 @@ The syntax is:
           if (!is_function_decl) {
             *output_flags |= DO_PARENTHESIZED_INITIALIZER;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-            decl_pos_block->var_init_range.start = lparen_pos;
+            if (decl_pos_block != NULL) {
+              decl_pos_block->var_init_range.start = lparen_pos;
+            }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
             /* Function_declarator should not be called, so exit the loop. */
             break;
@@ -3803,8 +3821,10 @@ the parameters.
                       (input_flags & DI_IS_FRIEND_DECL),
                       "declarator: parent class is NULL for ctor");
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  decl_pos_block->declarator_range.start = pos_curr_token;
-  decl_pos_block->declarator_range.end = end_pos_curr_token;
+  if (decl_pos_block != NULL) {
+    decl_pos_block->declarator_range.start = pos_curr_token;
+    decl_pos_block->declarator_range.end = end_pos_curr_token;
+  }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   r_declarator(input_flags, output_flags, specifiers_type,
                member_parent_type, locator, p_complete_type,

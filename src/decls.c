@@ -4461,7 +4461,7 @@ skip_overloading:;
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             declarator_ssep);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (is_function_def || !redeclaration) {
+  if (decl_pos_block != NULL && (is_function_def || !redeclaration)) {
     a_decl_position_supplement_ptr  dpsp;
     dpsp = routine_ptr->source_corresp.decl_pos_info;
     if (dpsp != NULL) {
@@ -5367,14 +5367,14 @@ return a pointer to it in *symbol_ptr.
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &locator->source_position, declarator_ssep);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  {
-  a_decl_position_supplement_ptr  dpsp = tp->source_corresp.decl_pos_info;
-  if (dpsp != NULL && decl_pos_block != NULL) {
-    dpsp->identifier_range = decl_pos_block->identifier_range;
-    dpsp->specifiers_range = decl_pos_block->specifiers_range;
-    dpsp->declarator_range = decl_pos_block->declarator_range;
+  if (decl_pos_block != NULL) {
+    a_decl_position_supplement_ptr  dpsp = tp->source_corresp.decl_pos_info;
+    if (dpsp != NULL) {
+      dpsp->identifier_range = decl_pos_block->identifier_range;
+      dpsp->specifiers_range = decl_pos_block->specifiers_range;
+      dpsp->declarator_range = decl_pos_block->declarator_range;
+    }  /* if */
   }  /* if */
-  }
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   add_to_types_list(tp, decl_scope_level);
   /* Issue a diagnostic if size_t is declared in a way inconsistent with

@@ -978,8 +978,13 @@ done:
     set_to_error_locator(*locator);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  decl_pos_block->identifier_range.end = end_pos_curr_token;
-  decl_pos_block->specifiers_range.end = end_pos_curr_token;
+  if (decl_pos_block != NULL) {
+    /* The end position of the current token is the end of the identifier
+       and (as far as we know so far) the end of the specifier to which the
+       class or enum declaration may belong. */
+    decl_pos_block->identifier_range.end = end_pos_curr_token;
+    decl_pos_block->specifiers_range.end = end_pos_curr_token;
+  }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Now that we have completed the lookup on the tag identifier we can
      advance past it. */
@@ -1835,10 +1840,19 @@ the template.
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
+    /* Copy the end specifiers end position into decl_pos_block.  There are
+       potentially two declarations here -- e.g.,
+         const struct S { ... } *ps;
+       where both "S" and "ps" are declared (and where *decl_pos_block
+       belongs to the declaration of "ps" and local_decl_pos_block belongs
+       to the declaration of "S").  Note that the specifiers ranges start at 
+       different positions but end at the same position. */
     decl_pos_block->specifiers_range.end =
                              local_decl_pos_block.specifiers_range.end;
   }  /* if */
   if (is_class_definition || !is_redeclaration) {
+    /* If this is the initial or defining declaration of the class, update
+       the extra source information for the class type. */
     a_decl_position_supplement_ptr  dpsp = class_type->
                                                source_corresp.decl_pos_info;
     if (dpsp != NULL) {
@@ -2410,6 +2424,7 @@ to indicate whether an enumeration is actually defined.
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
+    /* Copy the end specifiers end position into decl_pos_block. */
     decl_pos_block->specifiers_range.end =
                              local_decl_pos_block.specifiers_range.end;
   }  /* if */
@@ -3274,6 +3289,9 @@ Returns TRUE if there is an error in the specifiers.
   copy_source_position(pos_curr_token, start_pos);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
+    /* Assume the current source position is the starting position of the
+       decl-specifiers.   If it turns out there are no decl-specifiers, the
+       field will be reset to null_source_position. */
     decl_pos_block->specifiers_range.start = start_pos;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -3436,6 +3454,8 @@ Returns TRUE if there is an error in the specifiers.
           }  /* switch */
           decl_specifiers_seen |= DS_STORAGE_CLASS;
           if (decl_pos_block != NULL) {
+            /* Set the source position of the storage class for use by the
+               caller in issuing diagnostics. */
             decl_pos_block->storage_class_pos = pos_curr_token;
           }  /* if */
         }  /* if */
@@ -4553,6 +4573,7 @@ exit_loop:
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL && !any_decl_specifiers_seen) {
+    /* No decl-specifiers were seen, so clear the starting position. */
     decl_pos_block->specifiers_range.start = null_source_position;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
