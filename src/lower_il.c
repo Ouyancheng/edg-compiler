@@ -124,7 +124,7 @@ static void lower_label(a_label_ptr label);
 static void lower_asm_entry(an_asm_entry_ptr asm_entry);
 static void lower_scope(a_scope_ptr scope);
 static a_boolean any_cleanup_actions(a_context_ptr outer_context);
-static void gen_expr_conditional_destruction_var_initializations(void);
+static void gen_expr_conditional_flag_var_initializations(void);
 static a_boolean check_for_troublesome_ptr_to_member_constant(
                                                      a_constant_ptr constant,
                                                      a_variable_ptr *temp_var);
@@ -286,7 +286,7 @@ in the cleanup entry.
       cap->variant.object.delete_routine = NULL;
 common_fields:
       clear_init_pos_descr(&cap->variant.object.init_pos_descr);
-      cap->variant.object.first_time_test_var = NULL;
+      cap->variant.object.conditional_flag_var = NULL;
       break;
     case cak_try_block:
       cap->variant.try_frame = NULL;
@@ -428,7 +428,7 @@ subscope_region is TRUE.
   context->assoc_switch_clause = NULL;
   context->cleanup_actions = NULL;
   context->latest_label_statement_processed = NULL;
-  context->any_conditional_destruction_var_initializations_deferred = FALSE;
+  context->any_conditional_flag_var_initializations_deferred = FALSE;
   /* Keep track of the innermost function context/scope. */
   if (!subscope_region && scope->kind == (a_scope_kind)sck_function) {
     nearest_function_context = curr_context;
@@ -447,9 +447,9 @@ Pop an entry off the context stack.
 
   parent_context = curr_context->parent;
 #if CHECKING
-  if (curr_context->any_conditional_destruction_var_initializations_deferred) {
-    /* Forgot to call gen_expr_conditional_destruction_var_initializations. */
-    internal_error("pop_context: deferred conditional destr var inits");
+  if (curr_context->any_conditional_flag_var_initializations_deferred) {
+    /* Forgot to call gen_expr_conditional_flag_var_initializations. */
+    internal_error("pop_context: deferred conditional flag var inits");
   }  /* if */
 #endif /* CHECKING */
   /* Free any cleanup action entries. */
@@ -2195,6 +2195,17 @@ so the next insertion will be after the statement added.
     }  /* if */
     /* Set *insert_location for the next insert. */
     set_insert_location(statement, insert_location);
+    if (insert_stmt->kind != (a_statement_kind)stmk_init) {
+      /* The statement inserted is an executable statement rather than an
+         stmk_init.  Any stmk_init statements following this statement
+         must have follows_an_exec_statement TRUE. */
+      a_statement_ptr foll_stmt;
+      for (foll_stmt = insert_stmt->next;
+           foll_stmt != NULL && foll_stmt->kind == (a_statement_kind)stmk_init;
+           foll_stmt = foll_stmt->next) {
+        foll_stmt->variant.dynamic_init->follows_an_exec_statement = TRUE;
+      }  /* for */
+    }  /* if */
   }  /* if */
 }  /* insert_statement */
 
@@ -4185,7 +4196,7 @@ is part of a loop and it is re-evaluated each time around the loop.
     if (any_cleanup_actions(curr_context)) {
       /* Generate initialization assignments for any flags needed for
          conditional destruction. */
-      gen_expr_conditional_destruction_var_initializations();
+      gen_expr_conditional_flag_var_initializations();
       /* Generate any cleanup actions for temporaries built within
          the expression. */
       set_after_expr_insert_location(expr, &insert_location);
@@ -5874,11 +5885,11 @@ Remove the cleanup action cap_to_remove from the current context.
     curr_context->cleanup_actions = cap->next;
   } else {
 #if 0
-#else
+#else /* 0 */
     /* For now, cannot handle this case. */
     unexpected_condition_str(
                            "remove_cleanup_action: not implemented: not last");
-#endif
+#endif /* 0 */
     prev_cap->next = cap->next;
   }  /* if */
   cap->next = NULL;
@@ -5901,7 +5912,7 @@ it; otherwise, switch_context is NULL.
 
   for (clause = clause_list; clause != NULL; clause = clause->next) {
     /* Remember information about the current switch clause for use by
-       add_conditional_destruction_temp. */
+       init_conditional_flag_var. */
     curr_context->assoc_switch_clause = clause;
     curr_context->latest_label_statement_processed = NULL;
     lower_constant_list(clause->constant_list);
@@ -6020,8 +6031,8 @@ is updated.
          temporary, generate an "if" statement to test whether or not the
          variable was ever initialized.  Only do the destruction if it
          was. */
-      if (cap->variant.object.first_time_test_var != NULL) {
-        add_last_time_test(cap->variant.object.first_time_test_var, 
+      if (cap->variant.object.conditional_flag_var != NULL) {
+        add_last_time_test(cap->variant.object.conditional_flag_var, 
                            insert_location,
                            &insert_location2);
         effective_insert_loc = &insert_location2;
@@ -6125,7 +6136,7 @@ done:
 }  /* any_cleanup_actions */
 
 
-static void gen_expr_conditional_destruction_var_initializations(void)
+static void gen_expr_conditional_flag_var_initializations(void)
 /*
 The current context is a subscope region for a single expression.
 Generate any initialization assignments required to give initial (default)
@@ -6138,32 +6149,24 @@ conditional destruction of temporaries is required.
   a_cleanup_action_ptr cap;
 
   /* Note that this routine only handles initializations that must be inserted
-     into an expression tree.  All others are handled by
-     add_conditional_destruction_temp. */
+     into an expression tree.  All others are handled by calling
+     init_conditional_flag_var immediately. */
   check_assertion(node != NULL);
-  if (curr_context->any_conditional_destruction_var_initializations_deferred) {
+  if (curr_context->any_conditional_flag_var_initializations_deferred) {
     /* Some initializations are needed.  Find them. */
     set_expr_insert_location(node, &insert_location);
     for (cap = curr_context->cleanup_actions;
          cap != NULL;
          cap = cap->next) {
-      if (cap->applies_on_block_exit && cap->kind == cak_destruction) {
-        a_variable_ptr var = cap->variant.object.first_time_test_var;
-        if (var != NULL) {
-          /* Make "flag_var = 0" and insert it. */
-          (void)insert_var_assignment_statement(
-                                            var,
-                                            (an_expr_operator_kind)eok_iassign,
-                                            node_for_integer_constant(0L,
-                                                      (an_integer_kind)ik_int),
-                                            &insert_location);
-        }  /* if */
+      if (cap->applies_on_block_exit && cap->kind == cak_destruction &&
+          cap->variant.object.conditional_flag_var != NULL) {
+        /* Make "flag_var = 0" and insert it. */
+        init_conditional_flag_var(cap, &insert_location);
       }  /* if */
     }  /* for */
-    curr_context->any_conditional_destruction_var_initializations_deferred =
-                                                                         FALSE;
+    curr_context->any_conditional_flag_var_initializations_deferred = FALSE;
   }  /* if */
-}  /* gen_expr_conditional_destruction_var_initializations */
+}  /* gen_expr_conditional_flag_var_initializations */
 
 
 static a_boolean block_is_on_parent_list(a_statement_ptr block,
@@ -6413,7 +6416,7 @@ Do IL lowering of the indicated statement and everything under it.
                                  &return_statement);
           make_block = FALSE;
           lower_dynamic_init(dip, &ipd,
-                             /*first_time_test_var=*/(a_variable_ptr)NULL,
+                             /*conditional_flag_var=*/(a_variable_ptr)NULL,
                              /*is_expr_temporary=*/FALSE,
                              (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                              (a_constructor_init_ptr)NULL,
