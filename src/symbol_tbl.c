@@ -3061,8 +3061,7 @@ for old style parameter declarations.
 
 
 
-a_symbol_ptr make_template_class_symbol(a_symbol_ptr       ct_symbol,
-                                        a_source_position *pos)
+a_symbol_ptr make_template_class_symbol(a_symbol_ptr  ct_symbol)
 /*
 Create a symbol for an instance of a class template.  Link the symbol to
 the class template symbol but do not enter it into the symbol table.
@@ -3087,7 +3086,7 @@ ct_symbol is the symbol of the class template.
   }  /* switch */
   /* Create the symbol.  Use the current source position as the declaration
      position. */
-  sym = alloc_symbol(kind, ct_symbol->header, pos);
+  sym = alloc_symbol(kind, ct_symbol->header, &ct_symbol->decl_position);
   /* Set the pointer that points back to the original class template symbol. */
   cssp = sym->variant.class_struct_union.extra_info;
   cssp->class_template = ct_symbol;
