@@ -479,6 +479,8 @@ do
          --no_wchar_t_keyword | \
          --alternate_tokens | \
          --no_alternate_tokens | \
+         --inlining | \
+         --no_inlining | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Check for C or C++ mode
