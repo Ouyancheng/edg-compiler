@@ -15,15 +15,24 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 
 */
 
+#include "basic_hdrs.h"
+/* Only include this code if it is needed: */
 #if C99_IL_EXTENSIONS_SUPPORTED && DO_C99_IL_LOWERING
-
 /* Header files common to all files. */
 #include "fe_common.h"
-
+/* Header files used by files involved in IL lowering. */
+#include "lower_hdrs.h"
+/* Additional header files. */
+#include "lower_c99.h"
+#if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
-#include "lower_il.h"
-#include "lower_init.h"
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
+#ifdef PCH_PRAGMA_GUARD
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Complex arithmetic and comparison routines. */
 a_routine_ptr  xnegate_routine = NULL;
