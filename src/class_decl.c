@@ -7998,35 +7998,17 @@ because they were used in declaring an external function or variable.
 }  /* check_class_linkage */
 
 
-/* ARGSUSED */ /* stmt is not used. */
+/* ARGSUSED */ /* Neither sym nor stmt is used. */
 void define_type_info_pragma(a_pending_pragma_ptr    ppp,
-			     a_symbol_ptr            sym,
-			     a_statement_ptr         stmt)
+                             a_symbol_ptr            sym,
+                             a_statement_ptr         stmt)
 /*
-Called when a define_type_info pragma is encountered.  This pragma must
-immediately precede a class definition.  Save a pointer to the class being
-defined in the global variable type_of_type_info.
-
-We don't check for extra tokens after the pragma name.  They are simply
-ignored.
+Called when a define_type_info pragma is encountered.  Since this pragma
+is supposed to be handled in scan_tag_name, any automatic call of this
+routine is an error.
 */
 {
-  a_boolean          err = TRUE;
-
-  if (sym != NULL) {
-    if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag) {
-      a_type_ptr tp = sym->variant.class_struct_union.type;
-      if (tp != NULL) {
-        type_of_type_info = tp;
-        err = FALSE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  /* If the pragma cannot be applied because it is being bound to the wrong
-     kind of entity, issue an error. */
-  if (err) {
-    pos_error(ec_pragma_may_not_be_used_here, &ppp->id_position);
-  }  /* if */
+  pos_error(ec_pragma_may_not_be_used_here, &ppp->id_position);
 }  /* define_type_info_pragma */
 
 
