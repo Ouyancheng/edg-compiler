@@ -541,6 +541,7 @@ values.
   amsp->next                       = NULL;
   amsp->match_level                = aml_none;
   amsp->anachronism_used           = FALSE;
+  amsp->tiebreaker_anachronism_used= FALSE;
   amsp->const_anachronism          = FALSE;
   amsp->is_match_for_this_param    = FALSE;
   amsp->arg_is_constant            = FALSE;
@@ -614,6 +615,8 @@ Print an argument match summary for debug purposes.
     fprintf(f_debug, " (const anachronism)");
   } else if (amsp->anachronism_used) {
     fprintf(f_debug, " (anachronism used)");
+  } else if (amsp->tiebreaker_anachronism_used) {
+    fprintf(f_debug, " (tiebreaker anachronism used)");
   }  /* if */
   if (amsp->match_level == aml_user_conversion &&
       amsp->conversion.std.nontrivial_conversion) {
@@ -1846,7 +1849,7 @@ have_level:;
     } else if (uses_type_qualifiers_dropped_anachronism) {
       /* Some type qualifiers were dropped on a reference binding.  That's
          an anachronism and can serve as a tie-breaker. */
-      arg_summary->anachronism_used = TRUE;
+      arg_summary->tiebreaker_anachronism_used = TRUE;
     }  /* if */
     if (!source_can_be_rvalue &&
         (arg_converted_to_rvalue ||
@@ -1920,7 +1923,11 @@ with a const selector is enabled, allow that kind of mismatch here.
     if (match_summary->match_level != aml_none) {
       /* Anachronism -- calling non-const function with const object. */
       match_summary->const_anachronism = TRUE;
-      match_summary->anachronism_used = TRUE;
+      if (any_cfront_mode()) {
+        match_summary->tiebreaker_anachronism_used = TRUE;
+      } else {
+        match_summary->anachronism_used = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* determine_selector_match_level */
@@ -3450,6 +3457,21 @@ apply that would make one better than the other, and return
           }  /* if */
         }  /* if */
       }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Use of a tiebreaker anachronism (e.g., dropping cv-qualifiers when
+     binding a reference) can break a tie. */
+  if (cmp == 0 &&
+      arg_match1->tiebreaker_anachronism_used !=
+                                     arg_match2->tiebreaker_anachronism_used) {
+    if (arg_match1->tiebreaker_anachronism_used) {
+      /* Argument 1 uses an anachronism and argument 2 does not, so
+         argument 2 is better. */
+      cmp = -1;
+    } else {
+      /* Argument 2 uses an anachronism and argument 1 does not, so cfp1
+         is better. */
+      cmp = 1;
     }  /* if */
   }  /* if */
   return cmp;

@@ -192,6 +192,12 @@ typedef struct an_arg_match_summary {
 			   set for all anachronisms, just those that act
 			   as tie-breakers in cfront mode. */
   a_byte_boolean
+		tiebreaker_anachronism_used;
+			/* TRUE if the match was possible only because of an
+			   anachronism, but the anachronism is such that
+			   it only counts as a tiebreaker in overload
+			   resolution (used in Cfront mode). */
+  a_byte_boolean
 		const_anachronism;
 			/* In cfront compatibility mode, TRUE to indicate
 			   that the match was possible only because of the
