@@ -4564,9 +4564,13 @@ on for use in generating cross-reference output describing this declaration.
                                         &func_info->throw_position,
                                         /*is_redecl=*/TRUE);
         }  /* if */
+        /* A guiding declaration should never impose the declared type --
+           always use the type derived from the template declaration, even
+           if the guiding declaration is simultaneously an old-style
+           specialization. */
         reconcile_routine_types(routine_ptr, type_ptr,
-                                /*preserve_rout_type=*/old_decl_has_body,
-                                /*preserve_type_ptr=*/is_function_def);
+                                /*preserve_rout_type=*/TRUE,
+                                /*preserve_type_ptr=*/FALSE);
       }  /* if */
     } else if (explicit_template_reference) {
       /* A reference to a template instance in a friend declaration.

@@ -11086,6 +11086,10 @@ that follows.
           rp->source_corresp.name_linkage =
                                  (a_name_linkage_kind)nlk_cplusplus_external;
         }  /* if */
+        if (type->kind == (a_type_kind)tk_typeref) {
+          func_info.function_type_from_typedef = TRUE;
+          type = skip_typerefs(type);
+        }  /* if */
         if (is_definition) {
           /* This is a defining declaration of the function template. */
           func_info.is_definition = TRUE;
@@ -11094,7 +11098,8 @@ that follows.
                the function type to come from a typedef, so too is that an
                error when a function template is being defined. */
             error(ec_function_type_must_come_from_declarator);
-            type = skip_typerefs(type);
+            /* No need to copy the type, since it will not actually be
+               pointed to by the routine entry. */
           }  /* if */
           if (remove_qualifiers_from_param_types) {
             /* The parameter type top-level cv-qualifiers that appeared on

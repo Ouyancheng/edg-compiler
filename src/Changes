@@ -1,5 +1,24 @@
 Version 2.42
 
+3/23/99  Abort eliminated in full_specialization
+
+If an explicit function template specification that provided a
+definition was declared with a typedef, no error was issued and an
+abort would occur in full_specialization.  Now fixed.
+
+  template <class T> void f (T) { }
+  typedef void F(int);
+  template <> F f { }            // error now issued and abort eliminated
+
+When compiling with --guiding_decls, the same abort would occur if a
+guiding declaration was first declared with a typedef type and later
+defined with the template<> syntax.  Now fixed.
+
+  template <class T> void f (T) { }
+  typedef void F(int); 
+  F f;                           // guiding declaration (nonstandard)
+  template<> void f(int) { }     // abort fixed
+
 3/23/99  Microsoft compatibility: p->k allowed in constant expression
 
 In Microsoft mode, an expression of the form p->k, where k is a member
