@@ -3236,6 +3236,24 @@ value.  Several fields are cleared or adjusted.
      constant isn't the one directly associated with the source entity,
      if any. */
   break_source_corresp(&ucp->source_corresp);
+  if (cp->kind == (a_constant_repr_kind)ck_template_param &&
+      (cp->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_param ||
+       cp->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_member)) {
+    /* For some template parameter constants, the name in the source
+       correspondence is part of the value.  It was cleared by
+       break_source_correspondence, so restore it. */
+    ucp->source_corresp.name = cp->source_corresp.name;
+    ucp->source_corresp.is_class_member = cp->source_corresp.is_class_member;
+    if (ucp->source_corresp.is_class_member) {
+      ucp->source_corresp.parent.class_type =
+                                          cp->source_corresp.parent.class_type;
+    } else {
+      ucp->source_corresp.parent.namespace_ptr =
+                                       cp->source_corresp.parent.namespace_ptr;
+    }  /* if */
+  }  /* if */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   if (ucp->expr != NULL) {
     /* If a constant in the file scope memory region has an attached

@@ -1,5 +1,19 @@
 Version 2.46
 
+2/10/01  C++-generating back end: output of template-dependent switch
+         case values in prototype instantiations
+
+Template-dependent switch case values of the form T::name, where
+T is a template parameter, were not put out correctly in prototype
+instantiations in the C++-generating back end in some cases.
+A generated name like __T12345678 was put out instead.  Now fixed.
+
+  template <class T> void f() {
+    switch (T::type(1)) {
+      case T::i:;
+    }
+  }
+
 2/9/01   sizeof expression involving local variables, with
          RECORD_CONSTANT_EXPRESSIONS_IN_IL
 
