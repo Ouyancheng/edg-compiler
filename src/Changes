@@ -1,5 +1,20 @@
 Version 3.1
 
+6/27/02  GNU C mode: Extended asm improvements
+
+The IL used to generate incorrect IL for certain extended asm constructs.
+For example
+
+  void f() { asm ("nop" : : : "bx", "ax"); }
+
+was rendered by the C-generating back end as
+
+  void f() { asm volatile("nop" : : : "ax", "invalid"); return; }
+
+This is now fixed.  We also corrected a missing initialization that could
+make the front end abort on some front ends when compiling extended asm
+constructs.
+
 6/27/02  Abort on using-declaration of template-dependent name
 
 An abort on processing a using-declaration of a member of a
