@@ -3881,11 +3881,18 @@ The parameter input_flags is the same value that was passed to decl_specifiers
     check_assertion(is_generalized_identifier_start(options));
     sym = coalesce_and_lookup_generalized_identifier(
                                                  options, ilm_normal, &error);
-    if (sym != NULL && !error) {
-      /* The name refers to something, but not a type. */
-      sym_error(ec_sym_not_a_type_name, sym);
+    if (!error) {
+      /* No error message has been issued yet. */
+      if (sym != NULL) {
+        /* The name refers to something, but not a type. */
+        sym_error(ec_sym_not_a_type_name, sym);
+      } else {
+        str_error(ec_undefined_identifier,
+                  locator_for_curr_id.symbol_header->identifier);
+      }  /* if */
     }  /* if */
     reference_to_invalid_name(&locator_for_curr_id);
+    clear_specific_symbol(locator_for_curr_id);
   }  /* if */
 }  /* report_bad_type_name */
 
