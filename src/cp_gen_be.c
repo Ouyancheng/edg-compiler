@@ -2165,14 +2165,9 @@ or enum.
   } else {
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
-    /* In C++, don't use "class X" instead of "X" unless that is required,
-       e.g., because there's something else called "X" in the same scope. */
-    if (il_header.source_language != sl_Cplusplus ||
-        type->elaborated_type_specifier_needed) {
-      write_tok_str(tag_kind(type->kind));
-      write_space();
-    }  /* if */
-    gen_name(&type->source_corresp, iek_type);
+    write_tok_str(tag_kind(type->kind));
+    write_space();
+    gen_decl_name(&type->source_corresp, iek_type);
   }  /* if */
 }  /* gen_tag_reference */
 
@@ -2188,7 +2183,16 @@ A reference is not the definition unless the type is unnamed.
     gen_type_name(type);
   } else {
     /* A class, struct, union, or enum. */
-    gen_tag_reference(type);
+    /* In C++, don't use "class X" instead of "X" unless that is required,
+       e.g., because there's something else called "X" in the same scope. */
+    if (il_header.source_language == sl_Cplusplus &&
+        !type->elaborated_type_specifier_needed) {
+      /* Use just the type name. */
+      gen_type_name(type);
+    } else {
+      /* Use an elaborated type specifier, e.g., "class X". */
+      gen_tag_reference(type);
+    }  /* if */
   }  /* if */
 }  /* gen_type_reference */
 
@@ -2205,7 +2209,7 @@ Output a type specifier.
     case tk_integer:
       if (type->variant.integer.enum_type) {
         /* Enum type, which is handled specially. */
-        gen_tag_reference(type);
+        gen_type_reference(type);
       } else {
         /* Normal integer type. */
         if (type->variant.integer.explicitly_signed) {
@@ -2220,7 +2224,7 @@ Output a type specifier.
     case tk_class:
     case tk_struct:
     case tk_union:
-      gen_tag_reference(type);
+      gen_type_reference(type);
       break;
     case tk_typeref:
       if (is_immediate_type_qualifier(type)) {
@@ -2853,7 +2857,7 @@ entry is the one associated with the access adjustment.
   adv_curr_source_sequence_entry();
   /* Put out an access specifier if necessary to change the current access. */
   gen_member_access_specifier(adj->access);
-  entry_kind = adj->entity.kind;
+  entry_kind = (an_il_entry_kind)adj->entity.kind;
   /* Get the source correspondence entry for the entity. */
   switch (entry_kind) {
     case iek_field:
@@ -2887,7 +2891,7 @@ entry is the one associated with the access adjustment.
       an_access_adjustment_ptr adjb = ss_entry_ptr(curr_source_sequence_entry,
                                                    an_access_adjustment_ptr);
       /* Keep going on access adjustments for routines with the same name. */
-      if (adjb->entity.kind != (an_il_entry_kind)iek_routine ||
+      if ((an_il_entry_kind)adjb->entity.kind != iek_routine ||
           ((a_routine_ptr)adjb->entity.ptr)->source_corresp.name !=
                   ((a_routine_ptr)adj->entity.ptr)->source_corresp.name) break;
       /* Advance past the source sequence entry for the adjustment. */
