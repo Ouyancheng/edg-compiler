@@ -7004,9 +7004,10 @@ whether the construction was done.
                      being generated. */
 #endif /* !GENERATE_EH_TABLES */
 void initial_processing_on_destructible_initialization(
-                                     a_dynamic_init_ptr dip,
-                                     a_variable_ptr     *partial_aggr_cond_var,
-                                     an_insert_location *insert_location)
+                                a_dynamic_init_ptr dip,
+                                a_variable_ptr     *partial_aggr_cond_var,
+                                a_boolean          *first_partial_aggr_skipped,
+                                an_insert_location *insert_location)
 /*
 Do initial processing on a dynamic initialization entry that indicates
 destruction.  That includes allocating the destructible entity description
@@ -7018,6 +7019,10 @@ to control partial destruction of an aggregate, once such a flag is created
 by this routine; subsequent calls then use the already-created flag.
 If the dynamic initialization is in a context where aggregate
 initialization is not possible, partial_aggr_cond_var can be NULL.
+The first entry indicating partial-aggregate-cleanup under a given variable
+(in destruction order) doesn't get a conditional flag;
+*first_partial_aggr_skipped is set when that one is skipped.  Again,
+the pointer can be NULL if not needed.
 */
 {
   a_destructible_entity_descr_ptr dedp;
@@ -7063,18 +7068,27 @@ initialization is not possible, partial_aggr_cond_var can be NULL.
        order and would not need the flags for this case). */
 #endif /* DO_UNORDERED_EH_PROCESSING */
 #if GENERATE_EH_TABLES
+    a_boolean add_flag = TRUE;
     if (dip->destruction_is_for_partially_constructed_aggregate) {
       /* All entries that indicate destruction for cleanup of a given
          partially constructed aggregate variable share the same conditional
-         flag.  It is established on the first entry processed under a given
-         variable, then reused for the rest. */
-      check_assertion(partial_aggr_cond_var != NULL);
-      if (*partial_aggr_cond_var != NULL) {
+         flag.  It is established on the second entry processed under a given
+         variable, then reused for the rest.  Why "second"?  Because the
+         first entry (in destruction order) is the last in construction order,
+         and therefore doesn't need a conditional flag (nothing follows it). */
+      check_assertion(partial_aggr_cond_var != NULL &&
+                      first_partial_aggr_skipped != NULL);
+      if (!*first_partial_aggr_skipped) {
+        /* Skip the first entry encountered (in destruction order). */
+        *first_partial_aggr_skipped = TRUE;
+        add_flag = FALSE;
+      } else if (*partial_aggr_cond_var != NULL) {
         /* Reuse the conditional flag. */
         dedp->conditional_flag_var = *partial_aggr_cond_var;
+        add_flag = FALSE;
       }  /* if */
     }  /* if */
-    if (dedp->conditional_flag_var == NULL) {
+    if (add_flag) {
 #endif /* GENERATE_EH_TABLES */
       /* Create and initialize a new conditional flag variable. */
       add_conditional_flag(dip);
@@ -7082,11 +7096,11 @@ initialization is not possible, partial_aggr_cond_var can be NULL.
         init_conditional_flag_var(dedp, insert_location);
       }  /* if */
 #if GENERATE_EH_TABLES
-    }  /* if */
-    if (dip->destruction_is_for_partially_constructed_aggregate) {
-      /* Remember the conditional flag variable for reuse with other
-         partial-construction-cleanup entries under the same variable. */
-      *partial_aggr_cond_var = dedp->conditional_flag_var;
+      if (dip->destruction_is_for_partially_constructed_aggregate) {
+        /* Remember the conditional flag variable for reuse with other
+           partial-construction-cleanup entries under the same variable. */
+        *partial_aggr_cond_var = dedp->conditional_flag_var;
+      }  /* if */
     }  /* if */
 #endif /* GENERATE_EH_TABLES */
   }  /* if */
@@ -7105,6 +7119,7 @@ and *insert_location is updated.
 {
   a_dynamic_init_ptr dip;
   a_variable_ptr     partial_aggr_cond_var = NULL;
+  a_boolean          first_partial_aggr_skipped = FALSE;
 
   for (dip = lifetime->destructions;
        dip != NULL;
@@ -7117,11 +7132,14 @@ and *insert_location is updated.
          variable appears before the entries for partial-construction-cleanup,
          if any. */
       partial_aggr_cond_var = NULL;
+      first_partial_aggr_skipped = FALSE;
     }  /* if */
 #endif /* GENERATE_EH_TABLES */
-    initial_processing_on_destructible_initialization(dip,
-                                                      &partial_aggr_cond_var,
-                                                      insert_location);
+    initial_processing_on_destructible_initialization(
+                                                   dip,
+                                                   &partial_aggr_cond_var,
+                                                   &first_partial_aggr_skipped,
+                                                   insert_location);
   }  /* for */
 }  /* begin_object_lifetime */
 

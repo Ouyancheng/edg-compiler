@@ -3199,17 +3199,22 @@ If any code is needed, it is inserted at *insert_location.
   a_boolean                       set_cond_flag = FALSE;
 
   check_assertion(dip->destruction_is_for_partially_constructed_aggregate &&
-                  dedp != NULL && dedp->conditional_flag_var != NULL);
+                  dedp != NULL);
+  /* The partial-construction-cleanup entry that appears last in initialization
+     order doesn't have a conditional flag because nothing follows it and
+     therefore its cleanup never needs to be done. */
+  if (dedp->conditional_flag_var != NULL) {
 #if GENERATE_EH_TABLES
-  check_assertion(partial_aggr_cond_var != NULL);
-  /* All the entries for partial cleanup should share the same conditional
-     flag.  Set it nonzero on the first entry under a given variable. */
-  if (*partial_aggr_cond_var == NULL) {
-    *partial_aggr_cond_var = dedp->conditional_flag_var;
-    set_cond_flag = TRUE;
-  }  /* if */
+    check_assertion(partial_aggr_cond_var != NULL);
+    /* All the entries for partial cleanup should share the same conditional
+       flag.  Set it nonzero on the first entry under a given variable. */
+    if (*partial_aggr_cond_var == NULL) {
+      *partial_aggr_cond_var = dedp->conditional_flag_var;
+      set_cond_flag = TRUE;
+    }  /* if */
 #endif /* GENERATE_EH_TABLES */
-  add_dyn_init_cleanup(dip, ipdp, set_cond_flag, context, insert_location);
+    add_dyn_init_cleanup(dip, ipdp, set_cond_flag, context, insert_location);
+  }  /* if */
 }  /* add_partial_aggregate_cleanup */
 
 
@@ -5238,6 +5243,7 @@ constructor scope, and also lower the user code.
         initial_processing_on_destructible_initialization(
                                                     dyn_init_to_free_storage,
                                                     (a_variable_ptr *)NULL,
+                                                    (a_boolean *)NULL,
                                                     (an_insert_location*)NULL);
         dedp = dyn_init_to_free_storage->destructible_entity_descr;
         set_var_indirect_init_pos_descr(this_param_var, &ipd);
