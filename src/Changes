@@ -1,5 +1,13 @@
 Version 3.2
 
+2/12/03  GNU mode: Attribute "aligned" on typedefs
+
+The front end used to ignore attributes on typedefs of class types and
+enumeration types.  This is no longer the case: In GNU modes, an attribute
+on a typedef will affect the alignment field of the corresponding tk_typeref
+type entry.  As a result, care is advised when accessing the alignment
+field of a type obtained from the application of the skip_typerefs macro.
+
 2/12/03  Abort in IL display utility with C99 variable-length arrays
 
 The IL display program used to abort when trying to output the type of a

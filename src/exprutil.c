@@ -9121,7 +9121,13 @@ C mode.
 */
 {
   a_boolean is_still_an_lvalue = FALSE;
-
+  /* Be sure to retrieve the alignment before skipping typerefs in case this
+     is ever called in GNU mode (where attributes can change the alignment
+     of typedef types. */
+  a_targ_alignment  
+            alignment_before_cast = alignment_of_type(type_before_cast),
+            alignment_after_cast = alignment_of_type(type_cast_to);
+                     
   type_before_cast = skip_typerefs(type_before_cast);
   type_cast_to = skip_typerefs(type_cast_to);
 
@@ -9146,7 +9152,7 @@ C mode.
        false/true, so it's a real conversion. */
     /* is_still_an_lvalue = FALSE; -- already set. */
   } else if (type_cast_to->size == type_before_cast->size &&
-             type_cast_to->alignment == type_before_cast->alignment) {
+             alignment_after_cast == alignment_before_cast) {
     /* The types are not floating types, and they have the same size
        and alignment. */
     is_still_an_lvalue = TRUE;

@@ -2593,7 +2593,7 @@ These two fields are normally consecutive members of the given "type", but
     field_type = skip_typerefs(field_type);
     if (is_immediate_class_type(field_type)) {
       a_targ_size_t     after_field, excess_bytes, rounded_after_field;
-      a_targ_alignment  alignment = f_skip_typerefs(field->type)->alignment;
+      a_targ_alignment  alignment = alignment_of_type(field->type);
 #if USER_CONTROL_OF_STRUCT_PACKING
       a_targ_alignment  pack_alignment = get_pack_alignment(type);
       if (pack_alignment != 0 && pack_alignment < alignment) {
@@ -2675,8 +2675,7 @@ Emit a comment describing the layout of the given field.
     write_tok_str((char *)((temp == 1) ? " bit" : " bits"));
   }  /* if */
   write_tok_str(", type alignment = ");
-  write_unsigned_num(
-                 (a_host_large_unsigned)skip_typerefs(field->type)->alignment);
+  write_unsigned_num((a_host_large_unsigned)alignment_of_type(field->type));
   write_space();
   end_comment();
   write_space();
@@ -2782,7 +2781,7 @@ final semicolon if output_final_semi is TRUE.
             /* If the underlying type is bigger than the size allocated for
                the union, use a smaller integral type. */
             if (under_type->size > union_size ||
-                under_type->alignment > union_alignment) {
+                alignment_of_type(eff_type) > union_alignment) {
               /* Find the largest integral type with the right signedness that
                  will fit in the union. */
               an_integer_kind  ikind, eff_ikind;

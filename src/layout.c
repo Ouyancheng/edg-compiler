@@ -226,7 +226,11 @@ Return the field alignment for the given type.
       result = float_field_alignments[type->variant.float_kind];
       break;
     case tk_typeref:
-      result = field_alignment_for(skip_typerefs(type));
+      if (type->alignment_set_explicitly) {
+        result = type->alignment;
+      } else {
+        result = field_alignment_for(skip_typerefs(type));
+      }  /* if */
       break;
     case tk_array:
       result = field_alignment_for(underlying_array_element_type(type));
@@ -241,7 +245,7 @@ Return the field alignment for the given type.
 /*
 The field alignment is therefore equal to the intrinsic alignment of the type.
 */
-#define field_alignment_for(tp) ((tp)->alignment)
+#define field_alignment_for(tp) (alignment_of_type(tp))
 #endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
 
 
@@ -929,12 +933,12 @@ targ_microsoft_bit_field_allocation is FALSE.)
            they do in unions).  We therefore do not use "field_alignment_for"
            here, and instead we access the type's intrinsic alignment
            directly. */
-        container_alignment = base_type->alignment;
+        container_alignment = alignment_of_type(field->type);
       } else
 #endif /* IA64_ABI */
       /* Do not insert code here. */
       {
-        container_alignment = field_alignment_for(base_type);
+        container_alignment = field_alignment_for(field->type);
       }  /* if */
     }  /* if */
     if (targ_microsoft_bit_field_allocation) {

@@ -1603,14 +1603,10 @@ a typedef, is_typedef is TRUE.
     case ak_aligned:
       /* Set the alignment here.  When the actual class layout, or
          choice of integral type, is performed the value indicated
-         here will be honored. */
-      if (is_typedef && (is_class_struct_union_type(tp) ||
-                         is_enum_type(tp))) {
-        pos_warning(ec_attribute_ignored_on_typedef, &ap->position);
-      } else {
-        tp->alignment = ap->variant.alignment;
-        tp->alignment_set_explicitly = TRUE;
-      }  /* if */
+         here will be honored.  Note that this attribute applies to
+         a typedef itself; not to its underlying type. */
+      type->alignment = ap->variant.alignment;
+      type->alignment_set_explicitly = TRUE;
       break;
     case ak_packed:
       if (is_typedef) {

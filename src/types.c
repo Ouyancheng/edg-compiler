@@ -1920,14 +1920,19 @@ array size is too large, the array type is converted to an error type
 and a diagnostic is issued (unless suppress_error is TRUE).
 */
 {
-  a_type_ptr     underlying_elem_type;
-  a_targ_size_t  temp, temp2;
-  a_type_ptr     elem_type;
-  a_boolean	 okay = TRUE;
+  a_type_ptr        underlying_elem_type;
+  a_targ_size_t     temp, temp2;
+  a_targ_alignment  underlying_elem_alignment;
+  a_type_ptr        elem_type;
+  a_boolean         okay = TRUE;
 
   db_enter(5, "set_array_type_size");
 
   underlying_elem_type = underlying_array_element_type(array_type);
+  /* The alignment should be retrieved before applying a skip_typerefs,
+     in case a GNU attribute was used to modify the alignment of a
+     typedef type. */
+  underlying_elem_alignment = alignment_of_type(underlying_elem_type);
   underlying_elem_type = skip_typerefs(underlying_elem_type);
   if (is_incomplete(underlying_elem_type) &&
       (is_immediate_class_type(underlying_elem_type) ||
@@ -1994,7 +1999,7 @@ and a diagnostic is issued (unless suppress_error is TRUE).
       array_type->size = temp*temp2;
       /* The alignment for the array is the same as the alignment for the
          elements. */
-      array_type->alignment = elem_type->alignment;
+      array_type->alignment = underlying_elem_alignment;
     }  /* if */
   }  /* if */
   db_exit();

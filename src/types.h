@@ -170,6 +170,20 @@ nor qualifier.
  ((tp)->source_corresp.name != NULL)
 
 /*
+Return the alignment of the given type.  Normally, a skip_typeref must be
+performed to make sure we get correct alignment, but if the alignment was
+set explicitly using an attribute on a typedef, the skip_typeref could be
+erroneous (GNU mode only).
+*/
+#if GNU_EXTENSIONS_ALLOWED
+#define alignment_of_type(tp)                                         \
+  ((tp)->alignment_set_explicitly ? (tp)->alignment                   \
+                                  : skip_typerefs(tp)->alignment)
+#else /* !GNU_EXTENSIONS_ALLOWED */
+#define alignment_of_type(tp)  (skip_typerefs(tp)->alignment)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+/*
 Return TRUE if ph points to a tk_typeref type that is a placeholder-for-
 namespace-type that points to tp.
 */

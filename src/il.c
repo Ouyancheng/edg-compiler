@@ -1277,6 +1277,9 @@ Dump the contents of the indicated type entry, for debug purposes.
           if (tp->variant.typeref.is_typeof) {
             fputs("__typeof__ ", f_debug);
           }  /* if */
+          if (tp->alignment_set_explicitly) {
+            fprintf(f_debug, "aligned(%d) ", tp->alignment);
+          }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         }  /* if */
         db_abbreviated_type(tp->variant.typeref.type);
@@ -9959,6 +9962,7 @@ name lookup options.
           } else {
             /* No longer a template parameter type, so the sizeof/alignof
                or uuidof is known. */
+            a_targ_alignment  new_alignment = alignment_of_type(new_type);
             new_type = skip_typerefs(new_type);
             complete_type_is_needed(new_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -9976,7 +9980,7 @@ name lookup options.
               set_unsigned_integer_constant(
                                   constant, is_sizeof ?
                                     (a_host_large_unsigned)new_type->size :
-                                    (a_host_large_unsigned)new_type->alignment,
+                                    (a_host_large_unsigned)new_alignment,
                                   targ_size_t_int_kind);
             }  /* if */
             con_copy = NULL;
