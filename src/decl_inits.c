@@ -3012,17 +3012,16 @@ are created by a new expression (in which case sym is NULL).  In both cases
               decl_scope_level <= depth_innermost_namespace_scope)) {
            /* In C++ const qualified variables that are internally linked
               must be initialized (ARM 7.1.6). */
-           if (is_empty_class) {
-             /* Except in -A mode, just issue a warning for an empty class. */
-             if (strict_ansi_mode) {
-               severity = strict_ansi_error_severity;
-             } else {
-               severity = es_warning;
-             }  /* if */
+           if (is_empty_class && !strict_ansi_mode) {
+             /* Except in strict mode, don't bother issuing a diagnostic on
+                something like "const struct S { } s;". */
            } else {
-             severity = es_error;
+             /* Issue an error (or, for an empty class in -a mode, a warning)
+                on omitting the initializer. */
+             sym_diagnostic(is_empty_class ?
+                              strict_ansi_error_severity : es_error,
+                            ec_missing_initializer_on_const, sym);
            }  /* if */
-           sym_diagnostic(severity, ec_missing_initializer_on_const, sym);
          }  /* if */
        } else {
          /* Ordinary C -- a warning, and only on local variables. */

@@ -1,5 +1,13 @@
 Version 2.30
 
+10/6/95  Const-qualified variable of empty-class type with no initializer
+
+We no longer issue a diagnostic, except in strict-ANSI mode, when a
+variable of empty-class type is declared const but with no initializer:
+
+  class A { };
+  const A a;           // No missing-initializer warning in default mode
+
 10/6/95  Qualifier on parameter variable of template function
 
 A bug has been fixed in setting the qualifiers on the type of the parameter
