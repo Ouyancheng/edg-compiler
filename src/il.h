@@ -60,6 +60,9 @@ extern a_class_list_entry_ptr alloc_list_entry_for_class(void);
 
 extern a_derivation_step_ptr alloc_derivation_step(void);
 
+extern an_overriding_virtual_function_ptr
+                                       alloc_overriding_virtual_function(void);
+
 extern a_base_class_ptr alloc_base_class(void);
 
 extern a_type_ptr alloc_type(a_type_kind kind);
