@@ -1,5 +1,14 @@
 Version 2.44
 
+7/17/00  Name linkage of implicitly declared functions in C mode
+
+Recent versions of the front end recorded implicitly declared functions in C
+mode as having no name linkage.  This has been restored to "C" name linkage.
+
+  void f() {
+    g();  // Implicit declaration of "g" is valid in C mode;
+  }       // now recorded as having "C" name linkage.
+
 7/17/00  Microsoft C mode: void * operands in "?" operation
 
 In Microsoft C mode (and also pcc and SVR4 modes), a "?" operator

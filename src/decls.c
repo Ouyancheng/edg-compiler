@@ -4498,7 +4498,8 @@ on for use in generating cross-reference output describing this declaration.
       /* For an implicit function, the identifier would not be in the process
          of being declared implicitly as a function if there were any visible
          declaration of it, and therefore it must have external linkage. */
-      linkage = idl_external;
+      idlb.linkage = linkage = idl_external;
+      compute_name_linkage(&idlb);
     } else {
       /* In C++ this is an error case.  Don't give this dummy routine any
          linkage. */
