@@ -490,6 +490,63 @@ is TRUE.
 #endif /* DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED */
 
 /*
+Flag that is TRUE if, when exceptions handling is enabled, a
+preprocessing symbol should be defined.
+*/
+#ifndef DEFINE_MACRO_WHEN_EXCEPTIONS_ENABLED
+#define DEFINE_MACRO_WHEN_EXCEPTIONS_ENABLED TRUE
+#endif /* ifndef DEFINE_MACRO_WHEN_EXCEPTIONS_ENABLED */
+
+/*
+The name of the macro to be defined when exceptions is enabled.
+This is only used when DEFINE_MACRO_WHEN_EXCEPTIONS_ENABLED
+is TRUE.
+*/
+#if DEFINE_MACRO_WHEN_EXCEPTIONS_ENABLED
+#ifndef MACRO_DEFINED_WHEN_EXCEPTIONS_ENABLED
+#define MACRO_DEFINED_WHEN_EXCEPTIONS_ENABLED "__EXCEPTIONS"
+#endif /* ifndef MACRO_DEFINED_WHEN_EXCEPTIONS_ENABLED */
+#endif /* DEFINE_MACRO_WHEN_EXCEPTIONS_ENABLED */
+
+/*
+Flag that is TRUE if, when RTTI is enabled, a
+preprocessing symbol should be defined.
+*/
+#ifndef DEFINE_MACRO_WHEN_RTTI_ENABLED
+#define DEFINE_MACRO_WHEN_RTTI_ENABLED TRUE
+#endif /* ifndef DEFINE_MACRO_WHEN_RTTI_ENABLED */
+
+/*
+The name of the macro to be defined when RTTI is enabled.
+This is only used when DEFINE_MACRO_WHEN_RTTI_ENABLED
+is TRUE.
+*/
+#if DEFINE_MACRO_WHEN_RTTI_ENABLED
+#ifndef MACRO_DEFINED_WHEN_RTTI_ENABLED
+#define MACRO_DEFINED_WHEN_RTTI_ENABLED "__RTTI"
+#endif /* ifndef MACRO_DEFINED_WHEN_RTTI_ENABLED */
+#endif /* DEFINE_MACRO_WHEN_RTTI_ENABLED */
+
+/*
+Flag that is TRUE if, when placement_delete is enabled, a
+preprocessing symbol should be defined.
+*/
+#ifndef DEFINE_MACRO_WHEN_PLACEMENT_DELETE_ENABLED
+#define DEFINE_MACRO_WHEN_PLACEMENT_DELETE_ENABLED TRUE
+#endif /* ifndef DEFINE_MACRO_WHEN_PLACEMENT_DELETE_ENABLED */
+
+/*
+The name of the macro to be defined when placement delete is enabled.
+This is only used when DEFINE_MACRO_WHEN_PLACEMENT_DELETE_ENABLED
+is TRUE.
+*/
+#if DEFINE_MACRO_WHEN_PLACEMENT_DELETE_ENABLED
+#ifndef MACRO_DEFINED_WHEN_PLACEMENT_DELETE_ENABLED
+#define MACRO_DEFINED_WHEN_PLACEMENT_DELETE_ENABLED "__PLACEMENT_DELETE"
+#endif /* ifndef MACRO_DEFINED_WHEN_PLACEMENT_DELETE_ENABLED */
+#endif /* DEFINE_MACRO_WHEN_PLACEMENT_DELETE_ENABLED */
+
+/*
 Flag that is TRUE if, in C++ mode, operator keywords (e.g., bitand, compl)
 and digraphs are recognized.  This is the default value for the global
 flag alternative_tokens_allowed, the value of which may also be modified

@@ -3812,6 +3812,42 @@ command line -D options.
                      /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
 #endif /* DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED */
+#if DEFINE_MACRO_WHEN_EXCEPTIONS_ENABLED
+    if (exceptions_enabled) {
+      /* Enter a predefined macro that can be used to determine that
+         exceptions are enabled. */
+      (void)enter_predef_macro(
+                     "1", MACRO_DEFINED_WHEN_EXCEPTIONS_ENABLED,
+                     /*cannot_be_redefined=*/TRUE,
+                     /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
+#endif /* DEFINE_MACRO_WHEN_EXCEPTIONS_ENABLED */
+#if DEFINE_MACRO_WHEN_RTTI_ENABLED
+    if (rtti_enabled) {
+      /* Enter a predefined macro that can be used to determine that
+         RTTI is enabled. */
+      (void)enter_predef_macro(
+                     "1", MACRO_DEFINED_WHEN_RTTI_ENABLED,
+                     /*cannot_be_redefined=*/TRUE,
+                     /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
+#endif /* DEFINE_MACRO_WHEN_RTTI_ENABLED */
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+#if DEFINE_MACRO_WHEN_PLACEMENT_DELETE_ENABLED
+    /* When placement delete is supported, define a macro that can be used
+       to determine that this is the case.  The macro is only defined when
+       exceptions are enabled as placement delete routines are only called
+       by the EH mechanism. */
+    if (exceptions_enabled) {
+      /* Enter a predefined macro that can be used to determine that
+         placement delete is enabled. */
+      (void)enter_predef_macro(
+                     "1", MACRO_DEFINED_WHEN_PLACEMENT_DELETE_ENABLED,
+                     /*cannot_be_redefined=*/TRUE,
+                     /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
+#endif /* DEFINE_MACRO_WHEN_PLACEMENT_DELETE_ENABLED */
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
 #if RUNTIME_USES_NAMESPACES
     /* Enter a predefined macro that can be used to determine that
        the runtime uses namespaces.  This is also used by the
