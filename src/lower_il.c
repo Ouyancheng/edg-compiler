@@ -192,13 +192,19 @@ IL lowering.
 /* Everything below this point is related to IL lowering. */
 #if DO_IL_LOWERING
 
+
+a_boolean il_lowering_needed(void)
 /*
-IL lowering is only needed in this compilation if the source language
-is C++, there are no errors, and lowering hasn't been suppressed.
+Return TRUE if IL lowering is needed.  IL lowering is only needed in
+this compilation if the source language is C++, there are no errors, and
+lowering hasn't been suppressed.
 */
-#define il_lowering_needed()                                          \
-  (C_dialect == C_dialect_cplusplus && !suppress_il_lowering &&       \
-   total_errors == 0)
+{
+  a_boolean needed = (C_dialect == C_dialect_cplusplus &&
+                      !suppress_il_lowering &&
+                      total_errors == 0);
+  return needed;
+}  /* il_lowering_needed */
 
 
 /*
@@ -8235,6 +8241,14 @@ if olp is NULL.
          child_olp = child_olp->next) {
       eliminate_object_lifetime_tree(child_olp);
     }  /* if */
+    /* Disassociate the dynamic init entries on the destructions list from
+       the lifetime. */
+    while (olp->destructions != NULL) {
+      check_assertion_str2(olp->destructions->lifetime == olp,
+                           "eliminate_object_lifetime_tree:",
+                           "bad lifetime pointer in dynamic init");
+      remove_from_destruction_list(olp->destructions);
+    }  /* while */
     /* Watch out for lifetimes that have already been unbound (e.g., those
        associated with enk_object_lifetime nodes). */
     if (olp->entity.kind != (a_byte_il_entry_kind)iek_none) {
