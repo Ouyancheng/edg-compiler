@@ -1,5 +1,12 @@
 Version 2.36
 
+4/9/97    Internal error when sk_parameter symbol used as an error fill-in
+
+An internal error would result when an sk_parameter symbol was used as
+an error message fill-in.  This has been fixed.
+
+  void f ( int A , A<short>);
+
 4/8/97    Internal error after use of an undefined operator function
 
 An internal error could result when an undefined operator function

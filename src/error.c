@@ -711,6 +711,11 @@ declaration position to eliminate redundant file names in a diagnostic.
     case sk_enum_tag:
       entity_kind = "enum ";
       goto symbol_name;
+    case sk_parameter:
+      entity_kind = "parameter ";
+      type = fund_sym->variant.param_id->type;
+      is_declaration_like = TRUE;
+      goto symbol_name;
     case sk_variable:
       type = fund_sym->variant.variable.ptr->type;
       if (fund_sym->variant.variable.ptr->is_parameter) {
