@@ -446,7 +446,7 @@ a new symbol is created and entered in the symbol table.
        param-id may include a template parameter, so use the type in
        param-type entry, which will be the result of the template arg
        substitution.  But copy top-level type qualifiers from the param-id
-       type, since they will have been removed the the param-type type. */
+       type, since they will have been removed from the param-type type. */
     tp = make_identically_qualified_type(ptp->type, param_id->type);
   } else {
     /* In cases other than template instantiations, use the param-id type,
