@@ -3675,6 +3675,7 @@ expression for the corresponding rvalue, and return a pointer to it.
     } else if (node->variant.operation.assignment_returns_lvalue) {
       /* The operation is an assignment that returns an lvalue.
          Change it to one that returns an rvalue. */
+      optimized_case = TRUE;
       node->variant.operation.assignment_returns_lvalue = FALSE;
     }  /* if */
   }  /* if */
