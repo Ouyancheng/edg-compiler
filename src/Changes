@@ -96,8 +96,8 @@ member declaration only elicits a warning; not a fatal error.
 6/12/00  Microsoft 7.0 compatibility: void return expressions
 
 In MSVC++ 7.0, void return expressions are permitted (just as in strict ANSI
-mode) in function with void return type.  This is now emulated in Microsoft
-mode with --microsoft_version=1300.
+mode) in functions with void return type.  This is now emulated in Microsoft
+mode with --microsoft_version=1300 or higher.
 
   void f();
   void g() {
