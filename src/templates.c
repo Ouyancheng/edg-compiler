@@ -7215,7 +7215,7 @@ is the position to be used if a diagnostic is issued.
 */
 {
   /* Make sure the lookup was not ambiguous. */
-  check_ambiguity_and_verify_access(locator);
+  check_for_ambiguity(locator);
   if (!is_error_locator(*locator)) {
     if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
       if (is_function_type(type) && sym != NULL &&

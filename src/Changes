@@ -1,5 +1,15 @@
 Version 2.35
 
+1/15/97 Spurious access error on new-style specialization
+
+Examples such as the following resulted in a spurious access error on the
+declarator in the specialization.  This has been fixed.
+
+  template <class T> class A {
+    T f();
+  };
+  template<> int A<int>::f();
+
 1/15/97 Change in the way that pragma caches are terminated
 
 The correction needed for the nested pragma problem described below involved
