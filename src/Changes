@@ -1,5 +1,11 @@
 Version 2.29
 
+3/14/95  Null pointer constants more standard-conforming
+
+Null pointer constants in both C and C++ are limited in the casts and
+operations they can contain.  This has been tightened up.  Some obscure
+cases like (int)(float)0 are no longer considered null pointer constants.
+
 3/13/95  Preserving "!= 0" in IL lowering
 
 Boolean controlling expressions in "?", "&&", "||", and "!" operators
