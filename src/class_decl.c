@@ -5507,7 +5507,7 @@ member declaration, respectively.
   sym->variant.static_data_member.variable = var;
   set_class_membership(sym, &var->source_corresp, class_type);
   decl_info->member_sym = sym;
-  if (decl_info->is_member_template && !sym->is_error) {
+  if (decl_info->is_member_template && locator->symbol_header != NULL) {
     pos_sy_error(ec_bad_member_template_sym, &locator->source_position, sym);
   }  /* if */
   /* Static data members will have the same name linkage as the class of
