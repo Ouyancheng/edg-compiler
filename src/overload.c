@@ -1977,8 +1977,10 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
              f(&i);  // f(int *) is better than f(const int *)
            }
       */
-      if ((is_pointer_type(param_type1)  && is_pointer_type(param_type2)) ||
-          (is_reference_type(param_type1)&& is_reference_type(param_type2))) {
+      /* Note that the test allows one to be a pointer, the other a reference.
+         That's intentional, and needed for some cases that compare a "this"
+         parameter pointer match with a reference match. */
+      if (is_ptr_or_ref_type(param_type1) && is_ptr_or_ref_type(param_type2)) {
         under_type1 = type_pointed_to(param_type1);
         under_type2 = type_pointed_to(param_type2);
         if (type_qualifiers_match(under_type1, under_type2)) {
