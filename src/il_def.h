@@ -1137,12 +1137,12 @@ typedef struct a_dynamic_init {
 			   a call of a delete routine to free the storage
 			   allocated in a new if an exception is thrown before
 			   the storage is initialized. */
-  a_bit_field	destruction_is_for_partially_constructed_array:1;
+  a_bit_field	destruction_is_for_partially_constructed_aggregate:1;
 			/* TRUE if destructor is non-NULL, exceptions_enabled
-			   is TRUE, and this entry is associated with an
-			   element of an array whose element-by-element
-			   construction might be interrupted by an exception
-			   before the entire array has been initialized. */
+			   is TRUE, and this entry is associated with a member
+			   of an aggregate whose member-by-member construction
+			   might be interrupted by an exception before the
+			   entire aggregate has been initialized. */
 #if DO_IL_LOWERING
   a_bit_field	is_guard_var_for_local_static_var_init:1;
 			/* TRUE if this entry represents the conditional flag

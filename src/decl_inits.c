@@ -194,60 +194,35 @@ that routine.  This routine ignores a closing brace if that is appropriate.
 }  /* check_for_matching_closing_brace */
 
 
-static a_boolean throws_no_exceptions(a_routine_ptr  rp)
-/*
-Return TRUE if the routine pointed to by rp does not throw exceptions; return
-FALSE if it does.
-*/
-{
-  a_boolean                       throws_none = TRUE;
-  an_exception_specification_ptr  esp;
-
-  if (exceptions_enabled) {
-    esp = rp->type->variant.routine.extra_info->exception_specification;
-    if (esp == NULL || esp->exception_specification_type_list != NULL) {
-      /* The constructor is declared to throw something (either anything at
-         at all or a specific set of types). */
-      throws_none = FALSE;
-    }  /* if */
-  }  /* if */
-  return throws_none;
-}  /* throws_no_exceptions */
-
-
 static void add_destructor_to_dynamic_init(a_dynamic_init_ptr  dip,
                                            a_type_ptr          class_type,
                                            a_source_position   *pos,
                                            a_boolean           static_lifetime)
 /*
 This routine should really be called, "add destructor to dynamic init for
-element of partially constructed array".  dip is a dynamic-init entry created
-for the initialization of an array element.  class_type is class of which the
-associated constructor (if there is one) is a member.  *pos is the source
-position in case there's an error looking up the destructor.  If
-static_lifetime is TRUE, the underlying entity has static storage duration.
+member of partially constructed aggregate".  dip is a dynamic-init entry
+created for the initialization of a field or array element.  class_type is
+the type of the member.  *pos is the source position in case there's an error
+looking up the destructor.  If static_lifetime is TRUE, the underlying entity
+has static storage duration.
 */
 {
   a_routine_ptr  ctor_rp, dtor_rp;
 
-  if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
-      dip->destructor == NULL) {
-    ctor_rp = dip->variant.constructor.ptr;
-    if (!throws_no_exceptions(ctor_rp)) {
-      class_type = skip_typerefs(class_type);
-      dtor_rp = select_destructor(class_type, class_type, pos,
-                                  /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
-                                  /*suppress_access_check=*/FALSE);
-      if (dtor_rp != NULL) {
-        dip->destructor = dtor_rp;
-        dip->destruction_is_for_partially_constructed_array = TRUE;
-        /* Since the destructor has been added to a dynamic init entry that
-           will not be "on top" when gen_dynamic_initialization is called,
-           record the destruction, if needed, with the appropriate
-           object-lifetime entry. */
-        record_end_of_lifetime_destruction(dip, static_lifetime,
-                                           /*block_lifetime=*/TRUE);
-      }  /* if */
+  if (dip->destructor == NULL) {
+    class_type = skip_typerefs(class_type);
+    dtor_rp = select_destructor(class_type, class_type, pos,
+                                /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
+                                /*suppress_access_check=*/FALSE);
+    if (dtor_rp != NULL) {
+      dip->destructor = dtor_rp;
+      dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+      /* Since the destructor has been added to a dynamic init entry that
+         will not be "on top" when gen_dynamic_initialization is called,
+         record the destruction, if needed, with the appropriate
+         object-lifetime entry. */
+      record_end_of_lifetime_destruction(dip, static_lifetime,
+                                         /*block_lifetime=*/TRUE);
     }  /* if */
   }  /* if */
 }  /* add_destructor_to_dynamic_init */
