@@ -1104,7 +1104,7 @@ return FALSE.
   db_enter(3, "is_match_for_function_template");
 #if CHECKING
   if (!is_function_type(curr_type)) {
-    internal_error("matching_template_function: expected routine type");
+    internal_error("is_match_for_template_function: expected routine type");
   }  /* if */
 #endif /* CHECKING */
   *templ_arg_list = NULL;
@@ -1294,10 +1294,100 @@ void record_predeclared_template_function(a_symbol_ptr  templ_sym,
 }  /* record_predeclared_template_function */
 
 
+void find_member_function_template(a_symbol_ptr    rout_sym,
+                                   a_scope_number  decl_scope)
+/*
+rout_sym is a member function of a template class.  decl_scope is the scope
+in which the corresponding member function of a prototype instantiation was
+declared; the symbol for that corresponding member function is a function
+template symbol.  Find the function template symbol that corresponds to
+rout_sym (if the name is overloaded, use the source position to decide),
+and then create a function instantiation entry to bind the two symbols
+together.
+*/
+{
+  a_symbol_ptr                       sym;
+  a_template_symbol_supplement_ptr   tssp;
+  a_function_instantiation_entry_ptr fiep;
+  a_type_ptr                         tp;
+
+  db_enter(3, "find_memeber_function_template");
+  /* Find a function symbol on the inactive list that is in the scope of the
+     prototype instantiation.  It should either be a function template or
+     overloaded function symbol. */
+  for (sym = rout_sym->header->inactive_symbols;
+       sym != NULL;
+       sym = sym->next) {
+    if (sym->decl_scope == decl_scope &&
+        (sym->kind == (a_symbol_kind)sk_function_template ||
+         sym->kind == (a_symbol_kind)sk_overloaded_function)) {
+      break;
+    }  /* if */
+  }  /* for */
+#if CHECKING
+  if (sym != NULL)
+#endif /* CHECKING */
+  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    /* An overloaded function was found.  Go through the symbols on its list
+       and find the function template symbol that corresponds to rout_sym.
+       The easiest way is just to compare source positions. */
+    for (sym = sym->variant.overloaded_function.symbols;
+         sym != NULL;
+         sym = sym->next) {
+      if (sym->kind == (a_symbol_kind)sk_function_template &&
+          sym->decl_position.seq == rout_sym->decl_position.seq &&
+          sym->decl_position.column == rout_sym->decl_position.column) {
+        /* sym is the template function symbol for rout_sym. */
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#if CHECKING
+  if (sym == NULL || sym->kind != (a_symbol_kind)sk_function_template ||
+      sym->decl_position.seq != rout_sym->decl_position.seq ||
+      sym->decl_position.column != rout_sym->decl_position.column) {
+    internal_error("find_member_function_template: no corresponding template");
+  }  /* if */
+#endif /* CHECKING */
+  /* sym is the template symbol for which member function rout_sym is an
+     instantiation.  Create the function instantiation entry and set the
+     pointers to bind them together. */
+  fiep = alloc_function_instantiation_entry();
+  fiep->template_sym = sym;
+  /* Get the template arg list for the class and use it.  Note that if
+     this is a nested class we have to climb the parent chain to find the
+     template class in which the template arg list is recorded. */
+  tp = rout_sym->class_of_which_a_member;
+  while (tp->source_corresp.class_of_which_a_member != NULL) {
+    tp = tp->source_corresp.class_of_which_a_member;
+  }  /* if */
+  fiep->arg_list =
+             tp->variant.class_struct_union.extra_info->template_arg_list;
+  tssp = sym->variant.template.extra_info;
+  /* Link the new entry to the star of the instantiation list of the
+     function template. */
+  fiep->next = tssp->variant.function.instantiations;
+  tssp->variant.function.instantiations = fiep;
+  /* Make the function instantiation entry and its associated symbol
+     point at each other. */
+  fiep->routine_sym = rout_sym;
+  rout_sym->variant.routine.instance_ptr = fiep;
+  db_exit();
+}  /* find_memeber_function_template */
+
+
 a_symbol_ptr find_template_function(a_symbol_ptr        templ_sym,
                                     a_template_arg_ptr  *new_list,
                                     a_source_position   *source_pos)
 /*
+templ_sym is a pointer to a symbol representing a function template and
+*new_list is a pointer to a linked list of template arg entries.  If
+*new_list is equivalent to the template arg list of a previous instantiation,
+return the symbol representing the latter and put the entries on *new_list
+back onto the available list.  Otherwise, create a new function instantiation
+entry, symbol, routine entry, etc., and return the new symbol; in that
+case *new_list is not disposed of but rather used in the resulting data
+structure.
 */
 {
   a_symbol_ptr                        sym;
