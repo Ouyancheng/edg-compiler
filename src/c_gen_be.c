@@ -4508,15 +4508,8 @@ process_assignment:
                               "dump_expr: wrong # of operands for ?");
 #if CHECKING
 #if !STANDALONE_UTILITY_PROGRAM
-          if ((!il_identical_types(operand_2->type, expr_type) ||
-               !il_identical_types(operand_2->next->type, expr_type))
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-              /* With fixed-point, one can have mixed int/fixed_point or
-                 two different fixed-point types. */
-              && !is_fixed_point_type(operand_2->type)
-              && !is_fixed_point_type(operand_2->next->type)
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-                                                                     ) {
+          if (!il_identical_types(operand_2->type, expr_type) ||
+              !il_identical_types(operand_2->next->type, expr_type)) {
 #if DEBUG
             db_expression(expr);
 #endif /* DEBUG */
