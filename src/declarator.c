@@ -640,11 +640,16 @@ specification is handled later (see check_exception_specification).
     /* No explicit throw specification, meaning anything may be thrown. */
     goto done;
   }  /* if */
-  if (exceptions_enabled && exception_spec_allowed) {
-    esp = alloc_exception_specification();
+  if (exceptions_enabled) {
+    if (exception_spec_allowed) {
+      esp = alloc_exception_specification();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    esp->throw_position = pos_curr_token;
+      esp->throw_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    } else {
+      pos_diagnostic(es_discretionary_error,
+                     ec_exception_specification_not_allowed, &pos_curr_token);
+    }  /* if */
   }  /* if */
   /* Bypass "throw". */
   (void)get_token();
@@ -856,7 +861,8 @@ static void function_declarator(a_type_ptr        *new_type_ptr,
                                 a_boolean         is_nonstatic_member_function,
                                 a_boolean         is_constructor,
                                 a_boolean         is_destructor,
-                                a_boolean         disallow_default_args)
+                                a_boolean         disallow_default_args,
+                                a_boolean         disallow_exception_spec)
 /*
 Scan a function declarator (3.5.4.3), or an array declarator in an
 abstract declarator (3.5.5).  Allocate and return in *new_type_ptr an
@@ -1508,7 +1514,6 @@ issue an error if a default argument expression is encountered.
   if (C_dialect == C_dialect_cplusplus) {
     a_type_ptr            this_param_type = NULL;
     a_type_qualifier_set  qualifiers;
-    a_boolean             exception_spec_allowed;
 #if RESTRICT_ALLOWED
     a_boolean             restrict_qualified = FALSE;
 #endif /* RESTRICT_ALLOWED */
@@ -1613,10 +1618,9 @@ issue an error if a default argument expression is encountered.
       /* Error?  Warning? */
     }  /* if */
 #endif /* if 0 */
-    exception_spec_allowed = (func_info != &local_func_info_block);
     extra_info->exception_specification =
                         scan_exception_specification(func_info,
-                                                     exception_spec_allowed);
+                                                     !disallow_exception_spec);
   }  /* if */
   if (func_info == &local_func_info_block) {
     done_with_func_info(local_func_info_block);
@@ -2899,7 +2903,7 @@ The syntax is:
                   left_call_conv, inner_left_call_conv, unbound_call_conv;
   a_type_qualifier_set
                   left_qualifiers, inner_left_qualifiers, unbound_qualifiers;
-  a_boolean       disallow_default_args;
+  a_boolean       disallow_default_args, disallow_exception_spec;
 
   db_enter(3, "r_declarator");
   set_err_pos_to_curr_token();
@@ -3203,10 +3207,32 @@ function_lparen:
                               (func_info != NULL &&
                                (input_flags & (DI_IS_SPECIALIZATION |
                                                DI_IS_EXPLICIT_INSTANTIATION)));
+      /* Pass in a flag to indicate whether exception specifications are
+         allowed.  They are allowed on a top-level function declaration and
+         on a top-level pointer-to-function-type declaration that does not
+         appear in a typedef declaration.  (Note: pointer-to-member-functions
+         declarations are not mentioned in WP 15.4 [except.spec] as allowing
+         exception specifications.) */
+      disallow_exception_spec = TRUE;
+      if (!C_mode() && !(input_flags & (DI_IS_TYPEDEF_DECLARATION |
+                                        DI_IS_EXPLICIT_INSTANTIATION))) {
+        if (derived_type == NULL) {
+          /* Top level function declaration. */
+          disallow_exception_spec = FALSE;
+        } else if (is_pointer_type(derived_type)) {
+          /* If derived_type is a pointer type that currently points to NULL,
+             this can be assumed to be a top-level pointer declaration, and
+             an exception specification is permitted:
+               void (*pf)() throw();    // Okay
+               void (**ppf)() throw();  // Error
+          */
+          disallow_exception_spec = (type_pointed_to(derived_type) != NULL);
+        }  /* if */
+      }  /* if */
       function_declarator(&new_type_ptr, func_info, locator,
                           member_parent_type, is_nonstatic_member_function,
                           *is_constructor, *is_destructor,
-                          disallow_default_args);
+                          disallow_default_args, disallow_exception_spec);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (func_info != NULL) {
         /* Record the source sequence entry in func_info even if there was
