@@ -1488,7 +1488,9 @@ union, adjust it to make the anonymous union reference(s) explicit.
     /* See if the field is from an anonymous union. */
     field_class = field->source_corresp.parent.class_type;
     ctsp = field_class->variant.class_struct_union.extra_info;
-    if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_field) {
+    if (ctsp == NULL || /* Avoid abort when this code is used to lower
+                           C code in Microsoft mode. */
+        ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_field) {
       /* Stop when the field is not from an anonymous union. */
       break;
     }  /* if */
