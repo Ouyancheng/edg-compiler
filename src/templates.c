@@ -458,7 +458,6 @@ encountered.
     internal_error("instantiate_class_template: bad 1st token in cache");
   }  /* if */
 #endif /* CHECKING */
-  mark_defined(template_sym, &template_sym->decl_position);
   /* Scan the base specifiers list, if any, and the body of the class. */
   (void)scan_class_definition(prototype_type, DEPTH_OF_FILE_SCOPE,
                               /*is_local_class=*/FALSE,
@@ -2713,6 +2712,7 @@ that make up the declaration and do a prototype instantiation.
       tssp->declaration_scope = scope_stack[decl_scope_level].number;
     }  /* if */
     if (is_definition) {
+      mark_defined(sym, &sym->decl_position);
       *defines_something = TRUE;
       prototype_sym = make_template_class_symbol(sym, &sym->decl_position);
       /* Add the new symbol to the head of the instantiation list. */
@@ -2724,11 +2724,7 @@ that make up the declaration and do a prototype instantiation.
       set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
       prototype_type->source_corresp.name_linkage =
                                            (a_name_linkage_kind)nlk_internal;
-#if 0
-      mark_defined(prototype_sym, &prototype_sym->decl_position);
-#else /* 0 */
       prototype_sym->defined = TRUE;
-#endif /* if 0 */
       /* Build the template argument list for the prototype instantiation
          of this template.  Loop through the template parameters and
          create a corresponding template argument for each. */
@@ -2782,6 +2778,7 @@ that make up the declaration and do a prototype instantiation.
       copy_stop_tokens(save_stop_token_array, stop_token_array);
       /* Note that the semicolon is not cached. */
     } else {
+      mark_declared(sym, &sym->decl_position);
       /* This is not a class template definition, so we have no need to
          cache the tokens. */
     }  /* if */
