@@ -8404,37 +8404,75 @@ before class_type was defined.  Now that the definition is there, the rest
 of the declaration can be completed for the dependent types, too.
 */
 {
-  a_dependent_type_fixup_ptr     dtfp, next_dtfp;
+  a_dependent_type_fixup_ptr     dtfp, next_dtfp, prev_dtfp, list;
   a_class_symbol_supplement_ptr  cssp;
 
-  cssp =  symbol_supplement_for_class(class_type);
-  dtfp = cssp->dependent_type_fixup_list;
-  if (dtfp != NULL) {
-    /* Traverse the list. */
+  cssp = symbol_supplement_for_class(class_type);
+  list = cssp->dependent_type_fixup_list;
+  if (list != NULL) {
+#if CHECKING
+    a_boolean  any_entries_removed = FALSE;
+#endif /* CHECKING */
+    /* Keep going through the list until all its entries have been removed.
+       Usually only one traversal is required, but multidimensional arrays
+       may require extra trips. */
     do {
-      if (dtfp->is_param_type) {
-        /* A parameter of class type.  Set the flag indicating whether passing
-           it requires a copy constructor call. */
-        set_arg_transfer_method_flag(dtfp->variant.param_type);
-      } else {
-        a_type_ptr  tp = dtfp->variant.type;
-        if (is_array_type(tp)) {
-          /* An array of elements of class type.  Now the array's size can be
-             computed. */
-          set_type_size(tp);
+      /* Traverse the list. */
+      prev_dtfp = NULL;
+      for (dtfp = list; dtfp != NULL; dtfp = next_dtfp) {
+        next_dtfp = dtfp->next;
+        if (dtfp->is_param_type) {
+          /* A parameter of class type.  Set the flag indicating whether
+             passing it requires a copy constructor call. */
+          set_arg_transfer_method_flag(dtfp->variant.param_type);
         } else {
-          /* A function returning a class type.  Set the flag indicating
-             whether the return involves a copy constructor. */
-          set_routine_calling_method_flag(tp);
+          a_type_ptr  tp = dtfp->variant.type;
+          if (is_array_type(tp)) {
+            if (is_incomplete_type(tp->variant.array.element_type)) {
+              /* The array is still incomplete.  This can happen if it is
+                 dependent on another array that is still to be checked (the
+                 case of "array of array of T").  Leave dtfp on the list and
+                 continue. */
+              prev_dtfp = dtfp;
+              goto next_list_entry;
+            } else {
+              /* An array of elements of the (now complete) class type.  The
+                 array's size can be computed. */
+              set_type_size(tp);
+            }  /* if */
+          } else {
+            /* A function returning a class type.  Set the flag indicating
+               whether the return involves a copy constructor. */
+            set_routine_calling_method_flag(tp);
+          }  /* if */
         }  /* if */
+        /* If the head of the list is being removed (the common case) reset the
+           list pointer. */
+        check_assertion((list == dtfp) == (prev_dtfp == NULL));
+        if (list == dtfp) {
+          list = next_dtfp;
+        } else {
+          prev_dtfp->next = next_dtfp;
+        }  /* if */
+        /* Remove dtfp from its list and add it to the available list. */
+        dtfp->next = avail_dependent_type_fixups;
+        avail_dependent_type_fixups = dtfp;
+#if CHECKING
+        any_entries_removed = TRUE;
+#endif /* CHECKING */
+next_list_entry:;
+      }  /* for */
+      /* If the inner loop is completed without eliminating all the entries on
+         the list, go though it again. */
+#if CHECKING
+      if (!any_entries_removed) {
+        /* No entries were removed on the last traversal of the list. */
+        internal_error("check_dependent_type_fixup_list: looping error");
       }  /* if */
-      /* Remove dtfp from its list and add it to the available list. */
-      next_dtfp = dtfp->next;
-      dtfp->next = avail_dependent_type_fixups;
-      avail_dependent_type_fixups = dtfp;
-      /* Continue processing the list. */
-      dtfp = next_dtfp;
-    } while (dtfp != NULL);
+      /* Reset the flag for the next trip through the list. */
+      any_entries_removed = FALSE;
+#endif /* CHECKING */
+    } while (list != NULL);
     /* Null out the list pointer before returning. */
     cssp->dependent_type_fixup_list = NULL;
   }  /* if */
