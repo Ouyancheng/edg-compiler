@@ -912,6 +912,10 @@ the label are promoted to the lifetime of the function scope.
     if (!keep_block_object_lifetime) {
       promote_to = innermost_block_object_lifetime(block_olp->parent_lifetime);
       promote_label_and_goto_lifetimes(block_cfdp, block_olp, promote_to);
+      /* Null out the lifetime pointer in the block control frow entry.  "NULL"
+         means that the lifetimes of any labels or statements within are
+         still subject to further promotion. */
+      block_cfdp->variant.block.object_lifetime = NULL;
     }  /* if */
   }  /* if */
   db_exit();
@@ -1933,7 +1937,8 @@ retained in the IL, bind it to an IL entity.
 }  /* terminate_curr_block_object_lifetime */
 
 
-static void reset_curr_block_object_lifetime()
+static void reset_curr_block_object_lifetime(an_il_entry_kind  entity_kind,
+                                             char              *entity_ptr)
 /*
 If the current structured statement stack entry represents a compound
 statement in which a label has appeared that "invalidates" the object
@@ -1966,7 +1971,7 @@ resumed).
     terminate_curr_block_object_lifetime(sssep);
     /* Push the object lifetime and set the struct-stmt-stack entry to point
        to it. */
-    push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
+    push_object_lifetime(entity_kind, entity_ptr,
                          (an_object_lifetime_kind)olk_block_after_label);
     sssep->curr_block_object_lifetime = curr_object_lifetime;
     sssep->label_invalidates_curr_block_object_lifetime = FALSE;
@@ -2199,7 +2204,8 @@ the block statement.
   /* If a label appeared in the context of the block that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */
-  reset_curr_block_object_lifetime();
+  reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
+                                   (char *)block_stmt);
 }  /* finish_block_statement */
 
 
@@ -2382,7 +2388,8 @@ See also 3.6.4.2.
   /* If a label appeared in the context of the block that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */
-  reset_curr_block_object_lifetime();
+  reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
+                                   (char *)sp);
 
   db_exit();
 }  /* switch_statement */
@@ -2437,7 +2444,8 @@ See also 3.6.5.1.
   /* If a label appeared in the context of the block that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */
-  reset_curr_block_object_lifetime();
+  reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
+                                   (char *)sp);
 
   db_exit();
 }  /* while_statement */
@@ -2498,7 +2506,8 @@ See also 3.6.5.2.
   /* If a label appeared in the context of the block that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */
-  reset_curr_block_object_lifetime();
+  reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
+                                   (char *)sp);
 
   db_exit();
 }  /* do_statement */
@@ -2572,10 +2581,6 @@ where handler-seq is a sequence of one or more handlers of the form
   pop_object_lifetime();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
-  /* If a label appeared in the context of the block that was just
-     terminated, it may be appropriate to push a new object lifetime for
-     the scope being resumed. */
-  reset_curr_block_object_lifetime();
 
   db_exit();
 }  /* try_block_statement */
@@ -2709,7 +2714,8 @@ either an expression statement or a declaration statement.
   /* If a label appeared in the context of the block that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */
-  reset_curr_block_object_lifetime();
+  reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
+                                   (char *)sp);
 
   db_exit();
 }  /* for_statement */
@@ -3997,7 +4003,8 @@ rescan_statement:
             /* Create an object lifetime to run from this point to the end of
                the current scope.  It's needed to handle backwards gotos to
                the current label. */
-            reset_curr_block_object_lifetime();
+            reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
+                                             (char *)label->variant.exec_stmt);
           }  /* if */
         }  /* if */
 #if CHECKING

@@ -7244,10 +7244,38 @@ about it).
     case olk_function_static:   str = "function_static";   break;
     case olk_expr_temporary:    str = "expr_temporary";    break;
     case olk_constructor_init:  str = "constructor_init";  break;
-    default:                    str = "???";               break;
+    default:                    str = "***BAD LIFETIME KIND***"; break;
   }  /* switch */
   fprintf(f_debug, "%s [", str);
   if (olp->kind == (an_object_lifetime_kind)olk_block_after_label) {
+    if (olp->entity.kind == (an_il_entry_kind)iek_statement) {
+      a_statement_ptr  sp = (a_statement_ptr)olp->entity.ptr;
+      if (sp->kind == (a_statement_kind)stmk_label) {
+        fputc('"', f_debug);
+        db_name(&sp->variant.label.ptr->source_corresp);
+        fputs("\" ", f_debug);
+      } else {
+        switch (sp->kind) {
+          case stmk_for:            str = "for";     break;
+          case stmk_while:          str = "while";   break;
+          case stmk_end_test_while: str = "do";      break;
+          case stmk_switch:         str = "switch";  break;
+          case stmk_block:          str = "block";   break;
+          default:                  str = NULL;      break;
+        }  /* switch */
+        if (str != NULL) fprintf(f_debug, "%s-stmt ", str);
+      }  /* if */
+    } else if (olp->entity.kind == (an_il_entry_kind)iek_switch_clause) {
+      a_constant_ptr  cp;
+      cp = ((a_switch_clause_ptr)olp->entity.ptr)->constant_list;
+      if (cp != NULL) {
+        fprintf(f_debug, "case ", str);
+        db_constant(cp);
+        fputc(' ', f_debug);
+      } else {
+        fputs("default ", f_debug);
+      }  /* if */
+    }  /* if */
     fputs("==> ", f_debug);
     do {
       olp = olp->parent_lifetime;
@@ -7523,9 +7551,6 @@ lifetimes, since those are never bound.
 #if CHECKING
   char *str = "bind_object_lifetime:";
 
-  check_assertion_str2(
-                 olp->kind != (an_object_lifetime_kind)olk_block_after_label,
-                 str, "cannot bind block-after-label lifetime");
   check_assertion_str2(entity_ptr != NULL, str, "NULL entity");
   check_assertion_str2(olp->entity.ptr == NULL, str, "lifetime already bound");
   /* Be sure the object lifetime kind is consistent with the kind of
@@ -7561,6 +7586,17 @@ lifetimes, since those are never bound.
           unexpected_condition_str2(str, "bad entity kind for olk_block");
       }  /* switch */
       break;
+    case olk_block_after_label:
+      switch (entity_kind) {
+        case iek_statement:
+        case iek_switch_clause:
+          /* Okay. */
+          break;
+        default:
+          unexpected_condition_str2(
+                           str, "bad entity kind for olk_block_after_label");
+      }  /* switch */
+      break;
     case olk_expr_temporary:
       switch (entity_kind) {
         case iek_expr_node:
@@ -7580,11 +7616,13 @@ lifetimes, since those are never bound.
   /* Point the object lifetime at the IL entry. */
   olp->entity.kind = (a_byte_il_entry_kind)entity_kind;
   olp->entity.ptr = entity_ptr;
-  /* Get the address of the appropriate field of the IL entry and point
-     back to the object lifetime entry. */
-  lifetime_addr = addr_of_lifetime_ptr(entity_kind, entity_ptr, olp->kind);
-  check_assertion(*lifetime_addr == NULL);
-  *lifetime_addr = olp;
+  if (olp->kind != (an_object_lifetime_kind)olk_block_after_label) {
+    /* Get the address of the appropriate field of the IL entry and point
+       back to the object lifetime entry. */
+    lifetime_addr = addr_of_lifetime_ptr(entity_kind, entity_ptr, olp->kind);
+    check_assertion(*lifetime_addr == NULL);
+    *lifetime_addr = olp;
+  }  /* if */
 #if DEBUG
   if (db_flag_is_set("dump_lifetimes")) {
     db_object_lifetime_with_indentation(olp, "Binding: ");
@@ -7601,11 +7639,13 @@ it points.
 {
   an_object_lifetime_ptr  *lifetime_addr;
 
-  /* Get the address of the appropriate field of the IL entry so that the
-     lifetime pointer can be cleared. */
-  lifetime_addr = addr_of_lifetime_ptr((an_il_entry_kind)olp->entity.kind,
-                                       olp->entity.ptr, olp->kind);
-  *lifetime_addr = NULL;
+  if (olp->kind != (an_object_lifetime_kind)olk_block_after_label) {
+    /* Get the address of the appropriate field of the IL entry so that the
+       lifetime pointer can be cleared. */
+    lifetime_addr = addr_of_lifetime_ptr((an_il_entry_kind)olp->entity.kind,
+                                         olp->entity.ptr, olp->kind);
+    *lifetime_addr = NULL;
+  }  /* if */
   /* Clear the fields in the object lifetime, too. */
   olp->entity.kind = (a_byte_il_entry_kind)iek_none;
   olp->entity.ptr = NULL;
@@ -7746,6 +7786,8 @@ with it.  Entries associated with scopes must also have no child entries.
 #if CHECKING
       case iek_try_supplement:
       case iek_new_delete_supplement:
+      case iek_statement:
+      case iek_switch_clause:
         /* Useless = FALSE. */
         break;
       default:
