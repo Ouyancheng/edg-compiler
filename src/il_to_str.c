@@ -4493,7 +4493,8 @@ Output an asm register name for a variable in the way described by octl.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+#if (BACK_END_IS_C_GEN_BE && C_GEN_BE_GENERATES_ANSI_C) || \
+    BACK_END_IS_CP_GEN_BE
 
 void form_sun_link_scope_specifiers(
                                  a_decl_modifier                        flags,
@@ -4514,7 +4515,7 @@ described by octl).
   }  /* if */
 }  /* form_sun_link_scope_specifiers */
 
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#endif /* (BACK_END_IS_C_GEN_BE && C_GEN_BE_GENERATES_ANSI_C) || ... */
 #endif /* SUN_EXTENSIONS_ALLOWED */
 
 
