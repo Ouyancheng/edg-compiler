@@ -4557,6 +4557,7 @@ it is added to the end of the scope entry symbol list for the class.
   an_access_specifier          access;
   a_boolean                    ambiguous = FALSE, found;
   a_scope_stack_entry_ptr      ssep;
+  a_symbol_ptr                 class_sym;
 
   db_enter(4, "find_projected_symbol");
 #if DEBUG
@@ -4566,8 +4567,17 @@ it is added to the end of the scope entry symbol list for the class.
                      class_ptr->source_corresp.name);
   }  /* if */
 #endif /* DEBUG */
-  progenitor_sym = find_progenitor_symbol(class_ptr, locator, must_be_tag,
-                                          &path, &access, &ambiguous);
+  class_sym = (a_symbol_ptr)class_ptr->source_corresp.assoc_info;
+  if (locator->symbol_header == class_sym->header &&
+      class_sym->
+        variant.class_struct_union.extra_info->class_template == NULL) {
+    /* A name X cannot be inherited into class X, since the "name slot" for
+       is already taken (sort of) by the constructor. */
+    progenitor_sym = NULL;
+  } else {
+    progenitor_sym = find_progenitor_symbol(class_ptr, locator, must_be_tag,
+                                            &path, &access, &ambiguous);
+  }  /* if */
   if (progenitor_sym == NULL) {
     /* Indicate that no symbol was found and return a NULL pointer. */
     found = FALSE;
