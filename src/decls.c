@@ -9739,6 +9739,9 @@ clause is to be attached.  catch_pos is the source position of "catch".
 }  /* handler_declaration */
 
 
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
+/* ARGSUSED */ /* is_asm_statement is only used with source sequence lists. */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed,
                                  a_boolean  is_asm_statement)
 /*
