@@ -4540,7 +4540,8 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
 #endif /* DO_IL_LOWERING */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-    if (kind == (a_scope_kind)sck_function &&
+    if (is_primary_translation_unit &&
+        kind == (a_scope_kind)sck_function &&
         !curr_routine->is_trivial_default_constructor &&
         !(ssep->in_prototype_instantiation &&
           !prototype_instantiations_in_il)) {
