@@ -533,6 +533,17 @@ is more compact since there is one fewer field in IL entries.
 #endif /* ifndef RECORD_SCOPE_DEPTH_IN_IL */
 
 /*
+Flag that is TRUE if parameter names should be in recorded param-type entries.
+Even when it is FALSE the names of parameters are recorded in the associated
+variable when the function is defined; setting it to TRUE assures that a name
+is available (if the user declared one) even if the function is not defined
+in the current translation unit.
+*/
+#ifndef RECORD_NAME_IN_PARAM_TYPE_ENTRY
+#define RECORD_NAME_IN_PARAM_TYPE_ENTRY FALSE
+#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
+
+/*
 Flag that is TRUE to cause additional IL entries to contain source position
 information.
 */
