@@ -8928,6 +8928,9 @@ points to the associated routine if the kind is sck_function.
       sp->variant.routine.function_result_var = NULL;
 #endif /* ifdef FIL */
       break;
+    case sck_condition:
+      sp->variant.assoc_statement = NULL;
+      break;
 #if CHECKING
     default:
       internal_error("alloc_scope: bad scope kind");

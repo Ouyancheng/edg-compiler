@@ -2560,6 +2560,11 @@ Display the indicated scope.
 do_assoc_type:
       disp_ptr("assoc_type", (char *)ptr->variant.assoc_type, iek_type);
       break;
+    case sck_condition:
+      (void)printf("sck_condition\n");
+      disp_ptr("assoc_statement", (char *)ptr->variant.assoc_statement,
+               iek_statement);
+      break;
 #endif /* ifdef CIL */
 #ifdef FIL
     case sck_stmt_function:

@@ -952,6 +952,10 @@ the file scope, do not process it (but record an orphan in the latter case).
           case sck_class_struct_union:
             remap_ptr(ptr->variant.assoc_type, a_type_ptr, iek_type);
             break;
+          case sck_condition:
+            remap_ptr(ptr->variant.assoc_statement, a_statement_ptr,
+                      iek_statement);
+            break;
 #endif  /* ifdef CFE */
           case sck_function:
             /* "ptr", which points to the routine associated with this scope,

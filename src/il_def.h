@@ -5670,7 +5670,7 @@ typedef struct an_object_lifetime {
 	olk_global_static
 		<==> iek_scope (sck_file only)
 	olk_block
-		<==> iek_scope (sck_function or sck_block)
+		<==> iek_scope (sck_function, sck_block, or sck_condition)
 		<==> iek_block (used for cfront-mode dependent statements,
 		     which have no scope entry)
 	olk_block_after_label (one-way bindings -- the IL entities have no
@@ -5789,6 +5789,10 @@ enum a_scope_kind_tag {
   sck_function_access,
 			/* Used to perform access checking on function
 			   declarations.  Used only in the front end. */
+  sck_condition,
+			/* Used to represent the scope of a C++ condition
+			   that is an initialized declaration for an if,
+			   switch, for, or while statement). */
 #endif /* ifdef CIL */
 #ifdef FIL
   sck_stmt_function,	/* Statement function scope. */
@@ -5842,6 +5846,12 @@ typedef struct a_scope {
     a_type_ptr	assoc_type;
 			/* The function type whose prototype scope this is,
 			   or the class/struct/union type. */
+    /* When kind == sck_condition (C++ only): */
+    a_statement_ptr
+		assoc_statement;
+			/* Pointer to the associated if, switch, while, or
+			   for statement in which the condition declaration
+			   appears. */
 #endif /* ifdef CIL */
     /* When kind == sck_function: */
     struct {
