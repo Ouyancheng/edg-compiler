@@ -733,7 +733,7 @@ accum_quoted_string).
       char *prev_pos = in_pos;
       conv_single_char(&in_pos, &remaining_mbc_char_count, &ch, centity_mask);
       i += (in_pos - prev_pos) - 1;
-      *out_pos++ = ch;
+      *out_pos++ = (char)ch;
     } else {
       /* Escapes should not be considered; just copy one character. */
       *out_pos++ = *in_pos++;
