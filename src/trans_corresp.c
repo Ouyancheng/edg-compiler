@@ -2139,8 +2139,9 @@ unit correspondence pointer if one is found.
            name: they should probably match up. */
         if ((is_template_symbol(sym) &&
              is_class_template_symbol(sym) ==
-                                        is_class_template_symbol(templ_sym)) ||
-             sym->kind == (a_symbol_kind)sk_overloaded_function) {
+                                       is_class_template_symbol(templ_sym)) ||
+             (sym->kind == (a_symbol_kind)sk_overloaded_function &&
+                                      !is_class_template_symbol(templ_sym))) {
           a_template_ptr  corresp_templ;
           if (is_class_template_symbol(templ_sym)) {
             corresp_templ = find_corresp_class_template(templ, sym);
