@@ -2052,11 +2052,8 @@ set, leave it alone.  Also compute and set the alignment requirement.
         /* Use an arbitrary non-zero size for an error type, a template
            parameter type (which is a placeholder), or an unknown type. */
         size = 1;
-        type_ptr->incomplete = FALSE;
         break;
       case tk_routine:
-        type_ptr->incomplete = FALSE;
-        /*FALLTHROUGH*/
       case tk_void:
       case tk_typeref:
         /* These stay zero; they have no size directly.  However, a function
@@ -2065,7 +2062,6 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_integer:
         get_integer_size_and_alignment(type_ptr->variant.integer.int_kind,
                                        &size, &alignment);
-        type_ptr->incomplete = FALSE;
         break;
 #if FIXED_POINT_EXTENSIONS_ALLOWED
       case tk_fixed_point:
@@ -2077,7 +2073,6 @@ set, leave it alone.  Also compute and set the alignment requirement.
          targ_alignof_fixed_point[type_ptr->variant.fixed_point.is_unsigned]
                                  [(int)type_ptr->variant.fixed_point.precision]
                                  [type_ptr->variant.fixed_point.is_fract_type];
-        type_ptr->incomplete = FALSE;
         break;
 #endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
       case tk_float:
@@ -2106,11 +2101,9 @@ set, leave it alone.  Also compute and set the alignment requirement.
 #if C99_IL_EXTENSIONS_SUPPORTED
         if (type_ptr->kind == (a_type_kind)tk_complex) size *= 2;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-        type_ptr->incomplete = FALSE;
         break;
       case tk_pointer:
         size = size_of_pointer_to(type_pointed_to(type_ptr), &alignment);
-        type_ptr->incomplete = FALSE;
         break;
       case tk_array:
         (void)set_array_type_size(type_ptr, /*suppress_error=*/FALSE);
@@ -2125,7 +2118,6 @@ set, leave it alone.  Also compute and set the alignment requirement.
           size = targ_sizeof_ptr_to_data_member;
           alignment = targ_alignof_ptr_to_data_member;
         }  /* if */
-        type_ptr->incomplete = FALSE;
         break;
 #if CHECKING
       case tk_class:

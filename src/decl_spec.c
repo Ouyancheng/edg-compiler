@@ -3216,6 +3216,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
     /* Create a new enumerated type.  All enumeration type entries are
        allocated in the file scope memory region. */
     enum_type = alloc_type((a_type_kind)tk_integer);
+    enum_type->incomplete = TRUE;
     is_redeclaration = FALSE;
     /* set_type_size is called later, once the final type is known. */
     /* Set a default representation of "int", which may be adjusted later. */

@@ -1527,7 +1527,17 @@ variant fields to default values.
   pte->based_types = NULL;
   pte->size = 0;
   pte->alignment = 1;
-  pte->incomplete = (kind != (a_type_kind)tk_routine);
+  if (kind == (a_type_kind)tk_class ||
+      kind == (a_type_kind)tk_struct ||
+      kind == (a_type_kind)tk_union ||
+      kind == (a_type_kind)tk_array ||
+      kind == (a_type_kind)tk_void) {
+    /* These types are incomplete by default.  (void is always incomplete.) */
+    pte->incomplete = TRUE;
+  } else {
+    /* Other types are always complete. */
+    pte->incomplete = FALSE;
+  }  /* if */
   pte->used_in_exception_or_rtti = FALSE;
   pte->declared_in_function_prototype = FALSE;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
