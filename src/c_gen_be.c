@@ -4321,7 +4321,7 @@ Generate C for a statement.
 */
 {
   a_statement_ptr     case_statement;
-  a_statement_ptr     body_statement, init_stmt;
+  a_statement_ptr     body_statement, init_stmt, else_stmt;
   an_expr_node_ptr    init_expr;
   a_constant_ptr      constant;
   a_switch_clause_ptr switch_clause;
@@ -4361,10 +4361,13 @@ Generate C for a statement.
       indent += 2;
       dump_statement(statement->variant.if_stmt.then_statement);
       indent -= 2;
-      if (statement->variant.if_stmt.else_statement != NULL) {
+      else_stmt = statement->variant.if_stmt.else_statement;
+      if (else_stmt != NULL) {
+        /* Use the position from the "else" statement for the keyword. */
+        set_output_position_for_stmt(&else_stmt->position);
 	write_tok_str("else ");
 	indent += 2;
-	dump_statement(statement->variant.if_stmt.else_statement);
+	dump_statement(else_stmt);
 	indent -= 2;
       }  /* if */
       break;
@@ -4511,6 +4514,33 @@ Generate C for a statement.
            switch_clause = switch_clause->next) {
 	/* Indent for the case label. */
 	indent += 2;
+        /* Try to determine a source position for the case label.  This would
+           be easier if there were a source position in the IL, but there
+           isn't. */
+        { a_source_position pos;
+          /* See if there is a statement in the clause that has a position. */
+          for (case_statement = switch_clause->statements;
+               case_statement != NULL;
+               case_statement = case_statement->next) {
+            set_position_from_stmt_source_position(pos,
+                                                   case_statement->position);
+            /* Ignore statements with no source position. */
+            if (pos.seq != 0) {
+              /* Found a statement with a position.  Use it. */
+              set_output_position(&pos);
+              goto position_set;
+            }  /* if */
+          }  /* for */
+          /* We didn't find a statement with a position.  See if there is a
+             break position. */
+          set_position_from_stmt_source_position(pos,
+                                                switch_clause->break_position);
+          if (pos.seq != 0) {
+            /* There is a break position.  Use it. */
+            set_output_position(&pos);
+          }  /* if */
+position_set:;
+        }
 	constant = switch_clause->constant_list;
 	if (constant == NULL) {
 	  /* This is the default case. */
