@@ -905,6 +905,7 @@ function returns the address of the last attribute.
           default:
             str_error(ec_arguments_required_for_attribute,
                       attribute_name);
+            attribute_kind = (an_attribute_kind)ak_error;
             break;
         }  /* switch */
       } /* if */

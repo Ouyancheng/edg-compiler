@@ -1,6 +1,16 @@
 Version 3.1
 
-1/02/03  GNU mode: Unrecognized registers in GNU extended asms
+1/6/03  GNU compatibility: Abort on attribute syntax error
+
+In GNU C mode, the front end used to abort on certain syntax errors in
+attributes taking an argument.  For example:
+
+  static int f() {}
+  int g() __attribute__((alias "f"));  // Syntax error.  Used to abort.
+
+This is now fixed.
+
+1/2/03  GNU mode: Unrecognized registers in GNU extended asms
 
 A configuration flag (ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS) has been added
 to indicate that unrecognized extended asm operands should be accepted.
