@@ -3426,7 +3426,7 @@ Pop the input stack, and correctly prepare for input from the file
 at the next level down.
 */
 {
-  a_boolean	is_end_of_primary_source_file = FALSE;
+  a_boolean	is_end_of_primary_source_file = TRUE;
   a_byte	ifg_state;
 
   db_enter(2, "pop_input_stack");
