@@ -2700,15 +2700,17 @@ done:;
 #endif /* MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
 
 static an_expr_node_ptr make_call_node(a_routine_ptr    routine,
-                                       an_expr_node_ptr arg_list)
+                                       an_expr_node_ptr arg_list,
+                                       a_boolean        honor_virtual)
 /*
 Make an expression that calls routine "routine" with arguments "arg_list",
-and return a pointer to it.  Note that a virtual call is not generated even
-if the routine is virtual.
+and return a pointer to it.  A virtual call is generated if the routine
+is virtual and honor_virtual is TRUE.  The virtual call is *not* lowered.
 */
 {
-  an_expr_node_ptr call_node, rout_node;
-  a_type_ptr       rout_type, rout_return_type;
+  an_expr_node_ptr      call_node, rout_node;
+  a_type_ptr            rout_type, rout_return_type;
+  an_expr_operator_kind op;
 
 #if MAKE_ALL_FUNCTIONS_UNPROTOTYPED
   /* If transforming all functions to old-style unprototyped form (for
@@ -2726,14 +2728,19 @@ if the routine is virtual.
 #endif /* MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
   /* Make a node for the address of the routine. */
   rout_node = function_addr_expr(routine);
-  routine->source_corresp.referenced = TRUE;
   routine->called = TRUE;
   rout_node->next = arg_list;
+  /* Choose the right operation (virtual call or non-virtual call). */
+  if (routine->is_virtual && honor_virtual) {
+    op = (an_expr_operator_kind)eok_virtual_call;
+  } else {
+    op = (an_expr_operator_kind)eok_call;
+    routine->source_corresp.referenced = TRUE;
+  }  /* if */
   /* Make the call node. */
   rout_type = skip_typerefs(routine->type);
   rout_return_type = rout_type->variant.routine.return_type;
-  call_node = make_operator_node((an_expr_operator_kind)eok_call,
-                                 rout_return_type, rout_node);
+  call_node = make_operator_node(op, rout_return_type, rout_node);
   return call_node;
 }  /* make_call_node */
 
@@ -2749,7 +2756,7 @@ and return pointer to it.
   a_statement_ptr  call_stmt;
 
   /* Make the call node. */
-  call_node = make_call_node(routine, arg_list);
+  call_node = make_call_node(routine, arg_list, /*honor_virtual=*/FALSE);
   /* Allocate an expression statement and put the call into it. */
   call_stmt = alloc_statement((a_statement_kind)stmk_expr);
   call_stmt->expr = call_node;
@@ -2773,7 +2780,7 @@ unprototyped arguments and its return type is return_type.
   /* Make the routine entry if it does not exist already. */
   (void)make_runtime_routine(name, routine, return_type);
   /* Make the call node. */
-  node = make_call_node(*routine, arg_expr_list);
+  node = make_call_node(*routine, arg_expr_list, /*honor_virtual=*/FALSE);
   return node;
 }  /* make_runtime_rout_call */
 
@@ -6635,7 +6642,7 @@ The routine must have a "this" parameter.
     /* Add the "this" parameter at the front of the argument list. */
     this_arg = var_rvalue_expr(this_param_var);
     this_arg->next = default_arg_list;
-    call_node = make_call_node(routine, this_arg);
+    call_node = make_call_node(routine, this_arg, /*honor_virtual=*/FALSE);
     /* If the routine has a void type, insert a statement for the call
        followed by a return statement.  Otherwise, attach the call directly
        to the return. */
@@ -9100,7 +9107,8 @@ arrays with class elements.
        copy of the size expression.  */
     /* Make the "new" call. */
     lower_arg_expr_list(ndsp->arg, ndsp->routine->type);
-    new_node = make_call_node(ndsp->routine, ndsp->arg);
+    new_node = make_call_node(ndsp->routine, ndsp->arg,
+                              /*honor_virtual=*/FALSE);
     /* Make "temp = (type *)new-call(...)". */
     temp_var = make_temporary(ptr_elem_type);
     temp_var_node = var_lvalue_expr(temp_var);
@@ -9355,7 +9363,8 @@ The subtree of the node has not yet been lowered.
       end_implied_arg_list->next = dip->variant.constructor.args;
     }  /* if */
     /* Make the constructor call. */
-    call_node = make_call_node(ctor_routine, null_node);
+    call_node = make_call_node(ctor_routine, null_node,
+                               /*honor_virtual=*/FALSE);
     /* The constructor call returns a pointer to the object initialized.
        Cast the pointer to the right type if necessary. */
     call_node = add_cast_if_necessary(call_node, expr->type);
@@ -9366,7 +9375,8 @@ The subtree of the node has not yet been lowered.
     /* Non-array case, or array case that does not require special handling. */
     /* Create a call of the "new" routine. */
     lower_arg_expr_list(ndsp->arg, ndsp->routine->type);
-    call_node = make_call_node(ndsp->routine, ndsp->arg);
+    call_node = make_call_node(ndsp->routine, ndsp->arg,
+                               /*honor_virtual=*/FALSE);
     /* Note that the type of the "new" call might be unrelated to the type
        we are allocating, e.g., it might be "void *"; a cast is done later. */
     if (dip != NULL) {
@@ -9450,10 +9460,9 @@ it is called as a virtual function, which involves some special tricks.
   ptr_node->next = node_for_integer_constant(bit_mask,
                                              (an_integer_kind)ik_int);
   /* Make a call of the destructor. */
-  call_node = make_call_node(dtor_routine, ptr_node);
+  call_node = make_call_node(dtor_routine, ptr_node, /*honor_virtual=*/TRUE);
   if (dtor_routine->is_virtual) {
     /* The destructor is virtual, so rewrite the call. */
-    call_node->variant.operation.kind =(an_expr_operator_kind)eok_virtual_call;
     /* Make a copy of the "this" argument so it can be used twice. */
     ptr_node_copy = make_reusable_copy(ptr_node);
     /* Put the copy under the original destructor call; the original gets
@@ -9552,7 +9561,8 @@ The subtree of the node has not yet been lowered.
     ptr_node = add_cast_if_necessary(ptr_node, void_star_type());
     /* Reattach the second operand to delete is there is one. */
     ptr_node->next = second_arg_node;
-    call_node = make_call_node(ndsp->routine, ptr_node);
+    call_node = make_call_node(ndsp->routine, ptr_node,
+                               /*honor_virtual=*/FALSE);
     if (dip != NULL) {
       /* Finish the destructor case by building the comma node. */
       dtor_call_node->next = call_node;
@@ -11076,7 +11086,8 @@ constructor scope.
     if (new_routine != NULL) {
       size_node = node_for_integer_constant((long)class_type->size,
                                         (an_integer_kind)TARG_SIZE_T_INT_KIND);
-      call_node = make_call_node(new_routine, size_node);
+      call_node = make_call_node(new_routine, size_node,
+                                 /*honor_virtual=*/FALSE);
       /* Make "this = new_rout(size)". */
       call_node = add_cast_if_necessary(call_node, this_param_var->type);
       this_param_node = var_lvalue_expr(this_param_var);
