@@ -2768,19 +2768,27 @@ created; the caller must set it.
     if (!redeclaration) {
       /* Check if the old entity has a different name than the new entity,
          which would indicate an error (two different names ended up mapping
-         to the same external name). */
+         to the same external name).  Even when the names are identical, a
+         conflict can arise if the two entities are different in nature (e.g.,
+         a C linkage declaration in a namespace can conflict with a C++
+         variable declaration in global namespace because the latter variable's
+         name is not mangled). */
+      a_source_correspondence  *scp;
       if (ext_sym->kind == (a_symbol_kind)sk_extern_variable) {
-        old_name = esdp->variant.variable->source_corresp.name;
+        scp = &esdp->variant.variable->source_corresp;
       } else {
-        old_name = esdp->variant.routine.ptr->source_corresp.name;
+        scp = &esdp->variant.routine.ptr->source_corresp;
       }  /* if */
-      check_assertion(old_name != NULL);
+      old_name = scp->name;
       new_name = locator->symbol_header->identifier;
-      if (old_name != new_name && strcmp(old_name, new_name) != 0) {
-        /* Two different names ended up mapping to the same external name.
-           In the error, reference the old name in its original form. */
-        pos_st_error(ec_external_name_clash, &locator->source_position,
-                     old_name);
+      check_assertion(old_name != NULL);
+      if ((a_name_linkage_kind)scp->name_linkage != name_linkage ||
+          (old_name != new_name && strcmp(old_name, new_name) != 0)) {
+        /* Two distinct entities ended up mapping to the same external name. */
+        if (!suppress_incompatible_error) {
+          pos_sy_error(ec_external_name_clash, &locator->source_position,
+                       ext_sym);
+        }  /* if */
         err = TRUE;
         /* Force creation of a new external symbol. */
         ext_sym = NULL;

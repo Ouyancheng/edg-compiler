@@ -1,6 +1,22 @@
 Version 3.5
 
-8/17/04  Diagnostic on missing placement delete operator
+8/19/04  External name conflicts with C++ variables
+
+Most C++ ABIs (including those supported by the EDG front end) do not mangle
+the names of global variables.  This can lead to external name conflicts with
+extern "C" entities declared in other namespaces.  For example:
+
+  int x;
+  namespace N {
+    extern "C" void x();  // Often same external name as variable above.
+  }
+
+Such conflicts are now diagnosed with an error, except in GNU and Microsoft
+modes because in these modes extern "C" declarations are not related to
+declarations in other namespaces (see also Changes entries of 7/28/04 and
+10/6/99).  The C++ standard is expected to change to make these cases invalid. 
+
+8/18/04  Diagnostic on missing placement delete operator
 
 The front end previously issued a warning when a class definition contains
 a member placement operator new and no matching operator is visible at that

@@ -5659,7 +5659,8 @@ is different in two respects.  First, in C++ we have to deal with the
 possible overloading of function names.  Second, in C++ we assume the
 linker can handle whatever names the compiler will generate on the basis of
 user name and type, and that those names will be generated in such a way as
-to be unique, whereas in C we we allow for differences in external names
+to be unique (with some exceptions for global variable and entities with C
+name linkage), whereas in C we we allow for differences in external names
 due to truncation.  Input arguments are the name linkage and rout_type;
 the latter will be NULL for variables.
 */
@@ -5760,27 +5761,32 @@ the latter will be NULL for variables.
     }  /* if */
     second_best_match = NULL;
     for (sym = hdr_ptr->other_symbols; sym != NULL; sym = sym->next) {
+      a_source_correspondence  *scp;
+      a_namespace_ptr          sym_nsp = sym->parent.namespace_ptr;
+      a_boolean                sym_has_C_linkage;
+      a_boolean                sym_is_variable;
       /* Ignore symbols not associated with the current file scope.  These
          could be extern entities associated with other translation units. */
       if (sym->decl_scope != file_scope_number) continue;
+      if (sym->kind == (a_symbol_kind)sk_extern_variable) {
+        sym_is_variable = TRUE;
+        scp = &sym->variant.extern_symbol_descr->
+                                  variant.variable->source_corresp;
+      } else if (sym->kind == (a_symbol_kind)sk_extern_routine) {
+        sym_is_variable = FALSE;
+        scp = &sym->variant.extern_symbol_descr->
+                                  variant.routine.ptr->source_corresp;
+      } else {
+        /* Ignore other symbols on the list.  These include synthesized
+           namespace projection symbols, and unknown function symbols. */
+        continue;
+      }  /* if */
+      sym_has_C_linkage =
+                     (scp->name_linkage == (a_name_linkage_kind)nlk_external);
       if (extern_C_linkage_specified) {
-        a_source_correspondence  *scp;
-        if (sym->kind == (a_symbol_kind)sk_extern_variable) {
-          scp = &sym->variant.extern_symbol_descr->
-                                    variant.variable->source_corresp;
-        } else if (sym->kind == (a_symbol_kind)sk_extern_routine) {
-          scp = &sym->variant.extern_symbol_descr->
-                                    variant.routine.ptr->source_corresp;
-        } else {
-          /* Ignore other symbols on the list.  These include synthesized
-             namespace projection symbols, and unknown function symbols. */
-          continue;
-        }  /* if */
-        if (scp->name_linkage == (a_name_linkage_kind)nlk_external) {
-          if (rout_type != NULL &&
-              sym->kind == (a_symbol_kind)sk_extern_routine &&
-              !is_error_type(sym->variant.extern_symbol_descr->type) &&
-              sym->parent.namespace_ptr == nsp) {
+        if (sym_has_C_linkage) {
+          if (rout_type != NULL && !sym_is_variable && sym_nsp == nsp &&
+              !is_error_type(sym->variant.extern_symbol_descr->type)) {
             /* A special case -- two extern "C" routine declarations in the
                same namespace.  Consider them a match only if their
                signatures match; it they don't match, this will be treated
@@ -5795,10 +5801,24 @@ the latter will be NULL for variables.
             if (second_best_match == NULL) second_best_match = sym;
             continue;
           }  /* if */
+        } else if (sym_nsp == NULL && sym_is_variable) {
+          /* sym represents a variable in global namespace scope and the new
+             declaration is an extern "C" declaration in another namespace
+             scope.  This is an error: Return the symbol for error reporting
+             purposes. */
+          break;
         }  /* if */
+      } else if (sym_has_C_linkage && nsp == NULL && rout_type == NULL) {
+        /* The new declaration is a variable in global scope, and sym
+           represents an extern "C" declaration with the same name.  This
+           is an error: Return the symbol for error reporting purposes. */
+        break;
       }  /* if */
-      if (sym->parent.namespace_ptr != nsp) {
-        /* Namespaces do not match -- keep looking. */
+      if (sym_nsp != nsp) {
+        /* Namespaces do not match -- keep looking.  Note that an extern "C"
+           entity declared in a namespace does match up with a variable
+           declared in the global namespace (because the latter typically do
+           not have mangled names).  In such cases an error will be issued. */
       } else if (sym->kind == (a_symbol_kind)sk_extern_variable) {
         if (rout_type == NULL) break;
         if (second_best_match == NULL) second_best_match = sym;
