@@ -1022,6 +1022,11 @@ calls symbol_tbl_trans_unit_init.
   symbol_tbl_trans_unit_init();
   templates_trans_unit_init();
   expr_trans_unit_init();
+#if DO_IL_LOWERING
+#if DO_C99_IL_LOWERING
+  lower_c99_trans_unit_init();
+#endif /* DO_C99_IL_LOWERING */
+#endif /* DO_IL_LOWERING */
 }  /* fe_translation_unit_init */
 
 

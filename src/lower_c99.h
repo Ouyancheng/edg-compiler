@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2000 Edison Design Group Inc.                        [_]          *
+* Copyright 2000-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
@@ -34,6 +34,8 @@ extern void lower_c99_il_memory_region(a_scope_ptr scope);
 
 extern void lower_c99_one_time_init(void);
 
+extern void lower_c99_trans_unit_init(void);
+
 extern void lower_c99_init(void);
 
 #endif /* DO_C99_IL_LOWERING */
@@ -46,7 +48,6 @@ extern void lower_c99_init(void);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2000 Edison Design Group Inc.                        [_]          *
+* Copyright 2000-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
-

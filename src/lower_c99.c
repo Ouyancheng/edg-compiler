@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2000 Edison Design Group Inc.                        [_]          *
+* Copyright 2000-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
@@ -1652,8 +1652,6 @@ the memory region, i.e., either the file scope or a function scope.
 void lower_c99_one_time_init(void)
 /*
 Do one-time initialization of variables related to C99 IL lowering.
-(Variables that need to be reinitialized with each new translation unit
-are handled in lower_c99_init.)
 */
 {
 #if LOWER_COMPLEX
@@ -1698,12 +1696,10 @@ are handled in lower_c99_init.)
 }  /* lower_c99_one_time_init */
 
 
-void lower_c99_init(void)
+void lower_c99_trans_unit_init(void)
 /*
-Initialize static variables related to C99 IL lowering.  This is done as a
-subroutine (rather than relying on static initialization) so that it can be
-redone to compile more than one source file in a single invocation of the
-front end.
+Initialize static variables related to C99 IL that must be initialized
+for each translation unit.
 */
 {
 #if LOWER_COMPLEX
@@ -1748,6 +1744,16 @@ front end.
   /* The following is also cleared in il_lower_init, but clear it here also
      to be sure. */
   il_lowering_underway = FALSE;
+}  /* lower_c99_trans_unit_init */
+
+
+void lower_c99_init(void)
+/*
+Initialize static variables related to C99 IL lowering that must be
+initialized for each compilation.
+*/
+{
+  lower_c99_trans_unit_init();
 }  /* lower_c99_init */
 
 #endif /* DO_C99_IL_LOWERING */
@@ -1758,6 +1764,6 @@ front end.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2000 Edison Design Group Inc.                        [_]          *
+* Copyright 2000-2001 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
