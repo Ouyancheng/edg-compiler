@@ -1777,26 +1777,25 @@ typedef struct a_symbol {
     struct {
       a_symbol_ptr
 		symbols;
-			/* Linked list of two or more symbols comprising an  
+			/* Linked list of two or more symbols comprising a
 			   function overload set, where each symbol in the
-			   list has the same name as the current symbol.
-			   When the latter is a class member, each symbol in
-			   the list is an sk_member_function,
-			   sk_function_template, or an sk_projection symbol
-			   that points to an sk_member_function or
-			   sk_function_template symbol.  fundamental symbol.
-			   Except for synthesized projection symbols, when
-			   the current symbol is not a class member, each
-			   symbol is either an sk_routine or
-			   sk_function_template symbol or an
-			   sk_namespace_projection that points to an
-			   sk_routine or sk_function_template symbol.
-			   Synthesized projection symbols can point to a a
-			   combination of sk_routine, sk_member_function,
-			   sk_namespace_projection, sk_projection, and
-			   sk_function_template symbols (and the
-			   sk_function_template symbols can me members,
-			   nonmembers,or a combination of both). */
+			   list has the same name as the current symbol.  When
+			   the latter is a class member, each symbol in the
+			   list is an sk_member_function or
+			   sk_function_template symbol or an sk_projection
+			   symbol that points to an sk_member_function or
+			   sk_function_template fundamental symbol.  When the
+			   current symbol is not a class member and
+			   synthesized_namespace_projection is FALSE, each
+			   symbol is an sk_routine or sk_function_template
+			   symbol or an sk_namespace_projection symbol that
+			   points to an sk_routine or sk_function_template
+			   symbol.  When synthesized_namespace_projection is
+			   TRUE, the symbols in the list can be a combination
+			   of sk_routine, sk_member_function, sk_projection,
+			   sk_namespace_projection, and sk_function_template
+			   symbols (and the sk_function_template symbols can
+			   be members and/or nonmembers). */
       a_byte_boolean
 		mixed_static_nonstatic;
 			/* TRUE when the current symbol is a class member and
