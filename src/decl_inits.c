@@ -2592,7 +2592,8 @@ initialized.  These are addressed in the course of the processing.
       add_stop_token(tok_comma);
       /* Unless this is an old style base class initializer, a base class
          name or a member name is expected. */
-      if (curr_token != tok_lparen && !is_qualified_name_start()) {
+      if (curr_token != tok_lparen &&
+          !is_decl_qualified_name_start()) {
         /* Either an identifier or "::" is expected here. */
         syntax_error(ec_exp_identifier);
       } else {

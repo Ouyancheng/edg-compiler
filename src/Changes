@@ -1,5 +1,12 @@
 Version 2.35
 
+2/3/97  Improved error recovery after an unexpected template argument list
+
+When an identifier is followed by a "<" in a context in which a less-than
+sign is not valid, it is now assumed to begin a template argument list
+even if the identifier it follows is undefined or names an entity that
+is not a template.  This results in clearer diagnostics in most cases.
+
 2/3/97  Fix in recursive macro expansion
 
 When a macro name appears in its own expansion (either directly, or in

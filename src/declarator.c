@@ -3036,8 +3036,8 @@ The syntax is:
     /* Not a nested declarator. */
     /* An identifier is expected next, but is omitted in the 
        abstract declarator. */
-    is_name_start = (is_qualified_name_start() || curr_token == tok_operator ||
-                     curr_token == tok_compl);
+    is_name_start = (is_decl_qualified_name_start() ||
+                     curr_token == tok_operator || curr_token == tok_compl);
     if (!real_declarator_allowed ||
         (abstract_declarator_allowed && !is_name_start)) {
       /* Identifier is omitted in an abstract declarator.  Be sure it is not a

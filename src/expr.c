@@ -3698,7 +3698,7 @@ Syntax:
   } else if (microsoft_mode && !C_mode()) {
     /* Microsoft allows "sizeof T" without parentheses in C++ mode,
        where T is a type-name (not a keyword like "int"). */
-    if (is_qualified_name_start() &&
+    if (is_expr_qualified_name_start() &&
         is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                          DFS_SINGLE_TYPE_REQUIRED)) {
       /* Something like
@@ -9709,7 +9709,9 @@ see expr.h).
     case tok_identifier:
     case tok_operator:               /* Start of "operator+" and the like. */
       /* Watch out for something like "S::*". */
-      if (!is_qualified_name_start()) goto bad_start_of_primary;
+      if (!is_expr_qualified_name_start()) {
+        goto bad_start_of_primary;
+      }  /* if */
       scan_identifier(&local_result, local_options, (a_symbol_ptr *)NULL);
       break;
     case tok_this:

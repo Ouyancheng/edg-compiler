@@ -180,6 +180,7 @@ scanned are coalesced prior to analysis.
 {
   (void)get_token();
   (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
+                                        GID_IS_EXPR_CONTEXT |
                                         gid_flags_for_template(flags));
 }  /* get_token_and_coalesce_if_identifier */
 
@@ -792,6 +793,7 @@ evidence to the contrary.
   db_enter(3, "prescan_declaration");
   /* Coalesce the identifier if this is a tok_identifier. */
   (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
+                                        GID_IS_EXPR_CONTEXT |
                                         gid_flags_for_template(flags));
   for (;;) {
     /* Scan the decl specifiers. */
@@ -904,7 +906,7 @@ types separated by commas (when single_type_required is FALSE).
   /* The ambiguous cases all begin a type name followed by a left
      parenthesis.   Check for this case first to quickly discard most
      cases. */
-  if (next_token() == tok_lparen && is_type_start()) {
+  if (next_token() == tok_lparen && is_type_start(/*is_expr_context=*/TRUE)) {
     /* Initialize the token cache. */
     init_disambig_state(&state);
     if (curr_token == tok_identifier) {

@@ -725,7 +725,16 @@ declaration position to eliminate redundant file names in a diagnostic.
       goto symbol_name;
     case sk_constant:
       type = fund_sym->variant.constant->type;
-      entity_kind = "constant ";
+      if (type->kind == (a_type_kind)tk_template_param &&
+          type->variant.template_param.kind ==
+                   (a_template_param_type_kind)tptk_type_of_unknown_constant) {
+        /* If the constant is a proxy or nonreal class member then use an
+           entity kind of "nontype" to indicate that this is a generic
+           nontype entity and not actually a constant. */
+        entity_kind = "nontype ";
+      } else {
+        entity_kind = "constant ";
+      }  /* if */
       goto symbol_name;
     case sk_routine:
     case sk_member_function:

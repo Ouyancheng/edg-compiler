@@ -1470,9 +1470,18 @@ extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
 
 
 /* Return TRUE if the current token is the start of a C++ qualified
-   name (including a simple identifier). */
-#define is_qualified_name_start()                                        \
-  (is_generalized_identifier_start(GID_NO_OPTIONS))
+   name (including a simple identifier).  This version of the macro is
+   used in expression contexts in which a "<" should be considered a
+   less than sign and not the start of a template argument list. */
+#define is_expr_qualified_name_start()					  \
+ (is_generalized_identifier_start(GID_IS_EXPR_CONTEXT))
+
+/* Return TRUE if the current token is the start of a C++ qualified
+   name (including a simple identifier).  This version of the macro is
+   used in declaration contexts in which a "<" should be considered to
+   be the start of a template argument list. */
+#define is_decl_qualified_name_start()					  \
+ (is_generalized_identifier_start(GID_NO_OPTIONS))
 
 /* Same thing for use in switch statements, in the form
      case QUALIFIED_NAME_START_CASE:

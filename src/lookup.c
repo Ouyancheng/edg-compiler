@@ -2489,11 +2489,10 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
       if (is_acceptable_symbol(sym)) {
         a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
         /* Found an acceptable symbol. */
-        if (is_proxy_or_nonreal_class_lookup && !implicit_typename_enabled &&
+        if (is_proxy_or_nonreal_class_lookup &&
             sym->kind != nonreal_member_symbol_kind(options)) {
           /* The nonreal class member found is a type when a nontype is
-             expected or vice-versa.  Ignore this symbol when not using
-             implicit-typename. */
+             expected or vice-versa.  Ignore this symbol. */
         } else if (any_nonreal_base_classes &&
                    !implicit_typename_enabled &&
                    sym->kind == (a_symbol_kind)sk_projection &&

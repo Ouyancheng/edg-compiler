@@ -54,7 +54,7 @@ the "::" at the start of a qualified name) is a type name.
   (curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/FALSE) != NULL)
 
 /* Test whether or not the current token is the start of a type. */
-extern a_boolean is_type_start(void);
+extern a_boolean is_type_start(a_boolean is_expr_context);
 
 /* Test whether or not the current token is the start of a declaration. */
 extern a_boolean is_decl_start(a_boolean  expr_context,

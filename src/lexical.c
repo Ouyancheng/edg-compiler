@@ -7288,7 +7288,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   a_boolean                       any_errors = FALSE;
   a_memory_region_number          region_to_switch_back_to;
   a_token_kind			  next_tok;
-  a_boolean			  class_is_being_instantiated;
+  a_boolean			  class_is_being_instantiated = FALSE;
   a_boolean			  arg_list_coalesced = FALSE;
   a_boolean			  arg_list_processed = FALSE;
 
@@ -7300,35 +7300,53 @@ a routine to lookup the appropriate instance (or generate one if needed).
   start_position = pos_curr_token;
   /* Save the current locator. */
   locator_pos = locator_for_curr_id.source_position;
-  if (template_sym->kind != (a_symbol_kind)sk_class_template) {
+  if (template_sym == NULL ||
+      template_sym->kind != (a_symbol_kind)sk_class_template) {
     /* The symbol is not a class template symbol.  If the symbol
        is a type symbol followed by what looks like the beginning
        of a template argument list (i.e., a "<") issue an error
-       indicating that the current symbol is not a class template.
-       If the symbol is not a type symbol simply return without
-       doing anything because the "<" may be a less than sign.  This
-       test is also suppressed when processing the type name in a new
-       expression and the operand of a field selection operation
-       because they may legitimately be followed by a less than sign. */
-    if (is_type_symbol(template_sym) && next_tok == tok_lt &&
-        !(options & GID_IS_NEW_TYPE_NAME) &&
-        !(options & GID_IS_FIELD_SELECTION_OPERAND)) {
+       indicating that the current symbol cannot have a template argument
+       list.  If the symbol is not a type the action taken depends on whether
+       or not we are in a context in which a "<" is valid as part of
+       an expression.  If the "<" might be part of an expression, we
+       return without further processing.  Otherwise, a diagnostic is
+       issued and the template argument list is processed. */
+    a_boolean	lt_permitted_context;
+    a_boolean	is_expr_context;
+    a_boolean	is_error_symbol;
+    lt_permitted_context = (options & GID_IS_NEW_TYPE_NAME) != 0 ||
+                           (options & GID_IS_FIELD_SELECTION_OPERAND) != 0;
+    is_expr_context = (options & GID_IS_EXPR_CONTEXT) != 0;
+    is_error_symbol = template_sym == NULL || template_sym->is_error ||
+                      template_sym->ambiguous;
+    if (template_sym != NULL &&
+        is_type_symbol(template_sym) && next_tok == tok_lt &&
+        !lt_permitted_context) {
+      /* A type name followed by a template argument list. */
       pos_sy_error(ec_unexpected_template_arg_list, &start_position,
                    template_sym);
-      add_stop_token(tok_gt);
-      add_stop_token(tok_lbrace);
-      add_stop_token(tok_semicolon);
-      flush_to_end_of_arg_list();
-      remove_stop_token(tok_gt);
-      remove_stop_token(tok_lbrace);
-      remove_stop_token(tok_semicolon);
-      make_specific_symbol_error_locator(&locator_for_curr_id);
-      new_sym = template_sym;
-      any_errors = TRUE;
-      arg_list_processed = TRUE;
-      goto normal_exit;
+      template_sym = NULL;
+    } else if (!is_error_symbol &&
+               !lt_permitted_context && !is_expr_context) {
+      /* A nontype symbol followed by a template argument list in a
+         nonexpression context. */
+      pos_sy_error(ec_sym_not_a_class_template, &start_position,
+                   template_sym);
+      template_sym = NULL;
+    } else if (is_error_symbol &&
+               !lt_permitted_context && !is_expr_context) {
+      /* A NULL symbol, error symbol, or ambiguous symbol followed by
+         a template argument list. */
+      if (template_sym == NULL) {
+        /* If the symbol is an error symbol or ambiguous, assume an error
+           has already been issued. */
+        pos_st_error(ec_str_not_a_class_template, &start_position,
+                     locator_for_curr_id.symbol_header->identifier);
+      }  /* if */
+      template_sym = NULL;
     } else {
-      /* Just return the symbol that was passed in. */
+      /* A valid symbol in an expression context.  Just return the symbol
+         that was passed in. */
       new_sym = template_sym;
       goto skip_processing;
     }  /* if */
@@ -7337,8 +7355,10 @@ a routine to lookup the appropriate instance (or generate one if needed).
      is currently being instantiated.  This affects how references to the
      class template name are handled. */
   current_instantiation_sym = template_sym;
-  class_is_being_instantiated =
+  if (template_sym != NULL) {
+    class_is_being_instantiated =
             current_class_symbol_if_class_template(&current_instantiation_sym);
+  }  /* if */
   if (next_tok != tok_lt) {
     if (options & GID_CLASS_TEMPLATE_REQUIRED) {
       /* The caller wants the class template symbol.  Just return the
@@ -7381,7 +7401,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
   (void)get_token();
   /* Get token following opening angle bracket. */
   (void)get_token();
-  if (!template_sym->variant.template_info->is_nonreal_member) {
+  if (template_sym != NULL &&
+      !template_sym->variant.template_info->is_nonreal_member) {
     /* Scan the template argument list. */
     arg_list = scan_template_argument_list(template_sym, &any_errors);
   } else {
@@ -7389,7 +7410,9 @@ a routine to lookup the appropriate instance (or generate one if needed).
        as a result of constructs like T::A<int>.  In such cases there is
        no template parameter list to use as a basis for the template
        arguments that are scanned.  Scan the template arguments that
-       have been supplied. */
+       have been supplied.  This kind of scan is also done when there
+       is no template symbol, which happens if an undefined symbol is
+       followed by a template argument list. */
     arg_list = scan_nonreal_member_template_arg_list(&any_errors);
   }  /* if */
   arg_list_processed = TRUE;
@@ -7402,7 +7425,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
     if (!any_errors) syntax_error(ec_exp_gt);
     any_errors = TRUE;
   }  /* if */
-  if (!any_errors) {
+  if (!any_errors && template_sym != NULL) {
     /* Everything is OK -- find the instance that matches these arguments.
        Create a new instance if needed.  There can be two instances
        of a class A<T> One is the prototype instantiation which is
@@ -8100,9 +8123,9 @@ selection operator, in which case it points to the type of the left operand.
     clear_specific_symbol(locator_for_curr_id);
     /* If the class symbol is for a class template, process the argument
        list. */
-    if (qualifier_sym != NULL &&
-        (qualifier_sym->kind == (a_symbol_kind)sk_class_template ||
-         next_tok == tok_lt)) {
+    if ((qualifier_sym != NULL &&
+         qualifier_sym->kind == (a_symbol_kind)sk_class_template) ||
+        next_tok == tok_lt) {
       /* Process a template reference.  This is considered a potential
          template reference if the symbol points to a class template
          or if the next token is a "<" (the latter case is handled here
@@ -8140,6 +8163,9 @@ selection operator, in which case it points to the type of the left operand.
         a_boolean	invalid_qualifier_sym = FALSE;
         if (qualifier_sym == NULL || err) {
           invalid_qualifier_sym = TRUE;
+        } else if (qualifier_sym->is_error) {
+          invalid_qualifier_sym = TRUE;
+          err = TRUE;
         } else if (qualifier_sym->kind == (a_symbol_kind)sk_class_template) {
           invalid_qualifier_sym = TRUE;
         } else if (is_class_symbol(qualifier_sym)) {

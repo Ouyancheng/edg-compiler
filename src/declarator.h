@@ -74,12 +74,12 @@ Macro that is TRUE if the current token is the start of a declarator
 
 /*
 Macro that is TRUE if the current identifier token is the start of a
-pointer-to-member declarator (class-name :: *).  is_qualified_name_start
+pointer-to-member declarator (class-name :: *).  is_decl_qualified_name_start
 calls is_generalized_identifier_start, which sets curr_token to
 tok_ptr_to_member and returns FALSE if a pointer to member is found.
 */
 #define is_ptr_to_member_declarator_start()				\
-  (!is_qualified_name_start() && curr_token == tok_ptr_to_member)
+  (!is_decl_qualified_name_start() && curr_token == tok_ptr_to_member)
 
 /*
 Macro that is TRUE if the current token is the start of an abstract

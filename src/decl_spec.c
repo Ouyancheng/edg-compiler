@@ -773,7 +773,7 @@ the template.
        it is a local class. */
     is_local_class = TRUE;
   }  /* if */
-  if (!is_qualified_name_start()) {
+  if (!is_expr_qualified_name_start()) {
     /* Skip over "class", "struct", or "union", remembering which appears. */
     check_assertion(curr_token == tok_class || curr_token == tok_struct ||
                     curr_token == tok_union);
@@ -802,7 +802,7 @@ the template.
     /* If there is an identifier next, it is a tag.  It can be the declaration
        of a new tag or a reference to an existing tag.  Although it is an
        error, also be on the lookout for a qualified name. */
-    tag_id_present = is_qualified_name_start();
+    tag_id_present = is_expr_qualified_name_start();
   } else {
     /* class_specifier is called with is_friend_decl TRUE only when the name
        has not yet been declared; this happens in cfront compatibility mode
@@ -1439,7 +1439,7 @@ to indicate whether an enumeration is actually defined.
   (void)get_token();
   /* If there is an identifier next, it is a tag.  It can be the declaration
      of a new tag or a reference to an existing tag. */
-  tag_id_present = is_qualified_name_start();
+  tag_id_present = is_expr_qualified_name_start();
   if (tag_id_present) {
     a_boolean          tag_resolution;
     /* It seems that appearance of a tag name is a declaration of the
@@ -3074,7 +3074,7 @@ Returns TRUE if there is an error in the specifiers.
                code.  */
             /* Advance to the token following "friend". */
             (void)get_token();
-            if (!is_qualified_name_start()) {
+            if (!is_decl_qualified_name_start()) {
               /* Can't be the start of an identifier -- back up to continue
                  processing. */
               unget_token();

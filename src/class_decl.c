@@ -3405,7 +3405,7 @@ or struct definition.  The syntax is
       (void)get_token();
     }  /* for */
     /* Test for identifier or "::" next. */
-    if (!is_qualified_name_start()) {
+    if (!is_decl_qualified_name_start()) {
       syntax_error(ec_exp_identifier);
     } else {
       /* Scan the base class name. */
@@ -3789,7 +3789,7 @@ of a C++ class, struct, or union or a C struct or union.
 {
   a_boolean     is_start = FALSE;
 
-  if (is_type_start()) {
+  if (is_type_start(/*is_expr_context=*/FALSE)) {
     /* This is the only check required for C struct/union fields. */
     is_start = TRUE;
   } else if (C_dialect == C_dialect_cplusplus) {
@@ -7719,7 +7719,7 @@ or implicit) controlling the declaration.
     /* This is a using declaration.  Bypass "using" and scan the
        identifier. */
     (void)get_token();
-    if (!is_qualified_name_start()) {
+    if (!is_decl_qualified_name_start()) {
       syntax_error(ec_exp_identifier);
       discard_curr_construct_pragmas();
       goto done;
@@ -9559,7 +9559,7 @@ nested classes when their definition appears outside of the class template.
             goto next_declaration;
           }  /* if */
           /* Check for an access adjustment declaration. */
-          if (is_qualified_name_start() &&
+          if (is_decl_qualified_name_start() &&
               qualifier_class_type(locator_for_curr_id) != class_type &&
               !locator_for_curr_id.is_global_qualified_name &&
               locator_for_curr_id.is_qualified_name &&

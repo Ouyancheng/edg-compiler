@@ -125,13 +125,16 @@ the name of a type (a typedef name or, in C++, the name of a class, struct,
 union, or enum).  Also works if the current is the "::" at the start of
 a global qualified name.
 */
-#define is_type_name() (is_qualified_name_start() && curr_id_is_type_name())
+#define is_type_name(options) (is_generalized_identifier_start(options) &&\
+                               curr_id_is_type_name())
 
 
-a_boolean is_type_start(void)
+a_boolean is_type_start(a_boolean is_expr_context)
 /*
 Return TRUE if the current token looks like the start of a type.  A type
 starts with a type-specifier (including a typedef name) or a type-qualifier.
+is_expr_context is TRUE if this is called from a context in which an
+expression is permitted.
 */
 {
   a_boolean    is_start = FALSE;
@@ -139,7 +142,8 @@ starts with a type-specifier (including a typedef name) or a type-qualifier.
   if (is_type_specifier() || is_type_qualifier() ||
       is_function_specifier() || curr_token == tok_friend) {
     is_start = TRUE;
-  } else if (is_type_name()) {
+  } else if (is_type_name(is_expr_context ? GID_IS_EXPR_CONTEXT
+                                          : GID_NO_OPTIONS)) {
     /* Identifier that is a type name (a typedef name or, in C++,
        the name of a class, struct, or union). */
     is_start = TRUE;
@@ -174,7 +178,7 @@ optimization is suppressed.
   } else if (curr_token == tok_template) {
     /* Probably an error. */
     is_start = TRUE;
-  } else if (is_type_start()) {
+  } else if (is_type_start(expr_context)) {
     /* Is start of type. */
     is_start = TRUE;
   } else if (curr_token == tok_identifier &&
@@ -5541,7 +5545,7 @@ is no parent.
     push_namespace_reactivation_scope(parent.namespace_ptr);
     namespace_reactivated = TRUE;
   }  /* if */
-  if (is_type_start()) {
+  if (is_type_start(/*is_expr_context=*/FALSE)) {
     /* It is the start of a type name. */
     is_conversion_operator = TRUE;
     set_err_pos_to_curr_token();
@@ -6587,7 +6591,7 @@ caller.
     /* Bypass the "=". */
     (void)get_token();
     add_stop_token(tok_semicolon);
-    if (!is_qualified_name_start()) {
+    if (!is_decl_qualified_name_start()) {
       /* A namespace alias definition requires a (possibly qualified)
          namespace or class name to the right of the "=". */
       discard_curr_construct_pragmas();
@@ -6812,7 +6816,7 @@ A using-directive entry is created and activated for the current scope.
   (void)get_token();
   (void)get_token();
   add_stop_token(tok_semicolon);
-  if (!is_qualified_name_start()) {
+  if (!is_decl_qualified_name_start()) {
     syntax_error(ec_exp_identifier);
     /* Ignore pragma declarations. */
     discard_curr_construct_pragmas();
@@ -6904,7 +6908,7 @@ current scope.
   /* Bypass "using". */
   (void)get_token();
   add_stop_token(tok_semicolon);
-  if (!is_qualified_name_start()) {
+  if (!is_decl_qualified_name_start()) {
     syntax_error(ec_exp_identifier);
     /* Ignore pragma declarations. */
     discard_curr_construct_pragmas();
