@@ -5291,7 +5291,9 @@ no_get_token:
         /* Keep looping. */
       } else {
         /* Did we see tok_inline used as a qualifier? */
+#if MICROSOFT_EXTENSIONS_ALLOWED
         if (decl_specifiers_seen & DS_INLINE) { *qualifiers |= TQ_INLINE; }
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         goto exit_loop;
       }  /* if */
     } else if (defines_something &&
