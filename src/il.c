@@ -4911,6 +4911,9 @@ Initialize a dynamic_init entry of the kind specified.
   dip->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
   set_dynamic_init_kind(dip, kind);
+#if DO_IL_LOWERING
+  dip->init_pos_descr                = NULL;
+#endif /* DO_IL_LOWERING */
 }  /* clear_dynamic_init */
 
 
