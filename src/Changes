@@ -23,24 +23,6 @@ GNU_EXTENSIONS_ALLOWED set to TRUE.  For example:
 
 This is now fixed.
 
-11/3/04  Result of class rvalue "?" is a temporary
-
-The processing for the "?" operator when the result is a class
-rvalue now ensures that the second or third operand is copied
-to an additional temporary, and that that temporary is returned as
-the result of the operation.  This is in accordance with the
-standards committee's decision on core issue 446.  Also, the
-fact that the operation now has a single temporary result means
-that when a reference is bound to it the temporary lifetime is
-extended.  This deals with core issue 86.
-
-  struct A {};
-  int main() {
-    int i = 1;
-    A a;
-    i ? a : A();
-  }
-
 11/2/04  GNU and Microsoft compatibility: Extraneous qualification on
          namespace member declarations
 
