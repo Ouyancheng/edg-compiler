@@ -405,29 +405,31 @@ a_boolean is_abstract_class_type(a_type_ptr  tp)
 
   if (!C_mode()) {
     tp = skip_typerefs(tp);
-    if (is_class_struct_union(tp) && tp->variant.class_struct_union.abstract) {
-      is_abstract = TRUE;
-    } else if (is_incomplete(tp) &&
-               tp->variant.class_struct_union.extra_info->
+    if (is_class_struct_union(tp)) {
+      if (tp->variant.class_struct_union.abstract) {
+        is_abstract = TRUE;
+      } else if (is_incomplete(tp) &&
+                 tp->variant.class_struct_union.extra_info->
                                                 template_arg_list != NULL) {
-      /* This is an uninstantiated template class.  If the template is
-         abstract, then so will this instance of it be. */
-      a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
-      a_symbol_ptr                   prototype_sym;
+        /* This is an uninstantiated template class.  If the template is
+           abstract, then so will this instance of it be. */
+        a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
+        a_symbol_ptr                   prototype_sym;
 
-      if (!cssp->is_specific_template_def) {
-        /* This is not a specific definition, so this instance will be based
-           on the template.  To get from here to the type created for the
-           prototype instantiation indirect through the template symbol to its
-           supplement to the symbol representing the prototype instantiation
-           to the type. */
-        prototype_sym = cssp->class_template->variant.template_info->
+        if (!cssp->is_specific_template_def) {
+          /* This is not a specific definition, so this instance will be based
+             on the template.  To get from here to the type created for the
+             prototype instantiation indirect through the template symbol to
+             its supplement to the symbol representing the prototype
+             instantiation to the type. */
+          prototype_sym = cssp->class_template->variant.template_info->
                                variant.class_template.prototype_instantiation;
-        if (prototype_sym == NULL) {
-          /* Class template has not yet been defined. */
-        } else if (prototype_sym->variant.class_struct_union.type->
+          if (prototype_sym == NULL) {
+            /* Class template has not yet been defined. */
+          } else if (prototype_sym->variant.class_struct_union.type->
                                         variant.class_struct_union.abstract) {
-          is_abstract = TRUE;
+            is_abstract = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
