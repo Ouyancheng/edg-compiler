@@ -2996,6 +2996,7 @@ See conversion_possible.
     /* Destination type is arithmetic. */
     if (identical_types(source_type, dest_type)) {
       /* No type change. */
+      okay = TRUE;
       std_conv->nontrivial_conversion = FALSE;
     } else if (is_arithmetic(source_type)) {
       /* Arithmetic --> arithmetic.  Okay. */
