@@ -1,5 +1,32 @@
 Version 3.1
 
+8/6/02   GNU C++ compatibility option
+
+The front end now supports command-line switches --g++ and --no_g++ that
+provide some language compatibility with GNU C++ compilers.  The compatibility
+is neither exact (i.e., some extensions may have a slightly different meaning)
+nor complete (some extensions are not implemented). 
+
+To enable these switches, GNU_EXTENSIONS_ALLOWED must be configured TRUE.
+In that case, the default value of the command-line switch is determined by
+the new configuration option DEFAULT_GPP_COMPATIBILITY.
+
+The set of extensions enabled with the --g++ option initially includes:
+the __attribute__ syntax (but not all GNU C++ attributes are recognized), the
+__extension__ keyword, builtin <stdarg.h> and <varargs.h> support, other
+builtin functions such as __builtin_alloca (but not all GNU C++ builtin
+functions are recognized), excess aggregate initializers are ignored, zero-
+length arrays, sizeof can be applied to void and to function types, pointer
+arithmetic is applicable to void pointers and to function pointers (they
+behave much like char*), the dereferencing operator can be applied to void
+pointers, &&label, typeof, global variables can be mapped to specific
+registers using the asm keyword, assembler names of variables and routines,
+adjectives such as short and signed are accepted in combination with typedefs
+of integer types, the inline keyword is accepted on block extern declarations,
+some basic type specifiers can be duplicated (e.g., "int int"), "extern
+template <declaration>" indicates that the given specialization should not
+be instantiated.
+
 8/5/02   Final name mangling not done on some promoted local static
          variables
 
