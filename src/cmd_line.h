@@ -987,7 +987,11 @@ EXTERN a_boolean
 			   conformance.  Ignored in cfront mode. */
 
 EXTERN a_boolean
-		one_instantiation_per_object /* = FALSE */;
+		one_instantiation_per_object
+#if VAR_INITIALIZERS
+                                             = FALSE
+#endif /* VAR_INITIALIZERS */
+                                                    ;
 			/* TRUE if each externally linked function and static
 			   data member should be generated in its own object
 			   file. */
