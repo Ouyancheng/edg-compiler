@@ -1593,6 +1593,10 @@ fi
 # contains the first file name.  Set all_files to the complete list.
 #
 if [ $multi_trans_unit -ne 0 ] ; then
+  if [ $trans_unit_test_mode -ne 0 ] ; then
+    echo "$driver_name: cannot combine --multi_trans_unit and --trans_unit_test modes."
+    exit 1
+  fi
   allfiles=$cfiles
   cfiles=`echo $cfiles | sed -e "s/ .*//"`
   more_than_one_c_file=0
