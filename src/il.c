@@ -7569,6 +7569,7 @@ lifetimes, since those are never bound.
       break;
     case olk_expr_temporary:
       switch (entity_kind) {
+        case iek_block:
         case iek_expr_node:
         case iek_new_delete_supplement:
         case iek_dynamic_init:
