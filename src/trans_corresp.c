@@ -1919,17 +1919,17 @@ is in fact valid.
                                  TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) ||
          (!is_generated_new_or_delete_operator(routine) &&
           !is_generated_new_or_delete_operator(corresp_routine) &&
-          !same_exception_spec(routine->type, corresp_routine->type)) ||
+          (!same_exception_spec(routine->type, corresp_routine->type) ||
+           routine->compiler_generated !=
+                                       corresp_routine->compiler_generated)) ||
          routine->is_virtual != corresp_routine->is_virtual ||
          routine->pure_virtual != corresp_routine->pure_virtual ||
-         routine->compiler_generated != corresp_routine->compiler_generated ||
          /* In C mode (C99 & GNU C), the inline flag does not need to match.
-            In C++ mode, we only require a match if the function is defined. */
+            In C++ mode, we only require a match if the functions are both
+            defined or if they are both undefined. */
          (!C_mode() && routine->is_inline != corresp_routine->is_inline &&
-          ((!routine->is_inline &&
-            routine->assoc_scope != NULL_region_number) ||
-           (!corresp_routine->is_inline &&
-            corresp_routine->assoc_scope != NULL_region_number))) ||
+          ((routine->assoc_scope != NULL_region_number) ==
+                      (corresp_routine->assoc_scope != NULL_region_number))) ||
          /* If both routines are template specialization, the explicit
             template specialization bit should be the same. */
          (routine->template_arg_list != NULL && 
