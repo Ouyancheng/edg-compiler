@@ -5371,18 +5371,22 @@ specification allow a variable-sized array as the top type.
     if (new_array_dimension != NULL) {
       /* Variable-length array; count is deferred to runtime. */
       effective_num_of_elements = 0;
+    } else if (unqual_new_type->variant.array.
+                                            is_template_dependent_size_array) {
+      /* Template-dependent bound.  Count is constant but not known. */
+      effective_num_of_elements = 0;
     } else {
       effective_num_of_elements =
                     unqual_new_type->variant.array.variant.number_of_elements;
     }  /* if */
     while (is_array_type(base_new_type)) {
-      if (unqual_base_new_type->variant.array.is_variable_size_array) {
+      if (unqual_base_new_type->variant.array.
+                                            is_template_dependent_size_array) {
         /* Arrays whose bounds are given by template-dependent constant
-           expressions (in prototype instantiations) are marked as
-           variable-sized. */
-        check_assertion(is_template_dependent_context());
+           expressions (in prototype instantiations) have unknown size. */
         effective_num_of_elements = 0;
       } else {
+        check_assertion(!has_unknown_specified_bound(unqual_base_new_type));
         effective_num_of_elements *=
                 unqual_base_new_type->variant.array.variant.number_of_elements;
       }  /* if */

@@ -131,6 +131,14 @@ Return TRUE or FALSE about the qualifiers of a tk_typeref type.
 #endif /* RESTRICT_ALLOWED */
 
 /*
+Macro that takes an array type and returns TRUE if its bound is specified but
+unknown (e.g., a template parameter or a run-time quantity).
+*/
+#define has_unknown_specified_bound(array_type)                       \
+  ((array_type)->variant.array.is_variable_size_array ||              \
+   (array_type)->variant.array.is_template_dependent_size_array)
+
+/*
 Macro that returns TRUE if a type is a template class type that has
 not been specialized.
 */

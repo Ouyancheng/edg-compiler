@@ -862,6 +862,8 @@ Dump the contents of the indicated type entry, for debug purposes.
           }  /* if */
         } else if (tp->variant.array.is_variable_size_array) {
           fputs("**EXPR**", f_debug);
+        } else if (tp->variant.array.is_template_dependent_size_array) {
+          db_constant(tp->variant.array.variant.element_count_constant);
         } else {
           fprintf(f_debug, "%lu",
                   (unsigned long)tp->variant.array.variant.number_of_elements);
@@ -2913,7 +2915,8 @@ Fill in the constant "con" as a pointer-to-member constant for the
 nonstatic member function indicated by routine.
 */
 {
-  a_type_ptr member_class;
+  a_type_ptr   member_class;
+  a_symbol_ptr member_sym;
 
   clear_constant(con, (a_constant_repr_kind)ck_ptr_to_member);
   con->variant.ptr_to_member.is_function_ptr = TRUE;
@@ -2921,8 +2924,12 @@ nonstatic member function indicated by routine.
   /* Note that the class of the pointer is always the class in which
      the member was defined, not any derived class.  See [expr.unary.op]
      5.3.1p2. */
-  check_assertion(routine->source_corresp.is_class_member);
-  member_class = routine->source_corresp.parent.class_type;
+  /* Get the parent from the symbol rather than the routine in order
+     to get pointers-to-members of anonymous unions right (it doesn't
+     really matter for routines, but just in case). */
+  member_sym = ((a_symbol_ptr)routine->source_corresp.assoc_info);
+  check_assertion(member_sym != NULL && member_sym->is_class_member);
+  member_class = member_sym->parent.class_type;
   con->type = ptr_to_member_type(routine->type, member_class);
   if (!routine->is_virtual) {
     /* Force the routine to be instantiated or generated. */
@@ -2938,7 +2945,8 @@ Fill in the constant "con" as a pointer-to-member constant for the
 nonstatic data member indicated by field.
 */
 {
-  a_type_ptr member_class;
+  a_type_ptr   member_class;
+  a_symbol_ptr member_sym;
 
   clear_constant(con, (a_constant_repr_kind)ck_ptr_to_member);
   con->variant.ptr_to_member.is_function_ptr = FALSE;
@@ -2946,7 +2954,11 @@ nonstatic data member indicated by field.
   /* Note that the class of the pointer is always the class in which
      the member was defined, not any derived class.  See [expr.unary.op]
      5.3.1p2. */
-  member_class = field->source_corresp.parent.class_type;
+  /* Get the parent from the symbol rather than the field in order
+     to get pointers-to-members of anonymous unions right. */
+  member_sym = ((a_symbol_ptr)field->source_corresp.assoc_info);
+  check_assertion(member_sym != NULL && member_sym->is_class_member);
+  member_class = member_sym->parent.class_type;
   con->type = ptr_to_member_type(field->type, member_class);
 }  /* set_ptr_to_data_member_constant */
 
@@ -3175,7 +3187,7 @@ to refine the hash value developed in hash_constant.
       break;
     case tk_array:
       hash_value = hash_type(type->variant.array.element_type) + 307;
-      if (!type->variant.array.is_variable_size_array) {
+      if (!has_unknown_specified_bound(type)) {
         hash_value += (a_constant_hash_value)
                             (type->variant.array.variant.number_of_elements);
       }  /* if */

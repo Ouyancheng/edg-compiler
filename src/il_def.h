@@ -3926,12 +3926,17 @@ typedef struct a_type {
                 element_type;
                         /* Type of the elements of the array type. */
       a_bit_field
+		is_template_dependent_size_array:1;
+			/* TRUE only in C++ and if the array size is constant
+			   and depends on a template parameter.  If this flag
+			   is TRUE, the flag is_variable_size_array must be
+			   FALSE, and the variant "element_count_constant"
+			   can be accessed. */
+      a_bit_field
 		is_variable_size_array:1;
-			/* TRUE if the array size depends on the evaluation of
-			   an expression, either at compile time (in the case
-			   of an array bound defined in terms of a template
-			   parameter constant) or at run time (for a new with
-			   a nonconstant first bound or for a variable length
+			/* TRUE if the array size depends on the evaluation
+			   of an expression at run time (for a new with a
+			   nonconstant first bound or for a variable length
 			   array).  Except for VLAs, this field will never
   			   be TRUE in the IL passed to the back end. */
       a_bit_field
@@ -3946,7 +3951,8 @@ typedef struct a_type {
 			   vla_dimension entry.  FALSE for cases like [*].
 			   (C mode only, and only when is_vla is TRUE.)  */
       union {
-        /* When is_variable_size_array is FALSE: */
+        /* When is_variable_size_array and is_template_dependent_size_array
+           are FALSE: */
         a_targ_size_t
                 number_of_elements;
                         /* Number of elements in the array.  0 indicates
@@ -3958,6 +3964,9 @@ typedef struct a_type {
 			   in the array.  Used only in front-end processing,
 			   and only in C++ mode.  Always NULL if is_vla is
 			   TRUE. */
+        /* When is_template_dependent_size_array is TRUE: */
+        a_constant_ptr
+		element_count_constant;
       } variant;
     } array;
     /* When kind == tk_class, tk_struct, or tk_union: */
@@ -4765,6 +4774,12 @@ typedef struct a_field {
 			   declaration of this nonstatic data member (C++
 			   only). */
   bitfield_to_avoid_codecenter_warnings()
+#if PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  a_constant_ptr
+		bit_size_constant;
+			/* An IL constant representing the size of the bit
+			   field.  (NULL if this is not a bit field.) */ 
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_... */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   char		*get_property_name,
 		*put_property_name;

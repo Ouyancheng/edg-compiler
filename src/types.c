@@ -623,7 +623,7 @@ arrays, give the total number of elements.
   check_assertion_str(array_type->kind == (a_type_kind)tk_array,
                       "num_array_elements: type not array");
   for (;;) {
-    check_assertion(!array_type->variant.array.is_variable_size_array);
+    check_assertion(!has_unknown_specified_bound(array_type));
     elems_this_level = array_type->variant.array.variant.number_of_elements;
     check_assertion(elems_this_level > 0);
     num_elements *= elems_this_level;
@@ -1491,7 +1491,7 @@ and a diagnostic is issued (unless suppress_error is TRUE).
   } else {
     /* Get the number of elements.  Note that this is zero for an incomplete
        type like int a[]. */
-    if (!array_type->variant.array.is_variable_size_array) {
+    if (!has_unknown_specified_bound(array_type)) {
       temp = array_type->variant.array.variant.number_of_elements;
     } else {
       /* We don't know the element count because it is not a constant value.
@@ -1998,7 +1998,6 @@ Return TRUE if the two array types have identical bounds.
 */
 {
   a_boolean         identical = FALSE;
-  an_expr_node_ptr  node_1, node_2;
 
   check_assertion(is_array(type_1) && is_array(type_2));
   if (array_is_vla(type_1) || array_is_vla(type_2)) {
@@ -2006,8 +2005,8 @@ Return TRUE if the two array types have identical bounds.
   } else if (type_1->variant.array.is_variable_size_array) {
     if (type_2->variant.array.is_variable_size_array) {
       /* Both arrays have variable bounds. */
-      node_1 = type_1->variant.array.variant.element_count_expr;
-      node_2 = type_2->variant.array.variant.element_count_expr;
+      an_expr_node *node_1 = type_1->variant.array.variant.element_count_expr;
+      an_expr_node *node_2 = type_2->variant.array.variant.element_count_expr;
       if (node_1->kind == (an_expr_node_kind)enk_constant &&
           node_2->kind == (an_expr_node_kind)enk_constant) {
         identical = eq_constants(node_1->variant.constant,
@@ -2018,6 +2017,17 @@ Return TRUE if the two array types have identical bounds.
     }  /* if */
   } else if (type_2->variant.array.is_variable_size_array) {
     /* A variable-bound array and a fixed-bound array. */
+  } else if (type_1->variant.array.is_template_dependent_size_array) {
+    if (type_2->variant.array.is_template_dependent_size_array) {
+      /* Both arrays have unknown (but constant) bounds. */
+      identical = eq_constants(
+                        type_1->variant.array.variant.element_count_constant,
+                        type_2->variant.array.variant.element_count_constant);
+    } else {
+      /* An unknown-bound array and a known-bound array. */
+    }  /* if */
+  } else if (type_2->variant.array.is_template_dependent_size_array) {
+    /* A known-bound array and an unknown-bound array. */
   } else {
     /* Both arrays have fixed bounds.  Just compare the element counts. */
     identical = (type_1->variant.array.variant.number_of_elements ==
@@ -2786,6 +2796,12 @@ for exact pointer equality.
                 /* One or the other is a VLA, which is compatible with any
                    array of the same element type. */
                 compat = TRUE;
+              } else if (
+                     type_1->variant.array.is_template_dependent_size_array ||
+                     type_2->variant.array.is_template_dependent_size_array) {
+                /* An array with a parameterized bound is potentially
+                   compatible with any bound. */
+                compat = TRUE;
               } else if (C_mode() || top_level_for_redeclaration) {
                 /* Check whether one of the arrays has unknown bounds.  Note
                    that in C++ this produces "compatibility" only for top-level
@@ -3126,8 +3142,8 @@ can be NULL if the caller does not need this flag returned.
         dest_type = pm_member_type(dest_type);
         source_type = pm_member_type(source_type);
       } else if (is_array_type(dest_type) && is_array_type(source_type) &&
-                 !dest_type->variant.array.is_variable_size_array &&
-                 !source_type->variant.array.is_variable_size_array &&
+                 !has_unknown_specified_bound(dest_type) &&
+                 !has_unknown_specified_bound(source_type) &&
                  dest_type->variant.array.variant.number_of_elements ==
                      source_type->variant.array.variant.number_of_elements) {
         /* Continue at the next level for arrays. */
@@ -4875,13 +4891,13 @@ preference is given to the first.
      composite type, the first operand is returned, and we'd like
      the element type to be the one from the array with the proper
      size. */
-  if (!array_type1->variant.array.is_variable_size_array &&
+  if (!has_unknown_specified_bound(array_type1) &&
       array_type1->variant.array.variant.number_of_elements != 0) {
     /* array_type1 is "array[const]". */
     num_elems = array_type1->variant.array.variant.number_of_elements;
     comp_elem = composite_type(array_type1->variant.array.element_type,
                                array_type2->variant.array.element_type);
-  } else if (!array_type2->variant.array.is_variable_size_array &&
+  } else if (!has_unknown_specified_bound(array_type2) &&
              array_type2->variant.array.variant.number_of_elements != 0) {
     /* array_type2 is "array[const]". */
     num_elems = array_type2->variant.array.variant.number_of_elements;
@@ -4903,16 +4919,21 @@ preference is given to the first.
     /* array_type2 is "array[*]". */
     comp_type = array_type2;
     comp_has_nonconst_dimension = TRUE;
-  } else if (array_type1->variant.array.is_variable_size_array) {
+  } else if (array_type1->variant.array.is_template_dependent_size_array) {
     check_assertion(identical_array_type_level(array_type1, array_type2));
     /* Dimension expression must involve a template param. */
     comp_type = array_type1;
     comp_has_nonconst_dimension = TRUE;
+  } else if (array_type2->variant.array.is_template_dependent_size_array) {
+    check_assertion(identical_array_type_level(array_type1, array_type2));
+    /* Dimension expression must involve a template param. */
+    comp_type = array_type2;
+    comp_has_nonconst_dimension = TRUE;
   } else {
-    /* Both arrays have unknown bounds ("array[]"). */
-    check_assertion(!array_type1->variant.array.is_variable_size_array &&
+    /* Both arrays have unknown unspecified bounds ("array[]"). */
+    check_assertion(!has_unknown_specified_bound(array_type1) &&
                     array_type1->variant.array.variant.number_of_elements==0 &&
-                    !array_type2->variant.array.is_variable_size_array &&
+                    !has_unknown_specified_bound(array_type2) &&
                     array_type2->variant.array.variant.number_of_elements==0);
     num_elems = 0;
     comp_elem = composite_type(array_type1->variant.array.element_type,
@@ -5675,6 +5696,42 @@ static a_template_ptr
 		specific_template_template_param;
 
 
+static a_boolean constant_contains_template_param_constant(a_constant_ptr cp)
+/*
+Helper function for ttt_contains_template_param_constant to determine if a
+given constant cp contains a template parameter.  Any parameter will cause
+TRUE to be returned, unless specific_template_template_param is non-NULL in
+which case that particular parameter must be present.
+*/
+{
+  a_boolean found = FALSE;
+
+  if (cp->kind == (a_constant_repr_kind)ck_template_param) {
+    /* Only a ck_template_param constant can be or contain a template
+       param constant, and it must. */
+    if (specific_template_param_constant == NULL) {
+      /* Any template param constant will do. */
+      found = TRUE;
+    } else if (cp->variant.template_param.kind ==
+                            (a_template_param_constant_kind)tpck_expression) {
+      /* Look for a particular template param constant in the expression tree.
+         This is not done when only deduced contexts are considered because
+         template parameters cannot be deduced from expressions. */
+      if (!deduced_contexts_only &&
+          expr_tree_contains_template_param_constant(
+                                      cp->variant.template_param.variant.expr,
+                                      specific_template_param_constant)) {
+        found = TRUE;
+      }  /* if */
+    } else if (eq_constants(cp, specific_template_param_constant)) {
+      /* Just compare the constant entries. */
+      found = TRUE;
+    }  /* if */
+  }  /* if */
+  return found;
+}  /* constant_contains_template_param_constant */
+
+
 static a_boolean ttt_contains_template_param_constant(
                                        a_type_ptr  type_ptr,
                                        a_boolean   *force_end_of_traversal)
@@ -5689,7 +5746,6 @@ based on the specified template parameter constant.
   an_expr_node_ptr    count;
   a_template_arg_ptr  tap;
   a_boolean           found = FALSE;
-  a_constant_ptr      cp;
 
   if (is_array(type_ptr)) {
     if (type_ptr->variant.array.is_variable_size_array &&
@@ -5700,6 +5756,9 @@ based on the specified template parameter constant.
                                         specific_template_param_constant)) {
         found = TRUE;
       }  /* if */
+    } else if (type_ptr->variant.array.is_template_dependent_size_array) {
+      found = constant_contains_template_param_constant(
+                      type_ptr->variant.array.variant.element_count_constant);
     }  /* if */
   } else if (is_class_struct_union(type_ptr)) {
     /* Examine each template argument, if any. */
@@ -5712,31 +5771,9 @@ based on the specified template parameter constant.
            used -- e.g.,
              template <class T, int I> class A { B<I> *b; . . . };
            where the template argument for B<I> is template para constant I. */
-        cp = tap->variant.constant;
-        if (cp->kind == (a_constant_repr_kind)ck_template_param) {
-          /* Only a ck_template_param constant can be or contain a template
-             param constant, and it must. */
-          if (specific_template_param_constant == NULL) {
-            /* Any template param constant will do. */
-            found = TRUE;
-          } else if (cp->variant.template_param.kind ==
-                        (a_template_param_constant_kind)tpck_expression) {
-            /* Look for a particular template param constant in the expression
-               tree.  This is not done when only deduced contexts are
-               considered because template parameters cannot be deduced
-               from expressions. */
-            if (!deduced_contexts_only &&
-                expr_tree_contains_template_param_constant(
-                                      cp->variant.template_param.variant.expr,
-                                      specific_template_param_constant)) {
-              found = TRUE;
-            }  /* if */
-          } else if (eq_constants(cp, specific_template_param_constant)) {
-            /* Just compare the constant entries. */
-            found = TRUE;
-          }  /* if */
-          /* Exit the loop once a match is found. */
-          if (found) break;
+        if (constant_contains_template_param_constant(tap->variant.constant)) {
+          found = TRUE;
+          break;
         }  /* if */
       }  /* if */
     }  /* for */
@@ -6034,7 +6071,7 @@ static a_boolean ttt_is_ptr_or_ref_to_unknown_bound_array(
                                        a_boolean   *force_end_of_traversal)
 /*
 Return TRUE if type_ptr is a pointer or reference to an array of unknown
-bound.
+(and unspecified) bound.
 */
 {
   a_boolean   found = FALSE;
@@ -6044,7 +6081,7 @@ bound.
     tp = type_pointed_to(type_ptr);
     tp = skip_typerefs(tp);
     if (is_array(tp)) {
-      if (!tp->variant.array.is_variable_size_array &&
+      if (!has_unknown_specified_bound(tp) &&
           tp->variant.array.variant.number_of_elements == 0) {
         *force_end_of_traversal = found = TRUE;
         if (is_reference_type(type_ptr)) {

@@ -4841,39 +4841,33 @@ points to the template parameter list.
         case tk_array:
           /* Array types match if their element types match and the number of
              elements is the same. */
-          if (type->variant.array.is_variable_size_array &&
-              templ_type->variant.array.is_variable_size_array) {
-            /* Both the type and the template type have variable size
+          check_assertion(!type->variant.array.is_variable_size_array &&
+                          !templ_type->variant.array.is_variable_size_array);
+          if (type->variant.array.is_template_dependent_size_array &&
+              templ_type->variant.array.is_template_dependent_size_array) {
+            /* Both the type and the template type are dependent size
                arrays.  This should only occur when comparing two
                types that are actually template types during partial
                ordering comparisons. */
-            an_expr_node_ptr expr;
-            an_expr_node_ptr templ_expr;
-            expr = type->variant.array.variant.element_count_expr;
-            templ_expr = templ_type->
-                                    variant.array.variant.element_count_expr;
-            if (expr->kind == (an_expr_node_kind)enk_constant &&
-                templ_expr->kind == (an_expr_node_kind)enk_constant) {
-              a_constant_ptr cp = expr->variant.constant;
-              a_constant_ptr templ_cp = templ_expr->variant.constant;
-              match = matches_template_constant(cp, templ_cp,
-                                                templ_arg_list,
-                                                templ_param_list);
-            }  /* if */
-          } else if (templ_type->variant.array.is_variable_size_array) {
+            a_constant_ptr cp =
+                           type->variant.array.variant.element_count_constant;
+            a_constant_ptr templ_cp =
+                     templ_type->variant.array.variant.element_count_constant;
+            match = matches_template_constant(cp, templ_cp,
+                                              templ_arg_list,
+                                              templ_param_list);
+          } else if (
+                 templ_type->variant.array.is_template_dependent_size_array) {
             /* The type from the template has a variable size.  If the
                variable size is a constant that refers to a template
                parameter, then this could be a match. */
-            an_expr_node_ptr expr;
-            expr = templ_type->variant.array.variant.element_count_expr;
-            if (expr->kind == (an_expr_node_kind)enk_constant) {
-              a_constant_ptr cp = expr->variant.constant;
-              a_targ_size_t  elements;
-              elements = type->variant.array.variant.number_of_elements;
-              match = matches_template_array_bound(elements, cp,
-                                                   templ_arg_list,
-                                                   templ_param_list);
-            }  /* if */
+            a_constant_ptr cp =
+                     templ_type->variant.array.variant.element_count_constant;
+            a_targ_size_t  elements;
+            elements = type->variant.array.variant.number_of_elements;
+            match = matches_template_array_bound(elements, cp,
+                                                 templ_arg_list,
+                                                 templ_param_list);
           } else if (type->variant.array.variant.number_of_elements !=
                       templ_type->variant.array.variant.number_of_elements) {
             /* Both have constant bounds but the number of elements do
@@ -5242,8 +5236,6 @@ If the array type has a variable array dimension, do the substitution
 on the ck_template_param constant pointed to by the expression.
 */
 {
-  an_expr_node_ptr	orig_expr;
-  an_expr_node_ptr	new_expr;
   a_constant_ptr	orig_cp = NULL;
   a_constant_ptr	new_cp = NULL;
   a_type_ptr		new_type;
@@ -5255,16 +5247,9 @@ on the ck_template_param constant pointed to by the expression.
                                    options, copy_error);
   /* Determine whether the number of elements is fixed, or whether
      it requires substitution. */
-  if (type->variant.array.is_variable_size_array) {
-    /* The array size points to an expression.  The expression is
-       expected to always point to a constant for cases that can
-       get here. */
-    orig_expr = type->variant.array.variant.element_count_expr;
-    check_assertion_str2(orig_expr->kind ==
-                                      (an_expr_node_kind)enk_constant,
-                         "copy_array_type_with_substitution:",
-                         "nonconstant array expression");
-    orig_cp = orig_expr->variant.constant;
+  if (type->variant.array.is_template_dependent_size_array) {
+    /* The array size points to a template-dependent constant. */
+    orig_cp = type->variant.array.variant.element_count_constant;
     new_cp = copy_template_param_con_with_substitution(
                       orig_cp, templ_arg_list, depth, (a_type_ptr)NULL,
                       source_pos, copy_error);
@@ -5278,7 +5263,7 @@ on the ck_template_param constant pointed to by the expression.
         is_void_type(tp) ||
         is_reference_type(tp) ||
         (tp->kind == (a_type_kind)tk_array &&
-         !tp->variant.array.is_variable_size_array &&
+         !has_unknown_specified_bound(tp) &&
          tp->variant.array.variant.number_of_elements == 0)) {
       /* The element type is invalid. */
       *copy_error = TRUE;
@@ -5289,15 +5274,14 @@ on the ck_template_param constant pointed to by the expression.
       copy_type(type, new_array_type);
       new_array_type->variant.array.element_type = tp;
       if (orig_cp != new_cp) {
-        if (new_cp->kind != (a_constant_repr_kind)ck_template_param &&
-            !is_error_constant(new_cp)) {
-          /* The substituted value is now an integer value.  Extract
+        if (new_cp->kind == (a_constant_repr_kind)ck_integer) {
+          /* The substituted value is no longer template-dependent.  Extract
              that value and use it as a constant bound.  Note that
              overflow is ignored at this point. */
           a_boolean	overflow;
-          check_assertion(new_cp->kind ==
-                                    (a_constant_repr_kind)ck_integer);
-          new_array_type->variant.array.is_variable_size_array = FALSE;
+
+          new_array_type->
+                       variant.array.is_template_dependent_size_array = FALSE;
           new_array_type->variant.array.variant.number_of_elements =
                  unsigned_value_of_integer_constant(new_cp, &overflow);
           if (overflow ||
@@ -5305,15 +5289,16 @@ on the ck_template_param constant pointed to by the expression.
             /* If the array size is negative or zero, indicate a type error. */
             *copy_error = TRUE;
           }  /* if */
+        } else if (is_error_constant(new_cp)) {
+          *copy_error = TRUE;
         } else {
           /* The substituted value is still a ck_template_param
-             constant (or an error constant).  Create a new expression
-             node to point to the new constant. */
-          new_expr = alloc_expr_node((an_expr_node_kind)enk_constant);
-          *new_expr = *orig_expr;
-          new_expr->next = NULL;
-          new_expr->variant.constant = new_cp;
-          new_array_type->variant.array.variant.element_count_expr = new_expr;
+             constant. */
+          check_assertion(new_cp->kind ==
+                                     (a_constant_repr_kind)ck_template_param &&
+                          new_array_type->
+                               variant.array.is_template_dependent_size_array);
+          new_array_type->variant.array.variant.element_count_constant=new_cp;
         }  /* if */
       }  /* if */
       new_type = new_array_type;

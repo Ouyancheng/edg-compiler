@@ -3986,8 +3986,7 @@ value is used).
                   /* Variable-length arrays cannot be checked for non-negative
                      subscripts. */
                 } else {
-                  check_assertion(!array_type->
-                                       variant.array.is_variable_size_array);
+                  check_assertion(!has_unknown_specified_bound(array_type));
                   num_elements = array_type->
                                      variant.array.variant.number_of_elements;
                   /* Do not check subscripts on arrays dimensioned as having

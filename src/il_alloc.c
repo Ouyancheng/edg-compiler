@@ -246,6 +246,10 @@ this to be traced as follows:
            (e.g., "p trace_alloc_ptr=0x123456" in gdb)
    (e) continue execution: the breakpoint on alloc_intercept() will be hit
        when the suspect node is created
+
+Note that this may not work as expected for addresses determined after the IL
+has been read from a file, because the nodes were allocated at a different
+address before the IL was written out.
 */
 static void *trace_alloc_ptr = NULL;
 
@@ -1000,6 +1004,7 @@ to default values.
       break;
     case tk_array:
       pte->variant.array.element_type = NULL;
+      pte->variant.array.is_template_dependent_size_array = FALSE;
       pte->variant.array.is_variable_size_array = FALSE;
       pte->variant.array.is_vla = FALSE;
       pte->variant.array.has_assoc_vla_dimension = FALSE;
@@ -1463,6 +1468,9 @@ to it.
 #if CHECKING
   fp->avoid_codecenter_warnings = 0;
 #endif /*CHECKING */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  fp->bit_size_constant    = NULL;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_... */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   fp->get_property_name    = NULL;
   fp->put_property_name    = NULL;

@@ -206,7 +206,7 @@ a copy is made and modified.
 {
   a_type_ptr array_type, incomplete_type = skip_typerefs(*type);
 
-  check_assertion(!incomplete_type->variant.array.is_variable_size_array);
+  check_assertion(!has_unknown_specified_bound(incomplete_type));
   array_type = alloc_type((a_type_kind)tk_array);
   copy_type(incomplete_type, array_type);
   array_type->variant.array.variant.number_of_elements = size;
@@ -317,18 +317,13 @@ If there is an error, issue an error and return an error constant.
            is set from the string length. */
         set_initialized_array_size(&array_type, num_elems);
         local_type = array_type;
-      } else if (array_type->variant.array.is_variable_size_array) {
+      } else if (array_type->variant.array.is_template_dependent_size_array) {
         /* This should only happen during prototype instantiations where the
            array length is a template parameter dependent constant. */
-        an_expr_node_ptr  size_expr =
-                         array_type->variant.array.variant.element_count_expr;
-        check_assertion(size_expr->kind == (an_expr_node_kind)enk_constant &&
-                        size_expr->variant.constant->kind ==
-                                     (a_constant_repr_kind)ck_template_param);
-        
       } else {
         /* The object being initialized is an array that has a definite
            size.  See if the string will fit in the array. */
+        check_assertion(!has_unknown_specified_bound(array_type));
         array_length = array_type->variant.array.variant.number_of_elements;
         if (num_elems > array_length) {
           /* The string is longer than the array.  Check to see if the
@@ -591,11 +586,12 @@ routine is called in C++ mode only.
   db_enter(4, "init_remaining_array_elements");
 
   array_type = skip_typerefs(array_type);
-  if (array_type->variant.array.is_variable_size_array) {
+  if (array_type->variant.array.is_template_dependent_size_array) {
     /* The array size may be template dependent. */
     check_assertion(is_template_dependent_context());
     number_of_uninitialized_elements = 0;
   } else {
+    check_assertion(!has_unknown_specified_bound(array_type));
     number_of_uninitialized_elements =
           array_type->variant.array.variant.number_of_elements - curr_element;
   }  /* if */
@@ -1814,20 +1810,19 @@ this function points to a tree that includes a dynamic-init entry.
           } else {
             /* Advance to next array element. */
             ++curr_array_element;
-            check_assertion(is_template_dependent_context() ||
-                            !skip_typerefs(context.type)->variant.array.
+            check_assertion(!skip_typerefs(context.type)->variant.array.
                                                       is_variable_size_array);
             if (!is_incomplete_array) {
               /* Note that we may get here with any_more_members == FALSE and
                  a designator can turn it into TRUE again. */
               a_type_ptr array_type = skip_typerefs(context.type);
               any_more_members =
-                    (array_type->variant.array.is_variable_size_array ||
-                     array_type->variant.array.variant.number_of_elements
+                (array_type->variant.array.is_template_dependent_size_array ||
+                 array_type->variant.array.variant.number_of_elements
                                                         > curr_array_element);
             } else {
               /* Keep track of the maximum subscript seen: */
-              if (curr_array_element>array_size) {
+              if (curr_array_element > array_size) {
                 array_size = curr_array_element;
               }  /* if */
             }  /* if */

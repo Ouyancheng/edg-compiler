@@ -1218,6 +1218,11 @@ do_float_complex:
                    (char *)ptr->variant.array.variant.element_count_expr,
                    iek_expr_node);
         }  /* if */
+      } else if (ptr->variant.array.is_template_dependent_size_array) {
+        disp_boolean("is_template_dependent_size_array", TRUE);
+        disp_ptr("element_count_constant",
+                 (char *)ptr->variant.array.variant.element_count_constant,
+                 iek_constant);
       } else {
         disp_host_large_unsigned("number_of_elements",
                                  (a_host_large_unsigned)ptr->
@@ -1662,6 +1667,10 @@ Display the indicated field.
     disp_unsigned_long("offset_bit_remainder",
                        (unsigned long)ptr->offset_bit_remainder);
     disp_unsigned_long("bit_size", (unsigned long)ptr->bit_size);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    disp_ptr("bit_size_constant", (char *)ptr->bit_size_constant,
+             iek_constant);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || RECORD_CONSTANT_... */
     disp_boolean("bit_field_is_signed", (a_boolean)ptr->bit_field_is_signed);
   }  /* if */
   if (ptr->is_anonymous_parent_object) {

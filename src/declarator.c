@@ -424,7 +424,7 @@ property fields).
         if (is_object_type(temp_type) || is_pointer_type(temp_type)) {
           /* Okay. */
         } else if (temp_type->kind == (a_type_kind)tk_array &&
-                   (temp_type->variant.array.is_variable_size_array ||
+                   (has_unknown_specified_bound(temp_type) ||
                     temp_type->
                            variant.array.variant.number_of_elements != 0)) {
           /* Okay. */
@@ -1974,7 +1974,6 @@ nonstatic data member of a class.
   a_boolean               has_vla_asterisk = FALSE;
   a_source_position       start_pos;
   an_expr_node_ptr        dim_expr = NULL;
-  a_memory_region_number  region_to_switch_back_to;
 
   db_enter(3, "array_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -2062,9 +2061,7 @@ nonstatic data member of a class.
           }  /* if */
           break;
         case ck_template_param:
-          switch_to_file_scope_region(&region_to_switch_back_to);
-          dim_expr = alloc_node_for_constant(&constant);
-          switch_back_to_original_region(region_to_switch_back_to);
+          /* Template-dependent bound.  Handled below. */
           break;
         case ck_error:
           err = TRUE;
@@ -2119,6 +2116,12 @@ nonstatic data member of a class.
       } else {
         (*new_type_ptr)->variant.array.variant.element_count_expr = dim_expr;
       }  /* if */
+    } else if (constant.kind == (a_constant_repr_kind)ck_template_param) {
+      /* Template-dependent bound (constant but not a known value). */
+      a_constant_ptr il_constant = alloc_shareable_constant(&constant);
+      (*new_type_ptr)->variant.array.variant.element_count_constant =
+                                                                  il_constant;
+      (*new_type_ptr)->variant.array.is_template_dependent_size_array = TRUE;
     } else {
       (*new_type_ptr)->variant.array.variant.number_of_elements =
                                                            num_of_elements;

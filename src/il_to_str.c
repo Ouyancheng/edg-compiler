@@ -1463,6 +1463,9 @@ the way described by octl.
       an_expr_node_ptr  count = type->variant.array.variant.element_count_expr;
       octl->output_expression(count);
     }  /* if */
+  } else if (type->variant.array.is_template_dependent_size_array) {
+    form_constant(type->variant.array.variant.element_count_constant,
+                  /*need_parens=*/FALSE, octl);
   } else if (type->variant.array.variant.number_of_elements == 0) {
     /* For unknown-bound arrays, put nothing between the []. */
   } else {
@@ -2072,8 +2075,8 @@ and standalone utility programs.
                                                   pm_member_type(type_2));
   } else if (!C_mode() &&
              type_1->kind == (a_type_kind)tk_array &&
-             !type_1->variant.array.is_variable_size_array &&
-             !type_2->variant.array.is_variable_size_array &&
+             !has_unknown_specified_bound(type_1) &&
+             !has_unknown_specified_bound(type_2) &&
              type_1->variant.array.variant.number_of_elements ==
                             type_2->variant.array.variant.number_of_elements) {
     /* Continue at the next level for arrays (in C++ mode, the qualifiers on

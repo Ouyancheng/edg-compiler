@@ -3128,8 +3128,7 @@ NULL.
               /* Change the array size to 1. */
               a_type_ptr array_type = alloc_type((a_type_kind)tk_array);
               copy_type(var_type, array_type);
-              check_assertion(
-                          !array_type->variant.array.is_variable_size_array);
+              check_assertion(!has_unknown_specified_bound(array_type));
               array_type->variant.array.variant.number_of_elements = 1;
               set_type_size(array_type);
               var_ptr->type = array_type;

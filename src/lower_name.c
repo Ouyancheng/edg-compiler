@@ -1960,15 +1960,17 @@ Add to the mangled name the encoding for the type "type".
       case tk_array:
         /* Put out the array size, an underscore, and then the element type,
            i.e., int[10] is put out as A10_i. */
-        if (type->variant.array.is_variable_size_array) {
-          /* Variable size arrays are possible when putting out function
-             prototypes.  For that case the prefix is "A_". */
+        check_assertion(!type->variant.array.is_variable_size_array);
+        if (type->variant.array.is_template_dependent_size_array) {
+          /* Template-dependent size arrays are possible when putting out
+             function prototypes.  For that case the prefix is "A_". */
           check_assertion(distinct_template_signatures);
           add_to_mangled_name('_', mctl);
-          /* Put out an encoding for the expression. */
-          mangled_encoding_for_expression(
-                                type->variant.array.variant.element_count_expr,
-                                mctl);
+          /* Put out an encoding for the bound. */
+          mangled_encoding_for_constant(
+                            type->variant.array.variant.element_count_constant,
+                            /*old_form=*/FALSE,
+                            mctl);
         } else {
           /* Put out the (constant) number of elements. */
           add_number_to_mangled_name((unsigned long)type->variant.array.
