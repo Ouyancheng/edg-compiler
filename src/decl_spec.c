@@ -1679,9 +1679,10 @@ is a that of a constructor.
        class being defined. */
     rescan_cached_tokens(&cache);
     if (is_constructor) {
-      /* Turn the current locator from a "specific symbol" locator
-         into a constructor locator. */
-      curr_scope_id_lookup(&locator_for_curr_id, IDL_PROJ_SYMBOL_ALLOWED);
+      /* Turn the current locator from a "specific symbol" locator into a
+         constructor locator. */
+      (void)curr_scope_id_lookup(&locator_for_curr_id,
+                                 IDL_PROJ_SYMBOL_ALLOWED);
       sym = locator_for_curr_id.specific_symbol;
       if (sym != tag_sym) {
         /* The symbol one gets by looking up the class name is not the same as
