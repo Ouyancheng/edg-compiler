@@ -3100,11 +3100,9 @@ supplies the usual nesting_level == 1.
                           ctsp;
   a_source_correspondence *parent_scp;
   a_boolean               more_levels;
-#if !IA64_ABI
   a_boolean               show_partial_spec_args = FALSE;
   a_boolean               is_template_specialization = FALSE;
   a_boolean               is_specialization = FALSE;
-#endif /* !IA64_ABI */
 
   /* See if the present level is nested inside some other class or
      namespace. */
