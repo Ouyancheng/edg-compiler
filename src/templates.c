@@ -325,9 +325,10 @@ contains a template-parameter type, return a copy with the substitution made.
 If it involves no template-parameter type, simply return "type".
 */
 {
-  a_type_ptr          tp, tp2;
-  int                 i;
+  a_type_ptr          new_type, tp, tp2;
+  int                 i, reusable_param_types;
   a_template_arg_ptr  tap;
+  a_type_ptr          new_return_type, first_new_type_for_param_types_list;
   a_param_type_ptr    ptp, new_ptp, prev_ptp;
 
   db_enter(5, "copy_type_with_substitution");
@@ -353,7 +354,7 @@ If it involves no template-parameter type, simply return "type".
         internal_error("copy_type_with_substitution: NULL ptr in templ arg");
       }  /* if */
 #endif /* CHECKING */
-      type = tap->variant.type;
+      new_type = tap->variant.type;
       break;
     case tk_pointer:
       /* Make a pointer type based on a copy (or reuse, if copying is not
@@ -361,16 +362,16 @@ If it involves no template-parameter type, simply return "type".
       tp = type->variant.pointer.type;
       tp = copy_type_with_substitution(tp, templ_arg_list);
       if (type->variant.pointer.is_reference) {
-        type = make_reference_type(tp);
+        new_type = make_reference_type(tp);
       } else {
-        type = make_pointer_type(tp);
+        new_type = make_pointer_type(tp);
       }  /* if */
       break;
     case tk_typeref:
       /* Make an identically qualified type of a copy (or reuse) of the type
          that underlies the typeref. */
       tp = copy_type_with_substitution(skip_typerefs(type), templ_arg_list),
-      type = make_identically_qualified_type(tp, type);
+      new_type = make_identically_qualified_type(tp, type);
       break;
     case tk_ptr_to_member:
       /* Make a pointer to member type.  The current pointer to member type
@@ -381,48 +382,95 @@ If it involves no template-parameter type, simply return "type".
       tp2 = copy_type_with_substitution(
                           type->variant.ptr_to_member.class_of_which_a_member,
                           templ_arg_list);
-      type = ptr_to_member_type(tp, tp2);
+      new_type = ptr_to_member_type(tp, tp2);
       break;
     case tk_routine:
-      /* Make a routine type based on the "type" making substitutions as
-         required in the return type and each of the parameter types. */
-      tp = alloc_type((a_type_kind)tk_routine);
-      /* Fill in the return type. */
-      tp2 = copy_type_with_substitution(type->variant.routine.return_type,
+      /* We can reuse "type" as long as we can reuse the return type and all
+         its param types.  Otherwise we will need to allocate a new type entry.
+         Go through "type" until we find that a new type was returned from
+         copy_type_with_substitution. */
+      reusable_param_types = 0;
+      first_new_type_for_param_types_list = NULL;
+      new_return_type = copy_type_with_substitution(
+                                        type->variant.routine.return_type,
                                         templ_arg_list);
-      tp->variant.routine.return_type = tp2;
+      if (new_return_type != type->variant.routine.return_type) {
+        /* A substitution was made on the return type, so a new routine type
+           will be required. */
+        goto make_new_type;
+      }  /* if */
+      /* Now examine each of the parameters. */
+      for (ptp = type->variant.routine.extra_info->param_type_list;
+           ptp != NULL;
+           ptp = ptp->next) {
+        tp = copy_type_with_substitution(ptp->type, templ_arg_list);
+        if (tp != ptp->type) {
+          /* A substitution was made, so a new routine type will be required.
+             Remember tp so we can avoid calling copy_type_with_substituion
+             again for this param type entry. */
+          first_new_type_for_param_types_list = tp;
+          goto make_new_type;
+        }  /* if */
+        /* Keep track of the number of param type entries for which reuse of
+           the existing type is okay. */
+        ++reusable_param_types;
+      }  /* for */
+      /* Falling through to here means that no substitutions are required
+         for this type.  Therefore it can simply be reused. */
+      new_type = type;
+      break;
+make_new_type:
+      /* Make a routine type based on "type".  Checking for reusable types has 
+         already been done for the return type and possibly for some of the
+         parameter types. */
+      new_type = alloc_type((a_type_kind)tk_routine);
+      /* Fill in the return type.  It has already been determined. */
+      new_type->variant.routine.return_type = new_return_type;
       /* Clone the routine type supplement, except for the pointers. */
-      *(tp->variant.routine.extra_info) = *(type->variant.routine.extra_info);
-      tp->variant.routine.extra_info->assoc_routine = NULL;
+      *(new_type->variant.routine.extra_info) =
+                                       *(type->variant.routine.extra_info);
+      new_type->variant.routine.extra_info->assoc_routine = NULL;
       /* Make copies of the entries on type's param types list, making the
          appropriate substitutions for template parameter type entries. */
-      ptp = type->variant.routine.extra_info->param_type_list;
       prev_ptp = NULL;
-      for (; ptp != NULL; ptp = ptp->next) {
-        new_ptp = alloc_param_type(copy_type_with_substitution(ptp->type,
-                                                              templ_arg_list));
+      for (ptp = type->variant.routine.extra_info->param_type_list;
+           ptp != NULL;
+           ptp = ptp->next) {
+        if (reusable_param_types > 0) {
+          /* We have already called copy_type_with_substitution for this
+             parameter and we know we can reuse the existing type. */
+          tp = ptp->type;
+          --reusable_param_types;
+        } else if (first_new_type_for_param_types_list != NULL) {
+          /* We have already called copy_type_with_substitution for this
+             parameter and the type returned contained a substitution; we can
+             use that type. */
+          tp = first_new_type_for_param_types_list;
+          first_new_type_for_param_types_list = NULL;
+        } else {
+          /* copy_type_with_substitution has not been called yet. */
+          tp = copy_type_with_substitution(ptp->type, templ_arg_list);
+        }  /* if */
+        /* Allocate the param type entry and copy default arg info. */
+        new_ptp = alloc_param_type(tp);
         if (ptp->has_default_arg) {
           new_ptp->has_default_arg = TRUE;
           new_ptp->default_arg_expr = copy_expr_tree(ptp->default_arg_expr,
                                                      /*clone_temps=*/TRUE);
         }  /* if */
+        /* Add the new param type entry to the param types list. */
         if (prev_ptp == NULL) {
-          tp->variant.routine.extra_info->param_type_list = new_ptp;
+          new_type->variant.routine.extra_info->param_type_list = new_ptp;
         } else {
           prev_ptp->next = new_ptp;
         }  /* if */
         prev_ptp = new_ptp;
       }  /* if */
-      set_routine_calling_method_flag(tp);
-      /* If a brand new type is created, add it to the types list at file
-         scope.  Otherwise, just reuse the same type. */
-      if (identical_types(type, tp)) {
-        /* Throw the new type (tp) away. */
-      } else {
-        type = tp;
-        add_to_types_list(type, DEPTH_OF_FILE_SCOPE,
+      set_routine_calling_method_flag(new_type);
+      /* A brand new type has been created -- add it to the file scope types
+         list. */
+      add_to_types_list(new_type, DEPTH_OF_FILE_SCOPE,
                           /*in_old_style_param_decl_list=*/FALSE);
-      }  /* if */
       break;
     case tk_array:
       /* Make an array type based on "type", making substitutions as
@@ -430,25 +478,31 @@ If it involves no template-parameter type, simply return "type".
          require substitution, we don't create a new type entry. */
       tp = copy_type_with_substitution(type->variant.array.element_type,
                                        templ_arg_list);
-      if (!identical_types(tp, type->variant.array.element_type)) {
-        type = alloc_type((a_type_kind)tk_array);
-        type->variant.array.element_type = tp;
-        set_type_size(type);
-        add_to_types_list(type, DEPTH_OF_FILE_SCOPE,
+      if (tp == type->variant.array.element_type) {
+        /* Reuse the current type. */
+        new_type = type;
+      } else {
+        /* Create a new array type. */
+        tp2 = alloc_type((a_type_kind)tk_array);
+        *tp2 = *type;
+        tp2->variant.array.element_type = tp;
+        new_type = tp2;
+        add_to_types_list(new_type, DEPTH_OF_FILE_SCOPE,
                           /*in_old_style_param_decl_list=*/FALSE);
       }  /* if */
     default:;
       /* No modification required. */
+      new_type = type;
   }  /* switch */
 #if DEBUG
   if (debug_level >= 5) {
     fputs("out: ", f_debug);
-    db_type(type);
+    db_type(new_type);
     fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-  return type;
+  return new_type;
 }  /* copy_type_with_substitution */
 
 
