@@ -1,5 +1,18 @@
 Version 2.36
 
+4/22/97   Microsoft compatibility:  long + int is int
+
+The Microsoft Visual C++ compiler, amazingly, considers that an expression
+like "long_expr + int_expr" has type "int".  Many, but not all, operators
+have the same behavior.  This matters in cases like
+
+  void f(int);
+  void f(long);
+  int main() {
+     long q = 0;
+     f(q+1);  // calls f(int)
+  }
+
 4/21/97   Microsoft compatibility: bool, explicit, and typename are now
           supported by the Microsoft compiler
 

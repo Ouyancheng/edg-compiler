@@ -6805,6 +6805,41 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
 }  /* scan_functional_notation_type_conversion */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void adjust_operands_for_microsoft_int_long_bug(an_operand *operand_1,
+                                                       an_operand *operand_2)
+/*
+Microsoft's Visual C++ compiler has a bug that makes an expression like
+"l + i", where l is a long and i is an int, have a result type of int.
+This routine is called in cases where that bug should be duplicated.
+operand_1 and operand_2 are the first and second operands of an operation.
+Note that the bug only operates in one direction, i.e., "i + l" does not
+yield an int.
+*/
+{
+  if (microsoft_mode &&
+      targ_sizeof_long == targ_sizeof_int &&
+      is_integral_type(operand_1->type) &&
+      is_integral_type(operand_2->type)) {
+    a_type_ptr op1_type = skip_typerefs(operand_1->type);
+    a_type_ptr op2_type = skip_typerefs(operand_2->type);
+    if (op1_type->variant.integer.int_kind == (an_integer_kind)ik_long &&
+        op2_type->variant.integer.int_kind == (an_integer_kind)ik_int) {
+      /* The bug applies.  Cast the first operand to int. */
+      cast_operand(op2_type, operand_1,
+                   /*check_cast_access=*/FALSE, /*is_implicit_cast=*/TRUE,
+                   /*is_reinterpret_cast=*/FALSE);
+    }  /* if */
+  }  /* if */
+}  /* adjust_operands_for_microsoft_int_long_bug */
+
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+
+#define adjust_operands_for_microsoft_int_long_bug() /* Nothing */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 static void scan_mult_operator(an_operand *operand_1,
                                an_operand *result)
 /*
@@ -6872,6 +6907,7 @@ be of integral type.  See section 3.3.5 of the standard.
       (void)check_arithmetic_or_enum_operand(&operand_2);
     }  /* if */
 
+    adjust_operands_for_microsoft_int_long_bug(operand_1, &operand_2);
     result_type = determine_arithmetic_conversions(operand_1, &operand_2);
     change_binary_operand_types(result_type, operand_1, &operand_2);
     if ((save_token == tok_divide || save_token == tok_remainder) &&
@@ -7040,6 +7076,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
       if (is_arithmetic_or_enum_type(operand_2.type)) {
         /* Arithmetic/enum +- arithmetic/enum. */
         /* Determine the result type based on the 2 operands. */
+        adjust_operands_for_microsoft_int_long_bug(operand_1, &operand_2);
         result_type = operation_type = 
                        determine_arithmetic_conversions(operand_1, &operand_2);
         both_operands_are_arithmetic = TRUE;
@@ -7612,6 +7649,7 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
     (void)check_integral_or_enum_operand(operand_1);
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     (void)check_integral_or_enum_operand(&operand_2);
+    adjust_operands_for_microsoft_int_long_bug(operand_1, &operand_2);
     result_type = determine_arithmetic_conversions(operand_1, &operand_2);
     change_binary_operand_types(result_type, operand_1, &operand_2);
     op = which_binary_operator(save_token, result_type);
@@ -8325,6 +8363,10 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       } else if (is_arithmetic_or_enum_type(operand_2.type)) {
         /* Both operands should be arithmetic or enum. */
         (void)check_arithmetic_or_enum_operand(&operand_3);
+        /* The Microsoft Visual C++ compiler treats "x ? long_expr : int_expr"
+           and "x ? int_expr : long_expr" as having result type int. */
+        adjust_operands_for_microsoft_int_long_bug(&operand_2, &operand_3);
+        adjust_operands_for_microsoft_int_long_bug(&operand_3, &operand_2);
         result_type = determine_arithmetic_conversions(&operand_2, &operand_3);
         /* If both operands have the same enumerated type, keep that
            information in the result.  The "?" operator is unusual in that
