@@ -1778,7 +1778,6 @@ come out on the closing "}".
 
   /* Pop a name scope if one was pushed earlier in this routine (for
      a block). */
-  scope_ptr = NULL;
   if (!at_function_level) {
     /* Store the IL scope pointer in the block.  This is NULL except for
        blocks with declarations. */
