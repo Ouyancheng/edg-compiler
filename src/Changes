@@ -1,5 +1,20 @@
 Version 2.32
 
+6/7/96  IL CHANGE: ck_cast removed, tpck_cast/tpck_sizeof/tpck_alignof added
+
+The ck_cast variant of the IL a_constant entry has been removed.  It was
+not being used; we anticipated using it in a particular way, and decided
+against it.  In its place, we added a tpck_cast variant under the
+ck_template_param variant of a_constant.  We also added variants
+tpck_sizeof and tpck_alignof.  These are used to represent yet more
+instances of constants whose values are unknown because they are based
+on template parameters.
+
+Since these constants appear in the types of function templates, they
+also appear in mangled names for templates.  The new operator encodings
+"cs", "sz", and "af" have been added to represent cast, sizeof, and
+__ALIGNOF__.  (See 5/10/96 entry on new name mangling for templates.)
+
 6/4/96  definition_needed flag for routines
 
 When MAINTAIN_NEEDED_FLAGS is enabled, a definition_needed flag is now
