@@ -590,7 +590,7 @@ Install the keywords in the symbol table.
     }  /* if */
   }  /* if */
 #if SUN_EXTENSIONS_ALLOWED
-  if (sun_mode && sun_linker_scope_allowed) {
+  if (sun_linker_scope_allowed) {
     enter_keyword((a_token_kind)tok_global_link_scope, "__global");
     enter_keyword((a_token_kind)tok_symbolic_link_scope, "__symbolic");
     enter_keyword((a_token_kind)tok_hidden_link_scope, "__hidden");

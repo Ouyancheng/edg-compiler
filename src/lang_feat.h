@@ -381,7 +381,7 @@ sun_mode and can be overridden by the command-line options --sun and --no_sun.
 
 /*
 Flag that is TRUE if Sun CC 5.5 linker scope specifiers (__global, __hidden,
-__symbolic) should be accepted by default in Sun mode. */
+__symbolic) should be accepted by default. */
 #if SUN_EXTENSIONS_ALLOWED
 #ifndef DEFAULT_SUN_LINKER_SCOPE_ALLOWED
 #define DEFAULT_SUN_LINKER_SCOPE_ALLOWED TRUE
@@ -792,7 +792,7 @@ EXTERN a_boolean
                 sun_linker_scope_allowed;
                         /* TRUE if Sun C++ 5.5 linker scope specifiers
                            (__global, __symbolic, __hidden) should be
-                           accepted. */
+                           accepted.  They can also be enabled in C mode. */
 #endif /* SUN_EXTENSIONS_ALLOWED */
 
 /*

@@ -2754,14 +2754,6 @@ Sun mode is not selected: Make sure no option specific to Sun mode was
 selected either.
 */
 {
-#if SUN_EXTENSIONS_ALLOWED
-  if (sun_linker_scope_allowed) {
-    if (option_kind_used[(int)optk_sun_linker_scope]) {
-      command_line_error(ec_cl_sun_linker_scope_requires_sun_mode);
-    }  /* if */
-    sun_linker_scope_allowed = FALSE;
-  }  /* if */
-#endif /* SUN_EXTENSIONS_ALLOWED */
 }  /* exclude_sun_specific_options */
 
 
@@ -3886,7 +3878,8 @@ enable_microsoft_mode:
            __symbolic, and __hidden.  This option controls whether the front
            end should accept those specifiers.  ("__global" is unfortunately
            used in the standard header files shipped with Sun CC versions
-           prior to 5.5.) */
+           prior to 5.5.)  These keywords can also be enabled in C mode,
+           because the Sun C compiler also accepts them. */
         sun_linker_scope_allowed = opt_value;
         break;
 #endif /* SUN_EXTENSIONS_ALLOWED */
