@@ -5469,6 +5469,9 @@ point to the character after the universal character name.
   check_assertion_str2(*pos == '\\' && (*(pos+1) == 'u' || *(pos+1) == 'U'),
                        "scan_universal_character:",
                        "curr pos not universal character");
+  /* Suppress diagnostics if we are skipping over this string because of
+     some kind of preprocessor "if" directive. */
+  if (currently_in_pp_if_skip) issue_diagnostics = FALSE;
   /* Skip past the "\u" or "\U", and determine whether we are processing a
      four or eight character name.  "\u" is followed by four hex digits,
      "\U" is followed by eight hex digits. */
