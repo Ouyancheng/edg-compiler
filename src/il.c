@@ -3712,14 +3712,31 @@ region).
       /* The variable pointed to must be in the function scope. */
       break;
 #endif /* DO_IL_LOWERING && ... */
-#if CHECKING
-    case ck_aggregate:
     case ck_template_param:
-      /* Aggregates and template parameters shouldn't be shared, so we don't
-         expect them here. */
+      switch (cp->variant.template_param.kind) {
+        case tpck_param:
+        case tpck_member:
+        case tpck_unknown_function:
+        case tpck_sizeof:
+        case tpck_alignof:
+        case tpck_uuidof:
+          break;
+        case tpck_expression:
+          has_nfs_ref= !in_file_scope(cp->variant.template_param.variant.expr);
+          break;
+        case tpck_cast:
+          has_nfs_ref =
+           has_non_file_scope_ref(cp->variant.template_param.variant.constant);
+          break;
+        default:
+          unexpected_condition_str(
+                         "has_non_file_scope_ref: bad template constant kind");
+      }  /* switch */
+      break;
+    /* Aggregates shouldn't be shared, so we don't expect them here. */
+    case ck_aggregate:
     default:
-      internal_error("has_non_file_scope_ref: bad constant kind");
-#endif /* CHECKING */
+      unexpected_condition_str("has_non_file_scope_ref: bad constant kind");
   }  /* switch */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   if (!has_nfs_ref && cp->expr != NULL && !in_file_scope(cp->expr)) {
@@ -3752,9 +3769,18 @@ put it on a list of constants).
   /* For constants with a source correspondence indicated, find the
      "master" copy by going up the source correspondence link and back
      down again. */
-  if ((assoc_symbol = ((a_symbol_ptr)cp->source_corresp.assoc_info)) != NULL) {
+  assoc_symbol = ((a_symbol_ptr)cp->source_corresp.assoc_info);
+  check_assertion(assoc_symbol == NULL ||
+                  assoc_symbol->kind == (a_symbol_kind)sk_constant);
+  if (assoc_symbol != NULL &&
+      /* Ignore tpck_member constants with the is_address flag set -- they
+         aren't the primary constant for the symbol. */
+      !(cp->kind == (a_constant_repr_kind)ck_template_param &&
+        cp->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_member &&
+      
+        cp->variant.template_param.variant.is_address)) {
     /* Constant (enumeration). */
-    check_assertion(assoc_symbol->kind == (a_symbol_kind)sk_constant);
     scp = assoc_symbol->variant.constant;
 #if CHECKING
     if (cp->implicit_cast != scp->implicit_cast) {
@@ -3764,15 +3790,17 @@ put it on a list of constants).
            "alloc_shareable_constant: implicitly-cast const has assoc_info");
     }  /* if */
 #endif /* CHECKING */
-  } else if (cp->kind == (a_constant_repr_kind)ck_template_param
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-             || cp->expr != NULL
+  } else if (cp->expr != NULL) {
+    /* Constants that track the expression that generated them should
+       not be shared. */
+    scp = alloc_unshared_constant(cp);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-                                ) {
+  } else if (cp->kind == (a_constant_repr_kind)ck_template_param &&
+             !prototype_instantiations_in_il) {
     /* Template param constants should not be made part of the IL tree proper.
        Those with assoc_info non-NULL were handled above.  For others, make a
-       new copy every time.  Similarly, constants that track the expression
-       that generated them should not be shared. */
+       new copy every time. */
     scp = alloc_unshared_constant(cp);
   } else {
     /* The constant has no source correspondence. */
